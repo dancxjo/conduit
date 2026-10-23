@@ -352,7 +352,9 @@ impl FrontDoor {
             });
         }
         if let (Some(graph), Some(body)) = (
-            &self.patchbay_graph,
+            self.patchbay_graph
+                .as_ref()
+                .filter(|_| self.patchbay_fragment.is_none()),
             self.journey
                 .as_ref()
                 .and_then(|journey| journey.body_id.as_ref()),
@@ -391,6 +393,7 @@ impl FrontDoor {
             disclosures,
         )
         .map_err(|_| Error::Face)?;
+        let face = self.append_patchbay_fragment(face)?;
         if let Some(home) = &self.home {
             home.commons
                 .project(face, self.journey.as_ref().ok_or(Error::Face)?)

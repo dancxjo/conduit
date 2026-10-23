@@ -3,11 +3,15 @@ use crate::{EVENT_BYTES, SLOTS, VIEW_BYTES, data::*, tutorial::Tutorial};
 use alloc::boxed::Box;
 use patchbay_application::{PatchbayApplicationPort, PatchbayMaskTopology};
 mod builder;
+mod canonical;
 pub(crate) use builder::Builder;
 use patchbay_graph::PatchbayGraph;
 pub struct Patchbay {
     ports: [Option<Box<PatchbayApplicationPort>>; SLOTS],
     selected: usize,
+    publication: Option<Box<canonical::Publication>>,
+    publication_sequence: u64,
+    canonical: bool,
 }
 enum Application {
     Tutorial(Tutorial),
@@ -44,6 +48,20 @@ impl Models {
             Application::Tour(_) => Some(Kind::Tour),
             Application::Patchbay(_) => Some(Kind::Patchbay),
         }
+    }
+    /// One-way preparation of the canonical resident route, preserving actor and
+    /// consumed-Show watermark. It never creates an input or replenishes authority.
+    pub fn canonical(&mut self, slot: usize) -> Result<(), Refusal> {
+        let Some(Application::Patchbay(p)) =
+            self.applications.get_mut(slot).and_then(Option::as_mut)
+        else {
+            return Err(Refusal::Order);
+        };
+        if p.publication.is_some() {
+            return Err(Refusal::Order);
+        }
+        p.canonical = true;
+        Ok(())
     }
     pub fn graph(&self, slot: usize) -> Option<&PatchbayGraph> {
         let Application::Patchbay(p) = self.applications.get(slot)?.as_ref()? else {
@@ -86,6 +104,10 @@ impl Models {
                 (out.view, request, context)
             }
             Application::Patchbay(p) => {
+                if p.canonical {
+                    return Err(Refusal::Order);
+                }
+                p.publication = None;
                 let out = p.ports[p.selected]
                     .as_mut()
                     .ok_or(Refusal::Order)?
@@ -130,12 +152,14 @@ impl Models {
         if p.ports.get(target).is_none_or(Option::is_none) {
             return Err(Refusal::Bounds);
         }
+        p.publication = None;
         p.selected = target;
         Ok(())
     }
     pub fn topology(&mut self, topology: &PatchbayMaskTopology) -> Result<(), Refusal> {
         for app in self.applications.iter_mut().flatten() {
             if let Application::Patchbay(p) = app {
+                p.publication = None;
                 for port in p.ports.iter_mut().flatten() {
                     port.set_mask_topology(topology.clone());
                 }
@@ -157,6 +181,10 @@ impl Models {
     pub fn snapshots(&mut self) -> Result<[Option<Snapshot>; SLOTS], Refusal> {
         let mut out = core::array::from_fn(|_| None);
         for (slot, target) in out.iter_mut().enumerate() {
+            if matches!(self.applications[slot].as_ref(), Some(Application::Patchbay(p)) if p.canonical)
+            {
+                continue;
+            }
             if self.kind(slot).is_some() {
                 let (snapshot, proposal) = self.apply(slot, &[])?;
                 if proposal.is_some() {
@@ -169,6 +197,24 @@ impl Models {
     }
     pub fn execute(&mut self, command: Command) -> Result<Reply, Refusal> {
         match command {
+            Command::PatchbayCanonical { slot } => {
+                self.canonical(usize::from(slot))?;
+                Ok(Reply::Prepared)
+            }
+            Command::PatchbayFragment {
+                slot,
+                body,
+                basis,
+                actions_admitted,
+            } => self.patchbay_fragment(slot, body, basis, actions_admitted),
+            Command::PatchbayPublish {
+                slot,
+                body,
+                basis,
+                face,
+                show,
+            } => self.patchbay_publish(slot, body, basis, face, show),
+            Command::PatchbayConsume { slot, input } => self.patchbay_consume(slot, &input),
             Command::PrepareInit { .. }
             | Command::PrepareTarget { .. }
             | Command::FinishTarget { .. }

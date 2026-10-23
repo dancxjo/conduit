@@ -17,6 +17,10 @@ use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{Face, FaceInteraction, MaskShow, RemoteOwnerMaskRouteSeal};
 use conduit_human::KeyEvent;
 
+#[path = "face_arrival/selection.rs"]
+mod selection;
+pub(super) use selection::OwnerSelectionError;
+
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
     basis: BirthFaceBasis,
@@ -111,60 +115,6 @@ impl FaceArrival {
                 route_plan_id: owner_route.map(|route| route.route_plan_id.clone()),
             },
         })
-    }
-
-    /// Mask-local appearance replacement through the current authenticated owner.
-    /// The owner returns the identical Face and a newly sealed planned Mask.
-    pub(super) fn select_owner_component(
-        &mut self,
-        identities: BootIdentities,
-        prior: &crate::native_guest_face::NativeGuestFace,
-        route: &mut NativeOwnerReturnRoute,
-        look: conduit_face::ComponentMaskLook,
-        recipe: conduit_face::TodoComponentRecipe,
-        display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
-        let old_show = self.mask.show().cloned().ok_or("owner-face-show-absent")?;
-        let fresh = route.select_component(identities, prior, &old_show, look, recipe)?;
-        self.replace_owner_mask(&fresh, display)?;
-        self.acknowledge_owner_show(route, identities)?;
-        self.preparation.selected = Some((look, recipe));
-        Ok(fresh)
-    }
-
-    pub(super) fn toggle_owner_text_scale(
-        &mut self,
-        prior: &crate::native_guest_face::NativeGuestFace,
-        route: &mut NativeOwnerReturnRoute,
-        identities: BootIdentities,
-        display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
-        self.preparation.minimum_text_scale_percent =
-            if self.preparation.minimum_text_scale_percent == 100 {
-                200
-            } else {
-                100
-            };
-        let (look, recipe) = self.preparation.selected.unwrap_or((
-            conduit_face::ComponentMaskLook::Compact,
-            conduit_face::TodoComponentRecipe::Flat,
-        ));
-        self.select_owner_component(identities, prior, route, look, recipe, display)
-    }
-
-    pub(super) fn toggle_owner_forced_colors(
-        &mut self,
-        prior: &crate::native_guest_face::NativeGuestFace,
-        route: &mut NativeOwnerReturnRoute,
-        identities: BootIdentities,
-        display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
-        self.preparation.forced_colors = !self.preparation.forced_colors;
-        let (look, recipe) = self.preparation.selected.unwrap_or((
-            conduit_face::ComponentMaskLook::Compact,
-            conduit_face::TodoComponentRecipe::Flat,
-        ));
-        self.select_owner_component(identities, prior, route, look, recipe, display)
     }
 
     pub(super) fn suspend(&mut self) -> Result<(), &'static str> {
@@ -269,7 +219,11 @@ impl FaceArrival {
             .key(event, sequence, display)
             .map_err(|error| error.as_str())?
         {
-            NativeFaceMaskInput::Unchanged | NativeFaceMaskInput::Redrawn(_) => Ok(None),
+            NativeFaceMaskInput::Unchanged => Ok(None),
+            NativeFaceMaskInput::Redrawn(_) => {
+                self.record_focus()?;
+                Ok(None)
+            }
             NativeFaceMaskInput::Submitted { correlation, .. } => {
                 Ok(Some((show, correlation.interaction)))
             }
@@ -378,7 +332,11 @@ impl FaceArrival {
         code: &str,
         display: &mut impl PixelTarget,
     ) -> Result<(), &'static str> {
-        let message = alloc::format!("Input refused: {code}");
+        let message = if code == "owner-look-provisional-input" {
+            "Finish or cancel your edit before changing appearance".into()
+        } else {
+            alloc::format!("Input refused: {code}")
+        };
         self.mask
             .show_local_notice(&message, display)
             .map_err(|error| error.as_str())?;

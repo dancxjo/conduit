@@ -1,0 +1,32 @@
+
+/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/deps/conduitos-ff6c8edf1239f389:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+000000000267f850 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door15workspace_input5tests9listening>:
+ 267f850:	49 89 e3             	mov    %rsp,%r11
+ 267f853:	49 81 eb 00 80 00 00 	sub    $0x8000,%r11
+ 267f85a:	48 81 ec 00 10 00 00 	sub    $0x1000,%rsp
+ 267f861:	48 c7 04 24 00 00 00 	movq   $0x0,(%rsp)
+ 267f868:	00 
+ 267f869:	4c 39 dc             	cmp    %r11,%rsp
+ 267f86c:	75 ec                	jne    267f85a <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door15workspace_input5tests9listening+0xa>
+ 267f86e:	48 81 ec e8 0a 00 00 	sub    $0xae8,%rsp
+ 267f875:	48 89 bc 24 c0 00 00 	mov    %rdi,0xc0(%rsp)
+ 267f87c:	00 
+ 267f87d:	48 89 bc 24 c8 00 00 	mov    %rdi,0xc8(%rsp)
+ 267f884:	00 
+ 267f885:	c6 84 24 97 89 00 00 	movb   $0x0,0x8997(%rsp)
+ 267f88c:	00 
+ 267f88d:	c6 84 24 95 89 00 00 	movb   $0x0,0x8995(%rsp)
+ 267f894:	00 
+ 267f895:	c6 84 24 94 89 00 00 	movb   $0x0,0x8994(%rsp)
+ 267f89c:	00 
+ 267f89d:	c6 84 24 93 89 00 00 	movb   $0x0,0x8993(%rsp)
+ 267f8a4:	00 
+ 267f8a5:	c6 84 24 96 89 00 00 	movb   $0x0,0x8996(%rsp)
+ 267f8ac:	00 
+ 267f8ad:	48                   	rex.W
+ 267f8ae:	8d                   	.byte 0x8d
+ 267f8af:	bc                   	.byte 0xbc

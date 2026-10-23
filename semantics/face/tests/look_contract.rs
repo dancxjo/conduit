@@ -17,7 +17,7 @@ fn neutral(
 
 #[test]
 fn canonical_identity_version_and_retired_identities_are_exact() {
-    let value = neutral("conduit.look/neutral@1", 1).unwrap();
+    let value = neutral("conduit.look/neutral@1", 2).unwrap();
     assert_eq!(
         LookInfo::decode(&value.clone().encode().unwrap()).unwrap(),
         value
@@ -27,11 +27,11 @@ fn canonical_identity_version_and_retired_identities_are_exact() {
         "conduit.face/phosphor@1",
         "conduit.presentation/phosphor@1",
     ] {
-        assert!(neutral(identity, 1).is_err());
+        assert!(neutral(identity, 2).is_err());
     }
-    assert!(neutral(&"x".repeat(129), 1).is_err());
+    assert!(neutral(&"x".repeat(129), 2).is_err());
     assert!(neutral("conduit.look/neutral@1", 0).is_err());
-    assert!(neutral("conduit.look/neutral@1", 2).is_err());
+    assert!(neutral("conduit.look/neutral@1", 1).is_err());
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn spoken_and_generative_facets_are_distinct_closed_parameters() {
         generative,
         "conduit.look/narration@1".into(),
         spoken,
-        1,
+        2,
         LookVisualFacetOption::None,
     )
     .unwrap();
@@ -95,4 +95,18 @@ fn canonical_phosphor_assets_are_typed_and_self_consistent() {
         .map(|p| u8::from_str_radix(core::str::from_utf8(p).unwrap(), 16).unwrap())
         .collect();
     assert!(LookInfo::decode(&retired).is_err());
+}
+
+#[test]
+fn historical_look_v1_wire_is_not_silently_extended_with_typography() {
+    let bytes: Vec<_> = include_str!("../../../proof/conformance/face-look/phosphor-look-v1.hex")
+        .split_whitespace()
+        .collect::<String>()
+        .as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect();
+    assert!(LookInfo::decode(&bytes).is_err());
 }

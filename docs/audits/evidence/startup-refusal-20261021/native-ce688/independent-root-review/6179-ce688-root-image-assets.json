@@ -1,0 +1,43 @@
+{
+  "status": "verified",
+  "source": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+  "images": [
+    {
+      "host": "conduitos/x86_64/pc",
+      "bytes": 81803264,
+      "image_sha256": "202d961074606158f74f02013f75a5ce2560d7cf92ccf7dc0f4399aec5a2a654",
+      "present_markers": [
+        "CONDUIT_GRAPHICAL_PROFILE",
+        "CONDUIT_GRAPHICAL_ASSET_BODY_ATLAS",
+        "CONDUIT_GRAPHICAL_ASSET_HEADING_ATLAS",
+        "CONDUIT_GRAPHICAL_ASSET_TITLE_ATLAS",
+        "CONDUIT_GRAPHICAL_ASSET_CODE_ATLAS"
+      ]
+    },
+    {
+      "host": "conduitos/ia32/pc",
+      "bytes": 10164224,
+      "image_sha256": "d88e1aeb7011a5e48238173d01ab7f4771babc7d25a568df098eaf1238830e73",
+      "present_markers": []
+    },
+    {
+      "host": "conduitos/aarch64/virt",
+      "bytes": 11898880,
+      "image_sha256": "67eb18b54d0e5ec4e8353aefbb06d38de8727039197193f0a51410657c758fdb",
+      "present_markers": []
+    },
+    {
+      "host": "conduitos/riscv64/virt",
+      "bytes": 9138176,
+      "image_sha256": "ea0bd04ae2df76b4383f4803d574b49d722b8b44ded8999203be4fd6a37b94ea",
+      "present_markers": []
+    },
+    {
+      "host": "conduitos/loongarch64/virt",
+      "bytes": 10883072,
+      "image_sha256": "ca5ef0553e81b94097afaa8acc19a6af85089f3d9048f122d3156cc16d476f94",
+      "present_markers": []
+    }
+  ],
+  "scope": "Original image bytes and graphical asset markers; non-x86 runtime untested."
+}

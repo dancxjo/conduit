@@ -60,6 +60,9 @@ impl BrowserMaskRuntime {
         if bytes.len() > self.interaction_boundary.byte_capacity as usize {
             return Err("browser Mask interaction exceeds its sealed Fore bound".into());
         }
+        if self.pending_interaction_node.is_none() || self.pending_interaction_request.is_none() {
+            return Err("browser Mask has no live DOM interaction request".into());
+        }
         let value = self
             .scheduler
             .store_host_value(&bytes)

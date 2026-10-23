@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-browser-mask-offer = { path = "../mask-offer" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-browser-host = { path = "../../../targets/browser/host" }
 conduit-core = { path = "../../../architecture/core" }

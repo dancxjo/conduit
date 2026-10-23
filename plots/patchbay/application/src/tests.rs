@@ -202,18 +202,25 @@ fn mask_topology_is_visible_and_requests_the_exact_body_plan() {
         .iter()
         .find(|action| action.id == CHANGE_MASKS_ACTION_ID)
         .unwrap();
-    let changed = port
-        .apply(
-            &ApplicationEvent {
-                revision: view.revision,
-                action: action.id.clone(),
-                kind: action.event,
-                value: Vec::new(),
-            }
-            .encode(&view)
-            .unwrap(),
-        )
-        .unwrap();
+    let encoded = ApplicationEvent {
+        revision: view.revision,
+        action: action.id.clone(),
+        kind: action.event,
+        value: Vec::new(),
+    }
+    .encode(&view)
+    .unwrap();
+    let changed = port.apply(&encoded).unwrap();
+    assert_eq!(
+        ApplicationView::decode(&changed.view).unwrap().revision,
+        view.revision + 1
+    );
+    assert_eq!(
+        port.apply(&encoded),
+        Err(PatchbayApplicationRefusal::Event(
+            ApplicationViewRefusal::StaleRevision
+        ))
+    );
     assert_eq!(
         changed.request,
         Some(PatchbayApplicationRequest::ChangeMasks {
@@ -294,4 +301,43 @@ fn resident_canvas_preserves_exact_graph_and_authoritative_subject_selection() {
         ApplicationView::decode(&port.apply(&[]).unwrap().view).unwrap(),
         current
     );
+}
+
+#[test]
+fn resident_effect_revision_exhaustion_is_atomic() {
+    for action in [
+        "patchbay.plot.0",
+        EDIT_CURRENT_ACTION_ID,
+        INSPECT_NEXT_ACTION_ID,
+    ] {
+        let mut port = PatchbayApplicationPort::open(
+            &plot(),
+            PlanId::from("plan/current"),
+            PlanId::from("body-plan/current"),
+        )
+        .unwrap();
+        assert!(port.graph().subject_identities().count() > 1);
+        port.selected_subject = 1;
+        port.edit_requested = action == "patchbay.plot.0";
+        port.revision = u32::MAX;
+        let view = port.view().unwrap();
+        let before = view.encode().unwrap();
+        let encoded = ApplicationEvent {
+            revision: view.revision,
+            action: action.into(),
+            kind: ApplicationEventKind::Activate,
+            value: Vec::new(),
+        }
+        .encode(&view)
+        .unwrap();
+        assert_eq!(
+            port.apply(&encoded),
+            Err(PatchbayApplicationRefusal::RevisionExhausted)
+        );
+        assert_eq!(
+            port.view().unwrap().encode().unwrap(),
+            before,
+            "partial mutation for {action}"
+        );
+    }
 }

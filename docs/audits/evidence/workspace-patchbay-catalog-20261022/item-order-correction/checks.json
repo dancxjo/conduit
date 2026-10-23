@@ -1,0 +1,47 @@
+{
+  "source_commit": "1ea0d49b8e2c4e36de0567e8dad27b00fb64291a",
+  "source_clean_before": true,
+  "source_clean_after": true,
+  "source_unchanged": true,
+  "change": "Move unchanged verify_isolation above unchanged test module in owner_todo_action_proof.rs; no semantic change or allow attribute",
+  "CARGO_BUILD_JOBS": 2,
+  "CARGO_INCREMENTAL": 0,
+  "CARGO_PROFILE_DEV_DEBUG": 0,
+  "CARGO_PROFILE_TEST_DEBUG": 0,
+  "RUST_MIN_STACK": "unset",
+  "commands": [
+    {
+      "command": "cargo +stable test --locked -p xtask checkpoint_inventory_distinguishes_a_changed_fork_and_refuses_symlinks -- --nocapture",
+      "exit_code": 0,
+      "passed": 1,
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-1ea0d49-todo-tests.log",
+      "original_bytes": 3325,
+      "original_sha256": "37edc4a9b08eb77acc01dcdd2f677fb2dfdd5fb408defea36193586398a7d1b8",
+      "stored": "6252-1ea0d49-todo-tests.log.gz",
+      "stored_sha256": "8c8a8e15ab5c74ebe3132d2b325467c64f20975ee4e5d7230ac141c309d3e2ea"
+    },
+    {
+      "command": "cargo +stable clippy --locked -p xtask --all-targets -- -D warnings",
+      "exit_code": 0,
+      "passed": null,
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-1ea0d49-clippy.log",
+      "original_bytes": 206,
+      "original_sha256": "e209f152eb2cbd619d9560f177e0b516c64637addb1bb0eed1e63b430ce2dc21",
+      "stored": "6252-1ea0d49-clippy.log.gz",
+      "stored_sha256": "7146b012a87cdf0b5a761bd31a352809ecb2f405f5a555cea091fb0646572613"
+    },
+    {
+      "command": "cargo +stable fmt --all -- --check",
+      "exit_code": 0,
+      "passed": null,
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-1ea0d49-fmt.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored": "6252-1ea0d49-fmt.log.gz",
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    }
+  ],
+  "prior_catalog_results_source": "52f76743743d72ca5a54bdb37feb4349ace759a0",
+  "prior_catalog_results_unchanged": true,
+  "limits": "No browser, QEMU, CI, Host admission or full Candidate acceptance claim; no PR branch mutation."
+}

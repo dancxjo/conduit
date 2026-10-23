@@ -123,6 +123,23 @@ fn nested_pure_semantic_calls_lower_to_ordered_called_kind_gears_not_host_calls(
         .iter()
         .all(|gear| gear.kind_contract_revision.as_str() != PURE_EXPRESSION_REVISION));
     assert_eq!(expanded.connections.len(), 3);
+    assert_eq!(expanded.connection_provenance.len(), 3);
+    let generated = expanded
+        .connection_provenance
+        .iter()
+        .filter(|row| row.origin == conduit_plot::ExpandedConnectionOrigin::SemanticExpression)
+        .collect::<Vec<_>>();
+    assert_eq!(generated.len(), 1);
+    assert_eq!(generated[0].source_document_id, checked.source_document_id);
+    assert_eq!(
+        generated[0].checked_plot_id,
+        checked.plots[0].checked_plot_id
+    );
+    assert_eq!(
+        generated[0].source_span,
+        checked.plots[0].cords[0].source_span
+    );
+    assert!(expanded.connections.contains(&generated[0].connection));
     expanded.validate_expansion().unwrap();
 }
 

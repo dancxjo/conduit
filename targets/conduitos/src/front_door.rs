@@ -23,6 +23,7 @@ mod graph_projection;
 mod home;
 mod home_projection;
 mod joining;
+mod patchbay_face;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
 mod projection;
@@ -72,6 +73,7 @@ pub struct FrontDoor {
     workspace: Option<crate::product_journey::WorkspaceProjection>,
     application_view: Option<conduit_face::ApplicationView>,
     patchbay_graph: Option<patchbay_graph::PatchbayGraph>,
+    patchbay_fragment: Option<conduit_face::FaceFragment>,
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     graph_facts: Option<conduitos_application_core::graph_facts::Contribution>,
     #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
@@ -174,6 +176,7 @@ impl FrontDoor {
             workspace: None,
             application_view: None,
             patchbay_graph: None,
+            patchbay_fragment: None,
             #[cfg(all(target_arch = "x86_64", target_os = "none"))]
             graph_facts: None,
             #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]

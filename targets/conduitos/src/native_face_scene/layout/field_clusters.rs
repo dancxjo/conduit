@@ -58,6 +58,7 @@ pub(super) struct Metrics {
     pub width: u16,
     pub maximum_height: u16,
     pub scale: u16,
+    pub typography: Typography,
     pub padding: u16,
 }
 
@@ -111,6 +112,7 @@ pub(super) fn measure<'a>(
                 width,
                 metrics.maximum_height,
                 metrics.scale,
+                metrics.typography,
             )?;
             demand.height += u32::from(height + metrics.padding * 2 + SPACE_SM);
             demand.rows += 1;

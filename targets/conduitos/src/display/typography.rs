@@ -5,15 +5,19 @@
 //! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
 mod coverage;
+mod selection;
+pub use selection::{TextStyle, Typography, selected_metrics};
 mod raster;
-pub use raster::{render_glyph, render_text, render_text_scaled};
+pub use raster::{render_glyph, render_text, render_text_scaled, render_text_selected};
 mod preview;
 pub use preview::single_line_preview;
 mod ink;
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
 mod scene;
-pub use scene::{render_scene, render_scene_configured, render_scene_scaled};
+pub use scene::{
+    render_scene, render_scene_configured, render_scene_scaled, render_scene_selected,
+};
 
 /// Text purpose selects a fixed made profile, never an ambient font.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -92,8 +96,12 @@ impl TextScale {
         (i32::from(value) * i32::from(self.0)).div_euclid(100) as i16
     }
 }
-pub(super) fn scaled_glyph(role: TextRole, character: char, scale: TextScale) -> GlyphRaster {
-    let mut raster = glyph(role, character);
+pub(super) fn scaled_glyph(
+    role: impl Into<TextStyle>,
+    character: char,
+    scale: TextScale,
+) -> GlyphRaster {
+    let mut raster = selected_glyph(role.into(), character);
     raster.scale = scale;
     raster
 }
@@ -103,7 +111,11 @@ pub const fn metrics(role: TextRole) -> &'static ProfileMetrics {
 }
 
 pub fn glyph(role: TextRole, character: char) -> GlyphRaster {
-    let key = (role as u8, u32::from(character));
+    selected_glyph(role.into(), character)
+}
+
+pub fn selected_glyph(style: TextStyle, character: char) -> GlyphRaster {
+    let key = (style.profile, u32::from(character));
     match GLYPHS.binary_search_by_key(&key, |glyph| (glyph.profile, glyph.codepoint)) {
         Ok(index) => GlyphRaster {
             raster: Raster::Smooth(&GLYPHS[index]),
@@ -239,7 +251,7 @@ mod tests {
     #[test]
     fn fixed_tables_are_ordered_bounded_and_have_smooth_coverage() {
         assert!(COVERAGE.len() <= 4 * 1_048_576);
-        assert!(GLYPHS.len() <= 5 * 1_024);
+        assert!(GLYPHS.len() <= 6 * 1_024);
         assert!(GLYPHS.windows(2).all(
             |pair| (pair[0].profile, pair[0].codepoint) < (pair[1].profile, pair[1].codepoint)
         ));

@@ -197,7 +197,15 @@ impl ProtectedMorse {
     pub(crate) fn proof_fixture(&mut self, swap_handles: bool) {
         self.domain.mark_fixture();
         if swap_handles {
-            core::mem::swap(&mut self.domain.serial_handle, &mut self.indicator_handle);
+            core::mem::swap(
+                &mut self
+                    .domain
+                    .serial
+                    .as_mut()
+                    .expect("admitted Morse serial owner")
+                    .handle,
+                &mut self.indicator_handle,
+            );
         }
     }
 

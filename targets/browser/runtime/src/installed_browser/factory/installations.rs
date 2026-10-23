@@ -16,6 +16,7 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::distance_frequency::INSTALLATION,
     &crate::installed_browser::application::EVENT,
     &crate::installed_browser::application::STATE,
+    &crate::installed_browser::patchbay_owner_installation::INSTALLATION,
     &crate::installed_browser::application::FACE,
     &crate::installed_browser::tutorial_presenter::REQUEST,
     &crate::installed_browser::tutorial_presenter::MANIFESTATION,

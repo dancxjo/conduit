@@ -1,0 +1,288 @@
+{
+  "schema": "conduit.audit/normal-startup-originals@1",
+  "status": "verified",
+  "source": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+  "packet": "work/6158-74-canonical-1280x800-preserved",
+  "sealed_original_files": 63,
+  "pngs_verified": 24,
+  "frames": [
+    {
+      "checkpoint": "front-door-ready",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "serial_byte_end": 20452
+    },
+    {
+      "checkpoint": "creche-ready",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "04145bb1863e46dca486213cdc3b2e2c8bc7b7320dffed4c3ab40322c3c0aa15",
+      "serial_byte_end": 48842
+    },
+    {
+      "checkpoint": "creche-editorial-compact",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "54549cc2da3272750f6aa64e5eb20a46f0954f961d1d50efb78d4b4889844320",
+      "serial_byte_end": 76944
+    },
+    {
+      "checkpoint": "creche-editorial-spacious",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "6cb4f0e55294cdf387d241f6090a7424fffcbbaf728d09e4101bf559ecbe3b72",
+      "serial_byte_end": 105238
+    },
+    {
+      "checkpoint": "creche-engineering-spacious",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "50929cde1bb80a6efec415ebdb03b1c0c623bea53ecb3d6ac20d8c7d323e0acc",
+      "serial_byte_end": 133343
+    },
+    {
+      "checkpoint": "creche-engineering-compact",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "ea1b92438507254cc629f453c86b867fc031b6334bf8229623371e38f87ab0cf",
+      "serial_byte_end": 161185
+    },
+    {
+      "checkpoint": "creche-three-selected",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "9c99a1611b4215e120362d3b9d8a682830feee23fe28aeb75ba40fd30f485a8a",
+      "serial_byte_end": 189064
+    },
+    {
+      "checkpoint": "creche-four-restored",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "3b58c3dfb17755fc56a7635afc20ce32673e8d1b28ad228465f7ad48649c625f",
+      "serial_byte_end": 216469
+    },
+    {
+      "checkpoint": "creche-fourth-checked",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e622248df4f3b2be5c4964b3454f0593680528a284722c98ec1b113c4e570311",
+      "serial_byte_end": 218487
+    },
+    {
+      "checkpoint": "creche-pointer-three-selected",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "0519c485a05277e780161af8ea1dc944d2b67ee5a98f1537938583891a5d2acd",
+      "serial_byte_end": 248901
+    },
+    {
+      "checkpoint": "creche-pointer-four-restored",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "ad53dfd3d16ee6382dde470864f0b07ea884f611ff2befaceaeb3a0ea5af19e3",
+      "serial_byte_end": 277316
+    },
+    {
+      "checkpoint": "body-playing",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "7a79931410516ab72e18b9862f1db6ffe7c06db73aad54d4e6e546f15c921c53",
+      "serial_byte_end": 435371
+    },
+    {
+      "checkpoint": "wake-refused",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "6b3708ff4ba4f6e96fb205e7462a489485763121e0c42d1990760eac8084dd95",
+      "serial_byte_end": 488967
+    },
+    {
+      "checkpoint": "protected-keyboard-canvas",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "915f3743c21c5edcd5c9a14c3ffda1c765e2115f0805fdc2728129da76ec7e1c",
+      "serial_byte_end": 528588
+    },
+    {
+      "checkpoint": "protected-memory-lantern",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "13b07dda6b0d41f25b50f2d572ebf12e530e08301e45a397728186f1b58deeb4",
+      "serial_byte_end": 809828
+    },
+    {
+      "checkpoint": "home",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "7a79931410516ab72e18b9862f1db6ffe7c06db73aad54d4e6e546f15c921c53",
+      "serial_byte_end": 871253
+    },
+    {
+      "checkpoint": "patchbay-workspace",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "274ec07b37a28541b987a5d538393cb7fb96e0cf606c72b652d6d3f8047f631b",
+      "serial_byte_end": 882312
+    },
+    {
+      "checkpoint": "patchbay-face",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "eb54f46c16bac8bf85a3520934f7f07596f9e25fc6e3ba0f63dcb7397da1f913",
+      "serial_byte_end": 914652
+    },
+    {
+      "checkpoint": "patchbay-diagram",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "c89e9aa6d604a1d5531cbd730a6168458525972c021afa515d105b1b48908ed2",
+      "serial_byte_end": 921211
+    },
+    {
+      "checkpoint": "patchbay-gear-details",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "2863c43d25a8411311d894cb441521ecfb7f3f90d8ab96357902445949941fc7",
+      "serial_byte_end": 931232
+    },
+    {
+      "checkpoint": "patchbay-diagram-returned",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "c89e9aa6d604a1d5531cbd730a6168458525972c021afa515d105b1b48908ed2",
+      "serial_byte_end": 941253
+    },
+    {
+      "checkpoint": "body-stopped",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "056eef1961c102da6aa037632ff9f080e562e18812194e33dfca37b37f0addd0",
+      "serial_byte_end": 969140
+    },
+    {
+      "checkpoint": "home-returned",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "dc14e0428ef4110ecb7126914c7546183c8677f7d4a7c8a1dd00659a303dea49",
+      "serial_byte_end": 973889
+    },
+    {
+      "checkpoint": "patchbay-reentered",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "82cc87f3f9ba25580e3dc07259e3e318431795352064253f03bc350d41748966",
+      "serial_byte_end": 976152
+    }
+  ],
+  "stage_lines": [
+    [
+      219,
+      [
+        "wake",
+        "begin"
+      ]
+    ],
+    [
+      244,
+      [
+        "wake",
+        "accepted"
+      ]
+    ],
+    [
+      245,
+      [
+        "plan",
+        "begin"
+      ]
+    ],
+    [
+      288,
+      [
+        "plan",
+        "accepted"
+      ]
+    ],
+    [
+      289,
+      [
+        "play",
+        "begin"
+      ]
+    ],
+    [
+      302,
+      [
+        "play",
+        "accepted"
+      ]
+    ]
+  ],
+  "lifecycle": [
+    {
+      "status": "born-lulled",
+      "revision": 3,
+      "body_id": "605d210c40b346560839267366f296b287da7eba17b26e1c4b520f5f53b91647",
+      "wake_id": null,
+      "plan_id": null,
+      "active_play_id": null
+    },
+    {
+      "status": "awake",
+      "revision": 4,
+      "body_id": "605d210c40b346560839267366f296b287da7eba17b26e1c4b520f5f53b91647",
+      "wake_id": "c7c52d9fdec55d2f16f3c3ffc7afaacc64f37f3a7301c50120a6e76eaca89815",
+      "plan_id": "body-plan/sha256:63bdd5def22dd6a0cb505d3a432785621827e02882f092061ca87db5ad4de2b4",
+      "active_play_id": null
+    },
+    {
+      "status": "planned",
+      "revision": 5,
+      "body_id": "605d210c40b346560839267366f296b287da7eba17b26e1c4b520f5f53b91647",
+      "wake_id": "c7c52d9fdec55d2f16f3c3ffc7afaacc64f37f3a7301c50120a6e76eaca89815",
+      "plan_id": "body-plan/sha256:63bdd5def22dd6a0cb505d3a432785621827e02882f092061ca87db5ad4de2b4",
+      "active_play_id": null
+    },
+    {
+      "status": "quiescent-awaiting-input",
+      "revision": 6,
+      "body_id": "605d210c40b346560839267366f296b287da7eba17b26e1c4b520f5f53b91647",
+      "wake_id": "c7c52d9fdec55d2f16f3c3ffc7afaacc64f37f3a7301c50120a6e76eaca89815",
+      "plan_id": "body-plan/sha256:63bdd5def22dd6a0cb505d3a432785621827e02882f092061ca87db5ad4de2b4",
+      "active_play_id": "body-play/sha256:e0a3bed6d3f6c13dd83e1b7e959c28ee5dc025a0f994e42cf1e6be0cafcaccab"
+    }
+  ],
+  "observer_command_interval": {
+    "start_qmp_line": 114,
+    "end_qmp_line": 118,
+    "nanoseconds": 3874501712,
+    "seconds": 3.874501712,
+    "scope": "QMP Birth Enter key-down command to body-playing screendump command; includes observer overhead, not ACK-to-ACK guest latency, capture end or speedup."
+  },
+  "headless_asset_exclusion_checks": [
+    {
+      "graphical_assets": false,
+      "host": "conduitos/ia32/pc",
+      "image_sha256": "6228ed24f27949903df44ac2fe6cdab07f686d35804885f51a459e11c2d1efe4"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/aarch64/virt",
+      "image_sha256": "09848c6a93b70fbeecc89c4786fd4d4a1d3ad421097b3f2b3d4bc425551dfc91"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/riscv64/virt",
+      "image_sha256": "e9f68eba4afadc4d438a7f5b4a1d0bfcfd26027beedbe0e35a3617a59e6a97d6"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/loongarch64/virt",
+      "image_sha256": "afa7efc49251aceaa5f5deb8f199e2b054dcad1cb028ddf34413ec2b99323eb7"
+    }
+  ],
+  "image_sha256": "5282cd4afc93f3be4966569788a3e8301fbfaa6598fd438c3ffc65683534b224",
+  "kernel_sha256": "2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9",
+  "scope": "Normal ProductHost emulator originals, canonical image/source, captured serial prefixes and one-Birth startup identities. No independent Face digest recomputation, physical/human evidence, calibrated latency, CI or full issue closure."
+}

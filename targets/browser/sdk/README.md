@@ -140,6 +140,37 @@ truth. A Plan proposal is not exposed as a Play, and a rejected start does not
 produce a successful lifecycle receipt. Host, Boot, Body, Plan, Wake, and Play
 identities therefore keep their separate meanings even on one page.
 
+For an admitted foreground resident Patchbay, `play.patchbayObservation()` reads
+its current canonical Face from the existing application instance. It checks
+the returned Body, Plan and Play identities and retains the runtime's explicit
+`mask_show: null` and `interaction_admitted: false`. This development API does
+not publish a Show or enable actions. Missing optional observation context,
+retiring Plays and unavailable owners refuse; the legacy interface remains the
+production interaction route pending #6201. `pending_owner_request` retains any
+legacy Edit/Mask request with its application revision. While it awaits
+disposition, the legacy view marks controls busy and refuses further actions
+without failing the state gear. Observation does not perform that request.
+`play.reportPatchbayRequestDisposition({ observation, outcome, evidenceId })`
+records the Host's `Completed`, `Rejected`, `Cancelled` or `Uncertain` report
+against the exact current Body/Plan/Play/owner/request revision. Evidence IDs
+are nonblank and at most 256 UTF-8 bytes. `Uncertain` keeps the request pending;
+terminal reports release it and request a fresh legacy view through its existing
+admitted path. `last_owner_disposition` retains the exact request and latest
+report, not a durable history or proof that its effect happened. The actual
+Handbook can handle Edit by opening an admitted lesson's exact checked Source
+in its existing editor, preserving local drafts. Internal subjects may follow a
+containing checked Back when its exact declaration is in the editor inventory;
+composition invocations stay in the outer document. Unknown Cord declaration
+provenance remains unsupported. Try remains the explicit
+checked commit. `body.wake({ onPatchbayOwnerRequest })` installs an optional
+owner handler, invoked once per request after its view is presented. It receives
+the effect's cancellation signal; asynchronous owners must honor that signal
+before changing their UI. Handbook opens the editor synchronously and does not
+wait for preference storage or alter the saved lesson choice. Unsupported
+or unresolved targets are rejected; uncertainty is retained without retry.
+Mask-change handling and the canonical production consumer remain unfinished. The bridge has local CPU checks;
+WASM/browser enactment of this accessor remains unverified.
+
 The initial SDK profile has a finite, reviewed local adapter set. A capability
 that is absent, unselected, unavailable, permission-denied, or lost remains a
 distinct Host/runtime outcome; the SDK does not infer readiness from bundled
@@ -361,3 +392,28 @@ It cancels an oversized response before retaining the excess chunk and reports
 report `FaceUnavailable` with the operation and original cause. Accepted bytes
 must decode as UTF-8 JSON. This bounds SDK response accumulation, not browser
 transport buffers or the size of the parsed JavaScript object.
+
+A coordinator can explicitly select the SDK's checked Body Mask with
+`conduit-browser-patchbay-workbench --body-evidence body.json --external-reader --body-mask browser-dom`.
+Read `mask_kind_ids` alongside ordinary `kind_ids` from
+`/api/body-planning-requirements`, and request those actual Mask capabilities and
+resource pools in the admitted planning disclosure. Mask execution is separate
+from `executionCapabilities()`'s ordinary domain executors. Missing requested
+Mask offers refuse planning; the coordinator never retargets another Host's Mask.
+
+After reporting the actual `Started` receipt to the same coordinator, call
+`preparation.showBodyFace({ coordinator, root, transport })`. This requests the
+fresh canonical owner Face, executes the already admitted Mask, realizes the
+existing owner component, and acknowledges its actual Show before enabling input.
+`transport` has the `fetch` signature; it defaults to same-origin `fetch`. Supply
+an explicitly configured authenticated/proxied carrier for other origins. The
+SDK does not bypass CORS. The external-Body browser proof uses a bounded,
+endpoint-specific Node HTTP carrier and preserves the real owner response bytes.
+The raw publication and returned Mask observation retain exact u64 values.
+
+The typed Lull action consumes that acknowledged Show once and leaves a pending
+owner transaction until actual domain cancellation produces a Terminal receipt.
+Only then does the coordinator commit Lull. Unknown cancellation/transport
+outcomes leave the old Show disabled and the pending intent retained; callers
+must inspect `/api/body-face-state` (including `pending_lull`) rather than retry the action. The explicit
+`play.terminate()` API remains available independently.

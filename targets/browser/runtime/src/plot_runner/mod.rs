@@ -3,6 +3,8 @@
 pub(crate) mod abi;
 mod application_state;
 mod audio;
+#[cfg(feature = "creche-surface")]
+mod body_face_publication;
 mod body_start;
 mod compact_patchbay;
 mod engine;
@@ -10,7 +12,15 @@ mod gallery;
 mod host_abi;
 mod host_outcomes;
 mod multihost;
+#[cfg(feature = "creche-surface")]
+mod patchbay_commands;
+#[cfg(feature = "creche-surface")]
+mod patchbay_disposition;
+#[cfg(feature = "creche-surface")]
+mod patchbay_face;
 mod pool_member_client_abi;
+#[cfg(feature = "creche-surface")]
+mod prepared_patchbay;
 mod protocol;
 mod remote_execution;
 mod session_cancellation;
@@ -39,6 +49,12 @@ use std::collections::BTreeMap;
 
 struct TourSession {
     thermostat_face: Option<Box<thermostat_face::ThermostatFace>>,
+    #[cfg(feature = "creche-surface")]
+    body_face_publication: Option<Box<body_face_publication::BodyFaceContext>>,
+    #[cfg(feature = "creche-surface")]
+    patchbay_face: Option<Box<patchbay_face::PatchbayObservation>>,
+    #[cfg(feature = "creche-surface")]
+    patchbay_publication: Option<engine::application::PreparedPatchbayPublication>,
     /// Logical resource reservations retained for the lifetime of a body Play.
     _resource_admissions: Option<conduit_core::ResourceAdmissionOwner>,
     cancellation: Option<conduit_kernel::scheduler::HostCallCancellation>,
@@ -237,6 +253,12 @@ impl TourSession {
             terminal_sign_sequence: 0,
             latest_face: None,
             thermostat_face: None,
+            #[cfg(feature = "creche-surface")]
+            body_face_publication: None,
+            #[cfg(feature = "creche-surface")]
+            patchbay_face: None,
+            #[cfg(feature = "creche-surface")]
+            patchbay_publication: None,
             host_id: fragment.host_id.clone(),
             boot_id: fragment.boot_id.clone(),
             realization,
@@ -272,9 +294,17 @@ impl TourSession {
     }
 
     fn cancel(mut self) -> Result<TourReceipt, String> {
-        self.scheduler
+        // Attempt both cancellations even if a companion refuses retirement;
+        // uncertainty must not yield a successful parent terminal receipt.
+        #[cfg(feature = "creche-surface")]
+        let companion = self.retire_body_face();
+        let parent = self
+            .scheduler
             .cancel()
-            .map_err(|error| format!("{error:?}"))?;
+            .map_err(|error| format!("{error:?}"));
+        #[cfg(feature = "creche-surface")]
+        companion?;
+        parent?;
         let sign = bind_sign(
             &self.host_id,
             &self.boot_id,

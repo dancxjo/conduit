@@ -94,6 +94,7 @@ impl NativeOwnerReturnRoute {
             let recipe = match recipe {
                 conduit_face::TodoComponentRecipe::Flat => "flat",
                 conduit_face::TodoComponentRecipe::Grouped => "grouped",
+                conduit_face::TodoComponentRecipe::RequiredItem => "required-item",
             };
             serde_json_core::to_slice(
                 &ComponentSelection {

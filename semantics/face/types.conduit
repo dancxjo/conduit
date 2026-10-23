@@ -666,13 +666,18 @@ type VisualMotionPreference =
     none
     | restrained
 
+type VisualTypographyPreference =
+    editorial
+    | engineering
+
 type VisualExpressionInfo = {
     density: VisualDensityPreference
     identity: Text <= 128B not in ["", "conduit.face/phosphor@1", "conduit.presentation/phosphor@1"]
     motion: VisualMotionPreference
     palette: VisualPalettePreference
     text_scale_percent: U16 in 100..=200
-    version: U16 in 1..=1
+    typography: VisualTypographyPreference
+    version: U16 in 2..=2
 }
 
 # Structural selectors refer to existing Face classifications; they are not

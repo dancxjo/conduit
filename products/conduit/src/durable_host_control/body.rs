@@ -1005,6 +1005,9 @@ pub(crate) fn select_native_component_mask(
         conduit_face::TodoComponentRecipe::Grouped => {
             conduit_std_host::browser_admission::BrowserComponentRecipe::Grouped
         }
+        conduit_face::TodoComponentRecipe::RequiredItem => {
+            conduit_std_host::browser_admission::BrowserComponentRecipe::RequiredItem
+        }
     };
     match call(
         state_dir,

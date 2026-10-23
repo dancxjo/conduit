@@ -253,11 +253,11 @@ fn catalog_plot_plan(
     } else {
         std::borrow::Cow::Borrowed(installed_backs)
     };
-    if plot.name == "thermostat/main" {
+    if !plot.checked_front().inputs().is_empty() || !plot.checked_front().outputs().is_empty() {
         let authoring = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
             &document, &plot.name, &profile, &backs,
         )
-        .map_err(|error| format!("Workspace thermostat expansion refused: {error:?}"))?;
+        .map_err(|error| format!("Workspace resident Fore expansion refused: {error:?}"))?;
         let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
             .map_err(|error| error.to_string())?;
         conduit_planner::plan_expanded_authoring_with_activations(
@@ -277,7 +277,7 @@ fn catalog_plot_plan(
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
-            &crate::installed_browser::thermostat_scan_offer::fore_bounds(),
+            &crate::installed_browser::patchbay_owner_installation::fore_bounds(&authoring),
         )
         .map_err(|error| error.to_string())?;
         return Ok(());
@@ -366,11 +366,11 @@ pub(crate) fn plan_workspace_plots(
             &mut profile,
         )?;
         let backs = crate::installed_browser::backs(startup, &profile)?;
-        if plot.name == "thermostat/main" {
+        if !plot.checked_front().inputs().is_empty() || !plot.checked_front().outputs().is_empty() {
             let authoring = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
                 document, &plot.name, &profile, &backs,
             )
-            .map_err(|error| format!("Workspace thermostat expansion refused: {error:?}"))?;
+            .map_err(|error| format!("Workspace resident Fore expansion refused: {error:?}"))?;
             let placements =
                 conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
                     .map_err(|error| error.to_string())?;
@@ -391,9 +391,9 @@ pub(crate) fn plan_workspace_plots(
                     protected_resource_grants: &[],
                     line_offers: &[],
                 },
-                &crate::installed_browser::thermostat_scan_offer::fore_bounds(),
+                &crate::installed_browser::patchbay_owner_installation::fore_bounds(&authoring),
             )
-            .map_err(|error| format!("Workspace thermostat Plan refused: {error:?}"))?;
+            .map_err(|error| format!("Workspace resident Fore Plan refused: {error:?}"))?;
             plans.push(BodyPlotPlan {
                 plot: resident.clone(),
                 plan,

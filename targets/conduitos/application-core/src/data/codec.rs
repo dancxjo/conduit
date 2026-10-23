@@ -132,6 +132,23 @@ impl Workspace {
             .map_err(|_| Refusal::Order)?;
         Ok(Command::FinishGraphProjection)
     }
+    /// Reserve worst-case proposal framing before a canonical actor mutates.
+    /// The caller supplies real candidate IDs plus a maximum revision. A fixed
+    /// 1 KiB slack exceeds every payload-free typed semantic refusal encoding.
+    pub(crate) fn preflight_canonical_reply(
+        &mut self,
+        reply: &Reply,
+        output: &Vec<u8>,
+    ) -> Result<(), Refusal> {
+        if output.capacity() < MAX_BLOB {
+            return Err(Refusal::Capacity);
+        }
+        let length = transport_codec::encode_to_slice(reply, &mut self.json)?;
+        if length > MAX_BLOB - 1024 {
+            return Err(Refusal::Capacity);
+        }
+        Ok(())
+    }
     pub(crate) fn encode_reply_into(
         &mut self,
         reply: &Reply,
@@ -237,3 +254,12 @@ mod tests;
 
 #[cfg(test)]
 mod transport_tests;
+
+pub(crate) fn preflight_canonical_fixture(reply: &Reply) -> Result<(), Refusal> {
+    let mut bytes = buffer(MAX_BLOB)?;
+    let length = transport_codec::encode_to_slice(reply, &mut bytes)?;
+    if length > MAX_BLOB - 1024 {
+        return Err(Refusal::Capacity);
+    }
+    Ok(())
+}

@@ -1,0 +1,6 @@
+plot patchbay/interaction (
+  >> interaction: FaceInteraction...|
+) {
+  owner: patchbay/accept-interaction
+  interaction >> owner.interaction
+}

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { decodeLook, decodeVisualLook } from "../../targets/browser/host/assets/application-look.mjs";
 
-const original = () => Buffer.from(fs.readFileSync(new URL("../conformance/face-look/phosphor-look-v1.hex", import.meta.url), "utf8").replace(/\s/gu, ""), "hex");
+const original = () => Buffer.from(fs.readFileSync(new URL("../conformance/face-look/phosphor-look-v2.hex", import.meta.url), "utf8").replace(/\s/gu, ""), "hex");
 const reject = code => { throw new Error(code); };
 const read = bytes => decodeVisualLook(bytes, reject);
 
@@ -23,6 +23,7 @@ test("canonical Rust Look preserves paint and independent modality parameters", 
   assert.equal(look.spoken.payload.verbosity.tag, "brief");
   assert.equal(look.generative.payload.register.tag, "neutral");
   const visual = read(original());
+  assert.equal(visual.typography, "editorial");
   assert.equal(visual.tokens.background, "#05070b");
   assert.equal(visual.tokens["type-body"], "16px");
   assert.equal(visual.tokens["focus-width"], "3px");
@@ -43,7 +44,7 @@ test("Source metric and version bounds cannot be bypassed with canonical type by
   assert.throws(() => read(changeU16("focus_width_px", 0)), /look-token-bound/u);
   assert.throws(() => read(changeU16("type_body_px", 65)), /look-token-bound/u);
   assert.throws(() => read(changeU16("text_scale_percent", 99)), /look-visual-contract/u);
-  assert.throws(() => read(changeU16("version", 2)), /look-visual-contract/u);
+  assert.throws(() => read(changeU16("version", 1)), /look-visual-contract/u);
 });
 
 test("foreign visual identity and injected semantic fields refuse", () => {
@@ -87,4 +88,9 @@ test("Look byte admission refuses coercion and checks bounds before conversion",
     Buffer.concat([Buffer.from([99]), bytes, Buffer.from([99])]).subarray(1, -1)]) {
     assert.equal(read(value).identity, "conduit.look/phosphor@1");
   }
+});
+
+test("historical v1 Look wire refuses instead of acquiring implicit typography", () => {
+  const historical = Buffer.from(fs.readFileSync(new URL('../conformance/face-look/phosphor-look-v1.hex', import.meta.url), 'utf8').replace(/\s/gu, ''), 'hex');
+  assert.throws(() => read(historical), /look-canonical-type-required-retired-theme-wire/u);
 });

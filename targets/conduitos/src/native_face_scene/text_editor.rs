@@ -9,6 +9,7 @@ pub(super) fn append(
     face: &Face,
     screen: LayoutRect,
     scale: u16,
+    typography: Typography,
 ) -> Result<bool, FaceSceneError> {
     let Some(subject) = face.subjects.iter().find(|subject| {
         subject.role == FaceRole::Document
@@ -34,7 +35,7 @@ pub(super) fn append(
         start += 1;
     }
     let text = &text[start..];
-    let chrome = chrome::Chrome::prepare(screen, scale)?;
+    let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
     let bounds = LayoutRect {
         x: SPACE_XL as i16,
         y: chrome.top as i16,
@@ -50,14 +51,22 @@ pub(super) fn append(
             GraphicsShapeStyle::Stroke,
         ),
     )?;
-    let label_height =
-        TextLayout::new_scaled("", GraphicsTextRole::Label.into(), bounds.width - 16, scale)
-            .map_err(|_| FaceSceneError::InvalidExtent)?
-            .finish_height() as u16;
-    let body_line =
-        TextLayout::new_scaled("", GraphicsTextRole::Body.into(), bounds.width - 16, scale)
-            .map_err(|_| FaceSceneError::InvalidExtent)?
-            .finish_height() as u16;
+    let label_height = TextLayout::new_selected(
+        "",
+        typography.style(GraphicsTextRole::Label.into()),
+        bounds.width - 16,
+        scale,
+    )
+    .map_err(|_| FaceSceneError::InvalidExtent)?
+    .finish_height() as u16;
+    let body_line = TextLayout::new_selected(
+        "",
+        typography.style(GraphicsTextRole::Body.into()),
+        bounds.width - 16,
+        scale,
+    )
+    .map_err(|_| FaceSceneError::InvalidExtent)?
+    .finish_height() as u16;
     // Keep a complete measured caption and at least one text/caret line. Only
     // the old fixed gaps shrink under pressure; the border retains one pixel.
     let gaps = bounds
@@ -74,9 +83,14 @@ pub(super) fn append(
         width: bounds.width - 16,
         height: bounds.height - label_height - gaps,
     };
-    let height = TextLayout::new_scaled(text, GraphicsTextRole::Body.into(), content.width, scale)
-        .map_err(|_| FaceSceneError::InvalidExtent)?
-        .finish_height();
+    let height = TextLayout::new_selected(
+        text,
+        typography.style(GraphicsTextRole::Body.into()),
+        content.width,
+        scale,
+    )
+    .map_err(|_| FaceSceneError::InvalidExtent)?
+    .finish_height();
     let scroll = height.saturating_sub(u32::from(content.height));
     let label = LayoutRect {
         x: bounds.x + 8,
@@ -96,6 +110,7 @@ pub(super) fn append(
                 label.width,
                 label.height,
                 scale,
+                typography,
             )?,
         )
         .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
@@ -113,10 +128,14 @@ pub(super) fn append(
         )?;
     }
     // The rasterizer owns wrapping, Unicode glyph advances and trailing lines.
-    let (x, y, line_height) =
-        TextLayout::new_scaled(text, GraphicsTextRole::Body.into(), content.width, scale)
-            .map_err(|_| FaceSceneError::InvalidExtent)?
-            .finish_caret();
+    let (x, y, line_height) = TextLayout::new_selected(
+        text,
+        typography.style(GraphicsTextRole::Body.into()),
+        content.width,
+        scale,
+    )
+    .map_err(|_| FaceSceneError::InvalidExtent)?
+    .finish_caret();
     let caret_bounds = LayoutRect {
         x: content.x + x.min(u32::from(content.width.saturating_sub(2))) as i16,
         y: content.y + y as i16 - scroll as i16,
@@ -144,6 +163,7 @@ fn caption(
     width: u16,
     height: u16,
     scale: u16,
+    typography: Typography,
 ) -> Result<String, FaceSceneError> {
     let suffix = if at_end { " (end)" } else { "" };
     let mut end = name
@@ -160,9 +180,14 @@ fn caption(
             suffix
         );
         if candidate.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES
-            && TextLayout::new_scaled(&candidate, GraphicsTextRole::Label.into(), width, scale)
-                .map_err(|_| FaceSceneError::InvalidExtent)?
-                .finish_height()
+            && TextLayout::new_selected(
+                &candidate,
+                typography.style(GraphicsTextRole::Label.into()),
+                width,
+                scale,
+            )
+            .map_err(|_| FaceSceneError::InvalidExtent)?
+            .finish_height()
                 <= u32::from(height)
         {
             return Ok(candidate);
@@ -220,7 +245,8 @@ mod tests {
                             width,
                             height
                         },
-                        scale
+                        scale,
+                        Typography::EDITORIAL
                     )
                     .unwrap()
                 );

@@ -2119,6 +2119,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             let recipe = match recipe {
                 R::Flat => conduit_face::TodoComponentRecipe::Flat,
                 R::Grouped => conduit_face::TodoComponentRecipe::Grouped,
+                R::RequiredItem => conduit_face::TodoComponentRecipe::RequiredItem,
             };
             runtime
                 .select_browser_component_mask(&window_id, &binding, &request, &show, look, recipe)
@@ -2263,6 +2264,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 }
                 conduit_std_host::browser_admission::BrowserComponentRecipe::Grouped => {
                     conduit_face::TodoComponentRecipe::Grouped
+                }
+                conduit_std_host::browser_admission::BrowserComponentRecipe::RequiredItem => {
+                    conduit_face::TodoComponentRecipe::RequiredItem
                 }
             };
             runtime

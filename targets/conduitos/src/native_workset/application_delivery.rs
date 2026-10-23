@@ -18,42 +18,45 @@ pub(super) fn initial(
     use conduitos_application_core::data::{Initial, Target};
     let mut initial = core::array::from_fn(|_| None);
     for (slot, planned) in prepared.plan.plots.iter().enumerate() {
-        let Some(placement) = planned.plan.fragments[0]
-            .placements
-            .iter()
-            .find(|p| p.implementation_id.as_str() == STATE_IMPLEMENTATION)
-        else {
+        let Some(placement) = planned.plan.fragments[0].placements.iter().find(|p| {
+            p.implementation_id.as_str() == STATE_IMPLEMENTATION
+                || p.implementation_id.as_str() == super::patchbay_ingress::IMPLEMENTATION
+        }) else {
             continue;
         };
-        initial[slot] = Some(
-            match super::tutorial_application::selected_application(placement)? {
-                "tutorial" => Initial::Tutorial {
-                    evidence: evidence.ok_or(super::WorksetRefusal::Plan)?.clone(),
-                },
-                "tour" => Initial::Tour,
-                "patchbay" => {
-                    let mut targets = core::array::from_fn(|_| None);
-                    for (index, planned) in prepared.plan.plots.iter().enumerate() {
-                        if index == slot {
-                            continue;
-                        }
-                        let expanded = super::checked(super::resolve(&planned.plot)?)?;
-                        let graph = patchbay_graph::PatchbayGraph::from_expanded(&expanded)
-                            .map_err(|_| super::WorksetRefusal::Plan)?;
-                        targets[index] = Some(Target {
-                            graph,
-                            plan: planned.plan.plan_id.clone(),
-                            body: prepared.plan.plan_id.clone(),
-                        });
-                    }
-                    Initial::Patchbay {
-                        targets,
-                        selected: if slot == 0 { 1 } else { 0 },
-                    }
-                }
-                _ => return Err(super::WorksetRefusal::Plan),
+        let application =
+            if placement.implementation_id.as_str() == super::patchbay_ingress::IMPLEMENTATION {
+                "patchbay"
+            } else {
+                super::tutorial_application::selected_application(placement)?
+            };
+        initial[slot] = Some(match application {
+            "tutorial" => Initial::Tutorial {
+                evidence: evidence.ok_or(super::WorksetRefusal::Plan)?.clone(),
             },
-        );
+            "tour" => Initial::Tour,
+            "patchbay" => {
+                let mut targets = core::array::from_fn(|_| None);
+                for (index, planned) in prepared.plan.plots.iter().enumerate() {
+                    if index == slot {
+                        continue;
+                    }
+                    let expanded = super::checked(super::resolve(&planned.plot)?)?;
+                    let graph = patchbay_graph::PatchbayGraph::from_expanded(&expanded)
+                        .map_err(|_| super::WorksetRefusal::Plan)?;
+                    targets[index] = Some(Target {
+                        graph,
+                        plan: planned.plan.plan_id.clone(),
+                        body: prepared.plan.plan_id.clone(),
+                    });
+                }
+                Initial::Patchbay {
+                    targets,
+                    selected: if slot == 0 { 1 } else { 0 },
+                }
+            }
+            _ => return Err(super::WorksetRefusal::Plan),
+        });
     }
     Ok(initial)
 }

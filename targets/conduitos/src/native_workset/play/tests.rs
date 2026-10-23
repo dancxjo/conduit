@@ -2,7 +2,6 @@ use super::*;
 use crate::native_workset::{self, NativePlot};
 use alloc::{borrow::ToOwned, string::String};
 use conduit_human::KeyModifiers;
-use conduit_kernel::ValueStorage;
 
 fn kernel() -> (PreparedNativeWorkset, NativeWorksetPlay) {
     let (ids, offer) = native_workset::tests::fixture();
@@ -72,52 +71,22 @@ fn tutorial_initial_view_and_event_cross_the_same_production_kernel() {
 }
 
 #[test]
-fn patchbay_inspects_the_selected_plot_and_emits_bounded_edit_authority() {
+fn patchbay_uses_the_canonical_fore_and_refuses_legacy_events() {
     let (prepared, mut play) = kernel();
     let tour = index(&prepared, NativePlot::Tour);
     let patchbay = index(&prepared, NativePlot::Patchbay);
+    assert!(play.has_patchbay_fore(patchbay));
     play.select_patchbay_target(patchbay, tour).unwrap();
-    let initial = play.take_application_view(patchbay).unwrap();
-    assert!(
-        initial
-            .nodes
-            .iter()
-            .any(|node| node.key == "plot" && node.text == "tour")
+    assert_eq!(play.patchbay_graph(patchbay).unwrap().plot_name, "tour");
+    assert!(play.take_application_view(patchbay).is_none());
+    assert_eq!(
+        play.application_event(patchbay, &[]),
+        Err(PlayRefusal::InputOwnership)
     );
-    let inspect = conduit_face::ApplicationEvent {
-        revision: initial.revision,
-        action: patchbay_application::INSPECT_NEXT_ACTION_ID.into(),
-        kind: conduit_face::ApplicationEventKind::Activate,
-        value: alloc::vec::Vec::new(),
-    };
-    play.application_event(patchbay, &inspect.encode(&initial).unwrap())
-        .unwrap();
-    let inspected = play.take_application_view(patchbay).unwrap();
-    assert_eq!(inspected.revision, initial.revision + 1);
-    let edit = conduit_face::ApplicationEvent {
-        revision: inspected.revision,
-        action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
-        kind: conduit_face::ApplicationEventKind::Activate,
-        value: alloc::vec::Vec::new(),
-    };
-    play.application_event(patchbay, &edit.encode(&inspected).unwrap())
-        .unwrap();
     assert!(matches!(
-        play.take_application_request(patchbay),
-        Some(native_workset::NativeApplicationRequest::EditCurrent(
-            patchbay_application::PatchbayApplicationRequest::EditCurrent { .. }
-        ))
+        play.applications.apply(patchbay, &[]),
+        Err(conduitos_application_core::data::Refusal::Order)
     ));
-    let latest = play.take_application_view(patchbay).unwrap();
-    let repeated_edit = conduit_face::ApplicationEvent {
-        revision: latest.revision,
-        action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
-        kind: conduit_face::ApplicationEventKind::Activate,
-        value: alloc::vec::Vec::new(),
-    };
-    play.application_event(patchbay, &repeated_edit.encode(&latest).unwrap())
-        .unwrap();
-    play.cancel().unwrap();
     assert!(play.take_application_request(patchbay).is_none());
 }
 #[test]
@@ -173,7 +142,7 @@ fn retained_editing_reaches_its_exact_bound_and_reports_capacity_failure() {
         play.input(memory, key(4, KeyTransition::Pressed)),
         Err(PlayRefusal::HostFailure(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::StateCapacityExhausted,
-            detail: 82
+            detail: 94
         }))
     );
     play.cancel().unwrap();
@@ -247,4 +216,71 @@ fn body_activation_rejects_wrong_plan_forged_play_replay_and_cancelled_restart()
         kernel.start_for(&prepared.plan, &active),
         Err(PlayRefusal::Preparation)
     );
+}
+
+#[test]
+fn canonical_editor_roundtrip_keeps_one_owner_and_revisioned_document_loop() {
+    let (prepared, mut play) = kernel();
+    let memory = index(&prepared, NativePlot::MemoryLantern);
+    let fragment = &prepared.plan.plots[memory].plan.fragments[0];
+    assert_eq!(fragment.placements.len(), 2);
+    assert!(
+        fragment
+            .placements
+            .iter()
+            .any(|p| p.kind_id.as_str() == conduit_semantic_catalog::FACE_EDITOR_KIND)
+    );
+    let active = play.active_body_play.clone();
+    assert_eq!(play.editor_observations[memory].unwrap().revision, 0);
+    assert_eq!(type_key(&mut play, memory, 4), "a");
+    assert_eq!(play.editor_observations[memory].unwrap().revision, 1);
+    assert_eq!(type_key(&mut play, memory, 40), "a\n");
+    assert_eq!(type_key(&mut play, memory, 42), "a");
+    assert_eq!(play.editor_observations[memory].unwrap().revision, 3);
+    assert_eq!(play.active_body_play, active);
+    // A forged stale committed replacement reaches the same checked owner;
+    // it cannot rewrite the last accepted snapshot or produce another Show.
+    let request = play.pending[memory].take().unwrap();
+    let mut bytes = [0; 17];
+    let length = conduit_semantic_catalog::TextEdit {
+        base_revision: 0,
+        start: 0,
+        end: 0,
+        insert_text: b"x",
+    }
+    .encode_into(&mut bytes)
+    .unwrap();
+    play.output(request, Some(&bytes[..length])).unwrap();
+    assert_eq!(
+        play.drive(),
+        Err(PlayRefusal::HostFailure(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::InvalidInput,
+            detail: 90
+        }))
+    );
+    assert_eq!(play.editor_observations[memory].unwrap().revision, 3);
+    assert!(play.take_face(memory).is_none());
+}
+
+#[test]
+fn source_handoff_uses_admitted_editor_and_preserves_existing_draft() {
+    let (prepared, mut play) = kernel();
+    let memory = index(&prepared, NativePlot::MemoryLantern);
+    let canvas = index(&prepared, NativePlot::KeyboardCanvas);
+    assert_eq!(
+        play.open_source_editor(canvas, "source"),
+        Err(PlayRefusal::InputOwnership)
+    );
+    let active = play.active_body_play.clone();
+    let source = NativePlot::KeyboardCanvas.source();
+    play.open_source_editor(memory, source).unwrap();
+    assert_eq!(play.take_face(memory).unwrap().text(), source);
+    let revision = play.editor_observations[memory].unwrap().revision;
+    assert_eq!(
+        play.open_source_editor(memory, "different"),
+        Err(PlayRefusal::EditorDraftExists)
+    );
+    assert_eq!(play.editor_observations[memory].unwrap().revision, revision);
+    assert_eq!(play.active_body_play, active);
+    assert!(play.take_face(memory).is_none());
 }

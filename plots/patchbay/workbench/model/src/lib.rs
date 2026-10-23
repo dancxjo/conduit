@@ -46,6 +46,8 @@ mod plot_edits;
 mod portable_content;
 mod portable_correlations;
 mod portable_demo;
+#[cfg(test)]
+mod portable_graph_boundary_tests;
 mod portable_graph_projection;
 mod portable_parts_projection;
 mod portable_projection;

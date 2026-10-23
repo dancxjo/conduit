@@ -23,6 +23,8 @@ pub fn encode(admission: &Admission, bytes: &mut [u8]) -> Result<usize, Malforme
             BackKind::Edit => 3,
             BackKind::Face => 4,
             BackKind::Application => 5,
+            BackKind::Document => 6,
+            BackKind::Editor => 7,
         })?;
     }
     for cord in admission.cords {
@@ -82,6 +84,8 @@ pub fn decode(bytes: &[u8]) -> Result<Admission, Malformed> {
             3 => BackKind::Edit,
             4 => BackKind::Face,
             5 => BackKind::Application,
+            6 => BackKind::Document,
+            7 => BackKind::Editor,
             _ => return Err(Malformed),
         };
     }

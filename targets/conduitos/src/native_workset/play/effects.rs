@@ -10,6 +10,9 @@ impl NativeWorksetPlay {
         binding: Binding,
     ) -> Result<(), PlayRefusal> {
         let plot = usize::from(binding.plot);
+        if binding.effect == Effect::Patchbay {
+            return self.consume_patchbay(plot, request);
+        }
         let input = self
             .scheduler
             .host_value(request.input.value)
@@ -104,6 +107,45 @@ impl NativeWorksetPlay {
                     self.output(request, output.as_ref().map(|text| text.text().as_bytes()))
                 }
             }
+            Effect::Document => {
+                let edit = match conduit_semantic_catalog::TextEdit::decode(input) {
+                    Ok(edit) => edit,
+                    Err(refusal) => return self.document_refused(request, refusal),
+                };
+                #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                {
+                    let domain = self.protected[plot]
+                        .as_mut()
+                        .ok_or(PlayRefusal::Preparation)?;
+                    match domain.replace_document(edit) {
+                        Ok(observed) => self.output(request, Some(observed.as_bytes())),
+                        Err(crate::text_protection::ProtectedDocumentError::Refused(refusal)) => {
+                            self.document_refused(request, refusal)
+                        }
+                        Err(crate::text_protection::ProtectedDocumentError::Execution(error)) => {
+                            self.protected_failure(request, error)
+                        }
+                    }
+                }
+                #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+                {
+                    let owner = self.editors[plot]
+                        .as_mut()
+                        .ok_or(PlayRefusal::Preparation)?;
+                    if let Err(refusal) = owner.replace(edit) {
+                        return self.document_refused(request, refusal);
+                    }
+                    let mut bytes =
+                        [0; conduit_semantic_catalog::MAXIMUM_TEXT_DOCUMENT_BYTES as usize];
+                    let length = conduit_semantic_catalog::TextDocument {
+                        revision: owner.revision(),
+                        text: owner.current(),
+                    }
+                    .encode_into(&mut bytes)
+                    .map_err(|_| PlayRefusal::Kernel)?;
+                    self.output(request, Some(&bytes[..length]))
+                }
+            }
             Effect::Face => {
                 let text = NativeFace::new(input)?;
                 if self.faces[plot].is_some() {
@@ -122,12 +164,13 @@ impl NativeWorksetPlay {
                 Ok(())
             }
             Effect::Application => {
+                // Reserve owner-request storage before the protected actor mutates.
+                if self.application_requests[plot].is_some() {
+                    return Err(PlayRefusal::InputPressure);
+                }
                 let result = self.applications.apply(plot, input);
                 let (snapshot, authority_request) = self.application_result(result)?;
                 let view = snapshot.view;
-                if authority_request.is_some() && self.application_requests[plot].is_some() {
-                    return Err(PlayRefusal::InputPressure);
-                }
                 self.output(request, Some(&view))?;
                 self.application_requests[plot] = authority_request;
                 Ok(())
@@ -141,8 +184,18 @@ impl NativeWorksetPlay {
                 }
                 Ok(())
             }
-            Effect::Keyboard | Effect::ApplicationEvent => Err(PlayRefusal::Kernel),
+            Effect::Keyboard | Effect::ApplicationEvent | Effect::Editor | Effect::Patchbay => {
+                Err(PlayRefusal::Kernel)
+            }
         }
+    }
+    fn document_refused(
+        &mut self,
+        request: HostCallRequest,
+        refusal: conduit_semantic_catalog::TextEditRefusal,
+    ) -> Result<(), PlayRefusal> {
+        let (code, detail) = super::super::document_state::failure(refusal);
+        self.failed(request, code, detail)
     }
     pub(super) fn output(
         &mut self,

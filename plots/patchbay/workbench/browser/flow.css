@@ -141,3 +141,18 @@
 .workspace-collapsed .faceplate-clue, .workspace-collapsed .faceplate-port-name, .workspace-collapsed .faceplate-port code { display: none; }
 .faceplate-port[data-compatibility="compatible"] { outline: 2px solid #3a9c78; }
 .faceplate-port[data-compatibility="incompatible"] { outline: 2px dashed #c56b62; }
+
+.flow-geometry-notice {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 6;
+  max-width: min(28rem, calc(100% - 6rem));
+  margin: 0;
+  padding: .45rem .65rem;
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: .35rem;
+  background: var(--conduit-surface);
+  color: var(--conduit-text-primary);
+  pointer-events: none;
+}

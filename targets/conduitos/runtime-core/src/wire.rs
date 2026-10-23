@@ -6,7 +6,7 @@ pub mod morse_admission;
 pub mod text_admission;
 use codec::*;
 use conduit_kernel::{
-    scheduler::{HostCallRequest, SchedulerError, SchedulerStatus},
+    scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerError, SchedulerStatus},
     *,
 };
 pub const EXCHANGE_BYTES: usize = 4096;
@@ -30,6 +30,15 @@ pub enum Request {
     InitMorse {
         bytes: u32,
     },
+    InitFace {
+        bytes: u32,
+    },
+    AdmitRemote {
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        sequence: u64,
+        bytes: u32,
+    },
     Stats,
     Step,
     Next,
@@ -51,6 +60,7 @@ pub enum Response {
     Next(Option<HostCallRequest>),
     Stored(ValueRef),
     Ack,
+    RemoteAdmission(RemoteIngressOutcome),
     Cancelled,
     Failed(SchedulerError),
 }
@@ -73,6 +83,8 @@ impl Request {
             Self::InitText { .. } => 7,
             Self::Stats => 8,
             Self::InitMorse { .. } => 9,
+            Self::InitFace { .. } => 10,
+            Self::AdmitRemote { .. } => 11,
         }
     }
 }
@@ -82,13 +94,17 @@ impl Response {
             || matches!(
                 (request, self),
                 (
-                    Request::Init { .. } | Request::InitText { .. } | Request::InitMorse { .. },
+                    Request::Init { .. }
+                        | Request::InitText { .. }
+                        | Request::InitMorse { .. }
+                        | Request::InitFace { .. },
                     Self::Ready
                 ) | (Request::Stats, Self::Stats(_))
                     | (Request::Step, Self::Status(_))
                     | (Request::Next, Self::Next(_))
                     | (Request::Store { .. }, Self::Stored(_))
                     | (Request::Complete { .. }, Self::Ack)
+                    | (Request::AdmitRemote { .. }, Self::RemoteAdmission(_))
                     | (Request::Cancel, Self::Cancelled)
             )
     }
@@ -151,7 +167,19 @@ pub fn encode_request(e: Envelope, request: Request, bytes: &mut [u8]) -> Result
         Request::Init { bytes }
         | Request::InitText { bytes }
         | Request::InitMorse { bytes }
+        | Request::InitFace { bytes }
         | Request::Store { bytes } => w.u32(bytes)?,
+        Request::AdmitRemote {
+            endpoint,
+            cord,
+            sequence,
+            bytes,
+        } => {
+            w.u16(endpoint.0)?;
+            w.u16(cord.0)?;
+            w.u64(sequence)?;
+            w.u32(bytes)?;
+        }
         Request::Complete {
             node,
             request,
@@ -181,6 +209,13 @@ pub fn decode_request(bytes: &[u8]) -> Result<(Envelope, Request), Malformed> {
         7 => Request::InitText { bytes: r.u32()? },
         8 => Request::Stats,
         9 => Request::InitMorse { bytes: r.u32()? },
+        10 => Request::InitFace { bytes: r.u32()? },
+        11 => Request::AdmitRemote {
+            endpoint: RemoteEndpointId(r.u16()?),
+            cord: CordId(r.u16()?),
+            sequence: r.u64()?,
+            bytes: r.u32()?,
+        },
         _ => return Err(Malformed),
     };
     r.finish()?;
@@ -198,6 +233,7 @@ pub fn encode_response(
         Response::Next(_) => 0x8003,
         Response::Stored(_) => 0x8004,
         Response::Ack => 0x8005,
+        Response::RemoteAdmission(_) => 0x800b,
         Response::Cancelled => 0x8006,
         Response::Stats(_) => 0x8008,
         Response::Failed(_) => 0x8fff,
@@ -227,6 +263,14 @@ pub fn encode_response(
                 w.u16(request.call.0)?;
                 bounded_write(&mut w, request.input)?;
             }
+        }
+        Response::RemoteAdmission(outcome) => {
+            let (tag, sequence) = match outcome {
+                RemoteIngressOutcome::Accepted { sequence } => (0, sequence),
+                RemoteIngressOutcome::Full { sequence } => (1, sequence),
+            };
+            w.u8(tag)?;
+            w.u64(sequence)?;
         }
         Response::Stats(stats) => {
             w.u32(stats.decisions)?;
@@ -279,6 +323,11 @@ pub fn decode_response(
         }),
         0x8004 => Response::Stored(value_read(&mut r)?),
         0x8005 => Response::Ack,
+        0x800b => Response::RemoteAdmission(match r.u8()? {
+            0 => RemoteIngressOutcome::Accepted { sequence: r.u64()? },
+            1 => RemoteIngressOutcome::Full { sequence: r.u64()? },
+            _ => return Err(Malformed),
+        }),
         0x8006 => Response::Cancelled,
         0x8008 => Response::Stats(Stats {
             decisions: r.u32()?,

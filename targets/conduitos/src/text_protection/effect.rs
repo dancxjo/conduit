@@ -7,7 +7,10 @@ impl<I: TextOwner> ProtectedText<I> {
         input: &[u8],
         serial: &mut impl crate::machine::SerialBase,
     ) -> Result<(), MachineRunError> {
-        self.present_selected(input, serial, self.serial, self.serial_handle, Window::TEXT)
+        let selected = self.serial.ok_or(MachineRunError::ProtectionDomain(
+            crate::protected_region::DomainRefusal::WrongBinding,
+        ))?;
+        self.present_selected(input, serial, selected.scope, selected.handle, Window::TEXT)
     }
 
     pub(super) fn present_selected<const N: usize>(

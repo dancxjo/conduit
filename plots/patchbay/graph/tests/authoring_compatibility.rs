@@ -192,3 +192,80 @@ fn fore_boundaries_follow_source_binding_law_not_internal_cord_law() {
     );
     assert!(validate_connection_contract(&source, &sink, ConnectionTrack::Payload).is_err());
 }
+
+#[test]
+fn cord_source_origin_is_exact_and_corruption_is_refused() {
+    let catalog = catalog(
+        &port(PortDirection::Output, "value/count", PortTemporal::Value),
+        &port(PortDirection::Input, "value/count", PortTemporal::Value),
+    );
+    let source =
+        "plot main {\n source: test/source\n sink: test/sink\n source.port >> sink.port\n}\n";
+    let checked = check_syntax_document(
+        &parse_syntax_document(source),
+        &catalog.startup_catalog().unwrap(),
+    )
+    .unwrap();
+    let mut expanded = expand_canonical_plot(&checked, "main", &catalog).unwrap();
+    let graph = PatchbayGraph::from_expanded(&expanded).unwrap();
+    let origin = graph.cords[0].source_origin.as_ref().unwrap();
+    assert_eq!(origin.source_document_id, checked.source_document_id);
+    assert_eq!(origin.checked_plot_id, checked.plots[0].checked_plot_id);
+    assert_eq!(
+        &source[origin.source_span.start..origin.source_span.end],
+        "source.port >> sink.port"
+    );
+    assert_eq!(
+        origin.origin,
+        conduit_plot::ExpandedConnectionOrigin::CordStages
+    );
+    expanded.connection_provenance[0].source_span.start += 1;
+    assert_eq!(
+        PatchbayGraph::from_expanded(&expanded).unwrap_err(),
+        patchbay_graph::PatchbayGraphError::InvalidSourceProvenance
+    );
+}
+
+#[test]
+fn root_boundary_cords_keep_caller_declarations_through_child_expansion() {
+    let catalog = catalog(
+        &port(PortDirection::Output, "value/count", PortTemporal::Value),
+        &port(PortDirection::Input, "value/count", PortTemporal::Value),
+    );
+    let text = "plot helper (\n >> value: Count\n) {\n sink: test/sink\n value >> sink.port\n}\nplot main (\n input: Count >> output: Count\n) {\n child: helper\n source: test/source\n input >> child.value\n source.port >> output\n}\n";
+    let checked = check_syntax_document(
+        &parse_syntax_document(text),
+        &catalog.startup_catalog().unwrap(),
+    )
+    .unwrap();
+    let mut authoring =
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "main", &catalog).unwrap();
+    let graph = PatchbayGraph::from_authoring(&authoring).unwrap();
+    assert_eq!(graph.cords.len(), 2);
+    let mut declarations = Vec::new();
+    for cord in &graph.cords {
+        let origin = cord.source_origin.as_ref().unwrap();
+        assert_eq!(
+            origin.source_document_id,
+            authoring.expanded.source_document_id
+        );
+        assert_eq!(origin.checked_plot_id, authoring.expanded.checked_plot_id);
+        assert_eq!(origin.plot_path, ["main"]);
+        declarations.push(&text[origin.source_span.start..origin.source_span.end]);
+    }
+    declarations.sort();
+    assert_eq!(
+        declarations,
+        ["input >> child.value", "source.port >> output"]
+    );
+    authoring.input_bindings[0]
+        .source_origin
+        .as_mut()
+        .unwrap()
+        .source_span
+        .start += 1;
+    assert_eq!(
+        PatchbayGraph::from_authoring(&authoring).unwrap_err(),
+        patchbay_graph::PatchbayGraphError::InvalidSourceProvenance
+    );
+}

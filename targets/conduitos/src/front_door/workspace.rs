@@ -58,6 +58,9 @@ impl FrontDoor {
         {
             self.graph_facts = None;
         }
+        let canonical_patchbay = journey
+            .foreground_patchbay_fragment()
+            .map_err(|_| Error::Face)?;
         if let Some(workspace) = journey.workspace_projection() {
             let application_view = if journey.foreground_is_tutorial() {
                 Some(journey.tutorial_view().map_err(|_| Error::Face)?)
@@ -81,6 +84,7 @@ impl FrontDoor {
             #[cfg(all(target_arch = "x86_64", target_os = "none"))]
             let graph_facts = journey
                 .foreground_patchbay_graph()
+                .filter(|_| canonical_patchbay.is_none())
                 .map(|graph| {
                     // The outer Face has the foreground Plot subject only;
                     // other installed members are not already Face subjects.
@@ -104,10 +108,12 @@ impl FrontDoor {
             }
             self.application_view = application_view;
             self.patchbay_graph = journey.foreground_patchbay_graph().cloned();
+            self.patchbay_fragment = canonical_patchbay;
             Ok(())
         } else {
             self.application_view = None;
             self.patchbay_graph = None;
+            self.patchbay_fragment = None;
             self.observe_journey(journey.projection())
         }
     }

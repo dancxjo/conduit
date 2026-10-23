@@ -1,3 +1,4 @@
+import { inspectHandbookPlot, assertHandbookInspection } from './handbook-patchbay-route.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
@@ -189,11 +190,8 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     samePlay(playing, await truth(page));
 
     await page.getByRole('button', { name: 'Open in Patchbay', exact: true }).click();
-    await page.locator('.handbook-show').getByRole('button', { name: /thermostat\/main|Thermostat/ }).click();
-    const graph = page.locator('.handbook-show [data-checked-plot-id]:visible');
-    await expect(graph).toHaveAttribute('data-checked-plot-id', playing.selectedPlot);
-    await expect(graph).toHaveAttribute('data-body-plan-id', playing.planId);
-    await expect(graph).toHaveAttribute('data-active-play-id', playing.playId);
+    await inspectHandbookPlot(page, playing.selectedPlot, playing.bodyId);
+    const graph = await assertHandbookInspection(page, playing, { requireCord: false });
     await expect(graph).toContainText('flow/scan');
     await expect(graph).toContainText('conduit.thermostat/command@1');
     await page.locator('.handbook-application').getByText('Your body and browser', { exact: true }).click();

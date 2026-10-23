@@ -8,7 +8,7 @@ use conduit_face::{
 use serde::{Deserialize, Serialize};
 
 mod membership;
-use membership::memberships;
+use membership::{memberships, PropertyScope};
 
 /// One immutable navigation/projection/cursor bundle for a Patchbay revision.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,6 +19,44 @@ pub struct PatchbayNavigationProjection {
 }
 
 impl PatchbayNavigationProjection {
+    /// A structure reader over the exact graph subjects of any Face. Native,
+    /// browser and linear readers can share this bundle without sharing geometry.
+    /// Root identity and focus order come directly from the retained Face.
+    pub fn for_graph(face: &Face) -> Result<Self, String> {
+        face.validate()
+            .map_err(|error| format!("invalid graph Face: {error:?}"))?;
+        let subjects: Vec<_> = face
+            .subjects
+            .iter()
+            .filter(|subject| {
+                matches!(
+                    subject.role,
+                    FaceRole::Gear | FaceRole::Port | FaceRole::Cord
+                )
+            })
+            .map(|subject| subject.identity.clone())
+            .collect();
+        let root = subjects
+            .first()
+            .cloned()
+            .ok_or_else(|| "Face has no graph subjects".to_owned())?;
+        Self::build(
+            face,
+            vec![NavigationPlace {
+                place: FacePlace::Program,
+                root_subject: root.clone(),
+                name: "Structure".into(),
+                aspects: vec![NavigationAspect {
+                    aspect: FaceAspect::Structure,
+                    focusable_subjects: subjects,
+                }],
+            }],
+            FacePlace::Program,
+            root,
+            PropertyScope::Complete,
+        )
+    }
+
     pub fn for_zero_body(face: &Face, selected_plot: bool) -> Result<Self, String> {
         let entrance_root = face
             .properties
@@ -51,6 +89,7 @@ impl PatchbayNavigationProjection {
                 .as_ref()
                 .map_or(FacePlace::Entrance, |_| FacePlace::Program),
             program_root.unwrap_or(entrance_focus),
+            PropertyScope::ByAspect,
         )
     }
 
@@ -83,6 +122,7 @@ impl PatchbayNavigationProjection {
                 vec![place(face, FacePlace::Body, body_root.clone(), "Body")],
                 FacePlace::Body,
                 body_root,
+                PropertyScope::ByAspect,
             );
         };
         Self::build(
@@ -93,6 +133,7 @@ impl PatchbayNavigationProjection {
             ],
             FacePlace::Body,
             body_root,
+            PropertyScope::ByAspect,
         )
     }
 
@@ -101,11 +142,12 @@ impl PatchbayNavigationProjection {
         places: Vec<NavigationPlace>,
         current_place: FacePlace,
         initial_focus: String,
+        property_scope: PropertyScope,
     ) -> Result<Self, String> {
         let follows = follows(face, &places)?;
         let navigation = FaceNavigation::new(face, places, follows)
             .map_err(|error| format!("invalid Patchbay navigation: {error:?}"))?;
-        let memberships = memberships(face, &navigation)?;
+        let memberships = memberships(face, &navigation, property_scope)?;
         let projection = FaceProjection::new(face, &navigation, memberships)
             .map_err(|error| format!("invalid Patchbay projection: {error:?}"))?;
         let current = navigation

@@ -11,3 +11,47 @@ plot todo-required-item (
  renderer.show >> show
  renderer.interaction >> interaction
 }
+
+plot todo-mask-required-item-compact (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-required-item(expression = {density: compact(empty), identity: "conduit.face/compact@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: engineering(empty), version: 2})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot todo-mask-required-item-spacious (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-required-item(expression = {density: spacious(empty), identity: "conduit.face/spacious@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 125, typography: editorial(empty), version: 2})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot todo-mask-required-item-compact-editorial (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-required-item(expression = {density: compact(empty), identity: "conduit.face/compact-editorial@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 100, typography: editorial(empty), version: 2})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot todo-mask-required-item-spacious-phosphor (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-required-item(expression = {density: spacious(empty), identity: "conduit.face/spacious-phosphor@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 125, typography: editorial(empty), version: 2})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}

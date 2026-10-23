@@ -35,13 +35,20 @@ fn prepare_inner(
     let mut editors = core::array::from_fn(|_| None);
     let mut keymaps = core::array::from_fn(|_| PreparedKeymap::default_layout());
     let mut admitted_editors = [false; PLOTS];
+    let mut admitted_encounters = [false; PLOTS];
     let mut operation_count = 0;
+    let mut patchbay_inputs = core::array::from_fn(|_| None);
     for (plot, part) in parts.iter().enumerate() {
         let fragment = &prepared.plan.plots[plot].plan.fragments[0];
+        patchbay_inputs[plot] =
+            super::super::patchbay_ingress::admit(&prepared.plan.plots[plot].plan, part)?
+                .map(patchbay::IngressState::new);
+
         if part.identity.plan_id != fragment.plan_id
             || part.identity.fragment_id != fragment.fragment_id
             || part.nodes.len() != fragment.placements.len()
-            || !matches!(part.nodes.len(), 3 | 4)
+            || (patchbay_inputs[plot].is_none()
+                && !super::super::editor_delivery::partition_shape(fragment)?)
         {
             return Err(WorksetRefusal::Plan);
         }
@@ -57,6 +64,12 @@ fn prepare_inner(
             let (effect, operation) = match placement.implementation_id.as_str() {
                 super::super::keyboard_delivery::IMPLEMENTATION => {
                     (Effect::Keyboard, BackKind::Keyboard)
+                }
+                super::super::patchbay_ingress::IMPLEMENTATION => {
+                    if patchbay_inputs[plot].is_none() {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    (Effect::Patchbay, BackKind::Face)
                 }
                 super::super::application_delivery::EVENT_IMPLEMENTATION => {
                     (Effect::ApplicationEvent, BackKind::Keyboard)
@@ -129,6 +142,34 @@ fn prepare_inner(
                     // installed host binding gives it retained text semantics.
                     (Effect::Edit, BackKind::Edit)
                 }
+                super::super::document_state::IMPLEMENTATION => {
+                    let maximum = super::super::document_state::validate(placement)?;
+                    if admitted_editors[plot] {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+                    {
+                        editors[plot] = Some(
+                            BoundedTextState::new(
+                                conduit_semantic_catalog::TextStateMode::Edit,
+                                maximum,
+                            )
+                            .map_err(|_| WorksetRefusal::Plan)?,
+                        );
+                    }
+                    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                    let _ = maximum; // Exact protected owner configuration is prepared separately.
+                    admitted_editors[plot] = true;
+                    (Effect::Document, BackKind::Document)
+                }
+                super::super::editor_delivery::IMPLEMENTATION => {
+                    super::super::editor_delivery::validate(placement)?;
+                    if admitted_encounters[plot] {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    admitted_encounters[plot] = true;
+                    (Effect::Editor, BackKind::Editor)
+                }
                 crate::offer::TEXT_FACE_IMPLEMENTATION => {
                     if conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
                     {
@@ -182,13 +223,17 @@ fn prepare_inner(
             return Err(WorksetRefusal::Kernel);
         }
     }
-    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-    let scheduler =
-        crate::protected_runtime::Scheduler::new(admission).map_err(|_| WorksetRefusal::Kernel)?;
-    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-    let scheduler = admission.build().map_err(|_| WorksetRefusal::Kernel)?;
+    let scheduler = Runtime::prepare(admission, patchbay_inputs.iter().any(Option::is_some))
+        .map_err(|_| WorksetRefusal::Kernel)?;
     let initial = super::super::application_delivery::initial(prepared, evidence)?;
-    let applications = NativeApplications::new(initial).map_err(WorksetRefusal::Application)?;
+    let mut applications = NativeApplications::new(initial).map_err(WorksetRefusal::Application)?;
+    for (slot, input) in patchbay_inputs.iter().enumerate() {
+        if input.is_some() {
+            applications
+                .canonical(slot)
+                .map_err(WorksetRefusal::Application)?;
+        }
+    }
     Ok(NativeWorksetPlay {
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         pure_results: core::array::from_fn(|_| None),
@@ -198,7 +243,7 @@ fn prepare_inner(
         protection_admissions: core::array::from_fn(|index| {
             prepared.protected_text.get(index).cloned().flatten()
         }),
-        scheduler: Box::new(scheduler),
+        scheduler,
         bindings,
         keymaps,
         #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
@@ -206,8 +251,10 @@ fn prepare_inner(
         pending: [None; PLOTS],
         held: [None; 256],
         faces: [None; PLOTS],
+        editor_observations: core::array::from_fn(|_| None),
         application_views: core::array::from_fn(|_| None),
         applications,
+        patchbay_inputs,
         application_requests: core::array::from_fn(|_| None),
         input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
         plot_count: count,

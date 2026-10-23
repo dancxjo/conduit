@@ -8,7 +8,7 @@ fn fixture() -> (Value, Value, Value, Value) {
     let configuration = json!({"root":choice.root,"invocation_path":[choice.root,"component"],"implementation_id":custody::PRESENTER,"execution_profile_id":"conduitos/bounded-mask@1","placement_id":"placement",
         "component":{"source_document_id":"document","checked_plot_id":"component-checked","fore_id":"fore"},"recipe_canonical_bytes":2313,"recipe_canonical_sha256":"a".repeat(64)});
     let expression = json!({"outcome":"Selected","platform_forced_colors":false,"accessibility_overrides":{"forced_colors":false,"reduced_motion":true,"text_scale":false},
-        "expression":{"version":1,"density":choice.density,"palette":"phosphor","text_scale_percent":choice.scale,"identity":choice.identity,"motion":"none"}});
+        "expression":{"version":2,"typography":"editorial","density":choice.density,"palette":"phosphor","text_scale_percent":choice.scale,"identity":choice.identity,"motion":"none"}});
     let r = json!({"schema":"conduit.conduitos/component-realization@1","selection_entrance":"local-creche","local_scanout_acknowledged":true,"owner_show_acknowledged":false,"fallback":null,
         "previous_show_id":"old-show","show_id":"new-show","mask_plan_id":"new-plan","active_play_id":"play","manifestation_id":"manifestation","face_id":"face","face_revision":1,
         "host_id":"host","boot_id":"boot","offer_generation":1,"render":{"commands":3},"configuration":configuration,"expression":expression});
@@ -18,6 +18,12 @@ fn fixture() -> (Value, Value, Value, Value) {
 fn foreign_boot_stale_show_and_wrong_configuration_refuse() {
     let (r, before, fresh, boot) = fixture();
     assert!(fields(&r, &before, &fresh, &boot, CHOICES[0]).is_ok());
+    let mut retired = r.clone();
+    retired["expression"]["expression"]["version"] = json!(1);
+    assert!(fields(&retired, &before, &fresh, &boot, CHOICES[0]).is_err());
+    let mut wrong_typography = r.clone();
+    wrong_typography["expression"]["expression"]["typography"] = json!("engineering");
+    assert!(fields(&wrong_typography, &before, &fresh, &boot, CHOICES[0]).is_err());
     for key in [
         "boot_id",
         "host_id",

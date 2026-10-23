@@ -26,7 +26,27 @@ pub fn render_text_scaled(
     color: u32,
     text_scale_percent: u16,
 ) -> Result<DisplayReceipt, DisplayError> {
-    let layout = super::TextLayout::new_scaled(value, role, bounds.width, text_scale_percent)?;
+    render_text_selected(
+        target,
+        value,
+        role.into(),
+        bounds,
+        clip,
+        color,
+        text_scale_percent,
+    )
+}
+
+pub fn render_text_selected(
+    target: &mut impl RetainedPixelTarget,
+    value: &str,
+    role: super::TextStyle,
+    bounds: LayoutRect,
+    clip: LayoutRect,
+    color: u32,
+    text_scale_percent: u16,
+) -> Result<DisplayReceipt, DisplayError> {
+    let layout = super::TextLayout::new_selected(value, role, bounds.width, text_scale_percent)?;
     let format = target.format().validate()?;
     let mut receipt = DisplayReceipt::default();
     let Some(clip) = super::super::clipped(bounds, clip, format) else {

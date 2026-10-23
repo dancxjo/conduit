@@ -31,13 +31,23 @@ pub(crate) fn local_view(
     show: &MaskShow,
     play: &conduit_core::ActivePlayIdentity,
 ) -> FaceView {
+    local_view_admitted(body_id, face, show, play, true)
+}
+
+pub(crate) fn local_view_admitted(
+    body_id: &BodyId,
+    face: &Face,
+    show: &MaskShow,
+    play: &conduit_core::ActivePlayIdentity,
+    admitted: bool,
+) -> FaceView {
     project_view(
         body_id,
         face,
         &show.planned_mask,
         play,
         show,
-        show.show.lifecycle == ManifestationLifecycle::Available,
+        admitted && show.show.lifecycle == ManifestationLifecycle::Available,
         None,
     )
 }

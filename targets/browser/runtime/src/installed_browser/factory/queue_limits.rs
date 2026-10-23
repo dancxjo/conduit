@@ -5,7 +5,9 @@ use conduit_core::CapabilityOffer;
 pub(super) fn apply(offer: &mut CapabilityOffer, implementation: &str) {
     if matches!(
         offer.kind_id.as_str(),
-        conduit_thermostat_plot::THERMOSTAT_KIND | conduit_semantic_catalog::FLOW_SCAN_KIND
+        conduit_thermostat_plot::THERMOSTAT_KIND
+            | conduit_semantic_catalog::FLOW_SCAN_KIND
+            | patchbay_application::PATCHBAY_INTERACTION_KIND
     ) {
         return;
     }

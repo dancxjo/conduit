@@ -1,3 +1,5 @@
+mod connection_origin;
+
 use crate::prelude::*;
 
 use crate::{
@@ -623,14 +625,47 @@ fn expression_body_checks_and_expands_identically_to_its_explicit_plot() {
         concise_expanded.expanded.connections,
         explicit_expanded.expanded.connections
     );
-    assert_eq!(
-        concise_expanded.input_bindings,
-        explicit_expanded.input_bindings
-    );
-    assert_eq!(
-        concise_expanded.output_bindings,
-        explicit_expanded.output_bindings
-    );
+    for (concise_bindings, explicit_bindings) in [
+        (
+            &concise_expanded.input_bindings,
+            &explicit_expanded.input_bindings,
+        ),
+        (
+            &concise_expanded.output_bindings,
+            &explicit_expanded.output_bindings,
+        ),
+    ] {
+        assert_eq!(concise_bindings.len(), 1);
+        assert_eq!(explicit_bindings.len(), 1);
+        for (concise_binding, explicit_binding) in concise_bindings.iter().zip(explicit_bindings) {
+            let concise_origin = concise_binding.source_origin.as_ref().unwrap();
+            let explicit_origin = explicit_binding.source_origin.as_ref().unwrap();
+            assert_eq!(
+                concise_origin.origin,
+                crate::ExpandedConnectionOrigin::CordStages
+            );
+            assert_eq!(
+                explicit_origin.origin,
+                crate::ExpandedConnectionOrigin::CordStages
+            );
+            assert_eq!(
+                &concise[concise_origin.source_span.start..concise_origin.source_span.end],
+                ") = (. * factor)"
+            );
+            assert_eq!(
+                &explicit[explicit_origin.source_span.start..explicit_origin.source_span.end],
+                "value >> (. * factor) >> result"
+            );
+            assert_ne!(concise_origin, explicit_origin);
+
+            // Equal execution bindings retain their distinct authored origins.
+            let mut concise_semantics = concise_binding.clone();
+            let mut explicit_semantics = explicit_binding.clone();
+            concise_semantics.source_origin = None;
+            explicit_semantics.source_origin = None;
+            assert_eq!(concise_semantics, explicit_semantics);
+        }
+    }
 }
 
 #[test]

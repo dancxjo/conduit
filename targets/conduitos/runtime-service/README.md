@@ -73,3 +73,38 @@ exact binding checks, initial literal and completed-value loans, and receipt
 acceptance. Stats remains the existing additive counter query, with mode-specific
 96Sign/4pending ceilings. ProtectedTimer is unchanged: that production path
 already owns its canonical timer scheduler in its private TextDomain.
+
+
+## Canonical interaction profile
+
+`InitFace` (tag 10) selects `FaceScheduler` with an 8,192-byte per-value envelope.
+The legacy native scheduler remains 3,072 bytes; text and Morse specializations
+retain their own limits. Both native profiles use the same execution kernel with fixed node/Cord/value
+counts and the 24,576-byte aggregate native value budget. Native workset preparation
+selects this profile for the exact admitted Patchbay interaction Fore; this does
+not widen every application value or make a second scheduler.
+
+`AdmitRemote` (tag 11) names the admitted endpoint, Cord, sequence and transfer
+length. Only the Face profile accepts it. `RemoteAdmission` reports Accepted or
+Full with that same sequence. Full is pressure and consumes neither a loan nor a
+sequence. Root's separate broker checks route, sequence and byte bounds before
+entry and publishes custody loans only after exact acceptance. Uncertain guest
+results quarantine that broker without replay. The complete Face/publication
+uses the separate retained-application protocol; the 8,192-byte envelope does not
+claim arbitrary full Face admission.
+
+Initialized Document output has a one-shot Root loan of exactly eight zero bytes
+(revision-zero empty text). It grants neither an empty edit nor a second initial
+publication. Successor Editor/Document values need exact Root-completed loans.
+The Face profile explicitly reserves 1,024 remote lifecycle Sign events in the
+existing `FixedSignLog<1024>` backing, not one history slot per Cord. History is
+finite, with no hidden eviction or replenishment; it is not a promise of 1,024
+interactions.
+
+See the [runtime profile delivery](../../../docs/audits/native-runtime-profiles-delivery-20261022.md),
+[Root custody checks](../../../docs/audits/patchbay-root-custody-delivery-20261022.md)
+and [installed caller cutover](../../../docs/audits/patchbay-installed-cutover-20261022.md).
+Those records distinguish hosted checks, compilation and actual protected-service
+execution. Native peak stack/private-heap fit and current-source QEMU enactment
+remain unproven by the local compilation/CPU evidence; a larger hosted fixture
+stack is not a native stack change.

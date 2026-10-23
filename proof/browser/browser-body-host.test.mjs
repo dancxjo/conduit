@@ -375,3 +375,126 @@ test("saved-choice acquisition reports its exact admitted units and requires ini
   assert.throws(() => acquireBrowserBodyHost({ ...f, storage }), /resource demand exceeds local bounds/);
   assert.throws(() => acquireBrowserBodyHost({ ...f, storage: { ...storage, state: "Unavailable" } }), /saved choice requires initialized durable browser storage/);
 });
+
+test("canonical Patchbay input dispatches one owner effect without replaying a legacy event", async () => {
+  const f = fixture();
+  const part = f.proposal.plan.plots[0];
+  part.plot = { checked_plot_id: "checked/patchbay" };
+  Object.assign(part.plan.fragments[0].placements[0], {
+    kind_id: "application/retained", configuration: [{ key: "application", value: { Text: "patchbay" } }],
+  });
+  let calls = 0, dispositions = 0, finish;
+  let pending = { application_revision: 7, request: { EditCurrent: {} } };
+  const observation = () => ({ schema: "conduit.browser/patchbay-observation@1",
+    body_plan_id: "body-plan", active_play_id: "play", owner_checked_plot_id: "checked/patchbay",
+    face: { basis: { body_id: "body" } }, mask_show: null, interaction_admitted: false,
+    pending_owner_request: pending,
+  });
+  f.api.conduit_tour_input_ptr = () => 128 * 1024;
+  f.api.conduit_tour_input_capacity = () => 8192;
+  f.api.conduit_browser_patchbay_interact = () => { f.output(observation()); return 0; };
+  f.api.conduit_browser_patchbay_request_disposition = () => {
+    dispositions++; pending = null; f.output(observation()); return 0;
+  };
+  const owner = acquireBrowserBodyHost({ ...f, onPatchbayOwnerRequest: async ({ signal }) => {
+    calls++; assert.equal(signal.aborted, false);
+    await new Promise(resolve => { finish = resolve; });
+    return { outcome: "Completed", evidenceId: "editor/exact-source" };
+  } });
+  try {
+    owner.start(1);
+    const first = owner.submitPatchbayInteraction({ sequence: 1 });
+    const concurrent = await owner.submitPatchbayInteraction({ sequence: 2 });
+    assert.equal(concurrent.pending_owner_request.application_revision, 7);
+    assert.equal(calls, 1);
+    finish();
+    assert.equal((await first).pending_owner_request, null);
+    assert.equal(dispositions, 1);
+    assert.equal(calls, 1);
+  } finally { owner.close(); }
+});
+
+test("Body acquisition reserves captured Mask slots and refuses shared placement identities", () => {
+  const f = fixture();
+  const maskPlacement = { placement_id: "mask-placement", gear_id: "mask-renderer",
+    resources: [{ pool_id: "browser/face", class_id: "conduit.resource/face-slot@1", units: 1 }] };
+  f.proposal.plan.mask_topologies = [{ face: { plot: { checked_plot_id: "checked/patchbay" } },
+    chains: [{ plan: { fragments: [{ host_id: "host", boot_id: "boot", offer_generation: 1,
+      placements: [maskPlacement] }] } }] }];
+  const owner = acquireBrowserBodyHost(f);
+  try {
+    assert.equal(owner.observations().find(pool => pool.pool_id === "browser/face").unreserved_units, 2);
+    assert.equal(f.outputRoot.children.length, 2);
+  } finally { owner.close(); }
+  const duplicate = fixture();
+  duplicate.proposal.plan.mask_topologies = structuredClone(f.proposal.plan.mask_topologies);
+  duplicate.proposal.plan.mask_topologies[0].chains[0].plan.fragments[0].placements[0].placement_id = "placement-0";
+  assert.throws(() => acquireBrowserBodyHost(duplicate), /duplicate browser Body placement/);
+});
+
+test("selected Patchbay rendering starts without legacy output and ignores an inline canvas", async () => {
+  for (const legacyOutput of [true, false]) {
+  const f = fixture();
+  const part = f.proposal.plan.plots[0];
+  part.plot = { checked_plot_id: "checked/patchbay" };
+  Object.assign(part.plan.fragments[0].placements[0], {
+    kind_id: legacyOutput ? "application/retained" : "patchbay/accept-interaction",
+    configuration: legacyOutput ? [{ key: "application", value: { Text: "patchbay" } }] : [],
+  });
+  f.proposal.plan.mask_topologies = [{ face: { plot: part.plot }, chains: [{ plan: { fragments: [{
+    host_id: "host", boot_id: "boot", offer_generation: 1, placements: [{
+      placement_id: "mask-slot", gear_id: "mask", resources: [{
+        pool_id: "browser/face", class_id: "conduit.resource/face-slot@1", units: 1,
+      }],
+    }],
+  }] } }] }];
+  const start = f.api.conduit_browser_body_start;
+  f.api.conduit_browser_body_start = length => {
+    start(length);
+    f.output({ schema: "conduit.browser/body-started@1", play: {
+      active_play_id: "play", plan_id: "body-plan", wake_id: "wake", body_id: "body",
+    }, progress: legacyOutput ? { effect_kind: "manifestation", host_id: "host", boot_id: "boot",
+      active_play_id: "play", plan_id: "partition", placement_id: "placement-0", request_sequence: 0,
+      checked_plot_id: "checked/patchbay", face_kind: "face/application-view", application_view: [255],
+    } : { schema: "conduit.browser/pending-effects@1", disposition: "externally_admitted_input", active_play_id: "play", pending_effects: 0 } });
+    return 0;
+  };
+  f.api.conduit_browser_patchbay_observation = () => {
+    f.output({ schema: "conduit.browser/patchbay-observation@1", body_plan_id: "body-plan",
+      active_play_id: "play", owner_checked_plot_id: "checked/patchbay", face: { basis: { body_id: "body" } },
+      mask_show: null, interaction_admitted: false, publication: { effect: { placement_id: "mask-slot", show_id: "canonical-show" } },
+    }); return 0;
+  };
+  assert.throws(() => acquireBrowserBodyHost(f), /canonical Patchbay requires a selected browser Face renderer/);
+  assert.equal(f.outputRoot.children.length, 0);
+  assert.equal(f.count().starts, 0);
+  let rendered = 0;
+  let presented;
+  const presentation = new Promise(resolve => { presented = resolve; });
+  const owner = acquireBrowserBodyHost({ ...f, onPatchbayPublication: ({ root, signal }) => {
+    rendered++; presented(); assert.equal(root.dataset.placementId, "mask-slot"); assert.equal(signal.aborted, false);
+  } });
+  try {
+    owner.start(1);
+    const running = owner.run();
+    if (legacyOutput) await running;
+    else { await presentation; owner.close(); await running; }
+    assert.equal(rendered, 1);
+  }
+  finally { owner.close(); }
+  }
+});
+
+
+test('legacy Patchbay proposals do not require a canonical startup observation', async () => {
+  const f = fixture();
+  const part = f.proposal.plan.plots[0];
+  part.plot = { checked_plot_id: 'checked/patchbay' };
+  Object.assign(part.plan.fragments[0].placements[0], {
+    kind_id: 'application/retained', configuration: [{ key: 'application', value: { Text: 'patchbay' } }],
+  });
+  f.api.conduit_browser_patchbay_observation = () => { throw new Error('not a canonical route'); };
+  const owner = acquireBrowserBodyHost(f);
+  try { owner.start(1); await owner.run(); assert.equal(f.outputRoot.children[0].textContent, 'Greeting: hello'); }
+  finally { owner.close(); }
+});

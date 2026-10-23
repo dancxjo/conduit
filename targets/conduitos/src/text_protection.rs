@@ -10,6 +10,8 @@ use conduit_core::{ActivePlayIdentity, Plan};
 use core::sync::atomic::{AtomicU32, Ordering};
 
 mod chain;
+mod document;
+pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
 mod effect;
 mod morse;
 pub(crate) use chain::{KeyboardChainError, PureKeyboardOutput};
@@ -109,12 +111,17 @@ impl TextOwner for crate::protected_region::BodyRegionBinding {
     }
 }
 
+#[derive(Clone, Copy)]
+struct SerialBinding {
+    scope: crate::domain_serial_scope::SerialScope,
+    handle: crate::protection_domain::KernelCapabilityHandle,
+}
+
 pub(crate) struct ProtectedText<I: TextOwner = RegionBinding> {
     region: ProtectedRegion<TextDomain, I>,
     capabilities: KernelCapabilityTable,
     current: I,
-    serial: crate::domain_serial_scope::SerialScope,
-    serial_handle: crate::protection_domain::KernelCapabilityHandle,
+    serial: Option<SerialBinding>,
     diagnostic_fixture: bool,
     editor: bool,
 }
@@ -175,8 +182,10 @@ impl ProtectedText {
             current: binding.clone(),
             region: ProtectedRegion::installed(binding, backend),
             capabilities,
-            serial,
-            serial_handle,
+            serial: Some(SerialBinding {
+                scope: serial,
+                handle: serial_handle,
+            }),
             diagnostic_fixture: false,
             editor: false,
         };
@@ -319,7 +328,10 @@ impl<I: TextOwner> ProtectedText<I> {
     }
     #[cfg(feature = "ordinary-domain-proof")]
     pub(crate) fn handle_for_probe(&self) -> u64 {
-        self.serial_handle.raw_for_domain()
+        self.serial
+            .expect("serial diagnostic owner")
+            .handle
+            .raw_for_domain()
     }
     #[cfg(feature = "ordinary-domain-proof")]
     pub(crate) fn state_for_probe(&self) -> crate::protected_region::DomainState {

@@ -1,0 +1,108 @@
+{
+  "source_commit": "996c4debf82bbb2af1f91e68320eef2ae1ce8ea1",
+  "proof_boundary": "CPU/frontend/owner fault controls and compile checks; not QEMU failure injection or current-source CI acceptance",
+  "status": "complete",
+  "steps": [
+    {
+      "name": "startup-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::startup::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 49.02346644102363,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-startup-tests.log",
+      "sha256": "6f6cd8d015b8c009194c4251953f701ec6259c146a0fc0eb2827ba00363649d4"
+    },
+    {
+      "name": "lifecycle-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::lifecycle_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 13.806145203008782,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-lifecycle-tests.log",
+      "sha256": "6a1287d95e81204b6b8e3f584eebc065d5d4f122fdd39ffa24ef8326542d238e"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 63.0589999720105,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-strict-clippy.log",
+      "sha256": "c9ca17696ff135e0af830030919c5f9509f756d1947cf213b64b55db68331622"
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 14.827871610003058,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "freestanding-check",
+      "command": [
+        "cargo",
+        "+stable",
+        "check",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--target",
+        "x86_64-unknown-none",
+        "--features",
+        "native-compositor"
+      ],
+      "exit_code": 0,
+      "seconds": 1004.1630701589747,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-freestanding-check.log",
+      "sha256": "0e01b05be249c93c5c259d64e522cdc3abba16b2d72bea272585b418cb16ef73"
+    }
+  ],
+  "source_clean_after": true
+}

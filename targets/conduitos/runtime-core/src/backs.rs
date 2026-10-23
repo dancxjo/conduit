@@ -7,6 +7,8 @@ use conduit_kernel::{
 };
 
 use crate::PORTS;
+mod document;
+pub use document::DocumentBack;
 
 #[derive(Clone, Copy)]
 pub struct KeyboardBack {
@@ -60,6 +62,8 @@ pub enum PlannedBack {
     Keymap(StreamTransformBack),
     Upper(StreamTransformBack),
     TextEdit(StreamTransformBack),
+    Document(DocumentBack),
+    Editor(StreamTransformBack),
     Face(FaceBack),
     Application(ApplicationBack),
 }
@@ -72,7 +76,10 @@ impl StepBack<PORTS> for PlannedBack {
     ) -> StepOutcome {
         match self {
             Self::Keyboard(back) => back.step(io),
-            Self::Keymap(back) | Self::Upper(back) | Self::TextEdit(back) => back.step(io),
+            Self::Keymap(back) | Self::Upper(back) | Self::TextEdit(back) | Self::Editor(back) => {
+                back.step(io)
+            }
+            Self::Document(back) => back.step(io),
             Self::Face(back) => back.step(io),
             Self::Application(back) => back.step(io),
         }
@@ -81,10 +88,11 @@ impl StepBack<PORTS> for PlannedBack {
     fn cancel(&mut self) {
         match self {
             Self::Keyboard(back) => back.pending = None,
-            Self::Keymap(back) | Self::Upper(back) | Self::TextEdit(back) => {
+            Self::Keymap(back) | Self::Upper(back) | Self::TextEdit(back) | Self::Editor(back) => {
                 back.pending = None;
                 back.initial = None;
             }
+            Self::Document(back) => back.cancel(),
             Self::Face(back) => back.pending = None,
             Self::Application(back) => back.pending = None,
         }

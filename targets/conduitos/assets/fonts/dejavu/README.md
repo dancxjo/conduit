@@ -21,9 +21,10 @@ Archive: `dejavu-fonts-ttf-2.37.tar.bz2`, SHA-256
 | `DejaVuSansMono.ttf` | `b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582` |
 
 `native-ensemble.json` records the pinned sources and immutable mechanism mapping.
-Make verifies checksums and prepares five fixed profiles: Sans14 label, Sans16
-body, Sans20 heading, Serif24 title and Mono14 code. Look ensemble selection is
-explicitly deferred to #5628/#5629; palette/identity does not select a font.
+Make verifies checksums and prepares six fixed profiles: Sans14 label, Sans16
+body, Sans20 heading, Serif24 editorial title, Mono14 code and Sans24 engineering
+title. The admitted finite typography intent selects the title resource;
+palette/identity does not select a font. Five semantic purposes remain unchanged.
 The active path is `build.rs` (native-compositor) → `build/typography.rs` →
 Cargo `OUT_DIR/native_typography.rs` and `native_coverage.bin`; runtime includes
 those exact tables. `native_typography_resources.tsv` records each generated

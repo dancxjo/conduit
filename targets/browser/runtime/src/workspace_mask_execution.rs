@@ -135,8 +135,14 @@ pub(crate) fn mask_scheduler(
     bindings
         .seal()
         .map_err(|error| format!("seal browser Mask host calls: {error:?}"))?;
-    let values = HostedValueStore::new(12, MASK_BYTES, MASK_BYTES * 4)
-        .map_err(|error| format!("prepare browser Mask values: {error:?}"))?;
+    // One closing Show lifecycle creates exactly three distinct values: the
+    // supplied Face, acknowledged Show and emitted interaction. Kernel queues
+    // and Host Calls retain references to those same values, not new payloads.
+    // Reserve all three simultaneously; table capacity is not a payload count.
+    const VALUE_SLOTS: u16 = 3;
+    let values =
+        HostedValueStore::new(VALUE_SLOTS, MASK_BYTES, MASK_BYTES * u32::from(VALUE_SLOTS))
+            .map_err(|error| format!("prepare browser Mask values: {error:?}"))?;
     const SIGN_ITEMS: u16 = 256;
     let sign_bytes = u32::from(SIGN_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)

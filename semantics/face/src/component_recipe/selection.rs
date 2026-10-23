@@ -47,9 +47,33 @@ impl From<ComponentVisualSelection> for ComponentMaskLook {
     }
 }
 impl ComponentVisualSelection {
+    /// Reverse only the exact reviewed Source roots; never infer a foreign root
+    /// from a prefix, suffix, display label or renderer implementation name.
+    pub fn from_todo_root(root: &str) -> Option<(Self, TodoComponentRecipe)> {
+        for density in [VisualDensity::Compact, VisualDensity::Spacious] {
+            for palette in [VisualPalette::Phosphor, VisualPalette::Editorial] {
+                let selection = Self { density, palette };
+                for recipe in [
+                    TodoComponentRecipe::Flat,
+                    TodoComponentRecipe::Grouped,
+                    TodoComponentRecipe::RequiredItem,
+                ] {
+                    if selection.todo_root(recipe) == root {
+                        return Some((selection, recipe));
+                    }
+                }
+            }
+        }
+        None
+    }
+
     pub const fn todo_root(self, recipe: TodoComponentRecipe) -> &'static str {
         use {TodoComponentRecipe::*, VisualDensity::*, VisualPalette::*};
         match (recipe, self.density, self.palette) {
+            (RequiredItem, Compact, Phosphor) => "todo-mask-required-item-compact",
+            (RequiredItem, Compact, Editorial) => "todo-mask-required-item-compact-editorial",
+            (RequiredItem, Spacious, Phosphor) => "todo-mask-required-item-spacious-phosphor",
+            (RequiredItem, Spacious, Editorial) => "todo-mask-required-item-spacious",
             (Flat, Compact, Phosphor) => "todo-mask-flat-compact",
             (Flat, Compact, Editorial) => "todo-mask-flat-compact-editorial",
             (Flat, Spacious, Phosphor) => "todo-mask-flat-spacious-phosphor",

@@ -263,7 +263,9 @@ pub(crate) fn inventory_application_subjects(
                 })
                 .ok_or("resident application subject is absent from the reviewed inventory")?;
             let (_, profile) = catalogs.get(entry.face)?;
-            let expanded = if plot.name == "thermostat/main" {
+            let expanded = if !plot.checked_front().inputs().is_empty()
+                || !plot.checked_front().outputs().is_empty()
+            {
                 conduit_plot::expand_canonical_plot_for_authoring(
                     &entry.checked,
                     &plot.name,

@@ -17,7 +17,8 @@ fn compositor_refusal_keeps_its_specific_machine_reason() {
     );
 }
 
-struct CountingDisplay {
+#[derive(Default)]
+pub(crate) struct CountingDisplay {
     writes: u32,
     fail: bool,
 }
@@ -433,3 +434,6 @@ fn stale_scene_input_redraws_a_notice_and_preserves_the_refusal() {
 
 #[path = "pointer_motion_tests.rs"]
 mod pointer_motion;
+
+#[path = "canonical_publication_tests.rs"]
+mod canonical_publication;

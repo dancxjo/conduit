@@ -52,6 +52,8 @@ pub enum BrowserComponentLook {
 pub enum BrowserComponentRecipe {
     Flat,
     Grouped,
+    #[serde(rename = "required-item")]
+    RequiredItem,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

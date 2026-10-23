@@ -81,9 +81,11 @@ impl NativePreparation {
                 &mut observer,
             )
             .map_err(|_| WorksetRefusal::Catalog)?;
-        // Preserve the closed-root law of expand_canonical_plot. The general
-        // authoring cache also supports open Fores, which this entrance does not.
-        if !expanded.input_bindings.is_empty() || !expanded.output_bindings.is_empty() {
+        // Only Patchbay has an explicitly admitted resident return Fore. Other
+        // installed roots stay closed; every output boundary remains unsupported.
+        if !expanded.output_bindings.is_empty()
+            || (!expanded.input_bindings.is_empty() && plot != NativePlot::Patchbay)
+        {
             return Err(WorksetRefusal::Catalog);
         }
         Ok(expanded)
@@ -129,6 +131,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), WorksetRefusal> {
         .map_err(|_| WorksetRefusal::Catalog)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)
         .map_err(|_| WorksetRefusal::Catalog)?;
+    super::patchbay_ingress::install_catalogs(&mut startup, &mut profile)?;
     Ok((startup, profile))
 }
 
@@ -158,6 +161,13 @@ pub(super) fn with_plot<T>(
     plot: NativePlot,
     visit: impl FnOnce(&ExpandedCanonicalPlot) -> T,
 ) -> Result<T, WorksetRefusal> {
+    with_authoring(plot, |authored| visit(&authored.expanded))
+}
+
+pub(super) fn with_authoring<T>(
+    plot: NativePlot,
+    visit: impl FnOnce(&ExpandedAuthoringPlot) -> T,
+) -> Result<T, WorksetRefusal> {
     let _timing =
         crate::native_observation::Interval::begin(crate::native_observation::Stage::PlotBuild);
     Progress::result(Phase::PlotBuild, plot.name(), || {
@@ -169,7 +179,7 @@ pub(super) fn with_plot<T>(
             .is_err()
         {
             let expanded = NativePreparation::new()?.observed(plot, true)?;
-            return Ok(visit(&expanded.expanded));
+            return Ok(visit(&expanded));
         }
         let _guard = Guard(&PREPARATION.locked);
         // SAFETY: the guard exclusively owns value, including initialization, until
@@ -182,7 +192,7 @@ pub(super) fn with_plot<T>(
             .as_mut()
             .expect("initialized above")
             .observed(plot, false)?;
-        Ok(visit(&expanded.expanded))
+        Ok(visit(&expanded))
     })
 }
 
@@ -269,11 +279,25 @@ mod tests {
                 &startup,
             )
             .unwrap();
-            let cold =
-                conduit_plot::expand_canonical_plot(&checked, plot.name(), &profile).unwrap();
+            let closed = conduit_plot::expand_canonical_plot(&checked, plot.name(), &profile);
+            let cold = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
+                &checked,
+                plot.name(),
+                &profile,
+                &CanonicalBackCatalog::new(),
+            )
+            .unwrap();
+            assert!(cold.output_bindings.is_empty());
+            if plot == NativePlot::Patchbay {
+                assert_eq!(closed.unwrap_err().code, "CND-FRM-033");
+                assert_eq!(cold.input_bindings.len(), 1);
+            } else {
+                assert_eq!(closed.unwrap(), cold.expanded);
+                assert!(cold.input_bindings.is_empty());
+            }
             let first = prepared.expanded(plot).unwrap();
             let second = prepared.expanded(plot).unwrap();
-            assert_eq!(first.expanded, cold);
+            assert_eq!(*first, cold);
             assert!(Arc::ptr_eq(&first, &second));
         }
         let count = super::super::NATIVE_CANDIDATE_CAPACITY;

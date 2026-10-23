@@ -1,0 +1,18 @@
+{
+  "source": "077a2a535b4ec30d1f09ec6c2884c22bbffd1c57",
+  "command": [
+    "node",
+    "--test",
+    "targets/browser/sdk/browser-sdk-errors.test.mjs"
+  ],
+  "exit_code": 0,
+  "counts": {
+    "tests": 6,
+    "pass": 6,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "node_version": "v25.9.0"
+}

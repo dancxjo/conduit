@@ -322,6 +322,7 @@ fn selected_patchbay_graph_becomes_exact_face_subjects_for_the_native_mask() {
             gear("sink", PortDirection::Input, "sink/in"),
         ],
         cords: vec![PatchbayCord {
+            source_origin: None,
             identity: "source-to-sink".into(),
             source_port: "source/out".into(),
             sink_port: "sink/in".into(),

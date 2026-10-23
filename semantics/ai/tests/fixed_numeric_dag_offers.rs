@@ -191,6 +191,7 @@ fn exposed_matrix_output_remains_a_canonical_boundary() {
         .gear_id
         .clone();
     plot.output_bindings.push(AuthoringFrontBinding {
+        source_origin: None,
         front_port_id: port_id("observed"),
         gear_id: matrix.clone(),
         gear_port_id: port_id("result"),

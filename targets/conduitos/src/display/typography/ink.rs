@@ -1,6 +1,6 @@
 //! Finite scalar ink spans in the same fixed-point cursor used for painting.
 //! Following zero-advance marks stay with their base; this is not shaping.
-use super::{TextRole, TextScale, scaled_glyph};
+use super::{TextScale, TextStyle, scaled_glyph};
 
 pub(super) struct Span {
     pub bytes: usize,
@@ -16,7 +16,7 @@ impl Span {
     }
 }
 
-pub(super) fn cluster_bytes(value: &str, role: TextRole, scale: TextScale) -> usize {
+pub(super) fn cluster_bytes(value: &str, role: TextStyle, scale: TextScale) -> usize {
     let mut chars = value.chars();
     let Some(first) = chars.next() else { return 0 };
     let mut bytes = first.len_utf8();
@@ -34,7 +34,7 @@ pub(super) fn cluster_bytes(value: &str, role: TextRole, scale: TextScale) -> us
     bytes
 }
 
-pub(super) fn span(value: &str, role: TextRole, scale: TextScale, start: u32) -> Span {
+pub(super) fn span(value: &str, role: TextStyle, scale: TextScale, start: u32) -> Span {
     let mut cursor = start;
     let mut left = (start / 64) as i32;
     let mut right = start.div_ceil(64) as i32;

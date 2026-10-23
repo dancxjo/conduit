@@ -41,6 +41,8 @@ mod membership_offer;
 mod morse;
 mod morse_composition;
 mod normalized_quantity;
+pub mod patchbay_ingress;
+pub(crate) mod patchbay_owner_installation;
 mod phase_synchronization;
 pub(crate) mod pitch_tone;
 mod pointer;

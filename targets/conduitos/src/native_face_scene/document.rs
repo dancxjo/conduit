@@ -299,7 +299,19 @@ pub(super) fn prepare(
                 let hint = argument_hint(argument);
                 append(Item {
                     text: super::text_field::current(face, index).map_or_else(
-                        || format!("{} · {}", argument.value_name, hint),
+                        || {
+                            format!(
+                                "{} · {}",
+                                argument.value_name,
+                                if argument_index == 0
+                                    && super::text_field::choices(face, index).is_some()
+                                {
+                                    "Left/Right choose"
+                                } else {
+                                    &hint
+                                }
+                            )
+                        },
                         |value| {
                             let current = format!(
                                 "{}: {}",

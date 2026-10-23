@@ -14,13 +14,14 @@ pub fn phosphor_look() -> Result<LookInfo, NativeBindingRefusal> {
         VisualMotionPreference::None,
         VisualPalettePreference::Phosphor,
         100,
-        1,
+        VisualTypographyPreference::Editorial,
+        2,
     )?;
     let visual = LookVisualFacetOption::some(expression, phosphor_tokens()?)?;
     let spoken = LookSpokenFacetOption::some(LookSpokenDelivery::Neutral, LookVerbosity::Brief)?;
     let generative =
         LookGenerativeFacetOption::some(LookGenerativeRegister::Neutral, LookVerbosity::Brief)?;
-    LookInfo::new(generative, PHOSPHOR_LOOK_ID.into(), spoken, 1, visual)
+    LookInfo::new(generative, PHOSPHOR_LOOK_ID.into(), spoken, 2, visual)
 }
 
 fn phosphor_tokens() -> Result<LookVisualTokensInfo, NativeBindingRefusal> {

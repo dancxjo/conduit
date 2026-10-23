@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Exact source and optional Face-context requirement for one contribution.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FaceContributionBasis {
     pub checked_plot_id: CheckedPlotId,
     pub plan_id: PlanId,
@@ -21,7 +21,7 @@ pub struct FaceContributionBasis {
 
 /// A partial universal grammar. The Face owns the outer Body basis, interaction
 /// context, canonical identity, and final cross-contribution validation.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FaceFragment {
     pub basis: FaceContributionBasis,
     pub subjects: Vec<FaceSubject>,

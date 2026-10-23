@@ -1,3 +1,13 @@
+mod cord;
+pub use cord::{CheckedCanonicalCord, CheckedCordStage};
+mod boundary_provenance;
+pub(crate) use boundary_provenance::boundary_provenance_digest;
+pub use boundary_provenance::AuthoringCordOrigin;
+pub(crate) mod connection_provenance;
+pub use connection_provenance::{ExpandedConnectionOrigin, ExpandedConnectionProvenance};
+mod expanded_provenance;
+pub(crate) use expanded_provenance::provenance_digest;
+pub use expanded_provenance::ExpandedGearProvenance;
 mod startup_catalog;
 pub use crate::native_type::family::source::NativeTypeSourceOrigin;
 use crate::prelude::*;
@@ -100,48 +110,6 @@ impl PartialEq for CheckedCanonicalGear {
 }
 
 impl Eq for CheckedCanonicalGear {}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CheckedCordStage {
-    Reference(String),
-    RelationalGear {
-        operands: Vec<String>,
-        gear: CheckedCanonicalGear,
-        input_ports: Vec<String>,
-        output_port: String,
-    },
-    TerminalProjection {
-        endpoint: String,
-        terminal: crate::TerminalProjection,
-        source_span: Span,
-    },
-    Cancellation {
-        gear: String,
-        source_span: Span,
-    },
-    When {
-        expression: crate::ExpressionSyntax,
-        source_span: Span,
-    },
-    PureExpression {
-        expression: crate::ExpressionSyntax,
-        source_span: Span,
-    },
-    InlineGear(CheckedCanonicalGear),
-    Literal {
-        value: CanonicalStartupValue,
-        source_span: Span,
-    },
-    StructuredSelector {
-        selector: conduit_core::StructuredSelector,
-        source_span: Span,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedCanonicalCord {
-    pub stages: Vec<CheckedCordStage>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedPoolDeclaration {
@@ -293,17 +261,6 @@ impl CheckedSyntaxDocument {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExpandedGearProvenance {
-    /// Compiler-owned validation scope; authored gear paths cannot grant it.
-    pub(crate) construction_owner: Option<conduit_core::KindId>,
-    pub gear_id: String,
-    pub plot_path: Vec<String>,
-    pub source_plot: String,
-    pub source_gear: String,
-    pub source_span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpandedCanonicalPlot {
     pub source_document_id: SourceDocumentId,
     pub checked_plot_id: CheckedPlotId,
@@ -312,6 +269,7 @@ pub struct ExpandedCanonicalPlot {
     pub completion: PlotCompletionPolicy,
     pub gears: Vec<crate::CheckedGear>,
     pub connections: Vec<crate::CheckedConnection>,
+    pub connection_provenance: Vec<ExpandedConnectionProvenance>,
     pub shared_pools: Vec<ExpandedSharedPool>,
     pub provenance: Vec<ExpandedGearProvenance>,
     pub provenance_digest: String,
@@ -344,6 +302,7 @@ pub struct ExpandedActivation {
 /// deliberately retains unbound runtime Front Ports. It is not a runnable-root claim.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpandedAuthoringPlot {
+    pub boundary_provenance_digest: String,
     pub expanded: ExpandedCanonicalPlot,
     pub front: CheckedFront,
     pub input_bindings: Vec<AuthoringFrontBinding>,
@@ -356,6 +315,7 @@ pub struct ExpandedAuthoringPlot {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthoringFrontBinding {
+    pub source_origin: Option<AuthoringCordOrigin>,
     pub front_port_id: conduit_core::PortId,
     pub gear_id: conduit_core::GearId,
     pub gear_port_id: conduit_core::PortId,

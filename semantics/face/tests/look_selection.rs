@@ -30,7 +30,7 @@ fn facet_absence_unknown_and_observed_host_unavailability_stay_distinct() {
         LookGenerativeFacetOption::None,
         "conduit.look/plain@1".into(),
         LookSpokenFacetOption::None,
-        1,
+        2,
         LookVisualFacetOption::None,
     )
     .unwrap();
@@ -89,14 +89,15 @@ fn large_request() -> LookInfo {
         VisualMotionPreference::Restrained,
         VisualPalettePreference::Phosphor,
         200,
-        1,
+        VisualTypographyPreference::Editorial,
+        2,
     )
     .unwrap();
     LookInfo::new(
         original.generative().clone(),
         identity.into(),
         original.spoken().clone(),
-        1,
+        2,
         LookVisualFacetOption::some(expression, visual.tokens().clone()).unwrap(),
     )
     .unwrap()
@@ -143,7 +144,7 @@ fn foreign_visual_identity_cannot_be_attached_to_another_look() {
         original.generative().clone(),
         "conduit.look/forged@1".into(),
         original.spoken().clone(),
-        1,
+        2,
         original.visual().clone()
     )
     .is_err());

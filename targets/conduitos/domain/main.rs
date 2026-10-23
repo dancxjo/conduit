@@ -3,6 +3,7 @@
 #![no_main]
 
 mod allocation;
+mod document;
 mod frame;
 mod gate;
 mod keymap;
@@ -54,6 +55,7 @@ pub unsafe extern "C" fn domain_entry(frame: *mut TextFrame) -> ! {
         7 => unsafe { keymap::edit_chain(frame) },
         8 => morse::chain(frame),
         10..=13 => unsafe { timer::execute(frame) },
+        14 => unsafe { keymap::document(frame) },
         9 => {
             if frame.morse_length as usize > frame::MORSE_CAPACITY
                 || frame.capacity != frame::MORSE_CAPACITY as u32

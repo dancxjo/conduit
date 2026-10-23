@@ -73,7 +73,7 @@ type LookGenerativeFacetOption =
 
 type LookInfo = {
     identity: Text <= 128B not in ["", "conduit.face/phosphor@1", "conduit.presentation/phosphor@1"]
-    version: U16 in 1..=1
+    version: U16 in 2..=2
     visual: LookVisualFacetOption
     spoken: LookSpokenFacetOption
     generative: LookGenerativeFacetOption

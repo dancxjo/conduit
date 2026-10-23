@@ -15,6 +15,9 @@ use crate::{
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{Face, FaceInteraction, MaskShow};
 use conduit_human::KeyEvent;
+mod lifecycle;
+mod patchbay;
+use lifecycle::resolve_current_action;
 
 pub(super) struct FaceWorkspace {
     mask: NativeFaceMask,
@@ -274,11 +277,14 @@ impl FaceWorkspace {
         // entry after lifecycle admission, while Home and Details keep their
         // own application surface.
         if journey.revision() != owner_revision
-            && journey.foreground_text_editor_active()
+            && (journey.foreground_text_editor_active()
+                || journey.foreground_canonical_patchbay_active())
             && !door.home_open()
             && !door.exact_details_open()
         {
-            self.enter_editor(door, presenter, display)
+            let receipt = self.enter(door, presenter, display)?;
+            self.editor_surface = journey.foreground_text_editor_active();
+            Ok(receipt)
         } else {
             Ok(restored)
         }
@@ -398,6 +404,19 @@ impl FaceWorkspace {
             return Err("workspace-face-owner-changed");
         }
         let face = door.face().map_err(|error| error.as_str())?;
+        if patchbay::owns_action(&interaction.action_id) {
+            return self.apply_patchbay(
+                door,
+                journey,
+                display,
+                identities,
+                offer,
+                make,
+                face,
+                show,
+                interaction,
+            );
+        }
         let action = resolve_current_action(&face, show, interaction)?;
         let request = journey
             .next_request(action, interaction.target.clone(), face.revision)
@@ -422,56 +441,6 @@ impl FaceWorkspace {
     }
 }
 
-fn resolve_current_action(
-    face: &Face,
-    show: &MaskShow,
-    interaction: &FaceInteraction,
-) -> Result<patchbay_control::PatchbayAction, &'static str> {
-    interaction
-        .validate_against(face, show)
-        .map_err(interaction_refusal)?;
-    // This lifecycle adapter has no argument Fore. Validation must not turn a
-    // future argument-bearing action into a request that discards its values.
-    if !interaction.arguments.is_empty() {
-        return Err("workspace-face-action-arguments-unsupported");
-    }
-    let action = face
-        .resolve_action(face.revision, &interaction.action_id)
-        .map_err(|_| "workspace-face-action-unavailable")?;
-    if action.target != interaction.target {
-        return Err("workspace-face-action-target-mismatch");
-    }
-    let name = action
-        .identity
-        .strip_prefix("action/")
-        .and_then(|remaining| remaining.split_once('/'))
-        .filter(|(_, target)| *target == action.target)
-        .map(|(name, _)| name)
-        .ok_or("workspace-face-action-identity-invalid")?;
-    let semantic =
-        patchbay_control::PatchbayAction::from_name(name).ok_or("workspace-face-action-unknown")?;
-    if semantic.face_intent() != action.intent {
-        return Err("workspace-face-action-intent-mismatch");
-    }
-    Ok(semantic)
-}
-
-fn interaction_refusal(reason: conduit_face::FaceInteractionRefusal) -> &'static str {
-    use conduit_face::FaceInteractionRefusal::*;
-    match reason {
-        StaleFace => "workspace-face-stale-face",
-        StaleShow => "workspace-face-stale-show",
-        FailedShow => "workspace-face-failed-show",
-        WrongTarget => "workspace-face-action-target-mismatch",
-        UnknownAction => "workspace-face-action-unknown",
-        UnavailableAction | RefusedAction => "workspace-face-action-unavailable",
-        MissingArgument => "workspace-face-missing-argument",
-        WrongValueKind => "workspace-face-wrong-value-kind",
-        OversizeValue => "workspace-face-oversize-value",
-        _ => "workspace-face-interaction-invalid",
-    }
-}
-
 #[cfg(test)]
 #[path = "face_workspace_tests.rs"]
 pub(super) mod tests;
@@ -485,3 +454,7 @@ mod continuity_tests;
 mod editor_admission_tests;
 
 mod pointer;
+
+#[cfg(test)]
+#[path = "face_workspace_patchbay_tests.rs"]
+mod patchbay_tests;

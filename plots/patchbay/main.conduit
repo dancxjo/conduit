@@ -1,10 +1,6 @@
 plot patchbay (
-  application: Text = "patchbay"
+  >> interaction: FaceInteraction...|
 ) {
-  events: input/application-event
-  state: application/retained(application = application)
-  view: face/application-view("Application")
-
-  events.event >> state.event
-  state.view >> view.view
+  owner: patchbay/accept-interaction
+  interaction >> owner.interaction
 }

@@ -37,3 +37,7 @@ form{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:14px 0}form h5{
 :host([data-component-expression]) .owner-face-choice:has(input:checked){background:var(--face-card);color:var(--face-ink);border:2px solid var(--face-accent)}
 @media(forced-colors:active){:host([data-component-expression]) button:hover:not(:disabled),:host([data-component-expression]) .owner-face-choice:has(input:checked){background:Canvas;color:CanvasText;border-color:Highlight}}
 .owner-component-region-run{display:grid;align-content:start;gap:var(--face-gutter,12px);min-width:0}
+
+/* Host stacks realize the admitted intent of the same text purpose. */
+:host([data-component-typography="editorial"]) [data-text-purpose="Title"]{font-family:Georgia,"Times New Roman",serif}
+:host([data-component-typography="engineering"]) [data-text-purpose="Title"]{font-family:system-ui,sans-serif}

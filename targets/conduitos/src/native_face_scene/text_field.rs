@@ -68,9 +68,9 @@ pub(super) fn adjacent<'a>(
     draft: Option<&[u8]>,
     forward: bool,
 ) -> Option<&'a str> {
-    let committed = current(face, action_index)?;
-    let contract = &face.actions[action_index].arguments[0].contract;
+    let committed = current(face, action_index).unwrap_or("");
     let choices = choices(face, action_index)?;
+    let contract = &face.actions[action_index].arguments[0].contract;
     let choices = choices.as_slice();
     let value = draft
         .and_then(|bytes| core::str::from_utf8(bytes).ok())
@@ -94,11 +94,18 @@ pub(super) fn adjacent<'a>(
 }
 
 /// Borrow a closed, legible enumeration without discarding other constraints.
-/// The real Naming tradition contract includes both membership and byte length.
+/// Both a committed field and a provisional action argument can offer choices.
+/// Current-value reading still requires the exact Source association above.
 /// Unsupported/larger sets keep their complete Details and typed input path.
 pub(super) fn choices(face: &Face, action_index: usize) -> Option<Choices<'_>> {
-    current(face, action_index)?;
-    let contract = &face.actions[action_index].arguments[0].contract;
+    let action = face.actions.get(action_index)?;
+    let [argument] = action.arguments.as_slice() else {
+        return None;
+    };
+    let contract = &argument.contract;
+    if contract.value_kind.as_str() != UTF8_TEXT_VALUE_KIND {
+        return None;
+    }
     let mut sets = contract
         .constraints
         .iter()

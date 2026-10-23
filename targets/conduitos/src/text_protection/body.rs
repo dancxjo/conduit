@@ -7,10 +7,11 @@ use conduit_core::{BootId, ExecutionRegionId, HostId};
 #[derive(Clone)]
 pub(crate) struct BodyTextAdmission {
     plot: ResidentPlot,
+    body_plan: conduit_core::PlanId,
     host: HostId,
     boot: BootId,
     region: ExecutionRegionId,
-    serial: SerialScope,
+    serial: Option<SerialScope>,
     generation: u64,
     editor_capacity: Option<u64>,
 }
@@ -21,6 +22,11 @@ impl BodyTextAdmission {
         plot: &ResidentPlot,
         fixed: &crate::offer::HostOffer<'_>,
     ) -> Result<Self, MachineRunError> {
+        plan.verify_seal()
+            .map_err(|_| MachineRunError::KernelConstruction)?;
+        fixed
+            .validate()
+            .map_err(|_| MachineRunError::KernelConstruction)?;
         let partition = plan
             .plots
             .iter()
@@ -32,6 +38,12 @@ impl BodyTextAdmission {
         let [region] = fragment.execution_regions.as_slice() else {
             return Err(MachineRunError::KernelConstruction);
         };
+        if fragment.host_id.as_str() != crate::identity::hex(&fixed.host_id)
+            || fragment.boot_id.as_str() != crate::identity::hex(&fixed.boot_id)
+            || fragment.offer_generation.0 != fixed.generation
+        {
+            return Err(MachineRunError::KernelConstruction);
+        }
         for placement in &fragment.placements {
             if placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND {
                 if placement.configuration.len() != 2
@@ -58,10 +70,21 @@ impl BodyTextAdmission {
                 }
             }
         }
-        let editor_capacity = fragment
-            .placements
-            .iter()
-            .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::TEXT_EDIT_KIND)
+        let document = fragment.placements.iter().any(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND
+        });
+        let mut editors = fragment.placements.iter().filter(|placement| {
+            matches!(
+                placement.kind_id.as_str(),
+                conduit_semantic_catalog::TEXT_EDIT_KIND
+                    | conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND
+            )
+        });
+        let editor = editors.next();
+        if editors.next().is_some() {
+            return Err(MachineRunError::KernelConstruction);
+        }
+        let editor_capacity = editor
             .map(|p| {
                 p.configuration
                     .iter()
@@ -76,17 +99,30 @@ impl BodyTextAdmission {
                     .ok_or(MachineRunError::KernelConstruction)
             })
             .transpose()?;
-        let serial = SerialScope::prepare_body(
-            plan,
-            plot,
-            &fragment.host_id,
-            &fragment.boot_id,
-            &region.region_id,
-            fixed,
-        )
-        .map_err(MachineRunError::ProtectionDomain)?;
+        // A canonical document-only region has no serial presenter and receives
+        // no serial scope or capability. Explicit serial consumers retain their
+        // exact existing Base admission; absence is never an ambient grant.
+        let serial = if document
+            && !fragment.placements.iter().any(|placement| {
+                placement.implementation_id.as_str() == crate::offer::TEXT_FACE_IMPLEMENTATION
+            }) {
+            None
+        } else {
+            Some(
+                SerialScope::prepare_body(
+                    plan,
+                    plot,
+                    &fragment.host_id,
+                    &fragment.boot_id,
+                    &region.region_id,
+                    fixed,
+                )
+                .map_err(MachineRunError::ProtectionDomain)?,
+            )
+        };
         Ok(Self {
             plot: plot.clone(),
+            body_plan: plan.plan_id.clone(),
             host: fragment.host_id.clone(),
             boot: fragment.boot_id.clone(),
             region: region.region_id.clone(),
@@ -101,6 +137,9 @@ impl BodyTextAdmission {
         plan: &BodyPlan,
         play: &BodyPlayIdentity,
     ) -> Result<ProtectedText<BodyRegionBinding>, MachineRunError> {
+        if plan.plan_id != self.body_plan {
+            return Err(MachineRunError::KernelConstruction);
+        }
         let started = TextDomain::ticks();
         let domain = NEXT_DOMAIN
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
@@ -135,14 +174,19 @@ impl BodyTextAdmission {
         {
             return Err(MachineRunError::KernelConstruction);
         }
+        let mut capabilities = capability_table(self.generation)?;
         let serial = self
             .serial
-            .activate_body(plan, &binding)
-            .map_err(MachineRunError::ProtectionDomain)?;
-        let mut capabilities = capability_table(self.generation)?;
-        let serial_handle = capabilities
-            .issue(binding.domain, serial.scope)
-            .map_err(MachineRunError::ProtectionCapability)?;
+            .map(|prepared| {
+                let scope = prepared
+                    .activate_body(plan, &binding)
+                    .map_err(MachineRunError::ProtectionDomain)?;
+                let handle = capabilities
+                    .issue(binding.domain, scope.scope)
+                    .map_err(MachineRunError::ProtectionCapability)?;
+                Ok::<_, MachineRunError>(SerialBinding { scope, handle })
+            })
+            .transpose()?;
         let heap_bytes = body_binding_heap(&binding)
             .checked_mul(2)
             .ok_or(MachineRunError::KernelConstruction)?;
@@ -169,7 +213,6 @@ impl BodyTextAdmission {
             region: ProtectedRegion::installed(binding, backend),
             capabilities,
             serial,
-            serial_handle,
             diagnostic_fixture: false,
             editor: false,
         };

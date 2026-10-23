@@ -116,6 +116,7 @@ pub use generated::{
     VisualExperienceObservationVisibleText, VisualExperienceObservations, VisualExperienceRelation,
     VisualExperienceRelations, VisualExpressionInfo, VisualImpression, VisualImpressionDisposition,
     VisualMotionPreference, VisualPalettePreference, VisualSelectedObservationSigns,
+    VisualTypographyPreference,
 };
 
 mod application_event;
