@@ -1,6 +1,7 @@
 //! A user-driven Crèche → Body → Patchbay → Face journey in the real x86 guest.
 //! Every image is captured after an observed guest transition, never fabricated
 //! from a fixture or a retired Tour surface.
+use super::live_serial;
 
 mod creche_choices;
 mod creche_controls;
@@ -294,7 +295,7 @@ fn execute_with_viewport(
 
         // Canonical Patchbay enters its checked Face as part of selection.
         face_correspondence::current_patchbay_show(
-            &fs::read_to_string(&serial_path).map_err(io_error)?,
+            &live_serial::read_complete(&serial_path).map_err(io_error)?,
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-face", false)?;
         if observe {
@@ -347,7 +348,7 @@ fn execute_with_viewport(
                 &mut artifacts,
             )?
         };
-        let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
+        let serial = live_serial::read_complete(&serial_path).map_err(io_error)?;
         face_correspondence::retain(
             &serial,
             &paths.target.join("native-shell-paired-linear.json"),
@@ -466,7 +467,7 @@ fn execute_with_viewport(
 }
 
 fn stage_count(path: &Path, marker: &str) -> Result<usize, ConduitosError> {
-    Ok(fs::read_to_string(path)
+    Ok(live_serial::read_complete(path)
         .map_err(io_error)?
         .matches(marker)
         .count())

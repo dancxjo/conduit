@@ -1,5 +1,6 @@
 //! Real offered Patchbay actions, correlated with the guest's current Face/Show.
 use super::super::{qemu_artifacts::Artifacts, qmp};
+use super::live_serial;
 use super::{face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError};
 use conduit_face::Face;
 use serde_json::{json, Value};
@@ -120,10 +121,15 @@ fn decode(record: &Value) -> Result<Face, ConduitosError> {
     serde_json::from_value(record["face"].clone()).map_err(|error| refusal(error.to_string()))
 }
 fn records(serial: &Path, prefix: &str) -> Result<Vec<Value>, ConduitosError> {
-    face_correspondence::records(&fs::read_to_string(serial).map_err(io_error)?, prefix)
+    face_correspondence::records(
+        &live_serial::read_complete(serial).map_err(io_error)?,
+        prefix,
+    )
 }
 fn current(serial: &Path) -> Result<Value, ConduitosError> {
-    face_correspondence::current_patchbay_show(&fs::read_to_string(serial).map_err(io_error)?)
+    face_correspondence::current_patchbay_show(
+        &live_serial::read_complete(serial).map_err(io_error)?,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]

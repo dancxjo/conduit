@@ -1,9 +1,10 @@
 //! Positive Source handoff after an offered Lull and fresh Wake/Plan/Play encounter.
+use super::live_serial;
 use super::*;
 use conduitos::native_workset::{self, NativePlot};
 
 fn journey(serial: &Path) -> Result<Value, ConduitosError> {
-    super::super::journey_records::decode(&fs::read_to_string(serial).map_err(io_error)?)?
+    super::super::journey_records::decode(&live_serial::read_complete(serial).map_err(io_error)?)?
         .pop()
         .ok_or_else(|| refusal("fresh editor journey is absent"))
 }
@@ -14,7 +15,7 @@ fn home(
     reader: &mut qmp::Reader,
 ) -> Result<(), ConduitosError> {
     for _ in 0..2 {
-        let before = fs::read_to_string(serial).map_err(io_error)?;
+        let before = live_serial::read_complete(serial).map_err(io_error)?;
         let homes = before.matches("CONDUIT_HOME_CHECKPOINT returned\n").count();
         let exits = before
             .matches("CONDUIT_WORKSPACE_FACE returned-to-application\n")
@@ -39,7 +40,7 @@ fn home(
                 )
             },
         )?;
-        if fs::read_to_string(serial)
+        if live_serial::read_complete(serial)
             .map_err(io_error)?
             .matches("CONDUIT_HOME_CHECKPOINT returned\n")
             .count()
@@ -100,12 +101,13 @@ pub(in super::super) fn exercise(
     artifacts: &mut Artifacts,
 ) -> Result<Value, ConduitosError> {
     let stopped = journey(serial)?;
-    let previous_live =
-        super::super::journey_records::decode(&fs::read_to_string(serial).map_err(io_error)?)?
-            .into_iter()
-            .rev()
-            .find(|record| !record["active_play_id"].is_null())
-            .ok_or_else(|| refusal("fresh editor lacks the prior retired Play identity"))?;
+    let previous_live = super::super::journey_records::decode(
+        &live_serial::read_complete(serial).map_err(io_error)?,
+    )?
+    .into_iter()
+    .rev()
+    .find(|record| !record["active_play_id"].is_null())
+    .ok_or_else(|| refusal("fresh editor lacks the prior retired Play identity"))?;
     if stopped["status"] != "stopped" {
         return Err(refusal(
             "positive editor must follow retained stopped reentry",
