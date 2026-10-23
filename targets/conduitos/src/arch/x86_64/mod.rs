@@ -133,3 +133,9 @@ pub(crate) use usb::{
     UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
     configure_usb_inbound, configure_usb_outbound,
 };
+
+#[cfg(all(target_os = "none", feature = "ordinary-domain-proof"))]
+mod clock_boundary;
+
+#[cfg(all(target_os = "none", feature = "ordinary-domain-proof"))]
+pub(crate) use clock_boundary::Observation as ClockBoundaryObservation;

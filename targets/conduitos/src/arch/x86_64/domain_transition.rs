@@ -68,6 +68,26 @@ pub(super) fn enter_context_with_budget(
     context: EntryContext,
     profile: domain_budget::EntryBudget,
 ) -> Result<TransitionReturn, DomainRefusal> {
+    enter_context_impl(
+        context,
+        profile,
+        #[cfg(feature = "ordinary-domain-proof")]
+        None,
+    )
+}
+#[cfg(feature = "ordinary-domain-proof")]
+pub(super) fn enter_context_with_clock(
+    context: EntryContext,
+    profile: domain_budget::EntryBudget,
+    permit: Option<super::clock_boundary::Permit>,
+) -> Result<TransitionReturn, DomainRefusal> {
+    enter_context_impl(context, profile, permit)
+}
+fn enter_context_impl(
+    context: EntryContext,
+    profile: domain_budget::EntryBudget,
+    #[cfg(feature = "ordinary-domain-proof")] permit: Option<super::clock_boundary::Permit>,
+) -> Result<TransitionReturn, DomainRefusal> {
     let _interrupts = super::cpu::InterruptMask::new();
     if ACTIVE.swap(true, Ordering::AcqRel) {
         return Err(DomainRefusal::InvalidLifecycle);
@@ -149,9 +169,22 @@ pub(super) fn enter_context_with_budget(
             return Err(error);
         }
     };
+    #[cfg(feature = "ordinary-domain-proof")]
+    let clock = match super::clock_boundary::begin(permit, &context) {
+        Ok(clock) => clock,
+        Err(error) => {
+            drop(budget);
+            ACTIVE.store(false, Ordering::Release);
+            return Err(error);
+        }
+    };
     let result = unsafe {
         conduitos_ordinary_enter(context.entry, context.stack, context.frame, context.cr3)
     };
+    #[cfg(feature = "ordinary-domain-proof")]
+    if let Some(observed) = super::clock_boundary::finish(clock) {
+        crate::ordinary_domain_proof::observe_clock_boundary(observed, result.value, result.origin);
+    }
     #[cfg(feature = "ordinary-domain-proof")]
     crate::ordinary_domain_proof::observe_trap_envelope(
         result.value,

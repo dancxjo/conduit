@@ -253,3 +253,10 @@ pub(crate) use usb_xhci::{
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 pub use usb_xhci::UsbIsochronousCallRefusal;
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_os = "none",
+    feature = "ordinary-domain-proof"
+))]
+pub(crate) use x86_64::ClockBoundaryObservation;
