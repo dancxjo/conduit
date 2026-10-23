@@ -67,7 +67,7 @@ fn acknowledged_native_show_admits_actual_owner_edit_once_and_rejects_republicat
         targets: [
             Some(data::Target {
                 graph,
-                plan: target.plan.plan_id.clone(),
+                plan: Some(target.plan.plan_id.clone()),
                 body: prepared.plan().plan_id.clone(),
             }),
             None,

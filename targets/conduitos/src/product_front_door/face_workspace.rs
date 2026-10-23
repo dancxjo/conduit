@@ -30,6 +30,7 @@ pub(super) struct FaceWorkspace {
 }
 
 impl FaceWorkspace {
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn prepare(
         host_id: HostId,
         boot_id: BootId,
@@ -37,8 +38,17 @@ impl FaceWorkspace {
         build_id: &str,
         display_base_id: HostBaseId,
         provider: &NativeSurfaceProvider,
+        storage: conduit_conduitos_mask_offer::NativeMaskStorageProfile,
     ) -> Result<Self, &'static str> {
-        let mask = NativeFaceMask::prepare(
+        let prepare = match storage {
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard => {
+                NativeFaceMask::prepare
+            }
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection => {
+                NativeFaceMask::prepare_collection
+            }
+        };
+        let mask = prepare(
             host_id,
             boot_id,
             generation,
@@ -177,11 +187,12 @@ impl FaceWorkspace {
             .selected_show
             .as_ref()
             .ok_or("workspace-face-show-absent")?;
-        super::native_action_evidence::face(
+        super::native_action_evidence::face_with_storage(
             &door.face().map_err(|error| error.as_str())?,
             shown,
             observation,
             play,
+            self.mask.publication().zip(self.mask.render_receipt()),
         )?;
         Ok(receipt)
     }
@@ -458,3 +469,7 @@ mod pointer;
 #[cfg(test)]
 #[path = "face_workspace_patchbay_tests.rs"]
 mod patchbay_tests;
+
+#[cfg(test)]
+#[path = "face_workspace_source_storage_tests.rs"]
+mod source_storage_tests;

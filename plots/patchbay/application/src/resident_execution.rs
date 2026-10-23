@@ -133,10 +133,7 @@ impl PatchbayApplicationPort {
                     .plots
                     .get(index)
                     .ok_or(PatchbayApplicationRefusal::UnknownAction)?;
-                PatchbayResidentCommand::SelectPlot {
-                    checked_plot_id: plot.graph.checked_plot_id.clone(),
-                    plan_id: plot.plan_id.clone(),
-                }
+                super::resident_command::selection_command(plot)
             }
             _ => return Err(PatchbayApplicationRefusal::UnknownAction),
         };
@@ -161,7 +158,28 @@ impl PatchbayApplicationPort {
                     .plots
                     .iter()
                     .position(|plot| {
-                        plot.graph.checked_plot_id == checked_plot_id && plot.plan_id == plan_id
+                        plot.graph.checked_plot_id == checked_plot_id
+                            && plot.plan_id.as_ref() == Some(&plan_id)
+                    })
+                    .ok_or(PatchbayApplicationRefusal::UnknownAction)?;
+                self.selected_plot = Some(index);
+                self.selected_subject = 0;
+                self.edit_requested = false;
+                None
+            }
+            PatchbayResidentCommand::SelectSource {
+                source_document_id,
+                checked_plot_id,
+                expanded_plot_id,
+            } => {
+                let index = self
+                    .plots
+                    .iter()
+                    .position(|plot| {
+                        plot.plan_id.is_none()
+                            && plot.graph.source_document_id == source_document_id
+                            && plot.graph.checked_plot_id == checked_plot_id
+                            && plot.graph.expanded_plot_id == expanded_plot_id
                     })
                     .ok_or(PatchbayApplicationRefusal::UnknownAction)?;
                 self.selected_plot = Some(index);
@@ -174,6 +192,9 @@ impl PatchbayApplicationPort {
                 subject_identity,
             } => {
                 let plot = self.selected_active_plot()?;
+                if plot.plan_id.is_none() {
+                    return Err(PatchbayApplicationRefusal::UnknownAction);
+                }
                 if plot.graph.expanded_plot_id != expanded_plot_id
                     || !plot
                         .graph

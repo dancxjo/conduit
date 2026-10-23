@@ -197,6 +197,7 @@ impl Owner {
                         self.topology.as_deref(),
                         proposal.as_ref(),
                         selection.is_some(),
+                        self.selected_editable(slot),
                     )
                 }
             }
@@ -240,12 +241,20 @@ impl Owner {
         {
             return Err(Refusal::Malformed);
         }
+        for (target, graph) in self.graphs[slot].iter().enumerate() {
+            if let Some(graph) = graph.as_deref()
+                && !self.editable_targets[slot][target]
+            {
+                source_authority::check_fragment(fragment, graph)?;
+            }
+        }
         let graph = self.graph(slot).ok_or(Refusal::Order)?;
         let root = alloc::format!("patchbay/document/{}", basis.checked_plot_id.as_str());
         let plot = alloc::format!("plot/{}", graph.checked_plot_id.as_str());
         for action in &fragment.actions {
             let valid = if action.identity == patchbay_application::EDIT_CURRENT_ACTION_ID {
-                action.target == plot
+                self.selected_editable(slot)
+                    && action.target == plot
                     && action.intent == "patchbay/edit-subject@1"
                     && action.arguments.len() == 1
                     && action.arguments[0].name == "subject"
@@ -296,7 +305,13 @@ fn admit_proposal(
     topology: Option<&PatchbayMaskTopology>,
     proposal: Option<&Proposal>,
     selection: bool,
+    editable: bool,
 ) -> Result<(), Refusal> {
+    // Body Mask changes retain their separately checked actual owner topology;
+    // Source visibility itself grants no Edit route for the inspected target.
+    if input.action_id == patchbay_application::EDIT_CURRENT_ACTION_ID && !editable {
+        return Err(Refusal::Malformed);
+    }
     if input.action_id == patchbay_application::EDIT_CURRENT_ACTION_ID {
         let subject = input
             .arguments
