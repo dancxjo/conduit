@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
+import { prepareInstalledHostEncounter } from "./installed-host-encounter.mjs";
 import { openWorkspaceMachineRunner } from "./workspace-machine-test-actions.mjs";
 import { startStaticProduct } from "./static-product-server.mjs";
 
@@ -17,14 +18,16 @@ test.beforeEach(async () => {
 test.afterEach(() => entrance?.child.kill());
 
 test("a rendezvous code admits one already-running raw Host through the web Crèche", async ({ page }) => {
-  const installed = await startInstalledHost();
-  const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
-    cwd: installed.root,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const { installed, browser: runner } = await prepareInstalledHostEncounter(
+    startInstalledHost, () => openWorkspaceMachineRunner(page, entrance),
+  );
+  let running;
   try {
+    running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
+      cwd: installed.root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     const code = await rendezvousCode(running);
-    const runner = await openWorkspaceMachineRunner(page, entrance);
     await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
     await runner.locator('[data-application-key="physical-mode"]').selectOption("attach-running");
     const input = runner.getByLabel("Running host rendezvous code");
