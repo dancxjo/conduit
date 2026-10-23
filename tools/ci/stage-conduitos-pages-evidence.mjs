@@ -10,6 +10,7 @@ import path from 'node:path';
 import { validateNativeTextEditReceipt } from './conduitos-text-edit-receipt.mjs';
 import { validateNativePointerReceipt } from './conduitos-pointer-receipt.mjs';
 import { validateNativeLookReceipt } from './conduitos-look-receipt.mjs';
+import { validateNativePatchbayReceipt } from './conduitos-patchbay-receipt.mjs';
 
 const STEPS = Object.freeze([
   step('front-door-ready', 'Arrive at Commons', 'Commons Hub is open before any Body exists.', 'The zero-Body Hub offers entry to the Birth encounter.', 'A fresh Host and Boot have presented the first Face.', 'First boot'),
@@ -33,9 +34,12 @@ const STEPS = Object.freeze([
   step('patchbay-diagram', 'See the live diagram', 'Cards show planned gears and ports with visible cords.', 'The user presses F3 within the Face.', 'The diagram is rendered from this Face’s exact graph subjects and endpoints.', 'F3'),
   step('patchbay-gear-details', 'Inspect a Gear', 'The selected Gear opens with its exact Fore and placement details.', 'The user presses 1 in the live diagram.', 'Inspection retains the same Face, Body, Plan, and Play.', '1'),
   step('patchbay-diagram-returned', 'Return to the diagram', 'The same live planned graph is visible again.', 'The user presses F3.', 'Returning from details preserves the exact inspected Face and graph.', 'F3'),
+  step('patchbay-inspected-other-and-returned', 'Inspect another resident Plot and return', 'The original planned graph is visible after inspecting another offered Plot.', 'The user activates another offered Plot, then returns to the original Plot.', 'Actor revisions advance while the same Body, Plan and Play remain current.', 'Inspect another Plot · return', false),
+  step('patchbay-mask-replanned', 'Change the Body’s Masks', 'The Body continues under its replacement Mask plan.', 'The user activates Change Masks after an Edit request preserves the existing draft.', 'The accepted owner route replans the same Body into a different Play; that refused Edit did not load Source.', 'Change Masks'),
   step('body-stopped', 'Stop the Play', 'The same Body is resting after Stop.', 'The user requests Stop through the Face with F8.', 'Stop leaves the Body available for a later Wake.', 'F8'),
   step('home-returned', 'Return Home', 'Home opens after the Play stops.', 'The user leaves Face inspection and presses Escape.', 'The original Body and born Sign remain retained.', 'Escape · Escape'),
   step('patchbay-reentered', 'Reenter Patchbay', 'The same resident Patchbay opens again.', 'The user returns from the empty active-Plot picker to the stopped read-only Face.', 'Reentry preserves the original Body without another Birth or restarted Play.', 'Escape'),
+  step('patchbay-source-editor-loaded', 'Load authorized Source in a fresh editor', 'Text editor displays the complete authorized Source after a bounded edit and restoration.', 'The user lulls, wakes, plans and plays the same Body, opens Patchbay, selects Text editor and activates Edit, then types x and Backspace.', 'The exact handoff binds the fresh Plan and Play. Source is restored after the edit; Save, reopen and text-selection enactment remain unproved.', 'Lull · Wake · Plan · Play · Edit · x · Backspace'),
 ]);
 
 const [evidenceRoot, siteRoot, commit] = process.argv.slice(2);
@@ -85,6 +89,7 @@ if (serial.length < 64 || serial.length > 16 * 1024 * 1024
   throw new Error('ConduitOS journey serial transcript does not match the captured Body and Boot');
 }
 validateNativeLookReceipt(proof, manifest, serial);
+validateNativePatchbayReceipt(proof);
 
 const pairedBytes = await readFile(path.join(evidenceRoot, '..', 'native-shell-paired-linear.json'));
 if (pairedBytes.length > 32 * 1024 * 1024) throw new Error('ConduitOS paired evidence exceeds its retained bound');

@@ -9,6 +9,7 @@ import { deflateSync } from 'node:zlib';
 import { sealTarget } from '../../tools/ci/pipeline/receipts.mjs';
 import { pointerFixture } from './conduitos-pointer-fixture.mjs';
 import { lookFixture } from './conduitos-look-fixture.mjs';
+import { patchbayFixture } from './conduitos-patchbay-fixture.mjs';
 
 const names = [
   'front-door-ready', 'creche-ready',
@@ -16,7 +17,8 @@ const names = [
   'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected', 'creche-pointer-four-restored', 'body-playing', 'wake-refused',
   'protected-keyboard-canvas', 'protected-memory-lantern',
   'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
-  'patchbay-gear-details', 'patchbay-diagram-returned', 'body-stopped', 'home-returned', 'patchbay-reentered',
+  'patchbay-gear-details', 'patchbay-diagram-returned', 'patchbay-inspected-other-and-returned',
+  'patchbay-mask-replanned', 'body-stopped', 'home-returned', 'patchbay-reentered', 'patchbay-source-editor-loaded',
 ];
 const commit = '1'.repeat(40);
 const image = 'a'.repeat(64);
@@ -56,6 +58,9 @@ test('Pages composition publishes only the exact refusal and reentry QMP journey
     assert.equal(JSON.parse(readFileSync(path.join(fixture.site, 'site-publication.json'))).conduitos.pairedSha256,
       digest(readFileSync(path.join(root, 'native-shell-paired-linear.json'))));
     assert.match(page, /Committed text receipt/);
+    assert.match(page, /same Body into a different Play/);
+    assert.match(page, /fresh Plan and Play/);
+    assert.match(page, /Save, reopen and text-selection enactment remain unproved/);
     assert.match(page, /Text editor retains café/);
     assert.match(page, /Tab · A · Backspace · C · A · F · Right Alt\+E/);
     assert.doesNotMatch(page, /A · B · Backspace/);
@@ -109,7 +114,8 @@ test('Pages composition refuses a transcript from another Body before writing pa
 });
 
 for (const checkpoint of ['creche-editorial-compact', 'creche-editorial-spacious', 'creche-engineering-spacious', 'creche-engineering-compact', 'creche-three-selected', 'creche-four-restored', 'wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
-  'patchbay-gear-details', 'patchbay-diagram-returned']) {
+  'patchbay-gear-details', 'patchbay-diagram-returned', 'patchbay-inspected-other-and-returned',
+  'patchbay-mask-replanned', 'patchbay-source-editor-loaded']) {
   test(`Pages composition refuses a journey missing ${checkpoint}`, () => {
     const fixture = makeFixture();
     try {
@@ -141,6 +147,47 @@ test('Pages composition refuses reordered captures', () => {
   }
 });
 
+for (const checkpoint of ['patchbay-inspected-other-and-returned', 'patchbay-mask-replanned', 'patchbay-source-editor-loaded']) {
+  test(`Pages composition refuses substituted ${checkpoint} screenshot`, () => {
+    const fixture = makeFixture();
+    try {
+      writeFileSync(path.join(fixture.evidence, `${checkpoint}.png`), png(99));
+      const result = publish(fixture);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /differs from its capture/);
+      assert.equal(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
+        '<!-- conduit-conduitos-journey-card@1 -->');
+    } finally { rmSync(fixture.root, { recursive: true, force: true }); }
+  });
+}
+
+for (const [label, mutate] of [
+  ['missing cross-Plot enactment', proof => { delete proof.patchbay_actions.cross_plot_selection; }],
+  ['foreign returned Source', proof => { proof.patchbay_actions.cross_plot_selection.returned.source_document_id = 'foreign'; }],
+  ['foreign inspection Play', proof => { proof.patchbay_actions.cross_plot_selection.other.actual_face.face.basis.active_play_id = 'foreign'; }],
+  ['unchanged Mask Play', proof => { proof.patchbay_actions.mask_request.after = proof.patchbay_actions.mask_request.before; }],
+  ['refused fresh lifecycle', proof => { proof.fresh_source_editor.lifecycle[0].disposition = { Refused: {} }; }],
+  ['foreign fresh Source handoff', proof => { proof.fresh_source_editor.source_edit_receipt.active_play_id = 'foreign'; }],
+  ['truncated Source text', proof => { proof.fresh_source_editor.loaded.result_omitted_bytes = 1; }],
+  ['unrestored document', proof => { proof.fresh_source_editor.restored.result += 'x'; }],
+  ['unproved Save', proof => { proof.fresh_source_editor.save_reopen_enacted = true; }],
+  ['absent document Face', proof => { proof.fresh_source_editor.document_face.face.text = []; }],
+]) {
+  test(`Pages composition refuses ${label} before writing pages`, () => {
+    const fixture = makeFixture();
+    try {
+      const filename = path.join(fixture.evidence, '../journey-proof.json');
+      const proof = JSON.parse(readFileSync(filename, 'utf8'));
+      mutate(proof); writeFileSync(filename, JSON.stringify(proof));
+      const result = publish(fixture);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /Patchbay journey evidence differs/);
+      assert.equal(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
+        '<!-- conduit-conduitos-journey-card@1 -->');
+    } finally { rmSync(fixture.root, { recursive: true, force: true }); }
+  });
+}
+
 function makeFixture() {
   const root = mkdtempSync(path.join(tmpdir(), 'conduit-journey-docs-'));
   const evidence = path.join(root, 'evidence/journey-frames');
@@ -154,7 +201,7 @@ function makeFixture() {
     const bytes = png(index);
     writeFileSync(path.join(evidence, `${checkpoint}.png`), bytes);
     return {
-      checkpoint, unchanged: false, expected_change: index !== 0 && !['creche-ready', 'wake-refused', 'patchbay-face'].includes(checkpoint), health_refusal: null,
+      checkpoint, unchanged: false, expected_change: index !== 0 && !['creche-ready', 'wake-refused', 'patchbay-face', 'patchbay-inspected-other-and-returned'].includes(checkpoint), health_refusal: null,
       ...(look.manifest.checkpoints.find(entry => entry.checkpoint === checkpoint) ?? {}),
       guest_boot_record: { boot_id: boot, host_id: host, build_id: 'build', image_binding: 'image', profile_id: 'profile' },
       frame: {
@@ -183,6 +230,7 @@ function makeFixture() {
     paired_reconstruction: 'native-shell-paired-linear.json',
     committed_edit_receipt: 'memory-lantern-native-edit.json', pointer_actions: paired.pointer,
     build_id: 'build', image_id: 'image', profile_id: 'profile', look_selection: look.proof.look_selection,
+    ...patchbayFixture(body),
   }));
   const record = { boot_id: boot, body_id: body, host_id: host, plan_id: 'plan/editor',
     active_play_id: 'play/editor', checked_plot_id: 'checked/editor',
@@ -298,7 +346,7 @@ for (const [label, mutate] of [
   });
 }
 
-for (const checkpoint of ['wake-refused', 'patchbay-face']) {
+for (const checkpoint of ['wake-refused', 'patchbay-face', 'patchbay-inspected-other-and-returned']) {
   test(`Pages composition rejects ${checkpoint} claiming mandatory pixel change`, () => {
     const fixture = makeFixture();
     try {
