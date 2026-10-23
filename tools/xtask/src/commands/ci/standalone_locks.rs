@@ -9,6 +9,10 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "targets/esp32/proof/tm1637/Cargo.toml",
+        lock: "targets/esp32/proof/tm1637/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "bodies/environment/face/Cargo.toml",
         lock: "bodies/environment/face/Cargo.lock",
     },
@@ -207,7 +211,10 @@ mod tests {
                 Ok(())
             }
         });
-        assert_eq!(failures.len(), 4);
+        assert_eq!(failures.len(), 5);
+        assert!(failures
+            .iter()
+            .any(|failure| failure.contains("proof/tm1637")));
         assert!(failures.iter().any(|failure| failure.contains("c3-signal")));
         assert!(failures.iter().any(|failure| failure.contains("s3-signal")));
         assert!(failures
