@@ -25,6 +25,14 @@ cargo xtask prove environment wait
 This entrance checks zero-result capability issuance, existing subject binding,
 configured native wait binding, exact sequencing, duration limits, cancellation
 and allocation-free invocation. Timer behavior, Host identities and issuance in
-these tests are explicit CPU fixtures. A retained ready advertisement, an ESP32
-provider and actual climate Body installation still need to be connected; this
-crate alone installs neither a clock nor a running appliance.
+these tests are explicit CPU fixtures. `ReadyMonotonicWaitBase` retains actual
+provider identity and resource generation before projecting an offer through the
+existing Base registry. Projection starts no timer work. Binding checks native
+identity and all selected/configured facts before taking Root's retained slot;
+refusal preserves that slot, and successful transfer removes its availability.
+Configured duration and count must fit the native attachment and issued budget.
+
+The ESP32 Root initializes its concrete provider only after RTOS monotonic-clock
+initialization and retains one pending-wait slot. Complete clock/task/kernel
+memory admission, assigned installation and actual climate Body start remain
+separate. Readiness alone starts no wait or running appliance.

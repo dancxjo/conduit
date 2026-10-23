@@ -60,42 +60,20 @@ impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
         configuration: &[c::ConfigurationEntry],
         selection: SelectedOperationPlan<'_>,
     ) -> Result<Self, WaitCallRefusal> {
-        use WaitCallRefusal as E;
-        let mut entries = table.inspections();
-        let scope = &entries.next().ok_or(E::Possession)?.scope;
-        if entries.next().is_some()
-            || scope.maximum_in_flight != 1
-            || scope.maximum_parameter_bytes < PARAMETER_BYTES
-            || claim.parameter_bytes != PARAMETER_BYTES
-            || claim.work_units != 1
-            || attachment.generation == 0
-            || attachment.resource_bytes == 0
-        {
-            return Err(E::Possession);
-        }
-        drop(entries);
-        let node = bind_selected_configured_operation(
-            &table,
-            &claim,
-            SelectedOperationContract {
-                kind: &conduit_time::tick_semantic_contract(),
-                call: c::WAIT_HOST_CALL_CONTRACT,
-                input_bytes: PARAMETER_BYTES,
-                output_bytes: 0,
-                resource_bytes: attachment.resource_bytes,
-            },
-            configuration,
-            selection,
-        )
-        .map_err(|error| match error {
-            conduit_plan_lowering::selected_operation::SelectedCallRefusal::WrongBinding => {
-                E::WrongBinding
-            }
-            conduit_plan_lowering::selected_operation::SelectedCallRefusal::Possession => {
-                E::Possession
-            }
-        })?;
-        Ok(Self {
+        let node = checked_binding(&table, &claim, attachment, configuration, selection)?;
+        Ok(Self::from_bound(
+            table, handle, claim, attachment, provider, node,
+        ))
+    }
+    pub(crate) fn from_bound(
+        table: c::BaseCapabilityTable,
+        handle: c::BaseCapabilityHandle,
+        claim: c::BaseOperationClaim,
+        attachment: WaitAttachment,
+        provider: P,
+        node: NodeId,
+    ) -> Self {
+        Self {
             table,
             handle,
             claim,
@@ -103,7 +81,7 @@ impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
             provider,
             node,
             next_request: 0,
-        })
+        }
     }
     /// Invalid input, a foreign node/call or stale request cannot start a wait.
     /// Zero duration is valid. No result value is emitted by this Host Call.
@@ -184,4 +162,87 @@ impl Drop for Pending<'_> {
             let _ = self.table.revoke(self.handle);
         }
     }
+}
+
+pub(crate) fn checked_binding(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    attachment: WaitAttachment,
+    configuration: &[c::ConfigurationEntry],
+    selection: SelectedOperationPlan<'_>,
+) -> Result<NodeId, WaitCallRefusal> {
+    use WaitCallRefusal as E;
+    let mut entries = table.inspections();
+    let scope = &entries.next().ok_or(E::Possession)?.scope;
+    if entries.next().is_some()
+        || scope.maximum_in_flight != 1
+        || scope.maximum_parameter_bytes < PARAMETER_BYTES
+        || claim.parameter_bytes != PARAMETER_BYTES
+        || claim.work_units != 1
+        || attachment.generation == 0
+        || attachment.resource_bytes == 0
+    {
+        return Err(E::Possession);
+    }
+    let kind = conduit_time::tick_semantic_contract();
+    for (index, entry) in configuration.iter().enumerate() {
+        if configuration[..index]
+            .iter()
+            .any(|prior| prior.key == entry.key)
+            || !kind
+                .configuration
+                .iter()
+                .any(|field| field.key == entry.key)
+        {
+            return Err(E::WrongBinding);
+        }
+    }
+    let configured = |name: &str| -> Result<u64, E> {
+        let field = kind
+            .configuration
+            .iter()
+            .find(|field| field.key == name)
+            .ok_or(E::WrongBinding)?;
+        let value = configuration
+            .iter()
+            .find(|entry| entry.key == name)
+            .map_or(&field.default_value, |entry| &entry.value);
+        let c::ConfigurationValue::U64(value) = value else {
+            return Err(E::WrongBinding);
+        };
+        let c::KindConfigurationRule::U64Range { minimum, maximum } = field.rule else {
+            return Err(E::WrongBinding);
+        };
+        if *value < minimum || *value > maximum {
+            return Err(E::WrongBinding);
+        }
+        Ok(*value)
+    };
+    if configured("period-ms")? > attachment.maximum_duration_ms {
+        return Err(E::InvalidDuration);
+    }
+    if configured("count")? > u64::from(scope.maximum_operations) {
+        return Err(E::Possession);
+    }
+    drop(entries);
+    let node = bind_selected_configured_operation(
+        table,
+        claim,
+        SelectedOperationContract {
+            kind: &kind,
+            call: c::WAIT_HOST_CALL_CONTRACT,
+            input_bytes: PARAMETER_BYTES,
+            output_bytes: 0,
+            resource_bytes: attachment.resource_bytes,
+        },
+        configuration,
+        selection,
+    )
+    .map_err(|error| match error {
+        conduit_plan_lowering::selected_operation::SelectedCallRefusal::WrongBinding => {
+            E::WrongBinding
+        }
+        conduit_plan_lowering::selected_operation::SelectedCallRefusal::Possession => E::Possession,
+    })?;
+    Ok(node)
 }

@@ -60,7 +60,60 @@ pub(super) fn bind(
     placement: &PlacementId,
     provider: Provider,
 ) -> Result<MonotonicWaitHostCall<Provider>, WaitCallRefusal> {
-    let mut scope = scope();
+    let (table, handle, claim) = authorization(scope(), fragment, active);
+    unsafe {
+        MonotonicWaitHostCall::bind_selected(
+            table,
+            handle,
+            claim,
+            WaitAttachment {
+                generation: 7,
+                resource_bytes: 4096,
+                maximum_duration_ms: 1000,
+            },
+            provider,
+            &configuration(),
+            SelectedOperationPlan {
+                fragment,
+                lowered,
+                active,
+                placement_id: placement,
+            },
+        )
+    }
+}
+
+pub(super) fn owner(provider: Provider) -> (MonotonicWaitHostCall<Provider>, NodeId) {
+    let (fragment, lowered, active, placement) = selected();
+    let node = lowered.nodes[0].node;
+    (
+        bind(&fragment, &lowered, &active, &placement, provider).unwrap(),
+        node,
+    )
+}
+
+pub(super) fn configuration() -> Vec<ConfigurationEntry> {
+    vec![
+        ConfigurationEntry {
+            key: "count".into(),
+            value: ConfigurationValue::U64(3),
+        },
+        ConfigurationEntry {
+            key: "period-ms".into(),
+            value: ConfigurationValue::U64(250),
+        },
+    ]
+}
+
+pub(super) fn authorization(
+    mut scope: BaseCapabilityScope,
+    fragment: &PlanFragment,
+    active: &ActivePlayIdentity,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
     let authority = BaseCapabilityAuthority {
@@ -113,46 +166,5 @@ pub(super) fn bind(
     let handle = table
         .issue(CapabilityIssueRequest { scope, authority })
         .unwrap();
-    unsafe {
-        MonotonicWaitHostCall::bind_selected(
-            table,
-            handle,
-            claim,
-            WaitAttachment {
-                generation: 7,
-                resource_bytes: 4096,
-                maximum_duration_ms: 1000,
-            },
-            provider,
-            &configuration(),
-            SelectedOperationPlan {
-                fragment,
-                lowered,
-                active,
-                placement_id: placement,
-            },
-        )
-    }
-}
-
-pub(super) fn owner(provider: Provider) -> (MonotonicWaitHostCall<Provider>, NodeId) {
-    let (fragment, lowered, active, placement) = selected();
-    let node = lowered.nodes[0].node;
-    (
-        bind(&fragment, &lowered, &active, &placement, provider).unwrap(),
-        node,
-    )
-}
-
-pub(super) fn configuration() -> Vec<ConfigurationEntry> {
-    vec![
-        ConfigurationEntry {
-            key: "count".into(),
-            value: ConfigurationValue::U64(3),
-        },
-        ConfigurationEntry {
-            key: "period-ms".into(),
-            value: ConfigurationValue::U64(250),
-        },
-    ]
+    (table, handle, claim)
 }

@@ -215,3 +215,6 @@ fn a_resealed_plan_cannot_replace_independently_retained_tick_configuration() {
     ));
     assert_eq!(state.calls.get(), 0);
 }
+
+#[path = "support/installation.rs"]
+mod installation;
