@@ -17,14 +17,24 @@ test.beforeEach(async () => {
 test.afterEach(() => entrance?.child.kill());
 
 test("a rendezvous code admits one already-running raw Host through the web Crèche", async ({ page }) => {
-  const installed = await startInstalledHost();
-  const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
-    cwd: installed.root,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  let installed;
+  let running;
+  let failed = false;
   try {
+    // Both real preparations stay inside this test's deadline.
+    const [hostPreparation, browserPreparation] = await Promise.allSettled([
+      startInstalledHost(),
+      openWorkspaceMachineRunner(page, entrance),
+    ]);
+    if (hostPreparation.status === "fulfilled") installed = hostPreparation.value;
+    if (hostPreparation.status === "rejected") throw hostPreparation.reason;
+    if (browserPreparation.status === "rejected") throw browserPreparation.reason;
+    const runner = browserPreparation.value;
+    running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
+      cwd: installed.root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     const code = await rendezvousCode(running);
-    const runner = await openWorkspaceMachineRunner(page, entrance);
     await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
     await runner.locator('[data-application-key="physical-mode"]').selectOption("attach-running");
     const input = runner.getByLabel("Running host rendezvous code");
@@ -82,12 +92,13 @@ test("a rendezvous code admits one already-running raw Host through the web Crè
     expect(evidence.observation.advertisement_summary.json_sha256).toMatch(/^sha256:[0-9a-f]{64}$/);
 
     await expectProcessSuccess(running);
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
-    try {
-      await stopProcess(running);
-    } finally {
-      await installed.close();
-    }
+    const cleanup = await Promise.allSettled([stopProcess(running), installed?.close()]);
+    const refused = cleanup.find(result => result.status === "rejected");
+    if (!failed && refused) throw refused.reason;
   }
 });
 
@@ -120,7 +131,7 @@ async function startInstalledHost() {
     await processOutput(service, / is running/, "durable host service");
     return { root, stateDir, close };
   } catch (error) {
-    await close();
+    await close().catch(() => {});
     throw error;
   }
 }

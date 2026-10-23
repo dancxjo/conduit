@@ -571,19 +571,30 @@ test("an already-running host joins without displacing the browser Host or its b
 });
 
 test("loss of a joined Host Line removes only its current offers and keeps the body", async ({ page }) => {
-  const installed = await startInstalledHost();
-  const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
-    cwd: installed.root,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  let installed;
+  let running;
+  let failed = false;
   try {
+    const [hostPreparation, browserPreparation] = await Promise.allSettled([
+      startInstalledHost(),
+      (async () => {
+        await page.goto(entrance.url);
+        await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
+        await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+        await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+        await waitForBornBodyEvidence(page);
+        return page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.body_id);
+      })(),
+    ]);
+    if (hostPreparation.status === "fulfilled") installed = hostPreparation.value;
+    if (hostPreparation.status === "rejected") throw hostPreparation.reason;
+    if (browserPreparation.status === "rejected") throw browserPreparation.reason;
+    const bodyId = browserPreparation.value;
+    running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
+      cwd: installed.root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     const code = await rendezvousCode(running);
-    await page.goto(entrance.url);
-    await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
-    await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
-    await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-    await waitForBornBodyEvidence(page);
-    const bodyId = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.body_id);
 
     await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
     await page.getByRole("button", { name: "Connect a running host", exact: true }).click();
@@ -594,42 +605,79 @@ test("loss of a joined Host Line removes only its current offers and keeps the b
 
     running.kill();
     await expect(page.locator("[data-workspace-notice]")).toContainText("Voice stopped; Body Chat remains available");
-    const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
-    expect(after.evidence.body_id).toBe(bodyId);
-    expect(after.evidence.membership.parts.filter(part => part.current)).toHaveLength(1);
-    expect(after.evidence.membership.parts.filter(part => !part.current && part.state === "Admitted")).toHaveLength(1);
-    expect(after.current_host_offers).toHaveLength(1);
+    const after = await page.evaluate(() => {
+      const snapshot = globalThis.__conduitWorkspace.evidence();
+      const parts = snapshot.evidence.membership.parts;
+      return {
+        body_id: snapshot.evidence.body_id,
+        current_parts: parts.filter(part => part.current).length,
+        offline_admitted_parts: parts.filter(part => !part.current && part.state === "Admitted").length,
+        offer_count: snapshot.current_host_offers.length,
+      };
+    });
+    expect(after.body_id).toBe(bodyId);
+    expect(after.current_parts).toBe(1);
+    expect(after.offline_admitted_parts).toBe(1);
+    expect(after.offer_count).toBe(1);
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
-    if (running.exitCode === null) running.kill();
-    await installed.close();
+    const cleanup = await Promise.allSettled([stopProcess(running), installed?.close()]);
+    const refused = cleanup.find(result => result.status === "rejected");
+    if (!failed && refused) throw refused.reason;
   }
 });
 
 async function startInstalledHost() {
   const root = new URL("../..", import.meta.url).pathname;
   const stateDir = await mkdtemp(`${tmpdir()}/conduit-workspace-host-`);
-  const productExecutable = `${stateDir}/reviewed-host-image`;
-  await writeFile(productExecutable, "conduit workspace rendezvous proof image");
-  await writeFile(`${stateDir}/installation.json`, JSON.stringify({
-    schema: "conduit.install/durable-host@1",
-    host_id: `host/workspace-proof/${randomUUID()}`,
-    release_source_identity: "commit:workspace-proof",
-    release_bundle_sha256: `sha256:${"a".repeat(64)}`,
-    product_executable: productExecutable,
-    body_state: null,
-    joined_body_state: null,
-  }));
-  await writeFile(`${stateDir}/control.token`, Buffer.alloc(32, 7));
-  const service = spawn("target/debug/conduit", ["host", "service", "run", "--state-dir", stateDir], {
-    cwd: root,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  await processOutput(service, / is running/, "durable host service");
-  return { root, stateDir, close: async () => {
-    if (service.exitCode === null) service.kill();
-    await new Promise(resolveClose => service.exitCode === null ? service.once("exit", resolveClose) : resolveClose());
+  let service;
+  const close = async () => {
+    await stopProcess(service);
     await rm(stateDir, { recursive: true, force: true });
-  } };
+  };
+  try {
+    const productExecutable = `${stateDir}/reviewed-host-image`;
+    await writeFile(productExecutable, "conduit workspace rendezvous proof image");
+    await writeFile(`${stateDir}/installation.json`, JSON.stringify({
+      schema: "conduit.install/durable-host@1",
+      host_id: `host/workspace-proof/${randomUUID()}`,
+      release_source_identity: "commit:workspace-proof",
+      release_bundle_sha256: `sha256:${"a".repeat(64)}`,
+      product_executable: productExecutable,
+      body_state: null,
+      joined_body_state: null,
+    }));
+    await writeFile(`${stateDir}/control.token`, Buffer.alloc(32, 7));
+    service = spawn("target/debug/conduit", ["host", "service", "run", "--state-dir", stateDir], {
+      cwd: root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    await processOutput(service, / is running/, "durable host service");
+    return { root, stateDir, close };
+  } catch (error) {
+    await close().catch(() => {});
+    throw error;
+  }
+}
+
+function stopProcess(child) {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const finish = error => {
+      clearTimeout(killTimeout);
+      clearTimeout(exitTimeout);
+      child.off("exit", onExit);
+      if (error) reject(error);
+      else resolve();
+    };
+    const onExit = () => finish();
+    const killTimeout = setTimeout(() => child.kill("SIGKILL"), 2_000);
+    const exitTimeout = setTimeout(() => finish(new Error("Host process did not exit during cleanup")), 5_000);
+    child.once("exit", onExit);
+    child.kill();
+  });
 }
 
 function rendezvousCode(child) {
@@ -648,6 +696,7 @@ function processOutput(child, pattern, label) {
     child.stdout.on("data", inspect);
     child.stderr.on("data", inspect);
     child.once("exit", status => { clearTimeout(timeout); reject(new Error(`${label} exited before readiness (${status})\n${output}`)); });
+    child.once("error", error => { clearTimeout(timeout); reject(error); });
   });
 }
 
