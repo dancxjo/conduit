@@ -57,12 +57,12 @@ fn counts_nonzero_partial_regions_and_spare_capacity_overflow_are_not_whole_zero
         )));
     }
     for index in 0..12 {
-        assert!(!check(&change(
-            |v| v["private"]["regions"][index]["all_zero"] = serde_json::json!(false)
-        )));
-        assert!(!check(&change(
-            |v| v["private"]["regions"][index]["checked_bytes"] = serde_json::json!(0)
-        )));
+        assert!(!check(&change(|v| v["private"]["regions"][index]
+            ["all_zero"] =
+            serde_json::json!(false))));
+        assert!(!check(&change(|v| v["private"]["regions"][index]
+            ["checked_bytes"] =
+            serde_json::json!(0))));
     }
     assert!(!check(&change(|v| {
         v["private"]["regions"].as_array_mut().unwrap().pop();
@@ -110,9 +110,9 @@ fn scope_identity_release_joins_unknown_duplicate_and_missing_fields_are_strict(
         v.as_object_mut().unwrap().remove("private");
     })));
     assert!(!check(&change(|v| v["unknown"] = serde_json::json!(true))));
-    assert!(!check(&change(
-        |v| v["backend_teardown_ticks_include_scan"] = serde_json::json!(true)
-    )));
+    assert!(!check(&change(|v| v
+        ["backend_teardown_ticks_include_scan"] =
+        serde_json::json!(true))));
     let text = good();
     let needle = "\"release_ordinal\":7";
     let duplicated = text.replacen(needle, "\"release_ordinal\":7,\"release_ordinal\":7", 1);

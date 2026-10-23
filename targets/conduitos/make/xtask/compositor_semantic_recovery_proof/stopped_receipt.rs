@@ -1,10 +1,10 @@
 //! Strict separate stopped-owner lifecycle observations, never product checkpoints.
 use super::super::{
-    ConduitosError,
     compositor_lifecycle_proof::{self as wire, AckRef, Cost, Identity, Nullable},
+    ConduitosError,
 };
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 #[path = "zero_receipt.rs"]
 mod zero_receipt;
 const PREFIX: &str = "CONDUIT_COMPOSITOR_STOPPED_LIFECYCLE ";

@@ -1,8 +1,8 @@
 //! Normal-product artifact custody and I/O, separate from pure wire validation.
 use super::{
-    ConduitosError, compositor_lifecycle_proof as protocol, profile::Paths, report::sha256_file,
+    compositor_lifecycle_proof as protocol, profile::Paths, report::sha256_file, ConduitosError,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
     fs,

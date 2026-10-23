@@ -1,6 +1,6 @@
 //! Closed whole-data witness for one actual stopped compositor cancellation.
+use super::{refusal, Record};
 use super::{ConduitosError, Identity};
-use super::{Record, refusal};
 use serde::Deserialize;
 use serde_json::Value;
 pub(super) const PREFIX: &str = "CONDUIT_COMPOSITOR_STOPPED_ZERO_WITNESS ";

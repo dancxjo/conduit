@@ -1,10 +1,10 @@
 //! Three matched render/copy pairs; control costs are measured, not forced equal.
 use super::super::{
-    ConduitosError,
     compositor_lifecycle_proof::{self as wire, AckRef, Cost, Identity, Nullable},
+    ConduitosError,
 };
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 const PREFIX: &str = "CONDUIT_COMPOSITOR_RETAINED_PAIR ";
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

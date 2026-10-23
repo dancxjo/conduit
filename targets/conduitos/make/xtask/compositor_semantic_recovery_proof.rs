@@ -1,5 +1,5 @@
 //! Separate native-profile semantic fixture. The ordinary proof keeps its budget.
-use super::{ConduitosArch, ConduitosError, build, image, profile::Paths, report::ArtifactRole};
+use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
 use crate::cli::GlobalOpts;
 use std::{
     fs,
