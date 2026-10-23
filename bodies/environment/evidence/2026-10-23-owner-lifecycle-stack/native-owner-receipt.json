@@ -1,0 +1,10 @@
+{
+  "completed": false,
+  "proof_class": "physical-owner-run",
+  "body_started": false,
+  "climate_sampling_claimed": false,
+  "final_root_observation_unavailable": true,
+  "carrier_sha256": "bcd4f4298f87b1ce2262e880a7b0a6efe259a0fddbff821e0159e6f06ee75f08",
+  "owner_executable_sha256": "9e4c6bd0709c90301767e47e821a539f583146d5fe36165de49f8c6acaf3c271",
+  "retained_uart_bytes": 3036
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Carry signed control frames while the real Rust Body owner remains alive."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import selectors
@@ -22,12 +23,21 @@ port.rts = True
 pending = bytearray()
 replies = []
 process = None
+raw_ingress = bytearray()
+
+
+def read_ingress(count):
+    incoming = port.read(count)
+    raw_ingress.extend(incoming)
+    if len(raw_ingress) > 65536:
+        del raw_ingress[:-65536]
+    return incoming
 
 
 def event(name):
     deadline = time.monotonic() + 12
     while time.monotonic() < deadline:
-        pending.extend(port.read(8192))
+        pending.extend(read_ingress(8192))
         if len(pending) > 65536:
             raise RuntimeError('UART ingress bound')
         while b'\n' in pending:
@@ -71,7 +81,7 @@ def carry(frame, wire):
         raise RuntimeError('publication bound')
     deadline = time.monotonic() + 3
     while len(pending) < length and time.monotonic() < deadline:
-        pending.extend(port.read(length - len(pending)))
+        pending.extend(read_ingress(length - len(pending)))
     if len(pending) < length:
         raise RuntimeError('publication deadline')
     if length:
@@ -142,6 +152,10 @@ finally:
         except (RuntimeError, OSError, KeyError):
             receipt['final_root_observation_unavailable'] = True
     port.close()
+    (args.capture / 'native-owner-uart.bin').write_bytes(raw_ingress)
+    receipt['carrier_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    receipt['owner_executable_sha256'] = hashlib.sha256(args.owner.read_bytes()).hexdigest()
+    receipt['retained_uart_bytes'] = len(raw_ingress)
     if process is not None and process.poll() is None:
         process.terminate()
         process.wait(timeout=3)

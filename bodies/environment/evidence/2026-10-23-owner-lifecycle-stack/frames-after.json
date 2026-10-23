@@ -1,0 +1,9 @@
+{
+  "elf_sha256": "7aebdd962a9c44740ca23a17dadccbb2f1f07b6f329c97dbf892109a27725732",
+  "cpu_stack_span_bytes": 28916,
+  "frames": {
+    "conduit_esp32_tm1637_probe::native_kernel::prepare": 2256,
+    "conduit_esp32_tm1637_probe::native_control::serve::{{closure}}": 4224,
+    "conduit_esp32_tm1637_probe::native_owner_wire::authenticate": 512
+  }
+}

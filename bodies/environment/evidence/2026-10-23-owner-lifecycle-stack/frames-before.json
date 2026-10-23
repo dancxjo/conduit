@@ -1,0 +1,21 @@
+{
+  "elf_sha256": "434f417fb6a287ae4aa13a89403c1a6b14ff54e02ab366781239872b42c58547",
+  "cpu_stack_span_bytes": 28852,
+  "prior_held_image_cpu_stack_span_bytes": 28988,
+  "frames": {
+    "entry": 3664,
+    "control_serve": 2624,
+    "owner_receive": 3760,
+    "kernel_prepare": 2256,
+    "literal_value": 432
+  },
+  "prior_held_image_frames": {
+    "entry": 3664,
+    "control_serve_including_inlined_owner_receive": 4064,
+    "kernel_prepare": 2256,
+    "literal_value": 432
+  },
+  "failure_phase": "native preparation, before start/release",
+  "body_start_proved": false,
+  "physical_sampling_proved": false
+}

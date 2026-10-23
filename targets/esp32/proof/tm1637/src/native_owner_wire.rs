@@ -1,5 +1,7 @@
 //! Bounded authenticated owner control; preparation stays dormant until start.
 use crate::{native_owner_control as owner, native_root::NativeRoot};
+#[path = "native_owner_reply.rs"]
+mod reply;
 use embassy_time::{with_timeout, Duration};
 use esp_hal::{uart::Uart, Async};
 const READY: &[u8] =
@@ -39,40 +41,9 @@ pub async fn receive(
     })
     .await;
     let result = match received {
-        Ok(Ok((length, signature))) => {
-            match serde_json_core::from_slice::<owner::Request<'_>>(&buffer[..length]) {
-                Ok((request, consumed))
-                    if buffer[consumed..length].iter().all(u8::is_ascii_whitespace) =>
-                {
-                    root.authenticate_owner(request, &signature)
-                }
-                _ => Err(owner::Refusal::Malformed),
-            }
-        }
+        Ok(Ok((length, signature))) => authenticate(root, &buffer[..length], &signature),
         _ => Err(owner::Refusal::Malformed),
     };
-    #[derive(serde::Serialize)]
-    struct Reply<'a> {
-        event: &'static str,
-        authenticated: bool,
-        operation: Option<owner::Operation>,
-        refusal: Option<&'static str>,
-        sequence: u64,
-        next_play_sequence: Option<u64>,
-        reservation: Option<&'a crate::native_owner_reservation::OwnerReservation>,
-        control_applied: bool,
-        body_installed: bool,
-        native_plan_installed: bool,
-        appliance_kernel_prepared: bool,
-        execution_context_prepared: bool,
-        execution_context_bytes: Option<usize>,
-        worker: Option<crate::native_task::Status>,
-        kernel_additional_preparation_bound: Option<usize>,
-        capability_possession_issued: bool,
-        acknowledgement: Option<&'a crate::native_owner_receipt::Receipt>,
-        acknowledgement_signature: Option<&'a [u8]>,
-        publication_bytes: usize,
-    }
     let authenticated = result.is_ok();
     let mut inspect_command = None;
     let mut acknowledgement = None;
@@ -125,65 +96,41 @@ pub async fn receive(
         Err(owner::Refusal::Replay) => Some("replay"),
         Err(owner::Refusal::Signature) => Some("signature"),
     };
-    // Reuse the existing control buffer: one bounded committed value and one
-    // bounded metadata frame, without adding a second 4-KiB task/stack carrier.
-    let (publication, output) = buffer.split_at_mut(4096);
-    let snapshot = if inspect_command.is_some() {
-        root.copy_worker_publication(publication).map_err(|_| ())?
-    } else {
-        None
-    };
-    let publication_bytes = snapshot.map_or(0, |s| s.publication_bytes);
-    if let (Some(command), Some(snapshot)) = (inspect_command, snapshot) {
-        use sha2::{Digest, Sha256};
-        acknowledgement = Some(crate::native_owner_receipt::Receipt {
-            command,
-            state: crate::native_owner_receipt::State::Observed,
-            snapshot: Some(crate::native_owner_receipt::Snapshot {
-                sequence: snapshot.publication_sequence,
-                channel: snapshot.publication_channel.ok_or(())?,
-                bytes: publication_bytes.try_into().map_err(|_| ())?,
-                sha256: Sha256::digest(&publication[..publication_bytes]).into(),
-            }),
-        });
-    }
-    let acknowledgement_signature = acknowledgement
-        .as_ref()
-        .map(|receipt| root.sign_owner_receipt(receipt));
-    let reply = Reply {
-        event: "native-owner-control",
-        authenticated,
-        operation,
-        refusal,
-        sequence: root.owner_control_sequence(),
-        next_play_sequence: root.next_play_sequence(),
-        reservation: root.owner_reservation(),
-        control_applied: applied,
-        body_installed: false,
-        native_plan_installed: false,
-        appliance_kernel_prepared: root.appliance_kernel_prepared(),
-        execution_context_prepared: root.execution_context_prepared(),
-        execution_context_bytes: root.execution_context_bytes(),
-        worker: snapshot.or_else(|| root.worker_status()),
-        kernel_additional_preparation_bound: crate::native_kernel::requirements()
-            .ok()
-            .map(|(bytes, _)| bytes),
-        capability_possession_issued: root.native_possession_prepared(),
-        publication_bytes,
-        acknowledgement: acknowledgement.as_ref(),
-        acknowledgement_signature: acknowledgement_signature
-            .as_ref()
-            .map(|value| value.as_slice()),
-    };
-    let size = serde_json_core::to_slice(&reply, output).map_err(|_| ())?;
+    let encoded = reply::encode(
+        root,
+        buffer,
+        reply::Outcome {
+            authenticated,
+            operation,
+            applied,
+            refusal,
+            inspect_command,
+            acknowledgement,
+        },
+    )?;
+    let (publication, output) = buffer.split_at(4096);
     with_timeout(Duration::from_secs(2), async {
         crate::native_control::write_all(uart, b"\n").await?;
-        crate::native_control::write_all(uart, &output[..size]).await?;
+        crate::native_control::write_all(uart, &output[..encoded.metadata_bytes]).await?;
         crate::native_control::write_all(uart, b"\n").await?;
-        crate::native_control::write_all(uart, &publication[..publication_bytes]).await
+        crate::native_control::write_all(uart, &publication[..encoded.publication_bytes]).await
     })
     .await
     .map_err(|_| ())?
+}
+
+#[inline(never)]
+fn authenticate<'a>(
+    root: &mut NativeRoot,
+    input: &'a [u8],
+    signature: &[u8; 64],
+) -> Result<owner::AuthenticatedRequest<'a>, owner::Refusal> {
+    match serde_json_core::from_slice::<owner::Request<'_>>(input) {
+        Ok((request, consumed)) if input[consumed..].iter().all(u8::is_ascii_whitespace) => {
+            root.authenticate_owner(request, signature)
+        }
+        _ => Err(owner::Refusal::Malformed),
+    }
 }
 
 async fn receive_assignment(
