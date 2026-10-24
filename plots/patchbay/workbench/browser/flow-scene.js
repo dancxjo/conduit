@@ -72,7 +72,7 @@ function compactClue(role, properties, lens) {
   if (lens === "plot") return properties.get("kind-id") || [...properties.entries()].find(([name]) => name.startsWith("authored-control-"))?.[1] || "checked intent";
   if (lens === "plan") return properties.get("host-id") || properties.get("realization-layer") || "not realized";
   if (lens === "play") return [properties.get("play-state"), properties.get("pressure")].filter(Boolean).join(" · ") || "not playing";
-  if (lens === "signs") return `${[...properties.keys()].filter((name) => name.startsWith("sign-")).length} causal Signs`;
+  if (lens === "signs") return `${[...properties.keys()].filter((name) => /^sign-[0-9]+$/.test(name)).length} causal Signs`;
   return properties.get("operational-state") || properties.get("availability") || (role === "Gear" ? "semantic Gear" : "current world subject");
 }
 

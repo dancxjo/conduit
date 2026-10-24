@@ -4,6 +4,9 @@ use crate::{FaceControlKind, PatchbayGraph, PlanDocument, PlayDocument};
 use conduit_face::{FaceIconKey, FacePropertyValue};
 
 use crate::portable_projection::ContentBuilder;
+#[path = "portable_graph_projection/signs.rs"]
+mod signs;
+use signs::append_play;
 
 pub(super) fn append_exact_graph(
     plot: &str,
@@ -387,51 +390,6 @@ fn planned_connection<'a>(
         })
 }
 
-fn append_play(
-    content: &mut ContentBuilder,
-    subject: &str,
-    play: Option<&PlayDocument>,
-    placement: Option<&str>,
-    connection: Option<&str>,
-) {
-    let Some(play) = play else { return };
-    identity(
-        content,
-        subject,
-        "active-play-id",
-        play.active_play_id.as_str(),
-    );
-    text(
-        content,
-        subject,
-        "play-state",
-        &format!("{:?}", play.terminal),
-    );
-    text(content, subject, "pressure", "not exposed by this play");
-    for (index, sign) in play
-        .signs
-        .iter()
-        .filter(|sign| {
-            placement.is_some_and(|value| {
-                sign.placement_id
-                    .as_ref()
-                    .is_some_and(|id| id.as_str() == value)
-            }) || connection.is_some_and(|value| {
-                sign.connection_id
-                    .as_ref()
-                    .is_some_and(|id| id.as_str() == value)
-            })
-        })
-        .enumerate()
-    {
-        text(
-            content,
-            subject,
-            &format!("sign-{index}"),
-            &format!("{} · {:?}", sign.sign_id.as_str(), sign.kind),
-        );
-    }
-}
 
 fn identity(content: &mut ContentBuilder, subject: &str, name: &str, value: &str) {
     content.property(subject, name, FacePropertyValue::Identity(value.into()));
