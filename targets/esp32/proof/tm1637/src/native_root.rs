@@ -38,7 +38,7 @@ pub struct NativeRoot {
             crate::network_planning::NetworkPlanningRefusal,
         >,
     >,
-    network_source: conduit_plot::ExpandedCanonicalPlot,
+    network_source: c::PlotIdentity,
     credentials: Option<
         conduit_network_join_call::credential_installation::ReadyCredentialBase<
             crate::native_credentials::RootCredentialSource,
@@ -121,6 +121,15 @@ impl NativeRoot {
         }
         let owner_control = crate::native_owner_control::OwnerControl::new(owner_key::PUBLIC_KEY)
             .expect("installed owner public key must be valid and non-weak");
+        // Only the exact meaning identity survives construction. Network
+        // planning later reloads the independently checked linked Source during
+        // its admitted preparation workspace, never in the sensor Play.
+        let network_source_identity = c::PlotIdentity {
+            source_document_id: network_source.source_document_id.clone(),
+            checked_plot_id: network_source.checked_plot_id.clone(),
+            expanded_plot_id: network_source.expanded_plot_id.clone(),
+        };
+        drop(network_source);
         Self {
             retired_native: None,
             worker: None,
@@ -134,7 +143,7 @@ impl NativeRoot {
             admission,
             admission_freshness: 0,
             network_preparation: None,
-            network_source,
+            network_source: network_source_identity,
             credentials: Some(credentials),
             issuer,
             play: crate::native_play::NativePlay::new(),
@@ -339,7 +348,7 @@ impl NativeRoot {
             self.issuer.grant_wait(wait.native_identity())?,
         ])
     }
-    pub fn network_source(&self) -> &conduit_plot::ExpandedCanonicalPlot {
+    pub fn network_source(&self) -> &c::PlotIdentity {
         &self.network_source
     }
     /// Use current initialized offers only. No authority or local Base is
@@ -363,13 +372,16 @@ impl NativeRoot {
             ]),
             _ => None,
         };
-        self.network_preparation =
-            Some(crate::network_planning::PreparedNetworkSetup::from_checked(
+        let source = crate::native_source::load();
+        self.network_preparation = Some(
+            crate::network_planning::PreparedNetworkSetup::from_checked_for_identity(
                 &self.network_source,
+                &source,
                 &host,
                 &local_bases,
                 grants.as_ref().map_or(&[], |v| v.as_slice()),
-            ));
+            ),
+        );
         Ok(())
     }
     pub fn network_plan_status(&self) -> &'static str {

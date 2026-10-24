@@ -170,3 +170,19 @@ fn a_live_publication_owner_requires_complete_execution_provenance() {
         Err(Refusal::MissingExecutionBasis)
     ));
 }
+
+#[test]
+fn measure_retained_face_preparation_separately_from_mcu_admission() {
+    let (owner, memory) = allocation_probe::observe(|| {
+        let mut provenance = basis();
+        provenance.source_document_id = Some("s".repeat(64).into());
+        provenance.checked_plot_id = Some("c".repeat(64).into());
+        provenance.expanded_plot_id = Some("e".repeat(64).into());
+        provenance.plan_id = Some("p".repeat(64).into());
+        provenance.active_play_id = Some("a".repeat(64).into());
+        RetainedPublicationFace::prepare(provenance, 960, 120000).unwrap()
+    });
+    owner.current().validate().unwrap();
+    println!("cpu-retained-face-preparation pointer_bits={} owner_bytes={} peak_bytes={} requested_bytes={} allocations={}",
+        usize::BITS, core::mem::size_of::<RetainedPublicationFace>(), memory.peak_bytes, memory.requested_bytes, memory.allocations);
+}

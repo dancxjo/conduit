@@ -206,9 +206,7 @@ fn execute(acknowledged: bool, assigned: bool) {
     ];
     let bases = ["conduit.base/local@1".into()];
     assert!(PreparedNetworkSetup::prepare(&host, &bases, &grants[..1]).is_err());
-    let (prepared, preparation) = allocation_probe::observe(|| {
-        PreparedNetworkSetup::prepare(&host, &bases, &grants).unwrap()
-    });
+    let (prepared, preparation) = reloaded::prepare(&host, &bases, &grants);
     assert!(c::verify_plan(prepared.plan()));
     preparation_profile::measure(&host, &bases, &grants, prepared.plan());
     assert_eq!(prepared.body_plot_plan().plan, *prepared.plan());
@@ -484,3 +482,6 @@ fn execute(acknowledged: bool, assigned: bool) {
         core::mem::size_of_val(&kernel)
     );
 }
+
+#[path = "network_play_support/reloaded.rs"]
+mod reloaded;

@@ -7,6 +7,7 @@ use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment, 
 
 #[derive(Debug)]
 pub enum NetworkPlanningRefusal {
+    SourceIdentity,
     Placement(conduit_planner::PlannerError),
     Planning(conduit_planner::PlannerError),
     ForeignOrMultipleFragments,
@@ -17,6 +18,7 @@ impl NetworkPlanningRefusal {
     pub fn code(&self) -> &'static str {
         use conduit_planner::PlannerError as P;
         match self {
+            Self::SourceIdentity => "source-mismatch",
             Self::Placement(error) | Self::Planning(error) => match error {
                 P::UnknownCapability(_) => "capability-unavailable",
                 P::AuthorityGrantMissing(_) => "authority-missing",
@@ -40,6 +42,24 @@ pub struct PreparedNetworkSetup {
     pub(super) lowered: LoweredPlanFragment,
 }
 impl PreparedNetworkSetup {
+    /// Root may release inert construction metadata between preparations. A
+    /// freshly loaded, independently trusted Source must match all three pins;
+    /// identities alone establish no checking, offers, grants or possession.
+    pub fn from_checked_for_identity(
+        expected: &c::PlotIdentity,
+        source: &conduit_plot::ExpandedCanonicalPlot,
+        host: &c::HostAdvertisement,
+        bases: &[c::BaseImplementationId],
+        authority: &[c::AuthorityGrant],
+    ) -> Result<Self, NetworkPlanningRefusal> {
+        if source.source_document_id != expected.source_document_id
+            || source.checked_plot_id != expected.checked_plot_id
+            || source.expanded_plot_id != expected.expanded_plot_id
+        {
+            return Err(NetworkPlanningRefusal::SourceIdentity);
+        }
+        Self::from_checked(source, host, bases, authority)
+    }
     pub fn from_checked(
         source: &conduit_plot::ExpandedCanonicalPlot,
         host: &c::HostAdvertisement,
