@@ -1,0 +1,1 @@
+Initial fixture mistakenly loaded signal-dom-host.test.html, whose unrelated runtime-WASM bootstrap produced pageerror: browser runtime WASM artifact loads. No PNG/receipt was accepted. Corrected the fixture to an explicit blank same-origin document before mounting the actual Handbook module. This is setup correction, not a retried product assertion.
