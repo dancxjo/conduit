@@ -464,3 +464,15 @@ without horizontal overflow at 390px. All 141 owner renderer/reachability/Look
 checks pass. [Source-bound receipt and 400% forced-color capture](evidence/gui-look-6349-owner-root-text/README.md).
 This is browser renderer evidence; full native and cross-component acceptance
 remain open.
+
+## Readable native browser writing surfaces
+
+Memory Lantern's textarea inherited the signal readout's 56px monospace type.
+Shared text/surface tokens now give writing a readable 16px default and honor
+the browser root minimum, with platform forced colors and a bounded measure.
+Workspace picker/review fonts and heading clamps now honor root text preference.
+Actual Birth/Wake and Unicode edits preserve editor/revision/selection and
+Body/Plan/Play across three chrome preferences. Narrow 390px/32px checks pass,
+including another authoritative edit; five editor contract tests and Look wire
+checks pass. [Screenshots and exact asset/runtime provenance](evidence/gui-look-6349-writing/README.md).
+This is not canonical cross-component Look selection or current native acceptance.
