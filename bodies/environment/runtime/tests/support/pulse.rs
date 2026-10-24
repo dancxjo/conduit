@@ -100,7 +100,7 @@ pub fn bind(
     plan: &Plan,
     lowered: &LoweredPlanFragment,
 ) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
-    bind_mode(ready, plan, lowered, None)
+    bind_mode(ready, plan, lowered, None, 1)
 }
 pub fn bind_assigned(
     ready: ReadyPulseBase<Provider>,
@@ -108,13 +108,23 @@ pub fn bind_assigned(
     lowered: &LoweredPlanFragment,
     projection: &super::assignment::NativeProjection,
 ) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
-    bind_mode(ready, plan, lowered, Some(projection))
+    bind_mode(ready, plan, lowered, Some(projection), 1)
+}
+/// Explicit finite CPU Root budget, independent of received assignment bytes.
+pub fn bind_budget(
+    ready: ReadyPulseBase<Provider>,
+    plan: &Plan,
+    lowered: &LoweredPlanFragment,
+    operations: u32,
+) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
+    bind_mode(ready, plan, lowered, None, operations)
 }
 fn bind_mode(
     ready: ReadyPulseBase<Provider>,
     plan: &Plan,
     lowered: &LoweredPlanFragment,
     projection: Option<&super::assignment::NativeProjection>,
+    operations: u32,
 ) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
     let fragment = &plan.fragments[0];
     let gear = fragment
@@ -144,7 +154,7 @@ fn bind_mode(
         maximum_result_bytes: 1024,
         maximum_work_units: 1,
         maximum_in_flight: 1,
-        maximum_operations: 1,
+        maximum_operations: operations,
     };
     let authority = BaseCapabilityAuthority {
         grant: grant(),
@@ -158,7 +168,7 @@ fn bind_mode(
         maximum_result_bytes: 1024,
         maximum_work_units: 1,
         maximum_in_flight: 1,
-        maximum_operations: 1,
+        maximum_operations: operations,
     };
     let claim = BaseOperationClaim {
         host_id: scope.host_id.clone(),
