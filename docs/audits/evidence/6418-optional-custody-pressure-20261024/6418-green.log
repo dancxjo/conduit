@@ -1,0 +1,11 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 6.86s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_plot-3c0ad4adf9ef9621)
+
+running 3 tests
+test checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::full_optional_registry_preserves_actual_package_export_installation ... ok
+test checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::full_optional_registry_preserves_real_source_import_type_and_law_admission ... ok
+test checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::pressure_keeps_mismatch_hard_and_explicit_registration_transactional ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 481 filtered out; finished in 1.21s
+

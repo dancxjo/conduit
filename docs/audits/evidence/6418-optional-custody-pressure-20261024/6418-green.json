@@ -1,0 +1,39 @@
+{
+  "head": "effbe0eb636a34c213e3205872120c58a4e987df",
+  "phase": "green",
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-plot",
+    "--lib",
+    "custody_pressure_tests",
+    "--",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "pid": 852438,
+  "exit": 0,
+  "seconds": 8.091559410095215,
+  "root_free_before": 28560429056,
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6418-green.log",
+  "log_bytes": 991,
+  "log_sha256": "eaa8757a8a3b58fc16428c52d1680f45b47ec119ab693470bef611083aa8252b",
+  "source_clean_after": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "actual_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_plot-3c0ad4adf9ef9621",
+      "bytes": 26875448,
+      "sha256": "58852778bae8b3a9b5aa6286fdc449e65f14afdf16b6b78e0b7f2b2b95518969"
+    }
+  ]
+}

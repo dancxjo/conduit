@@ -1,0 +1,42 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 5.58s
+     Running tests/native_law_custody.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/native_law_custody-149eba2696228c15)
+
+running 11 tests
+test actual_native_import_alias_keeps_declaration_identity_and_requires_dependency ... ok
+test collection_counts_shared_dag_expansion_instead_of_only_unique_modules ... ok
+test exact_local_nested_declarations_round_trip_without_changing_schema_or_laws ... ok
+test generic_root_closure_keeps_required_import_template_and_laws_without_unrelated_types ... ok
+test missing_substituted_reordered_and_duplicate_claimed_laws_are_not_self_certifying ... ok
+test oversized_decoded_claims_are_refused_before_any_source_replay ... ok
+test real_generic_substitution_is_replayed_and_wrong_context_does_not_keep_identity ... ok
+test refused_registration_is_transactional_and_legacy_type_does_not_gain_custody ... ok
+test retained_cross_field_predicate_still_identifies_invalid_timing_input ... ok
+test root_closure_does_not_retain_an_unused_declaration_context_chain ... ok
+test root_custody_ignores_unrelated_legacy_context_but_never_omits_a_required_one ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.27s
+
+     Running tests/native_law_families.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/native_law_families-b6c63520248c2343)
+
+running 8 tests
+test actual_multimember_generic_package_replays_to_same_independent_type_and_laws ... ok
+test application_and_claim_changes_do_not_gain_original_type_identity ... ok
+test entire_family_payload_is_bounded_before_invalid_source_is_parsed ... ok
+test missing_substituted_duplicate_reordered_and_renamed_members_refuse ... ok
+test missing_wrong_and_packet_self_derived_context_never_replace_independent_anchor ... ok
+test mixed_family_graph_counts_each_manifest_and_member_source_before_parsing ... ok
+test nested_imported_family_replays_both_original_packages_with_both_anchors ... ok
+test optional_full_bundle_custody_does_not_consume_legacy_dependency_bytes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.47s
+
+     Running tests/native_law_packages.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/native_law_packages-c63c322430dcb464)
+
+running 3 tests
+test actual_imported_generic_parameter_annotation_keeps_its_owner_laws ... ok
+test actual_preparation_catalog_and_witness_preserve_send_sync_on_atomic_hosts ... ok
+test actual_shipped_export_and_native_alias_retain_source_law_custody ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+

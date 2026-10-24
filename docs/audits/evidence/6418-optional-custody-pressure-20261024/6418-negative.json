@@ -1,0 +1,40 @@
+{
+  "head": "2cbedd3a1a7535ad66dcd4076ff980113ffba849",
+  "phase": "negative",
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-plot",
+    "--lib",
+    "custody_pressure_tests",
+    "--",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "pid": 851146,
+  "exit": 101,
+  "seconds": 22.58214282989502,
+  "root_free_before": 28728954880,
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6418-negative.log",
+  "log_bytes": 3696,
+  "log_sha256": "45cbe2923e3f0736a869e1b7d8da05ffc3ba7703d16ba8627931d560cb200561",
+  "source_clean_after": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "actual_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_plot-3c0ad4adf9ef9621",
+      "bytes": 26875296,
+      "sha256": "30eee06fe5d7a3794f89bc5949c1e4e3ace206f1e22dab02ef9ecc64206d42e6"
+    }
+  ],
+  "retained_actual_executable": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6418-negative-conduit-plot.elf"
+}

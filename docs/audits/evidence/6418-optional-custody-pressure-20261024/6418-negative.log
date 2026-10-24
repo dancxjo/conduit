@@ -1,0 +1,49 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling version_check v0.9.5
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling generic-array v0.14.7
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling syn v3.0.6
+   Compiling serde v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling libm v0.2.16
+   Compiling zmij v1.0.23
+   Compiling digest v0.10.7
+   Compiling serde_json v1.0.151
+   Compiling cfg-if v1.0.5
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling serde_derive v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/assigned-plan)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/kernel)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 21.56s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_plot-3c0ad4adf9ef9621)
+
+running 3 tests
+test checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::full_optional_registry_preserves_actual_package_export_installation ... 
+thread 'checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::full_optional_registry_preserves_actual_package_export_installation' (852108) panicked at architecture/plot/src/checked_syntax/startup_catalog/type_catalog/custody_pressure_tests.rs:82:10:
+optional witness pressure must not refuse a checked package export: SyntaxCheckDiagnostic { code: "CND-FRM-058", span: Span { start: 0, end: 50, line: 1, column: 1, end_line: 4, end_column: 2 }, message: "native custody differs from installed laws or exceeds capacity" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::full_optional_registry_preserves_real_source_import_type_and_law_admission ... 
+thread 'checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::full_optional_registry_preserves_real_source_import_type_and_law_admission' (852109) panicked at architecture/plot/src/checked_syntax/startup_catalog/type_catalog/custody_pressure_tests.rs:47:10:
+optional witness capacity must not refuse a valid Source import: SyntaxCheckDiagnostic { code: "CND-FRM-058", span: Span { start: 24, end: 31, line: 1, column: 25, end_line: 1, end_column: 32 }, message: "native custody differs from installed laws or exceeds capacity" }
+FAILED
+test checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::pressure_keeps_mismatch_hard_and_explicit_registration_transactional ... ok
+
+failures:
+
+failures:
+    checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::full_optional_registry_preserves_actual_package_export_installation
+    checked_syntax::startup_catalog::type_catalog::custody_pressure_tests::full_optional_registry_preserves_real_source_import_type_and_law_admission
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 481 filtered out; finished in 0.99s
+
+error: test failed, to rerun pass `-p conduit-plot --lib`

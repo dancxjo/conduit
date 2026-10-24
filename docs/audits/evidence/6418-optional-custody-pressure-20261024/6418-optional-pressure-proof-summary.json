@@ -1,0 +1,125 @@
+{
+  "at_utc": "2026-10-24T16:38:09.953407+00:00",
+  "issue": 6407,
+  "pr": 6418,
+  "base": "ae5e9acd9b7ee439363fb28985ef911f6d17d8d8",
+  "test_only_negative_commit": "2cbedd3a1a7535ad66dcd4076ff980113ffba849",
+  "repair_commit": "effbe0eb636a34c213e3205872120c58a4e987df",
+  "behavior": "Optional implicit witness retention at full4096registry leaves newwitnessabsent while preserving exactType/contracts/invariants admission; mismatchremains hard,explicitregistrationremainscapacityrefusing/transactional. Existingwitness mayberefreshedwithoutgrowingregistry.",
+  "scope": "Onecentralretainmethod plusprivateunitregressions foractual4096installedType+witnessregistry. No ownerbranch,GHbody,CIornewPRchanged.",
+  "test_fixture": "Test-only populatesrealTypeandcustodymaps together withvalidverifiedsmallwitness toavoid4096wholecatalogclones; actualSourcechecker/importandcheckedpackageinstallrununchanged.",
+  "negative": "clean2cb,1passed2failed,actualCND-FRM-058capacityfailures inSourceimport/package paths; originalfailedELFandrawlogretained",
+  "positive": "clean eff,3focusedpressuretests+22existingcustody/package/familytests pass0ignored;strictClippyowninglibandalltests passes-Dwarnings;rustfmtanddiffcheckpass. No fullworkspace/native/CIrun.",
+  "proof_commands": {
+    "negative": [
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "-p",
+      "conduit-plot",
+      "--lib",
+      "custody_pressure_tests",
+      "--",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "green": [
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "-p",
+      "conduit-plot",
+      "--lib",
+      "custody_pressure_tests",
+      "--",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "integration": [
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "-p",
+      "conduit-plot",
+      "--test",
+      "native_law_custody",
+      "--test",
+      "native_law_packages",
+      "--test",
+      "native_law_families",
+      "--",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "strict": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "--locked",
+      "-p",
+      "conduit-plot",
+      "--lib",
+      "--tests",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "receipts": {
+    "negative": "6418-negative.json",
+    "green": "6418-green.json",
+    "integration": "6418-integration.json",
+    "strict": "6418-strict.json"
+  },
+  "source": {
+    "architecture/plot/src/checked_syntax/startup_catalog/type_catalog.rs": {
+      "bytes": 10560,
+      "sha256": "77208f4f616dda003cfa71f720c9920fb88344ca673fb62bcf465c338905cd30",
+      "git_blob": "d311e023991046c298c6d4d030319fbccbf3ac21"
+    },
+    "architecture/plot/src/checked_syntax/startup_catalog/type_catalog/custody_pressure_tests.rs": {
+      "bytes": 4193,
+      "sha256": "8f6fbc3df7c18c0a0e80e73faf58aa9c7d10907dd6ad92ecc37e487f57b84ce0",
+      "git_blob": "981e4eab560325cf35ac60bca0380a31d16f5c4e"
+    }
+  },
+  "green_actual_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/native_law_custody-149eba2696228c15",
+      "bytes": 15696784,
+      "sha256": "d12c150b76b91a9fd4ffa9b17a7a23d0711a0773595ed0e219fa28c7b635ed99",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6418-pressure-green-artifacts/native_law_custody-149eba2696228c15"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_plot-3c0ad4adf9ef9621",
+      "bytes": 26875448,
+      "sha256": "58852778bae8b3a9b5aa6286fdc449e65f14afdf16b6b78e0b7f2b2b95518969",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6418-pressure-green-artifacts/conduit_plot-3c0ad4adf9ef9621"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/native_law_families-b6c63520248c2343",
+      "bytes": 15280856,
+      "sha256": "a9e552eda8badbe325501c5e8afc02d19305c17fe002ede45c30b2f115fa4241",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6418-pressure-green-artifacts/native_law_families-b6c63520248c2343"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/native_law_packages-c63c322430dcb464",
+      "bytes": 15225816,
+      "sha256": "e199d01c022db7d3ed7e0492f1375c9125d563c07daf17013cbc2d8b9bcaf422",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6418-pressure-green-artifacts/native_law_packages-c63c322430dcb464"
+    }
+  ],
+  "negative_actual_executable": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6418-negative-conduit-plot.elf",
+    "bytes": 26875296,
+    "sha256": "30eee06fe5d7a3794f89bc5949c1e4e3ace206f1e22dab02ef9ecc64206d42e6"
+  },
+  "limits": [
+    "Focused internal Cargo checks supplement existing supported cargo xtask check native-law-custody; no newpublicworkflow.",
+    "ActualfourgreenELFs+negativeELFlocalcustody only; packetpublishesrawlogs/hashesnotELFbytes.",
+    "RelevantfreshCandidate/accepteddevIntegrationandfull6407scope remainrequired; no6406/physical/runtimeauthorityclaim."
+  ]
+}
