@@ -1,0 +1,10 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 1.32s
+     Running tests/recording_recovery.rs (target/environment-lean-host/debug/deps/recording_recovery-ba781b129869d7f0)
+
+running 2 tests
+test linux_files_publication::linux_files_publication_preflight_retains_an_incomplete_generation_without_effects ... ok
+test linux_files_publication::linux_files_publication_uses_original_requests_and_committed_observers ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.45s
+

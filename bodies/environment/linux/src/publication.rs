@@ -13,7 +13,7 @@ use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredForePort, Lowe
 type Kernel = FixedScheduler<
     RecordingSnapshotBack,
     k::FixedValueStore<3, 4096>,
-    k::FixedSignLog<128>,
+    k::HostedSignLog,
     1,
     2,
     1,
@@ -105,6 +105,8 @@ impl<'a> PreparedFileRecordingPublication<'a> {
             || lowered.nodes.len() != 1
             || lowered.node_specs.len() != 1
             || lowered.cords.len() != 2
+            || lowered.routes.len() != 1
+            || lowered.routes[0].targets.len() != 1
             || lowered.fore_ports.len() != 2
             || lowered.host_calls.len() != 1
             || lowered.resources.len() != 1
@@ -211,10 +213,15 @@ impl<'a> PreparedFileRecordingPublication<'a> {
             .map_err(|_| E::Shape)?;
         calls.seal().map_err(|_| E::Shape)?;
         let values = k::FixedValueStore::<3, 4096>::new(3 * 4096).map_err(|_| E::Shape)?;
-        let signs = k::FixedSignLog::<128>::new_with_remote_storage(
-            (128 * core::mem::size_of::<k::KernelEvent>()) as u32,
+        // One sealed input, one output and one route: input admit/close (2),
+        // output offer/accept/delivery (3), output close (1). Failed publication
+        // is a prefix; cancellation adds ordinary signs only. Required evidence
+        // remains retained: no eviction, acknowledgement or reset is introduced.
+        let signs = k::HostedSignLog::new_with_remote_storage(
             128,
-            k::remote_sign_storage_bytes(128).ok_or(E::Shape)?,
+            (128 * core::mem::size_of::<k::KernelEvent>()) as u32,
+            6,
+            k::remote_sign_storage_bytes(6).ok_or(E::Shape)?,
         )
         .map_err(|_| E::Shape)?;
         let ready = generation.take().ok_or(E::Shape)?;
