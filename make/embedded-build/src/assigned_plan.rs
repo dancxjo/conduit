@@ -18,7 +18,7 @@ pub fn encode_assigned_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA)
+    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[])
 }
 
 /// Kernel projection with explicit single-value envelopes and pressure policy.
@@ -27,7 +27,7 @@ pub fn encode_assigned_kernel_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA)
+    encode(plan, maxima, conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA, &[])
 }
 /// Exact single cooperative Base/resource/authority facts for constrained native
 /// possession admission. Legacy and kernel-only projections remain unchanged.
@@ -35,14 +35,34 @@ pub fn encode_assigned_native_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA)
+    encode(plan, maxima, conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA, &[])
 }
 
+pub(crate) fn encode_fore(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+    fore: &[conduit_core::AssignedForeRequirement],
+) -> Result<Vec<u8>, GenerationError> {
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
+        fore,
+    )
+}
 fn encode(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
     schema: u16,
+    fore: &[conduit_core::AssignedForeRequirement],
 ) -> Result<Vec<u8>, GenerationError> {
+    if schema != conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+        && crate::fore::has_local_fore_endpoint(plan)
+    {
+        return Err(GenerationError::Unsupported(
+            crate::UnsupportedPlanFeature::LocalFore,
+        ));
+    }
     let mut payload = Vec::new();
     let mut counts = [0_u8; conduit_core::ASSIGNED_PLAN_COUNT_KINDS];
     let mut record = |tag: u8, value: Vec<u8>| -> Result<(), GenerationError> {
@@ -112,7 +132,9 @@ fn encode(
         value.push(cord.track as u8);
         if matches!(
             schema,
-            conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA | conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA
+            conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA
+                | conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA
+                | conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
         ) {
             u32_to(&mut value, cord.maximum_value_bytes);
             value.push(cord.pressure_policy as u8);
@@ -156,7 +178,11 @@ fn encode(
         u16_to(&mut value, operation.maximum_in_flight);
         u32_to(&mut value, operation.maximum_input_bytes);
         u32_to(&mut value, operation.maximum_output_bytes);
-        if schema == conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA {
+        if matches!(
+            schema,
+            conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA
+                | conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+        ) {
             crate::assigned_native::append(plan, operation, &mut value)?;
         }
         record(ASSIGNED_HOST_CALL, value)?;
@@ -211,6 +237,9 @@ fn encode(
             }
         }
         record(ASSIGNED_SIGN, value)?;
+    }
+    for port in fore {
+        record(conduit_core::ASSIGNED_LOCAL_FORE, port.payload().to_vec())?;
     }
     for remote in &plan.remote_endpoints {
         let mut value = Vec::new();
@@ -442,7 +471,7 @@ pub fn assigned_native_layout_requirements(
         conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
     )
 }
-fn layout_records(
+pub(crate) fn layout_records(
     bytes: Vec<u8>,
     schema: u16,
 ) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
