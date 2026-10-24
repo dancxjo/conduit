@@ -156,3 +156,19 @@ four-selected-Plots and 48-command requirements. Fresh normal-product QEMU captu
 long-name focus/hit/page samples equal the earlier `fefbc1402` proof. Compact
 retains all four Plots at 48/48 commands; spacious stays at 25/48. Face revision
 and chained local Show acknowledgement remain unchanged across Look switches.
+
+## Native graph symbols
+
+Patchbay diagram cards reuse the shared Gear/Lucide symbol alongside their
+ordinal and readable name. The measured title box reserves the icon inset;
+complete labels remain in Details. Decoration is admitted for all visible cards
+or none, using only commands left after the existing cards, Port rows, overflow
+notices and visible Cord prefix. No connection is displaced to make room for
+artwork. Small/dense pages retain complete labeled cards and the same graph
+geometry, hit targets, semantic subjects and omission reporting.
+
+Focused rendering checks cover the ordinary graph with three Gear symbols and
+its two original Cords, and a saturated six-card/24-Port graph that fills the
+48-command budget and correctly retains text-only cards. Existing exact endpoint,
+fan-graph, ambiguity and large-graph checks pass. Fresh normal-product graph
+capture and current scene-suite results are recorded after the frozen build.
