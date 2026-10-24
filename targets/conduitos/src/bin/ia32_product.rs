@@ -194,7 +194,18 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     }
     let image_start = core::ptr::addr_of!(__conduitos_image_start) as usize;
     let image_end = core::ptr::addr_of!(__conduitos_image_end) as usize;
-    let framebuffer_basis = framebuffer::basis(framebuffer.as_ref(), &identities, firmware);
+    let spore_start = spore_region.as_ptr() as usize as u64;
+    let framebuffer_basis = framebuffer::basis(
+        framebuffer.as_ref(),
+        &identities,
+        firmware,
+        multiboot_magic,
+        multiboot_information,
+        &[
+            image_start as u64..image_end as u64,
+            spore_start..spore_start + spore_region.len() as u64,
+        ],
+    );
     let boot_record = BootRecord {
         firmware,
         timestamp: counter,

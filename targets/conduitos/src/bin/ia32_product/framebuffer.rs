@@ -11,7 +11,27 @@ pub(super) fn basis(
     facts: Option<&Multiboot1FramebufferFacts>,
     identities: &BootIdentities,
     firmware: Firmware,
+    multiboot_magic: u32,
+    multiboot_information: u32,
+    owned: &[core::ops::Range<u64>],
 ) -> Option<FramebufferBasis> {
+    let memory = facts.map(|facts| unsafe {
+        conduitos::boot::validate_multiboot1_scanout_memory(
+            multiboot_magic,
+            multiboot_information,
+            facts,
+            owned,
+        )
+        .unwrap_or_else(|error| super::refuse(error))
+    });
+    let memory = memory.map(|memory| {
+        serde_json::json!({
+            "entries":memory.memory_map_entries,
+            "covered_by_reserved_entry":memory.covered_by_reserved_entry,
+            "nonreserved_overlap":false,"owned_storage_overlap":false,
+            "ownership_granted":false
+        })
+    });
     let basis = facts.map(|facts| FramebufferBasis {
         base_id: HostBaseId::from(identity::hex(&identity::derive_base(
             &identities.boot,
@@ -34,7 +54,7 @@ pub(super) fn basis(
         "target":EMBEDDED_MAKE.target,"profile_id":EMBEDDED_MAKE.profile_id,
         "build_id":EMBEDDED_MAKE.build_id,"image_id":EMBEDDED_MAKE.image_binding,
         "host_id":identity::hex(&identities.host),"boot_id":identity::hex(&identities.boot),
-        "firmware":firmware.as_str(),"framebuffer":framebuffer,
+        "firmware":firmware.as_str(),"framebuffer":framebuffer,"memory_map":memory,
         "graphical_presenter_selected":false,"graphical_show_proved":false
     }))
     .unwrap_or_else(|_| super::refuse("framebuffer-observation-encoding"));

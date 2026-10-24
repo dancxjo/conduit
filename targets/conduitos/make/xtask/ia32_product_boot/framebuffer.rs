@@ -46,8 +46,25 @@ fn validate(evidence: &Value, product: &Value, snapshot: &Value) -> Result<(), C
     if frames.len() != count || bases.len() != 7 + count {
         return Err(invalid("observed framebuffers and reported Bases disagree"));
     }
+    let memory = &evidence["memory_map"];
     if count == 0 {
-        return Ok(());
+        return if memory.is_null() {
+            Ok(())
+        } else {
+            Err(invalid("unexpected scanout memory claim"))
+        };
+    }
+    if !memory["entries"]
+        .as_u64()
+        .is_some_and(|count| (1..=256).contains(&count))
+        || !memory["covered_by_reserved_entry"].is_boolean()
+        || memory["nonreserved_overlap"] != false
+        || memory["owned_storage_overlap"] != false
+        || memory["ownership_granted"] != false
+    {
+        return Err(invalid(
+            "missing or contradictory scanout memory observation",
+        ));
     }
     let byte = |key: &str| {
         framebuffer[key]
@@ -119,7 +136,9 @@ mod tests {
             "red_shift":16,"green_shift":8,"blue_shift":0,"physical_start":0xc0000000_u64,"byte_length":1920000});
         let evidence = json!({"schema":"conduit.conduitos/ia32-framebuffer-observation@1","target":"conduitos/ia32/pc",
             "profile_id":"profile","build_id":"build","image_id":"image","host_id":"host","boot_id":"boot",
-            "firmware":"uefi32","framebuffer":framebuffer,"graphical_presenter_selected":false,"graphical_show_proved":false});
+            "firmware":"uefi32","framebuffer":framebuffer,
+            "memory_map":{"entries":12,"covered_by_reserved_entry":false,"nonreserved_overlap":false,
+                "owned_storage_overlap":false,"ownership_granted":false},"graphical_presenter_selected":false,"graphical_show_proved":false});
         let mut bases = vec![Value::Null; 7];
         bases.push(json!({"base_id":"fb","kind_id":"conduitos.base/framebuffer@1","capacity_units":1920000}));
         let snapshot = json!({"bases":bases,"sealed_boot_provenance":[{"firmware_environment":"uefi32",
@@ -152,9 +171,27 @@ mod tests {
         assert!(validate(&evidence, &product, &snapshot).is_err());
     }
     #[test]
+    fn malformed_or_authority_claiming_memory_observation_refuses() {
+        for (field, value) in [
+            ("entries", json!(0)),
+            ("entries", json!(257)),
+            ("nonreserved_overlap", json!(true)),
+            ("owned_storage_overlap", json!(true)),
+            ("ownership_granted", json!(true)),
+        ] {
+            let (mut evidence, product, snapshot) = fixture();
+            evidence["memory_map"][field] = value;
+            assert!(validate(&evidence, &product, &snapshot).is_err());
+        }
+        let (mut evidence, product, snapshot) = fixture();
+        evidence["memory_map"] = Value::Null;
+        assert!(validate(&evidence, &product, &snapshot).is_err());
+    }
+    #[test]
     fn absence_and_ega_text_do_not_invent_an_rgb_base() {
         let (mut evidence, product, mut snapshot) = fixture();
         evidence["framebuffer"] = Value::Null;
+        evidence["memory_map"] = Value::Null;
         snapshot["sealed_boot_provenance"][0]["framebuffers"] = json!([]);
         snapshot["bases"].as_array_mut().unwrap().pop();
         assert!(validate(&evidence, &product, &snapshot).is_ok());
