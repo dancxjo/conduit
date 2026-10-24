@@ -48,3 +48,9 @@ This does not claim physical assigned timer installation.
 The selected assigned binder accepts either contiguous bytes or borrowed
 canonical records through the same Core validation and custody checks. Both
 forms run the timer transfer/refusal proof. Refs #6346.
+
+The dev candidate also passed the environmental runtime's four `capture_kernel`
+CPU integration tests after the assigned-input API update. They traverse the
+production kernel, reject substituted local grants/attachments and replacement
+providers, and check fresh Boot identity. These checks do not establish physical
+timer installation, overnight operation or a completed recorder host.
