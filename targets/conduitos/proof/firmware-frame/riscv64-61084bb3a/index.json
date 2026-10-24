@@ -575,6 +575,19 @@
       "original_sha256": "7de0c096f1150ce7b8f46126df4f89481a76a524697dd210256c3d8305e0335b",
       "original_bytes": 1267,
       "compressed": true
+    },
+    {
+      "path": "validation/packet-preflight.log.gz",
+      "sha256": "3123873845864540011b830f6d28718e800a209f98b1b771461d68433eb6e9b8",
+      "original_sha256": "b7e9cafd2b63e93ab4c6b608352b32f58a05a8e61c06c60ebaed494b8a5d5567",
+      "original_bytes": 34766,
+      "compressed": true
     }
-  ]
+  ],
+  "final_packet_preflight": {
+    "source": "5c455d418",
+    "base": "dd111fe3a81fb578d1e2271620eeb8b21ef60ddd",
+    "passed": 345,
+    "exit_code": 0
+  }
 }
