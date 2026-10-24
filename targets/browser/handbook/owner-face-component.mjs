@@ -14,6 +14,25 @@ const faceNode = (tag, text, className) => {
   return node;
 };
 
+// Geometry from the pinned ISC/MIT Lucide subset in mechanisms/implementations/
+// bounded-lucide. Decorations never replace labels or choose action identity.
+const lucideGeometry = {"face": "<path d=\"M2 3h20\" /><path d=\"M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3\" />\n  <path d=\"m7 21 5-5 5 5\" />", "type": "<path d=\"M12 4v16\" /><path d=\"M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2\" /><path d=\"M9 20h6\" />", "combine": "<path d=\"M14 3a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1\" /><path d=\"M19 3a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1\" />\n  <path d=\"m7 15 3 3\" /><path d=\"m7 21 3-3H5a2 2 0 0 1-2-2v-2\" />\n  <rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\" /><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\" />", "file-output": "<path d=\"M4.226 20.925A2 2 0 0 0 6 22h12a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.127\" />\n  <path d=\"M14 2v5a1 1 0 0 0 1 1h5\" /><path d=\"m5 11-3 3\" /><path d=\"m5 17-3-3h10\" />", "chart-no-axes-column-increasing": "<path d=\"M5 21v-6\" /><path d=\"M12 21V9\" /><path d=\"M19 21V3\" />"};
+const roleIcon = { Body: 'combine', Plot: 'face', Document: 'type', Info: 'type',
+  Status: 'chart-no-axes-column-increasing' };
+const decorate = (node, key) => {
+  if (!lucideGeometry[key]) return node;
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [name, value] of Object.entries({ viewBox: '0 0 24 24', fill: 'none',
+    stroke: 'currentColor', 'stroke-width': '1.75', 'stroke-linecap': 'round',
+    'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false', class: 'owner-face-icon' })) {
+    icon.setAttribute(name, value);
+  }
+  // The strings above are repository-owned constants, never Face content.
+  icon.innerHTML = lucideGeometry[key];
+  node.prepend(icon);
+  return node;
+};
+
 export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #surface;
   #invoke;
@@ -261,7 +280,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       node.dataset.faceRole = subject.role;
       bindRegion(node, subject);
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
-      const heading = faceNode('h4', subject.name);
+      const heading = decorate(faceNode('h4', subject.name), roleIcon[subject.role]);
       heading.dataset.textPurpose = ['Document', 'Body', 'Host'].includes(subject.role) ? 'Title' : 'Heading';
       node.append(heading);
       for (const text of subject.text) node.append(faceNode('p', text));
