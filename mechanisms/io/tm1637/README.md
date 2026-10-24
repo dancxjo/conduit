@@ -59,3 +59,17 @@ The assigned tests drop the assignment storage before allocation-free invocation
 then revoke and return that same provider through idle retirement. These are CPU
 fixtures, not actual initialized ESP32 pins, Root installation or complete native
 memory/work admission. The running firmware has not adopted this component yet.
+
+`WriteBack` is the finite sink in the production kernel. It consumes packet input,
+requests the selected zero-result Host Call and waits for that exact completion.
+Its request phase advances only when the ordinary Step commits. A cancelled or
+refused transaction cannot advance a private request counter or manufacture an
+acknowledgement. The prepared operation ceiling refuses excess input before
+another electrical request, and normal input closure drains after pending work.
+
+The kernel proof sends two Source-encoded packet frames through the real fixed
+scheduler, services each original request with `WriteHostCall` and completes the
+same request. It checks NACK, cancellation, operation exhaustion, late completion
+after kernel cancellation and zero heap allocations across execution. Numeric
+routing/admission, native pin ownership and authority remain explicit fixtures;
+this is not an installed MCU Mask Play or physical-display proof.

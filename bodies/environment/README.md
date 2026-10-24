@@ -1397,3 +1397,11 @@ it once without starting electrical work. The `display-output` proof includes
 foreign Boot/resource claims, advertisement collision, invocation after assignment
 storage is dropped and retirement of the original provider. Actual ESP32 provider
 initialization, selected Back installation and resident delivery remain unfinished.
+
+The display output component also includes `WriteBack`, a finite zero-result
+Host Call sink under the production kernel. Its private phase changes only on
+Step commit. The output proof executes two packet frames with the actual fixed
+scheduler, selected owner and wire engine, covering electrical refusal,
+cancellation, finite operation exhaustion and late completion rejection without
+heap allocation. Routing, authority and pins are CPU fixtures. Native Mask Play
+installation and continuous physical display delivery remain unfinished.

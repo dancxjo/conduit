@@ -244,3 +244,6 @@ fn canonical_but_invalid_packet_lengths_and_padding_refuse_before_authorization(
 mod assigned;
 #[path = "support/installation.rs"]
 mod installation;
+
+#[path = "support/kernel.rs"]
+mod kernel;
