@@ -1,6 +1,6 @@
 //! Prepared canonical composition of finite exact structured values.
 
-use alloc::vec::Vec;
+use alloc::{borrow::Cow, vec::Vec};
 
 use super::{
     validate_canonical_structured_value, StructuredInfoRefusal as Refusal, StructuredInfoType,
@@ -48,7 +48,7 @@ struct Field {
 /// before Play. Runtime calls accept borrowed, already validated child values;
 /// they cannot change a field's exact Type or grow the output envelope.
 pub struct PreparedStructuredComposer {
-    prefix: Vec<u8>,
+    prefix: Cow<'static, [u8]>,
     shape: CompositionShape,
     output: Vec<u8>,
     maximum_bytes: usize,
@@ -67,7 +67,32 @@ enum CompositionShape {
 
 impl PreparedStructuredComposer {
     pub fn new(value_type: &StructuredInfoType, maximum_bytes: usize) -> Result<Self, Refusal> {
-        let prefix = value_type.canonical_bytes()?;
+        Self::prepare(
+            value_type,
+            Cow::Owned(value_type.canonical_bytes()?),
+            maximum_bytes,
+        )
+    }
+
+    /// Borrow an immutable linked schema after comparing it with the complete
+    /// exact Type. Only changing output and field-range tables occupy the heap.
+    /// This grants no authority and does not validate an execution allocation.
+    pub fn with_static_schema(
+        value_type: &StructuredInfoType,
+        canonical_type: &'static [u8],
+        maximum_bytes: usize,
+    ) -> Result<Self, Refusal> {
+        if value_type.canonical_bytes()? != canonical_type {
+            return Err(Refusal::WrongType);
+        }
+        Self::prepare(value_type, Cow::Borrowed(canonical_type), maximum_bytes)
+    }
+
+    fn prepare(
+        value_type: &StructuredInfoType,
+        prefix: Cow<'static, [u8]>,
+        maximum_bytes: usize,
+    ) -> Result<Self, Refusal> {
         if maximum_bytes > MAXIMUM_STRUCTURED_CANONICAL_BYTES || maximum_bytes <= prefix.len() {
             return Err(Refusal::CanonicalEncodingTooLarge);
         }
@@ -138,7 +163,11 @@ impl PreparedStructuredComposer {
             }
             CompositionShape::Leaf(_) | CompositionShape::Collection { .. } => 0,
         };
-        self.prefix.capacity() + self.output.capacity() + shape
+        let prefix = match &self.prefix {
+            Cow::Owned(bytes) => bytes.capacity(),
+            Cow::Borrowed(_) => 0,
+        };
+        prefix + self.output.capacity() + shape
     }
 
     pub fn encoded(&self) -> &[u8] {

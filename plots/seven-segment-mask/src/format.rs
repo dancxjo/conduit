@@ -176,6 +176,7 @@ pub enum TimingRefusal {
     InvalidBounds,
     OutsideLifetime,
 }
+#[derive(Clone, Copy)]
 pub struct Alternation {
     period_ms: u64,
     lifetime_ms: u64,
