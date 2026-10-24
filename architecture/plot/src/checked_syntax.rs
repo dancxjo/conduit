@@ -10,6 +10,10 @@ pub(crate) use expanded_provenance::provenance_digest;
 pub use expanded_provenance::ExpandedGearProvenance;
 mod startup_catalog;
 pub use crate::native_type::family::source::NativeTypeSourceOrigin;
+pub use crate::native_type::law_custody::{
+    NativeFamilyAnchor, NativeFamilyMaterial, NativeFamilyMember, NativeLawContext,
+    NativeLawCustodyRefusal, NativeLawMaterial, NativeLawWitness,
+};
 use crate::prelude::*;
 use crate::{PlotCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
@@ -137,6 +141,7 @@ pub struct CheckedCanonicalPlot {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedSyntaxDocument {
+    pub(crate) native_law_custody: BTreeMap<String, NativeLawWitness>,
     pub(crate) physical: crate::physical_declarations::CheckedPhysicalCatalogue,
     /// All sealed literal results, including glyphs in Native Type refinements.
     pub glyph_values: crate::AdmittedGlyphValues,
@@ -423,5 +428,11 @@ impl SyntaxCheckError {
             span: owned_span.unwrap_or(span),
             message: format!("{detail}; '=' is declarative and there is no later assignment"),
         }
+    }
+}
+
+impl CheckedSyntaxDocument {
+    pub fn native_law_witness(&self, name: &str) -> Option<&NativeLawWitness> {
+        self.native_law_custody.get(name)
     }
 }
