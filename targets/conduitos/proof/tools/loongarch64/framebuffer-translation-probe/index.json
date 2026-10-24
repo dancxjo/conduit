@@ -139,6 +139,65 @@
     {
       "path": "probe-loongarch64-framebuffer-translation.py",
       "sha256": "04cce4f68549c80d1ba964e145c66eba5f3a02f4192cb4d0ce53de84666412f0"
+    },
+    {
+      "path": "loongarch64-framebuffer-custody-probe-g0/launch.json.gz",
+      "sha256": "178b25257e87a038f16619e407d74820ad24723ae65322bd89cb598576d87361",
+      "original_sha256": "8e5d34844c1221e9f77c9d81ae69edbdf5ce7b72f58d24d3871768d0028baf7f",
+      "original_bytes": 8489
+    },
+    {
+      "path": "loongarch64-framebuffer-custody-probe-g0/csr-observation.json.gz",
+      "sha256": "ad97b7cb39a8828037d31be8bfde95d124e267db6ffe40373dde3379bf11f617",
+      "original_sha256": "302f494dc0260d0b264c6d2104e05d5abedfad11b0ea73f630f7bf821513f2fd",
+      "original_bytes": 408
+    },
+    {
+      "path": "loongarch64-framebuffer-custody-probe-g0/receipt.json.gz",
+      "sha256": "81e19304c3bd6f7894276bd0e892484e3d592300d11a92c8ca7fc47b6e6f4e58",
+      "original_sha256": "fc67450ed9bb0af48d8f35afc2810d3f719e44f17ec23a0e206f6ef7118cd43b",
+      "original_bytes": 123340
+    },
+    {
+      "path": "loongarch64-framebuffer-custody-probe-g0/display.ppm.gz",
+      "sha256": "6d090e0ba92e9affbe7f1b66f1fec7bb84282da30f1317bdd6fe35194389f3de",
+      "original_sha256": "982d4f25384ec99ef6270c84cbd8fb0e46148377429f848b83b01cfbd837df2d",
+      "original_bytes": 1440015
+    },
+    {
+      "path": "loongarch64-framebuffer-custody-probe-g0/display-address-observation.json.gz",
+      "sha256": "4fc06caa7b7ad75a2dbdd09e24a7e81cf0d103b72c1df30f55da0a3ce9d0ced5",
+      "original_sha256": "ff0b1b4df1194faa8d71d698029029c2f337739a097a0e193766f6d66163aca7",
+      "original_bytes": 101728
+    },
+    {
+      "path": "loongarch64-framebuffer-custody-probe-g0/serial.log.gz",
+      "sha256": "8d9f6fc878f9b1c6e42fd2fcf7c81d3c0711d78fb3e3a414810a09e6ce6fa333",
+      "original_sha256": "880bee60fc56570cc73d1a44d7a25bc389a503d002cca6de88dd7276426e0f63",
+      "original_bytes": 3731
+    },
+    {
+      "path": "loongarch64-framebuffer-custody-probe-g0/stderr.log.gz",
+      "sha256": "4927b43f27170a9f0a00dadab5e5d3121e1e8995dc8d48fc8c8c8924ed4419a1",
+      "original_sha256": "3a86fdcdc6e1287edf6161294ab55df147d379769e6e92f8ba4567f34a36e1fe",
+      "original_bytes": 77
+    },
+    {
+      "path": "loongarch64-framebuffer-custody-probe-g0/qmp.json.gz",
+      "sha256": "e358101705b571f7f0b627c763c7e9dc6daae5b4e3aa28eb7e0fced7d4e1ab70",
+      "original_sha256": "431d557f1222ce80f2c5aaebe40df13b0c931287a3b14b912ffe33105f342942",
+      "original_bytes": 41610
+    },
+    {
+      "path": "probe-loongarch64-framebuffer-custody.py",
+      "sha256": "4d3571c3f0fb5ce3f2566994aa12b105f9fa83b12bf60cae831bbe07b548de02"
     }
-  ]
+  ],
+  "historical_memory_map_observation": {
+    "regions": 46,
+    "table_pages": 5,
+    "scanout_cover": "exactly one FRAMEBUFFER region",
+    "each_full_table_page_cover": "exactly one BOOTLOADER_RECLAIMABLE region",
+    "scope": "observed historical map coverage only; no current product ownership/write or Show proof"
+  }
 }

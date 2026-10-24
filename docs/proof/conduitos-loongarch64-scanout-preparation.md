@@ -117,3 +117,10 @@ There is no new Face authoring, input route or entropy source. The record
 names actual MAT observation and the QEMU-only `dbar 0` completion policy.
 This is formatted preparation only; no normal product wiring, cross-build or
 Show claim follows from this unlinked file.
+
+A third fresh read-only probe follows the actual Limine memory-map response:
+46 regions, within the current 128-region bound. Exactly one FRAMEBUFFER region
+covers the full scanout, and each of the five complete descriptor pages lies
+inside exactly one BOOTLOADER_RECLAIMABLE region. This establishes historical
+map coverage for the observed translations; it does not grant the future
+current product its exclusive writer lease or acknowledge a graphical Show.
