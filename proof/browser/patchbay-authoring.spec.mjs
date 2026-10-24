@@ -196,7 +196,7 @@ for (const includeLifecycle of [false, true]) {
       await workspace.locator("summary").click();
       if (!includeLifecycle) return;
 
-      await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
+      await page.getByRole("button", { name: "Open another Plot", exact: true }).click();
       await selectRole(page, "Plot", "Empty Plot");
       await clickInteraction(page, page.getByRole("button", { name: "BIRTH", exact: true }));
       await selectRole(page, "Plot", "Current checked and expanded Plot");

@@ -55,3 +55,6 @@ body:is([data-maker-mode="edit"],[data-maker-mode="run"])[data-palette-open="fal
   body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #palette { top:var(--maker-heading-bottom,15rem); }
   body:is([data-maker-mode="edit"],[data-maker-mode="run"]) #inspector { left:auto; right:.75rem; }
 }
+
+#maker-views #current-status, #maker-views #front-door-actions, #maker-views #temporal-context { display:flex; position:static; max-width:none; }
+#maker-views .status-strip[hidden] { display:none; }
