@@ -1,21 +1,31 @@
-# Retained owner Mask Plan
+# Owner action / presence timing experiment
 
-The preceding complete-Look source `3c37cabe5` intermittently loses the 2-second
-presence lease after an action. One diagnostic encounter succeeds, with a
-renewal queued behind the owner request for about 1.3 seconds; that retry does
-not erase the retained failure. Browser event-loop gaps stay below 300 ms in
-that encounter. The sanitized timing file records only event kind and time.
+The complete-Look source `3c37cabe5` intermittently loses the 2-second presence
+lease after an action. A diagnostic encounter succeeds, but a renewal remains
+queued behind the owner action request for 1,315 ms. The maximum browser
+event-loop gap recorded before that action is 278 ms. This does not measure
+all in-flight browser work. A diagnostic success does not erase the retained
+failure.
+Timing files contain only frame kind, direction and time.
 
-The owner now reuses its already-issued immutable Mask Plan when the compiled
-catalog source, selected root, full current browser offer, intact route seal and
-all three exact carrier Lines match. A mismatch takes ordinary source admission
-and planning. Changed Face content still receives a fresh validated route and
-Show. Current membership, carrier authorization, actual Back availability and
-Face/Fore checks remain outside and after reuse respectively. The source catalog
-is immutable within the running owner; different source bytes cannot hit reuse.
-No lease, authority, queue, scene or storage bound changes.
+Experiment source `0059e318f` retained the exact owner-issued Mask Plan across
+Face-only refreshes. Its focused CLI contract test passes current reuse and
+changed source/root/Host/Line/seal refusal cases. The rebuilt owner and browser
+complete eight Look selections and a fresh acknowledged Todo add. However, the
+action request still takes 1,500 ms versus 1,533 ms in the baseline; a renewal
+still queues for 1,321 ms. The experiment does not establish a lease fix.
 
-The focused owner CLI test passes valid reuse and rejects changed root, Host,
-Line and seal. Source bytes differing only by a newline replan and retain their
-distinct Source identity. This is local contract proof; a rebuilt live action
-and renewal timing receipt is pending.
+The delivery branch removes that runtime optimization. Its source and test
+remain recoverable at the experiment commit in this branch's history; the
+unmodified complete-Look transport remains. Source-bound successful and failed
+encounters remain distinct. No timing threshold or bounded-real-time guarantee
+is inferred from these samples.
+
+The current carrier processes `submit_browser_face_interaction` synchronously.
+That call intentionally waits for the exact checkpoint output and terminal Sign,
+not mere queue admission. During that wait the carrier cannot read or acknowledge
+renewals already sent by the browser. The next implementation must admit one
+bounded in-flight owner operation while continuing current-credential presence
+renewal, preserve the exact commit acknowledgement, stale Show refusal, two-second
+lease, finite frame/storage/work budgets and outcome-unknown behavior. This is
+an implementation requirement, not a completed concurrency proof.

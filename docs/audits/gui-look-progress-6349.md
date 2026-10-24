@@ -595,3 +595,16 @@ carrier Lines; changed inputs replan normally. Fresh Face/route/Show admission
 and the two-second lease stay unchanged. The focused CLI owner test passes,
 including negative source/root/Host/Line/seal cases. Rebuilt live proof is pending.
 [Local contract and pre-change timing](evidence/gui-look-6349-retained-plan/README.md).
+
+
+## Plan reuse does not resolve action/renewal blocking
+
+The rebuilt `0059e318f` experiment completes the Look sequence and a fresh
+acknowledged action, but its action request still takes 1,500 ms versus 1,533 ms
+in the baseline. Renewals queue for 1,321/1,315 ms respectively. These samples
+do not clear the prior expiry failure. The runtime Plan-reuse experiment is
+removed from delivery code; its contract and timing evidence remain in history.
+The synchronous carrier call waits for the exact durable checkpoint/terminal
+receipt and stops reading renewals while it waits. One bounded pending owner
+operation with continued lease processing is the next requirement; acknowledgement
+must still wait for the actual receipt. [Comparison and retained evidence](evidence/gui-look-6349-retained-plan/README.md).

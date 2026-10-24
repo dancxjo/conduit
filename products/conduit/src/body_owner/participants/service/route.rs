@@ -263,13 +263,14 @@ impl Owner {
                 owner,
                 browser,
             )?;
-            let planned = super::retained_plan::prepare_browser_plan(
-                route.as_deref(),
+            let planned = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
                 browser,
                 owner,
+                &evidence.face,
+                &evidence.returned,
+                &evidence.interaction,
                 mask_source,
                 mask_root,
-                evidence,
             )?;
             let face = self.local_face_snapshot()?;
             let selected = RemoteOwnerMaskRouteSeal::seal_current_with_interaction(
