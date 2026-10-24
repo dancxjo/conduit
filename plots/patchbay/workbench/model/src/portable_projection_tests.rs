@@ -1,6 +1,9 @@
 use conduit_body::Body;
 use conduit_core::{bind_active_play, BaseImplementationId, SignId};
-use conduit_face::{FaceContributionBasis, FacePropertyValue, FaceRole, MAX_FACE_TOTAL_BYTES};
+use conduit_face::{
+    FaceAspect, FaceContributionBasis, FaceDepth, FacePlace, FacePropertyValue, FaceRole,
+    ProjectionItem, MAX_FACE_TOTAL_BYTES,
+};
 use conduit_observatory::{
     SoundCandidateInspection, SoundCandidateStatus, SoundProofClass, SoundRealizationInspection,
     SoundRealizationRoute, SOUND_INSPECTION_SCHEMA,
@@ -407,4 +410,39 @@ fn sound_fit_refusal_selection_and_exact_play_reach_the_portable_patchbay() {
     assert!(rendered.contains("incompatible:polyphony-exceeds-offer"));
     assert!(rendered.contains("route=music/synth > audio/play"));
     assert!(rendered.contains(&format!("SOUND PLAY {}", active_play_id.as_str())));
+}
+
+#[test]
+fn execution_results_are_visible_in_current_play_projection() {
+    let portable = crate::portable_demo::portable_demonstration_with_profile(
+        crate::host_adapter::test_host_adapter(),
+        crate::PatchbayHostProfile::Text,
+    )
+    .unwrap()
+    .0;
+    let subject = portable
+        .subjects
+        .iter()
+        .find(|subject| subject.role == FaceRole::Play)
+        .unwrap()
+        .identity
+        .clone();
+    let navigation =
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&portable).unwrap();
+    let mut cursor = navigation.cursor.clone();
+    cursor.place = FacePlace::Body;
+    cursor.aspect = FaceAspect::Play;
+    cursor.focus = Some(subject.clone());
+    cursor.depth = FaceDepth::Detail;
+    let visible = navigation
+        .projection
+        .project(&portable, &navigation.navigation, &cursor)
+        .unwrap();
+    for name in ["play-state", "sign-count"] {
+        assert!(visible.items.iter().any(|membership| matches!(
+            &membership.item,
+            ProjectionItem::Property(index) if portable.properties[usize::from(*index)].subject == subject
+                && portable.properties[usize::from(*index)].name == name
+        )), "Play inspection must carry {name} through the admitted projection");
+    }
 }

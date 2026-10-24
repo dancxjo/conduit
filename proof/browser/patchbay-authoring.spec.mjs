@@ -361,12 +361,22 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     snapshot = await current(page);
     expect(snapshot.face.basis.plan_id).toBeTruthy();
     expect(snapshot.face.basis.active_play_id).toBeTruthy();
+    expect(snapshot.face.basis.source_document_id).toBe(savedSnapshot.authoring.source_document_id);
+    expect(snapshot.face.basis.checked_plot_id).toBe(savedSnapshot.authoring.checked_plot_id);
+    expect(snapshot.face.basis.expanded_plot_id).toBe(savedSnapshot.authoring.expanded_plot_id);
     expect(snapshot.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
     await expect(page.locator("#sign")).not.toBeEmpty();
     await page.getByRole("button", {name:"Inspect execution",exact:true}).click();
     await expect(page.locator("#inspector .inspector-hint")).toHaveText("Execution result");
     await expect(page.locator(".selected-summary").getByText("Completed",{exact:true})).toBeInViewport();
     await expect(page.locator(".selected-summary")).toContainText("Execution Signs");
+    await expect(page.locator(".selected-summary")).not.toContainText("No play facts");
+    const inspected = await current(page);
+    for (const name of ["play-state", "sign-count"]) {
+      const index = inspected.face.properties.findIndex(property => property.subject === inspected.navigation.cursor.focus && property.name === name);
+      expect(index).toBeGreaterThanOrEqual(0);
+      expect(inspected.navigation.projection.memberships).toContainEqual(expect.objectContaining({place:inspected.navigation.cursor.place,aspect:"Play",item:{Property:index},depth:"Detail"}));
+    }
     await page.screenshot({path:info.outputPath("explicit-play.png")});
 
     server.child.kill("SIGTERM");
