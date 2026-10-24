@@ -1,17 +1,17 @@
-# Firmware-frame comparison: two retained references
+# Firmware-frame comparison: three retained references
 
-This is partial evidence for #6057. Normal PROFILE-built x86_64 and AArch64
-products have real QMP captures of the same authored Crèche projection and
-checked Mask. IA-32, RISC-V64 and LoongArch64 graphical frames, the complete
+This is partial evidence for #6057. Normal PROFILE-built x86_64, AArch64 and
+IA-32 products have real QMP captures of the same authored Crèche projection
+and checked Mask. RISC-V64 and LoongArch64 graphical frames, the complete
 five-architecture PNG comparison, capability matrices and persistent launcher
 remain open. This report does not establish full product parity or stable
 release acceptance.
 
-| x86_64 PC | AArch64 virt |
-| --- | --- |
-| ![x86_64 Crèche](../../targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-ready.png) | ![AArch64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/creche-read-only.png) |
-| 1280×800; pitch 5120; 32 bpp; firmware RGB scanout through QEMU std VGA | 800×600; pitch 3200; 32 bpp; firmware RAM framebuffer |
-| `creche-ready`, before Birth; actual keyboard and pointer route exercised later | First source-backed read-only Show; local input unavailable |
+| x86_64 PC | AArch64 virt | IA-32 PC |
+| --- | --- | --- |
+| ![x86_64 Crèche](../../targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-ready.png) | ![AArch64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/creche-read-only.png) | ![IA-32 read-only Crèche](../../targets/conduitos/proof/firmware-frame/ia32-64d513075/first/creche-read-only.png) |
+| 1280×800; pitch 5120; 32 bpp; firmware RGB scanout through QEMU std VGA | 800×600; pitch 3200; 32 bpp; firmware RAM framebuffer | 1280×800; pitch 5120; 32 bpp; UEFI32 GOP through QEMU std VGA |
+| `creche-ready`, before Birth; keyboard and pointer exercised later | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable |
 
 The thumbnails may be scaled by the viewer. The underlying lossless PNGs retain
 actual dimensions. Pixel equality is neither asserted nor used as semantic proof.
@@ -22,6 +22,9 @@ The x86 runtime source is `abd896d14633a45c69d93996bcebee0e343cbfd7`.
 The AArch64 runtime source is `f96860659760660fc796e7694df5bee4bd9f2bb8`;
 its [separate report](conduitos-aarch64-firmware-frame.md) describes the machine
 mapping, cache completion, ownership, bounded rendering and negative controls.
+The IA-32 runtime source is `64d5130753466f44c0b605ad6b366d54083eeafd`;
+its [separate report](conduitos-ia32-firmware-frame.md) retains both actual
+UEFI32 boots, explicit mapping/cache custody and actual negative controls.
 Later evidence commits do not change those runtime identities.
 
 The [two-architecture audit](../../targets/conduitos/proof/firmware-frame/x86_64-abd896d14/two-architecture-semantic-audit.json)
@@ -36,7 +39,11 @@ those four choices as `native-body-current-host-unavailable` and Birth as
 27 and 23 subjects respectively, including six and two Status subjects. These
 are substantive typed capability differences, not a claim that the AArch image
 can run the x86 workset. AArch's Mask also refuses local input independently of
-what its owner can describe.
+what its owner can describe. The [IA-32 artifact and semantic audit](../../targets/conduitos/proof/firmware-frame/ia32-64d513075/independent-audit.json)
+checks the same projection and Mask identities against both references. IA-32
+agrees with AArch64 on all current owner-action availability and the five typed
+Plot subjects. It presents the wider 1280×800 view with the same read-only
+notice; its different boot-generated name is retained rather than normalized.
 
 The x86 journey retained 27 real PNG checkpoints and 61 paired native/linear
 Face records, one Birth, 17 accepted actions and one unavailable Wake. The
@@ -93,5 +100,5 @@ cargo xtask make host verify target/host-build/6057-x86-gallery-abd896d14
 The journey verifies the supplied normal product image; it never rebuilds it.
 It deliberately stops its guests. A persistent user launcher is still required
 by #6057. Remaining architecture frames must retain comparable source, machine,
-geometry, input/absence and acknowledged Show evidence. This two-architecture
+geometry, input/absence and acknowledged Show evidence. This three-architecture
 reference does not satisfy the five-architecture exit condition.

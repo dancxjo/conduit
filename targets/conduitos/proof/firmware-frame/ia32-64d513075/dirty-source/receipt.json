@@ -1,0 +1,25 @@
+{
+  "classification": "actual supported graphical verification refuses dirty source before guest spawn",
+  "source": "64d5130753466f44c0b605ad6b366d54083eeafd",
+  "command": [
+    "cargo",
+    "xtask",
+    "make",
+    "host",
+    "verify",
+    "target/host-build/6057-ia32-graphical-64d513075",
+    "--boot"
+  ],
+  "exit_code": 1,
+  "elapsed_ms": 1153,
+  "image_sha256": "8c43ed41cabd747706f129ad759a3d8511996b8cb39e093266e0b14ead7b52bf",
+  "image_unchanged": true,
+  "marker_removed": true,
+  "source_clean_after": true,
+  "empty_capture_directories": [
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-ia32-prep/target/conduitos/ia32/ia32-frame-628163-1792817610336565602"
+  ],
+  "no_launch_receipt_written": true,
+  "no_guest_serial_bytes": true,
+  "log_sha256": "e9aa7add7be0afb3d84aa621be24c3d40abf69705a71003bf1cf243aabc77e9c"
+}

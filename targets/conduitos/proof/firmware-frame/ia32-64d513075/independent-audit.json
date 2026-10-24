@@ -1,0 +1,120 @@
+{
+  "classification": "independent current IA32 normal-product artifact/pixel/semantic audit",
+  "source": "64d5130753466f44c0b605ad6b366d54083eeafd",
+  "image_sha256": "8c43ed41cabd747706f129ad759a3d8511996b8cb39e093266e0b14ead7b52bf",
+  "kernel_sha256": "8f4b966da9969de67738b5f77608ade53d2221744226252387198dd959ed0db3",
+  "complete_kernel_found_in_iso_at_byte": 3239936,
+  "boots": [
+    {
+      "checkpoint": "first",
+      "directory": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-ia32-prep/target/conduitos/ia32/ia32-frame-627201-1792817573580042246",
+      "host_id": "8bec6c8302cd415f258dacaf7dba1ded0c7030738273d24f504d8a90cf65e30c",
+      "boot_id": "fbaebcb7c27473b04d3050c90d7db3608bc84206ab8b1586758197672cdcea0b",
+      "face_id": "e32399c1ffdc9d905d2239d01066830bc2992106f77b6f32707f26b8be43e5db",
+      "show_id": "show/fcb7057c12ba6e64785feb856edf8e88aa6fb5aa93fa8c85862c547de32beb41",
+      "png_sha256": "fd2623f8a997a06096f564aa782db7e04c1c9f76c1933561090493e69cc0bb9f",
+      "pixel_sha256": "b11b3ed21eeb8b2ace895bf6b4225fbb1c3b3a173523a6b4af0e8e9029fec549",
+      "width": 1280,
+      "height": 800,
+      "pitch": 5120,
+      "bits_per_pixel": 32,
+      "boot_to_capture_millis": 7203,
+      "kernel_signs": 29
+    },
+    {
+      "checkpoint": "second",
+      "directory": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-ia32-prep/target/conduitos/ia32/ia32-frame-627201-1792817582171629107",
+      "host_id": "ec39a4e57ffec3702c8445de4f7aa9acc08a2569ed1937ea5c8250a02f80752c",
+      "boot_id": "fcd5fad8286633660e384557b58b60bd48b9b09eceac619e853ea9f33f0a73d1",
+      "face_id": "3aaf6af106749b55032de62c43452193ed6cd81ca382f1ba315abdb4bdccb9e7",
+      "show_id": "show/a146141d7921551f1b4be1df3d12a3a768ed99aaf256decbca8f96f1b2d83c11",
+      "png_sha256": "5a89302d7c425d91ead1d6948935c556ff46f70808dfae8608d1b01838781ac2",
+      "pixel_sha256": "507c2cc4507188ad24b6a574dd975251fcd8d9193ef15b6352b69eb3f78a4738",
+      "width": 1280,
+      "height": 800,
+      "pitch": 5120,
+      "bits_per_pixel": 32,
+      "boot_to_capture_millis": 6679,
+      "kernel_signs": 29
+    }
+  ],
+  "same_face_source_checked_expanded": {
+    "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+    "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+    "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b"
+  },
+  "same_mask_plot": {
+    "checked_plot_id": "d329bed9178fd32bad8445b248df4d2b9a9338c1afbe796209437276bb131cde",
+    "expanded_plot_id": "0aaf3438896dccb41615e32215ddba3c8cb8089fb8ede981d4e86b56f2cf656c",
+    "source_document_id": "67c4a34efebcf3ca7d05d6f6d474df1014b11b7a4382914f3648d983fe531a87"
+  },
+  "same_five_plot_subjects_as_aarch64": [
+    "birth/conduitos/creche/current/initial-plots/0",
+    "birth/conduitos/creche/current/initial-plots/1",
+    "birth/conduitos/creche/current/initial-plots/2",
+    "birth/conduitos/creche/current/initial-plots/3",
+    "birth/conduitos/creche/current/initial-plots/4"
+  ],
+  "same_owner_action_availability_as_aarch64": {
+    "creche.name": "Available",
+    "creche.naming": "Available",
+    "creche.suggest": "Available",
+    "creche.search": "Available",
+    "creche.plot.0": {
+      "Unavailable": {
+        "explanation": "native-body-current-host-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.plot.1": {
+      "Unavailable": {
+        "explanation": "native-body-current-host-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.plot.2": {
+      "Unavailable": {
+        "explanation": "native-body-current-host-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.plot.3": {
+      "Unavailable": {
+        "explanation": "native-body-current-host-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.plot.4": {
+      "Unavailable": {
+        "explanation": "native-body-plot-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.birth": {
+      "Unavailable": {
+        "explanation": "EmptySelection",
+        "reason_code": "birth/unavailable"
+      }
+    }
+  },
+  "x86_owner_action_availability_differs_as_previously_recorded": {
+    "creche.name": "Available",
+    "creche.naming": "Available",
+    "creche.suggest": "Available",
+    "creche.search": "Available",
+    "creche.plot.0": "Available",
+    "creche.plot.1": "Available",
+    "creche.plot.2": "Available",
+    "creche.plot.3": "Available",
+    "creche.plot.4": {
+      "Unavailable": {
+        "explanation": "native-body-plot-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.birth": "Available"
+  },
+  "aarch64_capture_sha256": "f4096fb2f7e598734164fd989ca39f797c06e5c67f02c0395e11c1172fcee1a2",
+  "two_architecture_audit_sha256": "1775ddc874f9c62942885dda4f4388caa9e0f011c22ddbe3bb9194e77524731e",
+  "limits": "IA32 normal UEFI32 framebuffer only; no local input, physical scanout, GPU acceleration, accepted Candidate/Integration/release or all-five completion proved"
+}

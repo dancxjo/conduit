@@ -1,0 +1,89 @@
+{
+  "classification": "current normal serial product receipt audit",
+  "source": "dea3571c98c49ded26096403cd07f774a650dfc2",
+  "image_sha256": "16665405f83a040bb800d47c71846fbac43a89315f79ca9a1729e9edb882d8dd",
+  "three_distinct_host_and_boot_ids": true,
+  "uefi32_boots": 2,
+  "legacy_bios_boots": 1,
+  "actual_vga_text_receipt": true,
+  "no_graphical_show_claimed": true,
+  "observations": {
+    "first": {
+      "boot_id": "1582138348a20162ff307b71920940513b492d838166a8b97226798015e0fe2b",
+      "build_id": "build:sha256:d55eeba22f1d5ba08fdbde60aeaeb65f5d48329c83d191cc97c7287c39589459",
+      "firmware": "uefi32",
+      "framebuffer": {
+        "base_id": "e3b2f71345aeb0fffd83ae4f16084ff2d0c5367103687d3a66a8952186db0205",
+        "bits_per_pixel": 32,
+        "blue_shift": 0,
+        "byte_length": 4096000,
+        "green_shift": 8,
+        "height": 800,
+        "physical_start": 2147483648,
+        "pitch_bytes": 5120,
+        "red_shift": 16,
+        "width": 1280
+      },
+      "graphical_presenter_selected": false,
+      "graphical_show_proved": false,
+      "host_id": "33847283f6ad9c33ae5f7d33003dc791b3dd0a1a9543ff1954472850667f0dc1",
+      "image_id": "image:sha256:f2544bc88fe1caeb3856f4a468520cd93052e00c2e568fcef2bfb8d423c61c5e",
+      "memory_map": {
+        "covered_by_reserved_entry": false,
+        "entries": 18,
+        "nonreserved_overlap": false,
+        "owned_storage_overlap": false,
+        "ownership_granted": false
+      },
+      "profile_id": "sha256:4dd91ce955c54948b36ed1406be523401fc7be7b78e8b43c2d44915911aae0a6",
+      "schema": "conduit.conduitos/ia32-framebuffer-observation@1",
+      "target": "conduitos/ia32/pc"
+    },
+    "second": {
+      "boot_id": "656224e1bca842d7229bb2c8ede0ce2f5a6ee06da6def9a61c1405477bfde169",
+      "build_id": "build:sha256:d55eeba22f1d5ba08fdbde60aeaeb65f5d48329c83d191cc97c7287c39589459",
+      "firmware": "uefi32",
+      "framebuffer": {
+        "base_id": "f5cce884badd4d263912e1a8720a28fd5c07894f786cb62fd5b333bd7a756976",
+        "bits_per_pixel": 32,
+        "blue_shift": 0,
+        "byte_length": 4096000,
+        "green_shift": 8,
+        "height": 800,
+        "physical_start": 2147483648,
+        "pitch_bytes": 5120,
+        "red_shift": 16,
+        "width": 1280
+      },
+      "graphical_presenter_selected": false,
+      "graphical_show_proved": false,
+      "host_id": "f7b6ae81beb4fedef66a447b7e5eebd02d51834eaf719ee997d4a9f2ab77dd2b",
+      "image_id": "image:sha256:f2544bc88fe1caeb3856f4a468520cd93052e00c2e568fcef2bfb8d423c61c5e",
+      "memory_map": {
+        "covered_by_reserved_entry": false,
+        "entries": 18,
+        "nonreserved_overlap": false,
+        "owned_storage_overlap": false,
+        "ownership_granted": false
+      },
+      "profile_id": "sha256:4dd91ce955c54948b36ed1406be523401fc7be7b78e8b43c2d44915911aae0a6",
+      "schema": "conduit.conduitos/ia32-framebuffer-observation@1",
+      "target": "conduitos/ia32/pc"
+    },
+    "legacy_bios": {
+      "boot_id": "33f4337491595a119e69af1b48957477f9b8cc9f6f584d7c751078636c1cdfe6",
+      "build_id": "build:sha256:d55eeba22f1d5ba08fdbde60aeaeb65f5d48329c83d191cc97c7287c39589459",
+      "firmware": "x86-bios",
+      "framebuffer": null,
+      "graphical_presenter_selected": false,
+      "graphical_show_proved": false,
+      "host_id": "2745537e04f29bc8ed698f11e76909fd2dca57733fe0401b85b07e8d8e8c5c0e",
+      "image_id": "image:sha256:f2544bc88fe1caeb3856f4a468520cd93052e00c2e568fcef2bfb8d423c61c5e",
+      "memory_map": null,
+      "profile_id": "sha256:4dd91ce955c54948b36ed1406be523401fc7be7b78e8b43c2d44915911aae0a6",
+      "schema": "conduit.conduitos/ia32-framebuffer-observation@1",
+      "target": "conduitos/ia32/pc"
+    }
+  },
+  "raw_proof_sha256": "865060eb3c086200a7a52a265bc2be6359aa701bff77f58801719cbf16619188"
+}
