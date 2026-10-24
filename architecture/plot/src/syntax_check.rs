@@ -215,7 +215,10 @@ pub(crate) fn check_document(
             .clone();
         structured_types.insert(value_kind, retained.value_type.clone());
     }
+    let native_law_custody =
+        crate::native_type::law_custody::collect(document, catalog, &native_types);
     Ok(CheckedSyntaxDocument {
+        native_law_custody,
         physical: catalog.physical.clone(),
         glyph_values: crate::AdmittedGlyphValues::for_document(catalog),
         source_document_id: document.source_document_id(),

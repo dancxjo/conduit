@@ -117,7 +117,7 @@ impl PortableExpressionProgram {
         Ok(value)
     }
 
-    fn canonical_size(&self) -> Result<usize, PortableExpressionProgramRefusal> {
+    pub(crate) fn canonical_size(&self) -> Result<usize, PortableExpressionProgramRefusal> {
         let mut encoded = ProgramSink {
             storage: ProgramStorage::Count,
             length: 0,

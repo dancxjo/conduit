@@ -147,3 +147,39 @@ fn composed_envelope_identity_and_aggregate_node_limits_are_enforced() {
     assert_eq!(record.record(&[view; 17]), Err(Refusal::TooManyNodes));
     assert_eq!(record.output.capacity(), capacity);
 }
+
+#[test]
+fn shared_schema_text_does_not_confuse_names_with_exact_child_types() {
+    let byte = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
+    let word = StructuredInfoType::leaf(kind_id("value/u16")).unwrap();
+    // Each name is also an identity elsewhere in the retained schema. Ranges
+    // may share equal bytes, but each child must retain its complete exact Type.
+    let ty = StructuredInfoType::record(
+        kind_id("value/u8"),
+        vec![
+            StructuredFieldType::new("value/u16", byte.clone()).unwrap(),
+            StructuredFieldType::new("value/u8", word.clone()).unwrap(),
+        ],
+    )
+    .unwrap();
+    let a = StructuredInfoValue::leaf(byte, vec![7]).unwrap();
+    let b = StructuredInfoValue::leaf(word, vec![9, 1]).unwrap();
+    let expected = StructuredInfoValue::record(
+        ty.clone(),
+        vec![
+            StructuredFieldValue::new("value/u16", a.clone()).unwrap(),
+            StructuredFieldValue::new("value/u8", b.clone()).unwrap(),
+        ],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let a = a.canonical_bytes().unwrap();
+    let b = b.canonical_bytes().unwrap();
+    let a = validate_canonical_structured_value(&a).unwrap();
+    let b = validate_canonical_structured_value(&b).unwrap();
+    let mut composer = PreparedStructuredComposer::new(&ty, expected.len()).unwrap();
+    assert_eq!(composer.record(&[a, b]).unwrap(), expected);
+    assert_eq!(composer.record(&[b, a]), Err(Refusal::WrongType));
+    assert_eq!(composer.encoded(), expected);
+}

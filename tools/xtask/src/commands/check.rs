@@ -24,6 +24,8 @@ mod model_inference;
 mod model_native_backing;
 #[path = "../suites/model_native_inference.rs"]
 mod model_native_inference;
+#[path = "../suites/native_law_custody.rs"]
+mod native_law_custody;
 #[path = "../suites/native_source_laws.rs"]
 mod native_source_laws;
 #[path = "../suites/parser_scorer.rs"]
@@ -108,6 +110,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),
         CheckSuite::NativeSourceLaws => run_suite(native_source_laws::STEPS, &root, opts),
+        CheckSuite::NativeLawCustody => run_suite(native_law_custody::STEPS, &root, opts),
         CheckSuite::ResourceReferenceEquality => {
             run_suite(resource_reference_equality::STEPS, &root, opts)
         }
