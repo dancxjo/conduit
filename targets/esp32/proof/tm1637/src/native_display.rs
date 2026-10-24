@@ -13,6 +13,9 @@ use esp_hal::gpio::Pin;
 #[path = "native_display_assignment.rs"]
 mod assignment;
 #[cfg(feature = "display-ready-root")]
+#[path = "native_display_binding.rs"]
+mod binding;
+#[cfg(feature = "display-ready-root")]
 #[path = "native_display_kernel.rs"]
 mod kernel;
 #[cfg(feature = "display-ready-root")]
@@ -26,7 +29,9 @@ pub struct NativeDisplay {
     staged: Option<assignment::StagedDisplayAssignment>,
     #[cfg(feature = "display-ready-root")]
     kernel: Option<kernel::Prepared>,
-    ready: ReadyWriteBase<DisplayPins<'static>>,
+    ready: Option<ReadyWriteBase<DisplayPins<'static>>>,
+    #[cfg(feature = "display-ready-root")]
+    bound: Option<Box<conduit_tm1637_wire::owner::WriteHostCall<DisplayPins<'static>>>>,
     #[cfg(feature = "display-ready-root")]
     software: Result<
         Box<conduit_environment_runtime::appliance::software::ReadySoftwareBacks>,
@@ -95,13 +100,15 @@ impl NativeDisplay {
             staged: None,
             #[cfg(feature = "display-ready-root")]
             kernel: None,
-            ready,
+            ready: Some(ready),
+            #[cfg(feature = "display-ready-root")]
+            bound: None,
             #[cfg(feature = "display-ready-root")]
             software,
         }))
     }
-    pub fn native_identity(&self) -> &WriteNativeIdentity {
-        self.ready.native_identity()
+    pub fn native_identity(&self) -> Option<&WriteNativeIdentity> {
+        self.ready.as_ref().map(|owner| owner.native_identity())
     }
     pub fn software_ready(&self) -> bool {
         #[cfg(feature = "display-ready-root")]
@@ -144,8 +151,11 @@ impl NativeDisplay {
         }
     }
     pub fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
+        let Some(ready) = self.ready.as_ref() else {
+            return Ok(());
+        };
         let contract = WriteContract::prepare().map_err(|_| ())?;
-        self.ready
+        ready
             .append_to_advertisement(host, &contract)
             .map_err(|_| ())
     }
@@ -232,4 +242,56 @@ impl NativeDisplay {
 #[cfg(feature = "display-ready-root")]
 pub fn kernel_preparation_bound() -> Result<usize, &'static str> {
     kernel::requirements()
+}
+
+impl NativeDisplay {
+    pub fn native_bound(&self) -> bool {
+        #[cfg(feature = "display-ready-root")]
+        {
+            self.bound.is_some()
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            false
+        }
+    }
+}
+#[cfg(feature = "display-ready-root")]
+impl NativeDisplay {
+    pub fn bind_native(
+        &mut self,
+        issuer: &mut crate::native_authority::RootIssuer,
+        reservation: &crate::native_owner_reservation::OwnerReservation,
+        maximum_frames: u32,
+        available: usize,
+    ) -> Result<(), &'static str> {
+        if self.kernel.is_none() || self.bound.is_some() {
+            return Err("display-binding-state");
+        }
+        let staged = self
+            .staged
+            .as_ref()
+            .ok_or("display-assignment-unavailable")?;
+        if staged.seal() != reservation.assignment_seal {
+            return Err("assignment-seal");
+        }
+        let source = layout::source();
+        let fore = layout::fore();
+        let profile = layout::profile(&source, &fore).map_err(|_| "display-provisioning")?;
+        self.bound = Some(binding::bind(
+            issuer,
+            &mut self.ready,
+            binding::BindingInput {
+                assignment: &staged.admitted,
+                wire: staged.wire(),
+                profile: &profile,
+                resident: &layout::configurations(),
+                fragment: &reservation.fragment,
+                active: &reservation.active,
+                maximum_frames,
+                available_bytes: available,
+            },
+        )?);
+        Ok(())
+    }
 }

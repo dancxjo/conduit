@@ -80,7 +80,7 @@ the expected next Root Play before consuming the global sequence. The signed
 owner wrapper additionally binds the assignment seal and Body/Wake provenance.
 CPU tests exercise production reservation/authentication code with explicit
 Boot/entropy substitutes. The display profile connects staging to signed reservation. Native capability
-issuance and kernel installation remain separate from ingress; reservation
+issuance and kernel preparation remain later phases than ingress; reservation
 reserves no physical output operation.
 
 Root can now issue bounded display possession for the reserved validated output
@@ -92,7 +92,7 @@ transfers the retained owner exactly once without electrical effects.
 
 CPU evidence uses production Root issuance with explicit entropy/Boot/pin
 substitutes. Complete installation and start, physical execution
-and display retirement/reoffer remain unconnected. No automatic provider reuse
+and display retirement/reoffer remain unconnected to running Body control. No automatic provider reuse
 or fresh generation is inferred from dropping a handle.
 
 `RetiredDisplay` now captures private Play scope and provider generation from
@@ -102,7 +102,7 @@ refuses. Sequence and generation never rewind, so even a newly reserved Play
 cannot issue the returned provider at its old generation. Sampling retirement
 preserves shared Play custody while display possession remains outstanding.
 The CPU test performs issuance, retained binding, revocation and retirement
-without pin operations. MCU control installation/reoffer remains unconnected.
+without pin operations. MCU Body control and reoffer remain unconnected.
 
 ## Bounded display ingress
 
@@ -127,9 +127,9 @@ It admits canonical value/Sign backing, record views, boxed kernel storage and
 canonical backing estimate without exposing private lifecycle representations;
 a test compares the estimate with prepared retained storage.
 
-This entrance deliberately remains a two-frame construction diagnostic. It
-withdraws the old offer epoch on successful preparation, leaves the kernel
-unstepped and issues no native possession or Body start. CPU tests cover memory
+This entrance remains a two-frame construction diagnostic. It withdraws the
+old offer epoch on successful preparation and leaves the kernel unstepped.
+Portable construction alone issues no native possession or Body start. CPU tests cover memory
 refusal before transfer, successful construction and replay refusal. ESP32
 compilation passes; physical memory admission and continuous Mask scheduling
 are still unverified. No display image has replaced the working appliance.
@@ -140,3 +140,16 @@ one requirements function. The CPU allocation probe checks that one byte below
 the bound refuses with no allocation or reallocation, while exact-bound
 construction succeeds and its total requested allocation bytes stay within the
 admitted amount. This is CPU backing evidence, not MCU heap or stack proof.
+
+Signed Prepare now follows dormant kernel construction with exact Root-issued
+TM1637 binding. Binding admits record views, owned driver storage and separate
+contract/control headroom before allocating; it checks the retained assignment
+and reservation and transfers the actual ready pin owner exactly once. Bound
+pins no longer appear in readiness advertisements, and owner replies report
+possession independently of Body installation or start. If binding refuses after
+kernel preparation, that dormant kernel remains held for an authenticated retry.
+
+The production binding helper passes CPU proof with pin methods that panic on
+any electrical operation, capacity refusal preserving readiness, and repeated
+transfer refusal. Both ESP32 profiles compile. Physical binding and memory
+admission remain unverified, and Body start/worker execution is not connected.

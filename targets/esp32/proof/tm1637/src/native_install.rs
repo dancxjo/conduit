@@ -30,7 +30,8 @@ impl NativeRoot {
         &self,
         token: crate::native_owner_control::AuthenticatedRequest<'_>,
     ) -> Result<PreparationPermit, &'static str> {
-        if self.native_bindings.is_some()
+        if self.display.native_bound()
+            || self.native_bindings.is_some()
             || self.appliance_kernel.is_some()
             || self.execution.is_some()
             || self.worker.is_some()
@@ -43,7 +44,8 @@ impl NativeRoot {
             .authorize_preparation(token)
     }
     pub fn native_possession_prepared(&self) -> bool {
-        self.native_bindings.is_some()
+        self.display.native_bound()
+            || self.native_bindings.is_some()
             || self.execution.is_some()
             || self
                 .worker

@@ -13,23 +13,31 @@ impl NativeRoot {
         {
             return Err("assignment-seal");
         }
-        let withdrawn = self
-            .offer_generation
-            .checked_add(1)
-            .ok_or("offer-generation-exhausted")?;
-        let stats = esp_alloc::HEAP.stats();
-        // Explicit finite construction proof; continuous Mask admission follows.
         const CONSTRUCTION_FRAMES: u32 = 2;
-        self.display.prepare_kernel(
-            conduit_environment_runtime::display_output::AssignedDisplayScope {
-                host: &self.host,
-                boot: &self.boot,
-                generation: conduit_core::OfferGeneration(reservation.offer_generation),
-            },
+        if !self.display.kernel_prepared() {
+            let withdrawn = self
+                .offer_generation
+                .checked_add(1)
+                .ok_or("offer-generation-exhausted")?;
+            let stats = esp_alloc::HEAP.stats();
+            self.display.prepare_kernel(
+                conduit_environment_runtime::display_output::AssignedDisplayScope {
+                    host: &self.host,
+                    boot: &self.boot,
+                    generation: conduit_core::OfferGeneration(reservation.offer_generation),
+                },
+                CONSTRUCTION_FRAMES,
+                stats.size.saturating_sub(stats.current_usage),
+            )?;
+            self.offer_generation = withdrawn;
+        }
+        let stats = esp_alloc::HEAP.stats();
+        self.display.bind_native(
+            &mut self.issuer,
+            reservation,
             CONSTRUCTION_FRAMES,
             stats.size.saturating_sub(stats.current_usage),
         )?;
-        self.offer_generation = withdrawn;
         Ok(())
     }
 }

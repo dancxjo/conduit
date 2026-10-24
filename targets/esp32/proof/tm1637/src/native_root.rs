@@ -309,7 +309,8 @@ impl NativeRoot {
         )
     }
     pub fn display_policy_grant(&self) -> Result<c::AuthorityGrant, ()> {
-        self.issuer.grant_display(self.display.native_identity())
+        self.issuer
+            .grant_display(self.display.native_identity().ok_or(())?)
     }
     pub fn display_software_status(&self) -> (bool, &'static str) {
         (
