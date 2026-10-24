@@ -2527,6 +2527,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-std-host",
+ "conduit-std-offers",
  "conduitos",
  "miniz_oxide 0.8.9",
  "postcard",

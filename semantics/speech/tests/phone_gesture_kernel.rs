@@ -1,11 +1,13 @@
-//! Replay actual owner-retained G2 requests through selected ordinary Std Backs.
+//! Replay actual Native-admitted G2 owner requests through explicit ordinary Std offers.
+//! This approved caller-owned profile does not admit arbitrary untrusted Source frames.
 #![cfg(all(feature = "semantic-bindings", feature = "kernel"))]
 #[allow(dead_code)] // Shared fixture's negative constructors belong to owner conformance.
 #[path = "common/phone_gestures/fixture.rs"]
 mod fixture;
 use conduit_core::*;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_plot::*;
-use conduit_speech::phone_gestures::*;
+use conduit_speech::{phone_gestures::*, semantic::*};
 use conduit_std_host::*;
 use std::collections::BTreeMap;
 struct NoTimer;
@@ -74,8 +76,34 @@ fn actual_owner_receipts_replay_all_four_gesture_source_programs_through_std_ker
             },
             StdHostComposition::minimal(),
         );
+        // Automatic arbitrary-Source admission retains its independent guard.
+        // The approved G2 profile instead carries the opaque owner's generated
+        // Native input admission and selects the existing explicit Host offer.
+        if operation == "advance" {
+            let before = host.advertisement().clone();
+            assert!(host
+                .prepare_expression_realizations(&authored.expanded)
+                .unwrap_err()
+                .contains("arithmetic-witness-unavailable"));
+            assert_eq!(host.advertisement(), &before);
+        }
+        let program = PortableExpressionProgram::from_canonical_hex(hex).unwrap();
+        let offer =
+            conduit_std_offers::pure_expression_std_offer(&program, gear.inputs[0].temporal)
+                .unwrap();
+        assert!(gear.accepts_realization(&offer));
+        let mut advertisement = host.advertisement().clone();
+        advertisement.capabilities.push(offer);
+        advertisement
+            .capabilities
+            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+        host = StdHost::from_advertisement(advertisement).unwrap();
+        let before = host.advertisement().clone();
+        // The public preparation API deliberately preserves matching explicit
+        // offers. This does not confer arbitrary Native-law validation on them.
         host.prepare_expression_realizations(&authored.expanded)
             .unwrap();
+        assert_eq!(host.advertisement(), &before);
         let hosts = [host.advertisement().clone()];
         let placements =
             conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
@@ -139,6 +167,20 @@ fn actual_owner_receipts_replay_all_four_gesture_source_programs_through_std_ker
                 retained.output_canonical(),
                 "{operation}: exact retained Source result"
             );
+            // Validate the actual delivered output at the same Native boundary
+            // used by the retained owner, independently of its byte comparison.
+            match operation {
+                "advance" => {
+                    SpeechPhoneGestureRawTime::decode(&output.0[0].bytes).unwrap();
+                }
+                "phases" => {
+                    SpeechPhoneGestureRawPhases::decode(&output.0[0].bytes).unwrap();
+                }
+                "curve" | "energy" => {
+                    conduit_audio::AudioQuantityTrajectory::decode(&output.0[0].bytes).unwrap();
+                }
+                _ => unreachable!(),
+            }
             let kernel = report.kernel.unwrap();
             assert_eq!(
                 kernel.value_allocation_capacity_before,
