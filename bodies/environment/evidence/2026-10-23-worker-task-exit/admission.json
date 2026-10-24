@@ -1,0 +1,199 @@
+{
+  "biography": {
+    "body": {
+      "birth_sequence": 2718681142624120697,
+      "body_id": "63d1790fa9ff8f3f4def7419d9a6bbdffeb9d59a30c7eb3cd3e9abf3ec7f7a62",
+      "events": [
+        {
+          "Born": {
+            "initial_workset": {
+              "plots": [
+                {
+                  "checked_plot_id": "970d3a16062c47fbc699bdbfc04e4b5d343877ca9f66aa515efcfb8e602e4ee6",
+                  "source_document_id": "3b2be61d35474faedeab6ca874af899f0479215b4715783e322b7b115f4210ea"
+                }
+              ]
+            },
+            "sign_id": "36976dfa0e54501e873eb8547754010b0b04a4ecfaad8ea82500baa1991731d2",
+            "workload_revision": 0
+          }
+        }
+      ],
+      "identity_derivation": "InitialWorksetBirthSignV3",
+      "sign_ids": [
+        "36976dfa0e54501e873eb8547754010b0b04a4ecfaad8ea82500baa1991731d2"
+      ],
+      "state": "Lulled",
+      "workload_revision": 0,
+      "workset": {
+        "plots": [
+          {
+            "checked_plot_id": "970d3a16062c47fbc699bdbfc04e4b5d343877ca9f66aa515efcfb8e602e4ee6",
+            "source_document_id": "3b2be61d35474faedeab6ca874af899f0479215b4715783e322b7b115f4210ea"
+          }
+        ]
+      }
+    },
+    "body_id": "63d1790fa9ff8f3f4def7419d9a6bbdffeb9d59a30c7eb3cd3e9abf3ec7f7a62",
+    "friendly_name": "Mica Quail",
+    "graduation": null,
+    "membership": {
+      "body_id": "63d1790fa9ff8f3f4def7419d9a6bbdffeb9d59a30c7eb3cd3e9abf3ec7f7a62",
+      "events": [
+        {
+          "body_id": "63d1790fa9ff8f3f4def7419d9a6bbdffeb9d59a30c7eb3cd3e9abf3ec7f7a62",
+          "change_id": "eaa5d852c917be387a7a127c52cf420bf67bef2bc62fe4b347428329bcdcdfde",
+          "kind": {
+            "Admitted": {
+              "proof_id": "b8c0bfda5ec74ff4f5f94ee2553ee455ed988c629e4a60f231b22ec60a316230"
+            }
+          },
+          "part_id": "4685debd8dfcdb7a8204420d3e06deaf4e69a8b592d7165213e4f26939beb0ba",
+          "revision": 1,
+          "sign_id": "714efda40be2a4883501df8cc03acd0213fac2aeeb1b310a8711e06d15d7566f"
+        },
+        {
+          "body_id": "63d1790fa9ff8f3f4def7419d9a6bbdffeb9d59a30c7eb3cd3e9abf3ec7f7a62",
+          "change_id": "a1f06efae47040b01783a7709b6d899ecc5ded36bdfa669c90a4d9c56f87260b",
+          "kind": {
+            "HostAttached": {
+              "observation": {
+                "boot_id": "boot/ffec56f21cb25dc3339dfd112b9ea2fc",
+                "host_id": "esp32/b0a732286178",
+                "offer_generation": 1,
+                "proof_id": "b8c0bfda5ec74ff4f5f94ee2553ee455ed988c629e4a60f231b22ec60a316230",
+                "sequence": 0
+              }
+            }
+          },
+          "part_id": "4685debd8dfcdb7a8204420d3e06deaf4e69a8b592d7165213e4f26939beb0ba",
+          "revision": 2,
+          "sign_id": "c5b7f0f444ebd90485c273b18e17487893669897520546664f18b6ece6593779"
+        }
+      ],
+      "parts": [
+        {
+          "current": {
+            "boot_id": "boot/ffec56f21cb25dc3339dfd112b9ea2fc",
+            "host_id": "esp32/b0a732286178",
+            "offer_generation": 1,
+            "proof_id": "b8c0bfda5ec74ff4f5f94ee2553ee455ed988c629e4a60f231b22ec60a316230",
+            "sequence": 0
+          },
+          "part_id": "4685debd8dfcdb7a8204420d3e06deaf4e69a8b592d7165213e4f26939beb0ba",
+          "state": "Admitted"
+        }
+      ],
+      "revision": 2
+    },
+    "records": [
+      {
+        "kind": {
+          "Born": {
+            "initial_workset": {
+              "plots": [
+                {
+                  "checked_plot_id": "970d3a16062c47fbc699bdbfc04e4b5d343877ca9f66aa515efcfb8e602e4ee6",
+                  "source_document_id": "3b2be61d35474faedeab6ca874af899f0479215b4715783e322b7b115f4210ea"
+                }
+              ]
+            },
+            "workload_revision": 0
+          }
+        },
+        "sequence": 2718681142624120697,
+        "sign_id": "36976dfa0e54501e873eb8547754010b0b04a4ecfaad8ea82500baa1991731d2"
+      },
+      {
+        "kind": {
+          "PartAdmitted": {
+            "change_id": "eaa5d852c917be387a7a127c52cf420bf67bef2bc62fe4b347428329bcdcdfde",
+            "part_id": "4685debd8dfcdb7a8204420d3e06deaf4e69a8b592d7165213e4f26939beb0ba"
+          }
+        },
+        "sequence": 2718681142624120700,
+        "sign_id": "714efda40be2a4883501df8cc03acd0213fac2aeeb1b310a8711e06d15d7566f"
+      },
+      {
+        "kind": {
+          "HostJoined": {
+            "boot_id": "boot/ffec56f21cb25dc3339dfd112b9ea2fc",
+            "change_id": "a1f06efae47040b01783a7709b6d899ecc5ded36bdfa669c90a4d9c56f87260b",
+            "host_id": "esp32/b0a732286178",
+            "part_id": "4685debd8dfcdb7a8204420d3e06deaf4e69a8b592d7165213e4f26939beb0ba"
+          }
+        },
+        "sequence": 2718681142624120701,
+        "sign_id": "c5b7f0f444ebd90485c273b18e17487893669897520546664f18b6ece6593779"
+      }
+    ],
+    "schema": "conduit.body/biography-evidence@2"
+  },
+  "body_installed_on_mcu": false,
+  "credential": {
+    "body_id": "63d1790fa9ff8f3f4def7419d9a6bbdffeb9d59a30c7eb3cd3e9abf3ec7f7a62",
+    "boot_id": "boot/ffec56f21cb25dc3339dfd112b9ea2fc",
+    "credential_id": "4c337a7eaaf184a05bd4b268f326371a2bbc07f7e762ec8b59aea6d66be6f266",
+    "host_id": "esp32/b0a732286178",
+    "issued_at_millis": 903,
+    "part_id": "4685debd8dfcdb7a8204420d3e06deaf4e69a8b592d7165213e4f26939beb0ba"
+  },
+  "image_attestation_claimed": false,
+  "key_provenance": "attended UART of expected ESP32",
+  "play_started": false,
+  "proof_class": "physical-ambient-admission",
+  "receipts": [
+    {
+      "admission_id": "cead28f5f59a4c3928c318a718e0f99fe06fea3d7f968a2723b1d44303511ee8",
+      "credential": {
+        "body_id": "63d1790fa9ff8f3f4def7419d9a6bbdffeb9d59a30c7eb3cd3e9abf3ec7f7a62",
+        "boot_id": "boot/ffec56f21cb25dc3339dfd112b9ea2fc",
+        "credential_id": "4c337a7eaaf184a05bd4b268f326371a2bbc07f7e762ec8b59aea6d66be6f266",
+        "host_id": "esp32/b0a732286178",
+        "issued_at_millis": 903,
+        "part_id": "4685debd8dfcdb7a8204420d3e06deaf4e69a8b592d7165213e4f26939beb0ba"
+      }
+    }
+  ],
+  "replay_refused": true,
+  "tampering_refused": true,
+  "verified_boot_key": {
+    "boot_id": "boot/ffec56f21cb25dc3339dfd112b9ea2fc",
+    "host_id": "esp32/b0a732286178",
+    "verifying_key": [
+      57,
+      187,
+      22,
+      183,
+      29,
+      58,
+      213,
+      203,
+      13,
+      93,
+      161,
+      188,
+      191,
+      120,
+      206,
+      46,
+      12,
+      158,
+      6,
+      97,
+      83,
+      113,
+      147,
+      53,
+      197,
+      132,
+      64,
+      158,
+      94,
+      241,
+      66,
+      75
+    ]
+  },
+  "physical_stale_boot_refused": true
+}

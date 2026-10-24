@@ -1,0 +1,17 @@
+{
+  "initial_public_command": "cargo xtask prove environment owner-run-esp32",
+  "initial_exit_code": 1,
+  "initial_refusal": "locked dependency metadata changed after capability capture, before Body planning/staging",
+  "initial_log_sha256": "3e8c01be581ead83daaab6347f139c8f69c5ab69ad17b0885c040ec6b3af93e3",
+  "internal_resumption_exit_code": 0,
+  "internal_resumption": [
+    "existing observed_offers executable on retained capture/admission",
+    "native-assignment-ingress.py",
+    "native-owner-preparation.py --mode run"
+  ],
+  "resumption_log_sha256": "646e2ea4c985f20a00f66d4722685737f3899e234d7dbba15cc1491b8e2b6b22",
+  "reflashed_for_resumption": false,
+  "capture": "target/environment-software-ready/1792803183",
+  "boot": "boot/ffec56f21cb25dc3339dfd112b9ea2fc",
+  "observed_offers_executable_sha256": "2a423878dfd820697e8758ba360f7545188c359ca6efe7b6a920c5595e726c24"
+}
