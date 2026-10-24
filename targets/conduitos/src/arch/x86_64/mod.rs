@@ -40,6 +40,7 @@ mod opl2;
 mod pc_speaker;
 mod pic;
 mod pit;
+mod preemption_clock;
 #[cfg(feature = "conduitos-isolation-proof")]
 mod protected_execution;
 mod providers;
