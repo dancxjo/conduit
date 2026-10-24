@@ -20,7 +20,7 @@ fn setup() -> Result<(), Box<dyn Error>> {
     println!("Host sudo authentication is required to install the scoped grant.");
     success(Command::new("sudo").arg("sh").arg(script).arg("--install"))
 }
-fn connect() -> Result<(), Box<dyn Error>> {
+pub(super) fn connect() -> Result<(), Box<dyn Error>> {
     let facts = Command::new("sh").arg(script()?).arg("--facts").output()?;
     if !facts.status.success() {
         return Err(String::from_utf8_lossy(&facts.stderr)

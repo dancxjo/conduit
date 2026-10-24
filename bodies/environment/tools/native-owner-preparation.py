@@ -15,6 +15,7 @@ parser.add_argument('--admission', type=Path, required=True)
 parser.add_argument('--keys', type=Path, required=True)
 parser.add_argument('--owner', type=Path, required=True)
 parser.add_argument('--display', action='store_true')
+parser.add_argument('--http-fixture', action='store_true')
 parser.add_argument('--mode', choices=['prepare', 'start-held', 'run'], default='prepare')
 args = parser.parse_args()
 port = serial.Serial(port=None, baudrate=115200, timeout=.1, write_timeout=2)
@@ -25,6 +26,7 @@ pending = bytearray()
 replies = []
 process = None
 raw_ingress = bytearray()
+probe = None
 
 
 def read_ingress(count):
@@ -116,6 +118,12 @@ def carry(frame, wire):
 receipt = {'completed': False, 'proof_class': 'physical-owner-' + args.mode,
            'body_start_attributed': False, 'climate_sampling_claimed': False}
 try:
+    if args.http_fixture:
+        if args.mode != 'run' or args.display:
+            raise RuntimeError('HTTP fixture requires the native Face run')
+        from native_http_probe import HttpProbe
+        probe = HttpProbe(args.capture)
+        probe.start()
     if args.display and args.mode == 'start-held':
         raise RuntimeError('display proof supports prepare or finite idle lifecycle')
     wire_name = 'uninstalled-output-assignment-transfer.bin' if args.display else 'uninstalled-assignment-transfer.bin'
@@ -164,6 +172,9 @@ try:
     assert after['assignment_staged'] == args.display
     assert not after['body_installed'] and not after['native_plan_installed']
     (args.capture / 'final-root-offer.json').write_text(json.dumps(after, indent=2) + '\n')
+    if probe is not None:
+        probe.finish()
+        probe = None
     receipt['final_offer_generation'] = after['advertisement']['offer_generation']
     receipt['final_network_configuration'] = after['network_configuration']
     receipt.update(proof_class='physical-owner-' + args.mode,
@@ -171,6 +182,8 @@ try:
                    root_heap_peak_bytes=after['native_root_heap_peak_bytes'],
                    native_root_heap_bytes=after['native_root_heap_bytes'])
 finally:
+    if probe is not None:
+        probe.stop()
     if port.is_open:
         try:
             port.write(b'offer\n')

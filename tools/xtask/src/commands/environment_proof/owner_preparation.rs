@@ -20,7 +20,8 @@ pub(super) fn owner_key_directory() -> Result<std::path::PathBuf, Box<dyn Error>
     Ok(parent.join("environment-owner"))
 }
 pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
-    let native_face = mode == "run-face";
+    let http_fixture = mode == "run-face-http";
+    let native_face = mode == "run-face" || http_fixture;
     let keys = owner_key_directory()?;
     execute(
         Command::new("cargo")
@@ -139,6 +140,9 @@ pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
         capture.join("owner-root-image.json"),
         serde_json::to_vec_pretty(&image_receipt)?,
     )?;
+    if http_fixture {
+        super::super::host_wifi::connect()?;
+    }
     let mut observation = Command::new("python3");
     observation
         .current_dir(root)
@@ -153,6 +157,11 @@ pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
         .arg(if native_face { "run" } else { mode })
         .arg("--owner")
         .arg(host_target(root).join("debug/examples/native_owner"));
+    if http_fixture {
+        observation
+            .arg("--http-fixture")
+            .env("PYTHONDONTWRITEBYTECODE", "1");
+    }
     if native_face {
         observation.env("CONDUIT_ENVIRONMENT_REQUIRE_NATIVE_FACE", "1");
     }

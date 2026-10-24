@@ -34,6 +34,9 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
     if arguments == ["owner-start-held-esp32"] {
         return owner_preparation::prove(&root, "start-held");
     }
+    if arguments == ["owner-face-http-run-esp32"] {
+        return owner_preparation::prove(&root, "run-face-http");
+    }
     if arguments == ["owner-face-run-esp32"] {
         return owner_preparation::prove(&root, "run-face");
     }

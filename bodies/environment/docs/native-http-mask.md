@@ -74,3 +74,12 @@ the existing 36 KiB floor). That is static placement, not stack high-water or
 proof of successful station HTTP. Physical success on an upstream network and
 link-loss handling remain open. Root's sampling/network workspace guard stays
 in place until combined preparation/execution resources are admitted.
+
+`cargo xtask prove environment owner-face-http-run-esp32` performs the finite
+physical Face run with the supplementary HTTP/fixture observer owned by that
+command. It uses the existing narrowly granted host Wi-Fi reconnection, compares
+all three native Face identities/revisions, sends one generated nonexistent-network
+fixture, and checks same-Boot rejection/AP restoration after sampler retirement.
+No real network password is requested or printed. The observer is bounded and
+retired on failure; it does not own UART, a Body, or a second observation store.
+The plain `owner-face-run-esp32` remains the sampler/Face lifecycle proof.
