@@ -573,7 +573,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Riscv64OrdinaryDomainProof => riscv64_domain_proof::execute(opts),
         ConduitosCommand::Loongarch64OrdinaryDomainProof => loongarch64_domain_proof::execute(opts),
         ConduitosCommand::PrepareRiscv64DomainEmulator => riscv64_emulator::prepare(opts),
-        ConduitosCommand::PrepareLoongarch64DomainEmulator => loongarch64_emulator::prepare(opts),
+        ConduitosCommand::PrepareLoongarch64DomainEmulator { graphical } => {
+            loongarch64_emulator::prepare(graphical, opts)
+        }
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }
