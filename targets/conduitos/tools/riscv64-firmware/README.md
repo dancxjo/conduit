@@ -54,3 +54,10 @@ framebuffer. Without `ramfb`, the corrected probe reaches serial ready; its
 attempt at the negative probe had a variant-selection bug and timed out during
 QMP stop; its failed raw evidence remains separate. No source-backed graphical
 Show is claimed by either machine probe.
+
+The [pinned QEMU source review](../../proof/tools/riscv64/firmware-231bb012d/scanout-source-review/index.json)
+retains exact original files and licensing from the verified source archive.
+It identifies `ramfb`'s mapped-RAM surface, the RISC-V TCG implementation's
+unmodelled cache hierarchy, and its full memory-barrier fence translation.
+These observations constrain a future emulator-only scanout leaf; they do not
+establish inherited mapping permissions, physical cache behavior, or a Show.
