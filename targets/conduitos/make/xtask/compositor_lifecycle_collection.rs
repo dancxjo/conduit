@@ -179,11 +179,11 @@ pub(super) fn collect(
         "guest_image_sha256":format!("{:x}",Sha256::digest(guest)),"guest_elf_bytes":guest.len(),
         "serial_sha256":format!("{:x}",Sha256::digest(&raw)),"instance":report.instance,"selected_checkpoints":selected,
         "lifecycle_records":report.lifecycle_records,"pure_parser_artifact_custody_verified":report.artifact_custody_verified,
-        "artifact_custody":{"actual_root_and_iso_hashes_verified":true,"unique_loaded_compositor_entry_elf_verified":true,"normal_manifest_and_boot_join_verified":true},
+        "artifact_custody":{"actual_root_and_iso_hashes_verified":true,"unique_loaded_compositor_image_bytes_verified":true,"normal_manifest_and_boot_join_verified":true},
         "observed_preparation_scope":{"display_base":context.identity.base,"width":context.identity.width,"height":context.identity.height,
             "service_reserved_bytes":reserved,"staging_prepared_bytes":context.staging_prepared_bytes,
             "independently_manifest_declared":false},"snapshots":snapshots,
-        "limits":"Source/build and actual Root/ISO bytes are checked; one valid loaded embedded ELF has a unique defined global compositor_entry equal to its entry point. This is structural embedded-byte custody, not authenticated linker invocation, semantic Show proof, calibrated costs, physical display or broad isolation. Display grant and charged service/staging values remain observed preparation scope, not invented manifest facts."});
+        "limits":"Source/build and actual Root/ISO bytes are checked; one unique complete loaded embedded ELF image has a unique defined global compositor_entry equal to its entry point; repeated byte-identical copies are allowed and distinct valid images are refused. This is structural embedded-byte custody, not authenticated linker invocation, semantic Show proof, calibrated costs, physical display or broad isolation. Display grant and charged service/staging values remain observed preparation scope, not invented manifest facts."});
     fs::write(
         paths.target.join("compositor-lifecycle-proof.json"),
         serde_json::to_vec_pretty(&receipt).map_err(|e| refusal(e.to_string()))?,
