@@ -1,3 +1,5 @@
+#[path = "build_support/phone_gesture_programs.rs"]
+mod phone_gesture_programs;
 #[path = "build_support/audio_imports.rs"]
 mod audio_imports;
 #[path = "build_support/authoring_types.rs"]
@@ -49,6 +51,7 @@ fn main() {
         "fundamental.conduit",
         "linguistic_rate.conduit",
         "phone_gestures.conduit",
+        "build_support/phone_gesture_programs.rs",
         "build_support/linguistic_rate_program.rs",
         "ipa.conduit",
         "ipa_syntax.conduit",
@@ -129,6 +132,7 @@ fn main() {
             )
         })
         .collect();
+    phone_gesture_programs::write(&semantic);
     let authoring_bytes =
         postcard::to_allocvec(&(semantic.source_document_id.as_str(), authoring_types))
             .expect("compiled Types encode");

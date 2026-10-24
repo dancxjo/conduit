@@ -83,3 +83,40 @@ plot speech/phone-gesture-curve (
     >> value: SpeechPhoneGestureCurve
     result: AudioQuantityTrajectory >>
 ) = ({ anchor: .anchor, provenance: .provenance, segments: [ {start: .phases.leading_start, end: .phases.leading_end, left: .previous, right: .current, interpolation: AudioTrajectoryInterpolation.linear}, {start: .phases.leading_end, end: .phases.trailing_start, left: .current, right: .current, interpolation: AudioTrajectoryInterpolation.step}, {start: .phases.trailing_start, end: .phases.trailing_end, left: .current, right: .next, interpolation: AudioTrajectoryInterpolation.linear} ], outside: AudioTrajectoryOutside.refuse, endpoints: AudioTrajectoryEndpoints.right_continuous_final_included })
+
+# Exact common-denominator elapsed time, including explicit silent boundaries.
+# This is authored semantic time; the renderer's frame grid is not an input.
+type SpeechPhoneGestureAdvance = {
+    start: AudioExactTimeOffset
+    duration: SpeechExactDuration
+    where .start.denominator == .duration.denominator
+    where .start.denominator <= 65535
+    where .start.numerator_seconds <= 65535
+    where .duration.numerator_seconds <= 65535
+    where .start.numerator_seconds + .duration.numerator_seconds <= 65535
+}
+type SpeechPhoneGestureRawTime = {
+    numerator: U64
+    denominator: U64
+}
+plot speech/phone-gesture-advance (
+    >> value: SpeechPhoneGestureAdvance
+    result: SpeechPhoneGestureRawTime >>
+) = ({ numerator: .start.numerator_seconds + .duration.numerator_seconds, denominator: .start.denominator })
+
+# A finite authored energy profile, independently declared per selected phone.
+# Closure, release and aspiration are separate segments and retain exact phase
+# endpoints. Non-stop phones explicitly declare their own values for each phase.
+type SpeechPhoneGestureEnergy = {
+    anchor: AudioTrajectoryAnchor
+    provenance: AudioTrajectoryProvenance
+    phases: SpeechPhoneGesturePhases
+    closure: AudioTrajectoryQuantity
+    release: AudioTrajectoryQuantity
+    aspiration: AudioTrajectoryQuantity
+    where .closure is amplitude && .release is amplitude && .aspiration is amplitude
+}
+plot speech/phone-gesture-energy (
+    >> value: SpeechPhoneGestureEnergy
+    result: AudioQuantityTrajectory >>
+) = ({ anchor: .anchor, provenance: .provenance, segments: [ {start: .phases.nominal_start, end: .phases.closure_end, left: .closure, right: .closure, interpolation: AudioTrajectoryInterpolation.step}, {start: .phases.closure_end, end: .phases.release_end, left: .release, right: .release, interpolation: AudioTrajectoryInterpolation.step}, {start: .phases.release_end, end: .phases.nominal_end, left: .aspiration, right: .aspiration, interpolation: AudioTrajectoryInterpolation.step} ], outside: AudioTrajectoryOutside.refuse, endpoints: AudioTrajectoryEndpoints.right_continuous_final_included })
