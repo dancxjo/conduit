@@ -72,20 +72,20 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
 }
 
 pub fn quantity_info_wrap_semantic_contract() -> Kind {
-    let contract = quantity_info_wrap_contract();
-    Kind {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        kind_id: contract.kind_id,
-        kind_contract_revision: QUANTITY_INFO_WRAP_REVISION.into(),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        configuration: contract.configuration,
-        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
-            contract.terminal_behavior
-        )],
-        limits: contract.limits,
-    }
+    let mut kind =
+        quantity_info_wrap_contract().into_semantic_contract(QUANTITY_INFO_WRAP_REVISION);
+    let contracts = kind
+        .semantic_laws
+        .iter_mut()
+        .find_map(|law| match law {
+            conduit_core::KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
+            _ => None,
+        })
+        .expect("the canonical Quantity input has a checked value bound");
+    contracts.push(wrapped_quantity_front(
+        conduit_core::FrontValueLocation::Output(port_id("out")),
+    ));
+    kind
 }
 
 pub fn quantity_face_definition() -> conduit_plot::KindProjection {
@@ -118,12 +118,32 @@ pub fn quantity_face_semantic_contract() -> Kind {
         }],
         outputs: Vec::new(),
         configuration: crate::data_label_configuration(),
-        semantic_laws: Default::default(),
+        semantic_laws: vec![conduit_core::KindSemanticLaw::ValueContracts(vec![
+            wrapped_quantity_front(conduit_core::FrontValueLocation::Input(port_id("input"))),
+        ])],
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 1,
             max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         },
+    }
+}
+
+fn wrapped_quantity_front(
+    location: conduit_core::FrontValueLocation,
+) -> conduit_core::FrontValueContract {
+    conduit_core::FrontValueContract {
+        location,
+        contract: conduit_core::CheckedValueContract::new(
+            wrapped_quantity_type()
+                .profile()
+                .expect("canonical Quantity profile")
+                .value_kind()
+                .clone(),
+            (quantity_info_prefix().len() + QUANTITY_ENCODED_LEN) as u32,
+            Vec::new(),
+        )
+        .expect("canonical Quantity leaf envelope is finite"),
     }
 }
 
@@ -187,5 +207,64 @@ mod tests {
             QUANTITY_INFO_WRAP_REVISION
         );
         assert_eq!(semantics.limits, contract.limits);
+    }
+}
+
+#[cfg(test)]
+mod admission_tests {
+    use super::*;
+    use conduit_core::{FrontValueLocation, KindSemanticLaw};
+
+    fn bound(kind: &Kind, location: FrontValueLocation) -> u32 {
+        let contracts = kind
+            .semantic_laws
+            .iter()
+            .filter_map(|law| match law {
+                KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            contracts.len(),
+            1,
+            "one complete law must reach CheckedFront"
+        );
+        contracts[0]
+            .iter()
+            .find(|entry| entry.location == location)
+            .unwrap()
+            .contract
+            .maximum_bytes
+    }
+
+    #[test]
+    fn quantity_producer_wrapper_and_display_admit_complete_canonical_values() {
+        let map = crate::quantity_map_semantic_contract();
+        let wrap = quantity_info_wrap_semantic_contract();
+        let display = quantity_face_semantic_contract();
+        for unit in [Unit::One, Unit::Hertz, Unit::Percent] {
+            let quantity = Quantity::new(42, unit);
+            let raw = quantity.encode();
+            let envelope = StructuredInfoValue::leaf(wrapped_quantity_type(), raw.to_vec())
+                .unwrap()
+                .canonical_bytes()
+                .unwrap();
+            assert_eq!(
+                bound(&map, FrontValueLocation::Output(port_id("out"))),
+                raw.len() as u32
+            );
+            assert_eq!(
+                bound(&wrap, FrontValueLocation::Input(port_id("in"))),
+                raw.len() as u32
+            );
+            assert_eq!(
+                bound(&wrap, FrontValueLocation::Output(port_id("out"))),
+                envelope.len() as u32
+            );
+            assert_eq!(
+                bound(&display, FrontValueLocation::Input(port_id("input"))),
+                envelope.len() as u32
+            );
+        }
     }
 }

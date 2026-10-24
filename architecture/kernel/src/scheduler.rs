@@ -4,6 +4,7 @@ mod host_call_back;
 mod host_dispatch;
 mod host_input_ownership;
 mod host_values;
+mod output_readiness;
 pub use host_call_back::HostCallBack;
 pub use host_values::HostValueDiscardRefusal;
 
@@ -607,14 +608,6 @@ impl<const PORTS: usize> StepIo<PORTS> {
         self.consumed[index] = true;
         self.retained_inputs[index] = retain_for_call;
         Ok(value)
-    }
-
-    pub fn output_ready(&self, port: PortId) -> bool {
-        self.output_maximum_bytes
-            .get(usize::from(port.0))
-            .copied()
-            .flatten()
-            .is_some()
     }
 
     pub fn send(&mut self, port: PortId, value: ValueRef) -> Result<(), SchedulerError> {
