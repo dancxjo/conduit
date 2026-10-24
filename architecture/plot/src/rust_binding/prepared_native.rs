@@ -126,14 +126,23 @@ mod contracts;
 mod facades;
 #[path = "prepared_native/metadata.rs"]
 mod metadata;
+#[path = "prepared_native/registry.rs"]
+mod registry;
+#[path = "prepared_native/shared_facade.rs"]
+mod shared_facade;
+#[path = "prepared_native/structural_root.rs"]
+mod structural_root;
+use structural_root::RootDescriptor;
 #[path = "prepared_native/traversal.rs"]
 mod traversal;
 pub use facades::{
     AdmittedOwnedNativeCanonical, OwnedPreparedNativeAdmission, PreparedNativeAdmission,
 };
+pub use registry::NativeLawRegistry;
+pub use shared_facade::{AdmittedRegisteredNativeCanonical, PreparedRegisteredNativeAdmission};
 struct AdmissionEngine<'d> {
     metadata: metadata::Metadata<'d>,
-    native_index: usize,
+    root: RootDescriptor,
     shape: PreparedStructuredValueValidator,
     scopes: Vec<Scope>,
     contracts: Vec<contracts::ContractCursor>,
@@ -159,6 +168,19 @@ impl<'d> AdmissionEngine<'d> {
         bounds: PreparedNativeBounds,
         occurrence_limit: usize,
     ) -> Result<Self, PreparedNativeRefusal> {
+        Self::validate_profile(bounds, occurrence_limit)?;
+        let index = metadata.lookup(identity)?;
+        Self::prepare_root(
+            metadata,
+            RootDescriptor::Native(index),
+            bounds,
+            occurrence_limit,
+        )
+    }
+    fn validate_profile(
+        bounds: PreparedNativeBounds,
+        occurrence_limit: usize,
+    ) -> Result<(), PreparedNativeRefusal> {
         if occurrence_limit == 0 || occurrence_limit > MAXIMUM_PREPARED_NATIVE_OCCURRENCES {
             return Err(PreparedNativeRefusal::Bounds);
         }
@@ -169,16 +191,23 @@ impl<'d> AdmissionEngine<'d> {
         {
             return Err(PreparedNativeRefusal::Bounds);
         }
-        let native_index = metadata.lookup(identity)?;
-        let native = metadata.get(native_index);
-        let shape =
-            PreparedStructuredValueValidator::new(&native.value_type, bounds.canonical_bytes)
-                .map_err(|_| PreparedNativeRefusal::Bounds)?;
+        Ok(())
+    }
+    fn prepare_root(
+        metadata: metadata::Metadata<'d>,
+        root: RootDescriptor,
+        bounds: PreparedNativeBounds,
+        occurrence_limit: usize,
+    ) -> Result<Self, PreparedNativeRefusal> {
+        Self::validate_profile(bounds, occurrence_limit)?;
+        let value_type = root.value_type(&metadata);
+        let shape = PreparedStructuredValueValidator::new(value_type, bounds.canonical_bytes)
+            .map_err(|_| PreparedNativeRefusal::Bounds)?;
         let mut scopes = Vec::new();
         let mut count = (0, 0);
         traversal::prepare(
             &metadata,
-            &native.value_type,
+            value_type,
             &mut Vec::new(),
             &mut scopes,
             bounds,
@@ -191,7 +220,7 @@ impl<'d> AdmissionEngine<'d> {
             contract_occurrences: 0,
             latest_contract: None,
             metadata,
-            native_index,
+            root,
             shape,
             scopes,
             input: Vec::with_capacity(bounds.canonical_bytes),
@@ -206,9 +235,6 @@ impl<'d> AdmissionEngine<'d> {
             active: false,
             failure: None,
         })
-    }
-    pub fn native_type(&self) -> &CheckedNativeType {
-        self.metadata.get(self.native_index)
     }
     pub fn capacity_report(&self) -> PreparedNativeCapacityReport {
         PreparedNativeCapacityReport {

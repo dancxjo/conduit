@@ -142,7 +142,7 @@ impl CheckedExpressionType {
     }
 }
 
-fn anonymous_record(
+pub(crate) fn anonymous_record(
     shape: &str,
     mut fields: Vec<StructuredFieldType>,
 ) -> Result<StructuredInfoType, StructuredInfoRefusal> {

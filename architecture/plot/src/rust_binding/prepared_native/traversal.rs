@@ -47,7 +47,11 @@ pub(super) fn prepare(
     if let Some(identity) = identity {
         let native_index = match metadata.lookup(identity) {
             Ok(index) => Some(index),
-            Err(PreparedNativeRefusal::MissingNativeMetadata) if exact_core_optional(ty) => None,
+            Err(PreparedNativeRefusal::MissingNativeMetadata)
+                if exact_core_optional(ty) || metadata.permits_structural(ty) =>
+            {
+                None
+            }
             Err(reason) => return Err(reason),
         };
         if let Some(native_index) = native_index {
@@ -69,10 +73,12 @@ pub(super) fn prepare(
                 {
                     return Err(PreparedNativeRefusal::InvalidProgram);
                 }
-                evaluators.push(
+                let evaluator = if metadata.checked_arithmetic() {
+                    PreparedPortableExpressionEvaluator::new_checked_arithmetic(program)
+                } else {
                     PreparedPortableExpressionEvaluator::new(program)
-                        .map_err(|_| PreparedNativeRefusal::InvalidProgram)?,
-                );
+                };
+                evaluators.push(evaluator.map_err(|_| PreparedNativeRefusal::InvalidProgram)?);
             }
             scopes.push(Scope {
                 path: path.clone(),

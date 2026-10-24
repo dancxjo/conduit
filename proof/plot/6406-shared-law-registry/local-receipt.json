@@ -1,0 +1,207 @@
+{
+  "base": "b02de40f485abac273d1a460420dc9b34e716a79",
+  "source_hashes": {
+    "architecture/plot/src/expression_check.rs": "659f10ee3e0534335b7ae8ffba2203751d61666143888998d2ea062359c453eb",
+    "architecture/plot/src/native_type/law_custody/admission_metadata.rs": "9fd2238d7f297341218587e006f7e3217c9d86c56abbdcee270ac72a7985448a",
+    "architecture/plot/src/rust_binding/mod.rs": "a72951384b7a1cac487a1a061e029836ed51dc8ade70291ef907a81b04089b10",
+    "architecture/plot/src/rust_binding/prepared_native/facades.rs": "13becdac52071c6880c565fac6de60e322934c056b98dc69159fba13290c29e0",
+    "architecture/plot/src/rust_binding/prepared_native/metadata.rs": "09a04b897c9ccbdb0de918becf418a3545b3b99ffe4df98d338bda57312f0555",
+    "architecture/plot/src/rust_binding/prepared_native/registry.rs": "9dfa702bad8e7b4df4a73d86efb3bb2667156c3a50f9b7905feb00eeacc1df04",
+    "architecture/plot/src/rust_binding/prepared_native/registry_tests.rs": "ef14b28bec24b0140ee24c24feab177f8fd3a9b04b4a26775a0e58166930c1ad",
+    "architecture/plot/src/rust_binding/prepared_native/shared_facade.rs": "794f07a723d93d488a1694081ed590444f8f6f8e8ea00e653b00d1c004ccbc8d",
+    "architecture/plot/src/rust_binding/prepared_native/structural_root.rs": "94ecbef29b7795cff11fdf01550ac1a1197bdd2e2cd1452f0809ebbb82397d8b",
+    "architecture/plot/src/rust_binding/prepared_native/traversal.rs": "3bc53acef9b45f434fbde90973eebc7c1f1d7067b17d4833f73cddaabdf54034",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "e2f12630161e9ff9ead8a73d947ba5c4fded0155d4086754c691011749e62080",
+    "architecture/plot/tests/shared_native_law_registry.rs": "d0e3848b106c5865a0455cba85dce2503614acd67050ea41c48da1b1b6e8de6c",
+    "semantics/speech/tests/authoring_law_custody.rs": "f0bea3cdd4fec645b4d4951dd2d1338ad3227a3a5711c1f857cde33e4fdd079e",
+    "semantics/speech/tests/common/native_law_program.rs": "0cd63d41854c5e3c9530c3930704d3fc7890aeb7022fea2c98cb1ae9097859f3",
+    "semantics/speech/tests/native_law_registry_capacity.rs": "584ad56575333b83d9f72510d472344639f1572c16b6f098a63b8900ef818566"
+  },
+  "started": 1792867964.3396194,
+  "steps": [
+    {
+      "name": "private-registry",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--lib",
+        "registry::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/private-registry.log",
+      "ended": 1792867972.7139018
+    },
+    {
+      "name": "public-and-legacy",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "shared_native_law_registry",
+        "--test",
+        "owned_native_admission",
+        "--test",
+        "prepared_native_optional",
+        "--test",
+        "prepared_native_occurrences",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/public-and-legacy.log",
+      "ended": 1792867982.7191086
+    }
+  ],
+  "source_unchanged": true,
+  "ended": 1792867982.7194858,
+  "g2_and_strict": {
+    "started": 1792868163.4849842,
+    "steps": [
+      {
+        "name": "g2-owners",
+        "argv": [
+          "cargo",
+          "+stable",
+          "test",
+          "--locked",
+          "-p",
+          "conduit-speech",
+          "--features",
+          "semantic-bindings",
+          "--test",
+          "native_law_registry_capacity",
+          "--test",
+          "authoring_law_custody",
+          "--",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/g2-owners.log",
+        "ended": 1792869233.1620224
+      },
+      {
+        "name": "strict-plot",
+        "argv": [
+          "cargo",
+          "+stable",
+          "clippy",
+          "--locked",
+          "-p",
+          "conduit-plot",
+          "--lib",
+          "--test",
+          "shared_native_law_registry",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0,
+        "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/strict-plot.log",
+        "ended": 1792869236.7240915
+      },
+      {
+        "name": "strict-speech",
+        "argv": [
+          "cargo",
+          "+stable",
+          "clippy",
+          "--locked",
+          "-p",
+          "conduit-speech",
+          "--features",
+          "semantic-bindings",
+          "--test",
+          "native_law_registry_capacity",
+          "--test",
+          "authoring_law_custody",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0,
+        "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/strict-speech.log",
+        "ended": 1792869470.2531962
+      },
+      {
+        "name": "format",
+        "argv": [
+          "cargo",
+          "+stable",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "exit_code": 0,
+        "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/format.log",
+        "ended": 1792869482.9086883
+      }
+    ]
+  },
+  "executables": [
+    {
+      "actual": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/conduit_plot-3c0ad4adf9ef9621",
+      "sha256": "8f5e886d3eefe4862fa6311677fe617d9783b1ed0c1fd79dc2255ac4aa250b55",
+      "bytes": 27095488,
+      "retained": "work/6406-shared-registry-proof/conduit_plot-3c0ad4adf9ef9621.elf.gz"
+    },
+    {
+      "actual": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/owned_native_admission-1729723a19b18337",
+      "sha256": "2b3c89ca617cbe1d77d8defb4070ed65491171f4461cdd7032f3ab983bc81b9d",
+      "bytes": 15790352,
+      "retained": "work/6406-shared-registry-proof/owned_native_admission-1729723a19b18337.elf.gz"
+    },
+    {
+      "actual": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_native_occurrences-17430676315b6405",
+      "sha256": "eafdfd4088b04559038ba30bde717436b8a63d78e6185979dd7557bd47b38074",
+      "bytes": 15789824,
+      "retained": "work/6406-shared-registry-proof/prepared_native_occurrences-17430676315b6405.elf.gz"
+    },
+    {
+      "actual": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_native_optional-d9c23082d71a1d07",
+      "sha256": "131b75cb62422068959e665c2bbaf9588ae8a9e60806235677ddf4d023aa0746",
+      "bytes": 15648744,
+      "retained": "work/6406-shared-registry-proof/prepared_native_optional-d9c23082d71a1d07.elf.gz"
+    },
+    {
+      "actual": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/shared_native_law_registry-1002eefd118d5ed1",
+      "sha256": "b6a74da5df9d395d45b1b5e020fe895e484dbdeca289e40b97742faa42c4d003",
+      "bytes": 15940960,
+      "retained": "work/6406-shared-registry-proof/shared_native_law_registry-1002eefd118d5ed1.elf.gz"
+    },
+    {
+      "actual": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/authoring_law_custody-b7d24eda55c8d09d",
+      "sha256": "ab62eb9aa4cd7381c4d9e2a863b4838a2206321f422c6292d9b3c9d0051d52be",
+      "bytes": 29727712,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/authoring_law_custody-b7d24eda55c8d09d.elf.gz"
+    },
+    {
+      "actual": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_registry_capacity-a4bf55d5233b2ea2",
+      "sha256": "c28580486363191351872a4a551a1525632973d8a358013b03e32dbd5867658c",
+      "bytes": 29581736,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/native_law_registry_capacity-a4bf55d5233b2ea2.elf.gz"
+    }
+  ],
+  "total_focused_tests_passed": 24,
+  "g2_programs": [
+    "advance",
+    "phases",
+    "curve",
+    "energy"
+  ],
+  "g2_refusals": 0,
+  "status": "allfocused24+strict+formatpass; broader borrowed/native admission regression still pending"
+}

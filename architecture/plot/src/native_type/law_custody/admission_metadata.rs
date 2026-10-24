@@ -9,17 +9,40 @@ impl NativeLawWitness {
     pub(crate) fn admission_metadata(
         &self,
     ) -> Result<Vec<CheckedNativeType>, NativeLawCustodyRefusal> {
-        admit_witness(self, 0, &mut Budget::default())?;
+        Self::admission_metadata_for(core::slice::from_ref(self))
+    }
+    pub(crate) fn admission_metadata_for(
+        witnesses: &[NativeLawWitness],
+    ) -> Result<Vec<CheckedNativeType>, NativeLawCustodyRefusal> {
+        if witnesses.len() > MAXIMUM_TYPES {
+            return Err(NativeLawCustodyRefusal::Capacity);
+        }
+        let mut source_budget = Budget::default();
+        for witness in witnesses {
+            admit_witness(witness, 0, &mut source_budget)?;
+        }
         let mut batches = Vec::new();
-        replay(self, &mut batches, &mut Budget::default(), &mut 0)?;
-        // Keep the exact requested root spelling when equivalent import aliases
-        // share a schema; conflict checks still compare all law metadata.
-        let root_batch = batches.last_mut().ok_or(NativeLawCustodyRefusal::Type)?;
-        let root = root_batch
-            .iter()
-            .position(|ty| ty == self.checked_type())
-            .ok_or(NativeLawCustodyRefusal::Type)?;
-        let mut retained = alloc::vec![root_batch.swap_remove(root)];
+        let mut metadata_budget = Budget::default();
+        let mut count = 0;
+        for witness in witnesses {
+            replay(witness, &mut batches, &mut metadata_budget, &mut count)?;
+        }
+        // Preserve the first exact requested root spelling, as the single-owner
+        // facade always did, while merging equivalent schema aliases below.
+        let mut retained = Vec::new();
+        if let Some(first) = witnesses.first() {
+            let (batch, root) = batches
+                .iter()
+                .enumerate()
+                .find_map(|(index, batch)| {
+                    batch
+                        .iter()
+                        .position(|ty| ty == first.checked_type())
+                        .map(|root| (index, root))
+                })
+                .ok_or(NativeLawCustodyRefusal::Type)?;
+            retained.push(batches[batch].swap_remove(root));
+        }
         for ty in batches.into_iter().flatten() {
             if let Some(prior) = retained.iter().find(|prior| prior.identity == ty.identity) {
                 if prior.value_type != ty.value_type
@@ -32,8 +55,10 @@ impl NativeLawWitness {
                 retained.push(ty);
             }
         }
-        if !retained.iter().any(|ty| self.agrees(ty)) {
-            return Err(NativeLawCustodyRefusal::Type);
+        for witness in witnesses {
+            if !retained.iter().any(|ty| witness.agrees(ty)) {
+                return Err(NativeLawCustodyRefusal::Type);
+            }
         }
         Ok(retained)
     }

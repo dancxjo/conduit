@@ -3,57 +3,56 @@ use super::*;
 use crate::NativeLawWitness;
 
 macro_rules! common_methods {
-    () => {
-        pub fn native_type(&self) -> &CheckedNativeType {
-            self.engine.native_type()
-        }
+    ($($field:ident).+) => {
         pub fn capacity_report(&self) -> PreparedNativeCapacityReport {
-            self.engine.capacity_report()
+            self.$($field).+.capacity_report()
         }
         pub fn scope_count(&self) -> usize {
-            self.engine.scope_count()
+            self.$($field).+.scope_count()
         }
         pub fn scope_native_type(&self, scope: usize) -> Option<&CheckedNativeType> {
-            self.engine.scope_native_type(scope)
+            self.$($field).+.scope_native_type(scope)
         }
         pub fn invariant_output(&self, scope: usize, invariant: usize) -> Option<&[u8]> {
-            self.engine.invariant_output(scope, invariant)
+            self.$($field).+.invariant_output(scope, invariant)
         }
         pub fn latest_occurrence(&self) -> Option<NativeOccurrence<'_>> {
-            self.engine.latest_occurrence()
+            self.$($field).+.latest_occurrence()
         }
         pub fn latest_contract_occurrence(&self) -> Option<NativeContractOccurrence<'_>> {
-            self.engine.latest_contract_occurrence()
+            self.$($field).+.latest_contract_occurrence()
         }
         pub fn actual_contract_occurrences(&self) -> usize {
-            self.engine.actual_contract_occurrences()
+            self.$($field).+.actual_contract_occurrences()
         }
         pub fn actual_occurrences(&self) -> usize {
-            self.engine.actual_occurrences()
+            self.$($field).+.actual_occurrences()
         }
         pub fn actual_occurrence_limit(&self) -> usize {
-            self.engine.actual_occurrence_limit()
+            self.$($field).+.actual_occurrence_limit()
         }
         pub fn retained_bytes(&self) -> &[u8] {
-            self.engine.retained_bytes()
+            self.$($field).+.retained_bytes()
         }
         pub fn failure(&self) -> Option<&PreparedNativeRefusal> {
-            self.engine.failure()
+            self.$($field).+.failure()
         }
         pub fn begin(&mut self, bytes: &[u8]) -> Result<(), PreparedNativeRefusal> {
-            self.engine.begin(bytes)
+            self.$($field).+.begin(bytes)
         }
         pub fn cancel(&mut self) {
-            self.engine.cancel()
+            self.$($field).+.cancel()
         }
         pub fn step(&mut self) -> Result<PreparedNativeProgress, PreparedNativeRefusal> {
-            self.engine.step()
+            self.$($field).+.step()
         }
         pub fn retire_admitted(&mut self) -> Result<(), PreparedNativeRefusal> {
-            self.engine.retire_admitted()
+            self.$($field).+.retire_admitted()
         }
     };
 }
+
+pub(super) use common_methods;
 
 pub struct PreparedNativeAdmission<'d> {
     document: &'d CheckedSyntaxDocument,
@@ -92,10 +91,13 @@ impl<'d> PreparedNativeAdmission<'d> {
             engine,
         })
     }
+    pub fn native_type(&self) -> &CheckedNativeType {
+        self.native
+    }
     pub fn source_document(&self) -> &CheckedSyntaxDocument {
         self.document
     }
-    common_methods!();
+    common_methods!(engine);
     pub fn admitted(&self) -> Result<AdmittedNativeCanonical<'_>, PreparedNativeRefusal> {
         self.engine.check_admitted()?;
         Ok(AdmittedNativeCanonical {
@@ -143,12 +145,15 @@ impl OwnedPreparedNativeAdmission {
             engine,
         })
     }
-    common_methods!();
+    pub fn native_type(&self) -> &CheckedNativeType {
+        self.witness.checked_type()
+    }
+    common_methods!(engine);
     pub fn admitted(&self) -> Result<AdmittedOwnedNativeCanonical<'_>, PreparedNativeRefusal> {
         self.engine.check_admitted()?;
         Ok(AdmittedOwnedNativeCanonical {
             witness: &self.witness,
-            native: self.engine.native_type(),
+            native: self.witness.checked_type(),
             bytes: &self.engine.input,
         })
     }
