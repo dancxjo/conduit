@@ -3,7 +3,7 @@ use super::super::owner_preparation::provision_flash_tool;
 use super::{execute, host_target};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path, process::Command};
-pub(super) fn flash_and_capture(root: &Path) -> Result<(), Box<dyn Error>> {
+pub(super) fn flash_and_capture(root: &Path, stage: bool) -> Result<(), Box<dyn Error>> {
     execute(
         Command::new("cargo")
             .current_dir(root)
@@ -74,5 +74,15 @@ pub(super) fn flash_and_capture(root: &Path) -> Result<(), Box<dyn Error>> {
             .arg("--output")
             .arg(&output),
     )?;
-    execute(Command::new(host_target(root).join("debug/examples/display_offers")).arg(output))
+    execute(Command::new(host_target(root).join("debug/examples/display_offers")).arg(&output))?;
+    if stage {
+        execute(
+            Command::new("python3")
+                .current_dir(root)
+                .arg("bodies/environment/tools/display-assignment-ingress.py")
+                .arg("--capture")
+                .arg(&output),
+        )?;
+    }
+    Ok(())
 }

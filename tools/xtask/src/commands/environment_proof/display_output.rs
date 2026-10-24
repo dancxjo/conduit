@@ -4,16 +4,19 @@ use super::{execute, host_target};
 mod display_readiness;
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Error>> {
-    if arguments == ["esp32-readiness"] || arguments == ["esp32-readiness", "--flash"] {
+    if arguments == ["esp32-readiness"]
+        || arguments == ["esp32-readiness", "--flash"]
+        || arguments == ["esp32-readiness", "--flash", "--stage"]
+    {
         build_readiness(root)?;
-        return if arguments.len() == 2 {
-            display_readiness::flash_and_capture(root)
+        return if arguments.len() >= 2 {
+            display_readiness::flash_and_capture(root, arguments.len() == 3)
         } else {
             Ok(())
         };
     }
     if !arguments.is_empty() {
-        return Err("expected display-output [esp32-readiness]".into());
+        return Err("expected display-output [esp32-readiness [--flash [--stage]]]".into());
     }
     for operation in ["test", "clippy"] {
         let mut command = Command::new("cargo");
