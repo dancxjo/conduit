@@ -238,9 +238,9 @@
       "raw_bytes": 11519,
       "raw_sha256": "a8aed7d144c27870e315df55de124cf553387d28cfba8bf25f6d0479432bcec3",
       "retained_publicly": true,
-      "retained_path": "negative-browser-observer/browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/error-context.md",
-      "retained_bytes": 11519,
-      "retained_sha256": "a8aed7d144c27870e315df55de124cf553387d28cfba8bf25f6d0479432bcec3"
+      "retained_path": "negative-browser-observer/browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/error-context.md.gz",
+      "retained_bytes": 3817,
+      "retained_sha256": "a1dc56916bf2966a26fba3a517e8a865796927e2634f508e7d6148e1aef22cb3"
     },
     {
       "original_path": "negative-browser-observer/original-nine-gear.log",
