@@ -291,3 +291,10 @@ pub(crate) use x86_64::{
     SERVICE_ZERO_OBSERVER_BYTES, ServiceZeroToken, WholeZeroWitness, ZERO_REGIONS,
     ZeroObserverError, ZeroRegionResult, arm_service_zero_witness, take_service_zero_witness,
 };
+
+#[cfg(test)]
+#[path = "riscv64/framebuffer/mapping.rs"]
+mod riscv64_framebuffer_mapping;
+
+#[cfg(all(target_arch = "riscv64", feature = "native-compositor-core"))]
+pub use riscv64::framebuffer;
