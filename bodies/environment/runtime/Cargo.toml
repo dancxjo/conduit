@@ -7,10 +7,12 @@ publish = false
 [workspace]
 
 [features]
+display-mask = ["dep:conduit-face", "dep:conduit-seven-segment-mask"]
 face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["dep:conduit-pulse-capture"]
 
 [dependencies]
+conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", optional = true }
 conduit-environment-face = { path = "../face", optional = true }
 conduit-face = { path = "../../../semantics/face", default-features = false, optional = true }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", optional = true }

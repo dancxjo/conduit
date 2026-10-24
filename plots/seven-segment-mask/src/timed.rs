@@ -15,6 +15,15 @@ impl TimedSevenSegmentMask {
             pages: Alternation::new(period_ms, lifetime_ms)?,
         })
     }
+    /// Resolve both pages once; the owned result retains no Face borrow or
+    /// quantities, and creates no clock, output caller or active manifestation.
+    pub fn prepare_show(
+        &self,
+        face: &PreparedEnvironmentFace<'_>,
+        profile: &Tm1637Profile,
+    ) -> Result<PreparedAlternatingShow, ShowPreparationRefusal> {
+        PreparedAlternatingShow::prepare(face, &self.look, self.pages, profile)
+    }
     pub fn render<'a>(
         &self,
         face: &PreparedEnvironmentFace<'a>,
