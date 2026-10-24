@@ -1,0 +1,26 @@
+{
+  "proof_class": "control-flow join repair and retained fixed-location CPU model; no flash",
+  "source_commit_before_change": "19abd2dd7",
+  "pr_source_commit": "682c912d07eaf2d8a6c62861af3a6fa0c7d72c0a",
+  "pr_full_plot_passed_tests": 876,
+  "pr_full_plot_test_targets": 100,
+  "pr_full_plot_excludes_fixed_location_followup": true,
+  "main_focused_passed_tests": 68,
+  "pointer_bits": 64,
+  "before_packet_source_bytes": 8608,
+  "after_packet_source_bytes": 4576,
+  "original_packet_source_bytes": 26912,
+  "recurring_allocations": 0,
+  "compact_structured_tape_implemented": true,
+  "fixed_input_projection_locations_implemented": true,
+  "tape_profile": "bounded constructor tape with fixed input-node copies and join-safe constant coalescing; variable selections retain ordinary evaluators",
+  "mcu_heap_delta_measured": false,
+  "combined_admission_claimed": false,
+  "code_sha256": {
+    "architecture/plot/src/expression_prepared/fixed_projection.rs": "ea07583667ef8ced7657b6c0b1cb4ffd4908cf220a7e38d6a965692d436e7b11",
+    "architecture/plot/src/expression_prepared/structured_tape.rs": "b2cbbeb714b27c47d9b10a54ef7622790aa5d13387729122015a8087f5cac385",
+    "architecture/plot/tests/prepared_fixed_projection.rs": "f7e8f5cb2973dabf12c9bfb7636aad4c306a933e31cbea70e7b320b6ef028254",
+    "architecture/plot/tests/prepared_structured_tape.rs": "5291b59af16fcb24014e1e6c6c643e4aefb1f12a555f8941b1348c2c6999dca7",
+    "architecture/plot/tests/prepared_literal_children.rs": "471a8c6264a7f463b94078bdf278769a761e6c693c2eea532e92c150ec3db370"
+  }
+}

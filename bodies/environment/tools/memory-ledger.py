@@ -58,7 +58,7 @@ def ledger(sampling_image=None, output_image=None):
         "sampling": EVIDENCE / "2026-10-24-constructor-tape-hardware/sampling.json",
         "output": EVIDENCE / "2026-10-24-constructor-tape-hardware/output.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
-        "expression_cpu": EVIDENCE / "2026-10-24-fixed-input-locations/measurement.json",
+        "expression_cpu": EVIDENCE / "2026-10-24-tape-join-repair/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
@@ -82,6 +82,10 @@ def ledger(sampling_image=None, output_image=None):
     remote_items = re.search(r"new_with_remote_storage\(\s*slots,\s*sign_bytes,\s*(\d+)", output_storage.read_text())
     if len(sign_items) != 1 or remote_items is None:
         raise ValueError("output record storage changed; renew ledger parser")
+    output_construction = ROOT / "targets/esp32/proof/tm1637/src/native_display_install.rs"
+    frame_limit = re.search(r"const CONSTRUCTION_FRAMES: u32 = (\d+);", output_construction.read_text())
+    if frame_limit is None or int(frame_limit[1]) == 0:
+        raise ValueError("output construction work limit changed; renew ledger parser")
     forms = ROOT / "plots/device-protocols/dht11.conduit"
     temperature = re.search(r"^form device/dht11-temperature = Temperature as i(\d+)le", forms.read_text(), re.M)
     humidity = re.search(r"^form device/dht11-humidity = Ratio as u(\d+)le", forms.read_text(), re.M)
@@ -115,7 +119,7 @@ def ledger(sampling_image=None, output_image=None):
         "inventory": {
             "sampling_value_payload": {"bytes": sum(capacities), "slot_capacities": capacities, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "extent_basis": "Make ceiling from all independently checked payload Types; slot count unchanged", "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
-            "output_sign_records": {"ordinary_items": int(sign_items.pop()), "remote_items": int(remote_items[1]), "class": "persistent mutable", "derived_minimum": None},
+            "output_sign_records": {"ordinary_items": int(sign_items.pop()), "remote_items": int(remote_items[1]), "native_construction_diagnostic_maximum_frames": int(frame_limit[1]), "class": "persistent mutable", "derived_minimum": None},
             "mask_cpu": {"bytes": mask["after_mask_owner_bytes"], "heap_bytes": mask["after_mask_requested_heap_peak_bytes"], "pointer_bits": mask["pointer_bits"], "mcu_size_bytes": None},
             "packet_expression_cpu": {"before_bytes": expression_cpu["before_packet_source_bytes"], "after_bytes": expression_cpu["after_packet_source_bytes"], "pointer_bits": expression_cpu["pointer_bits"], "mcu_size_bytes": None, "compact_structured_tape_implemented": expression_cpu["compact_structured_tape_implemented"], "profile": expression_cpu["tape_profile"]},
             "quantity_pair_form": {"bytes": (int(temperature[1]) + int(humidity[1])) // 8, "types": ["Temperature", "Ratio"], "includes_status_clock_or_provenance": False, "selected_for_local_cords": False},
@@ -138,7 +142,7 @@ def ledger(sampling_image=None, output_image=None):
         },
         "inputs": {name: {"path": str(path.relative_to(ROOT)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for name, path in inputs.items()},
     }
-    for name, path in [("sampling_storage_source", storage), ("output_storage_source", output_storage), ("output_linked_layout", linked_layout), ("quantity_form_source", forms)]:
+    for name, path in [("sampling_storage_source", storage), ("output_storage_source", output_storage), ("output_linked_layout", linked_layout), ("output_construction_source", output_construction), ("quantity_form_source", forms)]:
         result["inputs"][name] = {"path": str(path.relative_to(ROOT)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
     for name, image in [("sampling_face", sampling_image), ("output_held", output_image)]:
         if image is not None:
@@ -166,7 +170,7 @@ def markdown(value):
         f"| Local representations | Existing quantity-pair Forms total {value['inventory']['quantity_pair_form']['bytes']} B; semantic Types remain Temperature and Ratio | Admit compact local cord representations; separately retain status, clocks and provenance |",
         "| Scratch | No combined lifetime allocation exists | Include fan-out, pending calls, refusal and cancellation |",
         "| Construction | Output descriptors retire after transfer; schemas and expression trees remain in other paths | Bound transient peaks and every last-use release |",
-        f"| Execution records | Output reserves {value['inventory']['output_sign_records']['ordinary_items']} ordinary and {value['inventory']['output_sign_records']['remote_items']} remote records | Derive mandatory retention; do not discard required evidence |",
+        f"| Execution records | Output reserves {value['inventory']['output_sign_records']['ordinary_items']} ordinary and {value['inventory']['output_sign_records']['remote_items']} remote records for the current {value['inventory']['output_sign_records']['native_construction_diagnostic_maximum_frames']}-Frame native diagnostic | Derive mandatory retention; do not discard required evidence |",
         f"| Root peaks | Sampling/Face {sampling['preparation_and_run_peak_bytes']:,} B; dormant output preparation {output['preparation_peak_bytes']:,} B | Measure combined preparation and execution separately |",
         f"| Retained Root | Dormant output {output['dormant_retained_bytes']:,} B; sampler observed at {min(sampling['observed_sampling_used_bytes']):,}–{max(sampling['observed_sampling_used_bytes']):,} B across three publications | Do not label post-retirement memory as steady state |",
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",

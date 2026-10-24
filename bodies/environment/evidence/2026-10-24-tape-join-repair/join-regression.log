@@ -1,0 +1,39 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 4.27s
+     Running tests/bme280_lifecycle.rs (target/environment-literal-focus/debug/deps/bme280_lifecycle-9071bbdecd795acf)
+
+running 11 tests
+test automatic_clock_event_adapters_check_and_prepare_as_ordinary_source ... ok
+test lifecycle_policy_is_checked_source_and_prepares_without_device_code ... ok
+test preparation_footprint_is_finite_and_reported ... ok
+test transcript::clock_events_do_not_repeat_an_in_flight_transaction ... ok
+test transcript::every_clock_failure_is_preserved_and_terminates_without_inventing_time ... ok
+test transcript::identity_short_bus_loss_and_unexpected_events_refuse_without_new_requests ... ok
+test transcript::one_event_advances_one_phase_and_deadlines_use_monotonic_time ... ok
+test transcript::polling_exhaustion_and_stale_clock_are_explicit ... ok
+test transcript::prepared_transition_reuse_never_allocates_or_grows ... ok
+test transcript::source_initializer_accepts_only_the_two_protocol_addresses ... ok
+test transcript::waiting_retains_observed_time_and_rejects_a_later_stale_event ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 58.64s
+
+     Running tests/device_frames.rs (target/environment-literal-focus/debug/deps/device_frames-c1614bcac15843bf)
+
+running 3 tests
+test byte_access_distinguishes_short_from_malformed_and_never_reads_padding ... ok
+test concatenation_preserves_actual_bytes_and_excludes_padding ... ok
+test repeated_frame_composition_uses_only_admitted_storage ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.06s
+
+     Running tests/prepared_structured_tape.rs (target/environment-literal-focus/debug/deps/prepared_structured_tape-39afeda27e03c85b)
+
+running 5 tests
+test conditional_join_preserves_following_common_record_field_headers ... ok
+test deep_constructors_keep_ordinary_eligibility_and_canonical_parity ... ok
+test exceeding_tape_value_capacity_keeps_the_ordinary_prepared_path ... ok
+test tape_eligibility_never_accepts_duplicate_record_fields ... ok
+test tuple_fields_have_the_same_canonical_names_and_order ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+

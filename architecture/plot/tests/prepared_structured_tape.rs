@@ -99,3 +99,15 @@ fn tape_eligibility_never_accepts_duplicate_record_fields() {
     assert!(Evaluator::new(&invalid).is_err());
     assert!(invalid.evaluate(&[1]).is_err());
 }
+
+#[path = "common/structured_expression.rs"]
+mod source;
+#[test]
+fn conditional_join_preserves_following_common_record_field_headers() {
+    let program = source::compile(
+        "type Row = {\n choice: collection U8 = 2\n tail: U8\n}\n\
+         plot row (\n value: U8 >> row: Row\n) = ({choice: (. > 127 ? [1, 2] : [3, 4]), tail: .})",
+        "row",
+    );
+    parity(&program, &(0..=255).collect::<Vec<_>>());
+}
