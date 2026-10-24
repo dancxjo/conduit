@@ -17,3 +17,7 @@ panic = "abort"
 opt-level = "z"
 codegen-units = 1
 lto = "fat"
+
+# Optimize the private JSON decoder for speed within the fixed image window.
+[profile.release.package.serde_json]
+opt-level = 3
