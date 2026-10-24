@@ -22,16 +22,27 @@ impl PreparedObservationQuantityForms {
 
     pub fn prepare(contract: &ObservationContract) -> Result<Self, R> {
         let ty = contract.observation_type();
-        let leaf = |name| {
+        let leaf = |name, schema| {
             let ty = field(ty, name)?;
-            Composer::new(ty, ty.canonical_bytes()?.len() + 5 + QUANTITY_ENCODED_LEN)
+            Composer::with_static_schema(
+                ty,
+                schema,
+                ty.canonical_bytes()?.len() + 5 + QUANTITY_ENCODED_LEN,
+            )
         };
         Ok(Self {
             validator: PreparedStructuredValueValidator::new(ty, MAXIMUM_BYTES as usize)?,
-            temperature: leaf("temperature")?,
-            humidity: leaf("humidity")?,
-            observation: Composer::new(
+            temperature: leaf(
+                "temperature",
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-temperature.type")),
+            )?,
+            humidity: leaf(
+                "humidity",
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-humidity.type")),
+            )?,
+            observation: Composer::with_static_schema(
                 ty,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation.type")),
                 crate::canonical_storage::bytes(ty, MAXIMUM_BYTES as usize)?,
             )?,
         })

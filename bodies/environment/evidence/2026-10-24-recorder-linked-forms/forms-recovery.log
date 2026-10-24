@@ -1,0 +1,37 @@
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/composite)
+    Finished `test` profile [unoptimized] target(s) in 1.48s
+     Running tests/observation_forms.rs (target/environment-lean-host/debug/deps/observation_forms-43f5ace1e87522e4)
+
+running 2 tests
+test compact_storage_refuses_inexact_overflowing_truncated_and_wrong_type_values ... ok
+test authored_quantity_forms_round_trip_exact_observations_without_play_allocations ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/recording_recovery.rs (target/environment-lean-host/debug/deps/recording_recovery-8d9ddb9fba8b8fe6)
+
+running 20 tests
+test reference_source::reference_order_is_commit_owned_and_pressure_cancellation_and_empty_are_explicit ... ok
+test reference_source::source_refuses_over_budget_duplicate_or_non_snapshot_references ... ok
+test back::only_committed_consumption_advances_recovery_and_cancellation_discards_staging ... ok
+test temporal::singleton_commit_preserves_value_identity_without_allocating_or_repeating ... ok
+test back::committed_recovery_projects_into_the_ordinary_recording_face ... ok
+test temporal::cancelled_or_missing_single_value_is_not_an_empty_successful_flow ... ok
+test back::committed_chunks_expose_boundary_gaps_and_refusal_cannot_replace_them ... ok
+test history::empty_admission_refuses_and_standalone_reader_does_not_inherit_history ... ok
+test corrupted_records_refuse_atomically_without_replacing_prior_recovery ... ok
+test history::boundary_replay_clock_foreign_context_and_corruption_refuse_atomically ... ok
+test back::kernel_recovery_requires_successful_read_completion_and_valid_content ... ok
+test wrong_identity_form_clock_and_noncanonical_json_cannot_be_reinterpreted ... ok
+test recovered_quantities_failures_and_gaps_require_no_play_allocations ... ok
+test history::ordered_chunks_preserve_quantities_failures_and_boundary_gaps_without_allocations ... ok
+test history::admitted_sixty_four_chunk_history_has_no_hidden_eviction_or_growth ... ok
+test full_chunk_recovers_but_truncation_or_sixty_fifth_record_refuses ... ok
+test installation::initialized_recovery_is_selected_once_and_historical_context_is_independent ... ok
+test installation::wrong_advertisement_or_resealed_selection_cannot_consume_the_retained_back ... ok
+test reference_source::actual_reference_source_is_planned_and_transferred_without_storage_authority ... ok
+test installation::recovery_owner_refuses_ambiguous_or_changed_checked_meaning ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+

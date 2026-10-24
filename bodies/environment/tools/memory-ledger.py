@@ -65,7 +65,7 @@ def ledger(sampling_image=None, output_image=None):
         "linked_schema_cpu": EVIDENCE / "2026-10-24-publication-sink/schema-compatibility.json",
         "prepared_show_cpu": EVIDENCE / "2026-10-24-prepared-alternating-show/measurement.json",
         "publication_sink_cpu": EVIDENCE / "2026-10-24-publication-sink/measurement.json",
-        "native_file_sink_cpu": EVIDENCE / "2026-10-24-recorder-sign-storage/measurement.json",
+        "native_file_sink_cpu": EVIDENCE / "2026-10-24-recorder-linked-forms/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
@@ -226,7 +226,7 @@ def markdown(value):
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
         f"| Resolved page material, CPU only | {value['inventory']['prepared_show_cpu']['inline_bytes']} inline bytes, no heap allocation | Additional to the existing Mask/encoder; no native timer, caller or effect admission credited |",
         f"| Publication sink, CPU only | Exact test invocation future {value['inventory']['publication_sink_cpu']['sink_future_bytes']:,} B | Excludes sink backing and task pool; updated native worker physical high water remains unmeasured |",
-        "| File sink preparation, CPU64 | Fifteen owners: retained 932,905 B, peak 2,477,805 B; sink 616 inline B, reference Vec 24 inline B, worker future 3,648 B | Excludes producer, catalog/State, OS, allocator overhead and stack; complete recorder admission remains unproven |",
+        "| File sink preparation, CPU64 | Fifteen owners: retained 918,265 B, peak 2,463,165 B; sink 616 inline B, reference Vec 24 inline B, worker future 3,648 B | Excludes producer, catalog/State, OS, allocator overhead and stack; complete recorder admission remains unproven |",
         "| Native/file bridge, CPU only | 960 readings in fifteen committed chunks, catalog publication and fresh-Boot Body State discovery | Native sample phase allocates no Rust heap; Line/grants and complete checkpoint backing remain unproven |",
         f"| Network construction, CPU only | Fresh preparation peak {value['inventory']['network_preparation_cpu']['fresh_preparation_peak_bytes']:,} B; retained Plan/lowering {value['inventory']['network_preparation_cpu']['prepared_plan_and_lowering_retained_bytes']:,} B | Not an MCU bound; excludes concurrent sampling and radio effects |",
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
