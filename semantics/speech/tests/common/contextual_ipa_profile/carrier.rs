@@ -3,6 +3,8 @@ use super::declaration::*;
 use conduit_language::*;
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_speech::{ipa_constructors::IpaConstructor, semantic::*};
+// The shared helper also exports a scoped constructor unused by this fixture.
+#[allow(dead_code)]
 #[path = "../committed_carrier/constructors.rs"]
 mod constructors;
 pub fn intent() -> SpeechUtteranceIntent {
@@ -140,7 +142,7 @@ pub fn syllables() -> Vec<SpeechSyllableSource> {
         .map(|i| {
             let ipa = SpeechPhoneticTranscription::decode(&constructors::universal(
                 IpaConstructor::Phonetic,
-                if i % 2 == 0 { "tʰa" } else { "ta" },
+                if i % 2 == 0 { "tʰɑ" } else { "tɑ" },
                 evidence(),
             ))
             .unwrap();

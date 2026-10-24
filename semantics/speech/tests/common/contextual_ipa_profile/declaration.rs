@@ -1,4 +1,4 @@
-//! G1@1: manually supplied /tata/ words; initial /t/ aspirates, medial /t/ does not.
+//! G1@1: manually supplied /tɑtɑ/ words; initial /t/ aspirates, medial /t/ does not.
 //! This declares facts, not a text pronunciation rule or a universal language claim.
 use conduit_core::IeeeF32;
 use conduit_language::*;
@@ -162,14 +162,14 @@ pub fn inventory(unsupported: bool) -> SpeechInventory {
                 Some(pid(id)),
                 SpeechFeatureBundle::new(seq([])).unwrap(),
                 PhonemeId::new(format!("g1/phoneme/{id}")).unwrap(),
-                id.into(),
+                if id == "a" { "ɑ" } else { id }.into(),
                 seq([]),
                 SpeechSegmentStatus::Core,
             )
             .unwrap()
         })),
         seq(
-            [("t", "t"), ("aspirated-t", "tʰ"), ("a", "a")].map(|(id, ipa)| {
+            [("t", "t"), ("aspirated-t", "tʰ"), ("a", "ɑ")].map(|(id, ipa)| {
                 SpeechPhone::new(
                     seq([]),
                     SpeechFeatureBundle::new(seq([])).unwrap(),
@@ -191,7 +191,7 @@ pub fn profile() -> SpeechIpaNotationProfile {
         evidence(),
         SpeechSegmentRevisionId::new("g1/inventory/1".into()).unwrap(),
         seq(
-            [("t", "t"), ("aspiration", "tʰ"), ("a", "a")].map(|(id, spelling)| {
+            [("t", "t"), ("aspiration", "tʰ"), ("a", "ɑ")].map(|(id, spelling)| {
                 SpeechIpaUnitDefinition::new(
                     SpeechIpaUnitId::new(id.into()).unwrap(),
                     SpeechIpaUnitKind::Segment,

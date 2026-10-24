@@ -146,7 +146,7 @@ fn declared_g1_selects_initial_aspiration_and_medial_plain_without_rewriting_com
             } else if n % 2 == 0 {
                 "t"
             } else {
-                "a"
+                "ɑ"
             }
         );
         assert_eq!(

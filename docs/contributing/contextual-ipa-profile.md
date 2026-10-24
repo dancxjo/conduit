@@ -1,10 +1,11 @@
 # Declared contextual IPA profile G1@1
 
 The finite conformance specimen in `semantics/speech/tests/contextual_ipa_profile.rs`
-uses the manually supplied text `tata tata tata`, phonemic /tata/, and an explicit
+uses the manually supplied text `tata tata tata`, phonemic /tɑtɑ/, and an explicit
 versioned IPA profile `g1/contextual-ipa@1`. Its declared Variety is
 `g1/declared-careful-tata`, with inventory revision `g1/inventory/1`.
-This is a small declared profile, not a universal English pronunciation rule.
+The spelling `tata` names manually declared /tɑtɑ/; [ɑ] matches the existing
+compact voice binding. This is a small declared profile, not a universal English pronunciation rule.
 
 The inventory selects [tʰ] for word-initial /t/ and default [t] for medial /t/.
 The specimen retains primary versus unstressed syllables, source occurrence
