@@ -149,7 +149,7 @@ def ledger(sampling_image=None, output_image=None):
             "historical_composer_software_cpu": composer_cpu,
             "sampling_value_payload": {"bytes": sum(capacities), "slot_capacities": capacities, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "extent_basis": "Make ceiling from all independently checked payload Types; slot count unchanged", "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
-            "output_sign_records": {"ordinary_items": None, "remote_items": sign_budget["remote_items"], "cpu_observed_ordinary_items": sign_budget["cpu_ordinary_items"], "cpu_observed_storage_bytes": sign_budget["cpu_storage_bytes"], "mcu_storage_bytes": None, "ordinary_items_formula": sign_budget["ordinary_items_formula"], "native_construction_diagnostic_maximum_frames": int(frame_limit[1]), "class": "persistent mutable", "derived_minimum": None, "derived_upper_bound_proven_for_finite_profile": True, "continuing_retention_or_handoff_proven": False},
+            "output_sign_records": {"ordinary_items": None, "remote_items": sign_budget["remote_items"], "cpu_observed_ordinary_items": sign_budget["cpu_ordinary_items"], "cpu_observed_storage_bytes": sign_budget["cpu_storage_bytes"], "mcu_storage_bytes": None, "ordinary_items_formula": sign_budget["ordinary_items_formula"], "native_construction_diagnostic_maximum_frames": int(frame_limit[1]), "class": "persistent mutable", "derived_minimum": None, "derived_upper_bound_proven_for_finite_profile": True, "continuing_retention_or_handoff_proven": False, "retention_policy": "All mandatory local-Fore lifecycle records remain retained for the finite diagnostic; no rolling acknowledged handoff is admitted", "per_input_remote_records_upper_bound": 4},
             "mask_cpu": {"bytes": mask["after_mask_owner_bytes"], "heap_bytes": mask["after_mask_requested_heap_peak_bytes"], "pointer_bits": mask["pointer_bits"], "mcu_size_bytes": None},
             "packet_expression_cpu": {"before_bytes": expression_cpu["before_packet_source_bytes"], "after_bytes": expression_cpu["after_packet_source_bytes"], "pointer_bits": expression_cpu["pointer_bits"], "mcu_size_bytes": None, "compact_structured_tape_implemented": expression_cpu["compact_structured_tape_implemented"], "profile": expression_cpu["tape_profile"]},
             "quantity_pair_form": {"bytes": (int(temperature[1]) + int(humidity[1])) // 8, "types": ["Temperature", "Ratio"], "includes_status_clock_or_provenance": False, "selected_for_local_cords": False},
@@ -166,6 +166,7 @@ def ledger(sampling_image=None, output_image=None):
                 "Type-derived value extents and overlap including fan-out, pending calls, refusals and cancellation",
                 "Preparation liveness and last-use release for descriptions and temporary schemas",
                 "Continuing Mask mandatory-record retention or explicit handoff over its admitted lifetime",
+                "Admitted page timing and cancellation while preserving one exact Face revision per finite Show",
                 "Linked combined immutable material, static RAM and measured stack bound",
                 "Concurrent sensing/rendering and AP/join/fallback SDK high water",
             ],
@@ -210,6 +211,7 @@ def markdown(value):
         f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
         f"The output capture used {sum(output['captured_value_slot_capacities']):,} payload bytes and the linked work-derived sign budget. Its measured retained/peak totals apply to the finite native construction profile. Continuing renderer retention, shared backing and combined execution remain unproven.", "",
         f"The sampling hardware capture used {sum(sampling['source_value_slot_capacities']):,} payload bytes according to its source profile. Current sampling backing is {value['inventory']['sampling_value_payload']['bytes']:,} bytes; the earlier hardware totals are not measurements of that revision.", "",
+        "The output sign profile admits two input Frames, including semantic refusals. It retains every mandatory Fore lifecycle record; optional telemetry eviction does not release those records. Reusing this storage for continuing pages requires a separately admitted retention/handoff contract or a proven realization that removes intermediate Fore exchanges. No reset or rolling acknowledgement is credited here.", "",
         "The CPU Mask figure and separately captured MCU profiles are intentionally not combined numerically. Source identities and input hashes are in memory-ledger.json.", "",
     ]
     if all("linked_image" in p for p in profiles.values()):
