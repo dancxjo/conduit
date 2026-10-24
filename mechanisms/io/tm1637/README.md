@@ -51,8 +51,11 @@ or prove physical delivery.
 `ReadyWriteBase` retains the actual provider before projecting its Ready Base,
 resource and zero-result offer through the existing registry. A foreign Boot or
 colliding advertisement refuses without mutation or electrical work. Native
-identity remains independent of assignment bytes. Both contiguous and borrowed
-assigned projections use the ordinary exact binder. Claim/identity, assignment,
+identity remains independent of assignment bytes. Ordinary selected Plans use
+`ReadyWriteBase::bind_selected_retained`: native identity, exact ordinary
+lowering, capability possession and codec preparation all pass before taking
+the initialized provider. Refusal leaves that same provider in Root's slot.
+Both contiguous and borrowed assigned projections use the ordinary exact binder. Claim/identity, assignment,
 capability bounds and packet codec preparation all finish before
 `bind_assigned_retained` takes Root's slot; refusal preserves the provider.
 The assigned tests drop the assignment storage before allocation-free invocation,
