@@ -1,0 +1,94 @@
+{
+  "status": "passed",
+  "source": "cc51be1376775bd5ffd77845ff1c3e3fc3a6c02a",
+  "producer_source": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "three_fixture_paths": [
+    "site/evidence/shared-speech-carrier/manifest.json",
+    "site/evidence/shared-speech-carrier/you-would.json",
+    "site/evidence/shared-speech-carrier/you-would.native"
+  ],
+  "manifest_sha256": "51f176101d3b76274cc4b944823c09aade86d105f14c4c141eeda8c3e3b1a98d",
+  "producer_manifest_exact_source_command_and_3bytes_verified": true,
+  "WAV_unchanged": true,
+  "all_Language_and_Speech_source_subtrees_unchanged": true,
+  "validation_steps_verified": [
+    {
+      "name": "publication-negative-controls",
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "proof/ci/pipeline-shared-speech-evidence.spec.mjs"
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-fixture-publication-negative-controls.log",
+      "sha256": "548db8279baaed577f419a56b20cf065dc6b5948444efb7cc77254fa68453bb7",
+      "exit_code": 0,
+      "actual_passed": 11,
+      "expected_passed": 11
+    },
+    {
+      "name": "owning-speech-regressions",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-speech",
+        "--features",
+        "semantic-bindings,kernel",
+        "--test",
+        "carried_formant",
+        "--test",
+        "shared_carrier_projections",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-fixture-owning-speech-regressions.log",
+      "sha256": "66874490add05644b885910b731009c61a458d2458f57b37329dadb266faa1aa",
+      "exit_code": 0,
+      "actual_passed": 8,
+      "expected_passed": 8
+    },
+    {
+      "name": "owning-speech-strict-lint",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-speech",
+        "--features",
+        "semantic-bindings,kernel",
+        "--test",
+        "carried_formant",
+        "--test",
+        "shared_carrier_projections",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-fixture-owning-speech-strict-lint.log",
+      "sha256": "0493c3f9a3ee328dba027e00f057579a726f861796947466f365fa929df512ce",
+      "exit_code": 0,
+      "actual_passed": 0,
+      "expected_passed": 0
+    }
+  ],
+  "actual_Running_bindings": [
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/deps/carried_formant-2148b0a5f0c868f0",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/deps/shared_carrier_projections-363399ae9cf10ae9"
+  ],
+  "limits": [
+    "Produceractual002b distinctfromfixturecommitcc51; original1e1a9fixtureandfirstsparsecompilefailurepreserved.",
+    "No originalownerbranchmutation/hostedCI/normaldelivery/Integration/sharedpublication/parent4907/physical/listeningclaim.",
+    "RawRustproducer+reloadcarrysemanticproof; thisauditjoinsactualsource/file/command/log/executablecustody."
+  ],
+  "actual_owning_tests": 8,
+  "actual_publication_controls": 11,
+  "strict_scope": "conduit-speech carried_formant+shared_carrier_projections only; semantic-bindings,kernel; -Dwarnings",
+  "actual_ELFs_rehashed": 284,
+  "producer225_unchanged_receipt_verified": true
+}

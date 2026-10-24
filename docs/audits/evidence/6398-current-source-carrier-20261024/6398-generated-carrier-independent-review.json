@@ -1,0 +1,929 @@
+{
+  "status": "passed",
+  "source": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "producer_receipt_sha256": "b397a12caa521fd3e26753f028bf6d60e58b6d883441908d96d92ef2f92d6a3e",
+  "producer_command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "prove",
+    "journey",
+    "native-speech",
+    "--output",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh",
+    "--shared-carrier-only"
+  ],
+  "raw_log_sha256": "4dc984f3da76cff91416a273f6a78bcb25ee8dee1b0be304a707eefe998e0d49",
+  "actual_Rust_producer_and_fresh_reload_tests": 2,
+  "all26_structural_fields": [
+    {
+      "index": 0,
+      "name": "source",
+      "unchanged": true,
+      "old_bytes": 2172,
+      "new_bytes": 2172,
+      "old_sha256": "339c1084689979600c367c85a193129fae76da322f35fe1cf7b69c896f416d59",
+      "new_sha256": "339c1084689979600c367c85a193129fae76da322f35fe1cf7b69c896f416d59"
+    },
+    {
+      "index": 1,
+      "name": "intent",
+      "unchanged": true,
+      "old_bytes": 25385,
+      "new_bytes": 25385,
+      "old_sha256": "a0f54c3593af8d4429240860b3f99bbdeb70e2b11896cd7b7944df494384efb5",
+      "new_sha256": "a0f54c3593af8d4429240860b3f99bbdeb70e2b11896cd7b7944df494384efb5"
+    },
+    {
+      "index": 2,
+      "name": "phonemes",
+      "unchanged": true,
+      "old_bytes": 12729,
+      "new_bytes": 12729,
+      "old_sha256": "8bb63cbea6019a20da99225d4dd3b0bd88c87767141ca1ee5d8e733a62a473c2",
+      "new_sha256": "8bb63cbea6019a20da99225d4dd3b0bd88c87767141ca1ee5d8e733a62a473c2"
+    },
+    {
+      "index": 3,
+      "name": "phones",
+      "unchanged": true,
+      "old_bytes": 8587,
+      "new_bytes": 8587,
+      "old_sha256": "4a95538c4357f2ddfc78b5f432ef26d4285f6a3545aefa38883377fed2a03533",
+      "new_sha256": "4a95538c4357f2ddfc78b5f432ef26d4285f6a3545aefa38883377fed2a03533"
+    },
+    {
+      "index": 4,
+      "name": "definitions",
+      "unchanged": true,
+      "old_bytes": 25296,
+      "new_bytes": 25296,
+      "old_sha256": "3812fdcee5aac08d984df42ef233c5d59b410d1e33add9eea59ac7f1cbdab7a3",
+      "new_sha256": "3812fdcee5aac08d984df42ef233c5d59b410d1e33add9eea59ac7f1cbdab7a3"
+    },
+    {
+      "index": 5,
+      "name": "notation_profile",
+      "unchanged": true,
+      "old_bytes": 5883,
+      "new_bytes": 5883,
+      "old_sha256": "15f46b3e1ffc4df76fb3ec49b8418d9360047aa7e5b62f6a13d63d089043b3e7",
+      "new_sha256": "15f46b3e1ffc4df76fb3ec49b8418d9360047aa7e5b62f6a13d63d089043b3e7"
+    },
+    {
+      "index": 6,
+      "name": "alignment",
+      "unchanged": true,
+      "old_bytes": 16521,
+      "new_bytes": 16521,
+      "old_sha256": "a1b42aee142759b4ac7186fb0830d29553803a697133613073129544baacbd88",
+      "new_sha256": "a1b42aee142759b4ac7186fb0830d29553803a697133613073129544baacbd88"
+    },
+    {
+      "index": 7,
+      "name": "syllables",
+      "unchanged": true,
+      "old_bytes": 24242,
+      "new_bytes": 24242,
+      "old_sha256": "baff5b59369109e3cab6ed874c9bbd08d552ab3108fce1a47ba4acf0c5159203",
+      "new_sha256": "baff5b59369109e3cab6ed874c9bbd08d552ab3108fce1a47ba4acf0c5159203"
+    },
+    {
+      "index": 8,
+      "name": "positioned_boundaries",
+      "unchanged": true,
+      "old_bytes": 14333,
+      "new_bytes": 14333,
+      "old_sha256": "b4e86c8b6f59365b3d68dae639e82615f1afd7ca02d14a1c3a0891f69cdd2e49",
+      "new_sha256": "b4e86c8b6f59365b3d68dae639e82615f1afd7ca02d14a1c3a0891f69cdd2e49"
+    },
+    {
+      "index": 9,
+      "name": "word_phonemes",
+      "unchanged": true,
+      "old_bytes": 36481,
+      "new_bytes": 36481,
+      "old_sha256": "272380164578e8499d93bd5794723cf6c54b197f7cee6f74b53143730aa95579",
+      "new_sha256": "272380164578e8499d93bd5794723cf6c54b197f7cee6f74b53143730aa95579"
+    },
+    {
+      "index": 10,
+      "name": "formant",
+      "unchanged": true,
+      "old_bytes": 4708,
+      "new_bytes": 4708,
+      "old_sha256": "811d9d65533990de01e22617f402e24824b6206716f439aafee9b734d8287cdd",
+      "new_sha256": "811d9d65533990de01e22617f402e24824b6206716f439aafee9b734d8287cdd"
+    },
+    {
+      "index": 11,
+      "name": "boundaries",
+      "unchanged": true,
+      "old_bytes": 813,
+      "new_bytes": 813,
+      "old_sha256": "649f529f07e71cf1b13916be9f8fb12dd2cb187eb734dddaca1cc29afb8bcf47",
+      "new_sha256": "649f529f07e71cf1b13916be9f8fb12dd2cb187eb734dddaca1cc29afb8bcf47"
+    },
+    {
+      "index": 12,
+      "name": "commit_request",
+      "unchanged": true,
+      "old_bytes": 28813,
+      "new_bytes": 28813,
+      "old_sha256": "bcd047c09de9d294d48211ff1de9aaac9698ddca9d78b3a232300611c39e689e",
+      "new_sha256": "bcd047c09de9d294d48211ff1de9aaac9698ddca9d78b3a232300611c39e689e"
+    },
+    {
+      "index": 13,
+      "name": "commit_result",
+      "unchanged": true,
+      "old_bytes": 28422,
+      "new_bytes": 28422,
+      "old_sha256": "60ca03e866587a7e37e332ff8178ab85f86815f024ae91e6947e0a41cdc50cc7",
+      "new_sha256": "60ca03e866587a7e37e332ff8178ab85f86815f024ae91e6947e0a41cdc50cc7"
+    },
+    {
+      "index": 14,
+      "name": "admission",
+      "unchanged": false,
+      "old_bytes": 2758,
+      "new_bytes": 2758,
+      "old_sha256": "abc41bc1b9939b69d078861fa3179752d4d3c03a1c28998a51e33d4914f5e6f6",
+      "new_sha256": "64c06c905ae0ca4509f86501b96045ca166fc5fd9a1aad1b042ba52ebb2613ad"
+    },
+    {
+      "index": 15,
+      "name": "model_correspondence",
+      "unchanged": true,
+      "old_bytes": 206471,
+      "new_bytes": 206471,
+      "old_sha256": "6234147d3e79ed12ce15c527364fddb3607b45a5ed60662bb7f6d5251cf5271c",
+      "new_sha256": "6234147d3e79ed12ce15c527364fddb3607b45a5ed60662bb7f6d5251cf5271c"
+    },
+    {
+      "index": 16,
+      "name": "projection_bytes",
+      "unchanged": false,
+      "old_bytes": 421011,
+      "new_bytes": 421011,
+      "old_sha256": "9b8923c6cd2c2daf56191c1640cc2e704ffbd12a9a017e473edc3df7516b1e85",
+      "new_sha256": "611e24d5447b84f15f7192c84d6d450ee45223a4fdcbd382f8a652372e014674"
+    },
+    {
+      "index": 17,
+      "name": "lexical_profile",
+      "unchanged": true,
+      "old_bytes": 2349,
+      "new_bytes": 2349,
+      "old_sha256": "654baa63490d1dad58b2bd28c11b4a93bbb324041016b4d99a6b3ca5808f00c0",
+      "new_sha256": "654baa63490d1dad58b2bd28c11b4a93bbb324041016b4d99a6b3ca5808f00c0"
+    },
+    {
+      "index": 18,
+      "name": "lexical_tape",
+      "unchanged": true,
+      "old_bytes": 8431,
+      "new_bytes": 8431,
+      "old_sha256": "aa5f90885b81c036f68787045b84c578d408769ea2a53a15fd1d6503eadaa2a9",
+      "new_sha256": "aa5f90885b81c036f68787045b84c578d408769ea2a53a15fd1d6503eadaa2a9"
+    },
+    {
+      "index": 19,
+      "name": "commitment_source",
+      "unchanged": true,
+      "old_bytes": 68170,
+      "new_bytes": 68170,
+      "old_sha256": "8225ee67cc14a9017ad8250582f3b4d7b5fdfce99bc9ceb1567b7942127a01d1",
+      "new_sha256": "8225ee67cc14a9017ad8250582f3b4d7b5fdfce99bc9ceb1567b7942127a01d1"
+    },
+    {
+      "index": 20,
+      "name": "sample_basis",
+      "unchanged": true,
+      "old_bytes": 807,
+      "new_bytes": 807,
+      "old_sha256": "35aaafe4310d6bf21bc38880d3b9be587081876f008a50ec2a71c78ffc150994",
+      "new_sha256": "35aaafe4310d6bf21bc38880d3b9be587081876f008a50ec2a71c78ffc150994"
+    },
+    {
+      "index": 21,
+      "name": "model_vocabulary",
+      "unchanged": true,
+      "old_bytes": 8347,
+      "new_bytes": 8347,
+      "old_sha256": "44a49ba775886ae98a3e37a59216af31fd677540e05bfe5a5ab7b334ebe88d15",
+      "new_sha256": "44a49ba775886ae98a3e37a59216af31fd677540e05bfe5a5ab7b334ebe88d15"
+    },
+    {
+      "index": 22,
+      "name": "model_checkpoint",
+      "unchanged": true,
+      "old_bytes": 8679,
+      "new_bytes": 8679,
+      "old_sha256": "9379e1d39fd06d5bcf202be36010c29d4b657b0b7bb5abcbcecb24a419c07e6f",
+      "new_sha256": "9379e1d39fd06d5bcf202be36010c29d4b657b0b7bb5abcbcecb24a419c07e6f"
+    },
+    {
+      "index": 23,
+      "name": "model_terminal_identity",
+      "unchanged": false,
+      "old_bytes": 32,
+      "new_bytes": 32,
+      "old_sha256": "3ddd0c861df66969c9f373ea97183b868996ea6fe54dd19f07175bc64e46efd3",
+      "new_sha256": "78d5b1abd94795f4eefe7b2f3b407015f8f89a3ecd83deaba45566253b179ffd"
+    },
+    {
+      "index": 24,
+      "name": "complete_carrier",
+      "unchanged": false,
+      "old_bytes": 812093,
+      "new_bytes": 812093,
+      "old_sha256": "bef29d12ffc16bcb99a46ab010ff5962c54bc01017105f17b1d1145da831f144",
+      "new_sha256": "b0dd9edf0055f7c6e78586291e69af6d7b2575f45f3738c1ef9ea75268dc803a"
+    },
+    {
+      "index": 25,
+      "name": "source_identity",
+      "unchanged": false,
+      "old_bytes": 32,
+      "new_bytes": 32,
+      "old_sha256": "bec0f9649d5ea9f3b52f6354c4a14dd6f61be988cd14b43ce4bd8ba52c56fa1c",
+      "new_sha256": "14222cee7dd6bd02403f7ec021888c9d041958f83fba0a23821b56b3437d8b6d"
+    }
+  ],
+  "changed_field_indexes": [
+    14,
+    16,
+    23,
+    24,
+    25
+  ],
+  "file_custody": {
+    "you-would.native": {
+      "old_sha256": "4f04c7cc73e67af2fb2d318b45a7a04b8b59f015e5953006aafde6b162b6f98c",
+      "old_bytes": 1773627,
+      "new_sha256": "f292560ee142b30ab3dab1ad6ff5356829ee74bcea08437e9422862cde0ad735",
+      "new_bytes": 1773627,
+      "unchanged": false
+    },
+    "you-would.wav": {
+      "old_sha256": "ef4d192fa9e12133953f5dfcdf057c868a9d37c09c8bef912ca3db5a837b283f",
+      "old_bytes": 8044,
+      "new_sha256": "ef4d192fa9e12133953f5dfcdf057c868a9d37c09c8bef912ca3db5a837b283f",
+      "new_bytes": 8044,
+      "unchanged": true
+    },
+    "you-would.json": {
+      "old_sha256": "4cbe7c21e1a5e7575e2904d438878c0f519bb4a149bf9a08958f0e06837e6e79",
+      "old_bytes": 35345,
+      "new_sha256": "184a882c6feb8d2214551df1f26ceea4c6ecc3617ddc4165a5a34b7e5f52e80f",
+      "new_bytes": 35345,
+      "unchanged": false
+    }
+  },
+  "report_correspondence": {
+    "source_identity": {
+      "old": "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e",
+      "new": "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b",
+      "unchanged": false
+    },
+    "projection_identity": {
+      "old": "411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee",
+      "new": "ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566",
+      "unchanged": false
+    },
+    "original_artifact_identity": {
+      "old": "e0a063596abd49a7af7189202021f620fa91b648acfda94bc4f7d1c2cb69401d",
+      "new": "e79e29677f31011fdc235190b7e08f092f8a5943d2cd2fdc2928656c5929bb88",
+      "unchanged": false
+    },
+    "wav_identity": {
+      "old": "9b9def016acb1b48f7395425d26232f0175f7e182b1c38dd0e62fdd60137f367",
+      "new": "9b9def016acb1b48f7395425d26232f0175f7e182b1c38dd0e62fdd60137f367",
+      "unchanged": true
+    },
+    "compiled_dsp_source": {
+      "old": "4d0897edd093a6e5a989430cf227805655409384bc4aa85a175e4b10177daca7",
+      "new": "4d0897edd093a6e5a989430cf227805655409384bc4aa85a175e4b10177daca7",
+      "unchanged": true
+    },
+    "speech_authoring_source": {
+      "old": "f95adad6234f12c9bcb1b9d6dc7e5e9b8829aa50741e8f53517a5dcaddbeef2f",
+      "new": "f95adad6234f12c9bcb1b9d6dc7e5e9b8829aa50741e8f53517a5dcaddbeef2f",
+      "unchanged": true
+    },
+    "native_schema_digests": {
+      "old": {
+        "AudioSampleRateBasis": "e7f01ff63c2189a09fb4cd83a462f998876f875bb62e4aefd15c75ab556469ed",
+        "SpeechIpaInventoryNotationBasis": "89d3a9566b3d133cd5f1950b81afc5095a60dc45f14a371d8319aff0eb555def",
+        "SpeechModelCheckpointProjection": "9aa3750871d887bbf8646a92a26cf7fd4b577bfbcc59dd1bd3801b3f4b0fa876",
+        "SpeechModelLinguisticVocabulary": "f9b0f8ac06906d175fe3ae7c716adae0875d323445f4aec54bc5387632e5c368",
+        "SpeechOfflinePcmAdmission": "c07c8c5c9767ca8f7f2053219d7300e2683878bb1f516969261a0b3727d951ec",
+        "SpeechUtteranceIntent": "a07d611735dcce86781cc9a710bf7925bb2c416e006ddfe20c0c2b2c2d2dfc8c"
+      },
+      "new": {
+        "AudioSampleRateBasis": "e7f01ff63c2189a09fb4cd83a462f998876f875bb62e4aefd15c75ab556469ed",
+        "SpeechIpaInventoryNotationBasis": "89d3a9566b3d133cd5f1950b81afc5095a60dc45f14a371d8319aff0eb555def",
+        "SpeechModelCheckpointProjection": "9aa3750871d887bbf8646a92a26cf7fd4b577bfbcc59dd1bd3801b3f4b0fa876",
+        "SpeechModelLinguisticVocabulary": "f9b0f8ac06906d175fe3ae7c716adae0875d323445f4aec54bc5387632e5c368",
+        "SpeechOfflinePcmAdmission": "c07c8c5c9767ca8f7f2053219d7300e2683878bb1f516969261a0b3727d951ec",
+        "SpeechUtteranceIntent": "a07d611735dcce86781cc9a710bf7925bb2c416e006ddfe20c0c2b2c2d2dfc8c"
+      },
+      "unchanged": true
+    },
+    "model_terminal": {
+      "old": {
+        "inference_phonemes": 5,
+        "inference_phones": 5,
+        "refusal": "NoAdmittedAcousticBack",
+        "requested_backend": "ConduitVoice acoustic realization",
+        "retained_without_conditioning": [
+          "TextAndAlignment",
+          "SyllableAndWordStructure",
+          "ProsodyAndAcoustics",
+          "LanguageCommitment"
+        ],
+        "selected_backend": null,
+        "source_identity": "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e",
+        "terminal_evidence_identity": "ce38bffddc64de220d4be08a7611cd7d21373fcacd879014d11986f15bfe7ae0",
+        "trained_weights": false,
+        "training_phonemes": 5,
+        "training_phones": 5
+      },
+      "new": {
+        "inference_phonemes": 5,
+        "inference_phones": 5,
+        "refusal": "NoAdmittedAcousticBack",
+        "requested_backend": "ConduitVoice acoustic realization",
+        "retained_without_conditioning": [
+          "TextAndAlignment",
+          "SyllableAndWordStructure",
+          "ProsodyAndAcoustics",
+          "LanguageCommitment"
+        ],
+        "selected_backend": null,
+        "source_identity": "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b",
+        "terminal_evidence_identity": "810e4ce95a79ae9ed3c0ed28336b8c6b2b8e7b6f2349975f2442271b499872d2",
+        "trained_weights": false,
+        "training_phonemes": 5,
+        "training_phones": 5
+      },
+      "unchanged": false
+    },
+    "plan": {
+      "old": {
+        "checked_plot_id": "febe806710312e085d4106129086f296f148c0364ce6a08c62d65fe8444ba1e4",
+        "completion_policy": "SemanticCompletion",
+        "expanded_plot_id": "1592a9995bd215f04eae36a60de4ce32ffcd6000ff2de82e8a774ea4ed897345",
+        "fragments": [
+          {
+            "boot_id": "proof/carried-formant-boot",
+            "cancellation_policy": "CancelAllAndRejectLateCompletion",
+            "checked_plot_id": "febe806710312e085d4106129086f296f148c0364ce6a08c62d65fe8444ba1e4",
+            "completion_policy": "SemanticCompletion",
+            "connections": [],
+            "execution_fusions": [],
+            "execution_regions": [],
+            "expanded_plot_id": "1592a9995bd215f04eae36a60de4ce32ffcd6000ff2de82e8a774ea4ed897345",
+            "expected_sign": [
+              "PlanFragmentReceived",
+              {
+                "PlacementPrepared": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888"
+              },
+              {
+                "PlacementTerminal": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888"
+              },
+              "PlanTerminal"
+            ],
+            "expected_terminals": [
+              {
+                "PlacementCompleted": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888"
+              },
+              "PlanCompleted"
+            ],
+            "fore_ports": [
+              {
+                "byte_capacity": 32,
+                "direction": "Input",
+                "front_port_id": "source",
+                "gear_port_id": "source",
+                "item_capacity": 1,
+                "placement_id": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888",
+                "pressure_policy": "preserve-order",
+                "temporal": "Value",
+                "track": "payload",
+                "value_contract": {
+                  "constraints": [],
+                  "maximum_bytes": 32,
+                  "value_kind": "conduit.speech/checked-carrier-identity@1"
+                },
+                "value_kind": "conduit.speech/checked-carrier-identity@1"
+              },
+              {
+                "byte_capacity": 285,
+                "direction": "Output",
+                "front_port_id": "audio",
+                "gear_port_id": "audio",
+                "item_capacity": 1,
+                "placement_id": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888",
+                "pressure_policy": "preserve-order",
+                "temporal": {
+                  "Flow": {
+                    "closes": true
+                  }
+                },
+                "track": "payload",
+                "value_contract": {
+                  "constraints": [],
+                  "maximum_bytes": 285,
+                  "value_kind": "audio/pcm-frames@1"
+                },
+                "value_kind": "audio/pcm-frames@1"
+              }
+            ],
+            "fragment_id": "8da5ff715c051dae6e6b7a7d2a1c32bf2cec62f319be9eb016805af3e3402b56",
+            "host_id": "proof/carried-formant",
+            "offer_generation": 1,
+            "placements": [
+              {
+                "artifact_id": "conduit-native/carried-formant@1/411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee/74d21c7242bd27764d243b3fe109270883d4205c2ca57481d0126ccfdb1816fb",
+                "authority": [],
+                "boot_id": "proof/carried-formant-boot",
+                "capability_id": "native-carried-formant",
+                "configuration": [
+                  {
+                    "key": "clock",
+                    "value": {
+                      "U64": 7
+                    }
+                  },
+                  {
+                    "key": "offline-authoring",
+                    "value": {
+                      "Text": "74d21c7242bd27764d243b3fe109270883d4205c2ca57481d0126ccfdb1816fb"
+                    }
+                  },
+                  {
+                    "key": "projection",
+                    "value": {
+                      "Text": "411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee"
+                    }
+                  },
+                  {
+                    "key": "source",
+                    "value": {
+                      "Text": "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e"
+                    }
+                  }
+                ],
+                "execution_profile_id": "conduit-native/carried-s16le-8000-mono@1",
+                "gear_id": "proof/carried-formant/voice",
+                "host_calls": [],
+                "host_id": "proof/carried-formant",
+                "implementation_id": "conduit-native/carried-formant@1",
+                "inputs": [
+                  {
+                    "direction": "Input",
+                    "port_id": "source",
+                    "temporal": "Value",
+                    "value_kind": "conduit.speech/checked-carrier-identity@1"
+                  }
+                ],
+                "kind_contract_revision": "conduit.speech/carried-formant@1",
+                "kind_id": "speech/carried-formant",
+                "limits": {
+                  "max_active_instances": 1,
+                  "max_queue_bytes": 285,
+                  "max_queue_items": 1
+                },
+                "offer_generation": 1,
+                "outputs": [
+                  {
+                    "direction": "Output",
+                    "port_id": "audio",
+                    "temporal": {
+                      "Flow": {
+                        "closes": true
+                      }
+                    },
+                    "value_kind": "audio/pcm-frames@1"
+                  }
+                ],
+                "placement_id": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [],
+                "semantic_contract": {
+                  "configuration": [
+                    {
+                      "default_value": {
+                        "U64": 7
+                      },
+                      "key": "clock",
+                      "rule": {
+                        "U64Range": {
+                          "maximum": 7,
+                          "minimum": 7
+                        }
+                      }
+                    },
+                    {
+                      "default_value": {
+                        "Text": "74d21c7242bd27764d243b3fe109270883d4205c2ca57481d0126ccfdb1816fb"
+                      },
+                      "key": "offline-authoring",
+                      "rule": {
+                        "TextOneOf": {
+                          "values": [
+                            "74d21c7242bd27764d243b3fe109270883d4205c2ca57481d0126ccfdb1816fb"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "default_value": {
+                        "Text": "411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee"
+                      },
+                      "key": "projection",
+                      "rule": {
+                        "TextOneOf": {
+                          "values": [
+                            "411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "default_value": {
+                        "Text": "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e"
+                      },
+                      "key": "source",
+                      "rule": {
+                        "TextOneOf": {
+                          "values": [
+                            "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e"
+                          ]
+                        }
+                      }
+                    }
+                  ],
+                  "laws": [
+                    {
+                      "ValueContracts": [
+                        {
+                          "contract": {
+                            "constraints": [],
+                            "maximum_bytes": 32,
+                            "value_kind": "conduit.speech/checked-carrier-identity@1"
+                          },
+                          "location": {
+                            "Input": "source"
+                          }
+                        },
+                        {
+                          "contract": {
+                            "constraints": [],
+                            "maximum_bytes": 285,
+                            "value_kind": "audio/pcm-frames@1"
+                          },
+                          "location": {
+                            "Output": "audio"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "source_span": {
+                  "column": 9,
+                  "end": 137,
+                  "end_column": 33,
+                  "end_line": 5,
+                  "line": 5,
+                  "start": 113
+                }
+              }
+            ],
+            "plan_fragments": [
+              {
+                "fragment_id": "8da5ff715c051dae6e6b7a7d2a1c32bf2cec62f319be9eb016805af3e3402b56",
+                "host_id": "proof/carried-formant"
+              }
+            ],
+            "plan_id": "4d3c50800e300bbf4b6794cf23cd3706ddd3252687c8413f147d7e015514e5b3",
+            "realization_backs": [],
+            "shared_pools": [],
+            "sign_storage_budget": {
+              "byte_capacity": 132,
+              "item_capacity": 4
+            },
+            "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc",
+            "startup_dependencies": [],
+            "startup_order": [
+              "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888"
+            ],
+            "terminal_policy": "RequireAllPlacementsAndConnections"
+          }
+        ],
+        "plan_id": "4d3c50800e300bbf4b6794cf23cd3706ddd3252687c8413f147d7e015514e5b3",
+        "realization_backs": [],
+        "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc"
+      },
+      "new": {
+        "checked_plot_id": "1d805fd4e2b180ac9949a9f4b0b60bfc7417fe7726da20c65f654a255c1968d2",
+        "completion_policy": "SemanticCompletion",
+        "expanded_plot_id": "ad0e233149d6094a799b05841f4841e31550b831da0f182e49b10ea93af00636",
+        "fragments": [
+          {
+            "boot_id": "proof/carried-formant-boot",
+            "cancellation_policy": "CancelAllAndRejectLateCompletion",
+            "checked_plot_id": "1d805fd4e2b180ac9949a9f4b0b60bfc7417fe7726da20c65f654a255c1968d2",
+            "completion_policy": "SemanticCompletion",
+            "connections": [],
+            "execution_fusions": [],
+            "execution_regions": [],
+            "expanded_plot_id": "ad0e233149d6094a799b05841f4841e31550b831da0f182e49b10ea93af00636",
+            "expected_sign": [
+              "PlanFragmentReceived",
+              {
+                "PlacementPrepared": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36"
+              },
+              {
+                "PlacementTerminal": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36"
+              },
+              "PlanTerminal"
+            ],
+            "expected_terminals": [
+              {
+                "PlacementCompleted": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36"
+              },
+              "PlanCompleted"
+            ],
+            "fore_ports": [
+              {
+                "byte_capacity": 32,
+                "direction": "Input",
+                "front_port_id": "source",
+                "gear_port_id": "source",
+                "item_capacity": 1,
+                "placement_id": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36",
+                "pressure_policy": "preserve-order",
+                "temporal": "Value",
+                "track": "payload",
+                "value_contract": {
+                  "constraints": [],
+                  "maximum_bytes": 32,
+                  "value_kind": "conduit.speech/checked-carrier-identity@1"
+                },
+                "value_kind": "conduit.speech/checked-carrier-identity@1"
+              },
+              {
+                "byte_capacity": 285,
+                "direction": "Output",
+                "front_port_id": "audio",
+                "gear_port_id": "audio",
+                "item_capacity": 1,
+                "placement_id": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36",
+                "pressure_policy": "preserve-order",
+                "temporal": {
+                  "Flow": {
+                    "closes": true
+                  }
+                },
+                "track": "payload",
+                "value_contract": {
+                  "constraints": [],
+                  "maximum_bytes": 285,
+                  "value_kind": "audio/pcm-frames@1"
+                },
+                "value_kind": "audio/pcm-frames@1"
+              }
+            ],
+            "fragment_id": "59cca78ab5b1d6cba187d184e5175e4c3065f3ce7ebee20271bb25480002a8a1",
+            "host_id": "proof/carried-formant",
+            "offer_generation": 1,
+            "placements": [
+              {
+                "artifact_id": "conduit-native/carried-formant@1/ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566/1bd329c8c3656710a4947e3972f0366edf9e24c50f3e8f9fd3eaa685e5929841",
+                "authority": [],
+                "boot_id": "proof/carried-formant-boot",
+                "capability_id": "native-carried-formant",
+                "configuration": [
+                  {
+                    "key": "clock",
+                    "value": {
+                      "U64": 7
+                    }
+                  },
+                  {
+                    "key": "offline-authoring",
+                    "value": {
+                      "Text": "1bd329c8c3656710a4947e3972f0366edf9e24c50f3e8f9fd3eaa685e5929841"
+                    }
+                  },
+                  {
+                    "key": "projection",
+                    "value": {
+                      "Text": "ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566"
+                    }
+                  },
+                  {
+                    "key": "source",
+                    "value": {
+                      "Text": "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b"
+                    }
+                  }
+                ],
+                "execution_profile_id": "conduit-native/carried-s16le-8000-mono@1",
+                "gear_id": "proof/carried-formant/voice",
+                "host_calls": [],
+                "host_id": "proof/carried-formant",
+                "implementation_id": "conduit-native/carried-formant@1",
+                "inputs": [
+                  {
+                    "direction": "Input",
+                    "port_id": "source",
+                    "temporal": "Value",
+                    "value_kind": "conduit.speech/checked-carrier-identity@1"
+                  }
+                ],
+                "kind_contract_revision": "conduit.speech/carried-formant@1",
+                "kind_id": "speech/carried-formant",
+                "limits": {
+                  "max_active_instances": 1,
+                  "max_queue_bytes": 285,
+                  "max_queue_items": 1
+                },
+                "offer_generation": 1,
+                "outputs": [
+                  {
+                    "direction": "Output",
+                    "port_id": "audio",
+                    "temporal": {
+                      "Flow": {
+                        "closes": true
+                      }
+                    },
+                    "value_kind": "audio/pcm-frames@1"
+                  }
+                ],
+                "placement_id": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [],
+                "semantic_contract": {
+                  "configuration": [
+                    {
+                      "default_value": {
+                        "U64": 7
+                      },
+                      "key": "clock",
+                      "rule": {
+                        "U64Range": {
+                          "maximum": 7,
+                          "minimum": 7
+                        }
+                      }
+                    },
+                    {
+                      "default_value": {
+                        "Text": "1bd329c8c3656710a4947e3972f0366edf9e24c50f3e8f9fd3eaa685e5929841"
+                      },
+                      "key": "offline-authoring",
+                      "rule": {
+                        "TextOneOf": {
+                          "values": [
+                            "1bd329c8c3656710a4947e3972f0366edf9e24c50f3e8f9fd3eaa685e5929841"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "default_value": {
+                        "Text": "ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566"
+                      },
+                      "key": "projection",
+                      "rule": {
+                        "TextOneOf": {
+                          "values": [
+                            "ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "default_value": {
+                        "Text": "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b"
+                      },
+                      "key": "source",
+                      "rule": {
+                        "TextOneOf": {
+                          "values": [
+                            "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b"
+                          ]
+                        }
+                      }
+                    }
+                  ],
+                  "laws": [
+                    {
+                      "ValueContracts": [
+                        {
+                          "contract": {
+                            "constraints": [],
+                            "maximum_bytes": 32,
+                            "value_kind": "conduit.speech/checked-carrier-identity@1"
+                          },
+                          "location": {
+                            "Input": "source"
+                          }
+                        },
+                        {
+                          "contract": {
+                            "constraints": [],
+                            "maximum_bytes": 285,
+                            "value_kind": "audio/pcm-frames@1"
+                          },
+                          "location": {
+                            "Output": "audio"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "source_span": {
+                  "column": 9,
+                  "end": 137,
+                  "end_column": 33,
+                  "end_line": 5,
+                  "line": 5,
+                  "start": 113
+                }
+              }
+            ],
+            "plan_fragments": [
+              {
+                "fragment_id": "59cca78ab5b1d6cba187d184e5175e4c3065f3ce7ebee20271bb25480002a8a1",
+                "host_id": "proof/carried-formant"
+              }
+            ],
+            "plan_id": "30e895e83b8f1608409e663267e2335e9ecad5dd47213afd9c040ab78be99986",
+            "realization_backs": [],
+            "shared_pools": [],
+            "sign_storage_budget": {
+              "byte_capacity": 132,
+              "item_capacity": 4
+            },
+            "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc",
+            "startup_dependencies": [],
+            "startup_order": [
+              "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36"
+            ],
+            "terminal_policy": "RequireAllPlacementsAndConnections"
+          }
+        ],
+        "plan_id": "30e895e83b8f1608409e663267e2335e9ecad5dd47213afd9c040ab78be99986",
+        "realization_backs": [],
+        "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc"
+      },
+      "unchanged": false
+    }
+  },
+  "wav": "BothactualRIFFheaders/PCMgeometryvalidated,8000Hzmono16bit; byteequalityreportedabove",
+  "raw_identity_joins": "Bothpacket25==reportSource==modelSource;packet23==modelterminalidentity;actualdomainSHAartifact/WAVdigestsandreportPlanSource/projectionconfigurationjoinsverified.",
+  "semantic_boundary": "BoundedstandardlibpostcardVec<Vec<u8>>structuraldecodeandhashjoinsONLY. Nativeadmission/actualPlanPlay/PCMsemanticreplay providedbyretainedsource-boundRustproducer+freshprocessreload, notindependentlyreimplementedhere.",
+  "actual_ELFs_rehashed": 225,
+  "all_actual_Running_bindings": [
+    {
+      "actual_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/conduit-xtask-dispatch",
+      "bytes": 5652640,
+      "sha256": "c565948b7631e8326c19f9df61b59bf37e6bf1dc92f35bdab9200cabaefd09bf",
+      "in_private_receipt_inventory": true
+    },
+    {
+      "actual_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/xtask",
+      "bytes": 191164728,
+      "sha256": "239b467f0ebe68c3baa706ed9f326e7640a75745ab2e21ae43787b09fc0f3e8e",
+      "in_private_receipt_inventory": true
+    },
+    {
+      "actual_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/deps/carried_formant-2148b0a5f0c868f0",
+      "bytes": 102852328,
+      "sha256": "3b4db4ebc44d2c0fd791c5ef5b82d7304ab2658d00200d1fdb250975f40e8412",
+      "in_private_receipt_inventory": true
+    },
+    {
+      "actual_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/deps/carried_formant-2148b0a5f0c868f0",
+      "bytes": 102852328,
+      "sha256": "3b4db4ebc44d2c0fd791c5ef5b82d7304ab2658d00200d1fdb250975f40e8412",
+      "in_private_receipt_inventory": true
+    }
+  ],
+  "additional_router_executables_outside_private_inventory": [],
+  "limits": [
+    "No sitefixture/manifest/source/ref/issuemutation;generatedcandidateartifactsonly.",
+    "No parent4907/6068closure,learnedvoice/deviceplayback/humanlistening/physical/CIacceptance.",
+    "Old1e1a9packetpreservedandnotrelabelednewexecution; exactnewproducer002b remainsdistinctfromfuturefixturecommit/stagedpublication."
+  ]
+}

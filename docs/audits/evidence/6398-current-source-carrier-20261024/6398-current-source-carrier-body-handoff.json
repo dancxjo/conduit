@@ -1,0 +1,11 @@
+{
+  "head_observed_before": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "head_observed_after": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "body_only_updated": true,
+  "owner_branch_not_modified_by_handoff": true,
+  "repair_commit": "cc51be1376775bd5ffd77845ff1c3e3fc3a6c02a",
+  "old_body_sha256": "682c9ab29ccfca915c32f0f4a32400fb760a8c59220ac8badda7cc08b949143f",
+  "new_body_sha256": "1600dfcbe190241d93ee6c9fb0df158ea1357b82e2c400243497376070878ac6",
+  "marker": "<!-- root-6398-current-source-carrier-handoff-20261024 -->",
+  "updated_at": 1792843218.0773916
+}

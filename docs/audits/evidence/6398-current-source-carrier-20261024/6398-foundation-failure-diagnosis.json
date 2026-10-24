@@ -1,0 +1,31 @@
+{
+  "run": 40085719876,
+  "head": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "job": 120849058032,
+  "raw_path": "outputs/6398-foundation-120849058032-actual-job.log",
+  "raw_bytes": 7805528,
+  "raw_sha256": "11876f4a8f1b9aed3c83ee67d217e29b6bfb60addc35c08cbb3935f48a18720f",
+  "retrieval": "gh run view --job --log returned empty0B with exit0; retainedemptyhistorical. One fallback direct exactjob/logs returned actualraw7.8MB; no repeatedactualdownload.",
+  "errors": [
+    {
+      "test": "independently_reload_exported_carrier",
+      "path": "semantics/speech/tests/carried_formant.rs",
+      "line": 296,
+      "message": "inspection::inspect Err complete carrier changed"
+    },
+    {
+      "test": "alternate_admitted_structure_cannot_reuse_retained_model_or_formant_evidence",
+      "path": "semantics/speech/tests/shared_carrier_projections.rs",
+      "line": 305,
+      "message": "packet[24] differs from newly prepared complete.canonical_bytes()"
+    }
+  ],
+  "source_diagnosis": {
+    "fixture": "site/evidence/shared-speech-carrier/you-would.native packet24 is frozen completecarrierbytes",
+    "test_refusals_preserved": true,
+    "binding": "semantics/speech/src/complete_carrier.rs canonical encoder includes commitment.source_id() at260; semantics/language/build.rs now appends2newanalysisSourceprograms into joinedchecked document,changing checked.source_document_id usedby commitment_programs.rs",
+    "classification": "Transitive checkedSource/canonicalartifact binding mismatch; notcurrentdevred (6398unmergedCandidate). No claim of randomflake or CPUtime cause.",
+    "repair_direction": "Coordinate6398owner to update current fixture/producer provenance or preserve appropriate originalSource identity; run full affected speech fixtures/owning strict on exactnewsource. Do not weaken exactpacket/reload/foreign-structure negatives or blindly replaceexpectedbytes."
+  },
+  "no_build_or_source_edit": true
+}

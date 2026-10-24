@@ -1,0 +1,10 @@
+{
+  "source": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "prior_negative_receipt": "outputs/6398-carrier-producer-local-proof.json",
+  "cause": "Root sparse source materialization omitted seven tracked Tour documents embedded by a dependency; producer did not reach tests.",
+  "remedy": "Disabled sparse checkout to restore the complete unchanged tracked source tree.",
+  "product_regression_claimed": false,
+  "all_prior_executables_to_preserve": 127,
+  "source_clean_after": true,
+  "fixed_at": 1792842388.739355
+}

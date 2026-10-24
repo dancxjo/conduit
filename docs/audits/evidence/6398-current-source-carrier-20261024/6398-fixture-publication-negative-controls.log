@@ -1,0 +1,76 @@
+TAP version 13
+# Subtest: stages every retained byte and distinguishes producer from staged source
+ok 1 - stages every retained byte and distinguishes producer from staged source
+  ---
+  duration_ms: 9.043261
+  type: 'test'
+  ...
+# Subtest: absent optional evidence is allowed; partial evidence is rejected
+ok 2 - absent optional evidence is allowed; partial evidence is rejected
+  ---
+  duration_ms: 1.528624
+  type: 'test'
+  ...
+# Subtest: rejects raw byte corruption
+ok 3 - rejects raw byte corruption
+  ---
+  duration_ms: 3.167115
+  type: 'test'
+  ...
+# Subtest: rejects WAV geometry despite valid digest
+ok 4 - rejects WAV geometry despite valid digest
+  ---
+  duration_ms: 3.288215
+  type: 'test'
+  ...
+# Subtest: rejects false formant realization despite valid digest
+ok 5 - rejects false formant realization despite valid digest
+  ---
+  duration_ms: 2.572304
+  type: 'test'
+  ...
+# Subtest: rejects false model conditioning despite valid digest
+ok 6 - rejects false model conditioning despite valid digest
+  ---
+  duration_ms: 2.527697
+  type: 'test'
+  ...
+# Subtest: rejects foreign model source despite valid digest
+ok 7 - rejects foreign model source despite valid digest
+  ---
+  duration_ms: 2.493556
+  type: 'test'
+  ...
+# Subtest: rejects foreign plan projection despite valid digest
+ok 8 - rejects foreign plan projection despite valid digest
+  ---
+  duration_ms: 2.605537
+  type: 'test'
+  ...
+# Subtest: rejects manifest path inventory
+ok 9 - rejects manifest path inventory
+  ---
+  duration_ms: 0.863702
+  type: 'test'
+  ...
+# Subtest: rejects false listening claim
+ok 10 - rejects false listening claim
+  ---
+  duration_ms: 1.594407
+  type: 'test'
+  ...
+# Subtest: rejects symbolic links even when target bytes match
+ok 11 - rejects symbolic links even when target bytes match
+  ---
+  duration_ms: 2.123476
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 119.95339

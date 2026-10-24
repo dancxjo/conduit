@@ -1,0 +1,28 @@
+   Compiling ring v0.17.14
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/std)
+   Compiling conduit-speech v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/speech)
+    Finished `test` profile [unoptimized] target(s) in 15.51s
+     Running tests/carried_formant.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/deps/carried_formant-2148b0a5f0c868f0)
+
+running 5 tests
+test foreign_source_and_projection_declaration_refuse_before_pcm ... ok
+test independently_reload_exported_carrier ... ok
+test offline_installed_pcm_path_has_finite_admitted_sign_storage ... ok
+test original_multiword_intent_executes_through_installed_factory_plan_and_play ... carried-formant source=[112, 118, 26, 251, 81, 94, 197, 227, 159, 42, 197, 54, 75, 2, 188, 34, 211, 220, 107, 254, 65, 57, 204, 22, 41, 104, 134, 221, 203, 155, 37, 75] projection=[255, 198, 147, 132, 208, 161, 70, 126, 101, 123, 232, 117, 75, 186, 44, 148, 227, 232, 250, 27, 108, 141, 109, 28, 109, 240, 248, 142, 100, 67, 165, 102] plan=PlanId("30e895e83b8f1608409e663267e2335e9ecad5dd47213afd9c040ab78be99986") plays={HostId("proof/carried-formant"): ActivePlayId("2d5ce39e1c5b2b9730b7536fad9d1d29d711ca3415ce48c302fc35e8d26ca567")} PCM-frames=4000
+ok
+test rejected_transaction_pressure_and_cancellation_preserve_original_source ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 494.56s
+
+     Running tests/shared_carrier_projections.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/deps/shared_carrier_projections-363399ae9cf10ae9)
+
+running 3 tests
+test alternate_admitted_structure_cannot_reuse_retained_model_or_formant_evidence ... ok
+test identical_original_multiword_bytes_survive_formant_and_unsupported_model_terminal ... ok
+test stale_source_variety_revision_vocabulary_checkpoint_and_formant_profile_refuse ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 457.14s
+

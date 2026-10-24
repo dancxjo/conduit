@@ -1,0 +1,14 @@
+{
+  "status": "blocked-before-carrier-generation",
+  "source": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "producer_status": "failed-first-negative-preserved",
+  "exit_code": 101,
+  "actual_passed": 0,
+  "raw_log_sha256": "c5fa3410dd404e8815e2fc04e31ef231c2d2517920856c60ff8ee8c3978e308b",
+  "receipt_sha256": "923cc93988aad282214b444e88bdd0f577f4df9b732d3abfd3310d0a7bb96d42",
+  "cause": "Sparsecheckoutomitteddocs/journeys/tour requiredbyxtaskconduit-tour-model7include_str paths; all7existinexact002bGittree. Notcarriersemanticfailure.",
+  "expected_fix": "Root-ownedsource-materializationonly:addexacttrackeddocs/journeys/tour; preservefirstnegative; rerunwithdistinctlog/receipt,actualsameSource.",
+  "audit_helper": "work/audit-6398-generated-carrier-independent.py prepared/syntaxchecked, refuseswithoutactualproducer2PASS+freshreload.",
+  "carrier_comparison": "NOTperformed: no successfulactualnewproducerartifact. No semantic/PCM/newfixtureclaim.",
+  "operations": "No build/source/sparse/ref/ownerchanges ornetwork byindependentauditor."
+}

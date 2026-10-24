@@ -1,0 +1,292 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.22s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/conduit-xtask-dispatch prove journey native-speech --output /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh --shared-carrier-only`
+   Compiling conduit-speech v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/speech)
+   Compiling zerotrie v0.2.5
+   Compiling x25519-dalek v2.0.1
+   Compiling miniz_oxide v0.9.1
+   Compiling conduit-composite v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/composite)
+   Compiling conduit-observatory v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/observatory)
+   Compiling conduit-tour-model v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/tour)
+   Compiling conduit-body-invitation-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/plot-library)
+   Compiling parking_lot_core v0.9.12
+   Compiling getrandom v0.4.3
+   Compiling float-cmp v0.9.0
+   Compiling bytes v1.12.1
+   Compiling bytemuck v1.25.2
+   Compiling rayon-core v1.13.0
+   Compiling icu_segmenter_data v2.3.0
+   Compiling rand_core v0.10.1
+   Compiling untrusted v0.9.0
+   Compiling ring v0.17.14
+   Compiling http v1.5.0
+   Compiling strict-num v0.1.1
+   Compiling flate2 v1.1.10
+   Compiling conduit-protected-line v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/protected-line)
+   Compiling icu_provider v2.3.1
+   Compiling conduit-signal-conformance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/proof/conformance/signal)
+   Compiling ppv-lite86 v0.2.21
+   Compiling crossbeam-deque v0.8.8
+   Compiling icu_locale_fallback_data v2.3.0
+   Compiling num-traits v0.2.19
+   Compiling conduit-host-hosted v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/std/make)
+   Compiling conduit-host-avr-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/avr/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/raspberry-pi/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/esp32/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/rp2040/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/orange-pi/make)
+   Compiling conduit-synth v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/birth)
+   Compiling conduit-browser-runtime v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/browser/runtime)
+   Compiling portable-atomic v1.15.0
+   Compiling utf8_iter v1.0.4
+   Compiling once_cell v1.21.4
+   Compiling futures-sink v0.3.34
+   Compiling utf8parse v0.2.2
+   Compiling rustls v0.23.45
+   Compiling arrayref v0.3.9
+   Compiling futures-core v0.3.34
+   Compiling tiny-skia-path v0.11.4
+   Compiling anstyle-parse v1.0.0
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_fallback v2.3.0
+   Compiling rand_chacha v0.3.1
+   Compiling rustls-webpki v0.103.15
+   Compiling chacha20 v0.10.2
+   Compiling conduit-browser-mask-offer v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/browser/mask-offer)
+   Compiling kurbo v0.11.3
+   Compiling conduit-thermostat-face v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/thermostat/face)
+   Compiling fdeflate v0.3.7
+   Compiling conduit-body-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/make/body)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/little-seismograph/fixture)
+   Compiling heapless v0.7.17
+   Compiling conduit-resource-snapshot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/io/resource-snapshot)
+   Compiling conduit-finance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/finance)
+   Compiling conduit-home-model v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/home)
+   Compiling qrcode v0.14.1
+   Compiling colorchoice v1.0.5
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling anstyle-query v1.1.5
+   Compiling anstyle v1.0.14
+   Compiling base64 v0.23.1
+   Compiling pin-project-lite v0.2.17
+   Compiling futures-task v0.3.34
+   Compiling getrandom v0.3.4
+   Compiling bitflags v1.3.2
+   Compiling bitflags v2.13.2
+   Compiling either v1.18.0
+   Compiling strsim v0.11.1
+   Compiling rayon v1.12.0
+   Compiling png v0.17.16
+   Compiling futures-util v0.3.34
+   Compiling ureq-proto v0.6.4
+   Compiling anstream v1.0.0
+   Compiling svgtypes v0.15.3
+   Compiling rand v0.10.3
+   Compiling icu_segmenter v2.3.0
+   Compiling parking_lot v0.12.5
+   Compiling rand v0.8.8
+   Compiling ordered-float v3.9.2
+   Compiling futures-channel v0.3.34
+   Compiling console v0.16.6
+   Compiling webpki-roots v1.0.9
+   Compiling spin v0.9.9
+   Compiling simplecss v0.2.2
+   Compiling sha1 v0.11.0
+   Compiling hash32 v0.2.1
+   Compiling num_cpus v1.17.0
+   Compiling conduitos v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos)
+   Compiling pico-args v0.5.0
+   Compiling futures-io v0.3.34
+   Compiling unit-prefix v0.5.2
+   Compiling clap_lex v1.1.1
+   Compiling roxmltree v0.20.0
+   Compiling smawk v0.3.3
+   Compiling data-encoding v2.11.1
+   Compiling percent-encoding v2.3.2
+   Compiling conduit-create-oi v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/devices/create-oi)
+   Compiling heck v0.5.0
+   Compiling data-url v0.3.2
+   Compiling xmlwriter v0.1.0
+   Compiling base64 v0.22.1
+   Compiling pulldown-cmark v0.12.2
+   Compiling utf8-zero v0.8.1
+   Compiling imagesize v0.13.0
+   Compiling usvg v0.45.1
+   Compiling ureq v3.4.2
+   Compiling clap_derive v4.6.7
+   Compiling tungstenite v0.30.0
+   Compiling textwrap v0.16.4
+   Compiling clap_builder v4.6.7
+   Compiling indicatif v0.18.6
+   Compiling futures v0.3.34
+   Compiling instant-distance v0.6.1
+   Compiling tiny-skia v0.11.4
+   Compiling limine v0.5.0
+   Compiling conduit-workspace-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/make/workspace)
+   Compiling conduit-r1-network-conformance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/proof/conformance/network-r1)
+   Compiling rgb v0.8.53
+   Compiling conduitos-application-core v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/application-core)
+   Compiling getopts v0.2.24
+   Compiling rustls-pemfile v2.2.0
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/proof/conformance/patchbay-workbench)
+   Compiling conduit-todo-face v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/todo/face)
+   Compiling conduitos-mask-core v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/mask-core)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/mask-offer)
+   Compiling patchbay-workbench-host-contract v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/patchbay/workbench/host-contract)
+   Compiling conduitos-runtime-core v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/runtime-core)
+   Compiling conduit-commons-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/commons)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/rp2040/network-realization)
+   Compiling sha1 v0.10.7
+   Compiling pulldown-cmark-escape v0.11.0
+   Compiling conduit-mpu6050 v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/devices/mpu6050)
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling base64 v0.13.1
+   Compiling unicase v2.9.0
+   Compiling embedded-websocket v0.9.5
+   Compiling conduit-pete v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/bodies/pete)
+   Compiling resvg v0.45.1
+   Compiling cliclack v0.5.6
+   Compiling clap v4.6.7
+   Compiling conduit-embedded-build v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/make/embedded-build)
+   Compiling conduit-patchbay-workbench v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/patchbay/workbench/model)
+   Compiling conduit-std-host v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/std)
+   Compiling xtask v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 1m 59s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/xtask prove journey native-speech --output /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh --shared-carrier-only`
+   Compiling syn v3.0.6
+   Compiling zeroize v1.9.0
+   Compiling curve25519-dalek v4.1.3
+   Compiling serde_json v1.0.151
+   Compiling ed25519-dalek v2.2.0
+   Compiling stable_deref_trait v1.2.1
+   Compiling cipher v0.4.4
+   Compiling ring v0.17.14
+   Compiling chacha20 v0.9.1
+   Compiling rustls-pki-types v1.15.1
+   Compiling miniz_oxide v0.8.9
+   Compiling chacha20poly1305 v0.10.1
+   Compiling log v0.4.34
+   Compiling noise-rust-crypto v0.6.2
+   Compiling x25519-dalek v2.0.1
+   Compiling rustls v0.23.45
+   Compiling conduit-protected-line v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/protected-line)
+   Compiling rustls-webpki v0.103.15
+   Compiling once_cell v1.21.4
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling thiserror v2.0.20
+   Compiling cobs v0.3.0
+   Compiling static-automata-macros v1.0.3
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/core)
+   Compiling conduit-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/plot)
+   Compiling conduit-kernel v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/kernel)
+   Compiling postcard v1.1.3
+   Compiling conduit-body v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/body)
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling toml_edit v0.22.27
+   Compiling toml v0.8.23
+   Compiling heapless v0.8.0
+   Compiling serde-json-core v0.6.0
+   Compiling conduit-plan-lowering v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/plan-lowering)
+   Compiling static-automata v1.0.3
+   Compiling langtag v1.1.0
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling conduit-thermostat-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/thermostat/model)
+   Compiling patchbay-control v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/patchbay)
+   Compiling conduit-composite v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/composite)
+   Compiling conduit-browser-runtime v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/browser/runtime)
+   Compiling conduit-resource-snapshot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/io/resource-snapshot)
+   Compiling ureq-proto v0.6.4
+   Compiling webpki-roots v1.0.9
+   Compiling conduitos v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos)
+   Compiling ureq v3.4.2
+   Compiling tungstenite v0.30.0
+   Compiling conduitos-runtime-core v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/runtime-core)
+   Compiling conduit-commons-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/commons)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/rp2040/network-realization)
+   Compiling rustls-pemfile v2.2.0
+   Compiling conduit-time v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/time)
+   Compiling conduit-language v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/language)
+   Compiling conduit-human v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/human)
+   Compiling conduit-data v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/data)
+   Compiling conduit-planner v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/planner)
+   Compiling conduit-face v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/face)
+   Compiling conduit-audio v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/audio)
+   Compiling conduit-web v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/web)
+   Compiling conduit-process v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/process)
+   Compiling conduit-net v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/net)
+   Compiling conduit-text v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/text)
+   Compiling conduit-alife v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/robotics)
+   Compiling conduit-midi v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/ai)
+   Compiling conduit-signal v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/signal)
+   Compiling conduit-wire v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/wire)
+   Compiling conduit-tongues v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/chat)
+   Compiling conduit-todo-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/todo/model)
+   Compiling conduit-tutorial-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/tutorial)
+   Compiling conduit-education v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/make/host)
+   Compiling conduit-std-offers v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/std/offers)
+   Compiling patchbay-graph v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/patchbay/application)
+   Compiling conduit-tour-model v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/tour)
+   Compiling conduit-bluetooth v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/protocols/bluetooth)
+   Compiling conduit-body-invitation-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/plot-library)
+   Compiling conduit-signal-conformance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/proof/conformance/signal)
+   Compiling conduit-host-browser-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/browser/make)
+   Compiling conduit-synth v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/birth)
+   Compiling conduit-home-model v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/home)
+   Compiling conduit-finance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/finance)
+   Compiling conduit-browser-mask-offer v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/std/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/raspberry-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/rp2040/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/esp32/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/orange-pi/make)
+   Compiling conduit-body-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/make/body)
+   Compiling conduit-host-avr-make v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/avr/make)
+   Compiling conduit-observatory v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/architecture/observatory)
+   Compiling conduit-thermostat-face v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/thermostat/face)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/little-seismograph/fixture)
+   Compiling conduit-r1-network-conformance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/proof/conformance/network-r1)
+   Compiling conduitos-application-core v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/application-core)
+   Compiling conduit-speech v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/semantics/speech)
+   Compiling conduit-todo-face v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/plots/todo/face)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/mask-offer)
+   Compiling conduitos-mask-core v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/conduitos/mask-core)
+   Compiling conduit-std-host v0.1.0 (/tmp/conduit-6398-carrier-refresh-source/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 4m 45s
+     Running tests/carried_formant.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/deps/carried_formant-2148b0a5f0c868f0)
+
+running 1 test
+test original_multiword_intent_executes_through_installed_factory_plan_and_play has been running for over 60 seconds
+test original_multiword_intent_executes_through_installed_factory_plan_and_play ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 140.02s
+
+    Finished `test` profile [unoptimized] target(s) in 0.26s
+     Running tests/carried_formant.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh-target/debug/deps/carried_formant-2148b0a5f0c868f0)
+
+running 1 test
+test independently_reload_exported_carrier has been running for over 60 seconds
+test independently_reload_exported_carrier ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 70.11s
+
+Retained and independently reloaded shared carrier evidence: /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh/shared-carrier. Offline PCM; no device playback or human listening claim.

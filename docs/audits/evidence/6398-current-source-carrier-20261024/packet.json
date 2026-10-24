@@ -1,0 +1,118 @@
+{
+  "producer_code_source": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "fixture_commit": "cc51be1376775bd5ffd77845ff1c3e3fc3a6c02a",
+  "fixture_parent": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "proof": "Actual supported installed-factory producer + separate-process semantic reload (2 tests), then full affected 5+3 Rust tests, 11 publication/staging/corruption controls and strict owning lint at the isolated fixture commit.",
+  "scope": [
+    "Only public native carrier, JSON report and manifest differ; waveform remains byte-identical.",
+    "All26 raw packet fields compared; only five identity-bearing fields differ. Checked Language/Speech production source unchanged.",
+    "Historical source002b/site/evidence/shared-speech-carrier retains the prior vector in this commit ancestry; old proof is not relabeled.",
+    "Original sparse-materialization compiler failure and restored full-source rerun are explicit.",
+    "This evidence branch is not a fresh Candidate, merged-source Integration, stable publication or live-source receipt.",
+    "Parent4907 and issue6068 closure require their explicit remaining acceptance gates.",
+    "No learned voice, physical playback or human listening claim.",
+    "Owner PR branch was not modified by this task-owned fixture/evidence branch."
+  ],
+  "files": [
+    {
+      "path": "outputs/6398-foundation-failure-diagnosis.json",
+      "bytes": 1934,
+      "sha256": "6326a026277293d033ccecc41843476086a9084cccd75dc27c44a36bd281347f"
+    },
+    {
+      "path": "outputs/6398-carrier-producer-local-proof.json",
+      "bytes": 40958,
+      "sha256": "923cc93988aad282214b444e88bdd0f577f4df9b732d3abfd3310d0a7bb96d42"
+    },
+    {
+      "path": "outputs/6398-source-materialization-repair.json",
+      "bytes": 520,
+      "sha256": "1f3fbdac17284e9fd4082c6e43a8d9c0529b41b2c757dc967e9bcd6c0e050855"
+    },
+    {
+      "path": "outputs/6398-carrier-producer-first-negative-independent-review.json",
+      "bytes": 1054,
+      "sha256": "6ac0ba4f44660f44f1177b21e2f90296b8272a6ac6980f212a791355de6e76e1"
+    },
+    {
+      "path": "outputs/6398-carrier-producer-resume-local-proof.json",
+      "bytes": 72927,
+      "sha256": "b397a12caa521fd3e26753f028bf6d60e58b6d883441908d96d92ef2f92d6a3e"
+    },
+    {
+      "path": "outputs/6398-generated-carrier-independent-review.json",
+      "bytes": 37160,
+      "sha256": "c02acd465bad59e1dd3bb7421232f2388f8d799f39999c2be2cbbb965aae3a40"
+    },
+    {
+      "path": "outputs/6398-fixture-repair-validation.json",
+      "bytes": 92692,
+      "sha256": "4919a4e35e3354e967c24a597d7401b89e46f8d4029aaed540d4b36bcffe8f86"
+    },
+    {
+      "path": "outputs/6398-fixture-repair-independent-review.json",
+      "bytes": 3586,
+      "sha256": "d03bf6f0b4591aa1111b28a5e405bdb59922bfd2d9d77e3676a5a46401ccbcdf"
+    },
+    {
+      "path": "outputs/6398-fixture-repair-source-publication.json",
+      "bytes": 594,
+      "sha256": "c39926c4f33973e860e9ec195c1140ca93a83b37d38aa6364c2747c417928ff8"
+    },
+    {
+      "path": "outputs/6398-current-source-carrier-body-handoff.json",
+      "bytes": 570,
+      "sha256": "c791f3bf71dc083e71755b6f9d6aa43306426ad5158bbd80323461e13f02098d"
+    },
+    {
+      "path": "work/6398-carrier-producer.log",
+      "bytes": 11397,
+      "sha256": "c5fa3410dd404e8815e2fc04e31ef231c2d2517920856c60ff8ee8c3978e308b"
+    },
+    {
+      "path": "work/6398-carrier-producer-resume.log",
+      "bytes": 19751,
+      "sha256": "4dc984f3da76cff91416a273f6a78bcb25ee8dee1b0be304a707eefe998e0d49"
+    },
+    {
+      "path": "work/6398-fixture-publication-negative-controls.log",
+      "bytes": 1952,
+      "sha256": "548db8279baaed577f419a56b20cf065dc6b5948444efb7cc77254fa68453bb7"
+    },
+    {
+      "path": "work/6398-fixture-owning-speech-regressions.log",
+      "bytes": 2199,
+      "sha256": "66874490add05644b885910b731009c61a458d2458f57b37329dadb266faa1aa"
+    },
+    {
+      "path": "work/6398-fixture-owning-speech-strict-lint.log",
+      "bytes": 11972,
+      "sha256": "0493c3f9a3ee328dba027e00f057579a726f861796947466f365fa929df512ce"
+    },
+    {
+      "path": "work/run-6398-carrier-producer-proof.py",
+      "bytes": 3267,
+      "sha256": "8e08efaa0949f68df93ac2f254493b579d0ea9bf716b18bfc670d272f8addf94"
+    },
+    {
+      "path": "work/run-6398-carrier-producer-resume-proof.py",
+      "bytes": 3636,
+      "sha256": "7d4e9a312d5d019decc1804970bf6d369485c51c5b61f7a316a04069fa778f72"
+    },
+    {
+      "path": "work/run-6398-fixture-repair-validation.py",
+      "bytes": 5585,
+      "sha256": "769d8cd92dbe2a9103437f858b694ce615297c9ce7def1d93a4dee0ed0bc10a8"
+    },
+    {
+      "path": "work/audit-6398-generated-carrier-independent.py",
+      "bytes": 7351,
+      "sha256": "2f32911b5d16b50f3da75ed8ce1bc4f09266a681c0b5c0b23ac6157b188b5085"
+    },
+    {
+      "path": "work/audit-6398-fixture-repair-independent.py",
+      "bytes": 3994,
+      "sha256": "eae31d41ac881e2d09abd56c4320ba563951c7537928b78ac085f20a1fa675ac"
+    }
+  ]
+}
