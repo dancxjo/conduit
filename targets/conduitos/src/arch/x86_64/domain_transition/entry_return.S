@@ -28,6 +28,12 @@ conduitos_irq_clock: .zero 16
     .text
     .global conduitos_ordinary_enter
 conduitos_ordinary_enter:
+    mov r10d, 0
+    jmp conduitos_ordinary_entry_common
+    .global conduitos_ordinary_resume
+conduitos_ordinary_resume:
+    mov r10d, 1
+conduitos_ordinary_entry_common:
     pushfq
     cli
     push rbx
@@ -99,6 +105,8 @@ conduitos_ordinary_enter:
     mov [rip + conduitos_ordinary_root_cr0], rax
     or rax, 8
     mov cr0, rax
+    test r10d, r10d
+    jnz conduitos_ordinary_restore_user
     .if {proof_envelope}
     envelope_stamp 24
     .endif
@@ -299,20 +307,67 @@ conduitos_irq_start_unobserved:
     push r13
     push r14
     push r15
-    // The interrupted User DF must not affect Root Rust/string operations.
-    cld
+    // The complete GPR/hardware frame remains at R15. Spill actual guest
+    // segment state BEFORE any Root normalization or Rust call.
     mov r15, rsp
-    mov rdi, [rsp + 136]
-    mov rsi, [rsp + 120]
-    .if {proof_envelope}
-    mov rdx, rsp
-    .endif
+    sub rsp, 24
+    mov r14, rsp
+    test byte ptr [r15 + 136], 3
+    jz conduitos_ordinary_irq_root_ready
+    mov ax, ds
+    mov [r14], ax
+    mov ax, es
+    mov [r14 + 2], ax
+    mov ax, fs
+    mov [r14 + 4], ax
+    mov ax, gs
+    mov [r14 + 6], ax
+    mov ecx, 0xc0000100
+    rdmsr
+    mov [r14 + 8], eax
+    mov [r14 + 12], edx
+    mov ecx, 0xc0000101
+    rdmsr
+    mov [r14 + 16], eax
+    mov [r14 + 20], edx
+    // Root's exact pre-entry selectors/bases remain in existing Root custody.
+    mov ax, [rip + conduitos_ordinary_root_segments]
+    mov ds, ax
+    mov ax, [rip + conduitos_ordinary_root_segments + 2]
+    mov es, ax
+    mov ax, [rip + conduitos_ordinary_root_segments + 4]
+    mov fs, ax
+    mov ax, [rip + conduitos_ordinary_root_segments + 6]
+    mov gs, ax
+    mov eax, [rip + conduitos_ordinary_root_fs]
+    mov edx, [rip + conduitos_ordinary_root_fs + 4]
+    mov ecx, 0xc0000100
+    wrmsr
+    mov eax, [rip + conduitos_ordinary_root_gs]
+    mov edx, [rip + conduitos_ordinary_root_gs + 4]
+    mov ecx, 0xc0000101
+    wrmsr
+conduitos_ordinary_irq_root_ready:
+    // Hardware saved user AC/DF in the IRET frame. Neither may leak to Rust.
+    pushfq
+    pop rax
+    and rax, -263169
+    push rax
+    popfq
+    mov rdi, [r15 + 136]
+    mov rsi, [r15 + 120]
+    mov rdx, r15
+    mov rcx, r14
     and rsp, -16
     call conduitos_ordinary_timer_handler
     mov rsp, r15
     test rax, rax
     jz conduitos_ordinary_timer_resume
+    cmp rax, 2
     mov eax, 4
+    jne conduitos_ordinary_irq_terminal
+    mov eax, 5
+conduitos_ordinary_irq_terminal:
     mov edx, 2
     .if {proof_envelope}
     push rax
@@ -327,6 +382,27 @@ conduitos_irq_start_unobserved:
     .endif
     jmp conduitos_ordinary_return
 conduitos_ordinary_timer_resume:
+    // Rust used Root selectors/bases; restore captured user state before GPRs.
+    test byte ptr [r15 + 136], 3
+    jz conduitos_ordinary_irq_pop
+    mov ax, [r14]
+    mov ds, ax
+    mov ax, [r14 + 2]
+    mov es, ax
+    mov ax, [r14 + 4]
+    mov fs, ax
+    mov ax, [r14 + 6]
+    mov gs, ax
+    mov eax, [r14 + 8]
+    mov edx, [r14 + 12]
+    mov ecx, 0xc0000100
+    wrmsr
+    mov eax, [r14 + 16]
+    mov edx, [r14 + 20]
+    mov ecx, 0xc0000101
+    wrmsr
+conduitos_ordinary_irq_pop:
+    mov rsp, r15
     pop r15
     pop r14
     pop r13

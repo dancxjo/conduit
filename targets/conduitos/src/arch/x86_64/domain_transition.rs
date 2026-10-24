@@ -9,6 +9,9 @@ use core::{
 #[cfg(feature = "ordinary-domain-proof")]
 mod trap_observation;
 
+mod capture;
+pub(super) mod continuation;
+
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 #[repr(C)]
 pub(super) struct TransitionReturn {
@@ -17,6 +20,12 @@ pub(super) struct TransitionReturn {
 }
 unsafe extern "C" {
     fn conduitos_ordinary_enter(entry: u64, stack: u64, frame: u64, cr3: u64) -> TransitionReturn;
+    fn conduitos_ordinary_resume(
+        saved: *const continuation::UserContext,
+        stack: u64,
+        frame: u64,
+        cr3: u64,
+    ) -> TransitionReturn;
     fn conduitos_ordinary_gate();
     fn conduitos_ordinary_gp();
     fn conduitos_ordinary_pf();
@@ -74,10 +83,78 @@ pub(super) fn enter_context_with_budget(
     profile: domain_budget::EntryBudget,
     #[cfg(feature = "ordinary-domain-proof")] permit: Option<super::clock_boundary::Permit>,
 ) -> Result<TransitionReturn, DomainRefusal> {
+    run_context(
+        context,
+        profile,
+        #[cfg(feature = "ordinary-domain-proof")]
+        permit,
+        None,
+        None,
+    )
+}
+
+/// Internal mechanism preparation only. Caller retains checked operation and
+/// mapping custody; raw captured bytes must pass Custody before any restore.
+pub(super) fn enter_context_with_capture(
+    context: EntryContext,
+    profile: domain_budget::EntryBudget,
+    captured: &mut Option<continuation::UserContext>,
+) -> Result<TransitionReturn, DomainRefusal> {
+    run_context(
+        context,
+        profile,
+        #[cfg(feature = "ordinary-domain-proof")]
+        None,
+        Some(captured),
+        None,
+    )
+}
+
+/// Ticket is consumed by value and keeps the exact mapping/custody borrowed
+/// until real machine return. No safe raw-UserContext restore entrance exists.
+pub(super) fn resume_context<E: Copy + Eq>(
+    ticket: continuation::ResumeTicket<'_, '_, E>,
+    profile: domain_budget::EntryBudget,
+    captured: &mut Option<continuation::UserContext>,
+) -> Result<TransitionReturn, DomainRefusal> {
+    let context = EntryContext {
+        entry: ticket.context().returned.rip,
+        stack: ticket.context().returned.rsp,
+        frame: 0,
+        cr3: ticket.mapping().cr3,
+        trap_stack: ticket.mapping().trap_stack,
+    };
+    run_context(
+        context,
+        profile,
+        #[cfg(feature = "ordinary-domain-proof")]
+        None,
+        Some(captured),
+        Some(ticket.context()),
+    )
+}
+
+fn run_context(
+    context: EntryContext,
+    profile: domain_budget::EntryBudget,
+    #[cfg(feature = "ordinary-domain-proof")] permit: Option<super::clock_boundary::Permit>,
+    captured: Option<&mut Option<continuation::UserContext>>,
+    resume: Option<&continuation::UserContext>,
+) -> Result<TransitionReturn, DomainRefusal> {
     let _interrupts = super::cpu::InterruptMask::new();
     if ACTIVE.swap(true, Ordering::AcqRel) {
         return Err(DomainRefusal::InvalidLifecycle);
     }
+    let _capture = match captured {
+        Some(target) => match capture::Sink::install(target) {
+            Some(sink) => Some(sink),
+            None => {
+                ACTIVE.store(false, Ordering::Release);
+                return Err(DomainRefusal::InvalidLifecycle);
+            }
+        },
+        None => None,
+    };
     unsafe {
         gdt::set_ring0_stack(context.trap_stack);
         idt::install_handler(
@@ -165,7 +242,12 @@ pub(super) fn enter_context_with_budget(
         }
     };
     let result = unsafe {
-        conduitos_ordinary_enter(context.entry, context.stack, context.frame, context.cr3)
+        match resume {
+            Some(saved) => conduitos_ordinary_resume(saved, 0, 0, context.cr3),
+            None => {
+                conduitos_ordinary_enter(context.entry, context.stack, context.frame, context.cr3)
+            }
+        }
     };
     #[cfg(feature = "ordinary-domain-proof")]
     if let Some(observed) = super::clock_boundary::finish(clock) {
@@ -190,7 +272,8 @@ pub(super) fn enter_context_with_budget(
 extern "C" fn conduitos_ordinary_timer_handler(
     user: u64,
     budget: u64,
-    #[cfg(feature = "ordinary-domain-proof")] saved: *const u64,
+    saved: *const u64,
+    segments: *const continuation::UserSegments,
 ) -> u64 {
     #[cfg(feature = "ordinary-domain-proof")]
     let sampled = unsafe { super::irq_envelope::before_handler(saved, user, budget) };
@@ -205,8 +288,18 @@ extern "C" fn conduitos_ordinary_timer_handler(
             domain_budget::source_interrupt();
         }
         // Source timer facts remain Source facts even while a domain is running.
-        super::irq::conduitos_timer_irq_handler();
-        0
+        let expired = super::irq::dispatch_source(user & 3 == 3);
+        if expired {
+            // Distinct result only after copying a genuine source IRQ snapshot
+            // into the installed single-entry Root sink. Not yet resume authority.
+            if user & 3 == 3 && unsafe { capture::save(saved, segments) } {
+                2
+            } else {
+                1
+            }
+        } else {
+            0
+        }
     };
     #[cfg(feature = "ordinary-domain-proof")]
     if sampled {
@@ -219,6 +312,7 @@ extern "C" fn conduitos_ordinary_timer_handler(
 
 global_asm!(
     include_str!("domain_transition/entry_return.S"),
+    include_str!("domain_transition/resume.S"),
     proof_envelope = const cfg!(feature = "ordinary-domain-proof") as u8,
     user_data = const gdt::USER_DATA_SELECTOR,
     user_code = const gdt::USER_CODE_SELECTOR,

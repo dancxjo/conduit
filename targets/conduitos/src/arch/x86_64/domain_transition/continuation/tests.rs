@@ -24,6 +24,7 @@ fn mapping() -> Mapping<'static> {
     Mapping {
         instance: 1,
         cr3: 0x1000,
+        trap_stack: 0xffff800000010000,
         image_sha256: [7; 32],
         stack_start: 0x8000,
         stack_end: 0x9000,
