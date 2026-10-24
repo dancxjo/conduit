@@ -138,8 +138,38 @@ owns release acceptance. Do not describe Candidate proof as stable acceptance.
 Keep implementation and stable-acceptance records separate when the claims
 depend on promotion. Documentation may accurately describe current development
 code and open work as such; reserve accepted-release claims for the required
-stable evidence. Preserve old evidence and discussion, correcting stale framing
-instead of erasing history.
+stable evidence. Preserve needed historical evidence through checksummed external
+archives and compact references; keep discussion and correct stale framing.
+This does not require retaining raw captures in the source tree.
+
+## Keep generated evidence out of source
+
+Follow [evidence retention](docs/contributing/evidence-retention.md) for every
+proof run and handoff, including work already underway on older branches.
+
+- Keep source, proof harnesses, minimal fixtures read by named tests, required
+  publication assets, and compact provenance/result summaries in Git.
+- Write raw logs, traces, screenshots, recordings, firmware/disk images and run
+  archives to ignored `target/` output. Use CI artifacts for temporary diagnostics
+  and checksummed external archives for evidence that must outlive CI expiry.
+- Never restore archived captures from Git history, old branches, downloads or
+  release bundles into tracked source. Do not reupload an existing archive, copy
+  it under another directory, rename it, split it, or encode it as text to bypass
+  this rule. Link its existing archive and checksum instead.
+- Refresh older work onto current `dev` using only the smallest product delta.
+  Preserve cleanup deletions; inspect staged paths before pushing. Do not merge
+  stale evidence directories back with an otherwise useful implementation.
+- Do not force-add generated output, add blanket retention exceptions, increase
+  budgets to fit another run, or weaken the guard. A new fixture needs a named
+  executable consumer and the minimum bytes needed to exercise its contract;
+  an old capture or audit link alone is not such a consumer.
+- Discard duplicate and superseded local output after its useful result is
+  summarized and any required unique evidence has verified external custody.
+  Protect active runs, uncommitted source, credentials, recovery images and the
+  only copy of required evidence. Preservation does not mean committing it.
+- Run `cargo xtask ci pipeline evidence-retention` before submitting evidence
+  changes. This guard covers known historical directories; the policy applies
+  throughout the repository, including newly invented output directories.
 
 ## Review the substance
 

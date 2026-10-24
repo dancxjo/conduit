@@ -18,3 +18,20 @@ On user-owned machines, recover space in this order:
 5. Report the before/after free space, what classes of data were removed, what large candidates were deliberately preserved, and any cleanup blocked by permissions.
 
 Disk cleanup is machine maintenance, not permission to change Conduit source or enlarge an issue's implementation scope.
+
+## Proof-output lifecycle
+
+Apply [evidence retention](evidence-retention.md) before generating or transferring
+captures. Keep run output under ignored `target/`, not dated source directories.
+Record useful outcomes in compact summaries; retain raw bytes externally only
+when a concrete consumer or unresolved failure requires them. Once external
+custody and checksums are verified, remove duplicate downloads, superseded
+captures and disposable local bundles when no running process owns them.
+Do not turn routine cleanup into another committed evidence package.
+
+An archive removal on current `dev` is intentional. Agents continuing on older
+branches must preserve it: transfer source changes without resurrecting old
+captures, and link existing durable archives rather than uploading them again.
+Do not force-add ignored output or move it elsewhere to bypass retention rules.
+Protect unique required evidence and recovery images locally; that protection is
+not permission to commit them or retain redundant copies indefinitely.
