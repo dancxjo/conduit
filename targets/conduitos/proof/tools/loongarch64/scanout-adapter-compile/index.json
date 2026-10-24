@@ -20,12 +20,12 @@
   },
   "files": [
     {
-      "path": "Cargo.lock",
+      "path": "Cargo.lock.txt",
       "bytes": 1836,
       "sha256": "efbf6de56f48426df53d0b700ac97fce3fceea5086af13795b57c7fa4406bb67"
     },
     {
-      "path": "Cargo.toml",
+      "path": "Cargo.toml.txt",
       "bytes": 197,
       "sha256": "06d2dea3b2929c437dc1c41da80d9a6b6712cb90c0bfdb8353c2cf44b3c2cb6b"
     },
@@ -35,7 +35,7 @@
       "sha256": "86af3a7cde5b599e255c31cd4cc79830c55c648586c4e652563880dbd5d7d57b"
     },
     {
-      "path": "compile-only-interfaces.rs",
+      "path": "compile-only-interfaces.rs.txt",
       "bytes": 1557,
       "sha256": "da15e2ec8410e827adf4bc0946c224d9fe1bf1f0c59397130725300df9f92050"
     }
