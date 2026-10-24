@@ -1,0 +1,22 @@
+{
+  "proof_class": "CPU fresh native-network construction overlap; radio/authority fixtures",
+  "pointer_bits": 64,
+  "fresh_preparation_peak_bytes": 38528,
+  "prepared_plan_and_lowering_retained_bytes": 22657,
+  "kernel_additional_preparation_peak_bytes": 8147,
+  "kernel_retained_heap_bytes": 2560,
+  "physical_measurement": false,
+  "mcu_admission_bound": false,
+  "sampler_concurrent": false,
+  "code_sha256": {
+    "bodies/environment/make/src/network_planning.rs": "2abcf610109c3738e0bbd5c007a419a16b6db3a751dcab295dfd1db5a2117e26",
+    "bodies/environment/make/tests/network_play_support/preparation_profile.rs": "e32b7fa32324757c4643eb1d89124fabd45d5232fe9a9b472732fc3f10b07be7",
+    "architecture/planner/src/canonical.rs": "864c0de7bc65b81182efdb94c2af0bf232c6ce02f5ef9a20d5c37add9a660530",
+    "architecture/planner/src/canonical/borrowed_default_tests.rs": "b4241cd1f9ad668625357ffb74553ba0fb3490d2f4234264331e32a6b536a801"
+  },
+  "previous_fresh_preparation_peak_bytes": 40898,
+  "peak_reduction_bytes": 2370,
+  "preparation_allocations": 1211,
+  "previous_preparation_allocations": 1250,
+  "discarded_owned_phase_experiment_peak_bytes": 40898
+}

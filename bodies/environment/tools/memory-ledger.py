@@ -60,7 +60,7 @@ def ledger(sampling_image=None, output_image=None):
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
         "expression_cpu": EVIDENCE / "2026-10-24-tape-join-repair/measurement.json",
         "sign_budget": EVIDENCE / "2026-10-24-derived-output-signs/measurement.json",
-        "network_cpu": EVIDENCE / "2026-10-24-network-preparation-overlap/measurement.json",
+        "network_cpu": EVIDENCE / "2026-10-24-borrowed-network-planning/measurement.json",
         "composer_cpu": EVIDENCE / "2026-10-24-composer-schema-sharing/measurement.json",
         "linked_schema_cpu": EVIDENCE / "2026-10-24-publication-sink/schema-compatibility.json",
         "prepared_show_cpu": EVIDENCE / "2026-10-24-prepared-alternating-show/measurement.json",
