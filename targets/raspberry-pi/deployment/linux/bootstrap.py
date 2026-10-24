@@ -74,14 +74,14 @@ def prepare(args):
     subprocess.run([tools['mtype'], '-i', image_arg, '::bcm2710-rpi-3-b-plus.dtb'],
                    stdout=subprocess.DEVNULL, check=True)
     cloud = f'''#cloud-config
-hostname: {args.hostname}
+hostname: {json.dumps(args.hostname)}
 manage_etc_hosts: true
 timezone: America/Los_Angeles
 locale: en_US.UTF-8
 keyboard:
   layout: us
 user:
-  name: {args.user}
+  name: {json.dumps(args.user)}
   shell: /bin/bash
   lock_passwd: true
   ssh_authorized_keys:
@@ -99,14 +99,14 @@ runcmd:
   - [systemctl, enable, --now, avahi-daemon]
   - [systemctl, set-default, multi-user.target]
   - [systemctl, mask, display-manager.service]
-  - [install, -d, -o, {args.user}, -g, {args.user}, -m, '0700', /var/lib/conduit]
+  - [install, -d, -o, {json.dumps(args.user)}, -g, {json.dumps(args.user)}, -m, '0700', /var/lib/conduit]
 '''
     # This identifies cloud-init's image instance, not a Conduit Host or Body.
     instance = str(uuid.uuid4())
     sidecars.mkdir(exist_ok=False)
     network = 'network:\n  version: 2\n  renderer: NetworkManager\n  ethernets:\n    eth0:\n      dhcp4: true\n      optional: false\n'
     files = {'user-data': cloud, 'network-config': network,
-             'meta-data': f'instance-id: {instance}\nlocal-hostname: {args.hostname}\n'}
+             'meta-data': f'instance-id: {instance}\nlocal-hostname: {json.dumps(args.hostname)}\n'}
     for name, text in files.items():
         path = sidecars / name
         path.write_text(text)
