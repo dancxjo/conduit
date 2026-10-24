@@ -187,7 +187,14 @@ fn installed_point_mixed_and_zero_inputs_refuse_without_output_then_valid_input_
             )
             .unwrap_err();
         assert!(outputs.0.is_empty());
-        assert_eq!(refusal, format!("installed kernel step: BackFailed(Failure {{ code: HostCallFailed, detail: {detail} }})"));
+        let expected = format!(
+            "installed kernel step: BackFailed(Failure {{ code: HostCallFailed, detail: {detail} }})"
+        );
+        assert_eq!(refusal.split(';').next(), Some(expected.as_str()));
+        assert!(refusal.contains(&format!(
+            "source-document={}",
+            plan.source_document_id.as_str()
+        )));
         println!("ATAN2_ROLE_REFUSAL {y}, {x}: {refusal}");
     }
     let mut outputs = Outputs(Vec::with_capacity(1));
