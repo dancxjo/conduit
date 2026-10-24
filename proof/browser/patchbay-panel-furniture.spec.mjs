@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 function startServer() {
@@ -294,4 +294,56 @@ test("workspace status and tools reserve canvas space instead of covering nodes"
     server.lines.close();
     server.process.kill('SIGTERM');
   }
+});
+
+
+test("enlarged narrow shell retains a useful scrollable graph viewport", async ({ page }, info) => {
+  const server=startServer();
+  try {
+    await page.setViewportSize({width:390,height:844});
+    await page.goto(await server.url);
+    await expect(page.locator('body')).toHaveAttribute('data-application-ready','true');
+    await page.getByRole('button',{name:'Plot',exact:true}).click();
+    await expect(page.locator('.flow-frontplate').first()).toBeVisible();
+    await page.getByRole('combobox',{name:'Look',exact:true}).selectOption('conduit.look/navy@1');
+    await page.addStyleTag({content:'html{font-size:32px!important}'});
+    await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
+    await expect(page.locator('html')).toHaveCSS('font-size','32px');
+    await page.getByRole('button',{name:'Arrange',exact:true}).click();
+    const overlaps=()=>page.locator('.flow-frontplate').evaluateAll(nodes=>{
+      const rects=nodes.map(node=>node.getBoundingClientRect());let count=0;
+      for(let a=0;a<rects.length;a++)for(let b=a+1;b<rects.length;b++)
+        if(Math.min(rects[a].right,rects[b].right)-Math.max(rects[a].left,rects[b].left)>1 && Math.min(rects[a].bottom,rects[b].bottom)-Math.max(rects[a].top,rects[b].top)>1)count++;
+      return count;
+    });
+    await expect.poll(overlaps).toBe(0);
+    await expect.poll(()=>page.locator('.flow-frontplate').evaluateAll(nodes=>nodes.every(node=>{
+      const card=node.getBoundingClientRect(),box=node.closest('.react-flow__node').getBoundingClientRect();
+      return ["left","top","right","bottom"].every(edge=>Math.abs(card[edge]-box[edge])<=1);
+    }))).toBe(true);
+    const baseline=await (await page.request.get(`${await server.url}/api/snapshot`)).json();
+    const graph=page.locator('#flow-root');
+    await graph.scrollIntoViewIfNeeded();
+    const geometry=await graph.evaluate(node=>{
+      const r=node.getBoundingClientRect(),top=Math.max(0,r.top),bottom=Math.min(innerHeight,r.bottom);
+      return {viewport:{width:innerWidth,height:innerHeight},graph:{top:r.top,bottom:r.bottom,width:r.width,height:r.height},
+        visibleHeight:Math.max(0,bottom-top),documentHeight:document.documentElement.scrollHeight,
+        horizontalOverflow:document.documentElement.scrollWidth>innerWidth,
+        graphHitSamples:[.2,.5,.8].map(fraction=>node.contains(document.elementFromPoint(r.left+r.width/2,top+(bottom-top)*fraction)))};
+    });
+    await writeFile(info.outputPath('narrow-graph-geometry.json'),JSON.stringify(geometry,null,2));
+    await page.screenshot({path:info.outputPath('narrow-graph.png'),fullPage:true,animations:'disabled'});
+    await page.screenshot({path:info.outputPath('narrow-graph-viewport.png'),animations:'disabled'});
+    expect(geometry.graph.height).toBeGreaterThanOrEqual(320);
+    expect(geometry.visibleHeight).toBeGreaterThanOrEqual(320);
+    expect(geometry.documentHeight).toBeGreaterThan(geometry.viewport.height);
+    expect(geometry.horizontalOverflow).toBe(false);
+    expect(geometry.graphHitSamples).toEqual([true,true,true]);
+    const tools=page.locator('#workspace-controls > summary');
+    await tools.focus();await expect(tools).toBeFocused();await expect(tools).toBeInViewport();
+    const current=await (await page.request.get(`${await server.url}/api/snapshot`)).json();
+    expect(current.face).toEqual(baseline.face);
+    await graph.scrollIntoViewIfNeeded();
+    await page.screenshot({path:info.outputPath('narrow-graph-returned.png'),fullPage:true,animations:'disabled'});
+  } finally {server.lines.close();server.process.kill('SIGTERM');}
 });

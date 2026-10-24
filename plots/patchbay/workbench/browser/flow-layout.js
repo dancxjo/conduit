@@ -29,8 +29,14 @@ function components(nodes, edges) {
   return result.sort((a, b) => compare(a[0], b[0]));
 }
 
-export function layoutFlowScene(nodes, edges) {
+export function layoutFlowScene(nodes, edges, measurements = new Map()) {
   if (nodes.length > MAX_LAYOUT_NODES || edges.length > MAX_LAYOUT_EDGES) throw new Error("Flow layout bound exceeded");
+  const sizes = new Map(nodes.map(node => {
+    const measured = measurements.get(node.id);
+    if (measured && ![measured.width, measured.height].every(value => Number.isFinite(value) && value > 0 && value <= 32767))
+      throw new Error("Flow layout measurements exceed workspace geometry bounds");
+    return [node.id, measured || { width: 280, height: 84 + (node.data?.ports?.length || 0) * 44 }];
+  }));
   const groups = components(nodes, edges);
   const owner = new Map(groups.flatMap((group, index) => group.map((identity) => [identity, index])));
   const outgoing = new Map(groups.map((_group, index) => [index, new Set()]));
@@ -67,17 +73,22 @@ export function layoutFlowScene(nodes, edges) {
     });
   }
   const positions = new Map();
+  let x = 80;
   for (let layer = 0; layer < columns.length; layer += 1) {
-    let y = 90;
+    let y = 90, width = 280;
     for (let rank = 0; rank < (columns[layer] || []).length; rank += 1) {
       const group = groups[columns[layer][rank]];
       for (const identity of group) {
-        positions.set(identity, { x: 80 + layer * 320, y });
-        const node = nodes.find((candidate) => candidate.id === identity);
-        y += 84 + (node?.data?.ports?.length || 0) * 44 + 40;
+        const size = sizes.get(identity);
+        if (measurements.size && (x > 32767 || y > 32767))
+          throw new Error("Measured flow layout exceeds workspace geometry bounds");
+        positions.set(identity, { x, y });
+        width = Math.max(width, size.width);
+        y += size.height + 40;
       }
       y += 70;
     }
+    x += width + 40;
   }
   return positions;
 }
