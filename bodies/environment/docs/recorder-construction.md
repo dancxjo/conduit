@@ -141,6 +141,17 @@ Root must also obtain and retain its ordered reference catalog through admitted
 state. This source does not discover a catalog, reserve manifest slots or prove
 that referenced content has been published.
 
+The Linux `PreparedFileBatchRecovery` now owns the ordinary batch kernel with
+one prepared actual file executor per selected read. It rejects a foreign Play
+before dequeue or Step and prepares all file bindings before transferring any
+retained software. The focused `recording-files` proof publishes and reopens
+1, 15 and 16 full chunks, then recovers through original kernel requests without
+execution allocations. The 15-chunk case recovers 960 samples, including typed
+quantities and explicit checksum failures. A missing middle file terminates
+without fabricating later history. These are accelerated CPU executions using
+actual disk effects and fixture offers/grants, not physical overnight evidence,
+durable Root catalog-seed custody or live Host capacity admission.
+
 ## Ordered batch Source
 
 `RecordingBatchRecoverySource` compiles the catalog-selected ordered references

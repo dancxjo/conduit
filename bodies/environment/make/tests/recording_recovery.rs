@@ -280,3 +280,7 @@ mod body_lifecycle;
 #[cfg(target_os = "linux")]
 #[path = "recording_recovery/linux_files.rs"]
 mod linux_files;
+
+#[cfg(target_os = "linux")]
+#[path = "recording_recovery/linux_batch_files.rs"]
+mod linux_batch_files;

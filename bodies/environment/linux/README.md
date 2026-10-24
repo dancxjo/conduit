@@ -22,3 +22,17 @@ The runtime's `PreparedRecordingKernelFace` projects this owner's read-only
 kernel through `refresh_single`. Root retains the matching kernel/Face pair and
 current Body custody. The browser's existing public projector name aliases this
 same implementation; both Masks consume committed recovery state.
+
+`PreparedFileBatchRecovery<N, C>` retains the existing ordinary batch kernel and
+one exact file executor per selected read (at most 16). All file preparations
+precede transfer of the supplied retained software owners. Each original kernel
+request routes by its selected node; a foreign Play refuses before dequeue or
+Step. The complete kernel and executor memory closure still needs Root admission.
+
+The same public file proof now includes actual publication, directory reopen,
+and recovery of 1, 15 and 16 full chunks, with canonical quantities and explicit
+checksum failures. Execution allocates no Rust heap. A missing middle generation
+refuses without extending history beyond the preceding committed prefix. Store
+offers, independent grants and producer authentication are CPU fixtures; the
+test supplies the selected references and does not establish durable catalog-seed
+custody or a live overnight appliance.
