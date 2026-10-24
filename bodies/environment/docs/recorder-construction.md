@@ -29,6 +29,14 @@ source content. Producer authentication, clock coordinates, resource placement
 and grants are explicit fixtures. The native worker/Line, real Body admission,
 and rolling generations/catalog checkpoint are not established by this proof.
 
+The joint CPU native-worker/file proof now carries two source publications into
+two prepared ordinary file kernels. Sink acceptance follows actual Host Call
+completion and Back commit, then the worker stops and retires. Independent read
+owners reopen exact first-class quantities and producer times after sink drop.
+This exercises the target worker code with inert providers; the cross-Host Line,
+time coordinates and store grants remain fixtures. It does not publish the
+catalog or establish an overnight rolling lifetime or physical deployment.
+
 ## Meaning and readiness
 
 `RecordingCatalogSeedSource` checks the authored

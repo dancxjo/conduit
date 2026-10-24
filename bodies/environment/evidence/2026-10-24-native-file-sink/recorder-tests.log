@@ -1,0 +1,36 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 0.76s
+     Running tests/recording_recovery.rs (target/environment-lean-host/debug/deps/recording_recovery-07a1c7d13e4228b8)
+
+running 28 tests
+test batch_source::empty_duplicate_foreign_and_over_capacity_batch_meaning_refuses ... ok
+test linux_batch_files::linux_files_catalog_refusals_do_not_return_references ... ok
+test admission::full_first_class_recording_fits_the_snapshot_text_profile ... ok
+test execution::lowered_recovery_requires_the_selected_read_before_committing_history ... ok
+test admission::stale_tables_and_unavailable_software_refuse_before_other_transfers ... ok
+test linux_files::invalid_json_in_a_valid_file_envelope_fails_before_kernel_success ... ok
+test body_lifecycle::recorder_cannot_propose_to_foreign_membership_or_substitute_a_fragment_play ... ok
+test linux_files::actual_file_read_completes_the_original_recovery_kernel_request_without_allocations ... ok
+test batch_execution::stale_batch_tables_and_unavailable_owner_refuse_before_other_transfers ... ok
+test checked_generation_read_and_recovery_use_independent_resource_and_authority ... ok
+test linux_files::missing_file_does_not_commit_recovered_history ... ok
+test linux_files::valid_json_with_invalid_recording_content_cannot_commit_history ... ok
+test body_lifecycle::recorder_proposal_and_fragment_identity_require_the_retained_body_start ... ok
+test linux_files::owned_file_kernel_requires_exact_play_and_uses_the_retained_body_binding ... ok
+test linux_files_streaming_publication::linux_files_streaming_preflight_refuses_nonempty_generation_without_transfer_or_file_effect ... ok
+test software_preparation::late_publication_collision_drops_new_owners_without_changing_supplied_offers ... ok
+test linux_files_publication::linux_files_publication_preflight_retains_an_incomplete_generation_without_effects ... ok
+test software_preparation::missing_foreign_or_unoffered_read_choices_leave_the_host_unchanged ... ok
+test batch_plan::complete_batch_plan_selects_separate_retained_owners_and_exact_generations ... ok
+test execution::lowered_recovery_refuses_failed_cancelled_and_invalid_reads ... ok
+test wrong_generation_or_absent_resource_cannot_become_a_recovery_plan ... ok
+test linux_files_streaming_publication::linux_files_streaming_publication_prepares_before_samples_and_commits_original_requests ... ok
+test batch_execution::failed_cancelled_and_invalid_batch_reads_do_not_publish_history ... ok
+test linux_files_publication::linux_files_publication_uses_original_requests_and_committed_observers ... ok
+test batch_source::overnight_batch_has_exact_reads_and_ordered_finite_concat_in_checked_source ... ok
+test linux_batch_files::linux_files_batch_missing_generation_cannot_fabricate_the_complete_range ... ok
+test batch_execution::reverse_read_completion_still_recovers_all_overnight_chunks_in_source_order_without_allocations ... ok
+test linux_batch_files::linux_files_batch_recovers_one_overnight_and_maximum_batches_without_allocations ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.54s
+

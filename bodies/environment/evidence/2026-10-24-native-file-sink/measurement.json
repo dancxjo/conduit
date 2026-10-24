@@ -1,0 +1,28 @@
+{
+  "proof_class": "CPU exact native worker and ordinary file publication kernels; explicit Line/clock/placement/grant fixtures",
+  "pointer_bits": 64,
+  "accepted_publications": 2,
+  "committed_file_generations": 2,
+  "native_sampler_behavior_modes": 20,
+  "assignment_representations": 2,
+  "root_tests_passed": 17,
+  "recorder_recovery_tests_passed": 28,
+  "play_rust_allocations": 0,
+  "play_rust_reallocations": 0,
+  "kernel_storage_commit_observed": true,
+  "independent_read_quantities_and_source_times_verified": true,
+  "catalog_content_checked_after_commits": true,
+  "catalog_published": false,
+  "actual_line_authenticated": false,
+  "combined_mcu_admitted": false,
+  "hardware_updated": false,
+  "complete_recorder_backing_measured": false,
+  "code_sha256": {
+    "bodies/environment/make/tests/root_control_support/native_worker_files.rs": "83a59c6c8bbb9f65cc5850e21c4714039d1b7d5a5f74875e8190e1ef2d6f6ef7",
+    "bodies/environment/make/tests/root_control_support/native_worker.rs": "5d6ef1f6a1484b4cac6897652bfb3a167d780d805570a789e0c8c242d5b6e245",
+    "bodies/environment/make/tests/root_control_support/native_pair.rs": "a310dc4fa292e59a1619c5e51935095205aa6e17ffc798b40db909c9e2a6902c",
+    "bodies/environment/make/tests/common/recording_fixture.rs": "187389a5c9ffd2570c283f25cd6d4bf4aab33dbe477b34cac4c29642d539b507",
+    "targets/esp32/proof/tm1637/src/native_worker.rs": "575819dd8d8552897f5bbe29f6fe845be949503fb2c608fe127b03172af371a5",
+    "bodies/environment/linux/src/publication.rs": "e7e51a6e65b190fc985bd790db852c66f0779e103f55c556a79d2ccfeadad67e"
+  }
+}

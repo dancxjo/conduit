@@ -57,7 +57,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
             records: &records,
         },
     ] {
-        for behavior in 0..19 {
+        for behavior in 0..20 {
             let wrong_role = behavior % 2 == 0;
             let mut issuer = native_authority::RootIssuer::observe(&boot::ObservedBoot).unwrap();
             let active = issuer

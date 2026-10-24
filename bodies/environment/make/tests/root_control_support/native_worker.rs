@@ -1,5 +1,7 @@
 //! CPU fixture executor for the exact target worker, not physical clock proof.
 use super::*;
+#[path = "native_worker_files.rs"]
+mod files;
 #[path = "native_worker_sink.rs"]
 mod sink;
 use crate::native_worker::{Execution, Exit};
@@ -55,6 +57,10 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         return;
     }
 
+    if behavior == 19 {
+        files::check(execution, pulse_effects, timer_effects, retirement);
+        return;
+    }
     if behavior >= 15 {
         sink::check(
             execution,

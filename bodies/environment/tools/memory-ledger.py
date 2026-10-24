@@ -65,12 +65,17 @@ def ledger(sampling_image=None, output_image=None):
         "linked_schema_cpu": EVIDENCE / "2026-10-24-publication-sink/schema-compatibility.json",
         "prepared_show_cpu": EVIDENCE / "2026-10-24-prepared-alternating-show/measurement.json",
         "publication_sink_cpu": EVIDENCE / "2026-10-24-publication-sink/measurement.json",
+        "native_file_sink_cpu": EVIDENCE / "2026-10-24-native-file-sink/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
     sign_budget = read_json(inputs["sign_budget"])
     network_cpu = read_json(inputs["network_cpu"])
     composer_cpu = read_json(inputs["composer_cpu"])
+    native_file_sink_cpu = read_json(inputs["native_file_sink_cpu"])
+    for relative, digest in native_file_sink_cpu["code_sha256"].items():
+        if hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() != digest:
+            raise ValueError("native file sink changed; renew joint storage proof")
     publication_sink_cpu = read_json(inputs["publication_sink_cpu"])
     for relative, digest in publication_sink_cpu["code_sha256"].items():
         if hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() != digest:
@@ -158,6 +163,7 @@ def ledger(sampling_image=None, output_image=None):
             "sampler_software_cpu": linked_schema_cpu,
             "prepared_show_cpu": prepared_show_cpu,
             "publication_sink_cpu": publication_sink_cpu,
+            "native_file_sink_cpu": native_file_sink_cpu,
             "historical_composer_software_cpu": composer_cpu,
             "sampling_value_payload": {"bytes": sum(capacities), "slot_capacities": capacities, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "extent_basis": "Make ceiling from all independently checked payload Types; slot count unchanged", "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
@@ -220,6 +226,7 @@ def markdown(value):
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
         f"| Resolved page material, CPU only | {value['inventory']['prepared_show_cpu']['inline_bytes']} inline bytes, no heap allocation | Additional to the existing Mask/encoder; no native timer, caller or effect admission credited |",
         f"| Publication sink, CPU only | Exact test invocation future {value['inventory']['publication_sink_cpu']['sink_future_bytes']:,} B | Excludes sink backing and task pool; updated native worker physical high water remains unmeasured |",
+        "| Native/file bridge, CPU only | Two original file Host Calls and committed observers; zero Rust play allocations | Line/clock/grants remain fixtures; complete recorder backing and rolling catalog are unmeasured |",
         f"| Network construction, CPU only | Fresh preparation peak {value['inventory']['network_preparation_cpu']['fresh_preparation_peak_bytes']:,} B; retained Plan/lowering {value['inventory']['network_preparation_cpu']['prepared_plan_and_lowering_retained_bytes']:,} B | Not an MCU bound; excludes concurrent sampling and radio effects |",
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
         f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
