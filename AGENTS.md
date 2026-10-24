@@ -142,6 +142,24 @@ stable evidence. Preserve needed historical evidence through checksummed externa
 archives and compact references; keep discussion and correct stale framing.
 This does not require retaining raw captures in the source tree.
 
+## Keep origin branches purposeful
+
+- Before publishing a branch, refresh `dev` and check current open consolidation
+  work. A local checkout or old branch name is not evidence of missing work.
+- Do not recreate an audited deleted branch under `archive/`, `recovery/`,
+  `checkpoint/`, another prefix, or a new name. Do not bulk-push local heads or
+  publish a recovery-map branch during cleanup. Preserve uncertain source with
+  a kept local ref or verified local bundle until its useful delta is reviewed.
+- Salvage missing functionality and regression coverage into focused current-dev
+  changes. Do not merge an obsolete subtree, restore old execution machinery,
+  carry historical captures, or publish bookkeeping merely to preserve a tip.
+- A remote branch needs a current issue/PR purpose and named ownership. Delete
+  redundant aliases after verifying retained source and current PR/release
+  dependencies; use expected-head checks so concurrent new work is not erased.
+- Keep `dev`, `main`, the live publication branch, and active PR/release work.
+  Never infer disposability solely from a branch prefix, age, closed issue or
+  patch similarity. Preserve any unique useful work until actual salvage lands.
+
 ## Keep generated evidence out of source
 
 Follow [evidence retention](docs/contributing/evidence-retention.md) for every
@@ -186,8 +204,11 @@ Follow [environment stewardship](docs/contributing/agent-operations.md) before
 large builds or cleanup. Protect active artifacts, dirty or unpushed work,
 unique evidence, credentials, and personal data. Before removing a worktree,
 refresh remote refs, inspect tracked/untracked changes and active ownership,
-and verify its exact HEAD is remotely reachable. Use `git worktree remove`
-without force and retain branches; preserve anything unverifiable.
+and verify its exact HEAD is retained by a kept local/remote ref or a verified
+local bundle outside that worktree. Preserve dirty/untracked work separately.
+Use `git worktree remove` without force and retain the needed local branches;
+preserve anything unverifiable. Do not publish an origin archive merely to
+satisfy this custody check.
 
 Recover archived ideas only for a current vertical slice. Record the smallest
 reviewed reuse and its provenance in [the reuse ledger](docs/reuse-ledger.md),

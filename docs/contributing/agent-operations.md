@@ -35,3 +35,18 @@ captures, and link existing durable archives rather than uploading them again.
 Do not force-add ignored output or move it elsewhere to bypass retention rules.
 Protect unique required evidence and recovery images locally; that protection is
 not permission to commit them or retain redundant copies indefinitely.
+
+## Remote branch cleanup
+
+Do not turn local disk cleanup into a new set of origin archives or recovery
+maps. Before publishing a preservation ref, compare its source with current
+`dev` and active consolidation work. Keep unique uncertain work under a local
+ref or a verified local Git bundle outside the worktree instead. A bundle must
+contain the exact commit and pass `git bundle verify` before it replaces a
+worktree's custody; dirty and untracked files require separate preservation.
+
+Do not recreate an audited discarded ref under another name. Remote branches
+are for current owned work, not every checkpoint or capture. Retire redundant
+aliases with expected-head checks after verifying source retention and active
+PR/release dependencies. Salvage actual missing code/tests before removing their
+only retained source; keep live publication and automation-owned active refs.
