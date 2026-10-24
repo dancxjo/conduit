@@ -134,7 +134,7 @@ pub(super) fn boot_if_selected(
             emitted_line::complete_json_line(&transcript, OBSERVATORY_PREFIX),
         ) {
             let product: Value = serde_json::from_str(product).map_err(io)?;
-            let proof = capture.finish(&mut child, &transcript, &product, started)?;
+            let proof = capture.finish_static(&mut child, &transcript, &product, started)?;
             validate_mapping(&proof)?;
             return Ok(Some((transcript.into_owned(), proof)));
         }
