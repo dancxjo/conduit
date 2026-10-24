@@ -28,7 +28,6 @@ pub fn look_facet_availability(
 
 #[derive(Debug)]
 pub enum LookVisualAdmissionRefusal {
-    Facet(LookFacetAvailability),
     Visual(VisualExpressionRefusal),
     Native(NativeBindingRefusal),
 }
@@ -49,21 +48,19 @@ pub fn admit_visual_look(
     look: &LookInfo,
     user: VisualUserConstraints,
 ) -> Result<AdmittedVisualLook, LookVisualAdmissionRefusal> {
-    let LookVisualFacetOption::Some(facet) = look.visual() else {
-        return Err(LookVisualAdmissionRefusal::Facet(
-            LookFacetAvailability::Absent,
-        ));
+    let expression = match look.visual() {
+        LookVisualFacetOption::Some(facet) => Ok(visual_expression_from_info(
+            facet
+                .expression()
+                .clone()
+                .into_structured()
+                .map_err(LookVisualAdmissionRefusal::Native)?,
+        )
+        .map_err(LookVisualAdmissionRefusal::Visual)?),
+        LookVisualFacetOption::None => Err(VisualExpressionRefusal::MissingVisualFacet),
     };
-    let expression = visual_expression_from_info(
-        facet
-            .expression()
-            .clone()
-            .into_structured()
-            .map_err(LookVisualAdmissionRefusal::Native)?,
-    )
-    .map_err(LookVisualAdmissionRefusal::Visual)?;
-    let visual = admit_visual_expression(Ok(expression), user)
-        .map_err(LookVisualAdmissionRefusal::Visual)?;
+    let visual =
+        admit_visual_expression(expression, user).map_err(LookVisualAdmissionRefusal::Visual)?;
     let selected = if matches!(
         visual.outcome,
         VisualExpressionOutcome::PhosphorFallback { .. }

@@ -86,6 +86,8 @@ pub enum VisualExpressionRefusal {
     Identity,
     TextScale,
     HostTextCapacity,
+    /// The requested multimodal Look contains no visual policy.
+    MissingVisualFacet,
 }
 
 /// Observed user requirements and selected Host limits, never Look preferences.

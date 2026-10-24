@@ -1,0 +1,38 @@
+{
+  "source_commit": "87c0364eded84d9979d826bf8984fca4a0d87d42",
+  "proof_classes": {
+    "portable_admission": true,
+    "native_checked_source_cpu": true,
+    "canonical_browser_renderer_fixture": true,
+    "live_browser_nonvisual_source": false,
+    "current_source_qemu": false,
+    "ci": false,
+    "stable_publication": false
+  },
+  "sha256": {
+    "admission-forced.json": "1d13dc19d9f3d7cfc49b156ce82edbb7687125ced6d5dffc1ada2e1966818ba2",
+    "admission-normal.json": "0d66f9683ce1a303e208e12b4f28ed758c29aa716b96208d004cdf909d7195bd",
+    "before-forced.png": "54ab9601b027629690c9de7e3928c17b8016ef8bfb7c25284c03e14cbd697aa3",
+    "before-normal.png": "82fafc3493d297088dd73313049a023131cde0bd211ccd62f46ce57a3094428b",
+    "before-receipt.json": "2891fd2880dd0e1bbd60a81aa4e517c8e284beb933673d01979591e3629313b5",
+    "browser-mask-baseline.log": "22b1161405f231e04dbc3134949068f33fb7a2b4ab0577326925510ac61a89c4",
+    "browser-source-probe-failed.log": "9f36772f2a52ec954efa92938d95bb5be7520fdf1d30f4ec4499a8e129bd8ac5",
+    "browser-source-probe.rs.txt": "1dfa0a72e62305b6ad76044626e302d1b9acb782ee236dc235765c32c5b45808",
+    "capture.mjs": "1399ca83adb6c0dd1c3e6e3445dd29e5909209bc066cda95881aa48469bd90f0",
+    "component-chromium.log": "2198ee80723680951f5d43398c76262069d056007f5cc9fdc340768a4109ffe7",
+    "default-forced.png": "7f7897c0a1c8927c18d3508af4d1954db0f19d0fab41fd5bc585075cff7b2f45",
+    "default-normal.png": "aa6019597f4917921cdc656974b72a4159dc4cb1973537b580966016bf7defb7",
+    "face-clippy.log": "4e6a7f20d1c25117418a376838a325666024754fc7307e8974d0c8a822f505e5",
+    "face-tests.log": "8e7f051b1693c60ba675f1fce311cdd3af0377e7dde66fdbde162de8e1797aa2",
+    "native-cpu.log": "16680c2ba5e53af6f02361d7f1f80202c5d1775d3233616f994459e317bc55a8",
+    "renderer-receipt.json": "35c9a432c72973aa494a5ed612b5bce7c562967a5fa7769fb5fbcc5751dcf67c",
+    "view-forced.json": "3519fe587973feb09bbbb9bca2aa331c8fb41bace55448032fb4da2374774872",
+    "view-normal.json": "64b7f7cf0cc6acc1e6545c2d55ee6290bd8bc69b4f244c6727c71c6ec1c37e2e"
+  },
+  "production_sha256": {
+    "semantics/face/src/look_selection.rs": "e49199bd6e483e5c665f7a8dbb8071fa0b75251279bd884511106778432c618f",
+    "semantics/face/src/visual_expression.rs": "eebd6aeab2c5bceee98098daa4f2d96c25d5cb24e7aba46d207b16d8cfbe05d0",
+    "targets/browser/handbook/owner-face-component.mjs": "67d0dbcd23daba7d2e43cacfbd83a30f3f381e950b7bddc622564722e4a3d2a2",
+    "targets/browser/handbook/owner-face-look.css": "241a1ee938800acc208ea0ec2ba6bc421939ccad51106c17f09b18871f3117b5"
+  }
+}

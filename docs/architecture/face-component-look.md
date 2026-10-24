@@ -107,8 +107,12 @@ they do not yet configure a speech or generative provider.
 
 Visual precedence reuses existing admission: user constraints and hard Host
 limits outrank the requested expression. Successful fallback retains both the
-requested Look and the selected canonical Phosphor resource. An impossible
-user/Host constraint combination refuses. Generic no-Look browser realization
+requested Look and the selected canonical Phosphor resource. A requested Look
+without a visual facet selects that same deterministic default, reporting
+`PhosphorFallback { refusal: MissingVisualFacet }`. Its requested visual facet
+still reports `Absent`; its spoken/generative policy stays intact in the
+requested resource and is not enacted by the visual Mask. Accessibility rules
+apply to the default too. An impossible user/Host constraint combination refuses. Generic no-Look browser realization
 clears only paint properties owned by the previous Look and its metadata, while
 preserving Face meaning and unrelated renderer properties.
 

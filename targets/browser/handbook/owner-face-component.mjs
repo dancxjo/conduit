@@ -168,7 +168,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const control = document.createElement('form');
       control.setAttribute('part', 'action');
       control.dataset.ownerAction = action.identity;
-      if (!itemName) control.append(faceNode('h5', action.name));
+      if (!itemName && Array.isArray(action.arguments) && action.arguments.length) control.append(faceNode('h5', action.name));
       const inputs = [];
       const composing = new Set();
       const argumentCount = Array.isArray(action.arguments) ? action.arguments.length : 0;
