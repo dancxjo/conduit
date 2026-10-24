@@ -22,17 +22,36 @@ impl DecodedPackets {
         })
     }
 }
-pub(crate) struct PreparedPackets(c::PreparedStructuredValueValidator);
+const PACKETS_TYPE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/packets.type"));
+// The independently checked immutable schema is linked once, rather than
+// retained as a second decoded Type and canonical prefix in every selected owner.
+pub(crate) struct PreparedPackets {
+    _checked: (),
+}
 impl PreparedPackets {
     pub(crate) fn prepare(contract: &WriteContract) -> Result<Self, c::StructuredInfoRefusal> {
-        Ok(Self(c::PreparedStructuredValueValidator::new(
-            contract.packets_type(),
-            MAXIMUM_BYTES as usize,
-        )?))
+        if MAXIMUM_BYTES == 0
+            || MAXIMUM_BYTES as usize > c::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || PACKETS_TYPE.len() >= MAXIMUM_BYTES as usize
+        {
+            return Err(c::StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        if contract.packets_type().canonical_bytes()?.as_slice() != PACKETS_TYPE {
+            return Err(c::StructuredInfoRefusal::WrongType);
+        }
+        Ok(Self { _checked: () })
     }
     pub(crate) fn decode(&self, bytes: &[u8]) -> Result<DecodedPackets, PacketRefusal> {
-        self.0.validate(bytes)?;
+        if bytes.len() > MAXIMUM_BYTES as usize {
+            return Err(c::StructuredInfoRefusal::CanonicalEncodingTooLarge.into());
+        }
+        if !bytes.starts_with(PACKETS_TYPE) {
+            return Err(c::StructuredInfoRefusal::WrongType.into());
+        }
         let value = c::validate_canonical_structured_value(bytes)?;
+        if value.type_bytes() != PACKETS_TYPE {
+            return Err(c::StructuredInfoRefusal::WrongType.into());
+        }
         let packets = value
             .record_field("packets")?
             .ok_or(PacketRefusal::Geometry)?;

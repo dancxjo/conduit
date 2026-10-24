@@ -73,3 +73,12 @@ same request. It checks NACK, cancellation, operation exhaustion, late completio
 after kernel cancellation and zero heap allocations across execution. Numeric
 routing/admission, native pin ownership and authority remain explicit fixtures;
 this is not an installed MCU Mask Play or physical-display proof.
+
+The selected packet decoder borrows the independently checked, linked packet
+schema. Preparation compares the complete contract Type with those bytes;
+execution still checks the full canonical envelope, every primitive leaf, packet
+geometry and zero padding before GPIO effects. It retains no decoded schema heap.
+`cargo xtask check tm1637-output` includes refusal parity against the previous
+owned validator for every truncation, malformed leaf, foreign prefix and repeated
+use, alongside the selected-owner and electrical tests. The measured 794-byte
+reduction is CPU64 validator heap, not complete MCU or appliance admission.
