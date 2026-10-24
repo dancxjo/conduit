@@ -76,6 +76,8 @@ pub const STEPS: &[Step] = &[
             "--test",
             "model_linguistic_projection",
             "--test",
+            "contextual_ipa_profile",
+            "--test",
             "complete_carrier_acoustics",
             "--test",
             "complete_carrier_admission",
