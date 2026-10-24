@@ -49,7 +49,38 @@ fn fixture() -> LanguageResourceLexicalBinding {
 }
 fn accepted(query: LanguageResourceLexicalBinding) -> bool {
     let program = PreparedResourceSnapshotProgram::prepare().unwrap();
-    program.program.evaluate(&query.encode().unwrap()).unwrap() == [1]
+    let native_type = LanguageResourceLexicalBinding::semantic_type().unwrap();
+    let encoded = query.encode().unwrap();
+    let decoded =
+        conduit_core::StructuredInfoValue::from_canonical_bytes(&encoded).unwrap_or_else(|error| {
+            panic!(
+                "Native query canonical validation failed: {error:?}; bytes={} Source maximum={:?}",
+                encoded.len(),
+                program.program.input_maximum_bytes,
+            )
+        });
+    assert!(
+        decoded.value_type() == &native_type,
+        "decoded query Type differs from generated Native Type: decoded={:?} Native={:?}",
+        decoded.value_type().semantic_digest(),
+        native_type.semantic_digest()
+    );
+    assert!(
+        program.program.input_type == native_type,
+        "Source input Type differs from generated Native Type: Source={:?} Native={:?}",
+        program.program.input_type.semantic_digest(),
+        native_type.semantic_digest()
+    );
+    assert!(
+        program
+            .program
+            .input_maximum_bytes
+            .is_none_or(|maximum| encoded.len() <= maximum as usize),
+        "Native query exceeds actual Source byte bound: bytes={} maximum={:?}",
+        encoded.len(),
+        program.program.input_maximum_bytes
+    );
+    program.program.evaluate(&encoded).unwrap() == [1]
 }
 #[test]
 fn source_correlates_exact_reference_occurrence_and_complete_ordered_candidates() {
@@ -99,6 +130,8 @@ fn source_correlates_exact_reference_occurrence_and_complete_ordered_candidates(
         )
         .unwrap()
     ));
+    assert_eq!(q.token().candidates().len(), 2);
+    assert_eq!(q.row().candidates().len(), 2);
     let dropped = LanguageLexicalEntry::new(
         BoundedSequence::try_from_iter([q.row().candidates()[0].clone()]).unwrap(),
         q.row().surface().clone(),
@@ -109,6 +142,29 @@ fn source_correlates_exact_reference_occurrence_and_complete_ordered_candidates(
             0,
             q.resource().clone(),
             dropped,
+            q.row_resource().clone(),
+            q.source().clone(),
+            q.token().clone()
+        )
+        .unwrap()
+    ));
+    // The opposite mismatch must also return false without indexing either
+    // sequence beyond its actual length.
+    let extra =
+        LanguageLexicalCandidate::new("a".into(), BoundedSequence::new(), LanguageLexicalPos::Verb)
+            .unwrap();
+    let extended = LanguageLexicalEntry::new(
+        BoundedSequence::try_from_iter(q.row().candidates().iter().cloned().chain([extra]))
+            .unwrap(),
+        q.row().surface().clone(),
+    )
+    .unwrap();
+    assert_eq!(extended.candidates().len(), 3);
+    assert!(!accepted(
+        LanguageResourceLexicalBinding::new(
+            0,
+            q.resource().clone(),
+            extended,
             q.row_resource().clone(),
             q.source().clone(),
             q.token().clone()
