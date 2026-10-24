@@ -14,7 +14,6 @@ const HEIGHT: u32 = 24;
 const VIEW_PIXELS: usize = (WIDTH * HEIGHT) as usize;
 const BLUE: u32 = 0x0000_00ff;
 const RED: u32 = 0x00ff_0000;
-const IMAGE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/compositor.elf"));
 
 fn response(service: &mut CompositorService, request: Request) -> Response {
     service
@@ -254,7 +253,7 @@ pub(super) fn run() {
     if first_pixels != VIEW_PIXELS as u32 || removed_pixels != 64 {
         refuse("compositor-fixture-pixel-total");
     }
-    let digest = Sha256::digest(IMAGE);
+    let digest = Sha256::digest(CompositorService::embedded_image_bytes());
     let mut sign = FixedText::new();
     write!(sign, "CONDUIT_COMPOSITOR_GUEST_PROOF {{\"schema\":\"conduit.conduitos/compositor-guest-fixture@2\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"production_compositor\":false,\"physical_scanout\":false,\"semantic_show_acknowledged\":false,\"driver_isolation\":false,\"dma_isolation\":false,\"pixel_comparisons\":{},\"initial_pixels\":{},\"removed_rectangle_pixels\":{},\"frame_steps\":{},\"fixture_acknowledgements\":2,\"old_instance_quarantined\":true,\"replacement_while_old_alive\":true,\"stale_drop_preserves_replacement\":true,\"fresh_instance_empty\":true,\"old_handle_rejected\":true,\"image_sha256\":\"", first_pixels + removed_pixels, first_pixels, removed_pixels, first_steps + removed_steps)
         .unwrap_or_else(|_| refuse("compositor-fixture-sign"));
