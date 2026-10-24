@@ -26,6 +26,7 @@ pub struct PreparedObservationFace {
     maximum_samples: u32,
     last_publication_ms: u64,
     stale_after_ms: u64,
+    time_property: &'static str,
 }
 impl PreparedObservationFace {
     /// All quantity leaves, wording, properties and identity storage are
@@ -34,6 +35,33 @@ impl PreparedObservationFace {
         basis: FaceBasis,
         maximum_samples: u32,
         stale_after_ms: u64,
+    ) -> Result<Self, PublicationRefusal> {
+        Self::prepare_with_time_property(
+            basis,
+            maximum_samples,
+            stale_after_ms,
+            "sampled-at-boot-ms",
+        )
+    }
+    /// Prepare Host-observed timing when acquisition time is unavailable. A
+    /// later failed capture retains the earlier quantities and observation time.
+    pub fn prepare_observed(
+        basis: FaceBasis,
+        maximum_samples: u32,
+        stale_after_ms: u64,
+    ) -> Result<Self, PublicationRefusal> {
+        Self::prepare_with_time_property(
+            basis,
+            maximum_samples,
+            stale_after_ms,
+            "observed-at-boot-ms",
+        )
+    }
+    fn prepare_with_time_property(
+        basis: FaceBasis,
+        maximum_samples: u32,
+        stale_after_ms: u64,
+        time_property: &'static str,
     ) -> Result<Self, PublicationRefusal> {
         if maximum_samples == 0 {
             return Err(PublicationRefusal::Exhausted);
@@ -87,12 +115,13 @@ impl PreparedObservationFace {
                     RATIO_INFO_ID,
                     Quantity::new(0, Unit::Percent),
                 ),
-                property("sampled-at-boot-ms", FacePropertyValue::Count(0)),
+                property(time_property, FacePropertyValue::Count(0)),
             ]),
             failure: Some(property("sensor-failure", FacePropertyValue::Text(reason))),
             maximum_samples,
             last_publication_ms: 0,
             stale_after_ms,
+            time_property,
         })
     }
 
@@ -157,7 +186,7 @@ impl PreparedObservationFace {
                 };
                 bytes.copy_from_slice(&value.encode());
             }
-            *self.value_mut("sampled-at-boot-ms") = FacePropertyValue::Count(now);
+            *self.value_mut(self.time_property) = FacePropertyValue::Count(now);
         }
         let label = match status {
             SensorStatus::Available => "available",
@@ -179,7 +208,7 @@ impl PreparedObservationFace {
             self.failure = Some(self.face.properties.swap_remove(index));
         }
         let fresh = self.measurement.is_none()
-            && now - self.count("sampled-at-boot-ms") <= self.stale_after_ms;
+            && now - self.count(self.time_property) <= self.stale_after_ms;
         *self.value_mut("fresh") = FacePropertyValue::Flag(fresh);
         *self.value_mut("sequence") = FacePropertyValue::Count(sequence + 1);
         self.last_publication_ms = now;
@@ -193,7 +222,7 @@ impl PreparedObservationFace {
             return Err(PublicationRefusal::ClockReversed);
         }
         let expired = self.measurement.is_none()
-            && now - self.count("sampled-at-boot-ms") > self.stale_after_ms;
+            && now - self.count(self.time_property) > self.stale_after_ms;
         if expired && matches!(self.value_mut("fresh"), FacePropertyValue::Flag(true)) {
             *self.value_mut("fresh") = FacePropertyValue::Flag(false);
             self.seal()?;

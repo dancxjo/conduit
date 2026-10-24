@@ -54,8 +54,12 @@ impl RetainedPublicationFace {
                 validator(Channel::ProviderFailure)?,
                 validator(Channel::GeometryRefusal)?,
             ],
-            face: PreparedObservationFace::prepare(basis, maximum_publications, stale_after_ms)
-                .map_err(E::Publication)?,
+            face: PreparedObservationFace::prepare_observed(
+                basis,
+                maximum_publications,
+                stale_after_ms,
+            )
+            .map_err(E::Publication)?,
             last_sequence: 0,
         })
     }

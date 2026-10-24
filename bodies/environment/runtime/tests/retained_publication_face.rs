@@ -54,6 +54,15 @@ fn source_publications_become_retained_quantity_faces_without_play_allocations()
             .publish(snapshot(Channel::Reading, 1, &reading), 1000)
             .unwrap();
         assert_eq!(&owner.current().basis, &expected_basis);
+        assert_eq!(
+            value(owner.current(), "observed-at-boot-ms"),
+            &FacePropertyValue::Count(1000)
+        );
+        assert!(owner
+            .current()
+            .properties
+            .iter()
+            .all(|p| p.name != "sampled-at-boot-ms"));
         let FacePropertyValue::TypedValue { bytes, .. } = value(owner.current(), "temperature")
         else {
             panic!()
@@ -87,6 +96,10 @@ fn source_publications_become_retained_quantity_faces_without_play_allocations()
             FacePropertyValue::Flag(false)
         ));
         assert_eq!(owner.last_source_sequence(), 2);
+        assert_eq!(
+            value(owner.current(), "observed-at-boot-ms"),
+            &FacePropertyValue::Count(1000)
+        );
         owner
             .publish(snapshot(Channel::Reading, 3, &reading), 33000)
             .unwrap();

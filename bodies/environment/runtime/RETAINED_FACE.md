@@ -9,12 +9,15 @@ provenance, not membership, permission or proof of an installed Body.
 Each committed snapshot must have the next exact sequence and match the selected
 channel's checked structured contract. Replays, gaps, malformed values, wrong
 channel types, reversed commit time and exhausted publication bounds refuse
-without changing the previous Face or consumed source sequence. Validation and
+without changing the previous Face or consumed source sequence. The consuming
+Host must surface returned refusals/gaps in its own execution and Face evidence;
+preserving the prior Face is not a successful new publication. Validation and
 Face storage are allocated during preparation; publication, freshness expiry and
 resealing allocate nothing during Play.
 
-The existing prepared Face preserves first-class Temperature and relative
-humidity. On capture failure, previously measured quantities remain explicitly
+The prepared Face preserves first-class Temperature and relative humidity.
+`observed-at-boot-ms` records the successful publication's Host commit clock;
+it does not claim physical acquisition time or wall-clock time. On capture failure, previously measured quantities remain explicitly
 last-known facts with unavailable sensor status and their own age. Expiry changes
 only the sealed Face revision and freshness; it acquires no measurement and
 advances no source sequence. Masks still own units, formatting and page timing.
