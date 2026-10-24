@@ -498,3 +498,18 @@ pass. [Current captures, source and proof boundaries](evidence/gui-look-6349-por
 Canvas zoom scales target geometry; 44 CSS-pixel minima are not a claim of 44
 physical pixels at every Fit scale. Native, Quantity runtime and canonical
 cross-component Look acceptance remain open.
+
+## Live Quantity authoring path succeeds locally
+
+The combined local proof with runtime draft #6393 now passes all seventeen
+authoring/HTML/graph/inspection checks in one Chromium run, one worker and no
+retries. The original four-Gear HTTP path also succeeds through Open/Birth/Wake/
+Plan/Play, with no server stderr. The nine-Gear browser scenario retains actual
+Source/Gear and Plan/Play identity through two saved layouts and view changes.
+Both Sign properties and transcript lines now continue losslessly within the
+existing Face field bound; reviewed palette/offer Fore construction agrees.
+The Body overview header keeps its symbol and no longer claims No Body when the
+Face supplies an existing Body.
+[Actual live screenshot, exact Face receipt, hashes, positive and negative logs](evidence/gui-look-6349-live-quantity/README.md).
+This proves a combined local source, not either isolated PR head, CI/native/
+publication acceptance or canonical cross-component Look completion.
