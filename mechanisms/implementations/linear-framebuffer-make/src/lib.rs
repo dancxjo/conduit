@@ -17,6 +17,7 @@ fn package_catalog() -> PackageCatalogContribution {
                     "conduitos/aarch64/virt".into(),
                     "conduitos/ia32/pc".into(),
                     "conduitos/riscv64/virt".into(),
+                    "conduitos/loongarch64/virt".into(),
                 ],
                 prerequisites: vec![
                     PrerequisiteNode::HostCall("conduit.host/present@1".into()),
@@ -62,6 +63,7 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
                 "conduitos/aarch64/virt".into(),
                 "conduitos/ia32/pc".into(),
                 "conduitos/riscv64/virt".into(),
+                "conduitos/loongarch64/virt".into(),
             ],
             offers: vec![ImplementationOffer {
                 base_kind: "display/scanout".into(),
@@ -73,6 +75,7 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
                     "conduitos/aarch64/virt".into(),
                     "conduitos/ia32/pc".into(),
                     "conduitos/riscv64/virt".into(),
+                    "conduitos/loongarch64/virt".into(),
                 ],
                 prerequisites: Vec::new(),
                 build_feature: Some("base-linear-framebuffer".into()),

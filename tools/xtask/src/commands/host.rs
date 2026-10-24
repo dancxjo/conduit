@@ -272,6 +272,10 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             &speech,
             opts,
         ),
+        HostCommand::Launch { output } => {
+            super::conduitos::persistent_launch::launch(&output, opts)?;
+            Ok(())
+        }
         HostCommand::Verify {
             output,
             boot,

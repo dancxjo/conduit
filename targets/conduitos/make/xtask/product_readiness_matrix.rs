@@ -20,6 +20,7 @@ struct ProductRow {
     ordinary_body_lifecycle: bool,
     ordinary_plan_play_from_product: bool,
     presenter: &'static str,
+    graphical_profile: Option<&'static str>,
     proof_class: &'static str,
     blocker: Option<&'static str>,
 }
@@ -69,6 +70,7 @@ fn row(arch: ConduitosArch) -> ProductRow {
             ordinary_body_lifecycle: true,
             ordinary_plan_play_from_product: true,
             presenter: "presenter/native-graphical@1",
+            graphical_profile: Some("conduitos-native.host.conduit"),
             proof_class: "freestanding-emulator-native-product",
             blocker: None,
         },
@@ -83,12 +85,14 @@ fn row(arch: ConduitosArch) -> ProductRow {
             ordinary_body_lifecycle: false,
             ordinary_plan_play_from_product: true,
             presenter: "presenter/linear-serial@1",
+            graphical_profile: Some("conduitos-aarch64-graphical.host.conduit"),
             proof_class: "freestanding-emulator-linear-product",
             blocker: Some("aarch64-local-input-base-unavailable"),
         },
         ConduitosArch::Ia32 => linear_product(
             "ia32",
             "presenter/ia32-linear-debugcon@1",
+            "conduitos-ia32-graphical.host.conduit",
             "freestanding-emulator-linear-product",
             "ia32-local-input-base-unavailable",
         ),
@@ -96,12 +100,14 @@ fn row(arch: ConduitosArch) -> ProductRow {
         ConduitosArch::Riscv64 => linear_product(
             "riscv64",
             "presenter/riscv64-linear-sbi-console@1",
+            "conduitos-riscv64-graphical.host.conduit",
             "freestanding-emulator-linear-product",
             "riscv64-local-input-base-unavailable",
         ),
         ConduitosArch::Loongarch64 => linear_product(
             "loongarch64",
             "presenter/loongarch64-linear-uart@1",
+            "conduitos-loongarch64-graphical.host.conduit",
             "freestanding-emulator-linear-product",
             "loongarch64-local-input-base-unavailable",
         ),
@@ -111,6 +117,7 @@ fn row(arch: ConduitosArch) -> ProductRow {
 fn linear_product(
     architecture: &'static str,
     presenter: &'static str,
+    graphical_profile: &'static str,
     proof_class: &'static str,
     blocker: &'static str,
 ) -> ProductRow {
@@ -125,6 +132,7 @@ fn linear_product(
         ordinary_body_lifecycle: false,
         ordinary_plan_play_from_product: true,
         presenter,
+        graphical_profile: Some(graphical_profile),
         proof_class,
         blocker: Some(blocker),
     }
@@ -142,6 +150,7 @@ fn absent(architecture: &'static str, blocker: &'static str) -> ProductRow {
         ordinary_body_lifecycle: false,
         ordinary_plan_play_from_product: false,
         presenter: "none",
+        graphical_profile: None,
         proof_class: "none",
         blocker: Some(blocker),
     }

@@ -66,6 +66,7 @@ mod loongarch64_a4;
 mod loongarch64_domain_proof;
 mod loongarch64_emulator;
 mod loongarch64_entropy_input;
+mod loongarch64_firmware;
 mod loongarch64_product_boot;
 mod make_resolution;
 mod native_latency;
@@ -82,6 +83,7 @@ mod owner_action_proof;
 mod owner_boot;
 mod owner_model_route;
 mod pc_speaker_proof;
+pub(crate) mod persistent_launch;
 mod prepared_proof_image;
 mod product_journey_gate;
 mod product_observatory;
@@ -591,7 +593,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::PrepareRiscv64DomainEmulator { graphical } => {
             riscv64_emulator::prepare(graphical, opts)
         }
-        ConduitosCommand::PrepareLoongarch64DomainEmulator => loongarch64_emulator::prepare(opts),
+        ConduitosCommand::PrepareLoongarch64DomainEmulator { graphical } => {
+            loongarch64_emulator::prepare(graphical, opts)
+        }
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }

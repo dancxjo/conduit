@@ -126,7 +126,11 @@ pub fn framebuffer_display() -> Result<RawDisplay, DisplayError> {
 /// Observation only: the selected scanout must be wholly covered by exactly
 /// one bootloader-reserved framebuffer region, never the runtime arena.
 #[cfg(all(
-    any(target_arch = "aarch64", target_arch = "riscv64"),
+    any(
+        target_arch = "aarch64",
+        target_arch = "riscv64",
+        target_arch = "loongarch64"
+    ),
     feature = "native-compositor-core"
 ))]
 pub(crate) fn framebuffer_reserved_range(start: u64, bytes: u64) -> bool {
@@ -358,7 +362,10 @@ mod module_tests {
 }
 
 /// Read-only inherited page-table custody; never transfer bootloader RAM to play.
-#[cfg(all(target_arch = "riscv64", feature = "native-compositor-core"))]
+#[cfg(all(
+    any(target_arch = "riscv64", target_arch = "loongarch64"),
+    feature = "native-compositor-core"
+))]
 pub(crate) fn bootloader_table_page(start: u64) -> bool {
     if !start.is_multiple_of(4096) {
         return false;

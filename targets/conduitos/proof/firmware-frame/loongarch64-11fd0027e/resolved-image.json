@@ -1,0 +1,195 @@
+{
+  "payload": {
+    "schema": "conduit.host/image@1",
+    "build_id": "build:sha256:ebbdb7ef54fa4150560a7bcd66953529f1705f3d73b8dd68900be6978c4e6bf2",
+    "profile_id": "sha256:f20a27eb059292de733c9353bba62a91e3d16faae3ff2f882df038446f63f1d1",
+    "source_configuration_id": "sha256:97c2a73d0f37c8004f0cf4a87acdc298c9544de1aaf469e8e8733d72efc6a45f",
+    "target": "conduitos/loongarch64/virt",
+    "profile_fragments": [],
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "face/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/loongarch64-uart-text",
+        "driver": "conduitos/loongarch64-uart@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/loongarch64-uart@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/loongarch64-linear-uart@1",
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 268435456,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    }
+  },
+  "manifest": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:f20a27eb059292de733c9353bba62a91e3d16faae3ff2f882df038446f63f1d1",
+    "source_configuration_id": "sha256:97c2a73d0f37c8004f0cf4a87acdc298c9544de1aaf469e8e8733d72efc6a45f",
+    "build_id": "build:sha256:ebbdb7ef54fa4150560a7bcd66953529f1705f3d73b8dd68900be6978c4e6bf2",
+    "image_id": "image:sha256:15078f72d7788af82d96fe7b85dc68d9b78275c61a9f279a2f9770706627b09f",
+    "source_identity": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+    "toolchain_identity": "rustc:stable+loongarch64-unknown-none+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-loongarch64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-loongarch64@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/loongarch64-uart@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "display/linear-framebuffer@1",
+        "package_id": "conduit-linear-framebuffer@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/loongarch64/virt",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "face/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/loongarch64-uart-text",
+        "driver": "conduitos/loongarch64-uart@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/loongarch64-uart@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/loongarch64-linear-uart@1",
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 268435456,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:conduitos/loongarch64-uart-text": [
+        "base:conduitos/loongarch64-uart-text"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main/derived > base:display/scanout": [
+        "base:display/scanout"
+      ],
+      "presenter:presenter/main/derived > driver:display/linear-framebuffer@1": [
+        "base:display/scanout",
+        "driver:display/linear-framebuffer@1"
+      ],
+      "presenter:presenter/main/derived > facility:compositor/native@1": [
+        "facility:compositor/native@1"
+      ],
+      "presenter:presenter/main/derived > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main/derived > resource:face/surface": [
+        "resource:face/surface"
+      ]
+    }
+  }
+}

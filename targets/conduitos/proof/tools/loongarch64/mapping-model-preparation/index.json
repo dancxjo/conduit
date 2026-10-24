@@ -1,0 +1,40 @@
+{
+  "scope": "standalone pure four-level LoongArch mapping conformance only; no normal Cargo suite, hardware/guest mapping, Host closure, or Frame proved",
+  "tests_passed": 6,
+  "source_files": {
+    "targets/conduitos/src/arch/loongarch64/framebuffer/mapping.rs": "fc87a10ba1efd390e27c12ce25cba3eaf73d765208313b70d3d41d4e84555d67",
+    "targets/conduitos/src/arch/loongarch64/framebuffer/mapping_tests.rs": "c8e06133ceaaaa691c481214804fd31bdfafde79ad403025b284f2a21aeecc81"
+  },
+  "files": [
+    {
+      "path": "compile.log.gz",
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    {
+      "path": "format.log.gz",
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    {
+      "path": "tests.log.gz",
+      "sha256": "be1b94369326df8882eaadeb79437b4afc832c1c6b2be284c5636ce03c33fc7d",
+      "original_sha256": "9424063955e87c2d1926270f70643bcb4193ed509b5ec2352c97479600acccde",
+      "original_bytes": 577
+    },
+    {
+      "path": "receipt.json.gz",
+      "sha256": "b641f95328a6cec4dcc27f63c9f40a40c620bf56c264241f0cfa18313bf9fd11",
+      "original_sha256": "58d316d6a770a6e327a47176c240b28446841679ea477092d73ba41991122275",
+      "original_bytes": 2351
+    },
+    {
+      "path": "validate-loongarch64-mapping-preparation.py.gz",
+      "sha256": "305e228935a44491d652cfa6a918a6e2789828b1b19cef01e49582741f508c97",
+      "original_sha256": "199b2ae7de48113191bd48e26ccab0f2f65b9c6616f7ffd652f84bd4badd8b27",
+      "original_bytes": 1696
+    }
+  ]
+}
