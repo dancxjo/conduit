@@ -24,10 +24,16 @@ use conduit_environment_runtime::appliance::software::{ReadySoftwareBacks, Softw
 pub(super) fn fixture(
     source: &DisplayOutputSource,
 ) -> (c::HostAdvertisement, c::AuthorityGrant, ReadySoftwareBacks) {
+    fixture_with_boot(source, "fixture/boot")
+}
+pub(super) fn fixture_with_boot(
+    source: &DisplayOutputSource,
+    boot: &str,
+) -> (c::HostAdvertisement, c::AuthorityGrant, ReadySoftwareBacks) {
     let mut host = c::HostAdvertisement {
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "fixture/display".into(),
-        boot_id: "fixture/boot".into(),
+        boot_id: boot.into(),
         offer_generation: c::OfferGeneration(1),
         profile: "fixture/display".into(),
         bases: vec![],

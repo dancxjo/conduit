@@ -51,3 +51,18 @@ Preparation creates no native provider, capability possession, Line or Body.
 The checked display CPU proof now uses this production preparation entrance,
 including stale epoch, foreign Source/Boot, occupied storage and zero-frame
 refusals followed by successful execution of the original owners.
+
+## Trusted firmware layout provisioning
+
+`PreparedDisplayOutput::display_layout` derives resident record pins, computation
+configuration bytes and exact local Fore pins from the normally sealed output
+Plan. The display-offer preparation example emits `display-layout.rs` alongside
+its assignment. This build input contains no live Host, Boot or Plan identity;
+the same source and selections produce identical layout material across Boots.
+Incoming assignments still require current scope, retained owners and authority.
+
+The ESP32 `display-ready-root` profile includes that generated module against the
+production compact runtime types. This is preparation only: the module grants
+no Fore access, issues no native possession and starts no output Play. The
+existing live bench remains the deployed image until authenticated assignment,
+complete admission and continuing Body execution are connected.

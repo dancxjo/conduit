@@ -9,6 +9,9 @@ use conduit_tm1637_wire::{
     WriteContract,
 };
 use esp_hal::gpio::Pin;
+#[cfg(feature = "display-ready-root")]
+#[path = "display_layout.rs"]
+mod layout;
 mod software {
     include!(concat!(env!("OUT_DIR"), "/display-software.rs"));
 }

@@ -52,6 +52,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         output.join("uninstalled-output-plan.json"),
         serde_json::to_vec_pretty(prepared.plan())?,
     )?;
+    let material = prepared
+        .display_layout()
+        .map_err(|e| format!("trusted output layout: {e}"))?;
+    let mut rust = String::new();
+    material.write_rust(&mut rust)?;
+    fs::write(output.join("display-layout.rs"), rust)?;
     let receipt = serde_json::json!({"event":"observed-display-plan", "host_id":host.host_id, "boot_id":host.boot_id,
         "plan_id":prepared.plan().plan_id,"nodes":prepared.lowered().nodes.len(),"cords":prepared.lowered().cords.len(),
         "fore_ports":prepared.lowered().fore_ports.len(),"host_calls":prepared.lowered().host_calls.len(),

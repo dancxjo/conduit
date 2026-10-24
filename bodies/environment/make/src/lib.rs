@@ -4,6 +4,8 @@
 //! current possession and storage, and advance the real Body/Wake before Play.
 extern crate alloc;
 mod display_material;
+mod display_layout;
+pub use display_layout::DisplayLayoutMaterial;
 mod display_output;
 mod display_observation;
 pub use display_material::DisplaySourceMaterial;

@@ -30,3 +30,6 @@ mod observation;
 
 #[path = "display_support/assigned.rs"]
 mod assigned;
+
+#[path = "display_support/layout.rs"]
+mod layout;
