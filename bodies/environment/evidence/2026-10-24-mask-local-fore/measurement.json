@@ -1,0 +1,18 @@
+{
+  "source_commit": "4b84157bf5eb96bd1ffeb30219fe1b2d2348184f",
+  "proof_class": "CPU composition over recorded actual producer Face; hardware/authority/time fixtures",
+  "recorded_face": "2026-10-24-native-face-execution/native-source-face-1.json",
+  "pages": [
+    "Fahrenheit with colon fraction",
+    "relative humidity"
+  ],
+  "fore_frames": 2,
+  "native_calls": 2,
+  "recurring_allocations": 0,
+  "recurring_reallocations": 0,
+  "focused_tests": 20,
+  "no_std_compile_target": "thumbv6m-none-eabi",
+  "physical_delivery": false,
+  "native_root_producer_admitted": false,
+  "new_firmware_flashed": false
+}

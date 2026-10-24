@@ -1,0 +1,39 @@
+    Checking serde_core v1.0.229
+    Checking generic-array v0.14.7
+    Checking memchr v2.8.3
+    Checking libm v0.2.16
+    Checking thiserror v2.0.21
+    Checking zmij v1.0.23
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/time)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+    Checking cobs v0.3.0
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking digest v0.10.7
+    Checking sha2 v0.10.9
+    Checking serde v1.0.229
+    Checking serde_json v1.0.151
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/assigned-plan)
+    Checking postcard v1.1.3
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/kernel)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/body)
+    Checking conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+    Checking conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/human)
+    Checking conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/purpose)
+    Checking conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/web)
+    Checking conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/process)
+    Checking conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+    Checking conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/text)
+    Checking conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/data)
+    Checking conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/audio)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/face)
+    Checking conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/education)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/midi)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/alife)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/robotics)
+    Checking conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/seven-segment-mask)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/catalog)
+    Finished `dev` profile [unoptimized] target(s) in 14.63s
