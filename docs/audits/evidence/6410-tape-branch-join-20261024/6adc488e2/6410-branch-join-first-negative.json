@@ -1,0 +1,120 @@
+{
+  "source": "85f0a4a541843cd38efe7003490075adb257d000",
+  "tree": "bbcbd98f9f7f18c1495f744d688722ddaec79162",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-plot",
+    "--test",
+    "prepared_structured_tape",
+    "--",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-first-negative.log",
+  "before_free_bytes": 11055955968,
+  "started": 1792848497.0011919,
+  "exit_code": 101,
+  "finished": 1792848521.5933871,
+  "sha256": "d0af3d4a0d650f0ae6aff78ddd263cf570b4a4e502d31eb4625063c65b09620f",
+  "clean_after": true,
+  "actual_running": [
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/deps/prepared_structured_tape-39afeda27e03c85b"
+  ],
+  "status": "inspect_actual_result",
+  "executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/deps/libserde_derive-5cf603e79f9c2c5b.so",
+      "bytes": 2908672,
+      "sha256": "dffa5afba863c7a2dd15f46d5da9863712d19d864937c4d907d4342bf43cf612"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/deps/prepared_structured_tape-39afeda27e03c85b",
+      "bytes": 4527296,
+      "sha256": "4c317774b58a8e7063c42b83267cb7bcb46679c590183ddd615e1d57eadf574f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/quote-576bc7579314484c/build_script_build-576bc7579314484c",
+      "bytes": 529416,
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/quote-576bc7579314484c/build-script-build",
+      "bytes": 529416,
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/serde-15822d110748cc9f/build_script_build-15822d110748cc9f",
+      "bytes": 540208,
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/serde-15822d110748cc9f/build-script-build",
+      "bytes": 540208,
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/proc-macro2-0c65f04c11310072/build_script_build-0c65f04c11310072",
+      "bytes": 564496,
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/proc-macro2-0c65f04c11310072/build-script-build",
+      "bytes": 564496,
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/libm-13320032431223a2/build_script_build-13320032431223a2",
+      "bytes": 494704,
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/libm-13320032431223a2/build-script-build",
+      "bytes": 494704,
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/zmij-c9a87ed4792d5887/build_script_build-c9a87ed4792d5887",
+      "bytes": 533184,
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/zmij-c9a87ed4792d5887/build-script-build",
+      "bytes": 533184,
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/serde_core-bb9e7159c4c28b67/build_script_build-bb9e7159c4c28b67",
+      "bytes": 541560,
+      "sha256": "04fcfb8b69043a33aff838c1733202f091547b3fbf193f47fed889aefbb89bff"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/serde_core-bb9e7159c4c28b67/build-script-build",
+      "bytes": 541560,
+      "sha256": "04fcfb8b69043a33aff838c1733202f091547b3fbf193f47fed889aefbb89bff"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/generic-array-ec043840ceaa47ee/build_script_build-ec043840ceaa47ee",
+      "bytes": 562400,
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/generic-array-ec043840ceaa47ee/build-script-build",
+      "bytes": 562400,
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/serde_json-9fb5fefa451c55fe/build-script-build",
+      "bytes": 460240,
+      "sha256": "bf7739b168c589e479272bd447ef39e4be1130cd84d0b2da99ff54d9f4f9da20"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/build/serde_json-9fb5fefa451c55fe/build_script_build-9fb5fefa451c55fe",
+      "bytes": 460240,
+      "sha256": "bf7739b168c589e479272bd447ef39e4be1130cd84d0b2da99ff54d9f4f9da20"
+    }
+  ]
+}

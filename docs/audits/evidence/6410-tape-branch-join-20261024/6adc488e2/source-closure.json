@@ -1,0 +1,22 @@
+{
+  "source": "6adc488e20284a93d980b91563b94b6e51f758ba",
+  "tree": "240d919f140d8dd3c2f3c1f6b1525ef519be63f6",
+  "base": "ebf9894139d747154d64e2e26ad8d2af749df5d7",
+  "negative_source": "85f0a4a541843cd38efe7003490075adb257d000",
+  "objects": {
+    "Cargo.toml": "d2d5273953e62bc058c9942986d6b893d89adf9b",
+    "Cargo.lock": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+    "rust-toolchain.toml": "906b1d8542b6f94b5238046e198e9c2672b6c8e0",
+    "architecture/plot": "29c57248d8fc6fca06943db06a8ba2d95467e670",
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/kernel": "a83e2c2c96b271dc1634cf112ac23b2d819c3469",
+    "architecture/assigned-plan": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6"
+  },
+  "executed_positive_ELF_bindings": [
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/deps/prepared_expression_scratch_bounds-e9784b97ef2b41da",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/deps/prepared_literal_children-9efe672c99d4b72a",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/deps/prepared_structured_payload-cee82e2f27ab4172",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6410-branch-join-target/debug/deps/prepared_structured_tape-39afeda27e03c85b"
+  ],
+  "all_positive_ELFs_rehashed": 21
+}

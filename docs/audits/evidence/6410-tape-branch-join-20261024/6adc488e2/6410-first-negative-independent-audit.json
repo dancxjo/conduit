@@ -1,0 +1,16 @@
+{
+  "source": "85f0a4a541843cd38efe7003490075adb257d000",
+  "original_receipt_status": "inspect_actual_result",
+  "classification": "confirmed_semantic_regression",
+  "failed_case": "conditional_record_field_keeps_following_constant_field_on_both_branches",
+  "branch": 1,
+  "actual": "prepared output omits right field while ordinary output includes right=33",
+  "counts": {
+    "passed": 4,
+    "failed": 1,
+    "ignored": 0
+  },
+  "retained_actual_failed_elf": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6410-first-negative-actual-test.elf",
+  "sha256": "4c317774b58a8e7063c42b83267cb7bcb46679c590183ddd615e1d57eadf574f",
+  "negative_log_sha256": "d0af3d4a0d650f0ae6aff78ddd263cf570b4a4e502d31eb4625063c65b09620f"
+}
