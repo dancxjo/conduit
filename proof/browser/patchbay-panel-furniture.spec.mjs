@@ -192,3 +192,28 @@ test("enlarged narrow product navigation precedes status and shell bands do not 
     server.lines.close(); server.process.kill('SIGTERM');
   }
 });
+
+test("Escape dismisses the focused surface when Body inspection leaves Library open", async ({ page }, testInfo) => {
+  const server = startServer();
+  try {
+    await page.goto(await server.url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    await page.locator("#toggle-palette").click();
+    await page.locator("#body-summary").click();
+    await expect(page.locator("#palette")).toBeVisible();
+    await expect(page.locator("#inspector")).toBeVisible();
+    await page.locator("#library-query").focus();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#palette")).toBeHidden();
+    await expect(page.locator("#inspector")).toBeVisible();
+    await expect(page.locator("#toggle-palette")).toBeFocused();
+    await page.locator("#inspector .furniture-bar button").first().focus();
+    await page.screenshot({ path: testInfo.outputPath("focused-inspection.png") });
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#inspector")).toBeHidden();
+    await expect(page.locator("#toggle-inspector")).toBeFocused();
+  } finally {
+    server.lines.close();
+    server.process.kill("SIGTERM");
+  }
+});

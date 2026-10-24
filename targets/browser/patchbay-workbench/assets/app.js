@@ -539,7 +539,16 @@ document.querySelector("#cancel-gear-construction").onclick=cancelPalettePlaceme
 document.querySelector("#toggle-palette").onclick=async event=>{event.stopPropagation();if(document.body.dataset.paletteOpen!=="true"&&state.inspectorOpen)await dismissFurnitureSurface("inspector");return toggleDrawer("palette");};
 document.querySelector("#toggle-inspector").onclick=async event=>{event.stopPropagation();const opening=document.body.dataset.truthOpen==="true"||document.body.dataset.inspectorOpen!=="true";if(opening){document.body.dataset.paletteOpen="false";document.querySelector("#toggle-palette").setAttribute("aria-expanded","false");state.inspectorOpen=true;state.inspectorDepth=state.inspectorDepth||Boolean(state.snapshot.navigation?.cursor.focus);displaySelection(state.selected);furniture.restore("inspector");focusSurface("inspector");state.inspectorTransition=withFurnitureTransition("inspector",async()=>{await closeSubordinateSurfaces("inspector");if(state.snapshot.navigation?.cursor.focus&&state.snapshot.navigation.cursor.depth!=="Detail")await dispatchNavigation({kind:"disclose",depth:"Detail"});displaySelection(state.selected);},()=>focusSurface("inspector"));try{await state.inspectorTransition;}finally{state.inspectorTransition=null;}}else await dismissFurnitureSurface("inspector");};
 for(const selector of ["#palette","#inspector"]){document.querySelector(selector).addEventListener("click",event=>event.stopPropagation());}
-document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;if(state.inspectorOpen){event.preventDefault();dismissFurnitureSurface("inspector");}else if(document.body.dataset.paletteOpen==="true"){event.preventDefault();toggleDrawer("palette");}});
+document.addEventListener("keydown",event=>{
+  if(event.key!=="Escape"||event.defaultPrevented||event.isComposing)return;
+  // Body inspection can coexist with Library. Dismiss the surface receiving
+  // the key before falling back to the open contextual inspector.
+  const focused=Object.keys(furnitureSurface).find(name=>
+    document.body.dataset[`${name}Open`]==="true"&&
+    document.querySelector(`#${furnitureSurface[name]}`).contains(event.target));
+  const name=focused??(state.inspectorOpen?"inspector":document.body.dataset.paletteOpen==="true"?"palette":null);
+  if(name){event.preventDefault();dismissFurnitureSurface(name);}
+});
 document.body.dataset.paletteOpen="false";document.body.dataset.inspectorOpen="false";
 document.querySelector("#patchbay-root").removeAttribute("inert");document.body.dataset.applicationReady="true";
 }
