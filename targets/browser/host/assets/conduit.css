@@ -251,8 +251,18 @@ textarea[data-conduit-text-editor] {
   inline-size:100%;
   min-block-size:9rem;
   padding:1rem;
-  font:inherit;
-  line-height:1.6;
+  /* This control must not inherit a signal readout's display-sized type. */
+  font:400 max(1rem, var(--conduit-type-body, 1rem))/1.65 var(--conduit-font-body, system-ui, sans-serif);
+  color:var(--conduit-text-primary, CanvasText);
+  background:var(--conduit-surface, Canvas);
+  border:1px solid var(--conduit-text-secondary, CanvasText);
+  border-radius:var(--conduit-radius-control, 6px);
+  caret-color:currentColor;
   resize:vertical;
 }
 textarea[data-conduit-text-editor]:focus-visible { outline:2px solid var(--conduit-focus, Highlight); outline-offset:3px; }
+
+@media (forced-colors:active) {
+  textarea[data-conduit-text-editor] { color:CanvasText; background:Canvas; border-color:CanvasText; }
+  textarea[data-conduit-text-editor]:focus-visible { outline-color:Highlight; }
+}

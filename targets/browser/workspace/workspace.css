@@ -155,14 +155,14 @@ a { color:var(--muted); text-decoration:none; }
 html:root[data-workspace-look]{background:var(--paper)}
 .body-header{flex-wrap:wrap;padding-block:24px;min-height:112px}
 .body-heading{margin-inline-start:auto}
-.workspace-look-picker{display:grid;gap:6px;font-size:11px;font-weight:650;letter-spacing:.04em;color:var(--muted)}
-.workspace-look-picker select{font:500 13px system-ui,sans-serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;min-height:44px;padding:8px 30px 8px 12px;max-width:100%}
+.workspace-look-picker{display:grid;gap:6px;font-size:.6875rem;font-weight:650;letter-spacing:.04em;color:var(--muted)}
+.workspace-look-picker select{font:500 .8125rem system-ui,sans-serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;min-height:44px;padding:8px 30px 8px 12px;max-width:100%}
 :root[data-workspace-look] button{min-height:44px;border-radius:8px;line-height:1.4}
 :root[data-workspace-look] :focus-visible{outline:3px solid var(--workspace-focus);outline-offset:4px}
 :root[data-workspace-look] .plot-surface,:root[data-workspace-look] .workspace-panel,:root[data-workspace-look] .workspace-creche{background:var(--panel);border-radius:var(--workspace-radius);box-shadow:0 12px 36px #172b3a08}
 :root[data-workspace-look] .workspace-creche{width:min(60rem,100%);padding:clamp(20px,4vw,48px)}
 :root[data-workspace-look] .body-heading h1,:root[data-workspace-look] .panel-heading h2,:root[data-workspace-look] .surface-content>h2{font-family:var(--workspace-title);letter-spacing:-.025em}
-:root[data-workspace-look] .surface-content>h2{font-size:clamp(26px,4vw,42px);line-height:1.2}
+:root[data-workspace-look] .surface-content>h2{font-size:clamp(1.625rem,4vw,2.625rem);line-height:1.2}
 :root[data-workspace-look] .surface-invitation{line-height:1.6;max-width:48ch;margin-inline:auto}
 :root[data-workspace-look] .body-tutorial{background:var(--panel);border-radius:var(--workspace-radius)}
 :root[data-workspace-look] .workspace-notice[data-disposition=refused]{color:var(--ink);border-inline-start:3px solid var(--workspace-focus);padding:12px}
@@ -170,14 +170,14 @@ html:root[data-workspace-look]{background:var(--paper)}
 @media(forced-colors:active){:root[data-workspace-look]{--paper:Canvas;--ink:CanvasText;--muted:CanvasText;--line:CanvasText;--panel:Canvas;--field:Canvas;--amber:LinkText;--green-dark:LinkText;--workspace-focus:Highlight}.plot-surface,.workspace-panel,.workspace-creche{box-shadow:none}}
 .workspace-icon{width:18px;height:18px;display:inline-block;vertical-align:-.2em;flex:none;margin-inline-end:8px;pointer-events:none}
 .workspace-look-picker>.workspace-icon{display:none}
-:root[data-workspace-look] .birth-face [data-application-key=creche-heading]{font-family:var(--workspace-title);font-size:clamp(30px,4vw,42px);line-height:1.15;letter-spacing:-.035em;margin-bottom:16px}
+:root[data-workspace-look] .birth-face [data-application-key=creche-heading]{font-family:var(--workspace-title);font-size:clamp(1.875rem,4vw,2.625rem);line-height:1.15;letter-spacing:-.035em;margin-bottom:16px}
 .birth-face [data-application-component=choice-option-label]{display:flex;align-items:center;gap:10px;min-height:44px;width:auto;max-width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--field);line-height:1.4;overflow-wrap:anywhere}
 .birth-face [data-application-component=choice-option-label]:has(input:checked){border-color:var(--amber);box-shadow:inset 3px 0 var(--amber)}
 .birth-face [data-application-component=choice-option-label]:has(input:focus-visible){outline:3px solid var(--workspace-focus);outline-offset:3px}
 .birth-face input[type=checkbox]{width:18px;height:18px;flex:none;margin:0}
 .birth-face [data-application-key=initial-plots]{gap:8px;border:0;padding:0;margin:0;min-width:0}
 .birth-face [data-application-key=birth-review]{display:block;line-height:1.65;padding:16px;background:var(--paper);border-radius:10px;border-inline-start:3px solid var(--amber)}
-.birth-face [data-application-key^=birth-review-plot-]{display:block;font-size:13px;line-height:1.8;padding-inline:16px}
+.birth-face [data-application-key^=birth-review-plot-]{display:block;font-size:.8125rem;line-height:1.8;padding-inline:16px}
 .birth-face [data-application-key=birth-body]{min-height:48px;padding-inline:24px;font-weight:650}
 .workspace-creche [data-application-key=join-body]{padding-top:24px;border-top:1px solid var(--line)}
 .body-invitation-receiver{overflow-wrap:anywhere;border-top:1px solid var(--line);margin-top:24px;padding-top:24px;min-width:0}
@@ -216,3 +216,7 @@ html:root[data-workspace-look]{background:var(--paper)}
 .truth-strip button{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:.9rem;min-width:0}
 .truth-strip .workspace-icon{margin-inline-end:0}
 .truth-strip .inspect-hint{display:inline-flex;align-items:center;gap:6px;font-size:.8rem}
+
+/* Writing uses a readable measure rather than the signal readout's intrinsic
+   width. This does not select a resident Look or alter the editor binding. */
+.signal-manifestation:has(textarea[data-conduit-text-editor]){inline-size:min(100%,48rem);min-inline-size:0}
