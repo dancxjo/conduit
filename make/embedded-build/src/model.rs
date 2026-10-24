@@ -65,6 +65,7 @@ pub enum UnsupportedPlanFeature {
     StructuredConfiguration,
     QuantityConfiguration,
     AssignedNativeBinding,
+    LocalFore,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

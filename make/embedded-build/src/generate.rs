@@ -22,7 +22,7 @@ pub fn generate_embedded_plan(
     lowered: &LoweredPlanFragment,
     bounds: EmbeddedImageBounds,
 ) -> Result<GeneratedEmbeddedPlan, GenerationError> {
-    generate_profile(fragment, lowered, bounds, None)
+    generate_profile(fragment, lowered, bounds, None, false)
 }
 
 /// Opt into exact checked expression/selector configuration under explicit artifact
@@ -33,15 +33,21 @@ pub fn generate_embedded_plan_with_computations(
     bounds: EmbeddedImageBounds,
     expressions: EmbeddedComputationBounds,
 ) -> Result<GeneratedEmbeddedPlan, GenerationError> {
-    generate_profile(fragment, lowered, bounds, Some(expressions))
+    generate_profile(fragment, lowered, bounds, Some(expressions), false)
 }
 
-fn generate_profile(
+pub(crate) fn generate_profile(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
     bounds: EmbeddedImageBounds,
     expressions: Option<EmbeddedComputationBounds>,
+    local_fore: bool,
 ) -> Result<GeneratedEmbeddedPlan, GenerationError> {
+    if !local_fore && !lowered.fore_ports.is_empty() {
+        return Err(GenerationError::Unsupported(
+            UnsupportedPlanFeature::LocalFore,
+        ));
+    }
     if !verify_plan_fragment(fragment) {
         return Err(GenerationError::InvalidFragment);
     }
@@ -298,7 +304,9 @@ fn generate_cords(
                     port: port.0,
                 },
                 CordEndpoint::Remote(endpoint) => {
-                    if (endpoint.0 as usize) >= lowered.remote_endpoints.len() {
+                    if (endpoint.0 as usize) >= lowered.remote_endpoints.len()
+                        && !lowered.fore_ports.iter().any(|p| p.endpoint == endpoint)
+                    {
                         return Err(GenerationError::Unsupported(
                             UnsupportedPlanFeature::RemoteConnection,
                         ));
@@ -314,7 +322,9 @@ fn generate_cords(
                     port: port.0,
                 },
                 CordEndpoint::Remote(endpoint) => {
-                    if (endpoint.0 as usize) >= lowered.remote_endpoints.len() {
+                    if (endpoint.0 as usize) >= lowered.remote_endpoints.len()
+                        && !lowered.fore_ports.iter().any(|p| p.endpoint == endpoint)
+                    {
                         return Err(GenerationError::Unsupported(
                             UnsupportedPlanFeature::RemoteConnection,
                         ));

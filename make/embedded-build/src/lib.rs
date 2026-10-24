@@ -9,7 +9,9 @@
 mod assigned_native;
 mod assigned_plan;
 mod configuration;
+mod fore;
 mod generate;
+pub use fore::{generate_fore_native_plan, GeneratedForePlan};
 mod model;
 mod render;
 mod validate;
