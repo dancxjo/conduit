@@ -79,7 +79,7 @@ fn actual_owner_receipts_replay_all_four_gesture_source_programs_through_std_ker
         // Automatic arbitrary-Source admission retains its independent guard.
         // The approved G2 profile instead carries the opaque owner's generated
         // Native input admission and selects the existing explicit Host offer.
-        if operation == "advance" {
+        if operation == "phases" {
             let before = host.advertisement().clone();
             assert!(host
                 .prepare_expression_realizations(&authored.expanded)
