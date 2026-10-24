@@ -1,0 +1,51 @@
+{
+  "source": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae",
+  "tree": "d63189bd7311480c447bbc8128fbf09098577fd2",
+  "runtime_tree": "5178067366a0029da9557e8ea807a66d68f564c1",
+  "mask_tree": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+  "fore_tree": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+  "composition_verified": true,
+  "next_two_11_disjoint_path_composition": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "supported-face-publication",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "prove",
+        "environment",
+        "face-publication"
+      ],
+      "log": "work/next-two-face-proof-supported-face-publication.log",
+      "sha256": "9bed7e0199da14847217e5fae5c4deb1cb33de3cfb9e9dc4eb31b94738c66f8f",
+      "exit_code": 0,
+      "before_available_bytes": 12916256768,
+      "actual_test_counts": [
+        3
+      ],
+      "actual_passed": 3,
+      "actual_named_successes": [
+        "test a_live_publication_owner_requires_complete_execution_provenance ... ok",
+        "test refused_sequences_types_and_clock_preserve_the_exact_previous_face ... ok",
+        "test source_publications_become_retained_quantity_faces_without_play_allocations ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/retained_publication_face-225efddd7aa4f772"
+      ]
+    }
+  ],
+  "started": 1792837420.8893566,
+  "protected856_verified_before": true,
+  "status": "stopped-before-next-step-insufficient-headroom",
+  "next_step": "display-packets",
+  "available_bytes": 5278359552
+}

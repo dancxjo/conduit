@@ -1,0 +1,96 @@
+{
+  "source": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae",
+  "tree": "d63189bd7311480c447bbc8128fbf09098577fd2",
+  "files": [
+    {
+      "path": "next-two-face-proof-local-proof.json",
+      "bytes": 37213,
+      "sha256": "ae4624bfadaa83e2dd5336efc3eaaa8bcd7e277c2ef5d7e3e1f7a990d37f9b0e"
+    },
+    {
+      "path": "next-two-face-proof-source.json",
+      "bytes": 2236,
+      "sha256": "d2a4527c1829f9a73bcc243be19ae99c9c5c538dc4a787d07a894e1ed3796ef6"
+    },
+    {
+      "path": "run-next-two-face-proof.py",
+      "bytes": 4900,
+      "sha256": "1239ac713f5778d4f42ba1eafd55d27e07893bbbb96bd51b3acb23fe4b1e5571"
+    },
+    {
+      "path": "resume-next-two-face-proof.py",
+      "bytes": 5306,
+      "sha256": "2078d0c505f3733ced12f9dd49166bc946cc210eaff31f469a4a4307fc81f516"
+    },
+    {
+      "path": "next-two-face-proof-headroom-stop.json",
+      "bytes": 2046,
+      "sha256": "14fa097efa0bc2a316181206500e5138ccbc6f01551e5f21c78ce89413cb99fc"
+    },
+    {
+      "path": "finalize-next-two-face-running-custody.py",
+      "bytes": 1339,
+      "sha256": "19cd1c77eb95f20a02d486b212a6566d9d1012268dc20772e08b5be081049dcd"
+    },
+    {
+      "path": "prepare-next-two-face-proof-packet.py",
+      "bytes": 5424,
+      "sha256": "c184771993c0a2cb4e7f13d3fce7eab61bdf81910676c800e83647d472ce30fd"
+    },
+    {
+      "path": "next-two-face-proof-supported-face-publication.log.gz",
+      "bytes": 1531,
+      "sha256": "fd58c82aca6b95162c80db5463392fbe8bf1c272299ff45069d9d966a9469e2e"
+    },
+    {
+      "path": "next-two-face-proof-display-packets.log.gz",
+      "bytes": 471,
+      "sha256": "67c0075409979b6a84b3c100251192d5d484d99d6bfe26b6a70c302230ba8210"
+    },
+    {
+      "path": "next-two-face-proof-face-tests.log.gz",
+      "bytes": 1071,
+      "sha256": "1114c44139cb0ba29af4efed504889334319a43e99c2277770430dc1a5e8aff3"
+    },
+    {
+      "path": "next-two-face-proof-runtime-strict.log.gz",
+      "bytes": 152,
+      "sha256": "4fac99363919c19a90f08e9149edd4c29247fd7c4f2de675764ecc72827fb075"
+    },
+    {
+      "path": "next-two-face-proof-face-strict.log.gz",
+      "bytes": 512,
+      "sha256": "0b12733e09e1d39ec53c42b1a7bb1284230e9e85174472304f067d1fe7bc4df0"
+    },
+    {
+      "path": "next-two-face-proof-runtime-no-std.log.gz",
+      "bytes": 658,
+      "sha256": "408ff3bef65abbf7baf4b4228c49c1215eec8f3e0b7b5fce7e9946bc99805ed4"
+    },
+    {
+      "path": "source-dependency-correspondence.json",
+      "bytes": 10100,
+      "sha256": "221584342f2fa95f63ced02c98070a6b1110d76158f3689ae54706e7a935a63f"
+    },
+    {
+      "path": "README.md",
+      "bytes": 574,
+      "sha256": "de3f08c1a6405f010f5c85d8827893ebc97c48a061a3abdfe8b253e508ad1c27"
+    },
+    {
+      "path": "original-manifest.json",
+      "bytes": 2688,
+      "sha256": "9c974e3123399904ea5cdb27333689593bb2f061f2cdc985d5b3f18b1e086b84"
+    },
+    {
+      "path": "root-independent-review.json",
+      "bytes": 652,
+      "sha256": "3cce6e42bd74d21863ca72a8ab7c2601c8162b6d568f25aa7ade610dbac4bbc8"
+    },
+    {
+      "path": "publish-next-two-face-proof.py",
+      "bytes": 2951,
+      "sha256": "f15248bb53df45da8a721f93121030cb1120656b00d726827126e0a3bd022250"
+    }
+  ]
+}

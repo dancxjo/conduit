@@ -1,0 +1,157 @@
+{
+  "source": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae",
+  "tree": "d63189bd7311480c447bbc8128fbf09098577fd2",
+  "exact11_disjoint_source_blobs": {
+    "bodies/environment/face/src/prepared.rs": {
+      "blob": "82bd43ef8cda45942d6664720a562936da000496",
+      "sha256": "ad45cba47b8bffabd39b68fd3b8a62cffedc13539ed2b22fb5ed5f7595cf3245"
+    },
+    "bodies/environment/runtime/Cargo.toml": {
+      "blob": "a9e5ce1f27eb7bf40e78e445ceec293dd960b626",
+      "sha256": "e08f984725ce133ae0e8e17ce520237e35abfb7726162df7d0cd641206c020d0"
+    },
+    "bodies/environment/runtime/RETAINED_FACE.md": {
+      "blob": "cc7a65832b1b46da31d33837bb2ca024564d86d6",
+      "sha256": "30a57cf050c3db807e23b3f73ab8a0cd3d6f7ed6eac1a480876e7d270bd60316"
+    },
+    "bodies/environment/runtime/build_display.rs": {
+      "blob": "58d1ac594ac3a5a5304632bcbbed85400e27102c",
+      "sha256": "68153dabd4883a6baad94478e4c52e9ca4aa50a72c380c899c41cc5319e983a8"
+    },
+    "bodies/environment/runtime/src/display_packets.rs": {
+      "blob": "da35ddb7a0dce34395401182d76008fa8a38060f",
+      "sha256": "8b85422480531ee49d4e5b8208cd9d5e963e010d68335e140a1c4c302f96c799"
+    },
+    "bodies/environment/runtime/src/lib.rs": {
+      "blob": "83f78e2b10085062f3bf2f2886888d7e862c92d5",
+      "sha256": "86245ea0b10524380f98f9272fc60f7098d041b3c382fd0627511d0ad7d4d7ee"
+    },
+    "bodies/environment/runtime/src/retained_publication_face.rs": {
+      "blob": "61569973d886890272200c6af99988d095a59f14",
+      "sha256": "54a3eeac2f41229d4f1af1cc25bd057e64bd9cbf25850c86c7cee337af6aa91c"
+    },
+    "bodies/environment/runtime/tests/display_packets.rs": {
+      "blob": "6fbe0eaefe769abdb4792def5338b4b5ab1224e0",
+      "sha256": "e9cbc58ba622002ca307d4a64ad2c10988e214b2422631c8fad3074677e00761"
+    },
+    "bodies/environment/runtime/tests/retained_publication_face.rs": {
+      "blob": "00a4f2ed85f9ab07f9bb531fc584c73cae5cdf23",
+      "sha256": "5503ad5c7b88f25a7b8540121fdad983e4fc53f146333e3c51ec6f5c8c82683a"
+    },
+    "tools/xtask/src/commands/dht11_probe.rs": {
+      "blob": "1cad430326e4fcf47c8acddaa2dda1aec89fa062",
+      "sha256": "b8e91cfeecf6cbb7d93f6fd902a97050b800a61c649f1542bf3929ae963d6d3d"
+    },
+    "tools/xtask/src/commands/environment_face_publication.rs": {
+      "blob": "63e6ea41676c8c4a104a76a3183e3279c92e977a",
+      "sha256": "bdc949a1bb39f6ad384f818e7cfafe22dfc332bff9071d28298a48e7bac342c0"
+    }
+  },
+  "full_transitive_normal_build_and_owningrootdev_package_trees": {
+    "architecture/assigned-plan": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+    "architecture/body": "f4917304eca26732902a15cc75fc1eacbb486930",
+    "architecture/composite": "507cf7211ed6f9ae40d77ad601a089f6e28afc4b",
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/kernel": "a83e2c2c96b271dc1634cf112ac23b2d819c3469",
+    "architecture/observatory": "8fbd99a533af38b73b5f5db057fea0284d37e0b2",
+    "architecture/plan-lowering": "f456be36830173f985e0186b31100b900cd00bb7",
+    "architecture/planner": "480725770dde4378ff739368f1cc4d7fc8859ae8",
+    "architecture/plot": "32d42fbdf9d43cf113d4f7fada9947125413a38d",
+    "architecture/protected-line": "6ad5927535b800fee9fed61819556ea71cf6e59a",
+    "architecture/wire": "a358dbea11a6aef9ed2042dc07c1df4593f800dd",
+    "bodies/environment/face": "5291156cd55d782209c71471400494ba43b6798a",
+    "bodies/environment/runtime": "5178067366a0029da9557e8ea807a66d68f564c1",
+    "bodies/pete": "2bd5dc46ec448c2abd7d85b09de8e35e08ab4260",
+    "make/body": "ceb027cc965fc660400b509abcfaf6777c8696c0",
+    "make/embedded-build": "93ec1d68c00b2ea68f4ed9d9779ebb40e486c2a8",
+    "make/host": "2bc059f79714960315a566ca7639d9b12b07762c",
+    "make/workspace": "7f0b711a059cd8c2e558d7366b7addfc02f82d99",
+    "mechanisms/devices/create-oi": "cda59c2ef86925dfd00d0b31a0ea65bc617cd3e2",
+    "mechanisms/devices/mpu6050": "4d3fee0d07e025c2ef1afd85a021e835934f3361",
+    "mechanisms/implementations/burn-model": "9a59426b7a268457a84d360f3a7328fc88c3d209",
+    "mechanisms/implementations/emergency-keyword-spotter": "044939728acc000479161225da579a6c787d0252",
+    "mechanisms/implementations/linear-framebuffer-make": "8323e2c4b15f16189524c8542eaa48a5bb4d145e",
+    "mechanisms/implementations/synth": "782742bad1f136594ac801d3ee9d6228d23a54fa",
+    "mechanisms/io/pulse-capture": "1987dbe127f2837b855126e627f0e511e8e4a691",
+    "mechanisms/io/resource-snapshot": "1a00120a49df269cfa9cb3b67e236744b7f97b0d",
+    "mechanisms/io/tm1637": "ad659a2f8f9d0e144317c45be143953b39f704ed",
+    "mechanisms/protocols/bluetooth": "a1384f90d4493481bf75943e518351f88533332e",
+    "mechanisms/protocols/midi": "b560ca213e8fb5a1e8ed684550b9a49da9b64d9c",
+    "plots/birth": "b5df3fb7e3d7b9b5762e27e106d0790855aabdd7",
+    "plots/commons": "04c3626e4a718f58fd2bee042a2669b40bc17136",
+    "plots/little-seismograph/fixture": "101056f3ea375cbb4eb8e9a120aeeb301ef50cd1",
+    "plots/patchbay": "217202bc2447f3b8204a20bff2913ad5c6fc205f",
+    "plots/patchbay/application": "e262b95d2fcb6accde6ff14f0ed700a5477e53e8",
+    "plots/patchbay/graph": "0813502b7945c0d5b2053b5cb332e049f07374bb",
+    "plots/patchbay/workbench/host-contract": "b1317d08b312f571c6b321e9fef137c5fd83c002",
+    "plots/patchbay/workbench/model": "7165dca0b19794a4d246eae8d5349b196b93f2fe",
+    "plots/seven-segment-mask": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+    "plots/thermostat/face": "768bc3f0e9dd8bdf3208187faa7b227850ee9978",
+    "plots/thermostat/model": "60aa56bdb5d703d3959410b5a7de3eaeb0544a6e",
+    "plots/todo/face": "6054ca62c69b7254852eb93b54b06b7698047f51",
+    "plots/todo/model": "300bfa2f12cd681ed7ae1edcf5fdbe336341c8a6",
+    "plots/tour": "062ac599451e4642cf1efe38fd5a238be8f3f0c3",
+    "proof/conformance/alife-distributed": "aa6b604ba3ecbb9534b07155813a60a613595282",
+    "proof/conformance/network-r1": "ec73b3a3c5d6658b3e42f5fc3ffa657b20cfbd40",
+    "proof/conformance/patchbay-workbench": "0a7b9cc0000dda9cf62295b56f409465c4e9d507",
+    "proof/conformance/signal": "90684d091937267f3cf010536a7773008c1818a6",
+    "semantics/ai": "7ffa3ae3938c69783aa21f42ab4002ac53987e88",
+    "semantics/alife": "d33a30b5e9026a5fce6bfabd0f77ffe19c02b12c",
+    "semantics/audio": "481fd2dcf96512ef6b9675a65adc3f650eb332e2",
+    "semantics/body-invitation": "8d4a38d8c92d7a8b8ecdda22d99542ace4dfbd90",
+    "semantics/catalog": "7e865f830e0f8dc9b879278c1649609bced2cb8f",
+    "semantics/chat": "a88732429b8167a6a358ca5c55b9391ffa722dfb",
+    "semantics/data": "cd87e380f3289d5d8c03b10c933bee2909fa376c",
+    "semantics/education": "ec5add8bebc9538cf3a7fd2d01fd927c8e9bfe28",
+    "semantics/face": "6addb0188d273f7c1beebcee20e2d6601619e452",
+    "semantics/finance": "4539ceb1d36f9cf0007abdb69a5c62b42fb4b6d9",
+    "semantics/home": "61c03b6bbd7ebc10952efe77331803b4a4f3ddda",
+    "semantics/human": "1954f5a5a76309ccfcd9eb798b79351926920090",
+    "semantics/language": "a7103f3654d299d2deb121f4fb6f655897dd5ae3",
+    "semantics/net": "3f0fd19addb5d273283792c441fa1dc480106c4a",
+    "semantics/plot-library": "44cb60b173e7691ceff583d71d55f8ad6a12e5ed",
+    "semantics/process": "3891007af5b8abdc8cc017863a7d4f55d68f9b40",
+    "semantics/purpose": "2f78393e63f23bb0db8d466b10c344db57c0e995",
+    "semantics/robotics": "ba2ed5814840ca02c73cf2b17521884fe53d2940",
+    "semantics/signal": "dcc6eb62c06685f52e2d54a4665194d06a0238be",
+    "semantics/speech": "69f4602e14ab8e7252460c449c6d4e06aab7dc31",
+    "semantics/text": "de52ae83efc9d07bbff3e7ceb08a75d3454fc50f",
+    "semantics/time": "9ca72f5352f34e3fa357bfa99522df8446b98a40",
+    "semantics/tongues": "a4f27cd7bbecf37e6a6623db94fafe731d81ee5f",
+    "semantics/tutorial": "3eeb91172ee0dd13cb4c91f335cd68e1f97f1cce",
+    "semantics/web": "f6aac001ddadf4a4b4a49dfbdf226ae9648c803f",
+    "targets/avr/make": "b95dd778b2cfd93919dd403f03dc86091a9a430f",
+    "targets/browser/make": "ec96eadad59db4986cf4aeaad5efb46e23415325",
+    "targets/browser/mask-offer": "cbffb5ba6ed5007286d27f06d4dcab4bfa1d0f8d",
+    "targets/browser/runtime": "b7e26cd26500721c83df9a9528ecbcbc0985dfb4",
+    "targets/conduitos": "c3bdb1a95e8ef8935f8b294ab3327292eda0474d",
+    "targets/conduitos/application-core": "b51d0a19356f12af6609b9bbd9e3fb494764d93f",
+    "targets/conduitos/compositor-core": "cbc8037b5f0f0711644b365fb252ab746bf7f3b8",
+    "targets/conduitos/creche-core": "23b8886c921592585985ba6ac1a04ff433aa6d9f",
+    "targets/conduitos/make": "348ac5b15815b0ea6667ebfe4650dc8dd09b6d5a",
+    "targets/conduitos/mask-core": "d09b8ac86ea76b62cc70a16193fe54ea219f4a8a",
+    "targets/conduitos/mask-offer": "47db4bf130cf30c632fb363f9a35cda2fe3f5dbc",
+    "targets/conduitos/network-core": "8c94a022a6fe0a1995bccad744e802da193ae21b",
+    "targets/conduitos/runtime-core": "085eb05ae14af7bc4c372d1f516ec406e428ee69",
+    "targets/conduitos/tls-core": "1bbba05d149c047d2835d3aacbf6d34aba81f5b9",
+    "targets/esp32/make": "49d26c621839b2aacd284b71d7470fc835ea1877",
+    "targets/orange-pi/make": "8f5a616917696b4a935c0bed277f6c9cef974ecc",
+    "targets/raspberry-pi/make": "05e3659ccae7ff91f2d70411f2f6ee7f84c897c0",
+    "targets/rp2040/make": "da1f203b0c9c8b16dd9006d38f343a63130206a2",
+    "targets/rp2040/network-realization": "9eb49d084c21b92ecbebd6bcf66285c5dae893bb",
+    "targets/std": "66fdeb52607f3796cfcf6a1a7930103aed203d6a",
+    "targets/std/make": "c6202614dbaab963ef2d766d538431e59f48408a",
+    "targets/std/offers": "2934034cf1f30051e465520435894c6c9ae5c73d",
+    "tools/xtask": "311935d68d0e7b4ad5d1fa9d986cfb9fadab28d7"
+  },
+  "root4_inputs": {
+    "Cargo.toml": "e61b1386af162f0443d7368d003f63956391a00f578346a6626fe8e54aab374a",
+    "Cargo.lock": "b66b2fec2c95bcb0fe686e776ff70e03861f9ffe976027ed7acbf6ad9236b505",
+    "rust-toolchain.toml": "48c202b05694e680218d81db870cf2a127ab4efec83abd91b1f05c5e636fa53b",
+    ".cargo/config.toml": "269b1a63fbc504801030a459c774513d26c921b8478d0e20778ab9aeb56699d5"
+  },
+  "limits": [
+    "Actual frozen8734/d631 combinedCPUfeatureproof only; no Candidate/Integration/currentdev/global acceptance",
+    "No new Native, fullruntime93, rootplanlowering59, physicalHost/provider/recorder/parent proof campaign"
+  ]
+}

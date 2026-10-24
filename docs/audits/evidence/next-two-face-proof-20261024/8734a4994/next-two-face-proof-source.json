@@ -1,0 +1,52 @@
+{
+  "source": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae",
+  "tree": "d63189bd7311480c447bbc8128fbf09098577fd2",
+  "base": "b3a0e637cb4ebf449ebc0cb6c73a34755f327889",
+  "branch": "prep/next-two-face-proof-20261024",
+  "checkout": "/tmp/conduit-next-two-face-proof-source",
+  "rows": [
+    {
+      "head": "3d4d3d8575347b005a4e856132357fd09cb129d8",
+      "original_base": "3cf536468e8ea932b6d1261f938453be5e7d79be",
+      "actual_parent": "b3a0e637cb4ebf449ebc0cb6c73a34755f327889",
+      "merge": "dde7ce677ce5cbdc04be461c10ef73b7d0cbcddd",
+      "paths": [
+        "bodies/environment/runtime/build_display.rs",
+        "bodies/environment/runtime/src/display_packets.rs",
+        "bodies/environment/runtime/tests/display_packets.rs"
+      ]
+    },
+    {
+      "head": "8e062e0c500d35a744f6f3e2be2f72abf2ed681a",
+      "original_base": "b3a0e637cb4ebf449ebc0cb6c73a34755f327889",
+      "actual_parent": "dde7ce677ce5cbdc04be461c10ef73b7d0cbcddd",
+      "merge": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae",
+      "paths": [
+        "bodies/environment/face/src/prepared.rs",
+        "bodies/environment/runtime/Cargo.toml",
+        "bodies/environment/runtime/RETAINED_FACE.md",
+        "bodies/environment/runtime/src/lib.rs",
+        "bodies/environment/runtime/src/retained_publication_face.rs",
+        "bodies/environment/runtime/tests/retained_publication_face.rs",
+        "tools/xtask/src/commands/dht11_probe.rs",
+        "tools/xtask/src/commands/environment_face_publication.rs"
+      ]
+    }
+  ],
+  "exact_disjoint_paths": [
+    "bodies/environment/face/src/prepared.rs",
+    "bodies/environment/runtime/Cargo.toml",
+    "bodies/environment/runtime/RETAINED_FACE.md",
+    "bodies/environment/runtime/build_display.rs",
+    "bodies/environment/runtime/src/display_packets.rs",
+    "bodies/environment/runtime/src/lib.rs",
+    "bodies/environment/runtime/src/retained_publication_face.rs",
+    "bodies/environment/runtime/tests/display_packets.rs",
+    "bodies/environment/runtime/tests/retained_publication_face.rs",
+    "tools/xtask/src/commands/dht11_probe.rs",
+    "tools/xtask/src/commands/environment_face_publication.rs"
+  ],
+  "clean": true,
+  "all_raw_heads_ancestors": true,
+  "observed_unix": 1792837400.4831233
+}

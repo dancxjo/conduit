@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "passed": true,
+  "source": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae",
+  "tree": "d63189bd7311480c447bbc8128fbf09098577fd2",
+  "actual_tests": 16,
+  "commands": 6,
+  "actual_ELFs": 92,
+  "Running_bindings": 6,
+  "earlier_ELFs_verified_unchanged": 856,
+  "exact_disjoint_paths": 11,
+  "scope": "Actual frozen composed source CPU execution, strict lint and no_std compile only. No current dev/Candidate/Integration, installed MCU, Body aggregate or physical acceptance.",
+  "original_headroom_stop_preserved": true,
+  "independent_dependency_closure_count": 95,
+  "packet_payloads_verified": 15,
+  "root_four_verified": true
+}

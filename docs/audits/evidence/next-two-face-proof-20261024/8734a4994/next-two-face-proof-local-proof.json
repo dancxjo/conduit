@@ -1,0 +1,677 @@
+{
+  "source": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae",
+  "tree": "d63189bd7311480c447bbc8128fbf09098577fd2",
+  "runtime_tree": "5178067366a0029da9557e8ea807a66d68f564c1",
+  "mask_tree": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+  "fore_tree": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+  "composition_verified": true,
+  "next_two_11_disjoint_path_composition": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "supported-face-publication",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "prove",
+        "environment",
+        "face-publication"
+      ],
+      "log": "work/next-two-face-proof-supported-face-publication.log",
+      "sha256": "9bed7e0199da14847217e5fae5c4deb1cb33de3cfb9e9dc4eb31b94738c66f8f",
+      "exit_code": 0,
+      "before_available_bytes": 12916256768,
+      "actual_test_counts": [
+        3
+      ],
+      "actual_passed": 3,
+      "actual_named_successes": [
+        "test a_live_publication_owner_requires_complete_execution_provenance ... ok",
+        "test refused_sequences_types_and_clock_preserve_the_exact_previous_face ... ok",
+        "test source_publications_become_retained_quantity_faces_without_play_allocations ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/retained_publication_face-225efddd7aa4f772"
+      ],
+      "cargo_run_backtick_executables": [
+        {
+          "argv": [
+            "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/conduit-xtask-dispatch",
+            "prove",
+            "environment",
+            "face-publication"
+          ],
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/conduit-xtask-dispatch",
+          "sha256": "e56a5a128bea4ab9ae6fb08b28d5d6bb9067c748e1a7a69a83d4be1b03e254c6",
+          "bytes": 5657256
+        }
+      ]
+    },
+    {
+      "name": "display-packets",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "face-projection,source-capture",
+        "--test",
+        "display_packets"
+      ],
+      "log": "work/next-two-face-proof-display-packets.log",
+      "sha256": "d8ee8bd6c4e0542af138b77daa67b58155b3718d5bdd13d9a26d02d9abdbc627",
+      "exit_code": 0,
+      "before_available_bytes": 9096040448,
+      "actual_test_counts": [
+        4
+      ],
+      "actual_passed": 4,
+      "actual_named_successes": [
+        "test frame_keeps_invalid_brightness_for_the_authored_refusal_fore ... ok",
+        "test exact_source_frame_validation_is_bounded_and_allocation_free ... ok",
+        "test source_packets_preserve_registers_and_refuse_invalid_brightness_without_allocating ... ok",
+        "test canonical_packets_match_the_driver_type_and_preserve_all_six_registers ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/display_packets-e9efb86ad7926fab"
+      ],
+      "cargo_run_backtick_executables": []
+    },
+    {
+      "name": "face-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/face/Cargo.toml"
+      ],
+      "log": "work/next-two-face-proof-face-tests.log",
+      "sha256": "ead4b08f1968c7bf09301304839788518c17a3084577e3c1b7762f8cf5dff7c1",
+      "exit_code": 0,
+      "before_available_bytes": 9083977728,
+      "actual_test_counts": [
+        0,
+        4,
+        5,
+        0
+      ],
+      "actual_passed": 9,
+      "actual_named_successes": [
+        "test warming_and_temperature_only_sensors_do_not_fabricate_values ... ok",
+        "test invalid_semantic_inputs_refuse_before_a_face_is_published ... ok",
+        "test freshness_failure_and_last_observation_remain_independent ... ok",
+        "test semantic_observation_reaches_fahrenheit_show_without_changing_the_face ... ok",
+        "test committed_capture_failures_keep_their_distinct_face_meaning ... ok",
+        "test invalid_publication_is_atomic_and_does_not_invent_quantities ... ok",
+        "test a_recent_retained_observation_stays_fresh_when_the_latest_capture_fails ... ok",
+        "test warming_success_failure_expiry_and_recovery_are_allocation_free ... ok",
+        "test inspection_time_prevents_stale_reading_resurrection ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/conduit_environment_face-e67a7e550d4dbd8c",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/contribution-09a6117570a1725e",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/prepared-6eab014841d73385"
+      ],
+      "cargo_run_backtick_executables": []
+    },
+    {
+      "name": "runtime-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "face-projection,source-capture",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/next-two-face-proof-runtime-strict.log",
+      "sha256": "cae2315ff418d94b6819333ee3f18553569eb4883cf85106381ced30c1f75912",
+      "exit_code": 0,
+      "before_available_bytes": 8524259328,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": [],
+      "cargo_run_backtick_executables": []
+    },
+    {
+      "name": "face-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/face/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/next-two-face-proof-face-strict.log",
+      "sha256": "125dfc62c19515fd3f29a8473dcb922087a50664fbb030bd01b05a48b435cb8f",
+      "exit_code": 0,
+      "before_available_bytes": 8515559424,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": [],
+      "cargo_run_backtick_executables": []
+    },
+    {
+      "name": "runtime-no-std",
+      "command": [
+        "cargo",
+        "+stable",
+        "check",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "face-projection,source-capture",
+        "--lib",
+        "--target",
+        "thumbv6m-none-eabi"
+      ],
+      "log": "work/next-two-face-proof-runtime-no-std.log",
+      "sha256": "57e9ebdcb50dec2ed9b26db4357a4953f062d491a07d13f669331685b5aa544a",
+      "exit_code": 0,
+      "before_available_bytes": 8362557440,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": [],
+      "cargo_run_backtick_executables": []
+    }
+  ],
+  "started": 1792837420.8893566,
+  "protected856_verified_before": true,
+  "status": "passed",
+  "resumed_remaining_only_at": 1792837891.9947023,
+  "headroom_stop_receipt": "outputs/next-two-face-proof-headroom-stop.json",
+  "protected856_verified_after": true,
+  "finished": 1792837977.8127284,
+  "clean_after": true,
+  "executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/conduit-xtask-dispatch",
+      "sha256": "e56a5a128bea4ab9ae6fb08b28d5d6bb9067c748e1a7a69a83d4be1b03e254c6",
+      "bytes": 5657256
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/libserde_derive-5cf603e79f9c2c5b.so",
+      "sha256": "dffa5afba863c7a2dd15f46d5da9863712d19d864937c4d907d4342bf43cf612",
+      "bytes": 2908672
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/conduit_xtask_dispatch-316d0957ae2cfc9e",
+      "sha256": "e56a5a128bea4ab9ae6fb08b28d5d6bb9067c748e1a7a69a83d4be1b03e254c6",
+      "bytes": 5657256
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/conduit_environment_face-e67a7e550d4dbd8c",
+      "sha256": "3007dc646f835b01c4638f90fda734470fed0b9d5e203b937bd53ad46dcf461f",
+      "bytes": 1079696
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/libthiserror_impl-430271aef883cc7e.so",
+      "sha256": "c3c16392b59f189b7ec64fcdc16deeceedbb8ed59b3888beafaf3511e9b4cfab",
+      "bytes": 2389616
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/retained_publication_face-225efddd7aa4f772",
+      "sha256": "99948de165dec374e07f3b23e8430b3e13f1a4d6d12fc91b61d50210aab26f8b",
+      "bytes": 8123984
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/libserde_derive-20a31b7eae420ba0.so",
+      "sha256": "56bdf9f3f54699dc1e8e34334b8f5ca8473704e7a8d4e683900dd3968a8d27e4",
+      "bytes": 2908480
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/prepared-6eab014841d73385",
+      "sha256": "0d685eff200ba8ee291a31a165454b953b971db5ad4246114e5ee4ffb5a72f6f",
+      "bytes": 5025872
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/contribution-09a6117570a1725e",
+      "sha256": "078009cf9ffffd24450528c9679db408e446e293d051bf764674a9a5afff5c8c",
+      "bytes": 4963784
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/deps/display_packets-e9efb86ad7926fab",
+      "sha256": "ab2e81f19044d1237f2c49347cdba0eaf520c47e8a347c14242ec98803836c5b",
+      "bytes": 7366560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/quote-576bc7579314484c/build_script_build-576bc7579314484c",
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037",
+      "bytes": 529416
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/quote-576bc7579314484c/build-script-build",
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037",
+      "bytes": 529416
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-robotics-f2f2e1ff883f8c56/build_script_build-f2f2e1ff883f8c56",
+      "sha256": "94adeb994b38bd6d691d16f834dffa6e591311f264114ec94ca3cf25dac92cde",
+      "bytes": 6167608
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-robotics-f2f2e1ff883f8c56/build-script-build",
+      "sha256": "94adeb994b38bd6d691d16f834dffa6e591311f264114ec94ca3cf25dac92cde",
+      "bytes": 6167608
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-pulse-capture-4e0dd3b1d2179afe/build_script_build-4e0dd3b1d2179afe",
+      "sha256": "10b2a7608dd997e9ad92c9b9a878acdeb06e896a6646d9fe0b96172c71a3183b",
+      "bytes": 5964840
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-pulse-capture-4e0dd3b1d2179afe/build-script-build",
+      "sha256": "10b2a7608dd997e9ad92c9b9a878acdeb06e896a6646d9fe0b96172c71a3183b",
+      "bytes": 5964840
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/quote-6393071924e353ea/build_script_build-6393071924e353ea",
+      "sha256": "3bfabccb6e3fc500357274bfc53fac0b48b8481cda247dbada711d51fbaf1058",
+      "bytes": 529416
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/quote-6393071924e353ea/build-script-build",
+      "sha256": "3bfabccb6e3fc500357274bfc53fac0b48b8481cda247dbada711d51fbaf1058",
+      "bytes": 529416
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-alife-dfcc48d83c8e3aa4/build_script_build-dfcc48d83c8e3aa4",
+      "sha256": "b66314b224e3b869c0b5e512d283fff8a91ee3d06343a9dbbf22a75ef3906197",
+      "bytes": 6168352
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-alife-dfcc48d83c8e3aa4/build-script-build",
+      "sha256": "b66314b224e3b869c0b5e512d283fff8a91ee3d06343a9dbbf22a75ef3906197",
+      "bytes": 6168352
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde-15822d110748cc9f/build_script_build-15822d110748cc9f",
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5",
+      "bytes": 540208
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde-15822d110748cc9f/build-script-build",
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5",
+      "bytes": 540208
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-environment-runtime-614611ddde4db497/build_script_build-614611ddde4db497",
+      "sha256": "158a1797aaf133d8dd709bd6bb9a40a467c7fd6b818c4a0a79fa47f88b43e246",
+      "bytes": 7737280
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-environment-runtime-614611ddde4db497/build-script-build",
+      "sha256": "158a1797aaf133d8dd709bd6bb9a40a467c7fd6b818c4a0a79fa47f88b43e246",
+      "bytes": 7737280
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-face-31c9bb0ee2d4a77e/build_script_build-31c9bb0ee2d4a77e",
+      "sha256": "60086fd3951366cb6900a9b3c9988b39bdb94e4d1742c6cb0634d3910becf430",
+      "bytes": 6460752
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-face-31c9bb0ee2d4a77e/build-script-build",
+      "sha256": "60086fd3951366cb6900a9b3c9988b39bdb94e4d1742c6cb0634d3910becf430",
+      "bytes": 6460752
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/proc-macro2-0c65f04c11310072/build_script_build-0c65f04c11310072",
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336",
+      "bytes": 564496
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/proc-macro2-0c65f04c11310072/build-script-build",
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336",
+      "bytes": 564496
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-seven-segment-mask-2dbbbb324f20d760/build_script_build-2dbbbb324f20d760",
+      "sha256": "8c584b7623a016bb0e7dccb56d27526448d01335a439c3bd939232c00df556a1",
+      "bytes": 6119808
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-seven-segment-mask-2dbbbb324f20d760/build-script-build",
+      "sha256": "8c584b7623a016bb0e7dccb56d27526448d01335a439c3bd939232c00df556a1",
+      "bytes": 6119808
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/proc-macro2-92a782c175254c15/build_script_build-92a782c175254c15",
+      "sha256": "b932c0b53952c5eddd899a5091b3205e54a4710b0e284a7286178920d1721d3f",
+      "bytes": 564496
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/proc-macro2-92a782c175254c15/build-script-build",
+      "sha256": "b932c0b53952c5eddd899a5091b3205e54a4710b0e284a7286178920d1721d3f",
+      "bytes": 564496
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-face-02f3978def0a7799/build_script_build-02f3978def0a7799",
+      "sha256": "e7805b191bcb59a3233a6948ecfafa67c69e252afce0ef00bde61ae536b6c97d",
+      "bytes": 6460728
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-face-02f3978def0a7799/build-script-build",
+      "sha256": "e7805b191bcb59a3233a6948ecfafa67c69e252afce0ef00bde61ae536b6c97d",
+      "bytes": 6460728
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/libm-13320032431223a2/build_script_build-13320032431223a2",
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e",
+      "bytes": 494704
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/libm-13320032431223a2/build-script-build",
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e",
+      "bytes": 494704
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-time-c69175aeb5f345ac/build-script-build",
+      "sha256": "63aa44fddafda3e81d4df5c1e672d54ddeccb19f07b4e6e4e9556c34e237d2da",
+      "bytes": 6202128
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-time-c69175aeb5f345ac/build_script_build-c69175aeb5f345ac",
+      "sha256": "63aa44fddafda3e81d4df5c1e672d54ddeccb19f07b4e6e4e9556c34e237d2da",
+      "bytes": 6202128
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-pulse-capture-874c0f951d503b27/build_script_build-874c0f951d503b27",
+      "sha256": "d2bd1a961a636a38bdf984af42f0878dbc5dd61d605c51906460718fd4a20a9f",
+      "bytes": 5964840
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-pulse-capture-874c0f951d503b27/build-script-build",
+      "sha256": "d2bd1a961a636a38bdf984af42f0878dbc5dd61d605c51906460718fd4a20a9f",
+      "bytes": 5964840
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-environment-runtime-d526bcd583195742/build_script_build-d526bcd583195742",
+      "sha256": "1d5c6b531c76693ff5a76e537bea84e2909b8a55c89b28a52ed2eb8feed25579",
+      "bytes": 7737280
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-environment-runtime-d526bcd583195742/build-script-build",
+      "sha256": "1d5c6b531c76693ff5a76e537bea84e2909b8a55c89b28a52ed2eb8feed25579",
+      "bytes": 7737280
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-environment-runtime-11bcc71616c43f9a/build_script_build-11bcc71616c43f9a",
+      "sha256": "845f8605c437fdde55ab501045772a081fe158fb2b4a1797c35bcc9e138d9f9b",
+      "bytes": 7737272
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-environment-runtime-11bcc71616c43f9a/build-script-build",
+      "sha256": "845f8605c437fdde55ab501045772a081fe158fb2b4a1797c35bcc9e138d9f9b",
+      "bytes": 7737272
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde-875539385ad488fb/build_script_build-875539385ad488fb",
+      "sha256": "db11dce6e0ec1d31cd8a85583fe2d98b34148f07cd913e4d39e6c925773035fd",
+      "bytes": 540208
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde-875539385ad488fb/build-script-build",
+      "sha256": "db11dce6e0ec1d31cd8a85583fe2d98b34148f07cd913e4d39e6c925773035fd",
+      "bytes": 540208
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-process-1518fea7ff633e5e/build_script_build-1518fea7ff633e5e",
+      "sha256": "425781b4f7a2bee4e98eaec3e4b107382ef2bfd34658d3887138c1c5a3ff08c9",
+      "bytes": 6129024
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-process-1518fea7ff633e5e/build-script-build",
+      "sha256": "425781b4f7a2bee4e98eaec3e4b107382ef2bfd34658d3887138c1c5a3ff08c9",
+      "bytes": 6129024
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/zmij-c9a87ed4792d5887/build_script_build-c9a87ed4792d5887",
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29",
+      "bytes": 533184
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/zmij-c9a87ed4792d5887/build-script-build",
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29",
+      "bytes": 533184
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-environment-runtime-09c85d491381eeb7/build_script_build-09c85d491381eeb7",
+      "sha256": "81f267b0eaa7479a85efe226a1386c4761e52ddd669f660f2cba5c6afee5dc31",
+      "bytes": 7737280
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-environment-runtime-09c85d491381eeb7/build-script-build",
+      "sha256": "81f267b0eaa7479a85efe226a1386c4761e52ddd669f660f2cba5c6afee5dc31",
+      "bytes": 7737280
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_core-ad394b552b894352/build_script_build-ad394b552b894352",
+      "sha256": "0f6e320f4db736ef3e0dea00a2871c27e15b6fbf93d7092825a05dbf622dc873",
+      "bytes": 541560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_core-ad394b552b894352/build-script-build",
+      "sha256": "0f6e320f4db736ef3e0dea00a2871c27e15b6fbf93d7092825a05dbf622dc873",
+      "bytes": 541560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_core-bb9e7159c4c28b67/build_script_build-bb9e7159c4c28b67",
+      "sha256": "04fcfb8b69043a33aff838c1733202f091547b3fbf193f47fed889aefbb89bff",
+      "bytes": 541560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_core-bb9e7159c4c28b67/build-script-build",
+      "sha256": "04fcfb8b69043a33aff838c1733202f091547b3fbf193f47fed889aefbb89bff",
+      "bytes": 541560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-time-78a156b06a124327/build_script_build-78a156b06a124327",
+      "sha256": "ac13cf0b9820c0f25041c03005d3ee5c04bce1bda9d4e0c938b90808c2ad963c",
+      "bytes": 6202024
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-time-78a156b06a124327/build-script-build",
+      "sha256": "ac13cf0b9820c0f25041c03005d3ee5c04bce1bda9d4e0c938b90808c2ad963c",
+      "bytes": 6202024
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-web-1ea8523f2e7c4053/build_script_build-1ea8523f2e7c4053",
+      "sha256": "350ad6db18f2dcb5d0c25561927d4b2310e267dcfc8642bf06ffb2c0da91a4ba",
+      "bytes": 6131216
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-web-1ea8523f2e7c4053/build-script-build",
+      "sha256": "350ad6db18f2dcb5d0c25561927d4b2310e267dcfc8642bf06ffb2c0da91a4ba",
+      "bytes": 6131216
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/generic-array-ec043840ceaa47ee/build_script_build-ec043840ceaa47ee",
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782",
+      "bytes": 562400
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/generic-array-ec043840ceaa47ee/build-script-build",
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782",
+      "bytes": 562400
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_json-cf72693b923f548c/build_script_build-cf72693b923f548c",
+      "sha256": "43cf18ba9c3532a0d9d28eef8e391a5acb4c80d0604447cb0cd6aa22fcb4598f",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_json-cf72693b923f548c/build-script-build",
+      "sha256": "43cf18ba9c3532a0d9d28eef8e391a5acb4c80d0604447cb0cd6aa22fcb4598f",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-tm1637-wire-106cc41e0632af52/build_script_build-106cc41e0632af52",
+      "sha256": "1c687d25fbf174eda268327dc784a0f44f6ee35d825e10b8dcba6e17da978a62",
+      "bytes": 5962920
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-tm1637-wire-106cc41e0632af52/build-script-build",
+      "sha256": "1c687d25fbf174eda268327dc784a0f44f6ee35d825e10b8dcba6e17da978a62",
+      "bytes": 5962920
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-net-34a099e99bb9b93d/build_script_build-34a099e99bb9b93d",
+      "sha256": "35752c10d0a2f887c3dcf435669edb46b3f4f561ceedabb42905ab1b576b0dc6",
+      "bytes": 6114296
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-net-34a099e99bb9b93d/build-script-build",
+      "sha256": "35752c10d0a2f887c3dcf435669edb46b3f4f561ceedabb42905ab1b576b0dc6",
+      "bytes": 6114296
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-purpose-7277459f2d1a10db/build_script_build-7277459f2d1a10db",
+      "sha256": "5002c8e66a40814c714dd8d077414ce3fa4af4346a922b8a282ad1c0c71b727b",
+      "bytes": 6111576
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-purpose-7277459f2d1a10db/build-script-build",
+      "sha256": "5002c8e66a40814c714dd8d077414ce3fa4af4346a922b8a282ad1c0c71b727b",
+      "bytes": 6111576
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-audio-f2a3088fb7a0fe44/build_script_build-f2a3088fb7a0fe44",
+      "sha256": "34c46d977388ed53ed9640e0e33279d3859d179496f9436473a73bb8e462c447",
+      "bytes": 8127264
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-audio-f2a3088fb7a0fe44/build-script-build",
+      "sha256": "34c46d977388ed53ed9640e0e33279d3859d179496f9436473a73bb8e462c447",
+      "bytes": 8127264
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-text-0ea0fe943a48956e/build_script_build-0ea0fe943a48956e",
+      "sha256": "952f6d1a8d7dceae0ae588b382a4e1439d84abf030045da2f2fcb8fe45a92fa5",
+      "bytes": 6127400
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-text-0ea0fe943a48956e/build-script-build",
+      "sha256": "952f6d1a8d7dceae0ae588b382a4e1439d84abf030045da2f2fcb8fe45a92fa5",
+      "bytes": 6127400
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_core-4502401426c6e232/build_script_build-4502401426c6e232",
+      "sha256": "97462b530c9aa50144cdfb2a493f6b86d74de5d65388ab3714507e5d0d52c76b",
+      "bytes": 541560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_core-4502401426c6e232/build-script-build",
+      "sha256": "97462b530c9aa50144cdfb2a493f6b86d74de5d65388ab3714507e5d0d52c76b",
+      "bytes": 541560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-time-dd2816280b0a6237/build_script_build-dd2816280b0a6237",
+      "sha256": "28b6af1d0ebc1488d43f1a7faa788e6645c5a788819a94bd79eec8c852f1208d",
+      "bytes": 6202136
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-time-dd2816280b0a6237/build-script-build",
+      "sha256": "28b6af1d0ebc1488d43f1a7faa788e6645c5a788819a94bd79eec8c852f1208d",
+      "bytes": 6202136
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-data-63509c4b6d300760/build_script_build-63509c4b6d300760",
+      "sha256": "456524e5c46d8ec7541d84fd1f865f0e22f07c19eefc40d476cbb32293b3476d",
+      "bytes": 6341936
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-data-63509c4b6d300760/build-script-build",
+      "sha256": "456524e5c46d8ec7541d84fd1f865f0e22f07c19eefc40d476cbb32293b3476d",
+      "bytes": 6341936
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_json-1f3711aca604f95a/build_script_build-1f3711aca604f95a",
+      "sha256": "909d7ebc6b197843877d3e8bf99c14dc5a8039f35fd87175beb2f2d9aa235600",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_json-1f3711aca604f95a/build-script-build",
+      "sha256": "909d7ebc6b197843877d3e8bf99c14dc5a8039f35fd87175beb2f2d9aa235600",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/thiserror-b4be9a989d617a14/build_script_build-b4be9a989d617a14",
+      "sha256": "6f6e91848adb72a585fa1be4cbe2d4bf2080687eeeb3d784c704bb44c87fc156",
+      "bytes": 580448
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/thiserror-b4be9a989d617a14/build-script-build",
+      "sha256": "6f6e91848adb72a585fa1be4cbe2d4bf2080687eeeb3d784c704bb44c87fc156",
+      "bytes": 580448
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-human-116f45aba45665a8/build_script_build-116f45aba45665a8",
+      "sha256": "e66e635fabbdbfc23909d0da079384cba8097ca7b2893c84eae27badb564cac2",
+      "bytes": 6361776
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-human-116f45aba45665a8/build-script-build",
+      "sha256": "e66e635fabbdbfc23909d0da079384cba8097ca7b2893c84eae27badb564cac2",
+      "bytes": 6361776
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-language-fe87501e4dcdfbf8/build_script_build-fe87501e4dcdfbf8",
+      "sha256": "53d6f7e8cbbcc1b6b297a44ec1c8e3042d811b5bf651dfa6dca0ae650bbe24db",
+      "bytes": 7918824
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-language-fe87501e4dcdfbf8/build-script-build",
+      "sha256": "53d6f7e8cbbcc1b6b297a44ec1c8e3042d811b5bf651dfa6dca0ae650bbe24db",
+      "bytes": 7918824
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-education-ca83bf9c2006d724/build_script_build-ca83bf9c2006d724",
+      "sha256": "4b97de80f7b2cf2f1d615aa9a43c7be2e90840c8f68c9bcbec35d5cf1fb94758",
+      "bytes": 6718496
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/conduit-education-ca83bf9c2006d724/build-script-build",
+      "sha256": "4b97de80f7b2cf2f1d615aa9a43c7be2e90840c8f68c9bcbec35d5cf1fb94758",
+      "bytes": 6718496
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_json-9fb5fefa451c55fe/build-script-build",
+      "sha256": "bf7739b168c589e479272bd447ef39e4be1130cd84d0b2da99ff54d9f4f9da20",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/next-two-face-proof-target/debug/build/serde_json-9fb5fefa451c55fe/build_script_build-9fb5fefa451c55fe",
+      "sha256": "bf7739b168c589e479272bd447ef39e4be1130cd84d0b2da99ff54d9f4f9da20",
+      "bytes": 460240
+    }
+  ],
+  "Cargo_Running_parser_qualification": "Original runner captured test-parenthesis forms; post-exit finalizer additionally captures every raw Cargo run backtick argv and joins actual retained ELF SHA."
+}
