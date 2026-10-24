@@ -88,8 +88,15 @@ pub(super) fn exercise(
     run.capture("creche-controls-ready")?;
     if metadata["proof_scenario"] == "accessibility" {
         return accessibility::exercise(
-            &mut run, &initial, destination, source, image, metadata,
-            &selected_recipe, &world, &boot,
+            &mut run,
+            &initial,
+            destination,
+            source,
+            image,
+            metadata,
+            &selected_recipe,
+            &world,
+            &boot,
         );
     }
     if metadata["proof_scenario"] == "search" {
