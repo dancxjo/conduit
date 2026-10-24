@@ -122,7 +122,7 @@ test("owner Face Mask bridge forwards exact u64 response bytes into WASM", () =>
   api.conduit_browser_owner_face_prepare = (basisLength, frameLength) => {
     const bytes = new Uint8Array(api.memory.buffer, inputPointer + basisLength, frameLength);
     observedFrame = new TextDecoder().decode(bytes);
-    const output = new TextEncoder().encode(JSON.stringify({ schema: "conduit.browser/owner-face-mask@1", face_revision: "9007199254740993" }));
+    const output = new TextEncoder().encode(JSON.stringify({ schema: "conduit.browser/owner-face-mask@2", face_revision: "9007199254740993" }));
     new Uint8Array(api.memory.buffer, outputPointer, output.length).set(output);
     outputLength = output.length;
     return 0;

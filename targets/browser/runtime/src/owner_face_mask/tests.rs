@@ -414,3 +414,6 @@ fn complete_configured_looks_round_trip_within_existing_route_budget() {
         }
     }
 }
+
+#[path = "view_budget_tests.rs"]
+mod view_budget_tests;

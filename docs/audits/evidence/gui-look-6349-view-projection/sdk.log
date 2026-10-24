@@ -1,0 +1,27 @@
+✔ clearing a Show fences an acknowledgement already awaiting the owner (1.293982ms)
+✔ newer acknowledgement supersedes old completion (newest first: false) (0.999288ms)
+✔ newer acknowledgement supersedes old completion (newest first: true) (0.113821ms)
+✔ lost presence and owner refusal never publish an acknowledged snapshot (0.254148ms)
+✔ an old owner refusal cannot clear a newer pending acknowledgement (0.174806ms)
+✔ component selection cannot refresh after new-show (0.304406ms)
+✔ component selection cannot refresh after lost-presence (0.142356ms)
+✔ current component selection refreshes once and preserves owner refusal (0.820392ms)
+✔ older Face frame never reaches preparation (newest first: false) (0.402794ms)
+✔ older Face frame never reaches preparation (newest first: true) (0.204778ms)
+✔ pending Face frame cannot prepare after clear (0.182016ms)
+✔ pending Face frame cannot prepare after presence (0.101307ms)
+✔ current Face frame prepares once; failed download never invokes preparation (0.159564ms)
+✔ prepared Show custody is detached from returned views and cleared on invalidation (0.155348ms)
+✔ acknowledgement admits the WASM-owned permission transition on the same Show (1.907865ms)
+✔ another Body, Show, Face or revision cannot replace acknowledged identity (0.330582ms)
+✔ counterfeit preparation admission and invalid lifecycle never grant interactions (0.128397ms)
+✔ validated acknowledgement retains identity and nested contracts despite caller mutation (0.124932ms)
+✔ available caller views require retained authority and cannot replace its action table (0.155626ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 117.965483

@@ -17,6 +17,7 @@ pub(super) struct VisualConstraints {
 
 #[derive(Clone, Serialize)]
 pub(super) struct ComponentView {
+    #[serde(serialize_with = "super::component_wire::configuration")]
     pub configuration: ConfiguredMaskConfiguration,
     pub expression: AdmittedVisualExpression,
     pub selected_look: conduit_core::StructuredConfigurationValue,

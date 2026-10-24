@@ -620,3 +620,17 @@ five final focused concurrency/transport checks and strict CLI Clippy pass.
 [Bounds, exact-result checks and partial-frame test](evidence/gui-look-6349-pending-action/README.md).
 A rebuilt real encounter with four consecutive post-Look actions is pending;
 no successful live receipt is inferred from these unit checks.
+
+
+## Complete Look projection fits the current DOM arena
+
+The first asynchronous-action run keeps renewals alive but exposes a separate
+output refusal after additional items: duplicated requested/selected Look bytes
+fill the 64 KiB DOM view arena. The versioned v2 view now keeps full requested
+startup in the Plan/prepared Mask, emits its diagnostic profile/extent/hash,
+and carries the complete selected Look once for rendering. Subject/action/
+relationship data and recipe/source provenance remain. A twenty-row/forty-action
+Unicode fixture fits all four Looks at 49,494–49,828 bytes; strict runtime Clippy,
+71 bridge and 19 SDK checks pass. The arena and carrier bounds are unchanged.
+[Contract, logs and retained prior failure](evidence/gui-look-6349-view-projection/README.md).
+The rebuilt complete live sequence is pending.

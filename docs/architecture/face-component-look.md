@@ -251,3 +251,16 @@ extent is at most 256 KiB; compressed bytes are at most 64 KiB. Exact consumed
 input, decoded length and Plan ID are required. Carrier, route, response, native
 storage and queue admission remain independent. Binary serde retains its field
 sequence; unversioned JSON is rejected rather than given an implicit upgrade.
+
+
+## Browser view provenance
+
+The DOM view schema `conduit.browser/owner-face-mask@2` carries one complete
+selected Look for rendering. Its configuration provenance describes the full
+requested Look retained in the ordinary Plan and prepared Mask by profile,
+canonical byte extent and SHA-256. This is diagnostic projection, not a resource
+admission or replacement configuration. Recipe/source/Back provenance and Face
+subjects/actions/relationships remain; the renderer cannot acquire authority
+from a provenance reference. The SDK requires this view version. The 64 KiB
+view arena is unchanged; current twenty-row maximum-length Unicode/action
+fixtures fit all four named component Looks without dropping semantics.
