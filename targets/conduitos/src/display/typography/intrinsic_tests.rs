@@ -1,5 +1,6 @@
 use super::*;
 use crate::display::typography::{TextLayout, TextRole, Typography};
+use alloc::format;
 use conduit_face::VisualTypography;
 
 #[test]
@@ -72,4 +73,74 @@ fn intrinsic_preparation_retains_payload_and_scale_refusals() {
         assert!(intrinsic_text_metrics("a", style, percent).is_err());
         assert!(resolve_em_sixteenths(style, percent, 16).is_err());
     }
+}
+
+#[test]
+fn whole_item_demand_uses_one_selected_cursor_across_paint_boundaries() {
+    for intent in [VisualTypography::Editorial, VisualTypography::Engineering] {
+        for role in [TextRole::Body, TextRole::Title, TextRole::Code] {
+            let style = Typography::new(intent).style(role);
+            for percent in [100, 125, 200] {
+                for value in [
+                    "W".repeat(193),
+                    format!("{}e\u{301}J", "a".repeat(191)),
+                    format!("{}\tJ café\n{}\n", "J".repeat(192), "é".repeat(110)),
+                    "長い名前 e\u{301} J ".repeat(30),
+                ] {
+                    let demand = intrinsic_item_text_metrics(&value, style, percent, 4096).unwrap();
+                    let scale = TextScale::new(percent).unwrap();
+                    let expected = value
+                        .split('\n')
+                        .map(|line| ink::span(line, style, scale, 0).fresh_width())
+                        .max()
+                        .unwrap();
+                    assert_eq!(
+                        demand.preferred_inline, expected,
+                        "{intent:?} {role:?} {percent}"
+                    );
+                    assert_eq!(demand.explicit_lines as usize, value.split('\n').count());
+                    let mut remaining = value.as_str();
+                    let mut minimum = 0;
+                    while !remaining.is_empty() {
+                        let bytes = ink::cluster_bytes(remaining, style, scale);
+                        if &remaining[..bytes] != "\n" {
+                            minimum = minimum
+                                .max(ink::span(&remaining[..bytes], style, scale, 0).fresh_width());
+                        }
+                        remaining = &remaining[bytes..];
+                    }
+                    assert_eq!(demand.minimum_inline, minimum);
+                    // Preparation support must not change the paint API limit.
+                    assert_eq!(
+                        intrinsic_text_metrics(&value, style, percent),
+                        Err(DisplayError::BufferTooSmall)
+                    );
+                }
+                let value = "W".repeat(384);
+                let whole = intrinsic_item_text_metrics(&value, style, percent, 4096).unwrap();
+                let chunk = intrinsic_text_metrics(&value[..192], style, percent).unwrap();
+                assert!(whole.preferred_inline > chunk.preferred_inline);
+            }
+        }
+    }
+}
+
+#[test]
+fn whole_item_admission_and_checked_extent_fail_without_relaxing_commands() {
+    let style = Typography::EDITORIAL.style(TextRole::Body);
+    assert!(intrinsic_item_text_metrics(&"a".repeat(4096), style, 100, 4096).is_ok());
+    assert_eq!(
+        intrinsic_item_text_metrics(&"a".repeat(4097), style, 100, 4096),
+        Err(DisplayError::BufferTooSmall)
+    );
+    assert_eq!(
+        intrinsic_item_text_metrics("x", style, 0, 4096),
+        Err(DisplayError::InvalidExtent)
+    );
+    assert_eq!(
+        intrinsic_item_text_metrics("", style, 100, 0)
+            .unwrap()
+            .explicit_lines,
+        1
+    );
 }

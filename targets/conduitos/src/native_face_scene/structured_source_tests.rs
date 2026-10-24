@@ -254,3 +254,92 @@ fn verify_reviewed_sources(require_first_page: bool) {
         }
     }
 }
+
+#[test]
+fn whole_item_measurement_preserves_real_creche_and_todo_selected_geometry() {
+    // CPU geometry and exact Face bindings; a frame is not acknowledged Show.
+    for (source, component, face) in [
+        (
+            CRECHE_LAYOUT_MASK_SOURCE,
+            "creche-component-columns",
+            naming_acceptance_tests::actual_face(),
+        ),
+        (TODO_LAYOUT_MASK_SOURCE, "todo-component-grouped", todo()),
+    ] {
+        let profile = structure(source, component, &face);
+        let (items, _) = document::prepare(&face, true).unwrap();
+        let expected: String = items.iter().map(|item| item.text.as_str()).collect();
+        let controls: BTreeSet<_> = items
+            .iter()
+            .filter_map(|item| item.control.map(|c| (c.action, c.argument)))
+            .collect();
+        for scale in [100, 200] {
+            let mut expression = VisualExpression::phosphor();
+            expression.text_scale_percent = scale;
+            let expression = admit_visual_expression(
+                Ok(expression),
+                VisualUserConstraints {
+                    forced_colors: false,
+                    reduced_motion: true,
+                    minimum_text_scale_percent: 100,
+                    maximum_supported_text_scale_percent: 200,
+                },
+            )
+            .unwrap();
+            let mut scene =
+                NativeFaceScene::prepare_structured(&profile, 1280, 800, true, &expression)
+                    .unwrap();
+            assert_eq!(scene.face(), &face);
+            assert_eq!(
+                scene
+                    .primary
+                    .iter()
+                    .map(|row| row.text.as_str())
+                    .collect::<String>(),
+                expected
+            );
+            assert_eq!(
+                scene
+                    .primary
+                    .iter()
+                    .filter_map(|row| row.control.map(|c| (c.action, c.argument)))
+                    .collect::<BTreeSet<_>>(),
+                controls
+            );
+            for page in 0..scene.pages() {
+                scene.page = page;
+                let frame = scene.frame().unwrap();
+                assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+                for hit in &frame.hits {
+                    assert_eq!(hit.action, &face.actions[hit.control.action]);
+                    let x = hit.bounds.x + (hit.bounds.width / 2) as i16;
+                    let y = hit.bounds.y + (hit.bounds.height / 2) as i16;
+                    assert_eq!(frame.hit_test(x, y).unwrap().control, hit.control);
+                }
+                let rows: Vec<_> = scene
+                    .primary
+                    .iter()
+                    .filter(|row| row.page == page)
+                    .collect();
+                for (index, row) in rows.iter().enumerate() {
+                    let a = row.bounds;
+                    assert!(
+                        a.x >= 0
+                            && a.y >= 0
+                            && i32::from(a.x) + i32::from(a.width) <= 1280
+                            && i32::from(a.y) + i32::from(a.height) <= 800
+                    );
+                    for other in &rows[index + 1..] {
+                        let b = other.bounds;
+                        assert!(
+                            i32::from(a.x) + i32::from(a.width) <= i32::from(b.x)
+                                || i32::from(b.x) + i32::from(b.width) <= i32::from(a.x)
+                                || i32::from(a.y) + i32::from(a.height) <= i32::from(b.y)
+                                || i32::from(b.y) + i32::from(b.height) <= i32::from(a.y)
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
