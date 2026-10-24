@@ -125,6 +125,7 @@ pub const PARSER_BEAM_COMMIT_SOURCE: &str = include_str!("../parser_beam_commit.
 pub mod parser_model;
 
 mod parser_scorer;
+pub use generated::LanguageParserScorerBeamPreparedStorage;
 pub use parser_scorer::*;
 
 pub mod parser_commitment;
