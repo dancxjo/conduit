@@ -2,6 +2,7 @@
 //! Shared kernel Backs for the environmental Source composition.
 extern crate alloc;
 pub mod assigned;
+pub mod display_packets;
 mod canonical_input;
 mod canonical_storage;
 pub mod observation;

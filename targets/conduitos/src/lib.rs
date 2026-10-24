@@ -308,7 +308,12 @@ mod native_surface_possession;
 mod native_surface_provider;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 mod pointer_coordinates;
-#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "aarch64-product",
+    feature = "native-compositor-core"
+))]
 pub mod product_bases;
 #[cfg(any(
     test,

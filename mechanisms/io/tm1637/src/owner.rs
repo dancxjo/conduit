@@ -58,11 +58,23 @@ impl<P: OpenDrain> WriteHostCall<P> {
         contract: &WriteContract,
         selection: SelectedOperationPlan<'_>,
     ) -> Result<Self, WriteCallRefusal<P::Error>> {
+        let prepared = Self::prepare_selected(&table, &claim, attachment, contract, selection)?;
+        Ok(Self::from_prepared(
+            table, handle, claim, attachment, provider, prepared,
+        ))
+    }
+    pub(crate) fn prepare_selected(
+        table: &c::BaseCapabilityTable,
+        claim: &c::BaseOperationClaim,
+        attachment: WriteAttachment,
+        contract: &WriteContract,
+        selection: SelectedOperationPlan<'_>,
+    ) -> Result<PreparedWriteBinding, WriteCallRefusal<P::Error>> {
         use WriteCallRefusal as E;
-        check_possession(&table, &claim, attachment)?;
+        check_possession(table, claim, attachment)?;
         let node = bind_selected_operation(
-            &table,
-            &claim,
+            table,
+            claim,
             SelectedOperationContract {
                 kind: contract.kind(),
                 call: WRITE_CALL,
@@ -82,14 +94,7 @@ impl<P: OpenDrain> WriteHostCall<P> {
         })?;
         let packets = PreparedPackets::prepare(contract)
             .map_err(|reason| E::Packets(PacketRefusal::Canonical(reason)))?;
-        Ok(Self::from_prepared(
-            table,
-            handle,
-            claim,
-            attachment,
-            provider,
-            PreparedWriteBinding { node, packets },
-        ))
+        Ok(PreparedWriteBinding { node, packets })
     }
     pub(crate) fn from_prepared(
         table: c::BaseCapabilityTable,

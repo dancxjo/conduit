@@ -21,6 +21,12 @@ mod limine;
 mod modules;
 #[cfg(any(test, target_arch = "x86"))]
 mod multiboot1;
+#[cfg(any(test, target_arch = "x86"))]
+mod multiboot1_framebuffer;
+#[cfg(any(test, target_arch = "x86"))]
+mod multiboot1_scanout_memory;
+#[cfg(target_arch = "x86")]
+pub use multiboot1_scanout_memory::{ScanoutMemoryEvidence, validate_multiboot1_scanout_memory};
 mod observation;
 pub use modules::BootModuleRefusal;
 
@@ -38,6 +44,11 @@ pub use limine::{
 };
 #[cfg(target_arch = "x86")]
 pub use multiboot1::{firmware_from_multiboot1, spore_module_from_multiboot1};
+#[cfg(target_arch = "x86")]
+pub use multiboot1_framebuffer::{
+    FramebufferFacts as Multiboot1FramebufferFacts, VIDEO_HEADER as MULTIBOOT1_VIDEO_HEADER,
+    framebuffer_from_multiboot1,
+};
 
 /// Whether the normalized Boot carries no artifact other than the reviewed
 /// body-bound spore module.

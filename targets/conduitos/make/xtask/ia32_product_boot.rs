@@ -20,6 +20,8 @@ const PREFIX: &str = "CONDUIT_IA32_PRODUCT ";
 const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
 
 mod clock;
+mod framebuffer;
+mod graphical;
 pub(super) use clock::GuestClock;
 
 #[derive(Clone, Copy)]
@@ -112,6 +114,13 @@ pub(super) fn boot_twice(
         "second",
         (FirmwareMode::Uefi32, GuestClock::Host),
     )?;
+    if first.get("graphical").is_some() {
+        return graphical::finish_twice(
+            image,
+            &image_sha256,
+            [(first, first_observatory), (second, second_observatory)],
+        );
+    }
     let (legacy_bios, legacy_bios_observatory) = boot_once(
         image,
         expected_profile_id,
@@ -184,12 +193,14 @@ fn prove_patchbay(
     product: &serde_json::Value,
 ) -> Result<(), ConduitosError> {
     let linear = super::product_patchbay::render(snapshot, "patchbay-rejected-ia32-product")?;
+    let base_count = 7 + usize::from(product["framebuffer_observation"]["framebuffer"].is_object());
+    let expected_bases = format!("BASES {base_count}");
     for required in [
         product["host_id"].as_str().unwrap_or_default(),
         product["boot_id"].as_str().unwrap_or_default(),
         product["ordinary_plan_id"].as_str().unwrap_or_default(),
         product["ordinary_play_id"].as_str().unwrap_or_default(),
-        "BASES 7",
+        expected_bases.as_str(),
         "lifecycle=Completed",
         "proof=FreestandingEmulator",
     ] {
@@ -213,7 +224,12 @@ fn boot_once(
     (firmware_mode, clock): (FirmwareMode, GuestClock),
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Ia32)?;
-    let transcript_path = paths.target.join(format!("ia32-product-{run}.log"));
+    let graphical =
+        graphical::Selected::prepare(image, &paths, matches!(firmware_mode, FirmwareMode::Uefi32))?;
+    let transcript_path = graphical.as_ref().map_or_else(
+        || paths.target.join(format!("ia32-product-{run}.log")),
+        |g| g.capture.serial_path(),
+    );
     // Unix socket paths have a small fixed limit for both QEMU and the client.
     // Keep this ephemeral endpoint independent of the checkout's path length.
     let monitor_path =
@@ -279,11 +295,20 @@ fn boot_once(
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::piped());
+    if let Some(graphical) = &graphical {
+        graphical.record(&mut child, &paths, image, run)?;
+    }
     let mut child = child
         .spawn()
         .map_err(|error| refusal("unavailable-ia32-emulator", error.to_string()))?;
-    let deadline = Instant::now() + Duration::from_secs(60);
+    let started = Instant::now();
+    let deadline = started + Duration::from_secs(60);
     loop {
+        if fs::metadata(&transcript_path).is_ok_and(|m| m.len() > 1024 * 1024) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(refusal("ia32-product-serial-bound", "serial exceeds 1 MiB"));
+        }
         let transcript = fs::read_to_string(&transcript_path).unwrap_or_default();
         if let (Some(json), Some(observatory_json), true) = (
             complete_line(&transcript, PREFIX),
@@ -303,6 +328,12 @@ fn boot_once(
                 let observatory: serde_json::Value = serde_json::from_str(observatory_json)
                     .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
                 validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
+                value["framebuffer_observation"] =
+                    framebuffer::capture(&transcript, &value, &observatory, graphical.is_some())?;
+                if let Some(graphical) = &graphical {
+                    value["graphical"] =
+                        graphical.finish(&mut child, &transcript, &value, started)?;
+                }
                 let ordinary_plan: conduit_core::Plan =
                     serde_json::from_value(observatory["plans"][0].clone()).map_err(|error| {
                         refusal("ordinary-product-plan-invalid", error.to_string())
@@ -445,45 +476,4 @@ fn refusal(reason: &'static str, detail: impl Into<String>) -> ConduitosError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn incomplete_product_sign_is_not_accepted_early() {
-        assert_eq!(
-            complete_line("CONDUIT_IA32_PRODUCT {\"schema\":", PREFIX),
-            None
-        );
-        assert_eq!(
-            complete_line(
-                "firmware\0CONDUIT_IA32_PRODUCT {\"schema\":\"complete\"}\n",
-                PREFIX
-            ),
-            Some("{\"schema\":\"complete\"}")
-        );
-    }
-
-    #[test]
-    fn exact_product_sign_rejects_stale_bindings() {
-        let exact = serde_json::json!({
-            "schema": "conduit.conduitos/ia32-product@1",
-            "status": "ready",
-            "profile_id": "profile",
-            "build_id": "build",
-            "image_id": "image",
-            "host_id": "host",
-            "boot_id": "boot",
-            "body_id": null,
-            "interactive_local_control": false,
-            "long_lived": true,
-            "semantic_result": "HELLO, CONDUITOS",
-            "presenter_implementation_id": "presenter/ia32-linear-debugcon@1",
-            "ordinary_plan_id": "plan",
-            "ordinary_play_id": "play"
-        });
-        assert!(validate_sign(&exact, "profile", "build", "image").is_ok());
-        let mut stale = exact;
-        stale["image_id"] = "stale".into();
-        assert!(validate_sign(&stale, "profile", "build", "image").is_err());
-    }
-}
+mod tests;

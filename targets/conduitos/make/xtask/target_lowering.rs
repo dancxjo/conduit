@@ -4,6 +4,8 @@ use conduit_host_make::BuildManifest;
 
 use super::ConduitosError;
 
+mod ia32;
+pub(super) use ia32::lower_ia32_pc;
 mod aarch64;
 pub(super) use aarch64::lower_aarch64_virt;
 mod http;
@@ -257,73 +259,6 @@ pub(super) fn lower_x86_64_pc(
     })
 }
 
-pub(super) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
-    if manifest.presenters.as_slice() != [IA32_LINEAR_PRESENTER] {
-        return Err(ia32_closure_refusal(
-            "presenter",
-            IA32_LINEAR_PRESENTER,
-            &manifest.presenters,
-        ));
-    }
-    let bases = manifest
-        .base_selections
-        .iter()
-        .map(|item| item.kind.clone())
-        .collect::<Vec<_>>();
-    if bases.as_slice() != [IA32_DEBUGCON_BASE] {
-        return Err(ia32_closure_refusal("base", IA32_DEBUGCON_BASE, &bases));
-    }
-    let drivers = manifest
-        .driver_selections
-        .iter()
-        .map(|item| item.kind.clone())
-        .collect::<Vec<_>>();
-    if drivers.as_slice() != [IA32_DEBUGCON_DRIVER] {
-        return Err(ia32_closure_refusal(
-            "driver",
-            IA32_DEBUGCON_DRIVER,
-            &drivers,
-        ));
-    }
-    if manifest.host_calls.as_slice() != [PRESENT_OPERATION]
-        || !manifest.facilities.is_empty()
-        || !manifest.resource_budgets.is_empty()
-        || !manifest.profile_fragments.is_empty()
-    {
-        return Err(refusal(
-            "ia32-product-closure-mismatch",
-            "linear IA-32 product requires only present@1, with no facilities, resources, or proof instrumentation".into(),
-        ));
-    }
-    if manifest.base_selections[0].driver != IA32_DEBUGCON_DRIVER {
-        return Err(refusal(
-            "ia32-serial-driver-mismatch",
-            format!(
-                "base {} selects {}, expected {IA32_DEBUGCON_DRIVER}",
-                manifest.base_selections[0].kind, manifest.base_selections[0].driver
-            ),
-        ));
-    }
-
-    let portable_backbone = conduitos::make::IMPL_TIME_TICK
-        | conduitos::make::IMPL_TICK_FACE
-        | conduitos::make::IMPL_TEXT_LITERAL
-        | conduitos::make::IMPL_TEXT_UPPER
-        | conduitos::make::IMPL_TEXT_FACE;
-    Ok(TargetBuildInputs {
-        cargo_features: vec!["ia32-product"],
-        implementations: portable_backbone | conduitos::make::IMPL_LINEAR_PRESENTER,
-        facilities: 0,
-        resources: 0,
-        bases: conduitos::make::BASE_SERIAL_TEXT,
-        drivers: conduitos::make::DRIVER_IA32_DEBUGCON_SERIAL,
-        presenters: conduitos::make::PRESENTER_LINEAR_SERIAL,
-        proof_instrumentation: 0,
-        face_surface_slots: 0,
-        face_surface_bytes: 0,
-    })
-}
-
 pub(super) fn lower_riscv64_virt(
     manifest: &BuildManifest,
 ) -> Result<TargetBuildInputs, ConduitosError> {
@@ -369,13 +304,6 @@ pub(super) fn lower_riscv64_virt(
         face_surface_slots: 0,
         face_surface_bytes: 0,
     })
-}
-
-fn ia32_closure_refusal(class: &str, expected: &str, selected: &[String]) -> ConduitosError {
-    refusal(
-        "ia32-product-closure-mismatch",
-        format!("expected exactly {class}:{expected}, found {selected:?}"),
-    )
 }
 
 fn refusal(code: &'static str, detail: String) -> ConduitosError {

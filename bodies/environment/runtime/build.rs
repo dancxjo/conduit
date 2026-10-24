@@ -1,6 +1,8 @@
 //! Check the authored protocol Types and Forms once on the build host.
+mod build_observation_source;
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
+mod build_display;
 fn main() {
     let path = "../../../plots/device-protocols/dht11.conduit";
     println!("cargo:rerun-if-changed={path}");
@@ -15,6 +17,7 @@ fn main() {
     assert!(syntax.diagnostics.is_empty());
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    build_observation_source::emit(&out);
     for (name, file) in [
         ("PulseReadCapture", "pulse-capture.type"),
         ("Dht11DecodedResult", "decoded.type"),
@@ -36,6 +39,7 @@ fn main() {
     )
     .unwrap();
     fs::write(out.join("observation-forms.rs"), forms.source).unwrap();
+    build_display::emit(&out);
     let recording = "../profiles/recording.conduit";
     println!("cargo:rerun-if-changed={recording}");
     let syntax = parse_syntax_document(&fs::read_to_string(recording).unwrap());

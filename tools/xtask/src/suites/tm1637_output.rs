@@ -19,4 +19,16 @@ pub const STEPS: &[Step] = &[
         "cargo",
         &["clippy", "--locked", "--manifest-path", "mechanisms/io/tm1637/Cargo.toml", "--features", "host-call", "--all-targets", "--", "-D", "warnings"],
     ),
+    Step::new(
+        "tm1637-output.source",
+        "Execute the prepared Source packet encoder and exact output codec contract",
+        "cargo",
+        &["test", "--locked", "--manifest-path", "bodies/environment/runtime/Cargo.toml", "--test", "display_packets"],
+    ),
+    Step::new(
+        "tm1637-output.source-lint",
+        "Lint prepared Source packet encoding and its allocation proof",
+        "cargo",
+        &["clippy", "--locked", "--manifest-path", "bodies/environment/runtime/Cargo.toml", "--test", "display_packets", "--", "-D", "warnings"],
+    ),
 ];
