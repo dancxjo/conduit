@@ -144,6 +144,7 @@ mod workspace;
 mod ci_dispatch;
 #[path = "../../xtask/src/commands/dht11_probe.rs"]
 mod dht11_probe;
+mod linux_display;
 mod local_storage;
 #[path = "../../xtask/src/commands/model_authoring.rs"]
 mod model_authoring;
@@ -153,6 +154,24 @@ mod tool_setup;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.starts_with(&[
+        "make".into(),
+        "host".into(),
+        "raspberry-pi-bootstrap".into(),
+    ]) {
+        if let Err(error) = linux_display::bootstrap(&arguments[3..]) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
+    if arguments.as_slice() == ["check", "linux-display"] {
+        if let Err(error) = linux_display::run() {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if let Some(result) = dht11_probe::dispatch(&arguments) {
         if let Err(error) = result {
             eprintln!("xtask error: {error}");
