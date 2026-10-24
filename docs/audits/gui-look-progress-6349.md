@@ -525,6 +525,32 @@ ten Look/admission checks, two exhaustive package checks and the HTTP theme
 check pass. Actual 32px text at 390px exposed and now verifies a focus/scroll
 repair across changing typography. Earlier negative logs remain beside success.
 
-This is documentary-graph browser application proof. Configured component-Mask
-startup migration to full Looks, reuse across component structures, current
-native realization and the original parent acceptance remain open.
+This is documentary-graph browser application proof. The component startup
+migration is implemented below; live transport and current native enactment
+remain separate acceptance boundaries.
+
+
+## Complete configured Looks: local checks and live transport refusal
+
+Configured component contracts @4/@5 now carry the complete typed Look rather
+than an expression-only startup parameter. Todo and Crèche retain matching
+canonical preset bytes. Browser rendering lowers the selected Look tokens;
+native rasterization retains the complete Look, applies token paint with
+accessibility precedence, and invalidates retained pixels on token changes.
+Eleven source/planning checks, ten native offer checks, 177 native Face checks
+(one opt-in ignored), twenty compositor checks (two opt-in ignored), and 142
+Chromium renderer/reachability/control checks pass. Four further appearance
+proposal checks verify that unchanged Face refreshes preserve unfinished choices.
+The protected x86_64 renderer compiles; this is not current QEMU execution.
+The supported optimized browser runtime is 15,973,212 bytes, within the unchanged
+20 MiB delivery ceiling.
+
+The fresh installed-owner/browser encounter refuses the complete configured
+route: `SealEncodingCapacityExceeded { bytes: 73764, maximum: 40960 }`.
+The owner response ceiling is independently 60 KiB and the reviewed browser
+WebSocket payload is 64 KiB. Raising only the seal bound cannot complete this
+path. No live complete-Look selection or screenshot is claimed. The existing
+route and acknowledged-Show submission path are retained after refusal; a
+speculative submission queue was reverted. Bounded transport of the full checked
+configuration remains required before live acceptance. Private control traces,
+credentials and owner state are excluded from published evidence.
