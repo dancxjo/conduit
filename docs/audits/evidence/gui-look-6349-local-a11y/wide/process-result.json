@@ -1,0 +1,21 @@
+{
+  "source": "7fb59889906e8d8f6d15c24249e06ec7727d17c7",
+  "pid": 1078219,
+  "proc_start": "49725142",
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-target/release/xtask",
+    "make",
+    "conduitos",
+    "creche-controls-proof",
+    "--scenario",
+    "accessibility",
+    "--viewport",
+    "1280x800",
+    "--locked"
+  ],
+  "output": "/tmp/c6349-gui/native-local-a11y-cluster-wide",
+  "log": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-local-a11y-cluster-wide.log",
+  "exit": 0,
+  "source_unchanged": true,
+  "tracked_tree_clean": true
+}

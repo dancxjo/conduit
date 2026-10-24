@@ -46,3 +46,23 @@ the browser's separate cool Engineering application preset has native pixel
 parity. Current local Crèche narrow/200%/forced-color and every continuation
 control still need actual correspondence proof. The restrained navy expression
 of the original reference remains a visual refinement, not a completed gate.
+
+## Current native accessibility follow-up
+
+Source `7fb598899` now passes the scoped primary accessibility scenario at both
+640×480 and 1280×800 with the same normal product ISO. F9/F10 apply the existing
+Host text minimum and forced-color policy; F6/F7/F8 retain those requirements
+while changing density/palette/type. Long Unicode name, both complete primary
+keyboard cycles and exact order, every primary page and actual pointer focus
+retain full Face/Show correspondence. The reusable field-pagination correction
+keeps fitting action/argument pairs together when help must continue.
+
+| Actual 640×480, Engineering at 200%/forced colors | Actual 1280×800, same scenario |
+| --- | --- |
+| ![Narrow native field](evidence/gui-look-6349-local-a11y/narrow/journey-frames/creche-a11y-engineering-forced-pointer.png) | ![Wide native field](evidence/gui-look-6349-local-a11y/wide/journey-frames/creche-a11y-engineering-forced-pointer.png) |
+
+[The exact receipts and capture scope](evidence/gui-look-6349-local-a11y/README.md)
+supersede the earlier pending local-primary 200%/forced-color/narrow checks for
+this Source. They do not complete Details, every unavailable-control/resource
+fallback case, the restrained navy expression or the full Body journey. No
+integration, publication, physical or human acceptance is implied.

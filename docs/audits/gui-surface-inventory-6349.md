@@ -166,3 +166,30 @@ proof adds an accessibility scenario for long Unicode input and two actual
 Looks, full primary control cycles/pages, pointer focus and incomplete-input
 refusal. Its QEMU execution/captures are pending; it does not attempt Body startup
 or claim complete Details, all unavailable controls, physical or human proof.
+
+The initial actual accessibility run reached both 200%/forced-color Looks, then
+[refused a split interactive field](evidence/gui-look-6349-local-a11y-field-split/README.md).
+The reusable mechanical paginator now keeps a fitting action/argument pair
+atomic when the full help/field subject is oversized; help retains ordinary
+continuation. No text/control reordering, clipping or limit increase is used.
+All 45 layout CPU cases and the eighteen preference replacements pass; fresh
+QEMU validation of this pagination correction is pending.
+
+## Native local accessibility Source 7fb598899
+
+[Both actual normal-product QEMU runs pass](evidence/gui-look-6349-local-a11y/README.md)
+at 640×480 and 1280×800. The same Root/ISO realizes both viewports. Each run
+commits the exact long Unicode name, applies 200% text/forced colors in two
+Looks, checks twelve primary controls in complete forward/reverse cycles with
+the same exact cyclic order, visits every primary page, validates real pointer
+focus and incomplete-input refusal, then clears user overrides without losing
+Look intent. All seven replacements preserve complete Face, checked structure,
+current local Show correspondence and no fallback. Each run retains 13 actual
+PNGs inside the 27-capture profile; narrow/wide frame command high-water values
+are 20/48, respectively, under the unchanged 48-command cap. This supersedes the
+local primary narrow/large-text/forced-color pending status above for this Source.
+
+Complete Details, every unavailable control, missing native assets, the closer
+navy reference, live Look reuse on the full Patchbay node structure, and the
+full Body/Patchbay/Stop journey remain separate open work. The later Application
+work refusal has not been claimed fixed. Original parent acceptance remains.
