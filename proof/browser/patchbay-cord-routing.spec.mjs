@@ -62,11 +62,19 @@ test("reverse cycle Cord geometry is non-vacuous and stable",async({page})=>{
     expect(cycle).toBeDefined();expect(cycle.source.node).toBe(cycle.target.node);expect(cycle.forward).toBe(false);
     expect(cycle.direct).toBeGreaterThan(4);expect(cycle.length/cycle.direct).toBeGreaterThan(1);expect(cycle.length/cycle.direct).toBeLessThan(5);
     expect(cycle.marker?.startsWith("url(")).toBe(true);expect(routes.filter(route=>!route.forward).length).toBeGreaterThan(0);
+    const positions=await page.locator(".react-flow__node").evaluateAll(nodes=>nodes.map(node=>[node.dataset.id,node.style.transform]));
     const refreshed=structuredClone(fixture);refreshed.interaction.revision+=1;
     fixture=refreshed;
     await page.evaluate(()=>window.patchbayReload());
     await expect(page.locator("#flow-root .react-flow__edge.flow-cord")).toHaveCount(routes.length);
     const repeated=(await cordGeometry(page,refreshed.face)).find(route=>route.id===cycle.id);
-    expect(repeated.d).toBe(cycle.d);
+    expect(await page.locator(".react-flow__node").evaluateAll(nodes=>nodes.map(node=>[node.dataset.id,node.style.transform]))).toEqual(positions);
+    // Fit remeasures handles through a floating-point viewport. Compare the
+    // same curve to 1/1000 px while retaining exact node positions above.
+    expect(repeated.d.match(/[MC]/g)).toEqual(cycle.d.match(/[MC]/g));
+    const coordinates=path=>path.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi).map(Number);
+    const before=coordinates(cycle.d),after=coordinates(repeated.d);
+    expect(after).toHaveLength(before.length);
+    after.forEach((coordinate,index)=>expect(coordinate).toBeCloseTo(before[index],3));
   }finally{server.lines.close();if(server.process.exitCode===null)server.process.kill("SIGTERM");}
 });
