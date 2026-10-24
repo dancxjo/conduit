@@ -1,0 +1,63 @@
+{
+  "status": "PASS scoped same-action two-Mask committed-effect witness",
+  "source": "fa59a9cdf6cf2af69cec86973e09865cb1f25ec1",
+  "checks": {
+    "full_action_equality": true,
+    "one_same_body": true,
+    "browser_snapshot_execution_exact": true,
+    "new_actual_execution_exact": true,
+    "completed_both_effects": true,
+    "both_fore_bound": true,
+    "distinct_shows": true,
+    "distinct_mask_plans": true,
+    "fresh_available_terminal_show": true,
+    "equipment_digest": true,
+    "actual_pointer_producer": true,
+    "exactly_one_command_and_save": true,
+    "one_to_two_items": true,
+    "new_unique_text": true,
+    "play_sign_binding": true,
+    "distinct_mask_active_plays": true,
+    "terminal_show_play_matches_acknowledged_receipt": true,
+    "both_shows_available": true
+  },
+  "evidence_hashes": {
+    "work/5372-current-terminal-fa59/receipt.json": "233c2682b4a2fbaae0ff5a4bd831f415b6468869bba5b588cb6d2b7e66a58d7d",
+    "work/5372-current-terminal-fa59/terminal.stdout": "28497f21e38a41f21cbf6174cb588527bea21732774a202716fc11f38bf05a4a",
+    "work/5372-current-terminal-fa59/terminal.input": "5ef45bd6e423f3f49487adc783c0fdba73e0e3f1e7237d9d8b4c60c3695ecdb5",
+    "work/5372-current-terminal-fa59/canonical-before-terminal.json": "d2ef563967585142c29d660630586ed3868fa1cb8a8acaf693f38b22f2d9a77c",
+    "work/5372-current-terminal-fa59/canonical-after-terminal.json": "db372893b96ab2a2e4da34d8a36638197ac50b1a9a029825bd782e7bd1d730f5",
+    "work/5372-current-terminal-continuation.py": "6f8fcfe1c38244cfc8413e14768ac5d0f22ecdb3c742d21f221538fe870d754f"
+  },
+  "scope": "Same actual fa59 installed Body: retained trusted browser pointer Add, then one fresh independently admitted owner-terminal Add; one\u2192two items, exact complete canonical action equality, separate current Shows/Plans and completed owner write/read Signs. Native6335 was read-only and is not counted as an effect. Fresh owner Boot/revision expected.",
+  "positive_controls": [
+    "Pre-action exact prior execution/checkpoint/Fore guarded in producer; output directory refuses reuse",
+    "Complete canonical action equality checked before action, including typed arguments and availability",
+    "One submitted action and one committed save; no uncertain replay or action retry",
+    "Frozen snapshot preserves actual browser effect; live original state now legitimately advanced to terminal effect"
+  ],
+  "public_projection": {
+    "allow": [
+      "Source and Body IDs",
+      "Canonical offered action and typed argument contract",
+      "Input method and producer digest",
+      "Show/Face IDs and revisions, Mask Plan/Play IDs, Host/Boot IDs",
+      "Write/read Plan/Play IDs, completed status, terminal Sign IDs/sequence/Host/Boot",
+      "Committed/restored Fore digests, counts, resulting Face ID",
+      "Private original-record hashes and explicit redaction statement"
+    ],
+    "deny": [
+      "Raw initiating_show/planned_mask: contains credential-bearing bindings",
+      "Raw write previous_read/retained_verified_read and nested host_call requests",
+      "Full private owner state, installation, invitations or coordinator tokens",
+      "Unreviewed terminal/service raw logs if any private details appear"
+    ],
+    "method": "Construct public record by explicit whitelist; do not recursively redact arbitrary receipt objects."
+  },
+  "limits": [
+    "Historical/current fa59 witness, not a fresh build at later dev",
+    "No human/physical input or simultaneous same Face revision claim",
+    "No negative-controls rerun or CI observation; parent acceptance negative/source audit remains separate",
+    "Snapshot checked by retained execution equality here; no repeated whole-state artifact campaign"
+  ]
+}

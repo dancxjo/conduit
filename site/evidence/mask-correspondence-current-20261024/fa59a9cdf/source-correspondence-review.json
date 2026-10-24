@@ -1,0 +1,213 @@
+{
+  "status": "PASS targeted source correspondence; current normal acceptance gate remains separate",
+  "historical_source": "a2b2f631aa9c784608502ebab95b2f5cd72d52d7",
+  "measured_positive_source": "fa59a9cdf6cf2af69cec86973e09865cb1f25ec1",
+  "current_review_base": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "core_source_objects": [
+    {
+      "path": "products/conduit/src/body_owner/state_execution_custody.rs",
+      "historical": "2912c7d4abf596b546ee8615a4b354b89a6a2278",
+      "measured_fa59": "2912c7d4abf596b546ee8615a4b354b89a6a2278",
+      "current_dd3": "2912c7d4abf596b546ee8615a4b354b89a6a2278",
+      "exact_all_three": true
+    },
+    {
+      "path": "semantics/face/src/input_binding_correlation.rs",
+      "historical": "82cf19dc1027b1422d936464cf582e32fd47cb0f",
+      "measured_fa59": "82cf19dc1027b1422d936464cf582e32fd47cb0f",
+      "current_dd3": "82cf19dc1027b1422d936464cf582e32fd47cb0f",
+      "exact_all_three": true
+    },
+    {
+      "path": "semantics/face/src/mask_show.rs",
+      "historical": "7c94bbc952af4013d0a15aa2125b28d919e97823",
+      "measured_fa59": "7c94bbc952af4013d0a15aa2125b28d919e97823",
+      "current_dd3": "7c94bbc952af4013d0a15aa2125b28d919e97823",
+      "exact_all_three": true
+    },
+    {
+      "path": "semantics/face/src/renderer_execution.rs",
+      "historical": "a489419505c82e120a39735a8b7688415c4034f9",
+      "measured_fa59": "a489419505c82e120a39735a8b7688415c4034f9",
+      "current_dd3": "a489419505c82e120a39735a8b7688415c4034f9",
+      "exact_all_three": true
+    },
+    {
+      "path": "semantics/face/src/renderer_inspection.rs",
+      "historical": "a55c9e253585b67f8d63706fe137ee744a417cb7",
+      "measured_fa59": "a55c9e253585b67f8d63706fe137ee744a417cb7",
+      "current_dd3": "a55c9e253585b67f8d63706fe137ee744a417cb7",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/browser/runtime/src/owner_face_mask/interaction.rs",
+      "historical": "4ebc6ef16f6bb342548a731d2bdf641f15772d55",
+      "measured_fa59": "4ebc6ef16f6bb342548a731d2bdf641f15772d55",
+      "current_dd3": "4ebc6ef16f6bb342548a731d2bdf641f15772d55",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution.rs",
+      "historical": "4f8287258a7b4d7777c67531e8ab0f5944943f4d",
+      "measured_fa59": "4f8287258a7b4d7777c67531e8ab0f5944943f4d",
+      "current_dd3": "4f8287258a7b4d7777c67531e8ab0f5944943f4d",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/backs.rs",
+      "historical": "dd9c56e300667a7f1dc526f2315277f7254b7a41",
+      "measured_fa59": "dd9c56e300667a7f1dc526f2315277f7254b7a41",
+      "current_dd3": "dd9c56e300667a7f1dc526f2315277f7254b7a41",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/instruction.rs",
+      "historical": "5c2960093165a8c77cdfefb4439d739a7b2ec4e7",
+      "measured_fa59": "5c2960093165a8c77cdfefb4439d739a7b2ec4e7",
+      "current_dd3": "5c2960093165a8c77cdfefb4439d739a7b2ec4e7",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/kernel.rs",
+      "historical": "a8180b363ea10846f75c11b3262a812158ab8068",
+      "measured_fa59": "a8180b363ea10846f75c11b3262a812158ab8068",
+      "current_dd3": "a8180b363ea10846f75c11b3262a812158ab8068",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/parsec_instruction_effect.rs",
+      "historical": "3ceed1cb0a56e8c659e10497c58d512730398132",
+      "measured_fa59": "3ceed1cb0a56e8c659e10497c58d512730398132",
+      "current_dd3": "3ceed1cb0a56e8c659e10497c58d512730398132",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/planning.rs",
+      "historical": "68082caae025e69f672adceadcbf95dd402c57fc",
+      "measured_fa59": "68082caae025e69f672adceadcbf95dd402c57fc",
+      "current_dd3": "68082caae025e69f672adceadcbf95dd402c57fc",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/play.rs",
+      "historical": "ed0058f817e5cf4cf538b694bb88869c4c551891",
+      "measured_fa59": "ed0058f817e5cf4cf538b694bb88869c4c551891",
+      "current_dd3": "ed0058f817e5cf4cf538b694bb88869c4c551891",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/remote.rs",
+      "historical": "16fdc12d243e28ebc193b19a5661f268c88a4f4f",
+      "measured_fa59": "16fdc12d243e28ebc193b19a5661f268c88a4f4f",
+      "current_dd3": "16fdc12d243e28ebc193b19a5661f268c88a4f4f",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/remote_tests.rs",
+      "historical": "f46c17284ee2bc6fc051da3bdace62fcb1e1b405",
+      "measured_fa59": "f46c17284ee2bc6fc051da3bdace62fcb1e1b405",
+      "current_dd3": "f46c17284ee2bc6fc051da3bdace62fcb1e1b405",
+      "exact_all_three": true
+    },
+    {
+      "path": "targets/std/src/terminal_mask_execution/tests.rs",
+      "historical": "49a780f30e052d5435c64769b3c7ac02d3f731a7",
+      "measured_fa59": "49a780f30e052d5435c64769b3c7ac02d3f731a7",
+      "current_dd3": "49a780f30e052d5435c64769b3c7ac02d3f731a7",
+      "exact_all_three": true
+    }
+  ],
+  "reviewed_deltas": [
+    {
+      "paths": [
+        "products/conduit/src/body_owner/todo_read.rs"
+      ],
+      "finding": "Retains READ_SOURCE whenever resident identity changes, including fresh Boot interrupted write; strengthens Source custody without changing action authority or write/read completion truth."
+    },
+    {
+      "paths": [
+        "products/conduit/src/body_owner/todo_waiting.rs"
+      ],
+      "finding": "Idle cancellation returns None only after exact Play, operator cancellation, no failure/cleanup, no accepted interaction/Mask, zero queue/admitted/queued/delivered/output/request and matching terminal Sign. Does not classify a staged/admitted action cancellation as safe commit. is_finished distinguishes terminal idle from pending."
+    },
+    {
+      "paths": [
+        "targets/browser/handbook/owner-face-component.mjs"
+      ],
+      "finding": "Typography dataset and heading text-purpose remain presentation; argument aria-label is exact source value_name, not app authority. Action/target/arguments still flow through unchanged interaction path."
+    },
+    {
+      "paths": [
+        "targets/browser/handbook/owner-face-reachability.mjs"
+      ],
+      "finding": "Relaxation accepts normalized exact value_name only on native nonradio input/select; activator cannot use aria-label and aria-labelledby remains denied. Visible associated labels remain mandatory. No misleading accessible name or pseudo-button permission introduced."
+    },
+    {
+      "paths": [
+        "targets/browser/handbook/owner-participation.mjs"
+      ],
+      "finding": "Required-item is an additional admitted layout selection; no new callback/domain action channel."
+    },
+    {
+      "paths": [
+        "targets/browser/runtime/src/owner_face_mask.rs",
+        "targets/browser/runtime/src/workspace_mask_execution.rs"
+      ],
+      "finding": "Single-Face injection factors existing sequence0 admission and close before scheduler exposure. Same finite boundary length and Accepted sequence0 required; three storage values match closed Face/Show/interaction protocol, checked multiplication; no extra input/retry authority."
+    },
+    {
+      "paths": [
+        "targets/browser/runtime/src/owner_face_mask/view.rs"
+      ],
+      "finding": "local_view_admitted requires explicit admission AND available Show; prebirth gating narrows interaction exposure."
+    }
+  ],
+  "negative_and_fallback_mapping": [
+    {
+      "path": "proof/browser/owner-face-reachability.spec.mjs",
+      "cases": "Generic named/reachable action: misleading/empty input aria, aria-labelledby, misleading button/label, hidden/transparent/inert/clipped/pseudo controls; radio visible labels; current vs corrupt production module graph."
+    },
+    {
+      "path": "proof/browser/owner-face-component.spec.mjs",
+      "cases": "Exact caption argument naming; replaced/disconnected/hidden/inert/unavailable controls; malformed args/Unicode/active composition; semantic focus/draft retention; choice fallback; narrow zoom and typography preserve semantics."
+    },
+    {
+      "path": "targets/browser/runtime/src/owner_face_mask/prebirth_tests.rs",
+      "cases": "Actual checked prebirth Face/Show and cancellation refusing late completion before Show delivery."
+    },
+    {
+      "path": "semantics/face/tests/parsec_input_instruction_producer.rs",
+      "cases": "Three source wordings including Spoken; unavailable withdrawal has no activation wording; unknown control forwarded honestly; malformed/overbound/cross-action/stale candidate refuses; changed source refuses; component-frame preserves binding/wording."
+    },
+    {
+      "path": "semantics/face/tests/parsec_map_transition.rs",
+      "cases": "Actual game step plus source remap, stale/forged revision/context no state change, exhaustion no partial state, replaced source refuses."
+    },
+    {
+      "path": "docs/audits/renderer-adversarial-correspondence.md",
+      "cases": "Installed SDK forged action/arguments/old Show no owner effect; local focus/scroll no owner mutation; inaccessible renderer before ACK and restored reachable surface without replay. Historical source-bound, not a new current execution."
+    }
+  ],
+  "current_positive_review": "work/5372-current-terminal-independent-review.json",
+  "ci_qualification": {
+    "known_run": 40042897373,
+    "source_abbreviation": "5b (Root supplied checkpoint)",
+    "browser_and_foundation": "Both jobs PASSED, as supplied by Root; not independently queried here.",
+    "aggregate": "FAILED overall; no accepted-overall or stable publication claim.",
+    "interpretation": "Useful relevant test evidence at that source, not evidence that every listed fixture ran at fa59 or dd3. Preserve exact source/run qualification in delivery."
+  },
+  "new_focused_negative_case_required_by_review": false,
+  "reason": "No reviewed delta weakens exact action identity, current Show correlation, typed args, reachable naming or local-effect boundary. Changed aria-label naming has explicit misleading/empty/forged-label controls; prebirth gating has late-completion cancellation control. No source-review finding justifies automatic all-suite or runtime repetition.",
+  "remaining_gates": [
+    "Publish current fa59 positive witness using explicit public whitelist (raw Show/previous_read bindings remain private).",
+    "Deliver parent mapping linking each required negative/fallback and historical/current test source honestly; do not count child closures.",
+    "Normal relevant acceptance checks for final delivery head, using repository policy; failed aggregate run is not accepted overall.",
+    "Do not relabel fa59 measurement as later dev; use recorded unchanged core objects and reviewed owning deltas."
+  ],
+  "non_claims": [
+    "No builds/runtime/CI queries in this review",
+    "No physical/human accessibility or full #5355/#5369 completion",
+    "No all-tree or all-test current execution claim",
+    "No historical branch absorption needed for fresh positive witness"
+  ]
+}
