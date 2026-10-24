@@ -1415,3 +1415,11 @@ The release link preserves the 28 KiB stack floor and both heap totals by moving
 384 bytes between the two existing Root regions. See the size/link evidence in
 `evidence/2026-10-24-native-display-root-size/`; actual output selection, resident
 page delivery and physical display verification remain unfinished.
+
+The host admission verifier uses the same 12 KiB carrier-frame ceiling as its
+UART bridge; this is separate from Root's advertisement and envelope bounds.
+The assignment-staging diagnostic now sends 32-byte bursts with 10 ms pauses,
+without retries. A physical repeat passed malformed-input and duplicate-stage
+refusals plus accepted staging on the same firmware after management reset.
+The earlier unpaced duplicate diagnostic timed out after accepted staging; no
+Body had started before that reset.

@@ -7,6 +7,9 @@ from pathlib import Path
 import time
 import serial
 
+SENDER_CHUNK_BYTES = 32
+SENDER_PAUSE_SECONDS = .01
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--port', default='/dev/ttyUSB0')
 parser.add_argument('--capture', type=Path, required=True)
@@ -48,7 +51,12 @@ def event(name, timeout=8):
 def stage(data):
     port.write(b'assignment-transfer\n')
     event('native-assignment-transfer-ready')
-    port.write(data)
+    # Bound sender bursts and leave radio/executor service opportunities. Each
+    # byte is sent once; nominal pacing of the maximum packet fits Root's
+    # five-second ingress window. The receiver still enforces that deadline.
+    for offset in range(0, len(data), SENDER_CHUNK_BYTES):
+        port.write(data[offset:offset + SENDER_CHUNK_BYTES])
+        time.sleep(SENDER_PAUSE_SECONDS)
     reply = event('native-assignment-stage')
     assert not reply['body_installed']
     assert not reply['native_plan_installed']
@@ -59,6 +67,8 @@ def stage(data):
 result = {'proof_class': 'physical-assignment-table-staging', 'completed': False,
           'body_start_claimed': False, 'climate_sampling_claimed': False,
           'wire_bytes': len(packet), 'canonical_bytes': len(canonical),
+          'sender_chunk_bytes': SENDER_CHUNK_BYTES,
+          'sender_pause_ms': int(SENDER_PAUSE_SECONDS * 1000),
           'wire_sha256': hashlib.sha256(packet).hexdigest()}
 try:
     port.open()

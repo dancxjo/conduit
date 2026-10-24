@@ -5,10 +5,15 @@ use std::{
     error::Error,
     io::{self, BufRead, Read, Write},
 };
+// Match the finite management carrier frame bound. The Root advertisement and
+// its signed admission envelope have separate, smaller byte reservations.
+const MAXIMUM_FRAME_BYTES: usize = 12 * 1024;
 fn line(input: &mut impl BufRead) -> Result<String, Box<dyn Error>> {
     let mut line = String::new();
-    input.take(8193).read_line(&mut line)?;
-    if line.len() > 8192 || !line.ends_with('\n') {
+    input
+        .take((MAXIMUM_FRAME_BYTES + 1) as u64)
+        .read_line(&mut line)?;
+    if line.len() > MAXIMUM_FRAME_BYTES || !line.ends_with('\n') {
         return Err("bounded complete line required".into());
     }
     Ok(line)
