@@ -33,3 +33,6 @@ mod assigned;
 
 #[path = "display_support/layout.rs"]
 mod layout;
+
+#[path = "display_support/fixture.rs"]
+mod fixture;

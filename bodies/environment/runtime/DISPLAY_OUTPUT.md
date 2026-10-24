@@ -73,3 +73,11 @@ and Fore pins without borrowing ingress bytes. Admission checks the linked
 layout, current Host/Boot, local Fore, native call shape and ordinary scheduler
 geometry without allocating. It issues no authority and does not verify current
 software availability; retained-owner selection still occurs during preparation.
+
+The ESP32 Root display reservation entry point accepts this validated token,
+correlates full Plan/fragment identities with its compact identity and checks
+the expected next Root Play before consuming the global sequence. The signed
+owner wrapper additionally binds the assignment seal and Body/Wake provenance.
+CPU tests exercise production reservation/authentication code with explicit
+Boot/entropy substitutes. This API is not yet connected to display ingress or
+native capability issuance, and reserves no physical output operation.

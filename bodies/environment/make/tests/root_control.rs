@@ -31,6 +31,8 @@ mod network_planning {
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_authority.rs"]
+// Included firmware modules also gate their MCU-only deployment profile.
+#[allow(unexpected_cfgs)]
 mod native_authority;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_play.rs"]
 mod native_play;
@@ -227,6 +229,7 @@ mod owner_control;
 
 pub(crate) use owner_control::control as native_owner_control;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_owner_reservation.rs"]
+#[allow(unexpected_cfgs)]
 mod native_owner_reservation;
 
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_kernel_storage.rs"]
@@ -244,3 +247,8 @@ mod native_worker;
 mod native_owner_receipt;
 #[path = "root_control_support/owner_receipt.rs"]
 mod owner_receipt;
+
+#[path = "display_support/fixture.rs"]
+mod display_fixture;
+#[path = "root_control_support/display_reservation.rs"]
+mod display_reservation;

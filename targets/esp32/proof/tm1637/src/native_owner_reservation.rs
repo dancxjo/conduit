@@ -148,4 +148,34 @@ impl OwnerReservation {
             assignment_seal: *actual_seal,
         })
     }
+    #[cfg(any(test, feature = "display-ready-root"))]
+    pub fn reserve_display(
+        authenticated: AuthenticatedRequest<'_>,
+        assignment: &conduit_environment_runtime::display_output::ValidatedAssignedDisplay,
+        actual_seal: &[u8; 32],
+        issuer: &mut RootIssuer,
+    ) -> Result<Self, &'static str> {
+        if authenticated.operation() != Operation::Reserve {
+            return Err("wrong-operation");
+        }
+        let request = authenticated.into_request();
+        if request.assignment_seal != *actual_seal {
+            return Err("assignment-seal");
+        }
+        let plan = c::PlanId::from(request.plan);
+        let fragment = c::FragmentId::from(request.fragment);
+        let active = issuer
+            .reserve_display_play_matching(assignment, &plan, &fragment, request.fragment_play)
+            .map_err(|_| "assignment-or-play")?;
+        Ok(Self {
+            offer_generation: request.offer_generation,
+            body: request.body.into(),
+            wake: request.wake.into(),
+            body_plan: request.body_plan.into(),
+            body_play: request.body_play.into(),
+            fragment,
+            active,
+            assignment_seal: *actual_seal,
+        })
+    }
 }

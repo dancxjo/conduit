@@ -17,3 +17,32 @@ impl RootIssuer {
         })
     }
 }
+
+#[cfg(any(test, feature = "display-ready-root"))]
+impl RootIssuer {
+    /// Reserve identity only for independently admitted output tables. Owner
+    /// authentication, native possession and Body start remain separate gates.
+    pub fn reserve_display_play_matching(
+        &mut self,
+        assignment: &conduit_environment_runtime::display_output::ValidatedAssignedDisplay,
+        plan: &c::PlanId,
+        fragment: &c::FragmentId,
+        expected: &str,
+    ) -> Result<c::ActivePlayIdentity, ()> {
+        let identity = assignment.identity();
+        let id = c::AssignedIdentity::from_text;
+        if identity.host != id(self.host.as_str())
+            || identity.boot != id(self.boot.as_str())
+            || identity.plan != id(plan.as_str())
+            || identity.fragment != id(fragment.as_str())
+        {
+            return Err(());
+        }
+        let next = self.next_play_sequence().ok_or(())?;
+        let candidate = c::bind_active_play(plan, &self.host, &self.boot, next);
+        if candidate.active_play_id.as_str() != expected {
+            return Err(());
+        }
+        self.reserve_plan(plan)
+    }
+}

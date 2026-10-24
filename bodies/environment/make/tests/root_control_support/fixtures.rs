@@ -34,6 +34,8 @@ impl ObservedBoot {
         match SCOPE_MODE.with(Cell::get) {
             1 => ("host/foreign", "boot/current"),
             2 => ("host/network", "boot/stale"),
+            3 => ("fixture/display", "fixture/boot"),
+            4 => ("fixture/display", "boot/stale"),
             _ => ("host/network", "boot/current"),
         }
     }
