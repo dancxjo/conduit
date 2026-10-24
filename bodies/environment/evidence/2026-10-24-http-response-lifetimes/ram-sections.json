@@ -1,0 +1,60 @@
+{
+  "proof_class": "linked RAM section comparison; no allocator or stack high-water claim",
+  "before_elf_sha256": "8601775fe37b04e4a3ecdad8b92461b2cb418c13e76c9c0d7fd862f1718e1ebc",
+  "after_elf_sha256": "cfd88fa295ec56922fbffc5d4e83db3b958c25ae6f107dae9a092a2e74858a6c",
+  "ram_section_extents_identical": true,
+  "sections": [
+    [
+      ".rwtext",
+      "0x40080400",
+      8840
+    ],
+    [
+      ".rwtext.wifi",
+      "0x40082688",
+      51800
+    ],
+    [
+      ".data",
+      "0x3ffb0000",
+      17204
+    ],
+    [
+      ".data.wifi",
+      "0x3ffb4334",
+      540
+    ],
+    [
+      ".bss",
+      "0x3ffb4550",
+      141876
+    ],
+    [
+      ".vectors",
+      "0x40080000",
+      1024
+    ],
+    [
+      ".rtc_fast.data",
+      "0x3ff80000",
+      8192
+    ],
+    [
+      ".rtc_slow.data",
+      "0x50000000",
+      4096
+    ],
+    [
+      ".stack",
+      "0x3ffd6f84",
+      36988
+    ],
+    [
+      ".dram2_uninit",
+      "0x3ffe7e30",
+      95488
+    ]
+  ],
+  "root_heap_capacity_increase_bytes": 4080,
+  "static_http_task_reduction_bytes": 4080
+}

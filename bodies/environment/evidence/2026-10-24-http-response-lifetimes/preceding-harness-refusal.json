@@ -1,0 +1,32 @@
+{
+  "source_commit": "c4e3cbe336d01a758b12f689656a96b1ba987b75",
+  "capture": "outputs/environment-native-face-probe/1792872363",
+  "failure": "readiness harness still required 112 KiB for the selected native Face profile; sampling did not start",
+  "correction": "Make explicitly selects native-root or native-face-root and the verifier checks that exact profile capacity",
+  "recovery": {
+    "source": "c4e3cbe336d01a758b12f689656a96b1ba987b75",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": false,
+    "native_exit": 1,
+    "captures": {
+      "environment-owner-images": [
+        "target/environment-owner-images/1792872365"
+      ],
+      "environment-software-ready": [
+        "target/environment-software-ready/1792872499"
+      ],
+      "environment-body-admission": [
+        "target/environment-body-admission/1792872495"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  }
+}

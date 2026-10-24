@@ -21,7 +21,7 @@ future from its task type. Releasing duplicate response state recovers 4,080 sta
 bytes in the keyed image. This exact capacity moves into Root's internal heap,
 raising it from 114,688 to 118,768 bytes. The SDK keeps 73,728 bytes and the linked
 CPU stack keeps 36,988 bytes against its unchanged 36 KiB floor. Earlier captures
-retain their original heap capacities; this new partition requires hardware proof.
+retain their original heap capacities; the attended run below verifies this new partition.
 
 CPU tests cover actual target projection, Face identity, observed coordinates,
 failure, expiry, withdrawal and zero allocations during projection/rendering.
@@ -44,3 +44,15 @@ bytes, with no high-water claim. The protected operational image was restored an
 verified. See [retained evidence](../evidence/2026-10-24-native-http-face/README.md).
 The initial stack failure is retained separately; the correction separates Mask
 scratch from the deeper semantic publication validation call chain.
+
+The later native run on source `6a3852565` verifies the shared page/ack response
+backing and enlarged Root partition. Three physical publications matched 59 HTTP
+responses. A generated nonexistent-network request was acknowledged during
+sampling, stayed deferred until retirement, then made one failed join and restored
+AP services in the same Boot. Root peaked at 79,692 of 118,768 bytes. The ordinary
+slot change saved 3,136 actual heap bytes and static response reuse supplied 4,080
+additional Root capacity, leaving 39,076 bytes unused during this finite sampling
+case. All allocated RAM section addresses/extents match the preceding image; the
+stack floor is unchanged. The protected operational image was restored and
+verified. See [ordered native setup proof](../evidence/2026-10-24-http-response-lifetimes/README.md).
+This does not admit joining while sampling or prove successful station attachment.

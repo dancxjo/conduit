@@ -1,0 +1,229 @@
+{
+  "proof_class": "attended finite native Face/HTTP, queued private setup, same-Boot failed join/AP restoration",
+  "source_commit": "6a3852565e99b8630c84da9865310e6c8fad9fde",
+  "public_command": "cargo xtask prove environment owner-face-run-esp32",
+  "observations": [
+    {
+      "source_sequence": 1,
+      "revision": 1,
+      "native_face_identity": "108467a2979f1dfb4d85b510999b136a0736df5c7c8983ba36e8a3839492e8a1",
+      "face_identity": "5091746365e9516672a03f87803866cf5ec2bb9ffc6341f8f4571d8efb50df54",
+      "identity_note": "Native producer Face and host Body replay Face have different provenance and are not equated."
+    },
+    {
+      "source_sequence": 2,
+      "revision": 2,
+      "native_face_identity": "2ad818eee39f5f680d121e1bc326a028ca935c9d7bd8204ba92d6febbd7dc762",
+      "face_identity": "45a7bd5bcc40c4c920b832e123051b7ef0b27ea92b583aad5271672a93ee339e",
+      "identity_note": "Native producer Face and host Body replay Face have different provenance and are not equated."
+    },
+    {
+      "source_sequence": 3,
+      "revision": 3,
+      "native_face_identity": "9b8769ab7035ddee6bc43ce425a535b34d9299389dbd66997103cd223512c876",
+      "face_identity": "30c126e9f88ee8226f84a82dfcb4ff92bac3913303a545c4a7268863abae04dc",
+      "identity_note": "Native producer Face and host Body replay Face have different provenance and are not equated."
+    }
+  ],
+  "root_heap_bytes": 118768,
+  "sdk_heap_bytes": 73728,
+  "root_heap_peak_bytes": 79692,
+  "root_heap_after_retirement_bytes": 13988,
+  "post_network_root_heap_used_bytes": 19368,
+  "observed_sampling_root_used_bytes": [
+    79692,
+    79692,
+    79692
+  ],
+  "observed_sdk_peak_bytes": 40040,
+  "heap_checkpoints": {
+    "physical-observation-3.json": {
+      "observed_boot_ms": 212616,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "owner-retired.json": {
+      "observed_boot_ms": 213971,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 13988,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "owner-release.json": {
+      "observed_boot_ms": 30340,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "physical-observation-1.json": {
+      "observed_boot_ms": 91027,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "physical-observation-2.json": {
+      "observed_boot_ms": 154705,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "owner-native-preparation.json": {
+      "observed_boot_ms": 29238,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "owner-quiesced.json": {
+      "observed_boot_ms": 213402,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    }
+  },
+  "linked_stack_bytes": 36988,
+  "stack_floor_bytes": 36864,
+  "stack_high_water_claimed": false,
+  "mask_on_mcu": true,
+  "mask_scope": "finite HTTP Show; seven-segment native Mask not installed",
+  "combined_sampling_output_claimed": false,
+  "combined_network_transition_claimed": false,
+  "telemetry_is_signed_attestation": false,
+  "image_receipt": {
+    "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792872770/root.elf",
+    "body_started": false,
+    "elf_sha256": "cfd88fa295ec56922fbffc5d4e83db3b958c25ae6f107dae9a092a2e74858a6c",
+    "owner_public_key_sha256": "e803269abafd033641cf34da85a65cbd70a8f667957903908d7b29a9d45d3a33",
+    "profile": "native-face-root",
+    "schema": "conduit.environment/owner-root-image@1",
+    "source_dirty": false,
+    "source_head": "6a3852565e99b8630c84da9865310e6c8fad9fde"
+  },
+  "recovery": {
+    "source": "6a3852565e99b8630c84da9865310e6c8fad9fde",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": true,
+    "native_exit": 0,
+    "captures": {
+      "environment-owner-images": [
+        "target/environment-owner-images/1792872770"
+      ],
+      "environment-software-ready": [
+        "target/environment-software-ready/1792872905"
+      ],
+      "environment-body-admission": [
+        "target/environment-body-admission/1792872900"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  },
+  "capture_sha256": {
+    "result.json": "46419b728068516e8eb1a338c179494482f9f7437a5de7a3c727bef1195b435c",
+    "native-root.map": "f25b46db36cf4b69810ca5b6755a889681a6c6bfbdf6e3dc4268873d67899484",
+    "http-observations.jsonl": "35b469871f793aaea16d29faee6f0e405afc088b641f1e09c7f919b37bfea159",
+    "http-correlation.json": "8ba04e981cb1d1bf7e0de8587b273ee8c5af79ba20fe8a340f47dec0a5a277dd",
+    "environment-owner-images/1792872770/image-receipt.json": "affbeed618dd3a75c6efd85fc6d8ff016d613fe4a75357b987b7b3556471eb50",
+    "environment-software-ready/1792872905/live-network-submission.json": "637b9d1b38da0d2002855302d30256f045c0a0e5c0f1faad35c0e2ac7ddee3d3",
+    "environment-software-ready/1792872905/final-root-offer.json": "4536d7f32d36f45616fad3ac0b9a921fe41df39b9f2c4cdc38fbb59b43406515",
+    "environment-software-ready/1792872905/physical-observation-3.json": "bc1eb683979c04eec9ae9cecd837db5387f70396a62685817a0a1b764151fc29",
+    "environment-software-ready/1792872905/owner-retired.json": "d6bb19b5a1e9a20cc472cd3703eb2c71a86d27ccbe6a09aefd02ec09fc6cc5d2",
+    "environment-software-ready/1792872905/owner-release.json": "853ea3bfebbe7a24c9c98d37c5d47c662a873daa96a689321734b2e19b565283",
+    "environment-software-ready/1792872905/physical-observation-1.json": "f1605e125755788928434154e50a2fad57c5bf4f415393cd33280948c74f2871",
+    "environment-software-ready/1792872905/physical-observation-2.json": "3c0ae2a6c4fff7f8e47eaba01ed281be4b008caa7cf830473aba81f76391f2d0",
+    "environment-software-ready/1792872905/owner-native-preparation.json": "e679515fedc441e1ed7da496a3da642465f32b63b93265f9c702ee33b31ad7ea",
+    "environment-software-ready/1792872905/owner-quiesced.json": "0b10887936465b38ea30ae4bc6cce19ec4b84d158a42970128c420806b4d4c92"
+  },
+  "value_slot_capacities": [
+    2274,
+    2274,
+    573,
+    573,
+    573,
+    573,
+    573,
+    573,
+    573
+  ],
+  "root_rebalance_bytes": 1280,
+  "root_heap_partition_total_preserved": false,
+  "root_heap_increase_bytes": 4080,
+  "static_http_task_bytes_recovered": 4080,
+  "whole_static_ram_and_stack_extents_preserved": true,
+  "http_response_backing_bytes": 4104,
+  "previous_root_heap_used_bytes": 82828,
+  "physical_root_heap_usage_reduction_bytes": 3136,
+  "sampling_free_root_capacity_bytes": 39076,
+  "network_setup_fixture": {
+    "proof_class": "concurrent-private-network-submission",
+    "completed": true,
+    "real_network_credentials_used": false,
+    "submitted": true,
+    "reservation_offer_generation": 1,
+    "boot_id": "boot/bb3661894a7074ffabe6be3991d8cae6",
+    "started_at_utc": "2026-10-24T20:15:32.460003+00:00",
+    "setup_page_status": 200,
+    "setup_page_sha256": "522309202f824b4faabac8a7402398cac67fcd5ea7fde9cf66895666c1378f41",
+    "fixture_sha256": "a8390ece7dc54a897d50de890336324e222d9e15510ecb9fc73b1421577b1bc5",
+    "post_status": 202,
+    "elapsed_seconds": 0.033801594050601125
+  },
+  "final_network_configuration": "access-point-restored",
+  "network_control_dispatches": [
+    1,
+    1,
+    0
+  ],
+  "network_control_failure_phase": "associate",
+  "network_control_failure_reason": "rejected",
+  "successful_station_join_proven": false,
+  "http_correlation": {
+    "proof_class": "attended finite native Face HTTP Mask correlation",
+    "source_commit": "6a3852565e99b8630c84da9865310e6c8fad9fde",
+    "matched_native_face_identities": {
+      "1": "108467a2979f1dfb4d85b510999b136a0736df5c7c8983ba36e8a3839492e8a1",
+      "2": "2ad818eee39f5f680d121e1bc326a028ca935c9d7bd8204ba92d6febbd7dc762",
+      "3": "9b8769ab7035ddee6bc43ce425a535b34d9299389dbd66997103cd223512c876"
+    },
+    "http_successes": 59,
+    "unavailable_before_publication": true,
+    "unavailable_after_last_publication_observed": false,
+    "recovery_verified": true,
+    "fresh_recovery_sequences": [
+      1,
+      2,
+      3
+    ],
+    "acknowledged_recovery_display_updates": 12,
+    "browser_body_membership": false,
+    "combined_network_transition_admitted": false,
+    "continuous_appliance_deployed": false
+  }
+}
