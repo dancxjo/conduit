@@ -45,13 +45,13 @@
   box-sizing: border-box;
   color: var(--conduit-text-primary);
   background: var(--conduit-background);
-  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+  font: max(100%, var(--conduit-type-body))/var(--conduit-line-height) var(--conduit-font-body);
 }
 :where([data-application-look]) {
   box-sizing: border-box;
   color: var(--conduit-text-primary);
   background: var(--conduit-background);
-  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+  font: max(1rem, var(--conduit-type-body))/var(--conduit-line-height) var(--conduit-font-body);
 }
 /* Closed Host font fallbacks realize admitted Look intent without asset loads. */
 :where([data-application-typography="editorial"]) {

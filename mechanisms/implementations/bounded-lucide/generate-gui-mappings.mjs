@@ -37,7 +37,9 @@ pub(super) const fn index(icon: Icon) -> usize { match icon {
 ${keys.map((key,i)=>`Icon::${key} => ${i},`).join('\n')}
 } }
 `);
-const browser = `${header}const geometry = ${JSON.stringify(geometry)};
+const license = await readFile(new URL('LICENSE', import.meta.url), 'utf8');
+if (license.includes('*/')) throw new Error('License cannot be embedded in a module comment');
+const browser = `${header}/*\n${license}*/\nconst geometry = ${JSON.stringify(geometry)};
 const roles = ${JSON.stringify(data.roles)};
 const intents = ${JSON.stringify(data.intents)};
 export const iconForRole = role => typeof role === 'string' && Object.hasOwn(roles, role) ? roles[role] : undefined;
@@ -57,7 +59,6 @@ export function decorate(node, key) {
   return node;
 }
 `;
-const license = await readFile(new URL('LICENSE', import.meta.url), 'utf8');
 const outputs = [
  ['targets/browser/handbook/LUCIDE-LICENSE', license],
  ['targets/conduitos/assets/icons/LICENSE', license],

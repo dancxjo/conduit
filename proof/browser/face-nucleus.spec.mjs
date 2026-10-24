@@ -1223,8 +1223,11 @@ test('canonical Look typography reaches computed font intent and clears with the
   await root.getByRole('button').focus();
   await page.keyboard.press('Enter');
   expect(await page.evaluate(() => typeProof.calls)).toEqual(['type.safe']);
+  await page.addStyleTag({ content: 'html{font-size:32px!important}' });
+  await expect(root.getByRole('button')).toHaveCSS('font-size', '32px');
   await page.evaluate(() => typeProof.host.present('type-proof', typeProof.view(2)));
   await expect(root).not.toHaveAttribute('data-application-typography');
   await expect(root.getByRole('button')).toHaveCSS('font-family', /sans-serif/);
   await expect(root.getByRole('button')).toHaveAccessibleName('Keep this action');
+  await expect(root.getByRole('button')).toHaveCSS('font-size', '32px');
 });

@@ -149,12 +149,19 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
   const mounted = React.useRef(false);
   React.useEffect(() => {
     let active = true;
+    const fitUnretained = () => requestAnimationFrame(() => {
+      if (!active || currentScene?.workspaceIdentity !== projected.workspaceIdentity) return;
+      const viewport = instance?.getViewport();
+      if (viewport && ["x", "y", "zoom"].every(key => viewport[key] === initial.viewport[key]))
+        instance.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 });
+    });
     if (projected.basis && admittedStorage && !retainedScenes.has(storageKey(projected.workspaceIdentity))) {
       admittedStorage.readJson(storageKey(projected.workspaceIdentity)).then(async (document) => {
         if (!active) return;
         if (typeof document !== "string") {
           loadedWorkspaces.add(projected.workspaceIdentity);
           if (currentScene?.workspaceIdentity === projected.workspaceIdentity) persist(currentScene);
+          fitUnretained();
           return;
         }
         const decoded = decodeWorkspace(document, projected);
@@ -173,6 +180,7 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
         if (!active) return;
         workspaceRefusals.set(projected.workspaceIdentity, error.code || error.message);
         currentScene = { ...currentScene, storageRefusal: error.code || error.message };
+        fitUnretained();
         onWorkspaceChange?.(flowWorkspaceStatus());
       });
     }
@@ -301,7 +309,9 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
       minZoom: 0.2,
       maxZoom: 3,
       defaultViewport: initial.viewport,
-      fitView: restore(projected) === null,
+      // Storage may restore a user viewport after mount; never race it with
+      // React Flow's deferred initial fit. Fit fresh workspaces after the read.
+      fitView: (!admittedStorage || !projected.basis) && restore(projected) === null,
       fitViewOptions: { maxZoom: 1.1, padding: 0.18 },
       proOptions: { hideAttribution: false },
     },

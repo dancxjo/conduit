@@ -1,7 +1,8 @@
+import { decorate } from "/assets/gui-icons.mjs";
 import { joinBrowserBody } from "/assets/browser-membership.js";
 import { createApplicationFaceHost } from "/assets/application-face.mjs";
 import { arrangeFlow, configureFlowStorage, configureFlowWorkspaceValidator, fitFlow, flowStorageSettled, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
-import { authoringBasis, renderConfigurationFields } from "/assets/authoring.js";
+import { ConfigurationValueError, authoringBasis, renderConfigurationFields as renderFieldControls } from "/assets/authoring.js";
 import { installWorkspaceControls } from "/assets/workspace-controls.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 import { createPatchbaySharedFace } from "/assets/shared-face.js";
@@ -29,6 +30,12 @@ let admittedRuntimeBytes = null;
 let admittedApplicationStorage = null;
 function presentStatus(text, component = "status") {
   productMasthead.present(text, component);
+}
+
+function renderConfigurationFields(root, fields, apply, options = {}) {
+  return renderFieldControls(root, fields, apply, { ...options,
+    decorateButton: button => decorate(button, "Confirm"),
+  });
 }
 
 function boundedFaceText(value, maximumBytes = 256) {
@@ -340,7 +347,7 @@ function beginPalettePlacement(entry){
   renderConfigurationFields(root,[{...field,value:{Text:""}}],async(key,value)=>{
     const label=value.Text;
     if(typeof label!=="string"||!label.trim()||/[\u0000-\u001f\u007f-\u009f]/u.test(label)||new TextEncoder().encode(label).length>field.rule.DataLabel.maximum)
-      throw new Error(`Enter a data name within ${field.rule.DataLabel.maximum} bytes, without control characters.`);
+      throw new ConfigurationValueError(`Enter a data name within ${field.rule.DataLabel.maximum} bytes, without control characters.`);
     if(authoringBasis(state.snapshot.authoring)!==basis)throw new Error("The Plot changed. Choose the Gear again.");
     const next=await authoringEdit("place-gear",entry.kind_id,{data_label:label});
     if(next.interaction.last_disposition!=="Succeeded")throw new Error(`Placement ${next.interaction.last_disposition}`);
@@ -510,7 +517,7 @@ function renderBrowserResourceTruth(){const resources=window.__patchbayMembershi
 function renderBrowserPlannerTruth(){const profiles=window.__patchbayMembership?.advertisement.planner_capabilities??[],inspector=document.querySelector("#body-planner-inspector"),select=document.querySelector("#body-planner-select");inspector.hidden=profiles.length===0;if(!profiles.length){presentDefinitions("body-planner-facts",[]);return;}const offer=populateOfferSelect(select,profiles,item=>item.profile_id,item=>item.profile_id),limits=offer.limits;presentDefinitions("body-planner-facts",[["Planner profile",offer.profile_id],["Host advertisements",limits.maximum_host_advertisements],["Gears",limits.maximum_gears],["Connections",limits.maximum_connections],["Authority grants",limits.maximum_authority_grants],["Protected resource grants",limits.maximum_protected_resource_grants],["Line offers",limits.maximum_line_offers],["Planner selection","none · advertisement only"]]);}
 function disconnectCurrentBody(){const membership=window.__patchbayMembership;if(!membership)throw new Error("current browser Body membership is unavailable");membership.close();}
 export async function startApplication(context){admittedRuntimeBytes=context.bytes("runtime");admittedApplicationStorage=context.storage;configureFlowStorage(context.storage);state.retainedMembershipCredential=await context.storage.readJson(membershipStorageKey);
-document.querySelector("#inspector").append(document.querySelector("#deep-inspection"));presentStatus("Loading bounded snapshot…");presentSharedStatus("front-door-feedback","World truth is current; planning is explicit.");document.body.dataset.lens=state.lens;load().then(()=>{inspectBodyInvitation();fitFlow();}).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
+document.querySelector("#inspector").append(document.querySelector("#deep-inspection"));presentStatus("Loading bounded snapshot…");presentSharedStatus("front-door-feedback","World truth is current; planning is explicit.");document.body.dataset.lens=state.lens;load().then(()=>{inspectBodyInvitation();}).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.dataset.conduitContrast!=="high";if(active)document.body.dataset.conduitContrast="high";else delete document.body.dataset.conduitContrast;event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.face.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;window.patchbayFlowStorageSettled=flowStorageSettled;
 document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);

@@ -82,12 +82,62 @@ for (const includeLifecycle of [false, true]) {
       await selectRole(page, "Gear", "authoring/map Gear");
       const field = page.getByRole("textbox", { name: "Configure target-granularity", exact: true });
       await expect(field).toHaveValue(String(mapping.configuration.find(field => field.key === "target-granularity").default_value.I64));
-      await field.fill("9223372036854775808");
+      await expect(field).toHaveAccessibleDescription("Whole number from -9223372036854775808 to 9223372036854775807.");
       const configuration = page.locator('#authoring-actions [data-application-component="plot-field"]').filter({ hasText: "Configure target-granularity" });
+      await page.route("**/api/authoring-query", route => route.abort("failed"));
       await configuration.getByRole("button", { name: "Apply", exact: true }).click();
       await expect(configuration.getByRole("status")).not.toBeEmpty();
+      await expect(field).not.toHaveAttribute("aria-invalid");
+      await page.unroute("**/api/authoring-query");
+      await field.fill("9223372036854775808");
+      await configuration.getByRole("button", { name: "Apply", exact: true }).click();
+      await expect(configuration.getByRole("status")).not.toBeEmpty();
+      await expect(field).toHaveAttribute("aria-invalid", "true");
+      await expect(configuration.getByRole("button", { name: "Apply", exact: true }).locator('svg[aria-hidden="true"]')).toHaveCount(1);
+      const exactRule = configuration.locator("details");
+      await expect(exactRule.locator("pre")).toBeHidden();
+      await exactRule.locator("summary").focus();
+      await page.keyboard.press("Enter");
+      await expect(exactRule.locator("pre")).toContainText('"I64Range"');
+      await page.keyboard.press("Enter");
+      await expect(exactRule.locator("pre")).toBeHidden();
+      await field.focus();
+      expect(await page.locator("#inspector").evaluate(panel => {
+        const bounds = panel.getBoundingClientRect();
+        const bar = panel.querySelector(".furniture-bar");
+        const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + 4);
+        return hit === panel || bar.contains(hit);
+      })).toBe(true);
       expect((await current(page)).authoring.checked_plot_id).toBe(basis);
       await page.screenshot({ path: testInfo.outputPath("authoring-configuration-refusal.png") });
+      if (!includeLifecycle) {
+        const viewport = page.viewportSize();
+        await page.setViewportSize({ width: 390, height: 1000 });
+        const enlarged = await page.addStyleTag({ content: "html{font-size:32px!important}" });
+        await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+        await expect(field).toHaveCSS("font-size", "32px");
+        await field.focus();
+        expect(await configuration.evaluate(group => {
+          const panel = group.closest("#inspector"), bounds = panel.getBoundingClientRect();
+          return panel.scrollWidth <= panel.clientWidth + 1 &&
+            [...group.querySelectorAll("input,button,summary")].every(control => {
+              const rect = control.getBoundingClientRect();
+              return rect.left >= bounds.left && rect.right <= bounds.right && rect.height >= 44;
+            });
+        })).toBe(true);
+        const apply = configuration.getByRole("button", { name: "Apply", exact: true });
+        await apply.scrollIntoViewIfNeeded();
+        await apply.focus();
+        expect(await apply.evaluate(button => {
+          const rect = button.getBoundingClientRect();
+          return rect.height <= button.closest("#inspector").clientHeight / 2 &&
+            button.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+        })).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath("authoring-fields-390-32-forced.png") });
+        await enlarged.evaluate(node => node.remove());
+        await page.emulateMedia({ forcedColors: "none", reducedMotion: "reduce" });
+        await page.setViewportSize(viewport);
+      }
 
       const faceBeforeWorkspace = (await current(page)).face;
       const workspace = page.locator("#workspace-controls");
@@ -280,7 +330,7 @@ async function clickInteraction(page, locator) {
   await locator.click();
   const delivered = await deliveredResponse;
   expect(delivered.ok()).toBe(true);
-  expect(await delivered.finished()).toBeNull();
+  await expect.poll(async () => (await current(page)).interaction.last_disposition).toBe("Succeeded");
 }
 
 async function clickNavigation(page, locator) {
