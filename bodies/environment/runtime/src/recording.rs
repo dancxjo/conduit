@@ -144,10 +144,15 @@ impl PreparedRecordingChunk {
         if prefix.len() > PREFIX_BYTES {
             return Err(RecordingRefusal::ContextExtent);
         }
+        // The immutable prefix is complete before Play. Release its construction
+        // headroom, then reserve exactly the largest encoded chunk for it. The
+        // fixed sample bound includes failures; no recurring growth is needed.
+        prefix.shrink_to_fit();
+        let output_bytes = prefix.len() + MAXIMUM_CHUNK_SAMPLES * SAMPLE_BYTES * 2 + 2;
         Ok(Self {
             quantities: PreparedObservationQuantityForms::prepare(contract)?,
             prefix,
-            output: String::with_capacity(MAXIMUM_CHUNK_BYTES),
+            output: String::with_capacity(output_bytes),
             samples: [[0; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
             count: 0,
             sealed: false,
