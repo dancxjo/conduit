@@ -121,8 +121,11 @@ mod tests {
                 &parsed.types[0],
                 &parsed.types,
                 &owner,
-                [0; 32],
-                &super::super::source::from_document(&parsed, "main", [0; 32]),
+                super::super::SourceContext {
+                    package_content_digest: [0; 32],
+                    origins: &super::super::source::from_document(&parsed, "main", [0; 32]),
+                    custody: None,
+                },
             )
             .unwrap();
         }
@@ -140,8 +143,11 @@ mod tests {
             &parsed.types[0],
             &parsed.types,
             &owner,
-            [0; 32],
-            &super::super::source::from_document(&parsed, "main", [0; 32]),
+            super::super::SourceContext {
+                package_content_digest: [0; 32],
+                origins: &super::super::source::from_document(&parsed, "main", [0; 32]),
+                custody: None,
+            },
         )
         .unwrap_err();
         assert!(failure.message.contains("128-entry"));
@@ -152,8 +158,11 @@ mod tests {
             &parsed.types[0],
             &parsed.types,
             &owner,
-            [0; 32],
-            &super::super::source::from_document(&parsed, "main", [0; 32]),
+            super::super::SourceContext {
+                package_content_digest: [0; 32],
+                origins: &super::super::source::from_document(&parsed, "main", [0; 32]),
+                custody: None,
+            },
         )
         .unwrap_err();
         assert!(collision.message.contains("duplicate or ambiguous"));
@@ -189,8 +198,11 @@ mod tests {
             &parsed.types[0],
             &parsed.types,
             &owner,
-            [0; 32],
-            &super::super::source::from_document(&parsed, "main", [0; 32]),
+            super::super::SourceContext {
+                package_content_digest: [0; 32],
+                origins: &super::super::source::from_document(&parsed, "main", [0; 32]),
+                custody: None,
+            },
         )
         .unwrap_err();
         assert!(failure.message.contains("lookup-byte"));

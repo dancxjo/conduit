@@ -47,6 +47,7 @@ impl StartupCatalog {
             typed_literal_families,
             fores,
             variadic_fores,
+            native_law_custody,
             structured_types,
             structured_type_contracts,
             structured_type_invariants,
@@ -68,6 +69,7 @@ impl StartupCatalog {
             typed_literal_families: rhs_typed_literal_families,
             fores: rhs_fores,
             variadic_fores: rhs_variadic_fores,
+            native_law_custody: rhs_native_law_custody,
             structured_types: rhs_structured_types,
             structured_type_contracts: rhs_structured_type_contracts,
             structured_type_invariants: rhs_structured_type_invariants,
@@ -86,6 +88,7 @@ impl StartupCatalog {
             && typed_literal_families == rhs_typed_literal_families
             && structured_types == rhs_structured_types
             && structured_type_contracts == rhs_structured_type_contracts
+            && native_law_custody == rhs_native_law_custody
             && structured_type_invariants == rhs_structured_type_invariants
             && value_kind_aliases == rhs_value_kind_aliases
             && native_type_sources == rhs_native_type_sources
