@@ -1,0 +1,164 @@
+{
+  "scope": "two-architecture semantic basis and explicit availability differences only; five-architecture acceptance remains unproved",
+  "verified": 1792803565.3398318,
+  "inputs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/manifest.json",
+      "sha256": "3d7c618dc0000af6345c7cc1bfc0b9b263aacc0f01643aa80444cbccafe086f6"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/native-shell-paired-linear.json",
+      "sha256": "cd4fb98b8b1cfa26004c4e872b550fd7435c1ff00db337766e2addad9b4f7833"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/capture.json.gz",
+      "sha256": "f4096fb2f7e598734164fd989ca39f797c06e5c67f02c0395e11c1172fcee1a2"
+    }
+  ],
+  "same_face_source_checked_expanded": {
+    "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+    "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+    "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b"
+  },
+  "same_mask_plot": {
+    "checked_plot_id": "d329bed9178fd32bad8445b248df4d2b9a9338c1afbe796209437276bb131cde",
+    "expanded_plot_id": "0aaf3438896dccb41615e32215ddba3c8cb8089fb8ede981d4e86b56f2cf656c",
+    "source_document_id": "67c4a34efebcf3ca7d05d6f6d474df1014b11b7a4382914f3648d983fe531a87"
+  },
+  "x86": {
+    "source": "abd896d14633a45c69d93996bcebee0e343cbfd7",
+    "checkpoint": "creche-ready",
+    "png_sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6",
+    "resolution": [
+      1280,
+      800
+    ],
+    "face_id": "3f1d68db9bb580916a826f8d7b5e2e51a81867aed3ce06634454e05cb4af688a",
+    "show_id": "show/b1b274be68b6287d98ce7e335f72d885fb18b42d4b4906bb737234d9ae6abdb5",
+    "owner_action_availability": {
+      "creche.name": "Available",
+      "creche.naming": "Available",
+      "creche.suggest": "Available",
+      "creche.search": "Available",
+      "creche.plot.0": "Available",
+      "creche.plot.1": "Available",
+      "creche.plot.2": "Available",
+      "creche.plot.3": "Available",
+      "creche.plot.4": {
+        "Unavailable": {
+          "explanation": "native-body-plot-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      },
+      "creche.birth": "Available"
+    },
+    "local_input": "actual bounded keyboard and pointer journey passed"
+  },
+  "aarch64": {
+    "source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+    "checkpoint": "first source-backed read-only Creche",
+    "png_sha256": "6f76d6d7ec226e47d79aa093a8a64f4e246ae0f741c960dc9ba97d95a1c356c2",
+    "resolution": [
+      800,
+      600
+    ],
+    "face_id": "6e71d6b525dbfb581143b81351d827d80563780bb0329a5cc295b1028be269d2",
+    "show_id": "show/0f17637e7a985c1d46285b7fe8ddfc1df439471709d5db34fa56bb3857104610",
+    "owner_action_availability": {
+      "creche.name": "Available",
+      "creche.naming": "Available",
+      "creche.suggest": "Available",
+      "creche.search": "Available",
+      "creche.plot.0": {
+        "Unavailable": {
+          "explanation": "native-body-current-host-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      },
+      "creche.plot.1": {
+        "Unavailable": {
+          "explanation": "native-body-current-host-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      },
+      "creche.plot.2": {
+        "Unavailable": {
+          "explanation": "native-body-current-host-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      },
+      "creche.plot.3": {
+        "Unavailable": {
+          "explanation": "native-body-current-host-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      },
+      "creche.plot.4": {
+        "Unavailable": {
+          "explanation": "native-body-plot-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      },
+      "creche.birth": {
+        "Unavailable": {
+          "explanation": "EmptySelection",
+          "reason_code": "birth/unavailable"
+        }
+      }
+    },
+    "local_input_available": false
+  },
+  "availability_differences": [
+    {
+      "action_id": "creche.birth",
+      "x86": "Available",
+      "aarch64": {
+        "Unavailable": {
+          "explanation": "EmptySelection",
+          "reason_code": "birth/unavailable"
+        }
+      }
+    },
+    {
+      "action_id": "creche.plot.0",
+      "x86": "Available",
+      "aarch64": {
+        "Unavailable": {
+          "explanation": "native-body-current-host-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      }
+    },
+    {
+      "action_id": "creche.plot.1",
+      "x86": "Available",
+      "aarch64": {
+        "Unavailable": {
+          "explanation": "native-body-current-host-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      }
+    },
+    {
+      "action_id": "creche.plot.2",
+      "x86": "Available",
+      "aarch64": {
+        "Unavailable": {
+          "explanation": "native-body-current-host-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      }
+    },
+    {
+      "action_id": "creche.plot.3",
+      "x86": "Available",
+      "aarch64": {
+        "Unavailable": {
+          "explanation": "native-body-current-host-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      }
+    }
+  ],
+  "claim_limit": "Common authored projection and Mask identities do not prove equal current owner states, runnable worksets, input, physical scanout or GPU acceleration. AArch unavailable worksets and EmptySelection remain visible typed refusals; this is not product parity."
+}
