@@ -1443,3 +1443,41 @@ test('action icons retain labels and do not infer intent from captions', async (
   await expect(unknown).toBeVisible();
   await expect(unknown.locator('svg')).toHaveCount(0);
 });
+
+// Browser text preferences and admitted minimum scale must compose. This is
+// renderer evidence; it does not substitute for owner acknowledgement.
+test('browser root text preference enlarges owner controls without a new Show', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.style.margin = '0';
+    const element = document.createElement('conduit-owner-face');
+    element.show(view, { invoke: async () => {} });
+    document.body.replaceChildren(element);
+    globalThis.retainedOwnerControl = element.shadowRoot.querySelector('button');
+  }, view);
+  const face = page.locator('conduit-owner-face');
+  const button = face.getByRole('button', { name: 'Complete task', exact: true });
+  const font = () => button.evaluate(node => parseFloat(getComputedStyle(node).fontSize));
+  await expect.poll(font).toBe(13);
+  await page.evaluate(() => document.documentElement.style.fontSize = '200%');
+  await expect.poll(font).toBe(26);
+  expect(await button.evaluate(node => node === globalThis.retainedOwnerControl)).toBe(true);
+  await expect(button).toHaveAccessibleName('Complete task');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await face.evaluate((node, view) => node.show({ ...view, component: {
+    maximum_columns: 1, reflow_width: 720, gutter: 12, subject_regions: [0], groups: [0],
+    expression: { expression: { identity: 'fixture/expression', density: 'compact',
+      palette: 'phosphor', typography: 'editorial', version: 2, text_scale_percent: 200 } },
+  } }, { invoke: async () => {} }), view);
+  await expect.poll(font).toBe(52);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
+  await button.focus();
+  await expect(button).toBeFocused();
+  expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  const capture = testInfo.outputPath('owner-root-text-forced.png');
+  await page.screenshot({ path: capture, fullPage: true });
+  await testInfo.attach('owner-root-text-forced', { path: capture, contentType: 'image/png' });
+});
