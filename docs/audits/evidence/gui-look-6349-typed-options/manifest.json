@@ -1,0 +1,76 @@
+{
+  "test_source": "b878e934619b92c748c6b97aed0885f966b2b807",
+  "production_source": "423dd9ddc",
+  "scope": "Local documentary-graph browser application Look realization, not live Body execution, checked component-Mask Look migration, native, CI, publication or parent closure.",
+  "binary_sha256": "a746d6d986f9886abe7cc969f3cc9ab5cb9a64b1b39d7a2b8da022fa2ec0ebde",
+  "runtime": "Documentary fixture uses the existing empty eight-byte WASM module; no new executable browser runtime is claimed.",
+  "results": {
+    "browser": {
+      "passed": 9,
+      "workers": 1,
+      "retries": 0
+    },
+    "look_contract_admission": 10,
+    "application_resources": 2,
+    "http_theme": 1
+  },
+  "negative_evidence": "Initial checks included an incorrect existing Program label expectation and an ineffective root font override. Stronger actual-32px checks then exposed real picker clipping as Look font metrics changed. The bounded picker and focus-preserving native scroll repair precede the final successful run.",
+  "maintenance": {
+    "inactive_incremental_bytes_recovered": 14630244352,
+    "preserved": "Source, dirty work, all final executable/ELF/ISO/WASM and unique evidence, including the previous combined-source workbench executable."
+  },
+  "artifacts": {
+    "look-options-browser-final.log": {
+      "bytes": 3470,
+      "sha256": "143b613fdab269db3a45ed7bb5c23b6f2aeea1cf5bcb78d973e9454b2a3d049a"
+    },
+    "look-engineering.png": {
+      "bytes": 156041,
+      "sha256": "6d43bfbea2c58b6cb2e10a77f97310731143399bd0e90623e5b7fbea4e7aab34"
+    },
+    "look-options-browser-verified.log": {
+      "bytes": 2928,
+      "sha256": "e31c373e9a22df691e9e9509f924f8c845b38469787e540539ab0287dd19106d"
+    },
+    "look-options-resources-pass.log": {
+      "bytes": 632,
+      "sha256": "138a2717eacfe44b5fdfb1793664d48a6ffda35ac2cb232b00ad1df06c8f13e2"
+    },
+    "look-phosphor.png": {
+      "bytes": 150348,
+      "sha256": "8396b85935b09eb56fbee58fbc176d5fef5e1d436c24b1ea78903e27ef1c69e5"
+    },
+    "look-options-contracts.log": {
+      "bytes": 5624,
+      "sha256": "bb35fc5994bf94b5bf2b88d375ee4e4ea0e23f44250a05caa00d79443e86c655"
+    },
+    "look-options-browser.log": {
+      "bytes": 2915,
+      "sha256": "9915fe99783338871c965b55a31082452ab89dd402c774105d22cd7c6eb95b01"
+    },
+    "look-editorial.png": {
+      "bytes": 150162,
+      "sha256": "0856873f94eef3dfce85f44e283bf1a5b926b1ee4e82be509bad8d2b5305b0d7"
+    },
+    "look-receipt.json": {
+      "bytes": 362796,
+      "sha256": "69f6f29fd57eee38368b02fa55949ead904134dd71317017feab46292030b190"
+    },
+    "look-options-browser-pass.log": {
+      "bytes": 1586,
+      "sha256": "5c3127573eb449f171665e58e96fc48fdfe44fb888fc604855f9be2fb26b118e"
+    },
+    "look-options-product.log": {
+      "bytes": 12306,
+      "sha256": "5076b269cd47b5c51e879aa0823596f976a4ce7a53c2063af807e2be19da0e66"
+    },
+    "look-narrow-forced.png": {
+      "bytes": 31367,
+      "sha256": "4036afc372d39efc70a2560dd23e83d7e1e2c65a0ccc7b2a6bcaf54e0d6bdef9"
+    },
+    "look-options-browser-large.log": {
+      "bytes": 1503,
+      "sha256": "0a8ee0e15539deb61a23d2fcd0fa25c70ea26f88179c522a461a8db6d2ee3305"
+    }
+  }
+}

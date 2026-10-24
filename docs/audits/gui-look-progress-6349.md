@@ -513,3 +513,18 @@ Face supplies an existing Body.
 [Actual live screenshot, exact Face receipt, hashes, positive and negative logs](evidence/gui-look-6349-live-quantity/README.md).
 This proves a combined local source, not either isolated PR head, CI/native/
 publication acceptance or canonical cross-component Look completion.
+
+## Typed application Look options
+
+[Current screenshots and receipt](evidence/gui-look-6349-typed-options/README.md)
+show actual Patchbay rendering of complete Editorial, Engineering and Phosphor
+`LookInfo` resources through the existing finite stylesheet/package path.
+A keyboard picker changes appearance while retaining the exact Face and graph.
+Nine focused Chromium checks pass together, with one worker and zero retries;
+ten Look/admission checks, two exhaustive package checks and the HTTP theme
+check pass. Actual 32px text at 390px exposed and now verifies a focus/scroll
+repair across changing typography. Earlier negative logs remain beside success.
+
+This is documentary-graph browser application proof. Configured component-Mask
+startup migration to full Looks, reuse across component structures, current
+native realization and the original parent acceptance remain open.
