@@ -1,0 +1,252 @@
+{
+  "root_frozen_head": "ef5bba08ec65469a332c463b94d3a2be6210a841",
+  "current_dev": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "original_owner_head": "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+  "retained_repair_head": "b584f81559e59b0ccbf1e93225c7547007c7bba2",
+  "merge_exit": 1,
+  "merge_output": "915e7b0ddc5e1f43e6ed223eb8271e99739ec266\n100644 a6b58586e6a85f2d42a85360a162c6b4f9949f7b 1\tmechanisms/io/tm1637/README.md\n100644 b82d07b41cb4c31c4208a8dded61d188a057d103 2\tmechanisms/io/tm1637/README.md\n100644 2a10009c2247592ac10f2d751cfdba35a446df44 3\tmechanisms/io/tm1637/README.md\n100644 5f7a749f2467d56e514fb04347556ddaa84663e2 2\tmechanisms/io/tm1637/src/installation.rs\n100644 7801091bb7b88b5fe6db8f1e7aae8c127be4a3dc 3\tmechanisms/io/tm1637/src/installation.rs\n100644 218e63bbc5609851001d81015b1f55a088fb7a6a 2\tmechanisms/io/tm1637/src/owner.rs\n100644 cd408eb9ebe6a404e34c1284aada779c8a51cdb1 3\tmechanisms/io/tm1637/src/owner.rs\n100644 c979bcda21f98ae3985934c4439aec6907f07c53 2\tmechanisms/io/tm1637/tests/owner.rs\n100644 970fe751383c6b9e5bae032f78d1e491036b0d22 3\tmechanisms/io/tm1637/tests/owner.rs\n\nAuto-merging mechanisms/io/tm1637/README.md\nCONFLICT (content): Merge conflict in mechanisms/io/tm1637/README.md\nAuto-merging mechanisms/io/tm1637/src/installation.rs\nCONFLICT (add/add): Merge conflict in mechanisms/io/tm1637/src/installation.rs\nAuto-merging mechanisms/io/tm1637/src/owner.rs\nCONFLICT (add/add): Merge conflict in mechanisms/io/tm1637/src/owner.rs\nAuto-merging mechanisms/io/tm1637/tests/owner.rs\nCONFLICT (add/add): Merge conflict in mechanisms/io/tm1637/tests/owner.rs\n",
+  "provisional_conflict_tree": "915e7b0ddc5e1f43e6ed223eb8271e99739ec266",
+  "four_conflicts": [
+    {
+      "path": "mechanisms/io/tm1637/README.md",
+      "current_dev": "2a10009c2247592ac10f2d751cfdba35a446df44",
+      "original_owner": "2a10009c2247592ac10f2d751cfdba35a446df44",
+      "root_frozen": "b82d07b41cb4c31c4208a8dded61d188a057d103",
+      "retained_repair": "b82d07b41cb4c31c4208a8dded61d188a057d103",
+      "resolution": "Keep exact reviewed Root/retained-repair blob; currentdevhasoriginalownersquashbytes."
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/installation.rs",
+      "current_dev": "7801091bb7b88b5fe6db8f1e7aae8c127be4a3dc",
+      "original_owner": "7801091bb7b88b5fe6db8f1e7aae8c127be4a3dc",
+      "root_frozen": "5f7a749f2467d56e514fb04347556ddaa84663e2",
+      "retained_repair": "5f7a749f2467d56e514fb04347556ddaa84663e2",
+      "resolution": "Keep exact reviewed Root/retained-repair blob; currentdevhasoriginalownersquashbytes."
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/owner.rs",
+      "current_dev": "cd408eb9ebe6a404e34c1284aada779c8a51cdb1",
+      "original_owner": "cd408eb9ebe6a404e34c1284aada779c8a51cdb1",
+      "root_frozen": "218e63bbc5609851001d81015b1f55a088fb7a6a",
+      "retained_repair": "218e63bbc5609851001d81015b1f55a088fb7a6a",
+      "resolution": "Keep exact reviewed Root/retained-repair blob; currentdevhasoriginalownersquashbytes."
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/owner.rs",
+      "current_dev": "970fe751383c6b9e5bae032f78d1e491036b0d22",
+      "original_owner": "970fe751383c6b9e5bae032f78d1e491036b0d22",
+      "root_frozen": "c979bcda21f98ae3985934c4439aec6907f07c53",
+      "retained_repair": "c979bcda21f98ae3985934c4439aec6907f07c53",
+      "resolution": "Keep exact reviewed Root/retained-repair blob; currentdevhasoriginalownersquashbytes."
+    }
+  ],
+  "all_other_paths_already_exact_frozen_tree": true,
+  "resolved_tree": "f1f9a85cc9756ca2a22371b48ebb02c8b6ce5014",
+  "entire_resolved_tree_equals_frozen_tested_tree": true,
+  "all28_feature_blobs": [
+    {
+      "path": "architecture/plot/src/canonical_expansion/retained.rs",
+      "expected": "d856c57eb6741e707641c5fc93e42ebbeccfd5f0",
+      "resolved": "d856c57eb6741e707641c5fc93e42ebbeccfd5f0"
+    },
+    {
+      "path": "architecture/plot/tests/retained_resource_reference.rs",
+      "expected": "8bc0ad4845e793643987302c363efd888ce2b7bb",
+      "resolved": "8bc0ad4845e793643987302c363efd888ce2b7bb"
+    },
+    {
+      "path": "mechanisms/io/tm1637/Cargo.lock",
+      "expected": "2630d32ab5f2c712b61d94753bbe60ff0eb38586",
+      "resolved": "2630d32ab5f2c712b61d94753bbe60ff0eb38586"
+    },
+    {
+      "path": "mechanisms/io/tm1637/Cargo.toml",
+      "expected": "7d82afe68c46afd62d05039a4fc27ac46f1eed95",
+      "resolved": "7d82afe68c46afd62d05039a4fc27ac46f1eed95"
+    },
+    {
+      "path": "mechanisms/io/tm1637/README.md",
+      "expected": "b82d07b41cb4c31c4208a8dded61d188a057d103",
+      "resolved": "b82d07b41cb4c31c4208a8dded61d188a057d103"
+    },
+    {
+      "path": "mechanisms/io/tm1637/build.rs",
+      "expected": "bf78d43bb8f888fd9b0663d7d11ebb10ec8a8c5c",
+      "resolved": "bf78d43bb8f888fd9b0663d7d11ebb10ec8a8c5c"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/assigned.rs",
+      "expected": "33418ef48d59be75ea34ba24690d08a6bd095e88",
+      "resolved": "33418ef48d59be75ea34ba24690d08a6bd095e88"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/back.rs",
+      "expected": "4ef16d6857c9d2d247d4a1ba9cb47199275154e4",
+      "resolved": "4ef16d6857c9d2d247d4a1ba9cb47199275154e4"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/codec.rs",
+      "expected": "81c978c8b968cb0849ca5a34b43a1e97cbe27e05",
+      "resolved": "81c978c8b968cb0849ca5a34b43a1e97cbe27e05"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/contract.rs",
+      "expected": "b9d8fcc016f42439ea760eb4bafd305e346a8604",
+      "resolved": "b9d8fcc016f42439ea760eb4bafd305e346a8604"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/installation.rs",
+      "expected": "5f7a749f2467d56e514fb04347556ddaa84663e2",
+      "resolved": "5f7a749f2467d56e514fb04347556ddaa84663e2"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/installation_advertisement.rs",
+      "expected": "bb2836716dc9bb96c6cf487558840149e06d041d",
+      "resolved": "bb2836716dc9bb96c6cf487558840149e06d041d"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/installation_selected.rs",
+      "expected": "7ef2a8b34a6799eb5338bca15be8cf737bbf3c54",
+      "resolved": "7ef2a8b34a6799eb5338bca15be8cf737bbf3c54"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/lib.rs",
+      "expected": "da3b9881caa6fb9334c98ce9e3efef1de06c3a78",
+      "resolved": "da3b9881caa6fb9334c98ce9e3efef1de06c3a78"
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/owner.rs",
+      "expected": "218e63bbc5609851001d81015b1f55a088fb7a6a",
+      "resolved": "218e63bbc5609851001d81015b1f55a088fb7a6a"
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/owner.rs",
+      "expected": "c979bcda21f98ae3985934c4439aec6907f07c53",
+      "resolved": "c979bcda21f98ae3985934c4439aec6907f07c53"
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/assigned.rs",
+      "expected": "d9117d5712b259651bcdcc632adb6cd820b26f6c",
+      "resolved": "d9117d5712b259651bcdcc632adb6cd820b26f6c"
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/fixture.rs",
+      "expected": "12deb57e2ad0c0929bbf854350816a297d3b9d00",
+      "resolved": "12deb57e2ad0c0929bbf854350816a297d3b9d00"
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/installation.rs",
+      "expected": "cc04f1e51a5dc10f779f1281bcfecab5fe1680cf",
+      "resolved": "cc04f1e51a5dc10f779f1281bcfecab5fe1680cf"
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/kernel.rs",
+      "expected": "316b848f0bcb6c4f92838d5e663d9663a9533887",
+      "resolved": "316b848f0bcb6c4f92838d5e663d9663a9533887"
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/packet.rs",
+      "expected": "7620eca2ee8dd136b9af00de106841761eefb25f",
+      "resolved": "7620eca2ee8dd136b9af00de106841761eefb25f"
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/selected_retained.rs",
+      "expected": "ea7e83cb1a9d917729cb9e84952e84c9c0446114",
+      "resolved": "ea7e83cb1a9d917729cb9e84952e84c9c0446114"
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor.rs",
+      "expected": "69daa0ea84a675e70ecb478d0f58013df092ec9c",
+      "resolved": "69daa0ea84a675e70ecb478d0f58013df092ec9c"
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner.rs",
+      "expected": "adef09ab3f306cc059f3e50216fd6807ad215753",
+      "resolved": "adef09ab3f306cc059f3e50216fd6807ad215753"
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+      "expected": "3bc21b6a3689cbffd067f3920daace0c632479c4",
+      "resolved": "3bc21b6a3689cbffd067f3920daace0c632479c4"
+    },
+    {
+      "path": "targets/conduitos/tests/compositor_request_owner.rs",
+      "expected": "b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c",
+      "resolved": "b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c"
+    },
+    {
+      "path": "tools/xtask-dispatch/src/focused_check.rs",
+      "expected": "91a8bcf3be49f9df459417fd969b1f29a93d5474",
+      "resolved": "91a8bcf3be49f9df459417fd969b1f29a93d5474"
+    },
+    {
+      "path": "tools/xtask/src/suites/tm1637_output.rs",
+      "expected": "06aed633f39f5c2935a5c97f7bb59d71650ca9ef",
+      "resolved": "06aed633f39f5c2935a5c97f7bb59d71650ca9ef"
+    }
+  ],
+  "prior_root41_paths_preserved": [
+    "Cargo.lock",
+    "architecture/plan-lowering/src/assigned_configuration.rs",
+    "architecture/plan-lowering/src/assigned_operation_input.rs",
+    "architecture/plan-lowering/src/selected_assigned_operation.rs",
+    "architecture/plan-lowering/src/selected_operation.rs",
+    "bodies/environment/runtime/tests/support/pulse.rs",
+    "mechanisms/io/monotonic-wait/Cargo.lock",
+    "mechanisms/io/monotonic-wait/Cargo.toml",
+    "mechanisms/io/monotonic-wait/README.md",
+    "mechanisms/io/monotonic-wait/src/assigned.rs",
+    "mechanisms/io/monotonic-wait/src/installation.rs",
+    "mechanisms/io/monotonic-wait/src/lib.rs",
+    "mechanisms/io/monotonic-wait/src/owner.rs",
+    "mechanisms/io/monotonic-wait/tests/support/assigned.rs",
+    "mechanisms/io/monotonic-wait/tests/support/exhausted_retirement.rs",
+    "mechanisms/io/monotonic-wait/tests/support/fixture.rs",
+    "mechanisms/io/monotonic-wait/tests/support/installation.rs",
+    "mechanisms/io/monotonic-wait/tests/support/selected_binding.rs",
+    "mechanisms/io/monotonic-wait/tests/wait_owner.rs",
+    "mechanisms/io/pulse-capture/tests/pulse_owner.rs",
+    "mechanisms/io/pulse-capture/tests/support/exhausted_retirement.rs",
+    "mechanisms/io/pulse-capture/tests/support/owner_fixture.rs",
+    "mechanisms/io/resource-snapshot/Cargo.toml",
+    "mechanisms/io/resource-snapshot/README.md",
+    "mechanisms/io/resource-snapshot/src/lib.rs",
+    "mechanisms/io/resource-snapshot/src/record.rs",
+    "mechanisms/io/resource-snapshot/src/tests.rs",
+    "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+    "semantics/face/src/manifestation.rs",
+    "semantics/face/src/manifestation/validation.rs",
+    "semantics/face/src/mask_show.rs",
+    "semantics/face/tests/mask_plot.rs",
+    "targets/browser/runtime/Cargo.toml",
+    "targets/browser/runtime/src/resource_snapshot.rs",
+    "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+    "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+    "targets/raspberry-pi/deployment/linux/bootstrap.py",
+    "tools/xtask/src/commands/ci/standalone_locks.rs",
+    "tools/xtask/src/suites/monotonic_wait.rs",
+    "tools/xtask/src/suites/resource_snapshot.rs",
+    "tools/xtask/src/suites/workspace_shards.rs"
+  ],
+  "original_refs_preserved_by_root_parent": [
+    "dd92bde82017fe685404ef9197b56d3b3127006c",
+    "b584f81559e59b0ccbf1e93225c7547007c7bba2",
+    "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+    "851159dd057d55b15667a42e58c9d6fe52db0f06",
+    "295a7170ba0e4e952e281597817db5f2d9e6ad04"
+  ],
+  "proposed_actual_merge_parents": [
+    "ef5bba08ec65469a332c463b94d3a2be6210a841",
+    "7e9ccd0c6850d4f5782663f65ec7f5472109edb0"
+  ],
+  "semantic_reason": "CurrentdevconflictbytesEXACToriginal9d. Frozenef5conflictbytesEXACTreviewedb584repair. Repairmodularizesprepare_selectedforpre-effectretainedproviderbinding, preservesoriginalbindersemantics, includesselectedmoduleandowningtests, anddocumentsretainedselectedcustody. Choosingowneroriginalbyteswouldorphannewselectedmodule/testsandregressreviewedretainedproof. Preserveexactrepair4blobs,notmanualtextreinterpretation.",
+  "root_operator_recipe_not_executed": [
+    "VerifycleanownRootworktreeHEADexactef5; refreshorigin/devonceandverifyexact7e9; ensureown6369remoteheadstillfrozenef5.",
+    "Normalgitmerge --no-ff --no-commit 7e9 onownRootbranch; expectexact4reviewedconflicts only.",
+    "git restore --source=ef5bba08ec65469a332c463b94d3a2be6210a841 --staged --worktree -- mechanisms/io/tm1637/README.md mechanisms/io/tm1637/src/installation.rs mechanisms/io/tm1637/src/owner.rs mechanisms/io/tm1637/tests/owner.rs",
+    "Verifygitwrite-treeEXACTf1f9a85cc9756ca2a22371b48ebb02c8b6ce5014,no unresolvedentries,sourcechangeonlyreviewedhistoryjoin.",
+    "Commitnormalmergewithparents[ef5,7e9],noCI-skippingtext. Runmeaningfulfinaltargetedcompile/checkrequiredforsemanticmergeevenexacttreeretained; preserveexistingtests/proof.",
+    "Guardednormalfast-forwardpushsame6369branch; freshrequiredactualnewheadCandidate+applicableIntegration. PreserveoldCandidate40062173346receiptswithoutrelabellingasnewheadexecution; noadminbypass/manualcancel/restart."
+  ],
+  "limits": "Read-onlyGitobject/tempindexcompositionONLY; no branchrefs/worktrees/checkouts/actualmerge/sourcewrites/build/network/CI. Proposedtreeisnotnewcompiled/executedCandidateoracceptedIntegration."
+}

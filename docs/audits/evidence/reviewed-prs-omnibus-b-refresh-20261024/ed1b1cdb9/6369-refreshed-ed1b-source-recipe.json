@@ -1,0 +1,207 @@
+{
+  "observed_utc": "2026-10-24T05:13:09.770343+00:00",
+  "source": "ed1b1cdb9e4cd8edd618211a189bcbd863240e18",
+  "parents": [
+    "ef5bba08ec65469a332c463b94d3a2be6210a841",
+    "7e9ccd0c6850d4f5782663f65ec7f5472109edb0"
+  ],
+  "tree": "f1f9a85cc9756ca2a22371b48ebb02c8b6ce5014",
+  "entire_tree_equals_prior_source": true,
+  "old_source": "ef5bba08ec65469a332c463b94d3a2be6210a841",
+  "refresh_base": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "original_feature_inventory_base": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "all_owner_and_repair_refs_ancestors": [
+    "851159dd057d55b15667a42e58c9d6fe52db0f06",
+    "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+    "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+    "b584f81559e59b0ccbf1e93225c7547007c7bba2"
+  ],
+  "all28_feature_blobs": [
+    {
+      "path": "architecture/plot/src/canonical_expansion/retained.rs",
+      "original": "100644 blob d856c57eb6741e707641c5fc93e42ebbeccfd5f0",
+      "refreshed": "100644 blob d856c57eb6741e707641c5fc93e42ebbeccfd5f0",
+      "equal": true
+    },
+    {
+      "path": "architecture/plot/tests/retained_resource_reference.rs",
+      "original": "100644 blob 8bc0ad4845e793643987302c363efd888ce2b7bb",
+      "refreshed": "100644 blob 8bc0ad4845e793643987302c363efd888ce2b7bb",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/Cargo.lock",
+      "original": "100644 blob 2630d32ab5f2c712b61d94753bbe60ff0eb38586",
+      "refreshed": "100644 blob 2630d32ab5f2c712b61d94753bbe60ff0eb38586",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/Cargo.toml",
+      "original": "100644 blob 7d82afe68c46afd62d05039a4fc27ac46f1eed95",
+      "refreshed": "100644 blob 7d82afe68c46afd62d05039a4fc27ac46f1eed95",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/README.md",
+      "original": "100644 blob b82d07b41cb4c31c4208a8dded61d188a057d103",
+      "refreshed": "100644 blob b82d07b41cb4c31c4208a8dded61d188a057d103",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/build.rs",
+      "original": "100644 blob bf78d43bb8f888fd9b0663d7d11ebb10ec8a8c5c",
+      "refreshed": "100644 blob bf78d43bb8f888fd9b0663d7d11ebb10ec8a8c5c",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/assigned.rs",
+      "original": "100644 blob 33418ef48d59be75ea34ba24690d08a6bd095e88",
+      "refreshed": "100644 blob 33418ef48d59be75ea34ba24690d08a6bd095e88",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/back.rs",
+      "original": "100644 blob 4ef16d6857c9d2d247d4a1ba9cb47199275154e4",
+      "refreshed": "100644 blob 4ef16d6857c9d2d247d4a1ba9cb47199275154e4",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/codec.rs",
+      "original": "100644 blob 81c978c8b968cb0849ca5a34b43a1e97cbe27e05",
+      "refreshed": "100644 blob 81c978c8b968cb0849ca5a34b43a1e97cbe27e05",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/contract.rs",
+      "original": "100644 blob b9d8fcc016f42439ea760eb4bafd305e346a8604",
+      "refreshed": "100644 blob b9d8fcc016f42439ea760eb4bafd305e346a8604",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/installation.rs",
+      "original": "100644 blob 5f7a749f2467d56e514fb04347556ddaa84663e2",
+      "refreshed": "100644 blob 5f7a749f2467d56e514fb04347556ddaa84663e2",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/installation_advertisement.rs",
+      "original": "100644 blob bb2836716dc9bb96c6cf487558840149e06d041d",
+      "refreshed": "100644 blob bb2836716dc9bb96c6cf487558840149e06d041d",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/installation_selected.rs",
+      "original": "100644 blob 7ef2a8b34a6799eb5338bca15be8cf737bbf3c54",
+      "refreshed": "100644 blob 7ef2a8b34a6799eb5338bca15be8cf737bbf3c54",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/lib.rs",
+      "original": "100644 blob da3b9881caa6fb9334c98ce9e3efef1de06c3a78",
+      "refreshed": "100644 blob da3b9881caa6fb9334c98ce9e3efef1de06c3a78",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/src/owner.rs",
+      "original": "100644 blob 218e63bbc5609851001d81015b1f55a088fb7a6a",
+      "refreshed": "100644 blob 218e63bbc5609851001d81015b1f55a088fb7a6a",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/owner.rs",
+      "original": "100644 blob c979bcda21f98ae3985934c4439aec6907f07c53",
+      "refreshed": "100644 blob c979bcda21f98ae3985934c4439aec6907f07c53",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/assigned.rs",
+      "original": "100644 blob d9117d5712b259651bcdcc632adb6cd820b26f6c",
+      "refreshed": "100644 blob d9117d5712b259651bcdcc632adb6cd820b26f6c",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/fixture.rs",
+      "original": "100644 blob 12deb57e2ad0c0929bbf854350816a297d3b9d00",
+      "refreshed": "100644 blob 12deb57e2ad0c0929bbf854350816a297d3b9d00",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/installation.rs",
+      "original": "100644 blob cc04f1e51a5dc10f779f1281bcfecab5fe1680cf",
+      "refreshed": "100644 blob cc04f1e51a5dc10f779f1281bcfecab5fe1680cf",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/kernel.rs",
+      "original": "100644 blob 316b848f0bcb6c4f92838d5e663d9663a9533887",
+      "refreshed": "100644 blob 316b848f0bcb6c4f92838d5e663d9663a9533887",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/packet.rs",
+      "original": "100644 blob 7620eca2ee8dd136b9af00de106841761eefb25f",
+      "refreshed": "100644 blob 7620eca2ee8dd136b9af00de106841761eefb25f",
+      "equal": true
+    },
+    {
+      "path": "mechanisms/io/tm1637/tests/support/selected_retained.rs",
+      "original": "100644 blob ea7e83cb1a9d917729cb9e84952e84c9c0446114",
+      "refreshed": "100644 blob ea7e83cb1a9d917729cb9e84952e84c9c0446114",
+      "equal": true
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor.rs",
+      "original": "100644 blob 69daa0ea84a675e70ecb478d0f58013df092ec9c",
+      "refreshed": "100644 blob 69daa0ea84a675e70ecb478d0f58013df092ec9c",
+      "equal": true
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner.rs",
+      "original": "100644 blob adef09ab3f306cc059f3e50216fd6807ad215753",
+      "refreshed": "100644 blob adef09ab3f306cc059f3e50216fd6807ad215753",
+      "equal": true
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+      "original": "100644 blob 3bc21b6a3689cbffd067f3920daace0c632479c4",
+      "refreshed": "100644 blob 3bc21b6a3689cbffd067f3920daace0c632479c4",
+      "equal": true
+    },
+    {
+      "path": "targets/conduitos/tests/compositor_request_owner.rs",
+      "original": "100644 blob b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c",
+      "refreshed": "100644 blob b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c",
+      "equal": true
+    },
+    {
+      "path": "tools/xtask-dispatch/src/focused_check.rs",
+      "original": "100644 blob 91a8bcf3be49f9df459417fd969b1f29a93d5474",
+      "refreshed": "100644 blob 91a8bcf3be49f9df459417fd969b1f29a93d5474",
+      "equal": true
+    },
+    {
+      "path": "tools/xtask/src/suites/tm1637_output.rs",
+      "original": "100644 blob 06aed633f39f5c2935a5c97f7bb59d71650ca9ef",
+      "refreshed": "100644 blob 06aed633f39f5c2935a5c97f7bb59d71650ca9ef",
+      "equal": true
+    }
+  ],
+  "actual_delivery_delta_against_refresh_base": [
+    "mechanisms/io/tm1637/README.md",
+    "mechanisms/io/tm1637/src/installation.rs",
+    "mechanisms/io/tm1637/src/installation_selected.rs",
+    "mechanisms/io/tm1637/src/owner.rs",
+    "mechanisms/io/tm1637/tests/owner.rs",
+    "mechanisms/io/tm1637/tests/support/selected_retained.rs"
+  ],
+  "findings": [],
+  "proof_status": "New supported owning suite Root-owned and live; not inspected or claimed here. New Candidate and immutable refreshed packet IDs pending.",
+  "helper_update_recipe": {
+    "merge_guard": "Bind refreshed HEAD/new Candidate/new packet only after IDs arrive. Keep original dd92 BASE for original28-feature inventory; introduce REFRESH_BASE7e9 for normal parent/source audit and actual6-file delivery delta. Require refreshed parents [ef5,7e9], all original owners+repair ancestors, entiretree f1f9. Require actual new quick preview entiretree==f1f9 and currentdev normal composition entiretree==tested preview. No old Candidate relabeling.",
+    "proof_packet": "Preserve old ef5 packet/source/logs immutable. Fresh source/review packet may explicitly bridge unchanged blob/test bytes from old proof, but new Root-supported binding execution retains actual new source/log identity. Do not require old logs source==newHEAD falsely.",
+    "6357_publisher": "Keep original SOURCE851/PREVIEW877 actual old admission identity. Replace only omnibus source/Candidate/packet constants after assigned. Distinguish fresh tm suite from inherited exact-byte Plot/preflight proofs; preserve old execution source per step, verify complete tree/blob correspondence. Existing nine feature/preservation checks remain mandatory.",
+    "6357_closer": "Calls publisher gather; no fixed RootB head itself. Ensure returned actual focused execution source is truthful per retained proof, not blindly new merge head when inherited log was ef5. Candidate full success+accepted full Integration remain required."
+  },
+  "helper_mutations": "None yet; waiting assigned new Candidate and evidence IDs as instructed",
+  "no_network_build_source_or_owner_mutation": true
+}

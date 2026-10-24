@@ -1,0 +1,444 @@
+{
+  "reviewed_at_utc": "2026-10-24T04:21:32.192902+00:00",
+  "source": "ef5bba08ec65469a332c463b94d3a2be6210a841",
+  "tree": "f1f9a85cc9756ca2a22371b48ebb02c8b6ce5014",
+  "parents": [
+    "4fb717e6db562e2b27b4f73c91309c47041fa5d4",
+    "295a7170ba0e4e952e281597817db5f2d9e6ad04"
+  ],
+  "accepted_base": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "all_owner_and_repair_refs_ancestors": [
+    "dd92bde82017fe685404ef9197b56d3b3127006c",
+    "b584f81559e59b0ccbf1e93225c7547007c7bba2",
+    "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+    "851159dd057d55b15667a42e58c9d6fe52db0f06",
+    "295a7170ba0e4e952e281597817db5f2d9e6ad04"
+  ],
+  "exact_changed_path_union": true,
+  "changed_path_count": 28,
+  "source_correspondence": [
+    {
+      "source": "b584f81559e59b0ccbf1e93225c7547007c7bba2",
+      "merge_base": "dd92bde82017fe685404ef9197b56d3b3127006c",
+      "files": [
+        {
+          "path": "mechanisms/io/tm1637/Cargo.lock",
+          "source_mode_type_blob": "100644 blob 2630d32ab5f2c712b61d94753bbe60ff0eb38586",
+          "combined_mode_type_blob": "100644 blob 2630d32ab5f2c712b61d94753bbe60ff0eb38586",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/Cargo.toml",
+          "source_mode_type_blob": "100644 blob 7d82afe68c46afd62d05039a4fc27ac46f1eed95",
+          "combined_mode_type_blob": "100644 blob 7d82afe68c46afd62d05039a4fc27ac46f1eed95",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/README.md",
+          "source_mode_type_blob": "100644 blob b82d07b41cb4c31c4208a8dded61d188a057d103",
+          "combined_mode_type_blob": "100644 blob b82d07b41cb4c31c4208a8dded61d188a057d103",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/build.rs",
+          "source_mode_type_blob": "100644 blob bf78d43bb8f888fd9b0663d7d11ebb10ec8a8c5c",
+          "combined_mode_type_blob": "100644 blob bf78d43bb8f888fd9b0663d7d11ebb10ec8a8c5c",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/assigned.rs",
+          "source_mode_type_blob": "100644 blob 33418ef48d59be75ea34ba24690d08a6bd095e88",
+          "combined_mode_type_blob": "100644 blob 33418ef48d59be75ea34ba24690d08a6bd095e88",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/back.rs",
+          "source_mode_type_blob": "100644 blob 4ef16d6857c9d2d247d4a1ba9cb47199275154e4",
+          "combined_mode_type_blob": "100644 blob 4ef16d6857c9d2d247d4a1ba9cb47199275154e4",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/codec.rs",
+          "source_mode_type_blob": "100644 blob 81c978c8b968cb0849ca5a34b43a1e97cbe27e05",
+          "combined_mode_type_blob": "100644 blob 81c978c8b968cb0849ca5a34b43a1e97cbe27e05",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/contract.rs",
+          "source_mode_type_blob": "100644 blob b9d8fcc016f42439ea760eb4bafd305e346a8604",
+          "combined_mode_type_blob": "100644 blob b9d8fcc016f42439ea760eb4bafd305e346a8604",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/installation.rs",
+          "source_mode_type_blob": "100644 blob 5f7a749f2467d56e514fb04347556ddaa84663e2",
+          "combined_mode_type_blob": "100644 blob 5f7a749f2467d56e514fb04347556ddaa84663e2",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/installation_advertisement.rs",
+          "source_mode_type_blob": "100644 blob bb2836716dc9bb96c6cf487558840149e06d041d",
+          "combined_mode_type_blob": "100644 blob bb2836716dc9bb96c6cf487558840149e06d041d",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/installation_selected.rs",
+          "source_mode_type_blob": "100644 blob 7ef2a8b34a6799eb5338bca15be8cf737bbf3c54",
+          "combined_mode_type_blob": "100644 blob 7ef2a8b34a6799eb5338bca15be8cf737bbf3c54",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/lib.rs",
+          "source_mode_type_blob": "100644 blob da3b9881caa6fb9334c98ce9e3efef1de06c3a78",
+          "combined_mode_type_blob": "100644 blob da3b9881caa6fb9334c98ce9e3efef1de06c3a78",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/src/owner.rs",
+          "source_mode_type_blob": "100644 blob 218e63bbc5609851001d81015b1f55a088fb7a6a",
+          "combined_mode_type_blob": "100644 blob 218e63bbc5609851001d81015b1f55a088fb7a6a",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/tests/owner.rs",
+          "source_mode_type_blob": "100644 blob c979bcda21f98ae3985934c4439aec6907f07c53",
+          "combined_mode_type_blob": "100644 blob c979bcda21f98ae3985934c4439aec6907f07c53",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/tests/support/assigned.rs",
+          "source_mode_type_blob": "100644 blob d9117d5712b259651bcdcc632adb6cd820b26f6c",
+          "combined_mode_type_blob": "100644 blob d9117d5712b259651bcdcc632adb6cd820b26f6c",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/tests/support/fixture.rs",
+          "source_mode_type_blob": "100644 blob 12deb57e2ad0c0929bbf854350816a297d3b9d00",
+          "combined_mode_type_blob": "100644 blob 12deb57e2ad0c0929bbf854350816a297d3b9d00",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/tests/support/installation.rs",
+          "source_mode_type_blob": "100644 blob cc04f1e51a5dc10f779f1281bcfecab5fe1680cf",
+          "combined_mode_type_blob": "100644 blob cc04f1e51a5dc10f779f1281bcfecab5fe1680cf",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/tests/support/kernel.rs",
+          "source_mode_type_blob": "100644 blob 316b848f0bcb6c4f92838d5e663d9663a9533887",
+          "combined_mode_type_blob": "100644 blob 316b848f0bcb6c4f92838d5e663d9663a9533887",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/tests/support/packet.rs",
+          "source_mode_type_blob": "100644 blob 7620eca2ee8dd136b9af00de106841761eefb25f",
+          "combined_mode_type_blob": "100644 blob 7620eca2ee8dd136b9af00de106841761eefb25f",
+          "exact": true
+        },
+        {
+          "path": "mechanisms/io/tm1637/tests/support/selected_retained.rs",
+          "source_mode_type_blob": "100644 blob ea7e83cb1a9d917729cb9e84952e84c9c0446114",
+          "combined_mode_type_blob": "100644 blob ea7e83cb1a9d917729cb9e84952e84c9c0446114",
+          "exact": true
+        },
+        {
+          "path": "tools/xtask-dispatch/src/focused_check.rs",
+          "source_mode_type_blob": "100644 blob 91a8bcf3be49f9df459417fd969b1f29a93d5474",
+          "combined_mode_type_blob": "100644 blob 91a8bcf3be49f9df459417fd969b1f29a93d5474",
+          "exact": true
+        },
+        {
+          "path": "tools/xtask/src/suites/tm1637_output.rs",
+          "source_mode_type_blob": "100644 blob 06aed633f39f5c2935a5c97f7bb59d71650ca9ef",
+          "combined_mode_type_blob": "100644 blob 06aed633f39f5c2935a5c97f7bb59d71650ca9ef",
+          "exact": true
+        }
+      ]
+    },
+    {
+      "source": "851159dd057d55b15667a42e58c9d6fe52db0f06",
+      "merge_base": "533c18cbb1d0a6e6ba22f7c2daf18a9d6c358ca2",
+      "files": [
+        {
+          "path": "architecture/plot/src/canonical_expansion/retained.rs",
+          "source_mode_type_blob": "100644 blob d856c57eb6741e707641c5fc93e42ebbeccfd5f0",
+          "combined_mode_type_blob": "100644 blob d856c57eb6741e707641c5fc93e42ebbeccfd5f0",
+          "exact": true
+        },
+        {
+          "path": "architecture/plot/tests/retained_resource_reference.rs",
+          "source_mode_type_blob": "100644 blob 8bc0ad4845e793643987302c363efd888ce2b7bb",
+          "combined_mode_type_blob": "100644 blob 8bc0ad4845e793643987302c363efd888ce2b7bb",
+          "exact": true
+        }
+      ]
+    },
+    {
+      "source": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+      "merge_base": "960762cfe41d4491398d6b8e5487bba1d2c97276",
+      "files": [
+        {
+          "path": "targets/conduitos/src/protected_compositor.rs",
+          "source_mode_type_blob": "100644 blob 69daa0ea84a675e70ecb478d0f58013df092ec9c",
+          "combined_mode_type_blob": "100644 blob 69daa0ea84a675e70ecb478d0f58013df092ec9c",
+          "exact": true
+        },
+        {
+          "path": "targets/conduitos/src/protected_compositor/request_owner.rs",
+          "source_mode_type_blob": "100644 blob adef09ab3f306cc059f3e50216fd6807ad215753",
+          "combined_mode_type_blob": "100644 blob adef09ab3f306cc059f3e50216fd6807ad215753",
+          "exact": true
+        },
+        {
+          "path": "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+          "source_mode_type_blob": "100644 blob 3bc21b6a3689cbffd067f3920daace0c632479c4",
+          "combined_mode_type_blob": "100644 blob 3bc21b6a3689cbffd067f3920daace0c632479c4",
+          "exact": true
+        },
+        {
+          "path": "targets/conduitos/tests/compositor_request_owner.rs",
+          "source_mode_type_blob": "100644 blob b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c",
+          "combined_mode_type_blob": "100644 blob b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c",
+          "exact": true
+        }
+      ]
+    }
+  ],
+  "original_tm_owner_preservation": {
+    "source": "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+    "reviewed_retention_repair": "b584f81559e59b0ccbf1e93225c7547007c7bba2",
+    "only_intentionally_superseded_paths": [
+      "mechanisms/io/tm1637/README.md",
+      "mechanisms/io/tm1637/src/installation.rs",
+      "mechanisms/io/tm1637/src/installation_selected.rs",
+      "mechanisms/io/tm1637/src/owner.rs",
+      "mechanisms/io/tm1637/tests/owner.rs",
+      "mechanisms/io/tm1637/tests/support/selected_retained.rs"
+    ],
+    "all_other_original_feature_blobs_preserved": true
+  },
+  "prior_root_features_preserved_against_current_accepted_base": [
+    {
+      "path": "Cargo.lock",
+      "accepted_base_mode_type_blob": "100644 blob 285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "combined_mode_type_blob": "100644 blob 285364ea28d2408d4c77288c81b3baa8c6ca0f72"
+    },
+    {
+      "path": "architecture/plan-lowering/src/assigned_configuration.rs",
+      "accepted_base_mode_type_blob": "100644 blob 7674333bbde4011a6e0f203c0b1b996b1a462984",
+      "combined_mode_type_blob": "100644 blob 7674333bbde4011a6e0f203c0b1b996b1a462984"
+    },
+    {
+      "path": "architecture/plan-lowering/src/assigned_operation_input.rs",
+      "accepted_base_mode_type_blob": "100644 blob 0700e1c456c08a46532811a6d382cf27c924e027",
+      "combined_mode_type_blob": "100644 blob 0700e1c456c08a46532811a6d382cf27c924e027"
+    },
+    {
+      "path": "architecture/plan-lowering/src/selected_assigned_operation.rs",
+      "accepted_base_mode_type_blob": "100644 blob 0e58f450af54f4f5aa2e62f887d1aa74c88b77a7",
+      "combined_mode_type_blob": "100644 blob 0e58f450af54f4f5aa2e62f887d1aa74c88b77a7"
+    },
+    {
+      "path": "architecture/plan-lowering/src/selected_operation.rs",
+      "accepted_base_mode_type_blob": "100644 blob 4605cc280c30ec7458bf9ca7705b7b28af2549f7",
+      "combined_mode_type_blob": "100644 blob 4605cc280c30ec7458bf9ca7705b7b28af2549f7"
+    },
+    {
+      "path": "bodies/environment/runtime/tests/support/pulse.rs",
+      "accepted_base_mode_type_blob": "100644 blob 1649af261f278c7c0a970cf20480bc4591db4040",
+      "combined_mode_type_blob": "100644 blob 1649af261f278c7c0a970cf20480bc4591db4040"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/Cargo.lock",
+      "accepted_base_mode_type_blob": "100644 blob 75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "combined_mode_type_blob": "100644 blob 75a7354df7e81203e56f36bab2d4a7391b47c930"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/Cargo.toml",
+      "accepted_base_mode_type_blob": "100644 blob 874933e8ff6bc0ca1909029e19931ee19531329e",
+      "combined_mode_type_blob": "100644 blob 874933e8ff6bc0ca1909029e19931ee19531329e"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/README.md",
+      "accepted_base_mode_type_blob": "100644 blob 5a3c6fd100cb7e1fbce5565c1ae41189a211570e",
+      "combined_mode_type_blob": "100644 blob 5a3c6fd100cb7e1fbce5565c1ae41189a211570e"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/src/assigned.rs",
+      "accepted_base_mode_type_blob": "100644 blob 5084beaf68ba36d762112bfbac3f3704fc91c42d",
+      "combined_mode_type_blob": "100644 blob 5084beaf68ba36d762112bfbac3f3704fc91c42d"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/src/installation.rs",
+      "accepted_base_mode_type_blob": "100644 blob 3bdd402ba2d33914fd2c359e4f210599faea3eb5",
+      "combined_mode_type_blob": "100644 blob 3bdd402ba2d33914fd2c359e4f210599faea3eb5"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/src/lib.rs",
+      "accepted_base_mode_type_blob": "100644 blob f3396c6a3e2570017c98845b30d459f4aae19ab9",
+      "combined_mode_type_blob": "100644 blob f3396c6a3e2570017c98845b30d459f4aae19ab9"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/src/owner.rs",
+      "accepted_base_mode_type_blob": "100644 blob 3ac6fb8ef2ead8110c414519216d7e7adb9f1dd9",
+      "combined_mode_type_blob": "100644 blob 3ac6fb8ef2ead8110c414519216d7e7adb9f1dd9"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/tests/support/assigned.rs",
+      "accepted_base_mode_type_blob": "100644 blob 453cf434fa2313ebe8070acf4dbac3bb3f2412e8",
+      "combined_mode_type_blob": "100644 blob 453cf434fa2313ebe8070acf4dbac3bb3f2412e8"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/tests/support/exhausted_retirement.rs",
+      "accepted_base_mode_type_blob": "100644 blob 3e1159763d78ef0327392771c7af910763bf42d1",
+      "combined_mode_type_blob": "100644 blob 3e1159763d78ef0327392771c7af910763bf42d1"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/tests/support/fixture.rs",
+      "accepted_base_mode_type_blob": "100644 blob f713d7bacc163a439580b523110326cb726bb561",
+      "combined_mode_type_blob": "100644 blob f713d7bacc163a439580b523110326cb726bb561"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/tests/support/installation.rs",
+      "accepted_base_mode_type_blob": "100644 blob 04d4cf6ad6834ae87481c0964ada9125512c2b33",
+      "combined_mode_type_blob": "100644 blob 04d4cf6ad6834ae87481c0964ada9125512c2b33"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/tests/support/selected_binding.rs",
+      "accepted_base_mode_type_blob": "100644 blob 7892e9fba2bb4cece56cea59a43530220cdc2b59",
+      "combined_mode_type_blob": "100644 blob 7892e9fba2bb4cece56cea59a43530220cdc2b59"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/tests/wait_owner.rs",
+      "accepted_base_mode_type_blob": "100644 blob b0ffca7211da20af22650a31254236d15d236f07",
+      "combined_mode_type_blob": "100644 blob b0ffca7211da20af22650a31254236d15d236f07"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/tests/pulse_owner.rs",
+      "accepted_base_mode_type_blob": "100644 blob 295e6e28b77d4984f89cbc0e74d8b6a80e67c38a",
+      "combined_mode_type_blob": "100644 blob 295e6e28b77d4984f89cbc0e74d8b6a80e67c38a"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/tests/support/exhausted_retirement.rs",
+      "accepted_base_mode_type_blob": "100644 blob b2622903c3a9d9e4da8173d0553c535ea5247100",
+      "combined_mode_type_blob": "100644 blob b2622903c3a9d9e4da8173d0553c535ea5247100"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/tests/support/owner_fixture.rs",
+      "accepted_base_mode_type_blob": "100644 blob 76caf77629eb6600b813b5a0a43990ccbcf79e6d",
+      "combined_mode_type_blob": "100644 blob 76caf77629eb6600b813b5a0a43990ccbcf79e6d"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/Cargo.toml",
+      "accepted_base_mode_type_blob": "100644 blob a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "combined_mode_type_blob": "100644 blob a80eacdcc53905f59243fe5fe3889ba34c48d567"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/README.md",
+      "accepted_base_mode_type_blob": "100644 blob 0147d1009d4209f4f15a18083241692b85593a42",
+      "combined_mode_type_blob": "100644 blob 0147d1009d4209f4f15a18083241692b85593a42"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+      "accepted_base_mode_type_blob": "100644 blob 679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "combined_mode_type_blob": "100644 blob 679cd703df239a95d8c9c1410f6b4a74a3d8dd7f"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/record.rs",
+      "accepted_base_mode_type_blob": "100644 blob 01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "combined_mode_type_blob": "100644 blob 01081e1ad83b3f4648d2baf98b849078378a4f95"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+      "accepted_base_mode_type_blob": "100644 blob 6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "combined_mode_type_blob": "100644 blob 6b2cbea18a54e899c1081d5fd5990ff1ab0b0801"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+      "accepted_base_mode_type_blob": "100644 blob 56695afe99420befd10aa7b21ab56f60446edace",
+      "combined_mode_type_blob": "100644 blob 56695afe99420befd10aa7b21ab56f60446edace"
+    },
+    {
+      "path": "semantics/face/src/manifestation.rs",
+      "accepted_base_mode_type_blob": "100644 blob 5dd65d69389bf6f634b85d560ff016b09de29edb",
+      "combined_mode_type_blob": "100644 blob 5dd65d69389bf6f634b85d560ff016b09de29edb"
+    },
+    {
+      "path": "semantics/face/src/manifestation/validation.rs",
+      "accepted_base_mode_type_blob": "100644 blob 949df0102751c45d7284f136c1946a5db8e3b36f",
+      "combined_mode_type_blob": "100644 blob 949df0102751c45d7284f136c1946a5db8e3b36f"
+    },
+    {
+      "path": "semantics/face/src/mask_show.rs",
+      "accepted_base_mode_type_blob": "100644 blob 1e3d491e9a514b70d079b1ac87f9c738ab8ec46a",
+      "combined_mode_type_blob": "100644 blob 1e3d491e9a514b70d079b1ac87f9c738ab8ec46a"
+    },
+    {
+      "path": "semantics/face/tests/mask_plot.rs",
+      "accepted_base_mode_type_blob": "100644 blob d65cc313925fb0feb9557b016e910d9ab7dffe31",
+      "combined_mode_type_blob": "100644 blob d65cc313925fb0feb9557b016e910d9ab7dffe31"
+    },
+    {
+      "path": "targets/browser/runtime/Cargo.toml",
+      "accepted_base_mode_type_blob": "100644 blob 64250fbaad3d8df6faa561609513f2bc111460b1",
+      "combined_mode_type_blob": "100644 blob 64250fbaad3d8df6faa561609513f2bc111460b1"
+    },
+    {
+      "path": "targets/browser/runtime/src/resource_snapshot.rs",
+      "accepted_base_mode_type_blob": "100644 blob ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "combined_mode_type_blob": "100644 blob ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+      "accepted_base_mode_type_blob": "100644 blob 453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "combined_mode_type_blob": "100644 blob 453ca95a6caf09d3258cf5a56f2cf00634043426"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+      "accepted_base_mode_type_blob": "100644 blob c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "combined_mode_type_blob": "100644 blob c38426d32e48fe7796ce54ab1a54d7c29a7d23d1"
+    },
+    {
+      "path": "targets/raspberry-pi/deployment/linux/bootstrap.py",
+      "accepted_base_mode_type_blob": "100644 blob 095815d1f6d0e773df25c11acb5870e198c9e2cb",
+      "combined_mode_type_blob": "100644 blob 095815d1f6d0e773df25c11acb5870e198c9e2cb"
+    },
+    {
+      "path": "tools/xtask/src/commands/ci/standalone_locks.rs",
+      "accepted_base_mode_type_blob": "100644 blob 8dfdcde34704a90a1dc1d2e4d2c0b57445586a75",
+      "combined_mode_type_blob": "100644 blob 8dfdcde34704a90a1dc1d2e4d2c0b57445586a75"
+    },
+    {
+      "path": "tools/xtask/src/suites/monotonic_wait.rs",
+      "accepted_base_mode_type_blob": "100644 blob b2111536fb17157196074793cba817c5e717430b",
+      "combined_mode_type_blob": "100644 blob b2111536fb17157196074793cba817c5e717430b"
+    },
+    {
+      "path": "tools/xtask/src/suites/resource_snapshot.rs",
+      "accepted_base_mode_type_blob": "100644 blob d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "combined_mode_type_blob": "100644 blob d4d92513394bb0a2840d419a2e5cb1d39e7f01d1"
+    },
+    {
+      "path": "tools/xtask/src/suites/workspace_shards.rs",
+      "accepted_base_mode_type_blob": "100644 blob a7eedf75a2465d677da5611a53cb0384ff421cbd",
+      "combined_mode_type_blob": "100644 blob a7eedf75a2465d677da5611a53cb0384ff421cbd"
+    }
+  ],
+  "dispatcher": {
+    "old_timer_snapshot_routes_and_test_vectors_exactly_preserved": true,
+    "only_additions": [
+      "tm1637_output module",
+      "tm1637-output complete STEPS/path/include_bytes selector arm",
+      "tm1637-output complete-suite exact-route testvector",
+      "tm1637-output --dry-run full-parser testvector"
+    ],
+    "all_other_code_exact_after_removing_additions_and_normalizing_blank_lines": true
+  },
+  "findings": [],
+  "scope": "Independent read-only localGitcompositionaudit; no builds/network/CIpoll/sourcecacheorbranchwrites. No claimofowningtests, Candidate/Integrationorhardwarecompletion.",
+  "limits": [
+    "Zero conflicts isRootmergeprocessrecord; thisauditorindependentlyverifiesresultingexactsourceunion ratherthanreplayingmerge.",
+    "Reviewedretentionrepairsemanticcorrectnessbelongsowningreview; thisauditprovesexactinclusion/sourcecustody.",
+    "Currentacceptedbaseblobspreserved evenwhereearlierd677test/dispatcherblobsweresubsequentlystrengthened."
+  ]
+}

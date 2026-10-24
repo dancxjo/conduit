@@ -1,0 +1,12 @@
+{
+  "source": "ed1b1cdb9e4cd8edd618211a189bcbd863240e18",
+  "tree": "f1f9a85cc9756ca2a22371b48ebb02c8b6ce5014",
+  "command": "cargo +stable xtask check tm1637-output",
+  "exit_code": 0,
+  "log": "work/6369-refreshed-binding-proof.log",
+  "log_sha256": "fa6578d267af6ce643adb44006b9feb53dfc9e7a4b992e062b136c348df8cb76",
+  "tests": 14,
+  "strict_supported_lint": true,
+  "wire_only_check": true,
+  "completed_at": "2026-10-24T05:13:41.066636+00:00"
+}

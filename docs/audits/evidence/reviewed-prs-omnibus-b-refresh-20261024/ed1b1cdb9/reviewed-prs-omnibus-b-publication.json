@@ -1,0 +1,12 @@
+{
+  "source": "ef5bba08ec65469a332c463b94d3a2be6210a841",
+  "source_branch": "integrate/reviewed-prs-20261024-b",
+  "evidence_commit": "85c0b1400c51f60ac5aef5698be06a263e48de36",
+  "evidence_branch": "evidence/reviewed-prs-omnibus-b-20261024",
+  "prefix": "docs/audits/evidence/reviewed-prs-omnibus-b-20261024/ef5bba08e",
+  "evidence_url": "https://github.com/dancxjo/conduit/tree/85c0b1400c51f60ac5aef5698be06a263e48de36/docs/audits/evidence/reviewed-prs-omnibus-b-20261024/ef5bba08e",
+  "pr_url": "https://github.com/dancxjo/conduit/pull/6369",
+  "remote_verified": true,
+  "files": 16,
+  "observed_utc": "2026-10-24T04:23:49.831387+00:00"
+}
