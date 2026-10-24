@@ -11,7 +11,9 @@ mod arithmetic_policy;
 mod execution;
 mod law_guard;
 use arithmetic_policy::ArithmeticPolicy;
-pub use law_guard::{PreparedExpressionLawBounds, PreparedExpressionLawCapacityReport};
+pub use law_guard::{
+    native_law_failure_detail, PreparedExpressionLawBounds, PreparedExpressionLawCapacityReport,
+};
 mod byte_observation;
 mod equality;
 mod evaluate;

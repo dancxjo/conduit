@@ -331,3 +331,19 @@ impl PreparedPortableExpressionEvaluator {
         }
     }
 }
+
+/// Stable expression Back details; existing arithmetic/constraint codes stay fixed.
+pub fn native_law_failure_detail(reason: &PreparedNativeRefusal) -> u16 {
+    match reason {
+        PreparedNativeRefusal::Bounds => 301,
+        PreparedNativeRefusal::MissingNativeMetadata => 302,
+        PreparedNativeRefusal::ConflictingNativeMetadata => 303,
+        PreparedNativeRefusal::InvalidProgram => 304,
+        PreparedNativeRefusal::Shape => 305,
+        PreparedNativeRefusal::Contract { .. } => 306,
+        PreparedNativeRefusal::Invariant { .. } => 307,
+        PreparedNativeRefusal::Evaluation { .. } => 308,
+        PreparedNativeRefusal::State => 309,
+        PreparedNativeRefusal::Cancelled => 310,
+    }
+}

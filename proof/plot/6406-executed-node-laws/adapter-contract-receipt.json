@@ -1,0 +1,40 @@
+{
+  "started": 1792872729.8017259,
+  "steps": [
+    {
+      "name": "format",
+      "argv": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all"
+      ],
+      "exit_code": 0,
+      "ended": 1792872741.6906319
+    },
+    {
+      "name": "std-contract",
+      "argv": [
+        "cargo",
+        "+stable",
+        "check",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "ended": 1792872967.2192621
+    }
+  ],
+  "base": "c5a78be85",
+  "source_hashes": {
+    "architecture/plot/src/expression_prepared.rs": "389ff8c809645e598eff7a111a0fea9ac8d5b97fcf48eb41659382583a1215dc",
+    "architecture/plot/src/expression_prepared/law_guard.rs": "38a15e0b856f68e31a175960a4f5869b94e3441bed317ba1f48d49033cd32670",
+    "targets/browser/runtime/src/installed_browser/pure_expression.rs": "d6237a540418b1133cecc3a52295d9d2c7cf4379a540069e695719db718c8173",
+    "targets/std/src/installed_std/pure_expression_back.rs": "72005536cf316f2d01cd3e332d767afa4c4b097c6e5729bdd3fa03a06a4b0d7c"
+  },
+  "proof_class": "Std library contract compilation, including browser dependency; no browser product/new offer proof",
+  "g2": "active session44758, do not alter measured Source",
+  "captured": 1792873617.7237582
+}

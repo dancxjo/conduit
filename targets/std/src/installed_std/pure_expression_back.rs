@@ -244,6 +244,9 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
         | conduit_plot::PortableExpressionEvaluationRefusal::OutputValueConstraint(_) => {
             conduit_plot::value_contract_failure_detail(refusal)
         }
+        conduit_plot::PortableExpressionEvaluationRefusal::NativeLaw(reason) => {
+            conduit_plot::native_law_failure_detail(reason)
+        }
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidInput => 1,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,

@@ -28,7 +28,10 @@ successful reuse/refusal. Formatting and strict Plot checks pass. The initial
 fixture constructor error and the large-enum lint refusal (repaired by boxing
 guards during preparation) are retained beside the final focused result.
 
-The actual Std contract compile and four original G2 guarded preparations are
-running separately. These results do not authenticate a law expression envelope,
+The Std library contract compile passes, including the browser dependency.
+Its original non-exhaustive refusal match is retained, with shared Native-law
+details 301..310 added to both adapters. This is compilation, not browser
+product or newly installed offer proof. Four original G2 guarded preparations
+are running separately. These results do not authenticate a law expression envelope,
 produce its canonical Kind, install an automatic Std offer, or prove the four
 ordinary G2 Plan/Play/Host Call journeys. Those remain required for #6406.
