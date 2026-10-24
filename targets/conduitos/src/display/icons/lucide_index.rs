@@ -31,5 +31,7 @@ pub(super) const fn index(icon: Icon) -> usize {
         Icon::Lull => 25,
         Icon::Library => 26,
         Icon::Collection => 27,
+        Icon::Add => 28,
+        Icon::Remove => 29,
     }
 }

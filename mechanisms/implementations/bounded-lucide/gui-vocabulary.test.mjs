@@ -29,3 +29,14 @@ test('canonical icon wire tokens share the pinned geometry keys without caption 
   assert.equal(iconForToken('face'), 'Face');
   for (const value of ['Clock', 'text', 'repeating flow', 'generic Gear; icon metadata missing', 'clock@2', 'settings']) assert.equal(iconForToken(value), undefined);
 });
+
+
+test('Todo add and remove use exact intent identities and preserve unknown fallback', () => {
+  assert.equal(iconForIntent('todo/add@1'), 'Add');
+  assert.equal(iconForIntent('todo/remove@1'), 'Remove');
+  assert.equal(iconForToken('conduit-add'), 'Add');
+  assert.equal(iconForToken('conduit-remove'), 'Remove');
+  for (const value of ['Add task', 'Remove task', 'todo/add@2', 'custom/todo/remove@1']) {
+    assert.equal(iconForIntent(value), undefined);
+  }
+});

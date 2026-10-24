@@ -32,6 +32,36 @@ test('semantic icons remain bounded decoration without the Look stylesheet', asy
   await expect(face.getByRole('button', { name: 'Complete task', exact: true })).toBeEnabled();
 });
 
+test('Todo add and remove icons preserve accessible names and exact action payloads', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const decorated = { ...view, actions: [
+    { ...view.actions[0], identity: 'fixture/add', intent: 'todo/add@1', name: 'Add task' },
+    { ...view.actions[0], identity: 'fixture/remove', intent: 'todo/remove@1', name: 'Remove task' },
+    { ...view.actions[0], identity: 'fixture/custom', intent: 'custom/todo/remove@1', name: 'Custom task action' },
+  ] };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    const element = document.createElement('conduit-owner-face');
+    globalThis.calls = [];
+    element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    document.body.replaceChildren(element);
+  }, decorated);
+  const face = page.locator('conduit-owner-face');
+  for (const [index, name] of ['Add task', 'Remove task'].entries()) {
+    if (index) await face.evaluate((node, view) => node.show(view, {
+      invoke: async call => { globalThis.calls.push(call); },
+    }), decorated);
+    const button = face.getByRole('button', { name, exact: true });
+    await expect(button.locator('svg')).toHaveAttribute('aria-hidden', 'true');
+    await button.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls.at(-1))).toEqual({
+      view: decorated, action: decorated.actions[index], arguments: [],
+    });
+  }
+  await expect(face.getByRole('button', { name: 'Custom task action', exact: true }).locator('svg')).toHaveCount(0);
+});
+
 test('owner Face parts swap density while preserving controls and accessible actions', async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   await page.evaluate(async view => {

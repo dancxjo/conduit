@@ -39,6 +39,8 @@ pub(in crate::native_face_scene) fn for_intent(intent: &str) -> Option<Icon> {
         "conduit.intent/open-resident-plot@1" => Icon::Face,
         "patchbay/select-plot@1" => Icon::Face,
         "conduit.intent/open-plot-library@1" => Icon::Library,
+        "todo/add@1" => Icon::Add,
+        "todo/remove@1" => Icon::Remove,
         _ => return None,
     })
 }

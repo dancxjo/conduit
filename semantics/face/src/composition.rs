@@ -44,10 +44,12 @@ pub enum FaceIconKey {
     Lull,
     Library,
     Collection,
+    Add,
+    Remove,
 }
 
 impl FaceIconKey {
-    pub const ALL: [Self; 28] = [
+    pub const ALL: [Self; 30] = [
         Self::Clock,
         Self::Repeat2,
         Self::Face,
@@ -76,6 +78,8 @@ impl FaceIconKey {
         Self::Lull,
         Self::Library,
         Self::Collection,
+        Self::Add,
+        Self::Remove,
     ];
     pub const ALL_UPSTREAM: [Self; 10] = [
         Self::Clock,
@@ -120,6 +124,8 @@ impl FaceIconKey {
             Self::Lull => "conduit-lull",
             Self::Library => "conduit-library",
             Self::Collection => "conduit-collection",
+            Self::Add => "conduit-add",
+            Self::Remove => "conduit-remove",
         }
     }
 
@@ -153,6 +159,8 @@ impl FaceIconKey {
             Self::Lull => "lull",
             Self::Library => "library",
             Self::Collection => "collection",
+            Self::Add => "add",
+            Self::Remove => "remove",
         }
     }
 

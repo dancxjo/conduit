@@ -1,6 +1,6 @@
 {
   "upstream": "b7b6ecf1316d0af64c97a6b0392abe5e816a8e30",
-  "mapping_sha256": "e4bb40b95f92397e7bfad6cba90a0d6b181bd99a23269719b01d1aaf534c96c4",
+  "mapping_sha256": "158aee37cd1f3877789b97abfaf906020c5c6b8a6aefc26364d82ed77ecc8183",
   "chromium": "151.0.7922.34",
   "edge": 192,
   "threshold": 128,
@@ -32,7 +32,9 @@
     "Inspect",
     "Lull",
     "Library",
-    "Collection"
+    "Collection",
+    "Add",
+    "Remove"
   ],
   "inputs": {
     "clock": "bba5f9ab8346c7486cb0770c02b2192a70854201202a3e5652c88f3c2f70cc2f",
@@ -62,8 +64,10 @@
     "scan-search": "a2919e740bb122bb737542119c1d3c1042bcd62c79d702804553cc95ac768e1e",
     "moon": "205b959e940d5841f0ce1d09c933153da9d9c94130a54d5cc0c68c2af1d403da",
     "library": "892ba1bd1ee2e5bba320eea1c30c83ed83055ded5a0a0c0e7e4ee5fb06c307a5",
-    "layers": "ce16d0a955e3581cda17f6b2fd5c5bc2034b405f9cecc31c8ebb8495b4afc1bb"
+    "layers": "ce16d0a955e3581cda17f6b2fd5c5bc2034b405f9cecc31c8ebb8495b4afc1bb",
+    "plus": "7f6af73bf1ff6c4bca3f18351c8d1bdec6749c0c2530c4de5da85d520c21df17",
+    "trash-2": "27299f69ad7c6272be64b1b8e2d48cbd6dcf0ef0d4f92827a1affa945c91700e"
   },
-  "sha256": "1cd4eb24663b9af1e05e2957bcc06cea03705eb0c646ff734d9f9cee2fb5a572",
-  "bytes": 129024
+  "sha256": "928e7a2369ca499c9a64af0abc63c734bc032962d1afa0c2396a832e2e35cbd6",
+  "bytes": 138240
 }

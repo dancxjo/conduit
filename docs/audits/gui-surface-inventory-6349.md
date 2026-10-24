@@ -8,8 +8,8 @@ always retained; icons are decoration and do not select actions or grant authori
 
 `mechanisms/implementations/bounded-lucide/gui-vocabulary.json` owns exact
 role/intent-to-icon mappings. Generated browser geometry and native enum/index
-mappings consume the pinned Lucide subset. Native preparation uses 28 finite
-192×192 one-bit masks (129024 bytes); browser inline SVG uses the same silhouettes.
+mappings consume the pinned Lucide subset. Native preparation uses 30 finite
+192×192 one-bit masks (138240 bytes); browser inline SVG uses the same silhouettes.
 The owner Face component never guesses intent from captions or opaque action IDs.
 Unknown role/intent remains complete text without an invented symbol. Missing Look
 retains default controls; unsupported native geometry falls back to the measured
@@ -58,3 +58,12 @@ success. All distributed applications must carry the Lucide notice.
   targets beside screenshots. Record deliberate differences from #6174's reference.
 - Publication/integration remains the original owner contract. This draft uses
   local proof and skips CI while visual work continues; no parent closure claim.
+
+## Todo add/remove follow-up
+
+Exact `todo/add@1` and `todo/remove@1` now use the shared pinned plus and trash
+icons in browser and native mappings. Existing complete/reopen icons remain.
+[Local renderer preview and proof boundaries](evidence/gui-look-6349-todo-icons/README.md)
+cover accessible names, exact invocation payloads and unknown-intent fallback.
+The native asset generator reproduces all 30 masks while preserving the old 28
+byte-for-byte; current-source native runtime/QEMU proof remains open.

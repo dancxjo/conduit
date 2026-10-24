@@ -71,7 +71,11 @@ mod tests {
             for_intent("conduit.intent/creche.name@1"),
             Some(FaceIconKey::Type)
         );
+        assert_eq!(for_intent("todo/add@1"), Some(FaceIconKey::Add));
+        assert_eq!(for_intent("todo/remove@1"), Some(FaceIconKey::Remove));
         for intent in [
+            "todo/add@2",
+            "custom/todo/remove@1",
             "Birth Body",
             "creche.birth",
             "custom/conduit.intent/creche.birth@1",

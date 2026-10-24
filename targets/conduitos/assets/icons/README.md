@@ -1,12 +1,12 @@
 # Prepared native Lucide masks
 
 The shared `mechanisms/implementations/bounded-lucide/gui-vocabulary.json` maps
-all 28 `FaceIconKey` values to the pinned, licensed SVG subset. Existing wire
+all 30 `FaceIconKey` values to the pinned, licensed SVG subset. Existing wire
 tokens retain their identity; search, inspection, lull, library and collection
 keys extend the finite vocabulary. Generated browser/native mappings use the
 same role and offered action intent definitions.
 
-`lucide-192.bin` contains exactly 28 packed 192×192 one-bit silhouettes (129024
+`lucide-192.bin` contains exactly 30 packed 192×192 one-bit silhouettes (138240
 bytes), in vocabulary order. Coordinates retain the eighth-pixel icon coverage
 contract and fixed 4×4 per-pixel blend. Lookup has constant work and no runtime
 asset loading, parsing or allocation. No graphics command limit is widened.

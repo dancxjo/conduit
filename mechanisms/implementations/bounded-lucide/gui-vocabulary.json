@@ -28,7 +28,9 @@
     "Inspect": "scan-search",
     "Lull": "moon",
     "Library": "library",
-    "Collection": "layers"
+    "Collection": "layers",
+    "Add": "plus",
+    "Remove": "trash-2"
   },
   "roles": {
     "Body": "Body",
@@ -63,6 +65,8 @@
     "conduit.intent/open-body-overview@1": "Body",
     "conduit.intent/open-resident-plot@1": "Face",
     "patchbay/select-plot@1": "Face",
-    "conduit.intent/open-plot-library@1": "Library"
+    "conduit.intent/open-plot-library@1": "Library",
+    "todo/add@1": "Add",
+    "todo/remove@1": "Remove"
   }
 }
