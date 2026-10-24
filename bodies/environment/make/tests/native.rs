@@ -173,6 +173,8 @@ fn real_authored_source_is_prepared_against_supplied_offers_without_effects() {
 
 #[path = "support/body.rs"]
 mod body_support;
+#[path = "support/native_mask_topology.rs"]
+mod native_mask_topology;
 use body_support::start_body;
 fn body_owner(
     prepared: &PreparedNativeAppliance,
