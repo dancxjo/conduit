@@ -127,6 +127,9 @@ pub(super) fn retain(
     let mut refusal_seen = false;
     let mut recovered = false;
     let mut body = None;
+    let mut unavailable = 0;
+    let mut stale_admissions = Vec::new();
+    let mut stale_recovered = false;
     for action in &actions {
         if action["schema"] != "conduit.native-action/v1" {
             return Err(refusal("unexpected native action schema"));
@@ -154,15 +157,25 @@ pub(super) fn retain(
             validate_source_interaction(face, action)?;
             accepted += 1;
             recovered |= refusal_seen;
+            stale_recovered |= !stale_admissions.is_empty();
         } else if let Some(rejection) = action["disposition"].get("Refused") {
-            if rejection["reason"].as_str().is_none_or(str::is_empty)
-                || action["before"] != action["after"]
-                || !face.actions.iter().any(|candidate| {
-                    candidate.intent == action["requested_intent"].as_str().unwrap_or("")
-                        && !matches!(candidate.availability, FaceActionAvailability::Available)
-                })
-            {
-                return Err(refusal("installed unavailable refusal changed owner or lacks unavailable source action"));
+            match rejection["reason"].as_str() {
+                Some("UnavailableAction") => {
+                    if !face.actions.iter().any(|candidate| {
+                        candidate.intent == action["requested_intent"].as_str().unwrap_or("")
+                            && !matches!(candidate.availability, FaceActionAvailability::Available)
+                    }) {
+                        return Err(refusal(
+                            "installed unavailable refusal lacks unavailable source action",
+                        ));
+                    }
+                    unavailable += 1;
+                }
+                Some("StaleFace") => {
+                    stale_admissions.push(validate_stale_action(face, &faces[index], action)?);
+                    stale_recovered = false;
+                }
+                _ => return Err(refusal("unrecognized installed refusal reason")),
             }
             refused += 1;
             refusal_seen = true;
@@ -170,9 +183,14 @@ pub(super) fn retain(
             return Err(refusal("native action lacks terminal disposition"));
         }
     }
-    if accepted == 0 || refused == 0 || !recovered {
+    if accepted == 0
+        || unavailable == 0
+        || !recovered
+        || stale_admissions.is_empty()
+        || !stale_recovered
+    {
         return Err(refusal(
-            "native journey needs accepted, unavailable-refused, and fresh recovery actions",
+            "native journey needs unavailable and stale refusals followed by fresh accepted recovery",
         ));
     }
     let evidence = json!({"schema":"conduit.native-shell/paired-linear@1",
@@ -186,13 +204,127 @@ pub(super) fn retain(
                 "precondition":"awake","completion":"CONDUIT_PRODUCT_ACTION handled wake"}},
         "pointer":{"status":"unsupported","reason":"normal product loop does not route pointer actions"},
         "browser":{"status":"unsupported","reason":"no installed source-equivalent native shell browser route"},
-        "stale_show_replay":{"coverage":"separate deterministic admission suite; not asserted by this harness","installed_enactment":false},
+        "stale_show_replay":{"coverage":"actual normal-product keyboard stale Face return",
+            "installed_enactment":true,"validated_event_count":stale_admissions.len(),
+            "fresh_action_after_refusal":stale_recovered,"admission_faces":stale_admissions},
         "parent_5356_acceptance":"open","physical_evidence":false,"human_enactment":false});
     fs::write(
         destination,
         serde_json::to_vec_pretty(&evidence).map_err(|error| refusal(error.to_string()))?,
     )
     .map_err(io_error)
+}
+
+fn validate_stale_action(
+    source: &Face,
+    record: &Value,
+    action: &Value,
+) -> Result<Value, ConduitosError> {
+    validate_owner_effect(action)?;
+    validate_source_interaction(source, action)?;
+    let show: conduit_face::MaskShow = serde_json::from_value(record["mask_show"].clone())
+        .map_err(|error| refusal(format!("actual source MaskShow required: {error}")))?;
+    let interaction: FaceInteraction = serde_json::from_value(action["interaction"].clone())
+        .map_err(|error| refusal(error.to_string()))?;
+    if serde_json::to_value(&show.show_id).map_err(|error| refusal(error.to_string()))?
+        != action["show_id"]
+    {
+        return Err(refusal(
+            "stale interaction differs from its actual source MaskShow",
+        ));
+    }
+    if json!(show.show) != record["show"]["manifestation"]
+        || json!(show.mask_plot) != record["show"]["mask_plot"]
+        || json!(show.planned_mask.plan.plan_id) != record["show"]["mask_plan_id"]
+    {
+        return Err(refusal(
+            "actual source MaskShow differs from retained native receipt",
+        ));
+    }
+    interaction
+        .validate_against(source, &show)
+        .map_err(|error| refusal(format!("invalid original source interaction: {error:?}")))?;
+    let admission = validate_admission_face(source, action)?;
+    if interaction.validate_against(&admission, &show)
+        != Err(conduit_face::FaceInteractionRefusal::StaleFace)
+    {
+        return Err(refusal(
+            "installed negative does not canonically refuse its old interaction as StaleFace",
+        ));
+    }
+    let linear = render_linear_face(&admission).map_err(|error| refusal(error.to_string()))?;
+    Ok(
+        json!({"interaction_id":interaction.identity,"admission_face":admission,
+        "linear":{"proof_class":"deterministic-semantic-reconstruction", "face_id":linear.face_id,
+            "face_revision":linear.revision,"lines":linear.lines,"encoded_bytes":linear.encoded_bytes,
+            "basis":admission.basis,"context":admission.interaction_context,"actions":admission.actions,
+            "acknowledged_show":null,"input_enactment":false}}),
+    )
+}
+
+fn validate_admission_face(source: &Face, action: &Value) -> Result<Face, ConduitosError> {
+    let admission: Face = serde_json::from_value(action["admission_face"].clone())
+        .map_err(|error| refusal(error.to_string()))?;
+    admission
+        .validate()
+        .map_err(|error| refusal(error.to_string()))?;
+    if admission.identity == source.identity || admission.revision <= source.revision {
+        return Err(refusal(
+            "stale refusal requires a genuinely newer canonical owner Face",
+        ));
+    }
+    let basis =
+        serde_json::to_value(&admission.basis).map_err(|error| refusal(error.to_string()))?;
+    for field in [
+        "body_id",
+        "wake_id",
+        "source_document_id",
+        "checked_plot_id",
+        "expanded_plot_id",
+        "plan_id",
+        "active_play_id",
+    ] {
+        if basis[field] != action["before"][field] {
+            return Err(refusal(
+                "stale admission Face basis differs from actual unchanged owner",
+            ));
+        }
+    }
+    let host = admission
+        .subjects
+        .iter()
+        .find(|subject| subject.role == conduit_face::FaceRole::Host)
+        .ok_or_else(|| refusal("admission Face lacks its actual Host"))?;
+    for (name, field) in [("host-id", "host_id"), ("boot-id", "boot_id")] {
+        if !admission.properties.iter().any(|property| property.subject == host.identity && property.name == name
+            && matches!(&property.value, conduit_face::FacePropertyValue::Identity(value) if Some(value.as_str()) == action["before"][field].as_str())) {
+            return Err(refusal("stale admission Face Host/Boot differs from owner"));
+        }
+    }
+    for (name, field) in [
+        ("offer-generation", "offer_generation"),
+        ("input-events", "input_count"),
+    ] {
+        if !admission.properties.iter().any(|property| property.subject == host.identity && property.name == name
+            && matches!(&property.value, conduit_face::FacePropertyValue::Count(value) if Some(*value) == action["before"][field].as_u64())) {
+            return Err(refusal("stale admission Face offer/input facts differ from owner"));
+        }
+    }
+    // Face revisions are independently scoped. Bind an owner revision only
+    // when the producer explicitly exposes that semantic property.
+    for property in admission
+        .properties
+        .iter()
+        .filter(|property| property.name == "owner-revision")
+    {
+        if !matches!(property.value, conduit_face::FacePropertyValue::Count(value) if Some(value) == action["before"]["revision"].as_u64())
+        {
+            return Err(refusal(
+                "explicit owner revision differs from admission Face",
+            ));
+        }
+    }
+    Ok(admission)
 }
 
 fn validate_receipt_order(serial: &str) -> Result<(), ConduitosError> {
@@ -341,99 +473,8 @@ fn validate_arguments(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn partial_native_receipts_are_not_checkpoints() {
-        let serial = concat!(
-            "CONDUIT_NATIVE_ACTION {\"requested_intent\":\"conduit.intent/wake@1\",\"disposition\":{\"Refused\":{\"reason\":\"unavailable\"}}}\n",
-            "CONDUIT_NATIVE_ACTION {\"requested_intent\":\"conduit.intent/wake@1\""
-        );
-        assert_eq!(refused_wake_count(serial).unwrap(), 1);
-    }
-
-    #[test]
-    fn malformed_complete_native_receipts_fail_closed() {
-        assert!(records("CONDUIT_NATIVE_FACE invalid\n", FACE_PREFIX).is_err());
-        let serial = "CONDUIT_NATIVE_FACE {}\n".repeat(MAX_RECORDS + 1);
-        assert!(records(&serial, FACE_PREFIX).is_err());
-    }
-
-    #[test]
-    fn refused_owner_receipt_cannot_hide_mutation_or_an_accepted_effect() {
-        let owner = json!({"body_id":"body/a", "born_sign_id":"born/a", "host_id":"host/a", "boot_id":"boot/a", "revision":7});
-        let record = json!({"before":owner, "after":owner,
-            "accepted_effects":0, "disposition":{"Refused":{"reason":"UnavailableAction"}}});
-        validate_owner_effect(&record).unwrap();
-        let mut changed = record.clone();
-        changed["after"]["revision"] = json!(8);
-        assert!(validate_owner_effect(&changed).is_err());
-        let mut forged = record;
-        forged["accepted_effects"] = json!(1);
-        assert!(validate_owner_effect(&forged).is_err());
-    }
-
-    #[test]
-    fn accepted_owner_receipt_requires_original_birth_and_terminal_operation() {
-        let before = json!({"body_id":"body/a", "born_sign_id":"born/a", "host_id":"host/a", "boot_id":"boot/a", "revision":7});
-        let mut after = before.clone();
-        after["revision"] = json!(8);
-        after["last_request_id"] = json!("request/8");
-        let record = json!({"before":before,"after":after,"accepted_effects":1,
-            "disposition":{"Accepted":{"operation_request_id":"request/8"}}});
-        validate_owner_effect(&record).unwrap();
-        let mut reborn = record.clone();
-        reborn["after"]["born_sign_id"] = json!("born/another");
-        assert!(validate_owner_effect(&reborn).is_err());
-        let mut uncommitted = record;
-        uncommitted["disposition"]["Accepted"]["operation_request_id"] = Value::Null;
-        assert!(validate_owner_effect(&uncommitted).is_err());
-    }
-
-    #[test]
-    fn recorded_arguments_obey_the_actual_source_value_contract() {
-        let action = FaceAction {
-            identity: "action/name".into(),
-            intent: "intent/name".into(),
-            target: "body/a".into(),
-            name: "Name".into(),
-            arguments: vec![conduit_face::FaceActionArgument::text(
-                "name".into(),
-                "Name".into(),
-                1,
-                4,
-            )
-            .unwrap()],
-            disclosure: conduit_face::FaceDisclosureLevel::Primary,
-            availability: FaceActionAvailability::Available,
-        };
-        // Receipt-shape fixture only; this test cannot admit an owner interaction.
-        let mut interaction: FaceInteraction = serde_json::from_value(json!({
-            "identity":"interaction/fixture", "face_id":"face/fixture", "face_revision":1,
-            "show_id":"show/fixture", "action_id":"action/name", "target":"body/a", "sequence":1,
-            "arguments":[{"name":"name", "value_kind":conduit_face::UTF8_TEXT_VALUE_KIND,"value":[65]}],
-        })).unwrap();
-        validate_arguments(&action, &interaction).unwrap();
-        interaction.arguments[0].value = vec![65; 5];
-        assert!(validate_arguments(&action, &interaction).is_err());
-        interaction.arguments[0].value = vec![65];
-        interaction.arguments[0].value_kind = "kind/wrong".into();
-        assert!(validate_arguments(&action, &interaction).is_err());
-        interaction.arguments[0].value_kind = conduit_face::UTF8_TEXT_VALUE_KIND.into();
-        interaction.arguments.push(interaction.arguments[0].clone());
-        assert!(validate_arguments(&action, &interaction).is_err());
-    }
-
-    #[test]
-    fn a_future_show_cannot_retroactively_authorize_a_recorded_action() {
-        let serial = concat!(
-            "CONDUIT_NATIVE_ACTION {\"show_id\":\"show/later\"}\n",
-            "CONDUIT_NATIVE_FACE {\"show\":{\"show_id\":\"show/later\"}}\n",
-        );
-        assert!(validate_receipt_order(serial).is_err());
-    }
-}
+#[path = "face_correspondence_tests.rs"]
+mod tests;
 
 #[cfg(test)]
 #[path = "receipt_chronology_tests.rs"]

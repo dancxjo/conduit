@@ -11,7 +11,7 @@ import { sealTarget } from '../../tools/ci/pipeline/receipts.mjs';
 const names = [
   'front-door-ready', 'body-born', 'body-woken', 'wake-refused', 'body-planned', 'body-playing',
   'protected-keyboard-canvas', 'protected-memory-lantern',
-  'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
+  'stale-refused', 'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
   'patchbay-gear-details', 'patchbay-diagram-returned', 'body-stopped', 'home-returned', 'patchbay-reentered',
 ];
 const commit = '1'.repeat(40);
@@ -237,8 +237,8 @@ function pairedFixture() {
   const owner = revision => ({ body_id: body, born_sign_id: 'born/a', revision });
   const native = index => ({ schema: 'conduit.native-face/v1',
     face: { identity: `face/${index}`, revision: index, basis: { body_id: index ? body : null },
-      actions: [], interaction_context: { identity: 'context/fixture' } },
-    show: { show_id: `show/${index}`, lifecycle: 'Available' } });
+      actions: index === 2 ? [{identity:'action/stop',target:'body',intent:'conduit.intent/stop@1',availability:'Available',arguments:[]}] : [], interaction_context: { identity: 'context/fixture' } },
+    show: { show_id: `show/${index}`, lifecycle: 'Available' }, mask_show:{show_id:`show/${index}`} });
   const paired_faces = [0, 1, 2, 3].map(index => {
     const record = native(index);
     return { native: record, linear: { proof_class: 'deterministic-semantic-reconstruction',
@@ -250,11 +250,22 @@ function pairedFixture() {
     show_id: `show/${index}`, face_id: `face/${index}`, face_revision: index,
     accepted_effects: refused ? 0 : 1, before, after,
     disposition: refused ? { Refused: { reason: 'UnavailableAction' } } : { Accepted: {} } });
+  const stale = receipt(2, owner(3), owner(3), true);
+  stale.disposition.Refused.reason = 'StaleFace';
+  stale.interaction = {identity:'interaction/stale',show_id:'show/2',face_id:'face/2',face_revision:2,
+    action_id:'action/stop',target:'body'};
+  stale.admission_face = {...paired_faces[2].native.face,identity:'face/current-owner',revision:3};
+  const admission = stale.admission_face;
+  const admissionRecord = {interaction_id:stale.interaction.identity,admission_face:admission,
+    linear:{proof_class:'deterministic-semantic-reconstruction',face_id:admission.identity,
+      face_revision:admission.revision,actions:admission.actions,basis:admission.basis,
+      context:admission.interaction_context,lines:['fixture current owner'],acknowledged_show:null,input_enactment:false}};
   return { schema: 'conduit.native-shell/paired-linear@1', source_commit: commit, image_sha256: image,
     proof_class: 'freestanding-emulator', body_id: body, birth_count: 1,
     birth: receipt(0, { body_id: null, born_sign_id: null }, owner(1)), paired_faces,
-    actions: [receipt(1, owner(1), owner(2)), receipt(2, owner(2), owner(2), true), receipt(3, owner(2), owner(3))],
-    accepted_action_count: 2, refused_action_count: 1, fresh_action_after_refusal: true,
+    actions: [receipt(1, owner(1), owner(2)), receipt(2, owner(2), owner(2), true), stale, receipt(3, owner(2), owner(3))],
+    accepted_action_count: 2, refused_action_count: 2, fresh_action_after_refusal: true,
+    stale_show_replay:{installed_enactment:true,validated_event_count:1,fresh_action_after_refusal:true,admission_faces:[admissionRecord]},
     screenshots: 'journey-frames/manifest.json', pointer: { status: 'unsupported' }, browser: { status: 'unsupported' },
     parent_5356_acceptance: 'open', physical_evidence: false, human_enactment: false };
 }
@@ -314,5 +325,33 @@ for (const [label, mutate] of [
       assert.equal(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
         '<!-- conduit-conduitos-journey-card@1 -->');
     } finally { rmSync(fixture.root, { recursive: true, force: true }); }
+  });
+}
+
+for (const [label, mutate] of [
+  ['omitted stale enactment', paired => { paired.stale_show_replay.installed_enactment = false; }],
+  ['omitted stale action', paired => { paired.actions.splice(2,1); paired.refused_action_count--; }],
+  ['stale nonzero effect', paired => { paired.actions[2].accepted_effects = 1; }],
+  ['rebased stale interaction', paired => { paired.actions[2].interaction.face_id = paired.actions[2].admission_face.identity; }],
+  ['tampered admission Face', paired => { paired.stale_show_replay.admission_faces[0].admission_face.identity = 'forged-admission'; }],
+]) {
+  test(`Pages composition rejects coherent guest/receipt tampering: ${label}`, () => {
+    const fixture = makeFixture();
+    try {
+      const filename = path.join(fixture.evidence, '../native-shell-paired-linear.json');
+      const paired = JSON.parse(readFileSync(filename, 'utf8'));
+      mutate(paired); writeFileSync(filename,JSON.stringify(paired));
+      // Keep the serialized guest action corpus identical so rejection must
+      // inspect the stale contract, not merely notice two copies disagree.
+      const serialPath = path.join(fixture.evidence, '../journey-serial.log');
+      const serial = readFileSync(serialPath,'utf8').split('\n')
+        .filter(line=>!line.startsWith('CONDUIT_NATIVE_ACTION ')).join('\n');
+      writeFileSync(serialPath,serial + paired.actions.map(action=>`CONDUIT_NATIVE_ACTION ${JSON.stringify(action)}\n`).join(''));
+      const result = publish(fixture);
+      assert.notEqual(result.status,0);
+      assert.match(result.stderr,/paired evidence differs/);
+      assert.equal(readFileSync(path.join(fixture.site,'journeys/index.html'),'utf8'),
+        '<!-- conduit-conduitos-journey-card@1 -->');
+    } finally { rmSync(fixture.root,{recursive:true,force:true}); }
   });
 }

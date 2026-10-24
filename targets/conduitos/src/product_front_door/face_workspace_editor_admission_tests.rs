@@ -9,7 +9,7 @@ use crate::{
         test_support::{fixture, key},
     },
 };
-use conduit_human::KeyTransition;
+use conduit_human::{KeyModifiers, KeyTransition};
 
 #[test]
 fn actual_editor_commit_retires_old_lifecycle_show_then_fresh_stop_preserves_body() {
@@ -267,4 +267,160 @@ fn play_from_specialized_presenter_enters_the_actual_editor_mask_surface() {
                 && i32::from(command.bounds.y)
                     < i32::from(command.clip.y) + i32::from(command.clip.height))
     );
+}
+
+#[test]
+fn held_editor_release_before_service_refuses_old_mask_enter_and_recovers() {
+    held_release_before_service(4, "a");
+}
+
+#[test]
+fn held_modifier_release_before_service_refuses_old_mask_enter_and_recovers() {
+    held_release_before_service(225, "");
+}
+
+fn held_release_before_service(usage: u8, expected_text: &str) {
+    let held_key = |code, transition| {
+        KeyEvent::new(
+            code,
+            transition,
+            if usage == 225 {
+                KeyModifiers::LEFT_SHIFT
+            } else {
+                KeyModifiers::from_bits(0)
+            },
+        )
+        .unwrap()
+    };
+    let (mut journey, mut door, mut workspace, mut display) = encounter();
+    let editor = native_workset::resident(NativePlot::MemoryLantern).unwrap();
+    journey.select_plot(&editor, journey.revision()).unwrap();
+    door.observe_product(&journey).unwrap();
+    // Ordinary F2 inspection has no automatic editor-surface Tab binding.
+    workspace.present_current(&door, &mut display).unwrap();
+    assert!(!workspace.editor_surface());
+    let (ids, offer, _) = fixture();
+    let make = MakeRecord {
+        build_id: "build",
+        ..MakeRecord::legacy()
+    };
+    workspace
+        .accept_key(
+            held_key(usage, KeyTransition::Pressed),
+            &mut door,
+            &mut journey,
+            &mut display,
+            &ids,
+            &offer,
+            &make,
+        )
+        .unwrap();
+    assert!(journey.owns_key_release(key(usage, KeyTransition::Released)));
+    assert_eq!(journey.projection().result.as_deref(), Some(expected_text));
+    for transition in [KeyTransition::Pressed, KeyTransition::Released] {
+        workspace
+            .accept_key(
+                held_key(59, transition),
+                &mut door,
+                &mut journey,
+                &mut display,
+                &ids,
+                &offer,
+                &make,
+            )
+            .unwrap();
+    }
+    assert!(workspace.mask.scene().unwrap().showing_details());
+    let mut stop_focused = false;
+    for _ in 0..32 {
+        for transition in [KeyTransition::Pressed, KeyTransition::Released] {
+            workspace
+                .accept_key(
+                    held_key(43, transition),
+                    &mut door,
+                    &mut journey,
+                    &mut display,
+                    &ids,
+                    &offer,
+                    &make,
+                )
+                .unwrap();
+        }
+        let scene = workspace.mask.scene().unwrap();
+        if scene.focused().is_some_and(|control| {
+            scene.face().actions[control.action].intent
+                == patchbay_control::PatchbayAction::Stop.face_intent()
+        }) {
+            stop_focused = true;
+            break;
+        }
+    }
+    assert!(stop_focused, "ordinary Mask navigation must focus Stop");
+    let old_show = workspace.selected_show.clone().unwrap();
+    // The production USB report drains releases before presses, with Service
+    // deferred until the queue is idle. This is the same release/Enter window.
+    let mut pending = crate::product_front_door::workspace_input::PendingInput::default();
+    pending
+        .accept(key(usage, KeyTransition::Released), &mut journey, &mut door)
+        .unwrap();
+    let after_release = journey.projection();
+    assert_ne!(door.face().unwrap().identity, old_show.face_id);
+    let result = workspace.accept_key(
+        key(40, KeyTransition::Pressed),
+        &mut door,
+        &mut journey,
+        &mut display,
+        &ids,
+        &offer,
+        &make,
+    );
+    assert!(
+        result.is_ok(),
+        "stale real Mask submission must recover: {result:?}"
+    );
+    assert_eq!(journey.projection(), after_release);
+    let fresh = workspace
+        .selected_show
+        .as_ref()
+        .expect("refusal must publish a fresh Show");
+    assert_ne!(fresh.show_id, old_show.show_id);
+    assert_eq!(fresh.face_id, door.face().unwrap().identity);
+    assert!(workspace.route_keyboard().unwrap());
+    assert!(door.face().unwrap().properties.iter().any(|property| {
+        property.name == "action-refusal"
+            && matches!(&property.value, conduit_face::FacePropertyValue::Text(text)
+                if text == "workspace-face-stale-face")
+    }));
+    // A deferred Service may re-present the same owner. Its notice must stay
+    // visible instead of disappearing between the refusal and the capture.
+    workspace.present_current(&door, &mut display).unwrap();
+    assert!(
+        workspace
+            .mask
+            .scene()
+            .unwrap()
+            .frame()
+            .unwrap()
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload().contains("workspace-face-stale-face"))
+    );
+    assert_eq!(journey.projection(), after_release);
+    workspace
+        .invoke_product_action(
+            patchbay_control::PatchbayAction::Stop,
+            &mut door,
+            &mut journey,
+            &mut display,
+            &ids,
+            &offer,
+            &make,
+        )
+        .unwrap();
+    let stopped = journey.projection();
+    assert_eq!(stopped.status, JourneyStatus::Stopped);
+    assert_eq!(stopped.body_id, after_release.body_id);
+    assert_eq!(stopped.born_sign_id, after_release.born_sign_id);
+    assert_eq!(stopped.result, after_release.result);
 }

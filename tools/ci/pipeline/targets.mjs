@@ -89,7 +89,13 @@ function conduitos(id, directory) {
       || paired.proof_class !== 'freestanding-emulator' || paired.source_commit !== journey.source_commit
       || paired.image_sha256 !== journey.image_sha256 || paired.body_id !== journey.body_id
       || paired.birth_count !== 1 || !(paired.accepted_action_count > 0) || !(paired.refused_action_count > 0)
-      || paired.fresh_action_after_refusal !== true) {
+      || paired.fresh_action_after_refusal !== true
+      || paired.stale_show_replay?.installed_enactment !== true
+      || !(paired.stale_show_replay.validated_event_count > 0)
+      || paired.stale_show_replay.fresh_action_after_refusal !== true
+      || !paired.actions?.some(action => action.disposition?.Refused?.reason === 'UnavailableAction')
+      || !paired.actions?.some(action => action.disposition?.Refused?.reason === 'StaleFace'
+        && action.accepted_effects === 0 && action.admission_face?.identity)) {
       throw new Error('ConduitOS paired Face evidence differs from its verified product journey');
     }
     validateNativeTextEditReceipt(journey,
