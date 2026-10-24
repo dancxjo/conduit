@@ -60,7 +60,27 @@
       "role": "owner-face-component",
       "kind": "module",
       "path": "owner-face-component.mjs",
-      "maximum_bytes": 65536
+      "maximum_bytes": 65536,
+      "dependencies": [
+        {
+          "role": "owner-face-icons",
+          "specifier": "./owner-face-icons.mjs"
+        }
+      ]
+    },
+    {
+      "role": "owner-face-icons",
+      "kind": "module",
+      "path": "owner-face-icons.mjs",
+      "maximum_bytes": 32768,
+      "dependencies": []
+    },
+    {
+      "role": "lucide-license",
+      "kind": "content",
+      "path": "LUCIDE-LICENSE",
+      "maximum_bytes": 8192,
+      "dependencies": []
     },
     {
       "role": "owner-face-look",

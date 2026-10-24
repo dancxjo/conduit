@@ -7,7 +7,8 @@ const require = createRequire(new URL('../../../proof/browser/package.json', imp
 const { chromium } = require('playwright');
 const assets = new URL('../assets/icons/', import.meta.url);
 const source = new URL('../../../mechanisms/implementations/bounded-lucide/svg/', import.meta.url);
-const mapping = JSON.parse(await readFile(new URL('lucide-map.json', assets)));
+const mappingBytes = await readFile(new URL('../gui-vocabulary.json', source), 'utf8');
+const mapping = JSON.parse(mappingBytes).icons;
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage();
@@ -33,7 +34,8 @@ try {
   }
   const data = Buffer.concat(masks);
   const receipt = `${JSON.stringify({
-    upstream: 'b7b6ecf1316d0af64c97a6b0392abe5e816a8e30', chromium: browser.version(),
+    upstream: 'b7b6ecf1316d0af64c97a6b0392abe5e816a8e30',
+    mapping_sha256: createHash('sha256').update(mappingBytes).digest('hex'), chromium: browser.version(),
     edge: 192, threshold: 128, order: Object.keys(mapping), inputs,
     sha256: createHash('sha256').update(data).digest('hex'), bytes: data.length,
   }, null, 2)}\n`;
@@ -41,7 +43,7 @@ try {
     const previous = await readFile(new URL('lucide-192.bin', assets));
     const previousReceipt = await readFile(new URL('lucide-receipt.json', assets), 'utf8');
     if (!previous.equals(data) || previousReceipt !== receipt) throw new Error('Native Lucide masks or provenance changed');
-    console.log('23 native Lucide masks and raster provenance reproduce exactly');
+    console.log(`${Object.keys(mapping).length} native Lucide masks and raster provenance reproduce exactly`);
   } else {
     await writeFile(new URL('lucide-192.bin', assets), data);
     await writeFile(new URL('lucide-receipt.json', assets), receipt);

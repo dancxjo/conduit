@@ -75,7 +75,7 @@ try {
   assert(listing.includes("browser-sdk-body-face.mjs"));
   const bodyFaceRenderer = await readFile(path.join(output, "browser-sdk-body-face.mjs"), "utf8");
   assert.match(bodyFaceRenderer, /import\s+["']\.\/owner-face-component\.mjs["']/);
-  for (const name of ["owner-face-component.mjs", "owner-face-look.css"]) {
+  for (const name of ["owner-face-component.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
     assert.deepEqual(await readFile(path.join(output, name)), await readFile(path.join(root, "../handbook", name)));
   }
   const renderer = await readFile(path.join(output, "browser-sdk-patchbay.mjs"), "utf8");

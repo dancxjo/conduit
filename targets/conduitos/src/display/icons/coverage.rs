@@ -2,39 +2,19 @@
 //! allocation, floating point, or geometry-dependent work occurs during Play.
 use super::Icon;
 
+#[path = "lucide_index.rs"]
+mod generated;
+
 const EDGE: usize = 192;
 const BYTES_PER_ICON: usize = EDGE * EDGE / 8;
-const MASKS: &[u8; 23 * BYTES_PER_ICON] = include_bytes!("../../../assets/icons/lucide-192.bin");
+const MASKS: &[u8; Icon::ALL.len() * BYTES_PER_ICON] =
+    include_bytes!("../../../assets/icons/lucide-192.bin");
 
 pub(super) const fn ink(icon: Icon, x: i64, y: i64) -> bool {
     if x < 0 || y < 0 || x >= EDGE as i64 || y >= EDGE as i64 {
         return false;
     }
-    let index = match icon {
-        Icon::Clock => 0,
-        Icon::Repeat2 => 1,
-        Icon::Face => 2,
-        Icon::Type => 3,
-        Icon::CaseUpper => 4,
-        Icon::Combine => 5,
-        Icon::Tally5 => 6,
-        Icon::ChartColumnsIncreasing => 7,
-        Icon::FileOutput => 8,
-        Icon::Keyboard => 9,
-        Icon::GenericGear => 10,
-        Icon::Body => 11,
-        Icon::Wake => 12,
-        Icon::Plan => 13,
-        Icon::Play => 14,
-        Icon::Host => 15,
-        Icon::Port => 16,
-        Icon::Line => 17,
-        Icon::Status => 18,
-        Icon::Warning => 19,
-        Icon::Close => 20,
-        Icon::Back => 21,
-        Icon::Confirm => 22,
-    };
+    let index = generated::index(icon);
     let bit = y as usize * EDGE + x as usize;
     MASKS[index * BYTES_PER_ICON + bit / 8] & (1 << (bit % 8)) != 0
 }

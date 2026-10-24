@@ -39,10 +39,15 @@ pub enum FaceIconKey {
     Close,
     Back,
     Confirm,
+    Search,
+    Inspect,
+    Lull,
+    Library,
+    Collection,
 }
 
 impl FaceIconKey {
-    pub const ALL: [Self; 23] = [
+    pub const ALL: [Self; 28] = [
         Self::Clock,
         Self::Repeat2,
         Self::Face,
@@ -66,6 +71,11 @@ impl FaceIconKey {
         Self::Close,
         Self::Back,
         Self::Confirm,
+        Self::Search,
+        Self::Inspect,
+        Self::Lull,
+        Self::Library,
+        Self::Collection,
     ];
     pub const ALL_UPSTREAM: [Self; 10] = [
         Self::Clock,
@@ -105,6 +115,11 @@ impl FaceIconKey {
             Self::Close => "conduit-close",
             Self::Back => "conduit-back",
             Self::Confirm => "conduit-confirm",
+            Self::Search => "conduit-search",
+            Self::Inspect => "conduit-inspect",
+            Self::Lull => "conduit-lull",
+            Self::Library => "conduit-library",
+            Self::Collection => "conduit-collection",
         }
     }
 
@@ -133,6 +148,11 @@ impl FaceIconKey {
             Self::Close => "close",
             Self::Back => "back",
             Self::Confirm => "run or confirm",
+            Self::Search => "search",
+            Self::Inspect => "inspect",
+            Self::Lull => "lull",
+            Self::Library => "library",
+            Self::Collection => "collection",
         }
     }
 

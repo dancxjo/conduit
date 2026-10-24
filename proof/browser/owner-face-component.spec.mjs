@@ -11,6 +11,26 @@ const view = {
     availability: 'available', disclosure: 'CurrentAction', arguments: [] }],
 };
 
+test('semantic icons remain bounded decoration without the Look stylesheet', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    const element = document.createElement('conduit-owner-face');
+    element.show({ ...view, subjects: [{ ...view.subjects[0], role: 'Body' }],
+      actions: [{ ...view.actions[0], intent: 'todo/complete@1' }] }, { invoke: async () => {} });
+    document.body.replaceChildren(element);
+    element.shadowRoot.querySelector('link').remove();
+  }, view);
+  const face = page.locator('conduit-owner-face');
+  const icons = face.locator('svg');
+  expect(await icons.count()).toBeGreaterThan(0);
+  for (const icon of await icons.all()) {
+    await expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(await icon.evaluate(node => [node.getBoundingClientRect().width, node.getBoundingClientRect().height])).toEqual([18, 18]);
+  }
+  await expect(face.getByRole('button', { name: 'Complete task', exact: true })).toBeEnabled();
+});
+
 test('owner Face parts swap density while preserving controls and accessible actions', async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   await page.evaluate(async view => {
@@ -1366,10 +1386,21 @@ test('admitted typography changes title family independently of palette, density
       await new Promise(resolve => requestAnimationFrame(resolve));
       const title = element.shadowRoot.querySelector('[data-text-purpose="Title"]');
       const button = element.shadowRoot.querySelector('button');
+      const collectionHeading = document.createElement('h4');
+      collectionHeading.textContent = 'Collection heading';
+      element.shadowRoot.append(collectionHeading);
+      const headingStyle = () => {
+        const style = getComputedStyle(collectionHeading);
+        return [style.fontFamily, style.fontSize, style.fontWeight];
+      };
+      const darkHeading = headingStyle();
+      element.dataset.componentPalette = 'editorial';
+      const lightHeading = headingStyle();
+      element.dataset.componentPalette = 'phosphor';
       result.push({ intent: element.dataset.componentTypography,
         palette: element.dataset.componentPalette, density: element.dataset.componentDensity,
         family: getComputedStyle(title).fontFamily, text: title.textContent,
-        action: button.textContent, disabled: button.disabled });
+        action: button.textContent, disabled: button.disabled, darkHeading, lightHeading });
     }
     return { result, invocations };
   }, view);
@@ -1377,6 +1408,8 @@ test('admitted typography changes title family independently of palette, density
   expect(observations.result[0].intent).toBe('editorial');
   expect(observations.result[1].intent).toBe('engineering');
   expect(observations.result[0].family).not.toBe(observations.result[1].family);
+  for (const result of observations.result) expect(result.darkHeading).toEqual(result.lightHeading);
+  expect(observations.result[0].darkHeading[0]).not.toBe(observations.result[1].darkHeading[0]);
   for (const key of ['palette', 'density', 'text', 'action', 'disabled']) {
     expect(observations.result[0][key]).toEqual(observations.result[1][key]);
   }

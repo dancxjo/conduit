@@ -16,3 +16,16 @@ There is no runtime network or complete-pack dependency.
 Lucide is distributed under the ISC license. A small set of Lucide icons is
 derived from Feather and additionally carries the MIT notice; both notices are
 preserved in [LICENSE](LICENSE).
+
+## Shared GUI vocabulary
+
+`gui-vocabulary.json` is the one bounded role/intent-to-icon mapping for browser
+and native Masks. Its icon keys match `FaceIconKey::ALL` exactly. Internal
+`generate-gui-mappings.mjs` preparation emits the browser helper, native matches
+and index table, and distribution notices. `--check` verifies the committed
+outputs without mutation. Captions and opaque action IDs never select artwork.
+
+Native preparation then consumes this same vocabulary to generate its packed
+coverage corpus and provenance receipt. No JSON/SVG parser or network service
+is required during Play. License notices accompany browser packages and native
+ISO media; adding icons requires retaining that redistribution notice.

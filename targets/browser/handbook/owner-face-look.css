@@ -51,10 +51,11 @@ h4{font-family:var(--face-title-font);font-weight:650;text-wrap:balance}
 input,select,button{min-height:44px;border-color:var(--face-control)}
 button{border-radius:10px;white-space:normal;text-align:start;max-width:100%}
 input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--face-focus);outline-offset:3px}
-:host([data-component-palette=editorial]){--face-paper:#f4f0e8;--face-card:#fffcf5;--face-ink:#24364b;--face-muted:#566271;--face-line:#d0cbc0;--face-accent:#294b70;--face-control:#a4aaad;--face-focus:#92651a;--face-title-font:Georgia,"Times New Roman",serif}
-:host([data-component-palette=editorial]) h4{font-size:calc(27px * var(--face-text-scale,1));font-weight:500;line-height:1.2;letter-spacing:-.6px}
+:host([data-component-palette=editorial]){--face-paper:#f4f0e8;--face-card:#fffcf5;--face-ink:#24364b;--face-muted:#566271;--face-line:#d0cbc0;--face-accent:#294b70;--face-control:#a4aaad;--face-focus:#92651a}
+:host([data-component-typography=editorial]){--face-title-font:Georgia,"Times New Roman",serif}
+:host([data-component-typography=editorial]) h4{font-size:calc(27px * var(--face-text-scale,1));font-weight:500;line-height:1.2;letter-spacing:-.6px}
 :host([data-component-palette=phosphor]){--face-control:#698575;--face-focus:#efc66b;--face-radius:8px;color-scheme:dark}
-:host([data-component-palette=phosphor]) .owner-face-role{font-family:ui-monospace,monospace;letter-spacing:.08em}
+:host([data-component-typography=engineering]) .owner-face-role{font-family:ui-monospace,monospace;letter-spacing:.08em}
 :host([data-component-expression]) button:focus-visible,:host([data-component-expression]) input:focus-visible,:host([data-component-expression]) select:focus-visible,:host([data-component-expression]) summary:focus-visible{outline-color:var(--face-focus)}
 :host([data-component-expression]) input,:host([data-component-expression]) select{background:var(--face-card);color:var(--face-ink)}
 @media(forced-colors:active){:host{--face-paper:Canvas;--face-card:Canvas;--face-ink:CanvasText;--face-muted:CanvasText;--face-line:CanvasText;--face-accent:LinkText;--face-control:ButtonText;--face-focus:Highlight}.owner-face-document{box-shadow:none}:host([data-component-expression]) input,:host([data-component-expression]) select{background:Canvas;color:CanvasText}:host([data-component-expression]) button:focus-visible,:host([data-component-expression]) input:focus-visible,:host([data-component-expression]) select:focus-visible,:host([data-component-expression]) summary:focus-visible{outline-color:Highlight}}

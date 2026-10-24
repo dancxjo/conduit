@@ -41,9 +41,14 @@ the current browser screenshots replace those as current-runtime evidence.
 
 ## Implementation and validation
 
-- Existing native icon keys/wire tokens map to 23 pinned Lucide silhouettes.
-  The 105984-byte read-only mask corpus reproduces exactly with input/output
+- The shared role/intent vocabulary generates browser decoration and native
+  mappings for 28 pinned Lucide silhouettes, including distinct search, inspection,
+  Lull, library and collection symbols. Existing wire tokens retain their meaning.
+  The 129024-byte read-only mask corpus reproduces exactly with input/output
   hashes and the pinned Chromium version. No runtime SVG parser or asset loading.
+- Generated browser/ISO packages carry the Lucide notice; both browser application
+  templates admit the icon helper explicitly. Collection typography follows its
+  selected type intent independently of palette.
 - Exact owner-offered intents select common action icons. Unknown intents retain
   complete text; captions and opaque action IDs never select artwork. Native
   defaults, unavailable controls, and missing-Look behavior retain their contracts.
@@ -84,3 +89,19 @@ Environment stewardship removed about 22 GB of inactive, regenerable native-orig
 Cargo build-script outputs after process/fd inspection. Source, retained runtime/
 server binaries, proof captures and active builds were preserved. The earlier
 80 MiB native ISO is retained locally before replacement by the refinement build.
+
+The shared-vocabulary checkpoint follows the captured Source above; those native
+and browser product screenshots retain their original source identity. Its local
+renderer/packaging checks are recorded separately; new native boot/publication
+evidence is still required. A sample-data three-Look comparison demonstrates the
+current shared renderer and does not establish shared-Body correspondence.
+
+Shared-vocabulary validation: 138 native scene checks pass (one opt-in ignored),
+including the unchanged four-Plot first-page requirement. All 104 Chromium
+renderer checks pass with one worker and zero retries. SDK packaging plus two
+vocabulary checks pass; all 28 coverage masks are finite/nonempty, native paint
+contrast checks pass, and generated mappings/raster provenance reproduce exactly.
+The initial SDK/native failures were `/tmp` quota exhaustion; logs were retained
+and the checks passed with workspace-local temporary storage. This checkpoint
+reclaimed about 18 GB of unowned incremental outputs after process/map/fd audit;
+active builds, source and unique evidence were preserved.

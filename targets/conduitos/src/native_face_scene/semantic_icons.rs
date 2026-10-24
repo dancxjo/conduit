@@ -2,39 +2,9 @@
 use super::*;
 use conduit_face::{FaceIconKey, FaceRole};
 
-pub(super) fn for_role(role: &FaceRole) -> Option<FaceIconKey> {
-    Some(match role {
-        FaceRole::Body => FaceIconKey::Body,
-        FaceRole::Plot => FaceIconKey::Face,
-        FaceRole::Document => FaceIconKey::Type,
-        FaceRole::Host => FaceIconKey::Host,
-        FaceRole::Gear => FaceIconKey::GenericGear,
-        FaceRole::Port => FaceIconKey::Port,
-        FaceRole::Line | FaceRole::Cord => FaceIconKey::Line,
-        FaceRole::Plan => FaceIconKey::Plan,
-        FaceRole::Play => FaceIconKey::Play,
-        FaceRole::Status => FaceIconKey::Status,
-        FaceRole::Diagnostic => FaceIconKey::Warning,
-        _ => return None,
-    })
-}
-
-/// Explicit owner-offered intents choose decoration, never captions or opaque IDs.
-pub(super) fn for_intent(intent: &str) -> Option<FaceIconKey> {
-    Some(match intent {
-        "conduit.intent/birth@1" | "conduit.intent/creche.birth@1" | "conduit.intent/wake@1" => {
-            FaceIconKey::Wake
-        }
-        "conduit.intent/creche.name@1" | "patchbay/edit-subject@1" => FaceIconKey::Type,
-        "conduit.intent/creche.naming@1" => FaceIconKey::GenericGear,
-        "conduit.intent/creche.suggest@1" | "todo/reopen@1" => FaceIconKey::Repeat2,
-        "conduit.intent/open-inspection@1" | "conduit.intent/inspect@1" => FaceIconKey::Status,
-        "conduit.intent/fulfill@1" | "todo/complete@1" => FaceIconKey::Confirm,
-        "conduit.intent/open-body-overview@1" => FaceIconKey::Body,
-        "conduit.intent/open-resident-plot@1" | "patchbay/select-plot@1" => FaceIconKey::Face,
-        _ => return None,
-    })
-}
+#[path = "semantic_icons/generated.rs"]
+mod mapping;
+pub(super) use mapping::{for_intent, for_role};
 
 pub(super) fn inset(icon: Option<FaceIconKey>) -> u16 {
     if icon.is_some() { 24 } else { 0 }
