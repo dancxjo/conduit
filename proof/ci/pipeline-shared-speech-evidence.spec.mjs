@@ -88,3 +88,26 @@ test('rejects symbolic links even when target bytes match', t => {
   writeFileSync(target, readFileSync(file)); rmSync(file); symlinkSync(target, file);
   assert.throws(() => verifySharedSpeechEvidence(root));
 });
+
+for (const command of [
+  'cargo +stable xtask prove journey native-speech --output /tmp/speech --shared-carrier-only',
+  'cargo +stable xtask prove journey native-speech --shared-carrier-only --output /tmp/speech',
+]) test(`preserves supported producer command verbatim: ${command}`, t => {
+  const root = fixture(t);
+  change(root, 'manifest.json', data => JSON.stringify({ ...JSON.parse(data), command }));
+  const original = readFileSync(path.join(root, SHARED_SPEECH_EVIDENCE_ROOT, 'manifest.json'));
+  const result = stageSharedSpeechEvidence({ sourceTree: root, output: path.join(root, 'published'), sourceCommit: commit });
+  const staged = readFileSync(path.join(result.destination, 'manifest.json'));
+  assert.deepEqual(staged, original);
+  assert.equal(JSON.parse(staged).command, command);
+});
+for (const command of [
+  'cargo +stable xtask prove journey native-speech --shared-carrier-only --output',
+  'cargo +stable xtask prove journey native-speech --shared-carrier-only-output /tmp/speech',
+  'cargo +stable xtask prove journey native-speech --microcontroller --output /tmp/speech',
+  'cargo +stable xtask prove journey foreign-speech --shared-carrier-only --output /tmp/speech',
+]) test(`rejects unsupported producer command prefix: ${command}`, t => {
+  const root = fixture(t);
+  change(root, 'manifest.json', data => JSON.stringify({ ...JSON.parse(data), command }));
+  assert.throws(() => verifySharedSpeechEvidence(root), /Shared speech evidence: producer command/);
+});

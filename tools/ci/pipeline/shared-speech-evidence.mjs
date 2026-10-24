@@ -23,7 +23,7 @@ export function verifySharedSpeechEvidence(sourceTree = '.') {
   const manifest = JSON.parse(manifestBytes);
   check(keys(manifest, ['schema', 'producer_code_commit', 'command', 'files', 'proof', 'human_listening', 'device_playback', 'trained_weights']), 'manifest fields');
   check(manifest.schema === 'conduit.speech/shared-carrier-evidence@1' && /^[a-f0-9]{40}$/.test(manifest.producer_code_commit), 'manifest schema or producer');
-  check(typeof manifest.command === 'string' && manifest.command.startsWith('cargo +stable xtask prove journey native-speech --output '), 'producer command');
+  check(typeof manifest.command === 'string' && (manifest.command.startsWith('cargo +stable xtask prove journey native-speech --output ') || manifest.command.startsWith('cargo +stable xtask prove journey native-speech --shared-carrier-only --output ')), 'producer command');
   check(typeof manifest.proof === 'string' && manifest.proof.length > 0 && manifest.proof.length <= 1024, 'proof description');
   check(manifest.human_listening === false && manifest.device_playback === false && manifest.trained_weights === false, 'proof boundary');
   check(keys(manifest.files, files), 'manifest file inventory');
