@@ -69,3 +69,5 @@ pub use prepared_decode::{
     check_prepared_decode_native, prepared_decode_primitive, prepared_decode_text,
     PreparedDecodeBounds, PreparedDecodeGate, PreparedDecodeProgress, PreparedDecodeRefusal,
 };
+
+pub(crate) use prepared_native::exact_constructor as exact_structural_constructor;

@@ -123,5 +123,13 @@ pub fn program(document: &CheckedSyntaxDocument, name: &str) -> String {
     let ConfigurationValue::Text(encoded) = &entry.value else {
         panic!("canonical program")
     };
-    encoded.clone()
+    if entry.key == "law-program" {
+        LawExpressionMaterial::from_canonical_hex(encoded)
+            .unwrap()
+            .program
+            .canonical_hex()
+            .unwrap()
+    } else {
+        encoded.clone()
+    }
 }

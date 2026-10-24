@@ -203,3 +203,111 @@ fn packet_family_source_does_not_replace_the_independent_original_package_anchor
         Err(LawExpressionRefusal::Custody(_))
     ));
 }
+
+#[test]
+fn unchanged_root_claim_cannot_authorize_an_extra_packet_defined_native_owner() {
+    let (mut material, context) = fixture();
+    let expected = material.program.input_type.clone();
+    material.roots[0]
+        .source
+        .push_str("type Extra = {\n value: U8\n where .value == 9\n}\n");
+    // Control: replaying just Ordered still agrees with its expected semantic
+    // Type and laws. That is not authority over every declaration in the module.
+    assert!(NativeLawWitness::verify(&material.roots[0], &expected).is_ok());
+    let changed = check_syntax_document(
+        &parse_syntax_document(&material.roots[0].source),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    material.program.input_type = changed
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "Extra")
+        .unwrap()
+        .value_type
+        .clone();
+    let encoded = material.canonical_bytes().unwrap();
+    assert!(matches!(
+        VerifiedLawExpression::verify_with_context(&encoded, &context),
+        Err(LawExpressionRefusal::Custody(
+            NativeLawCustodyRefusal::Source
+        ))
+    ));
+}
+#[test]
+fn capsule_hex_is_strict_and_bounded() {
+    let (material, _) = fixture();
+    let encoded: String = material
+        .canonical_bytes()
+        .unwrap()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    assert_eq!(
+        LawExpressionMaterial::from_canonical_hex(&encoded).unwrap(),
+        material
+    );
+    for invalid in ["0", "gg", "AA"] {
+        assert_eq!(
+            LawExpressionMaterial::from_canonical_hex(invalid),
+            Err(LawExpressionRefusal::Encoding)
+        );
+    }
+    assert_eq!(
+        LawExpressionMaterial::from_canonical_hex(
+            &"0".repeat(MAXIMUM_LAW_EXPRESSION_BYTES * 2 + 2)
+        ),
+        Err(LawExpressionRefusal::Capacity)
+    );
+}
+#[test]
+fn compiler_emits_original_program_with_independent_opaque_source_context() {
+    let source = "type Ordered = {\n hi: U8\n lo: U8\n where .lo <= .hi\n}\nplot arithmetic (\n >> value: Ordered\n result: Boolean >>\n) = (.lo <= .hi)\n";
+    let mut checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let original = checked.native_law_witness("Ordered").unwrap().clone();
+    // Public claim tables are deliberately mutable and do not grant custody.
+    checked.native_types.clear();
+    let mut catalog = ProfileCatalog::new();
+    catalog.enable_checked_native_law_expressions();
+    let authored = expand_canonical_plot_for_authoring(&checked, "arithmetic", &catalog).unwrap();
+    let gear = &authored.expanded.gears[0];
+    assert!(gear
+        .kind_id
+        .as_str()
+        .starts_with("conduitese/law-expression/"));
+    let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
+        panic!("capsule");
+    };
+    let material = LawExpressionMaterial::from_canonical_hex(encoded).unwrap();
+    assert_eq!(material.roots, vec![original.material().unwrap()]);
+    assert!(material.program.requires_native_law_custody());
+    let context = checked
+        .expression_law_context_for(&[original.checked_type().identity.clone()])
+        .unwrap();
+    VerifiedLawExpression::verify_with_context(&material.canonical_bytes().unwrap(), &context)
+        .unwrap()
+        .prepare_evaluator()
+        .unwrap();
+    assert!(checked
+        .expression_law_context_for(&[kind_id("foreign/type")])
+        .is_err());
+    let scalar = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
+    let safe = PortableExpressionProgram {
+        input_type: scalar.clone(),
+        input_maximum_bytes: Some(1),
+        output_type: scalar.clone(),
+        root: PortableExpressionNode {
+            value_type: scalar,
+            operation: PortableExpressionOperation::Input,
+        },
+    };
+    assert!(!safe.requires_native_law_custody());
+    let mut forged = material.program.clone();
+    let StructuredInfoTypeShape::Record { fields, .. } = material.program.input_type.shape() else {
+        panic!("record");
+    };
+    forged.input_type =
+        StructuredInfoType::record(kind_id("conduit.core/record/forged"), fields.to_vec()).unwrap();
+    assert!(forged.requires_native_law_custody());
+}

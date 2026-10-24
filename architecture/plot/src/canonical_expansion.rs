@@ -626,6 +626,22 @@ fn instantiate_gear(
         let mut owner_catalog = owner.catalog.as_ref().unwrap_or(catalog).clone();
         owner_catalog.physical = owner.document.physical.clone();
         owner_catalog.install_type_invariants(&owner.document.native_types);
+        if owner_catalog.checked_native_law_expressions {
+            let witnesses = owner
+                .document
+                .native_law_custody
+                .values()
+                .cloned()
+                .collect::<Vec<_>>();
+            owner_catalog
+                .install_expression_law_witnesses(&witnesses)
+                .map_err(|why| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-046",
+                        format!("compiler Source law closure: {why:?}"),
+                    )
+                })?;
+        }
         let mut fragment = expand_instance(
             &back.plot,
             &owner_plots,

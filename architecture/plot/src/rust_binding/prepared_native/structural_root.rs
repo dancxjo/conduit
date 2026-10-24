@@ -36,7 +36,7 @@ fn identity(ty: &StructuredInfoType) -> Option<&KindId> {
         _ => None,
     }
 }
-pub(super) fn exact_constructor(ty: &StructuredInfoType) -> bool {
+pub(crate) fn exact_constructor(ty: &StructuredInfoType) -> bool {
     if traversal::exact_core_optional(ty) {
         return true;
     }

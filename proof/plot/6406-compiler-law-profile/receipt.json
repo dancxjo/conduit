@@ -1,0 +1,52 @@
+{
+  "base": "29c587b0525b8a25e70036ef5caef7311eb9c52c",
+  "source_sha256": {
+    "architecture/plot/src/canonical_expansion.rs": "2279a841df19e3335c7e7892a98c3e922b15535e598f42944800ab18d59f87b6",
+    "architecture/plot/src/canonical_expansion/entry.rs": "5610a7a5fe34572004ef79126c1b7b902340cc54db50e5327bba76b3e8f8da39",
+    "architecture/plot/src/canonical_expansion/structured_selector.rs": "27b9be36fe28c7dc702767785e0403d8e306ddb6ce455af7b17f050599dead49",
+    "architecture/plot/src/canonical_expansion/structured_selector/semantic_call.rs": "d97a1e2d5b0b99e993d49687ba2caa5899918e156c99acb390937544b1b32905",
+    "architecture/plot/src/canonical_expansion/structured_selector/when_filter.rs": "e6b826767e954faae7c4f27bb30a04072eaea57eea52bbbce87ca3e47fec4b02",
+    "architecture/plot/src/expression_program.rs": "445a135b3e7d6bb4e1b91be80fb2eadf8ce5738a3623e280ddef3c7a4426c5ec",
+    "architecture/plot/src/expression_program/law_requirement.rs": "4acf16d1260dfa5b469f0d139aaec5db59cfe9cb74abb24895059d3205d8d726",
+    "architecture/plot/src/law_expression/compilation.rs": "b8711d27e1c6ba1fe62ccc1f59006e19a2f5deadf2e1293a46dd95910a2aee28",
+    "architecture/plot/src/law_expression/mod.rs": "1763ba71fe5c5d6199aa2e6232680ad1c9d8cb77f5be084d8dfad46f4cbdebf9",
+    "architecture/plot/src/lib.rs": "fa1cc52d00bd87dfff26f8dbb6556f674b230afd797dc148c295358be8f3494d",
+    "architecture/plot/src/profile_read_dependencies.rs": "53aef82126d6ef83a5518d78f1bae45353c1c30c41307c1b8bfb65492960b57a",
+    "architecture/plot/src/rust_binding/mod.rs": "1d2ea589379de604be5e71d382f8450424bd670ad7fa15b661d4af03c99d66d0",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "b7942f14d3706315d299f45e5355557f547932986c5f0dbdc0478ea6802f5f9f",
+    "architecture/plot/src/rust_binding/prepared_native/structural_root.rs": "2580ff905e874d8b7a8dc1d2aa19994ee59e54c99f412d20a050760979f4b80e",
+    "architecture/plot/tests/law_expression_envelope.rs": "c262cd17c483300d39694dc5bb7d239f4b5a1bd60f247e17e5645512f5d4e0c5",
+    "semantics/speech/tests/common/native_law_program.rs": "dc38a9c992841563a798b28789832cd20e6e64031c97db68f5f497aec34ff3f5",
+    "semantics/speech/tests/phone_gesture_automatic_laws.rs": "7a04ef20f69440d48ee91e546b58bbdf44f58126c76370ed1542b9ec24814f5e",
+    "semantics/speech/tests/phone_gesture_kernel.rs": "3a9ae2af29402963e3809e9ce25e89db78a99581602ef03b0ca311ac30b2a1cb",
+    "tools/xtask/src/suites/native_law_custody.rs": "d5600c5a3a771821f61fda335ffda23d1821ff2511bdb6e14d5bedd6d606dbe7",
+    "tools/xtask/src/suites/phone_gestures.rs": "273ffdacf697b678b20552cd0f821ada95f2b1fb5f436aed42bfdb3b1ec679b1"
+  },
+  "focused": {
+    "passed": 23,
+    "failed": 0,
+    "ignored": 0
+  },
+  "command": "cargo +stable test --locked -p conduit-plot --test law_expression_envelope --test native_law_wire --test prepared_expression_laws",
+  "executables": [
+    {
+      "name": "law_expression_envelope-f69d301c08ad9651",
+      "sha256": "98cfc4b0bceddd03b8321155d080d71369223b9ffb49dd272d1aaeb6b01b8c04"
+    },
+    {
+      "name": "native_law_wire-f3fef65cb2d558ee",
+      "sha256": "029ae88f592aa6555971006907ae258582dbb12a4edcb67eb8fb1c5475b4c415"
+    },
+    {
+      "name": "prepared_expression_laws-66db01a35ace4485",
+      "sha256": "78a3c2c9c19faecbde0014592b50475bd8f3d5190ea915f773e9d362c6c3af13"
+    }
+  ],
+  "pending": [
+    "strict lint",
+    "corrected Std/filter tests",
+    "all four automatic G2 Source-to-kernel replays",
+    "supported suite",
+    "Candidate and merged-source Integration"
+  ]
+}

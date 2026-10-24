@@ -55,6 +55,8 @@ impl ProfileCatalog {
             variadic_fores,
             variadic_kinds,
             type_invariants,
+            native_law_custody,
+            checked_native_law_expressions,
             read_trace: _,
         } = self;
         let Self {
@@ -64,10 +66,14 @@ impl ProfileCatalog {
             variadic_fores: rhs_fores,
             variadic_kinds: rhs_variadic,
             type_invariants: rhs_invariants,
+            native_law_custody: rhs_custody,
+            checked_native_law_expressions: rhs_law_profile,
             read_trace: _,
         } = other;
         physical == rhs_physical
             && type_invariants == rhs_invariants
+            && native_law_custody == rhs_custody
+            && checked_native_law_expressions == rhs_law_profile
             && reads.iter().all(|read| {
                 let key = KindId::from(read.key.as_str());
                 match read.table {

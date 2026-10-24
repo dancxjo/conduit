@@ -8,6 +8,7 @@ use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 
 mod checked_encoding;
 mod checked_node;
+mod law_requirement;
 use checked_node::{node, same_span};
 mod constant;
 pub(crate) mod input_bound;

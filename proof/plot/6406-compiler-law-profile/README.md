@@ -1,0 +1,7 @@
+# Compiler law profile preparation
+
+The opt-in `ProfileCatalog::enable_checked_native_law_expressions` compiler profile emits a distinct complete law capsule and Kind, preserving the original inner expression program and arithmetic hints. Default compiler output retains its existing format and identity. Actual opaque checker witnesses, including independently supplied imported owner witnesses, are separate from mutable public Native metadata and graph claims. Cache congruence includes the profile and original custody. All three expression/filter producers bind their exact configuration key.
+
+The capsule verifier now binds each claimed root to the complete original opaque material before Source replay. A root-only semantic match cannot authenticate an appended unrelated declaration. Strict bounded lowercase hex and conservative exact Core-constructor eligibility support automatic Host preparation.
+
+The retained focused run passes 23 tests: nine envelope/compiler, five Native material wire and nine executed-node guards. The three actual executables are sealed outside the repository, with hashes in the receipt. The new all-four G2 automatic replay test and supported entrance are prepared but have not run in this packet. No Std/kernel success, full issue acceptance, listening, PCM or physical proof is claimed here. Original explicit-offer replay remains separate; its current automatic refusal diagnostic reflects the newly explicit missing-Native-custody guard.

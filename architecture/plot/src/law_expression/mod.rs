@@ -6,6 +6,7 @@ use crate::{
     PreparedPortableExpressionEvaluator,
 };
 use alloc::{collections::BTreeMap, vec::Vec};
+mod compilation;
 mod definition;
 mod wire;
 pub use definition::*;
@@ -26,6 +27,29 @@ pub enum LawExpressionRefusal {
 pub struct LawExpressionMaterial {
     pub program: PortableExpressionProgram,
     pub roots: Vec<NativeLawMaterial>,
+}
+impl LawExpressionMaterial {
+    /// Strict lowercase transport encoding, bounded before allocation.
+    pub fn from_canonical_hex(encoded: &str) -> Result<Self, LawExpressionRefusal> {
+        if encoded.len() > MAXIMUM_LAW_EXPRESSION_BYTES * 2 {
+            return Err(LawExpressionRefusal::Capacity);
+        }
+        if encoded.len() % 2 != 0 {
+            return Err(LawExpressionRefusal::Encoding);
+        }
+        fn digit(byte: u8) -> Result<u8, LawExpressionRefusal> {
+            match byte {
+                b'0'..=b'9' => Ok(byte - b'0'),
+                b'a'..=b'f' => Ok(byte - b'a' + 10),
+                _ => Err(LawExpressionRefusal::Encoding),
+            }
+        }
+        let mut bytes = Vec::with_capacity(encoded.len() / 2);
+        for pair in encoded.as_bytes().chunks_exact(2) {
+            bytes.push(digit(pair[0])? * 16 + digit(pair[1])?);
+        }
+        Self::from_canonical_bytes(&bytes)
+    }
 }
 /// Independently retained original opaque Sources. Do not construct this from
 /// an untrusted capsule/graph: compiler handoff supplies it separately.
@@ -69,6 +93,15 @@ impl VerifiedLawExpression {
                 .roots
                 .get(&root.claimed.identity)
                 .ok_or(LawExpressionRefusal::Context)?;
+            // A root's semantic Type alone does not authenticate unrelated
+            // declarations in its module. Bind the entire original opaque
+            // preimage before replay can expose any nested/imported metadata.
+            let original = expected.material().map_err(LawExpressionRefusal::Custody)?;
+            if root != &original {
+                return Err(LawExpressionRefusal::Custody(
+                    NativeLawCustodyRefusal::Source,
+                ));
+            }
             let anchors = expected
                 .family_anchors()
                 .map_err(LawExpressionRefusal::Custody)?;

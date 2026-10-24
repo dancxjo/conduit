@@ -429,6 +429,8 @@ pub struct ProfileCatalog {
     variadic_fores: BTreeMap<KindId, HomogeneousVariadicFore>,
     variadic_kinds: BTreeMap<KindId, conduit_core::Kind>,
     type_invariants: BTreeMap<KindId, Vec<PortableExpressionProgram>>,
+    native_law_custody: BTreeMap<String, NativeLawWitness>,
+    checked_native_law_expressions: bool,
 }
 
 impl ProfileCatalog {

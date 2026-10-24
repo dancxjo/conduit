@@ -80,6 +80,21 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
     let mut catalog = catalog.clone();
     catalog.physical = document.physical.clone();
     catalog.install_type_invariants(&document.native_types);
+    if catalog.checked_native_law_expressions {
+        let witnesses = document
+            .native_law_custody
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        catalog
+            .install_expression_law_witnesses(&witnesses)
+            .map_err(|why| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    format!("compiler Source law closure: {why:?}"),
+                )
+            })?;
+    }
     let fragment = expand_instance(
         plot,
         &plots,

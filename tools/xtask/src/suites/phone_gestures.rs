@@ -34,6 +34,8 @@ pub const STEPS: &[Step] = &[
             "semantic-bindings,kernel",
             "--test",
             "phone_gesture_kernel",
+            "--test",
+            "phone_gesture_automatic_laws",
             "--",
             "--nocapture",
             "--test-threads=1",

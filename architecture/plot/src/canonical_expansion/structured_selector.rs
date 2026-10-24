@@ -397,12 +397,14 @@ fn expand_expression(
             anonymous_counts,
         );
     }
-    let definition = crate::pure_expression_definition(&checked, temporal).map_err(|_| {
-        CanonicalExpansionDiagnostic::new(
-            "CND-FRM-046",
-            "pure expression has no finite exact Port identity".into(),
-        )
-    })?;
+    let definition = catalog
+        .expression_definition(&checked, temporal)
+        .map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                "pure expression has no finite exact Port identity".into(),
+            )
+        })?;
     let semantic_laws = input_bound::semantic_laws(&checked)?;
     drop(checked);
     let key = definition.kind_id.as_str().to_string();
@@ -433,7 +435,7 @@ fn expand_expression(
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         startup_parameters: vec![conduit_core::FrontStartupParameter {
-            name: "program".into(),
+            name: definition.configuration[0].key.clone(),
             value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],

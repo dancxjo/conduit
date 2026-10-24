@@ -86,7 +86,7 @@ fn actual_owner_receipts_replay_all_four_gesture_source_programs_through_std_ker
             assert!(host
                 .prepare_expression_realizations(&authored.expanded)
                 .unwrap_err()
-                .contains("arithmetic-witness-unavailable"));
+                .contains("native-law-witness-unavailable"));
             assert_eq!(host.advertisement(), &before);
         }
         let program = PortableExpressionProgram::from_canonical_hex(hex).unwrap();

@@ -67,7 +67,7 @@ pub(super) fn expand_when_filter(
     })?;
     checked.canonical_literals = canonical_literals;
     checked.input_maximum_bytes = input_bound::checked_bound(source, source_plot, gears)?;
-    let definition = crate::pure_filter_definition(&checked, temporal).map_err(|_| {
+    let definition = catalog.filter_definition(&checked, temporal).map_err(|_| {
         diagnostic(
             source_span,
             "when predicate must return exactly Boolean and have a finite portable program",
@@ -97,7 +97,7 @@ pub(super) fn expand_when_filter(
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         startup_parameters: vec![conduit_core::FrontStartupParameter {
-            name: "program".into(),
+            name: definition.configuration[0].key.clone(),
             value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],

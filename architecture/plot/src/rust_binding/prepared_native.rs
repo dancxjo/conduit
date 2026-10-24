@@ -132,6 +132,7 @@ mod registry;
 mod shared_facade;
 #[path = "prepared_native/structural_root.rs"]
 mod structural_root;
+pub(crate) use structural_root::exact_constructor;
 use structural_root::RootDescriptor;
 #[path = "prepared_native/traversal.rs"]
 mod traversal;

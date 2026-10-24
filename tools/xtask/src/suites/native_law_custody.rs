@@ -21,6 +21,8 @@ pub const STEPS: &[Step] = &[Step::new(
         "--test",
         "prepared_expression_laws",
         "--test",
+        "law_expression_envelope",
+        "--test",
         "prepared_checked_arithmetic",
         "--",
         "--nocapture",
