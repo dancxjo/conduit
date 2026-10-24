@@ -160,3 +160,9 @@
 /* Shared pinned symbols remain noninteractive decoration at the text scale. */
 .faceplate-icon svg,.faceplate-inline-icon svg{display:inline-block;width:1.1em;height:1.1em;vertical-align:-.15em;fill:none;stroke:currentColor;pointer-events:none}
 .faceplate-inline-icon{display:inline;margin-inline-end:.4em}
+
+/* Native buttons give exact Port selection Enter/Space semantics. Connection
+   handles remain siblings, so keyboard selection does not begin a drag. */
+.faceplate-port{padding-block:0;min-height:44px}
+.faceplate-port-select{min-height:44px;width:100%;padding:0;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:inherit;cursor:pointer}
+.faceplate-port-select:focus-visible{outline:3px solid var(--conduit-focus);outline-offset:-3px;border-radius:3px}

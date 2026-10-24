@@ -38,6 +38,23 @@ test('dynamic Patchbay symbols preserve exact node and Port selection',async({pa
   await port.click();
   await expect.poll(()=>page.evaluate(async()=>(await(await fetch('/api/snapshot')).json()).navigation.cursor.focus)).toBe(portId);
   await expect(page.locator('#interaction-proof')).toContainText('Succeeded');
+  const portButtons=page.locator('.faceplate-port-select');
+  await expect(portButtons).toHaveCount(await ports.count());
+  const otherPort=portButtons.nth(1),otherId=await otherPort.locator('..').getAttribute('data-port-id');
+  await radio.focus();await page.keyboard.press('Tab');await expect(portButtons.first()).toBeFocused();
+  await otherPort.focus();await expect(otherPort).toBeFocused();
+  const beforeEnter=await page.evaluate(async()=>(await(await fetch('/api/snapshot')).json()).interaction.revision);
+  await page.keyboard.press('Enter');
+  await expect.poll(()=>page.evaluate(async()=>(await(await fetch('/api/snapshot')).json()).navigation.cursor.focus)).toBe(otherId);
+  await expect(otherPort).toHaveAttribute('aria-pressed','true');
+  expect(await page.evaluate(async()=>(await(await fetch('/api/snapshot')).json()).interaction.revision)).toBe(beforeEnter+1);
+  const firstPort=portButtons.first();await firstPort.focus();await page.keyboard.press('Space');
+  await expect.poll(()=>page.evaluate(async()=>(await(await fetch('/api/snapshot')).json()).navigation.cursor.focus)).toBe(portId);
+  await expect(firstPort).toHaveAttribute('aria-pressed','true');
+  await expect(otherPort).toHaveAttribute('aria-pressed','false');
+  expect(await page.evaluate(async()=>(await(await fetch('/api/snapshot')).json()).interaction.revision)).toBe(beforeEnter+2);
+  expect(await firstPort.evaluate(node=>getComputedStyle(node).minHeight)).toBe('44px');
+
   await page.getByRole('button',{name:'Inspect',exact:true}).click();
   await page.setViewportSize({width:1440,height:1100});
   await page.getByRole('button',{name:'Fit',exact:true}).click();

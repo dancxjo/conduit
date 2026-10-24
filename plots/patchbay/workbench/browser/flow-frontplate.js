@@ -43,7 +43,14 @@ function PortRow({ port, onActivate }) {
   });
   return e("div", { className: `faceplate-port ${port.direction}${port.diagnosticError ? " diagnostic-error" : ""}${activity ? ` debugger-${activity.phase}` : ""}`, "data-port-id": port.id, "data-compatibility": compatibility, title: diagnostic, "data-debugger-phase": activity?.phase || "inactive", onClick:event=>{event.stopPropagation();onActivate(port.id);} },
     target && handle,
-    e("span", { className: "faceplate-port-name", title: port.accessibilityName }, e(SemanticIcon, { role: "Port", className: "faceplate-inline-icon" }), port.label),
+    e("button", {
+      type: "button",
+      className: "faceplate-port-name faceplate-port-select nodrag nowheel",
+      title: port.accessibilityName,
+      "aria-pressed": port.semanticSelected === true,
+      "aria-label": `Select ${port.boundary ? "Plot boundary: " : ""}${port.accessibilityName}`,
+      onClick: event => { event.stopPropagation(); onActivate(port.id); },
+    }, e(SemanticIcon, { role: "Port", className: "faceplate-inline-icon" }), port.label),
     e("code", { title: port.valueKind }, port.valueKind),
     activity?.latest_value && e("output", { className: "debugger-value", "aria-label": `Latest observed value ${activity.latest_value.summary}` }, activity.latest_value.summary),
     !target && handle,

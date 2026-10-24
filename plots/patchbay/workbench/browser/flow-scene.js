@@ -192,6 +192,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
         const properties = subjectProperties.get(port.identity) || new Map();
         return {
           id: port.identity,
+          semanticSelected: (snapshot.navigation?.cursor.focus ?? snapshot.interaction.selected_subject) === port.identity,
           label: port.name,
           accessibilityName: port.name,
           direction: properties.get("direction"),

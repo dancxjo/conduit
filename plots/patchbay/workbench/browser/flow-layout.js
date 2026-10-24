@@ -74,7 +74,7 @@ export function layoutFlowScene(nodes, edges) {
       for (const identity of group) {
         positions.set(identity, { x: 80 + layer * 320, y });
         const node = nodes.find((candidate) => candidate.id === identity);
-        y += 84 + (node?.data?.ports?.length || 0) * 28 + 40;
+        y += 84 + (node?.data?.ports?.length || 0) * 44 + 40;
       }
       y += 70;
     }
