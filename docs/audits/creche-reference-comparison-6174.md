@@ -66,3 +66,11 @@ supersede the earlier pending local-primary 200%/forced-color/narrow checks for
 this Source. They do not complete Details, every unavailable-control/resource
 fallback case, the restrained navy expression or the full Body journey. No
 integration, publication, physical or human acceptance is implied.
+
+## Wide Details follow-up
+
+Source 8b9f820f9 now proves wide Details keyboard and continuation at 200% in
+two forced-color Looks, with explicit scene-mode observations. All sixteen
+typed controls and nineteen/twenty-three pages pass. This supersedes the pending
+wide Details traversal only; narrow Details and unavailable/resource cases remain.
+[Source-bound captures and proof boundaries](evidence/gui-look-6349-native-details/README.md).

@@ -208,3 +208,11 @@ admitted text size across flat/Details, panel and mechanical layouts. 147 native
 scene cases and the eighteen-replacement Look/draft case pass. Actual wide and
 narrow QEMU primary accessibility scenarios pass at 200%/forced colors.
 [Before state, current captures and precise boundaries](evidence/gui-look-6349-native-icon-scale/README.md).
+
+## Wide native Details correspondence
+
+Source 8b9f820f9 passes actual 1280×800 Details at 200%/forced colors in both
+typography/density/palette combinations: sixteen available typed controls in
+complete forward/reverse cycles, all nineteen/twenty-three pages, explicit F2
+entry/return and unchanged complete Face/Show during navigation.
+[Exact receipts, initial inventory refusal and remaining narrow/fallback scope](evidence/gui-look-6349-native-details/README.md).
