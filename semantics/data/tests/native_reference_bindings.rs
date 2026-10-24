@@ -185,15 +185,26 @@ mod reference_proof {
         let valid_image = raw_reference(&generation_content_kind("image")).encode().unwrap();
         let valid_text = raw_reference(&generation_content_kind("text")).encode().unwrap();
         let valid_resource = raw_reference("application/octet-stream@1").encode().unwrap();
-        assert!(References::decode(&encoded_record(&[1], &valid_resource, &valid_text)).is_err());
+        // Construct a valid frame, then corrupt wire bytes so the generated decoder,
+        // rather than the now-stricter structured constructor, receives bad input.
+        let valid = encoded_record(&valid_image, &valid_resource, &valid_text);
+        let corrupt = |original: &[u8], replacement: &[u8]| {
+            let mut wire = valid.clone();
+            let start = wire.windows(original.len()).position(|part| part == original).unwrap();
+            assert_eq!(&wire[start - 4..start], &(original.len() as u32).to_le_bytes());
+            wire[start - 4..start].copy_from_slice(&(replacement.len() as u32).to_le_bytes());
+            wire.splice(start..start + original.len(), replacement.iter().copied());
+            wire
+        };
+        assert!(References::decode(&corrupt(&valid_image, &[1])).is_err());
 
         let mut zero_identity = valid_resource.clone();
         zero_identity[1..33].fill(0);
-        assert!(References::decode(&encoded_record(&valid_image, &zero_identity, &valid_text)).is_err());
+        assert!(References::decode(&corrupt(&valid_resource, &zero_identity)).is_err());
         let mut zero_version = valid_resource.clone();
         zero_version[33..65].fill(0);
-        assert!(References::decode(&encoded_record(&valid_image, &zero_version, &valid_text)).is_err());
-        assert!(References::decode(&encoded_record(&valid_image, &vec![0; 513], &valid_text)).is_err());
+        assert!(References::decode(&corrupt(&valid_resource, &zero_version)).is_err());
+        assert!(References::decode(&corrupt(&valid_resource, &vec![0; 513])).is_err());
     }
 
     #[test]

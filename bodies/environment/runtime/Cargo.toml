@@ -7,9 +7,12 @@ publish = false
 [workspace]
 
 [features]
+face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["dep:conduit-pulse-capture"]
 
 [dependencies]
+conduit-environment-face = { path = "../face", optional = true }
+conduit-face = { path = "../../../semantics/face", default-features = false, optional = true }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", optional = true }
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel" }

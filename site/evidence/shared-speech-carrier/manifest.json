@@ -1,11 +1,11 @@
 {
   "schema": "conduit.speech/shared-carrier-evidence@1",
-  "producer_code_commit": "1e1a9d720b213716fc97ad20e1dd771c7af59698",
-  "command": "cargo +stable xtask prove journey native-speech --output ../goal4907/shared-carrier-refresh-1e1a9 --shared-carrier-only",
+  "producer_code_commit": "002b2b44a833b5670e38415ecce3f652687cb372",
+  "command": "cargo +stable xtask prove journey native-speech --output /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh --shared-carrier-only",
   "files": {
     "you-would.native": {
       "bytes": 1773627,
-      "sha256": "4f04c7cc73e67af2fb2d318b45a7a04b8b59f015e5953006aafde6b162b6f98c"
+      "sha256": "f292560ee142b30ab3dab1ad6ff5356829ee74bcea08437e9422862cde0ad735"
     },
     "you-would.wav": {
       "bytes": 8044,
@@ -13,7 +13,7 @@
     },
     "you-would.json": {
       "bytes": 35345,
-      "sha256": "4cbe7c21e1a5e7575e2904d438878c0f519bb4a149bf9a08958f0e06837e6e79"
+      "sha256": "184a882c6feb8d2214551df1f26ceea4c6ecc3617ddc4165a5a34b7e5f52e80f"
     }
   },
   "proof": "installed factory and execution kernel; complete admitted carrier retained by formant and lexical model entrances; authored offline PCM and explicit acoustic-model refusal",

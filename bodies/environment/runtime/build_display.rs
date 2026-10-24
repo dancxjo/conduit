@@ -25,4 +25,10 @@ pub fn emit(out: &Path) {
         program.canonical_bytes().unwrap(),
     )
     .unwrap();
+    fs::write(
+        out.join("tm1637-frame.type"),
+        program.input_type.canonical_bytes().unwrap(),
+    )
+    .unwrap();
+    crate::display_frame::emit(&program.input_type, out);
 }
