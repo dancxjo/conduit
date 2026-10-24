@@ -9,20 +9,20 @@ use conduit_body::{COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RES
 
 use alloc::{string::String, vec};
 use conduit_body::{
-    AdmissionDocumentRefusal, PortableAdmissionReceipt, RendezvousCandidate, RendezvousLineFamily,
-    RoutedAdmissionRequest, RoutedAdmissionResponse, SpawnRendezvousDescriptor,
-    RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+    AdmissionDocumentRefusal, PortableAdmissionReceipt, RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+    RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest, RoutedAdmissionResponse,
+    SpawnRendezvousDescriptor,
 };
 use conduit_core::HostAdvertisement;
 use conduit_face::{
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
-    OWNER_FACE_REQUEST_SCHEMA,
+    MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_REQUEST_SCHEMA, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse,
 };
 use serde::Deserialize;
 
 use crate::{
     arch::{CandidateDeadline, VirtioNetReady},
-    bounded_websocket::{BinaryWebSocketIo, WebSocketError, MAXIMUM_BINARY_MESSAGE_BYTES},
+    bounded_websocket::{BinaryWebSocketIo, MAXIMUM_BINARY_MESSAGE_BYTES, WebSocketError},
     native_guest_face::{GuestFaceRefusal, NativeGuestFace},
     native_owner_document::{self, DocumentRefusal},
     spore_provision::RouteCertificate,

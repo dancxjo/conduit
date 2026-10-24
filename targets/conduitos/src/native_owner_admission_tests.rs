@@ -2,12 +2,12 @@ use super::*;
 use alloc::{boxed::Box, string::ToString, vec, vec::Vec};
 use conduit_body::{
     AdmissionManager, AdmissionSigns, Body, BodyMembership, PortableSpawnAdmissionRequest,
-    SpawnInvitationSecret, SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
+    SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA, SpawnInvitationSecret,
 };
 use conduit_body::{RendezvousAuthentication, RendezvousCandidate};
-use conduit_core::{OfferGeneration, SignId, PROTOCOL_VERSION};
+use conduit_core::{OfferGeneration, PROTOCOL_VERSION, SignId};
 use conduit_face::{
-    BodyFace, FaceContext, FaceFocus, OwnerFaceSnapshotResponse, OWNER_FACE_RESPONSE_SCHEMA,
+    BodyFace, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse,
 };
 use sha2::{Digest, Sha256};
 
@@ -474,6 +474,11 @@ fn actual_native_offer_completes_signed_owner_request_and_receipt_with_both_wire
         );
         assert_eq!(received.host_advertisement, advertisement);
         assert_eq!(line.sent, request_wire);
-        std::eprintln!("native_signed_roundtrip identities={identity_bytes} generation={generation} expanded={} request={} response={} wire_limit={MAXIMUM_BINARY_MESSAGE_BYTES}", raw.len(), line.sent.len(), line.response.len());
+        std::eprintln!(
+            "native_signed_roundtrip identities={identity_bytes} generation={generation} expanded={} request={} response={} wire_limit={MAXIMUM_BINARY_MESSAGE_BYTES}",
+            raw.len(),
+            line.sent.len(),
+            line.response.len()
+        );
     }
 }

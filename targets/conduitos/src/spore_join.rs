@@ -2,9 +2,9 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_body::{
-    PortableSpawnAdmissionRequest, RoutedAdmissionRequest, SpawnInvitationClaim,
-    SpawnInvitationSecret, SpawnRendezvousDescriptor, COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA,
-    SPAWN_ADMISSION_REQUEST_SCHEMA,
+    COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA, PortableSpawnAdmissionRequest, RoutedAdmissionRequest,
+    SPAWN_ADMISSION_REQUEST_SCHEMA, SpawnInvitationClaim, SpawnInvitationSecret,
+    SpawnRendezvousDescriptor,
 };
 use serde::Serialize;
 
@@ -274,10 +274,12 @@ mod tests {
         assert_eq!(value["expiry_checked_by_body"], true);
         assert_eq!(value["signature"].as_array().unwrap().len(), 64);
         assert!(!encoded.windows(32).any(|window| window == [13; 32]));
-        assert!(prepare(provision(), &advertisement)
-            .unwrap()
-            .routed_request
-            .is_none());
+        assert!(
+            prepare(provision(), &advertisement)
+                .unwrap()
+                .routed_request
+                .is_none()
+        );
     }
 
     #[test]
@@ -401,10 +403,16 @@ mod tests {
         assert!(long_wire.len() <= MAXIMUM_ROUTE_REQUEST_BYTES);
         let long_decoded: RoutedAdmissionRequest = serde_json::from_slice(&long_wire).unwrap();
         assert_eq!(long_decoded.request.host_advertisement, long_identity);
-        std::eprintln!("join_profile_actual expanded={} compact_ad={} serial={} routed={} long_expanded={} long_serial={} long_routed={}",
-            serde_json::to_vec(&advertisement).unwrap().len(), advertisement_bytes,
-            prepared.serial_observation.len(), request_bytes,
-            serde_json::to_vec(&long_identity).unwrap().len(), long.serial_observation.len(), long_wire.len());
+        std::eprintln!(
+            "join_profile_actual expanded={} compact_ad={} serial={} routed={} long_expanded={} long_serial={} long_routed={}",
+            serde_json::to_vec(&advertisement).unwrap().len(),
+            advertisement_bytes,
+            prepared.serial_observation.len(),
+            request_bytes,
+            serde_json::to_vec(&long_identity).unwrap().len(),
+            long.serial_observation.len(),
+            long_wire.len()
+        );
         assert!(!long_request.request.membership_admitted);
         assert!(!long_request.request.plan_created);
         assert!(!long_request.request.play_created);
