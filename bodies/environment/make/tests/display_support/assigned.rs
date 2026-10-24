@@ -142,6 +142,7 @@ fn checked_output_runs_from_compact_fore_tables_without_inventing_a_line() {
                 host_calls: &calls,
                 resources: &resources,
                 write,
+                maximum_value_bytes: prepared.maximum_value_bytes(),
                 sign_items: prepared.lowered().sign_items,
                 sign_bytes: prepared.lowered().sign_bytes,
             };
@@ -167,7 +168,9 @@ fn checked_output_runs_from_compact_fore_tables_without_inventing_a_line() {
             });
             assert_eq!((usage.allocations, usage.reallocations), (0, 0));
             assert_eq!(admitted.identity(), tables.identity);
-            let values = || k::HostedValueStore::new(12, 1024, 12 * 1024).unwrap();
+            let extent = prepared.maximum_value_bytes();
+            assert!(extent < 1024);
+            let values = || k::HostedValueStore::new(12, extent, 12 * extent).unwrap();
             let signs = || {
                 k::HostedSignLog::new_with_remote_storage(
                     256,
@@ -189,6 +192,34 @@ fn checked_output_runs_from_compact_fore_tables_without_inventing_a_line() {
                 ),
                 Err(AssignedDisplayRefusal::Software(_))
             ));
+            assert!(matches!(
+                PreparedAssignedDisplayKernel::prepare(
+                    make_input(),
+                    &resident,
+                    scope(fragment.offer_generation),
+                    software,
+                    2,
+                    k::HostedValueStore::new(12, extent - 1, 12 * (extent - 1)).unwrap(),
+                    signs(),
+                ),
+                Err(AssignedDisplayRefusal::Bounds)
+            ));
+            for invalid in [0, 1025] {
+                resident.maximum_value_bytes = invalid;
+                assert!(matches!(
+                    PreparedAssignedDisplayKernel::prepare(
+                        make_input(),
+                        &resident,
+                        scope(fragment.offer_generation),
+                        software,
+                        2,
+                        values(),
+                        signs(),
+                    ),
+                    Err(AssignedDisplayRefusal::Bounds)
+                ));
+            }
+            resident.maximum_value_bytes = extent;
             let mut foreign = source.clone();
             foreign.checked_plot_id = "fixture/foreign-source".into();
             resident.source = &foreign;

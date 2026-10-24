@@ -46,5 +46,19 @@
   },
   "capture_sha256": {
     "native-owner-receipt.json": "536ee937e9fd3d2c7fd449c22f075d7bf115861fce639bd4857599ab6fbdc70d"
-  }
+  },
+  "value_slot_capacities": [
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024
+  ]
 }

@@ -27,11 +27,16 @@ pub fn prepare(
     }
     let slots = 256u16;
     let sign_bytes = 256 * core::mem::size_of::<k::KernelEvent>() as u32;
-    let needed = requirements()?;
+    let needed = requirements(profile.maximum_value_bytes)?;
     if available_bytes < needed {
         return Err("display-kernel-capacity");
     }
-    let values = k::HostedValueStore::new(12, 1024, 12 * 1024).map_err(|_| "display-values")?;
+    let values = k::HostedValueStore::new(
+        12,
+        profile.maximum_value_bytes,
+        12 * profile.maximum_value_bytes,
+    )
+    .map_err(|_| "display-values")?;
     let signs = k::HostedSignLog::new_with_remote_storage(
         slots,
         sign_bytes,
@@ -79,10 +84,13 @@ pub fn prepare(
 
 /// Additional backing and control headroom; already retained Source/software,
 /// staged wire and tables remain accounted in Root's current heap usage.
-pub fn requirements() -> Result<usize, &'static str> {
+pub fn requirements(maximum_value_bytes: u32) -> Result<usize, &'static str> {
+    if maximum_value_bytes == 0 || maximum_value_bytes > 1024 {
+        return Err("display-value-extent");
+    }
     let slots = 256u16;
-    let values =
-        k::HostedValueStore::canonical_storage_bytes([1024; 12]).map_err(|_| "display-values")?;
+    let values = k::HostedValueStore::canonical_storage_bytes([maximum_value_bytes; 12])
+        .map_err(|_| "display-values")?;
     let needed = values
         + k::HostedSignLog::canonical_storage_bytes(slots, 256).ok_or("display-signs")?
         + core::mem::size_of::<DisplayKernel<k::HostedValueStore, k::HostedSignLog>>()

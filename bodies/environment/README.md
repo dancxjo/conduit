@@ -1677,3 +1677,13 @@ Attended native-owner replies also sample Root and SDK heap capacity, current
 use and high-water use before reply serialization, with a boot-clock timestamp.
 These diagnostic counters are not signed attestation or authority. They expose
 live checkpoints; they do not establish worst-case wireless use or stack bounds.
+
+Make now computes the display value-store ceiling from every checked payload
+Type at its ports, refusing unknown or abnormal Types rather than estimating
+from a sample. The linked native profile reserves twelve 651-byte slots
+(7,812 payload bytes), replacing twelve 1-KiB slots. The slot count, ordinary
+kernel, logical topology, Host Call contracts and sign capacities remain the
+same. CPU execution covers normal output, brightness refusal and cancellation
+with this storage, including too-small-storage refusal before software transfer.
+This is a conservative Type ceiling, not a lifetime allocator or shared store;
+the earlier physical output measurement still used the larger slots.

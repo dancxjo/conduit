@@ -55,7 +55,7 @@ pub(super) fn check(
         0
     )
     .is_err());
-    let needed = native_display_kernel::requirements().unwrap();
+    let needed = native_display_kernel::requirements(profile.maximum_value_bytes).unwrap();
     let (refused, usage) = allocation_probe::observe(|| {
         native_display_kernel::prepare(
             staged.wire(),

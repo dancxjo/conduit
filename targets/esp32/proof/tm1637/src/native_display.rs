@@ -275,7 +275,7 @@ impl NativeDisplay {
 
 #[cfg(feature = "display-ready-root")]
 pub fn kernel_preparation_bound() -> Result<usize, &'static str> {
-    kernel::requirements()
+    kernel::requirements(layout::MAXIMUM_VALUE_BYTES)
 }
 
 impl NativeDisplay {

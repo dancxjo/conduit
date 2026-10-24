@@ -69,6 +69,7 @@ fn output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal(
         host_calls: &calls,
         resources: &resources,
         write: conduit_kernel::NodeId(write as u16),
+        maximum_value_bytes: prepared.maximum_value_bytes(),
         sign_items: prepared.lowered().sign_items,
         sign_bytes: prepared.lowered().sign_bytes,
     };

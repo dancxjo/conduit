@@ -14,6 +14,7 @@ pub struct DisplayLayoutMaterial {
     fore: Vec<c::AssignedForeRequirement>,
     counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
     write: u16,
+    maximum_value_bytes: u32,
     sign_items: u16,
     sign_bytes: u32,
 }
@@ -103,6 +104,7 @@ impl PreparedDisplayOutput {
             fore: image.fore().to_vec(),
             counts,
             write,
+            maximum_value_bytes: self.maximum_value_bytes(),
             sign_items: self.lowered().sign_items,
             sign_bytes: self.lowered().sign_bytes,
         })
@@ -126,6 +128,11 @@ impl DisplayLayoutMaterial {
         &self.fore
     }
     pub fn write_rust(&self, out: &mut impl Write) -> fmt::Result {
+        writeln!(
+            out,
+            "pub const MAXIMUM_VALUE_BYTES: u32 = {};",
+            self.maximum_value_bytes
+        )?;
         writeln!(out,"// Trusted Make output layout; acceptance constraints, never authority.\nuse conduit_core as c;")?;
         writeln!(out,"pub fn source() -> c::PlotIdentity {{ c::PlotIdentity {{source_document_id:{:?}.into(),checked_plot_id:{:?}.into(),expanded_plot_id:{:?}.into()}} }}",self.source.source_document_id.as_str(),self.source.checked_plot_id.as_str(),self.source.expanded_plot_id.as_str())?;
         writeln!(
@@ -176,7 +183,7 @@ impl DisplayLayoutMaterial {
         writeln!(out,"];\npub fn configurations()->[c::AssignedRecord<'static>;3] {{core::array::from_fn(|i|c::AssignedRecord {{tag:c::ASSIGNED_CONFIGURATION,payload:CONFIGURATIONS[i]}})}}")?;
         writeln!(out,"pub fn profile<'a>(source:&'a c::PlotIdentity,fore:&'a[c::AssignedForeRequirement])->Result<conduit_environment_runtime::display_output::AssignedDisplayProfile<'a>,()> {{")?;
         writeln!(out,"if source.source_document_id.as_str()!={:?} || source.checked_plot_id.as_str()!={:?} || source.expanded_plot_id.as_str()!={:?} || fore != &self::fore() {{return Err(());}}",self.source.source_document_id.as_str(),self.source.checked_plot_id.as_str(),self.source.expanded_plot_id.as_str())?;
-        writeln!(out,"Ok(conduit_environment_runtime::display_output::AssignedDisplayProfile {{source,layout:conduit_environment_runtime::assigned::ResidentLayout {{records:&RECORDS,counts:{:?}}},computations:c::AssignedComputationProfile {{maximum_text_bytes:{},maximum_total_text_bytes:{},requirements:&COMPUTATIONS}},fore,host_calls:&CALLS,resources:&{:?},write:conduit_kernel::NodeId({}),sign_items:{},sign_bytes:{} }}) }}",self.counts,self.computations.iter().map(|c|c.text_bytes).max().unwrap_or(0),self.computations.iter().map(|c|u32::from(c.text_bytes)).sum::<u32>(),self.resources,self.write,self.sign_items,self.sign_bytes)?;
+        writeln!(out,"Ok(conduit_environment_runtime::display_output::AssignedDisplayProfile {{source,layout:conduit_environment_runtime::assigned::ResidentLayout {{records:&RECORDS,counts:{:?}}},computations:c::AssignedComputationProfile {{maximum_text_bytes:{},maximum_total_text_bytes:{},requirements:&COMPUTATIONS}},fore,host_calls:&CALLS,resources:&{:?},write:conduit_kernel::NodeId({}),maximum_value_bytes:MAXIMUM_VALUE_BYTES,sign_items:{},sign_bytes:{} }}) }}",self.counts,self.computations.iter().map(|c|c.text_bytes).max().unwrap_or(0),self.computations.iter().map(|c|u32::from(c.text_bytes)).sum::<u32>(),self.resources,self.write,self.sign_items,self.sign_bytes)?;
         Ok(())
     }
 }

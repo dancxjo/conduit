@@ -17,6 +17,8 @@ pub struct AssignedDisplayProfile<'a> {
     pub host_calls: &'a [c::AssignedIdentity],
     pub resources: &'a [u16],
     pub write: k::NodeId,
+    /// Linked Make Type ceiling, not a caller-supplied observed payload size.
+    pub maximum_value_bytes: u32,
     pub sign_items: u16,
     pub sign_bytes: u32,
 }
@@ -58,7 +60,9 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
         use AssignedDisplayRefusal as E;
         if maximum_frames == 0
             || values.item_capacity() < 12
-            || values.byte_capacity() < 12 * 1024
+            || profile.maximum_value_bytes == 0
+            || profile.maximum_value_bytes > 1024
+            || values.byte_capacity() < 12 * profile.maximum_value_bytes
             || values.used_items() != 0
             || values.used_bytes() != 0
             || profile.sign_items == 0

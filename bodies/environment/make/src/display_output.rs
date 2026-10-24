@@ -3,6 +3,7 @@ use conduit_core as c;
 use conduit_plot as p;
 pub struct DisplayOutputSource {
     pub plot: p::ExpandedAuthoringPlot,
+    value_bounds: Vec<(c::KindId, u32)>,
 }
 impl DisplayOutputSource {
     /// Retain initialized portable output computations before advertising them.
@@ -71,13 +72,51 @@ impl DisplayOutputSource {
                 }
             }
         }
+        let mut value_bounds = Vec::new();
+        for ty in checked.native_types.iter().map(|ty| &ty.value_type) {
+            value_bounds.push((
+                ty.profile().map_err(debug)?.value_kind().clone(),
+                p::maximum_prepared_canonical_value_bytes(ty).map_err(debug)?,
+            ));
+        }
+        let absence = c::StructuredInfoType::leaf(c::kind_id(c::EMPTY_INFO_ID)).map_err(debug)?;
+        value_bounds.push((
+            absence.profile().map_err(debug)?.value_kind().clone(),
+            p::maximum_prepared_canonical_value_bytes(&absence).map_err(debug)?,
+        ));
         let plot = p::expand_canonical_plot_for_authoring(
             &checked,
             "environment-display-output",
             &profiles,
         )
         .map_err(debug)?;
-        Ok(Self { plot })
+        let source = Self { plot, value_bounds };
+        source.maximum_value_bytes()?;
+        Ok(source)
+    }
+    /// Conservative canonical extent from every exact Type at a payload port.
+    /// Refuse unknown/abnormal Types instead of guessing from observed values.
+    pub fn maximum_value_bytes(&self) -> Result<u32, String> {
+        self.plot
+            .expanded
+            .gears
+            .iter()
+            .flat_map(|gear| gear.inputs.iter().chain(&gear.outputs))
+            .try_fold(1, |maximum, port| {
+                if port.abnormal_kind.is_some() {
+                    return Err("output abnormal Type needs its own extent proof".into());
+                }
+                let bytes = self
+                    .value_bounds
+                    .iter()
+                    .find(|(kind, _)| kind == &port.value_kind)
+                    .ok_or("output payload Type is not independently bounded")?
+                    .1;
+                if bytes > conduit_tm1637_wire::MAXIMUM_BYTES {
+                    return Err("output Type exceeds native profile".into());
+                }
+                Ok(maximum.max(bytes))
+            })
     }
 }
 fn debug(reason: impl core::fmt::Debug) -> String {
@@ -90,10 +129,12 @@ pub enum DisplayPlanningRefusal {
     Planning(conduit_planner::PlannerError),
     NonlocalFragment,
     Lowering(conduit_plan_lowering::lowering::LoweringError),
+    ValueExtent(String),
 }
 pub struct PreparedDisplayOutput {
     plan: c::Plan,
     lowered: conduit_plan_lowering::lowering::LoweredPlanFragment,
+    maximum_value_bytes: u32,
 }
 impl PreparedDisplayOutput {
     /// Current authenticated offers, actual retained software/providers and
@@ -165,7 +206,14 @@ impl PreparedDisplayOutput {
         if !activations.entries.is_empty() {
             return Err(E::NonlocalFragment);
         }
-        Ok(Self { plan, lowered })
+        Ok(Self {
+            plan,
+            lowered,
+            maximum_value_bytes: source.maximum_value_bytes().map_err(E::ValueExtent)?,
+        })
+    }
+    pub fn maximum_value_bytes(&self) -> u32 {
+        self.maximum_value_bytes
     }
     pub fn plan(&self) -> &c::Plan {
         &self.plan

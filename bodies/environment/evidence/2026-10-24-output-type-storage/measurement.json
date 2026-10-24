@@ -1,0 +1,18 @@
+{
+  "proof_class": "CPU exact output Types, production assigned stores and ESP32 cross-link; no flash",
+  "per_slot_before_bytes": 1024,
+  "per_slot_after_bytes": 651,
+  "slot_count_before": 12,
+  "slot_count_after": 12,
+  "payload_before_bytes": 12288,
+  "payload_after_bytes": 7812,
+  "payload_reduction_bytes": 4476,
+  "ordinary_sign_capacity": 256,
+  "remote_sign_capacity": 256,
+  "lifetime_reuse_claimed": false,
+  "combined_admission_claimed": false,
+  "physical_heap_reduction_measured": false,
+  "focused_tests_passed": 30,
+  "strict_library_and_display_test_clippy": true,
+  "root_test_clippy_allowance": "dead_code for three existing included target items"
+}

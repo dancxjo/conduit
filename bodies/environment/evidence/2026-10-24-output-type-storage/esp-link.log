@@ -1,0 +1,601 @@
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+   Compiling conduit-esp32-tm1637-probe v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/esp32/proof/tm1637)
+warning: unused import: `AssignedNativeInput`
+  --> src/native_authority.rs:11:20
+   |
+11 | pub use bindings::{AssignedNativeInput, NativeBindings};
+   |                    ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: static `RECORDS` is never used
+ --> src/appliance_layout.rs:6:8
+  |
+6 | static RECORDS: [c::AssignedRecordRequirement; 125] = [
+  |        ^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: static `CALLS` is never used
+   --> src/appliance_layout.rs:134:8
+    |
+134 | static CALLS: [c::AssignedIdentity; 6] = [
+    |        ^^^^^
+
+warning: static `RESOURCES` is never used
+   --> src/appliance_layout.rs:142:8
+    |
+142 | static RESOURCES: &[u16] = &[0, 0];
+    |        ^^^^^^^^^
+
+warning: function `requirements` is never used
+   --> src/appliance_layout.rs:143:8
+    |
+143 | pub fn requirements(
+    |        ^^^^^^^^^^^^
+
+warning: function `layout` is never used
+   --> src/appliance_layout.rs:155:8
+    |
+155 | pub fn layout(
+    |        ^^^^^^
+
+warning: fields `pulse_generation` and `wait_generation` are never read
+  --> src/native_authority.rs:67:5
+   |
+58 | pub struct RootIssuer {
+   |            ---------- fields in this struct
+...
+67 |     pulse_generation: u64,
+   |     ^^^^^^^^^^^^^^^^
+68 |     wait_generation: u64,
+   |     ^^^^^^^^^^^^^^^
+
+warning: methods `reserve_assigned_play`, `reserve_assigned_play_matching`, and `finish_native_play` are never used
+   --> src/native_authority.rs:125:12
+    |
+ 75 | impl RootIssuer {
+    | --------------- methods in this implementation
+...
+125 |     pub fn reserve_assigned_play(
+    |            ^^^^^^^^^^^^^^^^^^^^^
+...
+143 |     pub fn reserve_assigned_play_matching(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+159 |     pub fn finish_native_play<P, W>(
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: fields `pulse` and `wait` are never read
+  --> src/native_bindings.rs:21:9
+   |
+20 | pub struct NativeBindings<P, W> {
+   |            -------------- fields in this struct
+21 |     pub pulse: PulseHostCall<P>,
+   |         ^^^^^
+22 |     pub wait: MonotonicWaitHostCall<W>,
+   |         ^^^^
+
+warning: struct `AssignedNativeInput` is never constructed
+  --> src/native_bindings.rs:24:12
+   |
+24 | pub struct AssignedNativeInput<'a> {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: method `bind_assigned_native` is never used
+  --> src/native_bindings.rs:35:12
+   |
+34 | impl RootIssuer {
+   | --------------- method in this implementation
+35 |     pub fn bind_assigned_native<P: PulseReadProvider, W: MonotonicWaitProvider>(
+   |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `issue_pulse`, `issue_assigned_pulse`, and `prepare_pulse_possession` are never used
+   --> src/native_pulse_authority.rs:27:12
+    |
+  7 | impl RootIssuer {
+    | --------------- methods in this implementation
+...
+ 27 |     pub fn issue_pulse(
+    |            ^^^^^^^^^^^
+...
+ 94 |     pub fn issue_assigned_pulse<P: conduit_pulse_capture::owner::PulseReadProvider>(
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+136 |     pub(super) fn prepare_pulse_possession(
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `issue_wait`, `issue_assigned_wait`, and `prepare_wait_possession` are never used
+   --> src/native_wait_authority.rs:26:12
+    |
+  6 | impl RootIssuer {
+    | --------------- methods in this implementation
+...
+ 26 |     pub fn issue_wait(
+    |            ^^^^^^^^^^
+...
+ 76 |     pub fn issue_assigned_wait<P: conduit_monotonic_wait::MonotonicWaitProvider>(
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+127 |     pub(super) fn prepare_wait_possession(
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `run` is never used
+   --> src/native_display_execution.rs:143:18
+    |
+ 44 | impl<P: OpenDrain> Execution<P> {
+    | ------------------------------- method in this implementation
+...
+143 |     pub async fn run(&mut self, stop: impl Future<Output = ()>) -> Outcome {
+    |                  ^^^
+
+warning: field `request` is never read
+  --> src/native_display_service.rs:25:9
+   |
+24 | pub struct ServicedCall {
+   |            ------------ field in this struct
+25 |     pub request: HostCallRequest,
+   |         ^^^^^^^
+
+warning: fields `play_scope` and `provider_generations` are never read
+  --> src/native_retirement.rs:10:5
+   |
+ 7 | pub struct RetiredProviders<P, W> {
+   |            ---------------- fields in this struct
+...
+10 |     play_scope: [u8; 32],
+   |     ^^^^^^^^^^
+11 |     provider_generations: [u64; 2],
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `matches_active` and `provider_generations` are never used
+  --> src/native_retirement.rs:14:12
+   |
+13 | impl<P, W> RetiredProviders<P, W> {
+   | --------------------------------- methods in this implementation
+14 |     pub fn matches_active(&self, active: &conduit_core::ActivePlayIdentity) -> bool {
+   |            ^^^^^^^^^^^^^^
+...
+23 |     pub fn provider_generations(&self) -> [u64; 2] {
+   |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `check_pair` is never used
+  --> src/native_retirement.rs:46:8
+   |
+46 | pub fn check_pair<P: PulseReadProvider, W: MonotonicWaitProvider>(
+   |        ^^^^^^^^^^
+
+warning: associated function `retire_pair` is never used
+  --> src/native_retirement.rs:65:12
+   |
+62 | impl<P: PulseReadProvider, W: MonotonicWaitProvider> RetiredProviders<P, W> {
+   | --------------------------------------------------------------------------- associated function in this implementation
+...
+65 |     pub fn retire_pair(
+   |            ^^^^^^^^^^^
+
+warning: fields `provider` and `attachment` are never read
+  --> src/native_retirement.rs:90:9
+   |
+89 | pub struct RetiredDisplay<P> {
+   |            -------------- fields in this struct
+90 |     pub provider: P,
+   |         ^^^^^^^^
+91 |     pub attachment: conduit_tm1637_wire::owner::WriteAttachment,
+   |         ^^^^^^^^^^
+
+warning: fields `kernel`, `selectors`, and `roles` are never read
+  --> src/native_kernel_storage.rs:23:16
+   |
+22 | pub struct PreparedKernel {
+   |            -------------- fields in this struct
+23 |     pub(crate) kernel: Box<Kernel>,
+   |                ^^^^^^
+24 |     pub(crate) selectors: Box<[Option<PreparedCaptureSelector>; NODES]>,
+   |                ^^^^^^^^^
+25 |     pub(crate) roles: ResidentRoles,
+   |                ^^^^^
+
+warning: constant `WAIT_BYTES` is never used
+  --> src/native_service.rs:14:7
+   |
+14 | const WAIT_BYTES: usize = conduit_monotonic_wait::PARAMETER_BYTES as usize;
+   |       ^^^^^^^^^^
+
+warning: struct `ServicedCall` is never constructed
+  --> src/native_service.rs:17:12
+   |
+17 | pub struct ServicedCall {
+   |            ^^^^^^^^^^^^
+
+warning: fields `request`, `bytes`, and `length` are never read
+  --> src/native_service.rs:25:5
+   |
+24 | pub struct Invocation<const N: usize> {
+   |            ---------- fields in this struct
+25 |     request: HostCallRequest,
+   |     ^^^^^^^
+26 |     bytes: [u8; N],
+   |     ^^^^^
+27 |     length: usize,
+   |     ^^^^^^
+
+warning: enum `Dispatch` is never used
+  --> src/native_service.rs:33:10
+   |
+33 | pub enum Dispatch {
+   |          ^^^^^^^^
+
+warning: fields `request`, `bytes`, `length`, and `failure` are never read
+  --> src/native_service.rs:40:5
+   |
+39 | pub struct Reply {
+   |            ----- fields in this struct
+40 |     request: HostCallRequest,
+   |     ^^^^^^^
+41 |     bytes: [u8; PULSE_BYTES],
+   |     ^^^^^
+42 |     length: Option<usize>,
+   |     ^^^^^^
+43 |     failure: Option<k::Failure>,
+   |     ^^^^^^^
+
+warning: function `parameters` is never used
+  --> src/native_service.rs:45:4
+   |
+45 | fn parameters<const N: usize>(
+   |    ^^^^^^^^^^
+
+warning: function `next` is never used
+  --> src/native_service.rs:65:8
+   |
+65 | pub fn next(storage: &mut PreparedKernel) -> Result<Dispatch, k::Failure> {
+   |        ^^^^
+
+warning: function `reply` is never used
+   --> src/native_service.rs:100:4
+    |
+100 | fn reply(request: HostCallRequest, result: Result<Option<&[u8]>, k::Failure>) -> Reply {
+    |    ^^^^^
+
+warning: function `pulse` is never used
+   --> src/native_service.rs:118:14
+    |
+118 | pub async fn pulse<P: PulseReadProvider>(
+    |              ^^^^^
+
+warning: function `wait` is never used
+   --> src/native_service.rs:135:14
+    |
+135 | pub async fn wait<W: MonotonicWaitProvider>(
+    |              ^^^^
+
+warning: function `finish` is never used
+   --> src/native_service.rs:158:8
+    |
+158 | pub fn finish(storage: &mut PreparedKernel, reply: Reply) -> Result<ServicedCall, k::Failure> {
+    |        ^^^^^^
+
+warning: function `complete` is never used
+   --> src/native_service.rs:165:4
+    |
+165 | fn complete(
+    |    ^^^^^^^^
+
+warning: function `quiesce` is never used
+   --> src/native_service.rs:221:8
+    |
+221 | pub fn quiesce<P: PulseReadProvider, W: MonotonicWaitProvider>(
+    |        ^^^^^^^
+
+warning: function `fail` is never used
+   --> src/native_service.rs:232:10
+    |
+232 | const fn fail(code: k::FailureCode, detail: u16) -> k::Failure {
+    |          ^^^^
+
+warning: fields `pulse`, `wait`, and `replies` are never read
+  --> src/native_worker.rs:24:5
+   |
+23 | struct Queues {
+   |        ------ fields in this struct
+24 |     pulse: Channel<NoopRawMutex, Invocation<PULSE_BYTES>, 1>,
+   |     ^^^^^
+25 |     wait: Channel<NoopRawMutex, Invocation<WAIT_BYTES>, 1>,
+   |     ^^^^
+26 |     replies: Channel<NoopRawMutex, Reply, 2>,
+   |     ^^^^^^^
+
+warning: associated function `new` is never used
+  --> src/native_worker.rs:29:14
+   |
+28 | impl Queues {
+   | ----------- associated function in this implementation
+29 |     const fn new() -> Self {
+   |              ^^^
+
+warning: enum `Exit` is never used
+  --> src/native_worker.rs:46:10
+   |
+46 | pub enum Exit {
+   |          ^^^^
+
+warning: struct `Outcome` is never constructed
+  --> src/native_worker.rs:52:12
+   |
+52 | pub struct Outcome {
+   |            ^^^^^^^
+
+warning: fields `storage`, `native`, `queues`, `progress`, `begun`, and `retired` are never read
+  --> src/native_worker.rs:61:16
+   |
+60 | pub struct Execution<P, W> {
+   |            --------- fields in this struct
+61 |     pub(crate) storage: PreparedKernel,
+   |                ^^^^^^^
+62 |     pub(crate) native: NativeBindings<P, W>,
+   |                ^^^^^^
+63 |     queues: Queues,
+   |     ^^^^^^
+64 |     progress: Progress,
+   |     ^^^^^^^^
+65 |     begun: bool,
+   |     ^^^^^
+66 |     retired: Option<Result<(), k::Failure>>,
+   |     ^^^^^^^
+
+warning: associated items `new`, `boxed_retained`, `cancel_held`, `retire_retained`, `future_bytes`, and `run` are never used
+   --> src/native_worker.rs:69:8
+    |
+ 68 | impl<P: PulseReadProvider, W: MonotonicWaitProvider> Execution<P, W> {
+    | -------------------------------------------------------------------- associated items in this implementation
+ 69 |     fn new(storage: PreparedKernel, native: NativeBindings<P, W>) -> Self {
+    |        ^^^
+...
+ 82 |     pub fn boxed_retained(
+    |            ^^^^^^^^^^^^^^
+...
+ 95 |     pub fn cancel_held(&mut self) -> Result<Outcome, &'static str> {
+    |            ^^^^^^^^^^^
+...
+111 |     pub fn retire_retained(
+    |            ^^^^^^^^^^^^^^^
+...
+127 |     pub fn future_bytes(
+    |            ^^^^^^^^^^^^
+...
+136 |     pub async fn run(
+    |                  ^^^
+
+warning: function `pulses` is never used
+   --> src/native_worker.rs:199:10
+    |
+199 | async fn pulses<P: PulseReadProvider>(
+    |          ^^^^^^
+
+warning: function `waits` is never used
+   --> src/native_worker.rs:209:10
+    |
+209 | async fn waits<W: MonotonicWaitProvider>(
+    |          ^^^^^
+
+warning: function `pump` is never used
+   --> src/native_worker.rs:219:10
+    |
+219 | async fn pump(
+    |          ^^^^
+
+warning: function `advance` is never used
+   --> src/native_worker.rs:278:4
+    |
+278 | fn advance(
+    |    ^^^^^^^
+
+warning: function `revoke` is never used
+   --> src/native_worker.rs:330:4
+    |
+330 | fn revoke<P: PulseReadProvider, W: MonotonicWaitProvider>(
+    |    ^^^^^^
+
+warning: function `bump` is never used
+   --> src/native_worker.rs:339:4
+    |
+339 | fn bump(value: &mut u64) -> Result<(), k::Failure> {
+    |    ^^^^
+
+warning: function `failure` is never used
+   --> src/native_worker.rs:345:10
+    |
+345 | const fn failure(code: k::FailureCode, detail: u16) -> k::Failure {
+    |          ^^^^^^^
+
+warning: field `execution` is never read
+  --> src/native_task.rs:14:5
+   |
+13 | struct Slot {
+   |        ---- field in this struct
+14 |     execution: RefCell<Option<Box<DeviceExecution>>>,
+   |     ^^^^^^^^^
+
+warning: static `SLOT` is never used
+  --> src/native_task.rs:18:8
+   |
+18 | static SLOT: StaticCell<Slot> = StaticCell::new();
+   |        ^^^^
+
+warning: enum `Command` is never used
+  --> src/native_task.rs:20:6
+   |
+20 | enum Command {
+   |      ^^^^^^^
+
+warning: static `COMMAND` is never used
+  --> src/native_task.rs:24:8
+   |
+24 | static COMMAND: Signal<CriticalSectionRawMutex, Command> = Signal::new();
+   |        ^^^^^^^
+
+warning: static `READY` is never used
+  --> src/native_task.rs:25:8
+   |
+25 | static READY: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+   |        ^^^^^
+
+warning: field `cancel_requested` is never read
+  --> src/native_task.rs:51:5
+   |
+50 | struct State {
+   |        ----- field in this struct
+51 |     cancel_requested: bool,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: function `update` is never used
+  --> src/native_task.rs:87:4
+   |
+87 | fn update(f: impl FnOnce(&mut State)) {
+   |    ^^^^^^
+
+warning: field `slot` is never read
+  --> src/native_task.rs:93:5
+   |
+92 | pub struct Handle {
+   |            ------ field in this struct
+93 |     slot: &'static Slot,
+   |     ^^^^
+
+warning: methods `wait_ready`, `accept_start`, `release`, `abort_preparation`, and `retire` are never used
+   --> src/native_task.rs:96:18
+    |
+ 95 | impl Handle {
+    | ----------- methods in this implementation
+ 96 |     pub async fn wait_ready(&self) {
+    |                  ^^^^^^^^^^
+...
+102 |     pub fn accept_start(&self) -> Result<(), &'static str> {
+    |            ^^^^^^^^^^^^
+...
+115 |     pub fn release(&self) -> Result<(), &'static str> {
+    |            ^^^^^^^
+...
+124 |     pub fn abort_preparation(&self) {
+    |            ^^^^^^^^^^^^^^^^^
+...
+147 |     pub fn retire(
+    |            ^^^^^^
+
+warning: function `prepare` is never used
+   --> src/native_task.rs:191:8
+    |
+191 | pub fn prepare(
+    |        ^^^^^^^
+
+warning: function `held` is never used
+   --> src/native_task.rs:236:10
+    |
+236 | async fn held(slot: &'static Slot) {
+    |          ^^^^
+
+warning: function `native_status` is never used
+   --> src/native_task.rs:333:4
+    |
+333 | fn native_status(status: &mut Status, execution: &DeviceExecution) {
+    |    ^^^^^^^^^^^^^
+
+warning: method `fresh_within` is never used
+  --> src/native_owner_receipt.rs:28:12
+   |
+25 | impl Snapshot {
+   | ------------- method in this implementation
+...
+28 |     pub fn fresh_within(&self, maximum_age_ms: u64, round_trip_ms: u64) -> bool {
+   |            ^^^^^^^^^^^^
+
+warning: method `verify` is never used
+  --> src/native_owner_receipt.rs:64:12
+   |
+42 | impl Receipt {
+   | ------------ method in this implementation
+...
+64 |     pub fn verify(
+   |            ^^^^^^
+
+warning: enum `Refusal` is never used
+  --> src/native_owner_receipt.rs:99:10
+   |
+99 | pub enum Refusal {
+   |          ^^^^^^^
+
+warning: struct `VerifiedReceipt` is never constructed
+   --> src/native_owner_receipt.rs:107:12
+    |
+107 | pub struct VerifiedReceipt {
+    |            ^^^^^^^^^^^^^^^
+
+warning: method `into_state` is never used
+   --> src/native_owner_receipt.rs:111:12
+    |
+110 | impl VerifiedReceipt {
+    | -------------------- method in this implementation
+111 |     pub fn into_state(self) -> State {
+    |            ^^^^^^^^^^
+
+warning: associated function `reserve` is never used
+   --> src/native_owner_reservation.rs:122:12
+    |
+ 29 | impl OwnerReservation {
+    | --------------------- associated function in this implementation
+...
+122 |     pub fn reserve(
+    |            ^^^^^^^
+
+warning: function `prepare` is never used
+  --> src/native_software.rs:13:8
+   |
+13 | pub fn prepare() -> Result<Box<Software>, ()> {
+   |        ^^^^^^^
+
+warning: function `resident` is never used
+  --> src/native_software.rs:31:8
+   |
+31 | pub fn resident(
+   |        ^^^^^^^^
+
+warning: function `computation_records` is never used
+  --> src/native_software.rs:44:8
+   |
+44 | pub fn computation_records() -> &'static [conduit_core::AssignedRecord<'static>] {
+   |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `source_identity` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-esp32/xtensa-esp32-none-elf/release/build/conduit-esp32-tm1637-probe-959787b515bb10a3/out/appliance-software.rs:3:8
+  |
+3 | pub fn source_identity() -> c::PlotIdentity { c::PlotIdentity { source_document_id: "3b2be61d35474faedeab6ca874af899f0479215b4715783e322b...
+  |        ^^^^^^^^^^^^^^^
+
+warning: static `TEXTS` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-esp32/xtensa-esp32-none-elf/release/build/conduit-esp32-tm1637-probe-959787b515bb10a3/out/appliance-software.rs:14:8
+   |
+14 | static TEXTS: [ResidentComputation<'static>; 7] = [
+   |        ^^^^^
+
+warning: function `computations` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-esp32/xtensa-esp32-none-elf/release/build/conduit-esp32-tm1637-probe-959787b515bb10a3/out/appliance-software.rs:23:8
+   |
+23 | pub fn computations() -> &'static [ResidentComputation<'static>] { &TEXTS }
+   |        ^^^^^^^^^^^^
+
+warning: static `COMPUTATION_RECORDS` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-esp32/xtensa-esp32-none-elf/release/build/conduit-esp32-tm1637-probe-959787b515bb10a3/out/appliance-software.rs:40:8
+   |
+40 | static COMPUTATION_RECORDS: [c::AssignedRecord<'static>; 7] = [
+   |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `computation_records` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-esp32/xtensa-esp32-none-elf/release/build/conduit-esp32-tm1637-probe-959787b515bb10a3/out/appliance-software.rs:49:8
+   |
+49 | pub fn computation_records() -> &'static [c::AssignedRecord<'static>] { &COMPUTATION_RECORDS }
+   |        ^^^^^^^^^^^^^^^^^^^
+
+warning: `conduit-esp32-tm1637-probe` (bin "conduit-esp32-tm1637-probe") generated 74 warnings (run `cargo fix --bin "conduit-esp32-tm1637-probe"` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 27.81s

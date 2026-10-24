@@ -69,12 +69,15 @@ def ledger(sampling_image=None, output_image=None):
         raise ValueError("sampling storage profile changed; renew ledger parser")
     capacities = [int(n.strip()) for n in capacities[1].split(",")]
     output_storage = ROOT / "targets/esp32/proof/tm1637/src/native_display_kernel.rs"
-    shape = re.search(r"HostedValueStore::new\((\d+), (\d+), (\d+) \* (\d+)\)", output_storage.read_text())
-    if shape is None:
+    shape = re.search(r"HostedValueStore::new\(\s*(\d+),\s*profile.maximum_value_bytes,\s*(\d+) \* profile.maximum_value_bytes", output_storage.read_text())
+    linked_layout = ROOT / "targets/esp32/proof/tm1637/src/display_layout.rs"
+    extent_match = re.search(r"pub const MAXIMUM_VALUE_BYTES: u32 = (\d+);", linked_layout.read_text())
+    if shape is None or extent_match is None or "maximum_value_bytes:MAXIMUM_VALUE_BYTES" not in linked_layout.read_text():
         raise ValueError("output storage profile changed; renew ledger parser")
-    items, extent, quota_items, quota_extent = map(int, shape.groups())
-    if items * extent != quota_items * quota_extent:
-        raise ValueError("output backing and live quota now differ; account separately")
+    items, quota_items = map(int, shape.groups())
+    extent = int(extent_match[1])
+    if items != quota_items or not 0 < extent <= 1024:
+        raise ValueError("output backing and live quota differ; account separately")
     sign_items = set(re.findall(r"let slots = (\d+)u16", output_storage.read_text()))
     remote_items = re.search(r"new_with_remote_storage\(\s*slots,\s*sign_bytes,\s*(\d+)", output_storage.read_text())
     if len(sign_items) != 1 or remote_items is None:
@@ -105,12 +108,13 @@ def ledger(sampling_image=None, output_image=None):
                 "preparation_peak_bytes": output["root_peak_bytes"],
                 "dormant_retained_bytes": output["root_used_bytes"],
                 "execution_peak_bytes": None, "linked_stack_bytes": output["linked_stack_bytes"],
+                "captured_value_slot_capacities": output["value_slot_capacities"],
                 "stack_high_water_bytes": None,
             },
         },
         "inventory": {
             "sampling_value_payload": {"bytes": sum(capacities), "slot_capacities": capacities, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
-            "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
+            "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "extent_basis": "Make ceiling from all independently checked payload Types; slot count unchanged", "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_sign_records": {"ordinary_items": int(sign_items.pop()), "remote_items": int(remote_items[1]), "class": "persistent mutable", "derived_minimum": None},
             "mask_cpu": {"bytes": mask["after_mask_owner_bytes"], "heap_bytes": mask["after_mask_requested_heap_peak_bytes"], "pointer_bits": mask["pointer_bits"], "mcu_size_bytes": None},
             "packet_expression_cpu": {"before_bytes": expression_cpu["before_packet_source_bytes"], "after_bytes": expression_cpu["after_packet_source_bytes"], "pointer_bits": expression_cpu["pointer_bits"], "mcu_size_bytes": None, "compact_structured_tape_implemented": expression_cpu["compact_structured_tape_implemented"], "profile": expression_cpu["tape_profile"]},
@@ -134,7 +138,7 @@ def ledger(sampling_image=None, output_image=None):
         },
         "inputs": {name: {"path": str(path.relative_to(ROOT)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for name, path in inputs.items()},
     }
-    for name, path in [("sampling_storage_source", storage), ("output_storage_source", output_storage), ("quantity_form_source", forms)]:
+    for name, path in [("sampling_storage_source", storage), ("output_storage_source", output_storage), ("output_linked_layout", linked_layout), ("quantity_form_source", forms)]:
         result["inputs"][name] = {"path": str(path.relative_to(ROOT)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
     for name, image in [("sampling_face", sampling_image), ("output_held", output_image)]:
         if image is not None:
@@ -167,7 +171,8 @@ def markdown(value):
         f"| Retained Root | Dormant output {output['dormant_retained_bytes']:,} B; sampler observed at {min(sampling['observed_sampling_used_bytes']):,}–{max(sampling['observed_sampling_used_bytes']):,} B across three publications | Do not label post-retirement memory as steady state |",
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
-        f"The unchanged stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
+        f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
+        f"The output capture still used {sum(output['captured_value_slot_capacities']):,} payload bytes. The current Type-derived profile uses {value['inventory']['output_value_payload']['bytes']:,}; its MCU retained/peak effect has not been captured. These are distinct source profiles.", "",
         "The CPU Mask figure and separately captured MCU profiles are intentionally not combined numerically. Source identities and input hashes are in memory-ledger.json.", "",
     ]
     if all("linked_image" in p for p in profiles.values()):

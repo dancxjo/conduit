@@ -1,3 +1,4 @@
+pub const MAXIMUM_VALUE_BYTES: u32 = 651;
 // Trusted Make output layout; acceptance constraints, never authority.
 use conduit_core as c;
 pub fn source() -> c::PlotIdentity { c::PlotIdentity {source_document_id:"53e29f11f6f04e67bfde1f8f6098e2976545cc0e31c213e26a8c2cf83034a104".into(),checked_plot_id:"eaf17e34b29274185f35ea168c9d1ad5b85608528b9b5a51585b2a4b873a68c0".into(),expanded_plot_id:"2f975d24cd6dac6c611d0dacbc9a7bf4f8bdc1657cc546f956d73f7b72f6f64e".into()} }
@@ -68,4 +69,4 @@ static CONFIGURATIONS: [&[u8];3] = [
 pub fn configurations()->[c::AssignedRecord<'static>;3] {core::array::from_fn(|i|c::AssignedRecord {tag:c::ASSIGNED_CONFIGURATION,payload:CONFIGURATIONS[i]})}
 pub fn profile<'a>(source:&'a c::PlotIdentity,fore:&'a[c::AssignedForeRequirement])->Result<conduit_environment_runtime::display_output::AssignedDisplayProfile<'a>,()> {
 if source.source_document_id.as_str()!="53e29f11f6f04e67bfde1f8f6098e2976545cc0e31c213e26a8c2cf83034a104" || source.checked_plot_id.as_str()!="eaf17e34b29274185f35ea168c9d1ad5b85608528b9b5a51585b2a4b873a68c0" || source.expanded_plot_id.as_str()!="2f975d24cd6dac6c611d0dacbc9a7bf4f8bdc1657cc546f956d73f7b72f6f64e" || fore != &self::fore() {return Err(());}
-Ok(conduit_environment_runtime::display_output::AssignedDisplayProfile {source,layout:conduit_environment_runtime::assigned::ResidentLayout {records:&RECORDS,counts:[4, 7, 3, 5, 3, 4, 3, 1, 13, 2, 7, 8, 0]},computations:c::AssignedComputationProfile {maximum_text_bytes:11644,maximum_total_text_bytes:13434,requirements:&COMPUTATIONS},fore,host_calls:&CALLS,resources:&[0],write:conduit_kernel::NodeId(3),sign_items:13,sign_bytes:717 }) }
+Ok(conduit_environment_runtime::display_output::AssignedDisplayProfile {source,layout:conduit_environment_runtime::assigned::ResidentLayout {records:&RECORDS,counts:[4, 7, 3, 5, 3, 4, 3, 1, 13, 2, 7, 8, 0]},computations:c::AssignedComputationProfile {maximum_text_bytes:11644,maximum_total_text_bytes:13434,requirements:&COMPUTATIONS},fore,host_calls:&CALLS,resources:&[0],write:conduit_kernel::NodeId(3),maximum_value_bytes:MAXIMUM_VALUE_BYTES,sign_items:13,sign_bytes:717 }) }
