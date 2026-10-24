@@ -304,6 +304,7 @@ test("enlarged narrow shell retains a useful scrollable graph viewport", async (
     await page.goto(await server.url);
     await expect(page.locator('body')).toHaveAttribute('data-application-ready','true');
     await page.getByRole('button',{name:'Plot',exact:true}).click();
+    await expect(page.locator('.flow-frontplate').first()).toBeVisible();
     await page.getByRole('combobox',{name:'Look',exact:true}).selectOption('conduit.look/navy@1');
     await page.addStyleTag({content:'html{font-size:32px!important}'});
     await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
@@ -321,6 +322,7 @@ test("enlarged narrow shell retains a useful scrollable graph viewport", async (
     });
     await writeFile(info.outputPath('narrow-graph-geometry.json'),JSON.stringify(geometry,null,2));
     await page.screenshot({path:info.outputPath('narrow-graph.png'),fullPage:true,animations:'disabled'});
+    await page.screenshot({path:info.outputPath('narrow-graph-viewport.png'),animations:'disabled'});
     expect(geometry.graph.height).toBeGreaterThanOrEqual(320);
     expect(geometry.visibleHeight).toBeGreaterThanOrEqual(320);
     expect(geometry.documentHeight).toBeGreaterThan(geometry.viewport.height);
