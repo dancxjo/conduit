@@ -40,3 +40,15 @@ Time labels follow the Face. A sampled coordinate appears as
 and does not become acquisition time. The other coordinate is null, while
 `age_basis` names the selected reference. Without either coordinate, both times
 and age are null. This does not fill the native recorder's acquisition-time gap.
+
+`HttpShowMailbox` provides one bounded publication owner and separate Root
+withdrawal custody for resolved Show material. Claiming it does not install a
+route or confer Body, clock, Face or observation authority. Root independently
+supplies the matching basis and a finite publication/lifetime budget. Each
+accepted Show has an explicit half-open same-Boot lease. Missing, expired,
+not-yet-valid or withdrawn material returns unavailable; expiry does not rewrite
+Face freshness. Stale revisions and invalid leases preserve prior material and
+quota. Withdrawal is permanent for this mailbox and fences late publication;
+producer drop also withdraws it. No replacement producer or retry is implicit.
+The CPU64 mailbox occupies 280 inline bytes and allocates no heap. Native Root
+still needs to connect and independently admit this custody and socket closure.

@@ -8,7 +8,7 @@ static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn body(response: &str) -> &str {
     response.split_once("\r\n\r\n").unwrap().1
 }
-fn basis() -> FaceBasis {
+pub(super) fn basis() -> FaceBasis {
     FaceBasis {
         body_id: None,
         wake_id: None,

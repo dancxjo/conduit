@@ -3,6 +3,7 @@
 extern crate alloc;
 pub mod exchange;
 pub mod service_control;
+pub mod show_mailbox;
 use alloc::boxed::Box;
 use conduit_environment_face::PreparedObservationFace;
 use conduit_face::FaceBasis;
