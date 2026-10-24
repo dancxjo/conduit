@@ -1547,3 +1547,30 @@ for (const palette of ['editorial', 'phosphor']) {
       muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
   });
 }
+
+test('canonical selected Look yields its colors to forced system colors', async ({ page }) => {
+  const wire = Buffer.from((await readFile('proof/conformance/face-look/phosphor-look-v2.hex', 'utf8')).replace(/\s/gu, ''), 'hex');
+  const configured = { ...view, component: {
+    maximum_columns: 1, reflow_width: 720, gutter: 12, subject_regions: [0], groups: [0], fallback: null,
+    selected_look: { canonical_value: Array.from(wire) },
+    expression: { expression: { identity: 'conduit.look/phosphor@1', density: 'compact', palette: 'editorial', typography: 'editorial', version: 2, text_scale_percent: 100 } },
+  } };
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async current => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    const element = document.createElement('conduit-owner-face');
+    document.body.replaceChildren(element);
+    element.show(current, { invoke: async () => {} });
+  }, configured);
+  const element = page.locator('conduit-owner-face');
+  await expect(element).toHaveAttribute('data-component-look', 'conduit.look/phosphor@1');
+  const tokens = await element.evaluate(element => {
+    const style = getComputedStyle(element);
+    return Object.fromEntries(['paper', 'card', 'ink', 'muted', 'line', 'accent', 'control', 'focus']
+      .map(key => [key, style.getPropertyValue(`--face-${key}`).trim()]));
+  });
+  expect(tokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText', muted: 'CanvasText',
+    line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
+  await expect(element.getByRole('button', { name: 'Complete task', exact: true })).toBeEnabled();
+});
