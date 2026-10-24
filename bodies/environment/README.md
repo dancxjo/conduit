@@ -1423,3 +1423,11 @@ without retries. A physical repeat passed malformed-input and duplicate-stage
 refusals plus accepted staging on the same firmware after management reset.
 The earlier unpaced duplicate diagnostic timed out after accepted staging; no
 Body had started before that reset.
+
+The first physical native preparation with output readiness correctly refused
+`kernel-capacity` before Body start: the conservative kernel/control bound was
+248 bytes above available heap. Root now validates the immutable display
+contract at bootstrap and reconstructs its decoded metadata only during offer
+or binding preparation, retaining the actual GPIO owner throughout. No kernel
+admission guard, control headroom or heap total was reduced. The corrected
+release builds; its native execution still requires the physical repeat.

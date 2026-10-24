@@ -11,7 +11,6 @@ use conduit_tm1637_wire::{
 use esp_hal::gpio::Pin;
 pub struct NativeDisplay {
     ready: ReadyWriteBase<DisplayPins<'static>>,
-    contract: WriteContract,
 }
 impl NativeDisplay {
     /// Consume the two actual initialized MCU peripherals before offering them.
@@ -23,7 +22,10 @@ impl NativeDisplay {
         boot: &ObservedBoot,
     ) -> Result<Box<Self>, &'static str> {
         let (host, boot) = boot.ids();
-        let contract = WriteContract::prepare().map_err(|_| "display-contract")?;
+        // Validate the immutable definition at bootstrap, but do not retain its
+        // decoded schema alongside the actual GPIO owner. Projection/binding
+        // preparation can reconstruct it inside admitted control headroom.
+        WriteContract::prepare().map_err(|_| "display-contract")?;
         let identity = WriteNativeIdentity {
             host_id: host.into(),
             boot_id: boot.into(),
@@ -52,11 +54,12 @@ impl NativeDisplay {
             )
         }
         .map_err(|_| "display-provider")?;
-        Ok(Box::new(Self { ready, contract }))
+        Ok(Box::new(Self { ready }))
     }
     pub fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
+        let contract = WriteContract::prepare().map_err(|_| ())?;
         self.ready
-            .append_to_advertisement(host, &self.contract)
+            .append_to_advertisement(host, &contract)
             .map_err(|_| ())
     }
 }

@@ -1,0 +1,19 @@
+{
+  "proof_class": "physical pre-start refusal and metadata-cache correction; execution not yet reverified",
+  "prior_image_source": "6b6b17e1a779870e662a9fb6c18474f2a29d77cc",
+  "prior_boot": "boot/3c86c46f15d7d4c87e43360d96ba2857",
+  "refusal": "kernel-capacity",
+  "root_heap_bytes": 114688,
+  "used_at_refusal_bytes": 91244,
+  "required_additional_bytes": 23692,
+  "available_bytes": 23444,
+  "shortfall_bytes": 248,
+  "body_started": false,
+  "steps_dispatched": 0,
+  "correction": "Retain GPIO ownership, validate then release the decoded contract; reconstruct it only during admitted offer/binding preparation.",
+  "guard_or_headroom_reduced": false,
+  "native_display_sha256": "4b67274d3d56f2f405bb447f26c59c3e222f79a15f219e051aa7996aa9aa985f",
+  "new_elf_sha256": "95bf7151c7302e67373f93a410ca911d911fd24264178e506a6813fdf630a16a",
+  "release_build_passed": true,
+  "physical_execution_of_correction_proved": false
+}
