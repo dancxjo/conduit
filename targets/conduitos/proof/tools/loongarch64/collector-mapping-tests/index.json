@@ -30,8 +30,10 @@
       "sha256": "62736bd2719afe5fb4d7b80efdb081bd472525a4ad1ef8b4a38f01888bd554a4"
     },
     {
-      "path": "tests.log",
-      "sha256": "fe377baac411ce1b2093f6619fc7258e5ab5bf297f09e5f174ffe2179195f5fc"
+      "path": "tests.log.gz",
+      "sha256": "b0607f1dac0dfee94fd50eebba0caeae91564eae54d6cd350ab3a84d167e2876",
+      "original_sha256": "fe377baac411ce1b2093f6619fc7258e5ab5bf297f09e5f174ffe2179195f5fc",
+      "original_bytes": 1660
     }
   ]
 }
