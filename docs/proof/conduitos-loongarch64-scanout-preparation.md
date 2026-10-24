@@ -36,3 +36,21 @@ page and retained table read, reject mismatched addresses/permissions/attributes
 retain exclusive bounded write custody, then render the shared checked
 Face/Mask/Show and obtain two real normal-profile QMP captures. Local input,
 physical scanout and GPU acceleration remain separate claims.
+
+## Held mapping interpretation model
+
+The responsibility-local mapping model is not linked into any product or Host
+offer. Six [standalone conformance tests](../../targets/conduitos/proof/tools/loongarch64/mapping-model-preparation/index.json)
+passed using the repository's pinned Rust compiler and an existing local serde
+dependency. Source-file hashes stayed unchanged through formatting, compilation
+and tests. This is deterministic interpretation proof over supplied descriptors,
+not a normal Cargo suite or actual firmware mapping observation.
+
+The model requires the exact four-level 4 KiB regime, 48-bit virtual addressing
+without reduced-address mode, PLV0 page-mapped operation and no matching direct
+window. It bounds every page and descriptor, distinguishes table pointers from
+huge/ordinary leaves, checks V/D/software-W and PLV, removes huge HGLOBAL from
+the physical address, requires exact physical identity and uniform nonreserved
+MAT. The future machine reader must separately prove complete table-page
+custody and supply actual CSR and descriptor observations before this model
+can contribute to a graphical product claim.
