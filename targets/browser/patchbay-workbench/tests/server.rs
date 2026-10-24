@@ -545,6 +545,14 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     assert!(body.len() <= conduit_browser_patchbay_workbench::MAX_THEME_CSS_BYTES);
     assert!(body.contains("--conduit-look-identity:\"conduit.look/phosphor@1\""));
+    for identity in [
+        conduit_face::PHOSPHOR_LOOK_ID,
+        conduit_face::EDITORIAL_LOOK_ID,
+        conduit_face::ENGINEERING_LOOK_ID,
+    ] {
+        assert!(body.contains(&format!("[data-application-look=\"{identity}\"]")));
+    }
+    assert_eq!(body.matches("--conduit-look-identity:").count(), 3);
     assert!(!body.contains("--patchbay-"));
     for (token, color) in [
         ("background", "#05070B"),

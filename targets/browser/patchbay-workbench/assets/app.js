@@ -518,6 +518,13 @@ function renderBrowserPlannerTruth(){const profiles=window.__patchbayMembership?
 function disconnectCurrentBody(){const membership=window.__patchbayMembership;if(!membership)throw new Error("current browser Body membership is unavailable");membership.close();}
 export async function startApplication(context){admittedRuntimeBytes=context.bytes("runtime");admittedApplicationStorage=context.storage;configureFlowStorage(context.storage);state.retainedMembershipCredential=await context.storage.readJson(membershipStorageKey);
 document.querySelector("#inspector").append(document.querySelector("#deep-inspection"));presentStatus("Loading bounded snapshot…");presentSharedStatus("front-door-feedback","World truth is current; planning is explicit.");document.body.dataset.lens=state.lens;load().then(()=>{inspectBodyInvitation();}).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
+// Local appearance only: selecting a checked built-in Look does not dispatch
+// a Face action or change the semantic cursor, graph, or execution state.
+const lookPicker=document.querySelector("#application-look");
+lookPicker.onchange=()=>{
+  if([...lookPicker.options].some(option=>option.value===lookPicker.value))
+    document.body.dataset.applicationLook=lookPicker.value;
+};
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.dataset.conduitContrast!=="high";if(active)document.body.dataset.conduitContrast="high";else delete document.body.dataset.conduitContrast;event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.face.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;window.patchbayFlowStorageSettled=flowStorageSettled;
 document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);

@@ -253,3 +253,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(max-width:720px){.canvas-heading > div{flex:none}}
 
 #workspace-footer .flow-geometry-notice { position:static; max-width:none; margin:0; padding:.35rem; font-size:inherit; }
+
+.look-picker { display:inline-flex; align-items:center; flex-wrap:wrap; gap:.4rem; }
+.look-picker select { max-width:100%; min-height:2.75rem; padding:.35rem .5rem; font:inherit; color:inherit; background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:var(--conduit-radius-control); }

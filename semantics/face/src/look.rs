@@ -53,3 +53,86 @@ fn phosphor_tokens() -> Result<LookVisualTokensInfo, NativeBindingRefusal> {
         ThemeColor::from_rgb(0x05, 0x07, 0x0b), // workbench_canvas
     )
 }
+
+/// Warm reading surfaces; structure and interactions stay owned by the Mask.
+pub const EDITORIAL_LOOK_ID: &str = "conduit.look/editorial@1";
+/// Cool, compact work surfaces using the same canonical Look contract.
+pub const ENGINEERING_LOOK_ID: &str = "conduit.look/engineering@1";
+
+pub fn editorial_look() -> Result<LookInfo, NativeBindingRefusal> {
+    alternate_look(
+        EDITORIAL_LOOK_ID,
+        VisualDensityPreference::Spacious,
+        VisualTypographyPreference::Editorial,
+        [
+            0xf4f0e7, 0xfffcf5, 0x79452e, 0xa32832, 0x005c9e, 0x716653, 0xfffcf5, 0x386352,
+            0xb7ad99, 0x292d29, 0x5b6057, 0x286642, 0x805000,
+        ],
+    )
+}
+
+pub fn engineering_look() -> Result<LookInfo, NativeBindingRefusal> {
+    alternate_look(
+        ENGINEERING_LOOK_ID,
+        VisualDensityPreference::Compact,
+        VisualTypographyPreference::Engineering,
+        [
+            0xeaf0f6, 0xf8fbff, 0x244e80, 0xa32832, 0x005c9e, 0x66778d, 0xffffff, 0x285c91,
+            0xa5b6ca, 0x1e2d40, 0x4f627a, 0x23633f, 0x805000,
+        ],
+    )
+}
+
+fn alternate_look(
+    identity: &str,
+    density: VisualDensityPreference,
+    typography: VisualTypographyPreference,
+    colors: [u32; 13],
+) -> Result<LookInfo, NativeBindingRefusal> {
+    let [background, surface, emphasis, failure, focus, muted, paper, primary, secondary, text, text_secondary, success, warning] =
+        colors.map(|rgb| ThemeColor::from_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8));
+    let spacious = density == VisualDensityPreference::Spacious;
+    let expression = VisualExpressionInfo::new(
+        density,
+        identity.into(),
+        VisualMotionPreference::None,
+        VisualPalettePreference::Editorial,
+        100,
+        typography,
+        2,
+    )?;
+    let tokens = LookVisualTokensInfo::new(
+        background,
+        surface,
+        emphasis,
+        failure,
+        focus,
+        3,
+        150,
+        muted,
+        if spacious { 7 } else { 4 },
+        if spacious { 10 } else { 6 },
+        paper,
+        if spacious { 9 } else { 7 },
+        if spacious { 12 } else { 10 },
+        if spacious { 16 } else { 12 },
+        4,
+        primary,
+        secondary,
+        success,
+        surface,
+        text,
+        text_secondary,
+        16,
+        14,
+        warning,
+        background,
+    )?;
+    LookInfo::new(
+        LookGenerativeFacetOption::None,
+        identity.into(),
+        LookSpokenFacetOption::None,
+        2,
+        LookVisualFacetOption::some(expression, tokens)?,
+    )
+}

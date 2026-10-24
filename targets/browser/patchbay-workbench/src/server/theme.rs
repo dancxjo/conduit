@@ -13,9 +13,15 @@ pub(crate) fn render_look_css(look: &LookInfo) -> Result<Vec<u8>, LookFacetAvail
         VisualTypographyPreference::Editorial => "var(--conduit-font-editorial)",
         VisualTypographyPreference::Engineering => "Inter,ui-sans-serif,system-ui,sans-serif",
     };
+    let background = tokens.background();
+    let light = u32::from(background.red()) * 299
+        + u32::from(background.green()) * 587
+        + u32::from(background.blue()) * 114
+        >= 128_000;
+    let scheme = if light { "light" } else { "dark" };
     let identity = serde_json::to_string(look.identity()).expect("finite Look identity serializes");
     Ok(format!(
-        "[data-application-look={identity}]{{--conduit-look-identity:{};--conduit-background:{};--conduit-reading-paper:{};--conduit-workbench-canvas:{};--conduit-bootstrap-surface:{};--conduit-font-body:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;}}\n",
+        "[data-application-look={identity}]{{color-scheme:{scheme};--conduit-look-identity:{};--conduit-background:{};--conduit-reading-paper:{};--conduit-workbench-canvas:{};--conduit-bootstrap-surface:{};--conduit-font-body:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;}}\n",
         identity,
         css_color(*tokens.background()),
         css_color(*tokens.reading_paper()),
