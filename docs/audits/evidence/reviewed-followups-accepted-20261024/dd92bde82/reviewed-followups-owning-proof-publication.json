@@ -1,0 +1,16 @@
+{
+  "branch": "evidence/reviewed-followups-owning-20261024",
+  "commit": "4ce70418618fa0445826942aafbace17eae1e533",
+  "remote_verified": true,
+  "reverified_existing_publication": true,
+  "files": [
+    "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/6318-current-455-negative-live-links.json",
+    "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-5ace-independent-source-review.json",
+    "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-monotonic-wait.log",
+    "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-owning-receipt.json",
+    "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-preflight.log",
+    "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-pulse-clippy.log",
+    "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-pulse-tests.log",
+    "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-resource-snapshot.log"
+  ]
+}

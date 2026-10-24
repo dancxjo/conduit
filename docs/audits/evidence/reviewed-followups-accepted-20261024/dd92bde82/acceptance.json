@@ -1,0 +1,1095 @@
+{
+  "observed_utc": "2026-10-24T05:45:33.527410+00:00",
+  "accepted_source": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "current_dev": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "integration": 40060628788,
+  "run_attempt": 1,
+  "submitted_source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "latest_timer_head": "98e202b7e7f1b8510cd670354e4431d28d243af8",
+  "latest_timer_head_ancestry_in_accepted": true,
+  "timer_ancestry_scope": "Latest owner98e adds dispatcher test vectors and equivalent route order; original scoped timer provider/registry source is included in Rootd677. Preserve its newer tests/ancestry through checked normal followup; no Candidate/Integration bypass.",
+  "actual_native_execution_source": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "accepted_native_product_review": {
+    "schema": "conduit.audit/accepted-integration-native-product@1",
+    "status": "passed",
+    "integration": 40060628788,
+    "run_attempt": 1,
+    "source": "dd92bde82017fe685404ef9197b56d3b3127006c",
+    "workflow": "Integration",
+    "full_integration": "success",
+    "integration_receipt": {
+      "path": "outputs/integration-40060628788-run.json",
+      "sha256": "06b345fd083e2f5b11e8f581147748cf1e99f0c4edef05c3309fa9b05cf8060a",
+      "run": {
+        "id": 40060628788,
+        "name": "Integration",
+        "node_id": "WFR_kwLOTmZo9c8AAAAJU8yvNA",
+        "head_branch": "dev",
+        "head_sha": "dd92bde82017fe685404ef9197b56d3b3127006c",
+        "path": ".github/workflows/integration.yml",
+        "display_title": "Merge pull request #6364 from dancxjo/integrate/6348-current-dev-2026\u2026",
+        "run_number": 626,
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "workflow_id": 373192003,
+        "check_suite_id": 108585907336,
+        "check_suite_node_id": "CS_kwDOTmZo9c8AAAAZSDl0iA",
+        "url": "https://api.github.com/repos/dancxjo/conduit/actions/runs/40060628788",
+        "html_url": "https://github.com/dancxjo/conduit/actions/runs/40060628788",
+        "pull_requests": [],
+        "created_at": "2026-10-24T04:00:43Z",
+        "updated_at": "2026-10-24T05:41:23Z",
+        "actor": {
+          "login": "dancxjo",
+          "id": 5297450,
+          "node_id": "MDQ6VXNlcjUyOTc0NTA=",
+          "avatar_url": "https://avatars.githubusercontent.com/u/5297450?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/dancxjo",
+          "html_url": "https://github.com/dancxjo",
+          "followers_url": "https://api.github.com/users/dancxjo/followers",
+          "following_url": "https://api.github.com/users/dancxjo/following{/other_user}",
+          "gists_url": "https://api.github.com/users/dancxjo/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/dancxjo/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/dancxjo/subscriptions",
+          "organizations_url": "https://api.github.com/users/dancxjo/orgs",
+          "repos_url": "https://api.github.com/users/dancxjo/repos",
+          "events_url": "https://api.github.com/users/dancxjo/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/dancxjo/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "run_attempt": 1,
+        "referenced_workflows": [
+          {
+            "path": "dancxjo/conduit/.github/workflows/ci.yml@dd92bde82017fe685404ef9197b56d3b3127006c",
+            "sha": "dd92bde82017fe685404ef9197b56d3b3127006c",
+            "ref": "refs/heads/dev"
+          }
+        ],
+        "run_started_at": "2026-10-24T04:00:43Z",
+        "triggering_actor": {
+          "login": "dancxjo",
+          "id": 5297450,
+          "node_id": "MDQ6VXNlcjUyOTc0NTA=",
+          "avatar_url": "https://avatars.githubusercontent.com/u/5297450?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/dancxjo",
+          "html_url": "https://github.com/dancxjo",
+          "followers_url": "https://api.github.com/users/dancxjo/followers",
+          "following_url": "https://api.github.com/users/dancxjo/following{/other_user}",
+          "gists_url": "https://api.github.com/users/dancxjo/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/dancxjo/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/dancxjo/subscriptions",
+          "organizations_url": "https://api.github.com/users/dancxjo/orgs",
+          "repos_url": "https://api.github.com/users/dancxjo/repos",
+          "events_url": "https://api.github.com/users/dancxjo/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/dancxjo/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "jobs_url": "https://api.github.com/repos/dancxjo/conduit/actions/runs/40060628788/jobs",
+        "logs_url": "https://api.github.com/repos/dancxjo/conduit/actions/runs/40060628788/logs",
+        "check_suite_url": "https://api.github.com/repos/dancxjo/conduit/check-suites/108585907336",
+        "artifacts_url": "https://api.github.com/repos/dancxjo/conduit/actions/runs/40060628788/artifacts",
+        "cancel_url": "https://api.github.com/repos/dancxjo/conduit/actions/runs/40060628788/cancel",
+        "rerun_url": "https://api.github.com/repos/dancxjo/conduit/actions/runs/40060628788/rerun",
+        "previous_attempt_url": null,
+        "workflow_url": "https://api.github.com/repos/dancxjo/conduit/actions/workflows/373192003",
+        "head_commit": {
+          "id": "dd92bde82017fe685404ef9197b56d3b3127006c",
+          "tree_id": "43c50d5dda2ab375cf9bddf1c37bd9065879af21",
+          "message": "Merge pull request #6364 from dancxjo/integrate/6348-current-dev-20261024\n\nFinish timer dispatcher merge onto current dev",
+          "timestamp": "2026-10-24T04:00:40Z",
+          "author": {
+            "name": "Travis Reed",
+            "email": "dancxjo@users.noreply.github.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "email": "noreply@github.com"
+          }
+        },
+        "repository": {
+          "id": 1315334389,
+          "node_id": "R_kgDOTmZo9Q",
+          "name": "conduit",
+          "full_name": "dancxjo/conduit",
+          "private": false,
+          "owner": {
+            "login": "dancxjo",
+            "id": 5297450,
+            "node_id": "MDQ6VXNlcjUyOTc0NTA=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/5297450?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dancxjo",
+            "html_url": "https://github.com/dancxjo",
+            "followers_url": "https://api.github.com/users/dancxjo/followers",
+            "following_url": "https://api.github.com/users/dancxjo/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dancxjo/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dancxjo/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dancxjo/subscriptions",
+            "organizations_url": "https://api.github.com/users/dancxjo/orgs",
+            "repos_url": "https://api.github.com/users/dancxjo/repos",
+            "events_url": "https://api.github.com/users/dancxjo/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dancxjo/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "html_url": "https://github.com/dancxjo/conduit",
+          "description": "A portable execution substrate for software that has to live somewhere: across computers, browsers, microcontrollers, networks, and robots, with planning, evidence, recovery, and replanning built in.",
+          "fork": false,
+          "url": "https://api.github.com/repos/dancxjo/conduit",
+          "forks_url": "https://api.github.com/repos/dancxjo/conduit/forks",
+          "keys_url": "https://api.github.com/repos/dancxjo/conduit/keys{/key_id}",
+          "collaborators_url": "https://api.github.com/repos/dancxjo/conduit/collaborators{/collaborator}",
+          "teams_url": "https://api.github.com/repos/dancxjo/conduit/teams",
+          "hooks_url": "https://api.github.com/repos/dancxjo/conduit/hooks",
+          "issue_events_url": "https://api.github.com/repos/dancxjo/conduit/issues/events{/number}",
+          "events_url": "https://api.github.com/repos/dancxjo/conduit/events",
+          "assignees_url": "https://api.github.com/repos/dancxjo/conduit/assignees{/user}",
+          "branches_url": "https://api.github.com/repos/dancxjo/conduit/branches{/branch}",
+          "tags_url": "https://api.github.com/repos/dancxjo/conduit/tags",
+          "blobs_url": "https://api.github.com/repos/dancxjo/conduit/git/blobs{/sha}",
+          "git_tags_url": "https://api.github.com/repos/dancxjo/conduit/git/tags{/sha}",
+          "git_refs_url": "https://api.github.com/repos/dancxjo/conduit/git/refs{/sha}",
+          "trees_url": "https://api.github.com/repos/dancxjo/conduit/git/trees{/sha}",
+          "statuses_url": "https://api.github.com/repos/dancxjo/conduit/statuses/{sha}",
+          "languages_url": "https://api.github.com/repos/dancxjo/conduit/languages",
+          "stargazers_url": "https://api.github.com/repos/dancxjo/conduit/stargazers",
+          "contributors_url": "https://api.github.com/repos/dancxjo/conduit/contributors",
+          "subscribers_url": "https://api.github.com/repos/dancxjo/conduit/subscribers",
+          "subscription_url": "https://api.github.com/repos/dancxjo/conduit/subscription",
+          "commits_url": "https://api.github.com/repos/dancxjo/conduit/commits{/sha}",
+          "git_commits_url": "https://api.github.com/repos/dancxjo/conduit/git/commits{/sha}",
+          "comments_url": "https://api.github.com/repos/dancxjo/conduit/comments{/number}",
+          "issue_comment_url": "https://api.github.com/repos/dancxjo/conduit/issues/comments{/number}",
+          "contents_url": "https://api.github.com/repos/dancxjo/conduit/contents/{+path}",
+          "compare_url": "https://api.github.com/repos/dancxjo/conduit/compare/{base}...{head}",
+          "merges_url": "https://api.github.com/repos/dancxjo/conduit/merges",
+          "archive_url": "https://api.github.com/repos/dancxjo/conduit/{archive_format}{/ref}",
+          "downloads_url": "https://api.github.com/repos/dancxjo/conduit/downloads",
+          "issues_url": "https://api.github.com/repos/dancxjo/conduit/issues{/number}",
+          "pulls_url": "https://api.github.com/repos/dancxjo/conduit/pulls{/number}",
+          "milestones_url": "https://api.github.com/repos/dancxjo/conduit/milestones{/number}",
+          "notifications_url": "https://api.github.com/repos/dancxjo/conduit/notifications{?since,all,participating}",
+          "labels_url": "https://api.github.com/repos/dancxjo/conduit/labels{/name}",
+          "releases_url": "https://api.github.com/repos/dancxjo/conduit/releases{/id}",
+          "deployments_url": "https://api.github.com/repos/dancxjo/conduit/deployments"
+        },
+        "head_repository": {
+          "id": 1315334389,
+          "node_id": "R_kgDOTmZo9Q",
+          "name": "conduit",
+          "full_name": "dancxjo/conduit",
+          "private": false,
+          "owner": {
+            "login": "dancxjo",
+            "id": 5297450,
+            "node_id": "MDQ6VXNlcjUyOTc0NTA=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/5297450?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dancxjo",
+            "html_url": "https://github.com/dancxjo",
+            "followers_url": "https://api.github.com/users/dancxjo/followers",
+            "following_url": "https://api.github.com/users/dancxjo/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dancxjo/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dancxjo/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dancxjo/subscriptions",
+            "organizations_url": "https://api.github.com/users/dancxjo/orgs",
+            "repos_url": "https://api.github.com/users/dancxjo/repos",
+            "events_url": "https://api.github.com/users/dancxjo/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dancxjo/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "html_url": "https://github.com/dancxjo/conduit",
+          "description": "A portable execution substrate for software that has to live somewhere: across computers, browsers, microcontrollers, networks, and robots, with planning, evidence, recovery, and replanning built in.",
+          "fork": false,
+          "url": "https://api.github.com/repos/dancxjo/conduit",
+          "forks_url": "https://api.github.com/repos/dancxjo/conduit/forks",
+          "keys_url": "https://api.github.com/repos/dancxjo/conduit/keys{/key_id}",
+          "collaborators_url": "https://api.github.com/repos/dancxjo/conduit/collaborators{/collaborator}",
+          "teams_url": "https://api.github.com/repos/dancxjo/conduit/teams",
+          "hooks_url": "https://api.github.com/repos/dancxjo/conduit/hooks",
+          "issue_events_url": "https://api.github.com/repos/dancxjo/conduit/issues/events{/number}",
+          "events_url": "https://api.github.com/repos/dancxjo/conduit/events",
+          "assignees_url": "https://api.github.com/repos/dancxjo/conduit/assignees{/user}",
+          "branches_url": "https://api.github.com/repos/dancxjo/conduit/branches{/branch}",
+          "tags_url": "https://api.github.com/repos/dancxjo/conduit/tags",
+          "blobs_url": "https://api.github.com/repos/dancxjo/conduit/git/blobs{/sha}",
+          "git_tags_url": "https://api.github.com/repos/dancxjo/conduit/git/tags{/sha}",
+          "git_refs_url": "https://api.github.com/repos/dancxjo/conduit/git/refs{/sha}",
+          "trees_url": "https://api.github.com/repos/dancxjo/conduit/git/trees{/sha}",
+          "statuses_url": "https://api.github.com/repos/dancxjo/conduit/statuses/{sha}",
+          "languages_url": "https://api.github.com/repos/dancxjo/conduit/languages",
+          "stargazers_url": "https://api.github.com/repos/dancxjo/conduit/stargazers",
+          "contributors_url": "https://api.github.com/repos/dancxjo/conduit/contributors",
+          "subscribers_url": "https://api.github.com/repos/dancxjo/conduit/subscribers",
+          "subscription_url": "https://api.github.com/repos/dancxjo/conduit/subscription",
+          "commits_url": "https://api.github.com/repos/dancxjo/conduit/commits{/sha}",
+          "git_commits_url": "https://api.github.com/repos/dancxjo/conduit/git/commits{/sha}",
+          "comments_url": "https://api.github.com/repos/dancxjo/conduit/comments{/number}",
+          "issue_comment_url": "https://api.github.com/repos/dancxjo/conduit/issues/comments{/number}",
+          "contents_url": "https://api.github.com/repos/dancxjo/conduit/contents/{+path}",
+          "compare_url": "https://api.github.com/repos/dancxjo/conduit/compare/{base}...{head}",
+          "merges_url": "https://api.github.com/repos/dancxjo/conduit/merges",
+          "archive_url": "https://api.github.com/repos/dancxjo/conduit/{archive_format}{/ref}",
+          "downloads_url": "https://api.github.com/repos/dancxjo/conduit/downloads",
+          "issues_url": "https://api.github.com/repos/dancxjo/conduit/issues{/number}",
+          "pulls_url": "https://api.github.com/repos/dancxjo/conduit/pulls{/number}",
+          "milestones_url": "https://api.github.com/repos/dancxjo/conduit/milestones{/number}",
+          "notifications_url": "https://api.github.com/repos/dancxjo/conduit/notifications{?since,all,participating}",
+          "labels_url": "https://api.github.com/repos/dancxjo/conduit/labels{/name}",
+          "releases_url": "https://api.github.com/repos/dancxjo/conduit/releases{/id}",
+          "deployments_url": "https://api.github.com/repos/dancxjo/conduit/deployments"
+        }
+      }
+    },
+    "integration_jobs_receipt": {
+      "path": "outputs/integration-40060628788-jobs.json",
+      "sha256": "1fc74fcf19a7656d9229f7f1e8cff3fc96e93779f06862aa132a73d0f7f6fb5a"
+    },
+    "artifact_download_receipt": "outputs/x86-product-40060628788-download.json",
+    "archive_path": "work/x86-product-40060628788-12549260229.zip",
+    "artifact": 12549260229,
+    "mode": "Independent existingbytes audit only; no builds/network/newexecution.",
+    "archive_sha256": "1abfbbb349a78c122ad3233e19c7d068cbafda78c2e1c403909b12f4f1b9daa9",
+    "receipt_files_all49_hash_size_verified": [
+      {
+        "path": "build-manifest.json",
+        "size": 4269,
+        "sha256": "75f82d42d3282c619d1b0beb8621c888a43f3d7b54fdcaec3d9cf2a5e6a3f392"
+      },
+      {
+        "path": "conduitos-kernel.elf",
+        "size": 78903512,
+        "sha256": "f6f893ea3d8243dd22d40bb289fd566d58331ee5c3b59c148d35d6409582adaa"
+      },
+      {
+        "path": "conduitos-x86_64.iso",
+        "size": 83177472,
+        "sha256": "d8e243f8821559f1368c8d2ae5b13dda34c78e51326efff66dc9f6b289b98eae"
+      },
+      {
+        "path": "evidence/journey-frames/body-playing.png",
+        "size": 68595,
+        "sha256": "ad4bb8065ea7a5c679ad99e29175c87fde731ae068b910ea743559a7f453fa47"
+      },
+      {
+        "path": "evidence/journey-frames/body-stopped.png",
+        "size": 199174,
+        "sha256": "88b3e28fb9d994c1defae63e71601b3828abf48c4ca436e534dc610c3719d3f8"
+      },
+      {
+        "path": "evidence/journey-frames/creche-editorial-compact.png",
+        "size": 159530,
+        "sha256": "257fff50d749083c3416616254f00b2e4bdcb45a14297aeb700e51b9c4603e1a"
+      },
+      {
+        "path": "evidence/journey-frames/creche-editorial-spacious.png",
+        "size": 141141,
+        "sha256": "9213168f0ddd548ddb5cc630a572d390fb276f479f34f4b00e7429886b1a486f"
+      },
+      {
+        "path": "evidence/journey-frames/creche-engineering-compact.png",
+        "size": 158794,
+        "sha256": "f68f4e431d5054fb8b8372c6bf2a40e69694347cacd7ec315d6b66755f505007"
+      },
+      {
+        "path": "evidence/journey-frames/creche-engineering-spacious.png",
+        "size": 140461,
+        "sha256": "f6b79302fc19a995d3d108170b5f17664813a89bced6667ed1d7ebd8a351ef57"
+      },
+      {
+        "path": "evidence/journey-frames/creche-four-restored.png",
+        "size": 158919,
+        "sha256": "729fc30c3ebf0819955beba11c69bb480284ec7e15588a7d5942747764e6336a"
+      },
+      {
+        "path": "evidence/journey-frames/creche-fourth-checked.png",
+        "size": 158949,
+        "sha256": "50e2702b34d50a5d4b950790fa3a82731bde6cae5ab91b34553cbc3583ebbf71"
+      },
+      {
+        "path": "evidence/journey-frames/creche-pointer-four-restored.png",
+        "size": 158997,
+        "sha256": "4ae3cca6e90db6e98ac5320502f4b45856182c81a98402b87b6aa5ec7df0c0f8"
+      },
+      {
+        "path": "evidence/journey-frames/creche-pointer-three-selected.png",
+        "size": 159066,
+        "sha256": "a60ff42fe454c2c886936ad08a593112f457d59792b08d8222547dc724fdeb0b"
+      },
+      {
+        "path": "evidence/journey-frames/creche-ready.png",
+        "size": 158612,
+        "sha256": "853c3277f6eb781c7145c6dde25bb64d1145126c15e95d3ed94d1a13fd7041be"
+      },
+      {
+        "path": "evidence/journey-frames/creche-three-selected.png",
+        "size": 158990,
+        "sha256": "ab55307e83f57954eae36098d9ce7af978f89da207bb448499639e9b1136d944"
+      },
+      {
+        "path": "evidence/journey-frames/front-door-ready.png",
+        "size": 49977,
+        "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+      },
+      {
+        "path": "evidence/journey-frames/home-returned.png",
+        "size": 56860,
+        "sha256": "c14226e080caba67694f0ebb05393e0de4e0119847dcc68575dd402b1b86f00f"
+      },
+      {
+        "path": "evidence/journey-frames/home.png",
+        "size": 68595,
+        "sha256": "ad4bb8065ea7a5c679ad99e29175c87fde731ae068b910ea743559a7f453fa47"
+      },
+      {
+        "path": "evidence/journey-frames/manifest.json",
+        "size": 473599,
+        "sha256": "437a7a70a386e7a51116d4502544f709f845fa85680c9a7239faa34be87ca8c5"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-diagram-returned.png",
+        "size": 153241,
+        "sha256": "4972483239c8bcda5ac59fdcf8e02de2de6781fade72569b36279cd6a776c6df"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-diagram.png",
+        "size": 153577,
+        "sha256": "2f2ead8ab2ccbb4e94a07953e707f61258bc8659f4c4e524201ba40d719393fd"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-face.png",
+        "size": 155433,
+        "sha256": "579ac43abbc0ea749cf230f034d36dc474203147408d2ae6ecf31f45fd32c6b8"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-gear-details.png",
+        "size": 244407,
+        "sha256": "a64042233ac0fddfb0325a7c7f889a28573f4aa3c05298ec4e9f4554ce7d4e7f"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-inspected-other-and-returned.png",
+        "size": 155433,
+        "sha256": "579ac43abbc0ea749cf230f034d36dc474203147408d2ae6ecf31f45fd32c6b8"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-mask-replanned.png",
+        "size": 144226,
+        "sha256": "0b3ee0161999979dfe016888651695cceb3f852a108ad180256b3d8d7500075d"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-reentered.png",
+        "size": 55299,
+        "sha256": "f2e71bec51c5d348091c6704e5ea533ebfc4a53cd2ff081009417f76bd9dbe3b"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-source-editor-loaded.png",
+        "size": 102560,
+        "sha256": "9f52993515fdca0a6f431c18794295e95277c4101b9f3a81bb2fd041add30cab"
+      },
+      {
+        "path": "evidence/journey-frames/patchbay-workspace.png",
+        "size": 155433,
+        "sha256": "579ac43abbc0ea749cf230f034d36dc474203147408d2ae6ecf31f45fd32c6b8"
+      },
+      {
+        "path": "evidence/journey-frames/protected-keyboard-canvas.png",
+        "size": 69018,
+        "sha256": "50d3872f97183f3ed5a1414af2258e6e36dd06209499aed6d4f959528a5251e8"
+      },
+      {
+        "path": "evidence/journey-frames/protected-memory-lantern.png",
+        "size": 64176,
+        "sha256": "9c6af39f7e979983504a8cd425f65c869ce379403939f2921714af0eaca52c52"
+      },
+      {
+        "path": "evidence/journey-frames/wake-refused.png",
+        "size": 126714,
+        "sha256": "6545554c6f9acd05fea3b892d0a034acf169f08b8219bc5a2a04a7554970025d"
+      },
+      {
+        "path": "evidence/journey-proof.json",
+        "size": 1494485,
+        "sha256": "f17ff262c430e39f9ab00cc0836dd9a35f9fc98592c7cf9b2d6f5ed99f80e08a"
+      },
+      {
+        "path": "evidence/journey-qmp.log",
+        "size": 218316,
+        "sha256": "907fecc71c87262ac773065829cf89edd50680ac6fbaddb26b845d635ba0e979"
+      },
+      {
+        "path": "evidence/journey-serial.log",
+        "size": 3319646,
+        "sha256": "a032fe36f2a4b0dee6b6757b797c2f10f4c101883223b2bcf4a53cf8665c0036"
+      },
+      {
+        "path": "evidence/memory-lantern-native-edit.json",
+        "size": 5053,
+        "sha256": "bf5e2a983485ae6e7f57a41432467fafebb4389f54d157b29232b4d774416aec"
+      },
+      {
+        "path": "evidence/native-shell-paired-linear.json",
+        "size": 4535162,
+        "sha256": "5c9265980af5aa45534c692f7de34a4aa60ab56c70b4fb2244642e69a6e66eff"
+      },
+      {
+        "path": "evidence/patchbay-checked-source/details-cord.png",
+        "size": 351212,
+        "sha256": "8030ccbc1c2cecd8fbdff9e03521b757204be92a69b2e19cfee09655df33ec20"
+      },
+      {
+        "path": "evidence/patchbay-checked-source/details-gear.png",
+        "size": 321546,
+        "sha256": "b5c4cc5858f7f531810bd4beec1af418c6e90ba4b223c21ef38c6c2b69703554"
+      },
+      {
+        "path": "evidence/patchbay-checked-source/details-port.png",
+        "size": 321561,
+        "sha256": "6f8f14219879d99af7ed5d70e0b1d103ffc5e997289cd62a74846b7e1ce165fa"
+      },
+      {
+        "path": "evidence/patchbay-checked-source/diagram-backward-000.png",
+        "size": 210818,
+        "sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894"
+      },
+      {
+        "path": "evidence/patchbay-checked-source/diagram-forward-000.png",
+        "size": 210818,
+        "sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894"
+      },
+      {
+        "path": "evidence/patchbay-checked-source/diagram-forward-001.png",
+        "size": 127971,
+        "sha256": "528990410d976b382a346a720f959b8e50e6b803a119c3b0915106882654a7ac"
+      },
+      {
+        "path": "evidence/patchbay-checked-source/manifest.json",
+        "size": 534249,
+        "sha256": "12788fce59602dab35c5f05c4d9e582c6799ea1b769b949b23b5479e06d7c678"
+      },
+      {
+        "path": "evidence/patchbay-checked-source/source-selected.png",
+        "size": 155506,
+        "sha256": "b43787a5b44ad7c656b348b5844a1b449a5a836c9fb06507947ba97b345307d1"
+      },
+      {
+        "path": "evidence/privilege-inventory-f6f893ea3d8243dd22d40bb289fd566d58331ee5c3b59c148d35d6409582adaa-product-host.json",
+        "size": 112859,
+        "sha256": "0044f1ede28f1dd72f6fcb3e61d86dabf17ca9af94530da82e2bacf8944f903f"
+      },
+      {
+        "path": "evidence/profile-built-boot.log",
+        "size": 41802,
+        "sha256": "d1b0d91016f43a84e4ce255cef036d1a415e786d167edebcef857b8820256289"
+      },
+      {
+        "path": "evidence/x86_64-product-journey-proof.json",
+        "size": 1568424,
+        "sha256": "d167190993858685810c9d019dc72c07455f836abd5ad2878e06afd02b6f30a7"
+      },
+      {
+        "path": "evidence/x86_64-product-proof.json",
+        "size": 1725,
+        "sha256": "8fdea14a7c2df9b153b43db4754767c352be7b71b78668f74217016f0fc6436f"
+      },
+      {
+        "path": "resolved-image.json",
+        "size": 4453,
+        "sha256": "2ad761384962ffefab1791d21b2a3b6abaa4873b295a078fb8e19bead60433e9"
+      }
+    ],
+    "actual_root_sha256": "f6f893ea3d8243dd22d40bb289fd566d58331ee5c3b59c148d35d6409582adaa",
+    "actual_iso_sha256": "d8e243f8821559f1368c8d2ae5b13dda34c78e51326efff66dc9f6b289b98eae",
+    "resolved_manifest_matches": true,
+    "embedded_guest": {
+      "offset": 20850243,
+      "bytes": 29256,
+      "sha256": "eb6ef0c507baa3d1117ebc70882c81bba72ca213610288ad0d1f5b93d261d483",
+      "occurrence_offsets": [
+        20850243
+      ],
+      "all_complete_duplicate_bytes_equal": true,
+      "validated_loaded_candidates": [
+        {
+          "offset": 20850243,
+          "bytes": 29256,
+          "sha256": "eb6ef0c507baa3d1117ebc70882c81bba72ca213610288ad0d1f5b93d261d483"
+        }
+      ],
+      "actual_duplicate_copies_present": false,
+      "complete_ELF_extent_load_permissions_entry_and_unique_defined_global_function_symbol_verified": true
+    },
+    "lifecycle_records_all23_exactrawserial": true,
+    "ack_joins": [
+      {
+        "checkpoint": "initial-hub",
+        "ack": {
+          "service_instance": 1,
+          "namespace": 1,
+          "frame_sequence": 1,
+          "guest_sequence": 1
+        },
+        "record": {
+          "service_instance": 1,
+          "namespace": 1,
+          "frame_sequence": 1,
+          "guest_sequence": 1,
+          "pixels_written": 1024000,
+          "damage_count": 1,
+          "entries": 874,
+          "privilege_transitions": 1748,
+          "address_space_switches": 1748,
+          "scheduler_returns": 874
+        }
+      },
+      {
+        "checkpoint": "first-creche",
+        "ack": {
+          "service_instance": 1,
+          "namespace": 2,
+          "frame_sequence": 3,
+          "guest_sequence": 5
+        },
+        "record": {
+          "service_instance": 1,
+          "namespace": 2,
+          "frame_sequence": 3,
+          "guest_sequence": 5,
+          "pixels_written": 1024000,
+          "damage_count": 1,
+          "entries": 7495,
+          "privilege_transitions": 14990,
+          "address_space_switches": 14990,
+          "scheduler_returns": 7495
+        }
+      },
+      {
+        "checkpoint": "playing-hub",
+        "ack": {
+          "service_instance": 1,
+          "namespace": 16,
+          "frame_sequence": 1359,
+          "guest_sequence": 58
+        },
+        "record": {
+          "service_instance": 1,
+          "namespace": 16,
+          "frame_sequence": 1359,
+          "guest_sequence": 58,
+          "pixels_written": 1024000,
+          "damage_count": 1,
+          "entries": 113612,
+          "privilege_transitions": 227224,
+          "address_space_switches": 227224,
+          "scheduler_returns": 113612
+        }
+      }
+    ],
+    "frames_all27_crc_png_rgba_dimensions_prefix_and_boot_verified": [
+      {
+        "checkpoint": "front-door-ready",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/front-door-ready.png",
+        "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+        "rgba_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 42757
+      },
+      {
+        "checkpoint": "creche-ready",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-ready.png",
+        "sha256": "853c3277f6eb781c7145c6dde25bb64d1145126c15e95d3ed94d1a13fd7041be",
+        "rgba_sha256": "5e57dc5c1b041faaa3aece0b270e47589a5b0aa73fd9aacd3972ea35df9fe1ac",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 82615
+      },
+      {
+        "checkpoint": "creche-editorial-compact",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-editorial-compact.png",
+        "sha256": "257fff50d749083c3416616254f00b2e4bdcb45a14297aeb700e51b9c4603e1a",
+        "rgba_sha256": "87f63a1bec1399fbe717973f23fedf2323067926834f84fe03717c8141d0a00d",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 114159
+      },
+      {
+        "checkpoint": "creche-editorial-spacious",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-editorial-spacious.png",
+        "sha256": "9213168f0ddd548ddb5cc630a572d390fb276f479f34f4b00e7429886b1a486f",
+        "rgba_sha256": "16dc16969114f5a78b819b86d85935446ab5920e5170ed46346e3b051f419fd2",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 144282
+      },
+      {
+        "checkpoint": "creche-engineering-spacious",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-engineering-spacious.png",
+        "sha256": "f6b79302fc19a995d3d108170b5f17664813a89bced6667ed1d7ebd8a351ef57",
+        "rgba_sha256": "1ada89bc6625b36297ed678507867dc33184bd44831138ce1e6155be636b4dd9",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 174432
+      },
+      {
+        "checkpoint": "creche-engineering-compact",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-engineering-compact.png",
+        "sha256": "f68f4e431d5054fb8b8372c6bf2a40e69694347cacd7ec315d6b66755f505007",
+        "rgba_sha256": "d1ef4a0884ed1e6d2e42a958bb232b980c2d9dfb28c655cd101f4047f95c2225",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 204797
+      },
+      {
+        "checkpoint": "creche-three-selected",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-three-selected.png",
+        "sha256": "ab55307e83f57954eae36098d9ce7af978f89da207bb448499639e9b1136d944",
+        "rgba_sha256": "2dd1734328e052490a0a7a08774fbf90d55f2722d92c24c7f69156ea1b34d5d6",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 235057
+      },
+      {
+        "checkpoint": "creche-four-restored",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-four-restored.png",
+        "sha256": "729fc30c3ebf0819955beba11c69bb480284ec7e15588a7d5942747764e6336a",
+        "rgba_sha256": "85e8696ab20575bc1a9ab9ef08330bc6bd0fcb72d4f118a34b7ad29533008f8b",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 263827
+      },
+      {
+        "checkpoint": "creche-fourth-checked",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-fourth-checked.png",
+        "sha256": "50e2702b34d50a5d4b950790fa3a82731bde6cae5ab91b34553cbc3583ebbf71",
+        "rgba_sha256": "d13bcb2bc9beb8d28febd9f35c61614549e4f591335f1bff353958e588767838",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 268093
+      },
+      {
+        "checkpoint": "creche-pointer-three-selected",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-pointer-three-selected.png",
+        "sha256": "a60ff42fe454c2c886936ad08a593112f457d59792b08d8222547dc724fdeb0b",
+        "rgba_sha256": "db6cc421ad434e3c9306304e9170e89b97c3e5df61ef2ec7d5abf5b0011faf45",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 302003
+      },
+      {
+        "checkpoint": "creche-pointer-four-restored",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/creche-pointer-four-restored.png",
+        "sha256": "4ae3cca6e90db6e98ac5320502f4b45856182c81a98402b87b6aa5ec7df0c0f8",
+        "rgba_sha256": "510a076c132991bf078dfaec828794bda313b2ab246223b0e3c7bc81a0f9fe1e",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 331779
+      },
+      {
+        "checkpoint": "body-playing",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/body-playing.png",
+        "sha256": "ad4bb8065ea7a5c679ad99e29175c87fde731ae068b910ea743559a7f453fa47",
+        "rgba_sha256": "4b9d26fd16f670ce28999a42b2d9077faaa971d4663f959b6c3ca914ed39f984",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 574294
+      },
+      {
+        "checkpoint": "wake-refused",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/wake-refused.png",
+        "sha256": "6545554c6f9acd05fea3b892d0a034acf169f08b8219bc5a2a04a7554970025d",
+        "rgba_sha256": "6476f05baca331660fb9bf23343ccad8ee7a3adc3b14a03c35e18e5d5a983b61",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 636702
+      },
+      {
+        "checkpoint": "protected-keyboard-canvas",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/protected-keyboard-canvas.png",
+        "sha256": "50d3872f97183f3ed5a1414af2258e6e36dd06209499aed6d4f959528a5251e8",
+        "rgba_sha256": "b8b80f40edf0689f2f58fe6b561cd73e7e15ed74c4cdf8d9608dd56e530a6047",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 680711
+      },
+      {
+        "checkpoint": "protected-memory-lantern",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/protected-memory-lantern.png",
+        "sha256": "9c6af39f7e979983504a8cd425f65c869ce379403939f2921714af0eaca52c52",
+        "rgba_sha256": "a2b4eabbbfd9109585ee0079e676a2932e5f8097cb588b352b0f4444c6b74de5",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 1027620
+      },
+      {
+        "checkpoint": "home",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/home.png",
+        "sha256": "ad4bb8065ea7a5c679ad99e29175c87fde731ae068b910ea743559a7f453fa47",
+        "rgba_sha256": "4b9d26fd16f670ce28999a42b2d9077faaa971d4663f959b6c3ca914ed39f984",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 1116744
+      },
+      {
+        "checkpoint": "patchbay-workspace",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-workspace.png",
+        "sha256": "579ac43abbc0ea749cf230f034d36dc474203147408d2ae6ecf31f45fd32c6b8",
+        "rgba_sha256": "6146f65b0472dc3bacb32203b670930018ffa24fd8369cbe4ab3e39d36467211",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 1192727
+      },
+      {
+        "checkpoint": "patchbay-face",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-face.png",
+        "sha256": "579ac43abbc0ea749cf230f034d36dc474203147408d2ae6ecf31f45fd32c6b8",
+        "rgba_sha256": "6146f65b0472dc3bacb32203b670930018ffa24fd8369cbe4ab3e39d36467211",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 1192727
+      },
+      {
+        "checkpoint": "patchbay-diagram",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-diagram.png",
+        "sha256": "2f2ead8ab2ccbb4e94a07953e707f61258bc8659f4c4e524201ba40d719393fd",
+        "rgba_sha256": "df7c3554b0d23795682f3b993284a29394190ce4f5e701b173d9078e2f0038f8",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 1194163
+      },
+      {
+        "checkpoint": "patchbay-gear-details",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-gear-details.png",
+        "sha256": "a64042233ac0fddfb0325a7c7f889a28573f4aa3c05298ec4e9f4554ce7d4e7f",
+        "rgba_sha256": "ba911487c566953ae5b3f8e8102daec56f7b1e2b15cbc9df094d75ef53e29acc",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 1201041
+      },
+      {
+        "checkpoint": "patchbay-diagram-returned",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-diagram-returned.png",
+        "sha256": "4972483239c8bcda5ac59fdcf8e02de2de6781fade72569b36279cd6a776c6df",
+        "rgba_sha256": "ff5f5b94ef8110b69b140be0e8013b0442ab9de54ec7509558708f59de7df40a",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 1207917
+      },
+      {
+        "checkpoint": "patchbay-inspected-other-and-returned",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-inspected-other-and-returned.png",
+        "sha256": "579ac43abbc0ea749cf230f034d36dc474203147408d2ae6ecf31f45fd32c6b8",
+        "rgba_sha256": "6146f65b0472dc3bacb32203b670930018ffa24fd8369cbe4ab3e39d36467211",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 2101289
+      },
+      {
+        "checkpoint": "patchbay-mask-replanned",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-mask-replanned.png",
+        "sha256": "0b3ee0161999979dfe016888651695cceb3f852a108ad180256b3d8d7500075d",
+        "rgba_sha256": "5a621b7f3ce4db759d0b9a9beaab4364dc1896c43374a98b418e4fad02523bfb",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 2495785
+      },
+      {
+        "checkpoint": "body-stopped",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/body-stopped.png",
+        "sha256": "88b3e28fb9d994c1defae63e71601b3828abf48c4ca436e534dc610c3719d3f8",
+        "rgba_sha256": "26a94729ea0dd8b81b521bd5554cb2e402ae70631e945afe74b2e47d70fc1349",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 2523563
+      },
+      {
+        "checkpoint": "home-returned",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/home-returned.png",
+        "sha256": "c14226e080caba67694f0ebb05393e0de4e0119847dcc68575dd402b1b86f00f",
+        "rgba_sha256": "96dbcf0efa93cbae03ca905c91ee521c7eafbf97034e155c2b8d393d34f905f0",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 2529470
+      },
+      {
+        "checkpoint": "patchbay-reentered",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-reentered.png",
+        "sha256": "f2e71bec51c5d348091c6704e5ea533ebfc4a53cd2ff081009417f76bd9dbe3b",
+        "rgba_sha256": "474905c2ee4bd0014caaf06d5702a6afab85b1a70b5cbe6ddcdf083e11ab9baf",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 2532437
+      },
+      {
+        "checkpoint": "patchbay-source-editor-loaded",
+        "png": "outputs/x86-product-40060628788/conduitos-x86_64/evidence/journey-frames/patchbay-source-editor-loaded.png",
+        "sha256": "9f52993515fdca0a6f431c18794295e95277c4101b9f3a81bb2fd041add30cab",
+        "rgba_sha256": "429f85b0304ad1a829e2ea249cfafda28ca0401d70995248f748a62bd7052739",
+        "width": 1280,
+        "height": 800,
+        "serial_byte_end": 3264138
+      }
+    ],
+    "normal_journey": {
+      "status": "complete",
+      "steps": [
+        "arrive",
+        "creche-three-selected",
+        "creche-four-restored",
+        "creche-fourth-checked",
+        "creche-pointer-three-selected",
+        "creche-pointer-four-restored",
+        "birth",
+        "wake",
+        "plan",
+        "play",
+        "commons-hub",
+        "commons-workshop",
+        "unavailable-wake-refused",
+        "protected-keyboard-canvas",
+        "protected-memory-lantern",
+        "home",
+        "patchbay",
+        "face",
+        "diagram",
+        "gear-details",
+        "diagram-return",
+        "stop",
+        "home-returned",
+        "patchbay-reentered"
+      ],
+      "host_id": "051fd58176485ffb62b63ca77947a0c948706cdaa282939c8ae9e62adc59e56b",
+      "boot_id": "a002be9e2f468d3bec721c4e70f3c86ccbed0b358a37ffe472e959d6d97a59c1",
+      "body_id": "9b28650cc8d60eff4a333ba8a417a46b85607934f861f4aaffe4eed5e4fc5d6b",
+      "look_selection_status": "passed",
+      "patchbay_actions_fields": [
+        "checked_source_inspection",
+        "cross_plot_selection",
+        "cross_plot_selection_enacted",
+        "edit_outcome",
+        "edit_refusal_face",
+        "edit_request",
+        "limits",
+        "mask_request",
+        "refusal_details",
+        "replanned_face",
+        "selected_face",
+        "successful_edit_handoff_enacted"
+      ],
+      "process_stop": {
+        "cause": "harness-stop-after-success",
+        "code": null,
+        "status": "signal: 9 (SIGKILL)"
+      }
+    },
+    "claims": "Successful sourcebound normalQEMUbaseline throughCr\u00e8che keyboard/pointer+Look switches,Birth/Wake/Plan/Play,protectedkeyboard/retainedtext,PatchbayFace/diagram/GearDetails/checkedsource/action/editrefusal/maskreplan,Stop/HomeReturn/reentry. RealQMP andexistingownerreceipts\u2014notphysicalhuman/browsercomparison.",
+    "limits": "ExactacceptedIntegrationsourcecontainsNEWdeduplicatingcollectorandreceiptunique_loaded_compositor_image_bytes_verified. ThisauditestablishesactualnativeproductcustodyatthatexactsuccessfulIntegration,notautomaticissueorparentclosure. One successfulPatchbayoperation doesnotestablishcausalboundedpublicationfixorfull6318closure. NoDMA/driverisolation,broadserviceconfinement,parent5356/human/physical/stableclaim. embeddedlifecyclepureparsercustodyfalse isseparatefromactualcollectorartifactcustodytrue."
+  },
+  "earlier_candidate_native_execution_source": "dacabe7376b1d62c0739377f579bfb332cafa19e",
+  "native_packet": {
+    "observed_utc": "2026-10-24T03:03:04.822048+00:00",
+    "submitted_source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+    "execution_source": "dacabe7376b1d62c0739377f579bfb332cafa19e",
+    "branch": "evidence/d677-current-native-product-20261024",
+    "commit": "a3bacc64ad92cac726d0f92021793022332c6d5c",
+    "remote_verified": true,
+    "url": "https://github.com/dancxjo/conduit/tree/a3bacc64ad92cac726d0f92021793022332c6d5c/docs/audits/evidence/current-omnibus-native-product-20261024/d677b2538",
+    "files": 11,
+    "scope": "Actual successful x86 job; fullCandidate/devdelivery/Integration pending"
+  },
+  "feature_correspondence": [
+    {
+      "path": "architecture/core",
+      "reviewed_and_tested_object": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "submitted": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "accepted": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "current_dev": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b"
+    },
+    {
+      "path": "architecture/plan-lowering",
+      "reviewed_and_tested_object": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+      "submitted": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+      "accepted": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+      "current_dev": "0ca3d705a8f3970ce0ded9ff5e9d508681191854"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/src",
+      "reviewed_and_tested_object": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "submitted": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "accepted": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "current_dev": "91dd2e07858a32859e47c9214ebee76331b789c8"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/tests",
+      "reviewed_and_tested_object": "0938ffc8f825e5313c743bab3c22d635e54ae0fa",
+      "submitted": "0938ffc8f825e5313c743bab3c22d635e54ae0fa",
+      "accepted": "0938ffc8f825e5313c743bab3c22d635e54ae0fa",
+      "current_dev": "0938ffc8f825e5313c743bab3c22d635e54ae0fa"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/Cargo.toml",
+      "reviewed_and_tested_object": "874933e8ff6bc0ca1909029e19931ee19531329e",
+      "submitted": "874933e8ff6bc0ca1909029e19931ee19531329e",
+      "accepted": "874933e8ff6bc0ca1909029e19931ee19531329e",
+      "current_dev": "874933e8ff6bc0ca1909029e19931ee19531329e"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/Cargo.lock",
+      "reviewed_and_tested_object": "75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "submitted": "75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "accepted": "75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "current_dev": "75a7354df7e81203e56f36bab2d4a7391b47c930"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/src",
+      "reviewed_and_tested_object": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "submitted": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "accepted": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "current_dev": "e04b6416a512e42be10b74d12be776c7c30e44ab"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/tests",
+      "reviewed_and_tested_object": "61002c38162ceaf965b375faaf0817d76a0c67b8",
+      "submitted": "61002c38162ceaf965b375faaf0817d76a0c67b8",
+      "accepted": "61002c38162ceaf965b375faaf0817d76a0c67b8",
+      "current_dev": "61002c38162ceaf965b375faaf0817d76a0c67b8"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/Cargo.toml",
+      "reviewed_and_tested_object": "34da23b774f626f90fbc48530e226d187569e086",
+      "submitted": "34da23b774f626f90fbc48530e226d187569e086",
+      "accepted": "34da23b774f626f90fbc48530e226d187569e086",
+      "current_dev": "34da23b774f626f90fbc48530e226d187569e086"
+    },
+    {
+      "path": "tools/xtask/src/suites/monotonic_wait.rs",
+      "reviewed_and_tested_object": "b2111536fb17157196074793cba817c5e717430b",
+      "submitted": "b2111536fb17157196074793cba817c5e717430b",
+      "accepted": "b2111536fb17157196074793cba817c5e717430b",
+      "current_dev": "b2111536fb17157196074793cba817c5e717430b"
+    },
+    {
+      "path": "Cargo.lock",
+      "reviewed_and_tested_object": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "submitted": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "accepted": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "current_dev": "285364ea28d2408d4c77288c81b3baa8c6ca0f72"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/Cargo.toml",
+      "reviewed_and_tested_object": "a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "submitted": "a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "accepted": "a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "current_dev": "a80eacdcc53905f59243fe5fe3889ba34c48d567"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/README.md",
+      "reviewed_and_tested_object": "0147d1009d4209f4f15a18083241692b85593a42",
+      "submitted": "0147d1009d4209f4f15a18083241692b85593a42",
+      "accepted": "0147d1009d4209f4f15a18083241692b85593a42",
+      "current_dev": "0147d1009d4209f4f15a18083241692b85593a42"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+      "reviewed_and_tested_object": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "submitted": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "accepted": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "current_dev": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/record.rs",
+      "reviewed_and_tested_object": "01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "submitted": "01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "accepted": "01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "current_dev": "01081e1ad83b3f4648d2baf98b849078378a4f95"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+      "reviewed_and_tested_object": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "submitted": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "accepted": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "current_dev": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+      "reviewed_and_tested_object": "56695afe99420befd10aa7b21ab56f60446edace",
+      "submitted": "56695afe99420befd10aa7b21ab56f60446edace",
+      "accepted": "56695afe99420befd10aa7b21ab56f60446edace",
+      "current_dev": "56695afe99420befd10aa7b21ab56f60446edace"
+    },
+    {
+      "path": "targets/browser/runtime/Cargo.toml",
+      "reviewed_and_tested_object": "64250fbaad3d8df6faa561609513f2bc111460b1",
+      "submitted": "64250fbaad3d8df6faa561609513f2bc111460b1",
+      "accepted": "64250fbaad3d8df6faa561609513f2bc111460b1",
+      "current_dev": "64250fbaad3d8df6faa561609513f2bc111460b1"
+    },
+    {
+      "path": "targets/browser/runtime/src/resource_snapshot.rs",
+      "reviewed_and_tested_object": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "submitted": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "accepted": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "current_dev": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a"
+    },
+    {
+      "path": "tools/xtask/src/suites/resource_snapshot.rs",
+      "reviewed_and_tested_object": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "submitted": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "accepted": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "current_dev": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+      "reviewed_and_tested_object": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "submitted": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "accepted": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "current_dev": "453ca95a6caf09d3258cf5a56f2cf00634043426"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+      "reviewed_and_tested_object": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "submitted": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "accepted": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "current_dev": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1"
+    },
+    {
+      "path": "tools/xtask/src/commands/ci/standalone_locks.rs",
+      "reviewed_and_tested_object": "8dfdcde34704a90a1dc1d2e4d2c0b57445586a75",
+      "submitted": "8dfdcde34704a90a1dc1d2e4d2c0b57445586a75",
+      "accepted": "8dfdcde34704a90a1dc1d2e4d2c0b57445586a75",
+      "current_dev": "8dfdcde34704a90a1dc1d2e4d2c0b57445586a75"
+    }
+  ],
+  "issue_body_hashes": {
+    "6334": "f6808627ffb3205475c28b1b9af03eb9f33d35d88165e358673a00482a303c33",
+    "6346": "66deb15a651d7a11f6411afd791a8636572e4d6a1b93c9f2f5a30efcabfff1ab",
+    "6350": "3cb36a2a0d991cf67768671689ea5c6dff36ec3b25c1fb0f0113d10a7c5e15ed",
+    "6353": "2c39f2c7f10ab1c288195f5f2bef3f1589ab4e0ad0c2aa5ad7083b196092d16a"
+  },
+  "limits": [
+    "No closure performed; final fresh live requirement audit required",
+    "Retained CPU/native executions retain their actual source identities",
+    "Timer/pulse cooperative provider contracts only; no physical provider or hostile confinement",
+    "Snapshot codec only; no Linux filesystem provider or Body recorder",
+    "Collector repair only; no full phased/cumulative-budget6318 or parent closure"
+  ],
+  "fresh_full_issue_scope_review": {
+    "path": "outputs/four-followups-fresh-scope-0535-review.json",
+    "sha256": "5a5188f875aca8ae0deaefb42eb1cb2905987baa19bf15e3b6d00da4d07374d6",
+    "full_body_hashes": {
+      "6334": "f6808627ffb3205475c28b1b9af03eb9f33d35d88165e358673a00482a303c33",
+      "6346": "66deb15a651d7a11f6411afd791a8636572e4d6a1b93c9f2f5a30efcabfff1ab",
+      "6350": "3cb36a2a0d991cf67768671689ea5c6dff36ec3b25c1fb0f0113d10a7c5e15ed",
+      "6353": "2c39f2c7f10ab1c288195f5f2bef3f1589ab4e0ad0c2aa5ad7083b196092d16a"
+    }
+  }
+}

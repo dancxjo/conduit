@@ -1,0 +1,11 @@
+{
+  "observed_utc": "2026-10-24T03:03:04.822048+00:00",
+  "submitted_source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "execution_source": "dacabe7376b1d62c0739377f579bfb332cafa19e",
+  "branch": "evidence/d677-current-native-product-20261024",
+  "commit": "a3bacc64ad92cac726d0f92021793022332c6d5c",
+  "remote_verified": true,
+  "url": "https://github.com/dancxjo/conduit/tree/a3bacc64ad92cac726d0f92021793022332c6d5c/docs/audits/evidence/current-omnibus-native-product-20261024/d677b2538",
+  "files": 11,
+  "scope": "Actual successful x86 job; fullCandidate/devdelivery/Integration pending"
+}

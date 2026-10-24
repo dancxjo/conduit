@@ -1,0 +1,231 @@
+{
+  "reviewed_source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "fresh_issue_snapshots": {
+    "6346": {
+      "file": "outputs/6346-fresh-readiness-issue.json",
+      "state": "open"
+    },
+    "6334": {
+      "file": "outputs/6334-fresh-readiness-issue.json",
+      "state": "open"
+    }
+  },
+  "mode": "One fresh issue GET each; read-only exact Git objects and immutable already-executed proofs. No CI polling, builds, issue/source mutation.",
+  "result": "No additional source/portable cooperative acceptance gap identified. Both issues remain open pending actual scoped delivery and applicable full exact-head gates. Latest owner PR ancestry is separate all-PR stewardship, not an extra issue-scope requirement when delivered source is identical.",
+  "6346_requirements": [
+    {
+      "item": "Independent configured ordinary/assigned entry points",
+      "status": "proven source + actual generic regression",
+      "source_evidence": "architecture/plan-lowering/src/selected_operation.rs:29-45,98; selected_assigned_operation.rs:35-58,89; assigned_configuration.rs:6-55",
+      "tests_or_proof": "generic_ordinary_binding_checks_source_configuration_and_exact_zero_result_shape; generic_assigned_binding_checks_configuration_and_zero_result_shape_in_both_storage_forms"
+    },
+    {
+      "item": "Positive/negative configuration and exact zero-result shapes",
+      "status": "proven source + actual generic regression",
+      "source_evidence": "mechanisms/io/monotonic-wait/tests/support/selected_binding.rs:45-95,97-213; positive complete config; missing expectation, wrong value/type, missing/extra semantic ports and nonzero Host Call output bound each refuse. Zero-result refers Host Call output_bytes=0, while Tick semantic output still exists.",
+      "tests_or_proof": "same two generic tests"
+    },
+    {
+      "item": "Existing unconfigured callers preserved",
+      "status": "proven executed Pulse ordinary+assigned tests against new generic APIs",
+      "source_evidence": "selected_operation.rs:29-36 and selected_assigned_operation.rs unconfigured wrappers retain empty expected config; pulse-capture/src/owner.rs:96-175 uses them.",
+      "tests_or_proof": "exact_binding_and_replay_are_checked_before_any_effect; matching_identifiers_cannot_substitute_lowering_or_active_play; assigned Pulse tests in actual14-test log"
+    },
+    {
+      "item": "Opaque local authority and exact Host/Boot/Plan/Play/resource identity",
+      "status": "proven scoped source/fixture checks",
+      "source_evidence": "selected_operation.rs:52-141,193-234; selected_assigned_operation.rs:66-94,178-225; timer installation.rs:181-213; assigned.rs:24-64. Incoming records pass Core decode before checks; matching IDs cannot substitute lowering.",
+      "tests_or_proof": "foreign_plan_and_play_cannot_bind_the_retained_native_slot; assigned_timer_preserves_slot_on_refusal_then_transfers_and_waits; borrowed_assignment_preserves_slot_then_transfers_and_waits; matching_identifiers_cannot_substitute_lowering_or_active_play"
+    },
+    {
+      "item": "Owned finite monotonic wait, no compatibility timer loop, allocation-free invocation",
+      "status": "proven cooperative CPU source/fixture contract",
+      "source_evidence": "monotonic-wait/src/owner.rs:7-26,95-130,238-288: bounded input duration/count, one attributed operation lease, no allocation in invoke, explicit provider failure. No new timer loop.",
+      "tests_or_proof": "bounded_waits_are_exact_sequenced_and_allocation_free; dropping_pending_wait_quiesces_provider_then_revokes_unfinished_possession"
+    },
+    {
+      "item": "Ready/native advertisement and assigned retained transfer",
+      "status": "proven cooperative CPU source/fixture contract",
+      "source_evidence": "monotonic-wait/src/installation.rs:43-82,85-165,167-216; src/assigned.rs:12-84; slot.take only after all preflight. Borrowed malformed assignments preserve retained slot.",
+      "tests_or_proof": "only_retained_native_slot_projects_its_exact_resource_and_zero_result_offer; retained_slot_survives_binding_refusal_and_transfers_only_after_complete_preflight; assigned_timer_preserves_slot_on_refusal_then_transfers_and_waits; borrowed_assignment_preserves_slot_then_transfers_and_waits"
+    },
+    {
+      "item": "Revoked idle retirement",
+      "status": "proven source + live/exhausted/cancellation fixtures",
+      "source_evidence": "monotonic-wait/src/owner.rs:138-155; detailed requirements in6334 audit below",
+      "tests_or_proof": "retirement_requires_revocation_and_returns_exact_timer_custody_once; exhausted_timer_refuses_retirement_until_explicit_revocation"
+    },
+    {
+      "item": "Supported xtask entrance; bounded files; generic vs physical scope",
+      "status": "proven source + actual supported entrance",
+      "source_evidence": "tools/xtask/src/suites/monotonic_wait.rs runs locked timer tests and strict all-target Clippy. Timer owner288, installation225, assigned85 lines; generic files separate. Original generic prerequisite commit5623 preceded owner310f; later regression proof separately retained.",
+      "tests_or_proof": "actual cargo+stable xtask check monotonic-wait log:12passed+strictlint"
+    },
+    {
+      "item": "CI standalone lock inventory",
+      "status": "actual old failure corrected; local exact positive proof, fullgate pending",
+      "source_evidence": "d677 registers exact timer manifest/lock in standalone_locks.rs; outputs/6348-lock-registry-repair-receipt.json retains named1pass and unchanged locked graph. New owner0f has identical repair.",
+      "tests_or_proof": "standalone_locks::tests::registry_covers_every_separately_rooted_checked_in_lock"
+    }
+  ],
+  "6334_requirements": [
+    {
+      "item": "Consuming allocation-free transfer of actual provider/attachment only",
+      "status": "proven source + actual measured tests",
+      "source_evidence": "Pulse owner.rs:232-249; timer owner.rs:138-155 return(P,Attachment) after Option.take and drop capability table/handle/claim; no authority returned.",
+      "tests_or_proof": "retirement_requires_revocation_and_returns_exact_native_custody_once; retirement_requires_revocation_and_returns_exact_timer_custody_once"
+    },
+    {
+      "item": "Live Issued possession refuses without losing custody",
+      "status": "proven actual tests for both owners",
+      "source_evidence": "Pulse tests/pulse_owner.rs:237-258 and timer tests/wait_owner.rs:234-256 assert NotRevoked and unchanged inspection.",
+      "tests_or_proof": "same retirement_requires_revocation tests"
+    },
+    {
+      "item": "Exhausted possession cannot retire",
+      "status": "proven actual finite-budget tests for both owners",
+      "source_evidence": "Both tests/support/exhausted_retirement.rs use actual budget1; timer independently configures count1. completed1/in-flight0/Exhausted; NotRevoked preserves owner address; second invoke no provider effect; explicit correct revoke then recovery.",
+      "tests_or_proof": "exhausted_pulse_refuses_retirement_until_explicit_revocation; exhausted_timer_refuses_retirement_until_explicit_revocation"
+    },
+    {
+      "item": "Revoked plus zero in-flight is required",
+      "status": "proven source/type exclusivity + actual post-cancel tests",
+      "source_evidence": "Both retire functions inspect in_flight first then require Revoked before take. Pending invoke exclusively borrows owner; safe caller cannot retire concurrently. No unsafe fabricated in-flight test claimed.",
+      "tests_or_proof": "dropping_a_pending_dispatch_quiesces_provider_and_revokes_unfinished_possession; dropping_pending_wait_quiesces_provider_then_revokes_unfinished_possession"
+    },
+    {
+      "item": "Cancellation drops provider work before retirement",
+      "status": "proven cooperative fixture/source drop ordering; physical law remains installation obligation",
+      "source_evidence": "Pending lease guard created before awaited provider future in both invoke functions; generator cancellation drops awaited future then guard revokes. Cancellation fixtures record provider guard drop and recover exact P afterward.",
+      "tests_or_proof": "same two dropping_pending tests"
+    },
+    {
+      "item": "Explicit correct revocation returns exact provider/attachment once; empty refuses",
+      "status": "proven actual measured tests for both owners",
+      "source_evidence": "retirement tests use Rc::ptr_eq for provider identity and attachment fields; Exhausted tests check full timer attachment and all pulse fields/limits; successful take makes None; second retirement Unavailable.",
+      "tests_or_proof": "retirement_requires_revocation tests and both exhausted tests"
+    },
+    {
+      "item": "Wrong-binding revocation cannot enable retirement",
+      "status": "proven actual tests for both owners",
+      "source_evidence": "Wrong node returns WrongBinding; subsequent retirement still NotRevoked; owner retained. check_binding also checks HostCallId0.",
+      "tests_or_proof": "retirement_requires_revocation_and_returns_exact_native_custody_once; retirement_requires_revocation_and_returns_exact_timer_custody_once"
+    },
+    {
+      "item": "No grant reuse, rearming, generation advancement, second Play, owner-loss recovery or recording claims",
+      "status": "scope preserved by return types/source and proof limits",
+      "source_evidence": "Retirement returns actual provider and attachment only, no capability state. Reinstallation remains independently admitted trusted Root operation. CPU provider drop/quiescence law does not claim physical-device shutdown.",
+      "tests_or_proof": "Source and immutable receipts state these exclusions explicitly"
+    }
+  ],
+  "immutable_proofs": [
+    {
+      "commit": "4ce70418618fa0445826942aafbace17eae1e533",
+      "folder": "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/",
+      "executed_source": "5ace49b62516b1dca0ddcca9bdf7eeab716963e4",
+      "results": "Supported timer12+strict Clippy; Pulse host-call+plot-catalog14+strict Clippy; preflight345; full raw logs retained."
+    },
+    {
+      "commit": "6023aa29805ab099e685eb1c3722e6f4907b0238",
+      "folder": "evidence/6334-combined-retirement",
+      "executed_source": "1d62af38d72b6a7117c30554d7d9af5562278066",
+      "results": "Both cooperative owner Exhausted tests and12+12 cases with strict Clippy; production correspondence retained."
+    },
+    {
+      "commit": "d43f2818a0143dcdb81ee319ee11c975a578f5cc",
+      "folder": "docs/audits/evidence/reviewed-omnibus-lock-registry-20261024/d677b2538",
+      "results": "Root-linked exact registry repair positive/preflight packet; not a full CI success claim."
+    }
+  ],
+  "verified_raw_log_hashes": {
+    "reviewed-followups-monotonic-wait.log": {
+      "sha256": "23fe51828340f17f327d9ff245f822db771b987fbc152e4f00202611043888cc",
+      "verified_against_immutable_receipt": true
+    },
+    "reviewed-followups-pulse-tests.log": {
+      "sha256": "4e0fc7e9463d747b3be835d7cab44d18d0e4c0493bd7f0f87b2f3d0649818725",
+      "verified_against_immutable_receipt": true
+    },
+    "reviewed-followups-pulse-clippy.log": {
+      "sha256": "ab98f33f03ca55ff3ffdb55122265477299d39c97f9fa696b9b119f6a69dd564",
+      "verified_against_immutable_receipt": true
+    }
+  },
+  "executed_to_reviewed_source_correspondence": {
+    "architecture/core": {
+      "tested": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "reviewed": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b"
+    },
+    "architecture/plan-lowering": {
+      "tested": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+      "reviewed": "0ca3d705a8f3970ce0ded9ff5e9d508681191854"
+    },
+    "mechanisms/io/monotonic-wait/src": {
+      "tested": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "reviewed": "91dd2e07858a32859e47c9214ebee76331b789c8"
+    },
+    "mechanisms/io/monotonic-wait/tests": {
+      "tested": "0938ffc8f825e5313c743bab3c22d635e54ae0fa",
+      "reviewed": "0938ffc8f825e5313c743bab3c22d635e54ae0fa"
+    },
+    "mechanisms/io/monotonic-wait/Cargo.toml": {
+      "tested": "874933e8ff6bc0ca1909029e19931ee19531329e",
+      "reviewed": "874933e8ff6bc0ca1909029e19931ee19531329e"
+    },
+    "mechanisms/io/monotonic-wait/Cargo.lock": {
+      "tested": "75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "reviewed": "75a7354df7e81203e56f36bab2d4a7391b47c930"
+    },
+    "mechanisms/io/pulse-capture/src": {
+      "tested": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "reviewed": "e04b6416a512e42be10b74d12be776c7c30e44ab"
+    },
+    "mechanisms/io/pulse-capture/tests": {
+      "tested": "61002c38162ceaf965b375faaf0817d76a0c67b8",
+      "reviewed": "61002c38162ceaf965b375faaf0817d76a0c67b8"
+    },
+    "mechanisms/io/pulse-capture/Cargo.toml": {
+      "tested": "34da23b774f626f90fbc48530e226d187569e086",
+      "reviewed": "34da23b774f626f90fbc48530e226d187569e086"
+    },
+    "tools/xtask/src/suites/monotonic_wait.rs": {
+      "tested": "b2111536fb17157196074793cba817c5e717430b",
+      "reviewed": "b2111536fb17157196074793cba817c5e717430b"
+    }
+  },
+  "owner_head_delta": {
+    "latest_timer": "0f1640fee52d173da584e0fecb63f3243310f512",
+    "change": "Only same registry repair already in d677; previous independent merge-tree review establishes zero tree change if normally merged. Metadata FETCH_HEAD attribution corrected because shared state was overwritten; explicit reviewed commits/blobs remain valid.",
+    "conclusion": "Normal owner0f merge remains appropriate for all-PR stewardship and is tree-neutral atd677; it is not an additional original issue acceptance gate if exact scoped feature is already accepted in dev."
+  },
+  "remaining_for_6346": [
+    "Successful exact-head Candidate for actual delivery source under normal policy.",
+    "Actual scoped feature delivery to dev: configured generic binder, timer provider/installation/retirement, meaningful generic and Exhausted tests, supported check and identical standalone-lock registry repair must be present. Rootd677 already contains this complete scoped source; a normal merge of latest0f timer PR is not independently required by the original issue if accepteddev contains these same bytes.",
+    "Applicable successful complete Integration at actual dev descendant, then verify exact selected/generic/timer/test/registry correspondence and live6346 state before scoped closure."
+  ],
+  "remaining_for_6334": [
+    "Both owners and their combined tests must reach accepteddev; pulse already delivered atdd3, timer plus combined tests are present in Rootd677 awaiting dev delivery.",
+    "Applicable complete successful combined Integration and actual accepted-head correspondence for both owners/tests.",
+    "Fresh final issue state and scope check; then issue can close for cooperative provider retirement only. No original acceptance criterion requires latest0f owner commit ancestry as an additional condition when accepted source bytes are identical."
+  ],
+  "outside_required_scope": [
+    "Physical ESP32/GPIO/timer installation or hostile native confinement",
+    "Native worker rearming, resource-generation advancement, a second admitted Play",
+    "Resident recorder, network join success, Pi client, owner-loss recovery"
+  ],
+  "proof_limits": [
+    "Actual logs establish CPU fixture contracts; concrete native provider cancellation/quiescence remains unsafe installation obligation.",
+    "Historical failed-native-gate receipt in4ce remains historical negative evidence; this audit does not infer current gate status from it or from local passes.",
+    "Foundation cancellation on oldtimerCandidate is not proof; no current Candidate/Integration status observed in this audit."
+  ],
+  "findings": [],
+  "issue_scope_vs_PR_stewardship": {
+    "original_6346": "Requires configured ordinary/assigned binding, shape/configuration proofs, preserved authority/identity/unconfigured behavior, owned finite timer readiness/assigned transfer/retirement, supported entrance, bounded files and proof boundaries; no requirement for a particular later metadata/CI-only owner commit ancestor.",
+    "original_6334": "Requires both actual providers retiring only revoked+idle with live/exhausted/cancellation/wrongbinding/empty refusal and no new authority; no particular PR head ancestry requirement.",
+    "latest_0f": "Not metadata-only: adds four CI registry lines, byte-identical to Rootd677. Root already retains prior reviewed production ownercc527 ancestry and same registry blob, with scoped generic/exhausted tests.",
+    "closure_rule": "If actualRootd677 delivery receives required fullCandidate and applicable accepteddev Integration, and fresh acceptedtree correspondence verifies entire scoped source/tests/registry,6346 and6334 may close on those proofs even if0f ownerCandidate or normalfollowup is still pending.",
+    "separate_user_objective": "User all-PRs-into-dev stewardship still requires proper disposition/normalmerge of open6348latesthead under its normal guards. Finishing that broader request is separate from whether identical issue-scoped implementation is delivered.",
+    "non_weakening": "No substitution for real Candidate/Integration, actual dev delivery, both-owner behavior proofs, or fresh acceptedhead verification. Only unsupported rawowner-ancestry condition removed."
+  },
+  "audit_clarification": "Re-read fresh saved original issue paragraphs. Previous wording grouped normal latesttimer merge with issue gates; clarified that only actual scoped delivery and required exact-head acceptance are issue requirements. Immutable prior proof packets remain unchanged."
+}

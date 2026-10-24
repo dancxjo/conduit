@@ -1,0 +1,119 @@
+{
+  "files": [
+    {
+      "path": "acceptance.json",
+      "bytes": 53040,
+      "sha256": "15665a85e843989869beb70981a909d307a5a026af120364e6fcbc646218b2cf"
+    },
+    {
+      "path": "integration.json",
+      "bytes": 13620,
+      "sha256": "f42b93cc85892d98a7d25fbd81c41a05551af1fc6d88b509f12399492f5bcd21"
+    },
+    {
+      "path": "integration-jobs.json",
+      "bytes": 132711,
+      "sha256": "e05f2b72c704c165541c836e4c0ef1035bfa7c275efbb275bee1594d24b83a67"
+    },
+    {
+      "path": "issues-before-publication.json",
+      "bytes": 30664,
+      "sha256": "d3486b7ffe1f7e0fbf5daf843e8eaf8ce39afbc1260e86776b39d757a90228ef"
+    },
+    {
+      "path": "four-followups-fresh-scope-0535-review.json",
+      "bytes": 34950,
+      "sha256": "5a5188f875aca8ae0deaefb42eb1cb2905987baa19bf15e3b6d00da4d07374d6"
+    },
+    {
+      "path": "6334-fresh-scope-0535.json",
+      "bytes": 4608,
+      "sha256": "d19cd9c5b6e2c47aae7699f478192d356e33b4953ce120edc171b8321bfcf614"
+    },
+    {
+      "path": "6346-fresh-scope-0535.json",
+      "bytes": 3025,
+      "sha256": "94e7e976f802b82dbb3413e698a2caf815ae9c8cd3d4fb3d8e7f5cf8d76a42ab"
+    },
+    {
+      "path": "6350-fresh-scope-0535.json",
+      "bytes": 2430,
+      "sha256": "6e60472b7fcaf02e9af9786f14903b025cb28b42dbefad90832451aa77d637ba"
+    },
+    {
+      "path": "6353-fresh-scope-0535.json",
+      "bytes": 7246,
+      "sha256": "47362c63098d162babb3d89c3e0462b4c61d9ac5545f66e0b1cdfca43abaadac"
+    },
+    {
+      "path": "accepted-integration-native-product-independent-review.json",
+      "bytes": 40560,
+      "sha256": "aee9840a146838ff0d59829768f9b8050cbb0f976a6d006e172a2a24d7cf9320"
+    },
+    {
+      "path": "accepted-integration-native-product-download.json",
+      "bytes": 12906,
+      "sha256": "0ec16611aeda25b489153bbf5d829efb6adc4d0f765e420c6eb52f620590dbdb"
+    },
+    {
+      "path": "accepted-integration-native-product.zip",
+      "bytes": 22123670,
+      "sha256": "1abfbbb349a78c122ad3233e19c7d068cbafda78c2e1c403909b12f4f1b9daa9"
+    },
+    {
+      "path": "accepted-native-integration_receipt.json",
+      "bytes": 12251,
+      "sha256": "06b345fd083e2f5b11e8f581147748cf1e99f0c4edef05c3309fa9b05cf8060a"
+    },
+    {
+      "path": "accepted-native-integration_jobs_receipt.json",
+      "bytes": 90973,
+      "sha256": "1fc74fcf19a7656d9229f7f1e8cff3fc96e93779f06862aa132a73d0f7f6fb5a"
+    },
+    {
+      "path": "6346-6334-final-requirement-readiness-review.json",
+      "bytes": 17577,
+      "sha256": "1fde0e86ddcd3d9a18ccb8e53f717a07c9d588c8aadb73946543a6c3fbae0a24"
+    },
+    {
+      "path": "6350-final-requirement-readiness-review.json",
+      "bytes": 12744,
+      "sha256": "f4ea48904de084389b4458e2fb73935eb49c3fc195c207c677404f0e7652c496"
+    },
+    {
+      "path": "6353-final-requirement-readiness-review.json",
+      "bytes": 10350,
+      "sha256": "3f9581fc81860e0e8b62b0bd933f15a85ad31414122750713c2e38f249f62feb"
+    },
+    {
+      "path": "d677-current-native-product-publication.json",
+      "bytes": 599,
+      "sha256": "6b4878628737034e06181fe7f5af84022dfa045662cd9fc6aa28546256b12d27"
+    },
+    {
+      "path": "d677-candidate-native-product-independent-review.json",
+      "bytes": 26428,
+      "sha256": "c2b1870f4e51aab0f444b3ec87d5f59774904dddaf401019ab96e5175e09caae"
+    },
+    {
+      "path": "6339-final-merge-audit.json",
+      "bytes": 2685,
+      "sha256": "df45ab00d649a9fa2b8d688d7f4c6da19f6cb7ca1d288665751087d1a5895a55"
+    },
+    {
+      "path": "eac-omnibus-final-proof-publication.json",
+      "bytes": 370,
+      "sha256": "447743a69adc1703cae18439e98fbc402d53aa0d591eb153380e632f6b69bd07"
+    },
+    {
+      "path": "reviewed-followups-owning-proof-publication.json",
+      "bytes": 1108,
+      "sha256": "ace03556e0bfd2bd36ba92c33776766cd43170b5b610fb297c3112238d8c9bd2"
+    },
+    {
+      "path": "6318-current-success-failure-accounting-comparison.json",
+      "bytes": 52530,
+      "sha256": "e01e156817f4ebb1d2173cf69c225d0ea8e718c06083ec87895b57e8911cad70"
+    }
+  ]
+}

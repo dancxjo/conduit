@@ -1,0 +1,555 @@
+{
+  "observed_utc": "2026-10-24T05:35:34.976064+00:00",
+  "mode": "Fresh one-batch issue GraphQL bodies; source-only local Git checks, no CI observation/build/closure/publication.",
+  "scope_ready_for_acceptance_publication": true,
+  "issues": {
+    "6334": {
+      "issue": 6334,
+      "state": "OPEN",
+      "title": "Retire revoked pulse and timer Host Call owners into retained providers",
+      "snapshot": "outputs/6334-fresh-scope-0535.json",
+      "snapshot_sha256": "d19cd9c5b6e2c47aae7699f478192d356e33b4953ce120edc171b8321bfcf614",
+      "body_sha256": "f6808627ffb3205475c28b1b9af03eb9f33d35d88165e358673a00482a303c33",
+      "original_snapshot": "outputs/6334-fresh-readiness-issue.json",
+      "original_body_sha256": "f6808627ffb3205475c28b1b9af03eb9f33d35d88165e358673a00482a303c33",
+      "body_comparison": "exact unchanged",
+      "appendix": "",
+      "added_requirement": false,
+      "requirement_by_requirement": [
+        {
+          "item": "Consuming allocation-free transfer of actual provider/attachment only",
+          "status": "proven source + actual measured tests",
+          "source_evidence": "Pulse owner.rs:232-249; timer owner.rs:138-155 return(P,Attachment) after Option.take and drop capability table/handle/claim; no authority returned.",
+          "tests_or_proof": "retirement_requires_revocation_and_returns_exact_native_custody_once; retirement_requires_revocation_and_returns_exact_timer_custody_once"
+        },
+        {
+          "item": "Live Issued possession refuses without losing custody",
+          "status": "proven actual tests for both owners",
+          "source_evidence": "Pulse tests/pulse_owner.rs:237-258 and timer tests/wait_owner.rs:234-256 assert NotRevoked and unchanged inspection.",
+          "tests_or_proof": "same retirement_requires_revocation tests"
+        },
+        {
+          "item": "Exhausted possession cannot retire",
+          "status": "proven actual finite-budget tests for both owners",
+          "source_evidence": "Both tests/support/exhausted_retirement.rs use actual budget1; timer independently configures count1. completed1/in-flight0/Exhausted; NotRevoked preserves owner address; second invoke no provider effect; explicit correct revoke then recovery.",
+          "tests_or_proof": "exhausted_pulse_refuses_retirement_until_explicit_revocation; exhausted_timer_refuses_retirement_until_explicit_revocation"
+        },
+        {
+          "item": "Revoked plus zero in-flight is required",
+          "status": "proven source/type exclusivity + actual post-cancel tests",
+          "source_evidence": "Both retire functions inspect in_flight first then require Revoked before take. Pending invoke exclusively borrows owner; safe caller cannot retire concurrently. No unsafe fabricated in-flight test claimed.",
+          "tests_or_proof": "dropping_a_pending_dispatch_quiesces_provider_and_revokes_unfinished_possession; dropping_pending_wait_quiesces_provider_then_revokes_unfinished_possession"
+        },
+        {
+          "item": "Cancellation drops provider work before retirement",
+          "status": "proven cooperative fixture/source drop ordering; physical law remains installation obligation",
+          "source_evidence": "Pending lease guard created before awaited provider future in both invoke functions; generator cancellation drops awaited future then guard revokes. Cancellation fixtures record provider guard drop and recover exact P afterward.",
+          "tests_or_proof": "same two dropping_pending tests"
+        },
+        {
+          "item": "Explicit correct revocation returns exact provider/attachment once; empty refuses",
+          "status": "proven actual measured tests for both owners",
+          "source_evidence": "retirement tests use Rc::ptr_eq for provider identity and attachment fields; Exhausted tests check full timer attachment and all pulse fields/limits; successful take makes None; second retirement Unavailable.",
+          "tests_or_proof": "retirement_requires_revocation tests and both exhausted tests"
+        },
+        {
+          "item": "Wrong-binding revocation cannot enable retirement",
+          "status": "proven actual tests for both owners",
+          "source_evidence": "Wrong node returns WrongBinding; subsequent retirement still NotRevoked; owner retained. check_binding also checks HostCallId0.",
+          "tests_or_proof": "retirement_requires_revocation_and_returns_exact_native_custody_once; retirement_requires_revocation_and_returns_exact_timer_custody_once"
+        },
+        {
+          "item": "No grant reuse, rearming, generation advancement, second Play, owner-loss recovery or recording claims",
+          "status": "scope preserved by return types/source and proof limits",
+          "source_evidence": "Retirement returns actual provider and attachment only, no capability state. Reinstallation remains independently admitted trusted Root operation. CPU provider drop/quiescence law does not claim physical-device shutdown.",
+          "tests_or_proof": "Source and immutable receipts state these exclusions explicitly"
+        }
+      ],
+      "proof_review": "6346-6334-final-requirement-readiness-review"
+    },
+    "6346": {
+      "issue": 6346,
+      "state": "OPEN",
+      "title": "Deliver configured zero-result native binding and owned monotonic waits to dev",
+      "snapshot": "outputs/6346-fresh-scope-0535.json",
+      "snapshot_sha256": "94e7e976f802b82dbb3413e698a2caf815ae9c8cd3d4fb3d8e7f5cf8d76a42ab",
+      "body_sha256": "66deb15a651d7a11f6411afd791a8636572e4d6a1b93c9f2f5a30efcabfff1ab",
+      "original_snapshot": "outputs/6346-fresh-readiness-issue.json",
+      "original_body_sha256": "66deb15a651d7a11f6411afd791a8636572e4d6a1b93c9f2f5a30efcabfff1ab",
+      "body_comparison": "exact unchanged",
+      "appendix": "",
+      "added_requirement": false,
+      "requirement_by_requirement": [
+        {
+          "item": "Independent configured ordinary/assigned entry points",
+          "status": "proven source + actual generic regression",
+          "source_evidence": "architecture/plan-lowering/src/selected_operation.rs:29-45,98; selected_assigned_operation.rs:35-58,89; assigned_configuration.rs:6-55",
+          "tests_or_proof": "generic_ordinary_binding_checks_source_configuration_and_exact_zero_result_shape; generic_assigned_binding_checks_configuration_and_zero_result_shape_in_both_storage_forms"
+        },
+        {
+          "item": "Positive/negative configuration and exact zero-result shapes",
+          "status": "proven source + actual generic regression",
+          "source_evidence": "mechanisms/io/monotonic-wait/tests/support/selected_binding.rs:45-95,97-213; positive complete config; missing expectation, wrong value/type, missing/extra semantic ports and nonzero Host Call output bound each refuse. Zero-result refers Host Call output_bytes=0, while Tick semantic output still exists.",
+          "tests_or_proof": "same two generic tests"
+        },
+        {
+          "item": "Existing unconfigured callers preserved",
+          "status": "proven executed Pulse ordinary+assigned tests against new generic APIs",
+          "source_evidence": "selected_operation.rs:29-36 and selected_assigned_operation.rs unconfigured wrappers retain empty expected config; pulse-capture/src/owner.rs:96-175 uses them.",
+          "tests_or_proof": "exact_binding_and_replay_are_checked_before_any_effect; matching_identifiers_cannot_substitute_lowering_or_active_play; assigned Pulse tests in actual14-test log"
+        },
+        {
+          "item": "Opaque local authority and exact Host/Boot/Plan/Play/resource identity",
+          "status": "proven scoped source/fixture checks",
+          "source_evidence": "selected_operation.rs:52-141,193-234; selected_assigned_operation.rs:66-94,178-225; timer installation.rs:181-213; assigned.rs:24-64. Incoming records pass Core decode before checks; matching IDs cannot substitute lowering.",
+          "tests_or_proof": "foreign_plan_and_play_cannot_bind_the_retained_native_slot; assigned_timer_preserves_slot_on_refusal_then_transfers_and_waits; borrowed_assignment_preserves_slot_then_transfers_and_waits; matching_identifiers_cannot_substitute_lowering_or_active_play"
+        },
+        {
+          "item": "Owned finite monotonic wait, no compatibility timer loop, allocation-free invocation",
+          "status": "proven cooperative CPU source/fixture contract",
+          "source_evidence": "monotonic-wait/src/owner.rs:7-26,95-130,238-288: bounded input duration/count, one attributed operation lease, no allocation in invoke, explicit provider failure. No new timer loop.",
+          "tests_or_proof": "bounded_waits_are_exact_sequenced_and_allocation_free; dropping_pending_wait_quiesces_provider_then_revokes_unfinished_possession"
+        },
+        {
+          "item": "Ready/native advertisement and assigned retained transfer",
+          "status": "proven cooperative CPU source/fixture contract",
+          "source_evidence": "monotonic-wait/src/installation.rs:43-82,85-165,167-216; src/assigned.rs:12-84; slot.take only after all preflight. Borrowed malformed assignments preserve retained slot.",
+          "tests_or_proof": "only_retained_native_slot_projects_its_exact_resource_and_zero_result_offer; retained_slot_survives_binding_refusal_and_transfers_only_after_complete_preflight; assigned_timer_preserves_slot_on_refusal_then_transfers_and_waits; borrowed_assignment_preserves_slot_then_transfers_and_waits"
+        },
+        {
+          "item": "Revoked idle retirement",
+          "status": "proven source + live/exhausted/cancellation fixtures",
+          "source_evidence": "monotonic-wait/src/owner.rs:138-155; detailed requirements in6334 audit below",
+          "tests_or_proof": "retirement_requires_revocation_and_returns_exact_timer_custody_once; exhausted_timer_refuses_retirement_until_explicit_revocation"
+        },
+        {
+          "item": "Supported xtask entrance; bounded files; generic vs physical scope",
+          "status": "proven source + actual supported entrance",
+          "source_evidence": "tools/xtask/src/suites/monotonic_wait.rs runs locked timer tests and strict all-target Clippy. Timer owner288, installation225, assigned85 lines; generic files separate. Original generic prerequisite commit5623 preceded owner310f; later regression proof separately retained.",
+          "tests_or_proof": "actual cargo+stable xtask check monotonic-wait log:12passed+strictlint"
+        },
+        {
+          "item": "CI standalone lock inventory",
+          "status": "actual old failure corrected; local exact positive proof, fullgate pending",
+          "source_evidence": "d677 registers exact timer manifest/lock in standalone_locks.rs; outputs/6348-lock-registry-repair-receipt.json retains named1pass and unchanged locked graph. New owner0f has identical repair.",
+          "tests_or_proof": "standalone_locks::tests::registry_covers_every_separately_rooted_checked_in_lock"
+        }
+      ],
+      "proof_review": "6346-6334-final-requirement-readiness-review"
+    },
+    "6350": {
+      "issue": 6350,
+      "state": "OPEN",
+      "title": "Share immutable Resource snapshot records between browser and Linux recorder Hosts",
+      "snapshot": "outputs/6350-fresh-scope-0535.json",
+      "snapshot_sha256": "6e60472b7fcaf02e9af9786f14903b025cb28b42dbefad90832451aa77d637ba",
+      "body_sha256": "3cb36a2a0d991cf67768671689ea5c6dff36ec3b25c1fb0f0113d10a7c5e15ed",
+      "original_snapshot": "outputs/6350-current-requirements.json",
+      "original_body_sha256": "3cb36a2a0d991cf67768671689ea5c6dff36ec3b25c1fb0f0113d10a7c5e15ed",
+      "body_comparison": "exact unchanged",
+      "appendix": "",
+      "added_requirement": false,
+      "requirement_by_requirement": [
+        {
+          "requirement": "Extract only bounded preparation/publication/restore codec into generic no-std/alloc owner",
+          "status": "proven",
+          "evidence": [
+            {
+              "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+              "detail": "#![no_std], extern crate alloc, private record module and public re-export; dependency only conduit-core."
+            },
+            {
+              "path": "mechanisms/io/resource-snapshot/src/record.rs",
+              "detail": "Entire implementation exactly equals original browser codec after normalizing only module comment, explicit alloc String/Vec import and std::fmt::Write->core::fmt::Write."
+            }
+          ]
+        },
+        {
+          "requirement": "Preserve record bytes and storage-key derivation",
+          "status": "proven",
+          "evidence": [
+            {
+              "path": "mechanisms/io/resource-snapshot/src/record.rs",
+              "functions": [
+                "PreparedSnapshotRecord::prepare",
+                "publication",
+                "restore",
+                "storage_key"
+              ],
+              "detail": "Unchanged CDRSNP01 magic, LEu16 owner/ref lengths, exact owner and encodedResourceRef prefix, domain-separated content digest and exact content extent. Key remains owner+identity+version semanticdigest rendered resource/hex. Boot/grant deliberately absent from stored generation key."
+            },
+            {
+              "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+              "tests": [
+                "snapshot_record_preserves_generation_across_new_boot_but_requires_new_authority",
+                "snapshot_generation_key_cannot_be_changed_by_claiming_a_different_extent",
+                "snapshot_maximum_record_is_bounded_and_rejects_an_unrelated_authority_contract"
+              ]
+            }
+          ]
+        },
+        {
+          "requirement": "Preserve exact reference version/extent, residence and independent authority checks",
+          "status": "proven",
+          "evidence": [
+            {
+              "path": "mechanisms/io/resource-snapshot/src/record.rs",
+              "functions": [
+                "prepare",
+                "authorize",
+                "restore"
+              ],
+              "detail": "Exact reference accepted against inspected contract identity/version/profile/bounds; one binding; current ownerHost/Boot; noexpiry; ExternalDurable/singlewriter/onegeneration/max4096; exact operation/target/inflight/inputoutputbounds; one matching independent authoritygrant/capability/Host/Boot. Use requires full authority equality and rightaccess; restore exactprefix andlength/contentdigest."
+            },
+            {
+              "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+              "tests": [
+                "snapshot_binding_refuses_wrong_bounds_authority_and_lifetime",
+                "snapshot_owner_metadata_must_fit_the_prepared_record_envelope",
+                "snapshot_record_preserves_generation_across_new_boot_but_requires_new_authority"
+              ],
+              "detail": "Owned metadata bounds0/129/1024reject; currentboot/foreignhost/corrupt/truncatedrecord controls; fixed envelope and prepare-time allocations preserved."
+            }
+          ]
+        },
+        {
+          "requirement": "Keep browser public paths as re-exports and Host Call correlation/effect execution in place",
+          "status": "proven",
+          "evidence": [
+            {
+              "path": "targets/browser/runtime/src/resource_snapshot.rs",
+              "detail": "Public module now pub use conduit_resource_snapshot::*; tests include generic source by path. Existing pub module exposure unchanged."
+            },
+            {
+              "unchanged_paths": [
+                "targets/browser/runtime/src/plot_runner/resource_effect.rs",
+                "targets/browser/runtime/src/plot_runner/engine_completions.rs",
+                "targets/browser/runtime/src/installed_browser/resource.rs"
+              ],
+              "detail": "Exact original dev blobs preserved: advertisement, operation selection, pending request/completion correlation and effects remain browser-owned; no new parallel executor."
+            },
+            {
+              "path": "targets/browser/runtime/src/plot_runner/resource_effect_tests.rs",
+              "tests": [
+                "browser_todo_resource_requests_publish_then_restore_only_after_storage_acknowledges",
+                "full_recording_field_reaches_snapshot_storage_without_json_tree_limits",
+                "browser_resource_missing_authority_and_failed_storage_never_become_success"
+              ],
+              "detail": "Actual ordinary Source/planner/kernel requests prove publish+restore only after storage ack, duplicatecompletion refusal, full recorder field without JSONtree limits, missingauthority and failedstorage never success."
+            }
+          ]
+        },
+        {
+          "requirement": "Move existing sealed-placement fixture tests to generic owner without duplicating implementation",
+          "status": "proven",
+          "evidence": [
+            {
+              "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+              "detail": "Single sealed placement fixture source; generic tests import it. Browser includes generic tests source, so both consumers execute same implementation. Former browser test source moved by Git rename; no duplicated production/test implementation."
+            },
+            {
+              "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+              "detail": "Four original codec tests retained and one owner metadata bound regression added; five tests run generically and through browser re-export."
+            }
+          ]
+        },
+        {
+          "requirement": "Supported cargo xtask check covers generic codec, actual browser operations and strict codec lint",
+          "status": "proven",
+          "evidence": [
+            {
+              "path": "tools/xtask/src/suites/resource_snapshot.rs",
+              "detail": "resource-snapshot.records cargo test --locked -p conduit-resource-snapshot; browser-codec step no-default-features resource_snapshot; separate browser-operation step no-default-features --features plot-runner --lib resource_effect_tests; strict all-target codec Clippy -Dwarnings."
+            },
+            {
+              "path": "tools/xtask-dispatch/src/focused_check.rs",
+              "detail": "Resource-snapshot module and exact selected match arm retained alongside timer; shared source include verification and complete Step execution unchanged."
+            },
+            {
+              "actual_execution_source": "5ace49b62516b1dca0ddcca9bdf7eeab716963e4",
+              "published_packet": "4ce70418618fa0445826942aafbace17eae1e533",
+              "receipt_path": "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-owning-receipt.json",
+              "raw_log_sha256": "005e7c6e046556179168ae166f99506e2a86cad4d8bd6b29256ad33971471c6e",
+              "counts": {
+                "generic": 5,
+                "browser_codec": 5,
+                "browser_operations": 3,
+                "strict_codec_clippy": "passed"
+              },
+              "exact_operation_successes": [
+                "test plot_runner::engine::resource_effect_tests::browser_todo_resource_requests_publish_then_restore_only_after_storage_acknowledges ... ok",
+                "test plot_runner::engine::resource_effect_tests::full_recording_field_reaches_snapshot_storage_without_json_tree_limits ... ok",
+                "test plot_runner::engine::resource_effect_tests::browser_resource_missing_authority_and_failed_storage_never_become_success ... ok"
+              ]
+            },
+            {
+              "actual_execution_source": "a971533d8b8bfb7b0f7740cffe31156bf59b4398",
+              "published_packet": "de5573a2096451ab3ff7b162b861c610b55d6bb9",
+              "detail": "Earlier complete supported pass; two genuine zero-test selection negatives retained and corrected, not counted as operationproof."
+            }
+          ]
+        },
+        {
+          "requirement": "Keep extraction scope separate from filesystem provider, seed custody, Body, Line and complete recorder deployment",
+          "status": "proven",
+          "evidence": [
+            {
+              "path": "mechanisms/io/resource-snapshot/README.md",
+              "detail": "Explicit codec-only scope; no storage executor, native provider, Host offer, catalogue seed, scheduler or Body. Generic crate exposes no filesystem/network/effect capabilities."
+            }
+          ]
+        },
+        {
+          "requirement": "Normal exact-head Candidate, dev delivery, applicable Integration and final scoped acceptance",
+          "status": "incomplete",
+          "evidence": [
+            {
+              "source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+              "pr": 6339,
+              "candidate": 40054154999,
+              "detail": "Issue fresh body records this pending frontier. No CI observation performed by reviewer; does not establish Candidate or actual delivery/Integration."
+            },
+            {
+              "source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+              "detail": "Owner shard registration fix included; final standalone timer lock registry addition and preflight are tooling repairs, not acceptance substitutes."
+            }
+          ],
+          "remaining": [
+            "Require full Candidate success for actual d677 head or explicitly reviewed tested successor.",
+            "Normal dev delivery with exact feature/blob/ancestry correspondence to tested preview.",
+            "Applicable postmerge Integration complete success and final live issue/scope audit before closure."
+          ]
+        }
+      ],
+      "proof_review": "6350-final-requirement-readiness-review"
+    },
+    "6353": {
+      "issue": 6353,
+      "state": "OPEN",
+      "title": "Accept identical embedded compositor copies while refusing distinct images",
+      "snapshot": "outputs/6353-fresh-scope-0535.json",
+      "snapshot_sha256": "47362c63098d162babb3d89c3e0462b4c61d9ac5545f66e0b1cdfca43abaadac",
+      "body_sha256": "2c39f2c7f10ab1c288195f5f2bef3f1589ab4e0ad0c2aa5ad7083b196092d16a",
+      "original_snapshot": "outputs/6353-current-requirements-before-delivery.json",
+      "original_body_sha256": "c87a8d0ed8b46045a085a88a23dcbe537d5622d294a65a2458ea3c881e8d7d2c",
+      "body_comparison": "original entire body preserved plus reviewed native proof appendix",
+      "appendix": "\n\n## Actual current omnibus native execution (2026-10-24 UTC)\n\nThe x86 job120753952612 in Candidate40054154999 passed. Its actual execution source is merge preview `dacabe7376b1d62c0739377f579bfb332cafa19e`, with exact tree identity to submitted PR head `d677b25383b22ca2911f1ec49936ca7b4a3c86ee`. [Immutable actual product archive, independent audit and requirement reviews](https://github.com/dancxjo/conduit/tree/a3bacc64ad92cac726d0f92021793022332c6d5c/docs/audits/evidence/current-omnibus-native-product-20261024/d677b2538) verify49receiptfiles, actualRoot/ISO/manifest/build/boot joins,23lifecycle snapshots/3ACKs,27PNG pixel/serial-prefix checks and the complete24-step normal journey. The repaired collector emitted the unique-image-bytes receipt. This actualRoot has ONEvalid compositor image; duplicate-copy acceptance remains separately proven by retained actual failedRoot reprocessing and regressions, not invented as a duplicate case in this run.\n\nAt03:00 the full Candidate still had foundation, hostedstd and browser running (12success, nofailure). Full Candidate, actual dev delivery and applicable successful Integration remain required before scoped closure. No full phased/cumulative-budget #6318 or physical/broaderparent completion claim.\n",
+      "added_requirement": false,
+      "requirement_by_requirement": [
+        {
+          "criterion": "Retain actual failed-run identity and exact candidate equality",
+          "status": "satisfied_actual_retained_bytes_independently_rehashed",
+          "evidence": "OriginalZIP/Root/extractedguest plus two exactequal29256byte slices, original log and packet manifest."
+        },
+        {
+          "criterion": "Accept identical copies, reject distinct valid images, retain malformed/missing/unloaded refusal",
+          "status": "satisfied_scoped_source_and_actual_five_test_log",
+          "evidence": "Only selection uniqueness changes. Eachcandidate still passes unchangedcompositor_extent validator andloadedRootrange. Fullbyteequality, notserialhash/firstcandidate selection."
+        },
+        {
+          "criterion": "Keep Root/ISO/build/boot/lifecycle/ACK identity joins intact and truthfully label uniqueimagebytes",
+          "status": "source_satisfied_runtime_artifact_custody_pending",
+          "evidence": "collect() actualISO/Root/manifest/resolvedimage/preparation/boot/protocol/ACK checks unchanged apartfromreceiptwording. Pureparserreprocess23records4checkpoints3ACKs explicitlycustodyfalse because originalISOabsent."
+        },
+        {
+          "criterion": "Focused regressions andsupportedpreflight; retainfailure",
+          "status": "satisfied_original455proof_finalcollectorblobsunchanged",
+          "evidence": "Fiveexactcorrectedtests andfourpositive/onenegative originalcontrols retained.345preflightat455passed; finald677preflightproof separatelysuppliedbyRoot registryrepairpacket, notrerunhere."
+        },
+        {
+          "criterion": "ReviewedexistingPR exactheadCandidate devdelivery relevantIntegration",
+          "status": "pending",
+          "evidence": "Existing6339sourcefinald677. SavedissuequotesCandidate40054154999 notcompletion. Thisread-onlyreviewdoesnotobservegates/delivery."
+        }
+      ],
+      "proof_review": "6353-final-requirement-readiness-review"
+    }
+  },
+  "accepted_source_under_review": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "current_source_under_review": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "feature_correspondence": [
+    {
+      "path": "architecture/core",
+      "expected_reviewed_and_tested": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "accepted_source": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "current_source": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b"
+    },
+    {
+      "path": "architecture/plan-lowering",
+      "expected_reviewed_and_tested": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+      "accepted_source": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+      "current_source": "0ca3d705a8f3970ce0ded9ff5e9d508681191854"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/src",
+      "expected_reviewed_and_tested": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "accepted_source": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "current_source": "91dd2e07858a32859e47c9214ebee76331b789c8"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/tests",
+      "expected_reviewed_and_tested": "0938ffc8f825e5313c743bab3c22d635e54ae0fa",
+      "accepted_source": "0938ffc8f825e5313c743bab3c22d635e54ae0fa",
+      "current_source": "0938ffc8f825e5313c743bab3c22d635e54ae0fa"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/Cargo.toml",
+      "expected_reviewed_and_tested": "874933e8ff6bc0ca1909029e19931ee19531329e",
+      "accepted_source": "874933e8ff6bc0ca1909029e19931ee19531329e",
+      "current_source": "874933e8ff6bc0ca1909029e19931ee19531329e"
+    },
+    {
+      "path": "mechanisms/io/monotonic-wait/Cargo.lock",
+      "expected_reviewed_and_tested": "75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "accepted_source": "75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "current_source": "75a7354df7e81203e56f36bab2d4a7391b47c930"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/src",
+      "expected_reviewed_and_tested": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "accepted_source": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "current_source": "e04b6416a512e42be10b74d12be776c7c30e44ab"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/tests",
+      "expected_reviewed_and_tested": "61002c38162ceaf965b375faaf0817d76a0c67b8",
+      "accepted_source": "61002c38162ceaf965b375faaf0817d76a0c67b8",
+      "current_source": "61002c38162ceaf965b375faaf0817d76a0c67b8"
+    },
+    {
+      "path": "mechanisms/io/pulse-capture/Cargo.toml",
+      "expected_reviewed_and_tested": "34da23b774f626f90fbc48530e226d187569e086",
+      "accepted_source": "34da23b774f626f90fbc48530e226d187569e086",
+      "current_source": "34da23b774f626f90fbc48530e226d187569e086"
+    },
+    {
+      "path": "tools/xtask/src/suites/monotonic_wait.rs",
+      "expected_reviewed_and_tested": "b2111536fb17157196074793cba817c5e717430b",
+      "accepted_source": "b2111536fb17157196074793cba817c5e717430b",
+      "current_source": "b2111536fb17157196074793cba817c5e717430b"
+    },
+    {
+      "path": "Cargo.lock",
+      "expected_reviewed_and_tested": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "accepted_source": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "current_source": "285364ea28d2408d4c77288c81b3baa8c6ca0f72"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/Cargo.toml",
+      "expected_reviewed_and_tested": "a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "accepted_source": "a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "current_source": "a80eacdcc53905f59243fe5fe3889ba34c48d567"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/README.md",
+      "expected_reviewed_and_tested": "0147d1009d4209f4f15a18083241692b85593a42",
+      "accepted_source": "0147d1009d4209f4f15a18083241692b85593a42",
+      "current_source": "0147d1009d4209f4f15a18083241692b85593a42"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+      "expected_reviewed_and_tested": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "accepted_source": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "current_source": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/record.rs",
+      "expected_reviewed_and_tested": "01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "accepted_source": "01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "current_source": "01081e1ad83b3f4648d2baf98b849078378a4f95"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+      "expected_reviewed_and_tested": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "accepted_source": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "current_source": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801"
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+      "expected_reviewed_and_tested": "56695afe99420befd10aa7b21ab56f60446edace",
+      "accepted_source": "56695afe99420befd10aa7b21ab56f60446edace",
+      "current_source": "56695afe99420befd10aa7b21ab56f60446edace"
+    },
+    {
+      "path": "targets/browser/runtime/Cargo.toml",
+      "expected_reviewed_and_tested": "64250fbaad3d8df6faa561609513f2bc111460b1",
+      "accepted_source": "64250fbaad3d8df6faa561609513f2bc111460b1",
+      "current_source": "64250fbaad3d8df6faa561609513f2bc111460b1"
+    },
+    {
+      "path": "targets/browser/runtime/src/resource_snapshot.rs",
+      "expected_reviewed_and_tested": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "accepted_source": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "current_source": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a"
+    },
+    {
+      "path": "tools/xtask/src/suites/resource_snapshot.rs",
+      "expected_reviewed_and_tested": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "accepted_source": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "current_source": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+      "expected_reviewed_and_tested": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "accepted_source": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "current_source": "453ca95a6caf09d3258cf5a56f2cf00634043426"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+      "expected_reviewed_and_tested": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "accepted_source": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "current_source": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1"
+    },
+    {
+      "path": "tools/xtask/src/commands/ci/standalone_locks.rs",
+      "expected_reviewed_and_tested": "8dfdcde34704a90a1dc1d2e4d2c0b57445586a75",
+      "accepted_source": "8dfdcde34704a90a1dc1d2e4d2c0b57445586a75",
+      "current_source": "8dfdcde34704a90a1dc1d2e4d2c0b57445586a75"
+    }
+  ],
+  "retained_review_files": [
+    {
+      "path": "outputs/6346-6334-final-requirement-readiness-review.json",
+      "sha256": "1fde0e86ddcd3d9a18ccb8e53f717a07c9d588c8aadb73946543a6c3fbae0a24"
+    },
+    {
+      "path": "outputs/6350-final-requirement-readiness-review.json",
+      "sha256": "f4ea48904de084389b4458e2fb73935eb49c3fc195c207c677404f0e7652c496"
+    },
+    {
+      "path": "outputs/6353-final-requirement-readiness-review.json",
+      "sha256": "3f9581fc81860e0e8b62b0bd933f15a85ad31414122750713c2e38f249f62feb"
+    }
+  ],
+  "added_uncovered_requirements": [],
+  "6353_appendix_review": "Only actual Candidate native proof/status appendix: preserves original requirements, source and failure limits; independently audited native packet matches pre-existing retained review. Does not claim Integration acceptance or require physical/parent completion.",
+  "actual_proof_boundaries": [
+    "Timer/Pulse source and CPU measurements remain 5ace/1d executions; dd92/current object correspondence does not relabel execution.",
+    "Codec record/browser operation execution remains a971/5ace, not filesystem/Body recorder evidence.",
+    "Collector duplicate-byte positive controls remain actual failed Root reprocessing; Candidate native preview dacabe is separate one-image normal journey.",
+    "Full applicable successful Integration and its own mandatory independently audited native artifact remain required, unobserved by this scope audit."
+  ],
+  "closure_ready": false,
+  "freshly_rehashed_local_actual_logs": [
+    {
+      "path": "outputs/reviewed-followups-monotonic-wait.log",
+      "sha256": "23fe51828340f17f327d9ff245f822db771b987fbc152e4f00202611043888cc",
+      "actual_passed": 12
+    },
+    {
+      "path": "outputs/reviewed-followups-pulse-tests.log",
+      "sha256": "4e0fc7e9463d747b3be835d7cab44d18d0e4c0493bd7f0f87b2f3d0649818725",
+      "actual_passed": 14
+    },
+    {
+      "path": "outputs/reviewed-followups-pulse-clippy.log",
+      "sha256": "ab98f33f03ca55ff3ffdb55122265477299d39c97f9fa696b9b119f6a69dd564",
+      "actual_passed": 0
+    },
+    {
+      "path": "outputs/reviewed-followups-resource-snapshot.log",
+      "sha256": "005e7c6e046556179168ae166f99506e2a86cad4d8bd6b29256ad33971471c6e",
+      "actual_passed": 13
+    }
+  ]
+}

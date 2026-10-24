@@ -1,0 +1,1494 @@
+{
+  "issue": 6318,
+  "review_mode": "Bounded read-only comparison of three actual retained serial/proof artifacts; no network/build/source mutation",
+  "result": "Current and baseline normal journeys succeed past the formerly failing Patchbay action and through Stop/return. The actual455 WorkExhausted negative remains valid. These observations do not establish staged publication, causal speedup, measured subphase attribution, guaranteed entry-budget headroom, or full6318 closure.",
+  "observations": {
+    "failed455": {
+      "path": "outputs/6339-455-failed-x86-diagnostics/target/conduitos/x86_64/journey-serial.log",
+      "sha256": "3c642a00e2e7c685906cbd4ae2f18d7111caeb03c391cc96e5d31ef8e0b30c97",
+      "bytes": 1250912,
+      "line_count": 1062,
+      "ends_newline": true,
+      "application_refusals": [
+        {
+          "line": 1058,
+          "raw": "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=4496 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((4496, 216, 1))"
+        },
+        {
+          "line": 1059,
+          "raw": "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=patchbay-publish slot=Some(2) target=None refusal=Application"
+        }
+      ],
+      "patchbay_actions": [],
+      "domain_costs": [
+        {
+          "line": 1060,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:7b6104f7d19370dfb83ed5b191acf74730955da0b03417653a4535b2b588122e",
+            "play_id": "body-play/sha256:2e7b463def2badaf419184af448719df89cf92d78bd19cc24d2a1972b6a64157",
+            "partition_plan_id": "37c4b22f51c18917a54db93742a68a277ca04a75184083f409bb488f69d61af8",
+            "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+            "domain_id": 1,
+            "fixture": false,
+            "state": "Revoked(PlayFailed)",
+            "entries": 7,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 14,
+            "gate_transitions": 7,
+            "copied_bytes": 170,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 14,
+            "setup_ticks": 22777625,
+            "teardown_ticks": 2258263,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 31,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 14,
+            "scheduler_returns": 7,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 1061,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:7b6104f7d19370dfb83ed5b191acf74730955da0b03417653a4535b2b588122e",
+            "play_id": "body-play/sha256:2e7b463def2badaf419184af448719df89cf92d78bd19cc24d2a1972b6a64157",
+            "partition_plan_id": "5046b029a93b66e67d98699f82a249a3357a2abce19cadd38a0bc491e3da68ae",
+            "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+            "domain_id": 2,
+            "fixture": false,
+            "state": "Revoked(PlayFailed)",
+            "entries": 5,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 10,
+            "gate_transitions": 5,
+            "copied_bytes": 10,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 1,
+            "tlb_flushes": 10,
+            "setup_ticks": 41126141,
+            "teardown_ticks": 2883821,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 5,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 10,
+            "scheduler_returns": 5,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        }
+      ],
+      "publication_phase_progress": [],
+      "last_journey": {
+        "status": "quiescent-awaiting-input",
+        "revision": 26,
+        "request_id": "conduitos/product-interaction/play/2",
+        "build_id": "build:sha256:23641099ef639b274a2d8320eb7b63ba06957d4e8deb3825eb13bdf4316a3c95",
+        "image_id": "image:sha256:55af4dbf6707089586f2a08999d34638adcc12da1a0bef905c36c363866f1103",
+        "host_id": "580807548a682971eef0cf53b85d5e60bb5a3c7f3ed9dbde5a8d46e4afd5d83a",
+        "boot_id": "f218feb1a4e9d71e08b73dac0c1a09c7a3a034c9c553374bad0285d66ac54149"
+      },
+      "terminal_refusal": {
+        "line": 1062,
+        "raw": "CONDUIT_KERNEL_SIGN {\"schema\":\"conduit.conduitos.kernel-sign/v2\",\"status\":\"refused\",\"reason\":\"native-body-kernel-boundary-refused\"}"
+      },
+      "progress_phase_contexts": [
+        [
+          "catalog-install",
+          "native-inventory"
+        ],
+        [
+          "display-setup",
+          "boot"
+        ],
+        [
+          "face-construction",
+          "creche"
+        ],
+        [
+          "first-show",
+          "arrival"
+        ],
+        [
+          "host-preparation",
+          "native-workset"
+        ],
+        [
+          "identity-generation",
+          "boot"
+        ],
+        [
+          "identity-resolve",
+          "installed-inventory"
+        ],
+        [
+          "identity-resolve",
+          "product-journey"
+        ],
+        [
+          "input-setup",
+          "usb-keyboard"
+        ],
+        [
+          "input-setup",
+          "usb-pointer"
+        ],
+        [
+          "input-wait",
+          "first-decoded-input"
+        ],
+        [
+          "kernel-prepare",
+          "native-workset"
+        ],
+        [
+          "machine-setup",
+          "boot"
+        ],
+        [
+          "mask-preparation",
+          "arrival"
+        ],
+        [
+          "mask-preparation",
+          "workspace"
+        ],
+        [
+          "plot-build",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "plot-build",
+          "hello"
+        ],
+        [
+          "plot-build",
+          "memory_lantern"
+        ],
+        [
+          "plot-build",
+          "patchbay"
+        ],
+        [
+          "plot-build",
+          "tour"
+        ],
+        [
+          "scanout",
+          "compositor"
+        ],
+        [
+          "source-check",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-check",
+          "hello"
+        ],
+        [
+          "source-check",
+          "memory_lantern"
+        ],
+        [
+          "source-check",
+          "patchbay"
+        ],
+        [
+          "source-check",
+          "tour"
+        ],
+        [
+          "source-expand",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-expand",
+          "hello"
+        ],
+        [
+          "source-expand",
+          "memory_lantern"
+        ],
+        [
+          "source-expand",
+          "patchbay"
+        ],
+        [
+          "source-expand",
+          "tour"
+        ],
+        [
+          "source-parse",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-parse",
+          "hello"
+        ],
+        [
+          "source-parse",
+          "memory_lantern"
+        ],
+        [
+          "source-parse",
+          "patchbay"
+        ],
+        [
+          "source-parse",
+          "tour"
+        ],
+        [
+          "usb-enumeration",
+          "boot"
+        ],
+        [
+          "workset-lowering",
+          "native-workset"
+        ],
+        [
+          "workset-planning",
+          "native-workset"
+        ],
+        [
+          "xhci-setup",
+          "boot"
+        ]
+      ],
+      "tag_counts": {
+        "CONDUIT_NATIVE_ACTION": 4,
+        "CONDUIT_APPLICATION_GRAPH_REPLY": 12,
+        "CONDUIT_APPLICATION_REFUSAL": 1,
+        "CONDUIT_APPLICATION_COMMAND_REFUSAL": 1,
+        "CONDUIT_DOMAIN_COST": 2
+      }
+    },
+    "current40054154999": {
+      "path": "outputs/x86-product-40054154999/conduitos-x86_64/evidence/journey-serial.log",
+      "sha256": "0f43427cb0426f62c9479db19b585101ebafa478cf8740052784b29a580d03a8",
+      "bytes": 3328475,
+      "line_count": 2524,
+      "ends_newline": true,
+      "application_refusals": [],
+      "patchbay_actions": [
+        {
+          "line": 1063,
+          "action_id": "patchbay.plot.0",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 27,
+          "Face_id": "2527ab2ee751194ab7c32aa109b4208a0f44d57d1c0c6d638074a9e872938edf",
+          "Face_revision": 74,
+          "Show_id": "show/eaaf16cf532ceddfcca6fbe922a7d9cbb63c15065e725d0d5e1b979faa2f98a9"
+        },
+        {
+          "line": 1130,
+          "action_id": "patchbay.plot.3",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 28,
+          "Face_id": "bd2238622e8cf1ff15f48740ed450dbb4ce556d19f414e2b5008dc215b06e760",
+          "Face_revision": 75,
+          "Show_id": "show/10b5d94de4aebb11468bf4efb28c3350364ed4946884f38ab22739cdec80c0a1"
+        },
+        {
+          "line": 1173,
+          "action_id": "patchbay.plot.2",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 29,
+          "Face_id": "62c092d5f4ce8c8a3301ef34c1ca1021a3cc6afdf245b031a881d0a1a1ff6b2b",
+          "Face_revision": 76,
+          "Show_id": "show/0f69b4a9ca456e65f05f7e5d039d7fdeb37303b9a6297874cf8d4be555f9477c"
+        },
+        {
+          "line": 1558,
+          "action_id": "patchbay.plot.3",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 30,
+          "Face_id": "b17825a89422baf79ce3baf73d41c8243d3056b34bb4f9dd7b13000079e5bc9a",
+          "Face_revision": 77,
+          "Show_id": "show/dce79227040f39ad50991b2107927e1534e1b71f67c522fe3bac3d8ac771bc0f"
+        },
+        {
+          "line": 1633,
+          "action_id": "patchbay.edit.current",
+          "intent": "patchbay/edit-subject@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 31,
+          "Face_id": "c9a8d2e721cdd232a090be60764d0c247c2b1728b9b642ef0fa2e453be72493f",
+          "Face_revision": 78,
+          "Show_id": "show/152f703eb11880feeeb141a9ddef67ba43106ad58de6c3b068dc1b062b44a1ac"
+        },
+        {
+          "line": 1944,
+          "action_id": "patchbay.masks.change",
+          "intent": "patchbay/change-masks@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 33,
+          "Face_id": "400ec7f680565a36b6254e67461469d1b7111b447f6e554e5d17ae591be4d575",
+          "Face_revision": 81,
+          "Show_id": "show/4b15be78e219a7e685d49d7413ab2ff47500dd6765fccaadab08d2bba4f0b443"
+        },
+        {
+          "line": 2387,
+          "action_id": "patchbay.plot.0",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/7"
+            }
+          },
+          "after_revision": 41,
+          "Face_id": "caac36e5b2c837c91408a3a6a09bfe0a1c146073c04abd9131903198f5d796ca",
+          "Face_revision": 104,
+          "Show_id": "show/2f073a8ed994e5d06d180d327598b50d631227d62d57cec39a0efce04e991ed1"
+        },
+        {
+          "line": 2447,
+          "action_id": "patchbay.edit.current",
+          "intent": "patchbay/edit-subject@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/7"
+            }
+          },
+          "after_revision": 44,
+          "Face_id": "d5922b9d9e43e9345566dfb5374bc98a6617d0668a7b9e1f64dea843b2bbbef4",
+          "Face_revision": 105,
+          "Show_id": "show/b45d2eb3022528cc717fcac70ee6aece27a5985a30d6b004bf26a1193ad3af3d"
+        }
+      ],
+      "domain_costs": [
+        {
+          "line": 1778,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:a34ac32cbe9a59248075beeb8a5d6b9639538eb2ce3f96ea34abe4c09a77d4a4",
+            "play_id": "body-play/sha256:271ff7754befb81acee04bbb24f16c163b5c7b8f7208998bf6578845c285fb59",
+            "partition_plan_id": "4e4681f389eb03c6e1f847a523aac5d5a4dcc75502fba5e0f36554a98fd66720",
+            "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+            "domain_id": 1,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 7,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 14,
+            "gate_transitions": 7,
+            "copied_bytes": 170,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 14,
+            "setup_ticks": 17639232,
+            "teardown_ticks": 1352520,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 31,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 14,
+            "scheduler_returns": 7,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 1779,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:a34ac32cbe9a59248075beeb8a5d6b9639538eb2ce3f96ea34abe4c09a77d4a4",
+            "play_id": "body-play/sha256:271ff7754befb81acee04bbb24f16c163b5c7b8f7208998bf6578845c285fb59",
+            "partition_plan_id": "4de8c7bd1f445cb64ed4a6e1ed0853acca39b36f45203a9fb60a31ef221b34f8",
+            "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+            "domain_id": 2,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 5,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 10,
+            "gate_transitions": 5,
+            "copied_bytes": 10,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 1,
+            "tlb_flushes": 10,
+            "setup_ticks": 33303374,
+            "teardown_ticks": 1665456,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 5,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 10,
+            "scheduler_returns": 5,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 1957,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:4c63684737db208d36fc8424a903af5abc6eac5b75d1d4ac1a53b7122a48bd22",
+            "play_id": "body-play/sha256:181bff92e9b13d8cc8f9bf80c65c958c5c2c8d3ea8f3acde99d806585e9f819e",
+            "partition_plan_id": "4e4681f389eb03c6e1f847a523aac5d5a4dcc75502fba5e0f36554a98fd66720",
+            "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+            "domain_id": 3,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 1,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 2,
+            "gate_transitions": 1,
+            "copied_bytes": 8,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 2,
+            "setup_ticks": 15359994,
+            "teardown_ticks": 714584,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 8,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 2,
+            "scheduler_returns": 1,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 1958,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:4c63684737db208d36fc8424a903af5abc6eac5b75d1d4ac1a53b7122a48bd22",
+            "play_id": "body-play/sha256:181bff92e9b13d8cc8f9bf80c65c958c5c2c8d3ea8f3acde99d806585e9f819e",
+            "partition_plan_id": "4de8c7bd1f445cb64ed4a6e1ed0853acca39b36f45203a9fb60a31ef221b34f8",
+            "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+            "domain_id": 4,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 1,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 2,
+            "gate_transitions": 1,
+            "copied_bytes": 0,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 2,
+            "setup_ticks": 30822480,
+            "teardown_ticks": 769626,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 0,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 2,
+            "scheduler_returns": 1,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 2511,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:7379cbfa864d3e2c4bb7481053bb8bed9767391481e05bcb05cd21435b14873d",
+            "play_id": "body-play/sha256:9928c3d892664ecb35f2602d3a8b70a513a4e3a11c053fb5d8a788ab783447a3",
+            "partition_plan_id": "4e4681f389eb03c6e1f847a523aac5d5a4dcc75502fba5e0f36554a98fd66720",
+            "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+            "domain_id": 5,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 4,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 8,
+            "gate_transitions": 4,
+            "copied_bytes": 830,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 8,
+            "setup_ticks": 15371668,
+            "teardown_ticks": 1258036,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 398,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 8,
+            "scheduler_returns": 4,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 2512,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:7379cbfa864d3e2c4bb7481053bb8bed9767391481e05bcb05cd21435b14873d",
+            "play_id": "body-play/sha256:9928c3d892664ecb35f2602d3a8b70a513a4e3a11c053fb5d8a788ab783447a3",
+            "partition_plan_id": "4de8c7bd1f445cb64ed4a6e1ed0853acca39b36f45203a9fb60a31ef221b34f8",
+            "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+            "domain_id": 6,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 1,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 2,
+            "gate_transitions": 1,
+            "copied_bytes": 0,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 2,
+            "setup_ticks": 30628130,
+            "teardown_ticks": 726440,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 0,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 2,
+            "scheduler_returns": 1,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        }
+      ],
+      "publication_phase_progress": [],
+      "last_journey": {
+        "status": "stopped",
+        "revision": 49,
+        "request_id": "conduitos/product-interaction/stop/8",
+        "build_id": "build:sha256:144c254151de83b824c979a20958aeeb2b0d8c02bfb85744d814cb2a8ea02344",
+        "image_id": "image:sha256:8e6e39bc2a323b6153049ae0b04bedceb06b66545a29e158f5effe13696e408e",
+        "host_id": "4239bc7e72c6361b6b7e06d78e2e1d7fe153ee66d713d5bb7bbfbc143e2b676c",
+        "boot_id": "ddf70c7d872d6a36a2d63a5d58d82d1764d8230c72f6f6e54f600651620c7e89"
+      },
+      "progress_phase_contexts": [
+        [
+          "catalog-install",
+          "native-inventory"
+        ],
+        [
+          "display-setup",
+          "boot"
+        ],
+        [
+          "face-construction",
+          "creche"
+        ],
+        [
+          "first-show",
+          "arrival"
+        ],
+        [
+          "host-preparation",
+          "native-workset"
+        ],
+        [
+          "identity-generation",
+          "boot"
+        ],
+        [
+          "identity-resolve",
+          "installed-inventory"
+        ],
+        [
+          "identity-resolve",
+          "product-journey"
+        ],
+        [
+          "input-setup",
+          "usb-keyboard"
+        ],
+        [
+          "input-setup",
+          "usb-pointer"
+        ],
+        [
+          "input-wait",
+          "first-decoded-input"
+        ],
+        [
+          "kernel-prepare",
+          "native-workset"
+        ],
+        [
+          "machine-setup",
+          "boot"
+        ],
+        [
+          "mask-preparation",
+          "arrival"
+        ],
+        [
+          "mask-preparation",
+          "workspace"
+        ],
+        [
+          "plot-build",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "plot-build",
+          "hello"
+        ],
+        [
+          "plot-build",
+          "memory_lantern"
+        ],
+        [
+          "plot-build",
+          "patchbay"
+        ],
+        [
+          "plot-build",
+          "tour"
+        ],
+        [
+          "scanout",
+          "compositor"
+        ],
+        [
+          "source-check",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-check",
+          "hello"
+        ],
+        [
+          "source-check",
+          "memory_lantern"
+        ],
+        [
+          "source-check",
+          "patchbay"
+        ],
+        [
+          "source-check",
+          "tour"
+        ],
+        [
+          "source-expand",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-expand",
+          "hello"
+        ],
+        [
+          "source-expand",
+          "memory_lantern"
+        ],
+        [
+          "source-expand",
+          "patchbay"
+        ],
+        [
+          "source-expand",
+          "tour"
+        ],
+        [
+          "source-parse",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-parse",
+          "hello"
+        ],
+        [
+          "source-parse",
+          "memory_lantern"
+        ],
+        [
+          "source-parse",
+          "patchbay"
+        ],
+        [
+          "source-parse",
+          "tour"
+        ],
+        [
+          "usb-enumeration",
+          "boot"
+        ],
+        [
+          "workset-lowering",
+          "native-workset"
+        ],
+        [
+          "workset-planning",
+          "native-workset"
+        ],
+        [
+          "xhci-setup",
+          "boot"
+        ]
+      ],
+      "tag_counts": {
+        "CONDUIT_NATIVE_ACTION": 18,
+        "CONDUIT_APPLICATION_GRAPH_REPLY": 30,
+        "CONDUIT_DOMAIN_COST": 6
+      },
+      "journey_proof": {
+        "source_commit": "dacabe7376b1d62c0739377f579bfb332cafa19e",
+        "proof_class": "freestanding-emulator",
+        "physical_evidence": false,
+        "human_enactment": false,
+        "steps": [
+          "arrive",
+          "creche-three-selected",
+          "creche-four-restored",
+          "creche-fourth-checked",
+          "creche-pointer-three-selected",
+          "creche-pointer-four-restored",
+          "birth",
+          "wake",
+          "plan",
+          "play",
+          "commons-hub",
+          "commons-workshop",
+          "unavailable-wake-refused",
+          "protected-keyboard-canvas",
+          "protected-memory-lantern",
+          "home",
+          "patchbay",
+          "face",
+          "diagram",
+          "gear-details",
+          "diagram-return",
+          "stop",
+          "home-returned",
+          "patchbay-reentered"
+        ],
+        "patchbay_scalar_limits": {
+          "cross_plot_selection_enacted": true,
+          "edit_outcome": "native-editor-existing-draft",
+          "limits": "actual cross-Plot selection; existing draft refusal in the original Play; positive Source handoff follows a separate fresh Play; no Save/reopen",
+          "successful_edit_handoff_enacted": false
+        },
+        "fresh_source_editor": {
+          "numeric_text_document_revision": "not exposed by current receipt; actual revisioned suffix/backspace enacted",
+          "save_reopen_enacted": false,
+          "selection_enacted": false
+        }
+      }
+    },
+    "baseline40049499201": {
+      "path": "outputs/x86-product-40049499201/conduitos-x86_64/evidence/journey-serial.log",
+      "sha256": "c240a29e500e4dbebce63ca982e0ff6930be03609b8b613ffc817eb4594f1997",
+      "bytes": 3318907,
+      "line_count": 2519,
+      "ends_newline": true,
+      "application_refusals": [],
+      "patchbay_actions": [
+        {
+          "line": 1058,
+          "action_id": "patchbay.plot.0",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 27,
+          "Face_id": "57516f1b3bd739bd876d8c7e9e9bb49d6fb17ec1c9537a16c22cd9ec88d40523",
+          "Face_revision": 73,
+          "Show_id": "show/6628f394d2df6754e897b4b61dd340e9c745f80c6aa0120cc3988a9f666d7b8d"
+        },
+        {
+          "line": 1125,
+          "action_id": "patchbay.plot.3",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 28,
+          "Face_id": "124bf51e0901421ef4a9b730db6cd91a1a09cf0e293e1cc6839aa43d20c4e747",
+          "Face_revision": 74,
+          "Show_id": "show/566c23b84a826a65fc4c3f15cbcb368130812718b828f6bf161003e840a16334"
+        },
+        {
+          "line": 1168,
+          "action_id": "patchbay.plot.2",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 29,
+          "Face_id": "28edc795a6bc7493c66b409d82ac705394f5ec4d08cbda587386a0b393f1f4a9",
+          "Face_revision": 75,
+          "Show_id": "show/fa0cd3d62a5c58c4f133a227e3822ad9b25fa7d7a22c0959c5abceb5b6c07cd0"
+        },
+        {
+          "line": 1553,
+          "action_id": "patchbay.plot.3",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 30,
+          "Face_id": "e8d3a4ecd0d2d368e65529a2d361d7ac63ef67146886ad5a3eee2186444af33b",
+          "Face_revision": 76,
+          "Show_id": "show/516469b514aaed4114ffed7943302bd6662bf3a39566217ef89c533190613770"
+        },
+        {
+          "line": 1628,
+          "action_id": "patchbay.edit.current",
+          "intent": "patchbay/edit-subject@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 31,
+          "Face_id": "a170dab1606d2104da574dac69b9a5f3aef8f761901b9ec9b816fa2a85e40786",
+          "Face_revision": 77,
+          "Show_id": "show/90e5d77723c148a59083e96ede90c73e7cacd359de3f07b167563934595912a8"
+        },
+        {
+          "line": 1939,
+          "action_id": "patchbay.masks.change",
+          "intent": "patchbay/change-masks@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/2"
+            }
+          },
+          "after_revision": 33,
+          "Face_id": "1b165e23878ebf899d1debf22eb0099c50f6f5663d84ccec72f668c6024fb3f6",
+          "Face_revision": 80,
+          "Show_id": "show/2207923b6cde8c58dc939d1e4e813cc073cd732c81e7ca8175bcd728938b1887"
+        },
+        {
+          "line": 2382,
+          "action_id": "patchbay.plot.0",
+          "intent": "patchbay/select-plot@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/7"
+            }
+          },
+          "after_revision": 41,
+          "Face_id": "46ba3b022c87873bbba9468b858b09a2b7c7cfca6c228756169a65ee1460e0c1",
+          "Face_revision": 103,
+          "Show_id": "show/b3bbcd5ef4ec82bf836278f4ed9167a71443d459c888efb50e15d86ce405d0bc"
+        },
+        {
+          "line": 2442,
+          "action_id": "patchbay.edit.current",
+          "intent": "patchbay/edit-subject@1",
+          "accepted_effects": 1,
+          "disposition": {
+            "Accepted": {
+              "operation_request_id": "conduitos/product-interaction/play/7"
+            }
+          },
+          "after_revision": 44,
+          "Face_id": "b7cd8766fd11ce93a746d581cd4bed58175326ec04504ea73ab9fc63316cdbeb",
+          "Face_revision": 104,
+          "Show_id": "show/c1c941d69e17d4e1993796c3d36b1f794b7cf6396874f337a0cb5d63ead153f8"
+        }
+      ],
+      "domain_costs": [
+        {
+          "line": 1773,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:5244736972281b1e19c3eee1499ffc4145e0c2c4de2f15190cd9b9e77cbf725c",
+            "play_id": "body-play/sha256:ea974307c15264ac318e107184939abc88654af935f1453b2db202cb8af981ac",
+            "partition_plan_id": "32976309ae080c056096866087cf2595ab7f4e8fb6d2e683c2166e811a662c32",
+            "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+            "domain_id": 1,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 7,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 14,
+            "gate_transitions": 7,
+            "copied_bytes": 170,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 14,
+            "setup_ticks": 23241925,
+            "teardown_ticks": 2235895,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 31,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 14,
+            "scheduler_returns": 7,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 1774,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:5244736972281b1e19c3eee1499ffc4145e0c2c4de2f15190cd9b9e77cbf725c",
+            "play_id": "body-play/sha256:ea974307c15264ac318e107184939abc88654af935f1453b2db202cb8af981ac",
+            "partition_plan_id": "edd7032244515f8ce3030aa8bda49fb4e7b81708785e959b31761536dd27d8cf",
+            "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+            "domain_id": 2,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 5,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 10,
+            "gate_transitions": 5,
+            "copied_bytes": 10,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 1,
+            "tlb_flushes": 10,
+            "setup_ticks": 40710572,
+            "teardown_ticks": 2893009,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 5,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 10,
+            "scheduler_returns": 5,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 1952,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:c42e12318b7d81985d99c2b24ab81714afcf5cd3e39eeda6109b1b11f88615fe",
+            "play_id": "body-play/sha256:5252bab4233e8fbc46fd67172e4eb7df552bb17e11ac642d05e0fbffb894a179",
+            "partition_plan_id": "32976309ae080c056096866087cf2595ab7f4e8fb6d2e683c2166e811a662c32",
+            "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+            "domain_id": 3,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 1,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 2,
+            "gate_transitions": 1,
+            "copied_bytes": 8,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 2,
+            "setup_ticks": 18107558,
+            "teardown_ticks": 1259765,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 8,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 2,
+            "scheduler_returns": 1,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 1953,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:c42e12318b7d81985d99c2b24ab81714afcf5cd3e39eeda6109b1b11f88615fe",
+            "play_id": "body-play/sha256:5252bab4233e8fbc46fd67172e4eb7df552bb17e11ac642d05e0fbffb894a179",
+            "partition_plan_id": "edd7032244515f8ce3030aa8bda49fb4e7b81708785e959b31761536dd27d8cf",
+            "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+            "domain_id": 4,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 1,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 2,
+            "gate_transitions": 1,
+            "copied_bytes": 0,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 2,
+            "setup_ticks": 36722315,
+            "teardown_ticks": 1368301,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 0,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 2,
+            "scheduler_returns": 1,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 2506,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:918fcddd18de06e828458dc800257b10a556e3df20ec5fdc224e7da0ed70eb12",
+            "play_id": "body-play/sha256:d04f1bb1e1203f0e6082fcc1cdda3c76119b84e34c0af584e1deb6227247c315",
+            "partition_plan_id": "32976309ae080c056096866087cf2595ab7f4e8fb6d2e683c2166e811a662c32",
+            "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+            "domain_id": 5,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 4,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 8,
+            "gate_transitions": 4,
+            "copied_bytes": 830,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 8,
+            "setup_ticks": 18242700,
+            "teardown_ticks": 2200124,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 398,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 8,
+            "scheduler_returns": 4,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        },
+        {
+          "line": 2507,
+          "record": {
+            "schema": "conduit.conduitos/domain-cost@1",
+            "architecture": "x86_64",
+            "region_id": "region/0",
+            "plan_id": "body-plan/sha256:918fcddd18de06e828458dc800257b10a556e3df20ec5fdc224e7da0ed70eb12",
+            "play_id": "body-play/sha256:d04f1bb1e1203f0e6082fcc1cdda3c76119b84e34c0af584e1deb6227247c315",
+            "partition_plan_id": "edd7032244515f8ce3030aa8bda49fb4e7b81708785e959b31761536dd27d8cf",
+            "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+            "domain_id": 6,
+            "fixture": false,
+            "state": "Revoked(PlayCancelled)",
+            "entries": 1,
+            "interrupt_entries": 0,
+            "source_timer_interrupts": 0,
+            "privilege_transitions": 2,
+            "gate_transitions": 1,
+            "copied_bytes": 0,
+            "setup_copied_bytes": 116831,
+            "base_gate_transitions": 0,
+            "tlb_flushes": 2,
+            "setup_ticks": 36668831,
+            "teardown_ticks": 1376361,
+            "tick_unit": "tsc",
+            "teardown_zeroed_bytes": 217088,
+            "shared_peak_bytes": 0,
+            "root_metadata_bytes": 6516,
+            "shared_page_bytes": 4096,
+            "ring_slots": 0,
+            "address_space_switches": 2,
+            "scheduler_returns": 1,
+            "preemptions": 0,
+            "reserved_bytes": 217088,
+            "dma_isolation": false,
+            "driver_isolation": false
+          }
+        }
+      ],
+      "publication_phase_progress": [],
+      "last_journey": {
+        "status": "stopped",
+        "revision": 49,
+        "request_id": "conduitos/product-interaction/stop/8",
+        "build_id": "build:sha256:7ce93615798301cbda9f9c1128a3f22bff5c9d6ed8a45866b0244a8d1c16cc92",
+        "image_id": "image:sha256:3c01e1f91ccf0fcf6354ccbc87e9e597f06d38f3ca04d909f78a2fefe2b14d5d",
+        "host_id": "6783b7a02d22b3f6d3fd7f2de67e1bf65a7e284ba5c6c2a61095506a0a2825ac",
+        "boot_id": "2e5e4fcc408f7d1895370a911299bdc9226fa833d007fbce5823b063b6cb6f63"
+      },
+      "progress_phase_contexts": [
+        [
+          "catalog-install",
+          "native-inventory"
+        ],
+        [
+          "display-setup",
+          "boot"
+        ],
+        [
+          "face-construction",
+          "creche"
+        ],
+        [
+          "first-show",
+          "arrival"
+        ],
+        [
+          "host-preparation",
+          "native-workset"
+        ],
+        [
+          "identity-generation",
+          "boot"
+        ],
+        [
+          "identity-resolve",
+          "installed-inventory"
+        ],
+        [
+          "identity-resolve",
+          "product-journey"
+        ],
+        [
+          "input-setup",
+          "usb-keyboard"
+        ],
+        [
+          "input-setup",
+          "usb-pointer"
+        ],
+        [
+          "input-wait",
+          "first-decoded-input"
+        ],
+        [
+          "kernel-prepare",
+          "native-workset"
+        ],
+        [
+          "machine-setup",
+          "boot"
+        ],
+        [
+          "mask-preparation",
+          "arrival"
+        ],
+        [
+          "mask-preparation",
+          "workspace"
+        ],
+        [
+          "plot-build",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "plot-build",
+          "hello"
+        ],
+        [
+          "plot-build",
+          "memory_lantern"
+        ],
+        [
+          "plot-build",
+          "patchbay"
+        ],
+        [
+          "plot-build",
+          "tour"
+        ],
+        [
+          "scanout",
+          "compositor"
+        ],
+        [
+          "source-check",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-check",
+          "hello"
+        ],
+        [
+          "source-check",
+          "memory_lantern"
+        ],
+        [
+          "source-check",
+          "patchbay"
+        ],
+        [
+          "source-check",
+          "tour"
+        ],
+        [
+          "source-expand",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-expand",
+          "hello"
+        ],
+        [
+          "source-expand",
+          "memory_lantern"
+        ],
+        [
+          "source-expand",
+          "patchbay"
+        ],
+        [
+          "source-expand",
+          "tour"
+        ],
+        [
+          "source-parse",
+          "conduitos-keyboard-upper"
+        ],
+        [
+          "source-parse",
+          "hello"
+        ],
+        [
+          "source-parse",
+          "memory_lantern"
+        ],
+        [
+          "source-parse",
+          "patchbay"
+        ],
+        [
+          "source-parse",
+          "tour"
+        ],
+        [
+          "usb-enumeration",
+          "boot"
+        ],
+        [
+          "workset-lowering",
+          "native-workset"
+        ],
+        [
+          "workset-planning",
+          "native-workset"
+        ],
+        [
+          "xhci-setup",
+          "boot"
+        ]
+      ],
+      "tag_counts": {
+        "CONDUIT_NATIVE_ACTION": 18,
+        "CONDUIT_APPLICATION_GRAPH_REPLY": 30,
+        "CONDUIT_DOMAIN_COST": 6
+      },
+      "journey_proof": {
+        "source_commit": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+        "proof_class": "freestanding-emulator",
+        "physical_evidence": false,
+        "human_enactment": false,
+        "steps": [
+          "arrive",
+          "creche-three-selected",
+          "creche-four-restored",
+          "creche-fourth-checked",
+          "creche-pointer-three-selected",
+          "creche-pointer-four-restored",
+          "birth",
+          "wake",
+          "plan",
+          "play",
+          "commons-hub",
+          "commons-workshop",
+          "unavailable-wake-refused",
+          "protected-keyboard-canvas",
+          "protected-memory-lantern",
+          "home",
+          "patchbay",
+          "face",
+          "diagram",
+          "gear-details",
+          "diagram-return",
+          "stop",
+          "home-returned",
+          "patchbay-reentered"
+        ],
+        "patchbay_scalar_limits": {
+          "cross_plot_selection_enacted": true,
+          "edit_outcome": "native-editor-existing-draft",
+          "limits": "actual cross-Plot selection; existing draft refusal in the original Play; positive Source handoff follows a separate fresh Play; no Save/reopen",
+          "successful_edit_handoff_enacted": false
+        },
+        "fresh_source_editor": {
+          "numeric_text_document_revision": "not exposed by current receipt; actual revisioned suffix/backspace enacted",
+          "save_reopen_enacted": false,
+          "selection_enacted": false
+        }
+      }
+    }
+  },
+  "source_correspondence": {
+    "targets/conduitos/src/arch/x86_64/domain_budget.rs": {
+      "455aaf0a33a5dddf739935003e77b5da2c3788ac": "90ed2e12a705f2fb922284b7cdbf56d794344ae5",
+      "d677b25383b22ca2911f1ec49936ca7b4a3c86ee": "90ed2e12a705f2fb922284b7cdbf56d794344ae5",
+      "dd3cdb41f7a0320658e0c5c00d458db32e5adf56": "90ed2e12a705f2fb922284b7cdbf56d794344ae5"
+    },
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": {
+      "455aaf0a33a5dddf739935003e77b5da2c3788ac": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+      "d677b25383b22ca2911f1ec49936ca7b4a3c86ee": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+      "dd3cdb41f7a0320658e0c5c00d458db32e5adf56": "acb3dbda49e5f055ca663e4d54886674de5e629f"
+    },
+    "targets/conduitos/src/protected_application/transport.rs": {
+      "455aaf0a33a5dddf739935003e77b5da2c3788ac": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+      "d677b25383b22ca2911f1ec49936ca7b4a3c86ee": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+      "dd3cdb41f7a0320658e0c5c00d458db32e5adf56": "a41e213d7e163ad5a1252c213de5d0eebac8cb73"
+    },
+    "targets/conduitos/application-core/src/models/canonical.rs": {
+      "455aaf0a33a5dddf739935003e77b5da2c3788ac": "7e4d68f9e68a786566befc8031638775a156777b",
+      "d677b25383b22ca2911f1ec49936ca7b4a3c86ee": "7e4d68f9e68a786566befc8031638775a156777b",
+      "dd3cdb41f7a0320658e0c5c00d458db32e5adf56": "7e4d68f9e68a786566befc8031638775a156777b"
+    },
+    "targets/conduitos/application-core/src/state.rs": {
+      "455aaf0a33a5dddf739935003e77b5da2c3788ac": "4d4660a230de3dcf2e3ca6a509e94c68230ce6ef",
+      "d677b25383b22ca2911f1ec49936ca7b4a3c86ee": "4d4660a230de3dcf2e3ca6a509e94c68230ce6ef",
+      "dd3cdb41f7a0320658e0c5c00d458db32e5adf56": "4d4660a230de3dcf2e3ca6a509e94c68230ce6ef"
+    }
+  },
+  "same_reviewed_budget_transport_commit_source": true,
+  "current_execution_source_qualification": {
+    "execution": "dacabe7376b1d62c0739377f579bfb332cafa19e",
+    "Root": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+    "execution_tree": "70f1c734ecc057a656910c2f0c179af0cde286a7",
+    "Root_tree": "70f1c734ecc057a656910c2f0c179af0cde286a7"
+  },
+  "accounting_semantics": [
+    "Failed sequence4496 is a request sequence, not measured phase number or cost. It is Request::Commit; outer command attribution says patchbay-publish slot2. Diagnostic counters4496 entries/216 total observed interrupts/1 preemption are cumulative application-service cost, not216 interrupts charged to that single Commit.",
+    "ServiceDomain::enter admits maximum_work1, chooses Draft64 RTC ticks for Application (Ordinary16 only compositor), arms fresh per-entry hardware budget at1024Hz; counts actual user budget+Source interrupts after entry. Shared source file unchanged across allthree sources, so no evidence of RTC-grant increase.",
+    "RTC mechanism decrements only user budget interrupts; Source LAPIC/PIT interrupts are separately counted. It bounds elapsed entry execution, not semantic work/CPU operations or calibrated subphase time. Terminal budget result origin2/value4 increments preemptions and returnsWorkExhausted; any domain fault quarantines memory/executable access.",
+    "Application refusal uses ServiceDomain.cost(); the CONDUIT_DOMAIN_COST records are emitted by text_protection.rs for separate Body text/keyboard protection domains. Their0interrupt/preemption fields cannot contradict or replace application4496/216/1 diagnostic.",
+    "Successful logs contain no application-entry success cost/phase receipts. Accepted Patchbay actions and continued journey imply their required publication/Commit admission succeeded through existing path, but do not identify success at exact same requestsequence4496 or quantify remaining per-entry budget.",
+    "Successful normal source still sends PatchbayPublish without preflight (transport preflights only PrepareTarget/PrepareGraphProjection). Commit decode/model admission and MaskShow/Face/contribution checks remain in same entry source; successful journey is not staged6318 implementation."
+  ],
+  "comparison_limits": [
+    "Native progress records are broad Root boot/parse/scanout/workset phases, not Patchbay Commit inflate/decode/Face-validation/contribution/publication subphases. All clocks report x86-tsc-lfence with frequency_hznull; setup/teardown TSC costs are different scopes.",
+    "Different builds, Boot identities, source fingerprints, packet/layout/dependency states and runtime scheduling; no controlled same-source repeat campaign or phase-attributed cost proof. Do not subtract TSC setup/teardown or total journey times to infer publication speedup.",
+    "Both successful receipts explicitly retain native-editor-existing-draft refusal on originalPlay; separate freshPlay editor route exists, not Save/reopen. Eight accepted Patchbay actions are scoped normal journey evidence, not all possible commands or adversarial order cases.",
+    "No full6318 closure, physical proof, measured responsible subphase, staged authority/cancellation/refusal parity proof or stable/publication acceptance asserted."
+  ]
+}

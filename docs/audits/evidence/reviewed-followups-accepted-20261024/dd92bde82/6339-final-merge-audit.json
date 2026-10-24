@@ -1,0 +1,57 @@
+{
+  "observed_utc": "2026-10-24T03:32:16.456930+00:00",
+  "pr": 6339,
+  "head": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "candidate": 40054154999,
+  "candidate_conclusion": "success",
+  "preflight_job": 120753554297,
+  "tested_preview": "dacabe7376b1d62c0739377f579bfb332cafa19e",
+  "tested_tree": "70f1c734ecc057a656910c2f0c179af0cde286a7",
+  "merge": "960762cfe41d4491398d6b8e5487bba1d2c97276",
+  "merge_tree": "70f1c734ecc057a656910c2f0c179af0cde286a7",
+  "merge_parents": [
+    "760dc54cf27b7203211b105aa08e6d9b67ecdb61",
+    "d677b25383b22ca2911f1ec49936ca7b4a3c86ee"
+  ],
+  "current_dev": "960762cfe41d4491398d6b8e5487bba1d2c97276",
+  "source_head_in_dev": true,
+  "delivery_method": "merge",
+  "delivered_delta_exact_before_after_blobs": false,
+  "reviewed_base_overlap": {
+    "method": "entire_actual_tested_tree_identity",
+    "tested_base": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+    "actual_parent": "760dc54cf27b7203211b105aa08e6d9b67ecdb61",
+    "clean_composed_tree": "70f1c734ecc057a656910c2f0c179af0cde286a7",
+    "accepted_tree": "70f1c734ecc057a656910c2f0c179af0cde286a7",
+    "tested_tree": "70f1c734ecc057a656910c2f0c179af0cde286a7",
+    "equals_accepted_and_tested_tree": true,
+    "scope": "Earlier normal owner delivery already contains a portion of this omnibus; raw delta shrinks, while entire final source tree is exactly the tested preview. No fabricated checkout or full Integration claim."
+  },
+  "accepted_tree_equals_tested_tree": true,
+  "preflight_log_sha256": "e4fbc34021e8b6e4c6be7805f089ac493d15924a7a4cffe2847cde048ad5e230",
+  "preflight_log": "work/6339-preflight-job-120753554297-e4fbc34021e8b6e4c6be7805f089ac493d15924a7a4cffe2847cde048ad5e230.log",
+  "preflight_job_run_head_link_verified": true,
+  "accepted_integration_still_required": true,
+  "all_owner_heads_preserved_in_dev": {
+    "6348": "cc527bec2a935a601ea1cf327094d3e8ffa2d5f8",
+    "6356": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+    "6356-operation-proof": "a971533d8b8bfb7b0f7740cffe31156bf59b4398",
+    "6334-retirement-proof": "1d62af38d72b6a7117c30554d7d9af5562278066",
+    "6329": "6663e81a282d4dd912d52d3c098eaf0de183ec45",
+    "6331": "03f51f15dc539c19a3fe26c92680e93bc413802f",
+    "6333": "458123b56bca0e31d516b2f3c16e477a701fb673",
+    "6336-original": "ecd44fbe20481e955fdc855b653c6a8387adf3f9",
+    "6336-current": "abd896d14633a45c69d93996bcebee0e343cbfd7"
+  },
+  "previously_delivered_owner_prs": [
+    6329,
+    6331,
+    6333,
+    6336
+  ],
+  "additional_integrated_prs": [
+    6356
+  ],
+  "timer_included_reviewed_head": "cc527bec2a935a601ea1cf327094d3e8ffa2d5f8",
+  "timer_newer_head_ancestry_pending": "98e202b7e7f1b8510cd670354e4431d28d243af8"
+}

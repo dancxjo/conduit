@@ -1,0 +1,221 @@
+{
+  "issue": 6353,
+  "final_source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "repair_source": "455aaf0a33a5dddf739935003e77b5da2c3788ac",
+  "original_packet": "3282213cb5f25182a927a09a08331f04ccd8f759",
+  "mode": "Read-only final-source/retained-byte requirement audit; no new builds or CI observation.",
+  "collector_blobs_unchanged": [
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+      "repair_blob": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "final_blob": "453ca95a6caf09d3258cf5a56f2cf00634043426"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+      "repair_blob": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "final_blob": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1"
+    }
+  ],
+  "all_packet_file_hashes_verified": [
+    {
+      "file": "6353-combined-local-proof.json",
+      "sha256": "ed3e6381b36e432ee0b1ead419d0aa5a914e600ef365bf94e978fee76259a5d6",
+      "decoded_sha256": "ed3e6381b36e432ee0b1ead419d0aa5a914e600ef365bf94e978fee76259a5d6"
+    },
+    {
+      "file": "6353-supported-preflight-proof.json",
+      "sha256": "7173d49fb1f8c3be84e5a4632279bf7f87f9a10f750f1965ed552a659e3ef531",
+      "decoded_sha256": "7173d49fb1f8c3be84e5a4632279bf7f87f9a10f750f1965ed552a659e3ef531"
+    },
+    {
+      "file": "6353-independent-repair-review.json",
+      "sha256": "b7a4611b5f664e4c423d3075975f922829a261cc086399cb7b630d297badfb01",
+      "decoded_sha256": "b7a4611b5f664e4c423d3075975f922829a261cc086399cb7b630d297badfb01"
+    },
+    {
+      "file": "5b7-integration-x86-failure.json",
+      "sha256": "2d0b58d1b88bd96f80ba8ac496cc819159462c244e676a74a7c407ca3bda4f11",
+      "decoded_sha256": "2d0b58d1b88bd96f80ba8ac496cc819159462c244e676a74a7c407ca3bda4f11"
+    },
+    {
+      "file": "5b7-actual-duplicate-compositor-byte-audit.json",
+      "sha256": "9cfef50b141d6509085c6556af7e248446abbcae4d6dcc45664eddc907b6ab11",
+      "decoded_sha256": "9cfef50b141d6509085c6556af7e248446abbcae4d6dcc45664eddc907b6ab11"
+    },
+    {
+      "file": "6353-retained-serial-parser-reprocessing.json",
+      "sha256": "07daf3754573a54f9d50a4e1eed56e92d59de804750939151160a0b7207d6646",
+      "decoded_sha256": "07daf3754573a54f9d50a4e1eed56e92d59de804750939151160a0b7207d6646"
+    },
+    {
+      "file": "6353-failed-run-native-frame-custody.json",
+      "sha256": "e2df7e4773d4a68903b5cf1b194884bddfb79d21cdaf765c47d20efebf427206",
+      "decoded_sha256": "e2df7e4773d4a68903b5cf1b194884bddfb79d21cdaf765c47d20efebf427206"
+    },
+    {
+      "file": "6353-original-extractor-new-tests.rs",
+      "sha256": "04e16f1bdd975449842edc6d2423aad25c0ed466a130c18a331831d58136c7a8",
+      "decoded_sha256": "04e16f1bdd975449842edc6d2423aad25c0ed466a130c18a331831d58136c7a8"
+    },
+    {
+      "file": "6353-original-extractor-new-tests.log.gz",
+      "sha256": "fa76ced313e70956bf447d7b7e8bc42e6c493a14d22c3a4dc74b5bb14b8fab86",
+      "decoded_sha256": "cc7e6a58ed2dfef89b2cf7a569ffe3c6759b31825c032bbb9a91335349de3deb"
+    },
+    {
+      "file": "compositor-duplicate-corrected-tests.log.gz",
+      "sha256": "c1cc74956ba7bc5d7a7b63f474a35dbbdc8733fc37345f842df216b1e647e7dd",
+      "decoded_sha256": "de520b1837a8bce6a725edf7b258fd301056e314402cda3935824b25fd20ed64"
+    },
+    {
+      "file": "6353-supported-preflight.log.gz",
+      "sha256": "db41f93cce53fa2a9ae36145c04eca9e052316e97d08ac611fbc091076a02070",
+      "decoded_sha256": "dbc274c132769008851ed2a59bedec6dc2cd14a879aef44566f150360d152aa9"
+    },
+    {
+      "file": "6353-combined-bootstrap-yaml.log.gz",
+      "sha256": "231f1bfb83b3625be666d2d23201fc1c056680d52abeb4cefefc27184ed53f80",
+      "decoded_sha256": "152a7444b8eafab4e127e98220b59e8b0cb290cd0362673981756a1abec7daa7"
+    },
+    {
+      "file": "omnibus-bootstrap-yaml-regression.py",
+      "sha256": "f6a5ab6daa814b2751462ca85d6ffc579574b4d4064d6a70a165c16e1cca5e8c",
+      "decoded_sha256": "f6a5ab6daa814b2751462ca85d6ffc579574b4d4064d6a70a165c16e1cca5e8c"
+    },
+    {
+      "file": "reproduce-5b7-embedded.rs",
+      "sha256": "bce69119e9b692354a1a603ad9fa3904ac4d9eb85938280a7d0c9b40af5df655",
+      "decoded_sha256": "bce69119e9b692354a1a603ad9fa3904ac4d9eb85938280a7d0c9b40af5df655"
+    },
+    {
+      "file": "reprocess-5b7-embedded.rs",
+      "sha256": "6119ab6779707d2801582f4731082e1ab68feb53b85d95b554d8856f5bf65b49",
+      "decoded_sha256": "6119ab6779707d2801582f4731082e1ab68feb53b85d95b554d8856f5bf65b49"
+    },
+    {
+      "file": "reprocess-5b7-lifecycle.rs",
+      "sha256": "2af2537701e9b5a63ed2012be6c37164861fb3fb4dcd6d58fa44f07cc06d03de",
+      "decoded_sha256": "2af2537701e9b5a63ed2012be6c37164861fb3fb4dcd6d58fa44f07cc06d03de"
+    },
+    {
+      "file": "5b7-extracted-compositor.elf",
+      "sha256": "eb6ef0c507baa3d1117ebc70882c81bba72ca213610288ad0d1f5b93d261d483",
+      "decoded_sha256": "eb6ef0c507baa3d1117ebc70882c81bba72ca213610288ad0d1f5b93d261d483"
+    },
+    {
+      "file": "5b7-failed-x86-diagnostics.zip",
+      "sha256": "f8c79acd7ac7ae9bf96164f2cdbc0fa5fff89abb29a03767cfbf9790c270bee1",
+      "decoded_sha256": "f8c79acd7ac7ae9bf96164f2cdbc0fa5fff89abb29a03767cfbf9790c270bee1"
+    },
+    {
+      "file": "5b7-integration-x86-failure-120719162620-167be8aa89e173d16c00ab73171f59701aa11dcf03c403a8e71f1762cfe43559.log.gz",
+      "sha256": "3d3e3e6b3cc0d61b4fbafe98e4a2a43d406f53793773a49f2725c672937993ed",
+      "decoded_sha256": "167be8aa89e173d16c00ab73171f59701aa11dcf03c403a8e71f1762cfe43559"
+    },
+    {
+      "file": "creche-engineering-compact.png",
+      "sha256": "5266f7dc12ac3453edbb329b013bb1cdf4bb3e16feb6e08979c136a488dcbf16",
+      "decoded_sha256": "5266f7dc12ac3453edbb329b013bb1cdf4bb3e16feb6e08979c136a488dcbf16"
+    },
+    {
+      "file": "creche-editorial-spacious.png",
+      "sha256": "2a8267635df57685ab6d50050c70ac58d7199308d082d2e0a1836fc34d575e9a",
+      "decoded_sha256": "2a8267635df57685ab6d50050c70ac58d7199308d082d2e0a1836fc34d575e9a"
+    }
+  ],
+  "actual_original_zip_and_root_and_identical_guest_bytes_verified": true,
+  "original_duplicate_offsets": [
+    16538634,
+    20470131
+  ],
+  "guest_bytes": 29256,
+  "five_exact_focused_test_names": [
+    "distinct_valid_images_are_ambiguous",
+    "extracts_actual_loaded_symbol_bound_bytes",
+    "identical_loaded_copies_are_one_image",
+    "unloaded_valid_image_is_not_custody",
+    "malformed_entry_permissions_extent_and_missing_symbol_refuse"
+  ],
+  "original_negative": "4pass1fail; only identical-copy test fails with Ambiguous",
+  "corrected_positive": "5pass0fail0ignored",
+  "retained_pure_parser": {
+    "ack_checkpoints": 3,
+    "artifact_custody_verified": false,
+    "checkpoints": 4,
+    "guest_image_sha256": [
+      235,
+      110,
+      240,
+      197,
+      7,
+      186,
+      163,
+      209,
+      17,
+      126,
+      188,
+      112,
+      136,
+      44,
+      129,
+      187,
+      167,
+      44,
+      162,
+      19,
+      97,
+      2,
+      136,
+      173,
+      13,
+      31,
+      91,
+      147,
+      210,
+      97,
+      212,
+      131
+    ],
+    "lifecycle_records": 23,
+    "limits": "Pure terminal parser against retained actual serial and manifest; actual Root separately rehashed; ISO bytes unavailable. No new QEMU execution or complete artifact custody acceptance.",
+    "manifest_declared_iso_sha256": "ab5b4b478210161355501f2944d14f03041a5cee3f54ebeb5f5f65851c178f74",
+    "root_elf_sha256": "aa3ac2db80b8ef96254afddcd0a7051491a47667af03b5aeda04ed986a068981",
+    "source": "5b7e5675c98aa3b660d6f43376006e8ab4528c21"
+  },
+  "requirements": [
+    {
+      "criterion": "Retain actual failed-run identity and exact candidate equality",
+      "status": "satisfied_actual_retained_bytes_independently_rehashed",
+      "evidence": "OriginalZIP/Root/extractedguest plus two exactequal29256byte slices, original log and packet manifest."
+    },
+    {
+      "criterion": "Accept identical copies, reject distinct valid images, retain malformed/missing/unloaded refusal",
+      "status": "satisfied_scoped_source_and_actual_five_test_log",
+      "evidence": "Only selection uniqueness changes. Eachcandidate still passes unchangedcompositor_extent validator andloadedRootrange. Fullbyteequality, notserialhash/firstcandidate selection."
+    },
+    {
+      "criterion": "Keep Root/ISO/build/boot/lifecycle/ACK identity joins intact and truthfully label uniqueimagebytes",
+      "status": "source_satisfied_runtime_artifact_custody_pending",
+      "evidence": "collect() actualISO/Root/manifest/resolvedimage/preparation/boot/protocol/ACK checks unchanged apartfromreceiptwording. Pureparserreprocess23records4checkpoints3ACKs explicitlycustodyfalse because originalISOabsent."
+    },
+    {
+      "criterion": "Focused regressions andsupportedpreflight; retainfailure",
+      "status": "satisfied_original455proof_finalcollectorblobsunchanged",
+      "evidence": "Fiveexactcorrectedtests andfourpositive/onenegative originalcontrols retained.345preflightat455passed; finald677preflightproof separatelysuppliedbyRoot registryrepairpacket, notrerunhere."
+    },
+    {
+      "criterion": "ReviewedexistingPR exactheadCandidate devdelivery relevantIntegration",
+      "status": "pending",
+      "evidence": "Existing6339sourcefinald677. SavedissuequotesCandidate40054154999 notcompletion. Thisread-onlyreviewdoesnotobservegates/delivery."
+    }
+  ],
+  "identity_join_review": "Comparedfinalcollector with455byteidentical. Compared455withpriorbase: onlyembeddedextractcompletebyteuniqueness and two receiptwordinglines; actualRoot/ISOhashes/sourcebuild/resolvedimage/boot/lifecycle/ACKvalidation notaltered. ExistingmalformedELFentry/symbol/perms/extentvalidation remainsidentical.",
+  "ready_for_closure_now": false,
+  "remaining_before_closure": [
+    "RequiredfullCandidateatfinaldeliveredhead successful.",
+    "ActualreviewedPRdeliveryto dev andexactaccepted-source featureidentity audit.",
+    "ApplicablesuccessfulIntegration and actualproducedRoot/ISO/build/boot/lifecycle/ACKcollectorartifactcustody audit; currentfailed455stoppedbeforecollectorandcannotreplaceit.",
+    "Freshliveissuequery andscopedfinalreceipt; nofull6318orphysical/parentclaim."
+  ],
+  "limits": "Reprocessingexistingnegativeartifact isnotnewQEMUexecution. ActualoriginalISOabsent; cannotclaimcompleteoriginalartifactcustody. Nofull6318/6175isolation/physical/stableparentacceptance."
+}
