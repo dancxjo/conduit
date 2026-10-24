@@ -172,10 +172,12 @@ fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
         }
     }
     assert_disjoint(&scene.primary);
-    assert!(scene
-        .primary
-        .windows(2)
-        .any(|rows| rows[0].page > rows[1].page));
+    assert!(
+        scene
+            .primary
+            .windows(2)
+            .any(|rows| rows[0].page > rows[1].page)
+    );
     let controls: Vec<_> = scene
         .primary
         .iter()
@@ -190,12 +192,14 @@ fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
     for (control, page) in controls {
         assert_eq!(scene.focus_next(true), Some(control));
         assert_eq!(scene.page(), page);
-        assert!(scene
-            .frame()
-            .unwrap()
-            .hits
-            .iter()
-            .any(|hit| hit.control == control));
+        assert!(
+            scene
+                .frame()
+                .unwrap()
+                .hits
+                .iter()
+                .any(|hit| hit.control == control)
+        );
     }
     scene.focus = None;
     for page in 0..scene.pages() {

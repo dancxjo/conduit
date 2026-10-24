@@ -390,7 +390,6 @@ fn planned_connection<'a>(
         })
 }
 
-
 fn identity(content: &mut ContentBuilder, subject: &str, name: &str, value: &str) {
     content.property(subject, name, FacePropertyValue::Identity(value.into()));
 }

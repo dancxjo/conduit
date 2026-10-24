@@ -3,7 +3,7 @@ use super::*;
 use alloc::collections::BTreeSet;
 use conduit_face::*;
 use conduit_plot::{
-    check_syntax_document, parse_syntax_document, CanonicalStartupValue, ProfileCatalog,
+    CanonicalStartupValue, ProfileCatalog, check_syntax_document, parse_syntax_document,
 };
 
 fn structure<'a>(source: &str, component: &str, face: &'a Face) -> PreparedComponentLayout<'a> {

@@ -3,7 +3,7 @@
 //! an observed matching offer; availability is not inferred from viewport size.
 use super::*;
 use conduit_core::*;
-use conduit_face::{layout_component_mask_kind, ConfiguredMaskConfiguration};
+use conduit_face::{ConfiguredMaskConfiguration, layout_component_mask_kind};
 
 pub const NATIVE_LAYOUT_COMPONENT_RENDERER_KIND: &str =
     "face/native-layout-component-resource-mask";

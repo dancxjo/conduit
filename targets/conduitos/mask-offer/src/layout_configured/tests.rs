@@ -49,10 +49,12 @@ fn host(profile: NativeMaskStorageProfile) -> HostAdvertisement {
         Some(&provider),
         profile,
     );
-    assert!(!host
-        .capabilities
-        .iter()
-        .any(|offer| { offer.kind_id.as_str() == NATIVE_LAYOUT_COMPONENT_RENDERER_KIND }));
+    assert!(
+        !host
+            .capabilities
+            .iter()
+            .any(|offer| { offer.kind_id.as_str() == NATIVE_LAYOUT_COMPONENT_RENDERER_KIND })
+    );
     let legacy = match profile {
         NativeMaskStorageProfile::Standard => {
             native_host_advertisement(&host.host_id, &host.boot_id, 1, &provider)
@@ -262,8 +264,10 @@ fn malformed_advertised_layout_refuses_actual_wrappers_instead_of_downgrading() 
         // A correct capability name does not authenticate the old renderer as @3.
         *offer = configured::configured_resource_renderer_offer_for_profile(profile);
         offer.capability_id = NATIVE_LAYOUT_COMPONENT_CAPABILITY.into();
-        assert!(actual_wrappers(&malformed, profile)
-            .into_iter()
-            .all(|result| result.is_err()));
+        assert!(
+            actual_wrappers(&malformed, profile)
+                .into_iter()
+                .all(|result| result.is_err())
+        );
     }
 }
