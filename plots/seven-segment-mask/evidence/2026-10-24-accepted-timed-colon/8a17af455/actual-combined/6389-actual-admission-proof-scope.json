@@ -1,0 +1,26 @@
+{
+  "run": 40076873700,
+  "head": "d32b0af6fc828e4de83cbedced4a164a0781111d",
+  "job": 120823889913,
+  "attempt": 1,
+  "job_conclusion": "success",
+  "log": "work/6389-admission-120823889913.log",
+  "sha256": "6fa8c0a958787b3d26d6856c58fb6f93e0b69de76ef096bebc9b6180f158ada5",
+  "actual_preview_from_checkout_log": "514096f5a3687fa33fc66ff1e9fb8820da00794e",
+  "actual_base_from_checkout_log": "8a17af455f08702bc3ef3124b69e7d8c624b3b8a",
+  "preview_Git_objects_fetched_or_verified": false,
+  "actual_test_counts": [
+    16,
+    5,
+    1,
+    2,
+    2,
+    0
+  ],
+  "actual_passed": 26,
+  "new_local_fore_test_executed": true,
+  "literal_strict_argv_in_log": false,
+  "strict_qualification": "Source admission routes owningrootworkspacepackage throughclippy --all-targets -Dwarnings beforefullpackage tests; rawlogs showCheckingandFinished, no literalargv. No failed/skipped test count substituted.",
+  "scope_limit": "ActualCI26 at5140/d32+8a17 doesnotexecuteNative90aPlot/newbe722 composition. Localf7aproof remainsdistinct.",
+  "observation": "OneknownjobmetadataGET after08:34:26 andonerawlogdownload, no runpoll/repeatedqueries."
+}

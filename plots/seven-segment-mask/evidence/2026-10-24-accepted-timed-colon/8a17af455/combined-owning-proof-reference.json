@@ -1,0 +1,13 @@
+{
+  "source": "f7a959cdc7304f74d6b058f69f139af94037bab5",
+  "tree": "be722c7c85e0553256f1cb4c42ac6919081f3755",
+  "packet": "08dd7a420cf6a65aafc7a445d92ec9b1ac92fc2e",
+  "prefix": "docs/audits/evidence/6389-be722-runtime-supported-20261024/f7a959cdc/",
+  "manifest_sha256": "481255966f9f0bf1dfed8c8fc6de9047a827b0b0682af35cafbb8aa8bca64a85",
+  "independent_review_path": "outputs/6389-be722-runtime-supported-independent-review.json",
+  "independent_review_sha256": "e729f63f42cf32070f44c32ff0ea8eb88972128b4fdf5f7094e72e6b434ffd62",
+  "actual_tests": 126,
+  "owning_Mask_tests": 13,
+  "strict_profiles": 5,
+  "qualification": "Actual f7a/be722 combinedCPUproof; Mask13/strict independentlyverified. No Candidate/Integration/physical relabel."
+}

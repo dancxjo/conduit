@@ -1,0 +1,1 @@
+Accepted portable timed temperature/RH Mask and explicit colon Look only. Source/local13tests/strictproof plus exact full Candidate, reviewed actual delivery method and applicable full Integration are joined; delivery method is recorded in acceptance.json. No hardware/scheduling/appliancedeployment or parent completion.

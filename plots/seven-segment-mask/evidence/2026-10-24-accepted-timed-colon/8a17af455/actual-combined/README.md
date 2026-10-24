@@ -1,0 +1,7 @@
+# Actual environmental runtime and public checks after Make Fore composition
+
+Exact cleanf7a959cdc/treebe722 includes the five reviewed original heads with40exact file deltas. Following separatefreshMake26+strict proof, twelve sequential commands passed126actualtests: runtime35+36withstrictboth, Mask13+strict, Fore9+9withstrictboth, supportedTM17(wire-only/contract+Sourceencoderstrict) and supportedSource3+4withstrictboth. Everycommand had at least7GiB inprivate/tmp beforelaunch. Completeargv/exit/rawlogs/namedtests/RunningELFs/source/components/retainedlocal hashes are explicit.
+
+The original323executables and stablecopiesof103Makeowning executables remain hash-identical before/after. Prior102and24proofs ate9f/d350 remain immutable and are not relabeled. NativeBeam was not rebuilt: its fresh5514packet executed ate9f, and all11normal/builddependencyobjects remainexact atf7a, as separately recorded. Actual6389Candidate26 checkout5140 predatesNativePlot and retainsitsown identity. Binaries are retainedlocally, not hostedbythispacket.
+
+This actualcomponent/public-route proof is not devdelivery, fullCandidate/Integration, physicalfixtureprovenance, realdisplayHostCalls/cancellation/MCUfirmware, recorder/overnight or parent6378/6295 completion. No unknownwhole-tree or runtime-only dependencywaiver is granted. Acceptancehelpers must explicitlyreview exactbe722 and originalscopes before use.

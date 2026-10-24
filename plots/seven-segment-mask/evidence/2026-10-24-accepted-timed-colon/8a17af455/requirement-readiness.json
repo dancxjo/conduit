@@ -1,0 +1,213 @@
+{
+  "issue": 6381,
+  "requirements_body_sha256": "1ed68d6efbb4883c6849641c57225894aea44879e7fa431fd00daabb5a9c9bac",
+  "source": "6ab212c0016048791bcd014f3931f6658c1fe712",
+  "candidate": 40072495979,
+  "delivery_pr": 6382,
+  "packet": "fb4810392e0a942a0e4a633d5d13ac05167995de",
+  "packet_prefix": "plots/seven-segment-mask/evidence/2026-10-24-timed-colon-mask/6ab212c00/",
+  "requirements": [
+    {
+      "requirement": "Alternate Fahrenheit/RH from one immutable semanticFace at explicit elapsedtime",
+      "status": "met source+actualtests",
+      "source": [
+        "src/timed.rs:5-27 stores onlyLook+Alternation, render borrowsPreparedEnvironmentFace",
+        "src/format.rs render copies contentid+revision"
+      ],
+      "actual_test": "timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime",
+      "assertions": "Sameborrowedview; elapsed0/2999\u219267:6F,3000/5999\u219259H,6000\u219267:6F,9000\u219259H; sameFacecontentidentity each. face_revision copied directly; no separatemutableFace/model."
+    },
+    {
+      "requirement": "Refuse zero timingbounds andfiniteexplicit lifetime",
+      "status": "met",
+      "source": [
+        "src/format.rs Alternation::new/select",
+        "src/timed.rs prepare/render"
+      ],
+      "actual_test": "timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime",
+      "assertions": "period0/lifetime0 refuse; existingAlternation rejectsperiod>lifetime; positive/divisionparity boundedu64 arithmetic. No timer, schedulingloop orperiodmultiplicationoverflow."
+    },
+    {
+      "requirement": "Unavailable after admittedlifetime; terminal finite presentation",
+      "status": "met",
+      "source": [
+        "src/timed.rs render OutsideLifetime afterprofilevalidate"
+      ],
+      "actual_test": "timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime",
+      "assertions": "elapsed12000 atlifetime produces----; select rejects elapsed>=lifetime for everylargerexplicitvalue. Markercontentdoesnotreviveoldmeasurement. Callerowns validelapsedclock; no statefulclock/monotonicityauthority invented."
+    },
+    {
+      "requirement": "ColonfractionLook preserves tenths onactualcolon-onlyprofile, no fictionalbottomdots",
+      "status": "met",
+      "source": [
+        "types.conduit SevenSegmentFractionMarker andfahrenheit-colon-look",
+        "src/format.rs colonconversiononlyTemperaturedecimal_places1",
+        "src/wiring.rs actualprofilevalidation/map"
+      ],
+      "actual_test": "explicit_colon_fraction_look_retains_tenths_on_colon_only_glass",
+      "assertions": "Input19.8C\u219267:6F disposition1decimal; all4decimal_pointsfalse,colontrue,actualmapped6bytes[0x7d,0x87,0x7d,0x71,0,0]. No driver/GPIO/hardwareprofileavailability inferredfromLook."
+    },
+    {
+      "requirement": "Actualwiringvalidation/Faceprovenance/existingdecimalLooks andMaskcontrols preserved",
+      "status": "met",
+      "source": [
+        "src/format.rs render_for_profile validatesactualprofile beforeShow; boundedwholedegreefallback onlyif needed",
+        "src/lib.rs fahrenheit/celsius constructors defaultDecimalPoint",
+        "src/wiring.rs unchanged"
+      ],
+      "actual_tests": [
+        "wiring_exposes_unwired_and_shared_annunciators_and_digit_permutations",
+        "mask_fits_decimal_and_colon_capabilities_before_show_publication",
+        "fahrenheit_look_changes_expression_without_changing_face_quantity",
+        "unavailable_and_stale_never_manifest_old_measurements_as_current",
+        "rounding_sign_precision_fitting_and_overflow_are_explicit"
+      ],
+      "assertions": "Shared/unwired/duplicatebits andmappingpermutations; scalarquantitiesunchanged; stale/sensor/missing/overflowrefusals remain. Existingprotocol/Form/SourceLook tests included13fullpackage."
+    },
+    {
+      "requirement": "Portablepreparedrenderingonly; no acquisition/timer/GPIO/runtime/Bodymembership",
+      "status": "met source scope",
+      "source": [
+        "Exact6pathdelta allplots/seven-segment-mask",
+        "src/timed.rs no allocation/time/hardwarecalls"
+      ],
+      "actual_test": "rendering_and_timed_selection_reuse_fixed_storage",
+      "assertions": "Fixedstorage andborrowedFace, elapsedinputpureselection. Existingallocationprobe checksrender/Alternation noalloc/realloc; newwrapper sourcecontainsnoallocation. No native/appliancedeploymentclaim."
+    },
+    {
+      "requirement": "Owningtests/strictproof anddeliveryacceptance",
+      "status": "localproofmet;closurepending",
+      "evidence": "Actual13tests0fail0ignore,strictalltargetClippytrueargv/rawlog, exact6blobpacket8payloads+manifest and priorindependent39ELFreview. FullCandidate40072495979, normaldelivery andacceptedapplicableIntegration stillrequired; noquery/executionbythisaudit."
+    }
+  ],
+  "exact_six_source_blobs": [
+    {
+      "path": "plots/seven-segment-mask/README.md",
+      "blob": "62ddb0d9765d8b7d3f1dd34c927421984bb75e3c",
+      "sha256": "6d0fd41321d34b9426d35b66fe7d8bc22d88c5193cdc67bd7e2e2269ec77951a",
+      "bytes": 5241
+    },
+    {
+      "path": "plots/seven-segment-mask/src/format.rs",
+      "blob": "883c0c68db7c7377901e887b47c0e0fbd12919c6",
+      "sha256": "dc5d2a35a1b691b21f1875e523ae0c3e7a20bbddd82de0d4f65d2b984b564053",
+      "bytes": 6867
+    },
+    {
+      "path": "plots/seven-segment-mask/src/lib.rs",
+      "blob": "e50c5913c9d661423a9252e91d0ef242fd6cf0c6",
+      "sha256": "b22c330b644716586a147cc2ad91006b7a2584d0085f4de18203553f9de8e335",
+      "bytes": 2156
+    },
+    {
+      "path": "plots/seven-segment-mask/src/timed.rs",
+      "blob": "dc53eb3f589e7a358185c787fcf1bd3e62c78ce4",
+      "sha256": "9dc593dee32b361a6ecfdc8f4c19df010371ce0974f8c6955ec7c48d1ff1ce9f",
+      "bytes": 1178
+    },
+    {
+      "path": "plots/seven-segment-mask/tests/mask.rs",
+      "blob": "1b6b415e4578a622ce57b9ea4e14775bb30c6daf",
+      "sha256": "06e900bb092cdf9c61d0e5e7ef8ea9c90d2b15df4f363d79a41ee4303d55c70a",
+      "bytes": 16980
+    },
+    {
+      "path": "plots/seven-segment-mask/types.conduit",
+      "blob": "81e21fd8c4a30c0ed2a261da561be2bf685de17d",
+      "sha256": "8c74c07627ae7ba765e4a095bc8dd0c68db1cd851c6472f852acdb0b2c89776b",
+      "bytes": 1258
+    }
+  ],
+  "actual_logs": [
+    {
+      "step": "mask-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml"
+      ],
+      "raw_log": "work/6382-6ab-mask-tests.log",
+      "sha256": "e4b023d30a706f55e724c2a723ae1ae097af4a86faad22455928fa7b50348418",
+      "actual_passed": 13
+    },
+    {
+      "step": "strict-lint",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "raw_log": "work/6382-6ab-strict-lint.log",
+      "sha256": "6629fe3f3d02995ec56eacf426d768c51d1916f467877c8cc24e594cc0f5cda2",
+      "actual_passed": 0
+    }
+  ],
+  "packet_payloads_rehashed": [
+    {
+      "path": "6382-6ab-local-proof.json",
+      "sha256": "3a2b285703d214584b7420459f646e25600f55e0577dde2f07efafc0e3c6c87e"
+    },
+    {
+      "path": "6382-6ab-independent-source-review.json",
+      "sha256": "ae796c69231751f2863afa28fb31df123ec2dedc5542912977de423a78d07d8c"
+    },
+    {
+      "path": "6381-current-requirements.json",
+      "sha256": "e33bd13d373fbd12cd4fde6b5f06d6ad17be5fa101482b1a3663241093b6402c"
+    },
+    {
+      "path": "run-6382-6ab-proof.py",
+      "sha256": "9ea185b8ad181b4f7da3e70c568d6f3a2806d6238206d39eece783ff01b49cfe"
+    },
+    {
+      "path": "publish-6382-6ab-proof.py",
+      "sha256": "bd8125836cfa22c107c3c1f267dbc1976f3ca14b29b80a8e70b2fad87b5e2b2c"
+    },
+    {
+      "path": "6382-6ab-mask-tests.log.gz",
+      "sha256": "f0034ee09b0332c849f4739a10aabc02aa646fc9f47b2364511fa956ee8818ad"
+    },
+    {
+      "path": "6382-6ab-strict-lint.log.gz",
+      "sha256": "7980e1b97db9b1bc258b0066d068ee463f7593dbf35d4f86589b49ad932536a9"
+    },
+    {
+      "path": "README.md",
+      "sha256": "8fa09ce7dd952702727269a4b586aa89a2c78183e3d93a191cd0c7bbd7adc0f4"
+    }
+  ],
+  "prior_independent_ELFs_verified": 39,
+  "source_and_local_scope_ready": true,
+  "actionable_findings": [],
+  "closure_ready": false,
+  "pending": [
+    "FullsuccessfulexactheadCandidate",
+    "Normalactualdevdeliverywithtesteddelta/sourceidentity",
+    "SuccessfulapplicablefullIntegration/exactcurrentproofscope",
+    "Freshissuebody/stateguardsandimmutableacceptedreceiptbeforeclosure"
+  ],
+  "strict_dependency_tree_guards": {
+    "plots/seven-segment-mask": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/plot": "645e64243851dab38002380d1eb59a885fa31190",
+    "semantics/face": "6addb0188d273f7c1beebcee20e2d6601619e452",
+    "bodies/environment/face": "727a9b0781fdad19a43ccea9c77f6900395710f0"
+  },
+  "guard_limit": "Anyfuturematerialdependencytreechange fromrecordedproof stopsgenericacceptancehelper for independentreview/freshowningproof; not silentlyconsideredcovered. These guards are conservative, not new productacceptancecriteria.",
+  "nonclaims": [
+    "PortableMask/Look only, not acquisition/nativeSourceoffer/timerownership/driverGPIO/scheduling/appliancedeployment",
+    "No physicaldevice/tenthdecimalhardwareavailability beyondexplicitprofilefixture",
+    "No full6295/parentclimate/recorder/fairness/firmware/stableacceptance"
+  ],
+  "mode": "Read-onlysource/proof; no build/CIpoll/source/issuechange."
+}

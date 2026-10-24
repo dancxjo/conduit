@@ -1,0 +1,130 @@
+{
+  "source": "6ab212c0016048791bcd014f3931f6658c1fe712",
+  "parent_and_mergebase": "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+  "current_dev": "3a99fa7da517c99611f9082393c1a35376480b8f",
+  "changed_paths": [
+    {
+      "path": "plots/seven-segment-mask/README.md",
+      "blob": "62ddb0d9765d8b7d3f1dd34c927421984bb75e3c",
+      "sha256": "6d0fd41321d34b9426d35b66fe7d8bc22d88c5193cdc67bd7e2e2269ec77951a",
+      "bytes": 5241
+    },
+    {
+      "path": "plots/seven-segment-mask/src/format.rs",
+      "blob": "883c0c68db7c7377901e887b47c0e0fbd12919c6",
+      "sha256": "dc5d2a35a1b691b21f1875e523ae0c3e7a20bbddd82de0d4f65d2b984b564053",
+      "bytes": 6867
+    },
+    {
+      "path": "plots/seven-segment-mask/src/lib.rs",
+      "blob": "e50c5913c9d661423a9252e91d0ef242fd6cf0c6",
+      "sha256": "b22c330b644716586a147cc2ad91006b7a2584d0085f4de18203553f9de8e335",
+      "bytes": 2156
+    },
+    {
+      "path": "plots/seven-segment-mask/src/timed.rs",
+      "blob": "dc53eb3f589e7a358185c787fcf1bd3e62c78ce4",
+      "sha256": "9dc593dee32b361a6ecfdc8f4c19df010371ce0974f8c6955ec7c48d1ff1ce9f",
+      "bytes": 1178
+    },
+    {
+      "path": "plots/seven-segment-mask/tests/mask.rs",
+      "blob": "1b6b415e4578a622ce57b9ea4e14775bb30c6daf",
+      "sha256": "06e900bb092cdf9c61d0e5e7ef8ea9c90d2b15df4f363d79a41ee4303d55c70a",
+      "bytes": 16980
+    },
+    {
+      "path": "plots/seven-segment-mask/types.conduit",
+      "blob": "81e21fd8c4a30c0ed2a261da561be2bf685de17d",
+      "sha256": "8c74c07627ae7ba765e4a095bc8dd0c68db1cd851c6472f852acdb0b2c89776b",
+      "bytes": 1258
+    }
+  ],
+  "source_findings": [],
+  "scope_requirement_review": [
+    {
+      "requirement": "Alternate Fahrenheit and RH from one immutable semantic Face",
+      "assessment": "Prepared TimedSevenSegmentMask stores only Look+Alternation; rendering takes a borrowed prepared Face and returns same content_id/revision. Exact elapsed0/2999/3000/5999/6000/9000 selects expected67:6F or59H, same immutable fixture. Caller supplies Face/time; renderer creates no independent mutable Face truth."
+    },
+    {
+      "requirement": "Finite explicit timing and zero-bound refusal",
+      "assessment": "Existing Alternation validates nonzero period/lifetime and period<=lifetime. Division/parity needs no multiplication or unbounded loop; elapsed>=lifetime becomes unavailable OutsideLifetime. New test coverszero bounds and12000expiry; old tests retain lifetime/refusal behavior."
+    },
+    {
+      "requirement": "Colon-only tenths and true wiring",
+      "assessment": "New checked SevenSegmentFractionMarker Type and explicit Fahrenheit-colon Look. Only1decimal temperature changes annunciator tocolon andall decimal_pointsfalse. Existing profile validate/map enforces actualaddress/bitwiring and sharedcontrol conflicts; colon-only positive asserts actualsixmappedbytes. No fictional bottom dots."
+    },
+    {
+      "requirement": "Preserve decimal Looks, numeric and unavailable fallback",
+      "assessment": "Both existing Rust constructors defaultDecimalPoint; authoredfahrenheit-look includes newfielddecimal-point. Existing bounded round/sign/overflow andwholedegreefallback unchanged; stale/sensor/missingvalues remain unavailable. Timed expiry validatesprofile beforeunavailable. No acquisition/scheduler/Host/Body/GPIO dependency added."
+    },
+    {
+      "requirement": "Actual owning tests/lint",
+      "assessment": "PR claims13package tests+strictalltargetClippy+format. No raw log/immutable proof link in body or README, and no exacthead localworktree found in permitted inventory; actual execution not independently verified in this read-only review."
+    }
+  ],
+  "test_claims": {
+    "package_claim": 13,
+    "new_named_tests": [
+      "explicit_colon_fraction_look_retains_tenths_on_colon_only_glass",
+      "timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime"
+    ],
+    "execution_verified": false,
+    "supported_existing_route": "cargo +stable xtask prove environment mask",
+    "route_scope": "Executes rootPlot boolean_forms thenstandaloneMaskpackage tests; existing route forces Mask CARGO_TARGET_DIR=root/target and does not runstrictlint. Privatecache owning proof can use internal exactmanifesttest+strictclippy under supported workflow semantics.",
+    "strict_internal_command": "cargo +stable clippy --locked --manifest-path plots/seven-segment-mask/Cargo.toml --all-targets -- -D warnings",
+    "CI_qualification": "Own[workspace] Maskpackage is notroot admissionmember. Root test/lint maycompile dependencies but doesnotestablish standalone13 execution or strictMasklint. NoActionsobserved."
+  },
+  "current_dev_composition": {
+    "tree": "038b5709902ea1ed27f85af70106e9c13c3e6654",
+    "conflicts": [],
+    "all_six_feature_blobs_preserved": true,
+    "runtime_subtree_unchanged_from_current": true,
+    "stale_base_note": "Headparent91430c2 predatescurrent3a99 andSourceefc delivery. Normalmerge preservesacceptedSource; literalhead/currentdiff has9runtime differences, which arebase drift, notintendedreverts."
+  },
+  "effect_on_6380_actual_combined_proof": {
+    "prior_execution_source": "0872c37862e62d657fcd57a7740e4655008ebea1",
+    "prior_immutable_packet": "794a75ae73a3566d99034568c32f695f0bbd0ef8",
+    "prior_runtime_subtree": "f21a561749a3bbacf15770fcaece51337e19d60e",
+    "components": [
+      {
+        "path": "architecture/core",
+        "actual_prior6380_combined_object": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+        "prospective_after6382_object": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+        "exact": true
+      },
+      {
+        "path": "architecture/plot",
+        "actual_prior6380_combined_object": "645e64243851dab38002380d1eb59a885fa31190",
+        "prospective_after6382_object": "645e64243851dab38002380d1eb59a885fa31190",
+        "exact": true
+      },
+      {
+        "path": "semantics/face",
+        "actual_prior6380_combined_object": "6addb0188d273f7c1beebcee20e2d6601619e452",
+        "prospective_after6382_object": "6addb0188d273f7c1beebcee20e2d6601619e452",
+        "exact": true
+      },
+      {
+        "path": "bodies/environment/face",
+        "actual_prior6380_combined_object": "727a9b0781fdad19a43ccea9c77f6900395710f0",
+        "prospective_after6382_object": "727a9b0781fdad19a43ccea9c77f6900395710f0",
+        "exact": true
+      },
+      {
+        "path": "plots/seven-segment-mask",
+        "actual_prior6380_combined_object": "22cfb1a0f95ed72f907c5cdaf46c3465c1c73085",
+        "prospective_after6382_object": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+        "exact": false
+      }
+    ],
+    "material_change": "Mask production/schema/buildinput changes, even whenbridgefuture runtime subtree staysf21a. The runtime tests directly dependon this Mask and exerciseFahrenheitprojection; prior combined35/36+strict cannot be labeled an executionwithnewMask.",
+    "needed_guard": "Bind complete dependencyobjects alongsideruntime subtree. If6382 landsbefore6380 proofacceptance, obtain focused sourcebound owningruntime/lint on resultingMaskdependency or retainexplicit olddependencyqualification; whole-runtime-only correspondence insufficient. No automaticCandidate rerun inferred."
+  },
+  "limits": [
+    "Read-only source/onePR+oneissue GET; no builds/CIqueries/sourceorrefbranchmutation",
+    "No physicalcolonwiring/native scheduling/deployment/parent6295acceptance inferred",
+    "GeneratedLook canonicalschema nowhasmandatoryfraction_marker; no persistedLookcompatibility promised byoriginalscope"
+  ],
+  "observed_utc": "2026-10-24T07:16:41.873656+00:00"
+}

@@ -1,0 +1,287 @@
+{
+  "source": "6ab212c0016048791bcd014f3931f6658c1fe712",
+  "tree": "1f65d42f53a7e0f25685148b375f5c31ac9a5ddc",
+  "base": "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6382-6ab-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6382-6ab-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "mask-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml"
+      ],
+      "log": "work/6382-6ab-mask-tests.log",
+      "sha256": "e4b023d30a706f55e724c2a723ae1ae097af4a86faad22455928fa7b50348418",
+      "exit_code": 0,
+      "actual_passed": 13
+    },
+    {
+      "name": "strict-lint",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/6382-6ab-strict-lint.log",
+      "sha256": "6629fe3f3d02995ec56eacf426d768c51d1916f467877c8cc24e594cc0f5cda2",
+      "exit_code": 0,
+      "actual_passed": 0
+    }
+  ],
+  "started": 1792826365.186082,
+  "finished": 1792826512.4458535,
+  "clean_after": true,
+  "executables": [
+    {
+      "path": "work/6382-6ab-target/debug/deps/protocol-6676d4c0c796ba20",
+      "sha256": "2aa4fcd519c09823bcb97c4b3cdd56620a7ea10ec9936e55137e8ca3dae68666",
+      "bytes": 17822608
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/conduit_seven_segment_mask-136d16c9791143e6",
+      "sha256": "bd7152cc56da0ab5a7c3d0438a80b9d8d454fc047155303846981cbbbe899d2e",
+      "bytes": 1079712
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/libserde_derive-cadc7eecacc3408d.so",
+      "sha256": "7c53824f38e68e5428e9b23e9c20c1def691f1d01dbeb4616096779e7ad51f79",
+      "bytes": 4101328
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/plot-80d9c98f824f89a7",
+      "sha256": "abb068883ffc8fc6f6fe3d99819a19126a0b0c5ac349847fbc6242704e685cde",
+      "bytes": 19394160
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/libthiserror_impl-d2f92c23f911256d.so",
+      "sha256": "1e9c14d5b21fa5d3a5472b2907c503826e6880bad63b3dc5bf7fd888bcdb87e4",
+      "bytes": 3087456
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/mask-2873e4e63e448915",
+      "sha256": "4c5eaedead7107bd3ea732aabf492bb2a928480438a1113756770850348a7a6e",
+      "bytes": 5119224
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/look-1882cf7f92edf0b0",
+      "sha256": "fb57db61af6d0c60452eacf2f25cab90eadae8d92cbfa78ac7085cd7a9270627",
+      "bytes": 19142872
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/serde-247d56cd5e7fa925/build_script_build-247d56cd5e7fa925",
+      "sha256": "69eff29ef542c974fe752543636852c996a20fdd89b7dc4d5db3a315bb3c7ec4",
+      "bytes": 603544
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/serde-247d56cd5e7fa925/build-script-build",
+      "sha256": "69eff29ef542c974fe752543636852c996a20fdd89b7dc4d5db3a315bb3c7ec4",
+      "bytes": 603544
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/serde_core-2c47402badf38aac/build_script_build-2c47402badf38aac",
+      "sha256": "f3f45cacbdc09a5c4d047857a4062342d457a16d9eba7623213804e008dd4129",
+      "bytes": 606376
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/serde_core-2c47402badf38aac/build-script-build",
+      "sha256": "f3f45cacbdc09a5c4d047857a4062342d457a16d9eba7623213804e008dd4129",
+      "bytes": 606376
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-seven-segment-mask-fd5e88d72d0d02e6/build_script_build-fd5e88d72d0d02e6",
+      "sha256": "552ad791a06e858d991f23b323c7b43d62e7da9d9e912df7f60ea577e524dcd4",
+      "bytes": 13295656
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-seven-segment-mask-fd5e88d72d0d02e6/build-script-build",
+      "sha256": "552ad791a06e858d991f23b323c7b43d62e7da9d9e912df7f60ea577e524dcd4",
+      "bytes": 13295656
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/zmij-fd4adfc7370c6fa8/build_script_build-fd4adfc7370c6fa8",
+      "sha256": "0d11fda5482091de9c3e842209975a954a8a0336d4992b6fb888804e584d3ddb",
+      "bytes": 575752
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/zmij-fd4adfc7370c6fa8/build-script-build",
+      "sha256": "0d11fda5482091de9c3e842209975a954a8a0336d4992b6fb888804e584d3ddb",
+      "bytes": 575752
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-human-03e980a0afec71fc/build_script_build-03e980a0afec71fc",
+      "sha256": "649b4e151b2365a6ce93542ab2c74e093da3c19d139a1c8382a9a1bc3283ef5c",
+      "bytes": 13654880
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-human-03e980a0afec71fc/build-script-build",
+      "sha256": "649b4e151b2365a6ce93542ab2c74e093da3c19d139a1c8382a9a1bc3283ef5c",
+      "bytes": 13654880
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/thiserror-5d73eae44e8bef45/build_script_build-5d73eae44e8bef45",
+      "sha256": "3c0a71c52f7549cecab97788c78b87f58e79260e14f94d179d81218d5923a059",
+      "bytes": 653568
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/thiserror-5d73eae44e8bef45/build-script-build",
+      "sha256": "3c0a71c52f7549cecab97788c78b87f58e79260e14f94d179d81218d5923a059",
+      "bytes": 653568
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/quote-17a3ee179b4c2890/build_script_build-17a3ee179b4c2890",
+      "sha256": "59687911913c0e67d74a994e7948b778a5039a281184af90da6bacbbd785f687",
+      "bytes": 570672
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/quote-17a3ee179b4c2890/build-script-build",
+      "sha256": "59687911913c0e67d74a994e7948b778a5039a281184af90da6bacbbd785f687",
+      "bytes": 570672
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/proc-macro2-0ca1b77b693ce48f/build_script_build-0ca1b77b693ce48f",
+      "sha256": "1018bc643dcb358fc7a4b8fe7ac6adbd54987ea62262c6c5550070d20ac61d8f",
+      "bytes": 628728
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/proc-macro2-0ca1b77b693ce48f/build-script-build",
+      "sha256": "1018bc643dcb358fc7a4b8fe7ac6adbd54987ea62262c6c5550070d20ac61d8f",
+      "bytes": 628728
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-face-e517ddf1d792ef2a/build_script_build-e517ddf1d792ef2a",
+      "sha256": "9a3abbdb9d08bca9dc566c76cf1da8c20ccd2312f91267c94f974a909a1581be",
+      "bytes": 13778608
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-face-e517ddf1d792ef2a/build-script-build",
+      "sha256": "9a3abbdb9d08bca9dc566c76cf1da8c20ccd2312f91267c94f974a909a1581be",
+      "bytes": 13778608
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/serde_core-b8ac279ad143839b/build_script_build-b8ac279ad143839b",
+      "sha256": "7af6d3f080848a07bc7e75fca68bfab4912293340da05ba276ed575361c7fa64",
+      "bytes": 606376
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/serde_core-b8ac279ad143839b/build-script-build",
+      "sha256": "7af6d3f080848a07bc7e75fca68bfab4912293340da05ba276ed575361c7fa64",
+      "bytes": 606376
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-seven-segment-mask-1c4c246439b8e18c/build_script_build-1c4c246439b8e18c",
+      "sha256": "ef95d1016e570c54a5f2cbf88a605ec09183badbe78d1d5e71175dd7f329ed77",
+      "bytes": 13295736
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-seven-segment-mask-1c4c246439b8e18c/build-script-build",
+      "sha256": "ef95d1016e570c54a5f2cbf88a605ec09183badbe78d1d5e71175dd7f329ed77",
+      "bytes": 13295736
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-time-bd74a6d887e1e4e2/build_script_build-bd74a6d887e1e4e2",
+      "sha256": "b77deb3f54a622b762d1d46573321bb128f899f407c3c7e69fed5edb5b5f1350",
+      "bytes": 13476944
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-time-bd74a6d887e1e4e2/build-script-build",
+      "sha256": "b77deb3f54a622b762d1d46573321bb128f899f407c3c7e69fed5edb5b5f1350",
+      "bytes": 13476944
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-language-1ce8eb4af337930f/build_script_build-1ce8eb4af337930f",
+      "sha256": "372b02ef5818f66ad99b4c0772cd8b261d97130b342c5565adf72e4a84e38de6",
+      "bytes": 17306184
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/conduit-language-1ce8eb4af337930f/build-script-build",
+      "sha256": "372b02ef5818f66ad99b4c0772cd8b261d97130b342c5565adf72e4a84e38de6",
+      "bytes": 17306184
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/libm-e50aa47372ad36b2/build_script_build-e50aa47372ad36b2",
+      "sha256": "220541cfa0ab88846cb041e2c777b78268380159f31f7c25f586b39b4ca93557",
+      "bytes": 557704
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/libm-e50aa47372ad36b2/build-script-build",
+      "sha256": "220541cfa0ab88846cb041e2c777b78268380159f31f7c25f586b39b4ca93557",
+      "bytes": 557704
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/serde_json-dae22f538323cf77/build_script_build-dae22f538323cf77",
+      "sha256": "5f787f2efccf86e9e1e249d663d5e917a2590ef3315d7abbd3e2174b362b8bd6",
+      "bytes": 463472
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/serde_json-dae22f538323cf77/build-script-build",
+      "sha256": "5f787f2efccf86e9e1e249d663d5e917a2590ef3315d7abbd3e2174b362b8bd6",
+      "bytes": 463472
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/generic-array-3e7865b8dbffc0be/build_script_build-3e7865b8dbffc0be",
+      "sha256": "6bdf8f006652090a086d675e2014d370009c2a0b2d765b24a50b20b4c54d3478",
+      "bytes": 638296
+    },
+    {
+      "path": "work/6382-6ab-target/debug/build/generic-array-3e7865b8dbffc0be/build-script-build",
+      "sha256": "6bdf8f006652090a086d675e2014d370009c2a0b2d765b24a50b20b4c54d3478",
+      "bytes": 638296
+    }
+  ],
+  "actual_named_successes": [
+    "test the_requested_fahrenheit_look_is_checked_source_data ... ok",
+    "test compact_pattern_form_round_trips_exactly_seven_bits ... ok",
+    "test subject_selection_preserves_a_rich_parent_face_and_preparation_bounds ... ok",
+    "test explicit_colon_fraction_look_retains_tenths_on_colon_only_glass ... ok",
+    "test wiring_exposes_unwired_and_shared_annunciators_and_digit_permutations ... ok",
+    "test fahrenheit_look_changes_expression_without_changing_face_quantity ... ok",
+    "test mask_fits_decimal_and_colon_capabilities_before_show_publication ... ok",
+    "test timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime ... ok",
+    "test unavailable_and_stale_never_manifest_old_measurements_as_current ... ok",
+    "test rendering_and_timed_selection_reuse_fixed_storage ... ok",
+    "test rounding_sign_precision_fitting_and_overflow_are_explicit ... ok",
+    "test authored_mask_uses_the_existing_face_interaction_show_role ... ok",
+    "test source_owns_command_order_display_control_and_brightness_refusal ... ok"
+  ],
+  "actual_test_executables": [
+    {
+      "path": "work/6382-6ab-target/debug/deps/look-1882cf7f92edf0b0",
+      "bytes": 19142872,
+      "sha256": "fb57db61af6d0c60452eacf2f25cab90eadae8d92cbfa78ac7085cd7a9270627"
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/mask-2873e4e63e448915",
+      "bytes": 5119224,
+      "sha256": "4c5eaedead7107bd3ea732aabf492bb2a928480438a1113756770850348a7a6e"
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/plot-80d9c98f824f89a7",
+      "bytes": 19394160,
+      "sha256": "abb068883ffc8fc6f6fe3d99819a19126a0b0c5ac349847fbc6242704e685cde"
+    },
+    {
+      "path": "work/6382-6ab-target/debug/deps/protocol-6676d4c0c796ba20",
+      "bytes": 17822608,
+      "sha256": "2aa4fcd519c09823bcb97c4b3cdd56620a7ea10ec9936e55137e8ca3dae68666"
+    }
+  ],
+  "proof_scope": "Exact head13 standalone Mask tests+strictalltargetClippy, no physical/native/combinedruntime proof"
+}

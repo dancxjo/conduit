@@ -1,0 +1,23 @@
+{
+  "source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "tree": "d35051b7b0b512ef82e76fd37902479a65c43a06",
+  "branch": "evidence/ready-four-native-owning-20261024",
+  "commit": "5514e2b950887dc70bdf5fa5d8c4b2df9b93311c",
+  "prefix": "proof/language/ready-four-native-owning-20261024/e9f8787cc",
+  "files": 14,
+  "actual_outer_tests": 17,
+  "generated_inner_tests": 4,
+  "strict_scope": "Plot+Language library only",
+  "old242_executables_unchanged": true,
+  "actual_Beam_binary": {
+    "actual_Cargo_Running_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target/debug/deps/actual_beam_prepared_decode-26ddf78078dd5fef",
+    "raw_sha256": "63c81e6048400ecb59909cd0b90beece5fce35a0479f5a08488190b66a2be032",
+    "raw_bytes": 35773384,
+    "stored": true,
+    "file": "actual-beam-test.elf.gz",
+    "stored_sha256": "b94f8097304c454928f3fd4c8f0f7813b81464e42277cbb13ab247524ed53f36",
+    "stored_bytes": 7383882
+  },
+  "remote_verified": true,
+  "url": "https://github.com/dancxjo/conduit/tree/5514e2b950887dc70bdf5fa5d8c4b2df9b93311c/proof/language/ready-four-native-owning-20261024/e9f8787cc"
+}
