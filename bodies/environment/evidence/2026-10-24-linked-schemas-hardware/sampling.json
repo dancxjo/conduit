@@ -1,0 +1,163 @@
+{
+  "proof_class": "attended native Face and quantity publication replay; finite run",
+  "source_commit": "3c22a5cc2dc26e0a25c9b2dff3c87192d529715e",
+  "public_command": "cargo xtask prove environment owner-face-run-esp32",
+  "observations": [
+    {
+      "source_sequence": 1,
+      "revision": 1,
+      "face_identity": "41a5ae3c1922d2b4405c8e5b990b71aca04519518d7644f2793c34ef5bf2389e"
+    },
+    {
+      "source_sequence": 2,
+      "revision": 2,
+      "face_identity": "967207fa2cd7cc6a5105e633550a447093072d9aaf951a2d5a49beb73ef25670"
+    },
+    {
+      "source_sequence": 3,
+      "revision": 3,
+      "face_identity": "71ae078341fb82e20c33ea68757163ee359965cffe03fc45a9fdc2694342dae0"
+    }
+  ],
+  "root_heap_bytes": 114688,
+  "sdk_heap_bytes": 73728,
+  "root_heap_peak_bytes": 80572,
+  "root_heap_after_retirement_bytes": 9756,
+  "observed_sampling_root_used_bytes": [
+    80572,
+    80572,
+    80572
+  ],
+  "observed_sdk_peak_bytes": 34024,
+  "heap_checkpoints": {
+    "owner-native-preparation.json": {
+      "observed_boot_ms": 29160,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 80572,
+      "root_used_bytes": 80572,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "owner-release.json": {
+      "observed_boot_ms": 30187,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 80572,
+      "root_used_bytes": 80572,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-1.json": {
+      "observed_boot_ms": 90610,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 80572,
+      "root_used_bytes": 80572,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-2.json": {
+      "observed_boot_ms": 153835,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 80572,
+      "root_used_bytes": 80572,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-3.json": {
+      "observed_boot_ms": 211321,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 80572,
+      "root_used_bytes": 80572,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "owner-quiesced.json": {
+      "observed_boot_ms": 212082,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 80572,
+      "root_used_bytes": 80572,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "owner-retired.json": {
+      "observed_boot_ms": 212610,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 80572,
+      "root_used_bytes": 9756,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    }
+  },
+  "linked_stack_bytes": 36908,
+  "stack_floor_bytes": 36864,
+  "stack_high_water_claimed": false,
+  "mask_on_mcu": false,
+  "combined_sampling_output_claimed": false,
+  "telemetry_is_signed_attestation": false,
+  "image_receipt": {
+    "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792854931/root.elf",
+    "body_started": false,
+    "elf_sha256": "05dbb9d96e43eb2e218460bac59c4384a49c3ddc9117eb379d5a5c4a6fbfde9a",
+    "owner_public_key_sha256": "e803269abafd033641cf34da85a65cbd70a8f667957903908d7b29a9d45d3a33",
+    "schema": "conduit.environment/owner-root-image@1",
+    "source_dirty": false,
+    "source_head": "3c22a5cc2dc26e0a25c9b2dff3c87192d529715e"
+  },
+  "recovery": {
+    "source": "3c22a5cc2dc26e0a25c9b2dff3c87192d529715e",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": true,
+    "native_exit": 0,
+    "captures": {
+      "environment-owner-images": [
+        "target/environment-owner-images/1792854931"
+      ],
+      "environment-software-ready": [
+        "target/environment-software-ready/1792855064"
+      ],
+      "environment-body-admission": [
+        "target/environment-body-admission/1792855059"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  },
+  "capture_sha256": {
+    "result.json": "c470b199f248c9cc0c2c07e8c6ba87ae13bbab20c15d2a6809f1d20487416d2c",
+    "native-root.map": "16153d3c73a84ebe66de194cd4cd166eeec77f869651aa4eab6ef05a41c2b723",
+    "environment-software-ready/1792855064/owner-native-preparation.json": "e5e5cbb65ebce992963323eb28e89a244ac007b4ffc94756f0fcf683376d1d0c",
+    "environment-software-ready/1792855064/owner-release.json": "1c0aee13a00de01dec398f8d5ffcb90577ef1fb8de5170a9a4ef0ef800a705ad",
+    "environment-software-ready/1792855064/physical-observation-1.json": "3b6ec7ba58c99be8e3c0ba1ecac7511ef97226e1f9543c267a0b00f7bca033fc",
+    "environment-software-ready/1792855064/physical-observation-2.json": "436155500ef54a9ab98506292f9d5a24a361d59660db4874d4b9340db7f43efa",
+    "environment-software-ready/1792855064/physical-observation-3.json": "e87c6d10ad11ee281de71e4e64c5aa5a358b6e700cfa24a40a525e47e784820f",
+    "environment-software-ready/1792855064/owner-quiesced.json": "d6dab3dfd81b484f8c2416514afcea4d99fe206d4793b9ac89969097b8171624",
+    "environment-software-ready/1792855064/owner-retired.json": "db970c2fdcf36409fbbb556cbb5dd394e45538303f5908381f219a2e30341b4f",
+    "environment-software-ready/1792855064/physical-face-1.json": "0ed5e58fb6571b6f629527d5741deb3a51acd0f3fd92af543bbee8764d04dca4",
+    "environment-software-ready/1792855064/physical-face-2.json": "ae9842c9b495abc8e681cc582110b8c34e56fd9d304ea0b8311a0c595e8a0afa",
+    "environment-software-ready/1792855064/physical-face-3.json": "18db27d262714fe9d2498d1dd0ae3bbeca0d0d0fc18afb3102f73546e07d3c60"
+  },
+  "value_slot_capacities": [
+    2274,
+    2274,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024
+  ]
+}

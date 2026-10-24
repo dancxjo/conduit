@@ -55,7 +55,7 @@ def elf_sections(path):
 
 def ledger(sampling_image=None, output_image=None):
     inputs = {
-        "sampling": EVIDENCE / "2026-10-24-constructor-tape-hardware/sampling.json",
+        "sampling": EVIDENCE / "2026-10-24-linked-schemas-hardware/sampling.json",
         "output": EVIDENCE / "2026-10-24-output-retention-hardware/measurement.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
         "expression_cpu": EVIDENCE / "2026-10-24-tape-join-repair/measurement.json",
