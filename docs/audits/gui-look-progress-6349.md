@@ -117,3 +117,29 @@ Fresh x86_64 normal-media build remains active. The capture script is prepared
 to enter Crèche from the actual zero-Body Commons Hub, observe complete serial
 receipts, and capture the default, palette-switched and density-switched Shows
 without replacing the guest or inventing owner effects.
+
+## Actual native QEMU captures
+
+The normal x86_64 live image now builds and boots successfully. Capture used the
+standard q35/512 MiB/USB keyboard-and-mouse shape with an isolated QMP socket.
+The guest entered Crèche from the real zero-Body Commons Hub. F7 selected
+compact Editorial; F6 then selected spacious Editorial. Complete serial records
+confirm unchanged Face identity/revision and distinct chained acknowledged local
+Shows. Both compact palettes render within 47/48 commands; spacious uses 23/48
+on its first page and admits three pages at its selected 125% text scale.
+
+The build manifest records native Source `749491a3c`; later branch commits change
+browser renderer/evidence only. This is actual freestanding QEMU presentation,
+not physical deployment or CI/stable acceptance. Captures, exact image digest,
+make/Host identities, Look expressions, Show chain and raw serial observations
+are retained together in [the native evidence directory](evidence/gui-look-6349-native/).
+
+![Actual compact Editorial Crèche](evidence/gui-look-6349-native/native-creche-editorial.png)
+
+[Dark navy compact](evidence/gui-look-6349-native/native-creche-default.png) ·
+[Spacious Editorial](evidence/gui-look-6349-native/native-creche-editorial-spacious.png)
+
+The native reference remains unfinished: this capture exposes sparse native
+action icon coverage and a largely flat control treatment instead of the
+reference's cohesive panel surfaces and hierarchy. Dark navy remains available;
+warm Editorial is an additional expression, not a claim of reference completion.
