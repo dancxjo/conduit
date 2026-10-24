@@ -7,6 +7,8 @@ mod display_material;
 mod display_layout;
 pub use display_layout::DisplayLayoutMaterial;
 mod display_output;
+mod display_mask_source;
+pub use display_mask_source::{DisplayMaskSource, MaskPlanningRefusal};
 mod display_observation;
 pub use display_material::DisplaySourceMaterial;
 pub use display_output::{DisplayOutputSource, DisplayPlanningRefusal, PreparedDisplayOutput};

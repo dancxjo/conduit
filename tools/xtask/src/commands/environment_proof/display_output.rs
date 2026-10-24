@@ -81,6 +81,7 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
         ),
         ("bodies/environment/make/Cargo.toml", "native_face_mask"),
         ("bodies/environment/make/Cargo.toml", "display_output"),
+        ("bodies/environment/make/Cargo.toml", "display_mask_source"),
     ] {
         for operation in ["test", "clippy"] {
             let mut command = Command::new("cargo");
