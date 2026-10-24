@@ -1,0 +1,11 @@
+[
+  {
+    "url": "http://127.0.0.1:43831/assets/conduit-browser-runtime.wasm",
+    "status": 200,
+    "requestObserved": true,
+    "hashScope": "independent GET of same immutable served URL; not proof of WASM execution",
+    "servedStatus": 200,
+    "bytes": 18884793,
+    "sha256": "a58301a9c2213e67348eb523f689e8f807f7528091d8501a6e0676273fc99aba"
+  }
+]

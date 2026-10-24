@@ -1,0 +1,138 @@
+{
+  "config": {
+    "argv": [
+      "/home/linuxbrew/.linuxbrew/Cellar/node/25.9.0_2/bin/node",
+      "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6387-current-browser-runner/proof/browser/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "proof/browser/patchbay-html.playwright.config.mjs",
+      "proof/browser/patchbay-authoring.spec.mjs",
+      "--grep",
+      "catalog queries and two durable layouts decorate the same live Plot",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line,json",
+      "--output",
+      "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6387-current-product/browser-results"
+    ],
+    "configFile": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6387-current-browser-runner/proof/browser/patchbay-html.playwright.config.mjs",
+    "rootDir": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6387-current-browser-runner/proof/browser",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6387-current-product/browser-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6387-current-browser-runner/proof/browser",
+        "testIgnore": [],
+        "testMatch": [
+          "patchbay-look-options.spec.mjs",
+          "patchbay-dynamic-icons.spec.mjs",
+          "patchbay-html.spec.mjs",
+          "patchbay-body-workbench.spec.mjs",
+          "patchbay-front-door.spec.mjs",
+          "patchbay-recursive-plot.spec.mjs",
+          "patchbay-authoring.spec.mjs",
+          "patchbay-cord-routing.spec.mjs",
+          "patchbay-follow.spec.mjs",
+          "patchbay-navigation-conformance.spec.mjs",
+          "patchbay-depth.spec.mjs",
+          "patchbay-panel-furniture.spec.mjs",
+          "patchbay-text-lab-split.spec.mjs",
+          "patchbay-llm.spec.mjs"
+        ],
+        "timeout": 20000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "patchbay-authoring.spec.mjs",
+      "file": "patchbay-authoring.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "catalog queries and two durable layouts decorate the same live Plot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 40805,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T21:09:57.739Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "df4bdca81b368db78975-67293e019df698703acb",
+          "file": "patchbay-authoring.spec.mjs",
+          "line": 28,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-24T21:09:57.284Z",
+    "duration": 41394.522,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

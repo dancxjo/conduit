@@ -1,0 +1,343 @@
+{
+  "source": "a6353d7f189358c159bd718092cf2fa53b0aef4a",
+  "files": [
+    {
+      "original_path": "SHA256-MANIFEST.json",
+      "raw_bytes": 5773,
+      "raw_sha256": "38f23266e5263edc6f96d523847c80adb1aa6de6af5d42986ba1bc285a273e70",
+      "retained_publicly": true,
+      "retained_path": "SHA256-MANIFEST.json",
+      "retained_bytes": 5773,
+      "retained_sha256": "38f23266e5263edc6f96d523847c80adb1aa6de6af5d42986ba1bc285a273e70"
+    },
+    {
+      "original_path": "browser-command.json",
+      "raw_bytes": 829,
+      "raw_sha256": "93721e62696a4e821a11022bc50a65df5752670f8f56f4a6ccd15d40647bce06",
+      "retained_publicly": true,
+      "retained_path": "browser-command.json",
+      "retained_bytes": 829,
+      "retained_sha256": "93721e62696a4e821a11022bc50a65df5752670f8f56f4a6ccd15d40647bce06"
+    },
+    {
+      "original_path": "browser-discovery-no-tests.log",
+      "raw_bytes": 166,
+      "raw_sha256": "10430d4abdbd108757550247ef54aa526417db51010e4fcac2d0bf16fe54e830",
+      "retained_publicly": true,
+      "retained_path": "browser-discovery-no-tests.log.gz",
+      "retained_bytes": 145,
+      "retained_sha256": "36c2fe8bf9c1c94a454db7af222fc1b4bfd5a27338811e4d32736bad042e68d2"
+    },
+    {
+      "original_path": "browser-report.json",
+      "raw_bytes": 4334,
+      "raw_sha256": "53442e2561e33936a59543015075e716a72d2ebbaf7ad8355ceaccb0133e2cab",
+      "retained_publicly": true,
+      "retained_path": "browser-report.json",
+      "retained_bytes": 4334,
+      "retained_sha256": "53442e2561e33936a59543015075e716a72d2ebbaf7ad8355ceaccb0133e2cab"
+    },
+    {
+      "original_path": "browser-results/.last-run.json",
+      "raw_bytes": 45,
+      "raw_sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903",
+      "retained_publicly": true,
+      "retained_path": "browser-results/.last-run.json",
+      "retained_bytes": 45,
+      "retained_sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "original_path": "browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/authoring-configuration-refusal.png",
+      "raw_bytes": 115705,
+      "raw_sha256": "0aee021dd9aea3afb7d9dc5e77f5569e660ce3204a1bf1c978ebbbea72db1b6c",
+      "retained_publicly": true,
+      "retained_path": "browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/authoring-configuration-refusal.png",
+      "retained_bytes": 115705,
+      "retained_sha256": "0aee021dd9aea3afb7d9dc5e77f5569e660ce3204a1bf1c978ebbbea72db1b6c"
+    },
+    {
+      "original_path": "browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/live-authoring-face.json",
+      "raw_bytes": 543065,
+      "raw_sha256": "912389e1ada13d67b772b91a189c59ffa31d0679f3d2913a588829055c402dc9",
+      "retained_publicly": true,
+      "retained_path": "browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/live-authoring-face.json.gz",
+      "retained_bytes": 25611,
+      "retained_sha256": "effe074a120f17c34e08af3c0e54fcb4647e8b7645916b2314640a7772a12783"
+    },
+    {
+      "original_path": "browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/live-authoring-wide.png",
+      "raw_bytes": 189059,
+      "raw_sha256": "fdd6a8f2847620356cbabe66d311831a111037008b124b62ececd0e150e4de19",
+      "retained_publicly": true,
+      "retained_path": "browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/live-authoring-wide.png",
+      "retained_bytes": 189059,
+      "retained_sha256": "fdd6a8f2847620356cbabe66d311831a111037008b124b62ececd0e150e4de19"
+    },
+    {
+      "original_path": "browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/observed-wasm-network.json",
+      "raw_bytes": 355,
+      "raw_sha256": "ca61beae9178e465acc4e3441da393760ead490e3d32d6cda824e4fc990c1b37",
+      "retained_publicly": true,
+      "retained_path": "browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/observed-wasm-network.json",
+      "retained_bytes": 355,
+      "retained_sha256": "ca61beae9178e465acc4e3441da393760ead490e3d32d6cda824e4fc990c1b37"
+    },
+    {
+      "original_path": "browser-wasm.log",
+      "raw_bytes": 13449,
+      "raw_sha256": "2d2f782fd8263fa71a0ee6cdd8cf2e2b2708ce1b38bbd500399d7c80503568d5",
+      "retained_publicly": true,
+      "retained_path": "browser-wasm.log.gz",
+      "retained_bytes": 1902,
+      "retained_sha256": "d8cdbdc39d323d54358855fb0547eafb5ee3ba697914a4194d222e634b28af2a"
+    },
+    {
+      "original_path": "browser-wasm.wasm.gz",
+      "raw_bytes": 4435041,
+      "raw_sha256": "722dda6ba9a49bb856a78db3dcd3d41fad477019feaa5eebbcc23ab73b40753f",
+      "retained_publicly": false,
+      "boundary": "Actual lossless binary archive retained locally; public receipt is its hash, not a public archive URL."
+    },
+    {
+      "original_path": "build-receipt.json",
+      "raw_bytes": 1443,
+      "raw_sha256": "83ab19881358a754af964e2fcd222c6bfb8bb0570ca53b97c9fc0514c96a2355",
+      "retained_publicly": true,
+      "retained_path": "build-receipt.json",
+      "retained_bytes": 1443,
+      "retained_sha256": "83ab19881358a754af964e2fcd222c6bfb8bb0570ca53b97c9fc0514c96a2355"
+    },
+    {
+      "original_path": "execution-receipt.json",
+      "raw_bytes": 6843,
+      "raw_sha256": "9be0ed1ce521a854a17d57e96aa00a1a58dfccbae370facecc66c6b5261960d3",
+      "retained_publicly": true,
+      "retained_path": "execution-receipt.json",
+      "retained_bytes": 6843,
+      "retained_sha256": "9be0ed1ce521a854a17d57e96aa00a1a58dfccbae370facecc66c6b5261960d3"
+    },
+    {
+      "original_path": "helper-6387-current-enact.py",
+      "raw_bytes": 2729,
+      "raw_sha256": "933f77f23f06a6f43f8edda78f40716c2b450c99d599bc164aee14da04e079ea",
+      "retained_publicly": true,
+      "retained_path": "helper-6387-current-enact.py",
+      "retained_bytes": 2729,
+      "retained_sha256": "933f77f23f06a6f43f8edda78f40716c2b450c99d599bc164aee14da04e079ea"
+    },
+    {
+      "original_path": "helper-6387-current-minimal.py",
+      "raw_bytes": 2789,
+      "raw_sha256": "e89c76dba788fab13ebb656a9161cbcdf7918d2c8aef022c2ad9a9de5ce6610d",
+      "retained_publicly": true,
+      "retained_path": "helper-6387-current-minimal.py",
+      "retained_bytes": 2789,
+      "retained_sha256": "e89c76dba788fab13ebb656a9161cbcdf7918d2c8aef022c2ad9a9de5ce6610d"
+    },
+    {
+      "original_path": "helper-patchbay-authoring.spec.mjs",
+      "raw_bytes": 31226,
+      "raw_sha256": "1dd20896a4795501c7e5964212b17744fec72ee705b1753453183bc13588d4ac",
+      "retained_publicly": true,
+      "retained_path": "helper-patchbay-authoring.spec.mjs",
+      "retained_bytes": 31226,
+      "retained_sha256": "1dd20896a4795501c7e5964212b17744fec72ee705b1753453183bc13588d4ac"
+    },
+    {
+      "original_path": "helper-patchbay-html.playwright.config.mjs",
+      "raw_bytes": 1143,
+      "raw_sha256": "867020daff133ae50047557bafc436f1e80272e6e983506664735439f734ad99",
+      "retained_publicly": true,
+      "retained_path": "helper-patchbay-html.playwright.config.mjs",
+      "retained_bytes": 1143,
+      "retained_sha256": "867020daff133ae50047557bafc436f1e80272e6e983506664735439f734ad99"
+    },
+    {
+      "original_path": "helper-run-6387-current-build.py",
+      "raw_bytes": 1714,
+      "raw_sha256": "f46b54c7021cf5a68210efa9272a79f1f784222a1e449ca7cda5f36fc7823d42",
+      "retained_publicly": true,
+      "retained_path": "helper-run-6387-current-build.py",
+      "retained_bytes": 1714,
+      "retained_sha256": "f46b54c7021cf5a68210efa9272a79f1f784222a1e449ca7cda5f36fc7823d42"
+    },
+    {
+      "original_path": "minimal-final-face.json",
+      "raw_bytes": 383783,
+      "raw_sha256": "dc2abb302b3464141f86066dd97615cdd84f39730c0babac39d513b87696cb2f",
+      "retained_publicly": true,
+      "retained_path": "minimal-final-face.json.gz",
+      "retained_bytes": 21435,
+      "retained_sha256": "f83c14a280068d934d3fddd03ec59dcc225380c59cf694a1716c25077c6a6d04"
+    },
+    {
+      "original_path": "minimal-initial-face.json",
+      "raw_bytes": 93410,
+      "raw_sha256": "2ee8c3fb6617999ac7385d4772f1750ed1e69b09189045a7ad691670db30a9a5",
+      "retained_publicly": true,
+      "retained_path": "minimal-initial-face.json.gz",
+      "retained_bytes": 6272,
+      "retained_sha256": "b91d676d08f1a802180b79983882d6e8f7ee253a274c4fd42a607b2ff3519a2c"
+    },
+    {
+      "original_path": "minimal-result.json",
+      "raw_bytes": 683024,
+      "raw_sha256": "7dac2c6c50494f04065ae4388552b33b5b1971f16455bfb7f3004f0f4a367c70",
+      "retained_publicly": true,
+      "retained_path": "minimal-result.json.gz",
+      "retained_bytes": 41029,
+      "retained_sha256": "1e2c1923e2e1abff01a2966de75cdfd5cf525bf09bd873b2d125c8fe26d18e7e"
+    },
+    {
+      "original_path": "minimal-server-stderr.log",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retained_publicly": true,
+      "retained_path": "minimal-server-stderr.log.gz",
+      "retained_bytes": 20,
+      "retained_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "original_path": "minimal-server-stdout.log",
+      "raw_bytes": 41,
+      "raw_sha256": "b167c43f9a2c8811d94133489e999b3d8a2ab29529b8ee3498634d70131dfc9d",
+      "retained_publicly": true,
+      "retained_path": "minimal-server-stdout.log.gz",
+      "retained_bytes": 59,
+      "retained_sha256": "aa69539d834f6a3a7c46126da6f6aca9425a2f439373b04b155770d5f20d4e33"
+    },
+    {
+      "original_path": "minimal.log",
+      "raw_bytes": 49,
+      "raw_sha256": "0fce45b5d6b75e8a9859b7cb9f254e1ba6e23f99defdfab43c4fa7beca77dfe8",
+      "retained_publicly": true,
+      "retained_path": "minimal.log.gz",
+      "retained_bytes": 69,
+      "retained_sha256": "f1b130e1f038e04fa45f926dd547338990a6adecd60b86d761d89f1a8103fd10"
+    },
+    {
+      "original_path": "negative-browser-observer/browser-report.json",
+      "raw_bytes": 11296,
+      "raw_sha256": "c9df04a99d10614e7ffbad389bdb7a68041cd459e09f9c769142bb4f97ecc8e9",
+      "retained_publicly": true,
+      "retained_path": "negative-browser-observer/browser-report.json",
+      "retained_bytes": 11296,
+      "retained_sha256": "c9df04a99d10614e7ffbad389bdb7a68041cd459e09f9c769142bb4f97ecc8e9"
+    },
+    {
+      "original_path": "negative-browser-observer/browser-results/.last-run.json",
+      "raw_bytes": 96,
+      "raw_sha256": "9b83b049f021b04ccbed95ab836659051b14461989900a4b5b419cf4e65957f5",
+      "retained_publicly": true,
+      "retained_path": "negative-browser-observer/browser-results/.last-run.json",
+      "retained_bytes": 96,
+      "retained_sha256": "9b83b049f021b04ccbed95ab836659051b14461989900a4b5b419cf4e65957f5"
+    },
+    {
+      "original_path": "negative-browser-observer/browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/error-context.md",
+      "raw_bytes": 11519,
+      "raw_sha256": "a8aed7d144c27870e315df55de124cf553387d28cfba8bf25f6d0479432bcec3",
+      "retained_publicly": true,
+      "retained_path": "negative-browser-observer/browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/error-context.md",
+      "retained_bytes": 11519,
+      "retained_sha256": "a8aed7d144c27870e315df55de124cf553387d28cfba8bf25f6d0479432bcec3"
+    },
+    {
+      "original_path": "negative-browser-observer/original-nine-gear.log",
+      "raw_bytes": 4084,
+      "raw_sha256": "9e2dab0b73a1fead0275824ca2abc3fa815b4e111f75c5b8e833e81a7930cdf4",
+      "retained_publicly": true,
+      "retained_path": "negative-browser-observer/original-nine-gear.log.gz",
+      "retained_bytes": 1154,
+      "retained_sha256": "85ac5a344af86d2db277c302b72af8c5f2059e4c521281b3c4a6b5a9af156537"
+    },
+    {
+      "original_path": "negative-harness-first-action/execution-receipt.json",
+      "raw_bytes": 1667,
+      "raw_sha256": "18a89d6b8b7c4ef2cc6fdfc9d562eafb994d47d8b161647457b87fe2b4b82a04",
+      "retained_publicly": true,
+      "retained_path": "negative-harness-first-action/execution-receipt.json",
+      "retained_bytes": 1667,
+      "retained_sha256": "18a89d6b8b7c4ef2cc6fdfc9d562eafb994d47d8b161647457b87fe2b4b82a04"
+    },
+    {
+      "original_path": "negative-harness-first-action/minimal-initial-face.json",
+      "raw_bytes": 93410,
+      "raw_sha256": "8b9f429f75ef2de15b916d9c6ecb74babcf02bcd8c2f44a60b45dc974b67ed52",
+      "retained_publicly": true,
+      "retained_path": "negative-harness-first-action/minimal-initial-face.json.gz",
+      "retained_bytes": 6268,
+      "retained_sha256": "1115b6afdc5df0661c55f6376a73f936e00b6e301aeefbabbb3c267de3a91e55"
+    },
+    {
+      "original_path": "negative-harness-first-action/minimal-result.json",
+      "raw_bytes": 450077,
+      "raw_sha256": "a090c5d65e2e02fbf4c5c9365eb68bd00a24f7f5c95aafd55bf7bc4955c19f55",
+      "retained_publicly": true,
+      "retained_path": "negative-harness-first-action/minimal-result.json.gz",
+      "retained_bytes": 23425,
+      "retained_sha256": "4def5e583ea60f5f8ee1036365672a3a6cd0ca6fa7dff5c5735c10b5e80dbb90"
+    },
+    {
+      "original_path": "negative-harness-first-action/minimal-server-stderr.log",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retained_publicly": true,
+      "retained_path": "negative-harness-first-action/minimal-server-stderr.log.gz",
+      "retained_bytes": 20,
+      "retained_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "original_path": "negative-harness-first-action/minimal-server-stdout.log",
+      "raw_bytes": 41,
+      "raw_sha256": "f7a849c5aef276891d4f532f52606f20da00e9461bb4277ff297f28c43245fb2",
+      "retained_publicly": true,
+      "retained_path": "negative-harness-first-action/minimal-server-stdout.log.gz",
+      "retained_bytes": 59,
+      "retained_sha256": "6235ddbcb2a0899ebcc92d2d34027d4ee7468b8cdd2d59f70d433af967c573b5"
+    },
+    {
+      "original_path": "negative-harness-first-action/minimal.log",
+      "raw_bytes": 668,
+      "raw_sha256": "27ef43302df2e7df0789be83bba1a49b8948d8518388825cc961bc4681b4523b",
+      "retained_publicly": true,
+      "retained_path": "negative-harness-first-action/minimal.log.gz",
+      "retained_bytes": 330,
+      "retained_sha256": "0c0f987612d6c3086a280c08795ab3c9ab76312576649de85f3abf0691571c91"
+    },
+    {
+      "original_path": "original-nine-gear.log",
+      "raw_bytes": 359,
+      "raw_sha256": "11acbcbf117ec8f05eb454906342a104c6ed45d2ab2006845383fd397f9187c1",
+      "retained_publicly": true,
+      "retained_path": "original-nine-gear.log.gz",
+      "retained_bytes": 287,
+      "retained_sha256": "27384d987d95196611ef1ed5c218ec7e1e59fcfa82d11db69c8cb447d41dbfe8"
+    },
+    {
+      "original_path": "quantity_reproduction.conduit",
+      "raw_bytes": 225,
+      "raw_sha256": "eb661e9b81da8c92d1fdfc0ac3dd55f9705d9754e74692c876a0a64575dec46c",
+      "retained_publicly": true,
+      "retained_path": "quantity_reproduction.conduit",
+      "retained_bytes": 225,
+      "retained_sha256": "eb661e9b81da8c92d1fdfc0ac3dd55f9705d9754e74692c876a0a64575dec46c"
+    },
+    {
+      "original_path": "workbench.elf.gz",
+      "raw_bytes": 25644192,
+      "raw_sha256": "bb25564e33efd5e82efd15490e91400b371267053ddf52d1766ef11feb26965f",
+      "retained_publicly": false,
+      "boundary": "Actual lossless binary archive retained locally; public receipt is its hash, not a public archive URL."
+    },
+    {
+      "original_path": "workbench.log",
+      "raw_bytes": 11796,
+      "raw_sha256": "d8fc08e0051f5246b4571957a04e9f88f5173898be0b6ca44d465a6cbe8de558",
+      "retained_publicly": true,
+      "retained_path": "workbench.log.gz",
+      "retained_bytes": 1105,
+      "retained_sha256": "44feea5ccf89305ef36d318f373a2a59769bbda82a72dee137ce1eadba688179"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "source": "a6353d7f189358c159bd718092cf2fa53b0aef4a",
+  "artifacts": {
+    "workbench": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/conduit-browser-patchbay-workbench",
+      "sha256": "43947a067c0b16ddc01f6c0afb8064652f1ac789ab9c6be9ab9789c115a27707",
+      "bytes": 113303608,
+      "sealed": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6387-current-product/workbench.elf.gz",
+      "sealed_sha256": "bb25564e33efd5e82efd15490e91400b371267053ddf52d1766ef11feb26965f"
+    },
+    "browser-wasm": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+      "sha256": "a58301a9c2213e67348eb523f689e8f807f7528091d8501a6e0676273fc99aba",
+      "bytes": 18884793,
+      "sealed": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6387-current-product/browser-wasm.wasm.gz",
+      "sealed_sha256": "722dda6ba9a49bb856a78db3dcd3d41fad477019feaa5eebbcc23ab73b40753f"
+    }
+  },
+  "steps": [
+    {
+      "name": "minimal-current-four-gear",
+      "exit": 0,
+      "intents": [
+        "open",
+        "birth",
+        "wake",
+        "plan",
+        "play"
+      ],
+      "current_basis": {
+        "body_id": "7923169b83ab37d9cc532c79f80cbd52f9f2f14ef914aeb6948a2a03f138e563",
+        "wake_id": "84632377779d3d0db628f1c176d6c0844caefa64832b71a8a98b3dc615515398",
+        "source_document_id": "efa410919b8b47b292e88b6b3d2a1d7f7a58301b33cc8367fb7b453a0c9af90f",
+        "checked_plot_id": "0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6",
+        "expanded_plot_id": "54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e",
+        "plan_id": "8bd58d75894be0116d664d42f833ee02123589507c0ae2ddddb78a5e36455ea9",
+        "active_play_id": "c9398deedf7b188d41abfed343bfe006c6a0c46c7a86b2e91c78247a3e9ba048",
+        "sign_ids": [
+          "0b75b7e07b88a305b88524179f65dacbfe43d4f3289ead9550d66e23f9272fe4",
+          "9bbf145c716a7b9dc517a6d741a5ad292bfc59242cab429d625a8e1a57e6f2e6",
+          "patchbay-lifecycle/patchbay-boot/18e19356ed8ae245/0",
+          "patchbay-lifecycle/patchbay-boot/18e19356ed8ae245/1",
+          "patchbay/front-door/born/3/host-boot/69bdeebde4389742c3f27babf450663e992f78c3bec1a7db17f0e49459b34285",
+          "patchbay/front-door/born/host/3",
+          "patchbay/front-door/born/part/3",
+          "patchbay/front-door/planned/5",
+          "patchbay/front-door/playing/6",
+          "patchbay/front-door/woke/4"
+        ]
+      }
+    },
+    {
+      "name": "original-nine-gear-browser",
+      "exit": 0,
+      "passed": 1,
+      "workers": 1,
+      "retries": 0,
+      "seconds": 41.4,
+      "current_face_id": "2bf0750d8ea3d1d8b4becf3874b430af069878a6b1a3198fdb20dca55656891b",
+      "revision": 7,
+      "basis": {
+        "body_id": "75d3d37a8981b4e923489da34bf435d62aea13d7d82cb0b733b24bccfb9c300c",
+        "wake_id": "d782c4b4891b3b7863ace52f1bf62ecf858033611e72b49c824539b351fe9e71",
+        "source_document_id": "c8e566e1288207047d185f21b5b6a58c62327c43420d6f3062cbb0ec960dce40",
+        "checked_plot_id": "de008d9eb23a2b9a8fe3a7e787e4f5a0ee5d52a0d24602a55ba50e58f80691ca",
+        "expanded_plot_id": "0f29ea92bafc2ce46d145db39c03ead0e320dc1dd19e4ab357f27e326cd1c446",
+        "plan_id": "d3b21d96af04fecf4be34e9299cc677e57a4ddd6e4718745a52b2c170f507cc9",
+        "active_play_id": "4cfbde55f5e269a87d930ba6e9f54e5e9d589b11a0fa65247794b92fa77e28b8",
+        "sign_ids": [
+          "600524aebc09e12a6ecc25907fef62ecd8dd2e58cb3b0c66c59aeba8903c56a6",
+          "a7ae074be9459cadf84f14cfd2ecb4b191027d962c08a9a5ef3e8cee633735e2",
+          "patchbay-lifecycle/patchbay-boot/18e193679ee8d48f/0",
+          "patchbay-lifecycle/patchbay-boot/18e193679ee8d48f/1",
+          "patchbay/front-door/born/3/host-boot/1b5557d3f9d5a375a334c1843e9918c21d9cca062aff52c09f516951d7da28a8",
+          "patchbay/front-door/born/host/3",
+          "patchbay/front-door/born/part/3",
+          "patchbay/front-door/planned/5",
+          "patchbay/front-door/playing/6",
+          "patchbay/front-door/woke/4"
+        ]
+      }
+    }
+  ],
+  "started": 1792876088.9296117,
+  "final_source_head": "a6353d7f189358c159bd718092cf2fa53b0aef4a",
+  "final_source_status": "",
+  "finished": 1792876265.1059682,
+  "result": "Focused current product proof PASS after separately preserved harness corrections.",
+  "browser_network": [
+    {
+      "url": "http://127.0.0.1:43831/assets/conduit-browser-runtime.wasm",
+      "status": 200,
+      "requestObserved": true,
+      "hashScope": "independent GET of same immutable served URL; not proof of WASM execution",
+      "servedStatus": 200,
+      "bytes": 18884793,
+      "sha256": "a58301a9c2213e67348eb523f689e8f807f7528091d8501a6e0676273fc99aba"
+    }
+  ],
+  "browser_version": "Playwright1.62.0 existing pinned Chromium1234; no installation",
+  "screenshot": {
+    "path": "outputs/6387-current-product/browser-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/live-authoring-wide.png",
+    "sha256": "fdd6a8f2847620356cbabe66d311831a111037008b124b62ececd0e150e4de19",
+    "dimensions": [
+      1440,
+      1100
+    ]
+  },
+  "harness_corrections": [
+    "First minimal helper incorrectly selected first open/birth intent (Morse/Cr\u00e8che), not exact requested quantity Plot; preserved negative-harness-first-action full initial/returnedFaces+requests/stdout/stderr/log+artifactreceipt before correction. Corrected exact Plot subject/action selection is distinct run.",
+    "Initial anchored full-title grep discovered0tests; browser-discovery-no-tests.log retained, no product execution.",
+    "First browser execution interrupted beforeOpen by added response.body observer rejection (Chrome cache eviction), preserved negative-browser-observer log/report/trace. Corrected observer catcheserrors and records browser request metadata plus separate same-URL HTTPbytehash; original test assertions unmodified.",
+    "Earlier shell staging path error made no test/build execution; corrected outside Source."
+  ],
+  "wasm_claim": "Fresh current source WASM built with supported z/fatLTO/1unit environment; actual browser request HTTP200 observed; separate GET same served immutableURL hash equals built/sealedWASM. This alone does not establish every runtime instruction executed inWASM; hosted lifecycle runs actual current workbench kernel path.",
+  "nonclaims": [
+    "Local focused browser/HTTP proof, not CI/native/physical/publication or fullGUI parent closure.",
+    "No new Source or PR edits, no automatic test retries. Two failed harness attempts explicitly retained, not advertised as product failures or erased."
+  ]
+}

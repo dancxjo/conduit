@@ -1,0 +1,52 @@
+{
+  "source": "a6353d7f189358c159bd718092cf2fa53b0aef4a",
+  "started": 1792875614.9922414,
+  "steps": [
+    {
+      "name": "browser-wasm",
+      "command": [
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "-p",
+        "conduit-browser-runtime",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--release"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target",
+        "CARGO_BUILD_JOBS": "4",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_RELEASE_OPT_LEVEL": "z",
+        "CARGO_PROFILE_RELEASE_LTO": "fat",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1"
+      },
+      "exit": 0,
+      "elapsed": 235.7769329547882
+    },
+    {
+      "name": "workbench",
+      "command": [
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "-p",
+        "conduit-browser-patchbay-workbench",
+        "--bin",
+        "conduit-browser-patchbay-workbench"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target",
+        "CARGO_BUILD_JOBS": "4",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit": 0,
+      "elapsed": 208.6837911605835
+    }
+  ]
+}

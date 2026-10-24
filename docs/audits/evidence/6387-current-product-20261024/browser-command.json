@@ -1,0 +1,19 @@
+{
+  "command": [
+    "node",
+    "proof/browser/node_modules/@playwright/test/cli.js",
+    "test",
+    "--config",
+    "proof/browser/patchbay-html.playwright.config.mjs",
+    "proof/browser/patchbay-authoring.spec.mjs",
+    "--grep",
+    "catalog queries and two durable layouts decorate the same live Plot",
+    "--workers=1",
+    "--retries=0",
+    "--reporter=line,json",
+    "--output",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6387-current-product/browser-results"
+  ],
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6387-current-browser-runner",
+  "wasm": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm"
+}
