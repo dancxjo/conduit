@@ -163,6 +163,10 @@ fn replay_handoff(
     assert_eq!(archive.frontiers().committed, TokenFrontier(1));
 }
 #[test]
+#[expect(
+    clippy::needless_late_init,
+    reason = "Borrowed event and receipt backing must predate and outlive the consuming owner"
+)]
 #[ignore = "requires explicit existing private pinned TRAIN path; actual resource owner and ordinary kernel, no model"]
 fn actual_committed_resource_owner_rebases_all_four_slots_without_reopening_prefix() {
     let lexicon = resource::pinned_owner();
