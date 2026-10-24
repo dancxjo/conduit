@@ -149,10 +149,26 @@ impl PreparedObservationCodec {
         };
         Ok(Self {
             input: c::PreparedStructuredValueValidator::new(&contract.input, 1024)?,
-            temperature: Composer::new(temperature_type, leaf_bytes(temperature_type)?)?,
-            humidity: Composer::new(humidity_type, leaf_bytes(humidity_type)?)?,
-            observation: Composer::new(&contract.observation, MAXIMUM_BYTES as usize)?,
-            result: Composer::new(&contract.output, MAXIMUM_BYTES as usize)?,
+            temperature: Composer::with_static_schema(
+                temperature_type,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-temperature.type")),
+                leaf_bytes(temperature_type)?,
+            )?,
+            humidity: Composer::with_static_schema(
+                humidity_type,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-humidity.type")),
+                leaf_bytes(humidity_type)?,
+            )?,
+            observation: Composer::with_static_schema(
+                &contract.observation,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation.type")),
+                MAXIMUM_BYTES as usize,
+            )?,
+            result: Composer::with_static_schema(
+                &contract.output,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-result.type")),
+                MAXIMUM_BYTES as usize,
+            )?,
         })
     }
     pub fn convert(&mut self, input: &[u8]) -> Result<&[u8], ObservationRefusal> {

@@ -183,3 +183,33 @@ fn shared_schema_text_does_not_confuse_names_with_exact_child_types() {
     assert_eq!(composer.record(&[b, a]), Err(Refusal::WrongType));
     assert_eq!(composer.encoded(), expected);
 }
+
+#[test]
+fn linked_schema_composition_keeps_exact_identity_and_owned_output_parity() {
+    let ty = StructuredInfoType::leaf(kind_id("value/u16")).unwrap();
+    // Fixture lifetime only; production callers use immutable linked bytes.
+    let schema: &'static [u8] =
+        alloc::boxed::Box::leak(ty.canonical_bytes().unwrap().into_boxed_slice());
+    let mut owned = PreparedStructuredComposer::new(&ty, 64).unwrap();
+    let mut linked = PreparedStructuredComposer::with_static_schema(&ty, schema, 64).unwrap();
+    assert!(owned.prepared_heap_bytes() >= linked.prepared_heap_bytes() + schema.len());
+    for n in [0_u16, 1, 255, 256, u16::MAX] {
+        assert_eq!(
+            owned.leaf(&n.to_le_bytes()).unwrap(),
+            linked.leaf(&n.to_le_bytes()).unwrap()
+        );
+    }
+    let foreign = StructuredInfoType::leaf(kind_id("value/i16")).unwrap();
+    assert!(matches!(
+        PreparedStructuredComposer::with_static_schema(&foreign, schema, 64),
+        Err(Refusal::WrongType)
+    ));
+    assert!(matches!(
+        PreparedStructuredComposer::with_static_schema(&ty, b"truncated", 64),
+        Err(Refusal::WrongType)
+    ));
+    assert!(matches!(
+        PreparedStructuredComposer::with_static_schema(&ty, schema, schema.len()),
+        Err(Refusal::CanonicalEncodingTooLarge)
+    ));
+}
