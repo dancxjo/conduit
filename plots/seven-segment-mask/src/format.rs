@@ -11,6 +11,7 @@ pub enum MaskUnavailable {
     Sensor,
     Stale,
     MissingValue,
+    OutsideLifetime,
     Overflow,
     NumericExtent,
     Wiring(super::WiringRefusal),
@@ -48,8 +49,20 @@ pub fn render<'a>(
             .ok_or(MaskUnavailable::MissingValue)
             .and_then(humidity),
     };
-    let (show, disposition) =
+    let (mut show, disposition) =
         value.unwrap_or_else(|why| (unavailable(), MaskDisposition::Unavailable(why)));
+    if matches!(
+        disposition,
+        MaskDisposition::Temperature { decimal_places: 1 }
+    ) && matches!(
+        look.fraction_marker(),
+        super::SevenSegmentFractionMarker::Colon
+    ) {
+        // Tenths precede the final numeral and unit, so the separator is
+        // between positions 1 and 2. The Look explicitly selects the colon;
+        // the hardware profile still declares it as a colon, never as a dot.
+        show = SevenSegmentShow::from_parts(*show.digits(), [false; 4], true);
+    }
     RenderedShow {
         face_content_id: face.content_id,
         face_revision: face.revision,
