@@ -1,0 +1,14 @@
+{
+  "proof_class": "concurrent-private-network-submission",
+  "completed": true,
+  "real_network_credentials_used": false,
+  "submitted": true,
+  "reservation_offer_generation": 1,
+  "boot_id": "boot/06d86ec6d1de1d5f44b314b6f94f07f7",
+  "started_at_utc": "2026-10-23T23:52:45.059170+00:00",
+  "setup_page_status": 200,
+  "setup_page_sha256": "522309202f824b4faabac8a7402398cac67fcd5ea7fde9cf66895666c1378f41",
+  "fixture_sha256": "d58cd3c1fa618b7473b7d55f37b6ed80e75cfb9d3e6de80e3b13a75eb8712ae9",
+  "post_status": 202,
+  "elapsed_seconds": 0.03175560606177896
+}

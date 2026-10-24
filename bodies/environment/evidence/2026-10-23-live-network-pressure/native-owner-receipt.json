@@ -1,0 +1,13 @@
+{
+  "completed": false,
+  "proof_class": "physical-owner-run",
+  "body_start_attributed": true,
+  "climate_sampling_claimed": false,
+  "final_root_observation_unavailable": true,
+  "body_lulled_after_quiescence": false,
+  "worker_retirement_acknowledged": false,
+  "worker_release_acknowledged": true,
+  "carrier_sha256": "c78889958e6fce4ef882b7b8a398043f3999cfdcd3a44635e95adefbfdf6a56e",
+  "owner_executable_sha256": "f72df1e79c17fb877bf4441d908552ef577868b70eaf3030082534d518cbe451",
+  "retained_uart_bytes": 45179
+}
