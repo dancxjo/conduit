@@ -92,4 +92,3 @@ fn optional_resource_reference_bound_uses_canonical_framing_and_the_reference_co
     let refused = expand(Some(*maximum - 1)).unwrap_err();
     assert!(refused.message.contains("admitted value envelope"));
 }
-

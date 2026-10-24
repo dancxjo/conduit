@@ -22,6 +22,22 @@ pub const STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "resource-snapshot.browser-operations",
+        "Check browser snapshot request and storage acknowledgements",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-browser-runtime",
+            "--no-default-features",
+            "--features",
+            "plot-runner",
+            "--lib",
+            "resource_effect_tests",
+        ],
+    ),
+    Step::new(
         "resource-snapshot.lint",
         "Lint shared snapshot record custody",
         "cargo",
