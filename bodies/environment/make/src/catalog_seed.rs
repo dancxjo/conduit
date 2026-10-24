@@ -16,6 +16,25 @@ pub struct PreparedRecordingCatalogCheckpoint {
     reference: c::BoundedResourceRef,
 }
 impl PreparedRecordingCatalogCheckpoint {
+    /// Root uses actual chunk publication observers before preparing the next
+    /// catalogue checkpoint. This is a new preparation phase, not Step work.
+    pub fn prepare_after_publications(
+        reference: c::BoundedResourceRef,
+        chunks: &[c::BoundedResourceRef],
+        observers: &[conduit_environment_runtime::recording::RecordingCommitObserver],
+        maximum_records: usize,
+        maximum_content_bytes: u64,
+    ) -> Result<Self, String> {
+        let catalog =
+            conduit_environment_runtime::recording::PreparedRecordingCatalog::prepare_committed(
+                chunks,
+                observers,
+                maximum_records,
+                maximum_content_bytes,
+            )
+            .map_err(|error| format!("catalog publications: {error:?}"))?;
+        Self::prepare(reference, catalog)
+    }
     pub fn prepare(
         reference: c::BoundedResourceRef,
         catalog: conduit_environment_runtime::recording::PreparedRecordingCatalog,

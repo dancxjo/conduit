@@ -231,3 +231,57 @@ fn prepared_checkpoint_retains_valid_catalog_and_refuses_mismatched_extent() {
     invalid.content_profile = "value/text".into();
     assert!(PreparedRecordingCatalogCheckpoint::prepare(invalid, catalog()).is_err());
 }
+
+#[test]
+fn checkpoint_from_publications_refuses_a_generation_without_kernel_commit() {
+    use conduit_environment_runtime::{observation::ObservationContract, recording::*};
+    let host = "fixture/producer".into();
+    let boot = "fixture/producer-boot".into();
+    let plan = "fixture/producer-plan".into();
+    let play = "fixture/producer-play".into();
+    let context = RecordingContext {
+        host: &host,
+        boot: &boot,
+        plan: &plan,
+        play: &play,
+    };
+    let contract = ObservationContract::prepare().unwrap();
+    let chunk = c::BoundedResourceRef {
+        identity: c::ResourceSemanticIdentity::from_digest([31; 32]),
+        content_profile: "text/json-utf8@1".into(),
+        access_class: "resource/snapshot@1".into(),
+        extent: c::ResourceExtent {
+            bytes: PreparedRecordingSnapshot::content_bytes(context, &contract, 2).unwrap() as u64,
+            items: Some(1),
+        },
+        lifetime: c::ResourceLifetime {
+            version: c::ResourceVersionIdentity::from_digest([32; 32]),
+            expires_at: None,
+        },
+    };
+    let (_back, observer) = RecordingSnapshotBack::prepare(context, &contract, 2, &chunk).unwrap();
+    let catalog =
+        PreparedRecordingCatalog::prepare(core::slice::from_ref(&chunk), 2, 8192).unwrap();
+    let mut selected = chunk.clone();
+    selected.identity = c::ResourceSemanticIdentity::from_digest([33; 32]);
+    selected.extent.bytes = catalog.content().len() as u64;
+    // Data-only Source preparation is possible, but it is not the Root's
+    // acknowledgement-checked publication entrance.
+    assert!(
+        conduit_environment_make::PreparedRecordingCatalogCheckpoint::prepare(
+            selected.clone(),
+            catalog
+        )
+        .is_ok()
+    );
+    assert!(
+        conduit_environment_make::PreparedRecordingCatalogCheckpoint::prepare_after_publications(
+            selected,
+            &[chunk],
+            &[observer],
+            2,
+            8192,
+        )
+        .is_err()
+    );
+}

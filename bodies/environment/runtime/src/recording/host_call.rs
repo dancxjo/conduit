@@ -19,10 +19,19 @@ pub struct RecordedRange {
 /// authority or a receipt supplied by an external caller. Clone during Root
 /// preparation; reads during Play do not allocate.
 #[derive(Clone)]
-pub struct RecordingCommitObserver(Rc<Cell<Option<RecordedRange>>>);
+pub struct RecordingCommitObserver(Rc<CommittedGeneration>);
+struct CommittedGeneration {
+    range: Cell<Option<RecordedRange>>,
+    reference: Vec<u8>,
+}
 impl RecordingCommitObserver {
     pub fn committed(&self) -> Option<RecordedRange> {
-        self.0.get()
+        self.0.range.get()
+    }
+    /// Exact generation selected when this Back was prepared. Identity data
+    /// alone acknowledges nothing; only `committed()` observes kernel commit.
+    pub fn encoded_reference(&self) -> &[u8] {
+        &self.0.reference
     }
 }
 #[derive(Clone, Copy)]
@@ -33,7 +42,6 @@ enum Staged {
 pub struct RecordingSnapshotBack {
     call: HostCallBack,
     reader: PreparedRecordingReader,
-    reference: Vec<u8>,
     samples: usize,
     content_bytes: usize,
     pending: Option<RecordedRange>,
@@ -73,12 +81,14 @@ impl RecordingSnapshotBack {
             samples,
             reference,
         )?;
-        let observer = RecordingCommitObserver(Rc::new(Cell::new(None)));
+        let observer = RecordingCommitObserver(Rc::new(CommittedGeneration {
+            range: Cell::new(None),
+            reference: snapshot.expected_reference().to_vec(),
+        }));
         Ok((
             Self {
                 call: HostCallBack::new(MAXIMUM_CHUNK_BYTES as u32),
                 reader: PreparedRecordingReader::prepare(context, contract)?,
-                reference: snapshot.expected_reference().to_vec(),
                 samples,
                 content_bytes,
                 pending: None,
@@ -108,8 +118,8 @@ impl<const P: usize> StepBack<P> for RecordingSnapshotBack {
                 let Some(output) = outcome.output else {
                     return fail(FailureCode::InvalidInput, 4);
                 };
-                if output.value.byte_len as usize != self.reference.len()
-                    || input.host_output() != Some(self.reference.as_slice())
+                if output.value.byte_len as usize != self.observer.encoded_reference().len()
+                    || input.host_output() != Some(self.observer.encoded_reference())
                 {
                     return fail(FailureCode::InvalidInput, 5);
                 }
@@ -159,7 +169,7 @@ impl<const P: usize> StepBack<P> for RecordingSnapshotBack {
             Some(Staged::Requested(range)) => self.pending = Some(range),
             Some(Staged::Published(range)) => {
                 self.pending = None;
-                self.observer.0.set(Some(range));
+                self.observer.0.range.set(Some(range));
             }
             None => {}
         }

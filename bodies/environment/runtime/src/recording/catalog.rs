@@ -17,6 +17,10 @@ pub enum RecordingCatalogRefusal {
     Reference(c::ResourceReferenceRefusal),
     Profile,
     Duplicate,
+    PublicationCount,
+    UncommittedGeneration(usize),
+    PublicationReference(usize),
+    PublicationOrder(usize),
 }
 
 pub struct PreparedRecordingCatalog {
@@ -70,6 +74,38 @@ impl PreparedRecordingCatalog {
             content_bytes,
             records: references.len() + 1,
         })
+    }
+    /// Root preparation after the chunk publications have committed. Observers are
+    /// created only by the actual publication Backs; an external reference or
+    /// success flag is not an acknowledgement. This does not grant storage or
+    /// reserve the next catalogue publication's capacity, authority or Play.
+    pub fn prepare_committed(
+        references: &[c::BoundedResourceRef],
+        observers: &[super::RecordingCommitObserver],
+        maximum_records: usize,
+        maximum_content_bytes: u64,
+    ) -> Result<Self, RecordingCatalogRefusal> {
+        use RecordingCatalogRefusal as E;
+        if references.is_empty() || references.len() > MAXIMUM_CATALOG_GENERATIONS {
+            return Err(E::Capacity);
+        }
+        if references.len() != observers.len() {
+            return Err(E::PublicationCount);
+        }
+        let mut previous = None;
+        for (index, (reference, observer)) in references.iter().zip(observers).enumerate() {
+            if reference.encode().map_err(E::Reference)? != observer.encoded_reference() {
+                return Err(E::PublicationReference(index));
+            }
+            let range = observer
+                .committed()
+                .ok_or(E::UncommittedGeneration(index))?;
+            if previous.is_some_and(|last| last >= range.first_sequence) {
+                return Err(E::PublicationOrder(index));
+            }
+            previous = Some(range.last_sequence);
+        }
+        Self::prepare(references, maximum_records, maximum_content_bytes)
     }
     pub fn content(&self) -> &str {
         &self.content

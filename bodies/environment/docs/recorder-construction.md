@@ -459,3 +459,20 @@ write view before file effects. Empty seed remains distinct from corruption.
 The initial seed update, Body admission and storage grants are fixtures; separate
 Host instances share one test process. Resident Root custody and the complete
 chunk-publication/checkpoint/restart chain remain incomplete.
+
+`PreparedRecordingCatalog::prepare_committed` is the Root preparation path after
+chunk publication commits: each listed reference must match an opaque observer retained from
+that exact publication Back, every observer must report an actual committed
+range, and the ranges must be ordered without overlap. The observer shares the selected encoded reference with its Back; there is no
+second commit counter or externally supplied success flag.
+`PreparedRecordingCatalogCheckpoint::prepare_after_publications` uses this path
+before checking the existing checkpoint Source. Construction/encoding happens
+in a new preparation phase, not inside Step. The data-only catalogue constructor
+remains useful for validation/recovery fixtures and acknowledges no publication.
+
+The production-kernel publication proof now tests catalogue readiness after
+success, failure, denial, cancellation, wrong-reference completion and invalid
+content, plus multiple ordered generations and an uncommitted later generation.
+Existing pressure/uncommitted-Step and zero-allocation execution checks remain.
+These storage completions are CPU fixtures; actual chunk Host Calls through
+Linux files and the full publication/checkpoint/restart chain remain incomplete.
