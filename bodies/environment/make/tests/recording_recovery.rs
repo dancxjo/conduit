@@ -284,3 +284,7 @@ mod linux_files;
 #[cfg(target_os = "linux")]
 #[path = "recording_recovery/linux_batch_files.rs"]
 mod linux_batch_files;
+
+#[cfg(target_os = "linux")]
+#[path = "recording_recovery/linux_files_publication.rs"]
+mod linux_files_publication;

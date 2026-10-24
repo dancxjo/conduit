@@ -13,3 +13,14 @@ pub use catalog::{FileCatalogRefusal, PreparedFileCatalogRecovery};
 mod seed;
 #[cfg(feature = "installed-seed")]
 pub use seed::{recover_durable_catalog_seed, DurableSeedRecoveryRefusal};
+
+mod publication;
+pub use publication::{
+    FilePublicationCompletion, FilePublicationRefusal, PreparedFileRecordingPublication,
+};
+
+mod publication_offer;
+pub use publication_offer::{
+    recording_publication_offer, RECORDING_PUBLICATION_ARTIFACT,
+    RECORDING_PUBLICATION_IMPLEMENTATION, RECORDING_PUBLICATION_PROFILE,
+};

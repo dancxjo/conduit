@@ -474,5 +474,41 @@ The production-kernel publication proof now tests catalogue readiness after
 success, failure, denial, cancellation, wrong-reference completion and invalid
 content, plus multiple ordered generations and an uncommitted later generation.
 Existing pressure/uncommitted-Step and zero-allocation execution checks remain.
-These storage completions are CPU fixtures; actual chunk Host Calls through
-Linux files and the full publication/checkpoint/restart chain remain incomplete.
+Those earlier storage completions are CPU fixtures. The Linux publication proof
+below replaces them with actual file effects; the full publication/checkpoint/
+restart chain remains incomplete.
+
+
+`RecordingPublicationSource` checks the authored `recording-publication.conduit`:
+one JSON chunk input enters the existing exact snapshot publication and its
+returned first-class reference exits the published Fore. Neither Fore supplies
+Host facts, a residence, grant or completion flag. Ordinary planning seals these
+ports and ordinary lowering produces their exact ingress/egress cords.
+
+`PreparedFileRecordingPublication` retains the actual initialized recording Back,
+sealed encoder, production kernel and file executor. It admits that retained
+chunk once through the sealed input Fore, services the original Host Call request
+against the actual directory and completes the same request. The observer comes
+from the Back itself, rather than a separately supplied status field. File effect
+completion alone leaves it empty: the ordinary completion Step must commit.
+Root consumes the local reference Fore using existing bounded egress custody;
+this does not claim delivery to a peer or a network Line. Fixed event and Fore
+correlation Sign storage are both reserved before Play.
+
+The file proof covers actual successful publication, an occupied generation name
+and cancellation after file I/O but before completion-Step commit. All execution
+paths allocate no Rust heap. Independent reads under a fresh Boot reopen the
+actual file bytes, including the file retained after cancellation. Only the
+successful committed observer admits subsequent catalogue checkpoint preparation;
+an incomplete encoder refuses before transfer or file effects. Foreign Play data
+refuses ingress, Step, file service and Fore consumption. Current Body authority,
+producer authentication, directory/residence identity and full capacity admission
+remain Root responsibilities and fixtures here. This is a Linux writer component,
+not live MCU ingress, a resident recorder, a complete checkpoint/restart run or
+physical overnight evidence.
+
+The writer descriptor names its exact implementation/profile/artifact and selected
+resource contract. Descriptor construction creates no readiness or authority.
+Preparation refuses a foreign publisher selection before transferring the actual
+generation; current providers, capacity, grants and directory custody still need
+independent Root admission.

@@ -10,6 +10,7 @@ publish = false
 installed-seed = ["dep:conduit-std-host", "dep:conduit-body"]
 
 [dependencies]
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }
 conduit-std-host = { path = "../../../targets/std", optional = true }
 conduit-body = { path = "../../../architecture/body", optional = true }
 conduit-core = { path = "../../../architecture/core" }

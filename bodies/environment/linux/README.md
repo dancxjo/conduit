@@ -15,8 +15,8 @@ reservation scope after the running Play loan ends.
 Run `cargo xtask prove environment recording-files`. The Linux file tests include
 the production kernel, a retained CPU Body lifecycle binding, foreign-scope
 refusals, successful recovery, malformed content, missing files, and allocation
-checks during execution. This is not a boot service, live Host admission, MCU
-Line, recording writer, or an overnight recording claim.
+checks during execution. Those recovery checks do not establish a boot service,
+live Host admission, MCU Line, live recording writer or overnight operation.
 
 The runtime's `PreparedRecordingKernelFace` projects this owner's read-only
 kernel through `refresh_single`. Root retains the matching kernel/Face pair and
@@ -73,3 +73,33 @@ initial update and snapshot grants are fixtures. This test uses separate Host
 instances in one process; the earlier catalog-residence proof separately checks
 process separation. Publication-to-seed ordering remains the separate checkpoint
 proof, and this is not an end-to-end recording or power-loss claim.
+
+
+`PreparedFileRecordingPublication` owns one ordinary checked/lowered publication
+kernel, the initialized recording Back and sealed encoder, and the existing exact
+file executor. The authored publication view exposes JSON input and ResourceRef
+output. Existing sealed Fore lowering supplies ingress/egress; no new source
+scheduler or completion queue is introduced. Root obtains each current Play from
+its actual Body owner, independently admits the complete memory/storage closure,
+and retains directory and current provider/authority custody.
+
+The writer admits the owned encoder once, services only original kernel requests
+and exposes the Back's actual observer. A completed file effect does not advance
+that observer until its ordinary completion Step commits. Local Fore consumption
+preserves the checked reference and uses bounded storage; no peer or Line delivery
+is implied. Both fixed event and Fore correlation Sign budgets are prepared.
+
+The public recording-files proof includes successful publication, occupied names,
+cancellation between file effect and Back commit, independent file reopen under
+a new Boot, incomplete-encoder refusal before transfer, foreign-Play fencing and
+zero-allocation execution. Actual successful observers feed the checked catalogue
+checkpoint preparation; refused or cancelled publication cannot do so. Host/Body
+admission, authenticated producer context and storage grants are fixtures. The
+resident writer, live MCU ingress and complete checkpoint/restart run remain work.
+
+
+`recording_publication_offer` describes this implementation for one independently
+selected durable snapshot resource. It is not readiness, a reservation or a grant:
+Root must retain the actual generation and directory before advertising it.
+Preparation requires this exact profile, implementation and artifact; a sealed
+Plan selecting a foreign publisher refuses before generation transfer or effects.

@@ -50,6 +50,12 @@ pub struct RecordingSnapshotBack {
     cancelled: bool,
 }
 impl RecordingSnapshotBack {
+    /// Borrow the observer bound to this actual Back, rather than accepting a
+    /// caller's separately supplied status object. Clone during preparation.
+    pub fn commit_observer(&self) -> RecordingCommitObserver {
+        self.observer.clone()
+    }
+
     /// Root must install this under the exact resource snapshot publish contract,
     /// with its ordinary current placement, resource and independent authority.
     /// These content checks do not authorize the Host Call. One Back publishes

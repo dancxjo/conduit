@@ -187,3 +187,6 @@ mod catalog_seed;
 pub use catalog_seed::{
     PreparedRecordingCatalogCheckpoint, RecordingCatalogSeedSource, MAXIMUM_CATALOG_SEED_BYTES,
 };
+
+mod recording_publication;
+pub use recording_publication::RecordingPublicationSource;
