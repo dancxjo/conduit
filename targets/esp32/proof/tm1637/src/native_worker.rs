@@ -223,52 +223,11 @@ async fn pump(
     observer: &mut impl for<'a> FnMut(PublicationSnapshot<'a>),
 ) -> Exit {
     loop {
-        let iteration = (|| {
-            // At most two native completions coexist. This is transport work;
-            // every completion still crosses the kernel's exact pending gate.
-            for _ in 0..2 {
-                let Ok(reply) = queues.replies.try_receive() else {
-                    break;
-                };
-                let completed = service::finish(storage, reply)?;
-                let index = if completed.request.node == storage.roles.pulse {
-                    0
-                } else {
-                    1
-                };
-                bump(&mut progress.completed[index])?;
-                if let Some(reason) = completed.failure {
-                    return Err(reason);
-                }
-            }
-            match service::next(storage)? {
-                Dispatch::Pulse(input) => {
-                    queues
-                        .pulse
-                        .try_send(input)
-                        .map_err(|_| failure(k::FailureCode::StorageExhausted, 20))?;
-                    bump(&mut progress.submitted[0])?;
-                }
-                Dispatch::Wait(input) => {
-                    queues
-                        .wait
-                        .try_send(input)
-                        .map_err(|_| failure(k::FailureCode::StorageExhausted, 21))?;
-                    bump(&mut progress.submitted[1])?;
-                }
-                Dispatch::Software(call) => {
-                    bump(&mut progress.software)?;
-                    if let Some(reason) = call.failure {
-                        return Err(reason);
-                    }
-                }
-                Dispatch::None => (),
-            }
-            let status = storage
-                .kernel
-                .step()
-                .map_err(|_| failure(k::FailureCode::InvalidLifecycle, 22))?;
-            bump(&mut progress.steps)?;
+        // Release the finite dispatch/Step stack before projecting committed
+        // values. Observer work is separately admitted, never nested inside the
+        // synchronous kernel iteration's compiler frame.
+        let iteration = advance(storage, queues, progress);
+        if iteration.is_ok() {
             for driver in storage.kernel.drivers() {
                 if let ApplianceBack::Publication(back) = driver {
                     if let Some(snapshot) = back.snapshot() {
@@ -281,8 +240,8 @@ async fn pump(
                     }
                 }
             }
-            Ok(status)
-        })();
+        }
+
         match iteration {
             Err(reason) => return Exit::Failed(reason),
             Ok(SchedulerStatus::Drained) => return Exit::Drained,
@@ -312,6 +271,61 @@ async fn pump(
         }
         yield_now().await;
     }
+}
+/// One synchronous kernel advance, with an explicit stack lifetime separate
+/// from observer projection. No scheduling, bounds or commit behavior changes.
+#[inline(never)]
+fn advance(
+    storage: &mut PreparedKernel,
+    queues: &Queues,
+    progress: &mut Progress,
+) -> Result<SchedulerStatus, k::Failure> {
+    // At most two native completions coexist. This is transport work;
+    // every completion still crosses the kernel's exact pending gate.
+    for _ in 0..2 {
+        let Ok(reply) = queues.replies.try_receive() else {
+            break;
+        };
+        let completed = service::finish(storage, reply)?;
+        let index = if completed.request.node == storage.roles.pulse {
+            0
+        } else {
+            1
+        };
+        bump(&mut progress.completed[index])?;
+        if let Some(reason) = completed.failure {
+            return Err(reason);
+        }
+    }
+    match service::next(storage)? {
+        Dispatch::Pulse(input) => {
+            queues
+                .pulse
+                .try_send(input)
+                .map_err(|_| failure(k::FailureCode::StorageExhausted, 20))?;
+            bump(&mut progress.submitted[0])?;
+        }
+        Dispatch::Wait(input) => {
+            queues
+                .wait
+                .try_send(input)
+                .map_err(|_| failure(k::FailureCode::StorageExhausted, 21))?;
+            bump(&mut progress.submitted[1])?;
+        }
+        Dispatch::Software(call) => {
+            bump(&mut progress.software)?;
+            if let Some(reason) = call.failure {
+                return Err(reason);
+            }
+        }
+        Dispatch::None => (),
+    }
+    let status = storage
+        .kernel
+        .step()
+        .map_err(|_| failure(k::FailureCode::InvalidLifecycle, 22))?;
+    bump(&mut progress.steps)?;
+    Ok(status)
 }
 fn revoke<P: PulseReadProvider, W: MonotonicWaitProvider>(
     storage: &mut PreparedKernel,

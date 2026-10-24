@@ -1,0 +1,314 @@
+[
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "911b3299434ac8d8c36e5f13ac80090f0903be76e5a71f973cece4ce80193155",
+      "face_revision": 1,
+      "sequence": 1,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 159,
+      "age_ms": 100,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      125,
+      230,
+      127,
+      113,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "911b3299434ac8d8c36e5f13ac80090f0903be76e5a71f973cece4ce80193155",
+      "face_revision": 1,
+      "sequence": 1,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 159,
+      "age_ms": 3233,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      0,
+      109,
+      111,
+      118,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "911b3299434ac8d8c36e5f13ac80090f0903be76e5a71f973cece4ce80193155",
+      "face_revision": 1,
+      "sequence": 1,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 159,
+      "age_ms": 6354,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      125,
+      230,
+      127,
+      113,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "911b3299434ac8d8c36e5f13ac80090f0903be76e5a71f973cece4ce80193155",
+      "face_revision": 1,
+      "sequence": 1,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 159,
+      "age_ms": 9483,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      0,
+      109,
+      111,
+      118,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "911b3299434ac8d8c36e5f13ac80090f0903be76e5a71f973cece4ce80193155",
+      "face_revision": 1,
+      "sequence": 1,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 159,
+      "age_ms": 12603,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      125,
+      230,
+      127,
+      113,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "d12ce9ed8bd9c7d0c76187ac0dac3b7e9b0e3e6f4b0722d7ee037c332cb9af14",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 15892,
+      "age_ms": 99,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      0,
+      109,
+      111,
+      118,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "d12ce9ed8bd9c7d0c76187ac0dac3b7e9b0e3e6f4b0722d7ee037c332cb9af14",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 15892,
+      "age_ms": 3221,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      125,
+      230,
+      127,
+      113,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "d12ce9ed8bd9c7d0c76187ac0dac3b7e9b0e3e6f4b0722d7ee037c332cb9af14",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 15892,
+      "age_ms": 6351,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      0,
+      109,
+      111,
+      118,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "d12ce9ed8bd9c7d0c76187ac0dac3b7e9b0e3e6f4b0722d7ee037c332cb9af14",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 15892,
+      "age_ms": 9476,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      125,
+      230,
+      127,
+      113,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "d12ce9ed8bd9c7d0c76187ac0dac3b7e9b0e3e6f4b0722d7ee037c332cb9af14",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 15892,
+      "age_ms": 12606,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      0,
+      109,
+      111,
+      118,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "9c566bb597c3f65d7334827b4f0ed4bba7f84f7d8f4800d18ac3880afb4a1f90",
+      "face_revision": 3,
+      "sequence": 3,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 31623,
+      "age_ms": 102,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      125,
+      230,
+      127,
+      113,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  },
+  {
+    "event": "live-source-reading",
+    "reading": {
+      "face_identity": "9c566bb597c3f65d7334827b4f0ed4bba7f84f7d8f4800d18ac3880afb4a1f90",
+      "face_revision": 3,
+      "sequence": 3,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 64.76,
+      "relative_humidity_percent": 59,
+      "sampled_at_boot_ms": 31623,
+      "age_ms": 3233,
+      "ap_ready": true
+    },
+    "display": "Ok(())",
+    "registers": [
+      0,
+      109,
+      111,
+      118,
+      0,
+      0
+    ],
+    "heap_used": 94552
+  }
+]

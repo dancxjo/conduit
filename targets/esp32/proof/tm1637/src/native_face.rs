@@ -95,6 +95,7 @@ pub fn prepare(reservation: &OwnerReservation) -> Result<Publisher, &'static str
     Ok(Publisher { _private: () })
 }
 impl Publisher {
+    #[inline(never)]
     pub fn publish(&mut self, snapshot: &PublicationSnapshot<'_>, committed_ms: u64) {
         STATE.lock(|s| {
             let mut s = s.borrow_mut();
