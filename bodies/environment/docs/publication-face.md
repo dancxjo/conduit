@@ -21,8 +21,10 @@ bytes, and construct the four decoder failure variants plus provider/geometry
 failures from their actual authored payload types. This proves interpretation,
 not live Mask delivery. The retained native owner now uses this shared boundary for every authenticated
 channel. It saves unavailable-status Faces separately while still requiring
-three valid readings for the finite sampling proof. Physical acceptance of this
-integration remains pending.
+three valid readings for the finite sampling proof. The [physical shared-Face run](../evidence/2026-10-23-owner-shared-face/README.md)
+verified three valid readings, signed publication ages, Body Face composition,
+quiescence, Lull and retirement. Physical failure output, ongoing recording and
+actual Mask delivery remain unproven.
 
 The Root acknowledgement transcript version 2 binds committed and inspected
 monotonic Boot times along with the exact publication sequence, channel, length

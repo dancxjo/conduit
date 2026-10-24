@@ -1,0 +1,10 @@
+{
+  "signed_commit_ages_ms": [
+    5043,
+    1995,
+    4638
+  ],
+  "quantity_and_status_faces": 3,
+  "body_id": "b3b815d5341f59e10de8bddebcb8ed136dafe9733e87eed050b65c44db78a9ac",
+  "source_capture": "target/environment-software-ready/1792802658"
+}

@@ -8,6 +8,22 @@ use conduit_seven_segment_mask::{
 
 #[test]
 fn physical_body_faces_feed_temperature_and_humidity_pages_without_replacement() {
+    assert_pages([
+        include_str!("../../evidence/2026-10-23-native-observations/physical-face-1.json"),
+        include_str!("../../evidence/2026-10-23-native-observations/physical-face-2.json"),
+        include_str!("../../evidence/2026-10-23-native-observations/physical-face-3.json"),
+    ]);
+}
+
+#[test]
+fn shared_projection_faces_feed_the_same_temperature_and_humidity_mask() {
+    assert_pages([
+        include_str!("../../evidence/2026-10-23-owner-shared-face/physical-face-1.json"),
+        include_str!("../../evidence/2026-10-23-owner-shared-face/physical-face-2.json"),
+        include_str!("../../evidence/2026-10-23-owner-shared-face/physical-face-3.json"),
+    ]);
+}
+fn assert_pages(sources: [&str; 3]) {
     let profile = Tm1637Profile {
         digits: core::array::from_fn(|index| DigitWiring {
             address: index as u8,
@@ -22,14 +38,7 @@ fn physical_body_faces_feed_temperature_and_humidity_pages_without_replacement()
         6000,
     )
     .unwrap();
-    for (index, source) in [
-        include_str!("../../evidence/2026-10-23-native-observations/physical-face-1.json"),
-        include_str!("../../evidence/2026-10-23-native-observations/physical-face-2.json"),
-        include_str!("../../evidence/2026-10-23-native-observations/physical-face-3.json"),
-    ]
-    .into_iter()
-    .enumerate()
-    {
+    for (index, source) in sources.into_iter().enumerate() {
         let parent: Face = serde_json::from_str(source).unwrap();
         let before = parent.clone();
         assert_eq!(parent.revision, index as u64 + 1);
