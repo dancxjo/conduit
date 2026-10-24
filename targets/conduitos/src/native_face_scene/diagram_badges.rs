@@ -79,8 +79,13 @@ mod tests {
 
     #[test]
     fn graph_cards_use_shared_gear_symbols_without_changing_links_or_subjects() {
+        check_graph_symbols(640, 0);
+        check_graph_symbols(1280, 3);
+    }
+
+    fn check_graph_symbols(width: u16, gear_symbols: usize) {
         let face = fixture();
-        let mut scene = NativeFaceScene::prepare(face.clone(), 640, 720).unwrap();
+        let mut scene = NativeFaceScene::prepare(face.clone(), width, 720).unwrap();
         scene.show_diagram(true);
         let frame = scene.frame().unwrap();
         let commands = frame.scene.commands();
@@ -93,8 +98,18 @@ mod tests {
                 .iter()
                 .filter(|c| c.payload() == FaceIconKey::GenericGear.as_str())
                 .count(),
-            3
+            gear_symbols
         );
+        let baseline_width = if width == 640 { 260 } else { 580 };
+        let first_heading = crate::display::typography::single_line_preview(
+            "1 · Literal 6f8beb2a9ae7 0",
+            crate::display::typography::TextRole::Heading,
+            baseline_width,
+        )
+        .unwrap();
+        assert!(commands.iter().any(|command| {
+            command.text_role() == GraphicsTextRole::Heading && command.payload() == first_heading
+        }));
         assert!(icons.iter().all(|c| {
             [
                 FaceIconKey::GenericGear.as_str(),
