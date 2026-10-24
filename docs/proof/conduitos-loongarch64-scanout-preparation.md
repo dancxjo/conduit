@@ -85,8 +85,7 @@ single scanout writer; volatile pixel stores complete with `dbar 0` under the
 reviewed QEMU TCG policy. Interrupt-enable changes alone are excluded from the
 translation comparison. No page-table or CSR mutation is introduced.
 
-This file has passed formatting and patch hygiene only. It remains unlinked
-and has not been cross-compiled, booted or used to acknowledge a Show. After
+This file has passed formatting, patch hygiene and a [compile-only LoongArch64 target check](../../targets/conduitos/proof/tools/loongarch64/scanout-adapter-compile/index.json). The check compiles the actual held adapter and mapping files against explicitly nonfunctional boot/display interfaces. It proves no custody, normal product build or guest execution. The adapter remains unlinked and has not been booted or used to acknowledge a Show. After
 the RISC-V merge's required combined Integration passes, its normal product
 wiring and cross-target checks must establish those separate claims. Existing
 pure-model tests and historical CSR observations do not validate this adapter.
