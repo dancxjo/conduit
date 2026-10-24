@@ -3,6 +3,11 @@
 //! Exact owner Native roots used by Speech composition.
 pub const PATHS: &[(&str, &str, bool)] = &[
     (
+        "AudioTrajectoryProvenance",
+        "conduit_audio::AudioTrajectoryProvenance",
+        true,
+    ),
+    (
         "AudioCycleDuration",
         "conduit_audio::AudioCycleDuration",
         false,

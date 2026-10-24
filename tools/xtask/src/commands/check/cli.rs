@@ -92,6 +92,8 @@ pub enum CheckSuite {
     AsrCommonLanguage,
     /// Check committed dependency/prosody correlation and bounded revision safety.
     ProsodyCommitment,
+    /// Check original-owner overlapping gestures and ordinary-kernel Source replay.
+    PhoneGestures,
     /// Check committed noun/verb pronunciation and installed compact PCM.
     RecordPronunciation,
     /// Check supplied committed vocative custody and installed compact PCM.
