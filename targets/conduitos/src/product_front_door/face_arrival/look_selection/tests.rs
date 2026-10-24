@@ -34,6 +34,18 @@ fn local_selection_keeps_face_and_draft_while_retiring_each_old_show() {
         .unwrap();
     let mut display = super::super::tests::Display;
     arrival.present_first(&door, &mut display).unwrap();
+    assert!(
+        arrival
+            .mask
+            .scene()
+            .unwrap()
+            .frame()
+            .unwrap()
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload().contains("F6"))
+    );
     let face = door.creche_face(&arrival.basis).unwrap();
     let component = arrival
         .mask

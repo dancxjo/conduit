@@ -192,6 +192,7 @@ impl NativeFaceMask {
         provider: &NativeSurfaceProvider,
         selection: Selection<'_>,
     ) -> Result<Self, NativeFaceMaskError> {
+        let local_creche_preferences = matches!(&selection, Selection::Creche(..));
         let producer = producer::Producer::prepare(
             matches!(&selection, Selection::OrdinaryCollection),
             host_id.clone(),
@@ -304,6 +305,7 @@ impl NativeFaceMask {
             surface_admitted: false,
             interaction_admitted: true,
             local_input_available: true,
+            local_creche_preferences,
             component_configuration,
             visual_look: None,
             visual_constraints: conduit_face::VisualUserConstraints {
