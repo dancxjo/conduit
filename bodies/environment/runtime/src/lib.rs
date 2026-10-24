@@ -2,7 +2,10 @@
 //! Shared kernel Backs for the environmental Source composition.
 extern crate alloc;
 pub mod assigned;
+mod canonical_input;
+mod canonical_storage;
 pub mod observation;
+pub mod publication;
 use alloc::{boxed::Box, string::String};
 use conduit_core::{PortTemporal, StructuredSelector};
 use conduit_kernel::{
