@@ -1,0 +1,406 @@
+{
+  "audited_at_utc": "2026-10-24T02:07:48.943061+00:00",
+  "issue": 6318,
+  "source_head": "455aaf0a33a5dddf739935003e77b5da2c3788ac",
+  "actual_candidate_preview": "6975a29c2fe879e3e29d65ae1cbcd3f5f724513b",
+  "preview_parents": [
+    "c375807a059d3a5cc5d8e866cb27861fe04d7087",
+    "455aaf0a33a5dddf739935003e77b5da2c3788ac"
+  ],
+  "source_tree": "89e5e3a75cde6d6edb936cd88771f969c4bb14e5",
+  "preview_tree": "89e5e3a75cde6d6edb936cd88771f969c4bb14e5",
+  "exact_tree_equality": true,
+  "candidate_run": 40049075388,
+  "failed_job": 120738184105,
+  "artifact_id": 12543588861,
+  "archive_sha256": "edc20d7cdbbf1a6d867a222fc6de52d60e9bb882731fdb2c627cbe2fde4892ca",
+  "archive_bytes": 10331096,
+  "archive_file_count": 35,
+  "archive_crc_all_passed": true,
+  "actual_root_elf_sha256": "42315af1bfd628b45e625828d080f6ed766b609a836203f3c0ce2e2d343c6370",
+  "actual_root_elf_bytes": 78903512,
+  "actual_root_matches_both_build_manifests": true,
+  "iso_present": false,
+  "iso_manifest_only_sha256": "682bf6a2aa55616e2aa9fdfe6c3bf3458db119273c288e866d334cf34db0a01e",
+  "serial_sha256": "3c642a00e2e7c685906cbd4ae2f18d7111caeb03c391cc96e5d31ef8e0b30c97",
+  "serial_complete_lf_bytes_parsed": 1250912,
+  "serial_trailing_partial_bytes_ignored": 0,
+  "failure_records": [
+    {
+      "line": 1058,
+      "record": "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=4496 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((4496, 216, 1))"
+    },
+    {
+      "line": 1059,
+      "record": "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=patchbay-publish slot=Some(2) target=None refusal=Application"
+    },
+    {
+      "line": 1062,
+      "record": "CONDUIT_KERNEL_SIGN {\"schema\":\"conduit.conduitos.kernel-sign/v2\",\"status\":\"refused\",\"reason\":\"native-body-kernel-boundary-refused\"}"
+    }
+  ],
+  "journey_status": "failed",
+  "journey_failure": {
+    "detail": "no complete guest record for patchbay-action",
+    "reason": "patchbay-action-timeout"
+  },
+  "frame_checkpoint_count": 21,
+  "frames_independently_verified": [
+    {
+      "checkpoint": "front-door-ready",
+      "png": "front-door-ready.png",
+      "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-ready",
+      "png": "creche-ready.png",
+      "png_sha256": "595887a11a8c34573c9610ce36d5b66365cbbdd2dc0254bf7e58aae86cc63111",
+      "pixel_sha256": "e460ea62cc29a41a659d44b2737f1d8d0e4f2debde8982813a7685c5753283a5",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-editorial-compact",
+      "png": "creche-editorial-compact.png",
+      "png_sha256": "6bec4c72ba1ad37317512ef8607885d82e2c8eedaff187c82f1258fa0a3eeb96",
+      "pixel_sha256": "01f1ac74d5f57c1b1876b44343185e1bae5a5e90711fcfc8f6d4867ca155e4cb",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-editorial-spacious",
+      "png": "creche-editorial-spacious.png",
+      "png_sha256": "3896485b9d4e58d67588bfbd0565f84ec69608fc49d6749ef0e4ae2ca699ee70",
+      "pixel_sha256": "5f575f45690263b559f3680a5788f5be858d05a9e7591d0f9b662c3a2a055420",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-engineering-spacious",
+      "png": "creche-engineering-spacious.png",
+      "png_sha256": "c1077508f7e79097ab4580be7053a8ef2d4d2219e9c60d67af4bd635bdbb5821",
+      "pixel_sha256": "b80a18c8e22fa9233b4c6784cf2164d04e7105872d2aafd811fdc03ec351872e",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-engineering-compact",
+      "png": "creche-engineering-compact.png",
+      "png_sha256": "ea3723429d5616952ec2e88666c00eeff27d680c7b18d14f39e9a53fb7c1c25c",
+      "pixel_sha256": "03791c4417a657d424830ebbb31eca92b5014f95bea23408f45c05b7cb4bb2ae",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-three-selected",
+      "png": "creche-three-selected.png",
+      "png_sha256": "0f0e2f24e5fab768bfebcc74383f7305fdb2fcf112cc1b167266834adf9104d3",
+      "pixel_sha256": "f8d879e3162086b521a5ec776fe7fa459edbd7264300d1dd499ed546b359cc59",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-four-restored",
+      "png": "creche-four-restored.png",
+      "png_sha256": "954a40c3aa9557ba124954370a887488fd19e3bd597be133f8fd26ec05e66a6b",
+      "pixel_sha256": "34c9dfc570e3231efbb09489a17058678987cb418a78e430e54a27e3485f105d",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-fourth-checked",
+      "png": "creche-fourth-checked.png",
+      "png_sha256": "c195451e902e484a68e79a46022ae0193fa3ee36cb843f0f3b854aa86df49f16",
+      "pixel_sha256": "9f47256d8bae69b40cc61ac22a46cece5edc8bb45a8ef15150c7929fa58ef98a",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-pointer-three-selected",
+      "png": "creche-pointer-three-selected.png",
+      "png_sha256": "dab525873535128d1b5328291180c9ed86f6aff7e027001dceba56897a47deb2",
+      "pixel_sha256": "a95a856166393578c50057dac6d3cf440ddad533278d07d20a426beeb4fb3c98",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "creche-pointer-four-restored",
+      "png": "creche-pointer-four-restored.png",
+      "png_sha256": "d89e7f1db610d3c48787bcb9ac9d092bd251327fb74170a4ca4e015e34762700",
+      "pixel_sha256": "c60038522a6584036d9a1ae8febcedf649aa25a6ccb3449d6246193295b80ab8",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "body-playing",
+      "png": "body-playing.png",
+      "png_sha256": "80a9ee7a4ef3fe5fa8652a33f5b7b75a73dc2dc5a0ca82bd048a856ed5e94b50",
+      "pixel_sha256": "38c072d8c810b9b78ea0ca1582b40d61257fb6ac387f5e4665ac58a1d32d7330",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "wake-refused",
+      "png": "wake-refused.png",
+      "png_sha256": "5b05ca501dcf7cd501468f436404bdc4152eeac00644cb6bc268876a253c2ca4",
+      "pixel_sha256": "32c40d3e28adc2d3e9fce8466238428d3a1511be02b7a37bf45845004e4a8472",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "protected-keyboard-canvas",
+      "png": "protected-keyboard-canvas.png",
+      "png_sha256": "b40dfac6a32df43062858a4e657e37e2734cc5a7b1c5f53c47e2a6b09c8f2a96",
+      "pixel_sha256": "58501b3895d2e1afd7f71889574c9b0090d2d41f9acc01a2f0aff49813239f86",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "protected-memory-lantern",
+      "png": "protected-memory-lantern.png",
+      "png_sha256": "c70933eeec1a5df20249427a9c2a764dec9526243dd75147fbdc023df76a10ad",
+      "pixel_sha256": "e3b2f10382547fd3f4b5f4f1796cb7c4b1c0120fe6a3e9780e46fe9618448d05",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "home",
+      "png": "home.png",
+      "png_sha256": "80a9ee7a4ef3fe5fa8652a33f5b7b75a73dc2dc5a0ca82bd048a856ed5e94b50",
+      "pixel_sha256": "38c072d8c810b9b78ea0ca1582b40d61257fb6ac387f5e4665ac58a1d32d7330",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "patchbay-workspace",
+      "png": "patchbay-workspace.png",
+      "png_sha256": "adad7b7419c13245e3b29e7322fa1f38ca2aa72296bb2de57c8b62368d5fd67a",
+      "pixel_sha256": "5b6d1e9973ae841d040a969ac45c85c25d0ecabb842aaed4b1ba2bf565b34561",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "patchbay-face",
+      "png": "patchbay-face.png",
+      "png_sha256": "adad7b7419c13245e3b29e7322fa1f38ca2aa72296bb2de57c8b62368d5fd67a",
+      "pixel_sha256": "5b6d1e9973ae841d040a969ac45c85c25d0ecabb842aaed4b1ba2bf565b34561",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "patchbay-diagram",
+      "png": "patchbay-diagram.png",
+      "png_sha256": "e57d8f1a182baf56447522dc15bcbc1bcfec0ad92f55012eac9254f6d2758427",
+      "pixel_sha256": "568842037613126ec2dc9578713701571299d21f1e4f4a014710fb4e7e6a0442",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "patchbay-gear-details",
+      "png": "patchbay-gear-details.png",
+      "png_sha256": "80e32a75426ae8f9c898ef99769c47ceae4203b29dd95ec32eb755048a144f6d",
+      "pixel_sha256": "1259e55bdddc573a655f363b505784be142f85c7384b3b59c758b0e77b8757f5",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "checkpoint": "patchbay-diagram-returned",
+      "png": "patchbay-diagram-returned.png",
+      "png_sha256": "aa177c606582102d3c4e836aeff3eb3cc4143ef66a10cfc7b36011ef8b5bc15c",
+      "pixel_sha256": "866912bb81ac9804710121beb09817bceab364c40c813ee55002f7cc3e691fd0",
+      "width": 1280,
+      "height": 800
+    }
+  ],
+  "qmp_sha256": "0199c6f9f0e60b23e7d9893183dea3770b586c0035909b6f2f31358d1e96cf63",
+  "qmp_complete_lf_bytes": 66006,
+  "qmp_trailing_partial_bytes_ignored": 0,
+  "archive_members": [
+    {
+      "path": "target/pipeline/conduitos-x86_64/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "be6dfedb622ac7cf1b29cb0e22702c478ee498996d89613361012d54648cff16"
+    },
+    {
+      "path": "target/pipeline/conduitos-x86_64/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "a635bc3b9851fffa7fa42d9b9ea19794999c64885095dbdee2a7c1d2b73c6d83"
+    },
+    {
+      "path": "target/conduitos/x86_64/build.json",
+      "bytes": 319,
+      "sha256": "0dc77b1b12480b22abd7a590c8d0b6ae23d9cd65c5498fbe16dd455794d99185"
+    },
+    {
+      "path": "target/conduitos/x86_64/conduitos",
+      "bytes": 78903512,
+      "sha256": "42315af1bfd628b45e625828d080f6ed766b609a836203f3c0ce2e2d343c6370"
+    },
+    {
+      "path": "target/conduitos/x86_64/image.json",
+      "bytes": 335,
+      "sha256": "0e57b0e093e0f4156578ce63ad87010890b0b8e7ef6e6a8190daf147f1388551"
+    },
+    {
+      "path": "target/conduitos/x86_64/iso-root/boot/conduit-build.json",
+      "bytes": 4453,
+      "sha256": "a635bc3b9851fffa7fa42d9b9ea19794999c64885095dbdee2a7c1d2b73c6d83"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/body-playing.png",
+      "bytes": 69981,
+      "sha256": "80a9ee7a4ef3fe5fa8652a33f5b7b75a73dc2dc5a0ca82bd048a856ed5e94b50"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-editorial-compact.png",
+      "bytes": 160599,
+      "sha256": "6bec4c72ba1ad37317512ef8607885d82e2c8eedaff187c82f1258fa0a3eeb96"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-editorial-spacious.png",
+      "bytes": 143008,
+      "sha256": "3896485b9d4e58d67588bfbd0565f84ec69608fc49d6749ef0e4ae2ca699ee70"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-engineering-compact.png",
+      "bytes": 159837,
+      "sha256": "ea3723429d5616952ec2e88666c00eeff27d680c7b18d14f39e9a53fb7c1c25c"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-engineering-spacious.png",
+      "bytes": 142273,
+      "sha256": "c1077508f7e79097ab4580be7053a8ef2d4d2219e9c60d67af4bd635bdbb5821"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-four-restored.png",
+      "bytes": 159950,
+      "sha256": "954a40c3aa9557ba124954370a887488fd19e3bd597be133f8fd26ec05e66a6b"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-fourth-checked.png",
+      "bytes": 159973,
+      "sha256": "c195451e902e484a68e79a46022ae0193fa3ee36cb843f0f3b854aa86df49f16"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 160022,
+      "sha256": "d89e7f1db610d3c48787bcb9ac9d092bd251327fb74170a4ca4e015e34762700"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 160097,
+      "sha256": "dab525873535128d1b5328291180c9ed86f6aff7e027001dceba56897a47deb2"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-ready.png",
+      "bytes": 159645,
+      "sha256": "595887a11a8c34573c9610ce36d5b66365cbbdd2dc0254bf7e58aae86cc63111"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/creche-three-selected.png",
+      "bytes": 160027,
+      "sha256": "0f0e2f24e5fab768bfebcc74383f7305fdb2fcf112cc1b167266834adf9104d3"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/home.png",
+      "bytes": 69981,
+      "sha256": "80a9ee7a4ef3fe5fa8652a33f5b7b75a73dc2dc5a0ca82bd048a856ed5e94b50"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/manifest.json",
+      "bytes": 333344,
+      "sha256": "d8b080859a5cff72d9600be7ff22012093fa6fe2b4f8dce948b398323051e014"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 153229,
+      "sha256": "aa177c606582102d3c4e836aeff3eb3cc4143ef66a10cfc7b36011ef8b5bc15c"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/patchbay-diagram.png",
+      "bytes": 153565,
+      "sha256": "e57d8f1a182baf56447522dc15bcbc1bcfec0ad92f55012eac9254f6d2758427"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/patchbay-face.png",
+      "bytes": 157947,
+      "sha256": "adad7b7419c13245e3b29e7322fa1f38ca2aa72296bb2de57c8b62368d5fd67a"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/patchbay-gear-details.png",
+      "bytes": 244397,
+      "sha256": "80e32a75426ae8f9c898ef99769c47ceae4203b29dd95ec32eb755048a144f6d"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/patchbay-workspace.png",
+      "bytes": 157947,
+      "sha256": "adad7b7419c13245e3b29e7322fa1f38ca2aa72296bb2de57c8b62368d5fd67a"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 71380,
+      "sha256": "b40dfac6a32df43062858a4e657e37e2734cc5a7b1c5f53c47e2a6b09c8f2a96"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/protected-memory-lantern.png",
+      "bytes": 64178,
+      "sha256": "c70933eeec1a5df20249427a9c2a764dec9526243dd75147fbdc023df76a10ad"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-frames/wake-refused.png",
+      "bytes": 129076,
+      "sha256": "5b05ca501dcf7cd501468f436404bdc4152eeac00644cb6bc268876a253c2ca4"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-qmp.log",
+      "bytes": 66006,
+      "sha256": "0199c6f9f0e60b23e7d9893183dea3770b586c0035909b6f2f31358d1e96cf63"
+    },
+    {
+      "path": "target/conduitos/x86_64/journey-serial.log",
+      "bytes": 1250912,
+      "sha256": "3c642a00e2e7c685906cbd4ae2f18d7111caeb03c391cc96e5d31ef8e0b30c97"
+    },
+    {
+      "path": "target/conduitos/x86_64/memory-lantern-native-edit.json",
+      "bytes": 5057,
+      "sha256": "f6d9653ee8dc5dd53d4a90d65f5e53b77e5eb9345fd7aaf28ae9e1b4b4c94079"
+    },
+    {
+      "path": "target/conduitos/x86_64/privilege-inventory-42315af1bfd628b45e625828d080f6ed766b609a836203f3c0ce2e2d343c6370-product-host.json",
+      "bytes": 112859,
+      "sha256": "83d66e9997baf7614979ce0331dd5753d3efa041faf53c725fcf68a2dd415ed7"
+    },
+    {
+      "path": "target/conduitos/x86_64/profile-built-boot.log",
+      "bytes": 41802,
+      "sha256": "da57404d155e0e27d5b61111beab9fb5d32960ed03fb33c2a112e318941d9c7a"
+    },
+    {
+      "path": "target/conduitos/x86_64/x86_64-product-proof.json",
+      "bytes": 1725,
+      "sha256": "42341bdbdb85a4066122b46718ded9297c260b6d9ad077eb729e000e2395a398"
+    }
+  ],
+  "limits": [
+    "Negative evidence from existing Candidate execution only; no new native run",
+    "Application Commit WorkExhausted at sequence4496 while publishing Patchbay slot2 precedes requested action receipt; sequence is not operation-budget exhaustion",
+    "No compositor collector proof receipt reached; collector repair is not accepted by this failure",
+    "Exact instruction or semantic hot phase is not isolated by entry-only evidence; source diagnosis hypotheses are retained separately",
+    "Archive contains actual Root ELF and frames but no ISO; ISO digest is manifest-derived only",
+    "No full Candidate success, Integration acceptance, physical proof, source fix or issue closure established"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "source": "455aaf0a33a5dddf739935003e77b5da2c3788ac",
+  "mode": "Read-only source and existing failed artifact diagnosis. No builds/mutations/CI/network.",
+  "serial_sha256": "3c642a00e2e7c685906cbd4ae2f18d7111caeb03c391cc96e5d31ef8e0b30c97",
+  "failure_evidence": [
+    {
+      "line": 1058,
+      "record": "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=4496 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((4496, 216, 1))"
+    },
+    {
+      "line": 1059,
+      "record": "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=patchbay-publish slot=Some(2) target=None refusal=Application"
+    },
+    {
+      "line": 1062,
+      "record": "CONDUIT_KERNEL_SIGN {\"schema\":\"conduit.conduitos.kernel-sign/v2\",\"status\":\"refused\",\"reason\":\"native-body-kernel-boundary-refused\"}"
+    }
+  ],
+  "last_retained_face": {
+    "line": 1003,
+    "identity": "f78068ed68364140d0faafac9eb57a1d0016ce0e12cabe6101c1bb69a2e8ded4",
+    "revision": 73,
+    "counts": {
+      "actions": 13,
+      "composition": 0,
+      "disclosures": 4,
+      "properties": 156,
+      "relationships": 31,
+      "subjects": 23,
+      "temporal_facts": 0,
+      "temporal_references": 0,
+      "text": 8
+    },
+    "serialized_json_bytes": 46070,
+    "show_id": "show/acae2ad5bd3d52a23d823e485863907f38c05327fff66a857e5a9eb79ca7a9cb"
+  },
+  "confirmed_cause": "Application protectedentry preempted under finite64RTCtick Draft envelope during Request::Commit ofPatchbayPublish(slot2). Not requestcount4496exhaustion: sequence4496iscorrelatedoperationnumber; eachentryRTCbudgetreset. Cumulativecounters(4496,216,1) showoneactualpreemption, not216interruptsingleslice.",
+  "source_links": {
+    "entry_profile": "targets/conduitos/src/arch/x86_64/service_domain.rs:78-95",
+    "timer_fault_mapping": "targets/conduitos/src/arch/x86_64/service_domain.rs:118-120",
+    "rtc_budget": "targets/conduitos/src/arch/x86_64/domain_budget.rs:12-35,112-115,146-157",
+    "protected_transport": "targets/conduitos/src/protected_application/transport.rs:47-68,180-197",
+    "commit_monolithic": "targets/conduitos/application-core/src/state.rs:129-141,176-259",
+    "command_decode": "targets/conduitos/application-core/src/data/codec.rs:57-77,111-129",
+    "canonical_publish": "targets/conduitos/application-core/src/models/canonical.rs:69-111",
+    "graph_matching": "plots/patchbay/application/src/resident_matching.rs:38-193",
+    "driver_wait": "targets/conduitos/make/xtask/journey_proof/patchbay_actions.rs:241-266",
+    "dispatch_after_publication": "targets/conduitos/src/native_workset/play/patchbay.rs:127-160"
+  },
+  "root_cause_hypotheses": [
+    {
+      "rank": 1,
+      "explanation": "SingleCommitcombines decompression+completeframingpreflight+typedcommand decode of fullFace+MaskShow, fullShow.validate/Facevalidation, exactowner/contributionmatching and replyencoding/destruction. Finite graphmatching checkpoints boundtemporarymemory but loopdoesnotyieldprotectedentry. Aggregateworkmayexceed64RTCticks. Exactsubphaseunknownwithoutphaseobservability."
+    },
+    {
+      "rank": 2,
+      "explanation": "Graphmatching performs repeated .contains scans against fullFacefactvectors plus percheckpointsubjectprefixduplicatechecks and graphre-emission. Fullselectedgraph contributes substantialwork; avoid replacingwith hashonly/partialvalidation unlessexactsemanticcontrols retained."
+    },
+    {
+      "rank": 3,
+      "explanation": "QEMUhosttimeinterruptenvelopecanvarywithload, but failureisactualproductentryadmissionfailure and requiresboundedphasecomposition/proof, notflakeretry orblindtimerincrease."
+    }
+  ],
+  "proof_driver_assessment": "Driver traverses acknowledged offeredShow and submits once; waits for ownerACTIONreceipt. Publication failsbeforecanonicalPatchbayConsume/remoteinputadmission, so noactionreceipt canarrive. Waitinglonger cannotrevivequarantinedservice. Eventtargetlastreadingpatchbay.plot.0; substepnotpinpointedwithoutremainingdriverartifactrecord.",
+  "repair_direction": "Separate immutable command/decompression/framing from semanticpublication into explicit boundedretainedphases; or remove proven redundant work with fullFace/Show/owner/chunknegativecontrols. Must retain64tickceilingandfailclosedcustody; actualQEMUproofrequired. Need exactphaseobservabilitybeforeclaimingoptimizationaddressesobservedsubphase.",
+  "no_claim": "No unique instructionhotspotorsemanticcorrectnessbugproven by existingentry-onlyrecord. No blindtimeout/budgetincrease recommendation."
+}
