@@ -263,21 +263,23 @@ for (const includeLifecycle of [false, true]) {
             }
           }
         }
-        await clickNavigation(page, page.locator('#aspect-controls button[data-aspect="Structure"]'));
-        await page.setViewportSize({ width: 1440, height: 1100 });
-        if (await workspace.getAttribute("open") !== null) await workspace.locator("summary").click();
-        if (await page.locator("body").getAttribute("data-inspector-open") === "true") await page.locator("#toggle-inspector").click();
-        await page.getByRole("button", { name: "Arrange", exact: true }).click();
-        await page.getByRole("button", { name: "Fit", exact: true }).click();
-        const live = await current(page);
-        expect(live.face.basis.plan_id).toBe(plan);
-        expect(live.face.basis.active_play_id).toBe(play);
-        await writeFile(testInfo.outputPath("live-authoring-face.json"), JSON.stringify({
-          face: live.face, navigation: live.navigation,
-          disposition: live.interaction.last_disposition,
-        }, null, 2));
-        await page.screenshot({ path: testInfo.outputPath("live-authoring-wide.png"), fullPage: true });
       }
+      await clickNavigation(page, page.locator('#aspect-controls button[data-aspect="Structure"]'));
+      await expect(page.locator("#lens-label")).toHaveText("PROGRAM · STRUCTURE");
+      await expect(page.locator(".flow-frontplate.role-gear").first()).toHaveAttribute("data-lens", "plot");
+      await page.setViewportSize({ width: 1440, height: 1100 });
+      if (await workspace.getAttribute("open") !== null) await workspace.locator("summary").click();
+      if (await page.locator("body").getAttribute("data-inspector-open") === "true") await page.locator("#toggle-inspector").click();
+      await page.getByRole("button", { name: "Arrange", exact: true }).click();
+      await page.getByRole("button", { name: "Fit", exact: true }).click();
+      const capture = await current(page);
+      expect(capture.face.basis.plan_id).toBe(plan);
+      expect(capture.face.basis.active_play_id).toBe(play);
+      await writeFile(testInfo.outputPath("live-authoring-face.json"), JSON.stringify({
+        face: capture.face, navigation: capture.navigation,
+        disposition: capture.interaction.last_disposition,
+      }, null, 2));
+      await page.screenshot({ path: testInfo.outputPath("live-authoring-wide.png"), fullPage: true });
     } finally {
       if (server.errors.length) await testInfo.attach("authoring-server-stderr", {
         body: server.errors.join(""), contentType: "text/plain",
