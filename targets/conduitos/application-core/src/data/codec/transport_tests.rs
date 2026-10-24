@@ -111,16 +111,21 @@ fn staged_borrowed_graph_reply_preserves_real_graph_custody_with_finite_progress
         };
         assert_eq!(encode(&decoded).unwrap(), encode(&expected).unwrap());
         let mut original = buffer(MAX_BLOB).unwrap();
+        // Manual graph progress intentionally remains V1. Its raw bytes retain
+        // the legacy oracle, while compact V2 replies retain equal public custody.
+        let mut legacy = buffer(MAX_DECODED_JSON_BYTES).unwrap();
+        let legacy_length = transport_codec::encode_unvalidated(&expected, &mut legacy).unwrap();
         workspace
             .encode_reply_into(&expected, &mut original)
             .unwrap();
-        // Compression chunk boundaries are private; decoded sequence bytes
-        // and canonical graph custody must remain byte-for-byte identical.
+        assert_eq!(
+            encode(&decode_reply(&original).unwrap()).unwrap(),
+            encode(&expected).unwrap()
+        );
         let mut left = buffer(MAX_DECODED_JSON_BYTES).unwrap();
-        let mut right = buffer(MAX_DECODED_JSON_BYTES).unwrap();
         assert_eq!(
             decoded_json(&output, &mut left).unwrap(),
-            decoded_json(&original, &mut right).unwrap()
+            &legacy[..legacy_length]
         );
     }
     assert!(
@@ -173,4 +178,49 @@ fn real_projection_preflight_preserves_compressed_graph_and_scope_custody() {
         compressed,
         "real graph projection must exercise compressed preparation"
     );
+}
+
+#[test]
+fn retained_source_publication_fixture_still_decodes_under_current_public_schema() {
+    #[derive(serde::Deserialize)]
+    #[allow(dead_code)]
+    struct Fixture {
+        face: conduit_face::Face,
+        show: conduit_face::MaskShow,
+        graphs: Vec<patchbay_graph::PatchbayGraph>,
+        topology: patchbay_application::PatchbayMaskTopology,
+    }
+    let wire = include_bytes!("../../../tests/fixtures/source-publication.catz");
+    let mut json = buffer(MAX_DECODED_JSON_BYTES).unwrap();
+    let bytes = decoded_json(wire, &mut json).unwrap();
+    let fixture =
+        serde_json::from_slice::<Fixture>(bytes).expect("retained current public fixture");
+    let original =
+        include_bytes!("../../../tests/fixtures/source-publication-original-mask-plan.json");
+    let original_plan: conduit_core::Plan = serde_json::from_slice(original).unwrap();
+    assert_eq!(fixture.show.planned_mask.plan, original_plan);
+    // Independently retain the original raw Plan bytes inside the new envelope.
+    let document: serde_json::Value = serde_json::from_slice(bytes).unwrap();
+    let encoded = &document["show"]["planned_mask"]["plan"];
+    assert_eq!(
+        encoded["expanded_bytes"].as_u64(),
+        Some(original.len() as u64)
+    );
+    let hex = encoded["zlib_hex"].as_str().unwrap();
+    let compressed = hex
+        .as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|pair| {
+            let digit = |b: u8| match b {
+                b'0'..=b'9' => b - b'0',
+                b'a'..=b'f' => b - b'a' + 10,
+                _ => panic!("canonical hex"),
+            };
+            digit(pair[0]) * 16 + digit(pair[1])
+        })
+        .collect::<Vec<_>>();
+    let decoded = miniz_oxide::inflate::decompress_to_vec_zlib(&compressed).unwrap();
+    assert_eq!(decoded, original);
 }

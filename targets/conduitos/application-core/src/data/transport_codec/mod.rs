@@ -4,17 +4,28 @@
 //! A no-allocation syntax/count preflight authenticates every hint before typed
 //! deserialization. Version and framing overhead share the existing decoded
 //! byte ceiling; this does not enlarge wire, heap or execution grants.
+//!
+//! Ordinary commands/replies emit CAPSEQ2: the closed schema reserves the
+//! `canonical_value` struct/map field for bounded u8 sequences, encoded as a
+//! canonical base64 string. All other sequences and human-readable scalar
+//! semantics stay unchanged. Legacy CAPSEQ1 accepts counted arrays only and
+//! remains the resumable Graph reply format and its exact-byte oracle.
+//! This adapter is for that closed private schema, not arbitrary Serde maps
+//! containing an unrelated string field named `canonical_value`.
 mod backend;
 mod de;
 mod graph_validation;
 mod preflight;
 mod streaming_preflight;
 pub(crate) use graph_validation::GraphValidation;
+mod packed;
 mod ser;
 use super::Refusal;
 use serde::{Serialize, de::DeserializeOwned};
 
 const VERSION: &str = "CAPSEQ1";
+const COMPACT_VERSION: &str = "CAPSEQ2";
+const COMPACT_PREFIX: &[u8] = b"[2,\"CAPSEQ2\",";
 const PREFIX: &[u8] = b"[2,\"CAPSEQ1\",";
 const MAX_BYTES: usize = super::MAX_DECODED_JSON_BYTES;
 
@@ -23,12 +34,13 @@ pub(crate) fn encode_to_slice<T: Serialize + ?Sized>(
     value: &T,
     output: &mut [u8],
 ) -> Result<usize, Refusal> {
-    let length = encode_unvalidated(value, output)?;
+    let length = backend::encode(&ser::CompactEnvelope(value), output)?;
     preflight::validate(&output[..length])?;
     Ok(length)
 }
 
 /// State validates these immutable bytes in a separate protected entry.
+#[cfg(test)]
 pub(super) fn encode_unvalidated<T: Serialize + ?Sized>(
     value: &T,
     output: &mut [u8],
@@ -37,7 +49,7 @@ pub(super) fn encode_unvalidated<T: Serialize + ?Sized>(
 }
 
 pub(super) fn preflight(bytes: &[u8]) -> Result<(), Refusal> {
-    if !bytes.starts_with(PREFIX) {
+    if !bytes.starts_with(PREFIX) && !bytes.starts_with(COMPACT_PREFIX) {
         return Err(Refusal::Malformed);
     }
     preflight::validate(bytes)

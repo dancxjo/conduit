@@ -1,6 +1,7 @@
 mod canonical;
 mod graph_abort;
 mod initialize;
+mod packed_refusal;
 mod source_inventory;
 mod source_publication;
 use conduitos_application_core::{
@@ -275,6 +276,7 @@ pub fn run() {
     // service this measures incoming, typed decode, controllers and outgoing.
     ACTIVE.store(true, Ordering::SeqCst);
     let mut transfer = [0u8; memory::TRANSFER_BYTES];
+    packed_refusal::run(&mut transfer);
     graph_abort::run(&applications, &mut transfer);
     let mut state = State::default();
     STAGE.store(1, Ordering::Relaxed);

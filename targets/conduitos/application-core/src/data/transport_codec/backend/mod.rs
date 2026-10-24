@@ -1,6 +1,7 @@
 //! Private no-allocation Serde JSON backend with checked errors, never panics
 //! for unsupported Serde forms. The framing adapter remains its only caller.
 mod compound;
+mod packed;
 mod writer;
 use compound::Compound;
 use serde::{Serialize, Serializer, ser::*};
@@ -161,10 +162,17 @@ impl<'a, 'b> Serializer for &'a mut Writer<'b> {
     }
     fn serialize_newtype_struct<T: Serialize + ?Sized>(
         self,
-        _: &'static str,
+        name: &'static str,
         value: &T,
     ) -> Result<(), Error> {
-        value.serialize(self)
+        if name == super::packed::MARKER {
+            if self.key {
+                return Err(Error::Malformed);
+            }
+            packed::encode(value, self)
+        } else {
+            value.serialize(self)
+        }
     }
     fn serialize_newtype_variant<T: Serialize + ?Sized>(
         self,
