@@ -1,0 +1,33 @@
+{
+  "source": "ec37536e34754873b4e679e348feb4a097447f12",
+  "status": "interrupted-no-compile-result",
+  "argv": [
+    "cargo",
+    "+stable",
+    "check",
+    "--locked",
+    "-p",
+    "conduitos",
+    "--bin",
+    "conduitos",
+    "--target",
+    "x86_64-unknown-none",
+    "--release",
+    "--features",
+    "native-compositor"
+  ],
+  "started": 1792821477.3624296,
+  "free_before": 9295355904,
+  "proof_class": "actual target_os=none Rust preparation compile, no native link/runtime/admission",
+  "limits": [
+    "Clock teardown/coexistence remains blocked",
+    "No native profile/offer activation",
+    "No actual IRQ/slice/resume/ongoing-operation enactment claim"
+  ],
+  "wrapper_session_exit_code": 143,
+  "cargo_pid": 4049437,
+  "observed": 1792822058.741861,
+  "log_sha256": "a91555064a35bd6aee6c41903d3d3cc27eab9a84d4831d699d57f91c969339de",
+  "ended_observed": 1792822119.1694047,
+  "result": "No compiler error or Finished result captured; no check PASS claim"
+}

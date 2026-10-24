@@ -1,0 +1,390 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6311-native-continuation/targets/conduitos)
+warning: unused import: `ProtectedDocument`
+  --> targets/conduitos/src/text_protection.rs:14:27
+   |
+14 | pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+   |                           ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `FaceBack`, `IndicatorBack`, `LiteralBack`, `LiteralState`, `MorseBack`, `TourMorseBack`, and `UpperBack`
+ --> targets/conduitos/src/tour_morse_kernel.rs:4:25
+  |
+4 |     text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
+  |                         ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^
+5 |     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
+  |                        ^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused imports: `FixedHostCallBindings`, `FixedRoutes`, `FixedScheduler`, `FixedSignLog`, `FixedValueStore`, `KernelEvent`, and `ValueStorage`
+  --> targets/conduitos/src/tour_morse_kernel.rs:9:22
+   |
+ 9 |     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+   |                      ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                           ^^^^^^^^^^^                              ^^^^^^^^^^^^
+11 |     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+   |                 ^^^^^^^^^^^^^^
+
+warning: unused import: `SignSink`
+  --> targets/conduitos/src/tour_morse_kernel.rs:10:64
+   |
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                                                ^^^^^^^^
+
+warning: function `enter_context_with_capture` is never used
+  --> targets/conduitos/src/arch/x86_64/domain_transition.rs:98:15
+   |
+98 | pub(super) fn enter_context_with_capture(
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `resume_context` is never used
+   --> targets/conduitos/src/arch/x86_64/domain_transition.rs:115:15
+    |
+115 | pub(super) fn resume_context<E: Copy + Eq>(
+    |               ^^^^^^^^^^^^^^
+
+warning: multiple variants are never constructed
+  --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:54:5
+   |
+53 | pub(in crate::arch::x86_64) enum Refusal {
+   |                                  ------- variants in this enum
+54 |     InvalidMapping,
+   |     ^^^^^^^^^^^^^^
+55 |     ForeignOwner,
+   |     ^^^^^^^^^^^^
+56 |     InvalidFrame,
+57 |     UnsupportedState,
+   |     ^^^^^^^^^^^^^^^^
+58 |     AlreadyCaptured,
+   |     ^^^^^^^^^^^^^^^
+59 |     Consumed,
+   |     ^^^^^^^^
+60 |     Empty,
+   |     ^^^^^
+61 |     Revoked,
+   |     ^^^^^^^
+   |
+   = note: `Refusal` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: struct `ExecutableRange` is never constructed
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:104:36
+    |
+104 | pub(in crate::arch::x86_64) struct ExecutableRange {
+    |                                    ^^^^^^^^^^^^^^^
+
+warning: struct `Mapping` is never constructed
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:111:36
+    |
+111 | pub(in crate::arch::x86_64) struct Mapping<'a> {
+    |                                    ^^^^^^^
+
+warning: methods `valid` and `validate` are never used
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:121:8
+    |
+120 | impl Mapping<'_> {
+    | ---------------- methods in this implementation
+121 |     fn valid(&self) -> bool {
+    |        ^^^^^
+...
+136 |     fn validate(&self, context: &UserContext) -> Result<(), Refusal> {
+    |        ^^^^^^^^
+
+warning: function `user_address` is never used
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:166:4
+    |
+166 | fn user_address(address: u64) -> bool {
+    |    ^^^^^^^^^^^^
+
+warning: function `data_selector` is never used
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:169:4
+    |
+169 | fn data_selector(selector: u16) -> bool {
+    |    ^^^^^^^^^^^^^
+
+warning: enum `State` is never used
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:173:6
+    |
+173 | enum State {
+    |      ^^^^^
+
+warning: struct `Custody` is never constructed
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:182:36
+    |
+182 | pub(in crate::arch::x86_64) struct Custody<'a, E: Copy + Eq> {
+    |                                    ^^^^^^^
+
+warning: associated items `new`, `owner`, `capture`, `consume`, `consume_for_resume`, and `revoke` are never used
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:191:36
+    |
+190 | impl<'a, E: Copy + Eq> Custody<'a, E> {
+    | ------------------------------------- associated items in this implementation
+191 |     pub(in crate::arch::x86_64) fn new(
+    |                                    ^^^
+...
+208 |     fn owner(
+    |        ^^^^^
+...
+222 |     pub(in crate::arch::x86_64) fn capture(
+    |                                    ^^^^^^^
+...
+245 |     pub(in crate::arch::x86_64) fn consume(
+    |                                    ^^^^^^^
+...
+270 |     pub(in crate::arch::x86_64) fn consume_for_resume<'owner>(
+    |                                    ^^^^^^^^^^^^^^^^^^
+...
+284 |     pub(in crate::arch::x86_64) fn revoke(&mut self) {
+    |                                    ^^^^^^
+
+warning: struct `ResumeTicket` is never constructed
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:292:36
+    |
+292 | pub(in crate::arch::x86_64) struct ResumeTicket<'owner, 'mapping, E: Copy + Eq> {
+    |                                    ^^^^^^^^^^^^
+
+warning: methods `context` and `mapping` are never used
+   --> targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs:298:19
+    |
+297 | impl<'mapping, E: Copy + Eq> ResumeTicket<'_, 'mapping, E> {
+    | ---------------------------------------------------------- methods in this implementation
+298 |     pub(super) fn context(&self) -> &UserContext {
+    |                   ^^^^^^^
+...
+301 |     pub(super) fn mapping(&self) -> &'mapping Mapping<'mapping> {
+    |                   ^^^^^^^
+
+warning: function `private_clock_available` is never used
+   --> targets/conduitos/src/arch/x86_64/interrupt_controller.rs:159:15
+    |
+159 | pub(super) fn private_clock_available() -> bool {
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `has_pending_facts` is never used
+  --> targets/conduitos/src/arch/x86_64/irq.rs:53:15
+   |
+53 | pub(super) fn has_pending_facts() -> bool {
+   |               ^^^^^^^^^^^^^^^^^
+
+warning: function `timer_quiescent` is never used
+  --> targets/conduitos/src/arch/x86_64/pic.rs:69:15
+   |
+69 | pub(super) fn timer_quiescent() -> bool {
+   |               ^^^^^^^^^^^^^^^
+
+warning: function `irq_zero_quiescent` is never used
+  --> targets/conduitos/src/arch/x86_64/pic.rs:84:4
+   |
+84 | fn irq_zero_quiescent(irr: u8, isr: u8) -> bool {
+   |    ^^^^^^^^^^^^^^^^^^
+
+warning: static `EPOCH` is never used
+  --> targets/conduitos/src/arch/x86_64/preemption_clock.rs:14:8
+   |
+14 | static EPOCH: AtomicU32 = AtomicU32::new(0);
+   |        ^^^^^
+
+warning: variants `Unavailable`, `Unqualified`, `Stale`, and `InvalidSlice` are never constructed
+  --> targets/conduitos/src/arch/x86_64/preemption_clock.rs:21:5
+   |
+19 | pub(super) enum Refusal {
+   |                 ------- variants in this enum
+20 |     Busy,
+21 |     Unavailable,
+   |     ^^^^^^^^^^^
+22 |     Unqualified,
+   |     ^^^^^^^^^^^
+23 |     Stale,
+   |     ^^^^^
+24 |     InvalidSlice,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `Refusal` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: struct `ReadyClock` is never constructed
+  --> targets/conduitos/src/arch/x86_64/preemption_clock.rs:33:19
+   |
+33 | pub(super) struct ReadyClock {
+   |                   ^^^^^^^^^^
+
+warning: associated items `qualify`, `begin_slice`, and `finish_slice` are never used
+   --> targets/conduitos/src/arch/x86_64/preemption_clock.rs:40:19
+    |
+ 36 | impl ReadyClock {
+    | --------------- associated items in this implementation
+...
+ 40 |     pub(super) fn qualify() -> Result<Self, Refusal> {
+    |                   ^^^^^^^
+...
+ 72 |     pub(super) fn begin_slice<E: Copy + Eq>(
+    |                   ^^^^^^^^^^^
+...
+100 |     pub(super) fn finish_slice<E: Copy + Eq>(
+    |                   ^^^^^^^^^^^^
+
+warning: struct `SliceClock` is never constructed
+   --> targets/conduitos/src/arch/x86_64/preemption_clock.rs:128:19
+    |
+128 | pub(super) struct SliceClock<E: Copy + Eq> {
+    |                   ^^^^^^^^^^
+
+warning: function `can_acquire` is never used
+   --> targets/conduitos/src/arch/x86_64/preemption_clock.rs:179:4
+    |
+179 | fn can_acquire(pending_facts: bool, hardware_available: bool) -> bool {
+    |    ^^^^^^^^^^^
+
+warning: method `lifecycle_copy_ack` is never used
+ --> targets/conduitos/src/native_face_mask/lifecycle_evidence.rs:6:19
+  |
+4 | impl NativeFaceMask {
+  | ------------------- method in this implementation
+5 |     /// Read-only current validated-copy ACK; never acknowledges or enters the guest.
+6 |     pub(crate) fn lifecycle_copy_ack(
+  |                   ^^^^^^^^^^^^^^^^^^
+
+warning: method `embedded_image_bytes` is never used
+   --> targets/conduitos/src/protected_compositor/display_owner.rs:149:19
+    |
+ 68 | impl DisplayOwner {
+    | ----------------- method in this implementation
+...
+149 |     pub(crate) fn embedded_image_bytes(&self) -> &'static [u8] {
+    |                   ^^^^^^^^^^^^^^^^^^^^
+
+warning: method `active_session` is never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:79:12
+   |
+61 | impl<T: Transport> SessionOwner<T> {
+   | ---------------------------------- method in this implementation
+...
+79 |     pub fn active_session(&self) -> Option<SessionId> {
+   |            ^^^^^^^^^^^^^^
+
+warning: variant `Disposal` is never constructed
+  --> targets/conduitos/src/protected_compositor/lifecycle_sign.rs:46:5
+   |
+42 | pub(crate) enum Stage {
+   |                 ----- variant in this enum
+...
+46 |     Disposal,
+   |     ^^^^^^^^
+   |
+   = note: `Stage` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: method `record_result` is never used
+   --> targets/conduitos/src/protected_creche/home.rs:124:19
+    |
+ 14 | impl Home {
+    | --------- method in this implementation
+...
+124 |     pub(crate) fn record_result(
+    |                   ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:28:7
+   |
+28 | const QUEUE_SLOTS: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:29:7
+   |
+29 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:30:7
+   |
+30 | const ROUTE_TARGETS: usize = 2;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:31:7
+   |
+31 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:32:7
+   |
+32 | const PENDING_REQUESTS: usize = 3;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:33:7
+   |
+33 | const VALUE_SLOTS: usize = 6;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:34:7
+   |
+34 | const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:35:7
+   |
+35 | const SIGN_CAPACITY: usize = 64;
+   |       ^^^^^^^^^^^^^
+
+warning: method `read_document` is never used
+  --> targets/conduitos/src/text_protection/document.rs:26:12
+   |
+25 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+26 |     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+   |            ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:21:7
+   |
+21 | const QUEUE_SLOTS: usize = 4;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:22:7
+   |
+22 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:23:7
+   |
+23 | const ROUTE_TARGETS: usize = 4;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:24:7
+   |
+24 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:25:7
+   |
+25 | const PENDING_REQUESTS: usize = 4;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:26:7
+   |
+26 | const VALUE_SLOTS: usize = 12;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:27:7
+   |
+27 | const VALUE_BYTES: usize =
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:29:7
+   |
+29 | const SIGN_CAPACITY: usize = 96;
+   |       ^^^^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 49 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 8m 29s

@@ -1,0 +1,32 @@
+{
+  "source": "ec37536e34754873b4e679e348feb4a097447f12",
+  "status": "passed-target-Rust-check-only",
+  "argv": [
+    "cargo",
+    "+stable",
+    "check",
+    "--locked",
+    "-p",
+    "conduitos",
+    "--bin",
+    "conduitos",
+    "--target",
+    "x86_64-unknown-none",
+    "--release",
+    "--features",
+    "native-compositor"
+  ],
+  "started": 1792822119.3296092,
+  "free_before": 10518220800,
+  "proof_class": "actual target_os=none Rust preparation compile, no native link/runtime/admission",
+  "limits": [
+    "Clock teardown/coexistence remains blocked",
+    "No native profile/offer activation",
+    "No actual IRQ/slice/resume/ongoing-operation enactment claim"
+  ],
+  "exit_code": 0,
+  "source_unchanged": true,
+  "ended": 1792822628.9549541,
+  "free_after": 8659718144,
+  "log_sha256": "b8dff9b9fce602f02cbd8882799fdbbb389b9cd902d4a69a9070107e8baf8b3b"
+}

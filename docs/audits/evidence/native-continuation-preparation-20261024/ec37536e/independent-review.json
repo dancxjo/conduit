@@ -1,0 +1,34 @@
+{
+  "status": "PASS actual native Rust compile only",
+  "source": "ec37536e34754873b4e679e348feb4a097447f12",
+  "exit_code": 0,
+  "log_sha256": "b8dff9b9fce602f02cbd8882799fdbbb389b9cd902d4a69a9070107e8baf8b3b",
+  "actual_target": "x86_64-unknown-none",
+  "actual_cargo_cwd": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6311-native-continuation",
+  "actual_source_inputs": {
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "d5d51e4a6e8ad65356d26fba4482d334795072f8297106f87177d7497c43cb77",
+    "targets/conduitos/src/arch/x86_64/domain_transition/capture.rs": "96ab71ac4572a56fcafda4c33e06c825d6651167014d9c162d5e005ecad43255",
+    "targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs": "8aa9b0f9f8e727fc595fba03058307cedd747512885a3c0ff328d89dd69cfa52",
+    "targets/conduitos/src/arch/x86_64/domain_transition/entry_return.S": "d2842349b94a81abe2e96b14975b898874f7dfa1ee2995389ee42573ae19061c",
+    "targets/conduitos/src/arch/x86_64/domain_transition/resume.S": "aa45eaf5380e1bebe494d6073e3230aaab56bf3b6c879e0fd972d2f4b3894c61"
+  },
+  "source_input_depfiles": [
+    {
+      "name": "compiled-inputs-conduitos-57d27ea5c38fde5a.d",
+      "sha256": "b1c20a780e15d59b4ef022cf10c5fd5602e2c0bf48beb1c059e7a8c14dbc6a57",
+      "bytes": 116203
+    }
+  ],
+  "source_clean_and_unchanged": true,
+  "review_correction": "Rustc depfile uses workspace-relative source inputs, not absolute worktree paths; verified against actual Cargo cwd and unchanged source",
+  "earlier_negative": "prior wrapper/child interruption143 retained separately; no compilation verdict from it",
+  "warnings": "49 compiler warnings retained; not a strict Clippy or zero-warning claim",
+  "limits": [
+    "No final Root/native-image link",
+    "No native continuation profile/offer activation",
+    "No SourceIRQ/context resume/runtime/cost/custody enactment",
+    "Clock reusable teardown/Host timer coexistence remains blocked",
+    "Candidate/postmergeIntegration not started for6311"
+  ],
+  "time": 1792822971.294526
+}

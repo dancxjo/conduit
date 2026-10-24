@@ -1,0 +1,30 @@
+{
+  "native-check.log": {
+    "bytes": 14355,
+    "sha256": "b8dff9b9fce602f02cbd8882799fdbbb389b9cd902d4a69a9070107e8baf8b3b"
+  },
+  "compiled-inputs-conduitos-57d27ea5c38fde5a.d": {
+    "bytes": 116203,
+    "sha256": "b1c20a780e15d59b4ef022cf10c5fd5602e2c0bf48beb1c059e7a8c14dbc6a57"
+  },
+  "README.md": {
+    "bytes": 1425,
+    "sha256": "3041de4467200274690192aa0d4d2817dbe32915e483c6a4dbfe2507e2188aee"
+  },
+  "interrupted-attempt-receipt.json": {
+    "bytes": 977,
+    "sha256": "2f8b508b9da9e8faf648d61a88fa5aadba6da8933a9ae9c7dc4dff2f90004bf0"
+  },
+  "native-check-receipt.json": {
+    "bytes": 868,
+    "sha256": "cc37706757656b30cbe8658257c93b622c11815b51b62ca6ba4635612c65f31d"
+  },
+  "independent-review.json": {
+    "bytes": 2062,
+    "sha256": "cb2f58372ad6b8636b431484578a4f2a0043d34dca8e1a6286783a37cd899954"
+  },
+  "interrupted-attempt.log": {
+    "bytes": 11260,
+    "sha256": "a91555064a35bd6aee6c41903d3d3cc27eab9a84d4831d699d57f91c969339de"
+  }
+}
