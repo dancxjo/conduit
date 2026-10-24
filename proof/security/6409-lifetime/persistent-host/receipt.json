@@ -1,0 +1,32 @@
+{
+  "base_source": "4d93fd615ff991ee05dfa01e6e2b97c66f8636ce",
+  "source_state": "two untracked owned Std test files; concurrent Root-owned HTTP feature cfg change, no clean-tree claim",
+  "source_sha256": {
+    "targets/std/tests/region_persistent_host_lifetime.rs": "06e3006cbaadc39d3f466c67373fb105848adbea80ce907a7ae442766454d639",
+    "targets/std/tests/support/region_lifetime_fixture.rs": "bd296ba82067d66f51d05bf1da92cc553842da6284de30ea82dbffb7414cc0fe"
+  },
+  "command": "cargo +stable test --locked -p conduit-std-host --test region_persistent_host_lifetime -- --nocapture --test-threads=1",
+  "exit": 0,
+  "passed": 1,
+  "failed": 0,
+  "ignored": 0,
+  "actual_elf": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/region_persistent_host_lifetime-6b798897557120f0",
+  "elf_sha256": "bde882ae572c4ae1772bba1634cc93500b1ef144e5da920a45aaa906e3c8168c",
+  "log_sha256": "336ff808ab793fc8054fcc2f234a74782c3a9431040b6847226acd1e77b87b48",
+  "proof_class": "actual public InitializedRegionService over one persistent actual StdHost; existing sealed pure transfer fixture; cooperative Rust worker execution",
+  "not_established": [
+    "fresh authored Source checking",
+    "late callback/HostCall/Watch/staged output rejection",
+    "panic or failed cleanup",
+    "native hard termination or memory isolation",
+    "semantic Body replan",
+    "full6409 acceptance"
+  ],
+  "strict": {
+    "exit": 0,
+    "command": "cargo +stable clippy --locked -p conduit-std-host --test region_persistent_host_lifetime -- -D warnings",
+    "log_sha256": "a70390393e0b3be8a99b081549214edf580ac159c62d7ca9f115c5b79cd82b78"
+  },
+  "format_diff_exit": 0,
+  "handoff_status": " M targets/conduitos/tests/http_ticket_lifetime.rs\n?? proof/security/6409-lifetime/http/candidate-admission-negative/\n?? targets/std/tests/region_persistent_host_lifetime.rs\n?? targets/std/tests/support/region_lifetime_fixture.rs\n"
+}
