@@ -134,7 +134,7 @@ function presentEdges(edges) {
   }));
 }
 
-function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onOpenBack, onWorkspaceChange, lens, selectionGroup, noticeTarget }) {
+function Workspace({ surface, snapshot, onSelect, onConnect, onConnectStart, onClear, onOpenBack, onWorkspaceChange, lens, selectionGroup, noticeTarget }) {
   const [openedBacks, setOpenedBacks] = React.useState(() => new Set());
   React.useEffect(() => setOpenedBacks(new Set()), [
     snapshot.face.basis.checked_plot_id,
@@ -217,7 +217,23 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
     setEdges(presentEdges(document ? applyWorkspace(document, projected).edges : projected.edges));
   }, [projected.workspaceIdentity, projected.lens, openedBacks, snapshot.face.identity, snapshot.face.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision, snapshot.authoring?.connection_candidates]);
   arrangeCurrent = () => {
-    const next = reconcileFlowScene(projected);
+    // Measure this renderer's actual cards at the current text size. Arrangement
+    // is explicit: a font or viewport change cannot discard saved positions.
+    const measurements = new Map(), ids = new Set(projected.nodes.map(node => node.id));
+    const zoom = instance?.getViewport().zoom || 1;
+    for (const element of surface.querySelectorAll('.react-flow__node')) {
+      if (!ids.has(element.dataset.id)) continue;
+      const bounds = element.getBoundingClientRect();
+      if (bounds.width > 0 && bounds.height > 0)
+        measurements.set(element.dataset.id, { width: bounds.width / zoom, height: bounds.height / zoom });
+    }
+    let next;
+    try { next = reconcileFlowScene(projected, null, measurements); }
+    catch (error) {
+      if (currentScene) currentScene = { ...currentScene, storageRefusal: error.message };
+      onWorkspaceChange?.(flowWorkspaceStatus());
+      return;
+    }
     setNodes(next.nodes);
     persist(next);
     requestAnimationFrame(() => instance?.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 }));
@@ -333,6 +349,7 @@ export function renderFlow(snapshot, handlers) {
   root = rootFor(target);
   const { target: _target, ...workspaceHandlers } = handlers;
   root.render(e(Workspace, {
+    surface: target,
     snapshot,
     ...workspaceHandlers,
     selectionGroup: `patchbay-flow-${target.id || snapshot.face.identity}`,

@@ -258,3 +258,24 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .look-picker select { width:10rem; min-width:0; max-width:100%; min-height:2.75rem; padding:.35rem .5rem; font:inherit; color:inherit; background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:var(--conduit-radius-control); }
 
 .look-picker select:focus-visible { outline-offset:-4px; }
+
+/* Large text and narrow screens need document flow, not stacked viewport bands. */
+@media(max-width:720px) {
+  html,body { height:auto; min-height:100%; overflow-x:hidden; overflow-y:auto; }
+  #patchbay-root { height:auto; min-height:100vh; overflow:visible; }
+  #patchbay-root>[data-application-slot="product-masthead"] {
+    position:relative; inset:auto; width:auto; max-width:none; max-height:none;
+    margin:.5rem .75rem; overflow:visible;
+  }
+  nav[aria-label="Patchbay workspace"] {
+    position:relative; inset:auto; width:auto; max-width:none; max-height:none;
+    margin:.5rem .75rem; overflow:visible;
+  }
+  main { position:relative; inset:auto; height:auto; overflow:visible; }
+  .workspace,body[data-embodied="false"] .workspace { display:block; height:auto; min-height:0; }
+  .canvas-panel { position:relative; inset:auto; min-height:0; }
+  .canvas-heading { position:relative; inset:auto; max-height:none; margin:.5rem .75rem; overflow:visible; }
+  #flow-root { position:relative; inset:auto; height:max(20rem,55vh); min-height:20rem; }
+  #workspace-footer { position:relative; inset:auto; max-height:none; margin:.5rem .75rem; overflow:visible; }
+  [data-furniture-dock="left"],[data-furniture-dock="right"] { top:.75rem; }
+}
