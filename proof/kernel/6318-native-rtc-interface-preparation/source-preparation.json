@@ -1,0 +1,37 @@
+{
+  "base_commit": "fef8f6853a46cdafaab1e0a51e53fa24db6d3423",
+  "status": "uncommitted-interface-preparation",
+  "files": {
+    "targets/conduitos/src/arch/x86_64/domain_budget.rs": "62e303fe777d9d547abe0ee2465aea0cd61621517b782e01f17b78ba020734ac",
+    "targets/conduitos/src/arch/x86_64/domain_budget/entry.rs": "7f0d8fd7ada7e7f9b31f04d1478ea5707f07a8e0fc9368d7f502d37b167e75da",
+    "targets/conduitos/src/arch/x86_64/domain_budget/tests.rs": "bacd73aad4bca76879c298cad15b8f1c7b8a93121402124dccd8bc3310c4c6da",
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "fc4bf40678b37e014967010eefb3e4b03133e58f343aaa545ba9fa3b4bc0f53f",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "ff6dfad3e565b55a6069b2bd14013a6da5de184698ec039e409910f2934625f3",
+    "targets/conduitos/tests/native_rtc_receipt.rs": "ac2d81f9a96101e04aa4c876f5536c8d1fb03c41dcecf5ae23152aedcf241b50"
+  },
+  "verified": "rustfmt and git diff --check only",
+  "not_verified": [
+    "hosted test execution",
+    "actual freestanding compilation",
+    "RTC hardware cap",
+    "native capture/exclusive ownership ordering at runtime",
+    "Application cumulative64 ledger",
+    "normal Patchbay publication and Stop/return journey",
+    "Candidate/Integration"
+  ],
+  "native_proof_plan": [
+    "Existing normal journey exercises common factored ServiceDomain entry/capture, defaults unchanged.",
+    "Existing ordinary_domain_proof ServiceImage fixture can use for_profile(existing domain.elf, Application), same ServiceDomain capped method, yielding entry then existing probe6 loop at remaining1: exact immutable correlated receipt, WorkExhausted and terminal quarantine; no parallel backend.",
+    "Reuse actual Source timer coexistence to observe separate Source count at cap64, without converting it to RTC consumption.",
+    "Coupled Application-owner staging must lower each actual native entry to remaining1..64 from one unchanged operation64 ledger, finite zero-IRQ phase bound, and exact canonical identity/publication semantics.",
+    "Retain exact final source/ELF/ISO/Host/Boot/Show, actual serial/QMP/PNG and full normal publication+Stop/return journey; unit/compile is not native proof."
+  ],
+  "committed_code": "8e54c36181066771870045470c25bd11f7dc4945",
+  "verification": {
+    "format_and_diff": "pass",
+    "hosted_policy_tests": "not run; aggregate headroom below admission",
+    "target_compilation": "not run",
+    "native_execution": "not run",
+    "normal_staged_publication": "not implemented by this native interface slice"
+  }
+}
