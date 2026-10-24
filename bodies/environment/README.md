@@ -1453,7 +1453,19 @@ no pin, Host, implementation, grant or hardware-profile binding facts.
 lowering over independently supplied current offers, Bases and authority. It
 admits one-item Frame/refusal queues with explicit byte ceilings and refuses
 missing output readiness/Base, missing authority or a foreign-Boot grant. The
-planning tests use explicit software/pin/authority fixtures and perform no I/O.
+planning tests retain actual initialized portable expression/selector backs;
+pins and authority remain explicit CPU fixtures, with no I/O.
 The `display-output` proof includes these checks plus existing packet, Mask and
 native-owner regressions. This construction material does not install a Mask
 Play, start a timer or transmit packets; those remain separate Root work.
+
+`DisplayOutputSource::prepare_software` now initializes the explicitly selected
+portable computations through the existing retained software owner. It binds
+Source/checked/expanded identities, actual Host/Boot and projected offer
+generation; ordinary exact plan selection transfers each object once. Unknown,
+duplicate or electrical gears refuse portable preparation, and selected
+objects disappear from fresh offers. Selector workspaces are reserved before
+Play. The electrical provider and complete kernel/work admission remain
+independent requirements. The display proof checks these ownership paths;
+the existing ten appliance-kernel tests also pass after sharing initialization.
+This does not change the flashed firmware or claim physical display delivery.

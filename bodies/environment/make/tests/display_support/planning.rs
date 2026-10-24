@@ -1,4 +1,4 @@
-//! Initialized pin/authority and software descriptors are explicit CPU fixtures.
+//! Pins and authority are CPU fixtures; portable software owners are real.
 use conduit_core as c;
 use conduit_environment_make::{
     DisplayOutputSource, DisplayPlanningRefusal, PreparedDisplayOutput,
@@ -20,7 +20,10 @@ impl conduit_tm1637_wire::OpenDrain for NoPins {
         panic!("planning has no effects")
     }
 }
-fn fixture(source: &DisplayOutputSource) -> (c::HostAdvertisement, c::AuthorityGrant) {
+use conduit_environment_runtime::appliance::software::{ReadySoftwareBacks, SoftwareRefusal};
+fn fixture(
+    source: &DisplayOutputSource,
+) -> (c::HostAdvertisement, c::AuthorityGrant, ReadySoftwareBacks) {
     let mut host = c::HostAdvertisement {
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "fixture/display".into(),
@@ -60,53 +63,10 @@ fn fixture(source: &DisplayOutputSource) -> (c::HostAdvertisement, c::AuthorityG
     ready
         .append_to_advertisement(&mut host, &WriteContract::prepare().unwrap())
         .unwrap();
-    for (index, gear) in source.plot.expanded.gears.iter().enumerate() {
-        if gear.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND {
-            continue;
-        }
-        let temporal = c::PortTemporal::Flow { closes: true };
-        let kind = if let Some(c::ConfigurationValue::Text(program)) = gear
-            .configuration
-            .iter()
-            .find(|entry| entry.key == "program")
-            .map(|entry| &entry.value)
-        {
-            conduit_semantic_catalog::pure_expression_contract(
-                &conduit_plot::PortableExpressionProgram::from_canonical_hex(program).unwrap(),
-                temporal,
-            )
-            .unwrap()
-        } else {
-            let c::ConfigurationValue::Text(selector) = &gear
-                .configuration
-                .iter()
-                .find(|entry| entry.key == "selector")
-                .unwrap()
-                .value
-            else {
-                panic!("selector")
-            };
-            conduit_semantic_catalog::structured_selector_contract(
-                &c::StructuredSelector::from_canonical_hex(selector).unwrap(),
-                temporal,
-            )
-        };
-        host.capabilities.push(
-            c::BackOfferBuilder::new(
-                kind,
-                c::Back {
-                    capability_id: format!("fixture/software/{index}").into(),
-                    execution_profile_id: "fixture/software".into(),
-                    implementation_id: format!("fixture/software/{index}").into(),
-                    artifact_id: "fixture/software".into(),
-                    host_calls: vec![],
-                    resource_requirements: vec![],
-                    authority_requirements: vec![],
-                },
-            )
-            .build(),
-        );
-    }
+    let mut software = source
+        .prepare_software(host.host_id.clone(), host.boot_id.clone())
+        .unwrap();
+    software.append_to_advertisement(&mut host).unwrap();
     let grant = c::AuthorityGrant {
         grant_id: "fixture/display".into(),
         contract_id: WRITE_AUTHORITY.into(),
@@ -116,12 +76,12 @@ fn fixture(source: &DisplayOutputSource) -> (c::HostAdvertisement, c::AuthorityG
         boot_id: host.boot_id.clone(),
         capability_id: WRITE_CAPABILITY.into(),
     };
-    (host, grant)
+    (host, grant, software)
 }
 #[test]
 fn ordinary_output_planning_requires_current_output_authority_and_seals_both_fore() {
     let source = DisplayOutputSource::compile().unwrap();
-    let (host, grant) = fixture(&source);
+    let (host, grant, mut software) = fixture(&source);
     let bases = [
         c::BaseImplementationId::from("fixture/base"),
         c::BaseImplementationId::from("conduit.base/local@1"),
@@ -167,6 +127,33 @@ fn ordinary_output_planning_requires_current_output_authority_and_seals_both_for
         assert_eq!(port.temporal, c::PortTemporal::Flow { closes: true });
         assert_eq!((port.item_capacity, port.byte_capacity), (1, bytes));
     }
+    for placement in &fragment.placements {
+        if placement.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND {
+            continue;
+        }
+        let actual = software
+            .take_selected(fragment, &placement.placement_id)
+            .unwrap();
+        if placement
+            .configuration
+            .iter()
+            .any(|entry| entry.key == "selector")
+        {
+            assert!(actual.selector.is_some());
+        } else {
+            assert!(actual.selector.is_none());
+        }
+        assert!(matches!(
+            software.take_selected(fragment, &placement.placement_id),
+            Err(SoftwareRefusal::AlreadySelected)
+        ));
+    }
+    let mut fresh = host.clone();
+    fresh
+        .capabilities
+        .retain(|offer| offer.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND);
+    software.append_to_advertisement(&mut fresh).unwrap();
+    assert_eq!(fresh.capabilities.len(), 1);
     assert_eq!(
         prepared.lowered().nodes.len(),
         source.plot.expanded.gears.len()
@@ -179,4 +166,41 @@ fn ordinary_output_planning_requires_current_output_authority_and_seals_both_for
             .count(),
         1
     );
+}
+
+#[test]
+fn portable_preparation_refuses_unknown_duplicate_and_nonportable_gears() {
+    let source = DisplayOutputSource::compile().unwrap();
+    let (host, _, _) = fixture(&source);
+    let portable = source
+        .plot
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| {
+            gear.configuration
+                .iter()
+                .any(|entry| entry.key == "program")
+        })
+        .unwrap();
+    let hardware = source
+        .plot
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND)
+        .unwrap();
+    for gears in [
+        vec!["absent".into()],
+        vec![portable.gear_id.clone(); 2],
+        vec![hardware.gear_id.clone()],
+    ] {
+        assert!(ReadySoftwareBacks::prepare_portable(
+            &source.plot.expanded,
+            &gears,
+            host.host_id.clone(),
+            host.boot_id.clone(),
+        )
+        .is_err());
+    }
 }

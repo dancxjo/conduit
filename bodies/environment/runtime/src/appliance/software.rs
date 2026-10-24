@@ -77,6 +77,37 @@ impl ReadySoftwareBacks {
             operations,
         })
     }
+    /// Initialize only the explicitly named portable computations from checked
+    /// Source. Other gears require independently retained providers. This does
+    /// not establish readiness of the whole Plot or grant permission to play.
+    pub fn prepare_portable(
+        source: &conduit_plot::ExpandedCanonicalPlot,
+        gears: &[c::GearId],
+        host: c::HostId,
+        boot: c::BootId,
+    ) -> Result<Self, SoftwareRefusal> {
+        let mut operations = Vec::new();
+        for id in gears {
+            if operations.iter().any(|op: &ReadyOperation| &op.gear == id) {
+                return Err(SoftwareRefusal::Selection);
+            }
+            let gear = source
+                .gears
+                .iter()
+                .find(|gear| &gear.gear_id == id)
+                .ok_or(SoftwareRefusal::Selection)?;
+            operations.push(ready_operation(gear, initialize_portable(gear)?)?);
+        }
+        Ok(Self {
+            host,
+            boot,
+            source: source.source_document_id.clone(),
+            checked: source.checked_plot_id.clone(),
+            expanded: source.expanded_plot_id.clone(),
+            generation: None,
+            operations,
+        })
+    }
     /// A refusal leaves the advertisement and retained operations unchanged.
     /// Selected operations are omitted from newly built advertisements. Root
     /// must replace historical snapshots when availability changes.
@@ -193,7 +224,18 @@ fn prepare_operation(
     count: u32,
     sequence: &PublicationSequence,
 ) -> Result<ReadyOperation, SoftwareRefusal> {
-    let (mut kind, prepared, calls) = initialize(gear, count, sequence)?;
+    ready_operation(gear, initialize(gear, count, sequence)?)
+}
+type InitializedOperation = (
+    c::Kind,
+    PreparedSoftwareOperation,
+    Vec<c::HostCallRequirement>,
+);
+fn ready_operation(
+    gear: &conduit_plot::CheckedGear,
+    initialized: InitializedOperation,
+) -> Result<ReadyOperation, SoftwareRefusal> {
+    let (mut kind, prepared, calls) = initialized;
     if gear.kind_id != kind.kind_id
         || gear.kind_contract_revision != kind.kind_contract_revision
         || gear.startup_parameters != kind.startup_parameters
@@ -243,9 +285,6 @@ fn initialize(
     ),
     SoftwareRefusal,
 > {
-    let mut selector = None;
-    let mut calls = vec![];
-    let temporal = c::PortTemporal::Flow { closes: true };
     let (kind, driver) = if let Some(channel) = PublicationChannel::ALL
         .into_iter()
         .find(|channel| channel.kind_id() == gear.kind_id.as_str())
@@ -266,7 +305,25 @@ fn initialize(
             contract.kind().clone(),
             ApplianceBack::Native(CaptureBack::observation(&contract).map_err(init)?),
         )
-    } else if let Some(c::ConfigurationValue::Text(encoded)) = gear
+    } else {
+        return initialize_portable(gear);
+    };
+    Ok((
+        kind,
+        PreparedSoftwareOperation {
+            driver,
+            selector: None,
+        },
+        vec![],
+    ))
+}
+fn initialize_portable(
+    gear: &conduit_plot::CheckedGear,
+) -> Result<InitializedOperation, SoftwareRefusal> {
+    let mut selector = None;
+    let mut calls = vec![];
+    let temporal = c::PortTemporal::Flow { closes: true };
+    let (kind, driver) = if let Some(c::ConfigurationValue::Text(encoded)) = gear
         .configuration
         .iter()
         .find(|c| c.key == "program")
