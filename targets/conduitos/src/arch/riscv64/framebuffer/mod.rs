@@ -25,12 +25,14 @@ impl FirmwareScanout {
         unsafe {
             core::arch::asm!("csrr {0}, satp", out(reg) satp, options(nostack));
         }
+        let mut observed = None;
         let mapping = mapping::validate(
             virtual_start,
             physical_start,
             bytes as u64,
             satp,
             |address| {
+                observed = Some((address, None));
                 if !boot::bootloader_table_page(address & !4095) {
                     return Err(mapping::Refusal::Table);
                 }
@@ -41,10 +43,20 @@ impl FirmwareScanout {
                 // Limine's retained HHDM covers bootloader-reclaimable RAM. Only
                 // complete reserved table pages are readable; never device memory,
                 // runtime arena, arbitrary RAM or a descriptor-provided VA.
-                Ok(unsafe { (virtual_address as *const u64).read_volatile() })
+                let entry = unsafe { (virtual_address as *const u64).read_volatile() };
+                observed = Some((address, Some(entry)));
+                Ok(entry)
             },
         )
-        .map_err(|error| error.as_str())?;
+        .map_err(|error| {
+            if let Some((address, entry)) = observed {
+                let entry = entry.map_or_else(|| alloc::string::String::from("null"), |value| alloc::format!("{value}"));
+                super::present(alloc::format!(
+                    "CONDUIT_FRAMEBUFFER_TRANSLATION {{\"descriptor_physical\":{address},\"pte\":{entry}}}\n"
+                ).as_bytes());
+            }
+            error.as_str()
+        })?;
         let after: u64;
         unsafe {
             core::arch::asm!("csrr {0}, satp", out(reg) after, options(nostack));

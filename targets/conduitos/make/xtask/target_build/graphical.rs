@@ -20,6 +20,7 @@ impl Capture {
         let product_target = match arch {
             ConduitosArch::Aarch64 => "conduitos/aarch64/virt",
             ConduitosArch::Ia32 => "conduitos/ia32/pc",
+            ConduitosArch::Riscv64 => "conduitos/riscv64/virt",
             _ => return Err(refuse("unsupported graphical capture target")),
         };
         let name = format!("{}-frame-{}-{nonce}", arch.as_str(), std::process::id());

@@ -36,6 +36,7 @@ pub(super) fn prepare(
         "base_id":graphic.framebuffer_basis().base_id,"mapping":mapping,"cache_policy":"pma-inherited-qemu-tcg-shared-ram",
         "store_completion":"volatile-stores-fence-iorw-iorw",
         "exclusive_writer":true,"physical_memory_type_claimed":false,
+        "framebuffer_reserved":true,"table_page_custody":"bootloader-reclaimable",
         "physical_scanout_proved":false,"gpu_acceleration_proved":false
     }))
     .unwrap_or_else(|_| refuse("framebuffer-mapping-evidence-encoding"));

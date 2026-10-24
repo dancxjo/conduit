@@ -7,6 +7,7 @@ use super::{
 };
 use crate::cli::GlobalOpts;
 use std::fs;
+mod graphical;
 
 const PRODUCT_PREFIX: &str = "CONDUIT_RISCV64_PRODUCT ";
 const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
@@ -56,12 +57,20 @@ fn boot_once(
     build: &str,
     binding: &str,
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
-    let text = riscv64_a1::boot_until_image_with_cpu(
-        paths,
-        image,
-        OBSERVATORY_PREFIX,
-        "rv64,zkr=true,sv57=off,sv48=off",
-    )?;
+    let selected = graphical::boot_if_selected(paths, image)?;
+    let (text, graphical) = if let Some((text, proof)) = selected {
+        (text, Some(proof))
+    } else {
+        (
+            riscv64_a1::boot_until_image_with_cpu(
+                paths,
+                image,
+                OBSERVATORY_PREFIX,
+                "rv64,zkr=true,sv57=off,sv48=off",
+            )?,
+            None,
+        )
+    };
     let product = parse_one(&text, PRODUCT_PREFIX, "product")?;
     if product["schema"] != "conduit.conduitos/riscv64-product@1"
         || product["status"] != "ready"
@@ -78,6 +87,9 @@ fn boot_once(
         return Err(refusal("profile-built-make-mismatch", product.to_string()));
     }
     let mut product = product;
+    if let Some(graphical) = graphical {
+        product["graphical"] = graphical;
+    }
     product["ordinary_domain"] =
         super::protected_product_receipt::capture(&text, &product, "riscv64")?;
     let snapshot = parse_one(&text, OBSERVATORY_PREFIX, "Observatory")?;
