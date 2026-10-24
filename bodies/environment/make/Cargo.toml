@@ -12,6 +12,11 @@ path = "src/main.rs"
 
 [features]
 browser-storage-proof = ["dep:conduit-browser-runtime", "dep:conduit-environment-browser"]
+installed-seed-proof = ["dep:conduit-std-host", "dep:conduit-std-offers", "dep:tempfile", "conduit-environment-linux/installed-seed"]
+
+[[test]]
+name = "catalog_restart"
+required-features = ["installed-seed-proof"]
 
 [[test]]
 name = "recording_browser"
@@ -58,3 +63,9 @@ conduit-time = { path = "../../../semantics/time", features = ["kernel-step"] }
 conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
 conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
 conduit-environment-linux = { path = "../linux" }
+
+# Installed durable-seed restart proof uses the public std Host entrance.
+[target.'cfg(target_os = "linux")'.dependencies]
+conduit-std-host = { path = "../../../targets/std", optional = true }
+conduit-std-offers = { path = "../../../targets/std/offers", optional = true }
+tempfile = { version = "3", optional = true }

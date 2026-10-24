@@ -447,3 +447,15 @@ longer plan directly from the original in-memory reference list. Allocation-free
 read refusal covers missing files, foreign authority and invalid catalogue
 schema. Root's starting catalogue reference, bindings and grants remain fixtures;
 this does not yet connect restart discovery to the durable seed or resident Host.
+
+The optional Linux installed-seed entrance now runs the read-only authored seed
+view through the existing std Body-durable kernel and exact sealed Fore. It
+retains one bounded Current delivery, obtains an accepted attributed stop, and
+then decodes the optional first-class reference for subsequent preparation.
+`cargo xtask prove environment catalog-restart` passes that actual returned
+reference into file catalogue discovery under a new Host/Boot. It preserves
+read-only file bytes, refuses truncated State without repair, and rejects the
+write view before file effects. Empty seed remains distinct from corruption.
+The initial seed update, Body admission and storage grants are fixtures; separate
+Host instances share one test process. Resident Root custody and the complete
+chunk-publication/checkpoint/restart chain remain incomplete.

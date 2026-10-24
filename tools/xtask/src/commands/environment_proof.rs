@@ -475,7 +475,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment wait, specifications, face, http, publication, publication-32, recording, recording-files, catalog-seed, catalog-residence, catalog-checkpoint, recording-storage, recording-browser, network-fallback, software-ready-esp32, body-admission-esp32, body-construction-esp32, assignment-ingress-esp32, kernel-prepare-esp32, owner-prepare-esp32, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment wait, specifications, face, http, publication, publication-32, recording, recording-files, catalog-seed, catalog-residence, catalog-checkpoint, catalog-restart, recording-storage, recording-browser, network-fallback, software-ready-esp32, body-admission-esp32, body-construction-esp32, assignment-ingress-esp32, kernel-prepare-esp32, owner-prepare-esp32, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

@@ -8,3 +8,8 @@ pub use batch::{FileBatchSoftware, PreparedFileBatchRecovery};
 
 mod catalog;
 pub use catalog::{FileCatalogRefusal, PreparedFileCatalogRecovery};
+
+#[cfg(feature = "installed-seed")]
+mod seed;
+#[cfg(feature = "installed-seed")]
+pub use seed::{recover_durable_catalog_seed, DurableSeedRecoveryRefusal};

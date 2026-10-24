@@ -52,3 +52,24 @@ chunk file publications, reopens the directory, reads it under a fresh Boot,
 and plans batch recovery from its validated references. The starting reference,
 resource bindings and grants are fixtures. Separate refusal cases cover missing
 files, foreign Boot authority and valid JSON with the wrong domain schema.
+
+The optional `installed-seed` feature supplies `recover_durable_catalog_seed`.
+Root passes the actual Body/residence, current std Host and sealed read-only
+seed fragment. The entrance requires one bounded Body-lived ResourceRef? State
+and its sole Current Fore, runs the existing installed kernel without write
+inputs, retains one delivery and requests an attributed ordinary stop. It decodes
+the optional reference only after successful execution and an accepted stop
+receipt, preserving empty State as None and refusing bad type/profile/encoding.
+This prepares later catalogue discovery; it creates no snapshot authority or
+resident controller. Enabling it pulls in the existing std Host; default file
+recovery stays independent of that dependency.
+
+`cargo xtask prove environment catalog-restart` checks empty State, writing the
+catalogue reference through ordinary State, a new Host/Boot recovering it and
+using that actual emitted reference to read a real catalogue file. Read-only
+recovery preserves the seed file bytes; truncation refuses without repair, and
+a writable view refuses before State file effects. Body admission, the seed's
+initial update and snapshot grants are fixtures. This test uses separate Host
+instances in one process; the earlier catalog-residence proof separately checks
+process separation. Publication-to-seed ordering remains the separate checkpoint
+proof, and this is not an end-to-end recording or power-loss claim.

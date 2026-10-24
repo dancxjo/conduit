@@ -7,8 +7,51 @@ pub(super) fn dispatch(root: &Path, arguments: &[String]) -> Option<Result<(), B
         [command] if command == "catalog-seed" => Some(catalog_seed(root)),
         [command] if command == "catalog-residence" => Some(catalog_residence(root)),
         [command] if command == "catalog-checkpoint" => Some(catalog_checkpoint(root)),
+        [command] if command == "catalog-restart" => Some(catalog_restart(root)),
         _ => None,
     }
+}
+fn catalog_restart(root: &Path) -> Result<(), Box<dyn Error>> {
+    if !cfg!(target_os = "linux") {
+        return Err("catalog-restart requires Linux".into());
+    }
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                operation,
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/make/Cargo.toml",
+                "--features",
+                "installed-seed-proof",
+                "--test",
+                "catalog_restart",
+            ]);
+        if operation == "clippy" {
+            command.args(["--", "-D", "warnings"]);
+        }
+        execute(&mut command)?;
+    }
+    execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                "clippy",
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/linux/Cargo.toml",
+                "--features",
+                "installed-seed",
+                "--all-targets",
+                "--",
+                "-D",
+                "warnings",
+            ]),
+    )
 }
 fn catalog_checkpoint(root: &Path) -> Result<(), Box<dyn Error>> {
     if !cfg!(target_os = "linux") {
