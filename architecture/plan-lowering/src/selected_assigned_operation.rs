@@ -20,6 +20,11 @@ pub struct SelectedAssignedOperationPlan<'a> {
     pub active: &'a c::ActivePlayIdentity,
     pub node: NodeId,
 }
+/// Explicit opt-in pins for the local fore schema; this is not a Line.
+pub struct SelectedAssignedForeOperationPlan<'a> {
+    pub operation: SelectedAssignedOperationPlan<'a>,
+    pub fore: &'a [c::AssignedForeRequirement],
+}
 /// Actual implementation/attachment facts retained independently by the native
 /// owner. None may be inferred from an incoming assignment or successful probe.
 pub struct AssignedNativeIdentity<'a> {
@@ -51,10 +56,64 @@ pub fn bind_selected_assigned_configured_operation(
     native: AssignedNativeIdentity<'_>,
     selected: SelectedAssignedOperationPlan<'_>,
 ) -> Result<NodeId, E> {
+    bind_assigned_profile(
+        table,
+        claim,
+        definition,
+        configuration,
+        native,
+        AssignedSelection {
+            operation: selected,
+            fore: None,
+        },
+    )
+}
+/// Explicit local fore admission preserves every current native possession and
+/// exact operation check. Pins are independent trusted Make material.
+pub fn bind_selected_assigned_fore_operation(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedForeOperationPlan<'_>,
+) -> Result<NodeId, E> {
+    bind_assigned_profile(
+        table,
+        claim,
+        definition,
+        &[],
+        native,
+        AssignedSelection {
+            operation: selected.operation,
+            fore: Some(selected.fore),
+        },
+    )
+}
+struct AssignedSelection<'a> {
+    operation: SelectedAssignedOperationPlan<'a>,
+    fore: Option<&'a [c::AssignedForeRequirement]>,
+}
+fn bind_assigned_profile(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[c::ConfigurationEntry],
+    native: AssignedNativeIdentity<'_>,
+    admission: AssignedSelection<'_>,
+) -> Result<NodeId, E> {
+    let selected = admission.operation;
     let wrong = || E::WrongBinding;
     let id = c::AssignedIdentity::from_text;
     if selected.input.header().get(8..10)
-        != Some(c::ASSIGNED_NATIVE_PLAN_SCHEMA.to_le_bytes().as_slice())
+        != Some(
+            if admission.fore.is_some() {
+                c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+            } else {
+                c::ASSIGNED_NATIVE_PLAN_SCHEMA
+            }
+            .to_le_bytes()
+            .as_slice(),
+        )
     {
         return Err(wrong());
     }
@@ -64,6 +123,7 @@ pub fn bind_selected_assigned_configured_operation(
             selected.maxima,
             selected.requirements,
             selected.computations,
+            admission.fore,
         )
         .map_err(|_| wrong())?;
     let active = selected.active;
