@@ -1,5 +1,11 @@
 # Crèche reference comparison (#6174)
 
+Latest color follow-up: Source 235297c3f now supplies a restrained navy Look
+family with actual wide/narrow QEMU captures. [Same-Face Phosphor/navy comparison](evidence/gui-look-6349-native-navy/README.md)
+moves the palette toward the reference while preserving source facts. This does
+not complete metric/radius/depth or full-journey acceptance.
+
+
 The user-supplied reference is pinned at `c8fdc8949a426873364665abd98bf8dc34edf98c`.
 The retained typography comparison captures below are from clean Source `e34b12788`,
 with exact image/Root/PNG bindings and the later journey failure retained in

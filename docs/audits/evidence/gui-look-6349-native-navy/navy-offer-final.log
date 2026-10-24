@@ -1,0 +1,10 @@
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos/mask-offer)
+    Finished `release` profile [optimized] target(s) in 3.43s
+     Running unittests src/lib.rs (../native-target/release/deps/conduit_conduitos_mask_offer-63f94bf94119aa12)
+
+running 2 tests
+test configured::tests::typography::engineering_changes_only_look_for_each_creche_structure_and_density_palette ... ok
+test configured::tests::typography::navy_roots_supply_exact_complete_look_without_changing_structure ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 2.06s
+

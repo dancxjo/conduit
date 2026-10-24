@@ -224,3 +224,12 @@ one-Look bounded requests: all sixteen controls, fifty-six Editorial and
 seventy-one Engineering pages, with existing role/intent icons and no wording
 loss. Raw record/serial/command/capture bounds are unchanged.
 [Actual captures, source identity, initial profile refusal and precise remaining scope](evidence/gui-look-6349-native-details/README.md#narrow-details-and-shared-icons--source-18f653cf4).
+
+## Navy Look family
+
+Source 235297c3f adds a native F11 navy family with independent density/type,
+canonical complete resource hashes and existing Host user constraints. Actual
+wide/narrow QEMU both pass all four combinations, large text/forced colors and
+restoration over unchanged complete Face/structure. [Actual same-Face palette comparison and proof limits](evidence/gui-look-6349-native-navy/README.md).
+Browser navy selection, complete metric enactment and cross-component reuse
+retain their own open scope.
