@@ -1,0 +1,265 @@
+{
+  "classification": "independent normal LoongArch64 artifact/pixel/semantic audit",
+  "image_source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+  "collector_source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+  "collector_only_delta": [],
+  "image_sha256": "7708ba2579ffa45d99fe1430e90e6d0939eedb82606aea0aa0b31cc37f220f34",
+  "kernel_sha256": "1d062685a300b3fe8e5ad00afbf35e1d3058b03835e9c5564acb3173a19296eb",
+  "complete_kernel_found_in_iso_at_byte": 3239936,
+  "boots": [
+    {
+      "checkpoint": "first",
+      "directory": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/loongarch64/loongarch64-frame-1379453-1792865342945120816",
+      "host_id": "d14b4c1175d30423e847289895ab25ffeb6f7c4df1d9caaaf564d16f3a051713",
+      "boot_id": "0427a827bf5c102e99973d57f2afa13011a5964633183e907bc0a449dd6b0846",
+      "face_id": "d2a09bb68c0d1a730f3d554dd82cfcc5122662d6d073c083345959af9b651afb",
+      "show_id": "show/5033f8cbee0cf8e45e85d5e4e39001f10ec196cc9423a946a371518a47375150",
+      "png_sha256": "768d292584c692e0ccd5b58b41a3393623e9eb222d8e02316e892c6642639d68",
+      "pixel_sha256": "35303322fcc7ece45e94278dc4afd7df606d2e8f18ee141039310e6a8f75a609",
+      "width": 800,
+      "height": 600,
+      "physical_start": 229179392,
+      "virtual_start": 18446603336450375680,
+      "pitch": 3200,
+      "byte_length": 1920000,
+      "checked_pages": 469,
+      "descriptors_read": 1876,
+      "memory_access_type": 2,
+      "regime": {
+        "crmd": 176,
+        "direct_windows": [
+          17,
+          0,
+          0,
+          0
+        ],
+        "pgdh": 3934982144,
+        "physical_bits": 48,
+        "pwch": 615,
+        "pwcl": 333763884,
+        "reduced_address_config": 0,
+        "stlbps": 12,
+        "virtual_bits": 48
+      },
+      "boot_to_capture_millis": 7198,
+      "kernel_signs": 29
+    },
+    {
+      "checkpoint": "second",
+      "directory": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/loongarch64/loongarch64-frame-1379453-1792865351441215138",
+      "host_id": "860141b84f1d5bb602b3dd15b86b0e8aec45eec11fe6d0a15372748d4212272b",
+      "boot_id": "2439cd875ccadd3c768a502f4b162e212bc4f6505c350fdec742a1ea493303d9",
+      "face_id": "9f5bfddad445b4e14b82f98d240328cc2fb677ac80ff12b7426a656044d31018",
+      "show_id": "show/9da143da4d0fcafc54ac582111b7f2136a616373a1700470e241afa96b02f804",
+      "png_sha256": "5615e1a712f279e3dff24f892e11f642e7a7beefccbbd323165ab43303f19704",
+      "pixel_sha256": "d66247e6c4e9c7c348ad20a1e14209730a2b8ec2d9422233bc68fd670be7ad6c",
+      "width": 800,
+      "height": 600,
+      "physical_start": 229179392,
+      "virtual_start": 18446603336450375680,
+      "pitch": 3200,
+      "byte_length": 1920000,
+      "checked_pages": 469,
+      "descriptors_read": 1876,
+      "memory_access_type": 2,
+      "regime": {
+        "crmd": 176,
+        "direct_windows": [
+          17,
+          0,
+          0,
+          0
+        ],
+        "pgdh": 3934982144,
+        "physical_bits": 48,
+        "pwch": 615,
+        "pwcl": 333763884,
+        "reduced_address_config": 0,
+        "stlbps": 12,
+        "virtual_bits": 48
+      },
+      "boot_to_capture_millis": 7100,
+      "kernel_signs": 29
+    }
+  ],
+  "same_face_source_checked_expanded": {
+    "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+    "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+    "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b"
+  },
+  "same_mask_plot": {
+    "checked_plot_id": "d329bed9178fd32bad8445b248df4d2b9a9338c1afbe796209437276bb131cde",
+    "expanded_plot_id": "0aaf3438896dccb41615e32215ddba3c8cb8089fb8ede981d4e86b56f2cf656c",
+    "source_document_id": "67c4a34efebcf3ca7d05d6f6d474df1014b11b7a4382914f3648d983fe531a87"
+  },
+  "same_owner_action_availability_as_aarch64": {
+    "creche.name": "Available",
+    "creche.naming": "Available",
+    "creche.suggest": "Available",
+    "creche.search": "Available",
+    "creche.plot.0": {
+      "Unavailable": {
+        "explanation": "native-body-current-host-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.plot.1": {
+      "Unavailable": {
+        "explanation": "native-body-current-host-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.plot.2": {
+      "Unavailable": {
+        "explanation": "native-body-current-host-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.plot.3": {
+      "Unavailable": {
+        "explanation": "native-body-current-host-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.plot.4": {
+      "Unavailable": {
+        "explanation": "native-body-plot-unavailable",
+        "reason_code": "birth/unavailable"
+      }
+    },
+    "creche.birth": {
+      "Unavailable": {
+        "explanation": "EmptySelection",
+        "reason_code": "birth/unavailable"
+      }
+    }
+  },
+  "same_five_plot_subjects_as_aarch64": [
+    "birth/conduitos/creche/current/initial-plots/0",
+    "birth/conduitos/creche/current/initial-plots/1",
+    "birth/conduitos/creche/current/initial-plots/2",
+    "birth/conduitos/creche/current/initial-plots/3",
+    "birth/conduitos/creche/current/initial-plots/4"
+  ],
+  "negatives": {
+    "no_display": {
+      "classification": "same normal graphical ISO with only ramfb provider removed",
+      "image_source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+      "collector_source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+      "image": "target/host-build/6057-loongarch64-graphical-11fd0027e/conduitos-loongarch64.iso",
+      "image_sha256": "7708ba2579ffa45d99fe1430e90e6d0939eedb82606aea0aa0b31cc37f220f34",
+      "emulator_sha256": "ad9ed950138b7fc2e2c2e86dd258c94216b1116becbf76126b4e429eabe4c477",
+      "firmware_inputs": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/toolchain/QEMU_EFI.loongarch64-qemu8.fd",
+          "sha256": "b4c32ce95a54346c8bc180241a21ad763c5fcf43310e95aa93ed58bf0cc0864e"
+        }
+      ],
+      "positive_capture": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/loongarch64/loongarch64-frame-1379453-1792865342945120816",
+      "graphical_product_proved": false,
+      "arguments": [
+        "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/toolchain/loongarch64-domain-qemu/225a0b2f8dc09b3cf8fc174a6cbcaf961f5df9997326cceb7ee902540250938c/qemu-system-loongarch64",
+        "-machine",
+        "virt",
+        "-cpu",
+        "la464",
+        "-m",
+        "2G",
+        "-smp",
+        "1",
+        "-accel",
+        "tcg,thread=single",
+        "-bios",
+        "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/toolchain/QEMU_EFI.loongarch64-qemu8.fd",
+        "-fw_cfg",
+        "name=opt/conduitos/cryptographic-entropy@1,file=/tmp/c6057-la-neg-1paq361h/entropy.bin",
+        "-drive",
+        "file=target/host-build/6057-loongarch64-graphical-11fd0027e/conduitos-loongarch64.iso,format=raw,if=none,id=boot,readonly=on",
+        "-device",
+        "virtio-blk-pci,drive=boot,bootindex=0",
+        "-display",
+        "none",
+        "-monitor",
+        "none",
+        "-serial",
+        "file:/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/loongarch64-graphical-no-display-11fd0027e/serial.log",
+        "-net",
+        "none",
+        "-qmp",
+        "unix:/tmp/c6057-la-neg-1paq361h/qmp,server=on,wait=off",
+        "-no-reboot"
+      ],
+      "screendump_result": {
+        "return": {}
+      },
+      "elapsed_ms": 5018,
+      "exit_code": 0,
+      "firmware_rom_unchanged": true,
+      "entropy_bytes_retained": false,
+      "entropy_hash_retained": false,
+      "ephemeral_entropy_removed": true,
+      "same_image_unchanged": true,
+      "guest_refusal_observed": true,
+      "graphical_show_observed": false,
+      "files": [
+        {
+          "path": "launch.json",
+          "bytes": 2260,
+          "sha256": "9595ca3362c9ef5c5b40b9ca3f5f0b9817ea2fcfdde4c351bdff37a021d4d2fb"
+        },
+        {
+          "path": "display.ppm",
+          "bytes": 737295,
+          "sha256": "0febc060e4d667cae5354a4b65e1cbad7ffb0df86eb00fd445e7cd4e2f77e9b6"
+        },
+        {
+          "path": "serial.log",
+          "bytes": 3708,
+          "sha256": "e0fed9fda71b3ccf11b25ab0fa36f512af2a8c76c53cd435c7550b917d476207"
+        },
+        {
+          "path": "stderr.log",
+          "bytes": 77,
+          "sha256": "c068e7dbc659375ed3e1179d6bc78e99b74d8514591050a082a06fc9fdd49bd3"
+        },
+        {
+          "path": "qmp.json",
+          "bytes": 312,
+          "sha256": "8e780d8797443223aa0a113c3b17a397216daa8dec4e8ccf3dec7738f5d924a4"
+        }
+      ]
+    },
+    "dirty_source": {
+      "classification": "supported verification refuses dirty source before normal product guest spawn",
+      "collector_source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+      "image_source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/host-build/6057-loongarch64-graphical-11fd0027e",
+        "--boot"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 2229,
+      "image_sha256": "7708ba2579ffa45d99fe1430e90e6d0939eedb82606aea0aa0b31cc37f220f34",
+      "image_unchanged": true,
+      "marker_removed": true,
+      "source_clean_after": true,
+      "capture_directories": [
+        "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/loongarch64/loongarch64-frame-1387605-1792865765288011202"
+      ],
+      "no_normal_launch_receipt": true,
+      "no_normal_guest_serial_bytes": true,
+      "firmware_rom_unchanged": true,
+      "ephemeral_entropy_removed": true,
+      "qualification": "prepared-tool validation may run bounded empty-machine paused QMP probes; these execute no guest instructions and are not normal product boots",
+      "log_sha256": "e467bd81b9eb8f77c98d89a7ce0e0a53c3cee78a14cd0508a1cc149869f6250b"
+    }
+  },
+  "entropy_retained": false,
+  "firmware_route": "single reviewed ROM via -bios, no CODE/VARS pair",
+  "limits": "QEMU TCG ramfb only; no local input, physical scanout, GPU acceleration, accepted PR/Integration/release or all-five completion"
+}
