@@ -49,7 +49,26 @@ pub(super) fn bind(
     placement: &PlacementId,
     provider: Provider,
 ) -> Result<PulseHostCall<Provider>, PulseCallRefusal> {
+    bind_with_budget(
+        fragment,
+        lowered,
+        active,
+        placement,
+        provider,
+        scope().maximum_operations,
+    )
+}
+
+pub(super) fn bind_with_budget(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    active: &ActivePlayIdentity,
+    placement: &PlacementId,
+    provider: Provider,
+    maximum_operations: u32,
+) -> Result<PulseHostCall<Provider>, PulseCallRefusal> {
     let mut scope = scope();
+    scope.maximum_operations = maximum_operations;
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
     let authority = BaseCapabilityAuthority {

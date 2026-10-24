@@ -32,6 +32,17 @@ pub fn bind_selected_operation(
     definition: SelectedOperationContract<'_>,
     selection: SelectedOperationPlan<'_>,
 ) -> Result<NodeId, SelectedCallRefusal> {
+    bind_selected_configured_operation(table, claim, definition, &[], selection)
+}
+/// Bind against independently retained checked Source configuration. Incoming
+/// Plan entries cannot provide their own expected configuration.
+pub fn bind_selected_configured_operation(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[conduit_core::ConfigurationEntry],
+    selection: SelectedOperationPlan<'_>,
+) -> Result<NodeId, SelectedCallRefusal> {
     let SelectedOperationPlan {
         fragment,
         lowered,
@@ -84,7 +95,7 @@ pub fn bind_selected_operation(
         || gear.inputs != expected.inputs
         || gear.outputs != expected.outputs
         || gear.semantic_contract != expected.semantic_contract()
-        || !gear.configuration.is_empty()
+        || gear.configuration != configuration
         || gear.host_id != claim.host_id
         || gear.boot_id != claim.boot_id
         || gear.implementation_id != claim.implementation_id
@@ -138,12 +149,24 @@ pub fn bind_selected_operation(
             .identity
             .placements
             .contains(&(node.node, placement_id.clone()))
-        || node.inputs.len() != 1
-        || node.outputs.len() != 1
-        || node.inputs[0].port != PortId(0)
-        || node.outputs[0].port != PortId(0)
-        || node.inputs[0].value_kind != expected.inputs[0].value_kind
-        || node.outputs[0].value_kind != expected.outputs[0].value_kind
+        || expected.inputs.len() > 1
+        || expected.outputs.len() > 1
+        || node.inputs.len() != expected.inputs.len()
+        || node.outputs.len() != expected.outputs.len()
+        || node
+            .inputs
+            .iter()
+            .zip(&expected.inputs)
+            .any(|(port, expected)| {
+                port.port != PortId(0) || port.value_kind != expected.value_kind
+            })
+        || node
+            .outputs
+            .iter()
+            .zip(&expected.outputs)
+            .any(|(port, expected)| {
+                port.port != PortId(0) || port.value_kind != expected.value_kind
+            })
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }

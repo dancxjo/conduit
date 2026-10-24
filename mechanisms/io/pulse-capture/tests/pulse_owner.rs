@@ -193,6 +193,14 @@ fn dropping_a_pending_dispatch_quiesces_provider_and_revokes_unfinished_possessi
         Err(PulseCallRefusal::Capability(BaseCapabilityRefusal::Revoked))
     ));
     assert_eq!(state.effects.get(), 1);
+    let mut retained = Some(owner);
+    let (_, measured) = allocation_probe::observe(|| {
+        let (provider, attachment) = PulseHostCall::retire_retained(&mut retained).unwrap();
+        assert!(Rc::ptr_eq(&provider.0, &state));
+        assert_eq!(attachment.generation, 7);
+        assert!(retained.is_none());
+    });
+    assert_eq!((measured.allocations, measured.reallocations), (0, 0));
 }
 
 #[test]
@@ -224,3 +232,48 @@ fn matching_identifiers_cannot_substitute_lowering_or_active_play() {
         Some(PulseCallRefusal::WrongBinding)
     );
 }
+
+#[test]
+fn retirement_requires_revocation_and_returns_exact_native_custody_once() {
+    let state = Rc::new(State::default());
+    let (owner, node) = fixture::owner(Provider(state.clone()));
+    let mut retained = Some(owner);
+    let before = retained.as_ref().unwrap().inspection().clone();
+    let (_, measured) = allocation_probe::observe(|| {
+        assert!(matches!(
+            PulseHostCall::retire_retained(&mut retained),
+            Err(PulseRetirementRefusal::NotRevoked)
+        ));
+        assert_eq!(retained.as_ref().unwrap().inspection(), &before);
+        assert_eq!(
+            retained
+                .as_mut()
+                .unwrap()
+                .revoke(NodeId(node.0 + 1), HostCallId(0)),
+            Err(PulseCallRefusal::WrongBinding)
+        );
+        assert!(matches!(
+            PulseHostCall::retire_retained(&mut retained),
+            Err(PulseRetirementRefusal::NotRevoked)
+        ));
+        retained
+            .as_mut()
+            .unwrap()
+            .revoke(node, HostCallId(0))
+            .unwrap();
+        let (provider, attachment) = PulseHostCall::retire_retained(&mut retained).unwrap();
+        assert!(Rc::ptr_eq(&provider.0, &state));
+        assert_eq!(attachment.generation, 7);
+        assert_eq!(attachment.resource_bytes, 4096);
+        assert!(retained.is_none());
+        assert!(matches!(
+            PulseHostCall::retire_retained(&mut retained),
+            Err(PulseRetirementRefusal::Unavailable)
+        ));
+    });
+    assert_eq!((measured.allocations, measured.reallocations), (0, 0));
+    assert_eq!(state.effects.get(), 0);
+}
+
+#[path = "support/exhausted_retirement.rs"]
+mod exhausted_retirement;
