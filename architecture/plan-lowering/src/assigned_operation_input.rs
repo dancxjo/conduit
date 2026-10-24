@@ -43,7 +43,23 @@ impl<'a> AssignedOperationInput<'a> {
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
+        fore: Option<&[c::AssignedForeRequirement]>,
     ) -> Result<c::AssignedPlanView, c::AssignedPlanRefusal> {
+        if let Some(fore) = fore {
+            return match self {
+                Self::Contiguous(bytes) => {
+                    c::decode_assigned_plan_with_fore(bytes, maxima, required, computations, fore)
+                }
+                Self::Records { header, records } => c::decode_assigned_records_with_fore(
+                    header,
+                    records,
+                    maxima,
+                    required,
+                    computations,
+                    fore,
+                ),
+            };
+        }
         match self {
             Self::Contiguous(bytes) => {
                 c::decode_assigned_plan_with_computations(bytes, maxima, required, computations)
