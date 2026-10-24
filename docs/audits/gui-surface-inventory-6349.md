@@ -149,3 +149,20 @@ The full native journey again fails Application PrepareTarget during Plan,
 before editor/Patchbay/Stop. Narrow/200%/forced-color local Crèche, complete
 continuation reachability, the closer navy reference, and original parent
 acceptance remain open. The earlier source-specific records above are retained.
+
+## Local Crèche user constraints follow-up
+
+The local Crèche now accepts F9 for a 100%/200% user minimum and F10 for forced
+colors, independently of F6 density, F7 palette and F8 typography. User constraints
+are applied through the existing Host admission path. Clearing the 200% minimum
+reveals the requested Look scale (125% for spacious), rather than mutating the
+Look to 100%. Each replacement retains Face/actions and uses a fresh local Show;
+F9/F10 retain the same selected Mask Plan and admitted resources.
+
+The focused 640×480 CPU interaction case passes eighteen replacements, including
+200%, forced colors, palette/type/density changes, override clearing and current-
+Show draft submission, without layout fallback. The supported native controls
+proof adds an accessibility scenario for long Unicode input and two actual
+Looks, full primary control cycles/pages, pointer focus and incomplete-input
+refusal. Its QEMU execution/captures are pending; it does not attempt Body startup
+or claim complete Details, all unavailable controls, physical or human proof.
