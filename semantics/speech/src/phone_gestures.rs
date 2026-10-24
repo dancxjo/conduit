@@ -101,7 +101,7 @@ impl<'a, 'intent> PhoneGestureProfile<'a, 'intent> {
         })
     }
     pub fn controls(&self) -> &[PhoneGestureControl<'intent>] {
-        &self.controls
+        self.controls
     }
     pub fn identity(&self) -> &str {
         self.identity

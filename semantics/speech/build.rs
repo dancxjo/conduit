@@ -1,5 +1,3 @@
-#[path = "build_support/phone_gesture_programs.rs"]
-mod phone_gesture_programs;
 #[path = "build_support/audio_imports.rs"]
 mod audio_imports;
 #[path = "build_support/authoring_types.rs"]
@@ -10,6 +8,8 @@ mod graph;
 mod linguistic_rate_program;
 #[path = "build_support/lower.rs"]
 mod lower;
+#[path = "build_support/phone_gesture_programs.rs"]
+mod phone_gesture_programs;
 #[path = "build_support/semantic_source.rs"]
 mod semantic_source;
 use conduit_core::StructuredInfoTypeShape;
