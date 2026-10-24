@@ -1,0 +1,60 @@
+{
+  "runtime_head": "3db193770cd049e7d10e1ef76b9f9c22f047c429",
+  "packet": "9083e6a0611cbcdf16832536d79f767a7ba19748",
+  "production_build_source": "36187498422ce17a8cb35ef2b935297ff2359ccf",
+  "actual_test_source": "72bee27b9b07b02b9063701a31ad3887544eb72c",
+  "payload_checksums_verified": 12,
+  "actual_terminal_browser_tests": 17,
+  "all8_runtime_code_paths_match_joined_execution_source": [
+    {
+      "path": "architecture/kernel/src/scheduler.rs",
+      "blob": "ad6938f5e20fef6f319036bfbf490495dabae780",
+      "sha256": "15be22e98d3d59af1abf64047cd191c5417cb295bc68de2c7529d019c5b24d5c"
+    },
+    {
+      "path": "architecture/kernel/src/scheduler/output_readiness.rs",
+      "blob": "2ba9be0be3b93402485a920c7fcba322ca04220f",
+      "sha256": "a721e8e6b496507dd21deb5388a7bccf5b648514a934787ac8af97af15ff2a8b"
+    },
+    {
+      "path": "semantics/catalog/src/contract.rs",
+      "blob": "d4c6e6701d0c907c3f07b02de818cc522dccf37b",
+      "sha256": "d7f63c5556fa1f8e119a551bffae63dbdd6e07755c7fbd0e1a8b30f4f09309e9"
+    },
+    {
+      "path": "semantics/catalog/src/quantity_info.rs",
+      "blob": "0de26d318591fab5000812b0c948d6f5f0d8c823",
+      "sha256": "58a651838b5b031aa275a78c087a4700a7ba901637ce0c026d400c92177629a8"
+    },
+    {
+      "path": "semantics/catalog/src/quantity_mapping.rs",
+      "blob": "511d517317e35e082064f8d1623e0c5fcd7f69d4",
+      "sha256": "42f7105e29531462ea4cc4eb81b295d25aa0078a1497edbe9817268a8d32d78c"
+    },
+    {
+      "path": "targets/std/src/installed_std/math_backs.rs",
+      "blob": "bab5116b433af05a981e82231d40e7723fdf26d0",
+      "sha256": "3010b4ffd7dedf4a5079f817ffc44d9fe4bfdf1ae9938b62dc7a311be43e31f3"
+    },
+    {
+      "path": "targets/std/src/installed_std/math_backs_tests.rs",
+      "blob": "d0f2d63a451a9f609db3b2a8ea2256b6dbed11b1",
+      "sha256": "9814beff71da96a8625368a445f2498a6767ad4111503e9447d721566e2af5f5"
+    },
+    {
+      "path": "targets/std/src/installed_std_tests/math_conformance.rs",
+      "blob": "026fb6f06943052c837bdb1184265a944169269c",
+      "sha256": "38e8ce47a94b73e379389011ca6bbdd688b50a3536b270e384bea1b76257de37"
+    }
+  ],
+  "build_to_test_only_capture_test_change": true,
+  "screenshot_face_basis_verified": true,
+  "limits": [
+    "Actual local combined browser/server proof, not isolated Quantity head execution",
+    "8 runtime files match, but full build dependency closure is not claimed identical between isolated and joined sources",
+    "Existing sealed WASM reused; no fresh WASM/native/CI or acceptance inferred",
+    "Old af17 code had different catalog construction; current3db contains palette/offer correction",
+    "Earlierfailed browser run and OutputBlocked/TextTooLong remain preserved"
+  ],
+  "passed": true
+}
