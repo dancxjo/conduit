@@ -339,24 +339,37 @@ fn resource_rebase_preserves_committed_candidates_and_refuses_foreign_or_absent_
         ),
         Err(ResourceParserRebaseRefusal::Lineage)
     ));
-    assert!(PreparedResourceLexicalSnapshot::prepare_revision(
-        &old_source,
-        &old,
-        &snapshot_program
-    )
-    .is_err());
-    assert!(PreparedResourceLexicalSnapshot::prepare_revision(
-        &revised_source(&old_source, "record ", 7),
-        &old,
-        &snapshot_program
-    )
-    .is_err());
-    assert!(PreparedResourceLexicalSnapshot::prepare_revision(
-        &revised_source(&old_source, "answer answer answer answer answer ", 35),
-        &old,
-        &snapshot_program
-    )
-    .is_err());
+    assert!(matches!(
+        PreparedResourceLexicalSnapshot::prepare_revision(&old_source, &old, &snapshot_program),
+        Err(ResourceSnapshotRefusal::Lexical(
+            conduit_language::lexical::LexicalRefusal::Revision(TextRevisionRefusal::PriorRevision)
+        ))
+    ));
+    for changed in ["record ", "answerrecord "] {
+        // The latter merges across the retained complete token's trailing
+        // separator. This is the existing stable-boundary law, not a claim
+        // that the scalar tokenizer supports arbitrary language segmentation.
+        assert!(matches!(
+            PreparedResourceLexicalSnapshot::prepare_revision(
+                &revised_source(&old_source, changed, changed.chars().count() as u32),
+                &old,
+                &snapshot_program
+            ),
+            Err(ResourceSnapshotRefusal::Lexical(
+                conduit_language::lexical::LexicalRefusal::Revision(
+                    TextRevisionRefusal::StablePrefixChanged
+                )
+            ))
+        ));
+    }
+    assert!(matches!(
+        PreparedResourceLexicalSnapshot::prepare_revision(
+            &revised_source(&old_source, "answer answer answer answer answer ", 35),
+            &old,
+            &snapshot_program
+        ),
+        Err(ResourceSnapshotRefusal::Bound)
+    ));
     assert!(program
         .replay(
             &committed,

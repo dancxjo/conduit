@@ -349,6 +349,27 @@ fn actual_committed_resource_owner_rebases_all_four_slots_without_reopening_pref
     .count();
     assert!(active > 0 && active <= 4);
     println!("actual resource survivors active={active} slots=4 committed=1");
+    // This profile admits exact TRAIN surfaces from the unchanged scalar-run
+    // tokenizer. Alternative language-specific/explicit segmenter requests are
+    // not modeled. An unsupported boundary surface in the uncommitted suffix
+    // must refuse, rather than silently join words or invoke another tokenizer.
+    let before = snapshot(&owner);
+    assert!(lexicon.lookup("\u{2060}").unwrap().is_none());
+    let unsupported_boundary = revised(&old_source, "answer record\u{2060}answer ", 7);
+    assert!(matches!(
+        PreparedResourceLexicalSnapshot::prepare_revision(
+            &unsupported_boundary,
+            owner.resource_snapshot().unwrap(),
+            &program,
+        ),
+        Err(ResourceSnapshotRefusal::Absent { ordinal: 2 })
+    ));
+    assert_eq!(snapshot(&owner), before);
+    assert_eq!(owner.frontiers().committed, TokenFrontier(1));
+    assert!(std::ptr::eq(
+        owner.resource_snapshot().unwrap().lexicon(),
+        &lexicon
+    ));
     let rebase = PreparedResourceParserRebaseProgram::prepare().unwrap();
     // Cancellation and pressure return the same consuming owners unchanged.
     for (cancelled, pressure) in [(true, false), (false, true)] {
@@ -435,6 +456,43 @@ fn actual_committed_resource_owner_rebases_all_four_slots_without_reopening_pref
         .expect("same epoch refuses");
     assert!(matches!(failure.refusal, AnalysisEpochRefusal::Context));
     assert_eq!(snapshot(&failure.owner), before);
+    owner = failure.owner;
+    partial = failure.next;
+    // A real zero-capacity retained journal must refuse after valid Source
+    // rebase preparation, without publishing a new epoch or consuming custody.
+    let before = snapshot(&owner);
+    let failure = owner
+        .handoff_resource(
+            partial,
+            &rebase,
+            ResourceEpochTarget {
+                analysis: LanguageAnalysisRevisionId::new("analysis/2".into()).unwrap(),
+                default_relation: dep(),
+                domain: &partial_domain,
+                context: RevisionContext {
+                    epoch: text("2"),
+                    ..context
+                },
+                limits: RevisionLimits {
+                    history_events: 0,
+                    ..limits
+                },
+            },
+            false,
+            false,
+        )
+        .err()
+        .expect("zero retained-history capacity refuses");
+    assert!(matches!(
+        failure.refusal,
+        AnalysisEpochRefusal::Revision(RevisionRefusal::Limits)
+    ));
+    assert_eq!(snapshot(&failure.owner), before);
+    assert!(std::ptr::eq(
+        failure.owner.resource_snapshot().unwrap().lexicon(),
+        &lexicon
+    ));
+    assert_eq!(failure.next.lexical().tape(), next.previous_tape().unwrap());
     owner = failure.owner;
     partial = failure.next;
     let (owner, initial_archive) = owner
