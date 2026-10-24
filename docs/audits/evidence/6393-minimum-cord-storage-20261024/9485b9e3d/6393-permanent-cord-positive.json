@@ -1,0 +1,377 @@
+{
+  "source": "9485b9e3d2a2ddec797ff4054b8c68066245d865",
+  "tree": "35124a3c359e42395f0a68150ee95500edb59dbc",
+  "steps": [
+    {
+      "name": "quantity-kernel",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "installed_std_tests::math_conformance",
+        "--",
+        "--nocapture"
+      ],
+      "start": 1792854350.0597255,
+      "end": 1792854394.7020476,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-quantity-kernel.log",
+      "log_sha256": "c7b974b9faf5df0a7bf8fa53b6e14dee4f5dd9c6363f4bf917e4185c3a084c4e",
+      "actual_test_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_std_host-c255d8c7429f5b5f",
+          "bytes": 179662840,
+          "sha256": "906ccb364d493a19bb6f37782fee4cc10132b570b6c6b3c2b6694d2faa957487"
+        }
+      ],
+      "test_summaries": [
+        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 878 filtered out; finished in 1.67s"
+      ]
+    },
+    {
+      "name": "completion-pressure",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "installed_std::math_backs::tests",
+        "--",
+        "--nocapture"
+      ],
+      "start": 1792854394.702197,
+      "end": 1792854395.1745164,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-completion-pressure.log",
+      "log_sha256": "1d3deaeafc3d9589033f1807c08e5424b4df983cfae06ca8d6a0bdb10f72d3b2",
+      "actual_test_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_std_host-c255d8c7429f5b5f",
+          "bytes": 179662840,
+          "sha256": "906ccb364d493a19bb6f37782fee4cc10132b570b6c6b3c2b6694d2faa957487"
+        }
+      ],
+      "test_summaries": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 883 filtered out; finished in 0.00s"
+      ]
+    },
+    {
+      "name": "planner",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-planner",
+        "--lib"
+      ],
+      "start": 1792854395.1745794,
+      "end": 1792854426.097967,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-planner.log",
+      "log_sha256": "8d154463f53e63c0130fd3cc2c22e1fa9afc5f12fb9ce5e8619a7dc30855608c",
+      "actual_test_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_planner-26668bcb043769d1",
+          "bytes": 30367424,
+          "sha256": "96bbd2f2bbdf7d49c6d5679a13a088d8ab478dc709f1e0d8c08b046b24e3394f"
+        }
+      ],
+      "test_summaries": [
+        "test result: ok. 86 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.31s"
+      ]
+    },
+    {
+      "name": "catalog",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-semantic-catalog",
+        "--all-features",
+        "quantity_"
+      ],
+      "start": 1792854426.0980477,
+      "end": 1792854454.0469654,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-catalog.log",
+      "log_sha256": "1cb16c787a11c5b96a5eecdc781cc0ce6573f72df5bd506021090cc7042ab219",
+      "actual_test_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_semantic_catalog-faa1b598f5f18f5a",
+          "bytes": 31688672,
+          "sha256": "097081c7448f5fa85c6596b48894a59d51509de0ba8a85172a4fc9d81713df49"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/acoustic_control_catalog-78a8f727f8a824d9",
+          "bytes": 26127896,
+          "sha256": "043c91ea0e2613e03cd778f563d2127ee5232fd2f8c022b02b3579bc061a34fb"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/audio_pitch_analysis-0aec6250d5e409d1",
+          "bytes": 20135792,
+          "sha256": "716840745b318169fe45a6f2159767e35d5e54d7d734103b51a876542646dede"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/audio_spectral_analysis-c894920c82cb3208",
+          "bytes": 20137864,
+          "sha256": "3d2ced0dc0d62cb9fead737603699a81e62b45c0c0b138748d3a560bbba8ae9a"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/audio_time_analysis-be779db514e60c13",
+          "bytes": 20125224,
+          "sha256": "005f6f5744b2dd1cf9c37bf4fa4f54b78facce8f892fb313e81df3ada44c5a8b"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/authoring_catalog-e55acd10e21ca093",
+          "bytes": 22405176,
+          "sha256": "bb89cde3b8f345751e8e6e45cf60ee9cec4b60a095b839af63306ed8aa9591b5"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/button_across_room-5e623ce1ccc83e62",
+          "bytes": 20068336,
+          "sha256": "4485f75ae241b18809edecb2d1cc1de6aa10bd825bfd9b3f4eb22c35ee8895d7"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/button_indicator_admission-882e0e32d4a543b2",
+          "bytes": 5385072,
+          "sha256": "218264699a17396f8e182cd6847ebf2b42e461095fdf27a403987bdc8b8a39cc"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/data_label_admission-31e3a195f7b5f7e2",
+          "bytes": 4901848,
+          "sha256": "8fdd3688543f85485bd0c53050a3e0477e496b281b6591e580b316e56167ea23"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/diverse_structured_plots-daf2cea2e603ef9b",
+          "bytes": 24102256,
+          "sha256": "7761e488e18f0c02f48a0e2328ab851e32deda03543cfc41223bc2cceb5f0730"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/dsp_package-ed9ddb0849c09980",
+          "bytes": 21595560,
+          "sha256": "622bd322253d58bd9b455a89c1a11f6a28d83ba735a4942afc6304e1c8dfb4fb"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/dsp_public_catalog-0e0fa1e5bdf29a43",
+          "bytes": 21875608,
+          "sha256": "de20967769a068be8aad1eb106591d8c271579d49e67bc30bf7cfe4a932fbc5e"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/education_plots-ebcef3e610cae0bc",
+          "bytes": 24107232,
+          "sha256": "2e91cf74b2da6049937f2af4b89a2a170665e159bff5c84828cc414359e3e14c"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/experience_plots-9f5c536b5afd7705",
+          "bytes": 23781608,
+          "sha256": "a6c88cb971b2cbd6f16768a5d6336629340126a30436a0ea54236b1c1c18ff2b"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/generalized_input_plots-f094414bf1c8a8bf",
+          "bytes": 24011584,
+          "sha256": "b05031cbbe768853b7eac5de41aebb25d9593a3c655d4a92c06d6a71cd5b6013"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/ieee_binary64_contract-f3976a142b25ced5",
+          "bytes": 20219856,
+          "sha256": "319be466a3af5fabd61c37007acaaad93aee9d75b410c631353d47ce090f5a0f"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/image_text_plot-4d838c251eaa9fba",
+          "bytes": 20348776,
+          "sha256": "9b22a610bf99b1e6082a26fa8f941253bb21ff4f2e3762ff376be7ce9c0e6ffe"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/job_plots-e2d24cec3983c70a",
+          "bytes": 23515616,
+          "sha256": "022ffcd8127e3010be8a660cce4db2386484c4df6ff78808df3d3e5f6e9cb9d4"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/lenia_plots-e21e1df15ed5a6cc",
+          "bytes": 23725304,
+          "sha256": "93d32a0c1c69f4f948d66d98f67fbd4fd9e308ac997f2802df12814e166ba2f0"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/numerical_realization-3da7401f629dc10b",
+          "bytes": 26722752,
+          "sha256": "3f1e27b2edc426fca5c9e0afa67582667983fc7c553bdbdf19f324011d828ba7"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/pattern_comparison_codec-82cad5f44d7b3fa7",
+          "bytes": 6727480,
+          "sha256": "0b7087192a1b08d4ead4ec7ca40de736fa8416dd22ce5596495aee3103755d9a"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/pattern_comparison_operation-2c1f196e9d1fcc12",
+          "bytes": 4617080,
+          "sha256": "3d37fd27ffe063a154bc690307df2aff747b19a7a6df793127cefc74d2bc14a7"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/pcm_packing-32b6d7e344f8c6ef",
+          "bytes": 20074936,
+          "sha256": "e0482421119dab926b78955e33f60748b3a28bdd92b8f757df84ec5961770faa"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/portable_navigation_plots-889cb5a4ffb9dfd9",
+          "bytes": 24528520,
+          "sha256": "538a6f40823fab8b3b0d4f013b93511ad842d8b2ca17d9c341ccd4483c5968a4"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/printing-84e2aa2df594cbb5",
+          "bytes": 24635496,
+          "sha256": "0280fd40cee0dacbfa9efed6778f933fba2254292d4ef2040827383b87b24038"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/purpose_plots-5d59fe829e2f7fb0",
+          "bytes": 19979584,
+          "sha256": "2d9da1f69d46ea5afc17a71890f60fa3fd08a75281a0988333af18de6ae738a5"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/quantity_mapping_plot-aecefc71c8bf98f7",
+          "bytes": 20450568,
+          "sha256": "40d7d6d893f036785bfcf248afda93fe2aea07076b2844c926e6b4fba90a3dd6"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/recurrence_plot-e2e43d10b499f2e7",
+          "bytes": 23610672,
+          "sha256": "3f22d7e705b1f739598de1e8e94848232f636df180705fee4dec1ce99b3eb634"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/reminder_plots-c112e4184cd4c00e",
+          "bytes": 23465208,
+          "sha256": "27f68cb1edfe86ea4e72e500a96a7e30680b791b9e2af567e5a0afefe2c68d91"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/resonator_projection_report-ef856a9837f13c49",
+          "bytes": 21412208,
+          "sha256": "1c0692978a4f72dd83e37c5e6889c5ba3a49870a12a680e247b9e5426c769e93"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/robotics_diversity_plots-499c5e152d81417e",
+          "bytes": 23830000,
+          "sha256": "c25f6abf2697a630d7c95c72fe3a25891da842bef2f4da62e9ac4c4c5879b48e"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/scheduling_plots-79321a90b7238671",
+          "bytes": 23812424,
+          "sha256": "4b11af854957bf5a976a6ba9fe214730ae7e7b8d6d372e0e53e946ff654e0a86"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/secret_knock_plot-74bb98737014bb0d",
+          "bytes": 20206024,
+          "sha256": "1a7559e3643db0c44ea51508ab69fc24b5ae8af4eff4ff0080b941bf60e90da6"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/signal_garden_plots-d0d88fa1e689d28a",
+          "bytes": 20228904,
+          "sha256": "20725c6a2bdca857504f6f9dd0af3c37a505c255e0fdb910686c54a19a813769"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/structured_music_plot-18c4cad6b6fdcf60",
+          "bytes": 24023064,
+          "sha256": "264758d438ebb908ddc5a519a3882d4e8d43782f301473c50b57c3e9e0529a40"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/structured_selector_operation-263160524cedfab6",
+          "bytes": 4595256,
+          "sha256": "70e8b25a8c7030acfcff0c106923a73e43d3654d1b971039ea1302427401e4f9"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/template_storage_operation-a4043aaadd1daac5",
+          "bytes": 4602904,
+          "sha256": "a5542ef72ebbe9f8276c219cbde945f483ed5d27e672537524debb308093be61"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/vision_experience_codec-b8179ac66870c551",
+          "bytes": 8147904,
+          "sha256": "aef8b4b931e035f96af3db10c7821c32afd583f806bea900436df8fbf77fd1d0"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/vision_plots-1bbce22f57fa6893",
+          "bytes": 24245032,
+          "sha256": "d2eeb7314224460800e429e2ef7b01b0c6144b5b638a33d52596821813e9e606"
+        }
+      ],
+      "test_summaries": [
+        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 190 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s"
+      ]
+    },
+    {
+      "name": "scoped-strict",
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-planner",
+        "-p",
+        "conduit-semantic-catalog",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "start": 1792854454.0470407,
+      "end": 1792854635.2602825,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-scoped-strict.log",
+      "log_sha256": "4a76319ecb99a016bdddbeda1914b26c2b1d1879086dd5c2ae85770404782866",
+      "actual_test_executables": [],
+      "test_summaries": []
+    }
+  ],
+  "status": "passed",
+  "clean_after": true
+}

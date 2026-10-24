@@ -1,0 +1,78 @@
+{
+  "reviewed_at_utc": "2026-10-24T14:53:23.480522+00:00",
+  "pr": 6393,
+  "head": "60f39853d1d81756a77c66b18b3630560faa0b04",
+  "base": "e8797ffd23928391face70b5586ae37d9234c041",
+  "owning_issue": 6387,
+  "decision": "one_remaining_acceptance_blocker_identified_by_source_review",
+  "execution_scope": "Read-only exact-head source, PR/issue and retained log inspection; no builds, tests, checker, CI polls, source edits or GitHub messages",
+  "findings": [
+    {
+      "priority": "P1",
+      "title": "Permanently undersized canonical Quantity Cord can remain admitted and Await forever",
+      "location": "targets/std/src/installed_std/math_backs.rs:70-71",
+      "requirement": "#6387: Do not hide an undersized permanent Cord behind an infinite Await",
+      "trigger": "Use actual four-Gear canonical Quantity Source, but explicitly request map.out\u2192wrap.in or wrap.out\u2192show.input byte_capacity one below complete canonical value. Alternatively reduce a selected offer max_queue_bytes below complete value while retaining exact Fore identity.",
+      "source_chain": [
+        "catalog contract.rs attaches canonical raw and wrapped bounds to reviewed Fores; default_queues.rs required_value_bytes derives them.",
+        "default_queues.rs:94-101 clamps required bytes down to source/sink max_queue_bytes; no refusal for clamp below required bound.",
+        "validated_planning.rs:239-247 accepts explicit connection limits and calls quantity_wire::validate_capacity. That final fence at quantity_wire.rs:75-93 only requires storage for Exact Quantity profile; canonical Decimal and wrapped structured leaf remain unchecked. Remaining validated_planning.rs:301-321 queue tests reject above-offer capacities, not below-value capacities.",
+        "plan-lowering/src/lowering.rs:1005-1020 calls admitted_maximum_value_bytes with original bound and Cord capacity; helper min-clamps rather than refusing. Existing helper regression at1502-1505 expects Some(256),64\u219264.",
+        "scheduler.rs:3696-3697 then accepts clipped maximum_value_bytes <= byte_capacity. payload_admission.rs:69-85 computes available bytes from immutable total Cord capacity; draining cannot increase it above that total.",
+        "MathScalarBack verifies complete output fixed size, then output_ready_for false returns Await without consuming completion. For permanently too-small total capacity it will never become true. Existing factory identity/port/config checks do not compare output bytes with Cord capacity."
+      ],
+      "proof_strength": "Concrete source chain; no runtime reproduction executed by this reviewer. Request focused actual-path regression to authenticate observed refusal/deadlock result.",
+      "minimal_regression": [
+        "Extend installed_std_tests/math_conformance.rs existing run_presented_quantity/source test so planner mode can use plan_expanded_canonical_with_connection_limits and exact per-endpoint override. Keep all other hosts, checked Source, placements and semantic contracts unchanged.",
+        "Case A: map.out\u2192wrap.in raw canonical byte_capacity QUANTITY_ENCODED_LEN-1. Case B: wrap.out\u2192show.input capacity quantity_info_prefix().len()+QUANTITY_ENCODED_LEN-1. Require ordinary planning/pre-Play admission refusal; do not execute an unbounded scheduler loop.",
+        "Case C: use ordinary default planner, lower relevant selected offer max_queue_bytes to one short while preserving matching Fore/semantic contract; require finite pre-Play refusal rather than clamping to an impossible Cord. If host preparation independently rejects that offer earlier, retain that exact refusal as positive acceptance evidence.",
+        "Keep current default complete-queue installed success exact presented bytes/Sign/Plan/Play and existing temporary StepIo pressure test where capacity later increases; that latter case should still retain result and deliver once."
+      ],
+      "repair_direction": "Add final generic checked Fore/value-bound vs admitted per-connection capacity fence shared by default and explicit paths; preserve unrelated representation profiles, existing finite offer limits, and temporary runtime backpressure. Do not globally widen queues or merely add a timeout."
+    }
+  ],
+  "source_positive_findings": [
+    "Complete canonical Quantity/raw wrapper/display Front bounds are narrowly attached to known reviewed Fores; unrelated Quantity realization profiles are not globally assigned this representation.",
+    "into_semantic_contract retains reviewed configuration/startup/terminal semantics and adds checked value law; palette test checks canonical wrapper Fore identity.",
+    "Full byte capacity is observed before consuming a completion; no output/fault/result consumption occurs under temporary partial capacity.",
+    "Retained five completion, seven installed and ten catalog logs are positive historical source-specific proof; old OutputBlocked and subsequent TextTooLong failures remain beside combined local success."
+  ],
+  "readiness_gates": [
+    "Resolve/authenticate permanent-capacity issue with actual canonical planner regression.",
+    "Run affected final-source validation and repository Candidate/normal integration after owner handoff; retained historical/combined logs do not certify exact isolated PR head."
+  ],
+  "intentionally_separate": [
+    "#6351/#6349 GUI Sign/transcript projection repair and original complex GUI lifecycle belong to combined dependent proof; PR body explicitly marks combined ref and does not falsely claim isolated-head GUI success.",
+    "No fresh WASM, native, physical, merge or publication proof claimed; do not require unrelated numeric/profile issues #5392/#6016 for this scoped runtime repair.",
+    "Issue6387 stays open; this review does not certify full issue closure or mark the draft ready."
+  ],
+  "source_artifacts": {
+    "architecture__core__src__capability_offer.rs": "0d94c106abc338ebe52e23dc57d724154941223aee90c3fc6580c6a5fbd8316b",
+    "architecture__kernel__src__scheduler.rs": "15be22e98d3d59af1abf64047cd191c5417cb295bc68de2c7529d019c5b24d5c",
+    "architecture__kernel__src__scheduler__payload_admission.rs": "495d86c75f47324d4994355520da9f05b0f0167109097353fe1789081ec2afca",
+    "architecture__plan-lowering__src__lowering.rs": "c2e19969cabeebfc85719fa46405315d9eb0c250180543edbf735e5826ece101",
+    "architecture__planner__src__canonical__default_queues.rs": "ca7cd4599fd7bcb7b925b72ad0e043300bdc9532114766724257652c8053cd45",
+    "architecture__planner__src__validated_planning.rs": "0e8f4fd8790e226aefc0dd86004109847488b4a506ad9cbdda55386cd326a4ca",
+    "architecture__planner__src__validated_planning__quantity_wire.rs": "3113be4dfe120356d30a135b4000c3f92cbb1e0cbdc09a2fd1b10682ee8b3072",
+    "docs__audits__evidence__quantity-play-6387__README.md": "d9019572e37cf2590019be60db411df4aa57ea523331ebe92dd53b956bd574a2",
+    "docs__audits__evidence__quantity-play-6387__catalog.log": "6365f1d40413950838507ad1cca8f0ca5e37f6731a368c039d2d6ef1fda07362",
+    "docs__audits__evidence__quantity-play-6387__completion-pressure.log": "2df201eadd382b1513a83ab42f44fb38742652edb2b073814fbc0d0f5573c766",
+    "docs__audits__evidence__quantity-play-6387__default-queues-kernel.log": "3cd8933fb317cd1a863889d2f10da0fa4743ce008e8883863c44dbcb3b65b598",
+    "semantics__catalog__src__contract.rs": "d7f63c5556fa1f8e119a551bffae63dbdd6e07755c7fbd0e1a8b30f4f09309e9",
+    "semantics__catalog__src__quantity_info.rs": "58a651838b5b031aa275a78c087a4700a7ba901637ce0c026d400c92177629a8",
+    "semantics__catalog__src__quantity_mapping.rs": "42f7105e29531462ea4cc4eb81b295d25aa0078a1497edbe9817268a8d32d78c",
+    "targets__std__src__installed_std__math_backs.rs": "3010b4ffd7dedf4a5079f817ffc44d9fe4bfdf1ae9938b62dc7a311be43e31f3",
+    "targets__std__src__installed_std_tests__math_conformance.rs": "38e8ce47a94b73e379389011ca6bbdd688b50a3536b270e384bea1b76257de37"
+  },
+  "proposed_repair_scope_review": {
+    "script": "work/apply-6393-permanent-cord-fence.py (not applied during review)",
+    "assessment": "Do not enforce all CheckedValueContract maxima as required minimum Cord storage. Maximum is permitted upper bound; generic variable-width values can fit smaller admitted Cords. Existing lowerer clamp regression establishes that intended behavior.",
+    "smallest_generic_correct_direction": [
+      "Attach explicit existing ValueConstraint::ByteLength{minimum:exact_len,maximum:exact_len} only to these reviewed fixed canonical raw/wrapped Quantity contracts; preserve unrelated profile and Face upper-bound semantics.",
+      "Keep default max-based queue sizing preference. At shared final planning admission require capacity >= explicit guaranteed minimum byte length, rather than capacity >= arbitrary allowed maximum. This catches explicit and default-host-clamped impossible fixed-value Cords.",
+      "Add a contrasting variable-length upper-bound-only contract test proving an intentionally smaller Cord still admits fitting values. Preserve temporary Math pressure retry/exact-once behavior.",
+      "Exempt both NormalClose and Quiescence token tracks consistently with existing lowering; retain track-specific abnormal contract selection."
+    ],
+    "limitations": "Source reasoning only, no new law code, tests, checks, builds or source edits. Root must verify constraint propagation through palette/offer identity and actual planner/kernel regressions."
+  }
+}

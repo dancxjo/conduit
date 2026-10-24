@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-24T15:10:04.772381+00:00",
+  "source": "9485b9e3d2a2ddec797ff4054b8c68066245d865",
+  "format_argv": [
+    "cargo",
+    "+stable",
+    "fmt",
+    "--all",
+    "--check"
+  ],
+  "format_exit": 0,
+  "format_log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-final-format.log",
+  "format_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "diff_check_exit": 0,
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "rustfmt": "rustfmt 1.9.0-stable (48a229ceae 2026-09-01)\n",
+  "negative_production_delta": [
+    "targets/std/src/installed_std_tests/math_conformance.rs",
+    "targets/std/src/installed_std_tests/math_conformance/cord_capacity.rs",
+    "targets/std/src/installed_std_tests/math_conformance/quantity_fixture.rs"
+  ]
+}

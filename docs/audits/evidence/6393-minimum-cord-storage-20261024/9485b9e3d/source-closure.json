@@ -1,0 +1,25 @@
+{
+  "positive": "9485b9e3d2a2ddec797ff4054b8c68066245d865",
+  "positive_tree": "35124a3c359e42395f0a68150ee95500edb59dbc",
+  "authentic_negative": "9ba29d98b6dc29aa599a81dd7dc170125dce9e9d",
+  "original_pr_head": "60f39853d1d81756a77c66b18b3630560faa0b04",
+  "negative_test_only_delta": [
+    "targets/std/src/installed_std_tests/math_conformance.rs",
+    "targets/std/src/installed_std_tests/math_conformance/cord_capacity.rs",
+    "targets/std/src/installed_std_tests/math_conformance/quantity_fixture.rs"
+  ],
+  "production_objects": {
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/planner": "2986cf67fcfc7b9e5368f3142a12e4d0805bb262",
+    "architecture/plot": "645e64243851dab38002380d1eb59a885fa31190",
+    "semantics/catalog": "c886a35aa53d4113eba06f81262c919f615dce3b",
+    "targets/std": "e1ccffdbb4afd3e3326faa6a21504b1ecf7a0978",
+    "Cargo.lock": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+    ".cargo/config.toml": "f78c2a86adf680cfd4100b80183bd01677472aeb"
+  },
+  "root_inputs": {
+    "Cargo.toml": "e61b1386af162f0443d7368d003f63956391a00f578346a6626fe8e54aab374a",
+    "Cargo.lock": "b66b2fec2c95bcb0fe686e776ff70e03861f9ffe976027ed7acbf6ad9236b505",
+    ".cargo/config.toml": "269b1a63fbc504801030a459c774513d26c921b8478d0e20778ab9aeb56699d5"
+  }
+}

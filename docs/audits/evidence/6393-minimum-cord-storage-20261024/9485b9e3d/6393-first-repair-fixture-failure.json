@@ -1,0 +1,38 @@
+{
+  "source": "297977623cc3fd35035a51365b2c00c3ff156b36",
+  "tree": "fc573920941e5ba39af4dc0f8117af90fbea80c8",
+  "steps": [
+    {
+      "name": "quantity-kernel",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "installed_std_tests::math_conformance",
+        "--",
+        "--nocapture"
+      ],
+      "start": 1792854142.4075346,
+      "end": 1792854181.4076529,
+      "exit_code": 101,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-quantity-kernel.log",
+      "log_sha256": "2630c37361dc334786b697da062da3557fe91a713d4832c2ea81fb44419f0430",
+      "actual_test_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_std_host-c255d8c7429f5b5f",
+          "bytes": 179665320,
+          "sha256": "4dc2cc1898554f9938aa83373009e2040b1bfcee3cc4c32b64d82dbbd59818ae"
+        }
+      ],
+      "test_summaries": [
+        "test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 878 filtered out; finished in 1.43s"
+      ]
+    }
+  ],
+  "status": "failed",
+  "clean_after": true
+}

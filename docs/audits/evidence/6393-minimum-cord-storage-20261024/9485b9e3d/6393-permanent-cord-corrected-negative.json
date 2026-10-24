@@ -1,0 +1,32 @@
+{
+  "source": "9ba29d98b6dc29aa599a81dd7dc170125dce9e9d",
+  "tree": "89f332fd961c1a9a981cd81809b6d56a72306d0a",
+  "clean_after": true,
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-std-host",
+    "--lib",
+    "installed_std_tests::math_conformance::cord_capacity",
+    "--",
+    "--nocapture"
+  ],
+  "start": 1792854253.101097,
+  "end": 1792854301.2131405,
+  "exit_code": 101,
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-corrected-negative.log",
+  "log_sha256": "bdace6a46a9e30be07ad1218f656e8c6f5e6e1ed1aad9eb573df302043aac7ae",
+  "actual_test_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_std_host-c255d8c7429f5b5f",
+      "bytes": 179631920,
+      "sha256": "9089544d0775066c7a64aa458241fa2d4fda2e4daafae39e867797404a1672b8"
+    }
+  ],
+  "test_summaries": [
+    "test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 885 filtered out; finished in 0.85s"
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "source": "9485b9e3d2a2ddec797ff4054b8c68066245d865",
+  "negative": "9ba29d98b6dc29aa599a81dd7dc170125dce9e9d",
+  "cases": 113,
+  "positive_assertion_executables": 5,
+  "files": [
+    {
+      "path": "6393-permanent-cord-positive.json",
+      "bytes": 21084,
+      "sha256": "21dc5f0c7ee39c217d2bc5d8a79376ce58942d27461f4dec8632d4ade70d4795"
+    },
+    {
+      "path": "6393-permanent-cord-corrected-negative.json",
+      "bytes": 1104,
+      "sha256": "a72b02f0ec508f09edeed1d3b28d31a476380c1332eb71f913102c39d5359211"
+    },
+    {
+      "path": "6393-corrected-negative-source.json",
+      "bytes": 259,
+      "sha256": "22a66a45b33d24f9dd53b23ca51164e94c17549caa7fc01b3320571cba75b0b1"
+    },
+    {
+      "path": "6393-minimum-storage-source-format-custody.json",
+      "bytes": 1003,
+      "sha256": "a860b4cdfe7097e1b4aa81545e9c1f0a998a95d4b16b5d3444d279c724c9f616"
+    },
+    {
+      "path": "6393-initial-negative-proof-qualification.json",
+      "bytes": 885,
+      "sha256": "aeab49573009617b1f12abb249293b145242baa04a9009d935faf89374e64db8"
+    },
+    {
+      "path": "6393-permanent-cord-first-negative.json",
+      "bytes": 1100,
+      "sha256": "766f5442ca3310bf6f00922613f84760a37035c891d7e9059fc2b212b414fb63"
+    },
+    {
+      "path": "6393-first-repair-fixture-failure.json",
+      "bytes": 1279,
+      "sha256": "3b40daddc1e2c3b9f1150f3842c32b139878eddadc0b1b37464ba7fb5dfd2716"
+    },
+    {
+      "path": "6393-independent-review.json",
+      "bytes": 9419,
+      "sha256": "6abc938afb0e453987ddb5fa208a79a5aad2a80b4ded9575fc96f8a68b2bbad5"
+    },
+    {
+      "path": "6393-minimum-repair-independent-review.json",
+      "bytes": 2489,
+      "sha256": "92836b23cd95c8eb9322f8630628a686614236a6ec4ccbcab3c07939008e5f4e"
+    },
+    {
+      "path": "6393-permanent-cord-first-negative.log.gz",
+      "bytes": 3225,
+      "sha256": "26e3ef86a98c728e6fa692709a3b7e0fd165d021d23cffb0a3e2ad617db6ef9a"
+    },
+    {
+      "path": "6393-first-repair-fixture-failure.log.gz",
+      "bytes": 1395,
+      "sha256": "98dd266f44f283edd0fc1fbe73fa29ec6df60a6a7e559a1cf2d24c245ad8ac17"
+    },
+    {
+      "path": "6393-permanent-cord-corrected-negative.log.gz",
+      "bytes": 1159,
+      "sha256": "f02bba2c0dd81c4cc347b54f71ea769f51b38eb21072385ff740c08aca5f349b"
+    },
+    {
+      "path": "6393-permanent-cord-final-format.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "run-6393-permanent-cord-negative.py",
+      "bytes": 1709,
+      "sha256": "04a213cd5d36891cabc45f8cf50febcbc9c3df1f4045eeff82d4d49137879fb7"
+    },
+    {
+      "path": "run-6393-permanent-cord-corrected-negative.py",
+      "bytes": 1737,
+      "sha256": "59c82300308bc613cc6b870d344d4f5a4b20eab079ef17780364ecb54fc998f6"
+    },
+    {
+      "path": "run-6393-permanent-cord-positive.py",
+      "bytes": 2422,
+      "sha256": "31cbe1df716f05e39c2afebc10327e0cafc9b6623502c570440b0e958bacbe26"
+    },
+    {
+      "path": "apply-6393-permanent-cord-fence.py",
+      "bytes": 6818,
+      "sha256": "690904b908f00bf65d33a043800d990485a25c8e86aeac74d84f2b519065023f"
+    },
+    {
+      "path": "publish-6393-minimum-cord-repair.py",
+      "bytes": 8746,
+      "sha256": "d09b3f2c8e1f2efe1c71f744c0b863f245a49caa8cd225458827170b490489da"
+    },
+    {
+      "path": "6393-permanent-cord-quantity-kernel.log.gz",
+      "bytes": 1120,
+      "sha256": "24d9362a34f312805081b3758e98deb8e3f4944ba7dc9dfa5ff1233b5c4066d9"
+    },
+    {
+      "path": "6393-permanent-cord-completion-pressure.log.gz",
+      "bytes": 493,
+      "sha256": "69af5f3a27c3c5fb4308d51244fc21a3b8dc286e594da4b9821bf96dd4cb9807"
+    },
+    {
+      "path": "6393-permanent-cord-planner.log.gz",
+      "bytes": 3507,
+      "sha256": "c12e4a83e66f4c24ff40ab285fb62cd4a71d8d7ef418e9a82a5f692ac99219e1"
+    },
+    {
+      "path": "6393-permanent-cord-catalog.log.gz",
+      "bytes": 2161,
+      "sha256": "d3828242ddc2a65535132ecce401c1295d4391595fd75fa6b42a0a10e083358f"
+    },
+    {
+      "path": "6393-permanent-cord-scoped-strict.log.gz",
+      "bytes": 2321,
+      "sha256": "b1044d3c82693f95930c2bf5e0399833c9af1c765d9d5fd2b66fb09b41109059"
+    },
+    {
+      "path": "6393-permanent-cord-corrected-negative-actual-test.elf.gz",
+      "bytes": 34914092,
+      "sha256": "1a019e4411ca47ca972b0d1fa20407ff4bd8ba81227f33ce6100b0f0e8ac71e6"
+    },
+    {
+      "path": "6393-permanent-cord-first-negative-actual-test.elf.gz",
+      "bytes": 34936044,
+      "sha256": "c0d40ec487f4543a819eedbcb06d6ce3cb0fcb173ec046a3af1621507bc10a2c"
+    },
+    {
+      "path": "6393-first-repair-fixture-failure-actual-test.elf.gz",
+      "bytes": 34948320,
+      "sha256": "abebf325bef095626089a4bc6bd9f57f3a10abf26567e969902f4b8bffbd77fe"
+    },
+    {
+      "path": "positive-owning-test-00.elf.gz",
+      "bytes": 6532096,
+      "sha256": "4d54c322e8b99fe7da18e96acd26117f627c1a90e68eee99d183c9bd6baabb7d"
+    },
+    {
+      "path": "positive-owning-test-01.elf.gz",
+      "bytes": 6854951,
+      "sha256": "aa3d9b0158272f39218dec8a3040bf5b6523531aabc30d8d7312336ee1ec205a"
+    },
+    {
+      "path": "positive-owning-test-02.elf.gz",
+      "bytes": 34947298,
+      "sha256": "2968ddfb744940195f72ed3df1d0b7ae045f1018e0ddcac343ab184596f6053b"
+    },
+    {
+      "path": "positive-owning-test-03.elf.gz",
+      "bytes": 4553997,
+      "sha256": "adc0d5faa7dfe86a93c301f60e85df5fb2777079c32fef4e5cf9e78d9638d425"
+    },
+    {
+      "path": "positive-owning-test-04.elf.gz",
+      "bytes": 5196085,
+      "sha256": "a426f5bf192bdb2aac29f22778fe6d793483597aeb6dac1c4c79d239528a284d"
+    },
+    {
+      "path": "actual-running-map.json",
+      "bytes": 14959,
+      "sha256": "64a56911c89539b9cd78fdd465b7d74f958b01029f77948faa0019590f80c807"
+    },
+    {
+      "path": "source-closure.json",
+      "bytes": 1307,
+      "sha256": "267a94617f297d46855bad3e5688899e5f2561a9ef2cb5c141380926ac2ed870"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2065,
+      "sha256": "39ecce8c8d9b7652ff21d763b4f2e33d426ac7b72963f4c5c70d9bd2190b9ecf"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "first_negative_source": "18c2e269c0028d5b934407bca222eacd4cd2d5de",
+  "first_repair_source": "297977623cc3fd35035a51365b2c00c3ff156b36",
+  "finding": "Expanded Gear IDs differ from unexpanded map/wrap names; initial explicit one-short fixtures never changed a Cord. Their failed refusal assertions are not valid undersized-Cord evidence. Host-max clamp fixture is independently valid and changed all actual offers; it failed on old source and passes with repair. Corrected fixtures now select exact planned Kind and assert exactly one modified payload Cord. Fresh authentic negative and positive runs required.",
+  "preserved": [
+    "outputs/6393-permanent-cord-first-negative.json",
+    "outputs/6393-permanent-cord-first-negative-actual-test.elf.gz",
+    "outputs/6393-first-repair-fixture-failure.json",
+    "outputs/6393-first-repair-fixture-failure-actual-test.elf.gz"
+  ]
+}
