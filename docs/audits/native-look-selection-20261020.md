@@ -66,7 +66,7 @@ All 26 actual captures and the original 22 lifecycle/interaction checkpoints plu
 
 Inspected the real 125% editorial frame against the earlier nearest-neighbor frame. Enlarged serif/Sans text is visibly smoother; the source field and focus remain intact. Layout/continuation is unchanged by the filter: the spacious profile legitimately reports 1/3, and no claim is made to fix explicitly skipped #6158 or redesign #6159 arrangement.
 
-![Filtered 125% native editorial Crèche](evidence/native-look-selection-20261020/filtered-product-capture/x86_64/journey-frames/creche-editorial-spacious.png)
+[Archived image: Filtered 125% native editorial Crèche](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
 
 Only manifest-bound PNGs are part of these source-scoped archives. An old failure PNG left in the shared target directory by the cedf08fb2 verifier refusal was excluded from the earlier successful source archive; its actual failed trace remains preserved separately. This avoids attributing an unreferenced older frame to 76e6e48c8.
 

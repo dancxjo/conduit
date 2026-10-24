@@ -133,7 +133,7 @@ and background load, not a product speedup or a calibrated policy threshold.
 Only this committed-source capture is timing evidence; uncommitted development
 probes were functional diagnostics and are excluded.
 
-The [complete original capture](../audits/evidence/resource-replacement-cost-20261020/capture.tar.gz)
+The [complete original capture](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
 has SHA-256 `15b8e43512cf7c99fd971aff62a62d9284fb9086c7df4f435ad9d3bee9bf7664`.
 Its [derived summary](../audits/evidence/resource-replacement-cost-20261020/summary.json)
 comes from `python3 proof/performance/verify-resource-replacement-cost.py CAPTURE`.

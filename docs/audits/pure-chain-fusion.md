@@ -125,10 +125,10 @@ work accounting and the actual reduction in decisions. The retained archives
 contain the complete original raw records, Host/Plan/Play receipts, metadata,
 conformance and status manifests. Sidecar comparisons do not replace originals.
 
-Raw captures: [local 02](evidence/pure-chain-fusion-02-raw.tar.gz),
-[local 03](evidence/pure-chain-fusion-03-raw.tar.gz),
-[local 04](evidence/pure-chain-fusion-04-raw.tar.gz),
-[CI](evidence/pure-chain-fusion-ci-raw.tar.gz).
+Raw captures: [local 02](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz),
+[local 03](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz),
+[local 04](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz),
+[CI](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 
 The compact [receipt](evidence/pure-chain-fusion.json) includes archive SHA-256,
 source identities, all three local captures, the independent CI capture and

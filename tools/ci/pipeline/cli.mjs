@@ -1,3 +1,4 @@
+import { checkEvidenceRetention } from './evidence-retention.mjs';
 import { readDeliveryStatus } from './delivery-status.mjs';
 import { appendFileSync, mkdirSync, readdirSync, existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -86,8 +87,13 @@ try {
       output('sha', head);
       break;
     }
+    case 'evidence-retention':
+      if (args.length) throw new Error('evidence-retention accepts no arguments');
+      checkEvidenceRetention();
+      break;
     case 'preflight': {
       if (args.length !== 1) throw new Error('usage: preflight <base-sha>');
+      checkEvidenceRetention();
       const oneBodyEvidence = retainedOneBodyEvidence();
       if (oneBodyEvidence) {
         // The browser target has a shallow checkout. Verify ancestry here,

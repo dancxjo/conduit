@@ -33,11 +33,11 @@ Original retention records may list additional local historical artifacts;
   and [copy recovery receipt](current/compositor-copy-recovery-fixture-proof.json)
   retain their own explicit fixture and execution boundaries. The hostile broker
   receipt includes exact guest-image hashes and preserved Root/sibling sentinels.
-- [Current raw serial](current/ordinary-domain-proof.log.gz) and
-  [build/proof output](current/build-proof.log.gz) retain successes and terminal
+- [Current raw serial](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) and
+  [build/proof output](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) retain successes and terminal
   completion together. Build/image records and dependency/link inventory/map are
   beside them; link observation is not an isolation proof by itself.
-- [Text admission diagnostic](negative-text-0f221/serial-drain-no-exit-device.log.gz)
+- [Text admission diagnostic](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
   preserves source `0f2218d1a32dd0577b71b577536281c842b78a88`: the selected actual
   Face binding allows 256 completion bytes, while the migrated broker rejected it
   under an obsolete zero-output assumption. The [exact diagnostic command and
@@ -47,11 +47,11 @@ Original retention records may list additional local historical artifacts;
   recorded returncode 0 is not supported-proof success or acceptance. The older
   `ordinary-domain-proof.log.gz` filename is retained unchanged as a byte-identical
   legacy alias of this diagnostic serial, not the original supported-run serial.
-  [build-and-failure.log.gz](negative-text-0f221/build-and-failure.log.gz) preserves
+  [build-and-failure.log.gz](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) preserves
   the original failed supported command output and truncated serial. Existing
   bytes and original custody metadata remain unchanged; the accurate filename
   and diagnostic command record clarify their distinct roles.
-- [Morse failure](negative-morse-f306/ordinary-domain-proof.log.gz) preserves
+- [Morse failure](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) preserves
   source `f30633a9d`: ordinary HELLO and hostile gate checks progressed, then
   `morse-product-prepare` refused. It is not a completed backend proof. The same
   stale text-Face completion assumption remained in Morse admission; the custom
@@ -71,7 +71,7 @@ wrong-target, overlapping, oversized and writable/executable image rejection;
 and guard, overflow and alignment checks. This packet retains **19 CPU tests** passing at the exact same clean tested
 source: 12 ordinary text controls, two Morse contract controls and five focused
 service-memory image/layout controls, with zero failures or ignored cases.
-The [service-memory test log](cpu/6181-service-memory-tests.log.gz) was appended
+The [service-memory test log](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) was appended
 after its owning process completed; the tested source remains `08a835229`.
 
 The focused strict Clippy command also passed with exit 0 on the same clean
@@ -81,7 +81,7 @@ The focused strict Clippy command also passed with exit 0 on the same clean
 cargo +stable clippy --locked -p conduitos --all-targets --features hosted-tools,native-compositor -- -D warnings
 ```
 
-The [raw Clippy log](cpu/6181-focused-clippy.log.gz) and its original/compressed
+The [raw Clippy log](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) and its original/compressed
 hashes are retained. This local lint result is separate from Candidate or
 combined Integration acceptance.
 

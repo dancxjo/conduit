@@ -85,7 +85,7 @@ Sign counts. Strict release benchmark Clippy passed with warnings denied.
 | 8 | 30.406 / 30.465 | 24.622 / 24.676 | 343.774 / 343.743 |
 | 32 | 123.485 / 123.543 | 116.814 / 116.812 | 870.380 / 870.302 |
 
-[evidence/cold-pipeline-four-shape-samples.json](evidence/cold-pipeline-four-shape-samples.json)
+[evidence/cold-pipeline-four-shape-samples.json](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
 retains each phase and trial separately. Earlier captures remain intact.
 These are reference-expression Back chains, with one doubling expression per
 Gear; they do not measure the scalar-tape Back, Boolean shapes or a causal

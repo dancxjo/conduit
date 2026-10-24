@@ -105,6 +105,9 @@ Avoid adding new checklists or repeating architecture rules across guides.
 
 ## Verify the change
 
+Keep raw proof captures outside Git; retain only small receipts and named test or
+publication consumers. See [evidence retention](docs/contributing/evidence-retention.md).
+
 Start with the ordinary local integration loop:
 
 ```sh
