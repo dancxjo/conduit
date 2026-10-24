@@ -1,10 +1,10 @@
 //! Separate finite real-QMP Crèche control proof. No product/UI state is added.
 use super::super::{qemu_artifacts::Artifacts, qmp};
 use super::{
-    ConduitosError, JourneyIdentity, creche_choices, face_correspondence, hid_qmp, io_error,
-    journey_input, refusal,
+    creche_choices, face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError,
+    JourneyIdentity,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, process::Child};
 mod accessibility;
 mod custody;

@@ -147,21 +147,8 @@ fn alternate_look(
     scale: u16,
     colors: [u32; 13],
 ) -> Result<LookInfo, NativeBindingRefusal> {
-    let [
-        background,
-        surface,
-        emphasis,
-        failure,
-        focus,
-        muted,
-        paper,
-        primary,
-        secondary,
-        text,
-        text_secondary,
-        success,
-        warning,
-    ] = colors.map(|rgb| ThemeColor::from_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8));
+    let [background, surface, emphasis, failure, focus, muted, paper, primary, secondary, text, text_secondary, success, warning] =
+        colors.map(|rgb| ThemeColor::from_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8));
     let spacious = density == VisualDensityPreference::Spacious;
     let expression = VisualExpressionInfo::new(
         density,

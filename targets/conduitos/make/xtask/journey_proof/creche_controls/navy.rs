@@ -1,6 +1,6 @@
 //! Complete navy Look selection over one unchanged actual Crèche Face.
 use super::*;
-use conduit_face::{VisualDensity as D, VisualTypography as T, navy_look, navy_look_id};
+use conduit_face::{navy_look, navy_look_id, VisualDensity as D, VisualTypography as T};
 use conduit_plot::rust_binding::NativeRustBinding;
 use sha2::{Digest, Sha256};
 

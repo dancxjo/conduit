@@ -1,6 +1,6 @@
 //! Canonical live-image proof, separate from the architecture-proof appliance.
 use super::{
-    ConduitosArch, ConduitosError, journey_proof, live_media, profile::Paths, report::sha256_file,
+    journey_proof, live_media, profile::Paths, report::sha256_file, ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 use std::fs;
