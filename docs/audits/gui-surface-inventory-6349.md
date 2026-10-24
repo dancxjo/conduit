@@ -166,3 +166,11 @@ proof adds an accessibility scenario for long Unicode input and two actual
 Looks, full primary control cycles/pages, pointer focus and incomplete-input
 refusal. Its QEMU execution/captures are pending; it does not attempt Body startup
 or claim complete Details, all unavailable controls, physical or human proof.
+
+The initial actual accessibility run reached both 200%/forced-color Looks, then
+[refused a split interactive field](evidence/gui-look-6349-local-a11y-field-split/README.md).
+The reusable mechanical paginator now keeps a fitting action/argument pair
+atomic when the full help/field subject is oversized; help retains ordinary
+continuation. No text/control reordering, clipping or limit increase is used.
+All 45 layout CPU cases and the eighteen preference replacements pass; fresh
+QEMU validation of this pagination correction is pending.

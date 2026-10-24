@@ -1,0 +1,53 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos)
+    Finished `release` profile [optimized] target(s) in 2m 19s
+     Running unittests src/lib.rs (../native-target/release/deps/conduitos-e5e12bd516b26562)
+
+running 45 tests
+test native_face_scene::layout::field_cluster_tests::graphics_command_pressure_moves_whole_field_before_global_limit ... ok
+test native_face_scene::layout::mechanical::fragment_tests::associated_field_cluster_that_fits_fresh_page_has_no_internal_cut ... ok
+test native_face_scene::layout::field_cluster_tests::large_text_height_pressure_keeps_field_in_flat_and_panel_geometry ... ok
+test native_face_scene::layout::field_cluster_tests::field_help_action_and_argument_stay_together_at_row_capacity ... ok
+test native_face_scene::layout::field_cluster_tests::panel_preflight_respects_global_row_and_command_caps_not_only_lane_height ... ok
+test native_face_scene::layout::mechanical::grid_tests::track_contributions_support_zero_single_and_spanning_demands_without_empty_minima ... ok
+test native_face_scene::layout::mechanical::tests::retained_row_capacity_is_refused_before_the_next_entry ... ok
+test native_face_scene::layout::field_cluster_tests::oversized_help_continues_without_empty_pages_lost_text_or_duplicate_controls ... ok
+test native_face_scene::layout::panels::continuation_tests::naming_field_moves_as_one_cluster_to_full_width_continuation ... ok
+test native_face_scene::layout::panels::continuation_tests::sole_populated_region_keeps_full_width_on_every_page ... ok
+test native_face_scene::layout::mechanical::tests::allocation_weights_alignment_and_preferred_sum_have_finite_native_bounds ... ok
+test native_face_scene::layout::panels::ordering::tests::restoration_handles_three_cycle_fixed_point_and_original_item_chunks ... ok
+test native_face_scene::layout::panels::tests::authored_pair_is_independent_of_early_review_reading_order ... ok
+test native_face_scene::layout::panels::tests::chrome_valid_tiny_panel_extent_refuses_without_arithmetic_panic ... ok
+test native_face_scene::layout::panels::continuation_tests::unfit_narrow_row_remeasures_on_wider_page_and_full_width_still_refuses ... ok
+test native_face_scene::layout::panels::ordering::tests::ordering_refuses_count_and_text_before_permutation_allocation ... ok
+test native_face_scene::layout::field_cluster_tests::actual_face_target_rows_keep_typed_refs_and_exact_reading_without_mutation ... ok
+test native_face_scene::layout::mechanical::grid_tests::indivisible_grid_band_reports_command_pressure_instead_of_raising_budget ... ok
+test native_face_scene::layout::mechanical::fragment_tests::accessible_lanes_fill_residual_command_capacity_before_continuing ... ok
+test native_face_scene::layout::mechanical::grid_tests::declared_empty_block_tracks_preserve_internal_and_leading_gaps ... ok
+test native_face_scene::layout::panels::tests::impossible_panel_width_refuses_without_an_overflow_scene ... ok
+test native_face_scene::layout::mechanical::grid_tests::grid_conflicts_and_oversized_cells_refuse_without_losing_fallback_identity ... ok
+test native_face_scene::layout::panels::tests::empty_group_does_not_add_panel_geometry_or_displace_reading ... ok
+test native_face_scene::layout::mechanical::fragment_tests::aggregate_document_bytes_refuse_before_any_text_measurement ... ok
+test native_face_scene::layout::panels::tests::interleaved_unmatched_reading_uses_complete_tail_without_losing_rows ... ok
+test native_face_scene::layout::mechanical::grid_tests::independent_grid_bands_paginate_under_row_and_command_pressure ... ok
+test native_face_scene::layout::panels::tests::narrow_configuration_preserves_existing_linear_reading_geometry ... ok
+test native_face_scene::layout::mechanical::tests::measured_candidate_choice_uses_wrapped_demand_and_minimum_conflicts_refuse ... ok
+test native_face_scene::layout::mechanical::minimum_tests::outer_minimum_selects_single_column_and_scales_with_font_metrics ... ok
+test native_face_scene::layout::mechanical::tests::nested_rows_columns_preserve_all_content_and_original_controls ... ok
+test native_face_scene::layout::mechanical::grid_tests::one_spanning_cell_keeps_empty_tracks_at_zero_and_all_original_rows ... ok
+test native_face_scene::layout::panels::tests::panel_metadata_has_a_finite_preparation_storage_delta ... ok
+test native_face_scene::layout::panels::tests::layout_preserves_the_original_face_control_traversal_and_complete_details ... ok
+test native_face_scene::layout::mechanical::grid_tests::independent_bound_form_has_shared_tracks_spans_and_unchanged_semantic_traversal ... ok
+test native_face_scene::layout::mechanical::tests::real_face_scene_uses_existing_frame_hits_and_resource_admission ... ok
+test native_face_scene::layout::panels::tests::nonmonotonic_pages_include_later_visual_pages_and_preserve_turning ... ok
+test native_face_scene::layout::mechanical::control_cluster_tests::oversized_subject_help_keeps_fitting_action_and_argument_on_one_page ... ok
+test native_face_scene::layout::mechanical::tests::impossible_keep_and_unsupported_inline_shrink_are_explicit ... ok
+test native_face_scene::layout::panels::tests::measured_unicode_command_pressure_retains_every_byte_and_reserves_panel_outlines ... ok
+test native_face_scene::layout::mechanical::tests::resource_pressure_paginates_every_row_without_overlap_or_binding_loss ... ok
+test native_face_scene::layout::mechanical::tests::unicode_chunks_large_text_and_selected_scale_preserve_complete_payload ... ok
+test native_face_scene::layout::panels::tests::creche::actual_zero_body_creche_places_body_and_plot_groups_in_one_band ... ok
+test native_face_scene::layout::panels::tests::creche::panel_surfaces_are_admitted_and_painted_before_reading_rows ... ok
+test native_face_scene::layout::panels::tests::creche::full_unicode_name_draft_fits_narrow_and_wide_without_shortening_submission ... ok
+test native_face_scene::layout::panels::tests::creche::font_details::actual_creche_identity_details_use_code_without_changing_face_or_human_text ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 1382 filtered out; finished in 0.31s
+

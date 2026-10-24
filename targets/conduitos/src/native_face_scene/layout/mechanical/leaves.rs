@@ -27,44 +27,68 @@ pub(super) fn arrange(
     let mut items = context.items(region).peekable();
     let mut previous = None;
     let mut cluster_atomic = false;
+    let mut control_atomic = None;
     while let Some((original, item)) = items.next() {
         if item.text.is_empty() {
             continue;
         }
         let starts = field_clusters::starts(previous, item);
         previous = field_clusters::key(item);
+        let metrics = || field_clusters::Metrics {
+            width,
+            maximum_height,
+            scale: context.scale,
+            typography: context.typography,
+            padding: context.padding,
+        };
+        let mut demand = None;
         if starts {
-            let demand = field_clusters::measure(
+            demand = field_clusters::measure(
                 core::iter::once(item).chain(items.clone().map(|(_, item)| item)),
-                field_clusters::Metrics {
-                    width,
-                    maximum_height,
-                    scale: context.scale,
-                    typography: context.typography,
-                    padding: context.padding,
-                },
+                metrics(),
                 marker,
             )?;
             cluster_atomic = demand.is_some();
-            if demand.is_some_and(|demand| {
-                !demand.fits(
-                    current.height
-                        + if current.entries.is_empty() {
-                            0
-                        } else {
-                            SPACE_SM
-                        },
-                    height,
-                    current.entries.len(),
-                    current.cost + chrome::COMMANDS + 1,
-                )
-            }) && !current.entries.is_empty()
-            {
-                fragments.push(current);
-                current = Fragment::empty();
-            }
+            control_atomic = None;
         } else if previous.is_none() {
             cluster_atomic = false;
+            control_atomic = None;
+        }
+        let mut control_start = false;
+        if !cluster_atomic {
+            if item
+                .control
+                .is_some_and(|control| control.argument.is_none())
+            {
+                demand = field_clusters::measure_controls(
+                    core::iter::once(item).chain(items.clone().map(|(_, item)| item)),
+                    metrics(),
+                    marker,
+                )?;
+                control_atomic = demand
+                    .as_ref()
+                    .and(item.control.map(|control| control.action));
+                control_start = control_atomic.is_some();
+            } else if item.control.map(|control| control.action) != control_atomic {
+                control_atomic = None;
+            }
+        }
+        if demand.is_some_and(|demand| {
+            !demand.fits(
+                current.height
+                    + if current.entries.is_empty() {
+                        0
+                    } else {
+                        SPACE_SM
+                    },
+                height,
+                current.entries.len(),
+                current.cost + chrome::COMMANDS + 1,
+            )
+        }) && !current.entries.is_empty()
+        {
+            fragments.push(current);
+            current = Fragment::empty();
         }
 
         let item_inset = u16::from(item.indent)
@@ -116,7 +140,8 @@ pub(super) fn arrange(
                 chunk,
                 cross_extent: 0,
                 cost,
-                break_before: !cluster_atomic || (starts && chunk == 0),
+                break_before: !(cluster_atomic || control_atomic.is_some())
+                    || ((starts || control_start) && chunk == 0),
                 outer_padding: 0,
                 extent: None,
                 row: Row {
