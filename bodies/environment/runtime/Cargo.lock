@@ -139,6 +139,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
+ "conduit-tm1637-wire",
  "serde_json",
 ]
 
@@ -314,6 +315,16 @@ dependencies = [
  "conduit-kernel",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
 ]
 
 [[package]]

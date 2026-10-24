@@ -156,8 +156,15 @@ impl PreparedDisplayOutput {
         if fragment.host_id != host.host_id || fragment.boot_id != host.boot_id {
             return Err(E::NonlocalFragment);
         }
-        let lowered =
-            conduit_plan_lowering::lowering::lower_plan_fragment(fragment).map_err(E::Lowering)?;
+        let (lowered, activations) =
+            conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+                &plan,
+                &fragment.fragment_id,
+            )
+            .map_err(E::Lowering)?;
+        if !activations.entries.is_empty() {
+            return Err(E::NonlocalFragment);
+        }
         Ok(Self { plan, lowered })
     }
     pub fn plan(&self) -> &c::Plan {

@@ -21,7 +21,7 @@ impl conduit_tm1637_wire::OpenDrain for NoPins {
     }
 }
 use conduit_environment_runtime::appliance::software::{ReadySoftwareBacks, SoftwareRefusal};
-fn fixture(
+pub(super) fn fixture(
     source: &DisplayOutputSource,
 ) -> (c::HostAdvertisement, c::AuthorityGrant, ReadySoftwareBacks) {
     let mut host = c::HostAdvertisement {

@@ -278,6 +278,7 @@ dependencies = [
  "conduit-pulse-capture",
  "conduit-semantic-catalog",
  "conduit-time",
+ "conduit-tm1637-wire",
 ]
 
 [[package]]

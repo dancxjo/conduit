@@ -1,3 +1,7 @@
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_environment_make::DisplayOutputSource;
 #[test]
 fn authored_output_has_explicit_frame_and_refusal_fore_and_one_electrical_sink() {
@@ -17,3 +21,6 @@ fn authored_output_has_explicit_frame_and_refusal_fore_and_one_electrical_sink()
 }
 #[path = "display_support/planning.rs"]
 mod planning;
+
+#[path = "display_support/execution.rs"]
+mod execution;

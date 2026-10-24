@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [features]
+display-output = ["construction", "dep:conduit-tm1637-wire", "dep:conduit-plan-lowering"]
 face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["dep:conduit-pulse-capture"]
 appliance = ["conduit-kernel/alloc", "dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
@@ -14,6 +15,7 @@ construction = ["appliance", "dep:conduit-pulse-capture", "dep:conduit-planner"]
 recording-kernel = ["conduit-kernel/alloc", "dep:conduit-plan-lowering", "dep:conduit-composite"]
 
 [dependencies]
+conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"], optional = true }
 conduit-environment-face = { path = "../face", optional = true }
 conduit-face = { path = "../../../semantics/face", default-features = false, optional = true }
 conduit-composite = { path = "../../../architecture/composite", optional = true }

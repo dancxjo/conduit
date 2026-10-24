@@ -9,6 +9,8 @@ mod canonical_storage;
 #[cfg(feature = "construction")]
 pub mod construction;
 pub mod display_packets;
+#[cfg(feature = "display-output")]
+pub mod display_output;
 pub mod observation;
 pub mod publication;
 #[cfg(feature = "face-projection")]

@@ -84,6 +84,28 @@ impl PreparedDisplayPackets {
         brightness: u8,
         enabled: bool,
     ) -> Result<&[u8], DisplayPacketRefusal> {
+        self.encode_frame(registers, brightness, enabled)?;
+        let result = validate(self.evaluator.evaluate(self.frame.encoded())?)?;
+        if result.variant_payload("invalid-brightness")?.is_some() {
+            return Err(DisplayPacketRefusal::InvalidBrightness);
+        }
+        let packets = result
+            .variant_payload("packets")?
+            .ok_or(R::WrongType)?
+            .record_field("packets")?
+            .ok_or(R::WrongType)?;
+        self.packet_output.record(&[packets])?;
+        Ok(self.packet_output.encoded())
+    }
+    /// Canonical Frame Fore input for the ordinary checked output Plot.
+    /// Invalid brightness remains a representable input: the authored encoder
+    /// routes it to the refusal Fore instead of producing an electrical packet.
+    pub fn encode_frame(
+        &mut self,
+        registers: [u8; 6],
+        brightness: u8,
+        enabled: bool,
+    ) -> Result<&[u8], DisplayPacketRefusal> {
         for (encoder, value) in self.octets.iter_mut().zip(registers) {
             encoder.leaf(&[value])?;
         }
@@ -102,17 +124,7 @@ impl PreparedDisplayPackets {
             validate(self.enabled.encoded())?,
             validate(self.registers.encoded())?,
         ])?;
-        let result = validate(self.evaluator.evaluate(self.frame.encoded())?)?;
-        if result.variant_payload("invalid-brightness")?.is_some() {
-            return Err(DisplayPacketRefusal::InvalidBrightness);
-        }
-        let packets = result
-            .variant_payload("packets")?
-            .ok_or(R::WrongType)?
-            .record_field("packets")?
-            .ok_or(R::WrongType)?;
-        self.packet_output.record(&[packets])?;
-        Ok(self.packet_output.encoded())
+        Ok(self.frame.encoded())
     }
     pub fn encode(
         &mut self,

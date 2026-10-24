@@ -146,6 +146,25 @@ impl ReadySoftwareBacks {
         fragment: &c::PlanFragment,
         placement: &c::PlacementId,
     ) -> Result<PreparedSoftwareOperation, SoftwareRefusal> {
+        let index = self.selected_index(fragment, placement)?;
+        self.operations[index]
+            .prepared
+            .take()
+            .ok_or(SoftwareRefusal::AlreadySelected)
+    }
+    /// Preflight a whole closure before transferring any retained operation.
+    pub fn check_selected(
+        &self,
+        fragment: &c::PlanFragment,
+        placement: &c::PlacementId,
+    ) -> Result<(), SoftwareRefusal> {
+        self.selected_index(fragment, placement).map(|_| ())
+    }
+    fn selected_index(
+        &self,
+        fragment: &c::PlanFragment,
+        placement: &c::PlacementId,
+    ) -> Result<usize, SoftwareRefusal> {
         if !c::verify_plan_fragment(fragment)
             || fragment.host_id != self.host
             || fragment.boot_id != self.boot
@@ -160,11 +179,12 @@ impl ReadySoftwareBacks {
             .iter()
             .find(|gear| &gear.placement_id == placement)
             .ok_or(SoftwareRefusal::Selection)?;
-        let op = self
+        let index = self
             .operations
-            .iter_mut()
-            .find(|op| op.gear == gear.gear_id)
+            .iter()
+            .position(|op| op.gear == gear.gear_id)
             .ok_or(SoftwareRefusal::Selection)?;
+        let op = &self.operations[index];
         let offer = &op.offer;
         if self.generation != Some(gear.offer_generation)
             || gear.host_id != self.host
@@ -191,7 +211,10 @@ impl ReadySoftwareBacks {
         {
             return Err(SoftwareRefusal::Selection);
         }
-        op.prepared.take().ok_or(SoftwareRefusal::AlreadySelected)
+        if op.prepared.is_none() {
+            return Err(SoftwareRefusal::AlreadySelected);
+        }
+        Ok(index)
     }
 }
 /// Make-side metadata from the ordinary portable implementation constructor.

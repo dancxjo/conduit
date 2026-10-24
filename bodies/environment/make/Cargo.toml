@@ -34,7 +34,7 @@ conduit-semantic-catalog = { path = "../../../semantics/catalog", default-featur
 conduit-body = { path = "../../../architecture/body" }
 conduit-net = { path = "../../../semantics/net" }
 conduit-core = { path = "../../../architecture/core" }
-conduit-environment-runtime = { path = "../runtime", features = ["construction", "recording-kernel", "face-projection"] }
+conduit-environment-runtime = { path = "../runtime", features = ["construction", "recording-kernel", "face-projection", "display-output"] }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
 conduit-planner = { path = "../../../architecture/planner" }
 conduit-embedded-build = { path = "../../../make/embedded-build" }

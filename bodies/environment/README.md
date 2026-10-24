@@ -1469,3 +1469,22 @@ Play. The electrical provider and complete kernel/work admission remain
 independent requirements. The display proof checks these ownership paths;
 the existing ten appliance-kernel tests also pass after sharing initialization.
 This does not change the flashed firmware or claim physical display delivery.
+
+The optional runtime `display-output` feature prepares the checked output Plot
+as one bounded ordinary kernel: four nodes, five Cords including Frame/refusal
+Fore, twelve 1 KiB value slots and 256 event/remote-sign slots. Whole-Plan-aware
+lowering must match exactly; activation entries, nonlocal Lines, unsupported
+shape and bounds refuse. Numeric tables and all software selections are
+preflighted before the first software transfer. The independent Root still
+owns actual capability issuance, the electrical provider, complete memory/work
+admission and Body/Play start; this constructor supplies none of those facts.
+
+The display proof executes two successive register Frames through the checked
+Source encoder, both selected selectors, original kernel Host Call requests,
+and the production TM1637 capability owner/wire engine. Explicit CPU fixtures
+supply Root authority and an acknowledged pin provider. Canonical requests
+match the Source encoder; invalid brightness reaches the refusal Fore with no
+pin effect, and cancellation before dispatch rejects a late completion with no
+pin effect. Recurring execution measures zero allocations. Refused preparation
+preserves all still-retained software. This is CPU execution evidence, not an
+ESP32 installation, live timed Mask subscription or physical display update.
