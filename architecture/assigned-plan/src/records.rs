@@ -22,8 +22,10 @@ impl AssignedRecordRequirement {
     /// The boot-specific native tail is checked against actual possession by
     /// the native operation binder. The resident graph pins its presence/ABI.
     pub fn from_kernel_record(record: AssignedRecord<'_>, schema: u16) -> Self {
-        if schema == ASSIGNED_NATIVE_PLAN_SCHEMA
-            && record.tag == crate::ASSIGNED_HOST_CALL
+        if matches!(
+            schema,
+            ASSIGNED_NATIVE_PLAN_SCHEMA | crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+        ) && record.tag == crate::ASSIGNED_HOST_CALL
             && record.payload.len() >= 47
         {
             Self::from_record(AssignedRecord {
@@ -67,7 +69,10 @@ impl<'a> AssignedPlanRecords<'a> {
         }
         if !matches!(
             read_u16(bytes, 8)?,
-            ASSIGNED_PLAN_SCHEMA | ASSIGNED_KERNEL_PLAN_SCHEMA | ASSIGNED_NATIVE_PLAN_SCHEMA
+            ASSIGNED_PLAN_SCHEMA
+                | ASSIGNED_KERNEL_PLAN_SCHEMA
+                | ASSIGNED_NATIVE_PLAN_SCHEMA
+                | crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
         ) {
             return Err(AssignedPlanRefusal::WrongSchema);
         }
