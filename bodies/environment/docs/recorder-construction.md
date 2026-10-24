@@ -29,10 +29,13 @@ source content. Producer authentication, clock coordinates, resource placement
 and grants are explicit fixtures. The native worker/Line, real Body admission,
 and rolling generations/catalog checkpoint are not established by this proof.
 
-The joint CPU native-worker/file proof now carries two source publications into
-two prepared ordinary file kernels. Sink acceptance follows actual Host Call
-completion and Back commit, then the worker stops and retires. Independent read
-owners reopen exact first-class quantities and producer times after sink drop.
+The joint CPU native-worker/file proof includes the default 960-reading workset
+in fifteen prepared 64-sample file kernels, plus a two-reading cancellation case.
+Intermediate sink acceptance means bounded staging; durable acceptance advances
+only at an actual chunk publication commit. All 960 readings reopen with their
+quantity values, sequences and synthetic producer-minute coordinates after sink
+drop. The complete workset drains naturally; the shorter case stops explicitly
+and follows ordinary retirement.
 With `installed-recording-proof`, the same native facts continue through the
 existing catalog publication and durable Body State Source. A fresh-Boot read
 view recovers the exact seed and ordered chunk references. This exercises target

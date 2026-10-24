@@ -22,6 +22,11 @@ struct Sink<'a> {
     ready: &'a Cell<bool>,
     stop: &'a Cell<bool>,
     accepted: usize,
+    committed: usize,
+    limit: usize,
+    per_generation: usize,
+    period_ms: u64,
+    cancel_after: bool,
     held: Option<(u64, usize, usize)>,
     wake: &'a core::cell::RefCell<Option<Waker>>,
 }
@@ -45,12 +50,26 @@ impl PublicationSink for Sink<'_> {
             return Poll::Pending;
         }
         assert_eq!(snapshot.sequence, self.accepted as u64 + 1);
-        let owner = &mut self.owners[self.accepted];
-        let active = &self.active[self.accepted];
+        let generation = self.accepted / self.per_generation;
+        let first = generation * self.per_generation + 1;
+        let last = ((generation + 1) * self.per_generation).min(self.limit);
+        let owner = &mut self.owners[generation];
+        let active = &self.active[generation];
         // Explicit producer-clock fixture; never the poll or file receipt time.
         owner
-            .append_publication(active, &mut self.input, snapshot, snapshot.sequence * 100)
+            .append_publication(
+                active,
+                &mut self.input,
+                snapshot,
+                snapshot.sequence * self.period_ms,
+            )
             .unwrap();
+        if snapshot.sequence != last as u64 {
+            assert_eq!(owner.observer().committed(), None);
+            self.accepted += 1;
+            self.held = None;
+            return Poll::Ready(Ok(())); // staging, not a durable ACK
+        }
         owner.admit(active).unwrap();
         let mut drained = false;
         let mut delivered = false;
@@ -81,14 +100,15 @@ impl PublicationSink for Sink<'_> {
         assert_eq!(
             owner.observer().committed(),
             Some(RecordedRange {
-                first_sequence: snapshot.sequence,
-                last_sequence: snapshot.sequence,
-                samples: 1
+                first_sequence: first as u64,
+                last_sequence: last as u64,
+                samples: last - first + 1
             })
         );
         self.accepted += 1;
+        self.committed = self.accepted;
         self.held = None;
-        if self.accepted == self.owners.len() {
+        if self.cancel_after && self.accepted == self.limit {
             self.stop.set(true);
         }
         Poll::Ready(Ok(()))
@@ -98,6 +118,8 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     mut execution: Box<Execution<P, W>>,
     pulse: &Cell<usize>,
     timer: &Cell<usize>,
+    samples: u64,
+    overnight: bool,
     retirement: impl FnOnce(crate::native_worker::RetiredProviders<P, W>),
 ) {
     let scope = execution.native.pulse.inspection().scope.clone();
@@ -114,26 +136,39 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     let ready = Cell::new(false);
     let stop = Cell::new(false);
     let wake = core::cell::RefCell::new(None);
+    let limit = if overnight { samples as usize } else { 2 };
+    let per_generation = if overnight { MAXIMUM_CHUNK_SAMPLES } else { 1 };
+    let generations = limit.div_ceil(per_generation);
+    assert!(generations <= MAXIMUM_CATALOG_GENERATIONS);
+    let period_ms = if overnight { 60_000 } else { 100 };
     let mut sink = Sink {
         input: PreparedRecordingInput::prepare(&contract).unwrap(),
-        owners: Vec::with_capacity(2),
-        active: Vec::with_capacity(2),
+        owners: Vec::with_capacity(generations),
+        active: Vec::with_capacity(generations),
         ready: &ready,
         stop: &stop,
         accepted: 0,
+        committed: 0,
+        limit,
+        per_generation,
+        period_ms,
+        cancel_after: !overnight,
         held: None,
         wake: &wake,
     };
-    let mut references = Vec::with_capacity(2);
-    for index in 0..2 {
+    let mut references = Vec::with_capacity(generations);
+    for index in 0..generations {
+        let chunk_samples = per_generation.min(limit - index * per_generation);
         let mut reference = fixture::reference();
         reference.extent.bytes =
-            PreparedRecordingSnapshot::content_bytes(context, &contract, 1).unwrap() as u64;
-        reference.lifetime.version = c::ResourceVersionIdentity::from_digest([index + 1; 32]);
+            PreparedRecordingSnapshot::content_bytes(context, &contract, chunk_samples).unwrap()
+                as u64;
+        reference.lifetime.version =
+            c::ResourceVersionIdentity::from_digest([(index + 1) as u8; 32]);
         let mut generation = PreparedRecordingBatch::prepare(
             context,
             &contract,
-            1,
+            chunk_samples as u64,
             core::slice::from_ref(&reference),
             1,
             4096,
@@ -185,7 +220,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         }
         ready.set(true);
         wake.borrow_mut().take().unwrap().wake();
-        for _ in 0..10000 {
+        for _ in 0..limit * 2000 {
             if let Poll::Ready(result) = future
                 .as_mut()
                 .poll(&mut Context::from_waker(Waker::noop()))
@@ -196,17 +231,30 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         panic!("bounded native/file worker did not retire");
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
-    assert_eq!(outcome.exit, Exit::Cancelled);
+    assert_eq!(
+        outcome.exit,
+        if overnight {
+            Exit::Drained
+        } else {
+            Exit::Cancelled
+        }
+    );
     assert_eq!(outcome.cleanup, Ok(()));
-    assert_eq!(outcome.progress.publications, 2);
-    assert_eq!(sink.accepted, 2);
+    assert_eq!(outcome.progress.publications, limit as u64);
+    assert_eq!(sink.accepted, limit);
+    assert_eq!(sink.committed, limit);
     let observers: Vec<_> = sink.owners.iter().map(|o| o.observer().clone()).collect();
-    let catalog =
-        PreparedRecordingCatalog::prepare_committed(&references, &observers, 3, 8192).unwrap();
+    let catalog = PreparedRecordingCatalog::prepare_committed(
+        &references,
+        &observers,
+        generations + 1,
+        ((generations + 1) * MAXIMUM_CHUNK_BYTES) as u64,
+    )
+    .unwrap();
     assert!(!catalog.content().is_empty());
     // Files persist independently of the producer worker and its staging owner.
     drop(sink);
-    assert_eq!(std::fs::read_dir(&root.path).unwrap().count(), 2);
+    assert_eq!(std::fs::read_dir(&root.path).unwrap().count(), generations);
     let reopened = root.directory();
     let mut history = PreparedRecordingReader::prepare(context, &contract).unwrap();
     let mut quantities =
@@ -232,21 +280,23 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         .unwrap();
         let bytes = reader.read(&read.authority[0]).unwrap();
         history.read(core::str::from_utf8(bytes).unwrap()).unwrap();
-        assert_eq!(history.len(), 1);
-        let sample = history.sample(0).unwrap();
-        assert_eq!(
-            (sample.sequence, sample.sampled_at_boot_ms),
-            (index as u64 + 1, (index as u64 + 1) * 100)
-        );
-        // The retained CPU transcript is 19.8°C and 56% RH; both quantities
-        // survive the canonical publication and checked recording Form.
-        assert_eq!(
-            quantities.pack(sample.observation.unwrap()).unwrap(),
-            [198, 0, 48, 2]
-        );
+        let expected = per_generation.min(limit - index * per_generation);
+        assert_eq!(history.len(), expected);
+        for offset in 0..expected {
+            let sample = history.sample(offset).unwrap();
+            let sequence = (index * per_generation + offset + 1) as u64;
+            assert_eq!(
+                (sample.sequence, sample.sampled_at_boot_ms),
+                (sequence, sequence * period_ms)
+            );
+            assert_eq!(
+                quantities.pack(sample.observation.unwrap()).unwrap(),
+                [198, 0, 48, 2]
+            );
+        }
     }
     #[cfg(feature = "installed-recording-proof")]
     checkpoint::check(&reopened, &references, &observers);
-    eprintln!("native_file_sink_cpu accepted=2 generations=2 play_allocations=0 kernel_commit_observed=true line_fixture=true");
+    eprintln!("native_file_sink_cpu accepted={limit} committed={limit} generations={generations} native_play_allocations=0 kernel_commit_observed=true line_fixture=true");
     retirement(super::retire(execution));
 }

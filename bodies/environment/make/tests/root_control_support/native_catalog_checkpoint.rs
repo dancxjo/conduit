@@ -13,8 +13,15 @@ pub(super) fn check(
     references: &[c::BoundedResourceRef],
     observers: &[RecordingCommitObserver],
 ) {
-    let catalog =
-        PreparedRecordingCatalog::prepare_committed(references, observers, 3, 16384).unwrap();
+    let maximum_records = references.len() + 1;
+    let maximum_bytes = (maximum_records * MAXIMUM_CHUNK_BYTES) as u64;
+    let catalog = PreparedRecordingCatalog::prepare_committed(
+        references,
+        observers,
+        maximum_records,
+        maximum_bytes,
+    )
+    .unwrap();
     let mut selected = fixture::reference();
     selected.identity = c::ResourceSemanticIdentity::from_digest([99; 32]);
     selected.lifetime.version = c::ResourceVersionIdentity::from_digest([201; 32]);
@@ -23,8 +30,8 @@ pub(super) fn check(
         selected.clone(),
         references,
         observers,
-        3,
-        16384,
+        maximum_records,
+        maximum_bytes,
     )
     .unwrap();
     assert_eq!(checkpoint.content(), catalog.content());
@@ -106,5 +113,5 @@ pub(super) fn check(
             *reference
         );
     }
-    eprintln!("native_catalog_checkpoint_cpu chunk_generations=2 catalog_published=true body_seed_committed=true fresh_boot_discovery=true admission_fixture=true");
+    eprintln!("native_catalog_checkpoint_cpu chunk_generations={} catalog_published=true body_seed_committed=true fresh_boot_discovery=true admission_fixture=true", references.len());
 }
