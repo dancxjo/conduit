@@ -1,0 +1,161 @@
+{
+  "source": "19e5233c44f12bfbd710015c226f8ef94020f057",
+  "tree": "d29fd347c6db924b36f556bea2cf847b91eccfbb",
+  "branch": "prep/6385-independent-fore-proof-20261024",
+  "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6385-fore-proof",
+  "started": 1792826487.4416664,
+  "before_available_bytes": 13300174848,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6385-fore-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6385-fore-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "default-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--lib"
+      ],
+      "log": "work/6385-fore-default-tests.log",
+      "sha256": "4ae0d3de4fb2a406b2f43b77f0ace8b9f95504e81c9697b64aafbcf56c4cb569",
+      "exit_code": 0,
+      "started": 1792826487.441703,
+      "finished": 1792826487.974955,
+      "actual_test_counts": [
+        9
+      ]
+    },
+    {
+      "name": "all-feature-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--lib",
+        "--all-features"
+      ],
+      "log": "work/6385-fore-all-feature-tests.log",
+      "sha256": "00c5ea1046803b7e6edc88211e07622e73fbf40c6a064d89ab5b7381476cfcc3",
+      "exit_code": 0,
+      "started": 1792826487.9972198,
+      "finished": 1792826496.2444887,
+      "actual_test_counts": [
+        9
+      ]
+    },
+    {
+      "name": "default-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/6385-fore-default-strict.log",
+      "sha256": "780c14707cec629baab3986aa139eab53593a644f4956eb1d4b7e50d8778b380",
+      "exit_code": 0,
+      "started": 1792826496.26387,
+      "finished": 1792826496.63577
+    },
+    {
+      "name": "all-feature-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/6385-fore-all-feature-strict.log",
+      "sha256": "8ff9cdaaeb6bca49e60653ff3dbd1837d8c9cc931cc52629f8132ad77b83ec18",
+      "exit_code": 0,
+      "started": 1792826496.6552505,
+      "finished": 1792826497.7263892
+    }
+  ],
+  "status": "passed",
+  "clean_after": true,
+  "finished": 1792826497.7586293,
+  "executables": [
+    {
+      "path": "work/6385-fore-target/debug/build/proc-macro2-0c65f04c11310072/build-script-build",
+      "bytes": 564496,
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336"
+    },
+    {
+      "path": "work/6385-fore-target/debug/build/proc-macro2-0c65f04c11310072/build_script_build-0c65f04c11310072",
+      "bytes": 564496,
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336"
+    },
+    {
+      "path": "work/6385-fore-target/debug/build/quote-576bc7579314484c/build-script-build",
+      "bytes": 529416,
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037"
+    },
+    {
+      "path": "work/6385-fore-target/debug/build/quote-576bc7579314484c/build_script_build-576bc7579314484c",
+      "bytes": 529416,
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037"
+    },
+    {
+      "path": "work/6385-fore-target/debug/build/serde-a9c1f89fbb7ca3bc/build-script-build",
+      "bytes": 540208,
+      "sha256": "08e155c73bb52d67b34b01298a3af74a3e326238ddd370afd75d4aa72b10f6ec"
+    },
+    {
+      "path": "work/6385-fore-target/debug/build/serde-a9c1f89fbb7ca3bc/build_script_build-a9c1f89fbb7ca3bc",
+      "bytes": 540208,
+      "sha256": "08e155c73bb52d67b34b01298a3af74a3e326238ddd370afd75d4aa72b10f6ec"
+    },
+    {
+      "path": "work/6385-fore-target/debug/build/serde_core-1fce8a4deb10ac18/build-script-build",
+      "bytes": 541560,
+      "sha256": "4370d351221238f3314d0174a8dc3fea13f2a43f5bba9c8b41b9741997811f9d"
+    },
+    {
+      "path": "work/6385-fore-target/debug/build/serde_core-1fce8a4deb10ac18/build_script_build-1fce8a4deb10ac18",
+      "bytes": 541560,
+      "sha256": "4370d351221238f3314d0174a8dc3fea13f2a43f5bba9c8b41b9741997811f9d"
+    },
+    {
+      "path": "work/6385-fore-target/debug/deps/conduit_assigned_plan-045d726fd34c4643",
+      "bytes": 1545984,
+      "sha256": "cbad3b0f4190be18a2cba985c2b13aab3ef7589e8dd66e1240397ddcf3868714"
+    },
+    {
+      "path": "work/6385-fore-target/debug/deps/conduit_assigned_plan-326c3cdefb42efcd",
+      "bytes": 1543104,
+      "sha256": "284e41ac7a6e9e9f282d3e8ede4f6abbbdd98e94a070131f1fc01eb0ba3d31b1"
+    },
+    {
+      "path": "work/6385-fore-target/debug/deps/libserde_derive-5cf603e79f9c2c5b.so",
+      "bytes": 2908672,
+      "sha256": "dffa5afba863c7a2dd15f46d5da9863712d19d864937c4d907d4342bf43cf612"
+    }
+  ],
+  "after_available_bytes": 13056966656
+}

@@ -1,0 +1,65 @@
+{
+  "source": "19e5233c44f12bfbd710015c226f8ef94020f057",
+  "base": "3a99fa7da517c99611f9082393c1a35376480b8f",
+  "tree": "d29fd347c6db924b36f556bea2cf847b91eccfbb",
+  "exact_changed_paths": [
+    {
+      "path": "architecture/assigned-plan/FORE.md",
+      "blob": "c67ed263972d0ebf8e9b8b5e0737db28adaaf0cb",
+      "bytes": 2116,
+      "sha256": "a7747f7ed54d760517657b6901066ca524bee60da22b73b95478030e484fcb93"
+    },
+    {
+      "path": "architecture/assigned-plan/src/fore.rs",
+      "blob": "320ca6a1b96add83535958fd67bc7ae8e2b4ccec",
+      "bytes": 4195,
+      "sha256": "4c16e70f20862672d52bb50318f966109c32f44795b7393e837f829ef43837ea"
+    },
+    {
+      "path": "architecture/assigned-plan/src/fore_tests.rs",
+      "blob": "ee1523cee9c4d8f800e4179410dcb456f747db10",
+      "bytes": 6777,
+      "sha256": "1ebb82b65c5c8466b3d9edc4269a87051bf0273998a25b2bdc8f5300c5776fcb"
+    },
+    {
+      "path": "architecture/assigned-plan/src/lib.rs",
+      "blob": "888d60ea85f89268f8ad76ec7b1b6aa3f72fecaf",
+      "bytes": 6823,
+      "sha256": "14ea622d32f910f5c6db7b98e4d1a4de471bc39094781343722c48725d72f866"
+    },
+    {
+      "path": "architecture/assigned-plan/src/record_view_tests.rs",
+      "blob": "cc2465bc406acedbfcbf776afd088e08ee2d8816",
+      "bytes": 7636,
+      "sha256": "1a1a0bc43797a9ab216ce7555c3e40e66f9bc08636ad1bdb5963cf6141557bb6"
+    },
+    {
+      "path": "architecture/assigned-plan/src/records.rs",
+      "blob": "17f532d5ae6e97ff4d601f0d4467edda7b5890d2",
+      "bytes": 4779,
+      "sha256": "2c9b844b45b912c12be6dea23ee3c669c09efbdebff9dc2a20d277e1e735a51c"
+    },
+    {
+      "path": "architecture/assigned-plan/src/validation.rs",
+      "blob": "d721999c17b7555a08f020a7e59501136f67497c",
+      "bytes": 13252,
+      "sha256": "a9ea7cb4b9223ac81a53719ea62b390dab9afeac476d9dd1d246eebe59dfc0e0"
+    }
+  ],
+  "source_findings": [],
+  "scope": "Explicit schema7 local Fore decoder prerequisite only; original6378 remains open",
+  "reviewed_invariants": [
+    "Schemas4-6 byte lengths and admission behavior preserved; legacy decoders refuse7",
+    "125-byte envelope retained; thirteen bounded counts and currentHost/Boot/digest checked",
+    "Schema7 tag10 carries only53-byte endpoint/cord/direction/front-port/ABI pin; no Line/peer/grant",
+    "At most16 unique endpoint/cord requirements, exact-once records; altered/duplicate/missing/direction/ABI/network records refuse",
+    "Contiguous and borrowed validation agree without allocation; complete computation inventory retained",
+    "Record iterator accepts schema7 representation but grants no admission; runtime table/layout/native possession must be independently checked"
+  ],
+  "actual_proof": "9default+9all-feature tests, strictall-target Clippy in both profiles; exactargv/exit/rawlogs and11localELF hashes retained",
+  "limits": [
+    "No trusted Make producer or runtime table integration yet",
+    "No real display graph/ordinary kernel/Host Call/cancellation/physical output execution",
+    "No caller access, native possession, Body installation, wholeCandidate, Integration or issueclosure claim"
+  ]
+}
