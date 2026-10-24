@@ -35,4 +35,20 @@ pub const STEPS: &[Step] = &[
             "--test-threads=1",
         ],
     ),
+    Step::new(
+        "resource-reference-equality.generated-bindings",
+        "Check generated reference decoders reject malformed wire leaves",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-data",
+            "--test",
+            "native_reference_bindings",
+            "--",
+            "--nocapture",
+            "--test-threads=1",
+        ],
+    ),
 ];
