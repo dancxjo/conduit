@@ -15,6 +15,16 @@ import { browserHostCallLimits, createBrowserHostCalls } from "../../../targets/
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
+  // Local chrome expression only: never modifies a Body, Face or admitted Plan.
+  const lookPicker = root.querySelector('[data-workspace-look-picker]');
+  if (lookPicker) {
+    lookPicker.value = root.ownerDocument.documentElement.dataset.workspaceLook ?? 'editorial';
+    lookPicker.addEventListener('change', () => {
+      if (['editorial', 'engineering', 'phosphor'].includes(lookPicker.value)) {
+        root.ownerDocument.documentElement.dataset.workspaceLook = lookPicker.value;
+      }
+    });
+  }
   const nursery = root.querySelector('[data-workspace-creche]');
   const surface = root.querySelector('[data-workspace-surface]');
   const activities = root.querySelector('.activity-switcher');
