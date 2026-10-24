@@ -34,7 +34,7 @@ pub const STEPS: &[Step] = &[
             "--features",
             "plot-runner",
             "--lib",
-            "plot_runner::engine::resource_effect_tests",
+            "resource_effect_tests",
         ],
     ),
     Step::new(
