@@ -25,6 +25,7 @@ pub(super) fn binary(
         return Ok(PreparedOperation::Binary {
             operator,
             proven,
+            arithmetic_policy: input.arithmetic_policy(),
             left: Box::new(prepare_node(left, input_type, input)?),
             right: Box::new(prepare_node(right, input_type, input)?),
         });
@@ -138,6 +139,7 @@ fn equal(ty: &StructuredInfoType, a: &mut Cursor<'_>, b: &mut Cursor<'_>) -> Res
             let result = evaluate_binary(
                 BinaryOperator::Equal,
                 false,
+                ArithmeticPolicy::Checked,
                 PrimitiveInfoKind::Bool,
                 &PrimitiveValue::borrowed(kind, left)?,
                 &PrimitiveValue::borrowed(kind, right)?,

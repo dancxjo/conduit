@@ -183,9 +183,14 @@ impl ScalarTape {
                 }
                 Operation::Literal(bytes) => PrimitiveValue::borrowed(instruction.kind, bytes)?,
                 Operation::Unary(op, index) => evaluate_unary(*op, instruction.kind, get(*index)?)?,
-                Operation::Binary(op, proven, left, right) => {
-                    evaluate_binary(*op, *proven, instruction.kind, get(*left)?, get(*right)?)?
-                }
+                Operation::Binary(op, proven, left, right) => evaluate_binary(
+                    *op,
+                    *proven,
+                    ArithmeticPolicy::Checked,
+                    instruction.kind,
+                    get(*left)?,
+                    get(*right)?,
+                )?,
                 Operation::BranchFalse(condition, target) => {
                     if !decode_bool(get(*condition)?)? {
                         pc = *target;

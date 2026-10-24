@@ -7,6 +7,8 @@ use crate::{
 use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
+mod arithmetic_policy;
+use arithmetic_policy::ArithmeticPolicy;
 mod byte_observation;
 mod equality;
 mod evaluate;
@@ -72,8 +74,9 @@ enum PreparedInput {
         nominal_type: Option<SharedBytes>,
         quantity_profile: conduit_core::QuantityValueProfile,
         maximum_bytes: Option<u32>,
+        arithmetic_policy: ArithmeticPolicy,
     },
-    Structured(SharedBytes, Option<u32>),
+    Structured(SharedBytes, Option<u32>, ArithmeticPolicy),
 }
 
 impl PreparedInput {
@@ -85,9 +88,17 @@ impl PreparedInput {
             Self::Structured(..) => conduit_core::QuantityValueProfile::Decimal,
         }
     }
+    fn arithmetic_policy(&self) -> ArithmeticPolicy {
+        match self {
+            Self::Primitive {
+                arithmetic_policy, ..
+            }
+            | Self::Structured(_, _, arithmetic_policy) => *arithmetic_policy,
+        }
+    }
     fn maximum_bytes(&self) -> Option<u32> {
         match self {
-            Self::Primitive { maximum_bytes, .. } | Self::Structured(_, maximum_bytes) => {
+            Self::Primitive { maximum_bytes, .. } | Self::Structured(_, maximum_bytes, _) => {
                 *maximum_bytes
             }
         }
@@ -160,6 +171,7 @@ enum PreparedOperation {
     Binary {
         operator: BinaryOperator,
         proven: bool,
+        arithmetic_policy: ArithmeticPolicy,
         left: Box<PreparedNode>,
         right: Box<PreparedNode>,
     },
@@ -213,7 +225,11 @@ impl PortableExpressionProgram {
 
 impl PreparedPortableExpressionEvaluator {
     pub fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
-        Self::new_profile(program, conduit_core::QuantityValueProfile::Decimal)
+        Self::new_profile(
+            program,
+            conduit_core::QuantityValueProfile::Decimal,
+            ArithmeticPolicy::LegacyProven,
+        )
     }
 
     /// Explicit finite exact-coordinate evaluator profile. Currently restricted
@@ -231,12 +247,17 @@ impl PreparedPortableExpressionEvaluator {
             ));
         }
         quantity_profile::admit_primitive_nodes(&program.root)?;
-        Self::new_profile(program, conduit_core::QuantityValueProfile::Exact)
+        Self::new_profile(
+            program,
+            conduit_core::QuantityValueProfile::Exact,
+            ArithmeticPolicy::LegacyProven,
+        )
     }
 
     fn new_profile(
         program: &PortableExpressionProgram,
         quantity_profile: conduit_core::QuantityValueProfile,
+        arithmetic_policy: ArithmeticPolicy,
     ) -> Result<Self, Refusal> {
         let input = match program.input_type.shape() {
             StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
@@ -245,6 +266,7 @@ impl PreparedPortableExpressionEvaluator {
                 nominal_type: None,
                 quantity_profile,
                 maximum_bytes: program.input_maximum_bytes,
+                arithmetic_policy,
             },
             StructuredInfoTypeShape::Nominal { representation, .. }
                 if matches!(representation.shape(), StructuredInfoTypeShape::Leaf(_)) =>
@@ -254,6 +276,7 @@ impl PreparedPortableExpressionEvaluator {
                     info_kind: prepare_info_kind(&program.input_type)?,
                     quantity_profile,
                     maximum_bytes: program.input_maximum_bytes,
+                    arithmetic_policy,
                     nominal_type: Some(
                         program
                             .input_type
@@ -270,6 +293,7 @@ impl PreparedPortableExpressionEvaluator {
                     .map_err(|_| Refusal::InvalidProgram)?
                     .into(),
                 program.input_maximum_bytes,
+                arithmetic_policy,
             ),
         };
         program
@@ -382,7 +406,7 @@ impl PreparedPortableExpressionEvaluator {
                 )?;
                 Some(*kind)
             }
-            PreparedInput::Structured(expected, _) => {
+            PreparedInput::Structured(expected, _, _) => {
                 let validated = conduit_core::validate_canonical_structured_value(input)
                     .map_err(|_| Refusal::InvalidInput)?;
                 if validated.type_bytes() != expected.as_ref() {

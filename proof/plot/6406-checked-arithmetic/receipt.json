@@ -1,0 +1,102 @@
+{
+  "schema": "6406-checked-arithmetic-proof@1",
+  "head": "bbe34f8474bfde18ad060a7c52760deb19bbaa98",
+  "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-verified-law-realization",
+  "uncommitted": true,
+  "source_hashes": {
+    "architecture/plot/src/expression_prepared.rs": "fcddb523fd24b30b446a031aa03301d1c57da4427618efedc2e018399674defd",
+    "architecture/plot/src/expression_prepared/arithmetic_policy.rs": "5ea1ef9826bec5dde63ad36b9a7af7f05f31f75cf30aa2a0d384088353a07aba",
+    "architecture/plot/src/expression_prepared/equality.rs": "e34501718b45eab740d39ee69c98de045ee5ac33d84cc9b9747c7d48a7512c6e",
+    "architecture/plot/src/expression_prepared/evaluate.rs": "413182cfab6641afc5be518193f0b124be7198413c6b1d9d8c31790ece5453e4",
+    "architecture/plot/src/expression_prepared/native_u64.rs": "6bc946e96d2b0e9b1e86273dfe8766a83eddaf79b603a53f5b167ef4fd5bac73",
+    "architecture/plot/src/expression_prepared/primitive.rs": "f474346012d71277f147c31265b17505ac3445508d28bb682b9aabcc0c3fc486",
+    "architecture/plot/src/expression_prepared/scalar_tape.rs": "435b100a41c24bb18efd1b3721e6d5ce9dc17d869ddbbf1a93273a819d04335a",
+    "architecture/plot/src/expression_prepared/structured_tape.rs": "d050118adbecd4b17ff854606f48f4ec06078ce5b785b2dde289d9961c5230d8",
+    "architecture/plot/tests/prepared_checked_arithmetic.rs": "9e6ea40daa72758eab1938fb0375e94b8298df6656634ab6c77d026651427c3c"
+  },
+  "production_hashes_match_frozen_preparation": true,
+  "test_only_fix": "collection fixture constructor2 ->Some(2); exact first compile failed test/log retained; no newtest executable existed at compilation failure",
+  "test_command": "cargo +stable test --locked -p conduit-plot --test prepared_checked_arithmetic --test native_u64_expression --test scalar_tape_native_laws --test prepared_structured_payload --test resource_reference_equality -- --test-threads=1",
+  "tests": {
+    "native_u64_expression": 3,
+    "prepared_checked_arithmetic": 5,
+    "prepared_structured_payload": 4,
+    "resource_reference_equality": 4,
+    "scalar_tape_native_laws": 4,
+    "passed": 20,
+    "failed": 0,
+    "ignored": 0
+  },
+  "strict_command": "cargo +stable clippy --locked -p conduit-plot --lib --test prepared_checked_arithmetic --test native_u64_expression --test scalar_tape_native_laws --test prepared_structured_payload --test resource_reference_equality -- -D warnings",
+  "strict_exit": 0,
+  "strict_seconds": 3.82,
+  "format_command": "cargo +stable fmt --all --check",
+  "format_exit": 0,
+  "env": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "scope": [
+    "Explicit prepared execution policy, original program/proven bits unchanged.",
+    "Checked fixed-integer Add/Sub/Mul and signed division errors; conditional branch laziness; context survives structured/equality/member/sequence child preparation.",
+    "Same existing evaluator and legacy behavior; selected allocator observations zero allocations/reallocations under valid/error/reuse."
+  ],
+  "not_proven": [
+    "Native declaration/law guard authority or all executed-node complete custody",
+    "New expression envelope/codec/Kind/compiler routing",
+    "Selected Std Back/full G2 actual kernel acceptance",
+    "Required eventual CI/merge/publication acceptance"
+  ],
+  "guard_design": "work/6406-executed-node-guard-plan.md",
+  "logs": {
+    "6406-checked-arithmetic-focused.log": {
+      "raw_sha256": "e950ef56fe188b2f0946aaaf6cd07361d778cfbdbb59371c3050e54b2b12e772",
+      "gzip_sha256": "24eadaa6abb954a88d4210f9f386ff111a7227dfe2b097809ca9f4cc2763b53e"
+    },
+    "6406-checked-arithmetic-strict.log": {
+      "raw_sha256": "a78aeaa932f56787b84e653fd93bb6cbf11a2ed2cf46512d8de9d15b34803c3c",
+      "gzip_sha256": "04be435ca68ceba69445ad31db58b334858d32c2aeba812ac6591b1a63619dcc"
+    },
+    "6406-checked-arithmetic-format.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "6406-checked-arithmetic-first-compile-negative.log": {
+      "raw_sha256": "47c130e55749b24292acb799c07727aa0f422b2017059a621b2baf74008d062d",
+      "gzip_sha256": "df58162351969bfc56f1e54bc9e2e15eb1c061ade0da3478b956afae4aeffb8f"
+    }
+  },
+  "executables": {
+    "native_u64_expression-604d9bf412423d0f": {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_u64_expression-604d9bf412423d0f",
+      "sha256": "6d80f6b4d58c43de358c0a52839d3ce5a222d52f593285328cf6320bcec0084d",
+      "bytes": 4595632
+    },
+    "prepared_checked_arithmetic-5e026b532adbbcd1": {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_checked_arithmetic-5e026b532adbbcd1",
+      "sha256": "a2d0cf5bd795bc11f6376cf1bef60dac791f3a5e68a86f508c93ffc8f3bb03cc",
+      "bytes": 4695824
+    },
+    "prepared_structured_payload-cee82e2f27ab4172": {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_structured_payload-cee82e2f27ab4172",
+      "sha256": "918722c074331e66648c9de07ac99d15eb342da464275553be1497e7e7875b92",
+      "bytes": 19358760
+    },
+    "resource_reference_equality-ab608eb8bf067e38": {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/resource_reference_equality-ab608eb8bf067e38",
+      "sha256": "4bd9740fbf42ca0261cacaf0ea4ccba6befaa5d224bfa943dd3c7f88b5da2b5c",
+      "bytes": 19488760
+    },
+    "scalar_tape_native_laws-d8945c5e01e90219": {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/scalar_tape_native_laws-d8945c5e01e90219",
+      "sha256": "f6576382cc34a4fe516f76d1a2370226324975a2a8b7a50706e9a10ac15fb5e1",
+      "bytes": 19331912
+    }
+  },
+  "cache": "all commands terminal; idle released to Root",
+  "committed": false,
+  "pushed": false
+}

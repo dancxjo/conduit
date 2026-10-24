@@ -42,7 +42,7 @@ enum Operation {
     Input,
     Literal(Value),
     Unary(UnaryOperator, Box<Node>),
-    Binary(BinaryOperator, bool, Box<Node>, Box<Node>),
+    Binary(BinaryOperator, bool, ArithmeticPolicy, Box<Node>, Box<Node>),
     Conditional(Box<Node>, Box<Node>, Box<Node>),
 }
 pub struct PreparedNativeU64Expression {
@@ -127,6 +127,7 @@ fn lower(node: &PreparedNode, nodes: &mut usize) -> Result<Node, Refusal> {
         PreparedOperation::Binary {
             operator,
             proven,
+            arithmetic_policy,
             left,
             right,
         } => {
@@ -150,7 +151,7 @@ fn lower(node: &PreparedNode, nodes: &mut usize) -> Result<Node, Refusal> {
             if kind != expected {
                 return Err(Refusal::InvalidProgram);
             }
-            Operation::Binary(*operator, *proven, left, right)
+            Operation::Binary(*operator, *proven, *arithmetic_policy, left, right)
         }
         PreparedOperation::Conditional {
             condition,
@@ -183,9 +184,10 @@ impl Node {
                 let _ = operand.evaluate(input)?.word()?;
                 Err(Refusal::Arithmetic)
             }
-            Operation::Binary(operator, proven, left, right) => binary(
+            Operation::Binary(operator, proven, arithmetic_policy, left, right) => binary(
                 *operator,
                 *proven,
+                *arithmetic_policy,
                 left.evaluate(input)?,
                 right.evaluate(input)?,
             ),
@@ -202,10 +204,12 @@ impl Node {
 fn binary(
     operator: BinaryOperator,
     proven: bool,
+    arithmetic_policy: ArithmeticPolicy,
     left: Value,
     right: Value,
 ) -> Result<Value, Refusal> {
     use BinaryOperator::*;
+    let proven = arithmetic_policy.permits_wrapping(proven);
     if matches!(
         operator,
         Equal | NotEqual | Less | LessOrEqual | Greater | GreaterOrEqual

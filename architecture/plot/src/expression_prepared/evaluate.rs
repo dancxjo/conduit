@@ -95,12 +95,20 @@ pub(super) fn evaluate_node<'a>(
         PreparedOperation::Binary {
             operator,
             proven,
+            arithmetic_policy,
             left,
             right,
         } => {
             let left = evaluate_node(left, input, input_kind)?;
             let right = evaluate_node(right, input, input_kind)?;
-            evaluate_binary(*operator, *proven, expected, &left, &right)?
+            evaluate_binary(
+                *operator,
+                *proven,
+                *arithmetic_policy,
+                expected,
+                &left,
+                &right,
+            )?
         }
         PreparedOperation::Conditional {
             condition,

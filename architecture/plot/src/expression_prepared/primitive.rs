@@ -1,5 +1,5 @@
 //! Borrow large leaf values; keep only arithmetic results inline during play.
-use super::Refusal;
+use super::{ArithmeticPolicy, Refusal};
 use crate::{BinaryOperator, UnaryOperator};
 use conduit_core::{
     decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
@@ -90,6 +90,7 @@ pub(super) fn evaluate_unary(
 pub(super) fn evaluate_binary(
     operator: BinaryOperator,
     proven: bool,
+    arithmetic_policy: ArithmeticPolicy,
     expected: PrimitiveInfoKind,
     left: &PrimitiveValue<'_>,
     right: &PrimitiveValue<'_>,
@@ -221,7 +222,7 @@ pub(super) fn evaluate_binary(
     }
     let left = decode_integer(left)?;
     let right = decode_integer(right)?;
-    let result = match (operator, proven) {
+    let result = match (operator, arithmetic_policy.permits_wrapping(proven)) {
         (BinaryOperator::Multiply, true) => left.wrapping_mul(right),
         (BinaryOperator::Add, true) => left.wrapping_add(right),
         (BinaryOperator::Subtract, true) => left.wrapping_sub(right),
