@@ -200,3 +200,51 @@ fn source_correlates_exact_reference_occurrence_and_complete_ordered_candidates(
         .unwrap()
     ));
 }
+
+#[test]
+fn source_lookup_returns_complete_rows_at_all_positions_and_absent_on_missing_surface() {
+    use crate::generated::LanguageResourceLexicalLookup;
+    let q = fixture();
+    let prepared = PreparedResourceSnapshotProgram::prepare().unwrap();
+    let other =
+        LanguageLexicalEntry::new(q.row().candidates().clone(), "elsewhere".into()).unwrap();
+    let lookup = |rows: alloc::vec::Vec<LanguageLexicalEntry>, surface: &str| {
+        let query = LanguageResourceLexicalLookup::new(
+            BoundedSequence::try_from_iter(rows).unwrap(),
+            surface.into(),
+        )
+        .unwrap();
+        let encoded = query.clone().encode().unwrap();
+        assert!(encoded.len() <= 65536);
+        let actual = prepared.lookup.evaluate(&encoded).unwrap();
+        assert_eq!(actual.len(), 1);
+        let index = actual[0] as usize;
+        assert!(index <= 4);
+        query.rows().as_slice().get(index).cloned()
+    };
+    assert_eq!(lookup(alloc::vec![], "a"), None);
+    for position in 0..4 {
+        let mut rows = alloc::vec![other.clone(); 4];
+        rows[position] = q.row().clone();
+        assert_eq!(lookup(rows, "a"), Some(q.row().clone()));
+    }
+    assert_eq!(lookup(alloc::vec![other], "a"), None);
+    assert_eq!(lookup(alloc::vec![q.row().clone()], "A"), None);
+    let changed = LanguageLexicalEntry::new(
+        BoundedSequence::try_from_iter([q.row().candidates()[0].clone()]).unwrap(),
+        q.row().surface().clone(),
+    )
+    .unwrap();
+    // Source returns the actual complete table row, never the separately expected
+    // correlation row or a fabricated selected POS. Native owns table membership.
+    assert_eq!(lookup(alloc::vec![changed.clone()], "a"), Some(changed));
+    let second = LanguageLexicalEntry::new(
+        BoundedSequence::try_from_iter([q.row().candidates()[1].clone()]).unwrap(),
+        q.row().surface().clone(),
+    )
+    .unwrap();
+    assert_eq!(
+        lookup(alloc::vec![q.row().clone(), second], "a"),
+        Some(q.row().clone())
+    );
+}

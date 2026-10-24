@@ -129,6 +129,10 @@ fn main() {
     fs::write(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("commitment_programs.rs"), format!("pub const COMMITMENT_SOURCE_ID: &str = {:?};\npub(crate) const COMMITMENT_PROGRAMS: [&str; 8] = {:?};\n", checked.source_document_id.as_str(), ordered)).unwrap();
     for (plot, file) in [
         (
+            "language/resource-lexical-lookup",
+            "resource_lexical_lookup.hex",
+        ),
+        (
             "language-parser-revision-rebase-adapter",
             "parser_rebase_adapter.hex",
         ),

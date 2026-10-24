@@ -58,6 +58,23 @@ fn snapshot(
 }
 fn replay_snapshot(runtime: &mut kernel::Runtime, value: &PreparedResourceLexicalSnapshot<'_>) {
     for binding in value.bindings() {
+        let lookup = runtime.execute_exact(
+            "language/resource-lexical-lookup",
+            binding.lookup_input_canonical(),
+            &[include_str!(concat!(
+                env!("OUT_DIR"),
+                "/resource_lexical_lookup.hex"
+            ))],
+        );
+        assert_eq!(lookup, binding.lookup_output_canonical());
+        let request =
+            LanguageResourceLexicalLookup::decode(binding.lookup_input_canonical()).unwrap();
+        assert_eq!(lookup.len(), 1);
+        let selected = lookup[0] as usize;
+        assert_eq!(
+            request.rows().as_slice().get(selected),
+            Some(binding.query().row())
+        );
         let actual = runtime.execute_exact(
             "language/resource-lexical-binding",
             binding.input_canonical(),

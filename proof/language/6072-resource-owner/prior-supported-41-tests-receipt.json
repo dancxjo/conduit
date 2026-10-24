@@ -1,0 +1,243 @@
+{
+  "state": "terminal pass; literal Source lookup gap remains separately identified",
+  "source": "28607c55aeed736451a695f482455c35ac02a62e",
+  "run": {
+    "source": "28607c55aeed736451a695f482455c35ac02a62e",
+    "started": 1792861408.7119942,
+    "steps": [
+      {
+        "name": "format",
+        "argv": [
+          "cargo",
+          "+stable",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "exit_code": 0,
+        "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-exact-source-final-format.log",
+        "ended": 1792861420.0934367
+      },
+      {
+        "name": "strict-owning-lint",
+        "argv": [
+          "cargo",
+          "+stable",
+          "clippy",
+          "--locked",
+          "-p",
+          "conduit-language",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0,
+        "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-exact-source-final-strict-owning-lint.log",
+        "ended": 1792861432.7432127
+      },
+      {
+        "name": "strict-xtask-lint",
+        "argv": [
+          "cargo",
+          "+stable",
+          "clippy",
+          "--locked",
+          "-p",
+          "xtask",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0,
+        "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-exact-source-final-strict-xtask-lint.log",
+        "ended": 1792861706.1371794
+      },
+      {
+        "name": "supported-resource-epochs",
+        "argv": [
+          "cargo",
+          "+stable",
+          "xtask",
+          "check",
+          "resource-epochs",
+          "--train-conllu",
+          "/home/dancxjo/Documents/Codex/2026-10-16/goal-own-a-focused-implementation-campaign/work/ewt/en_ewt-ud-train.conllu"
+        ],
+        "exit_code": 0,
+        "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-exact-source-final-supported-resource-epochs.log",
+        "ended": 1792864949.221936
+      }
+    ]
+  },
+  "source_was_clean": true,
+  "test_groups": [
+    [
+      "11",
+      "0",
+      "0"
+    ],
+    [
+      "1",
+      "0",
+      "0"
+    ],
+    [
+      "2",
+      "0",
+      "0"
+    ],
+    [
+      "1",
+      "0",
+      "0"
+    ],
+    [
+      "2",
+      "0",
+      "0"
+    ],
+    [
+      "7",
+      "0",
+      "0"
+    ],
+    [
+      "2",
+      "0",
+      "0"
+    ],
+    [
+      "1",
+      "0",
+      "0"
+    ],
+    [
+      "4",
+      "0",
+      "0"
+    ],
+    [
+      "1",
+      "0",
+      "0"
+    ],
+    [
+      "1",
+      "0",
+      "0"
+    ],
+    [
+      "6",
+      "0",
+      "0"
+    ],
+    [
+      "2",
+      "0",
+      "0"
+    ]
+  ],
+  "actual_receipt_lines": 516,
+  "executables": [
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/conduit_language-000e536f99400f91",
+      "bytes": 19967056,
+      "sha256": "f7ae8ecb2457ab03918cf757c18c25654ad61508008d03357fbe169c562eabd2",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/conduit_language-000e536f99400f91.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/resource_epoch_owner-69c403dc7acb36ec",
+      "bytes": 216509784,
+      "sha256": "803c1e747e9c0c3c7c95415231729f00b56647e3d6633846d42c838a3f32e3d0",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/resource_epoch_owner-69c403dc7acb36ec.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/resource_lexicon_revision-45c06a3b67bdcfa6",
+      "bytes": 20097392,
+      "sha256": "e24778350aee714d00bd7e6d563f32d76a373e3a3732ff71e55885e2db8d8850",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/resource_lexicon_revision-45c06a3b67bdcfa6.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/resource_lexicon_snapshot-de1c374623fa5ac8",
+      "bytes": 6080464,
+      "sha256": "9e2bacc13c549945660da3008fe64999807a09763442660b69ed68ecbbca15e6",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/resource_lexicon_snapshot-de1c374623fa5ac8.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/train_lexicon-5b7f391d58e0c86d",
+      "bytes": 2775256,
+      "sha256": "fbbdbc1f3aae74dca5a5e9da0ab6230a04ee1bd91dfc27f4ab2de4e24f7f25ac",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/train_lexicon-5b7f391d58e0c86d.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/revision-0291df24523c7fbe",
+      "bytes": 1446776,
+      "sha256": "7b93c924126f5c3d7c9175eff8d9e3209b2bb5b3dce7fb099f54c2edb9cf6dc7",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/revision-0291df24523c7fbe.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/revision-b88215c961c05472",
+      "bytes": 4980152,
+      "sha256": "1d38bac8102857ed07c79b11f11ac5bd755d29c8822abe307dd6d644b6f9b877",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/revision-b88215c961c05472.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/analysis_epoch_custody-6f483149430be688",
+      "bytes": 136911384,
+      "sha256": "a970f2e4938a878c8ededf3feb0269b966d9541f6a1e587eaef527bd259c955e",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/analysis_epoch_custody-6f483149430be688.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/analysis_epoch_initialization-d2889aaea115aba9",
+      "bytes": 20657824,
+      "sha256": "75016e0273838634f0e247f73d5c45a9b7aed8c8577c526ad3244b59ca9cdb62",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/analysis_epoch_initialization-d2889aaea115aba9.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/analysis_fallback_round-bae2106600fa208c",
+      "bytes": 213778984,
+      "sha256": "000c895c3e8a226f1bc7a8298a65552f44c31498e7d32962a06bdc57844850a4",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/analysis_fallback_round-bae2106600fa208c.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/analysis_session_snapshots-fa1e2190bd7deea4",
+      "bytes": 103649776,
+      "sha256": "c6afc55e053a812f358095f9c1a1de2b013f0cc199500e371d61d0ed0f4986fe",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/analysis_session_snapshots-fa1e2190bd7deea4.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/prosody_commitment-09d1a034c38d5c66",
+      "bytes": 114853528,
+      "sha256": "a95cc378ff36be82660273469a986c050cd5e179cac21da48771da84c995a81b",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/prosody_commitment-09d1a034c38d5c66.gz"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-current-resource-target/debug/deps/prosody_revision-ad18c237aede8df2",
+      "bytes": 108083504,
+      "sha256": "3026154615dd3e3d1a7c8ea7636b09569847c765b80b7f7b8b6abac42c958c42",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/prosody_revision-ad18c237aede8df2.gz"
+    }
+  ],
+  "logs": {
+    "6072-exact-source-final-format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/6072-exact-source-final-format.log.gz"
+    },
+    "6072-exact-source-final-strict-owning-lint.log": {
+      "sha256": "4f020ebb3ef881f632c299c3adf259c6e14e6e2657ef6c432865e2b08ed7b6ad",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/6072-exact-source-final-strict-owning-lint.log.gz"
+    },
+    "6072-exact-source-final-strict-xtask-lint.log": {
+      "sha256": "817a322e4c525ecf5db7c5b652afa6f95c58e929a428794851ce26bdcf1fb170",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/6072-exact-source-final-strict-xtask-lint.log.gz"
+    },
+    "6072-exact-source-final-supported-resource-epochs.log": {
+      "sha256": "f09f7e3c36f7a2fdc84d0ee4b57b83ba839ad54c6d4c12424bd9e9651ca205d2",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-final-executable-custody/6072-exact-source-final-supported-resource-epochs.log.gz"
+    }
+  },
+  "sealed": 1792864984.3737016
+}

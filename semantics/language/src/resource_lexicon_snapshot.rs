@@ -1,4 +1,5 @@
-//! Initial and revised resource lexical snapshot preparation. Source correlation
+//! Initial and revised resource lexical snapshot preparation. Bounded Source lookup
+//! and correlation
 //! is replayed over actual legacy tokenization and complete borrowed resource
 //! rows. Resource revisions retain the original resource and token lineage.
 //! No generic resource-reader Back or model proof is claimed.
@@ -26,6 +27,7 @@ pub enum ResourceSnapshotRefusal {
     Correlation { ordinal: usize },
 }
 pub struct PreparedResourceSnapshotProgram {
+    lookup: PortableExpressionProgram,
     program: PortableExpressionProgram,
 }
 impl PreparedResourceSnapshotProgram {
@@ -34,18 +36,32 @@ impl PreparedResourceSnapshotProgram {
             env!("OUT_DIR"),
             "/resource_lexical_binding.hex"
         )))
-        .map(|program| Self { program })
+        .and_then(|program| {
+            PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
+                env!("OUT_DIR"),
+                "/resource_lexical_lookup.hex"
+            )))
+            .map(|lookup| Self { lookup, program })
+        })
         .map_err(|_| ResourceSnapshotRefusal::Program)
     }
 }
 pub struct ResourceSnapshotBinding<'a> {
     ordinal: usize,
+    lookup_input: Vec<u8>,
+    lookup_output: Vec<u8>,
     row: TrainLexiconLookup<'a>,
     query: crate::generated::LanguageResourceLexicalBinding,
     input: Vec<u8>,
     output: Vec<u8>,
 }
 impl<'a> ResourceSnapshotBinding<'a> {
+    pub fn lookup_input_canonical(&self) -> &[u8] {
+        &self.lookup_input
+    }
+    pub fn lookup_output_canonical(&self) -> &[u8] {
+        &self.lookup_output
+    }
     pub fn ordinal(&self) -> usize {
         self.ordinal
     }
@@ -186,10 +202,33 @@ impl<'a> PreparedResourceLexicalSnapshot<'a> {
         let mut bindings = Vec::with_capacity(rows.len());
         for (ordinal, row, entry) in rows {
             let token = lexical.tape().tokens()[ordinal].clone();
+            let lookup = crate::generated::LanguageResourceLexicalLookup::new(
+                BoundedSequence::try_from_iter(lexical.tape().profile().entries().iter().cloned())
+                    .map_err(|_| Bound)?,
+                token.surface().clone(),
+            )
+            .map_err(Native)?;
+            let lookup_input = lookup.clone().encode().map_err(Native)?;
+            if lookup_input.len() > 65536 {
+                return Err(Bound);
+            }
+            let lookup_output = program.lookup.evaluate(&lookup_input).map_err(Evaluation)?;
+            let selected_index = match lookup_output.as_slice() {
+                [index] if *index <= 4 => *index as usize,
+                _ => return Err(Correlation { ordinal }),
+            };
+            let selected = lookup
+                .rows()
+                .as_slice()
+                .get(selected_index)
+                .ok_or(Correlation { ordinal })?;
+            if selected != &entry {
+                return Err(Correlation { ordinal });
+            }
             let query = crate::generated::LanguageResourceLexicalBinding::new(
                 ordinal as u64,
                 lexicon.reference().clone(),
-                entry,
+                selected.clone(),
                 row.owner().reference().clone(),
                 source.material().clone(),
                 token,
@@ -205,6 +244,8 @@ impl<'a> PreparedResourceLexicalSnapshot<'a> {
             }
             bindings.push(ResourceSnapshotBinding {
                 ordinal,
+                lookup_input,
+                lookup_output,
                 row,
                 query,
                 input,

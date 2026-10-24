@@ -155,7 +155,7 @@ pub mod train_lexicon;
 /// Resource-backed lexical preparation; no installed generic resource reader.
 #[cfg(target_has_atomic = "ptr")]
 pub mod resource_lexicon_snapshot;
-pub use generated::LanguageResourceLexicalBinding;
+pub use generated::{LanguageResourceLexicalBinding, LanguageResourceLexicalLookup};
 /// Register the portable Source query on all targets; no resource is opened.
 pub fn resource_lexicon_snapshot_types(
 ) -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
