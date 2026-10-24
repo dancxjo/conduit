@@ -1,0 +1,81 @@
+{
+  "scope": "actual canonical prepared emulator, historical normal product CSR observation only; no Frame/Face/Show or physical proof",
+  "runtime_source": "79a04199eeaea4721bb2405c7bbb699a72cea25c",
+  "csr_observation": {
+    "CRMD": 176,
+    "PWCL": 333763884,
+    "PWCH": 615,
+    "STLBPS": 12,
+    "PGDL": 3942588416,
+    "PGDH": 3942584320,
+    "DMW0": 17,
+    "DMW1": 0,
+    "DMW2": 0,
+    "DMW3": 0,
+    "RVACFG": 0
+  },
+  "firmware_field_qualification": "means only original ROM hash is unchanged; this launch selects -bios, no CODE/VARS pair",
+  "no_graphical_product_frame_proved": true,
+  "files": [
+    {
+      "path": "csr-observation.json.gz",
+      "sha256": "ad97b7cb39a8828037d31be8bfde95d124e267db6ffe40373dde3379bf11f617",
+      "original_sha256": "302f494dc0260d0b264c6d2104e05d5abedfad11b0ea73f630f7bf821513f2fd",
+      "original_bytes": 408
+    },
+    {
+      "path": "display.ppm.gz",
+      "sha256": "6d090e0ba92e9affbe7f1b66f1fec7bb84282da30f1317bdd6fe35194389f3de",
+      "original_sha256": "982d4f25384ec99ef6270c84cbd8fb0e46148377429f848b83b01cfbd837df2d",
+      "original_bytes": 1440015
+    },
+    {
+      "path": "independent-csr-audit.json.gz",
+      "sha256": "ba24b69ce0415404ddd28561c472090d977c66e9d9dde95d5d556f4d5263e0dd",
+      "original_sha256": "d33369e4bff3333529ca109fc2e8d58c64086238c8532830ed4db5cfc223dedf",
+      "original_bytes": 838
+    },
+    {
+      "path": "launch.json.gz",
+      "sha256": "ec24eab94f2444269178f82417467b8a325410bc8cbedf39d6db45774c278bd8",
+      "original_sha256": "81065c6280746e259f00c532420b4626820b254d1022a778679b4008ccb1ca92",
+      "original_bytes": 8480
+    },
+    {
+      "path": "qmp.json.gz",
+      "sha256": "d7f7be47293d68561eb112ec9c9eedc2bee7d842bb5ca2aaee23f0e321ba989a",
+      "original_sha256": "c22a2c1df914524284b6bf35e8e4fc096c5fc81224e079cf4d726b6a3f75c28f",
+      "original_bytes": 412
+    },
+    {
+      "path": "receipt.json.gz",
+      "sha256": "b05063ed300c8c52a8201ca948b1d908a4b320d56bceb98e00423558ec95b6a5",
+      "original_sha256": "ffac9a4545c020f0d197f583486a9fc2974ae1ded869e7317a31cff8d434438e",
+      "original_bytes": 9984
+    },
+    {
+      "path": "serial.log.gz",
+      "sha256": "8d9f6fc878f9b1c6e42fd2fcf7c81d3c0711d78fb3e3a414810a09e6ce6fa333",
+      "original_sha256": "880bee60fc56570cc73d1a44d7a25bc389a503d002cca6de88dd7276426e0f63",
+      "original_bytes": 3731
+    },
+    {
+      "path": "stderr.log.gz",
+      "sha256": "a43e5595da9dac85a257ae2fa8ebb6ed4158ada8a8e36fb2dad2eb15d819a6f0",
+      "original_sha256": "d5798d5cde887bde7ec8cd5ad7dda7a8383a50496563f5e4afb3b8b497b910f9",
+      "original_bytes": 77
+    },
+    {
+      "path": "probe-loongarch64-paging-csrs.py.gz",
+      "sha256": "610525812bad2fbc4b793caad80f466c5b04c68bcc8be3a27e03389fb13da2ed",
+      "original_sha256": "204839b29f89b2c876fe39e6c67d7f9dbc2fb744eb978bf9355af2b697cbaecc",
+      "original_bytes": 6125
+    },
+    {
+      "path": "loongarch64-paging-csr-probe-run.log.gz",
+      "sha256": "b9a955e3964e606191a4290724b77d3e0c45b8fcdf42bf7135f510c2a0b692b5",
+      "original_sha256": "7d1dbace760ef9d149169f296f7dd7f76cce1cafad72bceef182428ea12219a0",
+      "original_bytes": 235
+    }
+  ]
+}

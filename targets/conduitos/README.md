@@ -52,10 +52,26 @@ cargo xtask make host build targets/conduitos/profiles/conduitos-aarch64-graphic
 cargo xtask make host verify target/host-build/aarch64-graphics --boot
 ```
 
-Verification captures two fresh guests and stops them. This Host has no local
-keyboard or pointer provider; the canonical `live aarch64` selection remains the
-serial profile. See the [real frames and source/machine/refusal evidence](../../docs/proof/conduitos-aarch64-firmware-frame.md).
-The five-architecture comparison and persistent launcher remain tracked in
+Verification captures two fresh guests and stops them. To keep the verified
+image open in a QEMU window instead:
+
+```sh
+cargo xtask make host launch target/host-build/aarch64-graphics
+```
+
+Close the QEMU window to stop the session. This Host shows a read-only Crèche
+snapshot and has no local keyboard or pointer provider. The same `launch`
+command accepts verified graphical product outputs for all five architectures.
+x86_64 retains its admitted keyboard and pointer behavior. IA-32 and RISC-V
+show read-only snapshots, as does LoongArch64. Serial-only PROFILEs refuse this
+window entrance. Launching does not run the bounded boot verifier or issue a
+successful boot-proof receipt; use `verify --boot` for that proof.
+
+Firmware and emulator tools must already be prepared. Each IA-32/RISC-V
+session uses a fresh private VARS copy and leaves the template unchanged.
+The canonical `live aarch64` selection remains the serial profile. See the
+[real frames and source/machine/refusal evidence](../../docs/proof/conduitos-aarch64-firmware-frame.md).
+The five-architecture comparison remains tracked in
 [#6057](https://github.com/dancxjo/conduit/issues/6057).
 
 ### Prepare IA-32 UEFI firmware
@@ -264,3 +280,19 @@ workset against the current Host offer, Plan prepares its admitted kernel tables
 and Play starts execution. Missing input and candidates outside the installed
 profile remain unavailable. Resource or realization refusals discovered during
 Wake/Plan remain lifecycle refusals; an earlier selectable choice cannot bypass them.
+
+### Five-architecture firmware frames
+
+The [comparison gallery](../../docs/proof/conduitos-firmware-frame-comparison.md)
+contains actual lossless captures and exact Source, PROFILE, BUILD, IMAGE, Host,
+Boot, Face and Show evidence for all five normal product targets. Optional
+`conduitos-{ia32,aarch64,riscv64,loongarch64}-graphical.host.conduit` profiles
+select the native Presenter; their default live profiles remain serial.
+Build the selected profile with `cargo xtask make host build PROFILE --output OUTPUT`,
+collect bounded evidence with `cargo xtask make host verify OUTPUT --boot`, and
+keep its window open with `cargo xtask make host launch OUTPUT`.
+The four non-x86 snapshots have no local keyboard or pointer provider.
+LoongArch execution uses the cached ROM and graphical QEMU prepared by
+`cargo xtask make conduitos prepare-loongarch64-domain-emulator --graphical`.
+These virtual-machine results do not qualify Raspberry Pi hardware, local
+input on the other architectures (#6060), or virtio-gpu (#6139).

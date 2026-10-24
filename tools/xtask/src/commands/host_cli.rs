@@ -67,6 +67,8 @@ pub(super) enum HostCommand {
         #[arg(long)]
         output: PathBuf,
     },
+    /// Open one verified graphical product in QEMU until its window closes.
+    Launch { output: PathBuf },
     /// Verify one final target IMAGE and its exact BUILD closure.
     Verify {
         output: PathBuf,

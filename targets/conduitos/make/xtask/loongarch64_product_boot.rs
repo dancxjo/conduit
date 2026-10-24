@@ -9,6 +9,8 @@ use super::{
 use crate::cli::GlobalOpts;
 use std::fs;
 
+mod graphical;
+
 const PRODUCT_PREFIX: &str = "CONDUIT_LOONGARCH64_PRODUCT ";
 const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
 
@@ -57,7 +59,11 @@ fn boot_once(
     build: &str,
     binding: &str,
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
-    let text = loongarch64_a1::boot_until_image(paths, image, OBSERVATORY_PREFIX)?;
+    let capture = graphical::boot_if_selected(paths, image)?;
+    let text = match &capture {
+        Some((text, _)) => text.clone(),
+        None => loongarch64_a1::boot_until_image(paths, image, OBSERVATORY_PREFIX)?,
+    };
     let product = parse_one(&text, PRODUCT_PREFIX, "product")?;
     if product["schema"] != "conduit.conduitos/loongarch64-product@1"
         || product["status"] != "ready"
@@ -74,6 +80,9 @@ fn boot_once(
         return Err(refusal("profile-built-make-mismatch", product.to_string()));
     }
     let mut product = product;
+    if let Some((_, evidence)) = capture {
+        product["graphical"] = evidence;
+    }
     product["ordinary_domain"] =
         super::protected_product_receipt::capture(&text, &product, "loongarch64")?;
     let snapshot = parse_one(&text, OBSERVATORY_PREFIX, "Observatory")?;
@@ -81,6 +90,9 @@ fn boot_once(
         &serde_json::from_value(snapshot.clone()).map_err(invalid)?,
     )
     .map_err(|e| refusal("invalid-loongarch64-product-observatory", e.to_string()))?;
+    if !product["graphical"].is_null() {
+        graphical::validate_snapshot(&snapshot, &product)?;
+    }
     let ordinary_plan: conduit_core::Plan =
         serde_json::from_value(snapshot["plans"][0].clone()).map_err(invalid)?;
     product["ordinary_source_conformance"] =
@@ -119,12 +131,20 @@ fn prove_patchbay(
 ) -> Result<(), ConduitosError> {
     let linear =
         super::product_patchbay::render(snapshot, "patchbay-rejected-loongarch64-product")?;
+    let bases = format!(
+        "BASES {}",
+        if product["graphical"].is_object() {
+            8
+        } else {
+            7
+        }
+    );
     for required in [
         product["host_id"].as_str().unwrap_or_default(),
         product["boot_id"].as_str().unwrap_or_default(),
         product["ordinary_plan_id"].as_str().unwrap_or_default(),
         product["ordinary_play_id"].as_str().unwrap_or_default(),
-        "BASES 7",
+        bases.as_str(),
         "lifecycle=Completed",
         "firmware=uefi64",
         "proof=FreestandingEmulator",

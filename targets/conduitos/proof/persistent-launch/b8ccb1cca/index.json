@@ -1,0 +1,218 @@
+{
+  "schema": "conduit.conduitos/persistent-launch-evidence@1",
+  "launcher_source_commit": "b8ccb1ccaa0735a4fd5b0dd2a829973db62be95c",
+  "source_qualification": "tests/sessions ran on working tree whose final source bytes are committed here; AArch64 session preceded the IA-only GTK-to-SDL change, with its recipe unchanged; final strict all-target Clippy passed",
+  "scope": "hosted tool tests plus three supervised historical normal-product sessions using SDL dummy; no attended human, physical, input-parity or new graphical-product acceptance",
+  "strict_clippy_exit_code": 0,
+  "focused_tests_passed": 2,
+  "initial_plain_check_exit_code": 143,
+  "initial_plain_check_qualification": "stopped proactively for disk pressure, not passed; disposable compiler outputs reclaimed with receipt outside packet",
+  "serial_only_refusal": "verified valid historical serial product rejected before emulator selection",
+  "x86_64": "delegates existing visible product route; not rerun in this packet",
+  "loongarch64": "graphical launcher deliberately unavailable until normal graphical product qualification",
+  "sessions": [
+    {
+      "architecture": "aarch64",
+      "guest_source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+      "image_sha256": "47c8dde2b88f200f4af7845d5960aab5ce79ec652954a31725f9a75953df2a23",
+      "host_id": "f67c954caab9099c49beea7d83a61f037a3a42465a195faee434fd0d77437922",
+      "boot_id": "1f2ed2bf6f7cf1dd97e7ecde7285ce1c47698e48fb97994c32356556b1ee2438",
+      "face_id": "b1074b5101df76e7fdadd94e0e83c25955c30801e9b247b5d8eb01a76f691b0c",
+      "show_id": "show/b38d6c155e21745fa4f591d999584ad3b6311ae54bec9e586fddaa0c83da4646",
+      "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+      "still_running_after_ready_ms": 3035,
+      "launcher_exit_code": 0,
+      "dummy_backend": true
+    },
+    {
+      "architecture": "ia32",
+      "guest_source": "64d5130753466f44c0b605ad6b366d54083eeafd",
+      "image_sha256": "8c43ed41cabd747706f129ad759a3d8511996b8cb39e093266e0b14ead7b52bf",
+      "host_id": "6bf267987c0f5cf2a725f78d682ce9a426397d8b08e5390fc567a8f8e2a5c373",
+      "boot_id": "4d0fe5bfabb3ca8e37d698a04b7a86027fb505908dd100f712ff4bbb5c633faf",
+      "face_id": "26e5c2199d58ea733fbdbf85f7d300baacbb9488c5951150a30a52ba6562af1d",
+      "show_id": "show/46334de9f29dbf1eed3a125e8d2b7a1aedf384be629d83c3ebe9d0168ed3c66e",
+      "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+      "still_running_after_ready_ms": 3030,
+      "launcher_exit_code": 0,
+      "dummy_backend": true
+    },
+    {
+      "architecture": "riscv64",
+      "guest_source": "61084bb3ae35324bfb7dc2c280b37b6c60b7b00e",
+      "image_sha256": "616ed17feafe529d787c2b780b438d8ff8a05f92a464b0baff6c96e3677118c5",
+      "host_id": "1b77e73227beaae09e39fef31f52b3925f6fa960f35f21906dc8f8d68f6df1d6",
+      "boot_id": "d535871562ad3aef267e0529cdcc61a68da2a28b9e062cf37d18813df36088dc",
+      "face_id": "600e54c55efeea38e8632b338e2a56e2a29271f8b1a76b2b16e143f0ec51fa62",
+      "show_id": "show/c8649d1e45e35327d9754f25b423af52d91e59571fc7c9d742df5ef8af8557b1",
+      "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+      "still_running_after_ready_ms": 3014,
+      "launcher_exit_code": 0,
+      "dummy_backend": true
+    }
+  ],
+  "files": [
+    {
+      "path": "aarch64/help.log.gz",
+      "sha256": "b25818b743285ad4385a6d3f9dbfcfdc7fa40447cce4ec2db4407f1dc68a9499",
+      "original_sha256": "f5043c07f7cba5803f2485c315bb83fddb1a69fc9e348e1c70113f1534e711dc",
+      "original_bytes": 1764
+    },
+    {
+      "path": "aarch64/receipt.json.gz",
+      "sha256": "b87adfa9af0f2d411e9a9ac7c68fbbfb4813a84a6eb32b7ad9637c232b49bff5",
+      "original_sha256": "4e9f059113d65e771547f35c600a5738d913ef7080214afd55f5b6dcb2375097",
+      "original_bytes": 1377
+    },
+    {
+      "path": "aarch64/session.log.gz",
+      "sha256": "78b68f6201fd60b0851157103b305b679119a91acb79ed42b7b8fe950e63a458",
+      "original_sha256": "8061d3169098e368cc240e2536a228a67e04ad1c4927601bbe9b3f0ba56915b0",
+      "original_bytes": 114718
+    },
+    {
+      "path": "aarch64/tests.log.gz",
+      "sha256": "fbedd7c933cf38a07a074e2ea05e3470eec9aef97829c7380430cfe3cf125c04",
+      "original_sha256": "5730f209fc5c3e09e779c63acf5f4e8a1b54f2a97dd6f175d95c4e2ceed3a64b",
+      "original_bytes": 23046
+    },
+    {
+      "path": "aarch64/launch.json.gz",
+      "sha256": "bfee5b9c0e3788c8b9a76ceac30fb2414ebe2be2fefcb14e18f1c1295edf4add",
+      "original_sha256": "1d16c81feabbf9bca33646b89bfaf638656ed88eddcfe3d89c58ab7ea97be2e2",
+      "original_bytes": 1568
+    },
+    {
+      "path": "aarch64/exit.json.gz",
+      "sha256": "c12097fb8cec5f6a67c8d3ae863aa74182403d1428138dc50b5dad335ecbebaf",
+      "original_sha256": "e61344f48137e639846b96c6a26479e043dfea6dec1109c3043130fbc20b21b4",
+      "original_bytes": 198
+    },
+    {
+      "path": "ia32/prepare-firmware.log.gz",
+      "sha256": "9946ef95de1e3d4c09c3cc006f76ec7c4c8d3e97bbe12f2eac988e866f1f6b9d",
+      "original_sha256": "5d39a8e3dedd863f229affcefb7f250fb2343a02bd0dd958e0aea99023af9456",
+      "original_bytes": 148
+    },
+    {
+      "path": "ia32/receipt.json.gz",
+      "sha256": "48b521505c3aabda6bcea4e06032e1017d4ea589b7c60f1d05adc8f7def7000a",
+      "original_sha256": "9769cc872a7c13cc3000c47ebf80f30d7350b04ca996fe51977bd932c6d41f29",
+      "original_bytes": 1138
+    },
+    {
+      "path": "ia32/session.log.gz",
+      "sha256": "4d6f02e23e4b0361022147098acc104c9b44d23c0df148b681539f222d530f21",
+      "original_sha256": "2212f2210705fef7a410f283c4bfac29e83f59bca5acc38e16cd0f20a7a2b2a8",
+      "original_bytes": 114768
+    },
+    {
+      "path": "ia32/launch.json.gz",
+      "sha256": "5a0f4a3910c8793703c6a8a517d336446d70a338cd761cd9c510d29c4e0c5b24",
+      "original_sha256": "c09f6ff69408713037b94e5c0a1f4b4594a35ce1d3e690c40b5f6e7093e79153",
+      "original_bytes": 2114
+    },
+    {
+      "path": "ia32/exit.json.gz",
+      "sha256": "c12097fb8cec5f6a67c8d3ae863aa74182403d1428138dc50b5dad335ecbebaf",
+      "original_sha256": "e61344f48137e639846b96c6a26479e043dfea6dec1109c3043130fbc20b21b4",
+      "original_bytes": 198
+    },
+    {
+      "path": "riscv64/help.log.gz",
+      "sha256": "68a8d42445b06cf048d133aa79d4ea052752151ce28e5546d6c3e9a30c8eecc1",
+      "original_sha256": "31ed5e81a2306e104b5b82ac576dcddf18531057a731b21abdd17c61881957ee",
+      "original_bytes": 667
+    },
+    {
+      "path": "riscv64/receipt.json.gz",
+      "sha256": "02dfc8854f147af55ff255481967609a3d65b583a4964bc241841ec29201508f",
+      "original_sha256": "b6bac19b8e701f969f8c42cb455c4dd78cfc378e75a94fd1e496db4fa1d4072b",
+      "original_bytes": 1118
+    },
+    {
+      "path": "riscv64/session.log.gz",
+      "sha256": "41e09727c4625d64db4d29777a9ec7f4bd34589e6d2b2521a3a843913a5a48bf",
+      "original_sha256": "b61f0dbe58dcf3071d103590c0d6eb6981b2289363556e0681ac609f1fd68e51",
+      "original_bytes": 116166
+    },
+    {
+      "path": "riscv64/launch.json.gz",
+      "sha256": "bf53dfd2289c22867e1d2c6587d92f9e79eeaa801b2d870c02cf4cb15c9823cd",
+      "original_sha256": "8cf8e8f40212d5420d4ce3681315adc2aab12a1c96046ef2e5a28fb06bb4eae4",
+      "original_bytes": 3022
+    },
+    {
+      "path": "riscv64/exit.json.gz",
+      "sha256": "c12097fb8cec5f6a67c8d3ae863aa74182403d1428138dc50b5dad335ecbebaf",
+      "original_sha256": "e61344f48137e639846b96c6a26479e043dfea6dec1109c3043130fbc20b21b4",
+      "original_bytes": 198
+    },
+    {
+      "path": "validation/persistent-launcher-check.log.gz",
+      "sha256": "50544c2ff58375e2d1b7c8131639bad0b97f80d01618a8abaacb993f3561f51f",
+      "original_sha256": "b1f988835f7d672f72caedb1724a5bd13f0059c4a384e34598f6a8ee67457cdb",
+      "original_bytes": 16128
+    },
+    {
+      "path": "validation/persistent-launcher-clippy.log.gz",
+      "sha256": "49eaa1a093a7bd3052ca5b43c090b01a3fa96e13fe7628f154b0fb5613daa4f6",
+      "original_sha256": "a1f5cd1ca0b9794ad0bb20d759035fded7994798935c3f0a10254fb34034e7f8",
+      "original_bytes": 15911
+    },
+    {
+      "path": "validation/persistent-launcher-final-clippy.log.gz",
+      "sha256": "585bca7d8b1c67fb57e7167235d1fe7a9906ed68fbb3bab9de4d81e11b3f5dd5",
+      "original_sha256": "24c9557b1fb3f540507cdf6519ee664192281699d425609397aa5e0246525921",
+      "original_bytes": 448
+    },
+    {
+      "path": "validation/test-persistent-launcher.py.gz",
+      "sha256": "a6bbb217e90488503001a2b7bc470072fc52d83477be0345efd9b134c458d0bf",
+      "original_sha256": "38e8ae8a158d5a58cfb8caea949919574dc22f09eadc2d74c39b2eea9c4a47fb",
+      "original_bytes": 3490
+    },
+    {
+      "path": "validation/test-persistent-launcher-ia32.py.gz",
+      "sha256": "ba0703d8359f23a05c0f4b951a38b1fda00356082b76564c54a4ed0b20cdf062",
+      "original_sha256": "6a523afca44fa1258d59b51814f51bb6d867d85e99132eb4f8062d33a5e8e877",
+      "original_bytes": 3441
+    },
+    {
+      "path": "validation/test-persistent-launcher-riscv64.py.gz",
+      "sha256": "be9a02225930787f1b497fce279540df744d80d780de2d47a002eb138ea564f2",
+      "original_sha256": "831bc773390cdb949f009a89cecfd544e381784097c6287b26953548da0ee988",
+      "original_bytes": 3410
+    },
+    {
+      "path": "serial-refusal/receipt.json.gz",
+      "sha256": "204f1a330b663fc38f5cbc4107271e8d66ceee7a90ba7dd26ebee42d07e91ea8",
+      "original_sha256": "7491bf813e7115f184aa81f30adbb4e9051e028c7acccd1204ef99a9933581b3",
+      "original_bytes": 559
+    },
+    {
+      "path": "serial-refusal/command.log.gz",
+      "sha256": "a65412eea8492d9cba82bf8ab8bb5cef9c41e88f11ced792acceae8f4b441620",
+      "original_sha256": "1b8bfb0ac136c97e21d144a17bae6ca71c7f3f3919ffd0fab87a71694f410aa6",
+      "original_bytes": 650
+    },
+    {
+      "path": "validation/persistent-launcher-preflight-format-order-failure.log.gz",
+      "sha256": "f9b27861563b1c8ee8c79bc357a61085c609291d449153dce746398fc93ad2dc",
+      "original_sha256": "c82f9d876d753bf41e54498e79c53a6d3a29cc99873d2f84ab22a7e409a09daa",
+      "original_bytes": 963
+    },
+    {
+      "path": "validation/persistent-launcher-preflight.log.gz",
+      "sha256": "1332eb98557b8d217473cd4b971b293da2cb2583dc836edd8df7f97873070bab",
+      "original_sha256": "115b1ecaaba6ed6f23c966444f38759bfda792027a5789ffb9d3163efff14e42",
+      "original_bytes": 34744
+    }
+  ],
+  "preflight": {
+    "source": "954af1306",
+    "exit_code": 0,
+    "passed": 345,
+    "initial_failure": "module declaration alphabetical ordering, corrected without behavioral change; original failure retained"
+  }
+}
