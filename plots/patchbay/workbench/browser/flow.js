@@ -146,6 +146,7 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
   const [nodes, setNodes] = React.useState(initial.nodes);
   const [edges, setEdges] = React.useState(presentEdges(initial.edges));
   const workspace = React.useRef(projected.workspaceIdentity);
+  const fitPending = React.useRef(restore(projected) === null);
   const mounted = React.useRef(false);
   React.useEffect(() => {
     let active = true;
@@ -161,6 +162,7 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
         await workspaceValidator(decoded);
         if (!active) return;
         loadedWorkspaces.add(projected.workspaceIdentity);
+        fitPending.current = false;
         retainedScenes.set(storageKey(projected.workspaceIdentity), document);
         workspaceDocuments.set(projected.workspaceIdentity, decoded);
         const next = applyWorkspace(decoded, reconcileFlowScene(projected));
@@ -188,6 +190,7 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
       const prior = sameWorkspace
         ? { nodes: current, viewport: instance?.getViewport() || initial.viewport }
         : restore(projected);
+      if (!sameWorkspace) fitPending.current = prior === null;
       const next = reconcileFlowScene(projected, prior);
       const document = workspaceDocuments.get(projected.workspaceIdentity);
       const decorated = document ? applyWorkspace(document, next) : next;
@@ -204,6 +207,14 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
     const document = workspaceDocuments.get(projected.workspaceIdentity);
     setEdges(presentEdges(document ? applyWorkspace(document, projected).edges : projected.edges));
   }, [projected.workspaceIdentity, projected.lens, openedBacks, snapshot.face.identity, snapshot.face.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision, snapshot.authoring?.connection_candidates]);
+  // Fit a newly opened graph once its real cards have been measured. Polling,
+  // selection and saved-layout restoration must not reset a person's viewport.
+  React.useEffect(() => {
+    if (fitPending.current && instance && nodes.length && nodes.every(node => node.width > 0 && node.height > 0)) {
+      fitPending.current = false;
+      instance.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 });
+    }
+  }, [nodes, projected.workspaceIdentity]);
   arrangeCurrent = () => {
     const next = reconcileFlowScene(projected);
     setNodes(next.nodes);
@@ -250,6 +261,8 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
       edges,
       nodeTypes,
       edgeTypes,
+      onNodeClick: (_event, node) => { if (node.type === "faceplate") onSelect(node.id); },
+      onEdgeClick: (_event, edge) => onSelect(edge.id),
       onNodesChange: (changes) => setNodes((current) => {
         const nextNodes = Flow.applyNodeChanges(changes.filter((change) => !change.id?.startsWith("workspace-")), current);
         persist({

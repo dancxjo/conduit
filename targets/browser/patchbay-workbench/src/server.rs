@@ -513,3 +513,6 @@ impl PatchbayHtmlServer {
 use navigation::navigation_state;
 
 mod configuration_input;
+
+#[cfg(test)]
+mod authoring_admission_tests;

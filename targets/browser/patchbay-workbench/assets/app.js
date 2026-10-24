@@ -1,7 +1,8 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
 import { createApplicationFaceHost } from "/assets/application-face.mjs";
 import { arrangeFlow, configureFlowStorage, configureFlowWorkspaceValidator, fitFlow, flowStorageSettled, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
-import { authoringBasis, renderConfigurationFields } from "/assets/authoring.js";
+import { installPlotWorkbench, selectionFacts } from "/assets/plot-workbench.js";
+import { authoringBasis, requireAuthoringSuccess, renderConfigurationFields, snapshotOrder } from "/assets/authoring.js";
 import { installWorkspaceControls } from "/assets/workspace-controls.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 import { createPatchbaySharedFace } from "/assets/shared-face.js";
@@ -26,9 +27,11 @@ const presentActions = sharedFace.actions;
 const presentSharedStatus = sharedFace.status;
 const faceTextEncoder = new TextEncoder();
 let admittedRuntimeBytes = null;
+let makerWorkbench = null;
 let admittedApplicationStorage = null;
 function presentStatus(text, component = "status") {
   productMasthead.present(text, component);
+  makerWorkbench?.notice(text, component);
 }
 
 function boundedFaceText(value, maximumBytes = 256) {
@@ -76,7 +79,7 @@ function property(identity,name){return properties(identity).find(item=>item.nam
 function semanticActions(identity){return state.projected.actions.filter(action=>action.target===identity);}
 function currentFaceBasis(){return {face_id:state.snapshot.face.identity,face_revision:state.snapshot.face.revision};}
 function semanticIdentity(subject){return property(subject,"semantic-id")?.value?.Identity??null;}
-function authoringEdit(operation,primary,extra={}){const a=state.snapshot.authoring;if(!a)throw new Error("canonical authoring is unavailable");return dispatchInteraction({kind:"edit",edit:{source_document_id:a.source_document_id,source_revision:a.source_revision,expanded_plot_id:a.expanded_plot_id,operation,primary,...extra}});}
+async function authoringEdit(operation,primary,extra={}){const a=state.snapshot.authoring;if(!a)throw new Error("canonical authoring is unavailable");return requireAuthoringSuccess(await dispatchInteraction({kind:"edit",edit:{source_document_id:a.source_document_id,source_revision:a.source_revision,expanded_plot_id:a.expanded_plot_id,operation,primary,...extra}}));}
 function actionAvailability(action){
   if(action.availability==="Available")return {available:true,state:"Available",explanation:null};
   if(action.availability?.Unavailable)return {available:false,state:"Unavailable",explanation:action.availability.Unavailable.explanation};
@@ -102,6 +105,7 @@ function propertyText(value){
   if(value.Count!==undefined)return String(value.Count);
   if(value.Flag!==undefined)return String(value.Flag);
   if(value.BaseImplementationId!==undefined)return value.BaseImplementationId;
+  if(value.ValueContract!==undefined)return JSON.stringify(value.ValueContract);
   return "unsupported";
 }
 
@@ -116,11 +120,11 @@ function displaySelection(identity){
   document.querySelector("#center-flow").disabled=!subject;
   if(!subject){presentDefinitions("selection-summary",[]);presentDefinitions("selection-exact",[]);renderSemanticActions(null);renderAuthoringActions(null);renderTimeline(null);renderWatches(null);exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a host, Body, Plot, Gear, Port, or Cord. Selection owns detail.";return;}
   const depth=state.projected.cursor?.depth??"Exact";exact.hidden=!(["Detail","Exact"].includes(depth));document.querySelector("#inspector .inspector-hint").textContent=subject.name;
-  const selectedProperties=projectedProperties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name)),summaryFacts=[["Meaning",subject.name],["Subject",subject.role],...visible.map(item=>[item.name.startsWith("authored-control-")?"Authored configuration":item.name,summaryText(item.value)])];
+  const selectedProperties=projectedProperties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name)),summaryFacts=selectionFacts(state.snapshot,subject)??[["Meaning",subject.name],["Subject",subject.role],...visible.map(item=>[item.name.startsWith("authored-control-")?"Authored configuration":item.name,summaryText(item.value)])];
   if(state.lens==="signs"){const signs=selectedProperties.filter(item=>item.name.startsWith("sign-"));summaryFacts.push(["Evidence",signs.length?`${signs.length} subject-specific causal Sign${signs.length===1?"":"s"}`:"No subject-specific Signs; plan-level evidence remains below"]);}
   if(!visible.length&&state.lens!=="plot"&&state.lens!=="signs")summaryFacts.push(["Layer",`No ${state.lens} facts for this subject; semantic selection retained`]);
   presentDefinitions("selection-summary",summaryFacts);
-  const exactFacts=[["Face subject",identity],...selectedProperties.filter(item=>item.name==="semantic-id"||item.name.endsWith("-id")||item.name.startsWith("sign-")).map(item=>[item.name,propertyText(item.value)])];
+  const exactFacts=[["Face subject",identity],...selectedProperties.map(item=>[item.name,propertyText(item.value)])];
   if(depth==="Exact"){const manifestation=state.snapshot.renderer.manifestation;exactFacts.push(["Body",state.snapshot.face.basis.body_id],["Wake",state.snapshot.face.basis.wake_id],["Source Plan",state.snapshot.face.basis.plan_id],["Source Play",state.snapshot.face.basis.active_play_id],["Renderer Plan",manifestation.plan_id],["Renderer Play",manifestation.active_play_id],["Manifestation",manifestation.manifestation_id],["Manifestation lifecycle",manifestation.lifecycle]);}
   presentDefinitions("selection-exact",exactFacts);
   renderSemanticActions(identity);
@@ -223,9 +227,9 @@ function renderAuthoringActions(subject){
     if(direction==="receiving"&&state.cordSource&&state.cordBasis===authoringBasis(authoring)){
       const candidate=state.cordCandidates?.find(item=>item.sink_identity===semantic);
       if(candidate?.compatible)addButton("Connect selected output here",()=>{const source=state.cordSource;state.cordSource=null;return authoringEdit("connect-ports",source,{secondary:semantic});});
-      else nodes.push({parent:0,component:"text",key:"compatibility",text:candidate?.diagnostic??"No checked destination",action:null});
+      else nodes.push({parent:0,component:"paragraph",key:"compatibility",text:candidate?.diagnostic??"No checked destination",action:null});
       for(const adapter of candidate?.adapters??[]){
-        nodes.push({parent:0,component:"text",key:`adapter-${adapter.kind_id}`,text:`Explicit adapter: ${adapter.kind_id} · ${adapter.input_port} → ${adapter.output_port}. Place it, then explicitly connect both Cords.`,action:null});
+        nodes.push({parent:0,component:"paragraph",key:`adapter-${adapter.kind_id}`,text:`Explicit adapter: ${adapter.kind_id} · ${adapter.input_port} → ${adapter.output_port}. Place it, then explicitly connect both Cords.`,action:null});
         addButton(`Place adapter ${adapter.kind_id}`,()=>authoringEdit("place-gear",adapter.kind_id));
       }
     }
@@ -299,8 +303,11 @@ function dispatchSemanticAction(action,faceBasis=currentFaceBasis()){return disp
 async function openPlot(identity){
   const action=semanticActions(identity).find(candidate=>candidate.intent==="conduit.intent/open@1");
   if(!action||!actionAvailability(action).available)throw new Error("Plot OPEN is unavailable");
-  await dispatchSemanticAction(action);
-  await select(identity);
+  requireAuthoringSuccess(await dispatchSemanticAction(action));
+  state.inspectorOpen=false;
+  document.body.dataset.inspectorOpen="false";
+  document.querySelector("#toggle-inspector").setAttribute("aria-expanded","false");
+  if(matchMedia("(max-width:1000px)").matches){document.body.dataset.paletteOpen="false";document.querySelector("#toggle-palette").setAttribute("aria-expanded","false");}
 }
 
 function renderPlotPalette(){
@@ -339,8 +346,11 @@ function beginPalettePlacement(entry){
 function renderGearPalette(){
   if(state.palettePlacement&&state.palettePlacement.basis!==authoringBasis(state.snapshot.authoring))cancelPalettePlacement();
   const list=document.querySelector("#gear-results"),focused=document.activeElement?.dataset?.kind,all=state.snapshot.authoring?.palette??[],query=state.gearQuery.trim().toLocaleLowerCase();
-  const visible=all.filter(entry=>[entry.name,entry.kind_id,entry.summary,entry.category,...entry.tags,...entry.inputs.map(port=>`${port.identity} ${port.info}`),...entry.outputs.map(port=>`${port.identity} ${port.info}`)].join(" ").toLocaleLowerCase().includes(query));
-  sharedFace.boundedActionList("gear-results","Available gear Kinds",visible.map(entry=>({identity:entry.kind_id,text:`${entry.name} · ${entry.category}`,detail:boundedFaceText(`${entry.summary} · ${entry.inputs.length} in · ${entry.outputs.length} out · ${entry.kind_id}${entry.authorable?"":" · not in this authoring profile"}`),run:()=>entry.authorable&&beginPalettePlacement(entry),annotate:button=>{button.dataset.kind=entry.kind_id;button.disabled=!entry.authorable;button.setAttribute("aria-label",`Place ${entry.name} Gear`);}})));presentSharedStatus("gear-results-status",`${visible.length} of ${all.length} Gears available from the canonical catalog; Host realization is checked separately`);if(focused)list.querySelector(`[data-kind="${CSS.escape(focused)}"]`)?.focus();
+  const signature=JSON.stringify([query,all.map(entry=>[entry.kind_id,entry.kind_contract_revision,entry.authorable,entry.name,entry.summary,entry.category,entry.tags,entry.icon])]);
+  if(state.gearPaletteSignature===signature)return;
+  state.gearPaletteSignature=signature;
+  const visible=all.filter(entry=>[entry.name,entry.kind_id,entry.summary,entry.category,...entry.tags,...entry.inputs.map(port=>`${port.identity} ${port.info}`),...entry.outputs.map(port=>`${port.identity} ${port.info}`)].join(" ").toLocaleLowerCase().includes(query)).sort((left,right)=>Number(right.authorable)-Number(left.authorable)||left.name.localeCompare(right.name));
+  sharedFace.boundedActionList("gear-results","Available gear Kinds",visible.map(entry=>({identity:entry.kind_id,text:`${entry.name} · ${entry.category}`,detail:boundedFaceText(`${entry.summary} · ${entry.inputs.length} in · ${entry.outputs.length} out${entry.authorable?"":" · unavailable in this authoring profile"}`),run:()=>entry.authorable&&beginPalettePlacement(entry),annotate:button=>{button.dataset.kind=entry.kind_id;button.disabled=!entry.authorable;button.setAttribute("aria-label",`Place ${entry.name} Gear`);}})));presentSharedStatus("gear-results-status",`${visible.length} of ${all.length} Gears available · ${visible.filter(entry=>entry.authorable).length} ready to place`);if(focused)list.querySelector(`[data-kind="${CSS.escape(focused)}"]`)?.focus();
 }
 
 function movePlotFocus(event){
@@ -413,7 +423,7 @@ function renderTemporalContext(){const section=document.querySelector("#temporal
 function renderCards(){const entries=[];for(const route of subjects("Route")){entries.push({title:`Route ${route.label}`,details:[],actions:[]});const routeFacts=texts(route.identity);for(let index=0;index<routeFacts.length;index+=32)entries.push({title:`${route.label} · route facts ${index+1}–${Math.min(index+32,routeFacts.length)}`,details:[],actions:[],exactValue:routeFacts.slice(index,index+32).join("\n"),disclosureLabel:"Exact route facts"});const candidates=state.snapshot.face.relationships.filter(item=>item.source===route.identity&&item.kind==="Contains").map(item=>state.snapshot.face.subjects.find(candidate=>candidate.identity===item.target)).filter(Boolean).flatMap(candidate=>[candidate.label,...properties(candidate.identity).map(item=>`  ${item.name}=${propertyText(item.value)}`)]);for(let index=0;index<candidates.length;index+=32)entries.push({title:`${route.label} · candidate evidence ${index+1}–${Math.min(index+32,candidates.length)}`,details:[],actions:[],exactValue:candidates.slice(index,index+32).join("\n"),disclosureLabel:"Exact route candidates"});}sharedFace.boundedArtifacts("route-cards",entries);}
 
 function renderBodyWorkbench(workbench){
-  const root=document.querySelector("#body-inspect"),summary=document.querySelector("#body-summary");root.hidden=!workbench;summary.textContent=workbench?`Body: ${workbench.current.friendly_name}`:"No Body";if(!workbench)return;
+  const root=document.querySelector("#body-inspect"),summary=document.querySelector("#body-summary");root.hidden=!workbench;summary.textContent=workbench?`Body: ${workbench.current.friendly_name}`:state.snapshot.face.basis.body_id?"Body":"No Body";if(!workbench)return;
   const current=workbench.current,history=workbench.history,planning=state.snapshot?.body_planning,runtimeAwake=Boolean(planning&&planning.lifecycle!=="Lulled");
   renderBodyEvidenceStatus(workbench);
   document.querySelector("#body-workbench-title").textContent=current.friendly_name;
@@ -449,10 +459,12 @@ function renderMaskTopology(){
 function render(snapshot){
   // Navigation and polling responses can arrive out of order. Never replace
   // newer interaction truth (and its live controls) with a delayed response.
-  if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<state.snapshot.interaction.revision)))return;
-  const entering=state.snapshot===null;state.snapshot=snapshot;state.projected=projectCurrent(snapshot);const p=snapshot.face,b=p.basis,renderer=snapshot.renderer,manifestation=renderer.manifestation,cursor=snapshot.navigation?.cursor;if(entering&&!cursor)state.lens=({World:"world",Intent:"plot",Realization:"plan"})[snapshot.entrance.layer]??state.lens;if(cursor)state.lens=lensForCursor(cursor);document.body.dataset.lens=state.lens;document.body.dataset.place=cursor?.place??"Canonical";document.body.dataset.aspect=cursor?.aspect??"Canonical";document.body.dataset.depth=cursor?.depth??"Canonical";
+  if(snapshotOrder(snapshot,state.snapshot)<0)return;
+  const entering=state.snapshot===null,previousBody=state.snapshot?.face.basis.body_id;state.snapshot=snapshot;state.projected=projectCurrent(snapshot);const p=snapshot.face,b=p.basis,renderer=snapshot.renderer,manifestation=renderer.manifestation,cursor=snapshot.navigation?.cursor;if(entering&&!cursor)state.lens=({World:"world",Intent:"plot",Realization:"plan"})[snapshot.entrance.layer]??state.lens;if(cursor)state.lens=lensForCursor(cursor);document.body.dataset.lens=state.lens;document.body.dataset.place=cursor?.place??"Canonical";document.body.dataset.aspect=cursor?.aspect??"Canonical";document.body.dataset.depth=cursor?.depth??"Canonical";
   document.body.dataset.embodied=String(b.body_id!==null);
-  const unbodied=b.body_id===null,atEntrance=cursor?.place==="Entrance",authoring=Boolean(snapshot.authoring);if(entering&&unbodied){document.body.dataset.paletteOpen="true";document.querySelector("#toggle-palette").setAttribute("aria-expanded","true");}document.querySelector("#plot-palette").hidden=(!atEntrance&&!snapshot.body_workbench)||authoring;document.querySelector("#gear-palette").hidden=!authoring;renderNavigationControls();document.querySelector("#lens-label").textContent=cursor?`${cursor.place.toUpperCase()} · ${cursor.aspect.toUpperCase()}`:`${state.lens.toUpperCase()} LENS`;document.querySelector("#canvas-title").textContent=cursor?.place==="Entrance"&&!authoring?"Entrance choices":cursor?.place==="Body"?"Body topology":"Program structure";
+  if(previousBody===null&&b.body_id!==null){document.body.dataset.paletteOpen="false";document.querySelector("#toggle-palette").setAttribute("aria-expanded","false");}
+  const unbodied=b.body_id===null,atEntrance=cursor?.place==="Entrance",authoring=Boolean(snapshot.authoring);if(entering&&unbodied){document.body.dataset.paletteOpen="true";document.querySelector("#toggle-palette").setAttribute("aria-expanded","true");}document.querySelector("#plot-palette").hidden=(!atEntrance&&!snapshot.body_workbench);document.querySelector("#gear-palette").hidden=!authoring||atEntrance;renderNavigationControls();document.querySelector("#lens-label").textContent=cursor?`${cursor.place.toUpperCase()} · ${cursor.aspect.toUpperCase()}`:`${state.lens.toUpperCase()} LENS`;document.querySelector("#canvas-title").textContent=cursor?.place==="Entrance"&&!authoring?"Entrance choices":cursor?.place==="Body"?"Body topology":"Program structure";
+  makerWorkbench?.render(snapshot);
   presentStatus(`Face revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · ${snapshot.authoring?"canonical authoring":"read-only"}`);
   document.querySelector("#run-summary").textContent=`Manifestation ${manifestation.lifecycle} · ${b.plan_id===null?"not planned":"Plan ready"} · ${b.active_play_id===null?"not playing":"Play active"}`;
   document.querySelector("#ordinary-summary").textContent=subjects("Info").flatMap(subject=>texts(subject.identity)).join(" · ");
@@ -461,7 +473,7 @@ function render(snapshot){
   const basis=authoringBasis(snapshot.authoring);
   if(state.authoringBasis!==basis){state.authoringBasis=basis;state.cordSource=null;state.cordCandidates=null;state.cordBasis=null;state.rerouteCord=null;state.cordQuerySequence=(state.cordQuerySequence??0)+1;}
   if(snapshot.authoring&&state.cordBasis===basis)snapshot.authoring.connection_candidates=state.cordCandidates;
-  const navigationSubjects=state.projected.subjects;sharedFace.boundedChoiceList("subjects","Plot graph subjects",navigationSubjects.map(subject=>({identity:subject.identity,text:`${subject.role}: ${subject.name}`,run:()=>select(subject.identity),annotate:control=>{control.dataset.subject=subject.identity;control.dataset.role=subject.role;}})),cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);renderPlotPalette();renderGearPalette();renderParts();renderFlow(snapshot,{onSelect:select,onWorkspaceChange:workspaceChanged,onConnectStart:id=>beginCord(semanticIdentity(id),id),onConnect:(source,sink)=>authoringEdit("connect-ports",semanticIdentity(source),{secondary:semanticIdentity(sink)}),onClear:()=>snapshot.navigation?dispatchNavigation({kind:"focus",subject:snapshot.navigation.navigation.places.find(place=>place.place===cursor.place).root_subject}):dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
+  const navigationSubjects=state.projected.subjects;sharedFace.boundedChoiceList("subjects","Plot graph subjects",navigationSubjects.map(subject=>({identity:subject.identity,text:`${subject.role}: ${subject.name}`,run:()=>select(subject.identity),annotate:control=>{control.dataset.subject=subject.identity;control.dataset.role=subject.role;}})),cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);renderPlotPalette();renderGearPalette();renderParts();renderFlow(snapshot,{onSelect:select,onWorkspaceChange:workspaceChanged,onConnect:(source,sink)=>authoringEdit("connect-ports",semanticIdentity(source),{secondary:semanticIdentity(sink)}).catch(error=>presentStatus(error.message,"refused-evidence")),onClear:()=>snapshot.navigation?dispatchNavigation({kind:"focus",subject:snapshot.navigation.navigation.places.find(place=>place.place===cursor.place).root_subject}):dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
   const placements=renderer.plan.fragments.flatMap(fragment=>fragment.placements);const placement=placements.find(item=>item.placement_id===manifestation.placement_id);const connections=[...new Map(renderer.plan.fragments.flatMap(fragment=>fragment.connections).map(connection=>[connection.connection_id,connection])).values()];
   presentDefinitions("plan-facts",[["Expanded Plot",b.expanded_plot_id],["Source Plan",b.plan_id],["Renderer Front",placement?.kind_id],["Renderer Plan",manifestation.plan_id],["Renderer Play",manifestation.active_play_id],["Manifestation",manifestation.manifestation_id],["Lifecycle",manifestation.lifecycle],["Placement",placement?.placement_id],["Host",placement?.host_id],["Boot",placement?.boot_id],["Implementation",placement?.implementation_id],["Artifact",placement?.artifact_id],["Execution profile",placement?.execution_profile_id],["Offer generation",placement?.offer_generation],["Limits",placement?`active=${placement.limits.max_active_instances} queue-items=${placement.limits.max_queue_items} queue-bytes=${placement.limits.max_queue_bytes}`:undefined]]);sharedFace.boundedEvidence("realizations","Realization evidence",[...placements.flatMap(item=>[`${item.gear_id} · host ${item.host_id} · boot ${item.boot_id} · implementation ${item.implementation_id} · artifact ${item.artifact_id}`,...item.inputs.concat(item.outputs).map(port=>`Port ${port.port_id} · ${port.direction} · Info ${port.value_kind} · ${port.temporal}`),...item.resources.map(resource=>`Resource ${resource.pool_id} · class ${resource.class_id} · units ${resource.units}`),...item.host_calls.map(operation=>`Base ${operation.contract_id} · target ${operation.target_kind??"not present"} · in-flight ${operation.maximum_in_flight} · input-bytes ${operation.maximum_input_bytes} · output-bytes ${operation.maximum_output_bytes}`)]),...connections.map(connection=>{const line=connection.selected_line,binding=line?.binding;return `Cord ${connection.connection_id} · ${connection.source_port_id} -> ${connection.sink_port_id} · Info ${connection.value_kind} · Line ${line?.line_id??"not present"} · base ${binding?.base??"not present"} · binding ${binding?.binding_id??"not present"} · base-instance ${binding?.base_instance_id??"not present"}`;})]);
   presentDefinitions("play-facts",[["Active play",b.active_play_id],["Plan",b.plan_id]]);sharedFace.boundedEvidence("sign","Sign evidence",[...subjects("Sign").map(subject=>subject.name),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);
@@ -470,7 +482,9 @@ function render(snapshot){
   sharedFace.boundedEvidence("diagnostics","Checked diagnostic",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();sharedFace.boundedEvidence("topology","Observed topology",subjects().filter(subject=>["Plot","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.name}`,...texts(subject.identity)]));sharedFace.boundedEvidence("linear","Linear face",state.projected.text.map(item=>item.text));displaySelection(cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);
 }
 
-async function load(){try{const snapshot=requireSnapshot(await face.snapshot());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){presentStatus(state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`,"failure-status");}}
+let pendingSnapshotLoad=null;
+function load(){if(pendingSnapshotLoad)return pendingSnapshotLoad;pendingSnapshotLoad=loadSnapshot().finally(()=>{pendingSnapshotLoad=null;});return pendingSnapshotLoad;}
+async function loadSnapshot(){try{const snapshot=requireSnapshot(await face.snapshot());if(state.snapshotLoadFailed){state.snapshotLoadFailed=false;presentStatus("Connection restored.","success-status");}if(snapshotOrder(snapshot,state.snapshot)<=0)return;render(snapshot);}catch(error){state.snapshotLoadFailed=true;presentStatus(state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`,"failure-status");}}
 async function observeTextLabLoss(){const button=document.querySelector("#text-lab-loss");button.disabled=true;presentSharedStatus("front-door-feedback","Running the exact split Text Lab until browser loss…","warning-status");const {base}=await fetch(apiUrl("text-lab-base"),{cache:"no-store"}).then(response=>response.json());if(!admittedRuntimeBytes)throw new Error("admitted browser runtime unavailable");const openLine=()=>new BrowserWebSocketLine({url:base,maximumMessageBytes:1024,maximumBufferedBytes:4096}).open(),forward=await openLine(),runtime=await instantiateTextLabLive(admittedRuntimeBytes,base);let injected=false,failure=null;try{await runTextLabLive(runtime,forward,openLine,async({deliveredValues,returned})=>{if(!injected&&deliveredValues===2){injected=true;void returned.close(4001,"injected-return-line-loss");}});}catch(error){failure=error;}if(!injected||!failure?.message.includes("CND-WS-S4-007"))throw new Error("Text Lab loss did not remain an exact transport failure");presentSharedStatus("front-door-feedback","Browser loss observed; awaiting the native causal receipt.");}
 async function inspectBodyInvitation(){
   const response=await fetch(apiUrl("body-admission"),{cache:"no-store"});
@@ -497,6 +511,7 @@ function renderBrowserResourceTruth(){const resources=window.__patchbayMembershi
 function renderBrowserPlannerTruth(){const profiles=window.__patchbayMembership?.advertisement.planner_capabilities??[],inspector=document.querySelector("#body-planner-inspector"),select=document.querySelector("#body-planner-select");inspector.hidden=profiles.length===0;if(!profiles.length){presentDefinitions("body-planner-facts",[]);return;}const offer=populateOfferSelect(select,profiles,item=>item.profile_id,item=>item.profile_id),limits=offer.limits;presentDefinitions("body-planner-facts",[["Planner profile",offer.profile_id],["Host advertisements",limits.maximum_host_advertisements],["Gears",limits.maximum_gears],["Connections",limits.maximum_connections],["Authority grants",limits.maximum_authority_grants],["Protected resource grants",limits.maximum_protected_resource_grants],["Line offers",limits.maximum_line_offers],["Planner selection","none · advertisement only"]]);}
 function disconnectCurrentBody(){const membership=window.__patchbayMembership;if(!membership)throw new Error("current browser Body membership is unavailable");membership.close();}
 export async function startApplication(context){admittedRuntimeBytes=context.bytes("runtime");admittedApplicationStorage=context.storage;configureFlowStorage(context.storage);state.retainedMembershipCredential=await context.storage.readJson(membershipStorageKey);
+makerWorkbench=installPlotWorkbench({open:openPlot,invoke:dispatchSemanticAction,navigate:dispatchNavigation,inspect:select});
 document.querySelector("#inspector").append(document.querySelector("#deep-inspection"));presentStatus("Loading bounded snapshot…");presentSharedStatus("front-door-feedback","World truth is current; planning is explicit.");document.body.dataset.lens=state.lens;load().then(()=>{inspectBodyInvitation();fitFlow();}).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.dataset.conduitContrast!=="high";if(active)document.body.dataset.conduitContrast="high";else delete document.body.dataset.conduitContrast;event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.face.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;window.patchbayFlowStorageSettled=flowStorageSettled;
@@ -517,7 +532,7 @@ const furnitureSurface={palette:"palette",inspector:"inspector"};
 function focusSurface(name){const surface=document.querySelector(`#${furnitureSurface[name]}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
 async function withFurnitureTransition(name,transition,settle=()=>{}){const surface=document.querySelector(`#${furnitureSurface[name]}`),controls=[...surface.querySelectorAll("button")].filter(control=>control!==document.activeElement);surface.setAttribute("aria-busy","true");for(const control of controls)control.disabled=true;try{return await transition();}finally{surface.removeAttribute("aria-busy");for(const control of controls)control.disabled=false;settle();}}
 async function dismissFurnitureSurface(name){
-  if(name==="inspector"){if(state.inspectorTransition)await state.inspectorTransition;const returnFromDetail=state.inspectorDepth;state.inspectorOpen=false;state.inspectorDepth=false;displaySelection(state.selected);if(returnFromDetail)await dispatchNavigation({kind:"back"});}
+  if(name==="inspector"){if(state.inspectorTransition)await state.inspectorTransition;const returnFromDetail=state.inspectorDepth;state.inspectorOpen=false;state.inspectorDepth=false;displaySelection(state.selected);if(returnFromDetail&&state.snapshot.navigation?.cursor.depth==="Detail")await dispatchNavigation({kind:"back"});}
   else document.body.dataset[`${name}Open`]="false";
   const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded","false");launcher.focus();
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authoringBasis, configurationText, configurationValue } from "../../targets/browser/patchbay-workbench/assets/authoring.js";
+import { authoringBasis, configurationText, configurationValue, requireAuthoringSuccess, snapshotOrder } from "../../targets/browser/patchbay-workbench/assets/authoring.js";
 
 test("authoring queries correlate the complete source and checked basis", () => {
   const basis = { source_document_id: "source/a", source_revision: 1, checked_plot_id: "checked/a", expanded_plot_id: "expanded/a" };
@@ -30,4 +30,24 @@ test("physical configuration submits authored source to Rust admission", () => {
   assert.deepEqual(configurationValue(quantity, "9223372036854775807Hz"), { QuantitySource: "9223372036854775807Hz" });
   assert.deepEqual(configurationValue({ Unit: { source: "Hz" } }, "kHz"), { UnitSource: "kHz" });
   assert.deepEqual(configurationValue({ TemperatureDifference: { source: "9°F" } }, "5K"), { TemperatureDifferenceSource: "5K" });
+});
+
+
+test("refused, stale, failed and missing acknowledgements cannot report a successful edit", () => {
+  for (const disposition of ["Refused(StaleFace)", "Refused(IncompatiblePorts)", "Failed", "Cancelled", undefined]) {
+    assert.throws(() => requireAuthoringSuccess({ interaction: { last_disposition: disposition } }));
+  }
+  const acknowledged = { interaction: { last_disposition: "Succeeded" } };
+  assert.equal(requireAuthoringSuccess(acknowledged), acknowledged);
+});
+
+
+test("late snapshot responses cannot roll back a Face or its current interaction", () => {
+  const current = { revision: 7, interaction: { revision: 4 } };
+  assert.equal(snapshotOrder({ revision: 6, interaction: { revision: 999 } }, current), -1);
+  assert.equal(snapshotOrder({ revision: 7, interaction: { revision: 3 } }, current), -1);
+  assert.equal(snapshotOrder(structuredClone(current), current), 0);
+  assert.equal(snapshotOrder({ revision: 7, interaction: { revision: 5 } }, current), 1);
+  assert.equal(snapshotOrder({ revision: 8, interaction: { revision: 0 } }, current), 1);
+  assert.equal(snapshotOrder(current, null), 1);
 });

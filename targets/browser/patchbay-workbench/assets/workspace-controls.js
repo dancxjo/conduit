@@ -13,6 +13,7 @@ export function unusedAnnotationId(items, prefix) {
 
 export function installWorkspaceControls(root, selected, restoreLens, navigationVersion = () => 0) {
   const pending = new Set();
+  let operations = Promise.resolve();
   const status = document.createElement("output");
   status.id = "workspace-status";
   status.setAttribute("role", "status");
@@ -63,7 +64,10 @@ export function installWorkspaceControls(root, selected, restoreLens, navigation
     control.onclick = async () => {
       pending.add(control);
       control.disabled = true;
-      try { await action(); update(); }
+      status.textContent = `${label} pending…`;
+      const run = operations.then(action);
+      operations = run.catch(() => {});
+      try { await run; update(); }
       catch (error) { status.textContent = `Workspace refused: ${error.message}${error.correlation ? ` · ${JSON.stringify(error.correlation)}` : ""}`; }
       finally {
         pending.delete(control);

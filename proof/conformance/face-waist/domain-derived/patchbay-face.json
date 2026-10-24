@@ -1,5 +1,5 @@
 {
-  "identity": "b0779bdc01c63b56e195b3d70b3cab43ee4e4917b31abdcefa5d050c31eb90ff",
+  "identity": "5df95955c2d7a76a35cedd2609964bad5c61a80f0b3ece801fc7f5a0a8819f27",
   "revision": 1,
   "basis": {
     "body_id": "0b0de524d645eeae327aa9dd7db15af525dcc2411666cae9b28b52b4880b3868",
@@ -1798,6 +1798,20 @@
       "name": "pressure",
       "value": {
         "Text": "not exposed by this play"
+      }
+    },
+    {
+      "subject": "play/931e7fb6c05e56d667c3c06469e685ed7be85a3f8b21d85d4e7c8474c8da84a5",
+      "name": "play-state",
+      "value": {
+        "Text": "Completed"
+      }
+    },
+    {
+      "subject": "play/931e7fb6c05e56d667c3c06469e685ed7be85a3f8b21d85d4e7c8474c8da84a5",
+      "name": "sign-count",
+      "value": {
+        "Count": 1
       }
     },
     {

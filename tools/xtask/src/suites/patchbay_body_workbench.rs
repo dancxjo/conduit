@@ -110,6 +110,7 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
             "proof/browser/patchbay-body-workbench.spec.mjs",
             "proof/browser/patchbay-follow.spec.mjs",
             "proof/browser/patchbay-authoring.spec.mjs",
+            "proof/browser/patchbay-maker.spec.mjs",
         ],
         None,
         Some("playwright"),
