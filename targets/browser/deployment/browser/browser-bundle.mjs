@@ -186,7 +186,7 @@ function requireDistribution(distribution) {
     if (!safeRelativePath(file?.path)) {
       refuse("ArtifactPathRejected", "reviewed browser asset path is outside its exact static package");
     }
-    const maximum = file?.path === "runtime.wasm" ? 32 * 1024 * 1024 : 256 * 1024;
+    const maximum = file?.path === "runtime.wasm" ? 20 * 1024 * 1024 : 256 * 1024;
     if (!Number.isSafeInteger(file?.bytes) || file.bytes < 1 || file.bytes > maximum) {
       refuse("ArtifactBound", "reviewed browser asset exceeds its browser consumer byte bound");
     }

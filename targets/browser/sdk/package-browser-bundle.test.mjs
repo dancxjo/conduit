@@ -165,7 +165,7 @@ try {
   assert.match(unsafe.stderr, /Unsafe application path/);
 
   // These are envelope fixtures, not executable runtime/ABI proof.
-  const maximumRuntimeBytes = 32 * 1024 * 1024;
+  const maximumRuntimeBytes = 20 * 1024 * 1024;
   const atCeiling = new Uint8Array(maximumRuntimeBytes); atCeiling.set(runtime);
   const oversized = new Uint8Array(maximumRuntimeBytes + 1); oversized.set(runtime);
   const wrongMagic = runtime.slice(); wrongMagic[0] = 1;
