@@ -205,7 +205,7 @@ for (const includeLifecycle of [false, true]) {
       await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
       const live = await current(page);
       expect(live.face.basis.active_play_id).toBeTruthy();
-      await expect(page.locator("#body-summary")).toHaveText(/^Body(?:$|:)/);
+      await expect(page.locator("#body-summary")).toHaveAccessibleName(/^Body(?: overview)?(?:$|:)/);
       await expect(page.locator('#body-summary svg[aria-hidden="true"]')).toHaveCount(1);
       expect(live.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
       const plan = live.face.basis.plan_id;
