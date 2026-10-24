@@ -1,0 +1,26 @@
+{
+  "source": "04d55d563450b7678d8897dd317185ead9dbce9a",
+  "scope": "Source/log/PNG custody only; old collector failed; actual GUI Root/ISO absent, no new dedup success inferred",
+  "files": [
+    {
+      "path": "6351-a161-stale-collector-source-diagnosis.json",
+      "bytes": 2570,
+      "sha256": "243956206ec560dad1b54deef77bca00fd79e680d2c1c9b46f2aa2abf1a9e1a6"
+    },
+    {
+      "path": "6351-04d55-independent-delta-review.json",
+      "bytes": 8655,
+      "sha256": "a95a0fd919d147abc03d89b903b42d2ea7cdacd83f210c0c156a79a40181fc95"
+    },
+    {
+      "path": "creche-editorial-compact.png",
+      "bytes": 169451,
+      "sha256": "8e67f5b56b61755f7b4382cff66f5d84dceedd8567a112856499e26549f6c429"
+    },
+    {
+      "path": "patchbay-diagram.png",
+      "bytes": 163311,
+      "sha256": "55d7346c7ae82a6af988ddf4885dcbfd36c504ae90471a7e7d87d6ab1deccc4c"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "captured_execution_source": "a161ac4741d1262f69343ea411e3f4f23018239d",
+  "gui_head": "04d55d563450b7678d8897dd317185ead9dbce9a",
+  "repair_source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "root_delivery_merge": "960762cfe41d4491398d6b8e5487bba1d2c97276",
+  "current_local_origin_dev": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+  "collector_blob_correspondence": [
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+      "captured": "891b01f487a0e57276b5f0af97ad86594a9af4f9",
+      "gui_head": "891b01f487a0e57276b5f0af97ad86594a9af4f9",
+      "repaired": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "delivered": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "current_local_origin_dev": "453ca95a6caf09d3258cf5a56f2cf00634043426"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+      "captured": "184181d264e8a28bd5fdc8acbb68f5865184d363",
+      "gui_head": "184181d264e8a28bd5fdc8acbb68f5865184d363",
+      "repaired": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "delivered": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "current_local_origin_dev": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1"
+    }
+  ],
+  "root_merge_ancestor_of_gui": {
+    "a161ac4741d1262f69343ea411e3f4f23018239d": false,
+    "04d55d563450b7678d8897dd317185ead9dbce9a": false
+  },
+  "exact_failure_log": "docs/audits/evidence/gui-look-6349-native-ports/native-port-product-proof.log",
+  "failure_lines": [
+    {
+      "line": 689,
+      "text": "xtask error: ConduitOS proof refusal [compositor-lifecycle-proof-invalid]: embedded compositor ELF: Ambiguous"
+    }
+  ],
+  "diagnosis": "CapturedGUIexecutionusesOLDsingle-occurrencecollector: afterfirstvalidcandidate, secondstructurallyvalidloadedcandidateunconditionallyreturnsAmbiguous. Rootd677/merged6339/currentlocaloriginDevusecompletebytecomparisonandallowidenticalcopies. GUIdoesnotcontainRoot6339merge. Thus thisfailureisnotanexecution/regressionofnewdedupcollector; GUIhistoryneedscoordinatednormalcurrentdevrefreshbeforefreshproductproof.",
+  "limit": "ActualnewGUIRootELF/ISObytesnotretainedinpublishedpacket; cannotindependentlyestablishitssecondcandidatebyteequality. Therefore sourceprovesstaleoldcollector, butnewdedupfixsuccessfortheseexactbytesremainsunverified untilsafeartifactreprocessingornewsourceboundrun. DistinctvalidimageswouldcorrectlyremainAmbiguous.",
+  "scope": "Read-onlysource/log/ancestryauditonly; nofetchbeyondpriorobjects, build, sourcebranchchange, newfix orclaimoffullGUIacceptance."
+}
