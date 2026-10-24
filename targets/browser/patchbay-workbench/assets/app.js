@@ -522,8 +522,13 @@ document.querySelector("#inspector").append(document.querySelector("#deep-inspec
 // a Face action or change the semantic cursor, graph, or execution state.
 const lookPicker=document.querySelector("#application-look");
 lookPicker.onchange=()=>{
-  if([...lookPicker.options].some(option=>option.value===lookPicker.value))
+  if([...lookPicker.options].some(option=>option.value===lookPicker.value)) {
     document.body.dataset.applicationLook=lookPicker.value;
+    // Typography changes the preceding toolbar widths too. Keep the active
+    // native control visible in its narrow horizontal scroll region.
+    if(document.activeElement===lookPicker)
+      lookPicker.scrollIntoView({block:"nearest",inline:"nearest"});
+  }
 };
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.dataset.conduitContrast!=="high";if(active)document.body.dataset.conduitContrast="high";else delete document.body.dataset.conduitContrast;event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.face.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;window.patchbayFlowStorageSettled=flowStorageSettled;
