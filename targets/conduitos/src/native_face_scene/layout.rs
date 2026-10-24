@@ -34,6 +34,8 @@ pub(super) struct Row {
     pub control: Option<FaceControl>,
     pub subject_index: Option<usize>,
     pub region: Option<u8>,
+    /// Padding already reserved by checked, single-region ancestor groups.
+    pub region_inset: u16,
     pub page: usize,
     pub bounds: LayoutRect,
     pub region_start: bool,
@@ -354,6 +356,7 @@ pub(super) fn admit_with_expression_selected(
                 control: item.control,
                 subject_index: item.subject_index,
                 region: item.region,
+                region_inset: 0,
                 page,
                 region_start,
                 padding,

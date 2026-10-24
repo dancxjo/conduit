@@ -126,6 +126,7 @@ pub(super) fn arrange(
                     control: item.control,
                     subject_index: item.subject_index,
                     region: item.region,
+                    region_inset: 0,
                     page: 0,
                     bounds: LayoutRect {
                         x: item_inset as i16,

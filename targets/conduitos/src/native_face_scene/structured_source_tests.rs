@@ -292,14 +292,16 @@ fn checked_creche_groups_have_cohesive_surfaces_within_the_original_frame_budget
         .iter()
         .filter(|row| row.page == 0 && row.region.is_some())
     {
+        assert!(row.region_inset > 0, "checked card padding must surround its fields");
+        let inset = i32::from(row.region_inset);
         assert!(surfaces.iter().any(|surface| {
             let outer = surface.bounds;
-            outer.x <= row.bounds.x
-                && outer.y <= row.bounds.y
+            i32::from(outer.x) <= i32::from(row.bounds.x) - inset
+                && i32::from(outer.y) <= i32::from(row.bounds.y) - inset
                 && i32::from(outer.x) + i32::from(outer.width)
-                    >= i32::from(row.bounds.x) + i32::from(row.bounds.width)
+                    >= i32::from(row.bounds.x) + i32::from(row.bounds.width) + inset
                 && i32::from(outer.y) + i32::from(outer.height)
-                    >= i32::from(row.bounds.y) + i32::from(row.bounds.height)
+                    >= i32::from(row.bounds.y) + i32::from(row.bounds.height) + inset
         }));
     }
     assert_eq!(scene.face(), &face);

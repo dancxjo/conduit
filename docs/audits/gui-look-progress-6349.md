@@ -139,3 +139,16 @@ same workspace temporary directory allowed the unmodified proof to pass.
 
 [Reference comparison and remaining visual differences](creche-reference-comparison-6174.md)
 separates meaningful source differences from remaining paint/layout work.
+
+## Native checked card insets
+
+Mechanical rows now retain the padding reserved by single-region checked
+ancestor groups. Cohesive card paint includes that already allocated space,
+so fields no longer meet the card edge. Text measurement, hit bounds, semantic
+order, page cuts and command costs are unchanged. A mixed root is inspected
+across every fragment; one homogeneous continuation page cannot accidentally
+turn the root into an enclosing card. Existing unstructured/configured rows
+retain zero additional region inset. The surface check now requires the full
+checked inset around every first-page card row, alongside the unchanged
+four-selected-Plots and 48-command requirements. Fresh capture follows below
+when the frozen source has built.

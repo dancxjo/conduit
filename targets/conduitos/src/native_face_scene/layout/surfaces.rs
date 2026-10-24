@@ -22,6 +22,7 @@ pub(in crate::native_face_scene) fn append_region_surfaces(
     let mut count = 0;
     for row in rows.iter().filter(|row| row.page == page) {
         let Some(group) = row.region else { continue };
+        let bounds = padded_bounds(row)?;
         let index = if let Some(index) = surfaces[..count]
             .iter()
             .position(|slot| slot.is_some_and(|value| value.group == group))
@@ -33,7 +34,7 @@ pub(in crate::native_face_scene) fn append_region_surfaces(
             }
             surfaces[count] = Some(Surface {
                 group,
-                bounds: row.bounds,
+                bounds,
                 marker: false,
                 existing_panel: false,
             });
@@ -43,12 +44,12 @@ pub(in crate::native_face_scene) fn append_region_surfaces(
         let surface = surfaces[index].as_mut().ok_or(FaceSceneError::SceneBound)?;
         surface.marker |= row.region_start;
         surface.existing_panel |= row.panel_bounds.is_some();
-        let left = surface.bounds.x.min(row.bounds.x);
-        let top = surface.bounds.y.min(row.bounds.y);
+        let left = surface.bounds.x.min(bounds.x);
+        let top = surface.bounds.y.min(bounds.y);
         let right = (i32::from(surface.bounds.x) + i32::from(surface.bounds.width))
-            .max(i32::from(row.bounds.x) + i32::from(row.bounds.width));
+            .max(i32::from(bounds.x) + i32::from(bounds.width));
         let bottom = (i32::from(surface.bounds.y) + i32::from(surface.bounds.height))
-            .max(i32::from(row.bounds.y) + i32::from(row.bounds.height));
+            .max(i32::from(bounds.y) + i32::from(bounds.height));
         surface.bounds = LayoutRect {
             x: left,
             y: top,
@@ -73,4 +74,18 @@ pub(in crate::native_face_scene) fn append_region_surfaces(
         }
     }
     Ok(())
+}
+
+fn padded_bounds(row: &Row) -> Result<LayoutRect, FaceSceneError> {
+    let inset = i32::from(row.region_inset);
+    Ok(LayoutRect {
+        x: i16::try_from(i32::from(row.bounds.x) - inset)
+            .map_err(|_| FaceSceneError::InvalidExtent)?,
+        y: i16::try_from(i32::from(row.bounds.y) - inset)
+            .map_err(|_| FaceSceneError::InvalidExtent)?,
+        width: u16::try_from(i32::from(row.bounds.width) + inset * 2)
+            .map_err(|_| FaceSceneError::InvalidExtent)?,
+        height: u16::try_from(i32::from(row.bounds.height) + inset * 2)
+            .map_err(|_| FaceSceneError::InvalidExtent)?,
+    })
 }
