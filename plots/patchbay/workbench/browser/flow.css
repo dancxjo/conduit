@@ -169,3 +169,4 @@
 
 /* Platform colors outrank Look paint for SVG as well as native controls. */
 @media(forced-colors:active){#flow-root{--conduit-background:Canvas;--conduit-surface:Canvas;--conduit-text-primary:CanvasText;--conduit-text-secondary:CanvasText;--conduit-structure-primary:CanvasText;--conduit-structure-secondary:CanvasText;--conduit-emphasis:LinkText;--conduit-focus:Highlight;--conduit-success:CanvasText;--conduit-warning:CanvasText;--conduit-failure:CanvasText}}
+.react-flow .react-flow__node-frontplate{padding:0;border:0;min-width:0;background:transparent}

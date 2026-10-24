@@ -309,7 +309,18 @@ test("enlarged narrow shell retains a useful scrollable graph viewport", async (
     await page.addStyleTag({content:'html{font-size:32px!important}'});
     await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
     await expect(page.locator('html')).toHaveCSS('font-size','32px');
-    await page.getByRole('button',{name:'Fit',exact:true}).click();
+    await page.getByRole('button',{name:'Arrange',exact:true}).click();
+    const overlaps=()=>page.locator('.flow-frontplate').evaluateAll(nodes=>{
+      const rects=nodes.map(node=>node.getBoundingClientRect());let count=0;
+      for(let a=0;a<rects.length;a++)for(let b=a+1;b<rects.length;b++)
+        if(Math.min(rects[a].right,rects[b].right)-Math.max(rects[a].left,rects[b].left)>1 && Math.min(rects[a].bottom,rects[b].bottom)-Math.max(rects[a].top,rects[b].top)>1)count++;
+      return count;
+    });
+    await expect.poll(overlaps).toBe(0);
+    await expect.poll(()=>page.locator('.flow-frontplate').evaluateAll(nodes=>nodes.every(node=>{
+      const card=node.getBoundingClientRect(),box=node.closest('.react-flow__node').getBoundingClientRect();
+      return card.left>=box.left-1 && card.top>=box.top-1 && card.right<=box.right+1 && card.bottom<=box.bottom+1;
+    }))).toBe(true);
     const baseline=await (await page.request.get(`${await server.url}/api/snapshot`)).json();
     const graph=page.locator('#flow-root');
     await graph.scrollIntoViewIfNeeded();

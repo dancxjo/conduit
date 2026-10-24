@@ -275,9 +275,9 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
   };
 }
 
-export function reconcileFlowScene(projection, prior = null) {
+export function reconcileFlowScene(projection, prior = null, measurements = new Map()) {
   const priorNodes = new Map((prior?.nodes || []).map((node) => [node.id, node]));
-  const arranged = layoutFlowScene(projection.nodes, projection.edges);
+  const arranged = layoutFlowScene(projection.nodes, projection.edges, measurements);
   const nodes = projection.nodes.map((node, index) => ({
     ...node,
     selected: priorNodes.get(node.id)?.selected === true,
