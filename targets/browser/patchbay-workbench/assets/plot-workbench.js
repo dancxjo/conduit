@@ -67,7 +67,7 @@ export function installPlotWorkbench({ open, invoke, navigate, inspect }) {
   const viewsLabel = document.createElement("summary"); viewsLabel.textContent = "Views and diagnostics";
   views.append(viewsLabel);
   new ResizeObserver(() => document.body.style.setProperty("--maker-heading-bottom", `${Math.ceil(heading.getBoundingClientRect().bottom + 8)}px`)).observe(heading);
-  let current = null, pending = false, feedback = null, priorInteraction = null;
+  let current = null, pending = false, feedback = null, priorInteraction = null, makerEncounter = false;
   function button(parent, key, label, run, unavailable = null) {
     let control = controls.get(key);
     if (!control) {
@@ -89,11 +89,17 @@ export function installPlotWorkbench({ open, invoke, navigate, inspect }) {
   }
   function render(snapshot) {
     current = snapshot;
+    makerEncounter ||= snapshot.face.basis.body_id === null || !!snapshot.authoring;
+    if (!makerEncounter) {
+      document.body.dataset.makerMode = "legacy";
+      invitation.hidden = true; toolbar.hidden = true; status.hidden = true;
+      return;
+    }
     const entrance = snapshot.face.basis.body_id === null && snapshot.navigation?.cursor.place === "Entrance";
     const editing = !!snapshot.authoring && !entrance;
     document.body.dataset.makerMode = entrance ? "welcome" : editing ? "edit" : snapshot.body_workbench ? "body" : "run";
     if ((entrance || editing) && !views.isConnected) {
-      views.append(document.querySelector("#lens-label"), document.querySelector(".view-controls"));
+      views.append(document.querySelector("#lens-label"), document.querySelector(".view-controls"), document.querySelector("#current-status"), document.querySelector("#front-door-actions"), document.querySelector("#temporal-context"));
       heading.firstElementChild.append(views);
     }
     invitation.hidden = !entrance;
@@ -164,6 +170,7 @@ export function installPlotWorkbench({ open, invoke, navigate, inspect }) {
     status.dataset.refused = String(feedback !== null);
   }
   return { render, notice(text, component) {
+    if (!makerEncounter) return;
     if (component === "success-status") { feedback = null; if (current) render(current); }
     if (/failure|failed|refused/.test(component)) { feedback = text; status.textContent = text; status.dataset.refused = "true"; status.hidden = false; }
   }};
