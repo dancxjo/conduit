@@ -60,6 +60,15 @@ pub(super) fn binary(
 
 impl PreparedEquality {
     pub(super) fn evaluate(&mut self, input: &[u8]) -> Result<PrimitiveValue<'static>, Refusal> {
+        if leaf_info_kind(&self.value_type)
+            .is_ok_and(|kind| kind == conduit_core::RESOURCE_REFERENCE_INFO_ID)
+        {
+            let equal = crate::expression_evaluate::resource_equal(
+                self.left.evaluate(input)?,
+                self.right.evaluate(input)?,
+            )?;
+            return PrimitiveValue::new(PrimitiveInfoKind::Bool, &[u8::from(equal != self.negate)]);
+        }
         let left = validate_canonical_structured_value(self.left.evaluate(input)?)
             .map_err(|_| Refusal::InvalidProgram)?;
         let right = validate_canonical_structured_value(self.right.evaluate(input)?)
@@ -112,6 +121,10 @@ fn equal(ty: &StructuredInfoType, a: &mut Cursor<'_>, b: &mut Cursor<'_>) -> Res
             b.tag(0)?;
             let left = a.bytes()?;
             let right = b.bytes()?;
+            if leaf_info_kind(ty).is_ok_and(|kind| kind == conduit_core::RESOURCE_REFERENCE_INFO_ID)
+            {
+                return crate::expression_evaluate::resource_equal(left, right);
+            }
             let kind = leaf_kind(ty)?;
             if matches!(
                 kind,
