@@ -1,0 +1,223 @@
+{
+  "source": "6162901d6e02b7e6d7d6b3566627ec4dec0c395a",
+  "scope": "source-built graphical emulator/OpenSBI tool cold/warm/plain-warm validation only; separate firmware source/license review and stock paused precondition; no product frame or default product route change",
+  "serial_key": "360db12875da872d90e1ea85196f4e8fb3f56829f389e90d12b097a0d66fba45",
+  "graphical_key": "0d92944c833e22da80164750edc352c3f9e7f32829a7ab663dc52fd721a669fd",
+  "executable_sha256": "7cf442811288219dfa1e99f7b1a3766e652aed550377777b3b2ad89cf54038ba",
+  "opensbi_sha256": "b296d711ecb879489689109c0fd7e0698b5b9550725b4e50fac456bbd3ecbcdf",
+  "runtime_dependency": "owned work/loongarch-graphics-qemu/sysroot runtime libraries retained; plain environment removes SDK flags, not required runtime files",
+  "guest_instructions_executed": false,
+  "product_frame_proved": false,
+  "files": [
+    {
+      "path": "runs/cold.log.gz",
+      "sha256": "73638f435b074924a48a2e25b2554e2f9719a13ab3136c7d12761b122134e02a",
+      "original_sha256": "e549e4da1ccc13473964607a76f5a9e344aca96f1f47d53b8f188186eb6f87b1",
+      "original_bytes": 166117
+    },
+    {
+      "path": "runs/graphical-dry-run.log.gz",
+      "sha256": "c099cd75180739b0742672cf20d82c3438ec569bc108a907921d3d9b1336e6aa",
+      "original_sha256": "b6385bb75ac60a8aa7afcd41257870db754cbc208250454f510fa1e75cb857f2",
+      "original_bytes": 594
+    },
+    {
+      "path": "runs/independent-tool-audit.json.gz",
+      "sha256": "a88a0720e71ce396664a45f3db4c272a659ed7c036bb46354df60a1ae12546d6",
+      "original_sha256": "6ee0c3a4ab2a438c65c8602d58b364188b4978b31f6361a6c881ed525a62dbad",
+      "original_bytes": 1507
+    },
+    {
+      "path": "runs/plain-warm.log.gz",
+      "sha256": "86a5a34850170f4cb762ee6d3707c0b314fa6f0086d8c5952fb68cd226eae903",
+      "original_sha256": "97efafb3431bf0464acf7206439fbd65bf7df06261de1ce41b237df108bcd8e4",
+      "original_bytes": 2210
+    },
+    {
+      "path": "runs/preflight.log.gz",
+      "sha256": "9cc1a9b6149ba6df1f17e18277ee461fda80e7c90facdf5e264c09be37eab8f1",
+      "original_sha256": "eca5b774ddef6a58d189b9973daf6c4b2ce6cd14481e5ecc716fa523aac71f24",
+      "original_bytes": 34897
+    },
+    {
+      "path": "runs/receipt.json.gz",
+      "sha256": "90f98e05174b9cc412e6bc73d4317ae311bbcb657296f46e21c9c32cef94087d",
+      "original_sha256": "2d6decaefb0d022938f68431327794d399d688a24eb32ef519c6043df06db823",
+      "original_bytes": 2449
+    },
+    {
+      "path": "runs/serial-dry-run.log.gz",
+      "sha256": "3c9b66915c50a1ab9cd4db8f9fd33d8b2535962480ae68d834992a8608ddb727",
+      "original_sha256": "abb9a9c8d573518311613c80a2eb20a09f4d06090b9d64178d8f534a8d43cdd5",
+      "original_bytes": 958
+    },
+    {
+      "path": "runs/warm.log.gz",
+      "sha256": "bb997ec827cb9edbcc22029ec240c9fd195ab51888d9cb306c7eb5f48a5de36a",
+      "original_sha256": "79314db2e543b8888a45374d3884b01254d4a5d7ffb7d38fa47620a2e577f4fd",
+      "original_bytes": 1822
+    },
+    {
+      "path": "validation/cli-tests.log.gz",
+      "sha256": "8c5ac1e8562b3fbed329db75349e6a15aa72e25f7c7adc1f9135a68ff056d80c",
+      "original_sha256": "925fd563816dabe22cd35739b40e8b355c5ec23edd05372c606aa9bbe2860f37",
+      "original_bytes": 3361
+    },
+    {
+      "path": "validation/receipt.json.gz",
+      "sha256": "525a329708d5e5a0c30ffc990d305d7a972332052cedef47c01bbd590322b2e3",
+      "original_sha256": "0f59b0738e6194d5d20d0177c89579cf2c5e8b410c5cfff1fe1ae30ec1b8fbec",
+      "original_bytes": 1723
+    },
+    {
+      "path": "validation/shared-probe-tests.log.gz",
+      "sha256": "126d8bb00d438e291d905708ec500f2fdb7ef4364ae3d6aea418f0aa4c1a0393",
+      "original_sha256": "e2963244b94743a8ebc19cb2bdff8cd262b505548a2bd03735e056a64e6615f3",
+      "original_bytes": 3383
+    },
+    {
+      "path": "validation/strict-clippy.log.gz",
+      "sha256": "43676d9443a3269fe35e0e16c5a1ed28cfbf94772a785aa7510f2227ab73d258",
+      "original_sha256": "b2f1bd4ea4dd1d15e5918c4e17f1f57297267ea73b51f4126549a30edc926877",
+      "original_bytes": 12723
+    },
+    {
+      "path": "validation/riscv64-graphics-tool-tests.log.gz",
+      "sha256": "5149d9257888030dd5085f1b0ef1f900f7fe8563a669d41b1bb14457f764cdb0",
+      "original_sha256": "1e623a557d648851ea47c5f6538ddb9b1e443aaa12a718c9948a60ce00eb8d2a",
+      "original_bytes": 15087
+    },
+    {
+      "path": "validation/riscv64-graphical-recipe-staged.json.gz",
+      "sha256": "471b805c4b078f756caa2816adaf7bf474d56cbcd0f1969c2c4f83ac64f52d41",
+      "original_sha256": "4fc03d141136795ac5203a12f5c86847873ffc1a659820f899562fca2c66716d",
+      "original_bytes": 2408
+    },
+    {
+      "path": "validation/validate-riscv-graphics-tool.py.gz",
+      "sha256": "12152f484fce51146906b814010d09478a02c9f640dff63094853281a72f55ec",
+      "original_sha256": "9cb87fa36e9be49c3eb9bc352b260a2398c9dd3d0bfa65368d64b9ae66876d5a",
+      "original_bytes": 1736
+    },
+    {
+      "path": "validation/run-canonical-riscv64-graphics-preparation.py.gz",
+      "sha256": "639e542bfcb47ae8d596f5f5300212de7c679f68849216b70291e3f8fc8b08c8",
+      "original_sha256": "11e822a131f33719e6b58bd6645c191ffbf74995976c4c2bdce081c71494c0ea",
+      "original_bytes": 3819
+    },
+    {
+      "path": "prepared-receipt.json.gz",
+      "sha256": "8e756337f1892f86a72ca3ac3c990303c02387237d50c86053d553fe828919a1",
+      "original_sha256": "404d75454d4b5a89e1d933d28ef2d5de5f70f3513f321de35515de7bc348dd39",
+      "original_bytes": 1484
+    },
+    {
+      "path": "graphics-probes/clg-749904-1792821328033597363/evidence.json.gz",
+      "sha256": "534a8a063c2b4a78d592111351e275af2fbe2c79cf0786566993e76efd6fb687",
+      "original_sha256": "9b02a363a67d94eb3deee8b7419266c9d694ac959b5832bda18500e954915bc1",
+      "original_bytes": 180
+    },
+    {
+      "path": "graphics-probes/clg-749904-1792821328033597363/qmp.jsonl.gz",
+      "sha256": "4e0502f9fd8243e9ee2305606b4467c639c010d337e96ea36765fb3ac9db488e",
+      "original_sha256": "dacaecc761bcc9338a1cb04e238730b6f0c6d857156d47ad9f5c5b297c3cec84",
+      "original_bytes": 9183
+    },
+    {
+      "path": "graphics-probes/clg-749904-1792821328638173504/evidence.json.gz",
+      "sha256": "534a8a063c2b4a78d592111351e275af2fbe2c79cf0786566993e76efd6fb687",
+      "original_sha256": "9b02a363a67d94eb3deee8b7419266c9d694ac959b5832bda18500e954915bc1",
+      "original_bytes": 180
+    },
+    {
+      "path": "graphics-probes/clg-749904-1792821328638173504/qmp.jsonl.gz",
+      "sha256": "f533f664956f43386f99aad67109eaebb766d4a8962311e4be8c6d31f6dd094c",
+      "original_sha256": "a79035b6beaef47bbd593703f7663741358727609fb8f1da62753e2a10dde380",
+      "original_bytes": 9183
+    },
+    {
+      "path": "graphics-probes/clg-770612-1792821334795328930/evidence.json.gz",
+      "sha256": "534a8a063c2b4a78d592111351e275af2fbe2c79cf0786566993e76efd6fb687",
+      "original_sha256": "9b02a363a67d94eb3deee8b7419266c9d694ac959b5832bda18500e954915bc1",
+      "original_bytes": 180
+    },
+    {
+      "path": "graphics-probes/clg-770612-1792821334795328930/qmp.jsonl.gz",
+      "sha256": "3233b3817534041b6aefd5e8ab1aa7bb3d21f11baaaff282844ed47197b3ebc2",
+      "original_sha256": "7d3959670bfd3cdff6089acbb0d6d1eda7b3634ee205affd57dc3f9ff44bd8bc",
+      "original_bytes": 9183
+    },
+    {
+      "path": "graphics-probes/clg-771039-1792821389423525827/evidence.json.gz",
+      "sha256": "534a8a063c2b4a78d592111351e275af2fbe2c79cf0786566993e76efd6fb687",
+      "original_sha256": "9b02a363a67d94eb3deee8b7419266c9d694ac959b5832bda18500e954915bc1",
+      "original_bytes": 180
+    },
+    {
+      "path": "graphics-probes/clg-771039-1792821389423525827/qmp.jsonl.gz",
+      "sha256": "3d890266bf67f45d3937d4c0ec015f9cc46dbf8ce1f2e1ed21673db7d9376c59",
+      "original_sha256": "1b7d47936b79001704fe10f4f294742eb09982456ef4f69d09a4f0f7e795cc40",
+      "original_bytes": 9183
+    },
+    {
+      "path": "firmware-source-review/EDK2-License.txt.gz",
+      "sha256": "bc007ba7088dbfe4a1cbb6be2734be658b205edbfeaf47b313839d5ec1ffa91b",
+      "original_sha256": "50ce20c9cfdb0e19ee34fe0a51fc0afe961f743697b068359ab2f862b494df80",
+      "original_bytes": 2732
+    },
+    {
+      "path": "firmware-source-review/EDK2-QemuBuild.py.gz",
+      "sha256": "b0be275b54b3a81e9e832e8e0042437617fbb08119396923b8e1cc76f29511a1",
+      "original_sha256": "c7d5108a20b0f34dccd0b44c6b66a6a8b63538ce5ec101d5cd72e7abfca7afce",
+      "original_bytes": 1586
+    },
+    {
+      "path": "firmware-source-review/RiscVVirtQemu.dsc.gz",
+      "sha256": "06d60cc96bd87ab3872e932a39ad4b93f791547511f433ef333ff79ee2a05cf8",
+      "original_sha256": "e029c2d8c152a76b43187ea19b28dfd8a4ced314c9fa844a48381e5521ce3ef7",
+      "original_bytes": 22775
+    },
+    {
+      "path": "firmware-source-review/ovmf-Dockerfile.gz",
+      "sha256": "fd2fbafe5cdce30ae529f7819a47f00f0de8301f082756058d7f9e33d5c02436",
+      "original_sha256": "94395fbb8bca2afda6faa582730d8af87bbd478b92a0abc6a8790c38cba736d1",
+      "original_bytes": 5698
+    },
+    {
+      "path": "firmware-source-review/ovmf-README.md.gz",
+      "sha256": "7ba7d5028ff24f05a8b3a104bc449b13515883dd7ab864d649354371aa276088",
+      "original_sha256": "680fe51cc3064899032e1f198b1994b3aaa8f51a831ae966d97cac7c77f7b4c1",
+      "original_bytes": 2046
+    },
+    {
+      "path": "firmware-source-review/review.json.gz",
+      "sha256": "3b9cb82a26e55c7e412c17881483a14aa3b64782aabe205e4869b02afc3fb0fb",
+      "original_sha256": "e601cf666329b11f18b7865c76902ebe12123f3bed00fd95bb2f50a5376bc860",
+      "original_bytes": 2133
+    },
+    {
+      "path": "firmware-source-review/source-files.json.gz",
+      "sha256": "9033bbad994b5c437f66656cfdd51c246e06b08595e05647ccd9b42f9497fb5f",
+      "original_sha256": "ae1cf4d1a705a873d2b7bbb19776e9ecdb6bc04c3ce9326a232af7f2233fd985",
+      "original_bytes": 2322
+    },
+    {
+      "path": "firmware-source-review/stock-empty-machine-control/receipt.json.gz",
+      "sha256": "8bc144b7f9a14328430dfce4a3d7046d507b576922e52a5df96cf75c547d4171",
+      "original_sha256": "46fbf91488b38aaece8360c85131f5ee6c4729ac537fe26779e559b45345d2f7",
+      "original_bytes": 773
+    },
+    {
+      "path": "firmware-source-review/stock-empty-machine-control/stderr.log.gz",
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    {
+      "path": "firmware-source-review/stock-empty-machine-control/stdout.jsonl.gz",
+      "sha256": "29ce5dcdaea8b794166ffc5ee1841a476cc0cb9970cbca12a3793cd7492b2514",
+      "original_sha256": "c11629416d5ed6c8a36235f1d30cba95097382ef5d876c64cebb16edc8cb1cd4",
+      "original_bytes": 7761
+    }
+  ]
+}

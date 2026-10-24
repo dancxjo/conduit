@@ -1,17 +1,17 @@
-# Firmware-frame comparison: three retained references
+# Firmware-frame comparison: four retained references
 
-This is partial evidence for #6057. Normal PROFILE-built x86_64, AArch64 and
-IA-32 products have real QMP captures of the same authored Crèche projection
-and checked Mask. RISC-V64 and LoongArch64 graphical frames, the complete
+This is partial evidence for #6057. Normal PROFILE-built x86_64, AArch64, IA-32 and
+RISC-V64 products have real QMP captures of the same authored Crèche projection
+and checked Mask. The LoongArch64 graphical frame, the complete
 five-architecture PNG comparison, capability matrices and persistent launcher
 remain open. This report does not establish full product parity or stable
 release acceptance.
 
-| x86_64 PC | AArch64 virt | IA-32 PC |
-| --- | --- | --- |
-| ![x86_64 Crèche](../../targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-ready.png) | ![AArch64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/creche-read-only.png) | ![IA-32 read-only Crèche](../../targets/conduitos/proof/firmware-frame/ia32-64d513075/first/creche-read-only.png) |
-| 1280×800; pitch 5120; 32 bpp; firmware RGB scanout through QEMU std VGA | 800×600; pitch 3200; 32 bpp; firmware RAM framebuffer | 1280×800; pitch 5120; 32 bpp; UEFI32 GOP through QEMU std VGA |
-| `creche-ready`, before Birth; keyboard and pointer exercised later | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable |
+| x86_64 PC | AArch64 virt | IA-32 PC | RISC-V64 virt |
+| --- | --- | --- | --- |
+| ![x86_64 Crèche](../../targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-ready.png) | ![AArch64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/creche-read-only.png) | ![IA-32 read-only Crèche](../../targets/conduitos/proof/firmware-frame/ia32-64d513075/first/creche-read-only.png) | ![RISC-V64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/creche-read-only.png) |
+| 1280×800; pitch 5120; 32 bpp; firmware RGB scanout through QEMU std VGA | 800×600; pitch 3200; 32 bpp; firmware RAM framebuffer | 1280×800; pitch 5120; 32 bpp; UEFI32 GOP through QEMU std VGA | 800×600; pitch 3200; 32 bpp; EDK2 GOP through firmware ramfb |
+| `creche-ready`, before Birth; keyboard and pointer exercised later | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable |
 
 The thumbnails may be scaled by the viewer. The underlying lossless PNGs retain
 actual dimensions. Pixel equality is neither asserted nor used as semantic proof.
@@ -25,7 +25,19 @@ mapping, cache completion, ownership, bounded rendering and negative controls.
 The IA-32 runtime source is `64d5130753466f44c0b605ad6b366d54083eeafd`;
 its [separate report](conduitos-ia32-firmware-frame.md) retains both actual
 UEFI32 boots, explicit mapping/cache custody and actual negative controls.
-Later evidence commits do not change those runtime identities.
+The RISC-V64 runtime source is `61084bb3ae35324bfb7dc2c280b37b6c60b7b00e`;
+its [separate report](conduitos-riscv64-firmware-frame.md) retains two fresh
+boots, Sv39 mapping/custody, QMP frames and negative controls. Its final collector
+source is `22f9ee6fa0d02a5aa913e75e59e268fa1173c86e`; only xtask collector files
+differ from the immutable guest image. Later evidence commits do not change
+those runtime identities.
+
+The [RISC-V independent audit](../../targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/independent-audit.json)
+joins its full ELF/ISO, source identities, PNG CRC/decoded pixels, mappings,
+eight-Base boot inventory and acknowledged Shows. Its authored projection,
+checked Mask, five Plot subjects and owner action availability equal AArch64's
+retained frame. The final captures leave this one-shot read-only guest running
+during QMP screendump; that capture policy is explicit in each receipt.
 
 The [two-architecture audit](../../targets/conduitos/proof/firmware-frame/x86_64-abd896d14/two-architecture-semantic-audit.json)
 joins the x86 checkpoint to its actual acknowledged Face and compares the retained
@@ -100,5 +112,5 @@ cargo xtask make host verify target/host-build/6057-x86-gallery-abd896d14
 The journey verifies the supplied normal product image; it never rebuilds it.
 It deliberately stops its guests. A persistent user launcher is still required
 by #6057. Remaining architecture frames must retain comparable source, machine,
-geometry, input/absence and acknowledged Show evidence. This three-architecture
+geometry, input/absence and acknowledged Show evidence. This four-architecture
 reference does not satisfy the five-architecture exit condition.

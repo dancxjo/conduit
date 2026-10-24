@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
+pub(super) mod graphics;
 const ARCHIVE: &str = "qemu-10.2.1.tar.xz";
 
 pub(super) fn build(

@@ -20,6 +20,7 @@ impl Capture {
         let product_target = match arch {
             ConduitosArch::Aarch64 => "conduitos/aarch64/virt",
             ConduitosArch::Ia32 => "conduitos/ia32/pc",
+            ConduitosArch::Riscv64 => "conduitos/riscv64/virt",
             _ => return Err(refuse("unsupported graphical capture target")),
         };
         let name = format!("{}-frame-{}-{nonce}", arch.as_str(), std::process::id());
@@ -117,6 +118,28 @@ impl Capture {
         product: &Value,
         started: std::time::Instant,
     ) -> Result<Value, ConduitosError> {
+        self.finish_with_pause(child, transcript, product, started, true)
+    }
+    /// The shared FirmwareFace prepares exactly one Show before product-ready
+    /// and exposes no repaint/input operation. Its acknowledged frame remains
+    /// stable while ordinary serial execution continues; VM stop is unnecessary.
+    pub(crate) fn finish_static(
+        &self,
+        child: &mut Child,
+        transcript: &str,
+        product: &Value,
+        started: std::time::Instant,
+    ) -> Result<Value, ConduitosError> {
+        self.finish_with_pause(child, transcript, product, started, false)
+    }
+    fn finish_with_pause(
+        &self,
+        child: &mut Child,
+        transcript: &str,
+        product: &Value,
+        started: std::time::Instant,
+        pause_guest: bool,
+    ) -> Result<Value, ConduitosError> {
         if transcript.len() > 1024 * 1024 {
             return Err(refuse("serial exceeds 1 MiB"));
         }
@@ -161,6 +184,7 @@ impl Capture {
             || face["show"]["face_revision"] != face["mask_render"]["face_revision"]
             || face["framebuffer"]["base_id"] != face["mask_render"]["display_base_id"]
             || face["local_input_available"] != false
+            || (!pause_guest && face["interactions_admitted"] != false)
         {
             return Err(refuse("graphical Sign does not match the current product"));
         }
@@ -169,12 +193,14 @@ impl Capture {
             child,
             Some(&self.directory.join("qmp.jsonl")),
         )?;
-        qmp::request(
-            &mut stream,
-            &mut reader,
-            br#"{"execute":"stop"}"#,
-            "capture-stop",
-        )?;
+        if pause_guest {
+            qmp::request(
+                &mut stream,
+                &mut reader,
+                br#"{"execute":"stop"}"#,
+                "capture-stop",
+            )?;
+        }
         let (frame, unhealthy) = qmp_display::capture(
             &mut stream,
             &mut reader,
@@ -193,18 +219,22 @@ impl Capture {
             "face":face,"mapping":mapping,"frame":frame,"directory":self.directory,
             "boot_to_capture_millis":started.elapsed().as_millis(),
             "physical_scanout_proved":false,"gpu_acceleration_proved":false,
-            "local_input_proved":false,"accepted_release":false});
+            "local_input_proved":false,"accepted_release":false,
+            "guest_paused_for_capture":pause_guest,
+            "capture_policy":if pause_guest {"paused"} else {"acknowledged-one-shot-no-local-input"}});
         fs::write(
             self.directory.join("capture.json"),
             serde_json::to_vec_pretty(&proof).map_err(|e| refuse(e.to_string()))?,
         )
         .map_err(io)?;
-        qmp::request(
-            &mut stream,
-            &mut reader,
-            br#"{"execute":"cont"}"#,
-            "capture-continue",
-        )?;
+        if pause_guest {
+            qmp::request(
+                &mut stream,
+                &mut reader,
+                br#"{"execute":"cont"}"#,
+                "capture-continue",
+            )?;
+        }
         Ok(proof)
     }
 }
