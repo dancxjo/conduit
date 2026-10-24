@@ -91,3 +91,47 @@ fn visit<'a>(
     }
     Ok(())
 }
+
+/// Bundle checking already gives Native declarations a common lexical scope.
+/// Reproduce only their exact fragments; final per-root checking still proves
+/// the extracted closure has the original expected identity and laws.
+pub(super) fn merge_documents(
+    documents: &[crate::SyntaxDocument],
+) -> Result<String, NativeLawCustodyRefusal> {
+    if documents.len() > 256 {
+        return Err(NativeLawCustodyRefusal::Capacity);
+    }
+    let mut fragments = Vec::new();
+    let mut uses = BTreeSet::new();
+    let mut length = 0usize;
+    for document in documents {
+        let mut spans = Vec::new();
+        for used in &document.uses {
+            if uses.insert((used.path.as_str(), used.alias.text.as_str())) {
+                spans.push(used.span);
+            }
+        }
+        spans.extend(document.types.iter().map(|ty| ty.span));
+        spans.sort_by_key(|span| span.start);
+        for span in spans {
+            let fragment = document
+                .round_trip()
+                .get(span.start..span.end)
+                .ok_or(NativeLawCustodyRefusal::Source)?;
+            length = length
+                .checked_add(fragment.len())
+                .and_then(|n| n.checked_add(1))
+                .ok_or(NativeLawCustodyRefusal::Capacity)?;
+            if length > MAXIMUM_BYTES {
+                return Err(NativeLawCustodyRefusal::Capacity);
+            }
+            fragments.push(fragment);
+        }
+    }
+    let mut source = String::with_capacity(length);
+    for fragment in fragments {
+        source.push_str(fragment);
+        source.push('\n');
+    }
+    Ok(source)
+}

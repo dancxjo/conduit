@@ -123,6 +123,7 @@ mod tests {
                 &owner,
                 [0; 32],
                 &super::super::source::from_document(&parsed, "main", [0; 32]),
+                None,
             )
             .unwrap();
         }
@@ -142,6 +143,7 @@ mod tests {
             &owner,
             [0; 32],
             &super::super::source::from_document(&parsed, "main", [0; 32]),
+            None,
         )
         .unwrap_err();
         assert!(failure.message.contains("128-entry"));
@@ -154,6 +156,7 @@ mod tests {
             &owner,
             [0; 32],
             &super::super::source::from_document(&parsed, "main", [0; 32]),
+            None,
         )
         .unwrap_err();
         assert!(collision.message.contains("duplicate or ambiguous"));
@@ -191,6 +194,7 @@ mod tests {
             &owner,
             [0; 32],
             &super::super::source::from_document(&parsed, "main", [0; 32]),
+            None,
         )
         .unwrap_err();
         assert!(failure.message.contains("lookup-byte"));

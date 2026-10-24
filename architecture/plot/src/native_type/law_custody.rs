@@ -8,6 +8,13 @@ use alloc::rc::Rc as Shared;
 use alloc::sync::Arc as Shared;
 use conduit_core::StructuredInfoType;
 
+pub(crate) mod family_material;
+use family_material::{verify_family, NativeFamilyWitness};
+pub use family_material::{
+    NativeFamilyAnchor, NativeFamilyMaterial, NativeFamilyMember, NativeLawContext,
+};
+mod verification;
+use verification::verify;
 mod material_preflight;
 mod root_source;
 
@@ -22,6 +29,7 @@ pub struct NativeLawMaterial {
     pub source: String,
     pub declaration: String,
     pub imports: Vec<(String, NativeLawMaterial)>,
+    pub families: Vec<(String, NativeFamilyMaterial)>,
     pub claimed: CheckedNativeType,
 }
 
@@ -30,6 +38,7 @@ pub enum NativeLawCustodyRefusal {
     Capacity,
     Source,
     UnsupportedContext,
+    MissingContext,
     DuplicateImport,
     Declaration,
     Type,
@@ -40,6 +49,7 @@ pub enum NativeLawCustodyRefusal {
 struct Module {
     source: String,
     imports: Vec<(String, NativeLawWitness)>,
+    families: Vec<(String, NativeFamilyWitness)>,
 }
 
 /// Opaque compiler-verified schema preimage and complete compiled law correspondence.
@@ -67,9 +77,43 @@ impl NativeLawWitness {
         material: &NativeLawMaterial,
         expected: &StructuredInfoType,
     ) -> Result<Self, NativeLawCustodyRefusal> {
+        Self::verify_with_context(material, expected, &NativeLawContext::default())
+    }
+    pub fn verify_with_context(
+        material: &NativeLawMaterial,
+        expected: &StructuredInfoType,
+        context: &NativeLawContext<'_>,
+    ) -> Result<Self, NativeLawCustodyRefusal> {
         material_preflight::check(material)?;
+        context.validate()?;
         let mut budget = Budget::default();
-        verify(material, expected, 0, &mut budget)
+        verify(material, expected, 0, &mut budget, context)
+    }
+    /// Obtain expected family bindings from the original opaque compiler witness,
+    /// independently of any serialized/untrusted material supplied for replay.
+    pub fn family_anchors(&self) -> Result<Vec<NativeFamilyAnchor>, NativeLawCustodyRefusal> {
+        admit_witness(self, 0, &mut Budget::default())?;
+        let mut values = BTreeMap::new();
+        self.collect_anchors(&mut values)?;
+        Ok(values.into_values().collect())
+    }
+    fn collect_anchors(
+        &self,
+        values: &mut BTreeMap<String, NativeFamilyAnchor>,
+    ) -> Result<(), NativeLawCustodyRefusal> {
+        for (_, witness) in &self.module.imports {
+            witness.collect_anchors(values)?;
+        }
+        for (_, witness) in &self.module.families {
+            witness.anchors(values)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn preparation_bounds(&self) -> Result<(usize, usize), NativeLawCustodyRefusal> {
+        let mut budget = Budget::default();
+        admit_witness(self, 0, &mut budget)?;
+        Ok((budget.modules, budget.bytes))
     }
 
     pub(crate) fn agrees(&self, checked: &CheckedNativeType) -> bool {
@@ -153,66 +197,6 @@ impl Budget {
         Ok(())
     }
 }
-fn verify(
-    material: &NativeLawMaterial,
-    expected: &StructuredInfoType,
-    depth: usize,
-    budget: &mut Budget,
-) -> Result<NativeLawWitness, NativeLawCustodyRefusal> {
-    budget.admit(&material.source, depth)?;
-    if material.imports.len() > MAXIMUM_MODULES || material.declaration.len() > 4096 {
-        return Err(NativeLawCustodyRefusal::Capacity);
-    }
-    let syntax = crate::parse_syntax_document(&material.source);
-    let required = required_imports(&syntax);
-    if required.len() != material.imports.len()
-        || !required
-            .iter()
-            .zip(&material.imports)
-            .all(|(required, (actual, _))| required == actual)
-    {
-        return Err(NativeLawCustodyRefusal::UnsupportedContext);
-    }
-    let mut catalog = StartupCatalog::new();
-    let mut imports = Vec::new();
-    let mut previous: Option<&str> = None;
-    for (name, dependency) in &material.imports {
-        if name.len() > 4096 || previous.is_some_and(|p| p >= name.as_str()) {
-            return Err(NativeLawCustodyRefusal::DuplicateImport);
-        }
-        previous = Some(name);
-        budget.charge(name.len())?;
-        let witness = verify(
-            dependency,
-            &dependency.claimed.value_type,
-            depth + 1,
-            budget,
-        )?;
-        catalog
-            .insert_checked_native_type(name.clone(), witness.checked_type())
-            .map_err(|_| NativeLawCustodyRefusal::DuplicateImport)?;
-        imports.push((name.clone(), witness));
-    }
-    let checked = check_module(&material.source, &catalog)?;
-    let actual = checked
-        .iter()
-        .find(|ty| ty.name == material.declaration)
-        .ok_or(NativeLawCustodyRefusal::Declaration)?;
-    if &actual.value_type != expected || actual.identity != material.claimed.identity {
-        return Err(NativeLawCustodyRefusal::Type);
-    }
-    if actual != &material.claimed {
-        return Err(NativeLawCustodyRefusal::Laws);
-    }
-    budget.claims(actual)?;
-    Ok(NativeLawWitness {
-        module: Shared::new(Module {
-            source: material.source.clone(),
-            imports,
-        }),
-        checked: actual.clone(),
-    })
-}
 fn check_module(
     source: &str,
     base: &StartupCatalog,
@@ -280,8 +264,16 @@ fn collect_root(
         return None;
     }
     let mut borrowed = Vec::new();
+    let mut borrowed_families = Vec::new();
     for name in required {
-        borrowed.push((name.clone(), base.native_law_witness(&name)?));
+        if let Some(witness) = base.native_law_witness(&name) {
+            borrowed.push((name, witness));
+        } else {
+            borrowed_families.push((
+                name.clone(),
+                base.native_families.get(&name)?.source_custody.as_ref()?,
+            ));
+        }
     }
     let mut budget = Budget::default();
     budget.admit(syntax.round_trip(), 0).ok()?;
@@ -291,11 +283,18 @@ fn collect_root(
         budget.charge(name.len()).ok()?;
         admit_witness(witness, 1, &mut budget).ok()?;
     }
+    for (name, witness) in &borrowed_families {
+        budget.charge(name.len()).ok()?;
+        witness.admit(1, &mut budget).ok()?;
+    }
     let mut replay = StartupCatalog::new();
     for (name, witness) in &borrowed {
         replay
             .insert_checked_native_type(name.clone(), witness.checked_type())
             .ok()?;
+    }
+    for (name, witness) in &borrowed_families {
+        witness.install(name, &mut replay).ok()?;
     }
     let rechecked = check_module(syntax.round_trip(), &replay).ok()?;
     if !rechecked.iter().any(|ty| ty == checked) {
@@ -309,6 +308,10 @@ fn collect_root(
         module: Shared::new(Module {
             source: syntax.round_trip().into(),
             imports,
+            families: borrowed_families
+                .into_iter()
+                .map(|(name, witness)| (name, witness.clone()))
+                .collect(),
         }),
         checked: checked.clone(),
     })
@@ -325,6 +328,10 @@ fn admit_witness(
     for (name, dependency) in &witness.module.imports {
         budget.charge(name.len())?;
         admit_witness(dependency, depth + 1, budget)?;
+    }
+    for (name, witness) in &witness.module.families {
+        budget.charge(name.len())?;
+        witness.admit(depth + 1, budget)?;
     }
     Ok(())
 }
@@ -369,6 +376,12 @@ fn expand_material(witness: &NativeLawWitness) -> NativeLawMaterial {
             .iter()
             .map(|(name, child)| (name.clone(), expand_material(child)))
             .collect(),
+        families: witness
+            .module
+            .families
+            .iter()
+            .map(|(name, witness)| (name.clone(), witness.material()))
+            .collect(),
         claimed: witness.checked.clone(),
     }
 }
@@ -376,3 +389,18 @@ fn expand_material(witness: &NativeLawWitness) -> NativeLawMaterial {
 #[cfg(test)]
 #[path = "law_custody/export_bounds_tests.rs"]
 mod export_bounds_tests;
+
+pub(crate) fn collect_documents(
+    documents: &[crate::SyntaxDocument],
+    base: &StartupCatalog,
+    checked: &[CheckedNativeType],
+) -> BTreeMap<String, NativeLawWitness> {
+    let Ok(source) = root_source::merge_documents(documents) else {
+        return BTreeMap::new();
+    };
+    let syntax = crate::parse_syntax_document(&source);
+    if !syntax.diagnostics.is_empty() {
+        return BTreeMap::new();
+    }
+    collect(&syntax, base, checked)
+}

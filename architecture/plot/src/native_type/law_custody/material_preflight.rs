@@ -11,7 +11,13 @@ fn visit(
     budget: &mut Budget,
 ) -> Result<(), NativeLawCustodyRefusal> {
     budget.admit(&material.source, depth)?;
-    if material.imports.len() > MAXIMUM_MODULES || material.declaration.len() > 4096 {
+    if material
+        .imports
+        .len()
+        .saturating_add(material.families.len())
+        > MAXIMUM_MODULES
+        || material.declaration.len() > 4096
+    {
         return Err(NativeLawCustodyRefusal::Capacity);
     }
     budget.charge(material.declaration.len())?;
@@ -27,6 +33,70 @@ fn visit(
         previous = Some(name);
         budget.charge(name.len())?;
         visit(dependency, depth + 1, budget)?;
+    }
+    let mut previous: Option<&str> = None;
+    for (name, family) in &material.families {
+        if name.len() > 4096 {
+            return Err(NativeLawCustodyRefusal::Capacity);
+        }
+        if previous.is_some_and(|p| p >= name.as_str())
+            || material.imports.iter().any(|(p, _)| p == name)
+        {
+            return Err(NativeLawCustodyRefusal::DuplicateImport);
+        }
+        previous = Some(name);
+        budget.charge(name.len())?;
+        visit_family(family, depth + 1, budget)?;
+    }
+    Ok(())
+}
+fn visit_family(
+    material: &NativeFamilyMaterial,
+    depth: usize,
+    budget: &mut Budget,
+) -> Result<(), NativeLawCustodyRefusal> {
+    family_material::admit_sources(
+        &material.manifest,
+        &material.members,
+        &material.exported_path,
+        depth,
+        budget,
+    )?;
+    if material
+        .imports
+        .len()
+        .saturating_add(material.families.len())
+        > MAXIMUM_MODULES
+    {
+        return Err(NativeLawCustodyRefusal::Capacity);
+    }
+    let mut previous: Option<&str> = None;
+    for member in &material.members {
+        if previous.is_some_and(|p| p >= member.path.as_str()) {
+            return Err(NativeLawCustodyRefusal::DuplicateImport);
+        }
+        previous = Some(&member.path);
+    }
+    let mut previous: Option<&str> = None;
+    for (name, dependency) in &material.imports {
+        if name.len() > 4096 || previous.is_some_and(|p| p >= name.as_str()) {
+            return Err(NativeLawCustodyRefusal::DuplicateImport);
+        }
+        previous = Some(name);
+        budget.charge(name.len())?;
+        visit(dependency, depth + 1, budget)?;
+    }
+    let mut previous: Option<&str> = None;
+    for (name, dependency) in &material.families {
+        if name.len() > 4096
+            || previous.is_some_and(|p| p >= name.as_str())
+            || material.imports.iter().any(|(p, _)| p == name)
+        {
+            return Err(NativeLawCustodyRefusal::DuplicateImport);
+        }
+        previous = Some(name);
+        budget.charge(name.len())?;
+        visit_family(dependency, depth + 1, budget)?;
     }
     Ok(())
 }

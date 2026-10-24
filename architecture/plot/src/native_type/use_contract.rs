@@ -42,15 +42,17 @@ pub(crate) fn install_import_aliases_borrowed<'a>(
                     "Type family import alias conflicts with an installed Type, Kind or typed literal family".into(),
                 ));
             }
+            let mut family = family.clone();
+            super::family::custody_budget::retain_optional(&catalog, &mut family);
             super::family::budget::validate(
                 &catalog,
-                Some((&declaration.alias.text, family)),
+                Some((&declaration.alias.text, &family)),
                 declaration.alias.span,
             )?;
             if catalog
                 .to_mut()
                 .native_families
-                .insert(declaration.alias.text.clone(), family.clone())
+                .insert(declaration.alias.text.clone(), family)
                 .is_some()
             {
                 return Err(super::diagnostic(

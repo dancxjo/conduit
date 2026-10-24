@@ -46,6 +46,7 @@ pub struct CheckedPackageBundle {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageExportCatalog {
     package_content_digest: [u8; 32],
+    native_law_bundle: Option<crate::native_type::law_custody::family_material::NativeFamilyBundle>,
     exports: BTreeMap<String, PlotSyntax>,
     type_exports: BTreeMap<String, TypeSyntax>,
     glyph_notation_exports:
@@ -349,6 +350,12 @@ impl PackageExportCatalog {
             }
         }
         Ok(Self {
+            native_law_bundle:
+                crate::native_type::law_custody::family_material::NativeFamilyBundle::capture(
+                    bundle,
+                    manifest_source,
+                    member_sources,
+                ),
             package_content_digest: bundle.package.content_digest,
             exports,
             type_exports,

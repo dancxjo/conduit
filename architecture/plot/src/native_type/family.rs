@@ -4,13 +4,16 @@ use crate::{CheckedNativeType, TypeSyntax};
 use alloc::collections::BTreeMap;
 pub(crate) mod budget;
 mod capture;
+pub(crate) mod custody_budget;
 pub(crate) mod source;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct NativeTypeFamily {
     pub(crate) root: String,
+    pub(crate) source_custody: Option<super::law_custody::family_material::NativeFamilyWitness>,
     pub(crate) templates: Vec<TypeSyntax>,
     pub(crate) dependencies: Vec<CheckedNativeType>,
+    pub(crate) dependency_custody: BTreeMap<String, crate::NativeLawWitness>,
     pub(crate) origins: BTreeMap<String, TypeSyntax>,
     pub(crate) source_origins: BTreeMap<String, source::NativeTypeSourceOrigin>,
     pub(crate) package_content_digest: [u8; 32],
@@ -24,6 +27,7 @@ pub(crate) fn install(
     owner: &crate::StartupCatalog,
     package_content_digest: [u8; 32],
     owner_origins: &BTreeMap<String, source::NativeTypeSourceOrigin>,
+    source_custody: Option<super::law_custody::family_material::NativeFamilyWitness>,
 ) -> Result<(), crate::SyntaxCheckDiagnostic> {
     if catalog.typed_literal_family(path).is_some()
         || catalog.structured_type(path).is_some()
@@ -70,14 +74,36 @@ pub(crate) fn install(
             source_origins.insert(dependency.name.clone(), origin.clone());
         }
     }
-    let family = NativeTypeFamily {
+    // Captured dependencies use the existing structured value-profile identity
+    // as their lookup identity. The witness keeps the original Native schema
+    // identity; compare exact Type (which includes that schema), contracts and
+    // programs without rewriting either established identity convention.
+    let dependency_custody = dependencies
+        .iter()
+        .filter_map(|dependency| {
+            imports
+                .catalog
+                .native_law_witness(&dependency.name)
+                .filter(|witness| {
+                    let owner = witness.checked_type();
+                    owner.value_type == dependency.value_type
+                        && owner.value_contracts == dependency.value_contracts
+                        && owner.invariants == dependency.invariants
+                })
+                .map(|witness| (dependency.name.clone(), witness.clone()))
+        })
+        .collect();
+    let mut family = NativeTypeFamily {
         root: root.name.text.clone(),
+        source_custody,
         templates,
         dependencies,
+        dependency_custody,
         origins,
         package_content_digest,
         source_origins,
     };
+    custody_budget::retain_optional(catalog, &mut family);
     budget::validate(catalog, Some((path, &family)), root.name.span)?;
     catalog.native_families.insert(path.into(), family);
     Ok(())

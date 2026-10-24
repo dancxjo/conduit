@@ -11,6 +11,7 @@ pub use expanded_provenance::ExpandedGearProvenance;
 mod startup_catalog;
 pub use crate::native_type::family::source::NativeTypeSourceOrigin;
 pub use crate::native_type::law_custody::{
+    NativeFamilyAnchor, NativeFamilyMaterial, NativeFamilyMember, NativeLawContext,
     NativeLawCustodyRefusal, NativeLawMaterial, NativeLawWitness,
 };
 use crate::prelude::*;

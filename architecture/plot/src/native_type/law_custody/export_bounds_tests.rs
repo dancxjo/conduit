@@ -13,6 +13,7 @@ fn parent(child: &NativeLawWitness, fanout: usize) -> NativeLawWitness {
         checked: child.checked.clone(),
         module: Shared::new(Module {
             source: child.module.source.clone(),
+            families: Vec::new(),
             imports: (0..fanout)
                 .map(|n| (alloc::format!("alias{n}"), child.clone()))
                 .collect(),
@@ -50,6 +51,7 @@ fn aggregate_source_bytes_refuse_even_when_each_module_is_individually_bounded()
     let mut witness = base();
     witness.module = Shared::new(Module {
         source: " ".repeat(MAXIMUM_BYTES / 2 + 1),
+        families: Vec::new(),
         imports: Vec::new(),
     });
     assert!(witness.material().is_ok());
