@@ -159,7 +159,7 @@ fn validate_mapping(proof: &Value) -> Result<(), ConduitosError> {
     let evidence = &proof["mapping"];
     let m = &evidence["mapping"];
     let f = &proof["face"]["framebuffer"];
-    let bytes = f["pitch_bytes"]
+    let bytes = f["pitch"]
         .as_u64()
         .and_then(|pitch| {
             f["height"]
@@ -206,7 +206,15 @@ mod tests {
     use super::*;
     use serde_json::json;
     fn proof() -> Value {
-        json!({"face":{"framebuffer":{"pitch_bytes":3200,"height":600}},
+        // Use the actual common producer's retained record, not a hand-written
+        // schema which can accidentally mirror a collector's mistake.
+        let bytes =
+            include_bytes!("../../../proof/firmware-frame/aarch64-f96860659/first/capture.json.gz");
+        let mut decoded = String::new();
+        std::io::Read::read_to_string(&mut flate2::read::GzDecoder::new(&bytes[..]), &mut decoded)
+            .unwrap();
+        let actual: Value = serde_json::from_str(&decoded).unwrap();
+        json!({"face":{"framebuffer":actual["face"]["framebuffer"]},
             "mapping":{"schema":"conduit.conduitos/riscv64-framebuffer-mapping@1",
                 "cache_policy":"pma-inherited-qemu-tcg-shared-ram",
                 "store_completion":"volatile-stores-fence-iorw-iorw",
