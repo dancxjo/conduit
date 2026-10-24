@@ -21,6 +21,9 @@ mod kernel;
 #[cfg(feature = "display-ready-root")]
 #[path = "display_layout.rs"]
 mod layout;
+#[cfg(feature = "display-ready-root")]
+#[path = "native_display_service.rs"]
+mod service;
 mod software {
     include!(concat!(env!("OUT_DIR"), "/display-software.rs"));
 }

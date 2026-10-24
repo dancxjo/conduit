@@ -165,3 +165,16 @@ CPU tests cover shared transition refusal/replay/cancellation and production
 boxed retirement preserving ownership before revocation. Both target profiles
 compile. These checks do not prove full Body installation, physical lifecycle
 commands, continuing execution, sensor-to-Mask integration or recording.
+
+`DisplayService` now services one ordinary-kernel-selected Host Call using the
+retained selectors or native driver. Taking a request creates a non-cloneable,
+single-use pending token; completion preserves its node/request correlation and
+machine-readable denied/cancelled/failed outcomes. Failed completion discards
+any uncommitted output value. This adapter advances no scheduler Step and owns
+no page policy, timing or Fore admission.
+
+The existing fixed, hosted and compact output CPU proofs now use this production
+service while retaining exact packet assertions, successive frames, semantic
+brightness refusal and cancellation checks. All eleven display tests pass,
+including zero allocation during Play and no pin effects after cancellation.
+The ESP32 profile compiles. Background execution and Release remain unconnected.

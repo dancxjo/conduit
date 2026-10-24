@@ -98,9 +98,18 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
     let mut drained = false;
     let ((), memory) = crate::allocation_probe::observe(|| {
         for _ in 0..100 {
-            if let Some(request) = execution.kernel.next_host_request() {
+            let pending = native_service::DisplayService {
+                kernel: &mut execution.kernel,
+                selectors: &mut execution.selectors,
+                write: execution.write,
+                owner: &mut owner,
+            }
+            .take();
+            if let Some(pending) = pending {
+                let request = pending.request();
                 let bytes = execution.kernel.host_value(request.input.value).unwrap();
-                let output = if request.node == execution.write {
+                let writing = request.node == execution.write;
+                if writing {
                     assert_eq!(
                         bytes,
                         if writes == 0 {
@@ -124,11 +133,28 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
                                 }
                             )
                             .is_err());
+                        assert!(native_service::DisplayService {
+                            kernel: &mut execution.kernel,
+                            selectors: &mut execution.selectors,
+                            write: execution.write,
+                            owner: &mut owner,
+                        }
+                        .service(pending, || false)
+                        .is_err());
                         break;
                     }
-                    owner
-                        .invoke(request.node, request.call, request.request, bytes, || false)
-                        .unwrap();
+                }
+                let report = native_service::DisplayService {
+                    kernel: &mut execution.kernel,
+                    selectors: &mut execution.selectors,
+                    write: execution.write,
+                    owner: &mut owner,
+                }
+                .service(pending, || false)
+                .unwrap();
+                assert_eq!(report.request, request);
+                assert_eq!(report.failure, None);
+                if writing {
                     writes += 1;
                     if mode == 0 && writes == 1 {
                         execution.input.validate_value(&second_frame).unwrap();
@@ -149,31 +175,7 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
                             .close_remote_input(execution.input.endpoint, execution.input.cord)
                             .unwrap();
                     }
-                    None
-                } else {
-                    let selector = execution.selectors[usize::from(request.node.0)]
-                        .as_mut()
-                        .expect("exact selected selector");
-                    selector.select(bytes).unwrap().map(|value| {
-                        k::BoundedValueRef::new(
-                            execution.kernel.store_host_value(value).unwrap(),
-                            1024,
-                        )
-                        .unwrap()
-                    })
-                };
-                execution
-                    .kernel
-                    .complete_host_call(
-                        request.node,
-                        request.request,
-                        k::HostCallOutcome {
-                            disposition: k::HostCallDisposition::Completed,
-                            output,
-                            failure: None,
-                        },
-                    )
-                    .unwrap();
+                }
             }
             if let Some(offer) = execution
                 .kernel
@@ -344,3 +346,6 @@ fn admitted_storage_refusals_precede_software_transfer() {
         }
     }
 }
+
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_display_service.rs"]
+mod native_service;
