@@ -1,0 +1,133 @@
+{
+  "status": "pass",
+  "concrete_mismatches": [],
+  "source": "a6353d7f189358c159bd718092cf2fa53b0aef4a",
+  "manifest_files_verified": 37,
+  "no_unmanifested_files": true,
+  "sealed_artifacts_raw_roundtrip": [
+    {
+      "name": "workbench",
+      "raw_bytes": 113303608,
+      "sha256": "43947a067c0b16ddc01f6c0afb8064652f1ac789ab9c6be9ab9789c115a27707"
+    },
+    {
+      "name": "browser-wasm",
+      "raw_bytes": 18884793,
+      "sha256": "a58301a9c2213e67348eb523f689e8f807f7528091d8501a6e0676273fc99aba"
+    }
+  ],
+  "minimal_current_action_joins": [
+    {
+      "intent": "open",
+      "action_id": "action/open/0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6",
+      "input_face_id": "d1be9ba7905d737dc7a15d5cc6acbaf89d14e636a8b76ccc1a50c80337df4b43",
+      "input_face_revision": 2,
+      "output_face_id": "15c7325015960680334bf277809b0cc7f3f4c090ab8cfc1b7a2d2d45d0c2b560",
+      "output_face_revision": 3
+    },
+    {
+      "intent": "birth",
+      "action_id": "action/birth/0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6",
+      "input_face_id": "15c7325015960680334bf277809b0cc7f3f4c090ab8cfc1b7a2d2d45d0c2b560",
+      "input_face_revision": 3,
+      "output_face_id": "20ca241b4e29fe94d236b047187d8f0f8333e0b5cf893a227fb813ca1c6bd61c",
+      "output_face_revision": 4
+    },
+    {
+      "intent": "wake",
+      "action_id": "action/wake/54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e",
+      "input_face_id": "20ca241b4e29fe94d236b047187d8f0f8333e0b5cf893a227fb813ca1c6bd61c",
+      "input_face_revision": 4,
+      "output_face_id": "eeaf811acaa141bd0c80fef7096d963ef19ce67c8d6d775d7a6b195092ca93d5",
+      "output_face_revision": 5
+    },
+    {
+      "intent": "plan",
+      "action_id": "action/plan/54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e",
+      "input_face_id": "eeaf811acaa141bd0c80fef7096d963ef19ce67c8d6d775d7a6b195092ca93d5",
+      "input_face_revision": 5,
+      "output_face_id": "961c1e7e622e051c8608252a9cf7c2bb3961b56e0b6a36725d396aa6c26a2038",
+      "output_face_revision": 6
+    },
+    {
+      "intent": "play",
+      "action_id": "action/play/54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e",
+      "input_face_id": "961c1e7e622e051c8608252a9cf7c2bb3961b56e0b6a36725d396aa6c26a2038",
+      "input_face_revision": 6,
+      "output_face_id": "24bee8a67b684730a3fb3c591504bad8e3f759becf90f9d19c892fb192906d89",
+      "output_face_revision": 7
+    }
+  ],
+  "minimal_current_basis": {
+    "body_id": "7923169b83ab37d9cc532c79f80cbd52f9f2f14ef914aeb6948a2a03f138e563",
+    "wake_id": "84632377779d3d0db628f1c176d6c0844caefa64832b71a8a98b3dc615515398",
+    "source_document_id": "efa410919b8b47b292e88b6b3d2a1d7f7a58301b33cc8367fb7b453a0c9af90f",
+    "checked_plot_id": "0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6",
+    "expanded_plot_id": "54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e",
+    "plan_id": "8bd58d75894be0116d664d42f833ee02123589507c0ae2ddddb78a5e36455ea9",
+    "active_play_id": "c9398deedf7b188d41abfed343bfe006c6a0c46c7a86b2e91c78247a3e9ba048",
+    "sign_ids": [
+      "0b75b7e07b88a305b88524179f65dacbfe43d4f3289ead9550d66e23f9272fe4",
+      "9bbf145c716a7b9dc517a6d741a5ad292bfc59242cab429d625a8e1a57e6f2e6",
+      "patchbay-lifecycle/patchbay-boot/18e19356ed8ae245/0",
+      "patchbay-lifecycle/patchbay-boot/18e19356ed8ae245/1",
+      "patchbay/front-door/born/3/host-boot/69bdeebde4389742c3f27babf450663e992f78c3bec1a7db17f0e49459b34285",
+      "patchbay/front-door/born/host/3",
+      "patchbay/front-door/born/part/3",
+      "patchbay/front-door/planned/5",
+      "patchbay/front-door/playing/6",
+      "patchbay/front-door/woke/4"
+    ]
+  },
+  "minimal_source_exact": true,
+  "minimal_gears": 4,
+  "browser_gears": 9,
+  "browser_current_face_id": "2bf0750d8ea3d1d8b4becf3874b430af069878a6b1a3198fdb20dca55656891b",
+  "browser_basis": {
+    "body_id": "75d3d37a8981b4e923489da34bf435d62aea13d7d82cb0b733b24bccfb9c300c",
+    "wake_id": "d782c4b4891b3b7863ace52f1bf62ecf858033611e72b49c824539b351fe9e71",
+    "source_document_id": "c8e566e1288207047d185f21b5b6a58c62327c43420d6f3062cbb0ec960dce40",
+    "checked_plot_id": "de008d9eb23a2b9a8fe3a7e787e4f5a0ee5d52a0d24602a55ba50e58f80691ca",
+    "expanded_plot_id": "0f29ea92bafc2ce46d145db39c03ead0e320dc1dd19e4ab357f27e326cd1c446",
+    "plan_id": "d3b21d96af04fecf4be34e9299cc677e57a4ddd6e4718745a52b2c170f507cc9",
+    "active_play_id": "4cfbde55f5e269a87d930ba6e9f54e5e9d589b11a0fa65247794b92fa77e28b8",
+    "sign_ids": [
+      "600524aebc09e12a6ecc25907fef62ecd8dd2e58cb3b0c66c59aeba8903c56a6",
+      "a7ae074be9459cadf84f14cfd2ecb4b191027d962c08a9a5ef3e8cee633735e2",
+      "patchbay-lifecycle/patchbay-boot/18e193679ee8d48f/0",
+      "patchbay-lifecycle/patchbay-boot/18e193679ee8d48f/1",
+      "patchbay/front-door/born/3/host-boot/1b5557d3f9d5a375a334c1843e9918c21d9cca062aff52c09f516951d7da28a8",
+      "patchbay/front-door/born/host/3",
+      "patchbay/front-door/born/part/3",
+      "patchbay/front-door/planned/5",
+      "patchbay/front-door/playing/6",
+      "patchbay/front-door/woke/4"
+    ]
+  },
+  "browser_result": {
+    "expected": 1,
+    "unexpected": 0,
+    "flaky": 0,
+    "workers": 1,
+    "retries": 0,
+    "actual_attempts": 1,
+    "test_duration_ms": 40805,
+    "total_duration_ms": 41394.522
+  },
+  "original_spec_assertions_byte_identical": true,
+  "spec_only_addition": "Passive response observer and afterEach metadata output, no original assertions modified",
+  "screenshot": {
+    "sha256": "fdd6a8f2847620356cbabe66d311831a111037008b124b62ececd0e150e4de19",
+    "geometry": [
+      1440,
+      1100
+    ]
+  },
+  "negative_attempts": "Wrong first-action helper refusal and observer cache-eviction failure separately retained; no-tests grep is discovery-only, not product execution/failure",
+  "wasm_boundary": "Browser HTTP200 request metadata plus independent GET of same served URL matches built/sealed WASM bytehash. This is not an instruction-execution proof. Hosted lifecycle uses actual current workbench kernel.",
+  "scope_gaps": [
+    "Focused local proof only; Candidate/Integration, public delivery and issue closure remain separate gates.",
+    "No native/physical/full-GUI-parent acceptance inferred."
+  ],
+  "read_only": "No Source/cache/GH mutations or builds; only requested audit output written."
+}
