@@ -1,0 +1,4 @@
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/semantics/time)
+    Checking conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/make/embedded-build)
+    Checking conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/mechanisms/io/monotonic-wait)
+    Finished `dev` profile [unoptimized] target(s) in 1.92s

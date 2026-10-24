@@ -1,0 +1,118 @@
+{
+  "source_head": "1d62af38d72b6a7117c30554d7d9af5562278066",
+  "combined_base": "415b845831a15fec06ae4a6fb5f940c1f4a51797",
+  "combined_parents": [
+    "66be635986037d7788aa85b3a25e367e7e7f312a",
+    "dd3cdb41f7a0320658e0c5c00d458db32e5adf56"
+  ],
+  "production_source_correspondence": {
+    "architecture": {
+      "source_tree": "a7a03c9b996f06f18ec0bfb92fd11eb36bbf4046",
+      "combined_base_tree": "a7a03c9b996f06f18ec0bfb92fd11eb36bbf4046"
+    },
+    "mechanisms/io/pulse-capture/src": {
+      "source_tree": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "combined_base_tree": "e04b6416a512e42be10b74d12be776c7c30e44ab"
+    },
+    "mechanisms/io/monotonic-wait/src": {
+      "source_tree": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "combined_base_tree": "91dd2e07858a32859e47c9214ebee76331b789c8"
+    }
+  },
+  "changed_files_from_combined_base": [
+    "mechanisms/io/monotonic-wait/tests/support/exhausted_retirement.rs",
+    "mechanisms/io/monotonic-wait/tests/wait_owner.rs",
+    "mechanisms/io/pulse-capture/tests/pulse_owner.rs",
+    "mechanisms/io/pulse-capture/tests/support/exhausted_retirement.rs",
+    "mechanisms/io/pulse-capture/tests/support/owner_fixture.rs"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "mechanisms/io/pulse-capture/Cargo.toml",
+        "--features",
+        "host-call"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "<private>/6346-generic-binding-target",
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_PROFILE_DEV_DEBUG": "0"
+      }
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "mechanisms/io/pulse-capture/Cargo.toml",
+        "--features",
+        "host-call",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "<private>/6346-generic-binding-target",
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_PROFILE_DEV_DEBUG": "0"
+      }
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "mechanisms/io/monotonic-wait/Cargo.toml"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "<private>/6346-generic-binding-target",
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_PROFILE_DEV_DEBUG": "0"
+      }
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "mechanisms/io/monotonic-wait/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "<private>/6346-generic-binding-target",
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_PROFILE_DEV_DEBUG": "0"
+      }
+    }
+  ],
+  "results": {
+    "pulse_tests": "12 passed (2 unit + 2 assigned + 6 owner + 2 source contract)",
+    "timer_tests": "12 passed (including 2 generic binder tests)",
+    "pulse_clippy": "all-targets strict passed",
+    "timer_clippy": "all-targets strict passed"
+  },
+  "scope": "CPU contract only: real finite one-operation exhaustion, refusal preserving owner, explicit revocation, exact provider/attachment recovery once, zero allocations/reallocations. No physical installation, rearming, subsequent Play, CI/stable acceptance or full issue closure claim.",
+  "negative_fixture_failures": [],
+  "cache": "Verified inactive private 6346-generic-binding-target reused; other agent caches preserved. Disk26GiB and available RAM42GiB at start; disk23GiB at end.",
+  "raw_logs_sha256": {
+    "6334-timer-tests.log": "b48cb6124ef1e64b286b595279fd6cc3edebae4ede72437a0e04e149e844537e",
+    "6334-pulse-tests.log": "070fa4736fc5669e532e3dad9fb88d9f48906be9f5305e4f77955faace0b13dc",
+    "6334-timer-clippy.log": "2e42d8c041875806a1121c91804f17e4c18e6d5a894d3e81c636b5719d151fce",
+    "6334-pulse-clippy.log": "e9b4b53ed9e8409a7b8131c6cea15e35e98c23edd334f3c3d245cfa46e58a4d9"
+  }
+}

@@ -1,0 +1,7 @@
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/architecture/assigned-plan)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/mechanisms/io/pulse-capture)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/architecture/kernel)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/architecture/plan-lowering)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6334-combined-retirement/architecture/plot)
+    Finished `dev` profile [unoptimized] target(s) in 11.04s
