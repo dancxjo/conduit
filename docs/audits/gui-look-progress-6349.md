@@ -487,3 +487,14 @@ pointer, preserving exact server navigation and the Face through narrow reflow.
 [Source-bound captures, negative transition evidence and limits](evidence/gui-look-6349-dynamic-icons/README.md).
 The workbench capture is documentary-fixture browser evidence. Direct keyboard
 Port selection, canonical cross-component Looks and native acceptance remain open.
+
+## Native-button Port selection in browser Patchbay
+
+The direct keyboard Port gap is repaired: labeled native buttons share the exact
+selection handler with pointer input, retain separate connection handles and
+expose server-derived pressed state. Tab entry, Enter/Space and exactly one
+request per activation are verified. All fourteen graph/HTML/inspection checks
+pass. [Current captures, source and proof boundaries](evidence/gui-look-6349-port-keyboard/README.md).
+Canvas zoom scales target geometry; 44 CSS-pixel minima are not a claim of 44
+physical pixels at every Fit scale. Native, Quantity runtime and canonical
+cross-component Look acceptance remain open.
