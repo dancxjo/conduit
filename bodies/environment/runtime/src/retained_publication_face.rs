@@ -1,7 +1,6 @@
 //! Retained semantic state for one admitted local publication stream. This is a
 //! Face owner, not another sensor, scheduler, recorder or source of authority.
-use crate::publication::{PublicationChannel as Channel, PublicationContract, PublicationSnapshot};
-use conduit_core::PreparedStructuredValueValidator;
+use crate::publication::PublicationSnapshot;
 use conduit_environment_face::{PreparedObservationFace, PublicationRefusal};
 use conduit_face::{Face, FaceBasis};
 
@@ -13,11 +12,24 @@ pub enum RetainedPublicationRefusal {
     Structured(conduit_core::StructuredInfoRefusal),
     Publication(PublicationRefusal),
 }
-/// All channel validation and Face storage are prepared before Play. Root still
+impl RetainedPublicationRefusal {
+    pub const fn code(&self) -> &'static str {
+        use RetainedPublicationRefusal as E;
+        match self {
+            E::MissingExecutionBasis => "basis",
+            E::Sequence { .. } => "sequence",
+            E::SequenceExhausted => "sequence-exhausted",
+            E::Structured(_) => "structured",
+            E::Publication(PublicationRefusal::ClockReversed) => "clock-reversed",
+            E::Publication(PublicationRefusal::Exhausted) => "exhausted",
+            E::Publication(_) => "publication",
+        }
+    }
+}
+/// Channel Types are linked; all mutable Face storage is prepared before Play. Root still
 /// supplies its actual admitted basis, publication limit, clock and age policy.
 /// Retaining claimed IDs alone establishes neither admission nor membership.
 pub struct RetainedPublicationFace {
-    validators: [PreparedStructuredValueValidator; 4],
     face: PreparedObservationFace,
     last_sequence: u64,
 }
@@ -37,23 +49,7 @@ impl RetainedPublicationFace {
         {
             return Err(E::MissingExecutionBasis);
         }
-        let validator = |channel: Channel| {
-            PublicationContract::prepare(channel)
-                .and_then(|contract| {
-                    PreparedStructuredValueValidator::new(
-                        contract.value_type(),
-                        channel.maximum_bytes(),
-                    )
-                })
-                .map_err(E::Structured)
-        };
         Ok(Self {
-            validators: [
-                validator(Channel::Reading)?,
-                validator(Channel::CaptureTimeout)?,
-                validator(Channel::ProviderFailure)?,
-                validator(Channel::GeometryRefusal)?,
-            ],
             face: PreparedObservationFace::prepare_observed(
                 basis,
                 maximum_publications,
@@ -82,8 +78,9 @@ impl RetainedPublicationFace {
                 actual: snapshot.sequence,
             });
         }
-        self.validators[snapshot.channel.index()]
-            .validate(snapshot.canonical)
+        snapshot
+            .channel
+            .validate_value(snapshot.canonical)
             .map_err(E::Structured)?;
         self.face
             .publish_result(snapshot.channel.index(), snapshot.canonical, committed_ms)

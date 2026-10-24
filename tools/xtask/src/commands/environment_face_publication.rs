@@ -12,6 +12,8 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
             "face-projection",
             "--test",
             "retained_publication_face",
+            "--test",
+            "publication_validation",
         ]);
         if operation == "clippy" {
             command.args(["--", "-D", "warnings"]);
