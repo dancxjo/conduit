@@ -1,0 +1,85 @@
+# Finite preparation profile for #5680. All times are exact elapsed seconds.
+# The neighboring durations come from the same opaque selected-intent owner;
+# this numerical admission does not select phones or establish that custody.
+# No frame count, sample rate, clock mapping or renderer coefficient occurs here.
+type SpeechPhoneGestureTiming = {
+    start: AudioExactTimeOffset
+    duration: SpeechExactDuration
+    previous: SpeechExactDuration?
+    next: SpeechExactDuration?
+    where .start.numerator_seconds <= 65535
+    where .start.denominator <= 65535
+    where .duration.numerator_seconds > 0 && .duration.numerator_seconds <= 65535
+    where .duration.denominator == .start.denominator
+    where .previous is some ? .previous.some.numerator_seconds > 0 && .previous.some.numerator_seconds <= .start.numerator_seconds && .previous.some.denominator == .start.denominator : true
+    where .next is some ? .next.some.numerator_seconds > 0 && .next.some.numerator_seconds <= 65535 && .next.some.denominator == .start.denominator : true
+}
+
+# A common factor of twenty retains quarter-overlap and fifth-stop phases
+# exactly, including the original denominator. All arithmetic stays below 2^22
+# for the admitted profile. This is not a normalization or timing inference.
+# Source arithmetic is a distinct raw result. Generated Native constructors
+# admit its exact fields to Audio times and the phase laws during preparation.
+# Pure expression construction cannot mint a refined Native witness.
+type SpeechPhoneGestureRawPhases = {
+    denominator: U64
+    leading_start: U64
+    leading_end: U64
+    trailing_start: U64
+    trailing_end: U64
+    nominal_start: U64
+    nominal_end: U64
+    closure_end: U64
+    release_end: U64
+}
+
+type SpeechPhoneGesturePhases = {
+    leading_start: AudioExactTimeOffset
+    leading_end: AudioExactTimeOffset
+    trailing_start: AudioExactTimeOffset
+    trailing_end: AudioExactTimeOffset
+    nominal_start: AudioExactTimeOffset
+    nominal_end: AudioExactTimeOffset
+    closure_end: AudioExactTimeOffset
+    release_end: AudioExactTimeOffset
+    where .leading_start.denominator == .leading_end.denominator
+    where .leading_start.denominator == .trailing_start.denominator
+    where .leading_start.denominator == .trailing_end.denominator
+    where .leading_start.denominator == .nominal_start.denominator
+    where .leading_start.denominator == .nominal_end.denominator
+    where .leading_start.denominator == .closure_end.denominator
+    where .leading_start.denominator == .release_end.denominator
+    where .leading_start.numerator_seconds <= .nominal_start.numerator_seconds
+    where .leading_start.numerator_seconds < .leading_end.numerator_seconds
+    where .leading_end.numerator_seconds < .trailing_start.numerator_seconds
+    where .trailing_start.numerator_seconds < .trailing_end.numerator_seconds
+    where .nominal_end.numerator_seconds <= .trailing_end.numerator_seconds
+    where .nominal_start.numerator_seconds < .closure_end.numerator_seconds
+    where .closure_end.numerator_seconds < .release_end.numerator_seconds
+    where .release_end.numerator_seconds < .nominal_end.numerator_seconds
+}
+
+# Adjacent phones share the entire interpolation interval and both endpoints:
+# the preceding trailing interval equals this leading interval, even when their
+# durations differ. Thus overlap is a shared transition, not two phone boxes.
+plot speech/phone-gesture-phases (
+    >> value: SpeechPhoneGestureTiming
+    result: SpeechPhoneGestureRawPhases >>
+) = ({ denominator: .start.denominator * 20, leading_start: .start.numerator_seconds * 20 - (.previous is some ? .previous.some.numerator_seconds * 5 : 0), leading_end: .start.numerator_seconds * 20 + .duration.numerator_seconds * 5, trailing_start: .start.numerator_seconds * 20 + .duration.numerator_seconds * 15, trailing_end: .start.numerator_seconds * 20 + .duration.numerator_seconds * 20 + (.next is some ? .next.some.numerator_seconds * 5 : 0), nominal_start: .start.numerator_seconds * 20, nominal_end: .start.numerator_seconds * 20 + .duration.numerator_seconds * 20, closure_end: .start.numerator_seconds * 20 + .duration.numerator_seconds * 12, release_end: .start.numerator_seconds * 20 + .duration.numerator_seconds * 16 })
+
+# The same Source curve carries a declared Audio quantity domain. The generic
+# Audio trajectory entrance still checks ordering, unit-domain agreement,
+# interpolation and arithmetic eligibility before evaluation.
+type SpeechPhoneGestureCurve = {
+    anchor: AudioTrajectoryAnchor
+    provenance: AudioTrajectoryProvenance
+    phases: SpeechPhoneGesturePhases
+    previous: AudioTrajectoryQuantity
+    current: AudioTrajectoryQuantity
+    next: AudioTrajectoryQuantity
+    where .current is frequency ? .previous is frequency && .next is frequency : .current is amplitude && .previous is amplitude && .next is amplitude
+}
+plot speech/phone-gesture-curve (
+    >> value: SpeechPhoneGestureCurve
+    result: AudioQuantityTrajectory >>
+) = ({ anchor: .anchor, provenance: .provenance, segments: [ {start: .phases.leading_start, end: .phases.leading_end, left: .previous, right: .current, interpolation: AudioTrajectoryInterpolation.linear}, {start: .phases.leading_end, end: .phases.trailing_start, left: .current, right: .current, interpolation: AudioTrajectoryInterpolation.step}, {start: .phases.trailing_start, end: .phases.trailing_end, left: .current, right: .next, interpolation: AudioTrajectoryInterpolation.linear} ], outside: AudioTrajectoryOutside.refuse, endpoints: AudioTrajectoryEndpoints.right_continuous_final_included })

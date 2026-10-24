@@ -48,6 +48,7 @@ fn main() {
         "acoustic_scoped_energy.conduit",
         "fundamental.conduit",
         "linguistic_rate.conduit",
+        "phone_gestures.conduit",
         "build_support/linguistic_rate_program.rs",
         "ipa.conduit",
         "ipa_syntax.conduit",
