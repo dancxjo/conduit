@@ -18,6 +18,5 @@ The upstream SVGs are copied unchanged from Lucide commit
 The mapping generator and native raster generator both reproduce exactly.
 
 Local checks: four shared vocabulary tests, 107 Chromium owner-component tests,
-and three Face composition tests pass. Native scene validation is recorded below
-once complete. No CI, current-source QEMU, release publication or issue closure
+and three Face composition tests pass. Three native semantic-icon tests also pass, including bounded page layout. No CI, current-source QEMU, release publication or issue closure
 is claimed by this evidence.
