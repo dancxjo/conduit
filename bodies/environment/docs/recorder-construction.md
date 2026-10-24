@@ -29,6 +29,22 @@ authority, Body identity, installation and restart evidence still required. The
 reference carries no residence, grants, current Host/Boot or authenticity proof.
 This Source preparation does not yet install or persist the recorder seed.
 
+`compile_checkpoint` checks [`catalog-checkpoint.conduit`](../profiles/catalog-checkpoint.conduit)
+for one exact portable catalog reference. Its only input is JSON text: the
+ordinary snapshot publication's returned `ResourceRef` passes through a checked
+`some` expression into the same Body-lived seed. There is no externally supplied
+reference-update port in this view. Root must first validate the catalog content
+and admit the prior chunk publications, exact storage/authority and queue limits.
+The focused seed proof checks the actual expanded cords, evaluates the portable
+optional constructor with a real encoded reference, preserves the read-only
+view's State identity, and rejects incompatible or oversized references.
+
+This establishes checked composition and pure representation, not executed
+publication-to-seed ordering. The existing std installed profile has no generic
+Linux snapshot executor yet. Connecting its exact prepared file operation to
+ordinary Host Calls, and proving failed publication leaves the previous seed
+unchanged, remain required before using this view as the recorder checkpoint.
+
 `compile_read_only` checks the separate read-only authored view with the same
 Body/State path and exact value type. It exposes current State without a write
 Fore, so observing recovery cannot submit a replacement value. The State remains
