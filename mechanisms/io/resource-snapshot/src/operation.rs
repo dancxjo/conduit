@@ -116,10 +116,17 @@ impl PreparedSnapshotOperation {
         self.check_pending(request)?;
         match (self.publish, result?) {
             (true, None) => Ok(&self.reference),
-            (false, Some(record)) => self
-                .record
-                .restore(&self.authority, record)
-                .map_err(snapshot_failure),
+            (false, Some(record)) => {
+                let content = self
+                    .record
+                    .restore(&self.authority, record)
+                    .map_err(snapshot_failure)?;
+                conduit_web::validate_json_text(content).map_err(|_| Failure {
+                    code: FailureCode::HostCallFailed,
+                    detail: 214,
+                })?;
+                Ok(content)
+            }
             _ => Err(Failure {
                 code: FailureCode::HostCallFailed,
                 detail: 209,

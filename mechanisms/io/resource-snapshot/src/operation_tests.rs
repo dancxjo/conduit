@@ -133,3 +133,21 @@ fn invalid_json_or_reference_cannot_begin_storage() {
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }
+
+#[test]
+fn valid_record_hash_cannot_turn_invalid_json_into_a_typed_read_completion() {
+    let (placement, reference) = super::super::tests::placement("boot/old", true, 2);
+    let mut opaque = PreparedSnapshotRecord::prepare(&placement, &reference).unwrap();
+    let bytes = opaque.publication(&placement.authority[0], b"xx").unwrap();
+    let (mut reader, reference) = prepare(false, 2, "boot/new");
+    let request = request(1, reference.len(), false);
+    reader.begin(request, &reference).unwrap();
+    assert_eq!(
+        reader.completion(request, Ok(Some(bytes))),
+        Err(Failure {
+            code: FailureCode::HostCallFailed,
+            detail: 214,
+        })
+    );
+    reader.finish(request).unwrap();
+}
