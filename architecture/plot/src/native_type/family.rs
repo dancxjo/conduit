@@ -19,15 +19,20 @@ pub(crate) struct NativeTypeFamily {
     pub(crate) package_content_digest: [u8; 32],
 }
 
+/// Original checked package context captured at family installation.
+pub(crate) struct SourceContext<'a> {
+    pub(crate) package_content_digest: [u8; 32],
+    pub(crate) origins: &'a BTreeMap<String, source::NativeTypeSourceOrigin>,
+    pub(crate) custody: Option<super::law_custody::family_material::NativeFamilyWitness>,
+}
+
 pub(crate) fn install(
     catalog: &mut crate::StartupCatalog,
     path: &str,
     root: &TypeSyntax,
     declarations: &[TypeSyntax],
     owner: &crate::StartupCatalog,
-    package_content_digest: [u8; 32],
-    owner_origins: &BTreeMap<String, source::NativeTypeSourceOrigin>,
-    source_custody: Option<super::law_custody::family_material::NativeFamilyWitness>,
+    source: SourceContext<'_>,
 ) -> Result<(), crate::SyntaxCheckDiagnostic> {
     if catalog.typed_literal_family(path).is_some()
         || catalog.structured_type(path).is_some()
@@ -53,7 +58,7 @@ pub(crate) fn install(
     let mut origins = imports.origins;
     let mut source_origins = imports.source_origins;
     for declaration in &selected {
-        let origin = owner_origins.get(&declaration.name.text).ok_or_else(|| {
+        let origin = source.origins.get(&declaration.name.text).ok_or_else(|| {
             super::diagnostic(
                 declaration.name.span,
                 "checked family owner module provenance is missing".into(),
@@ -95,12 +100,12 @@ pub(crate) fn install(
         .collect();
     let mut family = NativeTypeFamily {
         root: root.name.text.clone(),
-        source_custody,
+        source_custody: source.custody,
         templates,
         dependencies,
         dependency_custody,
         origins,
-        package_content_digest,
+        package_content_digest: source.package_content_digest,
         source_origins,
     };
     custody_budget::retain_optional(catalog, &mut family);

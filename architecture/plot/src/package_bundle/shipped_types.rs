@@ -60,12 +60,14 @@ impl PackageExportCatalog {
                     syntax,
                     &self.type_definitions,
                     &owner,
-                    self.package_content_digest,
-                    &self.type_origins,
-                    if capture {
-                        self.native_law_bundle.as_ref().and_then(|bundle| crate::native_type::law_custody::family_material::NativeFamilyWitness::capture(bundle, source_path, &aliased))
-                    } else {
-                        None
+                    crate::native_type::family::SourceContext {
+                        package_content_digest: self.package_content_digest,
+                        origins: &self.type_origins,
+                        custody: if capture {
+                            self.native_law_bundle.as_ref().and_then(|bundle| crate::native_type::law_custody::family_material::NativeFamilyWitness::capture(bundle, source_path, &aliased))
+                        } else {
+                            None
+                        },
                     },
                 )?;
                 continue;

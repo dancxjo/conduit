@@ -20,8 +20,7 @@ pub(super) fn verify(
         .map(|(name, _)| name)
         .chain(material.families.iter().map(|(name, _)| name))
         .collect::<alloc::collections::BTreeSet<_>>();
-    if names.len() != material.imports.len() + material.families.len()
-        || required.iter().ne(names.into_iter())
+    if names.len() != material.imports.len() + material.families.len() || required.iter().ne(names)
     {
         return Err(NativeLawCustodyRefusal::UnsupportedContext);
     }

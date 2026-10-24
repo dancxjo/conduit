@@ -300,7 +300,7 @@ pub(super) fn verify_family(
         .chain(material.families.iter().map(|(name, _)| name))
         .collect::<alloc::collections::BTreeSet<_>>();
     if names.len() != material.imports.len() + material.families.len()
-        || required_imports(&syntax).iter().ne(names.into_iter())
+        || required_imports(&syntax).iter().ne(names)
     {
         return Err(NativeLawCustodyRefusal::UnsupportedContext);
     }
