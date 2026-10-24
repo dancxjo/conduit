@@ -1,0 +1,115 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "branch": "evidence/6318-authoritative-caller-route-20261024",
+  "scope": "Source-derived implementation prerequisite and proof plan only",
+  "source_blobs": {
+    "targets/conduitos/src/native_workset/planning.rs": "36255a72646abf109bd105ba411e770586957a82",
+    "targets/conduitos/src/native_workset/patchbay_ingress.rs": "1fdd04d87bf49ceb3e06cb5046a8349caff9ca91",
+    "targets/conduitos/src/native_workset/play/preparation.rs": "7cdfd0fdee0dff1873814f03c8407786a6dd1f99",
+    "targets/conduitos/src/native_workset/play.rs": "5d7160837799f90ec68357d69532e8217f956a13",
+    "targets/conduitos/src/native_workset/play/patchbay.rs": "b4ef0c9567e5f853bf984b1564bf69700acd5885",
+    "targets/conduitos/src/native_workset/application_delivery.rs": "5543a1dee02cbcdf93c8910f36cd46e1ca914f61",
+    "targets/conduitos/src/ordinary_plan.rs": "9e5c524ca9132495badd41d9f508f84d08620fa9",
+    "targets/conduitos/src/offer.rs": "b5a23f4afe129a2c04f478afe42c4ff85690f33e",
+    "targets/conduitos/src/execution_region.rs": "091f11fe17651363180a9a105b80e0924367d30b",
+    "targets/conduitos/src/text_protection/body.rs": "8b7647d93d681a874d015de4bf0870a0c22d36a2",
+    "targets/conduitos/src/protected_application.rs": "c56200726cf9f2da5ae1cbec58194b5981302ecb",
+    "targets/conduitos/src/protected_application/canonical_patchbay.rs": "57be56c849e6ddfe4462ccb14c16149a41df8784",
+    "targets/conduitos/src/protected_application/transport.rs": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+    "targets/conduitos/src/protected_region.rs": "d02b68a280ec6ca0016a794b6ecaa805009e3493",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+    "architecture/planner/src/execution_regions/protected.rs": "3b7e9bd8aef42471096274ff8b53b1eb97f547cc",
+    "architecture/plan-lowering/src/lowering/admission.rs": "d565fcd7fb432035ced48271180cc9576be107dc"
+  },
+  "inputs": [
+    {
+      "local_source": "outputs/6318-authoritative-application-caller-route-review.json",
+      "path": "6318-authoritative-application-caller-route-review.json",
+      "bytes": 13019,
+      "sha256": "2fe2b2fc6d6b797601fba447edc436bd9f51dec8c28e09814f2a079f00bd2985"
+    },
+    {
+      "local_source": "work/audit-6318-authoritative-caller-route.py",
+      "path": "audit-6318-authoritative-caller-route.py",
+      "bytes": 11689,
+      "sha256": "47d4714ebfb3f5a25f3d8b32faf20ea1c9ce78b762b8afb1156917dc66982bb3"
+    },
+    {
+      "local_source": "outputs/6318-patchbay-budget-triage-current.json",
+      "path": "6318-patchbay-budget-triage-current.json",
+      "bytes": 10152,
+      "sha256": "f1160a609bf4d6e5eebb327377bcb90387eb1b2997730d6c600ea7de21f65f78"
+    },
+    {
+      "local_source": "outputs/6318-fresh-accepted-baseline-issue.json",
+      "path": "6318-fresh-accepted-baseline-issue.json",
+      "bytes": 13957,
+      "sha256": "323d3d507fe8d2bf9e7fcc4e0cf1b1cdc3e98248bc9b14f4e86a7c045e012f8d"
+    },
+    {
+      "local_source": "outputs/6318-accepted-dd92-baseline-requirement-audit.json",
+      "path": "6318-accepted-dd92-baseline-requirement-audit.json",
+      "bytes": 5515,
+      "sha256": "da05bbabb212d34dbaa8cbee63ffb0411d32b89c4df2d3079e3df615508fefec"
+    },
+    {
+      "local_source": "outputs/6318-accepted-dd92-baseline-live-update.json",
+      "path": "6318-accepted-dd92-baseline-live-update.json",
+      "bytes": 390,
+      "sha256": "72b88e65ef04307b30cc35cfb77df1be9dfa50883dd42161102eaf1129cfc6e3"
+    },
+    {
+      "local_source": "outputs/6317-6318-current-production-prerequisite-audit.json",
+      "path": "6317-6318-current-production-prerequisite-audit.json",
+      "bytes": 12295,
+      "sha256": "f874145fa0eba4400aa6773d7457f6f14cba505195ccae9fbccde58614226d23"
+    }
+  ],
+  "files": [
+    {
+      "path": "6318-authoritative-application-caller-route-review.json",
+      "bytes": 13019,
+      "sha256": "2fe2b2fc6d6b797601fba447edc436bd9f51dec8c28e09814f2a079f00bd2985"
+    },
+    {
+      "path": "audit-6318-authoritative-caller-route.py",
+      "bytes": 11689,
+      "sha256": "47d4714ebfb3f5a25f3d8b32faf20ea1c9ce78b762b8afb1156917dc66982bb3"
+    },
+    {
+      "path": "6318-patchbay-budget-triage-current.json",
+      "bytes": 10152,
+      "sha256": "f1160a609bf4d6e5eebb327377bcb90387eb1b2997730d6c600ea7de21f65f78"
+    },
+    {
+      "path": "6318-fresh-accepted-baseline-issue.json",
+      "bytes": 13957,
+      "sha256": "323d3d507fe8d2bf9e7fcc4e0cf1b1cdc3e98248bc9b14f4e86a7c045e012f8d"
+    },
+    {
+      "path": "6318-accepted-dd92-baseline-requirement-audit.json",
+      "bytes": 5515,
+      "sha256": "da05bbabb212d34dbaa8cbee63ffb0411d32b89c4df2d3079e3df615508fefec"
+    },
+    {
+      "path": "6318-accepted-dd92-baseline-live-update.json",
+      "bytes": 390,
+      "sha256": "72b88e65ef04307b30cc35cfb77df1be9dfa50883dd42161102eaf1129cfc6e3"
+    },
+    {
+      "path": "6317-6318-current-production-prerequisite-audit.json",
+      "bytes": 12295,
+      "sha256": "f874145fa0eba4400aa6773d7457f6f14cba505195ccae9fbccde58614226d23"
+    },
+    {
+      "path": "source-blobs.json",
+      "bytes": 1910,
+      "sha256": "dc50c0f304c7840a12e4cd51de81fb2cd0abd11c661d969a924719fd8a8a06e1"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7284,
+      "sha256": "f45455b3c791a8fa0a578427395e4faa2945109388cc872fdb210bf65a546567"
+    }
+  ]
+}

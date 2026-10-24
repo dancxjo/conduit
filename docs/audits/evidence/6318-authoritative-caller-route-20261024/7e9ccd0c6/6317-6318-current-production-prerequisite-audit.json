@@ -1,0 +1,107 @@
+{
+  "source": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "audit": "Independent exact-currentdev production prerequisite audit, not a repeat of the earlier design. Read-only; no build/network/source changes; no6342compositor path edits or proposed ownership.",
+  "decision": "Minimum legitimate prerequisite is an exact selected/admitted Application operation-policy and native accounting binding in its existing owner. Neither canonical offeredPolicy selection nor actual backend entry currently reaches ApplicationService, so attaching ProtectedOperation or adding publicationPreflight alone is not legitimate enforcement. No concrete total grant can be chosen from current source.",
+  "new_findings": [
+    {
+      "finding": "No currently advertised native SourceInterruptsV1 policy exists",
+      "evidence": "Exact gitgrep protected_preemption across targets/mechanisms finds only hostedNone literals; ConduitOSsrc has no ProtectedOperation or seal_protected_preemptible_execution use. SourceInterruptsV1 is available in canonical contract and fixtures, not installed/advertised availability.",
+      "implication": "Do not describe available canonical descriptor as native offeredauthority. Application has no policy to select or cumulative total to preserve yet."
+    },
+    {
+      "finding": "The native counters are dimensionally distinct",
+      "evidence": "Core policy.profile_id=conduit.execution/source-interrupt-count@1. RTCbudget module declares independence fromSourceLAPIC/PIT. Native interrupt handler budget!=0 dispatchesRTC; else incrementsSourcecounter and forwardsSourcefacts. OnlyRTCbranch decrements native remaining.",
+      "implication": "Neither suminterrupt_entries nor RTCbudgetcount is automatically a SourceInterruptsV1 debit. A min(64RTCticks,Sourcequantum) is undefined without an explicit same-unit enforcement binding; the earlier staging sketch must not use that min across differentunits."
+    },
+    {
+      "finding": "ExistingApplication admission is effect/semantic authority, not selectedexecutionpolicy",
+      "evidence": "NativeApplications::new(initial) andService::install() take no selectedPlan/region/offer/policy/context. Service stores onlydomain,instance,transportsequence. authority::admit explicitly doesnot authorize installation/execution.",
+      "implication": "Cannot obtain a logical total from the selectedslot/FaceShow or from current profileDraft64; wiring policy at this constructor requires a checked existingRoot admission input tied to actual service/HostBoot/base/resourcegeneration and logicalcommand."
+    },
+    {
+      "finding": "Canonical selected profile remains intentionally unsupported downstream",
+      "evidence": "Planner can copy exactofferedpolicy to ProtectedPreemptibleStep; lowerer refuses that variant for everyprofile. No normalRoot service entry accepts OperationSlice orProtectedEntryBudget.",
+      "implication": "Simply deleting the refusal or advertising fixedApplicationmemory as continuation backing would falsely claim resumable selected-profile availability. Scope the new target installation to an actually implemented profile; preserve all other refusals."
+    }
+  ],
+  "canonical_options": [
+    {
+      "option": "Retain SourceInterruptsV1 exactmeaning and implement actual Sourcecounter enforcement",
+      "requirements": [
+        "Use actualSourceinterrupt observations (separatecounter), bind threshold/count to a currentselected/admitted SourceInterruptsV1 operation, and make native SourceIRQ enforcement honor that admitted slice instead of currently alwaysreturn0.",
+        "Keep existing independentRTC64 watchdog unchanged as separate terminalguardian. Do not silently convertSourcequota intoRTCticks; zeroSourceinterrupt work still needs a finite algorithmicphase/cursor bound.",
+        "CurrentSourceIRQs also preserveSourcefacts; enforcement integration must not suppress/forge them or manufacture authority from ordinarytimeravailability."
+      ],
+      "status": "Architectural/native correctness work not currently installed. No numericquantum/total inferred here."
+    },
+    {
+      "option": "Explicitly model nativeRootRTC count as a distinct versioned accounting source",
+      "requirements": [
+        "If the intended cumulative grant really measures theexistingRTCbudgetchannel, introduce a truthful distinct canonicalaccounting/profile identity through existing Coreoffer/selectedpolicy/fingerprint path; preserve SourceInterruptsV1 semantics and existingfingerprints.",
+        "Offer only when actualRoot owns/installs thatmechanism; Planner copies exactcurrentBase/poolscoped grant; targetrevalidatesactualbacking and pins countunit before entry.",
+        "Debit only actualRTCusercounter delta; keep Sourceinterruptsseparate. Native perentry arm must honor selectedslice\u2264existing64ceiling andremaininglogicalgrant; faultsremainterminal."
+      ],
+      "status": "Canonical contract extension requiring design/admission approval; not permission to pick a newlogicaltotal or relabel existingSource policy. No new scheduler/parallelowner proposed."
+    }
+  ],
+  "minimum_production_integration_prerequisite": [
+    {
+      "step": "Choose and state the accounting identity correspondence",
+      "deliverable": "One exact canonical/native accounting source with observable perentry counter and enforceable selectedslice. Distinguish independent watchdog fromlogicalquota and keep previousunits unchanged."
+    },
+    {
+      "step": "Make real admission reach existingApplicationowner",
+      "deliverable": "A checked Root constructor/admission input from actualcurrentoffer/selectedexecutionidentity/backing, not caller rawpolicy. Preserve HostBoot/offer/Base/resourcegeneration and serviceinstance; retain oneboundedoperation slot and frozenexactcommandbytes. ExistingPlannerselection path is the canonical selectable startingpoint, not a fresh ledger."
+    },
+    {
+      "step": "Honor admittedslice at backendentry and expose typedaccountingreceipt",
+      "deliverable": "Native entry verifies correctmechanism/profile and admits atmostselectedslice andnativeceiling in sameunits. Return exactseparate countdelta and actualGate/faultclassification to existingowner; do not reuse cumulativeDomainCost sum."
+    },
+    {
+      "step": "Embed singleoperation lifecycle in thatowner",
+      "deliverable": "Begin once for admittedcommand; no replacement/refill across BeginWrite/Preflight/Commit orcursorphases;grant\u2192enter\u2192finish\u2192validatefullcorrelatedresponse\u2192complete. Existing semanticRequest::Commit finishes viaDomainReturn::Yielded, while helpercompletion acceptsSliceReturn::Gate; explicitly bind validprotocolyield as ownercheckedresponse rather than treating hardwareGate or preemption as semantic success. Terminalfaultquarantine continues."
+    },
+    {
+      "step": "Only then stage publication withoutnewauthority",
+      "deliverable": "Original6318phase/immutablecustody/refusal/atomicvisibility/resource checks remain. Addsourcebound nonauthorizing phase/interrupt receipts to identify work; existing successes establish no causalphase timing. No grant/heap/timeout/retry increase and no compositorowner changes."
+    }
+  ],
+  "material_blockers": [
+    "No actualRootComputePoolprotectedoffer or selectedlogicaltotal atApplicationadmission. Quantumnumbers/total cannot come from transportphasecount orDraft64mechanismconstant.",
+    "SourceIRQcountcurrently doesnot enforce orreturn budget;RTCfaults terminallyquarantine andcannot be resumed ascooperativeprogress.",
+    "Globalnative resumablevariantlowerer refusal and actualcontinuation backing must remain until targetprofile genuinely installed; stagedGateonlypublication doesnot establish arbitraryCPUcontextrestore/#6311.",
+    "Operationhelper hasprivate sliceepoch but trustedowner can constructreplacement; productionowner integration, not helpertest, must enforce nonrenewal.",
+    "Counts can bezero; fixedbytes/facts/monotonephaseextent must boundprogress. Exactremaining0 currently terminal, including a lastGate, so finalsuccessmust respectexisting helpersemantics or deliberatelyreview thatcontract separately.",
+    "No measuredPatchbayCommit subphaseaccounting yet; decoder/Face/contributionmatching maystill exceed64 even after splittingoutercalls.",
+    "Peak frozencompressed+decodedworkspace+typedFaceShow+old/newpublication+matcher+reply+zerowork must fitexistingApplicationbacking; no unadmittedcopy orRootsemanticfallback."
+  ],
+  "source_pointers": {
+    "canonical_accounting": "architecture/core/src/execution/protected.rs:5-17 (only SourceInterruptsV1);24-34 finite policy validation;41-54 offer validity",
+    "offered_home": "architecture/core/src/resource.rs:75-85 (optional ComputePoolContract.protected_preemption, absent grants none)",
+    "selection": "architecture/planner/src/execution_regions/protected.rs:28-36,52-83,96-110,113-150;180-236 (current Host/Boot/generation, actualofferedpolicy, capacity, ready kernelBase/lane)",
+    "fingerprint": "architecture/core/src/plan_fingerprint/execution_regions.rs:23-30 (policy.accounting.profile_id,quantum,total,context committed)",
+    "selected_semantics": "architecture/core/src/execution.rs:28-33 (resumable protected service under single logicaloperationgrant)",
+    "lowerer_refusal": "architecture/plan-lowering/src/lowering/admission.rs:21-30 (every ProtectedPreemptibleStep refused)",
+    "operation_helper": "architecture/core/src/execution/operation.rs:1-5,63-90,111-129,131-160,164-201 (noadmission;caller supplies consumedcount;Gate vsPreempted;terminalatremaining0)",
+    "Application_construction": "targets/conduitos/src/native_workset/play/preparation.rs:226-234 and protected_application.rs:31-59,75-82 (new(initial),install;no selectedpolicy slot)",
+    "Application_transport": "targets/conduitos/src/protected_application/transport.rs:14-38,46-68,176-194 (Service holdsdomain/instance/sequence;enter1;Preflight onlyPrepareTarget/PrepareGraphProjection;publicationCommit unchanged)",
+    "Application_effect_authority": "targets/conduitos/src/protected_application/authority.rs:1-7,16-24 (input/prior/graph/context/proposal admission explicitly not installation/execution authority)",
+    "backend_API": "targets/conduitos/src/protected_region.rs:173-174 (entermaximum_work only;no selectedOperationSlice)",
+    "native_profile": "targets/conduitos/src/arch/x86_64/service_domain.rs:66-98 (Application\u2192Draft fixed64 RTC);99-106 (sumrtc+source for interrupt_entries);118-129 (WorkExhausted faultsquarantine)",
+    "native_clock": "targets/conduitos/src/arch/x86_64/domain_budget.rs:1,17-22,24-37,99-108,135-160 (RTC independentSource;separate counters;perentry reset;RTCdecrements onlybudgetchannel)",
+    "IRQ_source_split": "targets/conduitos/src/arch/x86_64/domain_transition.rs:189-209 (budgetIRQ RTCenforce branch vsSourceIRQ count+ordinarytimerfact branch, Sourcebranch returns0)",
+    "fixed_backing": "targets/conduitos/src/service_memory.rs:103-115 (Application fixed image/private/stack/exchange/transfer engineering capacities,notselected logicalphase grant)"
+  },
+  "exact_source_blobs": {
+    "architecture/core/src/execution/protected.rs": "a1cf1bfa8307f652898d1b8c5aeb08e77bb72512",
+    "architecture/core/src/execution/operation.rs": "1015556e9d2decf819ce6b5d2e65923b4e25d990",
+    "architecture/planner/src/execution_regions/protected.rs": "3b7e9bd8aef42471096274ff8b53b1eb97f547cc",
+    "architecture/plan-lowering/src/lowering/admission.rs": "d565fcd7fb432035ced48271180cc9576be107dc",
+    "targets/conduitos/src/protected_application.rs": "c56200726cf9f2da5ae1cbec58194b5981302ecb",
+    "targets/conduitos/src/protected_application/transport.rs": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+    "targets/conduitos/src/arch/x86_64/domain_budget.rs": "90ed2e12a705f2fb922284b7cdbf56d794344ae5",
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "86db39d2914310f52e2fe19eeaeee77c03e23281"
+  },
+  "scope": "No sourcechange, build, network,CIpoll,issueclosure or physical/fairness/resumable-nativeclaim. Proposed canonicaloptions are alternatives requiring explicitdesign; neither invents an acceptednumericbudget."
+}

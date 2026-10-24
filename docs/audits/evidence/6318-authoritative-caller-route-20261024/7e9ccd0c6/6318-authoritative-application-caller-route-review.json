@@ -1,0 +1,161 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "relevant_paths_identical_at_root_ed1": true,
+  "prior_audit": "outputs/6317-6318-current-production-prerequisite-audit.json",
+  "decision": "There IS an authoritative current production caller with exact sealed BodyPlan/current Host advertisement/fixed offer and actual BodyPlay activation. It can carry a future selected/admitted Application binding, but today it has NO selected finite operation grant. Missing production offering/selection/lowering/accounting interfaces precede transport staging; no legal numeric total can be derived.",
+  "new_one_level_deeper_findings": [
+    {
+      "finding": "Patchbay uses a DIFFERENT planning branch that bypasses existing text execution-region sealing",
+      "anchors": [
+        "native_workset/planning.rs:291-302 (input_bindings branch pushes patchbay_ingress::plan and continues)",
+        "native_workset/patchbay_ingress.rs:221-270 (authoring Fore planning, immediate lower and exact admit)",
+        "native_workset/planning.rs:364-383 (seal_execution_region only text kinds in other branch)"
+      ],
+      "consequence": "Adding selection only after the ordinary text seal never reaches PatchbayPublish. Selected Application region must enter the Patchbay planning return before its immediate lower/admit, and exact Fore ownership/lowering checks must remain."
+    },
+    {
+      "finding": "Real HostAdvertisement construction currently discards compute-policy detail entirely",
+      "anchors": [
+        "ordinary_plan.rs:395-411 maps fixed.resources with plain resource_offer",
+        "offer.rs:201-228 cooperative profile, fixed memory/two lane resource entries",
+        "native_workset/planning.rs:247-284 host_inner reuses ordinary advertisement and adds Application/ingress offers"
+      ],
+      "consequence": "Core ProtectedPreemptionOffer cannot be fabricated at Service::install. Add target-backed advertised pool/ready Base with implemented accounting profile and bounded backing through the existing advertisement path; preserve default refusal elsewhere. Fixed capacity alone is not a selected grant."
+    },
+    {
+      "finding": "A reusable exact Body admission/activation pattern already exists in production for text",
+      "anchors": [
+        "native_workset/planning.rs:94-145 revalidates exact BodyPlan/Wake/reproposal and builds BodyTextAdmission",
+        "text_protection/body.rs:20-52 verifies seal, finds partition/single region, binds Host/Boot/generation",
+        "text_protection/body.rs:135 onward activate checks exact BodyPlan and actual BodyPlay",
+        "native_workset/play.rs:176-192 validates current BodyPlay then activates protection"
+      ],
+      "consequence": "Derive a private Application admission from the same prepared Plan/current offer, keep it in PreparedNativeWorkset, and activate it on actual BodyPlay before admitting runtime publication commands. Do not treat boot-local Service instance or FaceShow as this authority."
+    },
+    {
+      "finding": "Combined Body capacity validation currently counts only placement resource bindings",
+      "anchors": [
+        "native_workset/planning.rs:416-463 validate_combined loops placements/resources only",
+        "architecture/planner/src/execution_regions/protected.rs:113-150 sums placement plus region lane/context within one Plan"
+      ],
+      "consequence": "Adding region context/lane selection across resident partitions requires extending existing Body combined accounting to include all region resources exactly once; per-partition planner checks cannot prevent cross-partition overcommit."
+    },
+    {
+      "finding": "Owner installs and initializes before active BodyPlay, so preparation authority and runtime operation authority must be distinct",
+      "anchors": [
+        "native_workset/play/preparation.rs:226-235 creates Owner while preparing scheduler",
+        "protected_application.rs:46-82 Owner::new\u2192Service::install\u2192PrepareInit; no active play argument",
+        "native_workset/play.rs:176-192 actual activation happens later"
+      ],
+      "consequence": "Keep bounded initialization valid under preparation admission, but do not expose selected runtime publication authority before BodyPlay activation. Add checked activation/revocation to existing owner rather than install a second service."
+    }
+  ],
+  "ordered_implementation_prerequisites": [
+    {
+      "order": 1,
+      "change": "Specify and implement one truthful target accounting binding BEFORE advertising availability",
+      "files": [
+        "arch/x86_64/domain_budget.rs",
+        "arch/x86_64/domain_transition.rs",
+        "arch/x86_64/service_domain.rs",
+        "architecture/core/src/execution/protected.rs (only if a genuinely distinct profile is selected)"
+      ],
+      "invariants": "SourceInterruptsV1 measures actual Source IRQ count, never RTC64 or suminterrupts. Existing independent RTC64 terminal watchdog stays. No Source IRQ profile can be advertised before native entry enforces selected same-unit allowance and returns authenticated entry-local consumption/fault classification. No numeric quantum/total chosen by this audit."
+    },
+    {
+      "order": 2,
+      "change": "Offer and select through real current native Host/Plan path",
+      "files": [
+        "offer.rs",
+        "ordinary_plan.rs::advertisement",
+        "native_workset/planning.rs::host_inner/plan_plots_inner",
+        "native_workset/patchbay_ingress.rs::plan",
+        "architecture/planner/src/execution_regions/protected.rs"
+      ],
+      "invariants": "Installed mechanism\u2192ready Base/current pool\u2192exact policy/backing selected and fingerprinted in existing Plan. Patchbay Fore branch must select before immediate lower/admit. Existing source/input/application semantics remain unchanged. Scoped availability only; no new policy ledger."
+    },
+    {
+      "order": 3,
+      "change": "Admit exact backing through existing target lowering and combined Body resource check",
+      "files": [
+        "architecture/plan-lowering/src/lowering/admission.rs",
+        "native_workset/planning.rs::lower_plots_inner/validate_combined",
+        "service_memory.rs"
+      ],
+      "invariants": "Current generic lowerer rejects all ProtectedPreemptibleStep. A narrowly supported implemented target profile needs explicit complete backing validation; do not globally remove refusal. If chosen profile promises arbitrary resumable continuation, native continuation prerequisite6311 remains required. Cooperative staged protocol alone cannot satisfy that promise."
+    },
+    {
+      "order": 4,
+      "change": "Carry private checked Application admission into existing owner, then bind actual BodyPlay",
+      "files": [
+        "native_workset/planning.rs::PreparedNativeWorkset/prepare_exact",
+        "native_workset/play/preparation.rs",
+        "native_workset/play.rs::activation/cancel",
+        "protected_application.rs",
+        "protected_application/transport.rs"
+      ],
+      "invariants": "Bind BodyPlan, resident partition/placement/region, Host/Boot/offer+resource generation, exact policy/lane/context, active BodyPlay, service instance. Preparation token cannot authorize runtime publication. No token accepted from untrusted wire. Cancel/replacement revokes it."
+    },
+    {
+      "order": 5,
+      "change": "Expose selected slice and typed native receipt without changing generic per-entry work count into budget authority",
+      "files": [
+        "protected_region.rs::DomainBackend",
+        "arch/x86_64/service_domain.rs",
+        "protected_application/transport.rs::request"
+      ],
+      "invariants": "Current domain.enter(1) means one entry, not one budget unit. Keep unit separation explicit. Operation owner allocates one logical operation grant, native entry verifies same-unit selected slice, returns actual consumption independent of caller-supplied DomainCost aggregate. Semantic Yielded only counts completion after matching envelope/request/response decode; hardware Gate/fault never implies successful Patchbay commit."
+    },
+    {
+      "order": 6,
+      "change": "Then implement staged bounded PatchbayPublish in same service and original protocol ownership",
+      "files": [
+        "protected_application/canonical_patchbay.rs",
+        "protected_application/transport.rs",
+        "mechanisms/application-core source publication/state/codec paths"
+      ],
+      "invariants": "One frozen exact command and one operation total across Begin/Write/validation/Commit/Read, monotone finite phase cursors and explicit byte/fact/work bounds even with zero IRQ consumption; no grant refill/reinstall/retry per phase. Old publication stays visible until checked final owner response; preserve one-use Show, precise original refusal joins, and fixed heap/RTC/timeouts."
+    }
+  ],
+  "necessary_adversarial_proofs": [
+    "Actual normal Patchbay Fore planning produces supported selected region from current installed offer; ordinary unsupported targets/profile/no offer refuse BEFORE service entry. A never-called planner fixture is insufficient.",
+    "Stale Host/Boot/offer/Base/resourcegeneration/BodyPlan/BodyPlay, wrong partition/region/instance/profile, invented total and insufficient backing all refuse before write or publication.",
+    "Two individually fitting partitions with overlapping context/lane resources refuse combined Body admission.",
+    "Same command across every phase shares one operation id/remaining total; duplicate Begin, reset/reinstall, replayed phase/envelope, cursor rollback, changed bytes or read-after-quarantine cannot renew authority.",
+    "Native Source-unit debit shown separately from RTC/source aggregate; adversarial noncooperating code bounded by installed mechanism; watchdog fault remains terminal and never resumes partial effects.",
+    "Zero Source IRQ progress still terminates under checked finite phase/fact/byte extent; oversized decoder/matcher/Face step cannot hide in nominal cooperative phase.",
+    "Malformed/wrong envelope or wrong response after Yielded quarantines; hardware Gate/Preempted is not semantic success; exact consumed exhaustion final-entry behavior follows reviewed helper semantics.",
+    "Original negative6318 WorkExhausted retained, exact causal phase receipts and final normal journey on current candidate; old/new publication atomicity and stale/reused Show/refusal unchanged. Then full Candidate/normal dev delivery/applicable Integration; no full6318 closure from source alone."
+  ],
+  "active_overlap": {
+    "rootB": [],
+    "6372": [],
+    "6370": [],
+    "6373": "No ownership assumed; environmental display work disjoint based reported scope, not a fresh remote inventory",
+    "GUI6351": "Potential shared native_workset/play and checked Face paths. Coordinate exact ownership before implementation; no owner branch writes."
+  },
+  "exact_source_blobs": {
+    "targets/conduitos/src/native_workset/planning.rs": "36255a72646abf109bd105ba411e770586957a82",
+    "targets/conduitos/src/native_workset/patchbay_ingress.rs": "1fdd04d87bf49ceb3e06cb5046a8349caff9ca91",
+    "targets/conduitos/src/native_workset/play/preparation.rs": "7cdfd0fdee0dff1873814f03c8407786a6dd1f99",
+    "targets/conduitos/src/native_workset/play.rs": "5d7160837799f90ec68357d69532e8217f956a13",
+    "targets/conduitos/src/native_workset/play/patchbay.rs": "b4ef0c9567e5f853bf984b1564bf69700acd5885",
+    "targets/conduitos/src/native_workset/application_delivery.rs": "5543a1dee02cbcdf93c8910f36cd46e1ca914f61",
+    "targets/conduitos/src/ordinary_plan.rs": "9e5c524ca9132495badd41d9f508f84d08620fa9",
+    "targets/conduitos/src/offer.rs": "b5a23f4afe129a2c04f478afe42c4ff85690f33e",
+    "targets/conduitos/src/execution_region.rs": "091f11fe17651363180a9a105b80e0924367d30b",
+    "targets/conduitos/src/text_protection/body.rs": "8b7647d93d681a874d015de4bf0870a0c22d36a2",
+    "targets/conduitos/src/protected_application.rs": "c56200726cf9f2da5ae1cbec58194b5981302ecb",
+    "targets/conduitos/src/protected_application/canonical_patchbay.rs": "57be56c849e6ddfe4462ccb14c16149a41df8784",
+    "targets/conduitos/src/protected_application/transport.rs": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+    "targets/conduitos/src/protected_region.rs": "d02b68a280ec6ca0016a794b6ecaa805009e3493",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+    "architecture/planner/src/execution_regions/protected.rs": "3b7e9bd8aef42471096274ff8b53b1eb97f547cc",
+    "architecture/plan-lowering/src/lowering/admission.rs": "d565fcd7fb432035ced48271180cc9576be107dc"
+  },
+  "limits": [
+    "Read-only source-derived prerequisite design, no production edits/builds/network/CI observations",
+    "All original6318 acceptance criteria remain open; no Source policy or numeric grant chosen",
+    "Canonical profile/backing/enforcement unresolved decisions are required interfaces, not implementation permission to invent authority"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "issue": 6318,
+  "state": "open",
+  "original_scope_preserved": true,
+  "accepted_baseline_appended": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "packet": "ef872f185c0df9b8a8bff62a2badc33c6e03bea1",
+  "body_sha256": "c67c965dbb07893ac6a9b9618ab2f44a8a92d4f02b57841942630ec7c94f8f31",
+  "remaining_six_criteria_preserved": true,
+  "observed_utc": "2026-10-24T05:53:12.150416+00:00"
+}

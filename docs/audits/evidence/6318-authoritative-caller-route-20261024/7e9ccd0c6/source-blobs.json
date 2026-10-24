@@ -1,0 +1,24 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "identical_relevant_source_at": "ed1b1cdb9e4cd8edd618211a189bcbd863240e18",
+  "qualified_as_execution": false,
+  "blobs": {
+    "targets/conduitos/src/native_workset/planning.rs": "36255a72646abf109bd105ba411e770586957a82",
+    "targets/conduitos/src/native_workset/patchbay_ingress.rs": "1fdd04d87bf49ceb3e06cb5046a8349caff9ca91",
+    "targets/conduitos/src/native_workset/play/preparation.rs": "7cdfd0fdee0dff1873814f03c8407786a6dd1f99",
+    "targets/conduitos/src/native_workset/play.rs": "5d7160837799f90ec68357d69532e8217f956a13",
+    "targets/conduitos/src/native_workset/play/patchbay.rs": "b4ef0c9567e5f853bf984b1564bf69700acd5885",
+    "targets/conduitos/src/native_workset/application_delivery.rs": "5543a1dee02cbcdf93c8910f36cd46e1ca914f61",
+    "targets/conduitos/src/ordinary_plan.rs": "9e5c524ca9132495badd41d9f508f84d08620fa9",
+    "targets/conduitos/src/offer.rs": "b5a23f4afe129a2c04f478afe42c4ff85690f33e",
+    "targets/conduitos/src/execution_region.rs": "091f11fe17651363180a9a105b80e0924367d30b",
+    "targets/conduitos/src/text_protection/body.rs": "8b7647d93d681a874d015de4bf0870a0c22d36a2",
+    "targets/conduitos/src/protected_application.rs": "c56200726cf9f2da5ae1cbec58194b5981302ecb",
+    "targets/conduitos/src/protected_application/canonical_patchbay.rs": "57be56c849e6ddfe4462ccb14c16149a41df8784",
+    "targets/conduitos/src/protected_application/transport.rs": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+    "targets/conduitos/src/protected_region.rs": "d02b68a280ec6ca0016a794b6ecaa805009e3493",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+    "architecture/planner/src/execution_regions/protected.rs": "3b7e9bd8aef42471096274ff8b53b1eb97f547cc",
+    "architecture/plan-lowering/src/lowering/admission.rs": "d565fcd7fb432035ced48271180cc9576be107dc"
+  }
+}

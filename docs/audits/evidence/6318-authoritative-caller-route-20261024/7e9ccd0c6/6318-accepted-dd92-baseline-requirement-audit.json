@@ -1,0 +1,67 @@
+{
+  "observed_utc": "2026-10-24T05:52:34.196935+00:00",
+  "issue": 6318,
+  "fresh_issue_snapshot": "outputs/6318-fresh-accepted-baseline-issue.json",
+  "fresh_body_sha256": "3333440419997eedeeeb6167c3a2090ae1edbbe82685e12f523471d4fd63d28e",
+  "fresh_updated_at": "2026-10-24T02:58:58Z",
+  "state": "open",
+  "original_body_preserved_verbatim_prefix": true,
+  "proposed_full_body_sha256": "c67c965dbb07893ac6a9b9618ab2f44a8a92d4f02b57841942630ec7c94f8f31",
+  "patch": "work/6318-accepted-dd92-baseline-append-patch.json",
+  "acceptance_packet": "ef872f185c0df9b8a8bff62a2badc33c6e03bea1",
+  "acceptance_url": "https://github.com/dancxjo/conduit/tree/ef872f185c0df9b8a8bff62a2badc33c6e03bea1/docs/audits/evidence/reviewed-followups-accepted-20261024/dd92bde82",
+  "accepted_source": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "native_audit_sha256": "aee9840a146838ff0d59829768f9b8050cbb0f976a6d006e172a2a24d7cf9320",
+  "compared_prior_prerequisite_audit": {
+    "path": "outputs/6317-6318-current-production-prerequisite-audit.json",
+    "source": "dd92bde82017fe685404ef9197b56d3b3127006c",
+    "decision_unchanged": "Minimum legitimate prerequisite is an exact selected/admitted Application operation-policy and native accounting binding in its existing owner. Neither canonical offeredPolicy selection nor actual backend entry currently reaches ApplicationService, so attaching ProtectedOperation or adding publicationPreflight alone is not legitimate enforcement. No concrete total grant can be chosen from current source."
+  },
+  "requirement_status": [
+    {
+      "criterion": 1,
+      "status": "negative custody retained; measured responsible Commit subphase still missing"
+    },
+    {
+      "criterion": 2,
+      "status": "incomplete: no staged publication owner/current selected cumulative admission"
+    },
+    {
+      "criterion": 3,
+      "status": "incomplete: actual native entry faults terminal today; staged stale/partial/reordered/nonrenewing controls still required"
+    },
+    {
+      "criterion": 4,
+      "status": "preserved constraint; no allowance/backing/timeout/retry increase or semantic weakening justified"
+    },
+    {
+      "criterion": 5,
+      "status": "accepted dd92 normal QEMU baseline established; staged-implementation focused/adversarial/resource proof remains missing"
+    },
+    {
+      "criterion": 6,
+      "status": "baseline full Integration success only; future P0 implementation exact Candidate+merged Integration still required"
+    }
+  ],
+  "later6342_delivery_not_ancestor_accepted_dd92": true,
+  "remaining_production_pointers": {
+    "canonical_accounting": "architecture/core/src/execution/protected.rs:5-17 (only SourceInterruptsV1);24-34 finite policy validation;41-54 offer validity",
+    "offered_home": "architecture/core/src/resource.rs:75-85 (optional ComputePoolContract.protected_preemption, absent grants none)",
+    "selection": "architecture/planner/src/execution_regions/protected.rs:28-36,52-83,96-110,113-150;180-236 (current Host/Boot/generation, actualofferedpolicy, capacity, ready kernelBase/lane)",
+    "fingerprint": "architecture/core/src/plan_fingerprint/execution_regions.rs:23-30 (policy.accounting.profile_id,quantum,total,context committed)",
+    "selected_semantics": "architecture/core/src/execution.rs:28-33 (resumable protected service under single logicaloperationgrant)",
+    "lowerer_refusal": "architecture/plan-lowering/src/lowering/admission.rs:21-30 (every ProtectedPreemptibleStep refused)",
+    "operation_helper": "architecture/core/src/execution/operation.rs:1-5,63-90,111-129,131-160,164-201 (noadmission;caller supplies consumedcount;Gate vsPreempted;terminalatremaining0)",
+    "Application_construction": "targets/conduitos/src/native_workset/play/preparation.rs:226-234 and protected_application.rs:31-59,75-82 (new(initial),install;no selectedpolicy slot)",
+    "Application_transport": "targets/conduitos/src/protected_application/transport.rs:14-38,46-68,176-194 (Service holdsdomain/instance/sequence;enter1;Preflight onlyPrepareTarget/PrepareGraphProjection;publicationCommit unchanged)",
+    "Application_effect_authority": "targets/conduitos/src/protected_application/authority.rs:1-7,16-24 (input/prior/graph/context/proposal admission explicitly not installation/execution authority)",
+    "backend_API": "targets/conduitos/src/protected_region.rs:173-174 (entermaximum_work only;no selectedOperationSlice)",
+    "native_profile": "targets/conduitos/src/arch/x86_64/service_domain.rs:66-98 (Application\u2192Draft fixed64 RTC);99-106 (sumrtc+source for interrupt_entries);118-129 (WorkExhausted faultsquarantine)",
+    "native_clock": "targets/conduitos/src/arch/x86_64/domain_budget.rs:1,17-22,24-37,99-108,135-160 (RTC independentSource;separate counters;perentry reset;RTCdecrements onlybudgetchannel)",
+    "IRQ_source_split": "targets/conduitos/src/arch/x86_64/domain_transition.rs:189-209 (budgetIRQ RTCenforce branch vsSourceIRQ count+ordinarytimerfact branch, Sourcebranch returns0)",
+    "fixed_backing": "targets/conduitos/src/service_memory.rs:103-115 (Application fixed image/private/stack/exchange/transfer engineering capacities,notselected logicalphase grant)"
+  },
+  "closure_ready": false,
+  "writes": "Prepared local patch only; no GitHub body/state mutation, builds or CI polls",
+  "apply_precondition": "Root must freshly reread exact issue body/update identity and ensure original scope unchanged immediately before applying append; do not overwrite intervening owner updates"
+}
