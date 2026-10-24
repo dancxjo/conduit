@@ -10,8 +10,9 @@ They preserve cord ordinals, direction, pressure, capacities, startup order and
 output routes. A local external fore uses the kernel's existing boundary endpoint
 representation; no network line, peer, membership or authority is created.
 Returned tables own their numeric execution material after assignment bytes and
-borrowed record descriptors are dropped. Preparation and Play allocate nothing
-in the fixed-store proof.
+borrowed record descriptors are dropped. Table preparation and kernel Play
+allocate nothing in the fixed-store proof; Back/evaluator preparation has its
+own separate storage admission.
 
 Root must separately retain and enforce each checked value contract, authorize
 submissions, admit implementation storage/work and bind any actual native Host
