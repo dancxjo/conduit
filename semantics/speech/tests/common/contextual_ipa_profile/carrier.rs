@@ -142,7 +142,7 @@ pub fn syllables() -> Vec<SpeechSyllableSource> {
         .map(|i| {
             let ipa = SpeechPhoneticTranscription::decode(&constructors::universal(
                 IpaConstructor::Phonetic,
-                if i % 2 == 0 { "tʰɑ" } else { "tɑ" },
+                if i.is_multiple_of(2) { "tʰɑ" } else { "tɑ" },
                 evidence(),
             ))
             .unwrap();

@@ -141,9 +141,9 @@ fn declared_g1_selects_initial_aspiration_and_medial_plain_without_rewriting_com
         );
         assert_eq!(
             prepared.definition().ipa(),
-            if n % 4 == 0 {
+            if n.is_multiple_of(4) {
                 "tʰ"
-            } else if n % 2 == 0 {
+            } else if n.is_multiple_of(2) {
                 "t"
             } else {
                 "ɑ"
@@ -156,7 +156,7 @@ fn declared_g1_selects_initial_aspiration_and_medial_plain_without_rewriting_com
         assert_eq!(original.stress(), &stress(n));
         assert_eq!(
             choice.state().outcome(),
-            if n % 4 == 0 {
+            if n.is_multiple_of(4) {
                 &SpeechAllophoneChoiceOutcome::SelectedAllophone
             } else {
                 &SpeechAllophoneChoiceOutcome::SelectedDefault

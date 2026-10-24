@@ -102,7 +102,7 @@ pub fn pid(s: &str) -> PhoneId {
 }
 pub fn phoneme_id(n: usize) -> PhonemeId {
     PhonemeId::new(
-        if n % 2 == 0 {
+        if n.is_multiple_of(2) {
             "g1/phoneme/t"
         } else {
             "g1/phoneme/a"
