@@ -201,3 +201,77 @@ fn retained_reads_share_one_revision_until_the_owner_explicitly_advances_age() {
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }
+
+#[cfg(feature = "display-mask")]
+#[test]
+fn one_retained_face_resolves_pages_and_typed_frames_without_new_source_events() {
+    use conduit_environment_runtime::{
+        display_mask::PreparedDisplayMask, display_packets::validate_display_frame,
+    };
+    use conduit_seven_segment_mask::{
+        DigitWiring, MaskDisposition, MaskUnavailable, SevenSegmentLook, Tm1637Profile, WireBit,
+    };
+    let owner = owner();
+    let bytes = reading();
+    let (mut publisher, reader) = owner.claim().unwrap();
+    publisher.publish(snapshot(&bytes, 1), 1000).unwrap();
+    let profile = Tm1637Profile {
+        digits: core::array::from_fn(|n| DigitWiring {
+            address: n as u8,
+            segment_bits: [0, 1, 2, 3, 4, 5, 6],
+        }),
+        decimal_points: [None; 4],
+        colon: Some(WireBit { address: 1, bit: 7 }),
+    };
+    let mut mask = PreparedDisplayMask::prepare(
+        profile,
+        SevenSegmentLook::fahrenheit().with_colon_fraction(),
+        3000,
+        6000,
+        2,
+    )
+    .unwrap();
+    let identity = reader
+        .with_retained(|face, _| face.identity.clone())
+        .unwrap();
+    let ((), memory) = allocation_probe::observe(|| {
+        // Owned patterns leave the synchronous read; the semantic Face stays put.
+        let show = reader
+            .with_retained(|face, status| {
+                assert_eq!((face.revision, status.source_sequence), (1, 1));
+                mask.prepare_show(face).unwrap()
+            })
+            .unwrap();
+        for (elapsed, disposition) in [
+            (0, MaskDisposition::Temperature { decimal_places: 1 }),
+            (3000, MaskDisposition::Humidity),
+            (
+                6000,
+                MaskDisposition::Unavailable(MaskUnavailable::OutsideLifetime),
+            ),
+        ] {
+            let frame = mask.render_prepared(&show, elapsed).unwrap();
+            assert_eq!(frame.rendered.face_content_id, identity.as_str());
+            assert_eq!(frame.rendered.face_revision, 1);
+            assert_eq!(frame.rendered.disposition, disposition);
+            validate_display_frame(frame.canonical).unwrap();
+            reader
+                .with_retained(|face, status| {
+                    assert_eq!(face.identity, identity);
+                    assert_eq!((face.revision, status.source_sequence), (1, 1));
+                })
+                .unwrap();
+        }
+        reader
+            .with_current(1101, |face, _| {
+                assert_eq!(face.revision, 2);
+                let stale = mask.prepare_show(face).unwrap();
+                assert_eq!(
+                    stale.at(0).disposition,
+                    MaskDisposition::Unavailable(MaskUnavailable::Stale)
+                );
+            })
+            .unwrap();
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}

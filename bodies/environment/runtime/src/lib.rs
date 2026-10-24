@@ -4,6 +4,8 @@ extern crate alloc;
 pub mod assigned;
 mod canonical_input;
 mod canonical_storage;
+#[cfg(feature = "display-mask")]
+pub mod display_mask;
 pub mod display_packets;
 pub mod observation;
 pub mod publication;
