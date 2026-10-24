@@ -92,9 +92,12 @@ The ESP32 display image links with the existing 28 KiB CPU stack floor; the
 sampler profile still compiles. The task-bearing image has physical readiness
 and assignment-staging evidence. The attended preparation proof now constructs
 the dormant kernel/native owner and registers the actual ready-held task within
-measured heap headroom; no Start/Release or Frame was sent. The working image was
-restored and advancing fresh readings were verified afterward.
-Release, active execution memory/stack admission, live Mask/Look Fore input,
+measured heap headroom. A subsequent attended run verified signed Start/Release,
+actual input wait, Cancel and Retire, with five kernel steps and no Frame or
+Host Calls. Its receipts are in
+`../evidence/2026-10-24-display-idle-lifecycle/`. The working image was restored
+and advancing fresh readings were verified after both experiments.
+Active output memory/stack admission, live Mask/Look Fore input,
 continuing sensor execution, network transition alongside sensing, recording
 Hosts and overnight endurance remain unproved. Construction prerequisites are
 tracked by #6374 and #6378; decoder or CPU proof alone cannot close physical
