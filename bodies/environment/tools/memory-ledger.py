@@ -65,7 +65,7 @@ def ledger(sampling_image=None, output_image=None):
         "linked_schema_cpu": EVIDENCE / "2026-10-24-publication-sink/schema-compatibility.json",
         "prepared_show_cpu": EVIDENCE / "2026-10-24-prepared-alternating-show/measurement.json",
         "publication_sink_cpu": EVIDENCE / "2026-10-24-publication-sink/measurement.json",
-        "native_file_sink_cpu": EVIDENCE / "2026-10-24-joint-native-display-cpu/recorder-measurement.json",
+        "native_file_sink_cpu": EVIDENCE / "2026-10-24-recording-publication-face/measurement.json",
     }
     inputs["joint_native_display_cpu"] = EVIDENCE / "2026-10-24-joint-native-display-cpu/measurement.json"
     joint_display_cpu = read_json(inputs["joint_native_display_cpu"])
@@ -216,6 +216,7 @@ def ledger(sampling_image=None, output_image=None):
 def markdown(value):
     profiles = value["captured_profiles"]
     sampling, output = profiles["sampling_face"], profiles["output_held"]
+    recorder = max(value["inventory"]["native_file_sink_cpu"]["sink_preparation_cpu"], key=lambda item: item["samples"])
     lines = [
         "# Combined appliance memory ledger", "",
         "Status: combined MCU admission is unproven. The MCU profiles were captured separately; their peaks must not be added or subtracted to claim a fit. The joint CPU observation has its own explicit scope.", "",
@@ -236,8 +237,8 @@ def markdown(value):
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
         f"| Resolved page material, CPU only | {value['inventory']['prepared_show_cpu']['inline_bytes']} inline bytes, no heap allocation | Additional to the existing Mask/encoder; no native timer, caller or effect admission credited |",
         f"| Publication sink, CPU only | Exact test invocation future {value['inventory']['publication_sink_cpu']['sink_future_bytes']:,} B | Excludes sink backing and task pool; updated native worker physical high water remains unmeasured |",
-        "| File sink preparation, CPU64 | Fifteen owners: retained 814,975 B, peak 2,359,875 B; sink 616 inline B, reference Vec 24 inline B, worker future 3,648 B | Excludes producer, catalog/State, OS, allocator overhead and stack; complete recorder admission remains unproven |",
-        "| Native/file bridge, CPU only | 960 readings in fifteen committed chunks, catalog publication and fresh-Boot Body State discovery | Native sample phase allocates no Rust heap; Line/grants and complete checkpoint backing remain unproven |",
+        f"| File sink preparation, CPU64 | Fifteen owners and commit Faces: retained {recorder['retained_bytes']:,} B, peak {recorder['peak_bytes']:,} B; sink {recorder['sink_inline_bytes']} inline B, reference Vec {recorder['reference_table_inline_bytes']} inline B, worker future {recorder['worker_future_bytes']:,} B | Default-feature measurement excludes producer, catalog/State, OS, allocator overhead and stack; complete recorder admission remains unproven |",
+        "| Native/file bridge, CPU only | 960 readings in fifteen committed chunks and commit Faces; separately checked catalogue/Body-State discovery | Native sample phase allocates no Rust heap; Line/grants and complete checkpoint backing remain unproven |",
         f"| Network construction, CPU only | Fresh preparation peak {value['inventory']['network_preparation_cpu']['fresh_preparation_peak_bytes']:,} B; retained Plan/lowering {value['inventory']['network_preparation_cpu']['prepared_plan_and_lowering_retained_bytes']:,} B | Not an MCU bound; excludes concurrent sampling and radio effects |",
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
         f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
