@@ -32,11 +32,19 @@ form seven-segment-selection = SevenSegmentSelection as u8
 type SevenSegmentTemperatureUnit =
     fahrenheit
     | celsius
+type SevenSegmentFractionMarker =
+    decimal-point
+    | colon
 type SevenSegmentLook = {
     temperature_unit: SevenSegmentTemperatureUnit
+    fraction_marker: SevenSegmentFractionMarker
 }
 
 # The application-selected Look is ordinary checked Source data.
 plot fahrenheit-look (
     begin: Empty >> look: SevenSegmentLook
-) = ({ temperature_unit: fahrenheit(empty) })
+) = ({ temperature_unit: fahrenheit(empty), fraction_marker: decimal-point(empty) })
+
+plot fahrenheit-colon-look (
+    begin: Empty >> look: SevenSegmentLook
+) = ({ temperature_unit: fahrenheit(empty), fraction_marker: colon(empty) })

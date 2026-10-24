@@ -12,6 +12,7 @@ type SevenSegmentShow = {
 }
 type SevenSegmentLook = {
     temperature_unit: SevenSegmentTemperatureUnit
+    fraction_marker: SevenSegmentFractionMarker
 }
 ```
 
@@ -81,3 +82,16 @@ Run the focused deterministic proof without CI or firmware builds:
 ```sh
 cargo xtask prove environment mask
 ```
+
+## Timed pages and fractional marker
+
+`TimedSevenSegmentMask` prepares a Look with an explicit page period and finite
+lifetime. Its caller supplies elapsed time from an admitted clock. Rendering
+alternates temperature and relative humidity from the same immutable Face;
+lifetime expiry produces an unavailable Show. The renderer creates no timer,
+scheduler, acquisition or hardware effect.
+
+The default Look uses decimal points. An explicitly selected colon fractional
+marker retains temperature tenths on colon-only glass: `67:6F` means 67.6 °F.
+This Look requests the existing colon annunciator and leaves all decimal points
+off. The hardware profile must still declare the colon's actual wiring.
