@@ -1,0 +1,178 @@
+{
+  "issue": 6068,
+  "base": "e8797ffd23928391face70b5586ae37d9234c041",
+  "supported_code_head": "7099142ff8740db1c11e64c30de45b7f9e05bd9f",
+  "final_code_head": "13e083052c9ee1a318e9060a8b0afe1aa8c50347",
+  "source_files_sha256": {
+    "semantics/language/build.rs": "ecf96f211298717b8c38d8a732cdd3624bbcd2dcc9c81d3137428230e2061a2a",
+    "semantics/language/src/analysis_session.rs": "4d8337341e7de5545fd228cf046f74fedf7b0595f0c932d1a0f929fabc98ffd1",
+    "semantics/language/src/lib.rs": "b968abd93f5b2f49f92549640bd857dad52190e5848153acedc8274a9492dda5",
+    "tools/xtask/src/suites/prosody_commitment.rs": "8224de750714237f4d33b9edcd7198e9d926e3d7216088270a6c3bd0fc6ba6ca",
+    "semantics/language/analysis_epoch_initialization.conduit": "f6619762e88ab5ee4f01c5a02d3c43c9c087054c9c04d30e966521edf534262f",
+    "semantics/language/analysis_fallback_round.conduit": "c0c9ca0b50b091f3472b73e9e6494f2311ca1b7ebb3ef6c98ff1cab6f6b2e91e",
+    "semantics/language/build_support/fallback_programs.rs": "e678407cb8f31b2f75673d318e2c6d081e14690d76c6fc232dbb4acf1e252095",
+    "semantics/language/src/analysis_epoch_initialization.rs": "630307fe16f1224af1377830b6621b901f74c9f31289db99065527c93d8a5136",
+    "semantics/language/src/analysis_epoch_owner.rs": "79b10feaa33f214eb3af85daa98cabbd6024dd6c6b9bbab98c312b2acf02473d",
+    "semantics/language/src/analysis_fallback_frontier.rs": "65ef6a912fcd426bf7fd03d690779ca63c122861a46707c63b86cbe3d0110fdc",
+    "semantics/language/src/analysis_fallback_io.rs": "51bb14b9c531fb7ed3dca6fdc85b0766842fcf379dc5972164620b630bc35f3c",
+    "semantics/language/src/analysis_fallback_round.rs": "ad719a11769abda27aa44b1b4b29d0ee28e8681e0732ac0ab3116c08724199c6",
+    "semantics/language/src/parser_rebase_replay.rs": "ac6d060a37fc12ab044689c5c757b1103db76371ab3a49698b040c56d9e29ba9",
+    "semantics/language/tests/analysis_epoch_custody.rs": "e82fdfccf51854b783e15007599f26659e910ddea168475d68749ca708979663",
+    "semantics/language/tests/analysis_epoch_initialization.rs": "4fd026a83a93917404763950103a8ce9ecc4f0f4e8bd584417241706e0f6dfda",
+    "semantics/language/tests/analysis_fallback_round.rs": "aa49a3b95d6ba4037fe40bb07bf99b336bb57392b25040b6272271dbd1aff77b",
+    "semantics/language/tests/common/analysis_epoch_initialization_fixture.rs": "994d67c56eac74d062c0229208b2f8fed34e9a70f09f941c38b9461a74a6d345",
+    "semantics/language/tests/common/analysis_epoch_runtime.rs": "4f080caa38028471d9c37a72c2eb0f577a2523c51af5865c79280d301ae682e4"
+  },
+  "supported_run_source_files_sha256": {
+    "semantics/language/build.rs": "ecf96f211298717b8c38d8a732cdd3624bbcd2dcc9c81d3137428230e2061a2a",
+    "semantics/language/src/analysis_session.rs": "4d8337341e7de5545fd228cf046f74fedf7b0595f0c932d1a0f929fabc98ffd1",
+    "semantics/language/src/lib.rs": "b968abd93f5b2f49f92549640bd857dad52190e5848153acedc8274a9492dda5",
+    "tools/xtask/src/suites/prosody_commitment.rs": "8224de750714237f4d33b9edcd7198e9d926e3d7216088270a6c3bd0fc6ba6ca",
+    "semantics/language/analysis_epoch_initialization.conduit": "f6619762e88ab5ee4f01c5a02d3c43c9c087054c9c04d30e966521edf534262f",
+    "semantics/language/analysis_fallback_round.conduit": "c0c9ca0b50b091f3472b73e9e6494f2311ca1b7ebb3ef6c98ff1cab6f6b2e91e",
+    "semantics/language/build_support/fallback_programs.rs": "e678407cb8f31b2f75673d318e2c6d081e14690d76c6fc232dbb4acf1e252095",
+    "semantics/language/src/analysis_epoch_initialization.rs": "630307fe16f1224af1377830b6621b901f74c9f31289db99065527c93d8a5136",
+    "semantics/language/src/analysis_epoch_owner.rs": "79b10feaa33f214eb3af85daa98cabbd6024dd6c6b9bbab98c312b2acf02473d",
+    "semantics/language/src/analysis_fallback_frontier.rs": "65ef6a912fcd426bf7fd03d690779ca63c122861a46707c63b86cbe3d0110fdc",
+    "semantics/language/src/analysis_fallback_io.rs": "51bb14b9c531fb7ed3dca6fdc85b0766842fcf379dc5972164620b630bc35f3c",
+    "semantics/language/src/analysis_fallback_round.rs": "ad719a11769abda27aa44b1b4b29d0ee28e8681e0732ac0ab3116c08724199c6",
+    "semantics/language/src/parser_rebase_replay.rs": "ac6d060a37fc12ab044689c5c757b1103db76371ab3a49698b040c56d9e29ba9",
+    "semantics/language/tests/analysis_epoch_custody.rs": "e82fdfccf51854b783e15007599f26659e910ddea168475d68749ca708979663",
+    "semantics/language/tests/analysis_epoch_initialization.rs": "4fd026a83a93917404763950103a8ce9ecc4f0f4e8bd584417241706e0f6dfda",
+    "semantics/language/tests/analysis_fallback_round.rs": "44004ce6e4f1af97be3c139c015e19d33ed1d91bca79991f038b0e5eefe16026",
+    "semantics/language/tests/common/analysis_epoch_initialization_fixture.rs": "994d67c56eac74d062c0229208b2f8fed34e9a70f09f941c38b9461a74a6d345",
+    "semantics/language/tests/common/analysis_epoch_runtime.rs": "4f080caa38028471d9c37a72c2eb0f577a2523c51af5865c79280d301ae682e4"
+  },
+  "only_post_supported_source_change": [
+    "semantics/language/tests/analysis_fallback_round.rs"
+  ],
+  "supported": {
+    "entrance": "cargo +stable xtask check prosody-commitment",
+    "exit_code": 0,
+    "passed": 24,
+    "failed": 0,
+    "ignored": 0,
+    "binaries": 8,
+    "elfs": [
+      {
+        "bytes": 1447432,
+        "sha256": "4da0451c030bce4dd87c7f5ffeae81bf0a81efdc352217ac72925bea859b1ae9",
+        "name": "revision-a6cae23c52f61cb3"
+      },
+      {
+        "bytes": 4926632,
+        "sha256": "5d6edfc8c29062ee44614a62c8ecf75e4e39542c0039b5786d106f819fd6f298",
+        "name": "revision-28da1775065ea292"
+      },
+      {
+        "bytes": 99989488,
+        "sha256": "df15ab8a89d4c564474bd59e71a4ea35ed1a0ec07d0f70ca37c802acedc49e81",
+        "name": "analysis_epoch_custody-e62ef4a4f196080e"
+      },
+      {
+        "bytes": 22855744,
+        "sha256": "0c1454fa32aee58d705fcdfab8ad67a340f6d091c106d0e2a817015a90496a88",
+        "name": "analysis_epoch_initialization-aafdc98018d7077a"
+      },
+      {
+        "bytes": 177958528,
+        "sha256": "80327c72cb91b7d5b25b51b29f24995c43e0fbebe85fa9c61f8bb459b72031f8",
+        "name": "analysis_fallback_round-750d607dde76a598"
+      },
+      {
+        "bytes": 103460336,
+        "sha256": "f2c108de4a4b8c0e5b555ba202f3054cf5a7281036a7f7db71c2577f3d686121",
+        "name": "analysis_session_snapshots-eb3870305b4ae67e"
+      },
+      {
+        "bytes": 114664256,
+        "sha256": "4a6d2ddf71c1f49f5b94dd0b49a8a65a212d376f173c928a869c164d5b348185",
+        "name": "prosody_commitment-07f0eef94d89da92"
+      },
+      {
+        "bytes": 107894064,
+        "sha256": "bb2f9063cebdb1c84f4033bbdabb8772679c86f0f632314dc29903636891a053",
+        "name": "prosody_revision-7fa62f53c7da51fc"
+      }
+    ]
+  },
+  "final_affected": {
+    "command": "cargo +stable test --locked -p conduit-language --lib --test analysis_fallback_round -- --nocapture --test-threads=1",
+    "exit_code": 0,
+    "passed": 8,
+    "failed": 0,
+    "ignored": 0,
+    "elfs": [
+      {
+        "name": "conduit_language-d18d3f77ede2a537",
+        "sha256": "59c6f57cc1917dbedd7197bfb47150bd06061948cba5a5a10f777379c91ef7f1",
+        "bytes": 18705224
+      },
+      {
+        "name": "analysis_fallback_round-750d607dde76a598",
+        "sha256": "ed4a7fd43701f270bda8f9b6e2568b87087124d33f67416fc7fd7976d9d3705b",
+        "bytes": 177982744
+      }
+    ]
+  },
+  "strict_lint": {
+    "command": "cargo +stable clippy --locked -p conduit-language --lib --test analysis_epoch_initialization --test analysis_epoch_custody --test analysis_fallback_round -- -D warnings",
+    "exit_code": 0
+  },
+  "kernel_source_id": "d9e92d6e42ab0ea930ae2ebab35a45d7ff039c276de9d497010bd72fad86b087",
+  "actual_source_operations": {
+    "custody": 33,
+    "normal_fallback": 157
+  },
+  "logs": [
+    {
+      "file": "6068-supported-prosody-commitment-e879.log.gz",
+      "raw_sha256": "34939764c622d2587304d36caf5e90c484c7e5d315a79550a9aaa6fdcfe83261",
+      "gzip_sha256": "43a5201ee557a8f203e304b54272ffc369d1de3a41e6d707ce82b9b427071360",
+      "raw_bytes": 14686,
+      "result": "PASS24 supported at7099142ff"
+    },
+    {
+      "file": "6068-final-protected-prefix-affected.log.gz",
+      "raw_sha256": "e7d34fbbd1915b16ffb556e07299554319c3f4c353467defaea80cefa84b3906",
+      "gzip_sha256": "c8a4f9184871cc6641be7bd3cf220413753f4de76a3e965c3345c116a421b2f8",
+      "raw_bytes": 1974,
+      "result": "PASS8 final affected:7lib+1fallback"
+    },
+    {
+      "file": "6068-final-prefix-lint.log.gz",
+      "raw_sha256": "c68c00c6c388b4f3892a6b567047a12e14ff850e28a91b4623ddffa1f11c08ee",
+      "gzip_sha256": "97bbf768f4256c57dd98e8078fde72dacd54906d2612418564502177348ce40f",
+      "raw_bytes": 388,
+      "result": "PASS strict library and all3owning test targets"
+    },
+    {
+      "file": "6068-initial-preparation-e879.log.gz",
+      "raw_sha256": "2d1cc76a37d2bc4d75ed80a1d612a637e94005fa31f2053362f5050111a0b24e",
+      "gzip_sha256": "86e0d37d6a4d382ea7a67bef4cf0c23102288178cdd3dc532785ccd70c585310",
+      "raw_bytes": 5036,
+      "result": "HISTORICAL NEGATIVE initial nested module symbol compile failure"
+    },
+    {
+      "file": "6068-strict-lint-first-e879.log.gz",
+      "raw_sha256": "a18067378e9ec4ebf17521415e80056c24648b3b331e57c41fbeb1d7f79baf9f",
+      "gzip_sha256": "30c80b0fc97b40563353174d6811c98ced55d3c2612c5a8a3e9d6a7aa60e10fa",
+      "raw_bytes": 5240,
+      "result": "HISTORICAL NEGATIVE recovered layout strict lint"
+    },
+    {
+      "file": "6068-strict-owning-tests-lint-e879.log.gz",
+      "raw_sha256": "5764cadaef5e541e6a050ad8339432605e4f1d182fba59c35e02a69532538053",
+      "gzip_sha256": "420cc676ba8ff13c51e45a076af738873704ceabbaf347f41b31b9c2b54c7a03",
+      "raw_bytes": 17279,
+      "result": "HISTORICAL NEGATIVE test strict lint before justified lifetime-order allowance and boolean assertion fix"
+    }
+  ],
+  "negative_history": "The three negative compiler/lint logs precede the fixes. They are retained as failures, not current behavioral proof.",
+  "remaining_gates": [
+    "exact submitted-head Candidate",
+    "applicable accepted shared Integration",
+    "parent shared publication/tree/manifest/live-source acceptance"
+  ],
+  "scope": "Hosted finite private custody and ordinary Source/Plan/Play tests. No installed resumable decoder, learned model accuracy, whole-path no-growth, speech quality, physical execution or parent4907completion."
+}
