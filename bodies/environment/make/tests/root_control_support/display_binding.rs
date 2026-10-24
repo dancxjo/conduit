@@ -92,4 +92,8 @@ pub(super) fn check(
     assert!(execution.is_none());
     issuer.finish_display_play(&active, &retired).unwrap();
     assert!(issuer.finish_display_play(&active, &retired).is_err());
+    execution_checks::check(assignment, fragment, &wire, profile, &resident);
 }
+
+#[path = "display_execution.rs"]
+mod execution_checks;

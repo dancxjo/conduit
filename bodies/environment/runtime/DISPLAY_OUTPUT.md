@@ -192,3 +192,10 @@ covers zero-operation assembly, immediate cancellation with zero Steps, replay
 fencing and exact returned custody. All seventeen Root-control tests pass;
 ESP32 compilation passes. Task registration, Release, typed Fore client wakeup,
 normal physical execution and continuous sensor/Mask composition remain required.
+
+The production context now also has CPU run evidence for a checked Frame: one
+normal transaction reaches `Drained`, and an explicit NACK pin model reaches
+machine-readable `HostCallFailed`. Both paths allocate nothing during Play,
+revoke the driver and return exact custody for Root retirement. The fixture
+prepares and closes its Fore before execution; it is not an admitted MCU Mask
+client, live input channel, task registration or physical display proof.
