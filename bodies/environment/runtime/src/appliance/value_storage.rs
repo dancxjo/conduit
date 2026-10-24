@@ -3,10 +3,13 @@
 use conduit_kernel::{HostedValueStore, StorageError};
 
 // Two Type-bounded canonical-output reservations coexist with seven smaller values during
-// the admitted graph's routing. Eight slots exhausted transient item capacity
-// in the full authored workload even though post-Step occupancy peaked at eight.
-const CAPACITIES: [u32; 9] = [2274, 2274, 1024, 1024, 1024, 1024, 1024, 1024, 1024];
-const PAYLOAD_BYTES: u32 = 11_716;
+// the admitted graph's routing. Each smaller slot covers the complete checked
+// ordinary protocol Type domain, not just observed wire lengths. Eight slots
+// exhausted transient item capacity in the full authored workload even though
+// post-Step occupancy peaked at eight.
+const CAPACITIES: [u32; 9] = [2274, 2274, 573, 573, 573, 573, 573, 573, 573];
+const PAYLOAD_BYTES: u32 = 8_559;
+const _: () = assert!(conduit_time::TICK_ENCODED_LEN <= CAPACITIES[2]);
 // A changed checked reading Type must not silently outgrow this reviewed profile.
 include!(concat!(env!("OUT_DIR"), "/sampling-reading-extent.rs"));
 

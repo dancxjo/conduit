@@ -27,9 +27,29 @@ pub fn emit(checked: &conduit_plot::CheckedSyntaxDocument, out: &Path) {
         .find(|ty| ty.name == "Dht11Result")
         .unwrap();
     let bytes = conduit_plot::maximum_prepared_canonical_value_bytes(&reading.value_type).unwrap();
+    // The two complete quantity-bearing observation/result Types use the large
+    // class. Every other checked protocol Type must fit every ordinary slot.
+    // This is a complete Type ceiling, not an observed-content bound or liveness
+    // proof. A changed graph still requires renewing its nine-slot proof.
+    let ordinary = checked
+        .native_types
+        .iter()
+        .filter(|ty| !matches!(ty.name.as_str(), "Dht11Observation" | "Dht11Result"))
+        .map(|ty| conduit_plot::maximum_prepared_canonical_value_bytes(&ty.value_type).unwrap())
+        .max()
+        .unwrap();
+    let large = checked
+        .native_types
+        .iter()
+        .map(|ty| conduit_plot::maximum_prepared_canonical_value_bytes(&ty.value_type).unwrap())
+        .max()
+        .unwrap();
+    assert_eq!(
+        large, bytes,
+        "reading must cover all checked protocol Types"
+    );
     fs::write(
         out.join("sampling-reading-extent.rs"),
-        format!("const _: () = assert!({bytes} <= CAPACITIES[0] && {bytes} <= CAPACITIES[1]);\n"),
-    )
-    .unwrap();
+        format!("const _: () = {{ assert!({large} <= CAPACITIES[0] && {large} <= CAPACITIES[1]); let mut i = 2; while i < CAPACITIES.len() {{ assert!({ordinary} <= CAPACITIES[i]); i += 1; }} }};\n"),
+    ).unwrap();
 }
