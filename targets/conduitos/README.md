@@ -52,10 +52,27 @@ cargo xtask make host build targets/conduitos/profiles/conduitos-aarch64-graphic
 cargo xtask make host verify target/host-build/aarch64-graphics --boot
 ```
 
-Verification captures two fresh guests and stops them. This Host has no local
-keyboard or pointer provider; the canonical `live aarch64` selection remains the
-serial profile. See the [real frames and source/machine/refusal evidence](../../docs/proof/conduitos-aarch64-firmware-frame.md).
-The five-architecture comparison and persistent launcher remain tracked in
+Verification captures two fresh guests and stops them. To keep the verified
+image open in a QEMU window instead:
+
+```sh
+cargo xtask make host launch target/host-build/aarch64-graphics
+```
+
+Close the QEMU window to stop the session. This Host shows a read-only Crèche
+snapshot and has no local keyboard or pointer provider. The same `launch`
+command accepts verified x86_64, IA-32 and RISC-V graphical product outputs.
+x86_64 retains its admitted keyboard and pointer behavior. IA-32 and RISC-V
+show read-only snapshots. LoongArch graphical launch remains unavailable until
+its normal graphical product is qualified. Serial-only PROFILEs refuse this
+window entrance. Launching does not run the bounded boot verifier or issue a
+successful boot-proof receipt; use `verify --boot` for that proof.
+
+Firmware and emulator tools must already be prepared. Each IA-32/RISC-V
+session uses a fresh private VARS copy and leaves the template unchanged.
+The canonical `live aarch64` selection remains the serial profile. See the
+[real frames and source/machine/refusal evidence](../../docs/proof/conduitos-aarch64-firmware-frame.md).
+The five-architecture comparison remains tracked in
 [#6057](https://github.com/dancxjo/conduit/issues/6057).
 
 ### Prepare IA-32 UEFI firmware
