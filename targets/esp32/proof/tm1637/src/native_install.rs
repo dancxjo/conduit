@@ -30,7 +30,7 @@ impl NativeRoot {
         &self,
         token: crate::native_owner_control::AuthenticatedRequest<'_>,
     ) -> Result<PreparationPermit, &'static str> {
-        if self.display.context_bytes().is_some()
+        if self.display.task_registered()
             || self.native_bindings.is_some()
             || self.appliance_kernel.is_some()
             || self.execution.is_some()
@@ -194,6 +194,6 @@ impl NativeRoot {
         permit: PreparationPermit,
         wire: &[u8],
     ) -> Result<(), &'static str> {
-        self.prepare_display_kernel(permit, wire)
+        self.prepare_display_kernel(permit, wire).await
     }
 }

@@ -1,5 +1,6 @@
 //! Production context run/cleanup; GPIO acknowledgements are explicit CPU models.
 use super::*;
+use core::future::Future;
 use std::{cell::Cell, rc::Rc};
 struct Pins {
     edges: Rc<Cell<usize>>,
@@ -29,7 +30,8 @@ pub(super) fn check(
     profile: &AssignedDisplayProfile<'_>,
     resident: &[c::AssignedRecord<'_>],
 ) {
-    for nack in [false, true] {
+    for mode in 0..3 {
+        let nack = mode == 1;
         let source = DisplayOutputSource::compile().unwrap();
         let mut software = source
             .prepare_software(fragment.host_id.clone(), fragment.boot_id.clone())
@@ -51,28 +53,30 @@ pub(super) fn check(
             usize::MAX,
         )
         .unwrap();
-        let mut encoder =
-            conduit_environment_runtime::display_packets::PreparedDisplayPackets::prepare()
+        if mode < 2 {
+            let mut encoder =
+                conduit_environment_runtime::display_packets::PreparedDisplayPackets::prepare()
+                    .unwrap();
+            let frame = encoder
+                .encode_frame([0x7d, 0xff, 0x66, 0x71, 0, 0], 3, true)
                 .unwrap();
-        let frame = encoder
-            .encode_frame([0x7d, 0xff, 0x66, 0x71, 0, 0], 3, true)
-            .unwrap();
-        prepared
-            .kernel
-            .admit_remote_input(
-                conduit_kernel::RemoteEndpointId(prepared.input.endpoint()),
-                conduit_kernel::CordId(prepared.input.cord()),
-                0,
-                frame,
-            )
-            .unwrap();
-        prepared
-            .kernel
-            .close_remote_input(
-                conduit_kernel::RemoteEndpointId(prepared.input.endpoint()),
-                conduit_kernel::CordId(prepared.input.cord()),
-            )
-            .unwrap();
+            prepared
+                .kernel
+                .admit_remote_input(
+                    conduit_kernel::RemoteEndpointId(prepared.input.endpoint()),
+                    conduit_kernel::CordId(prepared.input.cord()),
+                    0,
+                    frame,
+                )
+                .unwrap();
+            prepared
+                .kernel
+                .close_remote_input(
+                    conduit_kernel::RemoteEndpointId(prepared.input.endpoint()),
+                    conduit_kernel::CordId(prepared.input.cord()),
+                )
+                .unwrap();
+        }
         fixtures::scope_mode(3);
         let mut issuer = native_authority::RootIssuer::observe(&boot::ObservedBoot).unwrap();
         fixtures::scope_mode(0);
@@ -128,19 +132,50 @@ pub(super) fn check(
             Some(display_execution::Execution::boxed_retained(&mut storage, &mut owner).unwrap());
         assert_eq!(edges.get(), 0);
         let (outcome, usage) = allocation_probe::observe(|| {
-            complete(execution.as_mut().unwrap().run(core::future::pending()))
+            if mode < 2 {
+                complete(
+                    execution
+                        .as_mut()
+                        .unwrap()
+                        .run_with_idle(core::future::pending(), core::future::pending::<()>),
+                )
+            } else {
+                let stop = Cell::new(false);
+                let stop_future = core::future::poll_fn(|_| {
+                    if stop.get() {
+                        core::task::Poll::Ready(())
+                    } else {
+                        core::task::Poll::Pending
+                    }
+                });
+                let mut future = core::pin::pin!(execution
+                    .as_mut()
+                    .unwrap()
+                    .run_with_idle(stop_future, core::future::pending::<()>));
+                let mut context = core::task::Context::from_waker(core::task::Waker::noop());
+                assert!(future.as_mut().poll(&mut context).is_pending());
+                stop.set(true);
+                complete(future)
+            }
         });
         assert_eq!((usage.allocations, usage.reallocations), (0, 0));
         assert_eq!(outcome.cleanup, Ok(()));
-        assert_eq!(outcome.progress.native_calls, 1);
-        assert!(outcome.progress.steps > 0);
-        assert!(edges.get() > 0);
-        if nack {
-            assert!(
-                matches!(outcome.exit,display_execution::Exit::Failed(k) if k.code==conduit_kernel::FailureCode::HostCallFailed)
-            );
+        if mode == 2 {
+            assert_eq!(outcome.exit, display_execution::Exit::Cancelled);
+            assert_eq!(outcome.progress.steps, 1);
+            assert_eq!(outcome.progress.native_calls, 0);
+            assert_eq!(edges.get(), 0);
         } else {
-            assert_eq!(outcome.exit, display_execution::Exit::Drained);
+            assert_eq!(outcome.progress.native_calls, 1);
+            assert!(outcome.progress.steps > 0);
+            assert!(edges.get() > 0);
+            if nack {
+                assert!(
+                    matches!(outcome.exit,display_execution::Exit::Failed(k) if k.code==conduit_kernel::FailureCode::HostCallFailed)
+                );
+            } else {
+                assert_eq!(outcome.exit, display_execution::Exit::Drained);
+            }
         }
         assert_eq!(
             execution.as_ref().unwrap().inspection().lifecycle,

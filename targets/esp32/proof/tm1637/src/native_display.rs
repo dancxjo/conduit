@@ -19,6 +19,14 @@ mod binding;
 #[path = "native_display_execution.rs"]
 mod execution;
 #[cfg(feature = "display-ready-root")]
+#[path = "native_display_lifecycle.rs"]
+mod lifecycle;
+#[cfg(feature = "display-ready-root")]
+#[path = "native_display_task.rs"]
+mod task;
+#[cfg(feature = "display-ready-root")]
+pub(crate) use task::Status as DisplayTaskStatus;
+#[cfg(feature = "display-ready-root")]
 #[path = "native_display_kernel.rs"]
 mod kernel;
 #[cfg(feature = "display-ready-root")]
@@ -37,6 +45,8 @@ pub struct NativeDisplay {
     kernel: Option<kernel::Prepared>,
     #[cfg(feature = "display-ready-root")]
     phase: &'static str,
+    #[cfg(feature = "display-ready-root")]
+    worker: Option<task::Handle>,
     #[cfg(feature = "display-ready-root")]
     execution: Option<Box<execution::Execution<DisplayPins<'static>>>>,
     #[cfg(feature = "display-ready-root")]
@@ -114,6 +124,8 @@ impl NativeDisplay {
             kernel: None,
             #[cfg(feature = "display-ready-root")]
             phase: "unprepared",
+            #[cfg(feature = "display-ready-root")]
+            worker: None,
             #[cfg(feature = "display-ready-root")]
             execution: None,
             #[cfg(feature = "display-ready-root")]
@@ -216,7 +228,7 @@ impl NativeDisplay {
     pub fn kernel_prepared(&self) -> bool {
         #[cfg(feature = "display-ready-root")]
         {
-            self.kernel.is_some() || self.execution.is_some()
+            self.kernel.is_some() || self.context_bytes().is_some()
         }
         #[cfg(not(feature = "display-ready-root"))]
         {
@@ -266,7 +278,12 @@ impl NativeDisplay {
     pub fn native_bound(&self) -> bool {
         #[cfg(feature = "display-ready-root")]
         {
-            self.bound.is_some() || self.execution.is_some()
+            self.bound.is_some()
+                || self.execution.is_some()
+                || self
+                    .worker
+                    .as_ref()
+                    .is_some_and(|w| w.status().native_custody)
         }
         #[cfg(not(feature = "display-ready-root"))]
         {
@@ -315,69 +332,6 @@ impl NativeDisplay {
     }
 }
 
-#[cfg(feature = "display-ready-root")]
-impl NativeDisplay {
-    /// This acknowledges held custody only. No Step or electrical call runs.
-    pub fn accept_start(&mut self) -> Result<(), &'static str> {
-        let ready = self.execution.as_ref().is_some_and(|context| {
-            let status = context.inspection();
-            status.lifecycle == c::CapabilityLifecycle::Issued
-                && status.in_flight_operations == 0
-                && status.completed_operations == 0
-                && context.progress() == execution::Progress::default()
-        });
-        crate::native_execution_gate::accept_start(&mut self.phase, false, ready)
-    }
-}
-
-#[cfg(feature = "display-ready-root")]
-impl NativeDisplay {
-    pub fn cancel_held(&mut self) -> Result<(), &'static str> {
-        if !matches!(self.phase, "ready-held" | "started-held") {
-            return Err("display-not-held");
-        }
-        if let Some(context) = self.execution.as_mut() {
-            context.cancel_held()?.cleanup?;
-            self.phase = "quiesced";
-            return Ok(());
-        }
-        let kernel = self.kernel.as_mut().ok_or("display-kernel-unavailable")?;
-        self.bound
-            .as_mut()
-            .ok_or("display-binding-unavailable")?
-            .revoke(kernel.write, conduit_kernel::HostCallId(0))
-            .map_err(|_| "display-revocation")?;
-        kernel.kernel.cancel().map_err(|_| "display-cancellation")?;
-        self.phase = "quiesced";
-        Ok(())
-    }
-    pub fn retire_held(
-        &mut self,
-        issuer: &mut crate::native_authority::RootIssuer,
-        active: &c::ActivePlayIdentity,
-    ) -> Result<(), &'static str> {
-        if self.phase != "quiesced" {
-            return Err("display-not-quiesced");
-        }
-        if self.retired.is_none() {
-            self.retired = Some(if self.execution.is_some() {
-                execution::Execution::retire_retained(&mut self.execution)?
-            } else {
-                crate::native_retirement::RetiredDisplay::retire_boxed(&mut self.bound)?
-            });
-        }
-        issuer
-            .finish_display_play(
-                active,
-                self.retired.as_ref().expect("returned display custody"),
-            )
-            .map_err(|_| "display-retirement-scope")?;
-        self.kernel = None;
-        self.phase = "retired";
-        Ok(())
-    }
-}
-
 impl NativeDisplay {
     pub fn context_bytes(&self) -> Option<usize> {
         #[cfg(feature = "display-ready-root")]
@@ -385,6 +339,12 @@ impl NativeDisplay {
             self.execution
                 .as_ref()
                 .map(|_| core::mem::size_of::<execution::Execution<DisplayPins<'static>>>())
+                .or_else(|| {
+                    self.worker
+                        .as_ref()
+                        .filter(|w| w.status().native_custody)
+                        .map(|w| w.status().context_bytes)
+                })
         }
         #[cfg(not(feature = "display-ready-root"))]
         {
@@ -405,6 +365,47 @@ impl NativeDisplay {
             &mut self.kernel,
             &mut self.bound,
         )?);
+        Ok(())
+    }
+}
+
+impl NativeDisplay {
+    pub fn task_registered(&self) -> bool {
+        #[cfg(feature = "display-ready-root")]
+        {
+            self.worker.is_some()
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            false
+        }
+    }
+}
+#[cfg(feature = "display-ready-root")]
+impl NativeDisplay {
+    pub fn task_status(&self) -> Option<DisplayTaskStatus> {
+        self.worker.as_ref().map(|w| w.status())
+    }
+    pub async fn register_task(
+        &mut self,
+        spawner: embassy_executor::Spawner,
+    ) -> Result<(), &'static str> {
+        if self.worker.is_some() {
+            return Err("display-task-already-registered");
+        }
+        self.worker = Some(task::prepare(&mut self.execution, spawner)?);
+        let worker = self.worker.as_ref().expect("registered display task");
+        if embassy_time::with_timeout(embassy_time::Duration::from_secs(2), worker.wait_ready())
+            .await
+            .is_err()
+        {
+            let _ = worker.cancel();
+            return Err("display-task-ready-timeout");
+        }
+        if worker.status().phase != "ready-held" {
+            return Err("display-task-not-ready");
+        }
+        self.phase = "task-owned";
         Ok(())
     }
 }

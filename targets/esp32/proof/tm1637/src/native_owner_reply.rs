@@ -33,6 +33,8 @@ struct Reply<'a> {
     worker: Option<crate::native_task::Status>,
     retired_native_attachments: Option<[u64; 2]>,
     kernel_additional_preparation_bound: Option<usize>,
+    #[cfg(feature = "display-ready-root")]
+    display_worker: Option<crate::native_display::DisplayTaskStatus>,
     capability_possession_issued: bool,
     acknowledgement: Option<&'a crate::native_owner_receipt::Receipt>,
     acknowledgement_signature: Option<&'a [u8]>,
@@ -99,6 +101,8 @@ pub(super) fn encode(
         worker: snapshot.or_else(|| root.worker_status()),
         retired_native_attachments: root.retired_native_attachments(),
         kernel_additional_preparation_bound: root.kernel_preparation_bound(),
+        #[cfg(feature = "display-ready-root")]
+        display_worker: root.display_task_status(),
         capability_possession_issued: root.native_possession_prepared(),
         publication_bytes,
         acknowledgement: acknowledgement.as_ref(),

@@ -106,6 +106,15 @@ impl<P: OpenDrain> Execution<P> {
         })
     }
     pub async fn run(&mut self, stop: impl Future<Output = ()>) -> Outcome {
+        self.run_with_idle(stop, yield_now).await
+    }
+    /// The task supplies an admitted input wakeup wait. An unbound Fore may
+    /// remain pending until cancellation; it must not spin an idle MCU kernel.
+    pub async fn run_with_idle<F: Future<Output = ()>>(
+        &mut self,
+        stop: impl Future<Output = ()>,
+        mut idle: impl FnMut() -> F,
+    ) -> Outcome {
         if self.begun {
             let cleanup = match self.cleanup {
                 Some(c) => c,
@@ -119,7 +128,7 @@ impl<P: OpenDrain> Execution<P> {
             };
         }
         self.begun = true;
-        let exit = match select(stop, self.pump()).await {
+        let exit = match select(stop, self.pump(&mut idle)).await {
             Either::First(()) => Exit::Cancelled,
             Either::Second(exit) => exit,
         };
@@ -135,7 +144,7 @@ impl<P: OpenDrain> Execution<P> {
             progress: self.progress,
         }
     }
-    async fn pump(&mut self) -> Exit {
+    async fn pump<F: Future<Output = ()>>(&mut self, idle: &mut impl FnMut() -> F) -> Exit {
         loop {
             let mut service = DisplayService {
                 kernel: &mut self.storage.kernel,
@@ -169,6 +178,7 @@ impl<P: OpenDrain> Execution<P> {
             match self.storage.kernel.step() {
                 Ok(SchedulerStatus::Drained) => return Exit::Drained,
                 Ok(SchedulerStatus::Cancelled) => return Exit::Cancelled,
+                Ok(SchedulerStatus::Idle) => idle().await,
                 Err(_) => return Exit::Failed(fail(4)),
                 _ => yield_now().await,
             }

@@ -23,8 +23,12 @@ impl NativeRoot {
                     self.display.accept_start()?;
                     ack::State::StartedHeld
                 }
+                owner::Operation::Release => {
+                    self.display.release()?;
+                    ack::State::Released
+                }
                 owner::Operation::Cancel => {
-                    self.display.cancel_held()?;
+                    self.display.cancel_held().await?;
                     ack::State::Quiesced
                 }
                 owner::Operation::Retire => {

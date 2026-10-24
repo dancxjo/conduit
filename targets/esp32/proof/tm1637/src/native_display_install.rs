@@ -1,7 +1,7 @@
 //! Signed Prepare gate for the finite, dormant display construction diagnostic.
 use super::super::NativeRoot;
 impl NativeRoot {
-    pub(super) fn prepare_display_kernel(
+    pub(super) async fn prepare_display_kernel(
         &mut self,
         permit: crate::native_owner_reservation::PreparationPermit,
         wire: &[u8],
@@ -40,9 +40,20 @@ impl NativeRoot {
                 stats.size.saturating_sub(stats.current_usage),
             )?;
         }
-        let stats = esp_alloc::HEAP.stats();
-        self.display
-            .prepare_context(stats.size.saturating_sub(stats.current_usage))?;
+        if self.display.context_bytes().is_none() {
+            let stats = esp_alloc::HEAP.stats();
+            self.display
+                .prepare_context(stats.size.saturating_sub(stats.current_usage))?;
+        }
+        let spawner = self.worker_spawner.ok_or("worker-executor-unavailable")?;
+        self.display.register_task(spawner).await?;
         Ok(())
+    }
+}
+
+#[cfg(feature = "display-ready-root")]
+impl NativeRoot {
+    pub fn display_task_status(&self) -> Option<crate::native_display::DisplayTaskStatus> {
+        self.display.task_status()
     }
 }
