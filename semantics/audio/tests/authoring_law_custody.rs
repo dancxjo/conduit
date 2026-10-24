@@ -23,6 +23,7 @@ fn exact_owner_replay_and_transactional_missing_context() {
     );
     assert_eq!(catalog, before);
     assert!(document.native_law_witness("AudioClockBinding").is_none());
+    assert!(authoring::checked_document_with_law_custody_for(&["AudioClockBinding"]).is_err());
     assert!(authoring::install_law_custody_for(&mut catalog, &["AudioClockBinding"]).is_err());
     assert_eq!(catalog, before);
     authoring::install_law_custody_for(&mut catalog, &["AudioExactTimeOffset"]).unwrap();

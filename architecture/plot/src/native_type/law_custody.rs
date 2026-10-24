@@ -17,6 +17,7 @@ mod admission_metadata;
 mod verification;
 use verification::verify;
 mod material_preflight;
+pub(crate) mod requested_roots;
 mod root_source;
 
 const MAXIMUM_MODULES: usize = 256;
@@ -242,7 +243,7 @@ pub(crate) fn collect(
             continue;
         };
         let closed = crate::parse_syntax_document(&source);
-        if let Some(witness) = collect_root(&closed, base, checked) {
+        if let Ok(witness) = collect_root(&closed, base, checked) {
             // The returned registry is bounded too, not just each root export.
             let mut candidate = retained_budget.clone();
             if admit_witness(&witness, 0, &mut candidate).is_err() {
@@ -259,10 +260,10 @@ fn collect_root(
     syntax: &crate::SyntaxDocument,
     base: &StartupCatalog,
     checked: &CheckedNativeType,
-) -> Option<NativeLawWitness> {
+) -> Result<NativeLawWitness, NativeLawCustodyRefusal> {
     let required = required_imports(syntax);
     if required.len() > MAXIMUM_MODULES {
-        return None;
+        return Err(NativeLawCustodyRefusal::Capacity);
     }
     let mut borrowed = Vec::new();
     let mut borrowed_families = Vec::new();
@@ -272,40 +273,43 @@ fn collect_root(
         } else {
             borrowed_families.push((
                 name.clone(),
-                base.native_families.get(&name)?.source_custody.as_ref()?,
+                base.native_families
+                    .get(&name)
+                    .and_then(|family| family.source_custody.as_ref())
+                    .ok_or(NativeLawCustodyRefusal::UnsupportedContext)?,
             ));
         }
     }
     let mut budget = Budget::default();
-    budget.admit(syntax.round_trip(), 0).ok()?;
-    budget.charge(checked.name.len()).ok()?;
-    budget.claims(checked).ok()?;
+    budget.admit(syntax.round_trip(), 0)?;
+    budget.charge(checked.name.len())?;
+    budget.claims(checked)?;
     for (name, witness) in &borrowed {
-        budget.charge(name.len()).ok()?;
-        admit_witness(witness, 1, &mut budget).ok()?;
+        budget.charge(name.len())?;
+        admit_witness(witness, 1, &mut budget)?;
     }
     for (name, witness) in &borrowed_families {
-        budget.charge(name.len()).ok()?;
-        witness.admit(1, &mut budget).ok()?;
+        budget.charge(name.len())?;
+        witness.admit(1, &mut budget)?;
     }
     let mut replay = StartupCatalog::new();
     for (name, witness) in &borrowed {
         replay
             .insert_checked_native_type(name.clone(), witness.checked_type())
-            .ok()?;
+            .map_err(|_| NativeLawCustodyRefusal::DuplicateImport)?;
     }
     for (name, witness) in &borrowed_families {
-        witness.install(name, &mut replay).ok()?;
+        witness.install(name, &mut replay)?;
     }
-    let rechecked = check_module(syntax.round_trip(), &replay).ok()?;
+    let rechecked = check_module(syntax.round_trip(), &replay)?;
     if !rechecked.iter().any(|ty| ty == checked) {
-        return None;
+        return Err(NativeLawCustodyRefusal::Laws);
     }
     let imports = borrowed
         .into_iter()
         .map(|(name, witness)| (name, witness.clone()))
         .collect();
-    Some(NativeLawWitness {
+    Ok(NativeLawWitness {
         module: Shared::new(Module {
             source: syntax.round_trip().into(),
             imports,

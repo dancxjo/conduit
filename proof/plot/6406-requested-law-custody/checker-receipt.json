@@ -1,0 +1,118 @@
+{
+  "schema": "6406-requested-native-law-roots-preparation@1",
+  "base": "8186cfbe5d69e7de948f32a8a32c78ac4b39bedd",
+  "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-verified-law-realization",
+  "uncommitted_plot_delta_only": true,
+  "files": {
+    "architecture/plot/src/lib.rs": "e66fb85935e780f992ecb6292fef78a97daf57d528a615e4bc073b50bbe27dce",
+    "architecture/plot/src/syntax_check.rs": "4f08a4016021e0006f4201e950bdd48052dbb356ec19efa200d11e3d261ec93c",
+    "architecture/plot/src/native_type/law_custody.rs": "8453097218700666c17cf68ba04bf1d900769a05531431662464e632932dd76d",
+    "architecture/plot/src/native_type/law_custody/requested_roots.rs": "91e35404b6593a51e00ba5b309d70da13f53ef6cb816190e4663d03a1ca3f267",
+    "architecture/plot/tests/requested_native_law_roots.rs": "ffa9ec2c93116ecf568d177cceecdc0b4dfa871093df285d69f7c8e22e7d8e53"
+  },
+  "public_api": "check_syntax_document_with_native_law_roots(&SyntaxDocument,&StartupCatalog,&[&str]) -> Result<CheckedSyntaxDocument,SyntaxCheckDiagnostic>",
+  "bounds": {
+    "request_names": 4096,
+    "individual_name_bytes": 4096,
+    "aggregate_name_bytes": 4194304,
+    "selected_expanded_source_modules": 256,
+    "selected_custody_bytes": 4194304,
+    "selected_dependency_depth": 16
+  },
+  "semantics": [
+    "Same complete Source checker and identity path; selection changes only optional custody retention.",
+    "Legacy checker unchanged; no source rewrite/order change/budget increase.",
+    "Every requested root must yield full compiler-verified opaque witness or whole call returns bounded root+NativeLawCustodyRefusal diagnostic.",
+    "No public native_types-to-witness promotion or silently missing requested root."
+  ],
+  "causal_packet": "work/6406-collect-causal-diagnostic/receipt.json",
+  "validation": {
+    "tests_passed": 31,
+    "failed": 0,
+    "ignored": 0,
+    "targets": {
+      "requested_native_law_roots": 5,
+      "native_law_custody": 11,
+      "native_law_families": 8,
+      "native_law_packages": 3,
+      "owned_native_admission": 4
+    },
+    "command": "cargo +stable test --locked -p conduit-plot --test requested_native_law_roots --test native_law_custody --test native_law_packages --test native_law_families --test owned_native_admission -- --test-threads=1",
+    "strict_exit": 0,
+    "strict_seconds": 4.07,
+    "format_exit": 0,
+    "env": {
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target"
+    }
+  },
+  "coverage": [
+    "300 earlier roots exhaust old optional retention; selecting Late alone succeeds and preserves Syntax/SourceID/nativeTypes/checkedplots/expanded expression exactly.",
+    "Duplicate/unknown/aggregate name pressure/metadata-only import unsupported/selected256 Source-module cap explicitly refuse.",
+    "Valid nested63x63-record/63where-law Source exceeds individual4MiB custody and refuses honestly."
+  ],
+  "fixture_negatives": "First two stress fixtures hit preexisting64field/64where-law syntax limits; raw logs retained as fixture failures, not acceptance proof; their overwritten executable versions are not claimed preserved.",
+  "remaining": [
+    "Audio/Speech producer adaptation and actual individual G2 closure legality/capacity proof",
+    "Full6406 expression envelope/checked evaluator/selected Std Back and eventual relevant CI"
+  ],
+  "logs": {
+    "6406-requested-native-roots-tests.log": {
+      "raw_sha256": "0db62f6d66fca6a0a14f9c2ede6ece2e8fe5a308be7b3294821e01e9463b58fb",
+      "gzip_sha256": "f2ba1bdc93fa27d335528c3cebe7d8764c6951f025172998db63458d828d084b"
+    },
+    "6406-requested-native-roots-regressions.log": {
+      "raw_sha256": "8dd0fb75e680431a3165ec952d38777f27b87009686f087b452b69c6a6ff6965",
+      "gzip_sha256": "f49dd0f10cefa13dfd191470db18fd20df3403574ce2a6b9b4c2dfdd899aa8f7"
+    },
+    "6406-requested-native-roots-strict.log": {
+      "raw_sha256": "0f0caa75f94facd01caead6b737447ab3700e0a124810eca1b21bb2338270cb3",
+      "gzip_sha256": "e458a96d57345cfde43f3eec8aa636fa4bf9d4ea008f63b7334690907874cc7a"
+    },
+    "6406-requested-native-roots-format.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "6406-requested-native-roots-first-negative.log": {
+      "raw_sha256": "f544595790ce4299cc1bb4a1059e2e71c18f8a0c9fc1f33b312e7c3209726476",
+      "gzip_sha256": "60f17c0834f41b4b714df4a0ee5b17c1cd683b3b3b84421a4fa53a3812f67c36"
+    },
+    "6406-requested-native-roots-second-negative.log": {
+      "raw_sha256": "3161ff38e8feb6149fb42aa10e24a4459ab3cb5490d542a13fa6d3013d192aca",
+      "gzip_sha256": "32a0b946db138dc5c522f69b9bc018017a59ea5a589e0a559e710b82a1bb7e15"
+    }
+  },
+  "executables": {
+    "native_law_custody-149eba2696228c15": {
+      "sha256": "0ad1f4bd53869104121825a414e3c0958ba92d23dd36eea5a6256a49041eeb4b",
+      "bytes": 15713568,
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_custody-149eba2696228c15"
+    },
+    "native_law_families-b6c63520248c2343": {
+      "sha256": "3ae4a780871843765865883f60eb2b0190a0907d20bfde1a5db50a933f863415",
+      "bytes": 15297856,
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_families-b6c63520248c2343"
+    },
+    "native_law_packages-c63c322430dcb464": {
+      "sha256": "a9c0180704fdeb78253a54ec498d024d38c264b49dd8699340c26ee5623fd4d1",
+      "bytes": 15242808,
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_packages-c63c322430dcb464"
+    },
+    "owned_native_admission-1729723a19b18337": {
+      "sha256": "953aa41053a92a3d28a7a820c54408e2de8d2491335353a92b9f0f5351c3e7f7",
+      "bytes": 15761688,
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/owned_native_admission-1729723a19b18337"
+    },
+    "requested_native_law_roots-9f9540cf1c12888d": {
+      "sha256": "d1478aaade1cc42e2c191326ee30d0be63a9162e4d352aba759286f50922177b",
+      "bytes": 19494984,
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/requested_native_law_roots-9f9540cf1c12888d"
+    }
+  },
+  "cache_state": "idle released to Root",
+  "committed": false,
+  "pushed": false
+}

@@ -772,6 +772,17 @@ pub fn check_syntax_document(
     syntax_check::check_document(document, catalog)
 }
 
+/// Check the complete original Source, retaining complete custody for exactly
+/// the requested local Native roots. Request and custody pressure refuse the
+/// whole call; the legacy optional-custody checker remains unchanged.
+pub fn check_syntax_document_with_native_law_roots(
+    document: &SyntaxDocument,
+    catalog: &StartupCatalog,
+    names: &[&str],
+) -> Result<CheckedSyntaxDocument, SyntaxCheckDiagnostic> {
+    syntax_check::check_document_with_native_law_roots(document, catalog, names)
+}
+
 pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedPlot, PlotError> {
     let startup = catalog
         .startup_catalog()

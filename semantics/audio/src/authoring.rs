@@ -32,4 +32,7 @@ pub fn install(startup: &mut StartupCatalog) -> Result<(), String> {
 mod law_custody;
 #[path = "../build_support/type_source.rs"]
 mod type_source;
-pub use law_custody::{checked_document_with_law_custody, install_law_custody_for};
+pub use law_custody::{
+    checked_document_with_law_custody, checked_document_with_law_custody_for,
+    install_law_custody_for,
+};

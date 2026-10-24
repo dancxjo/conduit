@@ -113,60 +113,87 @@ fn assert_builtin_structure(ty: &StructuredInfoType) {
 }
 #[test]
 fn all_four_g2_program_native_owners_have_complete_replayable_custody() {
-    let speech = conduit_speech::authoring::checked_document_with_law_custody().unwrap();
-    let audio = conduit_audio::authoring::checked_document_with_law_custody().unwrap();
-    let expected = conduit_speech::authoring::checked_types().unwrap();
-    assert_eq!(speech.native_types, expected);
-    let mut owners = expected;
-    owners.extend(conduit_audio::authoring::checked_types().unwrap());
-    let mut found = BTreeSet::new();
+    let original = conduit_speech::authoring::checked_document_with_law_custody().unwrap();
+    let speech_metadata = conduit_speech::authoring::checked_types().unwrap();
+    let audio_metadata = conduit_audio::authoring::checked_types().unwrap();
+    assert_eq!(original.native_types, speech_metadata);
+    let mut all = BTreeSet::new();
+    let mut programs = Vec::new();
     for name in ["advance", "phases", "curve", "energy"] {
-        let expanded = expand_canonical_plot_for_authoring(
-            &speech,
-            &format!("speech/phone-gesture-{name}"),
-            &ProfileCatalog::new(),
-        )
-        .unwrap();
-        let [gear] = expanded.expanded.gears.as_slice() else {
-            panic!("one expression")
-        };
-        let [entry] = gear.configuration.as_slice() else {
-            panic!("one program")
-        };
-        let ConfigurationValue::Text(encoded) = &entry.value else {
-            panic!("canonical program")
-        };
-        let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-        let mut all = BTreeSet::new();
-        types(&program.input_type, &mut all);
-        types(&program.output_type, &mut all);
-        nodes(&program.root, &mut all);
-        for ty in all {
-            if let Some(expected) = owners.iter().find(|owner| owner.value_type == ty) {
-                if !found.insert(expected.name.clone()) {
-                    continue;
-                }
-                let witness = speech
-                    .native_law_witness(&expected.name)
-                    .or_else(|| audio.native_law_witness(&expected.name))
-                    .unwrap_or_else(|| panic!("missing owner {}", expected.name));
-                assert_eq!(witness.checked_type(), expected);
-                let anchors = witness.family_anchors().unwrap();
-                let replay = NativeLawWitness::verify_with_context(
-                    &witness.material().unwrap(),
-                    &expected.value_type,
-                    &NativeLawContext { families: &anchors },
-                )
-                .unwrap();
-                assert_eq!(replay.checked_type(), expected);
-            } else {
-                assert_builtin_structure(&ty);
-            }
+        let name = format!("speech/phone-gesture-{name}");
+        let encoded = program(&original, &name);
+        let value = PortableExpressionProgram::from_canonical_hex(&encoded).unwrap();
+        types(&value.input_type, &mut all);
+        types(&value.output_type, &mut all);
+        nodes(&value.root, &mut all);
+        programs.push((name, encoded));
+    }
+    let mut speech_names = BTreeSet::new();
+    let mut audio_names = BTreeSet::new();
+    for ty in all {
+        if let Some(owner) = speech_metadata.iter().find(|owner| owner.value_type == ty) {
+            speech_names.insert(owner.name.as_str());
+        } else if let Some(owner) = audio_metadata.iter().find(|owner| owner.value_type == ty) {
+            audio_names.insert(owner.name.as_str());
+        } else {
+            assert_builtin_structure(&ty);
         }
     }
-    assert!(found.contains("SpeechPhoneGestureTiming"));
-    assert!(found.contains("AudioQuantityTrajectory"));
+    let speech = conduit_speech::authoring::checked_document_with_law_custody_for(
+        &speech_names.iter().copied().collect::<Vec<_>>(),
+    )
+    .unwrap();
+    let audio = conduit_audio::authoring::checked_document_with_law_custody_for(
+        &audio_names.iter().copied().collect::<Vec<_>>(),
+    )
+    .unwrap();
+    assert_eq!(speech.source_document_id, original.source_document_id);
+    assert_eq!(speech.native_types, original.native_types);
+    assert_eq!(audio.native_types, audio_metadata);
+    for (name, encoded) in programs {
+        assert_eq!(
+            program(&speech, &name),
+            encoded,
+            "original canonical program unchanged"
+        );
+    }
+    for (document, expected, names) in [
+        (&speech, &speech_metadata, &speech_names),
+        (&audio, &audio_metadata, &audio_names),
+    ] {
+        for name in names {
+            let expected = expected.iter().find(|owner| owner.name == *name).unwrap();
+            let witness = document.native_law_witness(name).unwrap();
+            assert_eq!(witness.checked_type(), expected);
+            let anchors = witness.family_anchors().unwrap();
+            let material = witness.material().unwrap();
+            let replay = NativeLawWitness::verify_with_context(
+                &material,
+                &expected.value_type,
+                &NativeLawContext { families: &anchors },
+            )
+            .unwrap();
+            assert_eq!(replay.checked_type(), expected);
+        }
+    }
+    assert!(speech_names.contains("SpeechPhoneGestureTiming"));
+    assert!(audio_names.contains("AudioQuantityTrajectory"));
 }
+fn program(document: &CheckedSyntaxDocument, name: &str) -> String {
+    let expanded =
+        expand_canonical_plot_for_authoring(document, name, &ProfileCatalog::new()).unwrap();
+    let [gear] = expanded.expanded.gears.as_slice() else {
+        panic!("one expression")
+    };
+    let [entry] = gear.configuration.as_slice() else {
+        panic!("one program")
+    };
+    let ConfigurationValue::Text(encoded) = &entry.value else {
+        panic!("canonical program")
+    };
+    encoded.clone()
+}
+
 #[test]
 fn requested_roots_are_transactional_and_cannot_upgrade_forged_metadata() {
     let mut catalog = StartupCatalog::new();
@@ -177,12 +204,16 @@ fn requested_roots_are_transactional_and_cannot_upgrade_forged_metadata() {
     )
     .is_err());
     assert_eq!(catalog, before);
-    let doc = conduit_speech::authoring::checked_document_with_law_custody().unwrap();
+    let doc = conduit_speech::authoring::checked_document_with_law_custody_for(&[
+        "SpeechPhoneGestureTiming",
+    ])
+    .unwrap();
     let mut forged = doc
         .native_law_witness("SpeechPhoneGestureTiming")
         .unwrap()
         .checked_type()
         .clone();
+    assert!(!forged.invariants.is_empty());
     forged.invariants.clear();
     catalog
         .insert_checked_native_type("SpeechPhoneGestureTiming", &forged)

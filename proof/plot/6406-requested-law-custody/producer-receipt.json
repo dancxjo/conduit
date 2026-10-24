@@ -1,0 +1,118 @@
+{
+  "schema": "6406-owner-requested-custody-handoff@1",
+  "base": "8186cfbe5d69e7de948f32a8a32c78ac4b39bedd",
+  "uncommitted_exact_delta": {
+    "architecture/plot/src/native_type/law_custody/requested_roots.rs": {
+      "sha256": "91e35404b6593a51e00ba5b309d70da13f53ef6cb816190e4663d03a1ca3f267",
+      "git_blob": "61b198295728df46f0bc925a453b2d009eab18f8"
+    },
+    "architecture/plot/tests/requested_native_law_roots.rs": {
+      "sha256": "ffa9ec2c93116ecf568d177cceecdc0b4dfa871093df285d69f7c8e22e7d8e53",
+      "git_blob": "903979a08b76a1836343e609081ca820ec62a5fa"
+    },
+    "semantics/speech/src/authoring_law_dependencies.rs": {
+      "sha256": "7bbb3830b43e114e96150f81e5630282b714b4f0e0d1e64b9d3d0229bff7524f",
+      "git_blob": "4da9d562a916d04cb86f217e144f0ca980e26874"
+    },
+    "architecture/plot/src/lib.rs": {
+      "sha256": "e66fb85935e780f992ecb6292fef78a97daf57d528a615e4bc073b50bbe27dce",
+      "git_blob": "71b624ffc0fb6c80757efdaa1b8f55b40821b591"
+    },
+    "architecture/plot/src/native_type/law_custody.rs": {
+      "sha256": "8453097218700666c17cf68ba04bf1d900769a05531431662464e632932dd76d",
+      "git_blob": "7cc3b2783747fcbe9d9dfb54ea42947abb86dfea"
+    },
+    "architecture/plot/src/syntax_check.rs": {
+      "sha256": "4f08a4016021e0006f4201e950bdd48052dbb356ec19efa200d11e3d261ec93c",
+      "git_blob": "39cb5d22ea6158f3f93a7d3522721c43fd2a2543"
+    },
+    "semantics/audio/src/authoring.rs": {
+      "sha256": "02436932afa98129f184028ace9836fc79595ee62a43e5d00600967a7dc67807",
+      "git_blob": "09907efd0d7a43390e677d49b562531c74752c4d"
+    },
+    "semantics/audio/src/authoring_law_custody.rs": {
+      "sha256": "0402ee72e8f78ff9ce29d1be8df8386467ee86a259e919a8784d2ad16af41cff",
+      "git_blob": "771029a379afe9ce2865c21a373fa52c1e8f9a5b"
+    },
+    "semantics/audio/tests/authoring_law_custody.rs": {
+      "sha256": "714a1b2bcf0b7220463404d0891aea630524b7a3c60f2604b47987fb8aa578af",
+      "git_blob": "32c5a782b9dc40afe71ef4fa6f545d56038ad3b8"
+    },
+    "semantics/speech/build_support/owner_catalog.rs": {
+      "sha256": "353b518139c4bff472a4a9cddd5bd44e1327d0be0d1b4069c4032899255fab37",
+      "git_blob": "d2a3506d750c58729e15616c481b8f664c1addb4"
+    },
+    "semantics/speech/src/authoring.rs": {
+      "sha256": "be3f0aae281cc1b02cbd216e38c3a574cf394852de02d6a1735f08d3733b6510",
+      "git_blob": "fcb3db830d0d71b9cf24d2b7ccffef51feeb2b2c"
+    },
+    "semantics/speech/src/authoring_law_custody.rs": {
+      "sha256": "75b46d4330b527c098824488293dce4b7be1c1c2e1c57cf3f0927e497ea0ce49",
+      "git_blob": "cd1ee6c347f37706a354494f2e037ea38502ace2"
+    },
+    "semantics/speech/tests/authoring_law_custody.rs": {
+      "sha256": "509fc79e2a09dfc2e40f83447b305ce5efa9b720669d4629d0824885226e54c3",
+      "git_blob": "260ef77d58520455f0ea5f5c5f3f04c3d73d1818"
+    }
+  },
+  "validation": {
+    "tests_passed": 6,
+    "failed": 0,
+    "ignored": 0,
+    "audio": 3,
+    "speech": 3,
+    "strict_exit": 0,
+    "format_exit": 0,
+    "diff_check_exit": 0,
+    "source_unchanged": true,
+    "receipt": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-owner-custody-requested-roots/receipt.json",
+    "log_hashes": {
+      "tests.log": "b29856acc11d0c17c3ac0ff4c9c89b011c582c810c511340b555271956dcc69b",
+      "strict.log": "19447a75323dad6c9243142ed0f70e40e03f63afd10c4e67dc7c59da74d0fa3e"
+    },
+    "actual_executables": [
+      {
+        "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/authoring_law_custody-d9c77aa9b0198fb4",
+        "bytes": 22863536,
+        "sha256": "60f517e108dbafc7e3445db3c021eb4bba7dbde7870cbed9ce40afb4509eded8",
+        "gzip": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-owner-custody-requested-roots/authoring_law_custody-d9c77aa9b0198fb4.gz",
+        "mode": "0o775",
+        "mtime_ns": 1792863922582006262,
+        "depfile": {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-owner-custody-requested-roots/authoring_law_custody-d9c77aa9b0198fb4.d",
+          "sha256": "4b5e4ab7f7c95d0cfcd5a7764bcbde6aa88a6c1bdea74b1eb4e90b15387f4757"
+        }
+      },
+      {
+        "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/authoring_law_custody-b7d24eda55c8d09d",
+        "bytes": 29724312,
+        "sha256": "c18fc469225b35afd988df4341e4e9a4a3e1068418cf441ea22b55f66a207531",
+        "gzip": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-owner-custody-requested-roots/authoring_law_custody-b7d24eda55c8d09d.gz",
+        "mode": "0o775",
+        "mtime_ns": 1792863991055557412,
+        "depfile": {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-owner-custody-requested-roots/authoring_law_custody-b7d24eda55c8d09d.d",
+          "sha256": "253edd63a7f9bdafbabf9c9b97f97d5b27ebff07c58908642fdcca087c9d2f9e"
+        }
+      }
+    ]
+  },
+  "apis": [
+    "Audio/Speech authoring::checked_document_with_law_custody_for(&[&str]) -> Result<CheckedSyntaxDocument,String>",
+    "install_law_custody_for now selects requested roots before optional registry pressure",
+    "No-argument checked_document_with_law_custody remains optional; legacy install unchanged"
+  ],
+  "proof": "All4 original G2 programs: exact ports/every node/nested Native owners derived by canonical Type equality, complete requested opaque custody/material reverified with independent generated Types and original opaque family anchors, unchanged SourceID/metadata/program bytes including proven bits. Structural exceptions use exact public Core/Plot constructors, never naming prefixes. Missing/forged metadata and legacy Type equality controls pass.",
+  "limits": [
+    "Producer preparation only; old four program encodings/evaluator/Std offered execution unchanged",
+    "Full6406 expression envelope/runtime law enforcement and eventual CI remain owed",
+    "No new Native IDs, authored laws, manifests or legacy installation behavior"
+  ],
+  "ownership": "All producer and Plot source paths and shared cache RELEASED to Root; no further agent writes scheduled",
+  "previous_negatives": [
+    "work/6406-owner-custody-first",
+    "work/6406-owner-custody-complete-imports",
+    "work/6406-owner-custody-canonical-import-fixtures"
+  ],
+  "completed": 1792864492.6560228
+}

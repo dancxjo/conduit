@@ -1,22 +1,40 @@
 //! Explicit allocating preparation; legacy metadata-only installation stays unchanged.
 use super::*;
 use alloc::{collections::BTreeSet, format};
-use conduit_plot::{check_syntax_document, parse_syntax_document, CheckedSyntaxDocument};
+use conduit_plot::{
+    check_syntax_document, check_syntax_document_with_native_law_roots, parse_syntax_document,
+    CheckedSyntaxDocument,
+};
 
 /// Recheck the exact owner Type Source. Only roots with complete private
 /// compiler custody have witnesses; unsupported imported clock contexts remain
 /// absent. Public inspection metadata is used only for exact ABI comparison.
 pub fn checked_document_with_law_custody() -> Result<CheckedSyntaxDocument, String> {
+    check_owner(None)
+}
+
+/// Retain complete compiler custody for exactly these requested Native roots,
+/// before optional registry filling. Real missing/overbound closures refuse the
+/// complete call; the exact original Source and generated ABI stay unchanged.
+pub fn checked_document_with_law_custody_for(
+    names: &[&str],
+) -> Result<CheckedSyntaxDocument, String> {
+    validate_names(names)?;
+    check_owner(Some(names))
+}
+
+fn check_owner(names: Option<&[&str]>) -> Result<CheckedSyntaxDocument, String> {
     let mut catalog = StartupCatalog::new();
     for ty in conduit_data::clock_authoring::checked_types()
         .map_err(|why| format!("Data clock owner metadata: {why:?}"))?
     {
         catalog.insert_checked_native_type(ty.name.clone(), &ty)?;
     }
-    let document = check_syntax_document(
-        &parse_syntax_document(&super::type_source::source()),
-        &catalog,
-    )
+    let syntax = parse_syntax_document(&super::type_source::source());
+    let document = match names {
+        Some(names) => check_syntax_document_with_native_law_roots(&syntax, &catalog, names),
+        None => check_syntax_document(&syntax, &catalog),
+    }
     .map_err(|why| format!("Audio owner Source: {why:?}"))?;
     let expected = checked_types().map_err(|why| format!("Audio generated metadata: {why:?}"))?;
     if document.native_types.len() != expected.len()
@@ -33,19 +51,11 @@ pub fn checked_document_with_law_custody() -> Result<CheckedSyntaxDocument, Stri
 /// bounds are checked before Source parsing or cloning the destination catalog.
 /// Missing reachable Source custody refuses the whole transaction.
 pub fn install_law_custody_for(startup: &mut StartupCatalog, names: &[&str]) -> Result<(), String> {
-    if names.len() > 4096 {
-        return Err("Audio requested roots exceed 4096".into());
-    }
-    let mut unique = BTreeSet::new();
-    for name in names {
-        if name.is_empty() || name.len() > 4096 || !unique.insert(*name) {
-            return Err("Audio requested root is empty, duplicate or overbound".into());
-        }
-    }
+    validate_names(names)?;
     if names.is_empty() {
         return Ok(());
     }
-    let document = checked_document_with_law_custody()?;
+    let document = checked_document_with_law_custody_for(names)?;
     let mut witnesses = Vec::with_capacity(names.len());
     for name in names {
         witnesses.push((
@@ -66,5 +76,18 @@ pub fn install_law_custody_for(startup: &mut StartupCatalog, names: &[&str]) -> 
         }
     }
     *startup = staged;
+    Ok(())
+}
+
+fn validate_names(names: &[&str]) -> Result<(), String> {
+    if names.len() > 4096 {
+        return Err("Audio requested roots exceed 4096".into());
+    }
+    let mut unique = BTreeSet::new();
+    for name in names {
+        if name.is_empty() || name.len() > 4096 || !unique.insert(*name) {
+            return Err("Audio requested root is empty, duplicate or overbound".into());
+        }
+    }
     Ok(())
 }

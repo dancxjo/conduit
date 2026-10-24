@@ -69,4 +69,10 @@ pub fn install(startup: &mut StartupCatalog) -> Result<(), String> {
 mod law_custody;
 #[path = "../build_support/owner_catalog.rs"]
 mod owner_catalog;
-pub use law_custody::{checked_document_with_law_custody, install_law_custody_for};
+pub use law_custody::{
+    checked_document_with_law_custody, checked_document_with_law_custody_for,
+    install_law_custody_for,
+};
+
+#[path = "authoring_law_dependencies.rs"]
+mod law_dependencies;

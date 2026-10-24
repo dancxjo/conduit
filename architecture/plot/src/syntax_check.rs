@@ -57,6 +57,23 @@ pub(crate) fn check_document(
     document: &SyntaxDocument,
     catalog: &StartupCatalog,
 ) -> Result<CheckedSyntaxDocument, SyntaxCheckDiagnostic> {
+    check_document_with_custody(document, catalog, None)
+}
+
+pub(crate) fn check_document_with_native_law_roots(
+    document: &SyntaxDocument,
+    catalog: &StartupCatalog,
+    names: &[&str],
+) -> Result<CheckedSyntaxDocument, SyntaxCheckDiagnostic> {
+    let request = crate::native_type::law_custody::requested_roots::preflight(names)?;
+    check_document_with_custody(document, catalog, Some(&request))
+}
+
+fn check_document_with_custody(
+    document: &SyntaxDocument,
+    catalog: &StartupCatalog,
+    roots: Option<&crate::native_type::law_custody::requested_roots::Request<'_>>,
+) -> Result<CheckedSyntaxDocument, SyntaxCheckDiagnostic> {
     if let Some(diagnostic) = document.diagnostics.first() {
         return Err(SyntaxCheckDiagnostic {
             code: diagnostic.code,
@@ -215,8 +232,15 @@ pub(crate) fn check_document(
             .clone();
         structured_types.insert(value_kind, retained.value_type.clone());
     }
-    let native_law_custody =
-        crate::native_type::law_custody::collect(document, catalog, &native_types);
+    let native_law_custody = match roots {
+        Some(request) => crate::native_type::law_custody::requested_roots::collect(
+            document,
+            catalog,
+            &native_types,
+            request,
+        )?,
+        None => crate::native_type::law_custody::collect(document, catalog, &native_types),
+    };
     Ok(CheckedSyntaxDocument {
         native_law_custody,
         physical: catalog.physical.clone(),

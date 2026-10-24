@@ -4,10 +4,16 @@ use alloc::{format, string::String};
 use conduit_core::StructuredInfoType;
 use conduit_plot::StartupCatalog;
 
-pub fn prepare(language_types: &[(&str, StructuredInfoType)]) -> Result<StartupCatalog, String> {
+pub fn prepare(
+    language_types: &[(&str, StructuredInfoType)],
+    audio_roots: Option<&[&str]>,
+) -> Result<StartupCatalog, String> {
     let audio = conduit_audio::authoring::checked_types()
         .map_err(|why| format!("Audio owner metadata: {why:?}"))?;
-    let audio_source = conduit_audio::authoring::checked_document_with_law_custody()?;
+    let audio_source = match audio_roots {
+        Some(names) => conduit_audio::authoring::checked_document_with_law_custody_for(names)?,
+        None => conduit_audio::authoring::checked_document_with_law_custody()?,
+    };
     let mut catalog = StartupCatalog::new();
     // Speech generation installs every Audio owner Type, not merely its smaller
     // Rust external-binding PATHS inventory (which omits trajectory outputs).
