@@ -10,7 +10,7 @@ use conduit_plot::{
 };
 #[path = "display_frame.rs"]
 mod frame;
-pub use frame::{validate_display_frame, PreparedDisplayFrame};
+pub use frame::{validate_display_frame, PreparedDisplayFrame, DISPLAY_FRAME_BYTES};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DisplayPacketRefusal {

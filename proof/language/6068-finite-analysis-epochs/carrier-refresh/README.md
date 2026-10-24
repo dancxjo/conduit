@@ -1,0 +1,3 @@
+The aggregate checked Source identity changed when finite analysis programs were added. The retained carrier correctly refused its stale identity. This repair regenerates the carrier through the existing producer, preserving the waveform and all semantic guards.
+
+The explicit handoff cc51be1376775bd5ffd77845ff1c3e3fc3a6c02a was applied to the refreshed branch. Eight owning Speech tests and eleven publication controls pass on the resulting current-base source. The separate producer and strict lint receipts are recorded without relabeling their source. Original finite-analysis proof remains unchanged in the parent directory. Candidate and applicable accepted publication remain pending.

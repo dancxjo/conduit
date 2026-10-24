@@ -3,6 +3,7 @@
 mod arithmetic;
 mod equality;
 use arithmetic::binary;
+pub(crate) use equality::resource_equal;
 mod intrinsic;
 mod literal;
 mod structured;
