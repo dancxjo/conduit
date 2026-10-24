@@ -52,6 +52,7 @@ test('Todo add and remove icons preserve accessible names and exact action paylo
       invoke: async call => { globalThis.calls.push(call); },
     }), decorated);
     const button = face.getByRole('button', { name, exact: true });
+    await expect(face.getByRole('heading', { name, exact: true })).toHaveCount(0);
     await expect(button.locator('svg')).toHaveAttribute('aria-hidden', 'true');
     await button.focus();
     await page.keyboard.press('Enter');
@@ -1535,15 +1536,27 @@ test('complete selected Look tokens override palette hints without changing acti
   await expect(element.locator('.owner-face-document')).toHaveCSS('background-color','rgb(5, 7, 11)');
   const button=element.getByRole('button',{name:'Complete task'});
   await expect(button).toHaveCSS('background-color','rgb(9, 13, 22)');
+  await expect(button).toHaveCSS('font-size','16px');
   await button.focus();
   // Change one admitted token, retaining identity, typography and all Face data.
   const altered=Buffer.from(wire),background=altered.lastIndexOf(Buffer.from('background'));
   const red=altered.indexOf(Buffer.from('red'),background)+3;
   expect(altered[red]).toBe(0);expect(altered.readUInt32LE(red+1)).toBe(1);
   altered[red+5]=0x30;
+  const bodySize=altered.lastIndexOf(Buffer.from('type_body_px'))+'type_body_px'.length;
+  expect(altered[bodySize]).toBe(0);expect(altered.readUInt32LE(bodySize+1)).toBe(2);
+  altered.writeUInt16LE(20,bodySize+5);
   configured.component.selected_look.canonical_value=Array.from(altered);
   await element.evaluate((element,view)=>element.show(view,{invoke:async call=>globalThis.calls.push(call)}),configured);
   await expect(element.locator('.owner-face-document')).toHaveCSS('background-color','rgb(48, 7, 11)');
+  await expect(button).toHaveCSS('font-size','20px');
+  await page.setViewportSize({width:390,height:900});
+  await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
+  configured.component.expression.expression.text_scale_percent=200;
+  await element.evaluate((element,view)=>element.show(view,{invoke:async call=>globalThis.calls.push(call)}),configured);
+  await expect(button).toHaveCSS('font-size','40px');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(44);
   await expect(button).toBeFocused();
   await page.keyboard.press('Enter');
   expect(await page.evaluate(()=>globalThis.calls)).toEqual([{view:configured,action:view.actions[0],arguments:[]}]);

@@ -1,4 +1,5 @@
 use conduit_face::*;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 fn user() -> VisualUserConstraints {
     VisualUserConstraints {
@@ -38,12 +39,6 @@ fn facet_absence_unknown_and_observed_host_unavailability_stay_distinct() {
         look_facet_availability(&absent, &LookFacetRequest::Visual, false),
         LookFacetAvailability::Absent
     );
-    assert!(matches!(
-        admit_visual_look(&absent, user()),
-        Err(LookVisualAdmissionRefusal::Facet(
-            LookFacetAvailability::Absent
-        ))
-    ));
     let unknown = LookFacetRequest::unsupported("haptic".into()).unwrap();
     assert_eq!(
         look_facet_availability(&look, &unknown, true),
@@ -148,4 +143,97 @@ fn foreign_visual_identity_cannot_be_attached_to_another_look() {
         original.visual().clone()
     )
     .is_err());
+}
+
+#[test]
+fn absent_visual_policy_uses_default_without_losing_other_requested_facets() {
+    let original = phosphor_look().unwrap();
+    let requested = LookInfo::new(
+        original.generative().clone(),
+        "conduit.look/nonvisual@1".into(),
+        original.spoken().clone(),
+        2,
+        LookVisualFacetOption::None,
+    )
+    .unwrap();
+    let before = requested.clone();
+    for constraints in [
+        user(),
+        VisualUserConstraints {
+            forced_colors: true,
+            reduced_motion: true,
+            minimum_text_scale_percent: 200,
+            ..user()
+        },
+    ] {
+        let selected = admit_visual_look(&requested, constraints).unwrap();
+        assert_eq!(requested, before);
+        assert_eq!(selected.requested, before);
+        assert_eq!(selected.selected, original);
+        assert_eq!(
+            selected.visual.expression.text_scale_percent,
+            constraints.minimum_text_scale_percent
+        );
+        assert_eq!(
+            selected.visual.platform_forced_colors,
+            constraints.forced_colors
+        );
+        assert!(matches!(
+            selected.visual.outcome,
+            VisualExpressionOutcome::PhosphorFallback {
+                refusal: VisualExpressionRefusal::MissingVisualFacet
+            }
+        ));
+        // Synthetic admission output for a real DOM-renderer capture. It is
+        // not a browser Mask Source/Plan, Show, or Body execution receipt.
+        let wire = |look: &LookInfo| {
+            let structured = look.clone().into_structured().unwrap();
+            conduit_core::StructuredConfigurationValue::new(
+                structured
+                    .value_type()
+                    .profile()
+                    .unwrap()
+                    .value_kind()
+                    .clone(),
+                structured.canonical_bytes().unwrap(),
+            )
+            .unwrap()
+        };
+        eprintln!(
+            "NONVISUAL_ADMISSION_{}={}",
+            if constraints.forced_colors {
+                "FORCED"
+            } else {
+                "NORMAL"
+            },
+            serde_json::json!({
+                "requested_look": wire(&selected.requested),
+                "selected_look": wire(&selected.selected),
+                "expression": selected.visual,
+            })
+        );
+        for request in [LookFacetRequest::Spoken, LookFacetRequest::Generative] {
+            assert_eq!(
+                look_facet_availability(&selected.requested, &request, true),
+                LookFacetAvailability::Selected
+            );
+        }
+        assert_eq!(
+            look_facet_availability(&selected.requested, &LookFacetRequest::Visual, true),
+            LookFacetAvailability::Absent
+        );
+    }
+    assert!(matches!(
+        admit_visual_look(
+            &requested,
+            VisualUserConstraints {
+                minimum_text_scale_percent: 200,
+                maximum_supported_text_scale_percent: 125,
+                ..user()
+            }
+        ),
+        Err(LookVisualAdmissionRefusal::Visual(
+            VisualExpressionRefusal::HostTextCapacity
+        ))
+    ));
 }
