@@ -1,0 +1,12 @@
+# The Mask supplies mapped registers. This Plot owns command encoding; the
+# selected output Back owns electrical effects and exact resource authority.
+plot environment-display-output (
+    >> frame: Tm1637Frame...|
+    invalid_brightness: Tm1637Absence...| >>
+) {
+    encode: tm1637-packets
+    write: machine/tm1637/write
+    frame >> encode.frame
+    encode.result >> select(Tm1637PacketResult.packets, unmatched=drop) >> write.packets
+    encode.result >> select(Tm1637PacketResult.invalid-brightness, unmatched=drop) >> invalid_brightness
+}
