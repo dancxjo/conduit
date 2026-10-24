@@ -121,7 +121,7 @@ pub fn run_patchbay(
         command,
     );
     let mut arguments: Vec<String> = command.iter().map(|argument| (*argument).into()).collect();
-    for plot in args.plot.chunks_exact(2) {
+    for plot in args.plot.as_chunks::<2>().0 {
         arguments.push("--plot".into());
         arguments.extend_from_slice(plot);
     }
