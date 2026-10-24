@@ -242,3 +242,38 @@ include wide and narrow forced-color wardrobe/reading panels. Audio playback is
 not exercised. Reading's initial join instruction remains stale after joining;
 wardrobe text can describe the last inspected revision rather than current Show.
 These observed wording gaps remain explicit.
+
+## Patchbay inspection and owner status wording
+
+At `774b753b4`, Patchbay Cancel placement, facts disclosures, workspace/deep
+inspection, linear toggle and Plan/Play/route/Host/diagnostic headings use the
+existing pinned Lucide sources. Shared CSS owns decorative stroke/fill styling;
+new inline SVG keeps finite 18px dimensions without styles. Source HTML remains
+23,974 bytes, below the existing 24,000-character furniture check. No admitted
+resource or graphics bound was widened. Labels, slots, callbacks and semantic
+order remain unchanged. This is chrome coverage, not canonical Patchbay Look
+selection or owner/native correspondence.
+
+The owner reading panel's idle text now says no reading was requested in this
+window. Wardrobe status explicitly describes its last inspected revision and
+what was reported at that time; it asks for a new inspection for current policy.
+This resolves the observed misleading present-tense wording without guessing
+policy from a newer local Show or discarding actual refusal reports.
+
+Real installed-owner rerun at `774b753b4` asserts the corrected status text and
+passes the existing four-Look/identity/stale-Show/narrow constraints again. The
+new inspection capture exposed missing bottom-dock CSS and forced two-column
+evidence inside narrow drawers. CSS at `ed65db495` implements bottom docking
+and reflows cards against their actual container width. Three furniture tests
+pass, including new right/bottom bounds and narrow forced-color containment;
+four authoring/render checks and nine owner checks pass. The documentary
+Patchbay typed linear action succeeds, with no browser errors or document
+overflow. [Captures and source-specific receipts](evidence/gui-look-6349-inspection/README.md)
+retain the initial panel-closed capture failure and final positive results.
+This is not canonical owner Patchbay Look selection or native/CI acceptance.
+
+Task-owned inactive incremental cache was audited against active crate names,
+process maps, open files and working directories before removal. About 5GB of
+allocated regenerable cache was removed across two passes; actual available
+space reached about 10GB after the build completed. Active directories, compiled
+libraries/binaries, private owner state and all other tasks were preserved.

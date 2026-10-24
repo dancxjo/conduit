@@ -66,3 +66,36 @@ test("Patchbay has one stable Library and one contextual Inspect surface", async
     server.process.kill("SIGTERM");
   }
 });
+
+test("inspection evidence fits right and bottom docks at wide and forced-color narrow widths", async ({ page }) => {
+  const server = startServer();
+  try {
+    await page.goto(await server.url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
+    await page.locator("#deep-inspection > summary").click();
+    const panel = page.locator("#inspector");
+    const fits = () => panel.evaluate(node => {
+      const bounds = node.getBoundingClientRect();
+      return node.scrollWidth <= node.clientWidth + 1 &&
+        [...node.querySelectorAll('.truth-grid > section')].every(section => {
+          const card = section.getBoundingClientRect();
+          return card.left >= bounds.left && card.right <= bounds.right;
+        });
+    });
+    await expect.poll(fits).toBe(true);
+    await page.getByRole("button", { name: "Move Inspect to bottom", exact: true }).click();
+    await expect(panel).toHaveAttribute("data-furniture-dock", "bottom");
+    const bottom = await panel.boundingBox();
+    expect(bottom.width).toBeGreaterThan(page.viewportSize().width * .8);
+    expect(bottom.height).toBeLessThanOrEqual(page.viewportSize().height * .5);
+    await expect.poll(fits).toBe(true);
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+    await expect.poll(fits).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  } finally {
+    server.lines.close();
+    server.process.kill("SIGTERM");
+  }
+});

@@ -1,0 +1,11 @@
+{
+  "source": "774b753b4d97e5bd94109da6ed8efd05d75f2930",
+  "raw_report_sha256": "6622216730a27ec29348cd661137506dc0791441f0ce09e8d81a4ec49308cce1",
+  "raw_report_bytes": 7615369,
+  "archive": "owner-report.json.gz",
+  "driver_exit": 0,
+  "browser_errors": [],
+  "owner_show_acknowledged": true,
+  "corrected_status_text_assertions": true,
+  "physical_or_human": false
+}
