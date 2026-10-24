@@ -1,0 +1,36 @@
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/tm1637)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+    Finished `test` profile [unoptimized] target(s) in 1.21s
+     Running tests/display_frame_material.rs (target/environment-lean-host/debug/deps/display_frame_material-e6258f89259dbf80)
+
+running 1 test
+test every_scalar_byte_matches_independent_composition_without_preparation_or_play_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/display_mask_memory.rs (target/environment-lean-host/debug/deps/display_mask_memory-100e1b7742551da7)
+
+running 1 test
+test measure_mask_preparation_and_reuse_its_frame_storage_for_both_pages ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/display_packets.rs (target/environment-lean-host/debug/deps/display_packets-a301c45b44d06fec)
+
+running 3 tests
+test frame_only_composer_matches_packet_input_without_recurring_allocations ... ok
+test exact_source_frame_validation_is_bounded_and_allocation_free ... ok
+test source_packets_preserve_registers_and_refuse_invalid_brightness_without_allocating ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/publication_face_custody.rs (target/environment-lean-host/debug/deps/publication_face_custody-fc1a5b2ec584b139)
+
+running 4 tests
+test dropping_a_publisher_while_reading_never_leaves_false_retained_custody ... ok
+test reentrant_pressure_and_rejected_clock_or_publication_preserve_committed_values ... ok
+test reader_can_compose_owned_mask_frames_without_allocations_or_escaping_face_borrows ... ok
+test one_producer_and_reader_preserve_quantity_revisions_freshness_and_terminal_custody ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

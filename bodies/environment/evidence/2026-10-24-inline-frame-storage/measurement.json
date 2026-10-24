@@ -1,0 +1,18 @@
+{
+  "source_commit": "8cfd5aa7b",
+  "proof_class": "CPU canonical parity and preparation storage; no new flash",
+  "pointer_bits": 64,
+  "before_mask_owner_bytes": 952,
+  "before_mask_requested_heap_peak_bytes": 3112,
+  "after_mask_owner_bytes": 344,
+  "after_mask_requested_heap_peak_bytes": 0,
+  "after_mask_preparation_allocations": 0,
+  "recurring_allocations": 0,
+  "frame_canonical_bytes": 268,
+  "ordinary_composer_comparisons": 512,
+  "every_register_and_brightness_byte_covered": true,
+  "both_boolean_states_covered": true,
+  "actual_combined_mcu_admission": false,
+  "physical_delivery": false,
+  "delivery_pr": "https://github.com/dancxjo/conduit/pull/6405"
+}
