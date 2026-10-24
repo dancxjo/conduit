@@ -13,7 +13,7 @@ const SOURCE: &str = r#"plot quantity_capacity {
 }
 "#;
 
-fn explicit_capacity(source_gear: &str) -> Result<conduit_core::Plan, PlannerError> {
+fn explicit_capacity(source_kind: &str) -> Result<conduit_core::Plan, PlannerError> {
     let (plot, advertisement) = quantity_fixture::prepare(SOURCE, "quantity_capacity");
     let hosts = [advertisement];
     let placements = conduit_planner::default_expanded_placements(&plot, &hosts).unwrap();
@@ -22,6 +22,7 @@ fn explicit_capacity(source_gear: &str) -> Result<conduit_core::Plan, PlannerErr
         conduit_planner::plan_expanded_canonical(&plot, &hosts, &placements, &bases).unwrap();
     let fragment = &full.fragments[0];
     let mut limits = BTreeMap::new();
+    let mut modified = 0;
     for edge in &plot.connections {
         let source = fragment
             .placements
@@ -45,7 +46,7 @@ fn explicit_capacity(source_gear: &str) -> Result<conduit_core::Plan, PlannerErr
             })
             .unwrap();
         let mut bytes = cord.byte_capacity;
-        if edge.source_gear_id.as_str() == source_gear && edge.track == ConnectionTrack::Payload {
+        if source.kind_id.as_str() == source_kind && edge.track == ConnectionTrack::Payload {
             let front = plot
                 .gears
                 .iter()
@@ -57,6 +58,7 @@ fn explicit_capacity(source_gear: &str) -> Result<conduit_core::Plan, PlannerErr
                 .iter()
                 .find(|c| c.location == FrontValueLocation::Output(edge.source_port_id.clone()))
                 .unwrap();
+            modified += 1;
             bytes = contract.contract.maximum_bytes - 1;
             assert!(bytes > 0);
         }
@@ -73,6 +75,10 @@ fn explicit_capacity(source_gear: &str) -> Result<conduit_core::Plan, PlannerErr
             },
         );
     }
+    assert_eq!(
+        modified, 1,
+        "fixture must undersize exactly one expanded payload Cord"
+    );
     conduit_planner::plan_expanded_canonical_with_connection_limits(
         &plot,
         &hosts,
@@ -91,19 +97,26 @@ fn explicit_capacity(source_gear: &str) -> Result<conduit_core::Plan, PlannerErr
     )
 }
 
+fn assert_storage_refusal(result: Result<conduit_core::Plan, PlannerError>) {
+    assert!(
+        matches!(&result, Err(PlannerError::InvalidConnectionBudget(_))),
+        "undersized Plan admitted={}; unexpected refusal={:?}",
+        result.is_ok(),
+        result.as_ref().err(),
+    );
+}
+
 #[test]
 fn raw_quantity_one_short_cord_refuses_before_play() {
-    assert!(matches!(
-        explicit_capacity("map"),
-        Err(PlannerError::InvalidConnectionBudget(_))
+    assert_storage_refusal(explicit_capacity(
+        conduit_semantic_catalog::QUANTITY_MAP_KIND,
     ));
 }
 
 #[test]
 fn wrapped_quantity_one_short_cord_refuses_before_play() {
-    assert!(matches!(
-        explicit_capacity("wrap"),
-        Err(PlannerError::InvalidConnectionBudget(_))
+    assert_storage_refusal(explicit_capacity(
+        conduit_semantic_catalog::QUANTITY_INFO_WRAP_KIND,
     ));
 }
 
@@ -121,8 +134,5 @@ fn host_queue_ceiling_below_complete_quantity_refuses_before_play() {
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     );
-    assert!(matches!(
-        result,
-        Err(PlannerError::InvalidConnectionBudget(_))
-    ));
+    assert_storage_refusal(result);
 }
