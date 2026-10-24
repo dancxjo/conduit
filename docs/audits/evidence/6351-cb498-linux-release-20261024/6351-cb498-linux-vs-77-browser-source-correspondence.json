@@ -1,0 +1,57 @@
+{
+  "base_actual_Linux_release_build_source": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+  "later_local_owner_source": "77c5044abb1ab8924e7ee8e8635cfcdb2574069b",
+  "only_delta_paths": [
+    "proof/browser/owner-look-controls.spec.mjs",
+    "targets/browser/handbook/owner-look-controls.mjs"
+  ],
+  "unchanged_owning_code_and_inputs": {
+    "products/conduit": {
+      "cb": "c2ca8b7863aeda4591ea7bbbcc474b307de4812a",
+      "77": "c2ca8b7863aeda4591ea7bbbcc474b307de4812a"
+    },
+    "targets/std": {
+      "cb": "e9109e168dd5ebbcf41e34f895e3dde0647ef602",
+      "77": "e9109e168dd5ebbcf41e34f895e3dde0647ef602"
+    },
+    "targets/browser/mask-offer": {
+      "cb": "7558d1f36cec941f049502529e15df5d744bb52f",
+      "77": "7558d1f36cec941f049502529e15df5d744bb52f"
+    },
+    "targets/browser/runtime": {
+      "cb": "89eea2e89547535e596b8e0192e9644b623bb1a2",
+      "77": "89eea2e89547535e596b8e0192e9644b623bb1a2"
+    },
+    "semantics/face": {
+      "cb": "45e06b6125ce2c5a2ce8d906f042508ce3376352",
+      "77": "45e06b6125ce2c5a2ce8d906f042508ce3376352"
+    },
+    "Cargo.toml": {
+      "cb": "d2d5273953e62bc058c9942986d6b893d89adf9b",
+      "77": "d2d5273953e62bc058c9942986d6b893d89adf9b"
+    },
+    "Cargo.lock": {
+      "cb": "1862c595f18cd47af85e923b72976d24325acf0e",
+      "77": "1862c595f18cd47af85e923b72976d24325acf0e"
+    },
+    "rust-toolchain.toml": {
+      "cb": "906b1d8542b6f94b5238046e198e9c2672b6c8e0",
+      "77": "906b1d8542b6f94b5238046e198e9c2672b6c8e0"
+    }
+  },
+  "finding": "ExactcbLinuxrelease remainsusefulactualnativeownerbackendartifactforcombined77browserproof: noRust/Cargo/Lookcontract/runtimeWASMsourcechanged. DoNOTrelabelexecutableas77buildorclaimbyteidenticalrebuild; actualELF/executionreceipt retainscbidentity.",
+  "asset_ownership": "owner-look-controls.mjs isbrowserHandbookresource, importedbyowner-participation.mjs; handbook.application.template.json declaresowner-look-controls modulepath,max16384,owner-face-icons dependency andowner-participation\u2192controlsdependency. Served/stagedascheckedbrowserapplicationmodule, notembeddedinLinuxproducts/conduitRustELF. BrowserSDKowner-Face/Maskrenderingcodeunchanged.",
+  "source_anchors": {
+    "import": "targets/browser/handbook/owner-participation.mjs:3",
+    "module_declaration": "targets/browser/handbook/handbook.application.template.json:62",
+    "native_Cargo": "products/conduit/Cargo.toml referencesnativeRustcrates/std+browserMaskoffer/make, notbrowserJSassetmodule",
+    "browser_host_embedding": "targets/browser/host/src/server.rs embedsboot/hosttransportassets; theseareunchanged andnotowner-look-controls"
+  },
+  "later_proof_requirements": [
+    "UseactualcboptimizedLinuxartifactwithverifiedhash/sourcebind; separatelystage/hash77owner-look-controlsandcheckedapplicationmanifest/moduledependencygraph.",
+    "BrowserWASM remainsactualcboptimizedruntimeifretainedcodeequal; recorditsactualsource/hashseparately.",
+    "Verifynew77LookcontrolsbehavioragainstactualsameownerBody/Plan/Mask/Show/typedinteraction; no livepassinferredfromsourcebytecomparison."
+  ],
+  "operations": "Read-onlyexistinglocalGit; nobuild/fetch/network/ownerwrite.",
+  "limits": "Codeinputcorrespondence, notwhole77sourceexecution/CI/nativeQEMU/physicalacceptance. Source-provenance buildmetadata mayretaincb; donotassertcompiledELFbyteidentityunderrebuild."
+}

@@ -1,0 +1,162 @@
+{
+  "status": "passed",
+  "source": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+  "tree": "033712120b7c5ad812a18969e98602f3edf17d24",
+  "supported_command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "host",
+    "release",
+    "--platform",
+    "linux",
+    "--output",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release"
+  ],
+  "log": "work/6351-cb498-linux-release-resume-supported-linux-release.log",
+  "raw_log_sha256": "abc8cba2ae8387ce5ab211508ac2b1e047d997f4d460aec00aa800eec867fb40",
+  "terminal_exit_code": 0,
+  "SEALED_marker_verified": true,
+  "source_bound_host_release_rs_sha256": "f6466678749fe00f855005ece5bcf9096f843830851ed3cfd6883794628ad18b",
+  "actual4_manifests": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release/hosted-linux-x86_64.json",
+      "sha256": "816659a6015bd30527ead68261b5f7ca45115b917e943470ed9cdb943674e999",
+      "target_id": "std/x86_64/computer",
+      "bundle_sha256": "sha256:d1887d48ec04a5a74b3c1c6931a1bec02c9cfa8130730c9114d00298b7592b9a",
+      "files": [
+        {
+          "path": "conduit-linux-x86_64",
+          "bytes": 61228760,
+          "sha256": "sha256:3282019327d4b96634a784ec4e6f9ae35ece0fb39d44ec00145f333efbab4a62",
+          "media_type": "application/vnd.conduit.host+executable"
+        },
+        {
+          "path": "install-linux-x86_64.sh",
+          "bytes": 714,
+          "sha256": "sha256:f09c412fdafc09b625ee4c0a3f843a9d84bf504b56de11cc7e197e928e589293",
+          "media_type": "application/x-sh"
+        }
+      ]
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release/raspios-bookworm-pi4-model-b-rev-1.5-4gb.json",
+      "sha256": "c4e26e5648497159e94b68aef3c54d03880545969761e7af05dd11169bd4dca8",
+      "target_id": "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb",
+      "bundle_sha256": "sha256:f4b2267c7c5be134d35afb137f3636bba6c4556e0a0f8a1d2cfcc9f27393ab87",
+      "files": [
+        {
+          "path": "conduit-linux-aarch64",
+          "bytes": 51978064,
+          "sha256": "sha256:e035c72011fe61f896ecc6276bcb9c1c6fc628b6deb5dfa6a151f87662d28d21",
+          "media_type": "application/vnd.conduit.host+executable"
+        }
+      ]
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release/raspios-bookworm-zero-2-w-rev-1.0.json",
+      "sha256": "01eb4db4bde3a6ee077287b23c0cbd8d6e446a9a1b01c637fdc0d9a41c398dc0",
+      "target_id": "std/aarch64/raspberry-pi-zero-2-w-rev-1.0",
+      "bundle_sha256": "sha256:f4b2267c7c5be134d35afb137f3636bba6c4556e0a0f8a1d2cfcc9f27393ab87",
+      "files": [
+        {
+          "path": "conduit-linux-aarch64",
+          "bytes": 51978064,
+          "sha256": "sha256:e035c72011fe61f896ecc6276bcb9c1c6fc628b6deb5dfa6a151f87662d28d21",
+          "media_type": "application/vnd.conduit.host+executable"
+        }
+      ]
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release/raspios-bookworm-zero-2-wh-rev-1.0.json",
+      "sha256": "392f0ee51b3348e7d63c0771ea005e449e20ac2d6d55d9e7358e650c57c5568d",
+      "target_id": "std/aarch64/raspberry-pi-zero-2-wh-rev-1.0",
+      "bundle_sha256": "sha256:f4b2267c7c5be134d35afb137f3636bba6c4556e0a0f8a1d2cfcc9f27393ab87",
+      "files": [
+        {
+          "path": "conduit-linux-aarch64",
+          "bytes": 51978064,
+          "sha256": "sha256:e035c72011fe61f896ecc6276bcb9c1c6fc628b6deb5dfa6a151f87662d28d21",
+          "media_type": "application/vnd.conduit.host+executable"
+        }
+      ]
+    }
+  ],
+  "actual_release_products": {
+    "conduit-linux-x86_64": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release/conduit-linux-x86_64",
+      "bytes": 61228760,
+      "sha256": "3282019327d4b96634a784ec4e6f9ae35ece0fb39d44ec00145f333efbab4a62",
+      "ELF_class": 64,
+      "endianness": "little",
+      "ELF_machine": 62,
+      "matches_actual_cargo_release_artifact": true
+    },
+    "conduit-linux-aarch64": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release/conduit-linux-aarch64",
+      "bytes": 51978064,
+      "sha256": "e035c72011fe61f896ecc6276bcb9c1c6fc628b6deb5dfa6a151f87662d28d21",
+      "ELF_class": 64,
+      "endianness": "little",
+      "ELF_machine": 183,
+      "matches_actual_cargo_release_artifact": true
+    }
+  },
+  "installer_source_blob": "421ce3e78c54909607b55dc549abac5555cba00b",
+  "installer_sha256": "f09c412fdafc09b625ee4c0a3f843a9d84bf504b56de11cc7e197e928e589293",
+  "all_runner_ELFs_rehashed": 154,
+  "additional_actual_Running_ELFs_rehashed": [
+    {
+      "path": "/tmp/conduit-6351-cb498-linux-release-source/target/xtask-host-release/debug/conduit-xtask-dispatch",
+      "bytes": 6965728,
+      "sha256": "2c44ba1827e183e436db78cb814a76008afa4af47a5e6f059040377897784bb5",
+      "qualification": "Additional supportedrouter hostrelease helper outside154private-target runnerinventory"
+    }
+  ],
+  "Cargo_Running_bindings": [
+    {
+      "argv": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/conduit-xtask-dispatch",
+        "make",
+        "host",
+        "release",
+        "--platform",
+        "linux",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release"
+      ],
+      "actual_ELF": {
+        "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/conduit-xtask-dispatch",
+        "sha256": "e8cb48890b11208a0ae09f068a25387edc03def4a9772e9286a1874a7b9ed431",
+        "bytes": 5635656
+      }
+    },
+    {
+      "argv": [
+        "target/xtask-host-release/debug/conduit-xtask-dispatch",
+        "host",
+        "release",
+        "--platform",
+        "linux",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release"
+      ],
+      "actual_ELF": {
+        "path": "/tmp/conduit-6351-cb498-linux-release-source/target/xtask-host-release/debug/conduit-xtask-dispatch",
+        "bytes": 6965728,
+        "sha256": "2c44ba1827e183e436db78cb814a76008afa4af47a5e6f059040377897784bb5",
+        "qualification": "Additional supportedrouter hostrelease helper outside154private-target runnerinventory"
+      }
+    }
+  ],
+  "prior1033_rehashed_unchanged": true,
+  "x86_unchanged_from_interrupted_build": true,
+  "prior_unknown_interruption_preserved": "b115ec40fead48daeb59585954ddf1ffe3a0a7585b159690e0b5388342fc45a1",
+  "limits": [
+    "Local supported Linux build/seal at exactcb only; no installation/launch/liveLook/physical/CI claim",
+    "OwnerlaterGUI77two-browser-file correspondence is separate; no latestownerheadexecution relabel",
+    "No64MiBnative/20MiBbrowser boundchange, browserrebuild, manualdebugstrip or opt/LTOoverride bythisaudit",
+    "BothELFarchitectures structurallyverified; neitherreleasedHost executable is claimedexecuted"
+  ]
+}

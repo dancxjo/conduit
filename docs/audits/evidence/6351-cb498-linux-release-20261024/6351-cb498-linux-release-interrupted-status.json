@@ -1,0 +1,36 @@
+{
+  "source": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+  "original_session": 45550,
+  "session_poll_result": "Unknown process id45550",
+  "terminal_exit_code": null,
+  "termination_cause": "UNKNOWN; no Source/testfailure inferred",
+  "no_restart_performed": true,
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-supported-linux-release.log",
+  "log_bytes": 22714,
+  "log_sha256": "b115ec40fead48daeb59585954ddf1ffe3a0a7585b159690e0b5388342fc45a1",
+  "log_tail": [
+    "   Compiling conduit-body v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/architecture/body)",
+    "   Compiling conduit-face v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/face)",
+    "   Compiling conduit-data v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/data)",
+    "   Compiling conduit-web v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/web)",
+    "   Compiling conduit-audio v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/audio)",
+    "   Compiling conduit-alife v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/alife)",
+    "   Compiling conduit-text v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/text)",
+    "   Compiling conduit-net v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/net)",
+    "   Compiling conduit-process v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/process)",
+    "   Compiling conduit-robotics v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/robotics)",
+    "   Compiling conduit-purpose v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/purpose)",
+    "   Compiling conduit-education v0.1.0 (/tmp/conduit-6351-cb498-linux-release-source/semantics/education)"
+  ],
+  "SEALED_completion_marker_present": false,
+  "partial_x86": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release/conduit-linux-x86_64",
+    "exists": true,
+    "bytes": 61228760,
+    "sha256": "3282019327d4b96634a784ec4e6f9ae35ece0fb39d44ec00145f333efbab4a62"
+  },
+  "local_proof_receipt_exists": false,
+  "local_proof_receipt_status": null,
+  "preservation": "Source, privatecache, partialrelease andallpriorproofELFs unchanged bythisstatusaudit",
+  "verified_utc": "2026-10-24T11:29:20.215373+00:00"
+}

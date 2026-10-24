@@ -1,0 +1,80 @@
+{
+  "source": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+  "source_tree": "033712120b7c5ad812a18969e98602f3edf17d24",
+  "proof": "Local supported cargo +stable xtask make host release --platform linux, optimized x86_64 and aarch64 compile and four sealed manifests.",
+  "scope": [
+    "Terminal successful supported recipe; original interrupted log and unknown stop retained separately.",
+    "Exact x86 bytes unchanged across interruption and cached resume; both executables below established 64 MiB.",
+    "154 private-target ELFs plus one independently bound actual release helper retained locally and hashed.",
+    "No native executable bytes distributed by this evidence branch; actual product files remain local at paths in receipts.",
+    "No installed/live GUI, browser rebuilding, physical or hosted CI claim.",
+    "Browser-only local GUI77 delta reviewed separately; this Linux build remains labelled cb498."
+  ],
+  "files": [
+    {
+      "path": "outputs/6351-cb498-linux-release-interrupted-status.json",
+      "bytes": 2372,
+      "sha256": "a852afeef46d4efdec873f06e4e99421f62e7d166bfcb043afd004febe44d2fa"
+    },
+    {
+      "path": "outputs/6351-cb498-linux-release-resume-local-proof.json",
+      "bytes": 51065,
+      "sha256": "ffcb2902d7fb04d5714c7d4a8aedf91a49eabd66b3d0beacf0f1d12d937a7e7c"
+    },
+    {
+      "path": "outputs/6351-cb498-linux-release-independent-review.json",
+      "bytes": 7334,
+      "sha256": "6b54d84ab5791e6601af5ee2f4e9f2207e12555de250213d9f66434267ed984e"
+    },
+    {
+      "path": "outputs/6351-cb498-linux-vs-77-browser-source-correspondence.json",
+      "bytes": 3354,
+      "sha256": "9e148998ba43f795ee48748ed930ca25e373664226604a728d9b0a38a029d999"
+    },
+    {
+      "path": "work/run-6351-cb498-linux-release-proof.py",
+      "bytes": 4476,
+      "sha256": "676c3214ce41b880b426544cb31cd60df294738578ad5d82451393e6eb95c3e3"
+    },
+    {
+      "path": "work/run-6351-cb498-linux-release-resume-proof.py",
+      "bytes": 5205,
+      "sha256": "2a0be07087ddd5cb39e90c536575606b2a0644c6d065d4c8716efc5d62050628"
+    },
+    {
+      "path": "work/audit-6351-cb498-linux-release.py",
+      "bytes": 6901,
+      "sha256": "8b08390898fa59a06aabbee71984d00b5100b9168e4bdb8b364293fab7beb001"
+    },
+    {
+      "path": "work/6351-cb498-linux-release-supported-linux-release.log",
+      "bytes": 22714,
+      "sha256": "b115ec40fead48daeb59585954ddf1ffe3a0a7585b159690e0b5388342fc45a1"
+    },
+    {
+      "path": "work/6351-cb498-linux-release-resume-supported-linux-release.log",
+      "bytes": 11999,
+      "sha256": "abc8cba2ae8387ce5ab211508ac2b1e047d997f4d460aec00aa800eec867fb40"
+    },
+    {
+      "path": "work/6351-cb498-linux-release/hosted-linux-x86_64.json",
+      "bytes": 878,
+      "sha256": "816659a6015bd30527ead68261b5f7ca45115b917e943470ed9cdb943674e999"
+    },
+    {
+      "path": "work/6351-cb498-linux-release/raspios-bookworm-pi4-model-b-rev-1.5-4gb.json",
+      "bytes": 751,
+      "sha256": "c4e26e5648497159e94b68aef3c54d03880545969761e7af05dd11169bd4dca8"
+    },
+    {
+      "path": "work/6351-cb498-linux-release/raspios-bookworm-zero-2-w-rev-1.0.json",
+      "bytes": 746,
+      "sha256": "01eb4db4bde3a6ee077287b23c0cbd8d6e446a9a1b01c637fdc0d9a41c398dc0"
+    },
+    {
+      "path": "work/6351-cb498-linux-release/raspios-bookworm-zero-2-wh-rev-1.0.json",
+      "bytes": 747,
+      "sha256": "392f0ee51b3348e7d63c0771ea005e449e20ac2d6d55d9e7358e650c57c5568d"
+    }
+  ]
+}

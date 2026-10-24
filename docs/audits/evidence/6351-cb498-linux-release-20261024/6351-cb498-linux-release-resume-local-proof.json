@@ -1,0 +1,824 @@
+{
+  "source": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+  "tree": "033712120b7c5ad812a18969e98602f3edf17d24",
+  "runtime_tree": "87af8217535b6d679e9e7521e0b3cd0def8e9b79",
+  "mask_tree": "22cfb1a0f95ed72f907c5cdaf46c3465c1c73085",
+  "fore_tree": "e9ff9f89c9b741fc97e30ed8b70240f61206e435",
+  "composition_verified": true,
+  "exact_owner_head_no_composition": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_RELEASE_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "supported-linux-release",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "release",
+        "--platform",
+        "linux",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release"
+      ],
+      "log": "work/6351-cb498-linux-release-resume-supported-linux-release.log",
+      "sha256": "abc8cba2ae8387ce5ab211508ac2b1e047d997f4d460aec00aa800eec867fb40",
+      "exit_code": 0,
+      "before_available_bytes": 7566184448,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": []
+    }
+  ],
+  "started": 1792841976.0535173,
+  "protected1033_verified_before": true,
+  "prior_interruption_receipt": "outputs/6351-cb498-linux-release-interrupted-status.json",
+  "partial_x86_sha256_before": "3282019327d4b96634a784ec4e6f9ae35ece0fb39d44ec00145f333efbab4a62",
+  "protected1033_verified_after": true,
+  "partial_x86_sha256_after": "3282019327d4b96634a784ec4e6f9ae35ece0fb39d44ec00145f333efbab4a62",
+  "finished": 1792842521.1504211,
+  "clean_after": true,
+  "status": "passed",
+  "executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/conduit-relay",
+      "sha256": "6d52bb1b37abf4c9ea9a6d2658fa8e325c4b011670d6caa46ccfffc676502e51",
+      "bytes": 6201232
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/conduit",
+      "sha256": "3282019327d4b96634a784ec4e6f9ae35ece0fb39d44ec00145f333efbab4a62",
+      "bytes": 61228760
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/conduit-xtask-dispatch",
+      "sha256": "e8cb48890b11208a0ae09f068a25387edc03def4a9772e9286a1874a7b9ed431",
+      "bytes": 5635656
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/aarch64-unknown-linux-gnu/release/conduit-relay",
+      "sha256": "a9517d0f7f4d9fcbf85008b8229bab30409e89b06b5f42f52ef7e5744fa51712",
+      "bytes": 2495464
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/aarch64-unknown-linux-gnu/release/conduit",
+      "sha256": "e035c72011fe61f896ecc6276bcb9c1c6fc628b6deb5dfa6a151f87662d28d21",
+      "bytes": 51978064
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/aarch64-unknown-linux-gnu/release/deps/conduit_relay-5223553a8adcb816",
+      "sha256": "a9517d0f7f4d9fcbf85008b8229bab30409e89b06b5f42f52ef7e5744fa51712",
+      "bytes": 2495464
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/aarch64-unknown-linux-gnu/release/deps/libconduit_browser_runtime.so",
+      "sha256": "a969d484882a7d1550bd7ae748b468756c5825f7c5dd4923f7329a3bb8a9117e",
+      "bytes": 30085840
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/aarch64-unknown-linux-gnu/release/deps/conduit-64d00969447a497d",
+      "sha256": "e035c72011fe61f896ecc6276bcb9c1c6fc628b6deb5dfa6a151f87662d28d21",
+      "bytes": 51978064
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/deps/libserde_derive-5cf603e79f9c2c5b.so",
+      "sha256": "dffa5afba863c7a2dd15f46d5da9863712d19d864937c4d907d4342bf43cf612",
+      "bytes": 2908672
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/deps/conduit_xtask_dispatch-316d0957ae2cfc9e",
+      "sha256": "e8cb48890b11208a0ae09f068a25387edc03def4a9772e9286a1874a7b9ed431",
+      "bytes": 5635656
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/quote-576bc7579314484c/build_script_build-576bc7579314484c",
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037",
+      "bytes": 529416
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/quote-576bc7579314484c/build-script-build",
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037",
+      "bytes": 529416
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/proc-macro2-0c65f04c11310072/build_script_build-0c65f04c11310072",
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336",
+      "bytes": 564496
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/proc-macro2-0c65f04c11310072/build-script-build",
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336",
+      "bytes": 564496
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/serde-875539385ad488fb/build_script_build-875539385ad488fb",
+      "sha256": "db11dce6e0ec1d31cd8a85583fe2d98b34148f07cd913e4d39e6c925773035fd",
+      "bytes": 540208
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/serde-875539385ad488fb/build-script-build",
+      "sha256": "db11dce6e0ec1d31cd8a85583fe2d98b34148f07cd913e4d39e6c925773035fd",
+      "bytes": 540208
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/zmij-c9a87ed4792d5887/build_script_build-c9a87ed4792d5887",
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29",
+      "bytes": 533184
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/zmij-c9a87ed4792d5887/build-script-build",
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29",
+      "bytes": 533184
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/serde_core-ad394b552b894352/build_script_build-ad394b552b894352",
+      "sha256": "0f6e320f4db736ef3e0dea00a2871c27e15b6fbf93d7092825a05dbf622dc873",
+      "bytes": 541560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/serde_core-ad394b552b894352/build-script-build",
+      "sha256": "0f6e320f4db736ef3e0dea00a2871c27e15b6fbf93d7092825a05dbf622dc873",
+      "bytes": 541560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/generic-array-ec043840ceaa47ee/build_script_build-ec043840ceaa47ee",
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782",
+      "bytes": 562400
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/generic-array-ec043840ceaa47ee/build-script-build",
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782",
+      "bytes": 562400
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/serde_json-9fb5fefa451c55fe/build-script-build",
+      "sha256": "bf7739b168c589e479272bd447ef39e4be1130cd84d0b2da99ff54d9f4f9da20",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/debug/build/serde_json-9fb5fefa451c55fe/build_script_build-9fb5fefa451c55fe",
+      "sha256": "bf7739b168c589e479272bd447ef39e4be1130cd84d0b2da99ff54d9f4f9da20",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libproc_macro_error_attr-ed5b78a479594ddf.so",
+      "sha256": "72683c5132411ddc848cf2a541e135e76bf8ce84966c890be5f7d317a99a13d9",
+      "bytes": 611800
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libthiserror_impl-82644a0e38d06e5a.so",
+      "sha256": "a3598c931d9aeb9d8bf7f0dbe4e24915b64704bd9a33c9a80c82ebc661c01f24",
+      "bytes": 3279160
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/conduit_relay-4ee699de54e22d5f",
+      "sha256": "6d52bb1b37abf4c9ea9a6d2658fa8e325c4b011670d6caa46ccfffc676502e51",
+      "bytes": 6201232
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/conduit-0ba895aa47add039",
+      "sha256": "3282019327d4b96634a784ec4e6f9ae35ece0fb39d44ec00145f333efbab4a62",
+      "bytes": 61228760
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libstatic_automata_macros-08aa43af38a7a0a8.so",
+      "sha256": "9067a2c0b2864f74deaa005d73f9b07beeccf2fb89aa67879bfe2b237a8b41cb",
+      "bytes": 2535576
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libcurve25519_dalek_derive-9826d9b98948ccee.so",
+      "sha256": "229df9facb472d135d74ef2e16968e8ae5a97f536acc9e014b679c3425e6033a",
+      "bytes": 2723728
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libserde_derive-8b7d9b7b41275b97.so",
+      "sha256": "45a649d81e8690e496af92bdf7fa568e4f72771f61b6a8a6d1ffdb7804ef5792",
+      "bytes": 3768600
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libconduit_browser_runtime.so",
+      "sha256": "fbff94eab7a459f62d6512ea7cbc284129ce088004d53ae807b1379f67688a66",
+      "bytes": 36758920
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libzeroize_derive-d97439e78f8848c6.so",
+      "sha256": "a6e1cbcfa07b666dbac8ae101326493760995b79809ffb5d593c0bea92812be8",
+      "bytes": 2988592
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libthiserror_impl-3a93951e5193a7c3.so",
+      "sha256": "fb65e92cc32c86702278da45a7673629f3745e57401223c9c3edf7c3fc830284",
+      "bytes": 3091896
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libclap_derive-35f332257d0f8fb8.so",
+      "sha256": "8f597860adb796941f4868d3cf40f09b4fdc5d01f8f65445a85b07bcab90e2ba",
+      "bytes": 3490400
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/deps/libstr_newtype_derive-7e8f088b2d16f229.so",
+      "sha256": "c888f1785f4856485b9dcbaa065e10cc295f5e5b789d7a6047caf071322b7b04",
+      "bytes": 2719488
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/syn-e7760fab32c79254/build_script_build-e7760fab32c79254",
+      "sha256": "0460c7a490bc17150fef5168f2eb009e56c39c316b44b7516b32505fae450d07",
+      "bytes": 525904
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/syn-e7760fab32c79254/build-script-build",
+      "sha256": "0460c7a490bc17150fef5168f2eb009e56c39c316b44b7516b32505fae450d07",
+      "bytes": 525904
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/proc-macro-error-ebf21099c8b15585/build_script_build-ebf21099c8b15585",
+      "sha256": "fffdef640c592784d784bb26506c005570fe91cbb8878b19d081f765c2056f89",
+      "bytes": 544576
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/proc-macro-error-ebf21099c8b15585/build-script-build",
+      "sha256": "fffdef640c592784d784bb26506c005570fe91cbb8878b19d081f765c2056f89",
+      "bytes": 544576
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/curve25519-dalek-e928b7b3d7e38e9c/build_script_build-e928b7b3d7e38e9c",
+      "sha256": "e85bea7dbdbd5da902b6a37101f1d2e7411dd606a969959261ec2e52c5bb5566",
+      "bytes": 570216
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/curve25519-dalek-e928b7b3d7e38e9c/build-script-build",
+      "sha256": "e85bea7dbdbd5da902b6a37101f1d2e7411dd606a969959261ec2e52c5bb5566",
+      "bytes": 570216
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-browser-runtime-86f54ec14c8cf745/build_script_build-86f54ec14c8cf745",
+      "sha256": "793ac0a4f1f46b499547d7aeff51a489d5ab5c8bb4f17766c8d47863970dd3cd",
+      "bytes": 449848
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-browser-runtime-86f54ec14c8cf745/build-script-build",
+      "sha256": "793ac0a4f1f46b499547d7aeff51a489d5ab5c8bb4f17766c8d47863970dd3cd",
+      "bytes": 449848
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-net-e2f569ac5f15242a/build_script_build-e2f569ac5f15242a",
+      "sha256": "6b39feeebe5bf79f7d26aaca243bb86995c4fc17688578a284370c5a3f41ef5e",
+      "bytes": 5601368
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-net-e2f569ac5f15242a/build-script-build",
+      "sha256": "6b39feeebe5bf79f7d26aaca243bb86995c4fc17688578a284370c5a3f41ef5e",
+      "bytes": 5601368
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/zerocopy-6e37b099c5e04c1e/build_script_build-6e37b099c5e04c1e",
+      "sha256": "abf9402dbeaaf9b5e32601d1db9775653e009f84220dc569814a7aa1a8cf41d0",
+      "bytes": 556792
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/zerocopy-6e37b099c5e04c1e/build-script-build",
+      "sha256": "abf9402dbeaaf9b5e32601d1db9775653e009f84220dc569814a7aa1a8cf41d0",
+      "bytes": 556792
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-process-3f1b97449a7a5612/build-script-build",
+      "sha256": "e145abdb0e55f21cba0b31b49eba0028f00e9cfdb2c53e4527679dc915eb6fc7",
+      "bytes": 5615736
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-process-3f1b97449a7a5612/build_script_build-3f1b97449a7a5612",
+      "sha256": "e145abdb0e55f21cba0b31b49eba0028f00e9cfdb2c53e4527679dc915eb6fc7",
+      "bytes": 5615736
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-data-efaa5feb5468b591/build_script_build-efaa5feb5468b591",
+      "sha256": "9d11fc8dacca57ad2927a1113f8f9fb34d555b78e7dffe579a8f878ea9cc8240",
+      "bytes": 5813592
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-data-efaa5feb5468b591/build-script-build",
+      "sha256": "9d11fc8dacca57ad2927a1113f8f9fb34d555b78e7dffe579a8f878ea9cc8240",
+      "bytes": 5813592
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde_json-8d8f0b8ecb99077b/build_script_build-8d8f0b8ecb99077b",
+      "sha256": "967136e450824dbcf83392050c0a1304cae062870a3ffb0b4210e0cb7d43488b",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde_json-8d8f0b8ecb99077b/build-script-build",
+      "sha256": "967136e450824dbcf83392050c0a1304cae062870a3ffb0b4210e0cb7d43488b",
+      "bytes": 460240
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-chat-4e214abd6c6708e5/build_script_build-4e214abd6c6708e5",
+      "sha256": "b81791c847f7820832866473defff36edb64302f941a205dba06f725fb434288",
+      "bytes": 5639768
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-chat-4e214abd6c6708e5/build-script-build",
+      "sha256": "b81791c847f7820832866473defff36edb64302f941a205dba06f725fb434288",
+      "bytes": 5639768
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/getrandom-97d01fc977bde4da/build_script_build-97d01fc977bde4da",
+      "sha256": "e193fde8133dbb0db7383e22bab0935b0cbb9b7e1bd17dd9d3bd460bcbff690f",
+      "bytes": 461304
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/getrandom-97d01fc977bde4da/build-script-build",
+      "sha256": "e193fde8133dbb0db7383e22bab0935b0cbb9b7e1bd17dd9d3bd460bcbff690f",
+      "bytes": 461304
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde_core-e9128193b7de49b4/build_script_build-e9128193b7de49b4",
+      "sha256": "6c5d81f9a1c90adc253bbb5a093dcaa0d2b3c93020a1515caad7f69c9fde6ea6",
+      "bytes": 533680
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde_core-e9128193b7de49b4/build-script-build",
+      "sha256": "6c5d81f9a1c90adc253bbb5a093dcaa0d2b3c93020a1515caad7f69c9fde6ea6",
+      "bytes": 533680
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/getrandom-dab0600b113edd95/build-script-build",
+      "sha256": "c444e40159f8e6b4d667d6ca50594e1b2ae77f18f69dd14c513167d6ff3968b6",
+      "bytes": 528592
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/getrandom-dab0600b113edd95/build_script_build-dab0600b113edd95",
+      "sha256": "c444e40159f8e6b4d667d6ca50594e1b2ae77f18f69dd14c513167d6ff3968b6",
+      "bytes": 528592
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/crossbeam-deque-ffe87b8da3375644/build_script_build-ffe87b8da3375644",
+      "sha256": "bde54ea5040d1c44d86c12503785830eb92a7253963c838e7fb5ec4e9c0f8d2a",
+      "bytes": 463272
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/crossbeam-deque-ffe87b8da3375644/build-script-build",
+      "sha256": "bde54ea5040d1c44d86c12503785830eb92a7253963c838e7fb5ec4e9c0f8d2a",
+      "bytes": 463272
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-signal-3f5554f45d2da6c5/build_script_build-3f5554f45d2da6c5",
+      "sha256": "cadf0140dd9aab6fa2fb381c780b228c94cc7018447b3b8174197ae47d47b391",
+      "bytes": 5597944
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-signal-3f5554f45d2da6c5/build-script-build",
+      "sha256": "cadf0140dd9aab6fa2fb381c780b228c94cc7018447b3b8174197ae47d47b391",
+      "bytes": 5597944
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-time-ef80a6eb033ab1ba/build_script_build-ef80a6eb033ab1ba",
+      "sha256": "46ed9ce0ea1764c8d633af28f9f586af796a59cf4a9fd5c8dcaabc86960df1e0",
+      "bytes": 5680464
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-time-ef80a6eb033ab1ba/build-script-build",
+      "sha256": "46ed9ce0ea1764c8d633af28f9f586af796a59cf4a9fd5c8dcaabc86960df1e0",
+      "bytes": 5680464
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-audio-2b2b4437ff2aa57c/build_script_build-2b2b4437ff2aa57c",
+      "sha256": "255e3ac876f1a92cca3697423e7789a0084a58b3c3689348cc018cd7aa6a4dad",
+      "bytes": 7431768
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-audio-2b2b4437ff2aa57c/build-script-build",
+      "sha256": "255e3ac876f1a92cca3697423e7789a0084a58b3c3689348cc018cd7aa6a4dad",
+      "bytes": 7431768
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-wire-a26c2caffb8daffb/build_script_build-a26c2caffb8daffb",
+      "sha256": "eec37d7d3eef09cbfdd93c9e81ccd11d563a7ce7b2c66ff33c76c03ff2a72432",
+      "bytes": 5598000
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-wire-a26c2caffb8daffb/build-script-build",
+      "sha256": "eec37d7d3eef09cbfdd93c9e81ccd11d563a7ce7b2c66ff33c76c03ff2a72432",
+      "bytes": 5598000
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/crossbeam-utils-c09eaab3eb3e05b5/build_script_build-c09eaab3eb3e05b5",
+      "sha256": "cc4c6977dcc74da56ef8903bdae96ac317319a45a94edc2565f39ca063722cf2",
+      "bytes": 467704
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/crossbeam-utils-c09eaab3eb3e05b5/build-script-build",
+      "sha256": "cc4c6977dcc74da56ef8903bdae96ac317319a45a94edc2565f39ca063722cf2",
+      "bytes": 467704
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/libc-b23fdd01ccd54692/build_script_build-b23fdd01ccd54692",
+      "sha256": "74d5a929e23fe7df048a878d243dc86b7fff09e7700b3aebd457deab0753e230",
+      "bytes": 555480
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/libc-b23fdd01ccd54692/build-script-build",
+      "sha256": "74d5a929e23fe7df048a878d243dc86b7fff09e7700b3aebd457deab0753e230",
+      "bytes": 555480
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-robotics-7985d677653ac980/build_script_build-7985d677653ac980",
+      "sha256": "2eeace876a37eabe241acd30fcaff88208a6f665a9ddebe4306cbab54fcd8ede",
+      "bytes": 5649200
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-robotics-7985d677653ac980/build-script-build",
+      "sha256": "2eeace876a37eabe241acd30fcaff88208a6f665a9ddebe4306cbab54fcd8ede",
+      "bytes": 5649200
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/thiserror-dcd44e43a1c19e4c/build_script_build-dcd44e43a1c19e4c",
+      "sha256": "037dd5dd72618ee5a75a112b9d397911fb5c830b97279b92b4dd202c2c650dbe",
+      "bytes": 561944
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/thiserror-dcd44e43a1c19e4c/build-script-build",
+      "sha256": "037dd5dd72618ee5a75a112b9d397911fb5c830b97279b92b4dd202c2c650dbe",
+      "bytes": 561944
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/parking_lot_core-47b73c2f216b4265/build_script_build-47b73c2f216b4265",
+      "sha256": "dc86c71b9409090e20b6bd585bcb43cd132412455ed0f9fc7210cd5e4c7f7128",
+      "bytes": 461352
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/parking_lot_core-47b73c2f216b4265/build-script-build",
+      "sha256": "dc86c71b9409090e20b6bd585bcb43cd132412455ed0f9fc7210cd5e4c7f7128",
+      "bytes": 461352
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/proc-macro2-80ebea5e3abea5d9/build_script_build-80ebea5e3abea5d9",
+      "sha256": "a01c530837c4a282b6a314aad0565ff2f12796bd703250b0a58f15a042c7f5e1",
+      "bytes": 558888
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/proc-macro2-80ebea5e3abea5d9/build-script-build",
+      "sha256": "a01c530837c4a282b6a314aad0565ff2f12796bd703250b0a58f15a042c7f5e1",
+      "bytes": 558888
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-text-47af5ead566c97b5/build_script_build-47af5ead566c97b5",
+      "sha256": "59b3c3df3320f70d12be76cc949875cadf60d7f6cdd02760d33649507a4c1f38",
+      "bytes": 5613632
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-text-47af5ead566c97b5/build-script-build",
+      "sha256": "59b3c3df3320f70d12be76cc949875cadf60d7f6cdd02760d33649507a4c1f38",
+      "bytes": 5613632
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-finance-9f06ed16d0f62ea5/build_script_build-9f06ed16d0f62ea5",
+      "sha256": "78d4ea814893517a26a004963adc10564616024c38f4a5120271da995bb1d8aa",
+      "bytes": 5599624
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-finance-9f06ed16d0f62ea5/build-script-build",
+      "sha256": "78d4ea814893517a26a004963adc10564616024c38f4a5120271da995bb1d8aa",
+      "bytes": 5599624
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/speaking-71d517107e0615dc/build_script_build-71d517107e0615dc",
+      "sha256": "f1d13992f6801601420c3ae6caea24ca26e9836096dc63332ca439aa126eec7b",
+      "bytes": 460104
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/speaking-71d517107e0615dc/build-script-build",
+      "sha256": "f1d13992f6801601420c3ae6caea24ca26e9836096dc63332ca439aa126eec7b",
+      "bytes": 460104
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde_core-07ba25d0747bbd6d/build_script_build-07ba25d0747bbd6d",
+      "sha256": "fae1c775425e96581125c1aca78ecdddd703c5c2dea4b18809dbbaf8ca260dd1",
+      "bytes": 533680
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde_core-07ba25d0747bbd6d/build-script-build",
+      "sha256": "fae1c775425e96581125c1aca78ecdddd703c5c2dea4b18809dbbaf8ca260dd1",
+      "bytes": 533680
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-data-134b0747ae8de0fc/build_script_build-134b0747ae8de0fc",
+      "sha256": "2d85b40f513a21897ab34802a97c144a2dd394cf3e85b4f18bac4811ce1dbdf7",
+      "bytes": 5813584
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-data-134b0747ae8de0fc/build-script-build",
+      "sha256": "2d85b40f513a21897ab34802a97c144a2dd394cf3e85b4f18bac4811ce1dbdf7",
+      "bytes": 5813584
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-face-6d65b74ec8c6b1c3/build_script_build-6d65b74ec8c6b1c3",
+      "sha256": "3b81ca4caf794346eb0588c317d19166ace07334ada0c4ca0321e83c07a74eb0",
+      "bytes": 5936136
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-face-6d65b74ec8c6b1c3/build-script-build",
+      "sha256": "3b81ca4caf794346eb0588c317d19166ace07334ada0c4ca0321e83c07a74eb0",
+      "bytes": 5936136
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/libm-e980082f51f95798/build_script_build-e980082f51f95798",
+      "sha256": "4667287c6394aca6e16c2ba92ae037ad0499aae6e5a52b746884ed4c8cc67dc5",
+      "bytes": 491760
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/libm-e980082f51f95798/build-script-build",
+      "sha256": "4667287c6394aca6e16c2ba92ae037ad0499aae6e5a52b746884ed4c8cc67dc5",
+      "bytes": 491760
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-plot-library-59ab5b6210065021/build_script_build-59ab5b6210065021",
+      "sha256": "7c19185af3c117cd1e4f6320175257f32fb9aa67cfc9a7066f721b14aefbf896",
+      "bytes": 5597832
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-plot-library-59ab5b6210065021/build-script-build",
+      "sha256": "7c19185af3c117cd1e4f6320175257f32fb9aa67cfc9a7066f721b14aefbf896",
+      "bytes": 5597832
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/thiserror-3bc7187e1fb7e680/build_script_build-3bc7187e1fb7e680",
+      "sha256": "99cbadbfc5133bb4d88f022e4b5d909bde73a414c4d977249655adc2d01f1315",
+      "bytes": 549560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/thiserror-3bc7187e1fb7e680/build-script-build",
+      "sha256": "99cbadbfc5133bb4d88f022e4b5d909bde73a414c4d977249655adc2d01f1315",
+      "bytes": 549560
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde-79b802888922166c/build_script_build-79b802888922166c",
+      "sha256": "ed5dfa1382ae56908a5f855dc0453a794c2c3c6e255f7330e55165cfc9f86af8",
+      "bytes": 532296
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde-79b802888922166c/build-script-build",
+      "sha256": "ed5dfa1382ae56908a5f855dc0453a794c2c3c6e255f7330e55165cfc9f86af8",
+      "bytes": 532296
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/crossbeam-epoch-2304b153929f3e12/build_script_build-2304b153929f3e12",
+      "sha256": "e88ff3c93c5e3349b3e9c2f20f72a5ff9190570ef935cee8faa9a89e5ccb6dbd",
+      "bytes": 463272
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/crossbeam-epoch-2304b153929f3e12/build-script-build",
+      "sha256": "e88ff3c93c5e3349b3e9c2f20f72a5ff9190570ef935cee8faa9a89e5ccb6dbd",
+      "bytes": 463272
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-tutorial-plot-f7e7cf89e75e1144/build_script_build-f7e7cf89e75e1144",
+      "sha256": "fc6e841c0a7500831777a1e1f5a3ab54eead0169d36a366b1092840d61e68389",
+      "bytes": 5597744
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-tutorial-plot-f7e7cf89e75e1144/build-script-build",
+      "sha256": "fc6e841c0a7500831777a1e1f5a3ab54eead0169d36a366b1092840d61e68389",
+      "bytes": 5597744
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-alife-16da38fb7647e396/build-script-build",
+      "sha256": "affd2eb5b80b4d3c3fe50e29ec089e3d2b4d6a1b54dcd79143075230f7ef797e",
+      "bytes": 5649784
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-alife-16da38fb7647e396/build_script_build-16da38fb7647e396",
+      "sha256": "affd2eb5b80b4d3c3fe50e29ec089e3d2b4d6a1b54dcd79143075230f7ef797e",
+      "bytes": 5649784
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/rustls-ae062df981b261cb/build_script_build-ae062df981b261cb",
+      "sha256": "e2738d7867858b13ee4f967b2a79d33eb60cf204df70a692eb9eafc1631ffd70",
+      "bytes": 450776
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/rustls-ae062df981b261cb/build-script-build",
+      "sha256": "e2738d7867858b13ee4f967b2a79d33eb60cf204df70a692eb9eafc1631ffd70",
+      "bytes": 450776
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/rayon-core-c6ab634e41934a28/build_script_build-c6ab634e41934a28",
+      "sha256": "5cb0467fa1b32a31812e03a366cd7af418d970eb8f20d9c57cf94c18be661eb0",
+      "bytes": 458016
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/rayon-core-c6ab634e41934a28/build-script-build",
+      "sha256": "5cb0467fa1b32a31812e03a366cd7af418d970eb8f20d9c57cf94c18be661eb0",
+      "bytes": 458016
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-ai-3e5c2ff81cf96a88/build_script_build-3e5c2ff81cf96a88",
+      "sha256": "793736d55806d919455529ab0f8ac6c0eab74ae3aa6152dad789e5d2ad928d25",
+      "bytes": 6060576
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-ai-3e5c2ff81cf96a88/build-script-build",
+      "sha256": "793736d55806d919455529ab0f8ac6c0eab74ae3aa6152dad789e5d2ad928d25",
+      "bytes": 6060576
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-body-invitation-plot-7242a79797f3c827/build_script_build-7242a79797f3c827",
+      "sha256": "b46af36070b28400cbfbc6d168ff7b2a5e4d6d0bec98d9af9ad53901be0eda9a",
+      "bytes": 5597736
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-body-invitation-plot-7242a79797f3c827/build-script-build",
+      "sha256": "b46af36070b28400cbfbc6d168ff7b2a5e4d6d0bec98d9af9ad53901be0eda9a",
+      "bytes": 5597736
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-purpose-48f7b9a3f3d8091e/build_script_build-48f7b9a3f3d8091e",
+      "sha256": "65383ec17046ee0c573cbfba8f5de22fc9e01c60cafee54a5338dd4293409f4d",
+      "bytes": 5598632
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-purpose-48f7b9a3f3d8091e/build-script-build",
+      "sha256": "65383ec17046ee0c573cbfba8f5de22fc9e01c60cafee54a5338dd4293409f4d",
+      "bytes": 5598632
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/anyhow-863c161325aa4933/build_script_build-863c161325aa4933",
+      "sha256": "b7ef1ca1c04d0153eec678babbcf84bf8e7649b0e527d7d6ecbfb7214801bf28",
+      "bytes": 556544
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/anyhow-863c161325aa4933/build-script-build",
+      "sha256": "b7ef1ca1c04d0153eec678babbcf84bf8e7649b0e527d7d6ecbfb7214801bf28",
+      "bytes": 556544
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-language-9ba9bba47ad34715/build_script_build-9ba9bba47ad34715",
+      "sha256": "416a7767bce041ac8c50f0c166c8892cb2c5f8e740d3c837dae7023b736b3915",
+      "bytes": 7190352
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-language-9ba9bba47ad34715/build-script-build",
+      "sha256": "416a7767bce041ac8c50f0c166c8892cb2c5f8e740d3c837dae7023b736b3915",
+      "bytes": 7190352
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde-948a1689f9c0c58f/build_script_build-948a1689f9c0c58f",
+      "sha256": "1de39dfe09a094b8589aa1a2f5529a2989509fc838e1fc661d76a4348a84caef",
+      "bytes": 532296
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/serde-948a1689f9c0c58f/build-script-build",
+      "sha256": "1de39dfe09a094b8589aa1a2f5529a2989509fc838e1fc661d76a4348a84caef",
+      "bytes": 532296
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/proc-macro-error-attr-634cffaecec3fcb3/build_script_build-634cffaecec3fcb3",
+      "sha256": "0565ff6941d48caa1b43dc4d327d60642a8e742e3ba6bc3cf601ad99269deecf",
+      "bytes": 540816
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/proc-macro-error-attr-634cffaecec3fcb3/build-script-build",
+      "sha256": "0565ff6941d48caa1b43dc4d327d60642a8e742e3ba6bc3cf601ad99269deecf",
+      "bytes": 540816
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-web-85a95c3dffc0e336/build_script_build-85a95c3dffc0e336",
+      "sha256": "f3d181d25a4d6c026f3c01ec28e20bb6696c21fc8a6feb8b877aa27f6cf7c169",
+      "bytes": 5617304
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-web-85a95c3dffc0e336/build-script-build",
+      "sha256": "f3d181d25a4d6c026f3c01ec28e20bb6696c21fc8a6feb8b877aa27f6cf7c169",
+      "bytes": 5617304
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-tongues-a5f70bc66f94fdef/build_script_build-a5f70bc66f94fdef",
+      "sha256": "19ba6fbdfd5708f17ac1927eb9ab90acefb6866229eff2ee1708308dff492b11",
+      "bytes": 5636720
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-tongues-a5f70bc66f94fdef/build-script-build",
+      "sha256": "19ba6fbdfd5708f17ac1927eb9ab90acefb6866229eff2ee1708308dff492b11",
+      "bytes": 5636720
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-human-da00dd3810f19b67/build_script_build-da00dd3810f19b67",
+      "sha256": "ecc5b99af2dea936e5da257a8940ef1dbf23e01b6df04e05f6a4e3c023b6fda3",
+      "bytes": 5827216
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-human-da00dd3810f19b67/build-script-build",
+      "sha256": "ecc5b99af2dea936e5da257a8940ef1dbf23e01b6df04e05f6a4e3c023b6fda3",
+      "bytes": 5827216
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/heapless-d2a322b6ee01b3ff/build_script_build-d2a322b6ee01b3ff",
+      "sha256": "47fab61a12d0e636b9d45cce7ebade2ad397b3953a2a0559499645e5cd5ea979",
+      "bytes": 532208
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/heapless-d2a322b6ee01b3ff/build-script-build",
+      "sha256": "47fab61a12d0e636b9d45cce7ebade2ad397b3953a2a0559499645e5cd5ea979",
+      "bytes": 532208
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/generic-array-20b69bc691037a4a/build_script_build-20b69bc691037a4a",
+      "sha256": "e2c7da204447ea552c87074f98661c689e0983f4579635ab808f256b189a909b",
+      "bytes": 540816
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/generic-array-20b69bc691037a4a/build-script-build",
+      "sha256": "e2c7da204447ea552c87074f98661c689e0983f4579635ab808f256b189a909b",
+      "bytes": 540816
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/httparse-cadb8e3f88d7be27/build_script_build-cadb8e3f88d7be27",
+      "sha256": "320e9aa08895a2de3fad6895503444cb0424026918c7540d178902f71f3c0acc",
+      "bytes": 545816
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/httparse-cadb8e3f88d7be27/build-script-build",
+      "sha256": "320e9aa08895a2de3fad6895503444cb0424026918c7540d178902f71f3c0acc",
+      "bytes": 545816
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-time-0777b1f5a0c6bce7/build_script_build-0777b1f5a0c6bce7",
+      "sha256": "4be966c8d8a7ad1086aff732f7ec9c1af4ad5c683bb389f4e1ab3f6c0b6cb409",
+      "bytes": 5680464
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-time-0777b1f5a0c6bce7/build-script-build",
+      "sha256": "4be966c8d8a7ad1086aff732f7ec9c1af4ad5c683bb389f4e1ab3f6c0b6cb409",
+      "bytes": 5680464
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-speech-b164a91d9bf0d8be/build_script_build-b164a91d9bf0d8be",
+      "sha256": "6f57c023e5abe581926d6cc1163f9e29612e2f2e222f43d177bb806f4d54474b",
+      "bytes": 12409216
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-speech-b164a91d9bf0d8be/build-script-build",
+      "sha256": "6f57c023e5abe581926d6cc1163f9e29612e2f2e222f43d177bb806f4d54474b",
+      "bytes": 12409216
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-education-36eb7522b3fb1dbf/build_script_build-36eb7522b3fb1dbf",
+      "sha256": "c1b7311f498c9f91a90d02df9fff00a0f2829f6f80c23dd914393cd2e392964f",
+      "bytes": 6182728
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/conduit-education-36eb7522b3fb1dbf/build-script-build",
+      "sha256": "c1b7311f498c9f91a90d02df9fff00a0f2829f6f80c23dd914393cd2e392964f",
+      "bytes": 6182728
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/num-traits-78da2932b2ec524c/build_script_build-78da2932b2ec524c",
+      "sha256": "ac50dfe17fdd54fe360f207bc9f46d06caf2e491acfc3ee1aaf729f1e812ece6",
+      "bytes": 586272
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/num-traits-78da2932b2ec524c/build-script-build",
+      "sha256": "ac50dfe17fdd54fe360f207bc9f46d06caf2e491acfc3ee1aaf729f1e812ece6",
+      "bytes": 586272
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/ring-d069dbc3c8febfe8/build_script_build-d069dbc3c8febfe8",
+      "sha256": "bb6dada4494c7f84bc18cf02c8d10f53c8bb8d4d14173f73a5c0c8ca97cbcfb4",
+      "bytes": 1203336
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/ring-d069dbc3c8febfe8/build-script-build",
+      "sha256": "bb6dada4494c7f84bc18cf02c8d10f53c8bb8d4d14173f73a5c0c8ca97cbcfb4",
+      "bytes": 1203336
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/zmij-9c9f802c82f6ec34/build_script_build-9c9f802c82f6ec34",
+      "sha256": "5c7faef7e5d8cdcd27513ca3924aacda1cd650782cf8c682105ae296680ff6bf",
+      "bytes": 527680
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/zmij-9c9f802c82f6ec34/build-script-build",
+      "sha256": "5c7faef7e5d8cdcd27513ca3924aacda1cd650782cf8c682105ae296680ff6bf",
+      "bytes": 527680
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/quote-2345f97d112ef116/build_script_build-2345f97d112ef116",
+      "sha256": "9c71e20503be063e2b6c9480a0e23f1e1ea573e96e398233c2dce13bb1c83f64",
+      "bytes": 523928
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-linux-release-target/release/build/quote-2345f97d112ef116/build-script-build",
+      "sha256": "9c71e20503be063e2b6c9480a0e23f1e1ea573e96e398233c2dce13bb1c83f64",
+      "bytes": 523928
+    }
+  ]
+}
