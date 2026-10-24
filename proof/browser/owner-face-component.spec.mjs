@@ -1566,3 +1566,27 @@ test('complete selected Look tokens override palette hints without changing acti
   await expect(element).not.toHaveAttribute('data-component-look');
   expect(await element.evaluate(node=>[...node.style].filter(key=>key.startsWith('--look-')))).toEqual([]);
 });
+
+for (const palette of ['editorial', 'phosphor']) {
+  test(`forced colors replace admitted ${palette} palette tokens`, async ({ page }) => {
+    await page.emulateMedia({ forcedColors: 'active' });
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const tokens = await page.evaluate(async ({ view, palette }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      const element = document.createElement('conduit-owner-face');
+      document.body.replaceChildren(element);
+      const current = structuredClone(view);
+      current.component = { maximum_columns: 1, reflow_width: 720, gutter: 12,
+        subject_regions: current.subjects.map(() => null), groups: [],
+        expression: { expression: { identity: 'fixture/forced-look', version: 2,
+          density: 'compact', palette, typography: 'engineering', text_scale_percent: 100 } } };
+      element.show(current, { invoke: async () => {} });
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const style = getComputedStyle(element);
+      return Object.fromEntries(['paper', 'card', 'ink', 'muted', 'line', 'accent', 'control', 'focus']
+        .map(key => [key, style.getPropertyValue(`--face-${key}`).trim()]));
+    }, { view, palette });
+    expect(tokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText',
+      muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
+  });
+}
