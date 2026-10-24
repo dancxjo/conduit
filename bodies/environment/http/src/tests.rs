@@ -183,3 +183,62 @@ fn warming_show_does_not_invent_a_zero_acquisition_or_observation_coordinate() {
     assert!(json["age_ms"].is_null());
     assert_eq!(json["age_basis"], "unavailable");
 }
+
+#[test]
+fn sealed_available_face_requires_temperature_but_humidity_remains_optional() {
+    let mut owner = PreparedObservationFace::prepare(basis(), 2, 30000).unwrap();
+    owner
+        .publish(
+            Some((
+                Quantity::parse_plot_literal("19°C").unwrap(),
+                Quantity::parse_plot_literal("55%").unwrap(),
+            )),
+            SensorStatus::Available,
+            1000,
+        )
+        .unwrap();
+    // The generic environmental contribution permits temperature-only readings.
+    let mut temperature_only = owner.current().clone();
+    temperature_only.properties.retain(|property| {
+        !(property.subject == "environment" && property.name == "relative-humidity")
+    });
+    temperature_only.reseal_prepared().unwrap();
+    temperature_only.validate().unwrap();
+    let response = face_response(&temperature_only, true, 1000, true).unwrap();
+    let json: serde_json::Value = serde_json::from_str(body(&response)).unwrap();
+    assert_eq!(json["current"], true);
+    assert_eq!(json["temperature_f"], 66.2);
+    assert!(json["relative_humidity_percent"].is_null());
+
+    // A valid Face seal authenticates its bytes, not the environmental domain.
+    let mut missing_temperature = owner.current().clone();
+    missing_temperature
+        .properties
+        .retain(|property| !(property.subject == "environment" && property.name == "temperature"));
+    missing_temperature.reseal_prepared().unwrap();
+    missing_temperature.validate().unwrap();
+    assert!(matches!(
+        PreparedHttpShow::prepare(&missing_temperature),
+        Err(conduit_seven_segment_mask::FaceProjectionRefusal::MissingProperty)
+    ));
+
+    let mut unrenderable = owner.current().clone();
+    let property = unrenderable
+        .properties
+        .iter_mut()
+        .find(|property| property.subject == "environment" && property.name == "temperature")
+        .unwrap();
+    let conduit_face::FacePropertyValue::TypedValue { bytes, .. } = &mut property.value else {
+        panic!("typed temperature");
+    };
+    *bytes = Quantity::parse_plot_literal("0.0000001°C")
+        .unwrap()
+        .encode()
+        .to_vec();
+    unrenderable.reseal_prepared().unwrap();
+    unrenderable.validate().unwrap();
+    assert!(matches!(
+        PreparedHttpShow::prepare(&unrenderable),
+        Err(conduit_seven_segment_mask::FaceProjectionRefusal::InvalidQuantity)
+    ));
+}

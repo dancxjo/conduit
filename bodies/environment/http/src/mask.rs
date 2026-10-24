@@ -159,7 +159,16 @@ impl PreparedHttpShow {
             Some(conduit_face::FacePropertyValue::Flag(true))
         );
         let current = fresh && text("sensor-status") == Some("available");
-        let temperature = quantity("temperature").and_then(|q| coordinate(q, Unit::Fahrenheit));
+        let temperature = match quantity("temperature") {
+            Some(value) => Some(
+                coordinate(value, Unit::Fahrenheit)
+                    .ok_or(conduit_seven_segment_mask::FaceProjectionRefusal::InvalidQuantity)?,
+            ),
+            None if fresh || text("sensor-status") == Some("available") => {
+                return Err(conduit_seven_segment_mask::FaceProjectionRefusal::MissingProperty);
+            }
+            None => None,
+        };
         let humidity = quantity("relative-humidity").and_then(|q| coordinate(q, Unit::Percent));
         Ok(Self {
             identity: face
