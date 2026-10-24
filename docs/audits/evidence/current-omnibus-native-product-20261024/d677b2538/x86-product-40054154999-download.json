@@ -1,0 +1,286 @@
+{
+  "observed_utc": "2026-10-24T03:00:37.698407+00:00",
+  "run": 40054154999,
+  "source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "workflow": "Candidate",
+  "run_status": "in_progress",
+  "conclusion": null,
+  "successful_x86_job": 120753952612,
+  "full_gate_success": false,
+  "artifact": {
+    "id": 12545491870,
+    "node_id": "MDg6QXJ0aWZhY3QxMjU0NTQ5MTg3MA==",
+    "name": "product-conduitos-x86_64",
+    "size_in_bytes": 22144169,
+    "url": "https://api.github.com/repos/dancxjo/conduit/actions/artifacts/12545491870",
+    "archive_download_url": "https://api.github.com/repos/dancxjo/conduit/actions/artifacts/12545491870/zip",
+    "expired": false,
+    "digest": "sha256:d43a320ff8abf80ea68618dbdcada17ea850ef6a281689c8fdb15a0f698c08a5",
+    "created_at": "2026-10-24T02:55:40Z",
+    "updated_at": "2026-10-24T02:55:40Z",
+    "expires_at": "2026-11-07T02:55:37Z",
+    "workflow_run": {
+      "id": 40054154999,
+      "repository_id": 1315334389,
+      "head_repository_id": 1315334389,
+      "head_branch": "integrate/reviewed-prs-20261023-2327",
+      "head_sha": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee"
+    }
+  },
+  "archive": "work/x86-product-40054154999-12545491870.zip",
+  "archive_sha256": "d43a320ff8abf80ea68618dbdcada17ea850ef6a281689c8fdb15a0f698c08a5",
+  "extraction": "outputs/x86-product-40054154999",
+  "files": [
+    {
+      "path": "conduitos-x86_64/receipt.json",
+      "bytes": 9043,
+      "sha256": "f416f227e3e9415987ca72c7c7cff690af6d3c7dadd839aa78d187de78fd4c6e"
+    },
+    {
+      "path": "conduitos-x86_64/conduitos-kernel.elf",
+      "bytes": 78903512,
+      "sha256": "838fe712a84342f6074bad3fb493218aa07f52b60c2f2175b80865504adcaa8a"
+    },
+    {
+      "path": "conduitos-x86_64/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "a91c7ee2cab7df72c548a9ce7656f5513ae16d5ea01df5d8082481eba9fc159c"
+    },
+    {
+      "path": "conduitos-x86_64/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "65c71fddc5d15a2295c444c1d0fab2d2d1e14d467f300e8f405368c8230cf6d3"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-qmp.log",
+      "bytes": 218272,
+      "sha256": "a30ee5714c8d8be715865c2e3c6d9415dd2b2a68f2d70f6533e2d5a987ff1a9c"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/memory-lantern-native-edit.json",
+      "bytes": 5061,
+      "sha256": "4a804032ac8d8381ff93d6f4045d1942c8f4075d848c3bdf4ca90e009159b7c1"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 69747,
+      "sha256": "f15b96b5e6c7abb3d79100c83cc2a0e30034093827b10c33cff6440257398f40"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/manifest.json",
+      "bytes": 473857,
+      "sha256": "8b5f5e431378e6d93718cf482568603561869146316799c6e206bac711ee1789"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-source-editor-loaded.png",
+      "bytes": 105703,
+      "sha256": "eb927aa2bb1dc3c75936840aaaeb333254f79b86205636fe3fe533b7a37879ee"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-inspected-other-and-returned.png",
+      "bytes": 156203,
+      "sha256": "30e4c8dd72fe07adf59635539653a36483862e62c999333bc545839898766101"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-mask-replanned.png",
+      "bytes": 144996,
+      "sha256": "a135251cd7727b11225a2a5d3f7ade8ef2a9e5325904ffc55b524f2c4df85754"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-face.png",
+      "bytes": 156203,
+      "sha256": "30e4c8dd72fe07adf59635539653a36483862e62c999333bc545839898766101"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-ready.png",
+      "bytes": 158882,
+      "sha256": "8080a60097655414eda2b0168ca215746218ec504546d11d99edba3fc68b9e5b"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/body-stopped.png",
+      "bytes": 199944,
+      "sha256": "8856df3d161109c221d43c4ddc9773909954f65b9bfab22be599856a9f79bd53"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 159267,
+      "sha256": "9315d0ccbd75061d6db276f77db48eff184e8282d92f9c5a0ef4e38aef3c8169"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-three-selected.png",
+      "bytes": 159260,
+      "sha256": "befccfb679c038d9653add3945849da5dd9ed8bd26bbfb308286523990516a95"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/protected-memory-lantern.png",
+      "bytes": 64176,
+      "sha256": "9c6af39f7e979983504a8cd425f65c869ce379403939f2921714af0eaca52c52"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-reentered.png",
+      "bytes": 56028,
+      "sha256": "1c6088e967c94326f1c90b59a86ad54f96b1d1d2cf0c3a950924a8fdc15bc08c"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-workspace.png",
+      "bytes": 156203,
+      "sha256": "30e4c8dd72fe07adf59635539653a36483862e62c999333bc545839898766101"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/wake-refused.png",
+      "bytes": 127443,
+      "sha256": "2897bd24f951490be5bfd2162f4746b5f06f0a98941949eb0dcb54c2d5db795b"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-fourth-checked.png",
+      "bytes": 159219,
+      "sha256": "38c022db5beefec79032d3155a97551de503935e04a71b5fd553148855924824"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-engineering-compact.png",
+      "bytes": 159064,
+      "sha256": "aa4d3735cf8ce56040abe8d8f8eb1b4cfd8996d4078bf85445469d0030768175"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-editorial-compact.png",
+      "bytes": 159810,
+      "sha256": "ea868f41fd0780eb3f04a675128c60a9c75db48486e29325a55ef50dba19a10c"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/home-returned.png",
+      "bytes": 57080,
+      "sha256": "7f7e2b3a4cfed71a67c3ad645a3472e4f1dc1c4ca2883da727ede1f4862ade8f"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/body-playing.png",
+      "bytes": 68815,
+      "sha256": "0157809f32a64defeeb7350adf9c156d987a2c16734f0769ca059f2dfe533fbf"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-diagram.png",
+      "bytes": 153577,
+      "sha256": "2f2ead8ab2ccbb4e94a07953e707f61258bc8659f4c4e524201ba40d719393fd"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 153241,
+      "sha256": "4972483239c8bcda5ac59fdcf8e02de2de6781fade72569b36279cd6a776c6df"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/home.png",
+      "bytes": 68815,
+      "sha256": "0157809f32a64defeeb7350adf9c156d987a2c16734f0769ca059f2dfe533fbf"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-engineering-spacious.png",
+      "bytes": 141056,
+      "sha256": "10f7ba1565cef13130d615edf1a666dcf6d7f0529828393d45663586902411c4"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 159336,
+      "sha256": "36fd9f7a643fb2cc17666e9ebebd069672f793ec792362f7d854263ea9ce4206"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-four-restored.png",
+      "bytes": 159189,
+      "sha256": "20ac8fa36a06e490db38dd5c991fd6d032f0db91d54d4f85a01c7b1ee0ee23b9"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/patchbay-gear-details.png",
+      "bytes": 244407,
+      "sha256": "a64042233ac0fddfb0325a7c7f889a28573f4aa3c05298ec4e9f4554ce7d4e7f"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-frames/creche-editorial-spacious.png",
+      "bytes": 141755,
+      "sha256": "878fb836855cecbd97300a4cf5551283863f2927ac4504fbcf0f64603137fb81"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-serial.log",
+      "bytes": 3328475,
+      "sha256": "0f43427cb0426f62c9479db19b585101ebafa478cf8740052784b29a580d03a8"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/privilege-inventory-838fe712a84342f6074bad3fb493218aa07f52b60c2f2175b80865504adcaa8a-product-host.json",
+      "bytes": 112859,
+      "sha256": "faf61371bff15b9d13e27bc51e8148b6ba3cc7d884e8230ce291918a1083c9be"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/journey-proof.json",
+      "bytes": 1494799,
+      "sha256": "5b220cf498421297e4d17ee0f3af64051c51bfad990b063215fcae61ad300849"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/native-shell-paired-linear.json",
+      "bytes": 4538387,
+      "sha256": "822e80e7bd0939edf701fc705f20130b65fd31675d2a0a262dc914ecc8c53511"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/x86_64-product-journey-proof.json",
+      "bytes": 1568752,
+      "sha256": "d03a1c5b1168359ccb88049d73db626a58ee32bc140207c111fe53c88e2b76aa"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/profile-built-boot.log",
+      "bytes": 41751,
+      "sha256": "c2bf42c0e0564ba5491cfeeaa16119dd743e83cee05574e94497ca63a90f5d6b"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/x86_64-product-proof.json",
+      "bytes": 1725,
+      "sha256": "5e43cae5312eb9cfe9f6f7de088d58ad72276d1cd296fffd2ef0904a1b8b7f12"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/patchbay-checked-source/manifest.json",
+      "bytes": 534292,
+      "sha256": "c8a1dda735cc15a3196396860d328b87fec05a406d189dd02e56e5300fc53246"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/patchbay-checked-source/details-gear.png",
+      "bytes": 321546,
+      "sha256": "b5c4cc5858f7f531810bd4beec1af418c6e90ba4b223c21ef38c6c2b69703554"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/patchbay-checked-source/diagram-backward-000.png",
+      "bytes": 210818,
+      "sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/patchbay-checked-source/details-port.png",
+      "bytes": 321561,
+      "sha256": "6f8f14219879d99af7ed5d70e0b1d103ffc5e997289cd62a74846b7e1ce165fa"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/patchbay-checked-source/diagram-forward-001.png",
+      "bytes": 127971,
+      "sha256": "528990410d976b382a346a720f959b8e50e6b803a119c3b0915106882654a7ac"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/patchbay-checked-source/details-cord.png",
+      "bytes": 351212,
+      "sha256": "8030ccbc1c2cecd8fbdff9e03521b757204be92a69b2e19cfee09655df33ec20"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/patchbay-checked-source/source-selected.png",
+      "bytes": 156276,
+      "sha256": "23874a6adc1577ef3fb53c1a3b4772e635af64e9f4a45333ffbfb6ab5049fe53"
+    },
+    {
+      "path": "conduitos-x86_64/evidence/patchbay-checked-source/diagram-forward-000.png",
+      "bytes": 210818,
+      "sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894"
+    },
+    {
+      "path": "conduitos-x86_64/conduitos-x86_64.iso",
+      "bytes": 83177472,
+      "sha256": "88cf09077bec3bebf14d5171c6a3b0eab8e627f85d1c1830f55fb7283ed85c19"
+    }
+  ],
+  "scope": "Archive custody only. Actual product/lifecycle/ISO/Root/guest/boot/PNG joins require independent semantic audit; no issue closure."
+}

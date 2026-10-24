@@ -1,0 +1,243 @@
+{
+  "40054154999": {
+    "conclusion": "",
+    "headSha": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+    "jobs": [
+      {
+        "databaseId": 120753554297,
+        "name": "proof / candidate/quick",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952596,
+        "name": "proof / admission",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952612,
+        "name": "proof / target / conduitos-x86_64",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952628,
+        "name": "proof / target / conduitos-aarch64",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952629,
+        "name": "proof / unit (products)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952637,
+        "name": "proof / unit (lint)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952638,
+        "name": "proof / unit (foundation)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120753952639,
+        "name": "proof / target / browser",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120753952641,
+        "name": "proof / unit (hosts-workbench)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952658,
+        "name": "proof / unit (hosts-std)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120753952664,
+        "name": "proof / target / conduitos-loongarch64",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952676,
+        "name": "proof / unit (hosts-conduitos)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952677,
+        "name": "proof / target / conduitos-riscv64",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952689,
+        "name": "proof / target / conduitos-ia32",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120753952763,
+        "name": "proof / unit (hosts-browser)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "status": "in_progress",
+    "url": "https://github.com/dancxjo/conduit/actions/runs/40054154999"
+  },
+  "40052875070": {
+    "conclusion": "",
+    "headSha": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+    "jobs": [
+      {
+        "databaseId": 120749491549,
+        "name": "proof / candidate/quick",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120750023277,
+        "name": "proof / target / browser",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120750023291,
+        "name": "proof / admission",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120750024102,
+        "name": "proof / unit",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ],
+    "status": "in_progress",
+    "url": "https://github.com/dancxjo/conduit/actions/runs/40052875070"
+  },
+  "40055582320": {
+    "conclusion": "",
+    "headSha": "0f1640fee52d173da584e0fecb63f3243310f512",
+    "jobs": [
+      {
+        "databaseId": 120757718775,
+        "name": "proof / candidate/quick",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120758420295,
+        "name": "proof / admission",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120758420336,
+        "name": "proof / unit (hosts-conduitos)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120758420351,
+        "name": "proof / unit (hosts-std)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120758420376,
+        "name": "proof / unit (products)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120758420401,
+        "name": "proof / unit (hosts-workbench)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120758420444,
+        "name": "proof / unit (hosts-browser)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120758420450,
+        "name": "proof / unit (foundation)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "databaseId": 120758420463,
+        "name": "proof / unit (lint)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "databaseId": 120758421417,
+        "name": "proof / target / ${{ matrix.id }}",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ],
+    "status": "in_progress",
+    "url": "https://github.com/dancxjo/conduit/actions/runs/40055582320"
+  },
+  "open_prs": [
+    {
+      "baseRefName": "dev",
+      "headRefOid": "7667b7f7ef5f1982c54065236696cb3e8f4ebe88",
+      "isDraft": false,
+      "number": 6362,
+      "title": "Verify contextual IPA choices preserve committed speech identity",
+      "url": "https://github.com/dancxjo/conduit/pull/6362"
+    },
+    {
+      "baseRefName": "dev",
+      "headRefOid": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "isDraft": false,
+      "number": 6356,
+      "title": "Share immutable snapshot record codec beneath browser and Linux Hosts",
+      "url": "https://github.com/dancxjo/conduit/pull/6356"
+    },
+    {
+      "baseRefName": "dev",
+      "headRefOid": "8a0b788ba2f4071b51844aa3715396ec8e7ead5e",
+      "isDraft": true,
+      "number": 6351,
+      "title": "GUI Look polish and Lucide rollout (#6349)",
+      "url": "https://github.com/dancxjo/conduit/pull/6351"
+    },
+    {
+      "baseRefName": "dev",
+      "headRefOid": "0f1640fee52d173da584e0fecb63f3243310f512",
+      "isDraft": false,
+      "number": 6348,
+      "title": "Own finite monotonic waits under exact configured native plans",
+      "url": "https://github.com/dancxjo/conduit/pull/6348"
+    },
+    {
+      "baseRefName": "dev",
+      "headRefOid": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+      "isDraft": false,
+      "number": 6339,
+      "title": "Integrate reviewed timer and snapshot PRs with native acceptance repairs",
+      "url": "https://github.com/dancxjo/conduit/pull/6339"
+    }
+  ],
+  "observed_utc": "2026-10-24T03:00:11.847584+00:00"
+}

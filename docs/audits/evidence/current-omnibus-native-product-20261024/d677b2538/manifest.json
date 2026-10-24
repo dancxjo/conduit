@@ -1,0 +1,56 @@
+{
+  "submitted_source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "execution_source": "dacabe7376b1d62c0739377f579bfb332cafa19e",
+  "files": [
+    {
+      "path": "x86-product-40054154999-12545491870.zip",
+      "bytes": 22144169,
+      "sha256": "d43a320ff8abf80ea68618dbdcada17ea850ef6a281689c8fdb15a0f698c08a5"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1273,
+      "sha256": "ada170663a4be0c6efa964b6c98f18fa36b62144a7a79936754b9e8c729ba43c"
+    },
+    {
+      "path": "d677-candidate-native-product-independent-review.json",
+      "bytes": 26428,
+      "sha256": "c2b1870f4e51aab0f444b3ec87d5f59774904dddaf401019ab96e5175e09caae"
+    },
+    {
+      "path": "x86-product-40054154999-download.json",
+      "bytes": 11411,
+      "sha256": "a21374d776d5f8993d8153fee73f26c1050527a1c4983abe680b697a4b7b1b6f"
+    },
+    {
+      "path": "6339-actual-quick-preview-identity.json",
+      "bytes": 784,
+      "sha256": "40963fb11603d08c196e76cdba11de21511dd4f91c85003afdbde88e82f0b31a"
+    },
+    {
+      "path": "remaining-prs-observation-0300.json",
+      "bytes": 6846,
+      "sha256": "837fd943b803fec96a6bc2007abe24ce480e3dc6e45bc3146e5785a65c4815e9"
+    },
+    {
+      "path": "6353-final-requirement-readiness-review.json",
+      "bytes": 10350,
+      "sha256": "3f9581fc81860e0e8b62b0bd933f15a85ad31414122750713c2e38f249f62feb"
+    },
+    {
+      "path": "6350-final-requirement-readiness-review.json",
+      "bytes": 12744,
+      "sha256": "f4ea48904de084389b4458e2fb73935eb49c3fc195c207c677404f0e7652c496"
+    },
+    {
+      "path": "6346-6334-final-requirement-readiness-review.json",
+      "bytes": 14828,
+      "sha256": "cf9bc06fefc9f284e48508aa734927d49843ea1c179d8eb1f8d047027114ed2e"
+    },
+    {
+      "path": "audit-d677-candidate-native-product.py",
+      "bytes": 11085,
+      "sha256": "78b2a92761651ed282a9226d3a2e5b1daeb59c08bc2bdb45c5dead1e39ec5c25"
+    }
+  ]
+}

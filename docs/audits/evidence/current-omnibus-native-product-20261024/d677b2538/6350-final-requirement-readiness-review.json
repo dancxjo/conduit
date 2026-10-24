@@ -1,0 +1,254 @@
+{
+  "issue": 6350,
+  "reviewed_at_utc": "2026-10-24T02:53:44.974212+00:00",
+  "requirement_snapshot": "outputs/6350-current-requirements.json",
+  "fresh_issue_state": "OPEN",
+  "owner_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+  "operation_repair_source": "a971533d8b8bfb7b0f7740cffe31156bf59b4398",
+  "prospective_delivery_source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "normalized_original_codec_source_equality": true,
+  "exact_feature_blob_correspondence": [
+    {
+      "path": "Cargo.lock",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "exact": true
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/Cargo.toml",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "exact": true
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/README.md",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "0147d1009d4209f4f15a18083241692b85593a42",
+      "exact": true
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "exact": true
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/record.rs",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "exact": true
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "exact": true
+    },
+    {
+      "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "56695afe99420befd10aa7b21ab56f60446edace",
+      "exact": true
+    },
+    {
+      "path": "targets/browser/runtime/Cargo.toml",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "64250fbaad3d8df6faa561609513f2bc111460b1",
+      "exact": true
+    },
+    {
+      "path": "targets/browser/runtime/src/resource_snapshot.rs",
+      "expected_source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "blob": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "exact": true
+    },
+    {
+      "path": "tools/xtask/src/suites/resource_snapshot.rs",
+      "expected_source": "a971533d8b8bfb7b0f7740cffe31156bf59b4398",
+      "blob": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "exact": true
+    }
+  ],
+  "generic_snapshot_subtree_and_browser_reexport_and_supported_suite_match_executed5ace": true,
+  "criteria": [
+    {
+      "requirement": "Extract only bounded preparation/publication/restore codec into generic no-std/alloc owner",
+      "status": "proven",
+      "evidence": [
+        {
+          "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+          "detail": "#![no_std], extern crate alloc, private record module and public re-export; dependency only conduit-core."
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/record.rs",
+          "detail": "Entire implementation exactly equals original browser codec after normalizing only module comment, explicit alloc String/Vec import and std::fmt::Write->core::fmt::Write."
+        }
+      ]
+    },
+    {
+      "requirement": "Preserve record bytes and storage-key derivation",
+      "status": "proven",
+      "evidence": [
+        {
+          "path": "mechanisms/io/resource-snapshot/src/record.rs",
+          "functions": [
+            "PreparedSnapshotRecord::prepare",
+            "publication",
+            "restore",
+            "storage_key"
+          ],
+          "detail": "Unchanged CDRSNP01 magic, LEu16 owner/ref lengths, exact owner and encodedResourceRef prefix, domain-separated content digest and exact content extent. Key remains owner+identity+version semanticdigest rendered resource/hex. Boot/grant deliberately absent from stored generation key."
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+          "tests": [
+            "snapshot_record_preserves_generation_across_new_boot_but_requires_new_authority",
+            "snapshot_generation_key_cannot_be_changed_by_claiming_a_different_extent",
+            "snapshot_maximum_record_is_bounded_and_rejects_an_unrelated_authority_contract"
+          ]
+        }
+      ]
+    },
+    {
+      "requirement": "Preserve exact reference version/extent, residence and independent authority checks",
+      "status": "proven",
+      "evidence": [
+        {
+          "path": "mechanisms/io/resource-snapshot/src/record.rs",
+          "functions": [
+            "prepare",
+            "authorize",
+            "restore"
+          ],
+          "detail": "Exact reference accepted against inspected contract identity/version/profile/bounds; one binding; current ownerHost/Boot; noexpiry; ExternalDurable/singlewriter/onegeneration/max4096; exact operation/target/inflight/inputoutputbounds; one matching independent authoritygrant/capability/Host/Boot. Use requires full authority equality and rightaccess; restore exactprefix andlength/contentdigest."
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+          "tests": [
+            "snapshot_binding_refuses_wrong_bounds_authority_and_lifetime",
+            "snapshot_owner_metadata_must_fit_the_prepared_record_envelope",
+            "snapshot_record_preserves_generation_across_new_boot_but_requires_new_authority"
+          ],
+          "detail": "Owned metadata bounds0/129/1024reject; currentboot/foreignhost/corrupt/truncatedrecord controls; fixed envelope and prepare-time allocations preserved."
+        }
+      ]
+    },
+    {
+      "requirement": "Keep browser public paths as re-exports and Host Call correlation/effect execution in place",
+      "status": "proven",
+      "evidence": [
+        {
+          "path": "targets/browser/runtime/src/resource_snapshot.rs",
+          "detail": "Public module now pub use conduit_resource_snapshot::*; tests include generic source by path. Existing pub module exposure unchanged."
+        },
+        {
+          "unchanged_paths": [
+            "targets/browser/runtime/src/plot_runner/resource_effect.rs",
+            "targets/browser/runtime/src/plot_runner/engine_completions.rs",
+            "targets/browser/runtime/src/installed_browser/resource.rs"
+          ],
+          "detail": "Exact original dev blobs preserved: advertisement, operation selection, pending request/completion correlation and effects remain browser-owned; no new parallel executor."
+        },
+        {
+          "path": "targets/browser/runtime/src/plot_runner/resource_effect_tests.rs",
+          "tests": [
+            "browser_todo_resource_requests_publish_then_restore_only_after_storage_acknowledges",
+            "full_recording_field_reaches_snapshot_storage_without_json_tree_limits",
+            "browser_resource_missing_authority_and_failed_storage_never_become_success"
+          ],
+          "detail": "Actual ordinary Source/planner/kernel requests prove publish+restore only after storage ack, duplicatecompletion refusal, full recorder field without JSONtree limits, missingauthority and failedstorage never success."
+        }
+      ]
+    },
+    {
+      "requirement": "Move existing sealed-placement fixture tests to generic owner without duplicating implementation",
+      "status": "proven",
+      "evidence": [
+        {
+          "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+          "detail": "Single sealed placement fixture source; generic tests import it. Browser includes generic tests source, so both consumers execute same implementation. Former browser test source moved by Git rename; no duplicated production/test implementation."
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+          "detail": "Four original codec tests retained and one owner metadata bound regression added; five tests run generically and through browser re-export."
+        }
+      ]
+    },
+    {
+      "requirement": "Supported cargo xtask check covers generic codec, actual browser operations and strict codec lint",
+      "status": "proven",
+      "evidence": [
+        {
+          "path": "tools/xtask/src/suites/resource_snapshot.rs",
+          "detail": "resource-snapshot.records cargo test --locked -p conduit-resource-snapshot; browser-codec step no-default-features resource_snapshot; separate browser-operation step no-default-features --features plot-runner --lib resource_effect_tests; strict all-target codec Clippy -Dwarnings."
+        },
+        {
+          "path": "tools/xtask-dispatch/src/focused_check.rs",
+          "detail": "Resource-snapshot module and exact selected match arm retained alongside timer; shared source include verification and complete Step execution unchanged."
+        },
+        {
+          "actual_execution_source": "5ace49b62516b1dca0ddcca9bdf7eeab716963e4",
+          "published_packet": "4ce70418618fa0445826942aafbace17eae1e533",
+          "receipt_path": "docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62/reviewed-followups-owning-receipt.json",
+          "raw_log_sha256": "005e7c6e046556179168ae166f99506e2a86cad4d8bd6b29256ad33971471c6e",
+          "counts": {
+            "generic": 5,
+            "browser_codec": 5,
+            "browser_operations": 3,
+            "strict_codec_clippy": "passed"
+          },
+          "exact_operation_successes": [
+            "test plot_runner::engine::resource_effect_tests::browser_todo_resource_requests_publish_then_restore_only_after_storage_acknowledges ... ok",
+            "test plot_runner::engine::resource_effect_tests::full_recording_field_reaches_snapshot_storage_without_json_tree_limits ... ok",
+            "test plot_runner::engine::resource_effect_tests::browser_resource_missing_authority_and_failed_storage_never_become_success ... ok"
+          ]
+        },
+        {
+          "actual_execution_source": "a971533d8b8bfb7b0f7740cffe31156bf59b4398",
+          "published_packet": "de5573a2096451ab3ff7b162b861c610b55d6bb9",
+          "detail": "Earlier complete supported pass; two genuine zero-test selection negatives retained and corrected, not counted as operationproof."
+        }
+      ]
+    },
+    {
+      "requirement": "Keep extraction scope separate from filesystem provider, seed custody, Body, Line and complete recorder deployment",
+      "status": "proven",
+      "evidence": [
+        {
+          "path": "mechanisms/io/resource-snapshot/README.md",
+          "detail": "Explicit codec-only scope; no storage executor, native provider, Host offer, catalogue seed, scheduler or Body. Generic crate exposes no filesystem/network/effect capabilities."
+        }
+      ]
+    },
+    {
+      "requirement": "Normal exact-head Candidate, dev delivery, applicable Integration and final scoped acceptance",
+      "status": "incomplete",
+      "evidence": [
+        {
+          "source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+          "pr": 6339,
+          "candidate": 40054154999,
+          "detail": "Issue fresh body records this pending frontier. No CI observation performed by reviewer; does not establish Candidate or actual delivery/Integration."
+        },
+        {
+          "source": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+          "detail": "Owner shard registration fix included; final standalone timer lock registry addition and preflight are tooling repairs, not acceptance substitutes."
+        }
+      ],
+      "remaining": [
+        "Require full Candidate success for actual d677 head or explicitly reviewed tested successor.",
+        "Normal dev delivery with exact feature/blob/ancestry correspondence to tested preview.",
+        "Applicable postmerge Integration complete success and final live issue/scope audit before closure."
+      ]
+    }
+  ],
+  "implementation_and_scoped_cpu_proof_ready": true,
+  "material_implementation_gaps": [],
+  "closure_ready": false,
+  "exact_remaining_requirement": "Full current Candidate, normal dev delivery with source correspondence, and applicable successful Integration plus final live scope audit.",
+  "proof_limits": [
+    "One fresh issue GET only; no CI polling/builds/source changes/closure.",
+    "Actual owning execution remains a971 and5ace; finald677 source correspondence does not relabel tests as new execution.",
+    "No actual Linux filesystem/provider proof, browser live IndexedDB proof, Host offer/seed custody/Body/Line/recorder or physical effect claim."
+  ]
+}
