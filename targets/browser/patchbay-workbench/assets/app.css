@@ -183,4 +183,4 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(prefers-reduced-motion:reduce){button{transition:none!important;transform:none!important}}
 @media(forced-colors:active){button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline-color:Highlight}}
 
-.patchbay-icon{width:1.05em;height:1.05em;vertical-align:-.15em;margin-inline-end:.5em;pointer-events:none;flex:none}
+.patchbay-icon{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;width:1.05em;height:1.05em;vertical-align:-.15em;margin-inline-end:.5em;pointer-events:none;flex:none}

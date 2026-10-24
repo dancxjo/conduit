@@ -145,7 +145,7 @@ export async function startOwnerParticipation(application, root) {
       <button type="button" data-owner-speech-start disabled>Read this view aloud</button>
       <button type="button" data-owner-speech-status disabled>Check reading</button>
       <button type="button" data-owner-speech-stop disabled>Stop reading</button>
-      <p role="status" data-owner-speech-result>Join and show the Face first.</p></section>
+      <p role="status" data-owner-speech-result>No reading requested in this window.</p></section>
     <button type="button" data-owner-leave disabled>Leave this window</button>
     <p><a href="?">Return to my local Handbook</a>. Your local Body remains retained; this join mode does not open or change it.</p>`;
   // Local chrome operations have fixed decoration, separate from Face intents.
@@ -205,7 +205,7 @@ export async function startOwnerParticipation(application, root) {
       wardrobeRows.replaceChildren(empty);
     } else wardrobeRows.replaceChildren(list);
     wardrobeEvidence.textContent = JSON.stringify(current.raw, null, 2);
-    wardrobeStatus.textContent = `Owner wardrobe revision ${current.revision}. ${current.rows.length} admitted routes. ${current.rows.filter(row => row.available).length} currently available. ${current.freshShowRequired ? 'A fresh Show is required.' : current.selectedShowId ? 'The owner reports a selected Show.' : 'No selected Show is reported.'}`;
+    wardrobeStatus.textContent = `Last inspected owner wardrobe: revision ${current.revision}. ${current.rows.length} admitted routes; ${current.rows.filter(row => row.available).length} reported available. ${current.freshShowRequired ? 'At that inspection, a fresh Show was required.' : current.selectedShowId ? 'At that inspection, the owner reported a selected Show.' : 'At that inspection, no selected Show was reported.'} Inspect again for current policy.`;
     delete wardrobeStatus.dataset.refused;
   };
   const refreshWardrobe = async () => {
