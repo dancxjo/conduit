@@ -1,0 +1,26 @@
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/std)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos)
+    Finished `release` profile [optimized] target(s) in 4m 14s
+     Running unittests src/lib.rs (../native-target/release/deps/conduitos-e5e12bd516b26562)
+
+running 1 test
+test native_face_scene::layout::mechanical::control_cluster_tests::oversized_subject_help_keeps_fitting_action_and_argument_on_one_page ... FAILED
+
+failures:
+
+---- native_face_scene::layout::mechanical::control_cluster_tests::oversized_subject_help_keeps_fitting_action_and_argument_on_one_page stdout ----
+
+thread 'native_face_scene::layout::mechanical::control_cluster_tests::oversized_subject_help_keeps_fitting_action_and_argument_on_one_page' (1064153) panicked at targets/conduitos/src/native_face_scene/layout/mechanical/control_cluster_tests.rs:62:9:
+assertion `left == right` failed: fitting interactive pair must not inherit oversized help continuation
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    native_face_scene::layout::mechanical::control_cluster_tests::oversized_subject_help_keeps_fitting_action_and_argument_on_one_page
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1426 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p conduitos --lib`

@@ -81,10 +81,19 @@ impl ContentBuilder {
     }
 
     pub(super) fn line(&mut self, subject: &str, value: impl Into<String>) {
-        self.text.push(FaceText {
-            subject: subject.into(),
-            text: nonempty(value.into()),
-        });
+        let value = nonempty(value.into());
+        let mut rest = value.as_str();
+        while !rest.is_empty() {
+            let mut end = rest.len().min(conduit_face::MAX_FACE_TEXT_BYTES);
+            while !rest.is_char_boundary(end) {
+                end -= 1;
+            }
+            self.text.push(FaceText {
+                subject: subject.into(),
+                text: rest[..end].into(),
+            });
+            rest = &rest[end..];
+        }
     }
 
     pub(super) fn property(&mut self, subject: &str, name: &str, value: FacePropertyValue) {
@@ -106,5 +115,29 @@ fn nonempty(value: String) -> String {
         "unavailable".into()
     } else {
         value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn transcript_continuation_retains_complete_unicode_and_field_limits() {
+        let original = format!("{}🪞{}", "x".repeat(1023), "世界Δοκιμή".repeat(200));
+        let mut content = ContentBuilder::new();
+        content.line("fixture/play", &original);
+        assert!(content
+            .text
+            .iter()
+            .all(|line| line.subject == "fixture/play"
+                && line.text.len() <= conduit_face::MAX_FACE_TEXT_BYTES));
+        assert_eq!(
+            content
+                .text
+                .iter()
+                .map(|line| line.text.as_str())
+                .collect::<String>(),
+            original
+        );
     }
 }

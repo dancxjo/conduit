@@ -287,7 +287,11 @@ pub(super) fn prepare(
                 region: None,
                 region_order: None,
                 checkbox,
-                icon: None,
+                icon: if checkbox.is_none() {
+                    super::semantic_icons::for_intent(&action.intent)
+                } else {
+                    None
+                },
             });
             if !available && super::text_field::current(face, index).is_none() {
                 continue;

@@ -1,0 +1,3 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running `../native-target/debug/conduit-xtask-dispatch make host release-catalog --root ../workspace-writing-product-final/artifacts --generation 1`
+SEALED release catalog ../workspace-writing-product-final/artifacts/release-catalog.json generation=1 targets=1

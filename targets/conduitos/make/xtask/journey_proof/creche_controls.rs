@@ -6,6 +6,7 @@ use super::{
 };
 use serde_json::{json, Value};
 use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, process::Child};
+mod accessibility;
 mod custody;
 mod evidence;
 mod frame_budget;
@@ -85,6 +86,19 @@ pub(super) fn exercise(
         observations: Vec::new(),
     };
     run.capture("creche-controls-ready")?;
+    if metadata["proof_scenario"] == "accessibility" {
+        return accessibility::exercise(
+            &mut run,
+            &initial,
+            destination,
+            source,
+            image,
+            metadata,
+            &selected_recipe,
+            &world,
+            &boot,
+        );
+    }
     if metadata["proof_scenario"] == "search" {
         return search::exercise(
             &mut run,

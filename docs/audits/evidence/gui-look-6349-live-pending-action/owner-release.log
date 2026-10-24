@@ -1,0 +1,9 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/plots/patchbay/workbench/model)
+   Compiling conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/plots/thermostat/runtime)
+   Compiling patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/std/patchbay-workbench)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/products/conduit)
+    Finished `release` profile [optimized] target(s) in 4m 03s

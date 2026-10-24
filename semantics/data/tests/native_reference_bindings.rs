@@ -71,7 +71,7 @@ fn generated_reference_bindings_enforce_exact_leaf_contracts() {
     )
     .unwrap();
     let execution = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
-        .args(["test", "--offline", "--quiet", "--manifest-path"])
+        .args(["test", "--offline", "--manifest-path"])
         .arg(directory.join("Cargo.toml"))
         .env("CARGO_TARGET_DIR", directory.join("target"))
         .output()
@@ -82,7 +82,15 @@ fn generated_reference_bindings_enforce_exact_leaf_contracts() {
         String::from_utf8_lossy(&execution.stdout),
         String::from_utf8_lossy(&execution.stderr)
     );
-    fs::remove_dir_all(directory).unwrap();
+    println!(
+        "generated reference proof at {}:\n{}\n{}",
+        directory.display(),
+        String::from_utf8_lossy(&execution.stdout),
+        String::from_utf8_lossy(&execution.stderr)
+    );
+    if std::env::var_os("CONDUIT_NATIVE_REFERENCE_PROOF_RETAIN").is_none() {
+        fs::remove_dir_all(directory).unwrap();
+    }
 }
 
 const EXERCISE: &str = r#"

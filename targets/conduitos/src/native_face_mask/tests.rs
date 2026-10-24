@@ -312,7 +312,7 @@ fn valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls(
         assert!(fallback.unwrap().contains("SlotCapacity"));
         assert_eq!(scene.face(), &face);
         assert_eq!(scene.text_scale_percent(), 200);
-        assert!(expression.platform_forced_colors);
+        assert!(expression.visual.platform_forced_colors);
         scene.show_details(true);
         let mut inspected = alloc::string::String::new();
         for page in 0..scene.pages() {

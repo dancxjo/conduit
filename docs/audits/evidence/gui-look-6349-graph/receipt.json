@@ -1,0 +1,71 @@
+{
+  "source": "d2e7caeb2e321d26dc711648923c98d4a79726ea",
+  "scope": "Normal x86_64 product journey; freestanding emulator, no physical/human/browser correspondence claim",
+  "native_journey": "Completed; 27 hash-verified QMP captures, complete serial-prefix custody and acknowledged Face/Show reading transitions",
+  "scene_tests": "140 passed, 1 ignored; two new rendering checks and all five Port/Cord checks pass",
+  "graph": "Four Gear symbols, original three Cords, zero omitted connections on actual keyboard graph",
+  "graphical_profile_command": "Terminated with exit 143 after completed native journey/compositor collection, during additional headless asset builds for other architectures; full graphical-profile gate is not passed",
+  "headless_asset_closure": "Deferred during local GUI iteration; no cross-architecture artifact/asset acceptance claim",
+  "look_limits": "Journey capture names containing engineering are inherited names for Phosphor palette transitions; they do not establish Engineering typography selection",
+  "files": {
+    "journey-summary.json": "a22cf7e6d072677313c3099419bfb3455dac15095fa2d3c8fa9109ea2e3073fb",
+    "native-graph-cleanup.json": "eb5629060dbb8723726c3a94a21618b70d7424c35fb064c7669877f1a97582ce",
+    "native-shell-paired-linear.json.gz": "912e6453dc820559b5d0a8b5685aa17cb6665b647fb60eecb6e0e4b1227ff015",
+    "journey-proof.json.gz": "181f4ff2131a7138034919bff14abaf9440af019d7bd6f497cfcbe8b725bdae6",
+    "journey-serial.log.gz": "82a5afdae59b50c5780d2b1ff7f3211b7389eb06f0a179872cc1d6474024c0b6",
+    "compositor-lifecycle-proof.json": "0b90b542383becaec9d6680a67753746970254a128e450b055787fd5136dadd8",
+    "native-graph-icons-ports.log": "1c2dd18564a6b4e43e0b2feb90406507ee511dbbae304a5d247b88cfb58dcb51",
+    "native-graph-optional-tail-stop.json": "25279dfe7204feb0eef47359f3f8fc8b7afb6252caddcc5aa927bdeafa3a6a33",
+    "native-graph-icons-scene-tests.log": "a76c4c5c76b1363b26fdfabb8c0a4ae73d0978c892cfae3f41671566380351de",
+    "native-graph-icons-focused-run.log": "97535799eb349884c5135621b03dd41135f84cb759de4374335762c3204eb110",
+    "build-manifest.json": "40377ef23884048c2f96b8a1946fd0f3400a0e4f42eb914357785812520722dc",
+    "journey-qmp.log": "1f638b0b194c2d0529e62a2539f23fc7cd39639c347fa78202868e616d1d5512",
+    "native-graph-icons-product-proof.log": "9f2047ee2e1256b5bec5ebabad299a4db4e991d3d22266549d3ff077d6b1f2c6",
+    "journey-frames/creche-editorial-compact.png": "39348556eab8ecd2ebaebbcf830ce3af8a36afe394ef3387a27187a0aff41bae",
+    "journey-frames/patchbay-diagram.png": "4ce71729fd058f91c0762184623b3a063decb7317ae2b1632d29b36e5780de7f",
+    "journey-frames/creche-pointer-four-restored.png": "17b21a58d7c52ece8ff3358b9583ba3df335e7bd7072eb1e5677273ccc69004a",
+    "journey-frames/patchbay-gear-details.png": "95cd7f1ae5560c6880e51230b491dc87e2e560fdda870043b43344efe0771dd2",
+    "journey-frames/patchbay-diagram-returned.png": "7cf4f0baac8dab055c6d00734239d076e2ba13f59ff232f233bb75106ea35f36",
+    "journey-frames/creche-engineering-spacious.png": "80865caa86bd0d6e78fecb18ca77c1ea00f6ff1594d5aeccbed3895a449e4868",
+    "journey-frames/protected-keyboard-canvas.png": "5e97f88b51fabb4d3af967ef1b03146fc9547f70ece7787b8c517595857ae24b",
+    "journey-frames/creche-pointer-three-selected.png": "498b647db74bddbb470d40b9088a17218c3425bd09955f5dadc60ef7ebc72341",
+    "journey-frames/patchbay-mask-replanned.png": "6657c5525e8596672f2a1daf4f687d7d549a4b4f1d57afcccf5385724488bda3",
+    "journey-frames/wake-refused.png": "3c9aeda98ced9a78030a050f4048281ce820a86eff824db73c40dcf76f2a4d18",
+    "journey-frames/creche-four-restored.png": "c2a2f7b7d9c0f7cc30f2b3645f4af043c2325e73165ff699b62676d6c4baf62c",
+    "journey-frames/patchbay-inspected-other-and-returned.png": "8fedd2286247284a5d13213d2e5aaa9fabb499e2a9daa12bea3edc6bd67af31b",
+    "journey-frames/body-stopped.png": "523fa5a1eda3f99b806bf86f5356627a974d29cb9b6b195ad0b776d5b00e5179",
+    "journey-frames/manifest.json": "60dfe991f4e1ee573d56363a4a1f9eebf6f34f414391e42aec2c2f9cf2702517",
+    "journey-frames/creche-fourth-checked.png": "5634238f09533a872eef05f7db3ee0390d6c8ac087a8dcf853a94bc6890d8e7a",
+    "journey-frames/front-door-ready.png": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+    "journey-frames/creche-ready.png": "30ee36e7092b62f884d55942c0858e7350cfd04eb41323814bc5c9197ac8cc1f",
+    "journey-frames/body-playing.png": "70af6ad3a5d41269f7448e7b449eac4b42e8e0a37c14ff24e32ef93a4ca08a2d",
+    "journey-frames/creche-three-selected.png": "08b2e54bae9ab9ac2a0e832d37d4e50a4ec5e0f8efb066df77df63c3abbfff1d",
+    "journey-frames/home-returned.png": "cc380a5cb82e72d299c2c17c9d8ed09d26416336c8eec0888b2dca19feaa09b5",
+    "journey-frames/patchbay-face.png": "8fedd2286247284a5d13213d2e5aaa9fabb499e2a9daa12bea3edc6bd67af31b",
+    "journey-frames/creche-engineering-compact.png": "3a28fa75a0a2d5f2289452dbcbfb401e3f1571295dfa0d9fec3e5c9d8e3f2bfc",
+    "journey-frames/home.png": "70af6ad3a5d41269f7448e7b449eac4b42e8e0a37c14ff24e32ef93a4ca08a2d",
+    "journey-frames/creche-editorial-spacious.png": "4b8aca84f25212067ef41fdbc5dd7dfbfc370f16bdb4063de21240733c2c1957",
+    "journey-frames/protected-memory-lantern.png": "0d234722a7380a752c370e605e197f17a29df65b225306239cbab376db1a2371",
+    "journey-frames/patchbay-reentered.png": "fcfb2ec9a719e32fe6e405a07002b3d8170a92650fdc82b6c5599c3f7176cadb",
+    "journey-frames/patchbay-source-editor-loaded.png": "49727e29eed36d27118593cda2fb168126ca8a7a27f73e28917db591b8c11590",
+    "journey-frames/patchbay-workspace.png": "8fedd2286247284a5d13213d2e5aaa9fabb499e2a9daa12bea3edc6bd67af31b"
+  },
+  "archives": {
+    "journey-serial.log": {
+      "artifact": "journey-serial.log.gz",
+      "uncompressed_sha256": "f31a66ce2866dc18eda47fc1051e58a65f71b4e0159171c471efa7cbbdf9ca75",
+      "uncompressed_bytes": 3318524
+    },
+    "native-shell-paired-linear.json": {
+      "artifact": "native-shell-paired-linear.json.gz",
+      "uncompressed_sha256": "670db3c03b24423586c018af3dd07b1c6c1deed3d4f6b4e03c16d6f21eacd9ec",
+      "uncompressed_bytes": 4533983
+    },
+    "journey-proof.json": {
+      "artifact": "journey-proof.json.gz",
+      "uncompressed_sha256": "ceace5c7c42f13f0ae9925cefb8534c966368eb865061597b560b945428188a2",
+      "uncompressed_bytes": 1494373
+    }
+  },
+  "archive_note": "Lossless gzip; decompress to the original filenames before validating raw serial-prefix custody and compositor receipts."
+}

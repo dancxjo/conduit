@@ -1,0 +1,910 @@
+{
+  "schema": "conduit.actual-executed-test-custody/v1",
+  "source": "eb691571b702622c1256cd96604dd98822634107",
+  "tree": "cfc299f6540c516fecd0789d1e84d6b7884bc51f",
+  "status": "sealed-and-roundtrip-verified",
+  "steps": [
+    {
+      "name": "body-lib",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-body",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "source_clean_after": true,
+      "log": {
+        "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-composed-eb691571-body-lib.log",
+        "before": {
+          "device": 66306,
+          "inode": 52473399,
+          "bytes": 4430,
+          "mtime_ns": 1792872536744689963,
+          "ctime_ns": 1792872536744689963
+        },
+        "after": {
+          "device": 66306,
+          "inode": 52473399,
+          "bytes": 4430,
+          "mtime_ns": 1792872536744689963,
+          "ctime_ns": 1792872536744689963
+        },
+        "sha256_before": "b0a88cf72cd29952ef9103ab5eee60a2dd8810b53db641926fd84bfcdcac2b5b",
+        "sha256_compression_stream": "b0a88cf72cd29952ef9103ab5eee60a2dd8810b53db641926fd84bfcdcac2b5b",
+        "sha256_after": "b0a88cf72cd29952ef9103ab5eee60a2dd8810b53db641926fd84bfcdcac2b5b",
+        "archive": "outputs/6422-composed-eb691571-additional-test-custody/body-lib.log.gz",
+        "archive_bytes": 1554,
+        "archive_sha256": "21d42cf9d6f57079d4ad413894116b909b16021a0009f65201242cd5c269fd48",
+        "roundtrip_bytes": 4430,
+        "roundtrip_sha256": "b0a88cf72cd29952ef9103ab5eee60a2dd8810b53db641926fd84bfcdcac2b5b",
+        "source_stable_during_archive": true
+      },
+      "result_lines": [
+        "test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s"
+      ],
+      "executables": [
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_body-95661a64b0d6e8c8",
+          "before": {
+            "device": 66306,
+            "inode": 52859811,
+            "bytes": 12269816,
+            "mtime_ns": 1792872536613690676,
+            "ctime_ns": 1792872536615690665
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52859811,
+            "bytes": 12269816,
+            "mtime_ns": 1792872536613690676,
+            "ctime_ns": 1792872536615690665
+          },
+          "sha256_before": "b95fb2a5ae854aac2d170027eef7ae800d195cfaeb57a9eeeb49d40277a87885",
+          "sha256_compression_stream": "b95fb2a5ae854aac2d170027eef7ae800d195cfaeb57a9eeeb49d40277a87885",
+          "sha256_after": "b95fb2a5ae854aac2d170027eef7ae800d195cfaeb57a9eeeb49d40277a87885",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/body-lib-conduit_body-95661a64b0d6e8c8.elf.gz",
+          "archive_bytes": 2633949,
+          "archive_sha256": "59f7b08d20f60eb7df30c92d29b9a02e9d47153a92a7e8a7b9afdf9fe4f52507",
+          "roundtrip_bytes": 12269816,
+          "roundtrip_sha256": "b95fb2a5ae854aac2d170027eef7ae800d195cfaeb57a9eeeb49d40277a87885",
+          "source_stable_during_archive": true
+        }
+      ]
+    },
+    {
+      "name": "body-documents",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-body",
+        "--test",
+        "admission_documents"
+      ],
+      "exit_code": 0,
+      "source_clean_after": true,
+      "log": {
+        "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-composed-eb691571-body-documents.log",
+        "before": {
+          "device": 66306,
+          "inode": 52473400,
+          "bytes": 1295,
+          "mtime_ns": 1792872541045666539,
+          "ctime_ns": 1792872541045666539
+        },
+        "after": {
+          "device": 66306,
+          "inode": 52473400,
+          "bytes": 1295,
+          "mtime_ns": 1792872541045666539,
+          "ctime_ns": 1792872541045666539
+        },
+        "sha256_before": "55ad7ed62ccf7e00cd9e376d0747c917bf53821cfed278eb1d5bb2179fcc715d",
+        "sha256_compression_stream": "55ad7ed62ccf7e00cd9e376d0747c917bf53821cfed278eb1d5bb2179fcc715d",
+        "sha256_after": "55ad7ed62ccf7e00cd9e376d0747c917bf53821cfed278eb1d5bb2179fcc715d",
+        "archive": "outputs/6422-composed-eb691571-additional-test-custody/body-documents.log.gz",
+        "archive_bytes": 630,
+        "archive_sha256": "db2a5e03804ba36745f39cfbbb240053b1ff195ad6fd521e0194cb12367d0501",
+        "roundtrip_bytes": 1295,
+        "roundtrip_sha256": "55ad7ed62ccf7e00cd9e376d0747c917bf53821cfed278eb1d5bb2179fcc715d",
+        "source_stable_during_archive": true
+      },
+      "result_lines": [
+        "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s"
+      ],
+      "executables": [
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/admission_documents-15a72a9d2525f924",
+          "before": {
+            "device": 66306,
+            "inode": 52859817,
+            "bytes": 15970568,
+            "mtime_ns": 1792872540988666850,
+            "ctime_ns": 1792872540989666845
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52859817,
+            "bytes": 15970568,
+            "mtime_ns": 1792872540988666850,
+            "ctime_ns": 1792872540989666845
+          },
+          "sha256_before": "4f0231543a694628af3d4f586a9926c53108f7f94bb9b93a50dd49b40cd6f498",
+          "sha256_compression_stream": "4f0231543a694628af3d4f586a9926c53108f7f94bb9b93a50dd49b40cd6f498",
+          "sha256_after": "4f0231543a694628af3d4f586a9926c53108f7f94bb9b93a50dd49b40cd6f498",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/body-documents-admission_documents-15a72a9d2525f924.elf.gz",
+          "archive_bytes": 2697417,
+          "archive_sha256": "d3fdd9e5cffe1b5a767907699123d841619c434fa8cc36de890cb275985dbe32",
+          "roundtrip_bytes": 15970568,
+          "roundtrip_sha256": "4f0231543a694628af3d4f586a9926c53108f7f94bb9b93a50dd49b40cd6f498",
+          "source_stable_during_archive": true
+        }
+      ]
+    },
+    {
+      "name": "installed-owner",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit",
+        "--bin",
+        "conduit",
+        "native_observation"
+      ],
+      "exit_code": 0,
+      "source_clean_after": true,
+      "log": {
+        "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-composed-eb691571-installed-owner.log",
+        "before": {
+          "device": 66306,
+          "inode": 52473408,
+          "bytes": 15931,
+          "mtime_ns": 1792873403016869241,
+          "ctime_ns": 1792873403016869241
+        },
+        "after": {
+          "device": 66306,
+          "inode": 52473408,
+          "bytes": 15931,
+          "mtime_ns": 1792873403016869241,
+          "ctime_ns": 1792873403016869241
+        },
+        "sha256_before": "809cbcbd81d13a9d9f3657d0dae125f9007b6e3100fe62cb5a156027d7151d15",
+        "sha256_compression_stream": "809cbcbd81d13a9d9f3657d0dae125f9007b6e3100fe62cb5a156027d7151d15",
+        "sha256_after": "809cbcbd81d13a9d9f3657d0dae125f9007b6e3100fe62cb5a156027d7151d15",
+        "archive": "outputs/6422-composed-eb691571-additional-test-custody/installed-owner.log.gz",
+        "archive_bytes": 1860,
+        "archive_sha256": "264f6e43275bc6756edc4776d7637d145b4945d8ce74704e52181308852e6c01",
+        "roundtrip_bytes": 15931,
+        "roundtrip_sha256": "809cbcbd81d13a9d9f3657d0dae125f9007b6e3100fe62cb5a156027d7151d15",
+        "source_stable_during_archive": true
+      },
+      "result_lines": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 275 filtered out; finished in 5.39s"
+      ],
+      "executables": [
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit-eba56648f0386ded",
+          "before": {
+            "device": 66306,
+            "inode": 52859980,
+            "bytes": 190201536,
+            "mtime_ns": 1792873397480753410,
+            "ctime_ns": 1792873397489753599
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52859980,
+            "bytes": 190201536,
+            "mtime_ns": 1792873397480753410,
+            "ctime_ns": 1792873397489753599
+          },
+          "sha256_before": "0bcfb7a2bd56ca29d50d5dc997020c088741955a59355aff5ce8bd25acb81b36",
+          "sha256_compression_stream": "0bcfb7a2bd56ca29d50d5dc997020c088741955a59355aff5ce8bd25acb81b36",
+          "sha256_after": "0bcfb7a2bd56ca29d50d5dc997020c088741955a59355aff5ce8bd25acb81b36",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/installed-owner-conduit-eba56648f0386ded.elf.gz",
+          "archive_bytes": 37974831,
+          "archive_sha256": "45f29087acaeb6e7b09a776741480af4da38ea84f3d029b4e94f1dfc562e371c",
+          "roundtrip_bytes": 190201536,
+          "roundtrip_sha256": "0bcfb7a2bd56ca29d50d5dc997020c088741955a59355aff5ce8bd25acb81b36",
+          "source_stable_during_archive": true
+        }
+      ]
+    },
+    {
+      "name": "http-lifecycle",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--features",
+        "hosted-tools,native-compositor,native-http-client",
+        "--test",
+        "http_ticket_lifetime"
+      ],
+      "exit_code": 0,
+      "source_clean_after": true,
+      "log": {
+        "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-composed-eb691571-http-lifecycle.log",
+        "before": {
+          "device": 66306,
+          "inode": 52473409,
+          "bytes": 950,
+          "mtime_ns": 1792873425289324246,
+          "ctime_ns": 1792873425289324246
+        },
+        "after": {
+          "device": 66306,
+          "inode": 52473409,
+          "bytes": 950,
+          "mtime_ns": 1792873425289324246,
+          "ctime_ns": 1792873425289324246
+        },
+        "sha256_before": "431d506c011c69ae1ec123d41496e75036b86a224b58ccd5801c7cefafd95915",
+        "sha256_compression_stream": "431d506c011c69ae1ec123d41496e75036b86a224b58ccd5801c7cefafd95915",
+        "sha256_after": "431d506c011c69ae1ec123d41496e75036b86a224b58ccd5801c7cefafd95915",
+        "archive": "outputs/6422-composed-eb691571-additional-test-custody/http-lifecycle.log.gz",
+        "archive_bytes": 390,
+        "archive_sha256": "0d4f5a4cbcbf78207e1758111e3561186c48dcedb6d22829081cf500c778cdef",
+        "roundtrip_bytes": 950,
+        "roundtrip_sha256": "431d506c011c69ae1ec123d41496e75036b86a224b58ccd5801c7cefafd95915",
+        "source_stable_during_archive": true
+      },
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "executables": [
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/http_ticket_lifetime-4c688b96f4824a67",
+          "before": {
+            "device": 66306,
+            "inode": 52859964,
+            "bytes": 9943312,
+            "mtime_ns": 1792873425234323144,
+            "ctime_ns": 1792873425235323164
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52859964,
+            "bytes": 9943312,
+            "mtime_ns": 1792873425234323144,
+            "ctime_ns": 1792873425235323164
+          },
+          "sha256_before": "56e7f019edf2a7e3d97c1ee06971eb2222027e401bb5822f6000a1349c1809d5",
+          "sha256_compression_stream": "56e7f019edf2a7e3d97c1ee06971eb2222027e401bb5822f6000a1349c1809d5",
+          "sha256_after": "56e7f019edf2a7e3d97c1ee06971eb2222027e401bb5822f6000a1349c1809d5",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/http-lifecycle-http_ticket_lifetime-4c688b96f4824a67.elf.gz",
+          "archive_bytes": 2899210,
+          "archive_sha256": "3492871cec1e7d24cee927d3cffae51fdceaeef7fad52bb22ac1234d477a90af",
+          "roundtrip_bytes": 9943312,
+          "roundtrip_sha256": "56e7f019edf2a7e3d97c1ee06971eb2222027e401bb5822f6000a1349c1809d5",
+          "source_stable_during_archive": true
+        }
+      ]
+    },
+    {
+      "name": "http-doc",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--features",
+        "native-http-client",
+        "--doc",
+        "http::request"
+      ],
+      "exit_code": 0,
+      "source_clean_after": true,
+      "log": {
+        "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-composed-eb691571-http-doc.log",
+        "before": {
+          "device": 66306,
+          "inode": 52473410,
+          "bytes": 11870,
+          "mtime_ns": 1792873515549001346,
+          "ctime_ns": 1792873515549001346
+        },
+        "after": {
+          "device": 66306,
+          "inode": 52473410,
+          "bytes": 11870,
+          "mtime_ns": 1792873515549001346,
+          "ctime_ns": 1792873515549001346
+        },
+        "sha256_before": "8422716115402f9bf6b5ff5cc6acdfa6c10f5f65bba6bbf14866625952ee2015",
+        "sha256_compression_stream": "8422716115402f9bf6b5ff5cc6acdfa6c10f5f65bba6bbf14866625952ee2015",
+        "sha256_after": "8422716115402f9bf6b5ff5cc6acdfa6c10f5f65bba6bbf14866625952ee2015",
+        "archive": "outputs/6422-composed-eb691571-additional-test-custody/http-doc.log.gz",
+        "archive_bytes": 1179,
+        "archive_sha256": "e9bf4353a8b5d546dc3242a7524327f618ab13706c00c3e786c31a1222e1a2da",
+        "roundtrip_bytes": 11870,
+        "roundtrip_sha256": "8422716115402f9bf6b5ff5cc6acdfa6c10f5f65bba6bbf14866625952ee2015",
+        "source_stable_during_archive": true
+      },
+      "result_lines": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s"
+      ],
+      "executables": []
+    },
+    {
+      "name": "environment-appliance",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "prove",
+        "environment",
+        "appliance"
+      ],
+      "exit_code": 0,
+      "source_clean_after": true,
+      "log": {
+        "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-composed-eb691571-environment-appliance.log",
+        "before": {
+          "device": 66306,
+          "inode": 52473411,
+          "bytes": 14319,
+          "mtime_ns": 1792873662735249863,
+          "ctime_ns": 1792873662735249863
+        },
+        "after": {
+          "device": 66306,
+          "inode": 52473411,
+          "bytes": 14319,
+          "mtime_ns": 1792873662735249863,
+          "ctime_ns": 1792873662735249863
+        },
+        "sha256_before": "918aa8ab1f60885d0ff37daed6d92d6983f7788db500aec8a6bd22964ec35c35",
+        "sha256_compression_stream": "918aa8ab1f60885d0ff37daed6d92d6983f7788db500aec8a6bd22964ec35c35",
+        "sha256_after": "918aa8ab1f60885d0ff37daed6d92d6983f7788db500aec8a6bd22964ec35c35",
+        "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-appliance.log.gz",
+        "archive_bytes": 1430,
+        "archive_sha256": "bf08ed629300d667a610d69849823c1fb9b827d4d946d0924419b7ac0ca9f0f3",
+        "roundtrip_bytes": 14319,
+        "roundtrip_sha256": "918aa8ab1f60885d0ff37daed6d92d6983f7788db500aec8a6bd22964ec35c35",
+        "source_stable_during_archive": true
+      },
+      "result_lines": [
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.90s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s"
+      ],
+      "executables": [
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_environment_runtime-40a71ece13ae4f4f",
+          "before": {
+            "device": 66306,
+            "inode": 52856987,
+            "bytes": 1079720,
+            "mtime_ns": 1792873626313742578,
+            "ctime_ns": 1792873626313742578
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52856987,
+            "bytes": 1079720,
+            "mtime_ns": 1792873626313742578,
+            "ctime_ns": 1792873626313742578
+          },
+          "sha256_before": "302460cd6451deeca8ec4dee94da1e3600b1e83c784eaf8af25226353d6341d4",
+          "sha256_compression_stream": "302460cd6451deeca8ec4dee94da1e3600b1e83c784eaf8af25226353d6341d4",
+          "sha256_after": "302460cd6451deeca8ec4dee94da1e3600b1e83c784eaf8af25226353d6341d4",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-appliance-conduit_environment_runtime-40a71ece13ae4f4f.elf.gz",
+          "archive_bytes": 427602,
+          "archive_sha256": "70c054152db6198da8bcd126b32596c05d09524e6ce9f1405fd178d8013de89f",
+          "roundtrip_bytes": 1079720,
+          "roundtrip_sha256": "302460cd6451deeca8ec4dee94da1e3600b1e83c784eaf8af25226353d6341d4",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/appliance_kernel-70ae9b8add821e4d",
+          "before": {
+            "device": 66306,
+            "inode": 52860063,
+            "bytes": 29505440,
+            "mtime_ns": 1792873626541745847,
+            "ctime_ns": 1792873626543745875
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52860063,
+            "bytes": 29505440,
+            "mtime_ns": 1792873626541745847,
+            "ctime_ns": 1792873626543745875
+          },
+          "sha256_before": "68476befa5e77e29b4b09b5cbd1ae00dd5328e0a57e9713b1d050e4789dd3ddd",
+          "sha256_compression_stream": "68476befa5e77e29b4b09b5cbd1ae00dd5328e0a57e9713b1d050e4789dd3ddd",
+          "sha256_after": "68476befa5e77e29b4b09b5cbd1ae00dd5328e0a57e9713b1d050e4789dd3ddd",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-appliance-appliance_kernel-70ae9b8add821e4d.elf.gz",
+          "archive_bytes": 6314355,
+          "archive_sha256": "e3a7cc2679d3adf9a3c5a82236889c5208edf403915427f26c7c019ed38de6e2",
+          "roundtrip_bytes": 29505440,
+          "roundtrip_sha256": "68476befa5e77e29b4b09b5cbd1ae00dd5328e0a57e9713b1d050e4789dd3ddd",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/construction-b77972cc26ef96cc",
+          "before": {
+            "device": 66306,
+            "inode": 52860036,
+            "bytes": 21685368,
+            "mtime_ns": 1792873626296742335,
+            "ctime_ns": 1792873626298742363
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52860036,
+            "bytes": 21685368,
+            "mtime_ns": 1792873626296742335,
+            "ctime_ns": 1792873626298742363
+          },
+          "sha256_before": "3d471e26f177fec18af23968fdd433c311e5fa16200023bffc4f6b10f6b4d30e",
+          "sha256_compression_stream": "3d471e26f177fec18af23968fdd433c311e5fa16200023bffc4f6b10f6b4d30e",
+          "sha256_after": "3d471e26f177fec18af23968fdd433c311e5fa16200023bffc4f6b10f6b4d30e",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-appliance-construction-b77972cc26ef96cc.elf.gz",
+          "archive_bytes": 4759508,
+          "archive_sha256": "ca3b41c40c2b628a46c7edc3834ef2c11a7a360a05f2efdf2ba450e553471ef9",
+          "roundtrip_bytes": 21685368,
+          "roundtrip_sha256": "3d471e26f177fec18af23968fdd433c311e5fa16200023bffc4f6b10f6b4d30e",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/sampling_value_extents-626cfc73fa54bad2",
+          "before": {
+            "device": 66306,
+            "inode": 52860035,
+            "bytes": 21883520,
+            "mtime_ns": 1792873626296742335,
+            "ctime_ns": 1792873626300742392
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52860035,
+            "bytes": 21883520,
+            "mtime_ns": 1792873626296742335,
+            "ctime_ns": 1792873626300742392
+          },
+          "sha256_before": "670a616f400850b9e6b9815cdf2690ccdfaa632cc0f742656808ab925d41605a",
+          "sha256_compression_stream": "670a616f400850b9e6b9815cdf2690ccdfaa632cc0f742656808ab925d41605a",
+          "sha256_after": "670a616f400850b9e6b9815cdf2690ccdfaa632cc0f742656808ab925d41605a",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-appliance-sampling_value_extents-626cfc73fa54bad2.elf.gz",
+          "archive_bytes": 4791474,
+          "archive_sha256": "d38e9c76b6a5bcde265389070aae2ec28f51ace8d755af1eeb62a1c903422618",
+          "roundtrip_bytes": 21883520,
+          "roundtrip_sha256": "670a616f400850b9e6b9815cdf2690ccdfaa632cc0f742656808ab925d41605a",
+          "source_stable_during_archive": true
+        }
+      ]
+    },
+    {
+      "name": "environment-face",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "prove",
+        "environment",
+        "face-publication"
+      ],
+      "exit_code": 0,
+      "source_clean_after": true,
+      "log": {
+        "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-composed-eb691571-environment-face.log",
+        "before": {
+          "device": 66306,
+          "inode": 52473412,
+          "bytes": 10167,
+          "mtime_ns": 1792873819920134886,
+          "ctime_ns": 1792873819920134886
+        },
+        "after": {
+          "device": 66306,
+          "inode": 52473412,
+          "bytes": 10167,
+          "mtime_ns": 1792873819920134886,
+          "ctime_ns": 1792873819920134886
+        },
+        "sha256_before": "4d52750f266b211ed239ff91eafd3e70e7d553b0531d0cb653e5c7223d1dbc37",
+        "sha256_compression_stream": "4d52750f266b211ed239ff91eafd3e70e7d553b0531d0cb653e5c7223d1dbc37",
+        "sha256_after": "4d52750f266b211ed239ff91eafd3e70e7d553b0531d0cb653e5c7223d1dbc37",
+        "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face.log.gz",
+        "archive_bytes": 2073,
+        "archive_sha256": "30da04b4677c63a2cbf3ea990e0cc087f1864f105d992b4692c1f88b6412953e",
+        "roundtrip_bytes": 10167,
+        "roundtrip_sha256": "4d52750f266b211ed239ff91eafd3e70e7d553b0531d0cb653e5c7223d1dbc37",
+        "source_stable_during_archive": true
+      },
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s",
+        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s"
+      ],
+      "executables": [
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/canonical_input-6b093038c68738b5",
+          "before": {
+            "device": 66306,
+            "inode": 52860023,
+            "bytes": 1942648,
+            "mtime_ns": 1792873663645262163,
+            "ctime_ns": 1792873663646262176
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52860023,
+            "bytes": 1942648,
+            "mtime_ns": 1792873663645262163,
+            "ctime_ns": 1792873663646262176
+          },
+          "sha256_before": "ab4ff5d42c48c5fd20e51dab29f3e7df4807a5eaeb12e444ca7501b50446f0fb",
+          "sha256_compression_stream": "ab4ff5d42c48c5fd20e51dab29f3e7df4807a5eaeb12e444ca7501b50446f0fb",
+          "sha256_after": "ab4ff5d42c48c5fd20e51dab29f3e7df4807a5eaeb12e444ca7501b50446f0fb",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-canonical_input-6b093038c68738b5.elf.gz",
+          "archive_bytes": 654262,
+          "archive_sha256": "a5c3eae4f81c9c3e659fd56823255ba1a572ff517610d992d73f44a21e239a9c",
+          "roundtrip_bytes": 1942648,
+          "roundtrip_sha256": "ab4ff5d42c48c5fd20e51dab29f3e7df4807a5eaeb12e444ca7501b50446f0fb",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/publication-2e54729d45ef04de",
+          "before": {
+            "device": 66306,
+            "inode": 52856970,
+            "bytes": 5467456,
+            "mtime_ns": 1792873663925265945,
+            "ctime_ns": 1792873663926265959
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52856970,
+            "bytes": 5467456,
+            "mtime_ns": 1792873663925265945,
+            "ctime_ns": 1792873663926265959
+          },
+          "sha256_before": "06eb3dc53158cd9515451e73eb1fb99d47a1026bd1481abaddb4336115ee9892",
+          "sha256_compression_stream": "06eb3dc53158cd9515451e73eb1fb99d47a1026bd1481abaddb4336115ee9892",
+          "sha256_after": "06eb3dc53158cd9515451e73eb1fb99d47a1026bd1481abaddb4336115ee9892",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-publication-2e54729d45ef04de.elf.gz",
+          "archive_bytes": 1835390,
+          "archive_sha256": "ab4496c606839e3c5514816671ebe92e1f9e21f630221a28221e4ea051d16215",
+          "roundtrip_bytes": 5467456,
+          "roundtrip_sha256": "06eb3dc53158cd9515451e73eb1fb99d47a1026bd1481abaddb4336115ee9892",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/publication_face_custody-20681efa5f2eca50",
+          "before": {
+            "device": 66306,
+            "inode": 52856981,
+            "bytes": 8363024,
+            "mtime_ns": 1792873663854264986,
+            "ctime_ns": 1792873663855265000
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52856981,
+            "bytes": 8363024,
+            "mtime_ns": 1792873663854264986,
+            "ctime_ns": 1792873663855265000
+          },
+          "sha256_before": "00a1c22fce6e02cb8e985b8a0a0ab0bc403191e0125ba2d1eedf83136311c937",
+          "sha256_compression_stream": "00a1c22fce6e02cb8e985b8a0a0ab0bc403191e0125ba2d1eedf83136311c937",
+          "sha256_after": "00a1c22fce6e02cb8e985b8a0a0ab0bc403191e0125ba2d1eedf83136311c937",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-publication_face_custody-20681efa5f2eca50.elf.gz",
+          "archive_bytes": 2510745,
+          "archive_sha256": "e7c53c56822d6135b40a7429b4da72fda4ba36fa4399c4b1f244777ee950d0e8",
+          "roundtrip_bytes": 8363024,
+          "roundtrip_sha256": "00a1c22fce6e02cb8e985b8a0a0ab0bc403191e0125ba2d1eedf83136311c937",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/publication_validation-ada20dd0b013cc2c",
+          "before": {
+            "device": 66306,
+            "inode": 52860043,
+            "bytes": 7508544,
+            "mtime_ns": 1792873663771263865,
+            "ctime_ns": 1792873663772263878
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52860043,
+            "bytes": 7508544,
+            "mtime_ns": 1792873663771263865,
+            "ctime_ns": 1792873663772263878
+          },
+          "sha256_before": "42ccb26b5c89c976db973803a6c9c2edab25c9acf8f25663d53274efd3d4c654",
+          "sha256_compression_stream": "42ccb26b5c89c976db973803a6c9c2edab25c9acf8f25663d53274efd3d4c654",
+          "sha256_after": "42ccb26b5c89c976db973803a6c9c2edab25c9acf8f25663d53274efd3d4c654",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-publication_validation-ada20dd0b013cc2c.elf.gz",
+          "archive_bytes": 2323151,
+          "archive_sha256": "873a0811798c454b7cb51c77130aa07fed12fd11d6b2dcecd4a6e7c72213e5af",
+          "roundtrip_bytes": 7508544,
+          "roundtrip_sha256": "42ccb26b5c89c976db973803a6c9c2edab25c9acf8f25663d53274efd3d4c654",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/retained_publication_face-3e7f70323a8fe37a",
+          "before": {
+            "device": 66306,
+            "inode": 52856990,
+            "bytes": 8309096,
+            "mtime_ns": 1792873663808264365,
+            "ctime_ns": 1792873663809264378
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52856990,
+            "bytes": 8309096,
+            "mtime_ns": 1792873663808264365,
+            "ctime_ns": 1792873663809264378
+          },
+          "sha256_before": "ab437447d2c1aa22c34062ff848edb235318961b3120af24dd0578868a72b4cb",
+          "sha256_compression_stream": "ab437447d2c1aa22c34062ff848edb235318961b3120af24dd0578868a72b4cb",
+          "sha256_after": "ab437447d2c1aa22c34062ff848edb235318961b3120af24dd0578868a72b4cb",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-retained_publication_face-3e7f70323a8fe37a.elf.gz",
+          "archive_bytes": 2529878,
+          "archive_sha256": "570956f53750af5143550a60cad9385f6b42f95c82a0b53dc365b5918d4c065b",
+          "roundtrip_bytes": 8309096,
+          "roundtrip_sha256": "ab437447d2c1aa22c34062ff848edb235318961b3120af24dd0578868a72b4cb",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_seven_segment_mask-50034a1f32278f3b",
+          "before": {
+            "device": 66306,
+            "inode": 52860064,
+            "bytes": 1079712,
+            "mtime_ns": 1792873805992985596,
+            "ctime_ns": 1792873805992985596
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52860064,
+            "bytes": 1079712,
+            "mtime_ns": 1792873805992985596,
+            "ctime_ns": 1792873805992985596
+          },
+          "sha256_before": "2115d9741b1fc096000bb942b4be2f220342320a8c8b6cb59f301c5d34eeb42d",
+          "sha256_compression_stream": "2115d9741b1fc096000bb942b4be2f220342320a8c8b6cb59f301c5d34eeb42d",
+          "sha256_after": "2115d9741b1fc096000bb942b4be2f220342320a8c8b6cb59f301c5d34eeb42d",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-conduit_seven_segment_mask-50034a1f32278f3b.elf.gz",
+          "archive_bytes": 427614,
+          "archive_sha256": "620052ccb66db29bce01617dba45fc2aebd09c5d38aa01b09925721ed8a458fa",
+          "roundtrip_bytes": 1079712,
+          "roundtrip_sha256": "2115d9741b1fc096000bb942b4be2f220342320a8c8b6cb59f301c5d34eeb42d",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/look-cd707e35014a70c7",
+          "before": {
+            "device": 66306,
+            "inode": 52859629,
+            "bytes": 20725288,
+            "mtime_ns": 1792873806013985824,
+            "ctime_ns": 1792873806014985835
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52859629,
+            "bytes": 20725288,
+            "mtime_ns": 1792873806013985824,
+            "ctime_ns": 1792873806014985835
+          },
+          "sha256_before": "a5205b1e77a797b0071cdfa071015279c41416b206ce9860c31e664c9966293d",
+          "sha256_compression_stream": "a5205b1e77a797b0071cdfa071015279c41416b206ce9860c31e664c9966293d",
+          "sha256_after": "a5205b1e77a797b0071cdfa071015279c41416b206ce9860c31e664c9966293d",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-look-cd707e35014a70c7.elf.gz",
+          "archive_bytes": 4350615,
+          "archive_sha256": "63a5246ece5cc2ea807d0d6fd2edc52a849958a77e3e752af9a47acad57faa7b",
+          "roundtrip_bytes": 20725288,
+          "roundtrip_sha256": "a5205b1e77a797b0071cdfa071015279c41416b206ce9860c31e664c9966293d",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/mask-b3751f5d9f81d9ba",
+          "before": {
+            "device": 66306,
+            "inode": 52859630,
+            "bytes": 5197464,
+            "mtime_ns": 1792873806096986722,
+            "ctime_ns": 1792873806097986733
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52859630,
+            "bytes": 5197464,
+            "mtime_ns": 1792873806096986722,
+            "ctime_ns": 1792873806097986733
+          },
+          "sha256_before": "7865dd4b751270e9ae9422587947d874e8b79179a89887b9d88edbf988e127c5",
+          "sha256_compression_stream": "7865dd4b751270e9ae9422587947d874e8b79179a89887b9d88edbf988e127c5",
+          "sha256_after": "7865dd4b751270e9ae9422587947d874e8b79179a89887b9d88edbf988e127c5",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-mask-b3751f5d9f81d9ba.elf.gz",
+          "archive_bytes": 1576661,
+          "archive_sha256": "a32b996db23c07e54f4d6a55a5783ec09780500d2ca784ff7bc4121d0f54a332",
+          "roundtrip_bytes": 5197464,
+          "roundtrip_sha256": "7865dd4b751270e9ae9422587947d874e8b79179a89887b9d88edbf988e127c5",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/plot-b00aa7c3f4b4149b",
+          "before": {
+            "device": 66306,
+            "inode": 52860002,
+            "bytes": 21127408,
+            "mtime_ns": 1792873806177987599,
+            "ctime_ns": 1792873806178987610
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52860002,
+            "bytes": 21127408,
+            "mtime_ns": 1792873806177987599,
+            "ctime_ns": 1792873806178987610
+          },
+          "sha256_before": "94a9a0e327ffc4569b600106a0d061eab7b9230f6ac57d31ef72bc4692ae1ff7",
+          "sha256_compression_stream": "94a9a0e327ffc4569b600106a0d061eab7b9230f6ac57d31ef72bc4692ae1ff7",
+          "sha256_after": "94a9a0e327ffc4569b600106a0d061eab7b9230f6ac57d31ef72bc4692ae1ff7",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-plot-b00aa7c3f4b4149b.elf.gz",
+          "archive_bytes": 4438629,
+          "archive_sha256": "fab1740ca1e4dd32c5d590e816eb564489efd849ff8117d07be9ce5c701a8cab",
+          "roundtrip_bytes": 21127408,
+          "roundtrip_sha256": "94a9a0e327ffc4569b600106a0d061eab7b9230f6ac57d31ef72bc4692ae1ff7",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_show-a07be314413891ad",
+          "before": {
+            "device": 66306,
+            "inode": 52858847,
+            "bytes": 4965304,
+            "mtime_ns": 1792873806209987945,
+            "ctime_ns": 1792873806210987956
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52858847,
+            "bytes": 4965304,
+            "mtime_ns": 1792873806209987945,
+            "ctime_ns": 1792873806210987956
+          },
+          "sha256_before": "f34a1c2b62ab2a962be63bb228193de7e44668125b76f0f1cfccc8b370ee37e3",
+          "sha256_compression_stream": "f34a1c2b62ab2a962be63bb228193de7e44668125b76f0f1cfccc8b370ee37e3",
+          "sha256_after": "f34a1c2b62ab2a962be63bb228193de7e44668125b76f0f1cfccc8b370ee37e3",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-prepared_show-a07be314413891ad.elf.gz",
+          "archive_bytes": 1523261,
+          "archive_sha256": "4393f44b3895fb1bc8b5ea2e15dd558fda012a3cf0d35ba81235e7433ae09cf8",
+          "roundtrip_bytes": 4965304,
+          "roundtrip_sha256": "f34a1c2b62ab2a962be63bb228193de7e44668125b76f0f1cfccc8b370ee37e3",
+          "source_stable_during_archive": true
+        },
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/protocol-574f7fddba43657f",
+          "before": {
+            "device": 66306,
+            "inode": 52860033,
+            "bytes": 19367456,
+            "mtime_ns": 1792873805988985553,
+            "ctime_ns": 1792873805990985575
+          },
+          "after": {
+            "device": 66306,
+            "inode": 52860033,
+            "bytes": 19367456,
+            "mtime_ns": 1792873805988985553,
+            "ctime_ns": 1792873805990985575
+          },
+          "sha256_before": "df076a9db115c9e8b330ab85f7dbff8ffc4f0be57a587295968ef31d493bdee7",
+          "sha256_compression_stream": "df076a9db115c9e8b330ab85f7dbff8ffc4f0be57a587295968ef31d493bdee7",
+          "sha256_after": "df076a9db115c9e8b330ab85f7dbff8ffc4f0be57a587295968ef31d493bdee7",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-face-protocol-574f7fddba43657f.elf.gz",
+          "archive_bytes": 3865690,
+          "archive_sha256": "b033122c3c72b643b8b97000b35e3bac1ae636c8a960a1f0c761e0bcc95614ca",
+          "roundtrip_bytes": 19367456,
+          "roundtrip_sha256": "df076a9db115c9e8b330ab85f7dbff8ffc4f0be57a587295968ef31d493bdee7",
+          "source_stable_during_archive": true
+        }
+      ]
+    },
+    {
+      "name": "environment-http",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "prove",
+        "environment",
+        "http"
+      ],
+      "exit_code": 0,
+      "source_clean_after": true,
+      "log": {
+        "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-composed-eb691571-environment-http.log",
+        "before": {
+          "device": 66306,
+          "inode": 52473414,
+          "bytes": 4893,
+          "mtime_ns": 1792873967209540705,
+          "ctime_ns": 1792873967209540705
+        },
+        "after": {
+          "device": 66306,
+          "inode": 52473414,
+          "bytes": 4893,
+          "mtime_ns": 1792873967209540705,
+          "ctime_ns": 1792873967209540705
+        },
+        "sha256_before": "105f2e0f40d72cb3c010e4e185bfe80a677db7582473e9bb267d30f8fd0f116f",
+        "sha256_compression_stream": "105f2e0f40d72cb3c010e4e185bfe80a677db7582473e9bb267d30f8fd0f116f",
+        "sha256_after": "105f2e0f40d72cb3c010e4e185bfe80a677db7582473e9bb267d30f8fd0f116f",
+        "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-http.log.gz",
+        "archive_bytes": 1367,
+        "archive_sha256": "482f3815deb55bf10198255e8383980dbdfdbffe62b325e6d3ccd22c8fe6e684",
+        "roundtrip_bytes": 4893,
+        "roundtrip_sha256": "105f2e0f40d72cb3c010e4e185bfe80a677db7582473e9bb267d30f8fd0f116f",
+        "source_stable_during_archive": true
+      },
+      "result_lines": [
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "executables": [
+        {
+          "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-bound/target/debug/deps/conduit_environment_http-be39a841190f58fd",
+          "before": {
+            "device": 66306,
+            "inode": 54814282,
+            "bytes": 5644280,
+            "mtime_ns": 1792873967159540276,
+            "ctime_ns": 1792873967161540293
+          },
+          "after": {
+            "device": 66306,
+            "inode": 54814282,
+            "bytes": 5644280,
+            "mtime_ns": 1792873967159540276,
+            "ctime_ns": 1792873967161540293
+          },
+          "sha256_before": "80f58083eef372131dec9941a114d9409d9a1a899c93f012f7beb67b30a3190d",
+          "sha256_compression_stream": "80f58083eef372131dec9941a114d9409d9a1a899c93f012f7beb67b30a3190d",
+          "sha256_after": "80f58083eef372131dec9941a114d9409d9a1a899c93f012f7beb67b30a3190d",
+          "archive": "outputs/6422-composed-eb691571-additional-test-custody/environment-http-conduit_environment_http-be39a841190f58fd.elf.gz",
+          "archive_bytes": 1707047,
+          "archive_sha256": "a5f8a6038924b8864fd3f0f4620d9cfd4f22713f28eb25ce9240b7777299640a",
+          "roundtrip_bytes": 5644280,
+          "roundtrip_sha256": "80f58083eef372131dec9941a114d9409d9a1a899c93f012f7beb67b30a3190d",
+          "source_stable_during_archive": true
+        }
+      ]
+    }
+  ],
+  "boundary": "Exact locally executed host binaries only. Product build/QEMU and CI acceptance are separate pending stages. No Source or cache mutations."
+}

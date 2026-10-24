@@ -1,0 +1,17 @@
+warning: unused import: `FaceRole`
+ --> targets/conduitos/src/native_face_scene/semantic_icons.rs:3:33
+  |
+3 | use conduit_face::{FaceIconKey, FaceRole};
+  |                                 ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduitos` (lib) generated 1 warning (run `cargo fix --lib -p conduitos` to apply 1 suggestion)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/products/conduit)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.17s
+     Running unittests src/main.rs (../native-target/debug/deps/conduit-8d54d6e032146f96)
+
+running 1 test
+test durable_host::owner::controller::participants::service::tests::route_tests::browser_mask_planning_requires_the_reviewed_back_and_face_resource ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 272 filtered out; finished in 12.59s

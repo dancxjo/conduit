@@ -1,0 +1,46 @@
+{
+  "source": "89c463ea298484b402946a34088f57c3ed6eb46c",
+  "owner_show_acknowledged": true,
+  "same_body_face_revision_recipe": true,
+  "combinations": [
+    {
+      "density": "compact",
+      "palette": "editorial",
+      "show_id": "show/1131bb3b57c74cda11ed35945cad78f3d724641f75c97d5523e0cb3a9383a4a3",
+      "screenshot": "look-compact-editorial.png"
+    },
+    {
+      "density": "spacious",
+      "palette": "editorial",
+      "show_id": "show/dcc20f539d7896bbf3daceb0e91a85f9169b4c61943904290a18a29d694ca4fb",
+      "screenshot": "look-spacious-editorial.png"
+    },
+    {
+      "density": "spacious",
+      "palette": "phosphor",
+      "show_id": "show/7e13aea12e4fd4766d993fdae9058fb8d036966c5ece2039618716ac911d2577",
+      "screenshot": "look-spacious-phosphor.png"
+    },
+    {
+      "density": "compact",
+      "palette": "phosphor",
+      "show_id": "show/f3acd4f072e07ab8972d7f46d14841db352e147e706bdafcfcb6a21f1ee784fb",
+      "screenshot": "look-compact-phosphor.png"
+    }
+  ],
+  "stale_refusal": {
+    "refused": true,
+    "code": "StaleShow",
+    "message": "Current acknowledged owner Show is required for interaction."
+  },
+  "narrow_viewport_width": 390,
+  "minimum_text_percent": 200,
+  "forced_colors": true,
+  "horizontal_overflow": false,
+  "browser_errors": [],
+  "raw_report_sha256": "7b0ba122a94f2b8f2bce2979f532ad1ab8c3e1324ccf2e40d242a0780154058c",
+  "raw_report_bytes": 7615367,
+  "archive": "report.json.gz",
+  "physical_evidence": false,
+  "human_review": false
+}

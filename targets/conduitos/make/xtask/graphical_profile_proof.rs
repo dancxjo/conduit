@@ -132,7 +132,7 @@ pub(super) fn execute_controls(
     let resolved = serde_json::to_value(resolved).map_err(|error| {
         ConduitosError::refusal("creche-controls-build-invalid", error.to_string())
     })?;
-    let metadata = serde_json::json!({"target_build_manifest":manifest,"resolved_image":resolved, "proof_scenario":match args.scenario { super::proof_viewport::ControlScenario::Layout => "layout", super::proof_viewport::ControlScenario::Search => "search", super::proof_viewport::ControlScenario::NoGraphics => "no-graphics" }});
+    let metadata = serde_json::json!({"target_build_manifest":manifest,"resolved_image":resolved, "proof_scenario":match args.scenario { super::proof_viewport::ControlScenario::Layout => "layout", super::proof_viewport::ControlScenario::Search => "search", super::proof_viewport::ControlScenario::Accessibility => "accessibility", super::proof_viewport::ControlScenario::NoGraphics => "no-graphics" }});
     if args.scenario == super::proof_viewport::ControlScenario::NoGraphics {
         no_graphics::exercise(&paths, &image, &digest, &source, &metadata)?;
     } else {

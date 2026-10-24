@@ -5,9 +5,12 @@ use conduit_body::{
     BodyMembership, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
     RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest,
     RoutedAdmissionResponse, SpawnInvitationSecret, SpawnRendezvousDescriptor,
-    ADMISSION_SIGNATURE_BYTES, INVITATION_SCHEMA, RENDEZVOUS_DESCRIPTOR_PROTOCOL,
-    ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA, ROUTED_INVITATION_SCHEMA,
-    SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
+    ADMISSION_SIGNATURE_BYTES, COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA,
+    COMPACT_ROUTED_ADMISSION_RESPONSE_SCHEMA, INVITATION_SCHEMA,
+    LEGACY_ROUTED_ADMISSION_REQUEST_SCHEMA, LEGACY_ROUTED_ADMISSION_RESPONSE_SCHEMA,
+    RENDEZVOUS_DESCRIPTOR_PROTOCOL, ROUTED_ADMISSION_REQUEST_SCHEMA,
+    ROUTED_ADMISSION_RESPONSE_SCHEMA, ROUTED_INVITATION_SCHEMA, SPAWN_ADMISSION_RECEIPT_SCHEMA,
+    SPAWN_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_core::{HostAdvertisement, OfferGeneration, SignId, PROTOCOL_VERSION};
 use serde::{de::DeserializeOwned, Serialize};
@@ -176,10 +179,18 @@ fn existing_invitation_and_admission_json_shapes_roundtrip_exactly() {
 }
 
 #[test]
-fn routed_owner_frames_keep_the_existing_request_and_receipt_shapes() {
+fn legacy_routed_owner_frames_keep_the_existing_request_and_receipt_shapes() {
+    assert_eq!(
+        ROUTED_ADMISSION_REQUEST_SCHEMA,
+        LEGACY_ROUTED_ADMISSION_REQUEST_SCHEMA
+    );
+    assert_eq!(
+        ROUTED_ADMISSION_RESPONSE_SCHEMA,
+        LEGACY_ROUTED_ADMISSION_RESPONSE_SCHEMA
+    );
     let mut f = fixture();
     let routed_request = RoutedAdmissionRequest {
-        schema: ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
+        schema: LEGACY_ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
         invitation_id: f.request.invitation_id.as_str().into(),
         request: f.request.clone(),
     };
@@ -194,7 +205,7 @@ fn routed_owner_frames_keep_the_existing_request_and_receipt_shapes() {
     let receipt = admitted(&mut f);
     exact_roundtrip(
         &RoutedAdmissionResponse::Admitted {
-            schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+            schema: LEGACY_ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
             receipt: Box::new(receipt.clone()),
         },
         json!({
@@ -205,7 +216,7 @@ fn routed_owner_frames_keep_the_existing_request_and_receipt_shapes() {
     );
     exact_roundtrip(
         &RoutedAdmissionResponse::Refused {
-            schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+            schema: LEGACY_ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
             code: "wrong-invitation".into(),
         },
         json!({
@@ -368,4 +379,96 @@ fn documents_do_not_replace_signature_verification_or_consume_admission() {
         ),
         Err(AdmissionRefusal::Replay)
     );
+}
+
+#[test]
+fn version_two_route_reconstructs_the_complete_signed_request_and_legacy_refuses_mixed_profiles() {
+    let mut f = fixture();
+    let routed = RoutedAdmissionRequest {
+        schema: COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
+        invitation_id: f.request.invitation_id.as_str().into(),
+        request: f.request.clone(),
+    };
+    let value = serde_json::to_value(&routed).unwrap();
+    assert_eq!(value["schema"], "conduit.body/routed-admission-request@2");
+    assert_eq!(
+        value["request"]["host_advertisement"]["encoding"],
+        conduit_body::admission_advertisement_wire::ENCODING
+    );
+    let decoded: RoutedAdmissionRequest = serde_json::from_value(value.clone()).unwrap();
+    assert!(decoded.supported_schema());
+    assert_eq!(
+        serde_json::to_value(&decoded.request).unwrap(),
+        serde_json::to_value(&f.request).unwrap()
+    );
+    f.request = decoded.request;
+    let _receipt = admitted(&mut f); // original signature completes actual invitation admission
+    let mut mixed = value.clone();
+    mixed["schema"] = json!(LEGACY_ROUTED_ADMISSION_REQUEST_SCHEMA);
+    assert!(serde_json::from_value::<RoutedAdmissionRequest>(mixed).is_err());
+    let mut mixed = value;
+    mixed["request"]["host_advertisement"] =
+        serde_json::to_value(f.request.host_advertisement).unwrap();
+    assert!(serde_json::from_value::<RoutedAdmissionRequest>(mixed).is_err());
+}
+
+#[test]
+fn routed_response_profile_preserves_exact_receipt_and_legacy_version_policy() {
+    let mut f = fixture();
+    let receipt = admitted(&mut f);
+    let response = RoutedAdmissionResponse::Admitted {
+        schema: COMPACT_ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+        receipt: Box::new(receipt.clone()),
+    };
+    let value = serde_json::to_value(response).unwrap();
+    assert_eq!(
+        value["receipt"]["host_advertisement"]["encoding"],
+        conduit_body::admission_advertisement_wire::ENCODING
+    );
+    let decoded: RoutedAdmissionResponse = serde_json::from_value(value.clone()).unwrap();
+    let RoutedAdmissionResponse::Admitted {
+        schema,
+        receipt: decoded,
+    } = decoded
+    else {
+        panic!("admitted response")
+    };
+    assert!(conduit_body::supported_routed_admission_response_schema(
+        &schema
+    ));
+    assert_eq!(
+        serde_json::to_value(decoded).unwrap(),
+        serde_json::to_value(&receipt).unwrap()
+    );
+    let mut mixed = value.clone();
+    mixed["schema"] = json!(LEGACY_ROUTED_ADMISSION_RESPONSE_SCHEMA);
+    assert!(serde_json::from_value::<RoutedAdmissionResponse>(mixed).is_err());
+    let mut mixed = value;
+    mixed["receipt"]["host_advertisement"] =
+        serde_json::to_value(receipt.host_advertisement).unwrap();
+    assert!(serde_json::from_value::<RoutedAdmissionResponse>(mixed).is_err());
+    for (request_schema, response_schema) in [
+        (
+            LEGACY_ROUTED_ADMISSION_REQUEST_SCHEMA,
+            LEGACY_ROUTED_ADMISSION_RESPONSE_SCHEMA,
+        ),
+        (
+            COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA,
+            COMPACT_ROUTED_ADMISSION_RESPONSE_SCHEMA,
+        ),
+    ] {
+        let request = RoutedAdmissionRequest {
+            schema: request_schema.into(),
+            invitation_id: f.request.invitation_id.as_str().into(),
+            request: f.request.clone(),
+        };
+        assert_eq!(request.response_schema(), response_schema);
+        let refused = RoutedAdmissionResponse::Refused {
+            schema: response_schema.into(),
+            code: "no-admission".into(),
+        };
+        let value = serde_json::to_value(&refused).unwrap();
+        let decoded: RoutedAdmissionResponse = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(decoded).unwrap(), value);
+    }
 }

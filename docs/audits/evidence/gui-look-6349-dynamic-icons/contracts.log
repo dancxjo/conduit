@@ -1,0 +1,19 @@
+✔ search, inspection and lifecycle intents keep distinct shared identities (0.918124ms)
+✔ unknown captions, versions and object/prototype names cannot select decoration (0.136942ms)
+✔ canonical icon wire tokens share the pinned geometry keys without caption guessing (0.093744ms)
+✔ canonical Rust Look preserves paint and independent modality parameters (3.520088ms)
+✔ retired theme, altered type, truncation, trailing data and oversize refuse (1.970484ms)
+✔ Source metric and version bounds cannot be bypassed with canonical type bytes (1.747736ms)
+✔ foreign visual identity and injected semantic fields refuse (0.864952ms)
+✔ Look field identities cannot hide a leading BOM (0.395269ms)
+✔ Look identity text preserves leading BOM instead of creating an alias (0.354841ms)
+✔ Look byte admission refuses coercion and checks bounds before conversion (3.291696ms)
+✔ historical v1 Look wire refuses instead of acquiring implicit typography (0.236434ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 114.245759

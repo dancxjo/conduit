@@ -14,19 +14,18 @@ impl NativeFaceMask {
     ) -> Result<
         (
             NativeFaceScene,
-            conduit_face::AdmittedVisualExpression,
+            conduit_face::AdmittedVisualLook,
             Option<String>,
         ),
         NativeFaceMaskError,
     > {
         let mut fallback = None;
-        let requested = conduit_core::StructuredInfoValue::from_canonical_bytes(
-            configuration.expression.canonical_value(),
-        )
-        .map_err(|_| conduit_face::VisualExpressionRefusal::Encoding)
-        .and_then(conduit_face::visual_expression_from_info);
-        let expression = conduit_face::admit_visual_expression(requested, constraints)
+        let requested = configuration
+            .requested_look()
+            .map_err(|_| NativeFaceMaskError::Plan)?;
+        let admitted = conduit_face::admit_visual_look(&requested, constraints)
             .map_err(|_| NativeFaceMaskError::Face)?;
+        let expression = &admitted.visual;
         let recipe = conduit_core::StructuredInfoValue::from_canonical_bytes(
             configuration.recipe.canonical_value(),
         )
@@ -44,7 +43,7 @@ impl NativeFaceMask {
                         width,
                         height,
                         interaction_admitted,
-                        &expression,
+                        expression,
                     )
                 })
                 .map_err(|error| alloc::format!("LayoutPreparation({error:?})"))
@@ -57,7 +56,7 @@ impl NativeFaceMask {
                         height,
                         interaction_admitted,
                         &prepared,
-                        &expression,
+                        expression,
                     )
                 })
                 .map_err(|error| alloc::format!("{error:?}"))
@@ -76,7 +75,7 @@ impl NativeFaceMask {
                     width,
                     height,
                     interaction_admitted,
-                    &expression,
+                    expression,
                 )
             }
             Ok(Err(error)) => Err(error),
@@ -87,11 +86,11 @@ impl NativeFaceMask {
                     width,
                     height,
                     interaction_admitted,
-                    &expression,
+                    expression,
                 )
             }
         }
         .map_err(NativeFaceMaskError::Scene)?;
-        Ok((scene, expression, fallback))
+        Ok((scene, admitted, fallback))
     }
 }

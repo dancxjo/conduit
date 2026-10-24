@@ -8,6 +8,7 @@ enum Selection<'a> {
     Creche(
         conduit_face::CrecheComponentRecipe,
         conduit_face::ComponentVisualSelection,
+        conduit_face::VisualTypography,
     ),
 }
 
@@ -141,6 +142,33 @@ impl NativeFaceMask {
         recipe: conduit_face::CrecheComponentRecipe,
         selection: conduit_face::ComponentVisualSelection,
     ) -> Result<Self, NativeFaceMaskError> {
+        Self::prepare_creche_typographic(
+            host_id,
+            boot_id,
+            offer_generation,
+            build_id,
+            display_base_id,
+            surface_id,
+            provider,
+            recipe,
+            selection,
+            conduit_face::VisualTypography::Editorial,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_creche_typographic(
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        build_id: &str,
+        display_base_id: HostBaseId,
+        surface_id: &str,
+        provider: &NativeSurfaceProvider,
+        recipe: conduit_face::CrecheComponentRecipe,
+        selection: conduit_face::ComponentVisualSelection,
+        typography: conduit_face::VisualTypography,
+    ) -> Result<Self, NativeFaceMaskError> {
         Self::prepare_selected(
             host_id,
             boot_id,
@@ -149,7 +177,7 @@ impl NativeFaceMask {
             display_base_id,
             surface_id,
             provider,
-            Selection::Creche(recipe, selection),
+            Selection::Creche(recipe, selection, typography),
         )
     }
 
@@ -209,7 +237,7 @@ impl NativeFaceMask {
                     planned_mask: route.planned_mask.clone(),
                 }
             }
-            Selection::Creche(recipe, selection) => {
+            Selection::Creche(recipe, selection, typography) => {
                 let offer = crate::product_bases::native_mask_host_advertisement(
                     &host_id,
                     &boot_id,
@@ -217,8 +245,8 @@ impl NativeFaceMask {
                     provider,
                 );
                 let (stage, configuration) =
-                    conduit_conduitos_mask_offer::prepare_selected_creche_stage_from_offer(
-                        &offer, recipe, selection,
+                    conduit_conduitos_mask_offer::prepare_typographic_creche_stage_from_offer(
+                        &offer, recipe, selection, typography,
                     )
                     .map_err(|_| NativeFaceMaskError::Plan)?;
                 component_configuration = Some(configuration);
@@ -277,7 +305,7 @@ impl NativeFaceMask {
             interaction_admitted: true,
             local_input_available: true,
             component_configuration,
-            visual_expression: None,
+            visual_look: None,
             visual_constraints: conduit_face::VisualUserConstraints {
                 forced_colors: false,
                 reduced_motion: true,

@@ -12,7 +12,10 @@ async function startAuthoringEntrance(plotSource = "plot making {\n}\n") {
   return { ...(await spawnEntrance(source)), directory, source };
 }
 
-test("catalog queries and two durable layouts decorate the same live Plot", async ({ page }) => {
+for (const includeLifecycle of [false, true]) {
+  test(includeLifecycle
+    ? "catalog queries and two durable layouts decorate the same live Plot"
+    : "unbodied catalog and durable layouts preserve the exact source Face", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     const source = `plot authoring {
       literal: text/literal("authoring truth")
@@ -34,6 +37,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
       await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
       const initial = await current(page);
+      expect(initial.authoring.palette.length).toBeGreaterThan(80);
       const basis = initial.authoring.checked_plot_id;
       const semanticGears = initial.face.subjects.filter(subject => subject.role === "Gear")
         .map(subject => initial.face.properties.find(property => property.subject === subject.identity
@@ -78,16 +82,85 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       await selectRole(page, "Gear", "authoring/map Gear");
       const field = page.getByRole("textbox", { name: "Configure target-granularity", exact: true });
       await expect(field).toHaveValue(String(mapping.configuration.find(field => field.key === "target-granularity").default_value.I64));
-      await field.fill("9223372036854775808");
+      await expect(field).toHaveAccessibleDescription("Whole number from -9223372036854775808 to 9223372036854775807.");
       const configuration = page.locator('#authoring-actions [data-application-component="plot-field"]').filter({ hasText: "Configure target-granularity" });
+      await page.route("**/api/authoring-query", route => route.abort("failed"));
       await configuration.getByRole("button", { name: "Apply", exact: true }).click();
       await expect(configuration.getByRole("status")).not.toBeEmpty();
+      await expect(field).not.toHaveAttribute("aria-invalid");
+      await page.unroute("**/api/authoring-query");
+      await field.fill("9223372036854775808");
+      await configuration.getByRole("button", { name: "Apply", exact: true }).click();
+      await expect(configuration.getByRole("status")).not.toBeEmpty();
+      await expect(field).toHaveAttribute("aria-invalid", "true");
+      await expect(configuration.getByRole("button", { name: "Apply", exact: true }).locator('svg[aria-hidden="true"]')).toHaveCount(1);
+      const exactRule = configuration.locator("details");
+      await expect(exactRule.locator("pre")).toBeHidden();
+      await exactRule.locator("summary").focus();
+      await page.keyboard.press("Enter");
+      await expect(exactRule.locator("pre")).toContainText('"I64Range"');
+      await page.keyboard.press("Enter");
+      await expect(exactRule.locator("pre")).toBeHidden();
+      await field.focus();
+      expect(await page.locator("#inspector").evaluate(panel => {
+        const bounds = panel.getBoundingClientRect();
+        const bar = panel.querySelector(".furniture-bar");
+        const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + 4);
+        return hit === panel || bar.contains(hit);
+      })).toBe(true);
       expect((await current(page)).authoring.checked_plot_id).toBe(basis);
+      await page.screenshot({ path: testInfo.outputPath("authoring-configuration-refusal.png") });
+      if (!includeLifecycle) {
+        const viewport = page.viewportSize();
+        await page.setViewportSize({ width: 390, height: 1000 });
+        const enlarged = await page.addStyleTag({ content: "html{font-size:32px!important}" });
+        await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+        await expect(field).toHaveCSS("font-size", "32px");
+        await field.focus();
+        expect(await configuration.evaluate(group => {
+          const panel = group.closest("#inspector"), bounds = panel.getBoundingClientRect();
+          return panel.scrollWidth <= panel.clientWidth + 1 &&
+            [...group.querySelectorAll("input,button,summary")].every(control => {
+              const rect = control.getBoundingClientRect();
+              return rect.left >= bounds.left && rect.right <= bounds.right && rect.height >= 44;
+            });
+        })).toBe(true);
+        const apply = configuration.getByRole("button", { name: "Apply", exact: true });
+        await apply.scrollIntoViewIfNeeded();
+        await apply.focus();
+        expect(await apply.evaluate(button => {
+          const rect = button.getBoundingClientRect();
+          return rect.height <= button.closest("#inspector").clientHeight / 2 &&
+            button.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+        })).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath("authoring-fields-390-32-forced.png") });
+        await enlarged.evaluate(node => node.remove());
+        await page.emulateMedia({ forcedColors: "none", reducedMotion: "reduce" });
+        await page.setViewportSize(viewport);
+      }
 
+      const faceBeforeWorkspace = (await current(page)).face;
       const workspace = page.locator("#workspace-controls");
       await workspace.locator("summary").click();
       await page.getByRole("textbox", { name: "Layout name", exact: true }).fill("Teaching");
+      let releaseValidation, validationArrived;
+      const validationGate = new Promise(resolve => { releaseValidation = resolve; });
+      const validationRequest = new Promise(resolve => { validationArrived = resolve; });
+      await page.route("**/api/workspace", async route => {
+        validationArrived();
+        await validationGate;
+        await route.continue();
+      });
       await page.getByRole("button", { name: "Save layout", exact: true }).click();
+      await validationRequest;
+      try {
+        await expect(workspace).toHaveAttribute("aria-busy", "true");
+        await expect(page.getByRole("button", { name: "Add note", exact: true })).toBeDisabled();
+        await expect(page.getByRole("button", { name: "Export workspace", exact: true })).toBeDisabled();
+      } finally { releaseValidation(); }
+      await expect(workspace).not.toHaveAttribute("aria-busy");
+      await page.unroute("**/api/workspace");
+      await expect(page.getByRole("combobox", { name: "Saved layouts", exact: true })).toHaveValue("Teaching");
       await expect(page.locator("#workspace-status")).toContainText("Ready");
       await page.getByRole("textbox", { name: "Workspace annotation", exact: true }).fill("This frame is not executable scope");
       await page.getByRole("button", { name: "Add note", exact: true }).click();
@@ -117,7 +190,9 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
         .toEqual(["A second independent annotation", "This frame is not executable scope"]);
       expect((await current(page)).authoring.checked_plot_id).toBe(basis);
       expect(await readFile(server.source, "utf8")).toBe(source);
+      expect((await current(page)).face).toEqual(faceBeforeWorkspace);
       await workspace.locator("summary").click();
+      if (!includeLifecycle) return;
 
       await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
       await selectRole(page, "Plot", "Empty Plot");
@@ -130,6 +205,8 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
       const live = await current(page);
       expect(live.face.basis.active_play_id).toBeTruthy();
+      await expect(page.locator("#body-summary")).toHaveAccessibleName(/^Body(?: overview)?(?:$|:)/);
+      await expect(page.locator('#body-summary svg[aria-hidden="true"]')).toHaveCount(1);
       expect(live.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
       const plan = live.face.basis.plan_id;
       const play = live.face.basis.active_play_id;
@@ -182,16 +259,36 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
             } else if (aspect === "Play") {
               await expect(clue).toContainText(facts.find(property => property.name === "play-state").value.Text);
             } else {
-              await expect(clue).toHaveText(`${facts.filter(property => property.name.startsWith("sign-")).length} causal Signs`);
+              await expect(clue).toHaveText(`${facts.filter(property => /^sign-[0-9]+$/.test(property.name)).length} causal Signs`);
             }
           }
         }
       }
+      await clickNavigation(page, page.locator('#aspect-controls button[data-aspect="Structure"]'));
+      await expect(page.locator("#lens-label")).toHaveText("PROGRAM · STRUCTURE");
+      await expect(page.locator(".flow-frontplate.role-gear").first()).toHaveAttribute("data-lens", "plot");
+      await page.setViewportSize({ width: 1440, height: 1100 });
+      if (await workspace.getAttribute("open") !== null) await workspace.locator("summary").click();
+      if (await page.locator("body").getAttribute("data-inspector-open") === "true") await page.locator("#toggle-inspector").click();
+      await page.getByRole("button", { name: "Arrange", exact: true }).click();
+      await page.getByRole("button", { name: "Fit", exact: true }).click();
+      const capture = await current(page);
+      expect(capture.face.basis.plan_id).toBe(plan);
+      expect(capture.face.basis.active_play_id).toBe(play);
+      await writeFile(testInfo.outputPath("live-authoring-face.json"), JSON.stringify({
+        face: capture.face, navigation: capture.navigation,
+        disposition: capture.interaction.last_disposition,
+      }, null, 2));
+      await page.screenshot({ path: testInfo.outputPath("live-authoring-wide.png"), fullPage: true });
     } finally {
+      if (server.errors.length) await testInfo.attach("authoring-server-stderr", {
+        body: server.errors.join(""), contentType: "text/plain",
+      });
       server.child.kill("SIGTERM");
       await rm(server.directory, { recursive: true, force: true });
     }
 });
+}
 
 async function spawnEntrance(source) {
   const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--plot", "Empty Plot", source], {
@@ -200,6 +297,10 @@ async function spawnEntrance(source) {
   const errors = [];
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", chunk => errors.push(chunk));
+  child.once("exit", (code, signal) => {
+    if ((code !== 0 && code !== null) || (signal && signal !== "SIGTERM"))
+      console.error(`Authoring server exited ${code ?? signal}: ${errors.join("")}`);
+  });
   const lines = createInterface({ input: child.stdout });
   const url = await new Promise((resolve, reject) => {
     lines.once("line", line => resolve(line.replace("PATCHBAY_HTML_URL=", "")));
@@ -213,13 +314,21 @@ async function current(page) {
 }
 
 async function selectRole(page, role, name = null) {
-  await page.locator("#structured-navigator").evaluate(element => { element.closest("details").open = true; });
+  if (await page.locator("#palette").isVisible()) {
+    await page.getByRole("button", { name: "Close Library", exact: true }).click();
+  }
+  if (!await page.locator("#inspector").isVisible()) {
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
+  }
+  const details = page.locator("#inspector details").filter({ has: page.locator("#structured-navigator") });
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
   const candidates = page.locator('#structured-navigator [data-application-component="choice-option-label"]')
     .filter({ has: page.locator(`input[type="radio"][data-role="${role}"]`) });
   const target = name?.startsWith("subject:")
     ? page.locator(`#structured-navigator input[type="radio"][data-role="${role}"][data-subject*="${name.slice(8)}"]`).first()
     : (name ? candidates.filter({ hasText: name }).first() : candidates.first()).locator('input[type="radio"]');
   const identity = await target.getAttribute("data-subject");
+  await expect(target).toBeVisible();
   await target.click();
   await expect.poll(async () => (await current(page)).navigation.cursor.focus).toBe(identity);
 }
@@ -235,10 +344,14 @@ async function clickEdit(page, locator) {
 async function clickInteraction(page, locator) {
   const response = page.waitForResponse(candidate =>
     candidate.url().endsWith("/api/interaction") && candidate.request().method() === "POST");
+  const failed = page.waitForEvent("requestfailed", {
+    predicate: request => request.url().endsWith("/api/interaction") && request.method() === "POST",
+  }).then(request => { throw new Error(`Interaction delivery failed: ${request.failure()?.errorText}`); });
+  const deliveredResponse = Promise.race([response, failed]);
   await locator.click();
-  const delivered = await response;
+  const delivered = await deliveredResponse;
   expect(delivered.ok()).toBe(true);
-  return delivered.json();
+  await expect.poll(async () => (await current(page)).interaction.last_disposition).toBe("Succeeded");
 }
 
 async function clickNavigation(page, locator) {
@@ -254,7 +367,7 @@ async function clickNavigation(page, locator) {
 }
 
 test("actual browser entrance authors, saves, plans, and plays one canonical Plot", async ({ page }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   const server = await startAuthoringEntrance();
   try {
     await page.goto(server.url);

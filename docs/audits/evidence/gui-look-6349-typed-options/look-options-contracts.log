@@ -1,0 +1,59 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/body)
+   Compiling heapless v0.8.0
+   Compiling serde-json-core v0.6.0
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/kernel)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/plots/thermostat/model)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/data)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/language)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/audio)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/face)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/web)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/planner)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/net)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/purpose)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/robotics)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/ai)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/mechanisms/protocols/midi)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/signal)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/plots/todo/model)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/catalog)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/std/offers)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 34s
+     Running tests/look_contract.rs (../native-target/debug/deps/look_contract-bc328d1268e15ebf)
+
+running 5 tests
+test unknown_facet_request_is_bounded_and_explicit ... ok
+test historical_look_v1_wire_is_not_silently_extended_with_typography ... ok
+test spoken_and_generative_facets_are_distinct_closed_parameters ... ok
+test canonical_identity_version_and_retired_identities_are_exact ... ok
+test canonical_phosphor_assets_are_typed_and_self_consistent ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/look_options.rs (../native-target/debug/deps/look_options-e8b8bbf3e76c7929)
+
+running 1 test
+test built_in_options_round_trip_and_keep_readable_text_and_focus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/look_selection.rs (../native-target/debug/deps/look_selection-8d1661a2f1a16334)
+
+running 4 tests
+test accessibility_changes_realization_without_rewriting_the_look_resource ... ok
+test facet_absence_unknown_and_observed_host_unavailability_stay_distinct ... ok
+test foreign_visual_identity_cannot_be_attached_to_another_look ... ok
+test host_limit_fallback_retains_requested_and_selected_resource_truth ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

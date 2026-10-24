@@ -1,7 +1,7 @@
 //! Finite checked Source-root selection; this is not a Look wire format.
-//! The selected root still supplies canonical VisualExpressionInfo for admission.
+//! The selected root supplies complete canonical LookInfo for admission.
 use super::{ComponentMaskLook, CrecheComponentRecipe, TodoComponentRecipe};
-use crate::{VisualDensity, VisualPalette};
+use crate::{VisualDensity, VisualPalette, VisualTypography};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ComponentVisualSelection {
@@ -82,6 +82,36 @@ impl ComponentVisualSelection {
             (Grouped, Compact, Editorial) => "todo-mask-grouped-compact-editorial",
             (Grouped, Spacious, Phosphor) => "todo-mask-grouped-spacious-phosphor",
             (Grouped, Spacious, Editorial) => "todo-mask-grouped-spacious",
+        }
+    }
+    /// Typography selects another complete checked Look resource, never a
+    /// mutation of the prepared Mask or its authoritative Face.
+    pub const fn creche_root_with_typography(
+        self,
+        recipe: CrecheComponentRecipe,
+        typography: VisualTypography,
+    ) -> &'static str {
+        if matches!(typography, VisualTypography::Editorial) {
+            return self.creche_root(recipe);
+        }
+        use {CrecheComponentRecipe::*, VisualDensity::*, VisualPalette::*};
+        match (recipe, self.density, self.palette) {
+            (SingleColumn, Compact, Phosphor) => "creche-mask-single-engineering",
+            (SingleColumn, Compact, Editorial) => {
+                "creche-mask-single-compact-editorial-engineering"
+            }
+            (SingleColumn, Spacious, Phosphor) => {
+                "creche-mask-single-spacious-phosphor-engineering"
+            }
+            (SingleColumn, Spacious, Editorial) => "creche-mask-single-spacious-engineering",
+            (ResponsiveColumns, Compact, Phosphor) => "creche-mask-columns-engineering",
+            (ResponsiveColumns, Compact, Editorial) => {
+                "creche-mask-columns-compact-editorial-engineering"
+            }
+            (ResponsiveColumns, Spacious, Phosphor) => {
+                "creche-mask-columns-spacious-phosphor-engineering"
+            }
+            (ResponsiveColumns, Spacious, Editorial) => "creche-mask-columns-spacious-engineering",
         }
     }
     pub const fn creche_root(self, recipe: CrecheComponentRecipe) -> &'static str {

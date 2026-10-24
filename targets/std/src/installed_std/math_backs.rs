@@ -67,7 +67,7 @@ impl<const PORTS: usize> StepBack<PORTS> for MathScalarBack {
             {
                 return StepOutcome::Fail(math_failure());
             }
-            if !io.output_ready(PortId(0)) {
+            if !io.output_ready_for(PortId(0), output.value.byte_len) {
                 return StepOutcome::Await;
             }
             io.consume_host_completion()

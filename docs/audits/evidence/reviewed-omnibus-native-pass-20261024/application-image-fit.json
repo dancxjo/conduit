@@ -1,0 +1,36 @@
+{
+  "source": "eb691571b702622c1256cd96604dd98822634107",
+  "tree": "cfc299f6540c516fecd0789d1e84d6b7884bc51f",
+  "stage": "Normal combined product build has staged Application ELF and advanced to Mask build; product build, boot and journey not yet complete.",
+  "elf": {
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application.elf",
+    "before": {
+      "device": 66306,
+      "inode": 54405548,
+      "bytes": 2877160,
+      "mtime_ns": 1792874731536243199,
+      "ctime_ns": 1792874731536243199
+    },
+    "after": {
+      "device": 66306,
+      "inode": 54405548,
+      "bytes": 2877160,
+      "mtime_ns": 1792874731536243199,
+      "ctime_ns": 1792874731536243199
+    },
+    "sha256_before": "9f2b883205ba33d03b8b6cdc4774e9b78a9a8b1f300ee90f7a5ff346d28ace66",
+    "sha256_compression_stream": "9f2b883205ba33d03b8b6cdc4774e9b78a9a8b1f300ee90f7a5ff346d28ace66",
+    "sha256_after": "9f2b883205ba33d03b8b6cdc4774e9b78a9a8b1f300ee90f7a5ff346d28ace66",
+    "archive": "outputs/6422-composed-eb691571-application-image-fit/application.elf.gz",
+    "archive_bytes": 948678,
+    "archive_sha256": "c48ae69a54a9db0a2275c847e59bc203c903c522224bec05fb8180171df1d7e7",
+    "roundtrip_bytes": 2877160,
+    "roundtrip_sha256": "9f2b883205ba33d03b8b6cdc4774e9b78a9a8b1f300ee90f7a5ff346d28ace66",
+    "source_stable_during_archive": true
+  },
+  "readelf": "\nElf file type is EXEC (Executable file)\nEntry point 0x400000\nThere are 3 program headers, starting at offset 64\n\nProgram Headers:\n  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align\n  LOAD           0x001000 0x0000000000400000 0x0000000000400000 0x1c6702 0x1c6702 R E 0x1000\n  LOAD           0x1c8000 0x00000000005c7000 0x00000000005c7000 0x026498 0x026498 R   0x1000\n  LOAD           0x1ef000 0x0000000000709000 0x0000000000709000 0x000010 0x000010 RW  0x1000\n\n Section to Segment mapping:\n  Segment Sections...\n   00     .text \n   01     .rodata \n   02     .data \n",
+  "aligned_rx_ro_end": "0x5ee000",
+  "rx_ro_window_end": "0x600000",
+  "headroom_bytes": 73728,
+  "scope": "Actual normal build staged ELF; unchanged linker/profile validator; no execution or per-entry work claim."
+}

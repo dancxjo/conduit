@@ -105,18 +105,24 @@ export function validateLoaderEvidence(evidence, profile, binding) {
   return Object.freeze({ ...evidence });
 }
 
-export function parseConduitOsSerialJoin(serialOutput, binding) {
+export async function parseConduitOsSerialJoin(serialOutput, binding) {
   if (typeof serialOutput !== "string" || serialOutput.length < 1 || serialOutput.length > 64 * 1024) {
     refuse("BootObservationAbsent", "loader did not retain one bounded ConduitOS serial observation");
   }
   const prefix = "CONDUIT_SPORE_JOIN ";
   const lines = serialOutput.split(/\r?\n/).filter((line) => line.startsWith(prefix));
   if (lines.length !== 1) refuse("BootObservationAmbiguous", "loader did not retain exactly one ConduitOS spore join");
+  const document = lines[0].slice(prefix.length);
+  if (new TextEncoder().encode(document).byteLength > 48 * 1024) refuse("BootObservationMalformed", "serial join wire capacity");
   let join;
-  try { join = JSON.parse(lines[0].slice(prefix.length)); }
+  try { join = parseExactBrowserJson(document); }
   catch (error) { refuse("BootObservationMalformed", "ConduitOS serial join is not valid JSON", error); }
+  const legacy = join?.schema === "conduit.conduitos/serial-spawn-observation@1" && join.protocol === 1;
+  const compact = join?.schema === "conduit.conduitos/serial-spawn-observation@2" && join.protocol === 2;
+  if (compact) join.advertisement = await decodeAdmissionAdvertisement(join.advertisement);
   const prepared = binding?.prepared;
-  if (join?.schema !== "conduit.conduitos/serial-spawn-observation@1" || join.protocol !== 1
+  if (!(legacy || compact) || typeof join.host_id !== "string" || !join.host_id
+    || typeof join.boot_id !== "string" || !join.boot_id
     || join.spore_id !== prepared?.spore_id || join.image_id !== prepared?.image_id
     || join.invitation_id !== prepared?.invitation_id || join.body_id !== prepared?.body_id
     || join.host_id !== join.advertisement?.host_id || join.boot_id !== join.advertisement?.boot_id
@@ -127,6 +133,73 @@ export function parseConduitOsSerialJoin(serialOutput, binding) {
     refuse("BootObservationStale", "ConduitOS serial join lost the exact spore, invitation, Host, or Boot identity");
   }
   return Object.freeze(join);
+}
+
+// The browser admits only exact safe JSON numeric integers. Rust supports the
+// complete u64 range; JS refuses its narrower platform boundary instead of
+// rounding an invitation generation or any other complete offer fact.
+function parseExactBrowserJson(text) {
+  // JSON.parse rounds numeric tokens before its ordinary reviver runs. Check
+  // the integer-only public advertisement grammar lexically outside strings,
+  // including underflow, fractional rounding, exponent and negative-zero cases.
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (quoted) {
+      if (character === "\\") index += 1;
+      else if (character === '"') quoted = false;
+      continue;
+    }
+    if (character === '"') { quoted = true; continue; }
+    if (character === '-' || (character >= '0' && character <= '9')) {
+      const start = index;
+      while (index + 1 < text.length && /[0-9eE+.\-]/.test(text[index + 1])) index += 1;
+      const token = text.slice(start, index + 1);
+      if (!/^-?(0|[1-9][0-9]*)$/.test(token) || token === '-0' || !Number.isSafeInteger(Number(token))) {
+        refuse("BootObservationMalformed", "browser admission requires exact safe JSON integer tokens");
+      }
+    }
+  }
+  return JSON.parse(text, (_key, value) => {
+    if (typeof value === "number" && !Number.isSafeInteger(value)) {
+      refuse("BootObservationMalformed", "browser admission requires exact safe JSON integers");
+    }
+    return value;
+  });
+}
+
+// This is the complete public advertisement, not a digest or selected offer.
+// The expanded document cap is separate from the unchanged serial wire cap.
+async function decodeAdmissionAdvertisement(encoded) {
+  if (!encoded || Object.keys(encoded).sort().join(",") !== "encoding,expanded_bytes,zlib_hex"
+    || encoded.encoding !== "conduit.body/admission-advertisement-deflate-json@1"
+    || !Number.isSafeInteger(encoded.expanded_bytes) || encoded.expanded_bytes < 1 || encoded.expanded_bytes > 64 * 1024
+    || typeof encoded.zlib_hex !== "string" || encoded.zlib_hex.length < 2 || encoded.zlib_hex.length > 48 * 1024
+    || encoded.zlib_hex.length % 2 !== 0 || !/^[0-9a-f]+$/.test(encoded.zlib_hex)) {
+    refuse("BootObservationMalformed", "admission advertisement encoding or capacity");
+  }
+  if (typeof DecompressionStream !== "function") refuse("BootObservationMalformed", "bounded zlib decoder unavailable");
+  const compressed = new Uint8Array(encoded.zlib_hex.length / 2);
+  for (let index = 0; index < compressed.length; index += 1) compressed[index] = Number.parseInt(encoded.zlib_hex.slice(index * 2, index * 2 + 2), 16);
+  const reader = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate")).getReader();
+  const bytes = new Uint8Array(encoded.expanded_bytes);
+  let written = 0;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value.byteLength > bytes.length - written) {
+        await reader.cancel("expanded admission advertisement capacity");
+        refuse("BootObservationMalformed", "expanded admission advertisement capacity");
+      }
+      bytes.set(value, written); written += value.byteLength;
+    }
+    if (written !== bytes.length) refuse("BootObservationMalformed", "admission advertisement expanded length");
+    return parseExactBrowserJson(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch (error) {
+    try { await reader.cancel(error); } catch {}
+    refuse("BootObservationMalformed", "invalid admission advertisement compressed document", error);
+  } finally { reader.releaseLock(); }
 }
 
 async function sha256(bytes) {

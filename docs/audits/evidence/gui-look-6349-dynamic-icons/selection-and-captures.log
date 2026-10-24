@@ -1,0 +1,10 @@
+
+Running 2 tests using 1 worker
+
+(node:4186600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/2] [chromium] › proof/browser/patchbay-dynamic-icons.spec.mjs:13:1 › dynamic Patchbay symbols preserve exact node and Port selection
+[2/2] [chromium] › proof/browser/patchbay-dynamic-icons.spec.mjs:58:1 › unknown graph decoration tokens retain text without selecting a guessed icon
+  2 passed (9.1s)

@@ -1,3 +1,5 @@
+import { decodeVisualLook } from "../host/assets/application-look.mjs";
+import { decorate, iconForRole, iconForIntent } from "./owner-face-icons.mjs";
 // A reusable browser realization of the checked owner Face. The SDK owns the
 // Mask Plan, Play, Show acknowledgement and typed return route; this element
 // owns only native controls and appearance.
@@ -92,7 +94,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const key = JSON.stringify([view.body_id, 'details', subject, kind]);
       details.dataset.ownerDisclosure = key;
       details.open = disclosures.get(key) ?? false;
-      const summary = faceNode('summary', label);
+      const summary = decorate(faceNode('summary', label), { facts: 'Status', completed: 'Confirm',
+        'body-menu': 'Body', inspection: 'Inspect', relationships: 'Line',
+        'secondary-actions': 'Plan' }[kind]);
       summary.dataset.ownerFocus = key;
       details.append(summary);
       return details;
@@ -115,8 +119,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.#layoutObserver?.disconnect();
     const component = view.component;
     const expression = component?.expression?.expression;
-    for (const key of ['componentExpression', 'componentDensity', 'componentPalette', 'componentTypography', 'componentFallback', 'componentColumns']) delete this.dataset[key];
+    for (const key of ['componentLook', 'componentExpression', 'componentDensity', 'componentPalette', 'componentTypography', 'componentFallback', 'componentColumns']) delete this.dataset[key];
     for (const key of ['--face-columns', '--face-gutter', '--face-text-scale']) this.style.removeProperty(key);
+    for (const key of [...this.style]) if (key.startsWith('--look-')) this.style.removeProperty(key);
+    if (component?.selected_look) {
+      const look = decodeVisualLook(component.selected_look.canonical_value);
+      this.dataset.componentLook = look.identity;
+      for (const [role, value] of Object.entries(look.tokens)) this.style.setProperty(`--look-${role}`, value);
+    }
     if (component && expression) {
       this.dataset.componentExpression = expression.identity;
       this.dataset.componentDensity = expression.density;
@@ -158,7 +168,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const control = document.createElement('form');
       control.setAttribute('part', 'action');
       control.dataset.ownerAction = action.identity;
-      if (!itemName) control.append(faceNode('h5', action.name));
+      if (!itemName && Array.isArray(action.arguments) && action.arguments.length) control.append(faceNode('h5', action.name));
       const inputs = [];
       const composing = new Set();
       const argumentCount = Array.isArray(action.arguments) ? action.arguments.length : 0;
@@ -223,7 +233,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         control.append(label);
         inputs.push({ name: argument.name, input, argument });
       }
-      const button = faceNode('button', itemName ? `${action.name} ${itemName}` : action.name);
+      const button = faceNode('button', action.name);
+      if (itemName) button.setAttribute('aria-label', `${action.name} ${itemName}`);
+      decorate(button, iconForIntent(action.intent));
       button.setAttribute('part', 'button');
       button.type = 'submit';
       button.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'submit']);
@@ -261,7 +273,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       node.dataset.faceRole = subject.role;
       bindRegion(node, subject);
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
-      const heading = faceNode('h4', subject.name);
+      const heading = decorate(faceNode('h4', subject.name), iconForRole(subject.role));
       heading.dataset.textPurpose = ['Document', 'Body', 'Host'].includes(subject.role) ? 'Title' : 'Heading';
       node.append(heading);
       for (const text of subject.text) node.append(faceNode('p', text));
@@ -295,7 +307,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       section.className = 'owner-face-collection';
       bindRegion(section, collection);
       section.setAttribute('part', 'collection');
-      section.append(faceNode('h4', collection.name));
+      section.append(decorate(faceNode('h4', collection.name), iconForRole(collection.role)));
       for (const text of collection.text) section.append(faceNode('p', text));
       section.append(faceNode('p', count, 'owner-face-collection-count'));
       const openList = document.createElement('ol');
@@ -312,7 +324,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         openList.append(row);
       }
       if (open.length) section.append(openList);
-      else section.append(faceNode('p', 'Nothing left to do.', 'owner-face-empty'));
+      else section.append(decorate(faceNode('p', 'Nothing left to do.', 'owner-face-empty'), 'Confirm'));
       if (completed.length) {
         const details = localDetails(collection.identity, 'completed',
           `Show ${completed.length} completed ${completed.length === 1 ? 'item' : 'items'}`);
@@ -367,7 +379,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       fieldset.className = 'owner-face-choice-group';
       bindRegion(fieldset, group);
       fieldset.setAttribute('part', 'choice-group');
-      fieldset.append(faceNode('legend', group.name));
+      fieldset.append(decorate(faceNode('legend', group.name), 'Collection'));
       for (const text of group.text) fieldset.append(faceNode('p', text));
       const choices = document.createElement('div');
       choices.className = 'owner-face-choices';

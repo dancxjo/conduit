@@ -53,12 +53,68 @@ fn local_selection_keeps_face_and_draft_while_retiring_each_old_show() {
         .mask
         .key(key(4), interaction_sequence, &mut display)
         .unwrap();
-    // An unsubmitted 'a' survives four independent palette/density transitions.
-    for (usage, density, palette) in [
-        (64, VisualDensity::Compact, VisualPalette::Editorial),
-        (63, VisualDensity::Spacious, VisualPalette::Editorial),
-        (64, VisualDensity::Spacious, VisualPalette::Phosphor),
-        (63, VisualDensity::Compact, VisualPalette::Phosphor),
+    // An unsubmitted 'a' survives independent palette/density/type transitions.
+    for (usage, density, palette, typography) in [
+        (
+            64,
+            VisualDensity::Compact,
+            VisualPalette::Editorial,
+            VisualTypography::Editorial,
+        ),
+        (
+            63,
+            VisualDensity::Spacious,
+            VisualPalette::Editorial,
+            VisualTypography::Editorial,
+        ),
+        (
+            64,
+            VisualDensity::Spacious,
+            VisualPalette::Phosphor,
+            VisualTypography::Editorial,
+        ),
+        (
+            63,
+            VisualDensity::Compact,
+            VisualPalette::Phosphor,
+            VisualTypography::Editorial,
+        ),
+        (
+            65,
+            VisualDensity::Compact,
+            VisualPalette::Phosphor,
+            VisualTypography::Engineering,
+        ),
+        (
+            64,
+            VisualDensity::Compact,
+            VisualPalette::Editorial,
+            VisualTypography::Engineering,
+        ),
+        (
+            63,
+            VisualDensity::Spacious,
+            VisualPalette::Editorial,
+            VisualTypography::Engineering,
+        ),
+        (
+            64,
+            VisualDensity::Spacious,
+            VisualPalette::Phosphor,
+            VisualTypography::Engineering,
+        ),
+        (
+            63,
+            VisualDensity::Compact,
+            VisualPalette::Phosphor,
+            VisualTypography::Engineering,
+        ),
+        (
+            65,
+            VisualDensity::Compact,
+            VisualPalette::Phosphor,
+            VisualTypography::Editorial,
+        ),
     ] {
         let prior_show = arrival.mask.show().unwrap().clone();
         assert!(
@@ -84,12 +140,63 @@ fn local_selection_keeps_face_and_draft_while_retiring_each_old_show() {
         );
         let expression = &arrival.mask.visual_expression().unwrap().expression;
         assert_eq!((expression.density, expression.palette), (density, palette));
+        assert_eq!(expression.typography, typography);
         assert_eq!(arrival.next_interaction, interaction_sequence);
         let frame = arrival.mask.scene().unwrap().frame().unwrap();
         assert!(frame.scene.commands().iter().any(|command| command.kind
             == conduit_face::GraphicsCommandKind::Text
             && command.payload().contains('a')
             && command.payload().starts_with("Draft")));
+    }
+    // User requirements outrank each app Look without changing its Source root.
+    for (usage, minimum, forced, actual_scale) in [
+        (66, 200, false, 200),
+        (67, 200, true, 200),
+        (64, 200, true, 200),
+        (65, 200, true, 200),
+        (63, 200, true, 200),
+        (67, 200, false, 200),
+        (66, 100, false, 125),
+        (63, 100, false, 100),
+    ] {
+        let prior = arrival.mask.show().unwrap().clone();
+        assert!(
+            arrival
+                .select_local_look(key(usage), &door, &mut display)
+                .unwrap()
+        );
+        assert_eq!(arrival.mask.scene().unwrap().face(), &face);
+        assert_eq!(door.creche_face(&arrival.basis).unwrap(), face);
+        assert_eq!(arrival.mask.scene().unwrap().focused(), focus);
+        assert_ne!(arrival.mask.show().unwrap().show_id, prior.show_id);
+        if usage >= 66 {
+            assert_eq!(
+                arrival.mask.show().unwrap().show.plan_id,
+                prior.show.plan_id
+            );
+        }
+        let admitted = arrival.mask.visual_expression().unwrap();
+        assert_eq!(admitted.expression.text_scale_percent, actual_scale);
+        assert_eq!(admitted.platform_forced_colors, forced);
+        assert_eq!(admitted.accessibility_overrides.forced_colors, forced);
+        assert!(admitted.accessibility_overrides.reduced_motion);
+        assert_eq!(arrival.preparation.minimum_text_scale_percent, minimum);
+        assert_eq!(arrival.preparation.forced_colors, forced);
+        assert_eq!(
+            arrival.mask.component_configuration().unwrap().component,
+            component
+        );
+        assert_eq!(
+            arrival.mask.component_configuration().unwrap().recipe,
+            recipe
+        );
+        assert!(arrival.mask.component_fallback().is_none());
+        assert_eq!(arrival.next_interaction, interaction_sequence);
+        let frame = arrival.mask.scene().unwrap().frame().unwrap();
+        assert!(frame.scene.commands().iter().any(|command| command.kind
+            == conduit_face::GraphicsCommandKind::Text
+            && command.payload().starts_with("Draft")
+            && command.payload().contains('a')));
     }
     let submitted_show = arrival.mask.show().unwrap().show_id.clone();
     let input = arrival

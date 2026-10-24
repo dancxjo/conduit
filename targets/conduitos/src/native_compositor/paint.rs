@@ -15,16 +15,16 @@ pub(super) fn visual_paint(
         }
     } else if expression.is_some_and(|value| value.expression.palette == VisualPalette::Editorial) {
         match role {
-            Role::Background => (12, 24, 43),
-            Role::Foreground => (231, 236, 243),
-            Role::Muted => (153, 173, 199),
-            Role::Accent | Role::Selected => (114, 180, 255),
-            Role::Status | Role::Warning => (243, 198, 111),
-            Role::Success => (111, 218, 169),
-            Role::Danger => (255, 120, 135),
-            Role::Focus | Role::Hovered => (255, 204, 51),
-            Role::Surface => (19, 35, 55),
-            Role::Border => (84, 113, 150),
+            Role::Background => (243, 240, 232),
+            Role::Foreground => (34, 54, 76),
+            Role::Muted => (83, 100, 119),
+            Role::Accent | Role::Selected => (41, 79, 120),
+            Role::Status | Role::Warning => (128, 85, 19),
+            Role::Success => (36, 96, 74),
+            Role::Danger => (160, 46, 64),
+            Role::Focus | Role::Hovered => (145, 96, 25),
+            Role::Surface => (255, 252, 246),
+            Role::Border => (129, 124, 115),
         }
     } else {
         match role {
@@ -46,3 +46,35 @@ pub(super) fn visual_paint(
 #[cfg(all(test, feature = "native-compositor-core"))]
 #[path = "paint_contrast_tests.rs"]
 mod contrast_tests;
+
+/// Complete Look tokens lower to the existing finite semantic paint roles.
+/// Platform accessibility colors always take precedence over authored tokens.
+#[cfg(feature = "native-compositor-core")]
+pub(super) fn visual_look_paint(
+    format: crate::display::DisplayFormat,
+    role: conduit_face::GraphicsPaintRole,
+    expression: Option<&conduit_face::AdmittedVisualExpression>,
+    look: Option<&conduit_face::LookInfo>,
+) -> u32 {
+    use conduit_face::{GraphicsPaintRole as Role, LookVisualFacetOption};
+    if expression.is_some_and(|value| value.platform_forced_colors) {
+        return visual_paint(format, role, expression);
+    }
+    let Some(LookVisualFacetOption::Some(visual)) = look.map(|look| look.visual()) else {
+        return visual_paint(format, role, expression);
+    };
+    let tokens = visual.tokens();
+    let color = match role {
+        Role::Background => tokens.background(),
+        Role::Surface => tokens.surface(),
+        Role::Foreground => tokens.text_primary(),
+        Role::Muted => tokens.text_secondary(),
+        Role::Accent | Role::Selected => tokens.emphasis(),
+        Role::Status | Role::Warning => tokens.warning(),
+        Role::Success => tokens.success(),
+        Role::Danger => tokens.failure(),
+        Role::Focus | Role::Hovered => tokens.focus(),
+        Role::Border => tokens.structure_primary(),
+    };
+    format.pixel(color.red(), color.green(), color.blue())
+}

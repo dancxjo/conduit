@@ -1,0 +1,144 @@
+{
+  "phase": "before",
+  "scope": "actual Handbook module and CSS with deliberate opening refusal; native download/disclosure/source editing; not a live Body or storage-failure receipt",
+  "results": [
+    {
+      "name": "wide",
+      "width": 1280,
+      "scale": 100,
+      "forced": false,
+      "overflow": false,
+      "source": "plot demo () { # draft café 世界 }",
+      "status": "Browser startup refused: ProofOpeningRefusal: Deliberate opening refusal for the recovery-UI proof; no Body was created.",
+      "buttons": [
+        {
+          "label": "Wake",
+          "disabled": true,
+          "height": 42,
+          "icons": 0
+        },
+        {
+          "label": "Lull",
+          "disabled": true,
+          "height": 42,
+          "icons": 0
+        },
+        {
+          "label": "Open in Patchbay",
+          "disabled": true,
+          "height": 42,
+          "icons": 0
+        },
+        {
+          "label": "Return to example",
+          "disabled": true,
+          "height": 42,
+          "icons": 0
+        },
+        {
+          "label": "Download displayed source",
+          "disabled": false,
+          "height": 42,
+          "icons": 0
+        },
+        {
+          "label": "Try in my Handbook",
+          "disabled": true,
+          "height": 42,
+          "icons": 0
+        },
+        {
+          "label": "Release this tab",
+          "disabled": true,
+          "height": 0,
+          "icons": 0
+        },
+        {
+          "label": "Start my Handbook over",
+          "disabled": true,
+          "height": 42,
+          "icons": 0
+        },
+        {
+          "label": "Try again",
+          "disabled": false,
+          "height": 42,
+          "icons": 0
+        }
+      ],
+      "focus": null,
+      "icons": true,
+      "errors": [],
+      "png_sha256": "25e1b2de73c48dd273a18f0fbf442ca2eecbe20591b22a22e3f64df99f0f8a68"
+    },
+    {
+      "name": "narrow-forced",
+      "width": 390,
+      "scale": 200,
+      "forced": true,
+      "overflow": true,
+      "source": "plot demo () { # draft café 世界 }",
+      "status": "Browser startup refused: ProofOpeningRefusal: Deliberate opening refusal for the recovery-UI proof; no Body was created.",
+      "buttons": [
+        {
+          "label": "Wake",
+          "disabled": true,
+          "height": 82,
+          "icons": 0
+        },
+        {
+          "label": "Lull",
+          "disabled": true,
+          "height": 82,
+          "icons": 0
+        },
+        {
+          "label": "Open in Patchbay",
+          "disabled": true,
+          "height": 130,
+          "icons": 0
+        },
+        {
+          "label": "Return to example",
+          "disabled": true,
+          "height": 130,
+          "icons": 0
+        },
+        {
+          "label": "Download displayed source",
+          "disabled": false,
+          "height": 130,
+          "icons": 0
+        },
+        {
+          "label": "Try in my Handbook",
+          "disabled": true,
+          "height": 130,
+          "icons": 0
+        },
+        {
+          "label": "Release this tab",
+          "disabled": true,
+          "height": 0,
+          "icons": 0
+        },
+        {
+          "label": "Start my Handbook over",
+          "disabled": true,
+          "height": 130,
+          "icons": 0
+        },
+        {
+          "label": "Try again",
+          "disabled": false,
+          "height": 82,
+          "icons": 0
+        }
+      ],
+      "focus": null,
+      "icons": true,
+      "errors": [],
+      "png_sha256": "fcc73c9c50d77440767996c8ac062fd2ca3bb037795b0722ad5747850aa7f8ef"
+    }
+  ]
+}

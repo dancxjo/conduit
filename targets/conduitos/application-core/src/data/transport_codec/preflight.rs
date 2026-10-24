@@ -7,7 +7,11 @@ pub(super) fn validate(bytes: &[u8]) -> Result<(), Refusal> {
         return Err(Refusal::Bounds);
     }
     core::str::from_utf8(bytes).map_err(|_| Refusal::Malformed)?;
-    let mut scan = Scan { bytes, at: 0 };
+    let mut scan = Scan {
+        bytes,
+        at: 0,
+        compact: bytes.starts_with(super::COMPACT_PREFIX),
+    };
     scan.value(0)?;
     scan.space();
     if scan.at != bytes.len() {
@@ -18,6 +22,7 @@ pub(super) fn validate(bytes: &[u8]) -> Result<(), Refusal> {
 struct Scan<'a> {
     bytes: &'a [u8],
     at: usize,
+    compact: bool,
 }
 impl Scan<'_> {
     fn space(&mut self) {
@@ -99,9 +104,21 @@ impl Scan<'_> {
             return Ok(());
         }
         loop {
+            self.space();
+            let key_start = self.at;
             self.string()?;
+            let packed = self.compact && super::packed::is_key(&self.bytes[key_start..self.at]);
             self.take(b':')?;
-            self.value(depth)?;
+            self.space();
+            if packed && self.bytes.get(self.at) == Some(&b'"') {
+                let start = self.at;
+                self.string()?;
+                super::packed::json_string(&self.bytes[start..self.at])?;
+            } else if packed {
+                return Err(Refusal::Malformed);
+            } else {
+                self.value(depth)?;
+            }
             self.space();
             match self.bytes.get(self.at) {
                 Some(b'}') => {

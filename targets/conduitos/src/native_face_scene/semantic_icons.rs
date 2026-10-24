@@ -1,21 +1,10 @@
 //! Finite Mask decoration from explicit semantic roles, never names or action IDs.
 use super::*;
-use conduit_face::{FaceIconKey, FaceRole};
+use conduit_face::FaceIconKey;
 
-pub(super) fn for_role(role: &FaceRole) -> Option<FaceIconKey> {
-    Some(match role {
-        FaceRole::Body => FaceIconKey::Body,
-        FaceRole::Host => FaceIconKey::Host,
-        FaceRole::Gear => FaceIconKey::GenericGear,
-        FaceRole::Port => FaceIconKey::Port,
-        FaceRole::Line | FaceRole::Cord => FaceIconKey::Line,
-        FaceRole::Plan => FaceIconKey::Plan,
-        FaceRole::Play => FaceIconKey::Play,
-        FaceRole::Status => FaceIconKey::Status,
-        FaceRole::Diagnostic => FaceIconKey::Warning,
-        _ => return None,
-    })
-}
+#[path = "semantic_icons/generated.rs"]
+mod mapping;
+pub(super) use mapping::{for_intent, for_role};
 
 pub(super) fn inset(icon: Option<FaceIconKey>) -> u16 {
     if icon.is_some() { 24 } else { 0 }
@@ -48,11 +37,14 @@ pub(super) fn append(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_face::FaceRole;
 
     #[test]
     fn roles_select_only_truthful_existing_icons_without_name_inference() {
         for (role, icon) in [
             (FaceRole::Body, FaceIconKey::Body),
+            (FaceRole::Plot, FaceIconKey::Face),
+            (FaceRole::Document, FaceIconKey::Type),
             (FaceRole::Host, FaceIconKey::Host),
             (FaceRole::Diagnostic, FaceIconKey::Warning),
             (FaceRole::Status, FaceIconKey::Status),
@@ -66,6 +58,30 @@ mod tests {
             FaceRole::Semantic(conduit_core::kind_id("custom/warning")),
         ] {
             assert_eq!(for_role(&role), None);
+        }
+    }
+
+    #[test]
+    fn action_decoration_requires_an_exact_offered_intent() {
+        assert_eq!(
+            for_intent("conduit.intent/creche.birth@1"),
+            Some(FaceIconKey::Wake)
+        );
+        assert_eq!(
+            for_intent("conduit.intent/creche.name@1"),
+            Some(FaceIconKey::Type)
+        );
+        assert_eq!(for_intent("todo/add@1"), Some(FaceIconKey::Add));
+        assert_eq!(for_intent("todo/remove@1"), Some(FaceIconKey::Remove));
+        for intent in [
+            "todo/add@2",
+            "custom/todo/remove@1",
+            "Birth Body",
+            "creche.birth",
+            "custom/conduit.intent/creche.birth@1",
+            "conduit.intent/creche.birth@2",
+        ] {
+            assert_eq!(for_intent(intent), None);
         }
     }
 

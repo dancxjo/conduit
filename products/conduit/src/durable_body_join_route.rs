@@ -17,7 +17,7 @@ use super::membership::complete_body_join_document;
 use super::{bounded_read, current_time_millis, MAXIMUM_BODY_ADMISSION_BYTES};
 use conduit_body::{
     RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest,
-    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
+    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_face::{
     OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
@@ -97,14 +97,13 @@ pub(crate) fn serve_body_invitation_route(
         .accept_with_timeout(Duration::from_secs(ttl_seconds))
         .map_err(|error| format!("Body owner unreachable before invitation expiry: {error:?}"))?;
     let request: RoutedAdmissionRequest = receive(&mut line)?;
+    let response_schema = request.response_schema();
     let expected_invitation = invitation.claim.invitation_id.as_str();
-    if request.schema != ROUTED_ADMISSION_REQUEST_SCHEMA
-        || request.invitation_id != expected_invitation
-    {
+    if !request.supported_schema() || request.invitation_id != expected_invitation {
         send(
             &mut line,
             &RoutedAdmissionResponse::Refused {
-                schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+                schema: response_schema.into(),
                 code: "wrong-invitation".into(),
             },
         )?;
@@ -116,7 +115,7 @@ pub(crate) fn serve_body_invitation_route(
                 send(
                     &mut line,
                     &RoutedAdmissionResponse::Admitted {
-                        schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+                        schema: response_schema.into(),
                         receipt: Box::new(receipt.clone()),
                     },
                 )?;
@@ -128,7 +127,7 @@ pub(crate) fn serve_body_invitation_route(
                 send(
                     &mut line,
                     &RoutedAdmissionResponse::Refused {
-                        schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+                        schema: response_schema.into(),
                         code: admission_refusal_code(&error).into(),
                     },
                 )?;
@@ -231,12 +230,12 @@ fn attempt_candidate(
     )?;
     match receive::<RoutedAdmissionResponse>(&mut line)? {
         RoutedAdmissionResponse::Admitted { schema, receipt }
-            if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA =>
+            if conduit_body::supported_routed_admission_response_schema(&schema) =>
         {
             Ok(*receipt)
         }
         RoutedAdmissionResponse::Refused { schema, code }
-            if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA =>
+            if conduit_body::supported_routed_admission_response_schema(&schema) =>
         {
             Err(format!("admission-refused:{code}"))
         }

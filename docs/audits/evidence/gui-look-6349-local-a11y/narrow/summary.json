@@ -1,0 +1,132 @@
+{
+  "source_commit": "7fb59889906e8d8f6d15c24249e06ec7727d17c7",
+  "root_sha256": "04597abfbee81adb1db3e3f0a697cd1b24d741dac8ce8e3c411e1fbac2eaf87b",
+  "iso_sha256": "309a35e53dbf84f8fd4f5c3eea42d4834fe49182416858d1dd131e189dc7111c",
+  "viewport": [
+    640,
+    480
+  ],
+  "status": "passed scoped accessibility scenario",
+  "captures": 13,
+  "capture_limit": 27,
+  "frame_budget": {
+    "command_high_water": 20,
+    "command_limit": 48,
+    "command_payload_byte_limit": 192,
+    "focus_observations": 181,
+    "maximum_command_payload_bytes": 99,
+    "maximum_frame_payload_bytes": 340,
+    "retained_compositor_surface_count": "not observed by this receipt",
+    "schema": "conduit.native-prepared-frame-budget-proof/v1",
+    "scope": "current prepared Mask frame used for focus; not compositor/scanout history"
+  },
+  "states": [
+    {
+      "label": "editorial-forced",
+      "forward_focus_count": 13,
+      "reverse_focus_count": 13,
+      "primary_page_count": 13
+    },
+    {
+      "label": "engineering-forced",
+      "forward_focus_count": 13,
+      "reverse_focus_count": 13,
+      "primary_page_count": 14
+    }
+  ],
+  "override_transitions": 7,
+  "pngs": {
+    "creche-input-incomplete.png": {
+      "sha256": "bb2a8c90a2b9f61e8851099843164e52eb816cc5d3f735df6a71701b9c490dd3",
+      "width": 640,
+      "height": 480
+    },
+    "creche-controls-editorial-forced-13.png": {
+      "sha256": "f883b7166b7dca74fb717a461b3d00771ed0dee76b01710d41334fdb8707ed44",
+      "width": 640,
+      "height": 480
+    },
+    "front-door-ready.png": {
+      "sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+      "width": 640,
+      "height": 480
+    },
+    "creche-controls-engineering-forced-14.png": {
+      "sha256": "792466b2f6f06c2b577cfddb2b685d4a4f5650cb6f331f7f8d0ecd599d8a2bf7",
+      "width": 640,
+      "height": 480
+    },
+    "creche-a11y-long-name.png": {
+      "sha256": "af5004da4d61da971bbf35bfcc4f7919159c80d6d1cf86906d7f1a5b5de14408",
+      "width": 640,
+      "height": 480
+    },
+    "creche-controls-engineering-forced-1.png": {
+      "sha256": "88ef50eb87f6cff2dee6e6e2ae7035b537395699e50af54905cff3a43ad90c1c",
+      "width": 640,
+      "height": 480
+    },
+    "creche-controls-ready.png": {
+      "sha256": "b4a1ffafa4f871085d11bdf822ba8b59d9ed0de22320a7e7f9f702c2022735f1",
+      "width": 640,
+      "height": 480
+    },
+    "creche-a11y-engineering-forced-pointer.png": {
+      "sha256": "89e0cd652c1035c71bf6939d9e7bf96343d9d2cf33cb26baadd54044dab814a4",
+      "width": 640,
+      "height": 480
+    },
+    "creche-controls-editorial-forced-7.png": {
+      "sha256": "256a80bf627cdca4d89b8f83d896e6a3b0ae801b3636c318bac5ecc79643c204",
+      "width": 640,
+      "height": 480
+    },
+    "creche-a11y-user-overrides-cleared.png": {
+      "sha256": "f171b78094cfe0057630479a7dd1a3054082b36f89af95b6b5e878d5317f74f7",
+      "width": 640,
+      "height": 480
+    },
+    "creche-controls-editorial-forced-1.png": {
+      "sha256": "ff42d108f55dac183f2d603df04a2056c914976f5bfbf5ceca6286c86e45e751",
+      "width": 640,
+      "height": 480
+    },
+    "creche-controls-engineering-forced-7.png": {
+      "sha256": "281f9c2b438937c110fe86685b8783f7ae9895ae88202cb3b1956acf21dedfe5",
+      "width": 640,
+      "height": 480
+    },
+    "creche-a11y-editorial-forced-pointer.png": {
+      "sha256": "50d72e32a6c2642a2c079f875bcbd5a96e008fcfeed84d9d54b18ed76d7844b1",
+      "width": 640,
+      "height": 480
+    }
+  },
+  "archives": [
+    {
+      "file": "journey-serial.log.gz",
+      "raw_sha256": "9e0d9f9b185f37d952c314aee7384d72965b8d3903d0c8a32ade0902af565bde",
+      "archive_sha256": "6a41af0bab4663fb9153ddaa4e1da3172b59edbd1bbe60d550432e13ca4faf6e"
+    },
+    {
+      "file": "journey-qmp.log.gz",
+      "raw_sha256": "65c64e0da977c424bb6260a62cfaecb9a81398a26aac8fad0784942369002654",
+      "archive_sha256": "6bd10cdbb678270670da32d1def481799f8cc17ff4ccdf43ef8395f2d1c37238"
+    },
+    {
+      "file": "journey-frames/manifest.json.gz",
+      "raw_sha256": "b47b5f2e4e6947d4f60d2bc04a3a7be11f15675af253d686eccc4d751eb07287",
+      "archive_sha256": "093f94d6a8e614d6476b7a2562d0d67bf13639886430ca02d84b619835ec655b"
+    },
+    {
+      "file": "profile.log.gz",
+      "raw_sha256": "e40aa895764a095c763e1255436734d1c713e725fff84bfdde21e55cba5216bd",
+      "archive_sha256": "2553cae7c2945cbb04054eed451389390e2558e3aaa7152723fe2b464b691f66"
+    },
+    {
+      "file": "creche-accessibility-proof.json.gz",
+      "raw_sha256": "5b4a81e85d945fcd1acedf65c6a781c53d77b891df2fce6e699d01613e5ad210",
+      "archive_sha256": "095f9c8775357ea5a3ae1efc16b611945a7507eccf73e44655987a4dd9a3397d"
+    }
+  ]
+}

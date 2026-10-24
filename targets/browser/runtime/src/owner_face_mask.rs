@@ -20,6 +20,8 @@ use serde::{Deserialize, Serialize};
 mod abi;
 #[path = "owner_face_mask/component.rs"]
 mod component;
+#[path = "owner_face_mask/component_wire.rs"]
+mod component_wire;
 #[path = "owner_face_mask/interaction.rs"]
 mod interaction;
 #[path = "owner_face_mask/view.rs"]

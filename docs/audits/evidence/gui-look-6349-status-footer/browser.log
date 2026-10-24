@@ -1,0 +1,20 @@
+
+Running 12 tests using 1 worker
+
+(node:4052958) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/12] [chromium] › proof/browser/patchbay-html.spec.mjs:138:1 › HTML Patchbay reconstructs one typed state accessibly and survives delivery loss
+[2/12] [chromium] › proof/browser/patchbay-html.spec.mjs:427:1 › full-window Flow mechanics remain face-only
+[3/12] [chromium] › proof/browser/patchbay-html.spec.mjs:522:1 › narrow enlarged-content workspace has exclusive drawers and restored focus
+[4/12] [chromium] › proof/browser/patchbay-html.spec.mjs:624:1 › Flow scene reconciliation is finite and identity-exact
+[5/12] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:19:1 › bounded collections are manifested without numbered static slot farms
+[6/12] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:30:1 › Patchbay has one stable Library and one contextual Inspect surface
+[7/12] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:70:1 › inspection evidence fits right and bottom docks at wide and forced-color narrow widths
+[8/12] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:103:1 › bottom inspection remains above workspace tools with reachable enlarged controls
+[9/12] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:155:1 › enlarged narrow product navigation precedes status and shell bands do not overlap
+[10/12] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:196:1 › Escape dismisses the focused surface when Body inspection leaves Library open
+[11/12] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:221:1 › Patchbay graph consumes canonical typography and surface roles
+[12/12] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:258:1 › workspace status and tools reserve canvas space instead of covering nodes
+  12 passed (58.1s)

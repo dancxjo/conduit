@@ -90,6 +90,36 @@ pub(super) fn measure<'a>(
     if !cluster.clone().any(|item| item.control.is_some()) {
         return Ok(None);
     }
+    measure_cluster(cluster, metrics, region_start)
+}
+
+/// An oversized subject may continue its prose while retaining a fitting
+/// contiguous action and its own arguments as one smaller interactive group.
+pub(super) fn measure_controls<'a>(
+    items: impl Iterator<Item = &'a document::Item> + Clone,
+    metrics: Metrics,
+    region_start: bool,
+) -> Result<Option<Demand>, FaceSceneError> {
+    let Some(first) = items.clone().next() else {
+        return Ok(None);
+    };
+    let Some(control) = first.control.filter(|control| control.argument.is_none()) else {
+        return Ok(None);
+    };
+    let cluster = items.take_while(|item| {
+        same(first, item)
+            && item
+                .control
+                .is_some_and(|next| next.action == control.action)
+    });
+    measure_cluster(cluster, metrics, region_start)
+}
+
+fn measure_cluster<'a>(
+    cluster: impl Iterator<Item = &'a document::Item>,
+    metrics: Metrics,
+    region_start: bool,
+) -> Result<Option<Demand>, FaceSceneError> {
     let mut demand = Demand {
         height: 0,
         rows: 0,
