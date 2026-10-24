@@ -1581,3 +1581,11 @@ Face attestation. A changed/missing Face, missing publisher, stream gap or scope
 mismatch fails the finite owner run. This diagnostic does not install an ongoing
 Mask, network transition or recording host. Restore and verify the operational
 image after an attended diagnostic run.
+
+Local artifact preservation correction: the cleanup incident recorded in
+`evidence/2026-10-24-native-face-replay/` deleted ignored artifacts under the
+construction worktree's entire Cargo target tree, including full diagnostic
+captures and ELF/map files previously described above as retained there.
+Committed curated evidence and hashes remain; they do not imply those full
+local artifacts are still available. The operational MCU stayed running, and
+its replacement recovery backup is kept privately outside Cargo output trees.

@@ -1,0 +1,10 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 0.34s
+     Running tests/native_face_replay.rs (target/environment-lean-host/debug/deps/native_face_replay-e64ec0957e1b754f)
+
+running 2 tests
+test verifies_new_and_repeated_publications_freshness_and_recovery ... ok
+test refuses_changed_summary_scope_and_same_sequence_publication ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

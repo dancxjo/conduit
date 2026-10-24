@@ -1,0 +1,16 @@
+{
+  "proof_class": "full flash read backup and post-reset operational bench observation; no native Face execution",
+  "backup_bytes": 4194304,
+  "backup_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+  "backup_private_mode": "0o600",
+  "backup_outside_cargo_targets": true,
+  "mac": "b0:a7:32:28:61:78",
+  "current_display_updates": 12,
+  "fresh_source_sequences": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "bench_verified": true
+}
