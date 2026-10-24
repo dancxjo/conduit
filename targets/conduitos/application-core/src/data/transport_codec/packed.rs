@@ -1,5 +1,4 @@
 //! Canonical packed bytes for the private V2 canonical_value field only.
-use core::fmt;
 use serde::de::*;
 pub(super) const MAX_BYTES: usize = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;
 pub(super) const MARKER: &str = "conduit.private/packed-u8@2";
@@ -59,33 +58,52 @@ pub(super) fn json_string(raw: &[u8]) -> Result<(), super::Refusal> {
         .map(|_| ())
         .map_err(|_| super::Refusal::Malformed)
 }
-pub(super) struct SequenceVisitor<V> {
-    pub(super) visitor: V,
-    pub(super) compact: bool,
+/// The compact branch lives at the reserved field boundary, never in the
+/// general sequence decoder. Structs/enums/widened numbers cannot enter it.
+pub(super) struct ValueSeed<S>(pub(super) S);
+impl<'de, S: DeserializeSeed<'de>> DeserializeSeed<'de> for ValueSeed<S> {
+    type Value = S::Value;
+    fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<Self::Value, D::Error> {
+        self.0.deserialize(read(d)?)
+    }
 }
-impl<'de, V: Visitor<'de>> Visitor<'de> for SequenceVisitor<V> {
-    type Value = V::Value;
-    fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("counted array or canonical packed byte string")
-    }
-    fn visit_seq<A: SeqAccess<'de>>(self, access: A) -> Result<Self::Value, A::Error> {
-        super::de::visit_array(self.visitor, access, self.compact)
-    }
-    fn visit_borrowed_str<E: Error>(self, value: &'de str) -> Result<Self::Value, E> {
-        let length = extent(value).map_err(|_| E::custom("invalid packed bytes"))?;
+/// This parse depends on the wire reader, not the destination seed. Sharing it
+/// prevents one copy of JSON string parsing for every containing field Type.
+#[inline(never)]
+fn read<'de, D: Deserializer<'de>>(d: D) -> Result<Only<'de, D::Error>, D::Error> {
+    let value = <&'de str>::deserialize(d)?;
+    let length = extent(value).map_err(|_| D::Error::custom("invalid packed bytes"))?;
+    Ok(Only {
+        value,
+        length,
+        error: core::marker::PhantomData,
+    })
+}
+
+struct Only<'a, E> {
+    value: &'a str,
+    length: usize,
+    error: core::marker::PhantomData<E>,
+}
+impl<'de, E: Error> Deserializer<'de> for Only<'de, E> {
+    type Error = E;
+    fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, E> {
         let mut sequence = Bytes {
-            encoded: &value.as_bytes()[PREFIX.len()..],
-            length,
+            encoded: &self.value.as_bytes()[PREFIX.len()..],
+            length: self.length,
             index: 0,
             error: core::marker::PhantomData,
         };
-        let result = self.visitor.visit_seq(&mut sequence)?;
-        if sequence.index != length {
+        let result = visitor.visit_seq(&mut sequence)?;
+        if sequence.index != self.length {
             return Err(E::custom("packed extent differs"));
         }
         Ok(result)
     }
-    // Escaped/owned strings are not accepted. Preflight already rejects them.
+    fn deserialize_any<V: Visitor<'de>>(self, _: V) -> Result<V::Value, E> {
+        Err(E::custom("packed field requires u8 sequence"))
+    }
+    serde::forward_to_deserialize_any! {bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string bytes byte_buf option unit unit_struct newtype_struct tuple tuple_struct map struct enum identifier ignored_any}
 }
 struct Bytes<'a, E> {
     encoded: &'a [u8],

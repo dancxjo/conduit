@@ -42,17 +42,17 @@ struct ValueSeed<T>(PhantomData<T>, bool);
 impl<'de, T: Deserialize<'de>> DeserializeSeed<'de> for ValueSeed<T> {
     type Value = T;
     fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<T, D::Error> {
-        T::deserialize(Decoder(deserializer, self.1, false))
+        T::deserialize(Decoder(deserializer, self.1))
     }
 }
-struct Seed<S>(S, bool, bool);
+struct Seed<S>(S, bool);
 impl<'de, S: DeserializeSeed<'de>> DeserializeSeed<'de> for Seed<S> {
     type Value = S::Value;
     fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
-        self.0.deserialize(Decoder(deserializer, self.1, self.2))
+        self.0.deserialize(Decoder(deserializer, self.1))
     }
 }
-struct Decoder<D>(D, bool, bool);
+struct Decoder<D>(D, bool);
 struct Bridge<V> {
     visitor: V,
     expected: Option<usize>,
@@ -70,18 +70,17 @@ impl<V> Bridge<V> {
 macro_rules! forward {($($method:ident($($arg:ident:$ty:ty),*)),*$(,)?)=>{$(
     fn $method<V:Visitor<'de>>(self,$($arg:$ty,)*visitor:V)->Result<V::Value,Self::Error>{self.0.$method($($arg,)*Bridge::new(visitor,self.1))}
 )*};}
+macro_rules! direct {($($method:ident($($arg:ident:$ty:ty),*)),*$(,)?)=>{$(
+    fn $method<V:Visitor<'de>>(self,$($arg:$ty,)*visitor:V)->Result<V::Value,Self::Error>{self.0.$method($($arg,)*visitor)}
+)*};}
 impl<'de, D: Deserializer<'de>> Deserializer<'de> for Decoder<D> {
     type Error = D::Error;
-    forward!(deserialize_any(),deserialize_bool(),deserialize_i8(),deserialize_i16(),deserialize_i32(),deserialize_i64(),deserialize_i128(),deserialize_u8(),deserialize_u16(),deserialize_u32(),deserialize_u64(),deserialize_u128(),deserialize_f32(),deserialize_f64(),deserialize_char(),deserialize_str(),deserialize_string(),deserialize_option(),deserialize_unit(),deserialize_unit_struct(name:&'static str),deserialize_newtype_struct(name:&'static str),deserialize_map(),deserialize_struct(name:&'static str,fields:&'static [&'static str]),deserialize_enum(name:&'static str,variants:&'static [&'static str]),deserialize_identifier(),deserialize_ignored_any());
+    // Scalar methods cannot contain framed child values. Preserve their exact
+    // original visitors rather than instantiating recursive adapters for them.
+    direct!(deserialize_bool(),deserialize_i8(),deserialize_i16(),deserialize_i32(),deserialize_i64(),deserialize_i128(),deserialize_u8(),deserialize_u16(),deserialize_u32(),deserialize_u64(),deserialize_u128(),deserialize_f32(),deserialize_f64(),deserialize_char(),deserialize_str(),deserialize_string(),deserialize_unit(),deserialize_unit_struct(name:&'static str),deserialize_identifier());
+    forward!(deserialize_any(),deserialize_option(),deserialize_newtype_struct(name:&'static str),deserialize_map(),deserialize_struct(name:&'static str,fields:&'static[&'static str]),deserialize_enum(name:&'static str,variants:&'static[&'static str]),deserialize_ignored_any());
     fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        if self.1 && self.2 {
-            self.0.deserialize_any(super::packed::SequenceVisitor {
-                visitor,
-                compact: self.1,
-            })
-        } else {
-            self.0.deserialize_seq(Bridge::new(visitor, self.1))
-        }
+        self.0.deserialize_seq(Bridge::new(visitor, self.1))
     }
     fn deserialize_bytes<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
         self.0.deserialize_seq(Bridge::new(visitor, self.1))
@@ -164,15 +163,14 @@ impl<'de, V: Visitor<'de>> Visitor<'de> for Bridge<V> {
         self.visitor.visit_unit()
     }
     fn visit_some<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
-        self.visitor
-            .visit_some(Decoder(deserializer, self.compact, false))
+        self.visitor.visit_some(Decoder(deserializer, self.compact))
     }
     fn visit_newtype_struct<D: Deserializer<'de>>(
         self,
         deserializer: D,
     ) -> Result<Self::Value, D::Error> {
         self.visitor
-            .visit_newtype_struct(Decoder(deserializer, self.compact, false))
+            .visit_newtype_struct(Decoder(deserializer, self.compact))
     }
     fn visit_seq<A: SeqAccess<'de>>(self, mut access: A) -> Result<Self::Value, A::Error> {
         let remaining = access
@@ -193,11 +191,13 @@ impl<'de, V: Visitor<'de>> Visitor<'de> for Bridge<V> {
         Ok(result)
     }
     fn visit_map<A: MapAccess<'de>>(self, access: A) -> Result<Self::Value, A::Error> {
-        self.visitor.visit_map(Map {
-            access,
-            compact: self.compact,
-            packed: false,
-        })
+        self.visitor
+            .visit_map(Map {
+                access,
+                compact: self.compact,
+                packed: false,
+            })
+            .map_err(|_| A::Error::custom("invalid private typed map"))
     }
     fn visit_enum<A: EnumAccess<'de>>(self, access: A) -> Result<Self::Value, A::Error> {
         self.visitor.visit_enum(Enum(access, self.compact))
@@ -219,7 +219,7 @@ impl<'de, A: SeqAccess<'de>> SeqAccess<'de> for &mut Sequence<A> {
         }
         let value = self
             .access
-            .next_element_seed(Seed(seed, self.compact, false))?
+            .next_element_seed(Seed(seed, self.compact))?
             .ok_or_else(|| A::Error::custom("truncated array"))?;
         self.remaining -= 1;
         Ok(Some(value))
@@ -228,29 +228,53 @@ impl<'de, A: SeqAccess<'de>> SeqAccess<'de> for &mut Sequence<A> {
         Some(self.remaining)
     }
 }
+// Private decode publishes only Refusal::Malformed. Do not instantiate detailed
+// schema-error formatters for every typed map merely to discard them later.
+#[derive(Debug)]
+struct MapError;
+impl fmt::Display for MapError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("private map")
+    }
+}
+impl serde::de::StdError for MapError {}
+impl Error for MapError {
+    fn custom<T: fmt::Display>(_: T) -> Self {
+        Self
+    }
+}
 struct Map<A> {
     access: A,
     compact: bool,
     packed: bool,
 }
 impl<'de, A: MapAccess<'de>> MapAccess<'de> for Map<A> {
-    type Error = A::Error;
+    type Error = MapError;
     fn next_key_seed<K: DeserializeSeed<'de>>(
         &mut self,
         seed: K,
     ) -> Result<Option<K::Value>, Self::Error> {
         self.packed = false;
-        self.access.next_key_seed(super::packed::KeySeed {
-            seed,
-            packed: &mut self.packed,
-        })
+        self.access
+            .next_key_seed(super::packed::KeySeed {
+                seed,
+                packed: &mut self.packed,
+            })
+            .map_err(|_| MapError)
     }
     fn next_value_seed<V: DeserializeSeed<'de>>(
         &mut self,
         seed: V,
     ) -> Result<V::Value, Self::Error> {
-        self.access
-            .next_value_seed(Seed(seed, self.compact, self.packed))
+        if self.compact && self.packed {
+            self.access
+                .next_value_seed(super::packed::ValueSeed(seed))
+                .map_err(|_| MapError)
+        } else {
+            self.access
+                .next_value_seed(Seed(seed, self.compact))
+                .map_err(|_| MapError)
+        }
     }
     fn size_hint(&self) -> Option<usize> {
         self.access.size_hint()
@@ -264,7 +288,7 @@ impl<'de, A: EnumAccess<'de>> EnumAccess<'de> for Enum<A> {
         self,
         seed: V,
     ) -> Result<(V::Value, Self::Variant), Self::Error> {
-        let (value, variant) = self.0.variant_seed(Seed(seed, self.1, false))?;
+        let (value, variant) = self.0.variant_seed(Seed(seed, self.1))?;
         Ok((value, Variant(variant, self.1)))
     }
 }
@@ -278,7 +302,7 @@ impl<'de, A: VariantAccess<'de>> VariantAccess<'de> for Variant<A> {
         self,
         seed: T,
     ) -> Result<T::Value, Self::Error> {
-        self.0.newtype_variant_seed(Seed(seed, self.1, false))
+        self.0.newtype_variant_seed(Seed(seed, self.1))
     }
     fn tuple_variant<V: Visitor<'de>>(
         self,
@@ -303,12 +327,4 @@ impl<'de, A: VariantAccess<'de>> VariantAccess<'de> for Variant<A> {
     ) -> Result<V::Value, Self::Error> {
         self.0.struct_variant(fields, Bridge::new(visitor, self.1))
     }
-}
-
-pub(super) fn visit_array<'de, V: Visitor<'de>, A: SeqAccess<'de>>(
-    visitor: V,
-    access: A,
-    compact: bool,
-) -> Result<V::Value, A::Error> {
-    Bridge::new(visitor, compact).visit_seq(access)
 }
