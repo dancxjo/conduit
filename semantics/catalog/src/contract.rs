@@ -30,8 +30,8 @@ impl StandardKindContract {
             .iter()
             .chain(&self.outputs)
             .filter_map(|port| {
-                portable_value_maximum_bytes(port.value_kind.as_str()).map(|maximum_bytes| {
-                    FrontValueContract {
+                portable_value_maximum_bytes(self.kind_id.as_str(), port.value_kind.as_str()).map(
+                    |maximum_bytes| FrontValueContract {
                         location: match port.direction {
                             PortDirection::Input => FrontValueLocation::Input(port.port_id.clone()),
                             PortDirection::Output => {
@@ -44,8 +44,8 @@ impl StandardKindContract {
                             Vec::new(),
                         )
                         .expect("portable Face value envelope is finite"),
-                    }
-                })
+                    },
+                )
             })
             .collect::<Vec<_>>();
         let mut semantic_laws = alloc::vec![KindSemanticLaw::Terminal(self.terminal_behavior)];
@@ -68,7 +68,17 @@ impl StandardKindContract {
 
 /// Domain-owned finite envelopes for the portable Face values whose encoding
 /// size is not implied by a primitive core Info Kind.
-fn portable_value_maximum_bytes(kind: &str) -> Option<u64> {
+fn portable_value_maximum_bytes(owner: &str, kind: &str) -> Option<u64> {
+    // Only these existing Fores promise the canonical decimal capsule. Other
+    // Quantity realization profiles keep their own admitted representation bounds.
+    if kind == conduit_core::QUANTITY_INFO_ID
+        && matches!(
+            owner,
+            crate::QUANTITY_MAP_KIND | crate::QUANTITY_INFO_WRAP_KIND
+        )
+    {
+        return Some(conduit_core::QUANTITY_ENCODED_LEN as u64);
+    }
     match kind {
         conduit_face::FACE_COMPOSITION_KIND => {
             Some(conduit_face::MAX_FACE_COMPOSITION_BYTES as u64)
