@@ -1,7 +1,7 @@
 //! Human window lifetime is independent of bounded boot-verification receipts.
 use super::{
-    demo, ia32_firmware, profile::Paths, report, riscv64_emulator, riscv64_firmware, ConduitosArch,
-    ConduitosError,
+    demo, ia32_firmware, loongarch64_emulator, loongarch64_entropy_input, loongarch64_firmware,
+    profile::Paths, report, riscv64_emulator, riscv64_firmware, ConduitosArch, ConduitosError,
 };
 use crate::{cli::GlobalOpts, commands::host::host_target};
 use std::{
@@ -31,6 +31,7 @@ pub(crate) fn launch(output: &Path, opts: &GlobalOpts) -> Result<(), ConduitosEr
         "conduitos/ia32/pc" => ConduitosArch::Ia32,
         "conduitos/aarch64/virt" => ConduitosArch::Aarch64,
         "conduitos/riscv64/virt" => ConduitosArch::Riscv64,
+        "conduitos/loongarch64/virt" => ConduitosArch::Loongarch64,
         _ => {
             return Err(io(
                 "persistent graphical launch is not yet qualified for this target",
@@ -48,6 +49,7 @@ pub(crate) fn launch(output: &Path, opts: &GlobalOpts) -> Result<(), ConduitosEr
     let session = Session {
         directory,
         vars: None,
+        _entropy: None,
     };
     if !opts.dry_run {
         fs::create_dir_all(&paths.target).map_err(io)?;
@@ -121,6 +123,7 @@ pub(crate) fn launch(output: &Path, opts: &GlobalOpts) -> Result<(), ConduitosEr
 struct Session {
     directory: PathBuf,
     vars: Option<PathBuf>,
+    _entropy: Option<loongarch64_entropy_input::Input>,
 }
 impl Drop for Session {
     fn drop(&mut self) {
@@ -237,10 +240,39 @@ fn configure(
             firmware.extend([sbi, code, template]);
             c
         }
+        ConduitosArch::Loongarch64 => {
+            let qemu = loongarch64_emulator::selected_graphical(paths)?;
+            let code = loongarch64_firmware::paths(paths)?;
+            let entropy = private_entropy(&mut session, dry)?;
+            let mut c = Command::new(qemu);
+            c.args([
+                "-machine",
+                "virt",
+                "-cpu",
+                "la464",
+                "-m",
+                "2G",
+                "-smp",
+                "1",
+                "-accel",
+                "tcg,thread=single",
+                "-display",
+                "sdl",
+                "-serial",
+                "stdio",
+                "-device",
+                "ramfb",
+                "-bios",
+            ])
+            .arg(&code)
+            .args(["-fw_cfg", &entropy]);
+            firmware.push(code);
+            c
+        }
         _ => return Err(io("unsupported persistent launch architecture")),
     };
     command.args(["-monitor", "none", "-net", "none", "-no-reboot"]);
-    if arch == ConduitosArch::Riscv64 {
+    if matches!(arch, ConduitosArch::Riscv64 | ConduitosArch::Loongarch64) {
         command
             .arg("-drive")
             .arg(format!(
@@ -252,6 +284,17 @@ fn configure(
         command.arg("-cdrom").arg(image).args(["-boot", "d"]);
     }
     Ok((command, firmware, session))
+}
+fn private_entropy(session: &mut Session, dry: bool) -> Result<String, ConduitosError> {
+    if dry {
+        return Ok(
+            "name=opt/conduitos/cryptographic-entropy@1,file=<fresh-private-session-input>".into(),
+        );
+    }
+    let input = loongarch64_entropy_input::Input::acquire(&session.directory)?;
+    let argument = input.argument()?;
+    session._entropy = Some(input);
+    Ok(argument)
 }
 fn private_vars(
     template: &Path,

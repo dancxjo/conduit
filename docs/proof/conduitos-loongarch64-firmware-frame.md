@@ -112,6 +112,7 @@ prepared:
 cargo xtask make conduitos prepare-loongarch64-domain-emulator --graphical
 cargo xtask make host build targets/conduitos/profiles/conduitos-loongarch64-graphical.host.conduit --output target/host-build/loongarch64-graphics
 cargo xtask make host verify target/host-build/loongarch64-graphics --boot
+cargo xtask make host launch target/host-build/loongarch64-graphics
 ```
 
 Verification captures two guests and stops them. PR admission, merged-source

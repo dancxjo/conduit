@@ -17,10 +17,12 @@ fn sessions_get_independent_private_vars_and_drop_only_their_copies() {
     let mut first = Session {
         directory: root.join("first"),
         vars: None,
+        _entropy: None,
     };
     let mut second = Session {
         directory: root.join("second"),
         vars: None,
+        _entropy: None,
     };
     for d in [&first.directory, &second.directory] {
         fs::DirBuilder::new().mode(0o700).create(d).unwrap();
@@ -49,9 +51,45 @@ fn dry_run_does_not_create_private_vars_or_acquire_ownership() {
     let mut session = Session {
         directory: PathBuf::from("nonexistent-conduit-dry-run"),
         vars: None,
+        _entropy: None,
     };
     let vars = private_vars(Path::new("no-template-is-read"), &mut session, true).unwrap();
     assert_eq!(vars, session.directory.join("vars.fd"));
     assert!(session.vars.is_none());
     assert!(!session.directory.exists());
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn entropy_lives_with_session_and_dry_run_does_not_acquire_it() {
+    let directory =
+        std::env::temp_dir().join(format!("conduit-launch-entropy-{}", std::process::id()));
+    fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&directory)
+        .unwrap();
+    let mut session = Session {
+        directory: directory.clone(),
+        vars: None,
+        _entropy: None,
+    };
+    private_entropy(&mut session, true).unwrap();
+    assert_eq!(fs::read_dir(&directory).unwrap().count(), 0);
+    assert!(session._entropy.is_none());
+    private_entropy(&mut session, false).unwrap();
+    let file = fs::read_dir(&directory)
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    assert_eq!(fs::metadata(&file).unwrap().len(), 4096);
+    assert_eq!(
+        fs::metadata(&file).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+    assert!(file.exists());
+    drop(session);
+    assert!(!file.exists());
+    fs::remove_dir(directory).unwrap();
 }

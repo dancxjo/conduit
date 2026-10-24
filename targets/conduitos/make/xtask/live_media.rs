@@ -40,7 +40,10 @@ pub(super) struct LiveMediaRow {
     pub profile: &'static str,
     pub artifact: &'static str,
     pub format: &'static str,
+    /// Whether the default live PROFILE is graphical.
     pub graphical: bool,
+    pub graphical_profile: &'static str,
+    pub local_input: bool,
     pub emulator: &'static str,
 }
 
@@ -61,6 +64,8 @@ impl LiveHost {
                 artifact: "conduitos-x86_64.iso",
                 format: "hybrid BIOS/UEFI ISO",
                 graphical: true,
+                graphical_profile: "conduitos-native.host.conduit",
+                local_input: true,
                 emulator: "QEMU q35",
             },
             Self::Ia32 => LiveMediaRow {
@@ -69,6 +74,8 @@ impl LiveHost {
                 artifact: "conduitos-ia32.iso",
                 format: "hybrid BIOS/UEFI ISO",
                 graphical: false,
+                graphical_profile: "conduitos-ia32-graphical.host.conduit",
+                local_input: false,
                 emulator: "QEMU pc",
             },
             Self::Aarch64 => LiveMediaRow {
@@ -77,6 +84,8 @@ impl LiveHost {
                 artifact: "conduitos-aarch64.iso",
                 format: "UEFI ISO",
                 graphical: false,
+                graphical_profile: "conduitos-aarch64-graphical.host.conduit",
+                local_input: false,
                 emulator: "QEMU virt",
             },
             Self::Riscv64 => LiveMediaRow {
@@ -85,6 +94,8 @@ impl LiveHost {
                 artifact: "conduitos-riscv64.iso",
                 format: "UEFI ISO",
                 graphical: false,
+                graphical_profile: "conduitos-riscv64-graphical.host.conduit",
+                local_input: false,
                 emulator: "QEMU virt",
             },
             Self::Loongarch64 => LiveMediaRow {
@@ -93,6 +104,8 @@ impl LiveHost {
                 artifact: "conduitos-loongarch64.iso",
                 format: "UEFI ISO",
                 graphical: false,
+                graphical_profile: "conduitos-loongarch64-graphical.host.conduit",
+                local_input: false,
                 emulator: "QEMU virt",
             },
         }
@@ -306,7 +319,7 @@ pub(super) fn matrix(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         capability_gaps: [
             "armv6 Raspberry Pi images remain proof-appliance media, not normal product Hosts",
             "Orange Pi 5 media remains deterministic artifact-only, without accepted product boot",
-            "only x86_64 currently has the native graphical shell and local input",
+            "all five hosts have optional normal graphical PROFILEs; only x86_64 has local input",
         ],
     };
     println!(

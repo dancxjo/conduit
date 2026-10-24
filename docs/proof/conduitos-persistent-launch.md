@@ -24,7 +24,7 @@ backend must be available.
 | AArch64 | virt/neoverse-n2, firmware ramfb, SDL window | Read-only snapshot |
 | IA-32 | q35/max, pinned UEFI32, std VGA, SDL window | Read-only snapshot |
 | RISC-V64 | Prepared graphical virt/rv64 tool, paired firmware, ramfb, SDL window | Read-only snapshot |
-| LoongArch64 | Unavailable until normal graphical product qualification | Not claimed |
+| LoongArch64 | Prepared graphical virt/la464 tool, immutable ROM, ramfb, SDL window; private session entropy | Read-only snapshot |
 
 Serial-only products refuse this window entrance before selecting an emulator.
 No local input provider is added to a graphical snapshot. The launcher prints
@@ -68,6 +68,6 @@ An initial plain Cargo check was stopped with status 143 to prevent disk
 exhaustion. It is retained as an aborted check, not a pass. Disposable compiler
 outputs were reclaimed before the successful bounded-cache checks above.
 
-This launcher does not complete #6057. The LoongArch normal graphical product,
-all-five comparison, truthful matrices and required integration acceptance
-remain separate outstanding obligations.
+The original packet predates LoongArch qualification. Its normal graphical
+product and the all-five comparison now have separate retained evidence.
+Required Candidate and combined integration acceptance remain outstanding.
