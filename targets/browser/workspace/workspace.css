@@ -99,13 +99,14 @@ a { color:var(--muted); text-decoration:none; }
 .transport-note { border-left:2px solid var(--line); padding-left:.8rem; font-size:.8rem; }
 .workspace-creche { width:min(46rem,100%); margin:0 auto 2rem; padding:2rem; border:1px solid var(--line); border-radius:.5rem; background:var(--panel); }
 .birth-face { display:grid; gap:1rem; }
+.birth-face,.birth-face *{min-width:0;overflow-wrap:anywhere}
 .birth-face [data-application-component="shell"], .birth-face [data-application-component="stack"] { display:grid; gap:1rem; align-content:start; }
 .birth-face [data-application-component="form-field"] { display:grid; gap:.4rem; }
 .birth-face [data-application-component="field-help"] { color:var(--muted); font-size:.8rem; margin:0; line-height:1.5; }
 .birth-face [data-application-key="creche-heading"] { color:var(--ink); font-size:1.6rem; margin:0 0 .5rem; font-weight:500; }
 .birth-face input:not([type="checkbox"]), .birth-face select, .birth-face textarea { width:100%; padding:.65rem; background:var(--field); color:var(--ink); border:1px solid var(--line); border-radius:.3rem; font:inherit; }
 .birth-face input[type="checkbox"] { accent-color:var(--amber); }
-.birth-face [data-application-key="initial-plots"] { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.birth-face [data-application-key="initial-plots"] { grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr)); }
 .birth-face [data-application-component="choice-group-label"] { grid-column:1/-1; }
 .birth-face [data-application-key="birth-body"] { justify-self:start; background:var(--amber); color:var(--paper); }
 .birth-face [data-application-key="suggest-name"] { justify-self:start; }
@@ -171,7 +172,7 @@ html:root[data-workspace-look]{background:var(--paper)}
 .workspace-icon{width:18px;height:18px;display:inline-block;vertical-align:-.2em;flex:none;margin-inline-end:8px;pointer-events:none}
 .workspace-look-picker>.workspace-icon{display:none}
 :root[data-workspace-look] .birth-face [data-application-key=creche-heading]{font-family:var(--workspace-title);font-size:clamp(30px,4vw,42px);line-height:1.15;letter-spacing:-.035em;margin-bottom:16px}
-.birth-face [data-application-component=choice-option-label]{display:flex;align-items:center;gap:10px;min-height:44px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--field);line-height:1.4;overflow-wrap:anywhere}
+.birth-face [data-application-component=choice-option-label]{display:flex;align-items:center;gap:10px;min-height:44px;width:auto;max-width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--field);line-height:1.4;overflow-wrap:anywhere}
 .birth-face [data-application-component=choice-option-label]:has(input:checked){border-color:var(--amber);box-shadow:inset 3px 0 var(--amber)}
 .birth-face [data-application-component=choice-option-label]:has(input:focus-visible){outline:3px solid var(--workspace-focus);outline-offset:3px}
 .birth-face input[type=checkbox]{width:18px;height:18px;flex:none;margin:0}
@@ -180,6 +181,14 @@ html:root[data-workspace-look]{background:var(--paper)}
 .birth-face [data-application-key^=birth-review-plot-]{display:block;font-size:13px;line-height:1.8;padding-inline:16px}
 .birth-face [data-application-key=birth-body]{min-height:48px;padding-inline:24px;font-weight:650}
 .workspace-creche [data-application-key=join-body]{padding-top:24px;border-top:1px solid var(--line)}
+.body-invitation-receiver{overflow-wrap:anywhere;border-top:1px solid var(--line);margin-top:24px;padding-top:24px;min-width:0}
+.body-invitation-receiver h2{font-family:var(--workspace-title);font-weight:500;line-height:1.25}
+.body-invitation-receiver form{display:flex;align-items:end;flex-wrap:wrap;gap:12px}
+.body-invitation-receiver label{display:grid;gap:8px;flex:1 1 20rem;min-width:0}
+.body-invitation-receiver input{width:100%;min-width:0;min-height:44px;padding:10px 12px;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px}
+.body-invitation-receiver button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.body-invitation-receiver .owner-face-icon{width:1em;height:1em;vertical-align:-.15em;margin-inline-end:.5em;pointer-events:none}
+.body-invitation-receiver [role=status]{overflow-wrap:anywhere;line-height:1.6}
 @media(min-width:1000px){
  .birth-face [data-application-key=creche]{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);column-gap:40px;row-gap:20px}
  .birth-face [data-application-key=body-name]{grid-column:1;grid-row:2}

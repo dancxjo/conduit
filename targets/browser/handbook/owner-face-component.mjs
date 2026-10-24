@@ -1,4 +1,4 @@
-import { decorate, iconForRole, iconForIntent } from './owner-face-icons.mjs';
+import { decorate, iconForRole, iconForIntent } from "./owner-face-icons.mjs";
 // A reusable browser realization of the checked owner Face. The SDK owns the
 // Mask Plan, Play, Show acknowledgement and typed return route; this element
 // owns only native controls and appearance.

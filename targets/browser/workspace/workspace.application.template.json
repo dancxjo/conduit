@@ -204,6 +204,10 @@
         {
           "role": "browser-adapter",
           "specifier": "../../../targets/browser/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "owner-face-icons",
+          "specifier": "../handbook/owner-face-icons.mjs"
         }
       ]
     },

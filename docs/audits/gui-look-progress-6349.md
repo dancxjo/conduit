@@ -3,7 +3,7 @@
 Draft implementation and local visual review for #6349, with the original
 #6174 and #5366 acceptance preserved. All three issues remain open.
 
-Current native and browser captures use Source `2ab838ae2`. Native Crèche now
+The earlier refinement captures below use Source `2ab838ae2`. Native Crèche now
 has checked outer margins, cohesive naming/Plot panels, explicit action icons,
 serif hierarchy, clear primary/focus treatment and compact/spacious expression.
 Browser Workspace offers Editorial, Engineering and Phosphor chrome choices;
@@ -105,3 +105,23 @@ The initial SDK/native failures were `/tmp` quota exhaustion; logs were retained
 and the checks passed with workspace-local temporary storage. This checkpoint
 reclaimed about 18 GB of unowned incremental outputs after process/map/fd audit;
 active builds, source and unique evidence were preserved.
+
+## Packaged-runtime follow-up
+
+The latest normal-product native image at `dd5349718` boots and presents the
+shared search/collection vocabulary. Compact Editorial uses 48/48 commands with
+all four selected Plots on the first page; spacious uses 25/48. The unchanged
+Face revision and fresh chained local Shows are recorded in the new captures.
+
+Fresh packaged-browser execution caught a dependency import quoting mismatch
+missed by direct renderer checks. The import now follows the sealed loader
+contract. Birth and Look switching work with all 92 admitted resources. The
+invitation receiver gains shared Body/Inspect icons and readable 44px fields.
+Grid minima and choice widths now allow narrow/large-text wrapping; no content
+is hidden or clipped. The actual packaged app is checked at 1440/390/320 widths,
+plus 32px/64px text with forced colors and keyboard invalid-input refusal.
+
+The [surface inventory](gui-surface-inventory-6349.md) identifies remaining
+ordinary-GUI coverage gaps and explicit fallbacks. Full resident-Mask Look
+selection, native pointer/large-text enactment and original parent acceptance
+remain outstanding.
