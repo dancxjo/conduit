@@ -1355,3 +1355,14 @@ checks foreign and duplicate finish, old-generation refusal, and separately
 sealed fixture Plans selecting newer generations; strict lint and the ESP32
 release build pass. This is not a physical second Play or reconstructed ready
 offers. Executor reuse and explicit fresh Root preparation remain open.
+
+The combined sensing/setup check now passes with explicit workspace ordering.
+A private HTTP network request acknowledged during sensing remains queued as
+`awaiting-native-retirement` through all three real, signed observations and
+ordinary Body Faces. Verified quiescence, ordinary Lull and signed retirement
+release the workspace; only then does Root admit one join attempt and restore
+the AP on association rejection in the same Boot. Final Root heap use was 15,444
+bytes with a 105,592-byte peak. See `evidence/2026-10-23-queued-network-setup/`.
+The failed startup and concurrent-construction captures remain separate evidence.
+This profile serializes those constructions; it does not yet provide production
+host-driven pause/resume, a second native Play or durable overnight recording.
