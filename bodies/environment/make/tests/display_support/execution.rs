@@ -12,173 +12,200 @@ mod output_owner;
 #[test]
 fn checked_output_services_real_requests_and_exposes_refusal_without_pin_effects() {
     for mode in 0..3 {
-        let brightness = if mode == 1 { 8 } else { 3 };
-        let source = DisplayOutputSource::compile().unwrap();
-        let (host, grant, mut software) = fixture(&source);
-        let prepared = PreparedDisplayOutput::prepare(
-            &source,
-            &host,
-            &["fixture/base".into(), "conduit.base/local@1".into()],
-            &[grant],
-        )
-        .unwrap();
-        let mut execution =
-            PreparedDisplayKernel::prepare(prepared.plan(), prepared.lowered(), &mut software, 2)
-                .unwrap();
-        let edges = Rc::new(Cell::new(0));
-        let mut owner = output_owner::bind(&prepared, output_owner::Pins(edges.clone()));
-        let mut encoder = PreparedDisplayPackets::prepare().unwrap();
-        let registers = [0x7d, 0xff, 0x66, 0x71, 0, 0];
-        let frame = encoder
-            .encode_frame(registers, brightness, true)
-            .unwrap()
-            .to_vec();
-        execution.input.validate_value(&frame).unwrap();
-        assert_eq!(
-            execution
-                .kernel
-                .admit_remote_input(execution.input.endpoint, execution.input.cord, 0, &frame)
+        run_output_mode(mode, |prepared, software| {
+            PreparedDisplayKernel::prepare(prepared.plan(), prepared.lowered(), software, 2)
+                .unwrap()
+        });
+        run_output_mode(mode, |prepared, software| {
+            PreparedDisplayKernel::prepare_with_storage(
+                prepared.plan(),
+                prepared.lowered(),
+                software,
+                2,
+                k::HostedValueStore::new(12, 1024, 12 * 1024).unwrap(),
+                k::HostedSignLog::new_with_remote_storage(
+                    256,
+                    256 * core::mem::size_of::<k::KernelEvent>() as u32,
+                    256,
+                    k::remote_sign_storage_bytes(256).unwrap(),
+                )
                 .unwrap(),
-            RemoteIngressOutcome::Accepted { sequence: 0 }
-        );
-        if mode != 0 {
-            execution
-                .kernel
-                .close_remote_input(execution.input.endpoint, execution.input.cord)
-                .unwrap();
-        }
-        let expected = encoder
-            .encode_canonical(registers, 3, true)
+            )
             .unwrap()
-            .to_vec();
-        let second_registers = [0, 0x6d, 0x6f, 0x76, 0, 0];
-        let second_frame = encoder
-            .encode_frame(second_registers, 3, true)
-            .unwrap()
-            .to_vec();
-        let second_expected = encoder
-            .encode_canonical(second_registers, 3, true)
-            .unwrap()
-            .to_vec();
-        let mut writes = 0;
-        let mut refusals = 0;
-        let mut drained = false;
-        let ((), memory) = crate::allocation_probe::observe(|| {
-            for _ in 0..100 {
-                if let Some(request) = execution.kernel.next_host_request() {
-                    let bytes = execution.kernel.host_value(request.input.value).unwrap();
-                    let output = if request.node == execution.write {
-                        assert_eq!(
-                            bytes,
-                            if writes == 0 {
-                                &expected
-                            } else {
-                                &second_expected
-                            }
-                        );
-                        if mode == 2 {
-                            execution.kernel.cancel().unwrap();
-                            owner.revoke(request.node, request.call).unwrap();
-                            assert!(execution
-                                .kernel
-                                .complete_host_call(
-                                    request.node,
-                                    request.request,
-                                    k::HostCallOutcome {
-                                        disposition: k::HostCallDisposition::Completed,
-                                        output: None,
-                                        failure: None,
-                                    }
-                                )
-                                .is_err());
-                            break;
+        });
+    }
+}
+fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
+    mode: u8,
+    prepare: impl FnOnce(
+        &PreparedDisplayOutput,
+        &mut conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
+    ) -> PreparedDisplayKernel<S, L>,
+) {
+    let brightness = if mode == 1 { 8 } else { 3 };
+    let source = DisplayOutputSource::compile().unwrap();
+    let (host, grant, mut software) = fixture(&source);
+    let prepared = PreparedDisplayOutput::prepare(
+        &source,
+        &host,
+        &["fixture/base".into(), "conduit.base/local@1".into()],
+        &[grant],
+    )
+    .unwrap();
+    let mut execution = prepare(&prepared, &mut software);
+    let edges = Rc::new(Cell::new(0));
+    let mut owner = output_owner::bind(&prepared, output_owner::Pins(edges.clone()));
+    let mut encoder = PreparedDisplayPackets::prepare().unwrap();
+    let registers = [0x7d, 0xff, 0x66, 0x71, 0, 0];
+    let frame = encoder
+        .encode_frame(registers, brightness, true)
+        .unwrap()
+        .to_vec();
+    execution.input.validate_value(&frame).unwrap();
+    assert_eq!(
+        execution
+            .kernel
+            .admit_remote_input(execution.input.endpoint, execution.input.cord, 0, &frame)
+            .unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    if mode != 0 {
+        execution
+            .kernel
+            .close_remote_input(execution.input.endpoint, execution.input.cord)
+            .unwrap();
+    }
+    let expected = encoder
+        .encode_canonical(registers, 3, true)
+        .unwrap()
+        .to_vec();
+    let second_registers = [0, 0x6d, 0x6f, 0x76, 0, 0];
+    let second_frame = encoder
+        .encode_frame(second_registers, 3, true)
+        .unwrap()
+        .to_vec();
+    let second_expected = encoder
+        .encode_canonical(second_registers, 3, true)
+        .unwrap()
+        .to_vec();
+    let mut writes = 0;
+    let mut refusals = 0;
+    let mut drained = false;
+    let ((), memory) = crate::allocation_probe::observe(|| {
+        for _ in 0..100 {
+            if let Some(request) = execution.kernel.next_host_request() {
+                let bytes = execution.kernel.host_value(request.input.value).unwrap();
+                let output = if request.node == execution.write {
+                    assert_eq!(
+                        bytes,
+                        if writes == 0 {
+                            &expected
+                        } else {
+                            &second_expected
                         }
-                        owner
-                            .invoke(request.node, request.call, request.request, bytes, || false)
-                            .unwrap();
-                        writes += 1;
-                        if mode == 0 && writes == 1 {
-                            execution.input.validate_value(&second_frame).unwrap();
-                            assert_eq!(
-                                execution
-                                    .kernel
-                                    .admit_remote_input(
-                                        execution.input.endpoint,
-                                        execution.input.cord,
-                                        1,
-                                        &second_frame
-                                    )
-                                    .unwrap(),
-                                RemoteIngressOutcome::Accepted { sequence: 1 }
-                            );
+                    );
+                    if mode == 2 {
+                        execution.kernel.cancel().unwrap();
+                        owner.revoke(request.node, request.call).unwrap();
+                        assert!(execution
+                            .kernel
+                            .complete_host_call(
+                                request.node,
+                                request.request,
+                                k::HostCallOutcome {
+                                    disposition: k::HostCallDisposition::Completed,
+                                    output: None,
+                                    failure: None,
+                                }
+                            )
+                            .is_err());
+                        break;
+                    }
+                    owner
+                        .invoke(request.node, request.call, request.request, bytes, || false)
+                        .unwrap();
+                    writes += 1;
+                    if mode == 0 && writes == 1 {
+                        execution.input.validate_value(&second_frame).unwrap();
+                        assert_eq!(
                             execution
                                 .kernel
-                                .close_remote_input(execution.input.endpoint, execution.input.cord)
-                                .unwrap();
-                        }
-                        None
-                    } else {
-                        let selector = execution.selectors[usize::from(request.node.0)]
-                            .as_mut()
-                            .expect("exact selected selector");
-                        selector.select(bytes).unwrap().map(|value| {
-                            k::BoundedValueRef::new(
-                                execution.kernel.store_host_value(value).unwrap(),
-                                1024,
-                            )
-                            .unwrap()
-                        })
-                    };
-                    execution
-                        .kernel
-                        .complete_host_call(
-                            request.node,
-                            request.request,
-                            k::HostCallOutcome {
-                                disposition: k::HostCallDisposition::Completed,
-                                output,
-                                failure: None,
-                            },
+                                .admit_remote_input(
+                                    execution.input.endpoint,
+                                    execution.input.cord,
+                                    1,
+                                    &second_frame
+                                )
+                                .unwrap(),
+                            RemoteIngressOutcome::Accepted { sequence: 1 }
+                        );
+                        execution
+                            .kernel
+                            .close_remote_input(execution.input.endpoint, execution.input.cord)
+                            .unwrap();
+                    }
+                    None
+                } else {
+                    let selector = execution.selectors[usize::from(request.node.0)]
+                        .as_mut()
+                        .expect("exact selected selector");
+                    selector.select(bytes).unwrap().map(|value| {
+                        k::BoundedValueRef::new(
+                            execution.kernel.store_host_value(value).unwrap(),
+                            1024,
                         )
-                        .unwrap();
-                }
-                if let Some(offer) = execution
+                        .unwrap()
+                    })
+                };
+                execution
                     .kernel
-                    .remote_egress_offer(execution.refusal.endpoint, execution.refusal.cord)
-                    .unwrap()
-                {
-                    execution
-                        .refusal
-                        .validate_value(execution.kernel.host_value(offer.value).unwrap())
-                        .unwrap();
-                    execution
-                        .kernel
-                        .remote_egress_accept(offer.endpoint, offer.cord, offer.sequence)
-                        .unwrap();
-                    execution
-                        .kernel
-                        .remote_egress_delivered(offer.endpoint, offer.cord, offer.sequence)
-                        .unwrap();
-                    refusals += 1;
-                }
-                if execution.kernel.step().unwrap() == SchedulerStatus::Drained {
-                    drained = true;
-                    break;
-                }
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        k::HostCallOutcome {
+                            disposition: k::HostCallDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .unwrap();
             }
-        });
-        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
-        if mode == 2 {
-            assert_eq!((writes, refusals, edges.get()), (0, 0, 0));
-            continue;
+            if let Some(offer) = execution
+                .kernel
+                .remote_egress_offer(execution.refusal.endpoint, execution.refusal.cord)
+                .unwrap()
+            {
+                execution
+                    .refusal
+                    .validate_value(execution.kernel.host_value(offer.value).unwrap())
+                    .unwrap();
+                execution
+                    .kernel
+                    .remote_egress_accept(offer.endpoint, offer.cord, offer.sequence)
+                    .unwrap();
+                execution
+                    .kernel
+                    .remote_egress_delivered(offer.endpoint, offer.cord, offer.sequence)
+                    .unwrap();
+                refusals += 1;
+            }
+            if execution.kernel.step().unwrap() == SchedulerStatus::Drained {
+                drained = true;
+                break;
+            }
         }
-        assert!(drained);
-        assert_eq!(
-            (writes, refusals),
-            if brightness < 8 { (2, 0) } else { (0, 1) }
-        );
-        assert_eq!(edges.get() > 0, brightness < 8);
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    if mode == 2 {
+        assert_eq!((writes, refusals, edges.get()), (0, 0, 0));
+        return;
     }
+    assert!(drained);
+    assert_eq!(
+        (writes, refusals),
+        if brightness < 8 { (2, 0) } else { (0, 1) }
+    );
+    assert_eq!(edges.get() > 0, brightness < 8);
 }
 #[test]
 fn preparation_refusal_preserves_all_unselected_software() {
@@ -231,5 +258,84 @@ fn preparation_refusal_preserves_all_unselected_software() {
         software
             .check_selected(fragment, &gear.placement_id)
             .unwrap();
+    }
+}
+
+#[test]
+fn admitted_storage_refusals_precede_software_transfer() {
+    use conduit_environment_runtime::display_output::DisplayPreparationRefusal as E;
+    use k::ValueStorage;
+    let source = DisplayOutputSource::compile().unwrap();
+    let (host, grant, mut software) = fixture(&source);
+    let prepared = PreparedDisplayOutput::prepare(
+        &source,
+        &host,
+        &["fixture/base".into(), "conduit.base/local@1".into()],
+        &[grant],
+    )
+    .unwrap();
+    for case in 0..6 {
+        let mut values = k::HostedValueStore::new(
+            if case == 0 { 11 } else { 12 },
+            1024,
+            if case == 0 {
+                11 * 1024
+            } else if case == 1 {
+                12 * 1024 - 1
+            } else {
+                12 * 1024
+            },
+        )
+        .unwrap();
+        if case == 2 {
+            values.store(&[1]).unwrap();
+        }
+        let mut signs = k::HostedSignLog::new_with_remote_storage(
+            if case == 3 { 1 } else { 256 },
+            (if case == 3 { 1 } else { 256 }) * core::mem::size_of::<k::KernelEvent>() as u32,
+            if case == 4 {
+                0
+            } else if case == 3 {
+                1
+            } else {
+                256
+            },
+            if case == 4 {
+                0
+            } else {
+                k::remote_sign_storage_bytes(if case == 3 { 1 } else { 256 }).unwrap()
+            },
+        )
+        .unwrap();
+        if case == 5 {
+            use k::SignSink;
+            signs
+                .record(k::NodeId(0), None, None, k::KernelEventKind::BackCompleted)
+                .unwrap();
+        }
+        assert!(
+            matches!(
+                PreparedDisplayKernel::prepare_with_storage(
+                    prepared.plan(),
+                    prepared.lowered(),
+                    &mut software,
+                    2,
+                    values,
+                    signs,
+                ),
+                Err(E::Bounds)
+            ),
+            "case {case}"
+        );
+        let fragment = &prepared.plan().fragments[0];
+        for gear in fragment
+            .placements
+            .iter()
+            .filter(|p| p.kind_id.as_str() != conduit_tm1637_wire::WRITE_KIND)
+        {
+            software
+                .check_selected(fragment, &gear.placement_id)
+                .unwrap();
+        }
     }
 }

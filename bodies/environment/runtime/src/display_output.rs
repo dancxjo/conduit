@@ -7,6 +7,7 @@ use crate::{
     },
     PreparedCaptureSelector,
 };
+use alloc::boxed::Box;
 use conduit_core as c;
 use conduit_kernel::{self as k, scheduler::*};
 use conduit_plan_lowering::lowering::{
@@ -44,19 +45,8 @@ impl<const P: usize> StepBack<P> for DisplayBack {
         }
     }
 }
-pub type DisplayKernel = FixedScheduler<
-    DisplayBack,
-    k::FixedValueStore<12, 1024>,
-    k::FixedSignLog<256>,
-    4,
-    5,
-    1,
-    5,
-    5,
-    5,
-    4,
-    4,
->;
+pub type DisplayKernel<S = k::FixedValueStore<12, 1024>, E = k::FixedSignLog<256>> =
+    FixedScheduler<DisplayBack, S, E, 4, 5, 1, 5, 5, 5, 4, 4>;
 #[derive(Debug, PartialEq, Eq)]
 pub enum DisplayPreparationRefusal {
     Identity,
@@ -66,8 +56,11 @@ pub enum DisplayPreparationRefusal {
     Tables,
     Software(SoftwareRefusal),
 }
-pub struct PreparedDisplayKernel {
-    pub kernel: DisplayKernel,
+pub struct PreparedDisplayKernel<
+    S: k::ValueStorage = k::FixedValueStore<12, 1024>,
+    E: k::SignSink = k::FixedSignLog<256>,
+> {
+    pub kernel: Box<DisplayKernel<S, E>>,
     pub selectors: [Option<PreparedCaptureSelector>; 4],
     pub write: k::NodeId,
     pub input: LoweredForePort,
@@ -83,6 +76,29 @@ impl PreparedDisplayKernel {
         lowered: &LoweredPlanFragment,
         software: &mut ReadySoftwareBacks,
         maximum_frames: u32,
+    ) -> Result<Self, DisplayPreparationRefusal> {
+        let values = k::FixedValueStore::<12, 1024>::new(12 * 1024)
+            .map_err(|_| DisplayPreparationRefusal::Bounds)?;
+        let signs = k::FixedSignLog::<256>::new_with_remote_storage(
+            256 * core::mem::size_of::<k::KernelEvent>() as u32,
+            256,
+            k::remote_sign_storage_bytes(256).ok_or(DisplayPreparationRefusal::Bounds)?,
+        )
+        .map_err(|_| DisplayPreparationRefusal::Bounds)?;
+        Self::prepare_with_storage(plan, lowered, software, maximum_frames, values, signs)
+    }
+}
+impl<S: k::ValueStorage, L: k::SignSink> PreparedDisplayKernel<S, L> {
+    /// Root admits both stores and construction headroom before calling this.
+    /// Storage must be empty and cover this profile's complete finite bounds.
+    /// All checks precede software transfer; no Step or native call runs here.
+    pub fn prepare_with_storage(
+        plan: &c::Plan,
+        lowered: &LoweredPlanFragment,
+        software: &mut ReadySoftwareBacks,
+        maximum_frames: u32,
+        values: S,
+        signs: L,
     ) -> Result<Self, DisplayPreparationRefusal> {
         use DisplayPreparationRefusal as E;
         let [fragment] = plan.fragments.as_slice() else {
@@ -132,6 +148,18 @@ impl PreparedDisplayKernel {
                 .cords
                 .iter()
                 .any(|c| c.spec.item_capacity != 1 || c.spec.byte_capacity > 1024)
+        {
+            return Err(E::Bounds);
+        }
+        if values.item_capacity() < 12
+            || values.byte_capacity() < 12 * 1024
+            || values.used_items() != 0
+            || values.used_bytes() != 0
+            || signs.item_capacity() < lowered.sign_items
+            || signs.byte_capacity() < lowered.sign_bytes
+            || !signs.is_empty()
+            || signs.used_bytes() != 0
+            || signs.ensure_remote_capacity(256).is_err()
         {
             return Err(E::Bounds);
         }
@@ -235,13 +263,6 @@ impl PreparedDisplayKernel {
         )
         .map_err(|_| E::Tables)?;
         let (routes, calls) = tables(lowered)?;
-        let values = k::FixedValueStore::<12, 1024>::new(12 * 1024).map_err(|_| E::Bounds)?;
-        let signs = k::FixedSignLog::<256>::new_with_remote_storage(
-            256 * core::mem::size_of::<k::KernelEvent>() as u32,
-            256,
-            k::remote_sign_storage_bytes(256).ok_or(E::Bounds)?,
-        )
-        .map_err(|_| E::Bounds)?;
         let mut selectors = core::array::from_fn(|_| None);
         // Tables and every software selection are checked before the first
         // transfer. Exclusive mutable custody prevents a competing selection.
@@ -256,7 +277,9 @@ impl PreparedDisplayKernel {
                 DisplayBack::Software(operation.driver)
             }
         });
-        let kernel = DisplayKernel::new_with_host_calls(
+        let kernel = DisplayKernel::new_boxed_with_active_counts_and_host_calls(
+            4,
+            5,
             core::array::from_fn(|i| NodeSpec {
                 input_cords: [lowered.node_specs[i].input_cords[0]],
                 maximum_step_fuel: lowered.node_specs[i].maximum_step_fuel,
