@@ -400,16 +400,37 @@ fn staging(
         0
     )
     .is_err());
-    let prepared = native_display_kernel::prepare(
-        staged.wire(),
-        profile,
-        &resident,
-        scope(),
-        software,
-        2,
-        usize::MAX,
-    )
-    .unwrap();
+    let needed = native_display_kernel::requirements().unwrap();
+    let (refused, usage) = allocation_probe::observe(|| {
+        native_display_kernel::prepare(
+            staged.wire(),
+            profile,
+            &resident,
+            scope(),
+            software,
+            2,
+            needed - 1,
+        )
+    });
+    assert!(refused.is_err());
+    assert_eq!((usage.allocations, usage.reallocations), (0, 0));
+    let (prepared, usage) = allocation_probe::observe(|| {
+        native_display_kernel::prepare(
+            staged.wire(),
+            profile,
+            &resident,
+            scope(),
+            software,
+            2,
+            needed,
+        )
+        .unwrap()
+    });
+    assert!(
+        usage.requested_bytes <= needed,
+        "{} requested against {needed} admitted",
+        usage.requested_bytes
+    );
     assert_eq!(prepared.identity, assignment.identity());
     assert_eq!(prepared.input, assignment.fore()[0]);
     // Replaying preparation cannot reconstruct withdrawn portable owners.

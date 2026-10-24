@@ -133,3 +133,10 @@ unstepped and issues no native possession or Body start. CPU tests cover memory
 refusal before transfer, successful construction and replay refusal. ESP32
 compilation passes; physical memory admission and continuous Mask scheduling
 are still unverified. No display image has replaced the working appliance.
+
+Owner replies now report the active profile's preparation bound rather than
+always reporting the sampler's bound. Display construction and reporting share
+one requirements function. The CPU allocation probe checks that one byte below
+the bound refuses with no allocation or reallocation, while exact-bound
+construction succeeds and its total requested allocation bytes stay within the
+admitted amount. This is CPU backing evidence, not MCU heap or stack proof.

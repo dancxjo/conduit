@@ -98,9 +98,7 @@ pub(super) fn encode(
         execution_context_bytes: root.execution_context_bytes(),
         worker: snapshot.or_else(|| root.worker_status()),
         retired_native_attachments: root.retired_native_attachments(),
-        kernel_additional_preparation_bound: crate::native_kernel::requirements()
-            .ok()
-            .map(|(bytes, _)| bytes),
+        kernel_additional_preparation_bound: root.kernel_preparation_bound(),
         capability_possession_issued: root.native_possession_prepared(),
         publication_bytes,
         acknowledgement: acknowledgement.as_ref(),

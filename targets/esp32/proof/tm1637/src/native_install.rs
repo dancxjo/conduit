@@ -14,6 +14,18 @@ use conduit_environment_runtime::appliance::assignment_transfer as t;
 #[cfg(not(feature = "display-ready-root"))]
 use conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput;
 impl NativeRoot {
+    pub fn kernel_preparation_bound(&self) -> Option<usize> {
+        #[cfg(feature = "display-ready-root")]
+        {
+            crate::native_display::kernel_preparation_bound().ok()
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            crate::native_kernel::requirements()
+                .ok()
+                .map(|(bytes, _)| bytes)
+        }
+    }
     pub fn authorize_native_preparation(
         &self,
         token: crate::native_owner_control::AuthenticatedRequest<'_>,

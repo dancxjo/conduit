@@ -27,13 +27,7 @@ pub fn prepare(
     }
     let slots = 256u16;
     let sign_bytes = 256 * core::mem::size_of::<k::KernelEvent>() as u32;
-    let values =
-        k::HostedValueStore::canonical_storage_bytes([1024; 12]).map_err(|_| "display-values")?;
-    let needed = values
-        + k::HostedSignLog::canonical_storage_bytes(slots, 256).ok_or("display-signs")?
-        + core::mem::size_of::<DisplayKernel<k::HostedValueStore, k::HostedSignLog>>()
-        + t::MAXIMUM_RECORDS * core::mem::size_of::<c::AssignedRecord<'_>>()
-        + 8192;
+    let needed = requirements()?;
     if available_bytes < needed {
         return Err("display-kernel-capacity");
     }
@@ -81,4 +75,18 @@ pub fn prepare(
         signs,
     )
     .map_err(|_| "display-kernel")
+}
+
+/// Additional backing and control headroom; already retained Source/software,
+/// staged wire and tables remain accounted in Root's current heap usage.
+pub fn requirements() -> Result<usize, &'static str> {
+    let slots = 256u16;
+    let values =
+        k::HostedValueStore::canonical_storage_bytes([1024; 12]).map_err(|_| "display-values")?;
+    let needed = values
+        + k::HostedSignLog::canonical_storage_bytes(slots, 256).ok_or("display-signs")?
+        + core::mem::size_of::<DisplayKernel<k::HostedValueStore, k::HostedSignLog>>()
+        + t::MAXIMUM_RECORDS * core::mem::size_of::<c::AssignedRecord<'_>>()
+        + 8192;
+    Ok(needed)
 }

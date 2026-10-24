@@ -228,3 +228,8 @@ impl NativeDisplay {
         Ok(())
     }
 }
+
+#[cfg(feature = "display-ready-root")]
+pub fn kernel_preparation_bound() -> Result<usize, &'static str> {
+    kernel::requirements()
+}
