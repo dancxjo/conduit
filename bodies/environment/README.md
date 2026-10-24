@@ -1441,3 +1441,19 @@ bytes and ended at 10,380 bytes. See
 `evidence/2026-10-24-native-display-readiness/`. Output remained unselected and
 the Shows explicitly record no physical delivery. The device is quiesced after
 the finite run; this does not claim a resident or overnight appliance.
+
+`DisplayOutputSource` checks the authored `display-output.conduit` against the
+existing protocol Types and the electrical sink's exact Fore. Packet encoding
+is a closing Flow, so timed pages can share one finite invocation. The packet
+result is routed to the write sink or the explicit `invalid_brightness` Fore;
+an invalid brightness is not acknowledged as a display update. Source contains
+no pin, Host, implementation, grant or hardware-profile binding facts.
+
+`PreparedDisplayOutput` uses ordinary placement, planning, sealed Fore and
+lowering over independently supplied current offers, Bases and authority. It
+admits one-item Frame/refusal queues with explicit byte ceilings and refuses
+missing output readiness/Base, missing authority or a foreign-Boot grant. The
+planning tests use explicit software/pin/authority fixtures and perform no I/O.
+The `display-output` proof includes these checks plus existing packet, Mask and
+native-owner regressions. This construction material does not install a Mask
+Play, start a timer or transmit packets; those remain separate Root work.

@@ -23,6 +23,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     for (manifest, test) in [
         ("bodies/environment/runtime/Cargo.toml", "display_packets"),
         ("bodies/environment/make/Cargo.toml", "native_face_mask"),
+        ("bodies/environment/make/Cargo.toml", "display_output"),
     ] {
         for operation in ["test", "clippy"] {
             let mut command = Command::new("cargo");

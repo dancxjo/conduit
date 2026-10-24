@@ -24,6 +24,7 @@ name = "recording_browser"
 required-features = ["browser-storage-proof"]
 
 [dependencies]
+conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"] }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["plot-catalog", "host-call"] }
 conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait" }
 conduit-time = { path = "../../../semantics/time", default-features = false }

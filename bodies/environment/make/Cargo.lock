@@ -494,6 +494,7 @@ dependencies = [
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-time",
+ "conduit-tm1637-wire",
  "conduit-web",
  "ed25519-dalek",
  "embassy-futures",
@@ -1039,6 +1040,16 @@ dependencies = [
  "conduit-kernel",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
 ]
 
 [[package]]
