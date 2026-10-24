@@ -26,11 +26,11 @@ pub(super) fn lookup<'d>(
     }
     Ok(result)
 }
-pub(super) fn prepare<'d>(
-    document: &'d CheckedSyntaxDocument,
+pub(super) fn prepare(
+    metadata: &metadata::Metadata<'_>,
     ty: &StructuredInfoType,
     path: &mut Vec<Part>,
-    scopes: &mut Vec<Scope<'d>>,
+    scopes: &mut Vec<Scope>,
     bounds: PreparedNativeBounds,
     count: &mut (usize, usize),
 ) -> Result<(), PreparedNativeRefusal> {
@@ -45,12 +45,13 @@ pub(super) fn prepare<'d>(
         _ => None,
     };
     if let Some(identity) = identity {
-        let native = match lookup(document, identity) {
-            Ok(native) => Some(native),
+        let native_index = match metadata.lookup(identity) {
+            Ok(index) => Some(index),
             Err(PreparedNativeRefusal::MissingNativeMetadata) if exact_core_optional(ty) => None,
             Err(reason) => return Err(reason),
         };
-        if let Some(native) = native {
+        if let Some(native_index) = native_index {
+            let native = metadata.get(native_index);
             if scopes.len() >= bounds.scopes {
                 return Err(PreparedNativeRefusal::Bounds);
             }
@@ -79,7 +80,7 @@ pub(super) fn prepare<'d>(
                 latest: alloc::vec![0;path.len()],
                 latest_generation: 0,
                 checked_invariants: 0,
-                native,
+                native_index,
                 evaluators,
             });
         }
@@ -88,26 +89,26 @@ pub(super) fn prepare<'d>(
         Shape::Leaf(_) => (),
         Shape::Nominal { representation, .. } => {
             path.push(Part::Representation);
-            prepare(document, representation, path, scopes, bounds, count)?;
+            prepare(metadata, representation, path, scopes, bounds, count)?;
             path.pop();
         }
         Shape::Record { fields, .. } => {
             for field in fields {
                 path.push(Part::Field(field.name().into()));
-                prepare(document, field.value_type(), path, scopes, bounds, count)?;
+                prepare(metadata, field.value_type(), path, scopes, bounds, count)?;
                 path.pop();
             }
         }
         Shape::Variant { cases, .. } => {
             for case in cases {
                 path.push(Part::Variant(case.tag().into()));
-                prepare(document, case.payload_type(), path, scopes, bounds, count)?;
+                prepare(metadata, case.payload_type(), path, scopes, bounds, count)?;
                 path.pop();
             }
         }
         Shape::Collection { element, .. } | Shape::Sequence { element, .. } => {
             path.push(Part::Each);
-            prepare(document, element, path, scopes, bounds, count)?;
+            prepare(metadata, element, path, scopes, bounds, count)?;
             path.pop();
         }
     }
@@ -179,16 +180,14 @@ pub(super) fn advance(
     }
     Ok(false)
 }
-fn next_scope(admission: &mut PreparedNativeAdmission<'_>) {
+fn next_scope(admission: &mut AdmissionEngine<'_>) {
     admission.next += 1;
     if let Some(scope) = admission.scopes.get_mut(admission.next) {
         scope.indices.fill(0);
     }
 }
 /// A single actual occurrence or bounded backtrack. No maximum Cartesian walk.
-pub(super) fn step(
-    admission: &mut PreparedNativeAdmission<'_>,
-) -> Result<(), PreparedNativeRefusal> {
+pub(super) fn step(admission: &mut AdmissionEngine<'_>) -> Result<(), PreparedNativeRefusal> {
     let index = admission.next;
     let root = validate_canonical_structured_value(&admission.input)
         .map_err(|_| PreparedNativeRefusal::Shape)?;

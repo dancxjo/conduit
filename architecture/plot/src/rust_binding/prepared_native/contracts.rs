@@ -1,8 +1,7 @@
 //! Prepared exact contract paths; one actual primitive check/backtrack per step.
 use super::*;
-use crate::NativeTypeValueContract;
 
-pub(super) struct ContractCursor<'d> {
+pub(super) struct ContractCursor {
     pub(super) scope: usize,
     pub(super) contract: usize,
     pub(super) path: Vec<Part>,
@@ -10,32 +9,37 @@ pub(super) struct ContractCursor<'d> {
     pub(super) latest: Vec<u16>,
     pub(super) latest_generation: u64,
     pub(super) checked: bool,
-    source: &'d NativeTypeValueContract,
 }
 
-impl ContractCursor<'_> {
+impl ContractCursor {
     pub(super) fn index_capacity(&self) -> usize {
         self.indices.capacity() + self.latest.capacity()
     }
 }
 
 /// Compile all contracts, including inherited flattened ones. No runtime path parsing.
-pub(super) fn prepare<'d>(
-    scopes: &[Scope<'d>],
+pub(super) fn prepare(
+    scopes: &[Scope],
+    metadata: &metadata::Metadata<'_>,
     bounds: PreparedNativeBounds,
-) -> Result<Vec<ContractCursor<'d>>, PreparedNativeRefusal> {
+) -> Result<Vec<ContractCursor>, PreparedNativeRefusal> {
     if bounds.contracts > 4096 {
         return Err(PreparedNativeRefusal::Bounds);
     }
     let mut result = Vec::new();
     for (scope_index, scope) in scopes.iter().enumerate() {
-        for (contract_index, source) in scope.native.value_contracts.iter().enumerate() {
+        for (contract_index, source) in metadata
+            .get(scope.native_index)
+            .value_contracts
+            .iter()
+            .enumerate()
+        {
             if result.len() >= bounds.contracts {
                 return Err(PreparedNativeRefusal::Bounds);
             }
             let mut path = scope.path.clone();
             compile_path(
-                &scope.native.value_type,
+                &metadata.get(scope.native_index).value_type,
                 &source.representation_path,
                 source.contract.value_kind.as_str(),
                 &mut path,
@@ -49,7 +53,6 @@ pub(super) fn prepare<'d>(
                 latest: alloc::vec![0; depth],
                 latest_generation: 0,
                 checked: false,
-                source,
             });
         }
     }
@@ -144,9 +147,7 @@ fn compile_path(
 }
 
 /// Called before native-law traversal. Returns after one check or backtrack.
-pub(super) fn step(
-    admission: &mut PreparedNativeAdmission<'_>,
-) -> Result<(), PreparedNativeRefusal> {
+pub(super) fn step(admission: &mut AdmissionEngine<'_>) -> Result<(), PreparedNativeRefusal> {
     let index = admission.next_contract;
     let root = validate_canonical_structured_value(&admission.input)
         .map_err(|_| PreparedNativeRefusal::Shape)?;
@@ -166,18 +167,23 @@ pub(super) fn step(
                 return Err(PreparedNativeRefusal::Bounds);
             }
             admission.contract_occurrences += 1;
+            let source = &admission
+                .metadata
+                .get(admission.scopes[cursor.scope].native_index)
+                .value_contracts[cursor.contract];
             let bytes = value
-                .primitive_bytes(cursor.source.contract.value_kind.as_str())
+                .primitive_bytes(source.contract.value_kind.as_str())
                 .map_err(|_| PreparedNativeRefusal::Shape)?;
             // `checked` means attempted; false primitive-law result remains evidence.
             cursor.checked = true;
-            cursor.source.contract.validate(bytes).map_err(|refusal| {
-                PreparedNativeRefusal::Contract {
+            source
+                .contract
+                .validate(bytes)
+                .map_err(|refusal| PreparedNativeRefusal::Contract {
                     scope: cursor.scope,
                     contract: cursor.contract,
                     refusal,
-                }
-            })?;
+                })?;
             if !super::traversal::advance(&cursor.path, &mut cursor.indices, cursor.path.len())? {
                 admission.next_contract += 1;
             }
@@ -191,7 +197,7 @@ pub(super) fn step(
     Ok(())
 }
 
-pub(super) fn reset(cursors: &mut [ContractCursor<'_>]) {
+pub(super) fn reset(cursors: &mut [ContractCursor]) {
     for cursor in cursors {
         cursor.indices.fill(0);
         // Also generation-gate public evidence; no stale output for absent alternatives.

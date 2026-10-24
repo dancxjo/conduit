@@ -38,13 +38,13 @@ pub enum NativePathStep {
     Variant(String),
 }
 type Part = NativePathStep;
-struct Scope<'d> {
+struct Scope {
     path: Vec<Part>,
     indices: Vec<u16>,
     latest: Vec<u16>,
     latest_generation: u64,
     checked_invariants: usize,
-    native: &'d CheckedNativeType,
+    native_index: usize,
     evaluators: Vec<PreparedPortableExpressionEvaluator>,
 }
 /// A finite admission profile; exceeding any bound refuses preparation.
@@ -122,14 +122,21 @@ pub struct NativeContractOccurrence<'a> {
 }
 #[path = "prepared_native/contracts.rs"]
 mod contracts;
+#[path = "prepared_native/facades.rs"]
+mod facades;
+#[path = "prepared_native/metadata.rs"]
+mod metadata;
 #[path = "prepared_native/traversal.rs"]
 mod traversal;
-pub struct PreparedNativeAdmission<'d> {
-    document: &'d CheckedSyntaxDocument,
-    native: &'d CheckedNativeType,
+pub use facades::{
+    AdmittedOwnedNativeCanonical, OwnedPreparedNativeAdmission, PreparedNativeAdmission,
+};
+struct AdmissionEngine<'d> {
+    metadata: metadata::Metadata<'d>,
+    native_index: usize,
     shape: PreparedStructuredValueValidator,
-    scopes: Vec<Scope<'d>>,
-    contracts: Vec<contracts::ContractCursor<'d>>,
+    scopes: Vec<Scope>,
+    contracts: Vec<contracts::ContractCursor>,
     next_contract: usize,
     contract_occurrences: usize,
     latest_contract: Option<usize>,
@@ -145,21 +152,9 @@ pub struct PreparedNativeAdmission<'d> {
     active: bool,
     failure: Option<PreparedNativeRefusal>,
 }
-impl<'d> PreparedNativeAdmission<'d> {
-    pub fn new(
-        document: &'d CheckedSyntaxDocument,
-        identity: &KindId,
-        bounds: PreparedNativeBounds,
-    ) -> Result<Self, PreparedNativeRefusal> {
-        Self::new_with_occurrence_limit(
-            document,
-            identity,
-            bounds,
-            MAXIMUM_PREPARED_NATIVE_OCCURRENCES,
-        )
-    }
-    pub fn new_with_occurrence_limit(
-        document: &'d CheckedSyntaxDocument,
+impl<'d> AdmissionEngine<'d> {
+    fn prepare(
+        metadata: metadata::Metadata<'d>,
         identity: &KindId,
         bounds: PreparedNativeBounds,
         occurrence_limit: usize,
@@ -174,28 +169,29 @@ impl<'d> PreparedNativeAdmission<'d> {
         {
             return Err(PreparedNativeRefusal::Bounds);
         }
-        let native = traversal::lookup(document, identity)?;
+        let native_index = metadata.lookup(identity)?;
+        let native = metadata.get(native_index);
         let shape =
             PreparedStructuredValueValidator::new(&native.value_type, bounds.canonical_bytes)
                 .map_err(|_| PreparedNativeRefusal::Bounds)?;
         let mut scopes = Vec::new();
         let mut count = (0, 0);
         traversal::prepare(
-            document,
+            &metadata,
             &native.value_type,
             &mut Vec::new(),
             &mut scopes,
             bounds,
             &mut count,
         )?;
-        let contracts = contracts::prepare(&scopes, bounds)?;
+        let contracts = contracts::prepare(&scopes, &metadata, bounds)?;
         Ok(Self {
             contracts,
             next_contract: 0,
             contract_occurrences: 0,
             latest_contract: None,
-            document,
-            native,
+            metadata,
+            native_index,
             shape,
             scopes,
             input: Vec::with_capacity(bounds.canonical_bytes),
@@ -211,11 +207,8 @@ impl<'d> PreparedNativeAdmission<'d> {
             failure: None,
         })
     }
-    pub fn source_document(&self) -> &CheckedSyntaxDocument {
-        self.document
-    }
     pub fn native_type(&self) -> &CheckedNativeType {
-        self.native
+        self.metadata.get(self.native_index)
     }
     pub fn capacity_report(&self) -> PreparedNativeCapacityReport {
         PreparedNativeCapacityReport {
@@ -240,7 +233,9 @@ impl<'d> PreparedNativeAdmission<'d> {
         self.scopes.len()
     }
     pub fn scope_native_type(&self, scope: usize) -> Option<&CheckedNativeType> {
-        self.scopes.get(scope).map(|v| v.native)
+        self.scopes
+            .get(scope)
+            .map(|v| self.metadata.get(v.native_index))
     }
     /// Output is only from this template's latest actual occurrence in the
     /// current admission; earlier occurrence outputs are deliberately not claimed.
@@ -377,22 +372,18 @@ impl<'d> PreparedNativeAdmission<'d> {
         self.next_contract = 0;
         Ok(())
     }
-    pub fn admitted(&self) -> Result<AdmittedNativeCanonical<'_>, PreparedNativeRefusal> {
+    fn check_admitted(&self) -> Result<(), PreparedNativeRefusal> {
         if let Some(reason) = &self.failure {
             return Err(reason.clone());
         }
         if !self.active || !self.finished() {
             return Err(PreparedNativeRefusal::State);
         }
-        Ok(AdmittedNativeCanonical {
-            document: self.document,
-            native: self.native,
-            bytes: &self.input,
-        })
+        Ok(())
     }
 }
 fn validate_scope(
-    scope: &mut Scope<'_>,
+    scope: &mut Scope,
     value: ValidatedCanonicalStructuredValue<'_>,
     scratch: &mut Vec<u8>,
     maximum: usize,

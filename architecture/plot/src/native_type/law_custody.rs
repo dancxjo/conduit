@@ -13,6 +13,7 @@ use family_material::{verify_family, NativeFamilyWitness};
 pub use family_material::{
     NativeFamilyAnchor, NativeFamilyMaterial, NativeFamilyMember, NativeLawContext,
 };
+mod admission_metadata;
 mod verification;
 use verification::verify;
 mod material_preflight;
