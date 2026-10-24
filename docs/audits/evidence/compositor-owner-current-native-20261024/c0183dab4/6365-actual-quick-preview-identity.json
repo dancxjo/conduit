@@ -1,0 +1,15 @@
+{
+  "pr": 6365,
+  "candidate": 40060819187,
+  "quick_job": 120773712987,
+  "head": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+  "log_file": "6365-preflight-job-120773712987-b3ddfb17f064ff59f15e450f07879c83d52e0405268c677e4a10f4709abb1b14.log",
+  "sha256": "b3ddfb17f064ff59f15e450f07879c83d52e0405268c677e4a10f4709abb1b14",
+  "tested_preview": "c0183dab41b13c80aa7eb8f4c5c94eba08654386",
+  "base": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "observed_utc": "2026-10-24T04:42:35.672202+00:00",
+  "tested_tree": "c87d07b05a6c35771fb70e28697b3b6b1a81b12a",
+  "source_tree": "b71badedbb35b2d37db9e052f2693983801ef96e",
+  "scope": "Actual successful quick checkout provenance only. Full Candidate and accepted Integration remain required.",
+  "preview_tree_equals_source_tree": false
+}

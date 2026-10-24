@@ -1,0 +1,123 @@
+{
+  "pr": 6365,
+  "issue": 6342,
+  "observed_utc": "2026-10-24T04:43:11.740733+00:00",
+  "source_head": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+  "run": 40060819187,
+  "admission_job": 120774171328,
+  "admission_status": "completed",
+  "admission_conclusion": "success",
+  "metadata_file": "outputs/6365-admission-job-120774171328.json",
+  "metadata_sha256": "bfddac9e80d3bb0b517f3b194dcbba02b0f252943c5d27415f0dea1aec977d11",
+  "raw_log": "outputs/6365-admission-job-120774171328.log",
+  "raw_log_sha256": "3dd4b188543ba66cb6a09ebd0ef21e1ff91d5f0ccd63216653d68363c004e2be",
+  "raw_log_bytes": 740595,
+  "quick_identity": {
+    "pr": 6365,
+    "candidate": 40060819187,
+    "quick_job": 120773712987,
+    "head": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+    "log_file": "6365-preflight-job-120773712987-b3ddfb17f064ff59f15e450f07879c83d52e0405268c677e4a10f4709abb1b14.log",
+    "sha256": "b3ddfb17f064ff59f15e450f07879c83d52e0405268c677e4a10f4709abb1b14",
+    "tested_preview": "c0183dab41b13c80aa7eb8f4c5c94eba08654386",
+    "base": "dd92bde82017fe685404ef9197b56d3b3127006c",
+    "observed_utc": "2026-10-24T04:42:35.672202+00:00",
+    "tested_tree": "c87d07b05a6c35771fb70e28697b3b6b1a81b12a",
+    "source_tree": "b71badedbb35b2d37db9e052f2693983801ef96e",
+    "scope": "Actual successful quick checkout provenance only. Full Candidate and accepted Integration remain required.",
+    "preview_tree_equals_source_tree": false
+  },
+  "actual_admission_checkout": "c0183dab41b13c80aa7eb8f4c5c94eba08654386",
+  "actual_preview_tree": "c87d07b05a6c35771fb70e28697b3b6b1a81b12a",
+  "source_tree": "b71badedbb35b2d37db9e052f2693983801ef96e",
+  "source_preview_blob_joins": [
+    {
+      "path": "targets/conduitos/src/protected_compositor.rs",
+      "source_blob": "69daa0ea84a675e70ecb478d0f58013df092ec9c",
+      "preview_blob": "69daa0ea84a675e70ecb478d0f58013df092ec9c",
+      "equal": true
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner.rs",
+      "source_blob": "adef09ab3f306cc059f3e50216fd6807ad215753",
+      "preview_blob": "adef09ab3f306cc059f3e50216fd6807ad215753",
+      "equal": true
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+      "source_blob": "3bc21b6a3689cbffd067f3920daace0c632479c4",
+      "preview_blob": "3bc21b6a3689cbffd067f3920daace0c632479c4",
+      "equal": true
+    },
+    {
+      "path": "targets/conduitos/tests/compositor_request_owner.rs",
+      "source_blob": "b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c",
+      "preview_blob": "b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c",
+      "equal": true
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/frame_grant.rs",
+      "source_blob": "af5c0f830cfc0b98c549c811faf78b2202f2cadb",
+      "preview_blob": "af5c0f830cfc0b98c549c811faf78b2202f2cadb",
+      "equal": true
+    },
+    {
+      "path": "tools/ci/pipeline/admission.mjs",
+      "source_blob": "264ccd1481bc249e51ac0ce9c2fbcce1f5d016c0",
+      "preview_blob": "264ccd1481bc249e51ac0ce9c2fbcce1f5d016c0",
+      "equal": true
+    },
+    {
+      "path": "tools/ci/pipeline/cli.mjs",
+      "source_blob": "11f43820ad9b7764af85d3c1431ce6576d65b838",
+      "preview_blob": "11f43820ad9b7764af85d3c1431ce6576d65b838",
+      "equal": true
+    }
+  ],
+  "owning_tests": {
+    "binary": "compositor_request_owner-eb0baf679489e717",
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0,
+    "names": [
+      "frame_grant::tests::coverage_and_selection_are_bounded_but_fully_obscured_selection_is_valid",
+      "frame_grant::tests::descriptor_refuses_empty_overlapping_outside_unused_and_overflow_before_effects",
+      "frame_grant::tests::exact_rectangles_rows_and_completion_are_required",
+      "frame_grant::tests::stale_sequence_and_invalid_window_do_not_advance_progress",
+      "production_begin_complete_and_quarantine_allocate_nothing",
+      "request_owner::tests::actual_numeric_frame_grant_is_validated_before_retirement_and_applied_once",
+      "request_owner::tests::duplicate_begin_preserves_command_and_response_overwrite_cannot_replace_it",
+      "request_owner::tests::every_supported_request_fits_exact_immutable_command_bound",
+      "request_owner::tests::fault_cancel_quarantine_and_ordinal_wrap_never_refill",
+      "request_owner::tests::malformed_foreign_and_wrong_kind_packets_are_terminal",
+      "request_owner::tests::page_length_bounds_and_completion_without_live_request_are_terminal"
+    ],
+    "raw_lines": "4805-4821",
+    "all_names_equal_previously_audited_owning_source": true
+  },
+  "strict_lint": {
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "conduitos",
+      "--all-targets",
+      "--features",
+      "conduitos/hosted-tools,conduitos/native-compositor",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "evidence": "Actual route reports Admission packages: conduitos; BROAD_ADMISSION=false and no workspace-checked argument. Audited admission.mjs lines65-83 synchronously invokes strict Clippy before tests; cli.mjs lines17-20 throws on nonzero. Raw dev profile completion at line3093 followed by owning tests and successful step/job proves command completion. Cargo subcommands themselves are not echoed in raw log.",
+    "program": "tools/ci/pipeline/admission.mjs:65-98",
+    "runner": "tools/ci/pipeline/cli.mjs:17-20"
+  },
+  "limits": [
+    "Known completed admission and quick jobs inspected once each; no builds or subsequent job-state polling.",
+    "Actual execution is source295 merged with dd92 at c018, not Root omnibus B ef5. Whole preview tree differs from source295; audited feature and admission program blobs match.",
+    "This verifies hosted CPU owning tests and strict feature Clippy only; no current x86 artifact/runtime or whole Candidate success inferred.",
+    "No accepted dev Integration, physical containment, selected policy/accounting, fairness, or issue closure claim."
+  ]
+}
