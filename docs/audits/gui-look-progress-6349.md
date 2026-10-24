@@ -1,172 +1,86 @@
-# GUI Look delivery progress (#6349)
+# GUI Looks and Lucide delivery (#6349)
 
-First local slice: reusable browser Face headings consume geometry from the
-existing pinned Lucide subset. Editorial, engineering and Phosphor expressions
-receive a more consistent surface, typography, focus and control rhythm.
+Draft implementation and local visual review for #6349, with the original
+#6174 and #5366 acceptance preserved. All three issues remain open.
 
-Local validation: 102 existing owner-face-component Chromium renderer checks
-passed with one worker and zero retries; JavaScript syntax and diff checks pass.
-The comparison screenshot is a renderer fixture, not a production Body receipt
-or native acceptance. Theme options are currently supplied by existing renderer
-expression fields; a production selector and native convergence remain work.
+Current native and browser captures use Source `2ab838ae2`. Native Crèche now
+has checked outer margins, cohesive naming/Plot panels, explicit action icons,
+serif hierarchy, clear primary/focus treatment and compact/spacious expression.
+Browser Workspace offers Editorial, Engineering and Phosphor chrome choices;
+Patchbay and the reusable Face renderer use the same pinned Lucide corpus.
 
-Next: audit actual Crèche/Workspace/Patchbay surfaces and action/icon contracts;
-extend pinned icons with provenance; apply shared mappings and selected Looks;
-show actual local browser and native captures; verify narrow/large-text/forced
-colors and exact typed interactions. Complete original #6174/#5366 requirements
-before proposing closure. Keep CI deferred while visual work is under review.
+## Current screenshots and source evidence
 
-## Workspace / Crèche local continuation
+![Actual compact Editorial native Crèche](evidence/gui-look-6349-refinement/native-polished-creche-editorial.png)
 
-Workspace now exposes an in-session chrome Look picker for editorial,
-engineering and Phosphor. This is explicitly local appearance; resident Face
-expressions remain under their existing admitted contracts. Crèche gains
-large editorial headings, measured wide two-column placement, 44px minimum
-choice targets, selected-state borders, readable review output, and pinned
-Lucide decoration. Workspace lifecycle, membership and back controls carry
-label-preserving Lucide icons. Native icon conversion remains outstanding.
+[Native dark navy](evidence/gui-look-6349-refinement/native-polished-creche-default.png) ·
+[Native spacious Editorial](evidence/gui-look-6349-refinement/native-polished-creche-editorial-spacious.png) ·
+[Browser Editorial](evidence/gui-look-6349-refinement/workspace-current-editorial.png) ·
+[Browser Engineering](evidence/gui-look-6349-refinement/workspace-current-engineering.png) ·
+[Browser Phosphor](evidence/gui-look-6349-refinement/workspace-current-phosphor.png)
 
-The local application was repackaged with edited browser assets and retained
-WASM from `6283-fresh-workspace-product` (23 October). This is mixed-source
-local presentation evidence, not exact-source runtime or stable acceptance.
-All three Looks at 1440px and 390px had no document horizontal overflow;
-changing Looks retained the entered name, and actual Birth reached the Body
-surface. Desktop and narrow captures are retained in the chat outputs.
+The [refinement evidence directory](evidence/gui-look-6349-refinement/) retains
+raw native serial records, exact image/source/Host receipts, Show correspondence,
+browser resource hashes, interaction results and accessibility scan results.
+The [earlier native capture](evidence/gui-look-6349-native/) preserves the flat
+baseline at native Source `749491a3c`; its later branch changes were browser-only.
 
-## Native Lucide preparation
+Native capture boots the normal x86_64 product, enters Crèche from zero-Body
+Commons through the real keyboard path, then selects palette and density in the
+same guest. Complete serial records confirm the unchanged Face identity/revision
+and distinct chained local Shows. Compact Editorial uses 47/48 commands and keeps
+all four selected Plots visible on page one; spacious admits three pages at its
+selected 125% text scale. This is freestanding QEMU presentation, not physical
+or CI/stable acceptance.
 
-All 23 existing native icon keys now map to pinned Lucide silhouettes. Packed
-192×192 one-bit masks preserve the existing eighth-pixel lookup and 4×4 coverage
-blend, replacing the native approximation drawings. The fixed read-only corpus
-is 105984 bytes. Input hashes, Chromium version and output digest are retained;
-preparation reproduces masks and receipt exactly with `--check`.
+Browser capture uses the fresh release WASM, all 90 current package resources
+and regenerated reviewed Plot bundles. Standalone provisioning release artifacts
+are retained, separately identified dependencies; these captures do not establish
+fresh device provisioning. Early chat previews used retained WASM or sample data;
+the current browser screenshots replace those as current-runtime evidence.
 
-Browser and native subject-role mappings agree for Body, Plot, Host, Gear, Port,
-Cord/Line, Plan, Play, Document, Status and Diagnostic. Native Document/Plot
-headings now use their existing Type/Face icon keys, with layout insets and
-command costs handled by the existing icon-aware layout. This does not assert
-that every native action already carries an icon.
+## Implementation and validation
 
-The native icon sheet is a preview of these exact prepared coverage masks. It
-is not an emulator capture, native Show acknowledgement or containment proof.
-A standalone compilation of the actual lookup module passes its finite,
-nonempty-coverage and out-of-bounds checks. Full native crate checks and fresh
-QEMU captures remain independently required.
+- Existing native icon keys/wire tokens map to 23 pinned Lucide silhouettes.
+  The 105984-byte read-only mask corpus reproduces exactly with input/output
+  hashes and the pinned Chromium version. No runtime SVG parser or asset loading.
+- Exact owner-offered intents select common action icons. Unknown intents retain
+  complete text; captions and opaque action IDs never select artwork. Native
+  defaults, unavailable controls, and missing-Look behavior retain their contracts.
+- Native group surfaces follow explicit checked recipe groups. Fixed storage holds
+  at most 20 page rows. A surface replaces the group's divider budget; icon-bearing
+  headings avoid redundant accent bars. No command/payload limit was widened.
+- The checked Crèche Source owns its two-em outer inset. Geometry, text wrapping,
+  hit bounds and continuation are prepared together; Face/action order is unchanged.
+- Browser controls retain labels and native focus/input behavior. Checklist buttons
+  use concise visible action captions and item-specific accessible names. Palette
+  text/background changes are atomic to avoid transient contrast failures.
+- Patchbay SVGs are inline under the unchanged image policy. Library/Inspect
+  keyboard activation remains usable, with no CSP image error.
+- 138 native scene tests pass; the separately executed opt-in CPU cross-Mask
+  graph check also passes with Node (not real-browser proof). The wide first-page
+  and surface bounds/content checks pass. Native lookup, exact-intent and paint contrast checks
+  also pass. 103 browser renderer checks pass, one worker and zero retries.
+- Fresh browser Birth, name retention across three Looks, and 1440px/390px layouts
+  pass. All three 390px axe scans report zero WCAG A/AA violations. Automated scans
+  do not replace complete keyboard, screen-reader and native accessibility proof.
 
-## Coverage still to finish
+An initial icon/inset attempt failed the existing four-selected-Plots-on-first-page
+check. The requirement was preserved and repaired through cue budgeting. The
+properties-in-Details check retains exact disclosure and now checks the Document
+icon instead of its deliberately removed, redundant three-pixel accent bar.
 
-| Surface / requirement | Current local evidence | Remaining work |
-| --- | --- | --- |
-| Browser Crèche | Three Looks, wide/narrow captures, real Birth with retained WASM | Fresh source runtime; full accessibility audit |
-| Workspace chrome | Look picker; lifecycle, membership, back icons | Broader live Body/inspection/library capture |
-| Shared browser Face | Role icons; 102 renderer checks before native continuation | Complete action/icon coverage and Look selection convergence |
-| Native Face | Prepared Lucide resources and role bindings | Full native checks, actual QEMU before/after |
-| Native Crèche reference #6174 | Existing checked layout/Look owners preserved | Actual reference comparison and original acceptance |
-| Visual Look parent #5366 | Browser appearance experiments and existing selected native contracts | Original cross-component, cross-renderer and accessibility acceptance |
-| Patchbay / Commons | Existing semantic authority unchanged | Inspect real graphical surfaces and apply coherent coverage |
-| Release / closure | Draft PR checkpoints skip CI | Defer CI campaign; no issue closure claim |
+## Remaining acceptance
 
-Native crate validation now passes the packed lookup test and both role/layout
-checks. All 102 shared browser renderer checks also pass after role convergence.
-The staged Crèche WCAG 2 A/AA and 2.1 AA axe scan reports zero violations at
-390px for all three Looks. The scan exposed transient low contrast when text
-colors interpolated across Look changes while backgrounds changed immediately;
-Workspace now switches those text colors atomically. Disabled controls retain
-readable muted text and dashed edges instead of faded opacity. Automated axe
-results do not replace keyboard, screen-reader or complete accessibility proof.
+| Area | Work still required |
+| --- | --- |
+| GUI coverage | Audit remaining native actions, graph/inspector/list/status surfaces and unsupported icon fallbacks; retain meaningful text. |
+| Native reference #6174 | Further inset/typographic refinement, narrow/large-text and pointer enactment against the actual reference; record supported differences. |
+| Look parent #5366 | Reuse closed #5627/#5628/#5629 foundations; verify full original cross-component, cross-renderer, accessibility and selection acceptance. Local Workspace chrome choices alone are not canonical resident-Face selection proof. |
+| Browser/native correspondence | Preserve exact selected Face/Show/action identities; independent bodies or fixture previews do not prove one shared Body. |
+| Publication and closure | Draft checkpoints skip CI. Required final acceptance/publication evidence remains separate; no issue closure claim. |
 
-## Native Editorial and Patchbay continuation
-
-Native Editorial now resolves warm paper/navy roles, matching the browser Look
-intent and Crèche reference rather than retaining the previous unrelated dark
-blue palette. The existing actual paint-role contrast tests pass against the
-changed implementation (standalone harness): text/status/accent roles at 4.5:1
-and controls/focus/borders at 3:1 on both native surfaces, including RGB/BGR and
-forced-color/fallback cases. Fresh normal x86_64 live-media build is in progress.
-
-Patchbay chrome adds pinned Lucide icons to Library, Inspect, canvas navigation,
-arrangement, contrast, selection clearing and evidence download. SVGs are inline
-and decorative, preserving text and native button semantics under the existing
-`img-src 'self'` policy. CSS data-image masks were rejected by that real policy
-and replaced before publication; the policy is unchanged. Local preview uses
-the retained native-origin Patchbay server/runtime with current HTML/CSS,
-resealed resource hashes and an unchanged security policy. It is mixed-source
-presentation evidence, not exact-source production acceptance. Library/Inspect
-keyboard activation remains usable and no CSP image error occurs. The stylesheet
-remains within its existing 32768-byte resource bound.
-
-Environment: inactive regenerable native-origin Cargo build-script outputs were
-removed after process/fd inspection, recovering about 22 GB in this continuation.
-Source, compiled retained runtime/server, proof captures and active builds were
-preserved. This allowed the isolated native build to continue with headroom.
-
-## Shared Face action and disclosure coverage
-
-The reusable browser Face renderer now decorates known owner-offered action
-intents (Birth, Wake/Lull, Inspect, completion/reopening and selected edit/open
-operations), plus exact-fact, completed-item and relationship disclosures and
-completed empty states. Unknown action intents retain text with no guessed
-icon; captions and opaque IDs never select artwork. Checklist buttons show the
-owner's action caption while keeping the item's name in the accessible label.
-All 103 renderer checks pass locally, including the new caption/intent guard.
-The Todo Look comparison uses this actual renderer with sample content, not
-an owner state or action receipt. Current component size stays below its
-existing 32768-byte package bound; local application packaging succeeds.
-
-Fresh x86_64 normal-media build remains active. The capture script is prepared
-to enter Crèche from the actual zero-Body Commons Hub, observe complete serial
-receipts, and capture the default, palette-switched and density-switched Shows
-without replacing the guest or inventing owner effects.
-
-## Actual native QEMU captures
-
-The normal x86_64 live image now builds and boots successfully. Capture used the
-standard q35/512 MiB/USB keyboard-and-mouse shape with an isolated QMP socket.
-The guest entered Crèche from the real zero-Body Commons Hub. F7 selected
-compact Editorial; F6 then selected spacious Editorial. Complete serial records
-confirm unchanged Face identity/revision and distinct chained acknowledged local
-Shows. Both compact palettes render within 47/48 commands; spacious uses 23/48
-on its first page and admits three pages at its selected 125% text scale.
-
-The build manifest records native Source `749491a3c`; later branch commits change
-browser renderer/evidence only. This is actual freestanding QEMU presentation,
-not physical deployment or CI/stable acceptance. Captures, exact image digest,
-make/Host identities, Look expressions, Show chain and raw serial observations
-are retained together in [the native evidence directory](evidence/gui-look-6349-native/).
-
-![Actual compact Editorial Crèche](evidence/gui-look-6349-native/native-creche-editorial.png)
-
-[Dark navy compact](evidence/gui-look-6349-native/native-creche-default.png) ·
-[Spacious Editorial](evidence/gui-look-6349-native/native-creche-editorial-spacious.png)
-
-The native reference remains unfinished: this capture exposes sparse native
-action icon coverage and a largely flat control treatment instead of the
-reference's cohesive panel surfaces and hierarchy. Dark navy remains available;
-warm Editorial is an additional expression, not a claim of reference completion.
-
-## Native grouped-surface refinement
-
-The checked Crèche Mask Source now supplies an outer two-em inset. Native action
-icons follow exact offered intents for Birth/Wake, name editing, naming settings,
-suggestion, inspection, completion and Plot opening. Unknown intents remain
-text-only. Row records retain the checked recipe group for painting only.
-
-A single bounded Surface fill replaces each authored group's separate region
-dividers, so naming and Plot-selection areas read as cohesive panels. Role icons
-replace redundant heading accent bars; primary action/focus outlines remain.
-The fill pass uses fixed storage for at most 20 page rows and no new allocation.
-This reuses the existing per-group cue budget instead of raising the 48-command
-limit. Exact text, action/control order, bindings and Face identity are retained.
-
-The first icon/inset attempt caused the existing four-selected-Plots-on-first-
-page check to fail. That requirement was preserved and repaired through group
-cue budgeting. The focused wide-first-page, complete-content and group-surface
-checks now pass. The properties-in-Details test still checks exact disclosure;
-its incidental three-pixel bar assertion now checks the explicit Document icon.
-Final broad scene replay and fresh native captures follow this checkpoint.
-
-The browser runtime has also been built from the preceding committed source and
-staged with all 90 current browser resources and regenerated reviewed Plot
-bundles. Actual Birth, all three Looks at two widths, and the three 390px axe
-scans pass (zero A/AA violations). Native structured-Mask changes in this
-checkpoint still need the corresponding incremental runtime rebuild.
+Environment stewardship removed about 22 GB of inactive, regenerable native-origin
+Cargo build-script outputs after process/fd inspection. Source, retained runtime/
+server binaries, proof captures and active builds were preserved. The earlier
+80 MiB native ISO is retained locally before replacement by the refinement build.
