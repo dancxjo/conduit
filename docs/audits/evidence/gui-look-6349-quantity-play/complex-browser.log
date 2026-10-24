@@ -1,0 +1,36 @@
+
+Running 1 test using 1 worker
+
+(node:4142648) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [chromium] › proof/browser/patchbay-authoring.spec.mjs:16:3 › catalog queries and two durable layouts decorate the same live Plot
+  1) [chromium] › proof/browser/patchbay-authoring.spec.mjs:16:3 › catalog queries and two durable layouts decorate the same live Plot 
+
+    Error: Interaction delivery failed: net::ERR_EMPTY_RESPONSE
+
+      329 |   const failed = page.waitForEvent("requestfailed", {
+      330 |     predicate: request => request.url().endsWith("/api/interaction") && request.method() === "POST",
+    > 331 |   }).then(request => { throw new Error(`Interaction delivery failed: ${request.failure()?.errorText}`); });
+          |                              ^
+      332 |   const deliveredResponse = Promise.race([response, failed]);
+      333 |   await locator.click();
+      334 |   const delivered = await deliveredResponse;
+        at /home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/proof/browser/patchbay-authoring.spec.mjs:331:30
+        at clickInteraction (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/proof/browser/patchbay-authoring.spec.mjs:334:21)
+        at /home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/proof/browser/patchbay-authoring.spec.mjs:205:7
+
+    attachment #1: authoring-server-stderr (text/plain) ────────────────────────────────────────────
+    
+    thread 'main' (4142703) panicked at targets/std/src/installed_std/math_backs.rs:75:46:
+    ready math output: OutputBlocked
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: proof/browser/test-results/patchbay-authoring-catalog-2508e-decorate-the-same-live-Plot-chromium/error-context.md
+
+
+  1 failed
+    [chromium] › proof/browser/patchbay-authoring.spec.mjs:16:3 › catalog queries and two durable layouts decorate the same live Plot 

@@ -3,7 +3,7 @@ use super::*;
 use alloc::collections::BTreeSet;
 use conduit_face::*;
 use conduit_plot::{
-    CanonicalStartupValue, ProfileCatalog, check_syntax_document, parse_syntax_document,
+    check_syntax_document, parse_syntax_document, CanonicalStartupValue, ProfileCatalog,
 };
 
 fn structure<'a>(source: &str, component: &str, face: &'a Face) -> PreparedComponentLayout<'a> {
@@ -14,7 +14,7 @@ fn structure<'a>(source: &str, component: &str, face: &'a Face) -> PreparedCompo
     let mut startup = catalog.startup_catalog().unwrap();
     install_mask_plot_value_aliases(&mut startup).unwrap();
     for (name, schema) in [
-        ("VisualExpressionInfo", visual_expression_type()),
+        ("LookInfo", look_type()),
         ("ComponentRecipeInfo", component_recipe_type()),
         ("ComponentLayoutInfo", component_layout_type()),
     ] {
@@ -342,4 +342,60 @@ fn whole_item_measurement_preserves_real_creche_and_todo_selected_geometry() {
             }
         }
     }
+}
+
+#[test]
+fn checked_creche_groups_have_cohesive_surfaces_within_the_original_frame_budget() {
+    let face = naming_acceptance_tests::actual_face();
+    let prepared = structure(CRECHE_LAYOUT_MASK_SOURCE, "creche-component-columns", &face);
+    let expression = admit_visual_expression(
+        Ok(VisualExpression::phosphor()),
+        VisualUserConstraints {
+            forced_colors: false,
+            reduced_motion: true,
+            minimum_text_scale_percent: 100,
+            maximum_supported_text_scale_percent: 200,
+        },
+    )
+    .unwrap();
+    let scene =
+        NativeFaceScene::prepare_structured(&prepared, 1280, 800, true, &expression).unwrap();
+    let frame = scene.frame().unwrap();
+    let surfaces: Vec<_> = frame
+        .scene
+        .commands()
+        .iter()
+        .filter(|command| {
+            command.kind == GraphicsCommandKind::Rect
+                && command.paint == GraphicsPaintRole::Surface
+                && command.style == GraphicsShapeStyle::RoundedFill
+        })
+        .collect();
+    assert_eq!(surfaces.len(), 2);
+    for surface in &surfaces {
+        assert!(surface.bounds.x >= 16);
+        assert!(i32::from(surface.bounds.x) + i32::from(surface.bounds.width) <= 1280 - 16);
+    }
+    for row in scene
+        .primary
+        .iter()
+        .filter(|row| row.page == 0 && row.region.is_some())
+    {
+        assert!(
+            row.region_inset > 0,
+            "checked card padding must surround its fields"
+        );
+        let inset = i32::from(row.region_inset);
+        assert!(surfaces.iter().any(|surface| {
+            let outer = surface.bounds;
+            i32::from(outer.x) <= i32::from(row.bounds.x) - inset
+                && i32::from(outer.y) <= i32::from(row.bounds.y) - inset
+                && i32::from(outer.x) + i32::from(outer.width)
+                    >= i32::from(row.bounds.x) + i32::from(row.bounds.width) + inset
+                && i32::from(outer.y) + i32::from(outer.height)
+                    >= i32::from(row.bounds.y) + i32::from(row.bounds.height) + inset
+        }));
+    }
+    assert_eq!(scene.face(), &face);
+    assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
 }

@@ -1,0 +1,16 @@
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/semantics/face)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.52s
+     Running tests/configured_layout_mask.rs (../native-target/debug/deps/configured_layout_mask-1216baa4ee666fdd)
+
+running 8 tests
+test version_three_contract_is_distinct_and_requires_typed_layout ... ok
+test layout_literal_at_outer_invocation_cannot_replace_component_literal ... ok
+test exact_component_invocation_retains_both_literals ... ok
+test declared_required_layout_and_version_three_presence_are_enforced ... ok
+test equal_sibling_literals_and_expression_substitution_do_not_confer_custody ... ok
+test authenticated_back_forwards_both_literals_without_substitution ... ok
+test named_visual_presets_match_across_distinct_checked_components ... ok
+test retained_component_roots_share_exact_named_visual_policies ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.27s
+

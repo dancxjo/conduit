@@ -23,6 +23,8 @@
     "browser-sdk-patchbay.mjs",
     "browser-sdk-body-face.mjs",
     "owner-face-component.mjs",
+    "owner-face-icons.mjs",
+    "LUCIDE-LICENSE",
     "owner-face-look.css",
     "browser-sdk-owner-show-state.mjs",
     "browser-sdk-wardrobe.mjs",

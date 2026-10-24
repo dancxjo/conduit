@@ -57,14 +57,8 @@ fn actual_creche() -> (
         &face,
     )
     .unwrap();
-    let expression = admit_visual_expression(
-        Ok(visual_expression_from_info(
-            conduit_core::StructuredInfoValue::from_canonical_bytes(
-                configuration.expression.canonical_value(),
-            )
-            .unwrap(),
-        )
-        .unwrap()),
+    let expression = conduit_face::admit_visual_look(
+        &configuration.requested_look().unwrap(),
         VisualUserConstraints {
             forced_colors: false,
             reduced_motion: true,
@@ -72,7 +66,8 @@ fn actual_creche() -> (
             maximum_supported_text_scale_percent: 200,
         },
     )
-    .unwrap();
+    .unwrap()
+    .visual;
     (face, recipe, expression)
 }
 
@@ -177,12 +172,10 @@ fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
         }
     }
     assert_disjoint(&scene.primary);
-    assert!(
-        scene
-            .primary
-            .windows(2)
-            .any(|rows| rows[0].page > rows[1].page)
-    );
+    assert!(scene
+        .primary
+        .windows(2)
+        .any(|rows| rows[0].page > rows[1].page));
     let controls: Vec<_> = scene
         .primary
         .iter()
@@ -197,14 +190,12 @@ fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
     for (control, page) in controls {
         assert_eq!(scene.focus_next(true), Some(control));
         assert_eq!(scene.page(), page);
-        assert!(
-            scene
-                .frame()
-                .unwrap()
-                .hits
-                .iter()
-                .any(|hit| hit.control == control)
-        );
+        assert!(scene
+            .frame()
+            .unwrap()
+            .hits
+            .iter()
+            .any(|hit| hit.control == control));
     }
     scene.focus = None;
     for page in 0..scene.pages() {

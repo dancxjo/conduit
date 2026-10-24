@@ -1,5 +1,7 @@
 import { assertOwnerFaceReachability } from "./owner-face-reachability.mjs";
 import "./owner-face-component.mjs";
+import { createOwnerLookControls } from "./owner-look-controls.mjs";
+import { decorate } from "./owner-face-icons.mjs";
 
 // Optional, explicitly authorized participation in a Body owned by a running
 // Linux Host. All admission and biography facts come from the production SDK.
@@ -94,6 +96,7 @@ export function checkedOwnerRouteEvidence(view, hostId, bootId) {
 }
 
 export async function startOwnerParticipation(application, root) {
+  root.classList.add('owner-participation');
   document.title = 'Join a running Body · Conduit Handbook';
   document.querySelector('.handbook-introduction h1').textContent = 'Join the Body you already made.';
   document.querySelector('.handbook-introduction .lede').textContent =
@@ -142,9 +145,19 @@ export async function startOwnerParticipation(application, root) {
       <button type="button" data-owner-speech-start disabled>Read this view aloud</button>
       <button type="button" data-owner-speech-status disabled>Check reading</button>
       <button type="button" data-owner-speech-stop disabled>Stop reading</button>
-      <p role="status" data-owner-speech-result>Join and show the Face first.</p></section>
+      <p role="status" data-owner-speech-result>No reading requested in this window.</p></section>
     <button type="button" data-owner-leave disabled>Leave this window</button>
     <p><a href="?">Return to my local Handbook</a>. Your local Body remains retained; this join mode does not open or change it.</p>`;
+  // Local chrome operations have fixed decoration, separate from Face intents.
+  for (const [selector, icon] of [
+    ['#owner-identity-title', 'Host'], ['[data-owner-join] h3', 'Body'],
+    ['#owner-result-title', 'Confirm'], ['#owner-face-title', 'Face'],
+    ['#owner-wardrobe-title', 'Face'], ['[data-owner-face-refresh]', 'Repeat2'],
+    ['[data-owner-wardrobe-refresh]', 'Inspect'], ['[data-owner-speech-start]', 'Play'],
+    ['[data-owner-speech-status]', 'Status'], ['[data-owner-speech-stop]', 'Close'],
+    ['[data-owner-leave]', 'Back'], ['[data-owner-join] button', 'Body'],
+    ['details > summary', 'Inspect'],
+  ]) for (const node of root.querySelectorAll(selector)) decorate(node, icon);
   const status = root.querySelector('[data-owner-status]');
   const form = root.querySelector('[data-owner-join]');
   const result = root.querySelector('[data-owner-result]');
@@ -182,6 +195,7 @@ export async function startOwnerParticipation(application, root) {
         button.textContent = `${label} ${route.maskName}`;
         button.disabled = !enabled;
         button.addEventListener('click', () => changeWardrobe(current.raw, route.routeId, verb));
+        decorate(button, verb === 'doff' ? 'Close' : 'Confirm');
         controls.append(button);
       }
       item.append(controls); list.append(item);
@@ -191,7 +205,7 @@ export async function startOwnerParticipation(application, root) {
       wardrobeRows.replaceChildren(empty);
     } else wardrobeRows.replaceChildren(list);
     wardrobeEvidence.textContent = JSON.stringify(current.raw, null, 2);
-    wardrobeStatus.textContent = `Owner wardrobe revision ${current.revision}. ${current.rows.length} admitted routes. ${current.rows.filter(row => row.available).length} currently available. ${current.freshShowRequired ? 'A fresh Show is required.' : current.selectedShowId ? 'The owner reports a selected Show.' : 'No selected Show is reported.'}`;
+    wardrobeStatus.textContent = `Last inspected owner wardrobe: revision ${current.revision}. ${current.rows.length} admitted routes; ${current.rows.filter(row => row.available).length} reported available. ${current.freshShowRequired ? 'At that inspection, a fresh Show was required.' : current.selectedShowId ? 'At that inspection, the owner reported a selected Show.' : 'At that inspection, no selected Show was reported.'} Inspect again for current policy.`;
     delete wardrobeStatus.dataset.refused;
   };
   const refreshWardrobe = async () => {
@@ -251,6 +265,7 @@ export async function startOwnerParticipation(application, root) {
   };
   const speechControls = () => {
     const current = participation?.presenceState() === 'available';
+    lookControls.setDisabled(!current || !faceView || faceBusy || speechBusy || Boolean(speechOperationId));
     speechStart.disabled = !current || !faceView || faceBusy || speechBusy || Boolean(speechOperationId);
     speechStatus.disabled = !current || !speechOperationId || speechBusy;
     speechStop.disabled = !current || !speechOperationId || speechBusy;
@@ -270,6 +285,7 @@ export async function startOwnerParticipation(application, root) {
       invoke: async ({ view, action, arguments: actionArguments }) => {
         if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
         faceBusy = true;
+        lookControls.setDisabled(true);
         try {
           const outcome = await participation.submitOwnerFaceInteraction({
             view: faceView, actionId: action.identity, target: action.target,
@@ -295,6 +311,7 @@ export async function startOwnerParticipation(application, root) {
   const refreshFace = async (selection = null) => {
     if (!participation || faceBusy || participation.presenceState() !== 'available') return;
     faceBusy = true; faceRefresh.disabled = true;
+    lookControls.setDisabled(true);
     const routeEpoch = faceRouteEpoch;
     const requireCurrentRoute = () => {
       if (routeEpoch !== faceRouteEpoch || participation.presenceState() !== 'available') {
@@ -326,6 +343,7 @@ export async function startOwnerParticipation(application, root) {
       assertOwnerFaceReachability(faceComponent, shown);
       root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
+      lookControls.observe(shown);
       speechControls();
       faceStatus.textContent = 'The browser is showing the owner’s current Face.';
       delete faceStatus.dataset.refused;
@@ -346,48 +364,15 @@ export async function startOwnerParticipation(application, root) {
     } finally {
       faceBusy = false;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
-      applyFace.disabled = !faceView || faceRefresh.disabled || Boolean(speechOperationId);
       speechControls();
       if (!wardrobeReport) queueMicrotask(refreshWardrobe);
     }
   };
-  const faceControls = document.createElement('fieldset');
-  const faceLegend = document.createElement('legend');
-  faceLegend.textContent = 'Face';
-  const lookLabel = document.createElement('label');
-  lookLabel.textContent = 'Look ';
-  const lookSelect = document.createElement('select');
-  for (const value of ['compact', 'spacious']) {
-    const option = document.createElement('option'); option.value = value;
-    option.textContent = value === 'compact' ? 'Compact' : 'Spacious'; lookSelect.append(option);
-  }
-  lookLabel.append(lookSelect);
-  const recipeLabel = document.createElement('label'); recipeLabel.textContent = 'Layout ';
-  const recipeSelect = document.createElement('select');
-  for (const [value, name] of [['flat', 'Single section'], ['grouped', 'Grouped sections'], ['required-item', 'Bound item']]) {
-    const option = document.createElement('option'); option.value = value; option.textContent = name;
-    recipeSelect.append(option);
-  }
-  recipeLabel.append(recipeSelect);
-  const textScaleLabel = document.createElement('label');
-  textScaleLabel.textContent = 'Minimum text size ';
-  const textScaleSelect = document.createElement('select');
-  for (const percent of [100, 150, 200]) {
-    const option = document.createElement('option');
-    option.value = String(percent); option.textContent = `${percent}%`;
-    textScaleSelect.append(option);
-  }
-  textScaleLabel.append(textScaleSelect);
-  const applyFace = document.createElement('button'); applyFace.type = 'button';
-  applyFace.textContent = 'Apply face';
-  applyFace.disabled = true;
-  applyFace.addEventListener('click', () => {
+  const lookControls = createOwnerLookControls(selection => {
     if (!faceView || faceBusy || speechOperationId) return;
-    refreshFace({ look: lookSelect.value, recipe: recipeSelect.value,
-      minimumTextScalePercent: Number(textScaleSelect.value) });
+    refreshFace(selection);
   });
-  faceControls.append(faceLegend, lookLabel, recipeLabel, textScaleLabel, applyFace);
-  faceRefresh.insertAdjacentElement('afterend', faceControls);
+  faceRefresh.insertAdjacentElement('afterend', lookControls.element);
   const showState = state => {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
@@ -406,7 +391,7 @@ export async function startOwnerParticipation(application, root) {
       if (faceView) faceStatus.textContent = 'The route to the owner is lost. The last Face is historical.';
       faceView = null;
       faceRefresh.disabled = true;
-      applyFace.disabled = true;
+      lookControls.setDisabled(true);
       faceEvidence.textContent = 'No current sealed browser Show. Previous route evidence is historical.';
       faceComponent.disabled = true;
       actionResult.textContent = 'The owner window is closed; this browser has no current action return.';

@@ -51,8 +51,14 @@ export function installWorkspaceControls(root, selected, restoreLens, navigation
     layouts.value = value.active_layout;
     status.textContent = `${value.status}${value.notice ? ` · ${JSON.stringify(value.notice)}` : ""} · ${value.correlation?.orphaned_subjects.length ?? 0} orphaned subjects`;
     if (value.retained_workspaces?.length) status.textContent += ` · Retained correlation: ${JSON.stringify(value.retained_workspaces)}`;
-    for (const control of root.querySelectorAll('button[data-needs-workspace="true"]')) {
-      control.disabled = pending.has(control) || value.available === false;
+    updateAvailability(value);
+  }
+  function updateAvailability(value = flowWorkspaceStatus()) {
+    if (pending.size) root.setAttribute("aria-busy", "true");
+    else root.removeAttribute("aria-busy");
+    for (const control of root.querySelectorAll('button[data-needs-workspace]')) {
+      control.disabled = pending.size > 0 ||
+        (control.dataset.needsWorkspace === "true" && value.available === false);
     }
   }
   function button(label, action, needsWorkspace = true) {
@@ -61,13 +67,14 @@ export function installWorkspaceControls(root, selected, restoreLens, navigation
     control.textContent = label;
     control.dataset.needsWorkspace = String(needsWorkspace);
     control.onclick = async () => {
+      if (pending.size) return;
       pending.add(control);
-      control.disabled = true;
+      updateAvailability();
       try { await action(); update(); }
       catch (error) { status.textContent = `Workspace refused: ${error.message}${error.correlation ? ` · ${JSON.stringify(error.correlation)}` : ""}`; }
       finally {
         pending.delete(control);
-        control.disabled = needsWorkspace && flowWorkspaceStatus().available === false;
+        updateAvailability();
       }
     };
     root.append(control);

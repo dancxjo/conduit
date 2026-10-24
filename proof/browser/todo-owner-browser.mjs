@@ -308,7 +308,8 @@ try {
     assertLookReplacement(replacementEvidence);
     await writeFile(path.join(output, 'look-replacement-evidence.json'),
       `${JSON.stringify(replacementEvidence, null, 2)}\n`);
-    await page.getByLabel(/^Look\b/).selectOption('spacious');
+    await page.getByLabel('Density', { exact: true }).selectOption('spacious');
+    await page.getByLabel('Palette', { exact: true }).selectOption('editorial');
     await page.getByLabel(/^Layout\b/).selectOption('grouped');
     await page.getByLabel(/^Minimum text size\b/).selectOption('200');
     await page.getByRole('button', { name: 'Apply face', exact: true }).click();

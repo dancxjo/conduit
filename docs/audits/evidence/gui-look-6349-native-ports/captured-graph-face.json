@@ -1,0 +1,2653 @@
+{
+  "face": {
+    "actions": [
+      {
+        "arguments": [],
+        "availability": {
+          "Unavailable": {
+            "explanation": "Open is not available while lifecycle state is quiescent-awaiting-input.",
+            "reason_code": "lifecycle/not-current"
+          }
+        },
+        "disclosure": "CurrentAction",
+        "identity": "action/open-back/plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "intent": "conduit.intent/open@1",
+        "name": "Open",
+        "target": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07"
+      },
+      {
+        "arguments": [],
+        "availability": {
+          "Unavailable": {
+            "explanation": "Birth is not available while lifecycle state is quiescent-awaiting-input.",
+            "reason_code": "lifecycle/not-current"
+          }
+        },
+        "disclosure": "CurrentAction",
+        "identity": "action/birth/plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "intent": "conduit.intent/birth@1",
+        "name": "Birth",
+        "target": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07"
+      },
+      {
+        "arguments": [],
+        "availability": {
+          "Unavailable": {
+            "explanation": "Wake is not available while lifecycle state is quiescent-awaiting-input.",
+            "reason_code": "lifecycle/not-current"
+          }
+        },
+        "disclosure": "CurrentAction",
+        "identity": "action/wake/body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "intent": "conduit.intent/wake@1",
+        "name": "Wake",
+        "target": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+      },
+      {
+        "arguments": [],
+        "availability": {
+          "Unavailable": {
+            "explanation": "Plan is not available while lifecycle state is quiescent-awaiting-input.",
+            "reason_code": "lifecycle/not-current"
+          }
+        },
+        "disclosure": "CurrentAction",
+        "identity": "action/plan/body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "intent": "conduit.intent/plan@1",
+        "name": "Plan",
+        "target": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+      },
+      {
+        "arguments": [],
+        "availability": {
+          "Unavailable": {
+            "explanation": "Play is not available while lifecycle state is quiescent-awaiting-input.",
+            "reason_code": "lifecycle/not-current"
+          }
+        },
+        "disclosure": "CurrentAction",
+        "identity": "action/play/body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "intent": "conduit.intent/play@1",
+        "name": "Play",
+        "target": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+      },
+      {
+        "arguments": [],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "action/stop/body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "intent": "conduit.intent/stop@1",
+        "name": "Stop",
+        "target": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+      },
+      {
+        "arguments": [],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "action/lull/body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "intent": "conduit.intent/lull@1",
+        "name": "Lull",
+        "target": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+      },
+      {
+        "arguments": [],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "patchbay.plot.0",
+        "intent": "patchbay/select-plot@1",
+        "name": "Inspect memory_lantern",
+        "target": "plot/27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629"
+      },
+      {
+        "arguments": [],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "patchbay.plot.1",
+        "intent": "patchbay/select-plot@1",
+        "name": "Inspect tour",
+        "target": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab"
+      },
+      {
+        "arguments": [],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "patchbay.plot.2",
+        "intent": "patchbay/select-plot@1",
+        "name": "Inspect vision",
+        "target": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046"
+      },
+      {
+        "arguments": [],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "patchbay.plot.3",
+        "intent": "patchbay/select-plot@1",
+        "name": "Inspect conduitos-keyboard-upper",
+        "target": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b"
+      },
+      {
+        "arguments": [
+          {
+            "contract": {
+              "constraints": [
+                {
+                  "ByteLength": {
+                    "maximum": 256,
+                    "minimum": 1
+                  }
+                },
+                {
+                  "CanonicalMembership": {
+                    "members": [
+                      [
+                        99,
+                        111,
+                        114,
+                        100,
+                        47,
+                        112,
+                        97,
+                        121,
+                        108,
+                        111,
+                        97,
+                        100,
+                        47,
+                        52,
+                        55,
+                        47,
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        111,
+                        117,
+                        116,
+                        112,
+                        117,
+                        116,
+                        47,
+                        116,
+                        101,
+                        120,
+                        116,
+                        47,
+                        52,
+                        53,
+                        47,
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        115,
+                        104,
+                        111,
+                        119,
+                        47,
+                        105,
+                        110,
+                        112,
+                        117,
+                        116,
+                        47,
+                        116,
+                        101,
+                        120,
+                        116
+                      ],
+                      [
+                        99,
+                        111,
+                        114,
+                        100,
+                        47,
+                        112,
+                        97,
+                        121,
+                        108,
+                        111,
+                        97,
+                        100,
+                        47,
+                        52,
+                        56,
+                        47,
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        109,
+                        97,
+                        112,
+                        47,
+                        111,
+                        117,
+                        116,
+                        112,
+                        117,
+                        116,
+                        47,
+                        116,
+                        101,
+                        120,
+                        116,
+                        47,
+                        52,
+                        56,
+                        47,
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        105,
+                        110,
+                        112,
+                        117,
+                        116,
+                        47,
+                        115,
+                        111,
+                        117,
+                        114,
+                        99,
+                        101
+                      ],
+                      [
+                        99,
+                        111,
+                        114,
+                        100,
+                        47,
+                        112,
+                        97,
+                        121,
+                        108,
+                        111,
+                        97,
+                        100,
+                        47,
+                        52,
+                        57,
+                        47,
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        47,
+                        111,
+                        117,
+                        116,
+                        112,
+                        117,
+                        116,
+                        47,
+                        107,
+                        101,
+                        121,
+                        47,
+                        52,
+                        54,
+                        47,
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        109,
+                        97,
+                        112,
+                        47,
+                        105,
+                        110,
+                        112,
+                        117,
+                        116,
+                        47,
+                        107,
+                        101,
+                        121
+                      ],
+                      [
+                        103,
+                        101,
+                        97,
+                        114,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100
+                      ],
+                      [
+                        103,
+                        101,
+                        97,
+                        114,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        109,
+                        97,
+                        112
+                      ],
+                      [
+                        103,
+                        101,
+                        97,
+                        114,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        115,
+                        104,
+                        111,
+                        119
+                      ],
+                      [
+                        103,
+                        101,
+                        97,
+                        114,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114
+                      ],
+                      [
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        47,
+                        111,
+                        117,
+                        116,
+                        112,
+                        117,
+                        116,
+                        47,
+                        107,
+                        101,
+                        121
+                      ],
+                      [
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        109,
+                        97,
+                        112,
+                        47,
+                        105,
+                        110,
+                        112,
+                        117,
+                        116,
+                        47,
+                        107,
+                        101,
+                        121
+                      ],
+                      [
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        109,
+                        97,
+                        112,
+                        47,
+                        105,
+                        110,
+                        112,
+                        117,
+                        116,
+                        47,
+                        115,
+                        101,
+                        108,
+                        101,
+                        99,
+                        116,
+                        105,
+                        111,
+                        110
+                      ],
+                      [
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        107,
+                        101,
+                        121,
+                        109,
+                        97,
+                        112,
+                        47,
+                        111,
+                        117,
+                        116,
+                        112,
+                        117,
+                        116,
+                        47,
+                        116,
+                        101,
+                        120,
+                        116
+                      ],
+                      [
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        115,
+                        104,
+                        111,
+                        119,
+                        47,
+                        105,
+                        110,
+                        112,
+                        117,
+                        116,
+                        47,
+                        116,
+                        101,
+                        120,
+                        116
+                      ],
+                      [
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        105,
+                        110,
+                        112,
+                        117,
+                        116,
+                        47,
+                        115,
+                        111,
+                        117,
+                        114,
+                        99,
+                        101
+                      ],
+                      [
+                        112,
+                        111,
+                        114,
+                        116,
+                        47,
+                        99,
+                        111,
+                        110,
+                        100,
+                        117,
+                        105,
+                        116,
+                        111,
+                        115,
+                        45,
+                        107,
+                        101,
+                        121,
+                        98,
+                        111,
+                        97,
+                        114,
+                        100,
+                        45,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        117,
+                        112,
+                        112,
+                        101,
+                        114,
+                        47,
+                        111,
+                        117,
+                        116,
+                        112,
+                        117,
+                        116,
+                        47,
+                        116,
+                        101,
+                        120,
+                        116
+                      ]
+                    ],
+                    "negated": false
+                  }
+                }
+              ],
+              "maximum_bytes": 256,
+              "value_kind": "value/text"
+            },
+            "name": "subject",
+            "value_name": "Subject to edit"
+          }
+        ],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "patchbay.edit.current",
+        "intent": "patchbay/edit-subject@1",
+        "name": "Edit a subject",
+        "target": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b"
+      },
+      {
+        "arguments": [],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "patchbay.masks.change",
+        "intent": "patchbay/change-masks@1",
+        "name": "Wear speech Mask",
+        "target": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07"
+      }
+    ],
+    "basis": {
+      "active_play_id": "body-play/sha256:10ffb9347f3e5bb73ba74303a68fc23e08939dbb88b9d2b5304ad591b697e179",
+      "body_id": "1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+      "checked_plot_id": "5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+      "expanded_plot_id": "bb5f6421887e144ddd3700ecca6a69b23decead4a64882c99e17c1017b3692cb",
+      "plan_id": "body-plan/sha256:c333720c90b3a8303284b2966f6f465d4ccea20dee4646a7ccb4571b0a56df1c",
+      "sign_ids": [
+        "conduitos/product/input/body-play/sha256:10ffb9347f3e5bb73ba74303a68fc23e08939dbb88b9d2b5304ad591b697e179/15"
+      ],
+      "source_document_id": "c4e42a73c0ebfd9f92bb8af0b2fa315cdc2e5789afc5e3c55f77e3f37eb7b938",
+      "wake_id": "befada397ce0093e137648ba21b68648ef307833f8f5a12ffc76ceb998703475"
+    },
+    "composition": [],
+    "disclosures": [
+      {
+        "level": "Primary",
+        "subject": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07"
+      },
+      {
+        "level": "Context",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48"
+      },
+      {
+        "level": "Primary",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07"
+      },
+      {
+        "level": "Context",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0"
+      }
+    ],
+    "identity": "77741aa78f881f246a53d2c74fc67cad8d15bc8170da11f3cc4c5ad0aadf4542",
+    "interaction_context": {
+      "basis": [],
+      "identity": "face/context/general"
+    },
+    "properties": [
+      {
+        "name": "current-body",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Identity": "1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+        }
+      },
+      {
+        "name": "host-id",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Identity": "66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2"
+        }
+      },
+      {
+        "name": "boot-id",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Identity": "bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48"
+        }
+      },
+      {
+        "name": "offer-generation",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Count": 1
+        }
+      },
+      {
+        "name": "offer-count",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Count": 18
+        }
+      },
+      {
+        "name": "source-document-id",
+        "subject": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Identity": "c4e42a73c0ebfd9f92bb8af0b2fa315cdc2e5789afc5e3c55f77e3f37eb7b938"
+        }
+      },
+      {
+        "name": "checked-plot-id",
+        "subject": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Identity": "5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07"
+        }
+      },
+      {
+        "name": "opened",
+        "subject": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "name": "body-id",
+        "subject": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "value": {
+          "Identity": "1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+        }
+      },
+      {
+        "name": "born-sign-id",
+        "subject": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "value": {
+          "Identity": "conduitos/product/born/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48/1"
+        }
+      },
+      {
+        "name": "part-id",
+        "subject": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "value": {
+          "Identity": "d499cc5ae3200c4526195ae64554756a078a22514d468c2ddc56586aa8789400"
+        }
+      },
+      {
+        "name": "expanded-plot-id",
+        "subject": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Identity": "bb5f6421887e144ddd3700ecca6a69b23decead4a64882c99e17c1017b3692cb"
+        }
+      },
+      {
+        "name": "wake-id",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Identity": "befada397ce0093e137648ba21b68648ef307833f8f5a12ffc76ceb998703475"
+        }
+      },
+      {
+        "name": "plan-id",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Identity": "body-plan/sha256:c333720c90b3a8303284b2966f6f465d4ccea20dee4646a7ccb4571b0a56df1c"
+        }
+      },
+      {
+        "name": "active-play-id",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Identity": "body-play/sha256:10ffb9347f3e5bb73ba74303a68fc23e08939dbb88b9d2b5304ad591b697e179"
+        }
+      },
+      {
+        "name": "input-events",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Count": 16
+        }
+      },
+      {
+        "name": "result-omitted-bytes",
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "name": "application-revision",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Count": 1
+        }
+      },
+      {
+        "name": "body-plan-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Identity": "body-plan/sha256:c333720c90b3a8303284b2966f6f465d4ccea20dee4646a7ccb4571b0a56df1c"
+        }
+      },
+      {
+        "name": "observed-plan-id",
+        "subject": "plot/27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+        "value": {
+          "Identity": "38c1b7f13f77c7103988eb5092a4ce2cd6a04fba60966ddefe5ddf6c7b0d68dc"
+        }
+      },
+      {
+        "name": "patchbay-selected",
+        "subject": "plot/27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "name": "observed-plot-state",
+        "subject": "plot/27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+        "value": {
+          "Text": "playing"
+        }
+      },
+      {
+        "name": "observed-plan-id",
+        "subject": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+        "value": {
+          "Identity": "2438b054e81d3018a02eb436e5657e4fb85d0363428564f2fedbcb39e20d24e9"
+        }
+      },
+      {
+        "name": "patchbay-selected",
+        "subject": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "name": "observed-plot-state",
+        "subject": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+        "value": {
+          "Text": "playing"
+        }
+      },
+      {
+        "name": "inspected-plan-present",
+        "subject": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "name": "inspected-play-present",
+        "subject": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "name": "inspected-source-document-id",
+        "subject": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046",
+        "value": {
+          "Identity": "5345dc154d1209167735c7d9e37a725c9a470a239fd7764e2986aacd58af4382"
+        }
+      },
+      {
+        "name": "inspected-expanded-plot-id",
+        "subject": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046",
+        "value": {
+          "Identity": "c131604a9be9cca5389b5c9c25cd5ed524e4458ad57c43d414886278759d7307"
+        }
+      },
+      {
+        "name": "patchbay-selected",
+        "subject": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "name": "observed-plot-state",
+        "subject": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046",
+        "value": {
+          "Text": "checked-source"
+        }
+      },
+      {
+        "name": "observed-plan-id",
+        "subject": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "value": {
+          "Identity": "2327579d95d54d96135352958f713f9ea3878bcfc371b2a96f58af5c71cd8dda"
+        }
+      },
+      {
+        "name": "patchbay-selected",
+        "subject": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "value": {
+          "Flag": true
+        }
+      },
+      {
+        "name": "observed-plot-state",
+        "subject": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "value": {
+          "Text": "playing"
+        }
+      },
+      {
+        "name": "source-document-id",
+        "subject": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "value": {
+          "Identity": "fd681a367856550384d5155c8ba3e7f36c6c008c249029b009aa075ac6c23516"
+        }
+      },
+      {
+        "name": "expanded-plot-id",
+        "subject": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "value": {
+          "Identity": "bb0bfd56d97029a496e5b8652134f0c76b3b460fb1de828cc6ef5018a5dcf2f1"
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "gear/gear/conduitos-keyboard-upper/keyboard",
+        "value": {
+          "Identity": "gear/conduitos-keyboard-upper/keyboard"
+        }
+      },
+      {
+        "name": "kind-id",
+        "subject": "gear/gear/conduitos-keyboard-upper/keyboard",
+        "value": {
+          "Identity": "input/keyboard"
+        }
+      },
+      {
+        "name": "source-plot",
+        "subject": "gear/gear/conduitos-keyboard-upper/keyboard",
+        "value": {
+          "Identity": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "plot-path",
+        "subject": "gear/gear/conduitos-keyboard-upper/keyboard",
+        "value": {
+          "Text": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "port/port/conduitos-keyboard-upper/keyboard/output/key",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/keyboard/output/key"
+        }
+      },
+      {
+        "name": "port-id",
+        "subject": "port/port/conduitos-keyboard-upper/keyboard/output/key",
+        "value": {
+          "Identity": "key"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "port/port/conduitos-keyboard-upper/keyboard/output/key",
+        "value": {
+          "Identity": "input/key-event@1"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "port/port/conduitos-keyboard-upper/keyboard/output/key",
+        "value": {
+          "Text": "flow-open"
+        }
+      },
+      {
+        "name": "direction",
+        "subject": "port/port/conduitos-keyboard-upper/keyboard/output/key",
+        "value": {
+          "Text": "outgoing"
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "gear/gear/conduitos-keyboard-upper/keymap",
+        "value": {
+          "Identity": "gear/conduitos-keyboard-upper/keymap"
+        }
+      },
+      {
+        "name": "kind-id",
+        "subject": "gear/gear/conduitos-keyboard-upper/keymap",
+        "value": {
+          "Identity": "input/keymap"
+        }
+      },
+      {
+        "name": "source-plot",
+        "subject": "gear/gear/conduitos-keyboard-upper/keymap",
+        "value": {
+          "Identity": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "plot-path",
+        "subject": "gear/gear/conduitos-keyboard-upper/keymap",
+        "value": {
+          "Text": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/keymap/input/key"
+        }
+      },
+      {
+        "name": "port-id",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "key"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "input/key-event@1"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Text": "flow-open"
+        }
+      },
+      {
+        "name": "direction",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Text": "receiving"
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/selection",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/keymap/input/selection"
+        }
+      },
+      {
+        "name": "port-id",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/selection",
+        "value": {
+          "Identity": "selection"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/selection",
+        "value": {
+          "Identity": "value/text"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/selection",
+        "value": {
+          "Text": "current"
+        }
+      },
+      {
+        "name": "direction",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/selection",
+        "value": {
+          "Text": "receiving"
+        }
+      },
+      {
+        "name": "value-contract",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/input/selection",
+        "value": {
+          "ValueContract": {
+            "constraints": [],
+            "maximum_bytes": 256,
+            "value_kind": "value/text"
+          }
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/output/text",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/keymap/output/text"
+        }
+      },
+      {
+        "name": "port-id",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/output/text",
+        "value": {
+          "Identity": "text"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/output/text",
+        "value": {
+          "Identity": "value/text"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/output/text",
+        "value": {
+          "Text": "flow-open"
+        }
+      },
+      {
+        "name": "direction",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/output/text",
+        "value": {
+          "Text": "outgoing"
+        }
+      },
+      {
+        "name": "value-contract",
+        "subject": "port/port/conduitos-keyboard-upper/keymap/output/text",
+        "value": {
+          "ValueContract": {
+            "constraints": [],
+            "maximum_bytes": 256,
+            "value_kind": "value/text"
+          }
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "gear/gear/conduitos-keyboard-upper/show",
+        "value": {
+          "Identity": "gear/conduitos-keyboard-upper/show"
+        }
+      },
+      {
+        "name": "kind-id",
+        "subject": "gear/gear/conduitos-keyboard-upper/show",
+        "value": {
+          "Identity": "face/text"
+        }
+      },
+      {
+        "name": "source-plot",
+        "subject": "gear/gear/conduitos-keyboard-upper/show",
+        "value": {
+          "Identity": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "plot-path",
+        "subject": "gear/gear/conduitos-keyboard-upper/show",
+        "value": {
+          "Text": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "port/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/show/input/text"
+        }
+      },
+      {
+        "name": "port-id",
+        "subject": "port/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "text"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "port/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "value/text"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "port/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Text": "value"
+        }
+      },
+      {
+        "name": "direction",
+        "subject": "port/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Text": "receiving"
+        }
+      },
+      {
+        "name": "value-contract",
+        "subject": "port/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "ValueContract": {
+            "constraints": [],
+            "maximum_bytes": 256,
+            "value_kind": "value/text"
+          }
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "gear/gear/conduitos-keyboard-upper/upper",
+        "value": {
+          "Identity": "gear/conduitos-keyboard-upper/upper"
+        }
+      },
+      {
+        "name": "kind-id",
+        "subject": "gear/gear/conduitos-keyboard-upper/upper",
+        "value": {
+          "Identity": "text/upper"
+        }
+      },
+      {
+        "name": "source-plot",
+        "subject": "gear/gear/conduitos-keyboard-upper/upper",
+        "value": {
+          "Identity": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "plot-path",
+        "subject": "gear/gear/conduitos-keyboard-upper/upper",
+        "value": {
+          "Text": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "port/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/upper/input/source"
+        }
+      },
+      {
+        "name": "port-id",
+        "subject": "port/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "source"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "port/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "value/text"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "port/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Text": "value"
+        }
+      },
+      {
+        "name": "direction",
+        "subject": "port/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Text": "receiving"
+        }
+      },
+      {
+        "name": "value-contract",
+        "subject": "port/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "ValueContract": {
+            "constraints": [],
+            "maximum_bytes": 256,
+            "value_kind": "value/text"
+          }
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "port/port/conduitos-keyboard-upper/upper/output/text",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/upper/output/text"
+        }
+      },
+      {
+        "name": "port-id",
+        "subject": "port/port/conduitos-keyboard-upper/upper/output/text",
+        "value": {
+          "Identity": "text"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "port/port/conduitos-keyboard-upper/upper/output/text",
+        "value": {
+          "Identity": "value/text"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "port/port/conduitos-keyboard-upper/upper/output/text",
+        "value": {
+          "Text": "value"
+        }
+      },
+      {
+        "name": "direction",
+        "subject": "port/port/conduitos-keyboard-upper/upper/output/text",
+        "value": {
+          "Text": "outgoing"
+        }
+      },
+      {
+        "name": "value-contract",
+        "subject": "port/port/conduitos-keyboard-upper/upper/output/text",
+        "value": {
+          "ValueContract": {
+            "constraints": [],
+            "maximum_bytes": 256,
+            "value_kind": "value/text"
+          }
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key"
+        }
+      },
+      {
+        "name": "source-port",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/keyboard/output/key"
+        }
+      },
+      {
+        "name": "sink-port",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/keymap/input/key"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "input/key-event@1"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Text": "flow-open"
+        }
+      },
+      {
+        "name": "source-origin",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "cord-stages"
+        }
+      },
+      {
+        "name": "source-document-id",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "fd681a367856550384d5155c8ba3e7f36c6c008c249029b009aa075ac6c23516"
+        }
+      },
+      {
+        "name": "checked-source-plot-id",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b"
+        }
+      },
+      {
+        "name": "source-plot",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Identity": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "source-instance-path",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Text": "24:conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "source-byte-start",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Count": 143
+        }
+      },
+      {
+        "name": "source-byte-end",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Count": 169
+        }
+      },
+      {
+        "name": "source-line",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Count": 6
+        }
+      },
+      {
+        "name": "source-column",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Count": 5
+        }
+      },
+      {
+        "name": "source-end-line",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Count": 6
+        }
+      },
+      {
+        "name": "source-end-column",
+        "subject": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "value": {
+          "Count": 31
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source"
+        }
+      },
+      {
+        "name": "source-port",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/keymap/output/text"
+        }
+      },
+      {
+        "name": "sink-port",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/upper/input/source"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "value/text"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Text": "flow-open"
+        }
+      },
+      {
+        "name": "source-origin",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "cord-stages"
+        }
+      },
+      {
+        "name": "source-document-id",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "fd681a367856550384d5155c8ba3e7f36c6c008c249029b009aa075ac6c23516"
+        }
+      },
+      {
+        "name": "checked-source-plot-id",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b"
+        }
+      },
+      {
+        "name": "source-plot",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Identity": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "source-instance-path",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Text": "24:conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "source-byte-start",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Count": 174
+        }
+      },
+      {
+        "name": "source-byte-end",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Count": 201
+        }
+      },
+      {
+        "name": "source-line",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Count": 7
+        }
+      },
+      {
+        "name": "source-column",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Count": 5
+        }
+      },
+      {
+        "name": "source-end-line",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Count": 7
+        }
+      },
+      {
+        "name": "source-end-column",
+        "subject": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "value": {
+          "Count": 32
+        }
+      },
+      {
+        "name": "semantic-id",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text"
+        }
+      },
+      {
+        "name": "source-port",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/upper/output/text"
+        }
+      },
+      {
+        "name": "sink-port",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "port/conduitos-keyboard-upper/show/input/text"
+        }
+      },
+      {
+        "name": "value-kind",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "value/text"
+        }
+      },
+      {
+        "name": "temporal",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Text": "value"
+        }
+      },
+      {
+        "name": "source-origin",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "cord-stages"
+        }
+      },
+      {
+        "name": "source-document-id",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "fd681a367856550384d5155c8ba3e7f36c6c008c249029b009aa075ac6c23516"
+        }
+      },
+      {
+        "name": "checked-source-plot-id",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b"
+        }
+      },
+      {
+        "name": "source-plot",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Identity": "conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "source-instance-path",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Text": "24:conduitos-keyboard-upper"
+        }
+      },
+      {
+        "name": "source-byte-start",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Count": 206
+        }
+      },
+      {
+        "name": "source-byte-end",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Count": 229
+        }
+      },
+      {
+        "name": "source-line",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Count": 8
+        }
+      },
+      {
+        "name": "source-column",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Count": 5
+        }
+      },
+      {
+        "name": "source-end-line",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Count": 8
+        }
+      },
+      {
+        "name": "source-end-column",
+        "subject": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "value": {
+          "Count": 28
+        }
+      },
+      {
+        "name": "mask-face-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Identity": "none"
+        }
+      },
+      {
+        "name": "mask-body-plan-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Identity": "body-plan/sha256:c333720c90b3a8303284b2966f6f465d4ccea20dee4646a7ccb4571b0a56df1c"
+        }
+      },
+      {
+        "name": "mask-play-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Identity": "body-play/sha256:10ffb9347f3e5bb73ba74303a68fc23e08939dbb88b9d2b5304ad591b697e179"
+        }
+      },
+      {
+        "name": "manifestation-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Identity": "not-shown"
+        }
+      },
+      {
+        "name": "implementation-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Identity": "face/renderer-conduitos-native@1"
+        }
+      },
+      {
+        "name": "host-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Identity": "66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2"
+        }
+      },
+      {
+        "name": "boot-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Identity": "bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48"
+        }
+      },
+      {
+        "name": "resource-pool-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Identity": "7b5724075d663251b1013f1b5246f1e441b56216877e4f437e778244dc8324e5/surface"
+        }
+      },
+      {
+        "name": "resource-class-id",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Identity": "face.resource/show@1"
+        }
+      },
+      {
+        "name": "reserved-units",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Count": 1
+        }
+      },
+      {
+        "name": "maximum-active-instances",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Count": 1
+        }
+      },
+      {
+        "name": "maximum-queue-items",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Count": 1
+        }
+      },
+      {
+        "name": "maximum-queue-bytes",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Count": 524288
+        }
+      },
+      {
+        "name": "available",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "name": "mask-mode",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Text": "graphical"
+        }
+      },
+      {
+        "name": "requested-next-mask-mode",
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "value": {
+          "Text": "graphical-and-speech"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "kind": "Observes",
+        "source": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "target": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07"
+      },
+      {
+        "kind": "Contains",
+        "source": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "target": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+      },
+      {
+        "kind": "Contains",
+        "source": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "target": "plot/27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629"
+      },
+      {
+        "kind": "Contains",
+        "source": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "target": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab"
+      },
+      {
+        "kind": "Contains",
+        "source": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "target": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b"
+      },
+      {
+        "kind": "Observes",
+        "source": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "target": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec"
+      },
+      {
+        "kind": "Observes",
+        "source": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "target": "plot/27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629"
+      },
+      {
+        "kind": "Observes",
+        "source": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "target": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab"
+      },
+      {
+        "kind": "Observes",
+        "source": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "target": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046"
+      },
+      {
+        "kind": "Observes",
+        "source": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "target": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b"
+      },
+      {
+        "kind": "Contains",
+        "source": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "target": "gear/gear/conduitos-keyboard-upper/keyboard"
+      },
+      {
+        "kind": "Contains",
+        "source": "gear/gear/conduitos-keyboard-upper/keyboard",
+        "target": "port/port/conduitos-keyboard-upper/keyboard/output/key"
+      },
+      {
+        "kind": "Contains",
+        "source": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "target": "gear/gear/conduitos-keyboard-upper/keymap"
+      },
+      {
+        "kind": "Contains",
+        "source": "gear/gear/conduitos-keyboard-upper/keymap",
+        "target": "port/port/conduitos-keyboard-upper/keymap/input/key"
+      },
+      {
+        "kind": "Contains",
+        "source": "gear/gear/conduitos-keyboard-upper/keymap",
+        "target": "port/port/conduitos-keyboard-upper/keymap/input/selection"
+      },
+      {
+        "kind": "Contains",
+        "source": "gear/gear/conduitos-keyboard-upper/keymap",
+        "target": "port/port/conduitos-keyboard-upper/keymap/output/text"
+      },
+      {
+        "kind": "Contains",
+        "source": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "target": "gear/gear/conduitos-keyboard-upper/show"
+      },
+      {
+        "kind": "Contains",
+        "source": "gear/gear/conduitos-keyboard-upper/show",
+        "target": "port/port/conduitos-keyboard-upper/show/input/text"
+      },
+      {
+        "kind": "Contains",
+        "source": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "target": "gear/gear/conduitos-keyboard-upper/upper"
+      },
+      {
+        "kind": "Contains",
+        "source": "gear/gear/conduitos-keyboard-upper/upper",
+        "target": "port/port/conduitos-keyboard-upper/upper/input/source"
+      },
+      {
+        "kind": "Contains",
+        "source": "gear/gear/conduitos-keyboard-upper/upper",
+        "target": "port/port/conduitos-keyboard-upper/upper/output/text"
+      },
+      {
+        "kind": "Contains",
+        "source": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "target": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key"
+      },
+      {
+        "kind": "Connects",
+        "source": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "target": "port/port/conduitos-keyboard-upper/keyboard/output/key"
+      },
+      {
+        "kind": "Connects",
+        "source": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "target": "port/port/conduitos-keyboard-upper/keymap/input/key"
+      },
+      {
+        "kind": "Contains",
+        "source": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "target": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source"
+      },
+      {
+        "kind": "Connects",
+        "source": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "target": "port/port/conduitos-keyboard-upper/keymap/output/text"
+      },
+      {
+        "kind": "Connects",
+        "source": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "target": "port/port/conduitos-keyboard-upper/upper/input/source"
+      },
+      {
+        "kind": "Contains",
+        "source": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "target": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text"
+      },
+      {
+        "kind": "Connects",
+        "source": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "target": "port/port/conduitos-keyboard-upper/upper/output/text"
+      },
+      {
+        "kind": "Connects",
+        "source": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "target": "port/port/conduitos-keyboard-upper/show/input/text"
+      },
+      {
+        "kind": "Contains",
+        "source": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "target": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0"
+      }
+    ],
+    "revision": 74,
+    "subjects": [
+      {
+        "identity": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "name": "This host",
+        "role": "Host"
+      },
+      {
+        "identity": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "name": "Patchbay",
+        "role": "Plot"
+      },
+      {
+        "identity": "body/1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "name": "Shin Na-yeon",
+        "role": "Body"
+      },
+      {
+        "identity": "plot/27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+        "name": "Text editor",
+        "role": "Plot"
+      },
+      {
+        "identity": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+        "name": "Tutorial",
+        "role": "Plot"
+      },
+      {
+        "identity": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "name": "Keyboard canvas",
+        "role": "Plot"
+      },
+      {
+        "identity": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "name": "Patchbay",
+        "role": "Document"
+      },
+      {
+        "identity": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046",
+        "name": "vision",
+        "role": "Plot"
+      },
+      {
+        "identity": "gear/gear/conduitos-keyboard-upper/keyboard",
+        "name": "conduitos-keyboard-upper/keyboard Gear \u00b7 input/keyboard",
+        "role": "Gear"
+      },
+      {
+        "identity": "port/port/conduitos-keyboard-upper/keyboard/output/key",
+        "name": "key \u00b7 input/key-event@1",
+        "role": "Port"
+      },
+      {
+        "identity": "gear/gear/conduitos-keyboard-upper/keymap",
+        "name": "conduitos-keyboard-upper/keymap Gear \u00b7 input/keymap",
+        "role": "Gear"
+      },
+      {
+        "identity": "port/port/conduitos-keyboard-upper/keymap/input/key",
+        "name": "key \u00b7 input/key-event@1",
+        "role": "Port"
+      },
+      {
+        "identity": "port/port/conduitos-keyboard-upper/keymap/input/selection",
+        "name": "selection \u00b7 value/text",
+        "role": "Port"
+      },
+      {
+        "identity": "port/port/conduitos-keyboard-upper/keymap/output/text",
+        "name": "text \u00b7 value/text",
+        "role": "Port"
+      },
+      {
+        "identity": "gear/gear/conduitos-keyboard-upper/show",
+        "name": "conduitos-keyboard-upper/show Gear \u00b7 face/text",
+        "role": "Gear"
+      },
+      {
+        "identity": "port/port/conduitos-keyboard-upper/show/input/text",
+        "name": "text \u00b7 value/text",
+        "role": "Port"
+      },
+      {
+        "identity": "gear/gear/conduitos-keyboard-upper/upper",
+        "name": "conduitos-keyboard-upper/upper Gear \u00b7 text/upper",
+        "role": "Gear"
+      },
+      {
+        "identity": "port/port/conduitos-keyboard-upper/upper/input/source",
+        "name": "source \u00b7 value/text",
+        "role": "Port"
+      },
+      {
+        "identity": "port/port/conduitos-keyboard-upper/upper/output/text",
+        "name": "text \u00b7 value/text",
+        "role": "Port"
+      },
+      {
+        "identity": "cord/cord/payload/49/port/conduitos-keyboard-upper/keyboard/output/key/46/port/conduitos-keyboard-upper/keymap/input/key",
+        "name": "Typed connection",
+        "role": "Cord"
+      },
+      {
+        "identity": "cord/cord/payload/48/port/conduitos-keyboard-upper/keymap/output/text/48/port/conduitos-keyboard-upper/upper/input/source",
+        "name": "Typed connection",
+        "role": "Cord"
+      },
+      {
+        "identity": "cord/cord/payload/47/port/conduitos-keyboard-upper/upper/output/text/45/port/conduitos-keyboard-upper/show/input/text",
+        "name": "Typed connection",
+        "role": "Cord"
+      },
+      {
+        "identity": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07/mask-stage/0",
+        "name": "Mask stage unavailable",
+        "role": "Info"
+      }
+    ],
+    "temporal_facts": [],
+    "temporal_references": [],
+    "text": [
+      {
+        "subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+        "text": "Play quiescent; the same admitted kernel awaits keyboard input."
+      },
+      {
+        "subject": "plot/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "text": "Selected resident Plot; source and checked identities are supplied by the current Body workset"
+      },
+      {
+        "subject": "patchbay/document/5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "text": "Prepared plots and checked Sources"
+      },
+      {
+        "subject": "plot/27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+        "text": "memory_lantern"
+      },
+      {
+        "subject": "plot/ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+        "text": "tour"
+      },
+      {
+        "subject": "plot/7f41102c0dee416b59bb8f7f086be83ab0f547bae154f46a98f79a5179380046",
+        "text": "vision"
+      },
+      {
+        "subject": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "text": "conduitos-keyboard-upper"
+      },
+      {
+        "subject": "plot/f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "text": "Exact selected Plot graph; connections are typed Ports and Cords"
+      }
+    ]
+  },
+  "observation_sequence": 34,
+  "play_sequence": 34,
+  "schema": "conduit.native-face/v1",
+  "show": {
+    "boot_id": "bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+    "face_id": "77741aa78f881f246a53d2c74fc67cad8d15bc8170da11f3cc4c5ad0aadf4542",
+    "face_revision": 74,
+    "host_id": "66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2",
+    "lifecycle": "Available",
+    "manifestation": {
+      "active_play_id": "fd9e6e1fff608f22f6e49fd085c6cf2039f937095930b874defe44e3cc2f1ead",
+      "body_id": "1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+      "boot_id": "bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+      "face_id": "77741aa78f881f246a53d2c74fc67cad8d15bc8170da11f3cc4c5ad0aadf4542",
+      "face_revision": 74,
+      "failure": null,
+      "front_subject": "host/66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2/bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+      "host_id": "66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2",
+      "lifecycle": "Available",
+      "manifestation_id": "c068b56aa31632150fb0ea68e8d6a47d799e66e4c401bbe2d4cf6b3da8b8509a",
+      "offer_generation": 1,
+      "placement_id": "001e60f0e17d3d868ff5a48dbc4d2c0b4e3cf30231c1631723a1c96d7f1afabb",
+      "plan_id": "1abb0317d48149ffc47e5571b98f661e9c8d03d3bfaccfcf62ff6154412ad92e",
+      "play_sequence": 34,
+      "presenter_artifact_id": "conduitos/native-compositor@1",
+      "presenter_capability_id": "renderer-conduitos",
+      "presenter_implementation_id": "face/renderer-conduitos-native@1",
+      "signs": [
+        {
+          "active_play_id": "fd9e6e1fff608f22f6e49fd085c6cf2039f937095930b874defe44e3cc2f1ead",
+          "boot_id": "bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+          "face_id": "77741aa78f881f246a53d2c74fc67cad8d15bc8170da11f3cc4c5ad0aadf4542",
+          "failure": null,
+          "host_id": "66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2",
+          "lifecycle": "Prepared",
+          "manifestation_id": "c068b56aa31632150fb0ea68e8d6a47d799e66e4c401bbe2d4cf6b3da8b8509a",
+          "offer_generation": 1,
+          "placement_id": "001e60f0e17d3d868ff5a48dbc4d2c0b4e3cf30231c1631723a1c96d7f1afabb",
+          "plan_id": "1abb0317d48149ffc47e5571b98f661e9c8d03d3bfaccfcf62ff6154412ad92e",
+          "play_sequence": 34,
+          "presenter_implementation_id": "face/renderer-conduitos-native@1",
+          "sign_id": "conduitos/mask/render-prepared"
+        },
+        {
+          "active_play_id": "fd9e6e1fff608f22f6e49fd085c6cf2039f937095930b874defe44e3cc2f1ead",
+          "boot_id": "bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+          "face_id": "77741aa78f881f246a53d2c74fc67cad8d15bc8170da11f3cc4c5ad0aadf4542",
+          "failure": null,
+          "host_id": "66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2",
+          "lifecycle": "Available",
+          "manifestation_id": "c068b56aa31632150fb0ea68e8d6a47d799e66e4c401bbe2d4cf6b3da8b8509a",
+          "offer_generation": 1,
+          "placement_id": "001e60f0e17d3d868ff5a48dbc4d2c0b4e3cf30231c1631723a1c96d7f1afabb",
+          "plan_id": "1abb0317d48149ffc47e5571b98f661e9c8d03d3bfaccfcf62ff6154412ad92e",
+          "play_sequence": 34,
+          "presenter_implementation_id": "face/renderer-conduitos-native@1",
+          "sign_id": "conduitos/mask/render-available"
+        }
+      ],
+      "target_subject": "conduitos/workspace/face",
+      "wake_id": "befada397ce0093e137648ba21b68648ef307833f8f5a12ffc76ceb998703475"
+    },
+    "manifestation_id": "c068b56aa31632150fb0ea68e8d6a47d799e66e4c401bbe2d4cf6b3da8b8509a",
+    "mask_active_play_id": "fd9e6e1fff608f22f6e49fd085c6cf2039f937095930b874defe44e3cc2f1ead",
+    "mask_plan_id": "1abb0317d48149ffc47e5571b98f661e9c8d03d3bfaccfcf62ff6154412ad92e",
+    "mask_plot": {
+      "checked_plot_id": "28eb72135c48fed21c4d8fcca7bbfe3f3791e733cf431667ada29ed43994f0f7",
+      "expanded_plot_id": "4c4d6f8adafdc395537e70943f0a89d2c6304c5ff408a72d0dccdb76bb5c6d29",
+      "source_document_id": "a33fa003c240c875026b8b81f95e703c4a78b252583f2e5383a4da5465653bd3"
+    },
+    "offer_generation": 1,
+    "show_id": "show/640dcaf34660ae423a51f52712a56287c47efa415253535c14edb8fb3797fc21"
+  },
+  "storage_receipts": {
+    "producer": {
+      "boot_id": "bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+      "collection_storage": {
+        "encoded_input_capacity": 65536,
+        "maximum_value_bytes": 262144,
+        "observed_output_capacity": 262144,
+        "prepared_inline_bytes": 1496,
+        "reserved_value_payload_bytes": 524288,
+        "reserved_value_storage_bytes": 524352,
+        "scheduler_inline_bytes": 6000,
+        "value_slots": 2
+      },
+      "encoded_bytes": 46019,
+      "face_id": "77741aa78f881f246a53d2c74fc67cad8d15bc8170da11f3cc4c5ad0aadf4542",
+      "face_revision": 74,
+      "fore_endpoints": 2,
+      "host_id": "66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2",
+      "kernel_signs": 12,
+      "observation_sequence": 34,
+      "observed_face_basis": {
+        "active_play_id": "body-play/sha256:10ffb9347f3e5bb73ba74303a68fc23e08939dbb88b9d2b5304ad591b697e179",
+        "body_id": "1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+        "checked_plot_id": "5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+        "expanded_plot_id": "bb5f6421887e144ddd3700ecca6a69b23decead4a64882c99e17c1017b3692cb",
+        "plan_id": "body-plan/sha256:c333720c90b3a8303284b2966f6f465d4ccea20dee4646a7ccb4571b0a56df1c",
+        "sign_ids": [
+          "conduitos/product/input/body-play/sha256:10ffb9347f3e5bb73ba74303a68fc23e08939dbb88b9d2b5304ad591b697e179/15"
+        ],
+        "source_document_id": "c4e42a73c0ebfd9f92bb8af0b2fa315cdc2e5789afc5e3c55f77e3f37eb7b938",
+        "wake_id": "befada397ce0093e137648ba21b68648ef307833f8f5a12ffc76ceb998703475"
+      },
+      "offer_generation": 1,
+      "producer_active_play_id": "6f1d02df8c34d31f7a1f68cf1bcb1818b1035fb4b99c6df72f48c2ea58617360",
+      "producer_plan_id": "f18f1096985c93235bdbbc7916bed30f538bf355fd6b1ec2967dbcc738c00131",
+      "producer_plot": {
+        "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+        "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+        "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b"
+      },
+      "value_sha256": [
+        53,
+        255,
+        236,
+        35,
+        99,
+        62,
+        170,
+        107,
+        128,
+        92,
+        48,
+        5,
+        220,
+        206,
+        165,
+        239,
+        213,
+        70,
+        5,
+        141,
+        138,
+        236,
+        141,
+        182,
+        139,
+        222,
+        75,
+        210,
+        74,
+        44,
+        222,
+        62
+      ]
+    },
+    "renderer": {
+      "active_play_id": "fd9e6e1fff608f22f6e49fd085c6cf2039f937095930b874defe44e3cc2f1ead",
+      "collection_storage": {
+        "live_value_byte_capacity": 1589248,
+        "maximum_value_bytes": 262144,
+        "prepared_inline_bytes": 2832,
+        "reserved_value_payload_bytes": 2621440,
+        "reserved_value_storage_bytes": 2621760,
+        "scheduler_inline_bytes": 15088,
+        "value_slots": 10
+      },
+      "display_base_id": "7b5724075d663251b1013f1b5246f1e441b56216877e4f437e778244dc8324e5",
+      "face_id": "77741aa78f881f246a53d2c74fc67cad8d15bc8170da11f3cc4c5ad0aadf4542",
+      "face_revision": 74,
+      "fore_endpoints": 3,
+      "kernel_signs": 29,
+      "mask_plan_id": "1abb0317d48149ffc47e5571b98f661e9c8d03d3bfaccfcf62ff6154412ad92e",
+      "scanout_frame_sequence": 69,
+      "scanout_pixels_written": 1024000,
+      "show_value_id": "show-value/a045842f8bbb3867725fbd9c1dc05750c1dc7479bf8e462039fadb9292731c98",
+      "surface_id": "conduitos/workspace/face"
+    }
+  }
+}

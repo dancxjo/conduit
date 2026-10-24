@@ -1,0 +1,740 @@
+[
+  {
+    "event": "framesent",
+    "kind": "advertise",
+    "at": 1792845844805
+  },
+  {
+    "event": "framereceived",
+    "kind": "challenge",
+    "at": 1792845844813
+  },
+  {
+    "event": "framesent",
+    "kind": "ambient-proof",
+    "at": 1792845844813
+  },
+  {
+    "event": "framereceived",
+    "kind": "admitted",
+    "at": 1792845844936
+  },
+  {
+    "event": "framereceived",
+    "kind": "biography-evidence",
+    "at": 1792845844937
+  },
+  {
+    "event": "framereceived",
+    "kind": "offer-evidence",
+    "at": 1792845844937
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845844937
+  },
+  {
+    "event": "framesent",
+    "kind": "web-rtc-grant-request",
+    "at": 1792845844938
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845844938
+  },
+  {
+    "event": "framereceived",
+    "kind": "web-rtc-grant",
+    "at": 1792845844938
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845845005
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845845005
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845845016
+  },
+  {
+    "event": "framesent",
+    "kind": "face-wardrobe-request",
+    "at": 1792845845016
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-wardrobe-response",
+    "at": 1792845845031
+  },
+  {
+    "event": "framesent",
+    "kind": "face-wardrobe-request",
+    "at": 1792845845224
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-wardrobe-response",
+    "at": 1792845845241
+  },
+  {
+    "event": "framesent",
+    "kind": "face-wardrobe-request",
+    "at": 1792845845300
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-wardrobe-response",
+    "at": 1792845845318
+  },
+  {
+    "event": "framesent",
+    "kind": "face-wardrobe-request",
+    "at": 1792845845367
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-wardrobe-response",
+    "at": 1792845845382
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845845438
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845845440
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845845486
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845845486
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845845489
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845845498
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845845759
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845845866
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845845866
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845845881
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845845997
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845845998
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845846499
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845846501
+  },
+  {
+    "event": "framesent",
+    "kind": "face-interaction-request",
+    "at": 1792845846834
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845846999
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-interaction-response",
+    "at": 1792845847685
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845847685
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845847686
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845847731
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845847731
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845847744
+  },
+  {
+    "event": "framesent",
+    "kind": "face-interaction-request",
+    "at": 1792845847819
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845848186
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-interaction-response",
+    "at": 1792845849264
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845849264
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845849264
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845849305
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845849305
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845849318
+  },
+  {
+    "event": "framesent",
+    "kind": "face-interaction-request",
+    "at": 1792845849388
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845849764
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-interaction-response",
+    "at": 1792845850878
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845850878
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845850878
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845850921
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845850921
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845850934
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845851043
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845851148
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845851148
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845851444
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845851444
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845851445
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845851466
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845851467
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845851896
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845851967
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845851999
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845851999
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845851999
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845852253
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845852253
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845852274
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845852521
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845852521
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845852705
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845852812
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845852812
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845853059
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845853059
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845853060
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845853080
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845853080
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845853460
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845853562
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845853562
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845853580
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845853809
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845853809
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845853809
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845853830
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845854311
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845854312
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845854477
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845854575
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845854575
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845854825
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845854825
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845854825
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845854851
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845854851
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845855349
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845855353
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845855452
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845855452
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845855452
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845855692
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845855692
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845855714
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845855982
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845855982
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845856032
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845856133
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845856133
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845856392
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845856392
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845856415
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845856495
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845856495
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845856709
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845856813
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845856813
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845857061
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845857061
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845857061
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845857084
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845857084
+  },
+  {
+    "event": "framesent",
+    "kind": "face-component-mask-request",
+    "at": 1792845857374
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-component-mask-response",
+    "at": 1792845857474
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845857474
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845857720
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845857721
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845857721
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845857743
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845857743
+  },
+  {
+    "event": "fresh-action-start",
+    "at": 1792845857939,
+    "loop": {
+      "maximum_gap_ms": 277.69999998807907,
+      "samples": 131
+    }
+  },
+  {
+    "event": "framesent",
+    "kind": "face-interaction-request",
+    "at": 1792845858026
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-renewal",
+    "at": 1792845858244
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-interaction-response",
+    "at": 1792845859559
+  },
+  {
+    "event": "framesent",
+    "kind": "face-snapshot-request",
+    "at": 1792845859559
+  },
+  {
+    "event": "framereceived",
+    "kind": "presence-accepted",
+    "at": 1792845859559
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-snapshot-response",
+    "at": 1792845859801
+  },
+  {
+    "event": "framesent",
+    "kind": "face-show-acknowledgement",
+    "at": 1792845859801
+  },
+  {
+    "event": "framereceived",
+    "kind": "face-show-response",
+    "at": 1792845859824
+  },
+  {
+    "event": "framesent",
+    "kind": "presence-leave",
+    "at": 1792845859961
+  }
+]

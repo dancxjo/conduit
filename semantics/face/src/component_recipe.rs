@@ -205,8 +205,8 @@ pub fn component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     .unwrap()
     .into_structured()
     .unwrap();
-    let expression = crate::visual_expression_info(&crate::VisualExpression::phosphor()).unwrap();
-    let fields = [("recipe", recipe), ("expression", expression)];
+    let look = crate::phosphor_look().unwrap().into_structured().unwrap();
+    let fields = [("recipe", recipe), ("look", look)];
     let port = |name: &str, value_kind: &str, direction, temporal| PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(value_kind),
@@ -216,7 +216,7 @@ pub fn component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     };
     Kind {
         kind_id: kind_id(COMPONENT_MASK_KIND),
-        kind_contract_revision: KindIdentity::from("conduit.face/component-mask@2"),
+        kind_contract_revision: KindIdentity::from("conduit.face/component-mask@4"),
         startup_parameters: conduit_core::data_label_startup_front()
             .into_iter()
             .chain(fields.iter().map(|(name, value)| FrontStartupParameter {

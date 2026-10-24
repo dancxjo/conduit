@@ -22,8 +22,7 @@ impl DiagramGeometry {
             1
         };
         let rows = available.min(gears.div_ceil(columns).max(1));
-        let width =
-            ((screen.width - SPACE_XL * 2 - GAP * (columns as u16 - 1)) / columns as u16).min(320);
+        let width = (screen.width - SPACE_XL * 2 - GAP * (columns as u16 - 1)) / columns as u16;
         let height =
             ((screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
                 / rows as u16)

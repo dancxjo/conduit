@@ -1,9 +1,9 @@
-//! Explicit selected-Back preparation for the version-three contract.
+//! Explicit selected-Back preparation for the complete-Look layout contract.
 //! Deployment explicitly offers initialized layout support. Callers must retain
 //! an observed matching offer; availability is not inferred from viewport size.
 use super::*;
 use conduit_core::*;
-use conduit_face::{ConfiguredMaskConfiguration, layout_component_mask_kind};
+use conduit_face::{layout_component_mask_kind, ConfiguredMaskConfiguration};
 
 pub const NATIVE_LAYOUT_COMPONENT_RENDERER_KIND: &str =
     "face/native-layout-component-resource-mask";
@@ -12,7 +12,7 @@ pub const NATIVE_LAYOUT_COMPONENT_CAPABILITY: &str = "renderer-conduitos-layout-
 const BACK_SOURCE: &str = r#"plot native-layout-component-back (
  label: Text
  recipe: ComponentRecipeInfo
- expression: VisualExpressionInfo
+ look: LookInfo
  layout: ComponentLayoutInfo
  >> face: Face
  interaction: FaceInteraction...| >>
@@ -20,7 +20,7 @@ const BACK_SOURCE: &str = r#"plot native-layout-component-back (
 ) {
  spread: face/tee("Shared Face")
  surface: face/show-resource-source("Output resource")
- render: face/native-layout-component-resource-mask(label = label, recipe = recipe, expression = expression, layout = layout)
+ render: face/native-layout-component-resource-mask(label = label, recipe = recipe, look = look, layout = layout)
  human: face/interaction("User actions")
  face >> spread.source
  spread.face >> render.face
@@ -36,7 +36,7 @@ pub fn layout_resource_renderer_kind(profile: NativeMaskStorageProfile) -> Kind 
     let component = layout_component_mask_kind(profile.bytes());
     let mut kind = resource_renderer_kind();
     kind.kind_id = kind_id(NATIVE_LAYOUT_COMPONENT_RENDERER_KIND);
-    kind.kind_contract_revision = "conduit.face/native-layout-component-resource-mask@1".into();
+    kind.kind_contract_revision = "conduit.face/native-layout-component-resource-mask@2".into();
     kind.startup_parameters = component.startup_parameters;
     kind.configuration = component.configuration;
     kind

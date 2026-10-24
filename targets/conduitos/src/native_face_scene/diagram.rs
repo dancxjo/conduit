@@ -12,6 +12,10 @@ use geometry::{DiagramGeometry, GAP, PORT_ROW, visible_ports};
 #[path = "diagram_hits.rs"]
 mod hit_regions;
 use hit_regions::DiagramHits;
+#[path = "diagram_badges.rs"]
+mod badges;
+#[path = "diagram_port_badges.rs"]
+mod port_badges;
 const MAX_VISIBLE_LINKS: usize = 12;
 
 pub(super) fn pages(face: &Face, width: u16, height: u16) -> usize {
@@ -83,8 +87,8 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
 /// Cards, their Port rows and overflow notices are mandatory on this page.
 /// Admit Cord paths from the commands left after those rows and shared chrome;
 /// reporting and pointer selection use the exact same visible prefix.
-fn link_capacity(face: &Face, gears: &[&FaceSubject], height: u16) -> usize {
-    let cards: usize = gears
+fn card_commands(face: &Face, gears: &[&FaceSubject], height: u16) -> usize {
+    gears
         .iter()
         .map(|gear| {
             let count = ports(face, gear).count();
@@ -93,9 +97,12 @@ fn link_capacity(face: &Face, gears: &[&FaceSubject], height: u16) -> usize {
                 + shown
                 + usize::from(count > shown && height >= 90)
         })
-        .sum();
+        .sum()
+}
+
+fn link_capacity(face: &Face, gears: &[&FaceSubject], height: u16) -> usize {
     conduit_face::MAX_GRAPHICS_COMMANDS
-        .saturating_sub(super::chrome::COMMANDS + cards)
+        .saturating_sub(super::chrome::COMMANDS + card_commands(face, gears, height))
         .min(MAX_VISIBLE_LINKS)
 }
 
@@ -185,6 +192,23 @@ pub(super) fn append<'a>(
         hits.cords[visible_links] = Some((path, cord.identity.as_str()));
         visible_links += 1;
     }
+    // Decoration spends only the commands remaining after the complete
+    // existing graph prefix. It never displaces a Port, notice or Cord path.
+    let badges = badges::admit(
+        card_commands(face, &gears, height),
+        visible_links,
+        gears.len(),
+        geometry.width,
+        height,
+    );
+    let title_inset = if badges { badges::INSET } else { 0 };
+    let port_badges = port_badges::admit(
+        face,
+        &gears,
+        height,
+        geometry.width,
+        card_commands(face, &gears, height) + visible_links + usize::from(badges) * gears.len(),
+    )?;
     for (index, gear) in gears.into_iter().enumerate() {
         let bounds = card(index);
         let (title, origin) = gear_labels(&gear.name);
@@ -197,13 +221,16 @@ pub(super) fn append<'a>(
                 GraphicsShapeStyle::RoundedStroke,
             ),
         )?;
+        if badges {
+            badges::append(scene, bounds, screen)?;
+        }
         push(
             scene,
             GraphicsCommand::text(
                 LayoutRect {
-                    x: bounds.x + 10,
+                    x: bounds.x + 10 + title_inset as i16,
                     y: bounds.y + 9,
-                    width: bounds.width - 20,
+                    width: bounds.width - 20 - title_inset,
                     height: 32,
                 },
                 screen,
@@ -211,7 +238,7 @@ pub(super) fn append<'a>(
                 &crate::display::typography::single_line_preview(
                     &alloc::format!("{} · {}", index + 1, readable(title)),
                     crate::display::typography::TextRole::Heading,
-                    bounds.width - 20,
+                    bounds.width - 20 - title_inset,
                 )
                 .map_err(|_| FaceSceneError::SceneBound)?,
             )
@@ -257,6 +284,19 @@ pub(super) fn append<'a>(
                 },
                 port.identity.as_str(),
             ));
+            if port_badges {
+                port_badges::append(
+                    scene,
+                    LayoutRect {
+                        x: bounds.x + 12,
+                        y,
+                        width: bounds.width - 24,
+                        height: 23,
+                    },
+                    screen,
+                    paint,
+                )?;
+            }
             push(
                 scene,
                 GraphicsCommand::text(

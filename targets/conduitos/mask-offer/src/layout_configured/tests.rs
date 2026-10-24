@@ -3,12 +3,12 @@ use super::*;
 
 const SOURCE: &str = r#"
 plot structured-component (
- expression: VisualExpressionInfo
+ look: LookInfo
  >> face: Face
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {
- render: face/component-mask(label = "Structured component", recipe = {gutter: 12, identity: "test/structured-recipe@1", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: "collection", maximum_subjects: 20, selector: role("Collection")}], version: 1}, expression = expression, layout = {candidates: [{nodes: [column({block_alignment: stretch(empty), break_policy: accessible_continuation(empty), children: [{block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 1}, {block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 2}], gap_em_sixteenths: 8, inline_grow: 0, inline_alignment: stretch(empty), padding_em_sixteenths: 8, inline_shrink: 1, minimum_inline_em_sixteenths: 0}), region(0), fallback(empty)], root: 0}], identity: "test/structured-layout@1", recipe_identity: "test/structured-recipe@1", version: 1})
+ render: face/component-mask(label = "Structured component", recipe = {gutter: 12, identity: "test/structured-recipe@1", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: "collection", maximum_subjects: 20, selector: role("Collection")}], version: 1}, look = look, layout = {candidates: [{nodes: [column({block_alignment: stretch(empty), break_policy: accessible_continuation(empty), children: [{block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 1}, {block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 2}], gap_em_sixteenths: 8, inline_grow: 0, inline_alignment: stretch(empty), padding_em_sixteenths: 8, inline_shrink: 1, minimum_inline_em_sixteenths: 0}), region(0), fallback(empty)], root: 0}], identity: "test/structured-layout@1", recipe_identity: "test/structured-recipe@1", version: 1})
  face >> render.face
  render.show >> show
  render.interaction >> interaction
@@ -18,7 +18,7 @@ plot structured-root (
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {
- component: structured-component(expression = {density: compact(empty), identity: "test/look@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2})
+ component: structured-component(look = {generative: some({register: neutral(empty), verbosity: brief(empty)}), identity: "conduit.look/phosphor@1", spoken: some({delivery: neutral(empty), verbosity: brief(empty)}), version: 2, visual: some({expression: {density: compact(empty), identity: "conduit.look/phosphor@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2}, tokens: {background: {blue: 11, green: 7, red: 5}, bootstrap_surface: {blue: 22, green: 13, red: 9}, emphasis: {blue: 37, green: 163, red: 233}, failure: {blue: 114, green: 114, red: 255}, focus: {blue: 0, green: 196, red: 244}, focus_width_px: 3, line_height_percent: 150, muted: {blue: 25, green: 76, red: 140}, radius_control_px: 6, radius_panel_px: 9, reading_paper: {blue: 28, green: 18, red: 12}, space_control_block_px: 7, space_control_inline_px: 10, space_panel_px: 13, space_unit_px: 4, structure_primary: {blue: 246, green: 216, red: 13}, structure_secondary: {blue: 135, green: 31, red: 10}, success: {blue: 155, green: 214, red: 99}, surface: {blue: 22, green: 13, red: 9}, text_primary: {blue: 247, green: 210, red: 147}, text_secondary: {blue: 201, green: 142, red: 87}, type_body_px: 16, type_small_px: 14, warning: {blue: 113, green: 189, red: 242}, workbench_canvas: {blue: 11, green: 7, red: 5}}})})
  face >> component.face
  component.show >> show
  component.interaction >> interaction
@@ -49,12 +49,10 @@ fn host(profile: NativeMaskStorageProfile) -> HostAdvertisement {
         Some(&provider),
         profile,
     );
-    assert!(
-        !host
-            .capabilities
-            .iter()
-            .any(|offer| { offer.kind_id.as_str() == NATIVE_LAYOUT_COMPONENT_RENDERER_KIND })
-    );
+    assert!(!host
+        .capabilities
+        .iter()
+        .any(|offer| { offer.kind_id.as_str() == NATIVE_LAYOUT_COMPONENT_RENDERER_KIND }));
     let legacy = match profile {
         NativeMaskStorageProfile::Standard => {
             native_host_advertisement(&host.host_id, &host.boot_id, 1, &provider)
@@ -264,10 +262,8 @@ fn malformed_advertised_layout_refuses_actual_wrappers_instead_of_downgrading() 
         // A correct capability name does not authenticate the old renderer as @3.
         *offer = configured::configured_resource_renderer_offer_for_profile(profile);
         offer.capability_id = NATIVE_LAYOUT_COMPONENT_CAPABILITY.into();
-        assert!(
-            actual_wrappers(&malformed, profile)
-                .into_iter()
-                .all(|result| result.is_err())
-        );
+        assert!(actual_wrappers(&malformed, profile)
+            .into_iter()
+            .all(|result| result.is_err()));
     }
 }

@@ -1,0 +1,110 @@
+{
+  "source": "cba55f9456e8d3aebefdaf0059b514724a4ae27a",
+  "documentary_fixture": true,
+  "real_owner": false,
+  "observations": [
+    {
+      "width": 390,
+      "root_text_px": 16,
+      "forced_colors": false,
+      "bands": [
+        {
+          "selector": "[data-application-slot=\"product-masthead\"]",
+          "top": 8,
+          "bottom": 148.375,
+          "width": 366
+        },
+        {
+          "selector": "nav[aria-label=\"Patchbay workspace\"]",
+          "top": 157,
+          "bottom": 212.1875,
+          "width": 366
+        },
+        {
+          "selector": ".canvas-heading",
+          "top": 221,
+          "bottom": 440.5625,
+          "width": 366
+        },
+        {
+          "selector": "#flow-root",
+          "top": 449,
+          "bottom": 1100,
+          "width": 390
+        }
+      ],
+      "overflow": false,
+      "screenshot": "patchbay-masthead-390-16.png",
+      "fitted_screenshot": "patchbay-masthead-390-16-fit.png"
+    },
+    {
+      "width": 390,
+      "root_text_px": 32,
+      "forced_colors": true,
+      "bands": [
+        {
+          "selector": "[data-application-slot=\"product-masthead\"]",
+          "top": 16,
+          "bottom": 291,
+          "width": 342
+        },
+        {
+          "selector": "nav[aria-label=\"Patchbay workspace\"]",
+          "top": 307,
+          "bottom": 373.375,
+          "width": 342
+        },
+        {
+          "selector": ".canvas-heading",
+          "top": 390,
+          "bottom": 654,
+          "width": 342
+        },
+        {
+          "selector": "#flow-root",
+          "top": 670,
+          "bottom": 1100,
+          "width": 390
+        }
+      ],
+      "overflow": false,
+      "screenshot": "patchbay-masthead-390-32-forced.png",
+      "fitted_screenshot": "patchbay-masthead-390-32-forced-fit.png"
+    },
+    {
+      "width": 320,
+      "root_text_px": 32,
+      "forced_colors": true,
+      "bands": [
+        {
+          "selector": "[data-application-slot=\"product-masthead\"]",
+          "top": 16,
+          "bottom": 291,
+          "width": 272
+        },
+        {
+          "selector": "nav[aria-label=\"Patchbay workspace\"]",
+          "top": 307,
+          "bottom": 425.375,
+          "width": 272
+        },
+        {
+          "selector": ".canvas-heading",
+          "top": 442,
+          "bottom": 706,
+          "width": 272
+        },
+        {
+          "selector": "#flow-root",
+          "top": 722,
+          "bottom": 1100,
+          "width": 320
+        }
+      ],
+      "overflow": false,
+      "screenshot": "patchbay-masthead-320-32-forced.png",
+      "fitted_screenshot": "patchbay-masthead-320-32-forced-fit.png"
+    }
+  ],
+  "browser_errors": []
+}

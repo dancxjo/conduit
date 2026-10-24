@@ -35,6 +35,7 @@ pub enum LookVisualAdmissionRefusal {
 
 /// Both immutable resource values remain inspectable when the visual request
 /// falls back. Other facets are not selected for another Mask by this value.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AdmittedVisualLook {
     pub requested: LookInfo,
     pub selected: LookInfo,

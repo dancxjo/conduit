@@ -1,0 +1,29 @@
+
+Running 1 test using 1 worker
+
+(node:4111877) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [chromium] › proof/browser/patchbay-authoring.spec.mjs:16:3 › unbodied catalog and durable layouts preserve the exact source Face
+  1) [chromium] › proof/browser/patchbay-authoring.spec.mjs:16:3 › unbodied catalog and durable layouts preserve the exact source Face 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      103 |         const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + 4);
+      104 |         return hit === panel || bar.contains(hit);
+    > 105 |       })).toBe(true);
+          |           ^
+      106 |       expect((await current(page)).authoring.checked_plot_id).toBe(basis);
+      107 |       await page.screenshot({ path: testInfo.outputPath("authoring-configuration-refusal.png") });
+      108 |
+        at /home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/proof/browser/patchbay-authoring.spec.mjs:105:11
+
+    Error Context: proof/browser/test-results/patchbay-authoring-unbodie-648a9-serve-the-exact-source-Face-chromium/error-context.md
+
+
+  1 failed
+    [chromium] › proof/browser/patchbay-authoring.spec.mjs:16:3 › unbodied catalog and durable layouts preserve the exact source Face 

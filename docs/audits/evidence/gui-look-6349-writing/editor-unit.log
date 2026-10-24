@@ -1,0 +1,13 @@
+✔ DOM replacement uses scalar coordinates and returns to committed truth pending acknowledgment (2.401078ms)
+✔ scripted composition is provisional and blur cancels its trailing events (0.395399ms)
+✔ invalid Unicode and UTF-8 capacity refusal preserve the pending request and committed value (0.198714ms)
+✔ a browser-normalized document refuses instead of inventing a second representation (0.16636ms)
+✔ window focus loss rejects pending editing and prevents a late edit from reviving the Play (0.279752ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 84.309306

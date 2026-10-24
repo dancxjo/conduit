@@ -1,0 +1,25 @@
+const {spawn}=require('node:child_process');
+const {createInterface}=require('node:readline');
+const fs=require('node:fs');
+const assert=require('node:assert/strict');
+const {chromium}=require('/home/dancxjo/conduit/proof/browser/node_modules/playwright');
+(async()=>{const server=spawn('./work/native-target/debug/conduit-browser-patchbay-workbench',['--documentary-fixture'],{stdio:['ignore','pipe','pipe']});let browser;
+try{const lines=createInterface({input:server.stdout});const url=await new Promise((resolve,reject)=>{lines.once('line',l=>resolve(l.replace('PATCHBAY_HTML_URL=','')));server.once('exit',c=>reject(Error('server exit '+c)));});
+browser=await chromium.launch();const page=await browser.newPage({viewport:{width:1440,height:1100}});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(url);await page.waitForFunction(()=>document.body.dataset.applicationReady==='true');
+await page.getByRole('button',{name:'Inspect',exact:true}).click();
+await page.locator('#deep-inspection > summary').click();
+for(const [id,label] of [['toggle-linear','Toggle linear view'],['cancel-gear-construction','Cancel placement']]){const n=page.locator('#'+id);assert.equal(await n.locator('svg[aria-hidden=true]').count(),1);assert.equal(await n.getAttribute('type'),'button');}
+await page.getByRole('button',{name:'Move Inspect to bottom',exact:true}).click();
+await page.waitForFunction(()=>document.querySelector('#inspector').dataset.furnitureDock==='bottom');
+await page.locator('#plan h2').scrollIntoViewIfNeeded();
+await page.screenshot({path:'outputs/patchbay-inspection-wide.png'});
+await page.getByRole('button',{name:'Toggle linear view',exact:true}).click();
+await page.waitForFunction(()=>document.querySelector('#interaction-proof').textContent.includes('Succeeded'));
+const interaction=await (await page.request.get(url+'/api/snapshot')).json();assert.equal(interaction.interaction.last_disposition,'Succeeded');
+await page.setViewportSize({width:390,height:1100});await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
+await page.waitForFunction(()=>document.querySelector('#inspector').dataset.furnitureDock==='bottom');
+await page.locator('#plan h2').scrollIntoViewIfNeeded();
+await page.screenshot({path:'outputs/patchbay-inspection-narrow-forced.png'});
+const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert.equal(overflow,false);assert.deepEqual(errors,[]);
+fs.writeFileSync('work/patchbay-inspection-capture.json',JSON.stringify({source:'ed65db49561ddcde115d1d5586a15f7918c3e6fd',documentary_fixture:true,real_owner:false,wide:1440,narrow:390,forced_colors:true,typed_linear_action_succeeded:true,horizontal_overflow:overflow,browser_errors:errors},null,2)+'\n');console.log('PASS Patchbay documentary inspection chrome: wide/narrow, forced colors, typed linear action; no overflow or browser errors');
+}finally{await browser?.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1});

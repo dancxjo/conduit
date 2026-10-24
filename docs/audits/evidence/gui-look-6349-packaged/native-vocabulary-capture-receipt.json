@@ -1,0 +1,170 @@
+{
+  "scope": "Normal x86_64 QEMU; local scanout, not physical/CI/stable acceptance",
+  "source": "dd5349718678da5eaf7f3689bec36aeccf8e6c55",
+  "qemu": {
+    "pid": 3691063,
+    "iso": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+    "sha256": "80bb86e19302d953bb789e2c2b2803dd0a8c44c1199856e4d6d5d72e87106816",
+    "command": [
+      "qemu-system-x86_64",
+      "-M",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "512M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-vga",
+      "std",
+      "-monitor",
+      "none",
+      "-serial",
+      "file:/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-vocabulary-serial.log",
+      "-no-reboot",
+      "-net",
+      "none",
+      "-qmp",
+      "unix:/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-qmp.sock,server=on,wait=off",
+      "-device",
+      "qemu-xhci,id=conduitos-xhci,p2=2,p3=0",
+      "-device",
+      "usb-kbd,bus=conduitos-xhci.0,port=1",
+      "-device",
+      "usb-mouse,bus=conduitos-xhci.0,port=2",
+      "-cdrom",
+      "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "-boot",
+      "d"
+    ]
+  },
+  "same_face_revision": true,
+  "fresh_show_chain": true,
+  "look_changes": [
+    {
+      "active_play_id": "972cb4a4a6849ad579082a69f79de3980fd4e4cc852643824e5bcb847587f386",
+      "boot_id": "222f6f1a2669df60a88f2c9639598af876a18fe795e27db9533100c6a882a3b8",
+      "configuration": {
+        "component": {
+          "checked_plot_id": "200ba28819113a7c7c5cfbd7504569383bbf1594aea6df5544c075df169f7eba",
+          "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe",
+          "source_document_id": "0fd543783d6516cf627d5cffe963b9a96f2e2f84bccaa84989c8da2e335b8bc1"
+        },
+        "execution_profile_id": "conduitos/bounded-mask@1",
+        "implementation_id": "face/renderer-conduitos-layout-component@1",
+        "invocation_path": [
+          "creche-mask-columns-compact-editorial",
+          "component"
+        ],
+        "layout_canonical_bytes": 7838,
+        "layout_canonical_sha256": "d211897411f1a7bccd99d898a583426781e95bcf854cfa3802cecbb98f5c276d",
+        "placement_id": "eaf3fbfcf480cccb840cfa1a51a9df98f9377a04f9bb681d557bed5a96eab93e",
+        "recipe_canonical_bytes": 2313,
+        "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+        "root": "creche-mask-columns-compact-editorial"
+      },
+      "expression": {
+        "accessibility_overrides": {
+          "forced_colors": false,
+          "reduced_motion": true,
+          "text_scale": false
+        },
+        "expression": {
+          "density": "compact",
+          "identity": "conduit.face/compact-editorial@1",
+          "motion": "none",
+          "palette": "editorial",
+          "text_scale_percent": 100,
+          "typography": "editorial",
+          "version": 2
+        },
+        "outcome": "Selected",
+        "platform_forced_colors": false
+      },
+      "face_id": "ea8e3c4c6a33306eed55f486050b1c5012f4a4a657828534fa5fd8ec071afaa1",
+      "face_revision": 1,
+      "fallback": null,
+      "host_id": "ccf629cfadb00523df808c1fc41260f31da13be88279af908801110a4b434cf0",
+      "local_scanout_acknowledged": true,
+      "manifestation_id": "c3c7ca86129ba231c50ccc349b58b1dd963174a993a8581d34e0b86ba384da3d",
+      "mask_plan_id": "92071d3398d35c1adb5aab41f10e3297ac4131dfc4cb93557bc9c35cc41fcec5",
+      "offer_generation": 1,
+      "owner_show_acknowledged": false,
+      "previous_show_id": "show/e41638e01f958b8c14024cf470ced8f4a76f51d58947e0ffc60d3045a513dc2d",
+      "render": {
+        "commands": 48,
+        "pixels_written": 1464951
+      },
+      "schema": "conduit.conduitos/component-realization@1",
+      "selection_entrance": "local-creche",
+      "show_id": "show/9c920a4222a23063a8698cb4a4126e2abfb6e1bd3ac4a84d9019f3a4a70da018"
+    },
+    {
+      "active_play_id": "71061a3f2879a82d993097c8d0c77f9d636009a93a89e3e852ec7854cdc1bd37",
+      "boot_id": "222f6f1a2669df60a88f2c9639598af876a18fe795e27db9533100c6a882a3b8",
+      "configuration": {
+        "component": {
+          "checked_plot_id": "200ba28819113a7c7c5cfbd7504569383bbf1594aea6df5544c075df169f7eba",
+          "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe",
+          "source_document_id": "0fd543783d6516cf627d5cffe963b9a96f2e2f84bccaa84989c8da2e335b8bc1"
+        },
+        "execution_profile_id": "conduitos/bounded-mask@1",
+        "implementation_id": "face/renderer-conduitos-layout-component@1",
+        "invocation_path": [
+          "creche-mask-columns-spacious",
+          "component"
+        ],
+        "layout_canonical_bytes": 7838,
+        "layout_canonical_sha256": "d211897411f1a7bccd99d898a583426781e95bcf854cfa3802cecbb98f5c276d",
+        "placement_id": "a5fe4707cc6b215cc2faa1840479b1042fd006ffb43c195832e5046445501330",
+        "recipe_canonical_bytes": 2313,
+        "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+        "root": "creche-mask-columns-spacious"
+      },
+      "expression": {
+        "accessibility_overrides": {
+          "forced_colors": false,
+          "reduced_motion": true,
+          "text_scale": false
+        },
+        "expression": {
+          "density": "spacious",
+          "identity": "conduit.face/spacious@1",
+          "motion": "none",
+          "palette": "editorial",
+          "text_scale_percent": 125,
+          "typography": "editorial",
+          "version": 2
+        },
+        "outcome": "Selected",
+        "platform_forced_colors": false
+      },
+      "face_id": "ea8e3c4c6a33306eed55f486050b1c5012f4a4a657828534fa5fd8ec071afaa1",
+      "face_revision": 1,
+      "fallback": null,
+      "host_id": "ccf629cfadb00523df808c1fc41260f31da13be88279af908801110a4b434cf0",
+      "local_scanout_acknowledged": true,
+      "manifestation_id": "d4c6674482270345a580371e98e77d0baa3e60758b6e737fe49efee6f03b78ad",
+      "mask_plan_id": "1de6bb552c3d53b5a6ad72c17f2c2e497fce858d20438f46769b478d10e5f384",
+      "offer_generation": 1,
+      "owner_show_acknowledged": false,
+      "previous_show_id": "show/9c920a4222a23063a8698cb4a4126e2abfb6e1bd3ac4a84d9019f3a4a70da018",
+      "render": {
+        "commands": 25,
+        "pixels_written": 1252865
+      },
+      "schema": "conduit.conduitos/component-realization@1",
+      "selection_entrance": "local-creche",
+      "show_id": "show/1838acab71b521e239e53edc5578063f491671aa905be69d66d7c6f704463f31"
+    }
+  ],
+  "images": {
+    "native-vocabulary-commons-hub.png": "9c4dd11ecd1fb4843ff3fd91776b46249de7eda886ef32e91c64145e66e88087",
+    "native-vocabulary-creche-editorial.png": "28db373ad0e97d97b7c708cd14f51f8a29a545802141b65492f1ed721674da74",
+    "native-vocabulary-creche-editorial-spacious.png": "a0d932ae985e22bd1ca220b7a2e3608b5f586d6f3682a2ed65e2589a9e14b28f",
+    "native-vocabulary-creche-default.png": "89a02209aada087898892d146dbc7dffe3feca5802cc5cb88aefcd4362217e50"
+  },
+  "browser_only_worktree_delta_at_capture": "owner-face-component import quote fix; native sources unchanged"
+}

@@ -1,0 +1,1034 @@
+{
+  "schema": "conduit.proof/live-complete-look@1",
+  "source": "3c37cabe564700dc0ab2425cc775747fe6cc7889",
+  "artifacts": [
+    {
+      "bytes": 60705640,
+      "sha256": "b342295363939b35b3342503a9363cfbec59332fd18cb7045d621adbb574dcae",
+      "name": "conduit"
+    },
+    {
+      "bytes": 16009320,
+      "sha256": "1a742910b8e9b8104c5c89a4473a81cbd068aff3149f8d81b56cb6d6a4e7abe2",
+      "name": "runtime.wasm"
+    },
+    {
+      "bytes": 6067,
+      "sha256": "3e8a4f13a48df5cb3d05e68be100839d642a06923071a1ff358413dd4afa1819",
+      "name": "browser-page.json"
+    },
+    {
+      "bytes": 28710,
+      "sha256": "1efd25d4368da97db8d185c52c0a5bf0aaa1f3d042a72b06cb02326e96b3b6d9",
+      "name": "application.application.json"
+    }
+  ],
+  "face": {
+    "identity": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+    "revision": 8846288463479955000,
+    "basis": {
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "wake_id": null,
+      "source_document_id": null,
+      "checked_plot_id": null,
+      "expanded_plot_id": null,
+      "plan_id": null,
+      "active_play_id": null,
+      "sign_ids": [
+        "0e3134db34ef2022574419a9666247711a47da0ad43f93e4db371dabb7614928",
+        "23b110f99cb66da087e395d22c5e2a329ccb87526ba0a60eb9a1d222dc25f846",
+        "28b95f42845db10c1d33c40e26193856fa7179ac415c66ce5b54b7c505559df9",
+        "31e681658c9d3bfd82b2404a53d3b3bcd5b98adaaaeb7a713739a94ee17903bd",
+        "43b9585abfd693327e20a15703a6ee6b58d0f4d8275a82066943df09e374497e",
+        "5ab122d0a7b7b8927d52d8f7353f14d0a2c510070cd38bd8d5f0fd9ec049671d",
+        "69e7b88f17fa93856e4bb3b5dda51fbf65714090c5e342cc16d0d1e57791bc94",
+        "6d4c2aad325390924edb5f8153bfe549b5ee9479a60f90ef6dc6bbe9a60840f7",
+        "7dbb6cf13cd9343be042f8583d42e053f4bdcd91f90db7fd667490c7dd21584f",
+        "825a5ec71c5d8ba0844471c0efa970bed9cb341a3bfd7d38d6c3a2f415975bb2",
+        "9167c82cd3eb4c1eb2e79d788643fc36d5f8c9aee046bf78a2fca261f43ff6a5",
+        "9c998191f6a4c801df44390f67fd486cd70ccc01369cc3c992b4a8599ce75f67",
+        "a533e78063a4f8ab674396cdf5939765203567a214ec0de144c8f44335ee83d1",
+        "a74e8c7d46209657048f0f0ae8f3abccf0fa8f2e66622a5345084a5eed0b0d14",
+        "de284263ffa7c326eab9290f93fded6a830d288c85d134a7e8b3bc7756a623a3",
+        "e15b746128f06f8aa812ec47d523fe8e050df32586be02f1983477eb6fb89e96",
+        "ec3e1920533a502446c6a715ea660aaa3d5f9cf1ae9d76b904392843e17fe9ea"
+      ]
+    },
+    "interaction_context": {
+      "identity": "face/context/overview/focus/body",
+      "basis": [
+        {
+          "source": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+          "relationship": "Contains",
+          "target": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd/context"
+        }
+      ]
+    },
+    "subjects": [
+      {
+        "identity": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "role": "Body",
+        "name": "My Body"
+      },
+      {
+        "identity": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd/context",
+        "role": "Region",
+        "name": "Current overview context"
+      },
+      {
+        "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "role": "Plot",
+        "name": "todo/checkpoint-restore"
+      },
+      {
+        "identity": "contribution/foreground/0",
+        "role": "Plot",
+        "name": "Face contribution provenance"
+      },
+      {
+        "identity": "todo/list",
+        "role": "Collection",
+        "name": "Look studio"
+      },
+      {
+        "identity": "todo/status",
+        "role": "Status",
+        "name": "Progress"
+      },
+      {
+        "identity": "todo/item/task-1",
+        "role": "Item",
+        "name": "Choose a name"
+      },
+      {
+        "identity": "todo/item/task-2",
+        "role": "Item",
+        "name": "Add a Plot"
+      },
+      {
+        "identity": "todo/item/task-3",
+        "role": "Item",
+        "name": "\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9\u00c9"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "target": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd/context",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd/context",
+        "target": "contribution/foreground/0",
+        "kind": "Contains"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/list",
+        "kind": "Describes"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/status",
+        "kind": "Describes"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/item/task-1",
+        "kind": "Describes"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/item/task-2",
+        "kind": "Describes"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/item/task-3",
+        "kind": "Describes"
+      },
+      {
+        "source": "todo/list",
+        "target": "todo/status",
+        "kind": "Contains"
+      },
+      {
+        "source": "todo/list",
+        "target": "todo/item/task-1",
+        "kind": "Contains"
+      },
+      {
+        "source": "todo/list",
+        "target": "todo/item/task-2",
+        "kind": "Contains"
+      },
+      {
+        "source": "todo/list",
+        "target": "todo/item/task-3",
+        "kind": "Contains"
+      }
+    ],
+    "composition": [],
+    "properties": [
+      {
+        "subject": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "name": "body-id",
+        "value": {
+          "Identity": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd"
+        }
+      },
+      {
+        "subject": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "name": "lifecycle-state",
+        "value": {
+          "Text": "lulled"
+        }
+      },
+      {
+        "subject": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "name": "workload-revision",
+        "value": {
+          "Count": 10
+        }
+      },
+      {
+        "subject": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd/context",
+        "name": "operator-context",
+        "value": {
+          "Text": "overview"
+        }
+      },
+      {
+        "subject": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd/context",
+        "name": "operator-focus",
+        "value": {
+          "Text": "body"
+        }
+      },
+      {
+        "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "source-document-id",
+        "value": {
+          "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+        }
+      },
+      {
+        "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "checked-plot-id",
+        "value": {
+          "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+        }
+      },
+      {
+        "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "workload-membership",
+        "value": {
+          "Text": "resident"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "checked-plot-id",
+        "value": {
+          "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "plan-id",
+        "value": {
+          "Identity": "body-plan/sha256:ef4123d67bd22a8d17bf462bac0544e39d90bcd19d111fe81fe1e5637137305e"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "active-play-id",
+        "value": {
+          "Identity": "body-play/sha256:eeaab7598bba253995086e4ed7fc25e07d8e2bf766b9457a072a189967c814b6"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/0",
+        "value": {
+          "Identity": "todo.add"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/1",
+        "value": {
+          "Identity": "todo.complete.task-1"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/2",
+        "value": {
+          "Identity": "todo.remove.task-1"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/3",
+        "value": {
+          "Identity": "todo.complete.task-2"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/4",
+        "value": {
+          "Identity": "todo.remove.task-2"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/5",
+        "value": {
+          "Identity": "todo.complete.task-3"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/6",
+        "value": {
+          "Identity": "todo.remove.task-3"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/0",
+        "value": {
+          "Identity": "todo/list/todo-revision"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/1",
+        "value": {
+          "Identity": "todo/list/remaining-count"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/2",
+        "value": {
+          "Identity": "todo/list/completed-count"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/3",
+        "value": {
+          "Identity": "todo/item/task-1/complete"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/4",
+        "value": {
+          "Identity": "todo/item/task-1/order"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/5",
+        "value": {
+          "Identity": "todo/item/task-2/complete"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/6",
+        "value": {
+          "Identity": "todo/item/task-2/order"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/7",
+        "value": {
+          "Identity": "todo/item/task-3/complete"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/8",
+        "value": {
+          "Identity": "todo/item/task-3/order"
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "todo-revision",
+        "value": {
+          "Count": 3
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "remaining-count",
+        "value": {
+          "Count": 3
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "completed-count",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "subject": "todo/item/task-1",
+        "name": "complete",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "subject": "todo/item/task-1",
+        "name": "order",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "subject": "todo/item/task-2",
+        "name": "complete",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "subject": "todo/item/task-2",
+        "name": "order",
+        "value": {
+          "Count": 1
+        }
+      },
+      {
+        "subject": "todo/item/task-3",
+        "name": "complete",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "subject": "todo/item/task-3",
+        "name": "order",
+        "value": {
+          "Count": 2
+        }
+      }
+    ],
+    "text": [
+      {
+        "subject": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "text": "My Body is lulled with one resident plot."
+      },
+      {
+        "subject": "todo/status",
+        "text": "3 things left \u00b7 0 completed"
+      }
+    ],
+    "actions": [
+      {
+        "identity": "body/action/wake/10",
+        "intent": "conduit.intent/wake@1",
+        "target": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "name": "Wake",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-overview/10",
+        "intent": "conduit.intent/open-body-overview@1",
+        "target": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "name": "Open Body overview",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-library/10",
+        "intent": "conduit.intent/open-plot-library@1",
+        "target": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "name": "Open Plots library",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/10",
+        "intent": "conduit.intent/open-resident-plot@1",
+        "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "Open resident Plot",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/10",
+        "intent": "conduit.intent/open-inspection@1",
+        "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "Open inspection",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "inspection-not-playing",
+            "explanation": "No admitted inspection contribution is currently playing."
+          }
+        }
+      },
+      {
+        "identity": "todo.add",
+        "intent": "todo/add@1",
+        "target": "todo/list",
+        "name": "add an item",
+        "arguments": [
+          {
+            "name": "text",
+            "value_name": "Item text",
+            "contract": {
+              "value_kind": "value/text",
+              "maximum_bytes": 72,
+              "constraints": [
+                {
+                  "ByteLength": {
+                    "minimum": 1,
+                    "maximum": 72
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "todo.complete.task-1",
+        "intent": "todo/complete@1",
+        "target": "todo/item/task-1",
+        "name": "complete",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "todo.remove.task-1",
+        "intent": "todo/remove@1",
+        "target": "todo/item/task-1",
+        "name": "remove",
+        "arguments": [],
+        "disclosure": "SelectedDetail",
+        "availability": "Available"
+      },
+      {
+        "identity": "todo.complete.task-2",
+        "intent": "todo/complete@1",
+        "target": "todo/item/task-2",
+        "name": "complete",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "todo.remove.task-2",
+        "intent": "todo/remove@1",
+        "target": "todo/item/task-2",
+        "name": "remove",
+        "arguments": [],
+        "disclosure": "SelectedDetail",
+        "availability": "Available"
+      },
+      {
+        "identity": "todo.complete.task-3",
+        "intent": "todo/complete@1",
+        "target": "todo/item/task-3",
+        "name": "complete",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "todo.remove.task-3",
+        "intent": "todo/remove@1",
+        "target": "todo/item/task-3",
+        "name": "remove",
+        "arguments": [],
+        "disclosure": "SelectedDetail",
+        "availability": "Available"
+      }
+    ],
+    "disclosures": [
+      {
+        "subject": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+        "level": "Primary"
+      },
+      {
+        "subject": "body/115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd/context",
+        "level": "Context"
+      },
+      {
+        "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "level": "Context"
+      },
+      {
+        "subject": "todo/list",
+        "level": "Primary"
+      },
+      {
+        "subject": "todo/status",
+        "level": "Primary"
+      },
+      {
+        "subject": "todo/item/task-1",
+        "level": "Primary"
+      },
+      {
+        "subject": "todo/item/task-2",
+        "level": "Primary"
+      },
+      {
+        "subject": "todo/item/task-3",
+        "level": "Primary"
+      }
+    ],
+    "temporal_references": [],
+    "temporal_facts": []
+  },
+  "observations": [
+    {
+      "viewport": "wide",
+      "density": "compact",
+      "palette": "editorial",
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "face_id": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+      "face_revision": "8846288463479955764",
+      "mask_plot_id": "3144cd7d007213554e68fd83b1c3592288ba3bd8c786c91e4d24e8bd427dba0b",
+      "mask_plan_id": "78147e59910871c95100dadcb0904ea2757db3ccf69ac1431fbe3b730b2d4aa1",
+      "show_id": "show/718124e81cdcb4b7fcc7bcf5a72440372d878a895d3619cd9abddb174af8b035",
+      "show_state": "available",
+      "interactions_admitted": true,
+      "selected_look_sha256": "sha256:af5e7dd00a2af5f127652474e1daa62d9205fe8a6f14ecddf7fb93473afff0b8",
+      "selected_look_profile": "structured-info/profile-abc6828b8a3a4155dcd16c738d07b9052c09110a6efe38b1023588be8e01d20c@1",
+      "expression": {
+        "expression": {
+          "version": 2,
+          "identity": "conduit.look/editorial-compact@1",
+          "density": "compact",
+          "palette": "editorial",
+          "text_scale_percent": 100,
+          "motion": "none",
+          "typography": "editorial"
+        },
+        "outcome": "Selected",
+        "accessibility_overrides": {
+          "forced_colors": false,
+          "reduced_motion": false,
+          "text_scale": false
+        },
+        "platform_forced_colors": false
+      },
+      "recipe_identity": "conduit.face/todo-grouped@1",
+      "screenshot": "look-compact-editorial.png"
+    },
+    {
+      "viewport": "wide",
+      "density": "spacious",
+      "palette": "editorial",
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "face_id": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+      "face_revision": "8846288463479955764",
+      "mask_plot_id": "8a90442472c4a91857717d3d2d37e6966706a29099a69e81f50b330add53549a",
+      "mask_plan_id": "36260139981f538f1c6ca85088c8ebd54786a2cf0e3d1ac09172218b145c0169",
+      "show_id": "show/14b11c96e3f8035c798715c707b0c40ac694b8556da0588e1991f3117c11c59e",
+      "show_state": "available",
+      "interactions_admitted": true,
+      "selected_look_sha256": "sha256:6b3d262cf63b726d88b45f30c38ef7529d6fe4728e6468861d6ae3202f0dbb28",
+      "selected_look_profile": "structured-info/profile-abc6828b8a3a4155dcd16c738d07b9052c09110a6efe38b1023588be8e01d20c@1",
+      "expression": {
+        "expression": {
+          "version": 2,
+          "identity": "conduit.look/editorial-spacious@1",
+          "density": "spacious",
+          "palette": "editorial",
+          "text_scale_percent": 125,
+          "motion": "none",
+          "typography": "editorial"
+        },
+        "outcome": "Selected",
+        "accessibility_overrides": {
+          "forced_colors": false,
+          "reduced_motion": false,
+          "text_scale": false
+        },
+        "platform_forced_colors": false
+      },
+      "recipe_identity": "conduit.face/todo-grouped@1",
+      "screenshot": "look-spacious-editorial.png"
+    },
+    {
+      "viewport": "wide",
+      "density": "spacious",
+      "palette": "phosphor",
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "face_id": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+      "face_revision": "8846288463479955764",
+      "mask_plot_id": "7c8f676a3d2190e2e900f28bc43c887f6b410b1dc6e272e9ee20c2f7b31d5f8d",
+      "mask_plan_id": "f228c4e1b5369ec6ab88e6f2d1d318ce04d6da5a48e2abf3ee90a2df75de5db7",
+      "show_id": "show/5ac016969d42ef4a3fc69eca719bdce676acbbd6464e6c3bd54576cbbfce61b7",
+      "show_state": "available",
+      "interactions_admitted": true,
+      "selected_look_sha256": "sha256:657bfe07bffe8ae2f22b9ca6264f259559fc34faab38c16bb2257e5656a30136",
+      "selected_look_profile": "structured-info/profile-abc6828b8a3a4155dcd16c738d07b9052c09110a6efe38b1023588be8e01d20c@1",
+      "expression": {
+        "expression": {
+          "version": 2,
+          "identity": "conduit.look/phosphor-spacious@1",
+          "density": "spacious",
+          "palette": "phosphor",
+          "text_scale_percent": 125,
+          "motion": "none",
+          "typography": "editorial"
+        },
+        "outcome": "Selected",
+        "accessibility_overrides": {
+          "forced_colors": false,
+          "reduced_motion": false,
+          "text_scale": false
+        },
+        "platform_forced_colors": false
+      },
+      "recipe_identity": "conduit.face/todo-grouped@1",
+      "screenshot": "look-spacious-phosphor.png"
+    },
+    {
+      "viewport": "wide",
+      "density": "compact",
+      "palette": "phosphor",
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "face_id": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+      "face_revision": "8846288463479955764",
+      "mask_plot_id": "f7e93d3491097594a33d1d187c86fbfb62ee56ff6daf3415cc0dcc78b08d0607",
+      "mask_plan_id": "316b3a3c99f078bb0ff404fcbbcec5290dead8c21aafcf22fbd9f11fad16c6a4",
+      "show_id": "show/6431ad3b237ac1e72c2bd29f1f6f3e3f596dfddeb8d51f91795ede6b7b2232a3",
+      "show_state": "available",
+      "interactions_admitted": true,
+      "selected_look_sha256": "sha256:e952ac59ed7c381ca190232b5cd0792cd472b04da0bebc3fe74f65702948e24d",
+      "selected_look_profile": "structured-info/profile-abc6828b8a3a4155dcd16c738d07b9052c09110a6efe38b1023588be8e01d20c@1",
+      "expression": {
+        "expression": {
+          "version": 2,
+          "identity": "conduit.look/phosphor@1",
+          "density": "compact",
+          "palette": "phosphor",
+          "text_scale_percent": 100,
+          "motion": "none",
+          "typography": "editorial"
+        },
+        "outcome": "Selected",
+        "accessibility_overrides": {
+          "forced_colors": false,
+          "reduced_motion": false,
+          "text_scale": false
+        },
+        "platform_forced_colors": false
+      },
+      "recipe_identity": "conduit.face/todo-grouped@1",
+      "screenshot": "look-compact-phosphor.png"
+    },
+    {
+      "viewport": "narrow-forced",
+      "density": "compact",
+      "palette": "editorial",
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "face_id": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+      "face_revision": "8846288463479955764",
+      "mask_plot_id": "3144cd7d007213554e68fd83b1c3592288ba3bd8c786c91e4d24e8bd427dba0b",
+      "mask_plan_id": "78147e59910871c95100dadcb0904ea2757db3ccf69ac1431fbe3b730b2d4aa1",
+      "show_id": "show/c0c6fa344e3dc592453589e05e5538ea4cfcf1e58bf893f57114a162ac61d3eb",
+      "show_state": "available",
+      "interactions_admitted": true,
+      "selected_look_sha256": "sha256:af5e7dd00a2af5f127652474e1daa62d9205fe8a6f14ecddf7fb93473afff0b8",
+      "selected_look_profile": "structured-info/profile-abc6828b8a3a4155dcd16c738d07b9052c09110a6efe38b1023588be8e01d20c@1",
+      "expression": {
+        "expression": {
+          "version": 2,
+          "identity": "conduit.look/editorial-compact@1",
+          "density": "compact",
+          "palette": "editorial",
+          "text_scale_percent": 200,
+          "motion": "none",
+          "typography": "editorial"
+        },
+        "outcome": {
+          "AccessibilityOverride": {
+            "forced_colors": true,
+            "reduced_motion": false,
+            "text_scale": true
+          }
+        },
+        "accessibility_overrides": {
+          "forced_colors": true,
+          "reduced_motion": true,
+          "text_scale": true
+        },
+        "platform_forced_colors": true
+      },
+      "recipe_identity": "conduit.face/todo-grouped@1",
+      "screenshot": "look-narrow-forced-compact-editorial.png"
+    },
+    {
+      "viewport": "narrow-forced",
+      "density": "spacious",
+      "palette": "editorial",
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "face_id": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+      "face_revision": "8846288463479955764",
+      "mask_plot_id": "8a90442472c4a91857717d3d2d37e6966706a29099a69e81f50b330add53549a",
+      "mask_plan_id": "36260139981f538f1c6ca85088c8ebd54786a2cf0e3d1ac09172218b145c0169",
+      "show_id": "show/4adeaf92b07070d76782c0a90c54907e3b181e7217e127414defc4d93f6f9588",
+      "show_state": "available",
+      "interactions_admitted": true,
+      "selected_look_sha256": "sha256:6b3d262cf63b726d88b45f30c38ef7529d6fe4728e6468861d6ae3202f0dbb28",
+      "selected_look_profile": "structured-info/profile-abc6828b8a3a4155dcd16c738d07b9052c09110a6efe38b1023588be8e01d20c@1",
+      "expression": {
+        "expression": {
+          "version": 2,
+          "identity": "conduit.look/editorial-spacious@1",
+          "density": "spacious",
+          "palette": "editorial",
+          "text_scale_percent": 200,
+          "motion": "none",
+          "typography": "editorial"
+        },
+        "outcome": {
+          "AccessibilityOverride": {
+            "forced_colors": true,
+            "reduced_motion": false,
+            "text_scale": true
+          }
+        },
+        "accessibility_overrides": {
+          "forced_colors": true,
+          "reduced_motion": true,
+          "text_scale": true
+        },
+        "platform_forced_colors": true
+      },
+      "recipe_identity": "conduit.face/todo-grouped@1",
+      "screenshot": "look-narrow-forced-spacious-editorial.png"
+    },
+    {
+      "viewport": "narrow-forced",
+      "density": "spacious",
+      "palette": "phosphor",
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "face_id": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+      "face_revision": "8846288463479955764",
+      "mask_plot_id": "7c8f676a3d2190e2e900f28bc43c887f6b410b1dc6e272e9ee20c2f7b31d5f8d",
+      "mask_plan_id": "f228c4e1b5369ec6ab88e6f2d1d318ce04d6da5a48e2abf3ee90a2df75de5db7",
+      "show_id": "show/cab34467c0bd037ca5026dc2b4a9648e0d222b2ea902b9116fc34154455c3d82",
+      "show_state": "available",
+      "interactions_admitted": true,
+      "selected_look_sha256": "sha256:657bfe07bffe8ae2f22b9ca6264f259559fc34faab38c16bb2257e5656a30136",
+      "selected_look_profile": "structured-info/profile-abc6828b8a3a4155dcd16c738d07b9052c09110a6efe38b1023588be8e01d20c@1",
+      "expression": {
+        "expression": {
+          "version": 2,
+          "identity": "conduit.look/phosphor-spacious@1",
+          "density": "spacious",
+          "palette": "phosphor",
+          "text_scale_percent": 200,
+          "motion": "none",
+          "typography": "editorial"
+        },
+        "outcome": {
+          "AccessibilityOverride": {
+            "forced_colors": true,
+            "reduced_motion": false,
+            "text_scale": true
+          }
+        },
+        "accessibility_overrides": {
+          "forced_colors": true,
+          "reduced_motion": true,
+          "text_scale": true
+        },
+        "platform_forced_colors": true
+      },
+      "recipe_identity": "conduit.face/todo-grouped@1",
+      "screenshot": "look-narrow-forced-spacious-phosphor.png"
+    },
+    {
+      "viewport": "narrow-forced",
+      "density": "compact",
+      "palette": "phosphor",
+      "body_id": "115220b52be7fbc16b5b7405f930d36c83ce86a2afbb7e195e6aba8a90d2aadd",
+      "face_id": "6dbfab0130f21b98cb06c18c4f72b1395566b3509b903e91dc31612d64f51f99",
+      "face_revision": "8846288463479955764",
+      "mask_plot_id": "f7e93d3491097594a33d1d187c86fbfb62ee56ff6daf3415cc0dcc78b08d0607",
+      "mask_plan_id": "316b3a3c99f078bb0ff404fcbbcec5290dead8c21aafcf22fbd9f11fad16c6a4",
+      "show_id": "show/9dd3cf3dd54058cb1d51c94c1613b45a6087d77c4692e024951de08dcb1226df",
+      "show_state": "available",
+      "interactions_admitted": true,
+      "selected_look_sha256": "sha256:e952ac59ed7c381ca190232b5cd0792cd472b04da0bebc3fe74f65702948e24d",
+      "selected_look_profile": "structured-info/profile-abc6828b8a3a4155dcd16c738d07b9052c09110a6efe38b1023588be8e01d20c@1",
+      "expression": {
+        "expression": {
+          "version": 2,
+          "identity": "conduit.look/phosphor@1",
+          "density": "compact",
+          "palette": "phosphor",
+          "text_scale_percent": 200,
+          "motion": "none",
+          "typography": "editorial"
+        },
+        "outcome": {
+          "AccessibilityOverride": {
+            "forced_colors": true,
+            "reduced_motion": false,
+            "text_scale": true
+          }
+        },
+        "accessibility_overrides": {
+          "forced_colors": true,
+          "reduced_motion": true,
+          "text_scale": true
+        },
+        "platform_forced_colors": true
+      },
+      "recipe_identity": "conduit.face/todo-grouped@1",
+      "screenshot": "look-narrow-forced-compact-phosphor.png"
+    }
+  ],
+  "stale_refusal": {
+    "refused": true,
+    "code": "StaleShow",
+    "message": "Current acknowledged owner Show is required for interaction."
+  },
+  "browser_errors": [],
+  "same_face_subjects_actions_relationships_recipe_verified": true,
+  "screenshots": [
+    {
+      "name": "look-forced-colors-large-narrow.png",
+      "bytes": 177850,
+      "sha256": "sha256:758706eee23ff079ac020ce04fb3310e727bec0a03fe6bfdf99b046fe4308d0f"
+    },
+    {
+      "name": "viewport-compact-phosphor.png",
+      "bytes": 65615,
+      "sha256": "sha256:297a0d45d9e24231da43969476549750d6adf0e7be2dfa07b4db91a247c6a421"
+    },
+    {
+      "name": "look-spacious-editorial.png",
+      "bytes": 158290,
+      "sha256": "sha256:55e5d39f19738f1c20d2ce9286371d27556d4e84f83d27b19459a94334aebf0f"
+    },
+    {
+      "name": "controls-spacious-editorial.png",
+      "bytes": 67400,
+      "sha256": "sha256:81bbfd8e07434dc28eaa146747888e75c904d7b224bac72e4c0f24fa9ff5ba3a"
+    },
+    {
+      "name": "viewport-spacious-phosphor.png",
+      "bytes": 73311,
+      "sha256": "sha256:65fd5871c9a19a9717bc69498d6d84df1f70fed16b0681f7ffa89fb44397ed5f"
+    },
+    {
+      "name": "look-narrow-forced-compact-editorial.png",
+      "bytes": 180016,
+      "sha256": "sha256:cd96205a43a270aa0bd5040294cbe55109f2d663c3eaac58b486db9272d09613"
+    },
+    {
+      "name": "controls-spacious-phosphor.png",
+      "bytes": 67994,
+      "sha256": "sha256:8147a6fd6975bef735cd32ef363d10d89ca2956e627ad8877e9e00c85d7ae09d"
+    },
+    {
+      "name": "look-compact-editorial.png",
+      "bytes": 143591,
+      "sha256": "sha256:7c7f3725c53f7d5f810839dd502f30bd403e931ae93ff80cad923bc364b4fd4d"
+    },
+    {
+      "name": "viewport-compact-editorial.png",
+      "bytes": 65426,
+      "sha256": "sha256:1b83194d71ebd165e07aef8a6cc22cdc27a798ec27588df847127a43a8337149"
+    },
+    {
+      "name": "look-spacious-phosphor.png",
+      "bytes": 157724,
+      "sha256": "sha256:6609bbae9445503190d524922f080965a3db5e4ad0b9c39d54da4a2ee58c6e10"
+    },
+    {
+      "name": "owner-reading-narrow-forced.png",
+      "bytes": 23323,
+      "sha256": "sha256:9f486acf04cbc08607bb125b0d6445ed8e5414935f9a3e855cda298bd2dc24af"
+    },
+    {
+      "name": "look-narrow-forced-spacious-phosphor.png",
+      "bytes": 177930,
+      "sha256": "sha256:0abdc3c18a760119c6339c4c84a117ca1640b78dac7323fccddc7f1d4ca8f344"
+    },
+    {
+      "name": "owner-wardrobe-narrow-forced.png",
+      "bytes": 76203,
+      "sha256": "sha256:3c22e749b8581b831961a94da30bc54add773c4b1665c441ca2a153f20041ec0"
+    },
+    {
+      "name": "look-compact-phosphor.png",
+      "bytes": 142200,
+      "sha256": "sha256:e1af2b224347392a763006691ee996b678e33471d4521501f945d5b99df6c01e"
+    },
+    {
+      "name": "viewport-spacious-editorial.png",
+      "bytes": 72764,
+      "sha256": "sha256:2da22ebc4f85c976967b4d2dbd391e2154d52bafe5a56e8783531df3787b3cdd"
+    },
+    {
+      "name": "owner-reading-wide.png",
+      "bytes": 27741,
+      "sha256": "sha256:d3627aa155374ea58fcd31ce1f5df8e65e77e7262ae3d3a496901eee738c3724"
+    },
+    {
+      "name": "look-narrow-forced-compact-phosphor.png",
+      "bytes": 177784,
+      "sha256": "sha256:e996669cdaea3f8888a848a293c333652993a7c21f026cad5e38dfb3db505aa8"
+    },
+    {
+      "name": "owner-wardrobe-wide.png",
+      "bytes": 88616,
+      "sha256": "sha256:e8d7dec3cf8efdd26bd8138e3aed8cbe61df0f895cb7c4c39bf55181c2e0f9f8"
+    },
+    {
+      "name": "controls-compact-editorial.png",
+      "bytes": 64930,
+      "sha256": "sha256:a760208e5b52c9a138fa9bf3ddafdc12b54f8c8686a1130683719850cd363240"
+    },
+    {
+      "name": "look-narrow-forced-spacious-editorial.png",
+      "bytes": 179876,
+      "sha256": "sha256:b4ab987a40f845a3ee98b075b17db62585a1bed2a65f4f24bae93c63ce33137e"
+    },
+    {
+      "name": "controls-compact-phosphor.png",
+      "bytes": 64431,
+      "sha256": "sha256:3f87f98cfbb10e2c642ea93a13bc443c6c73221baa50d0a508d1bdcf50469d54"
+    }
+  ],
+  "local_installed_linux_owner": true,
+  "native_execution": false,
+  "ci": false,
+  "publication": false
+}

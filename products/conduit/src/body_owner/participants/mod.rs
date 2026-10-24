@@ -3,6 +3,7 @@
 //! The owner may issue a face-only browser Mask route on the admitted
 //! carrier; the Body workload remains on its authoritative Host.
 mod admission;
+mod pending_action;
 mod service;
 #[cfg(unix)]
 mod service_worker;
@@ -202,7 +203,9 @@ fn serve_presence(
     acknowledge_presence(socket, &presence)?;
     #[cfg(unix)]
     let mut selected_speech = speech::CarrierSpeech::default();
-    for _ in 0..MAX_PRESENCE_FRAMES {
+    let mut pending_action = pending_action::PendingAction::default();
+    let mut received_frames = 0usize;
+    loop {
         let lease = &presence.leases[0];
         let Some(window_left) = deadline.checked_duration_since(Instant::now()) else {
             return Ok("window-closed");
@@ -211,14 +214,44 @@ fn serve_presence(
         if remaining == 0 {
             return Err("browser presence lease expired".into());
         }
-        let received = socket.receive(window_left.min(Duration::from_millis(remaining)));
+        if let Some(response) = pending_action.take_response() {
+            socket.send(&response)?;
+        }
+        if received_frames >= MAX_PRESENCE_FRAMES {
+            return Err("browser presence frame budget exhausted".into());
+        }
+        let wait = window_left.min(Duration::from_millis(remaining));
+        let received = if let Some(frame) = pending_action.take_deferred() {
+            Ok(Some(frame))
+        } else {
+            let received = if pending_action.is_pending() {
+                socket.receive_polled(wait.min(Duration::from_millis(50)))
+            } else {
+                socket.receive(wait).map(Some)
+            };
+            if matches!(&received, Ok(Some(_))) {
+                received_frames += 1;
+            }
+            received
+        };
         if Instant::now() >= deadline {
             return Ok("window-closed");
         }
         if now(clock) >= lease.expires_at_millis {
             return Err("browser presence lease expired".into());
         }
-        let (frame, _) = received?;
+        let Some((frame, bytes)) = received? else {
+            continue;
+        };
+        if pending_action.is_pending()
+            && !matches!(
+                &frame,
+                In::PresenceRenewal { .. } | In::PresenceLeave { .. }
+            )
+        {
+            pending_action.defer((frame, bytes))?;
+            continue;
+        }
         match frame {
             In::PresenceRenewal {
                 protocol: PROTOCOL,
@@ -471,60 +504,14 @@ fn serve_presence(
                 && request.host_id == credential.host_id
                 && request.boot_id == credential.boot_id =>
             {
-                let result = state_dir
-                    .ok_or_else(|| {
-                        "owner interaction requires the installed service actor".to_string()
-                    })
-                    .and_then(|dir| {
-                        crate::durable_host_control::submit_browser_face_interaction(
-                            dir,
-                            window_id.ok_or("browser-route-window-unavailable")?,
-                            binding.clone(),
-                            request,
-                            *show,
-                            interaction,
-                        )
-                    });
-                let (accepted, code) = match result {
-                    Ok(_) => (true, String::new()),
-                    Err(error) => (
-                        false,
-                        if error == "control-outcome-unknown" {
-                            "control-outcome-unknown"
-                        } else if error == "body-play-active"
-                            || error.contains("retired Play")
-                            || error == "clock-play-must-lull"
-                        {
-                            "clock-play-must-lull"
-                        } else if error.contains("StaleFace")
-                            || error.contains("StaleShow")
-                            || error.contains("stale owner Mask Show")
-                        {
-                            "stale-face-or-show"
-                        } else if error.contains("browser-mask-show-refused")
-                            || error.contains("browser-mask-route-not-selected")
-                            || error.contains("browser-route-carrier-mismatch")
-                        {
-                            "mask-route-unavailable"
-                        } else if error.contains("UnavailableAction") {
-                            "action-unavailable"
-                        } else if error.contains("RefusedAction") {
-                            "action-refused"
-                        } else if error == "owner-face-credential-not-admitted" {
-                            "credential-not-admitted"
-                        } else if error == "owner-face-current-part-unavailable" {
-                            "current-part-unavailable"
-                        } else {
-                            "interaction-refused"
-                        }
-                        .into(),
-                    ),
-                };
-                socket.send(&Out::FaceInteractionResponse {
-                    protocol: PROTOCOL,
-                    accepted,
-                    code,
-                })?;
+                if let Err(error) = pending_action.begin(
+                    state_dir,
+                    window_id,
+                    binding.clone(),
+                    (request, show, interaction),
+                ) {
+                    socket.send(&pending_action::response(Err(error)))?;
+                }
             }
             In::FaceInteractionRequest {
                 protocol: PROTOCOL, ..
@@ -619,7 +606,6 @@ fn serve_presence(
             _ => return Err("browser session refused unexpected or stale credential frame".into()),
         }
     }
-    Err("browser presence frame budget exhausted".into())
 }
 fn acknowledge_presence(
     socket: &mut transport::Socket,

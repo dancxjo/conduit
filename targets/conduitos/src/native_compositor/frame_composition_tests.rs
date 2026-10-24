@@ -44,6 +44,7 @@ fn surfaces(seed: u32) -> Vec<CompositorSurface> {
                 buffer,
                 raster_scene: None,
                 visual_expression: None,
+                visual_look: None,
                 binding: template.binding.clone(),
                 receipt: if next().is_multiple_of(5) {
                     None
