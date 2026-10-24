@@ -24,11 +24,13 @@ impl Evidence {
     }
 }
 fn decode(backends: &str, commands: &serde_json::Value) -> Result<Evidence, ConduitosError> {
-    let backends = backends
-        .lines()
-        .skip(1)
+    let mut lines = backends.lines();
+    if lines.next() != Some("Available display backend types:") {
+        return Err(super::refusal("invalid display backend inventory header"));
+    }
+    let backends = lines
         .map(str::trim)
-        .filter(|v| !v.is_empty())
+        .take_while(|v| !v.is_empty())
         .map(str::to_owned)
         .collect::<Vec<_>>();
     if backends.len() > 16
@@ -132,6 +134,8 @@ mod tests {
             &serde_json::json!([])
         )
         .is_err());
+        assert!(decode("Available display backend types:\nnone\nsdl\ncurses\n\nSome display backends support suboptions, which can be set with\n   -display backend,option=value\n", &commands).is_ok());
+        assert!(decode("wrong header\nnone\nsdl\n", &commands).is_err());
         let mut false_claim = evidence;
         false_claim.product_frame_proved = true;
         assert!(!false_claim.valid());
