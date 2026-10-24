@@ -18,7 +18,7 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     await page.goto(url);
     await expect(page.locator('body')).toHaveAttribute('data-application-ready','true');
     await page.getByRole('button',{name:'Plot',exact:true}).click();
-    await expect(page.locator('#lens-label')).toHaveText('PLOT · STRUCTURE');
+    await expect(page.locator('#lens-label')).toHaveText('PROGRAM · STRUCTURE');
     await expect(page.locator('.flow-frontplate').first()).toBeVisible();
     await page.locator('#fit-flow').click();
     const baseline=await (await page.request.get(`${url}/api/snapshot`)).json();
@@ -43,7 +43,9 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     }
     await page.setViewportSize({width:390,height:844});
     await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
-    await page.addStyleTag({content:'html { font-size:32px; }'});
+    await page.addStyleTag({content:':root { font-size:32px !important; }'});
+    await expect(page.locator('html')).toHaveCSS('font-size','32px');
+    await expect(picker).toHaveCSS('font-size','32px');
     // The narrow action tray scrolls horizontally. Reach the picker through
     // the real Tab sequence so the browser reveals its focused control.
     await page.locator('#arrange').focus();
@@ -57,6 +59,10 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
       const box=await picker.boundingBox();
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x+box.width).toBeLessThanOrEqual(391);
+      expect(await picker.evaluate(node=>{
+        const control=node.getBoundingClientRect(),tray=node.closest('.canvas-actions').getBoundingClientRect();
+        return control.left>=tray.left-.5 && control.right<=tray.right+.5;
+      })).toBe(true);
       await expect(page.locator('body')).toHaveAttribute('data-application-look',`conduit.look/${name}@1`);
     }
     await page.screenshot({path:info.outputPath('look-narrow-forced.png'),fullPage:true,animations:'disabled'});
