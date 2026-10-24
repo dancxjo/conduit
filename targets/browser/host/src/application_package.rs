@@ -10,7 +10,7 @@ const MAXIMUM_RESOURCES: usize = 64;
 const MAXIMUM_DEPENDENCIES: usize = 16;
 const MAXIMUM_HOST_IMPLEMENTATIONS: usize = 16;
 const MAXIMUM_RESOURCE_BYTES: usize = 16 * 1024 * 1024;
-const MAXIMUM_RUNTIME_BYTES: usize = 20 * 1024 * 1024;
+const MAXIMUM_RUNTIME_BYTES: usize = 32 * 1024 * 1024;
 const MAXIMUM_TOTAL_RESOURCE_BYTES: usize = 32 * 1024 * 1024;
 
 #[derive(Deserialize)]

@@ -7,7 +7,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
 const IMAGE_PATH = "conduit-browser-image.json";
 const MAXIMUM_MODULE_BYTES = 256 * 1024;
-const MAXIMUM_RUNTIME_BYTES = 20 * 1024 * 1024;
+const MAXIMUM_RUNTIME_BYTES = 32 * 1024 * 1024;
 const RUNTIME_HEADER = [0, 97, 115, 109, 1, 0, 0, 0];
 const encoder = new TextEncoder();
 const HOST_ASSETS = path.resolve(ROOT, "../host/assets");
@@ -93,7 +93,7 @@ try {
       throw new Error(`BrowserBundle file ${file.path} has invalid bounded identity metadata`);
     }
     if (file.path === "runtime.wasm" && file.bytes > MAXIMUM_RUNTIME_BYTES) {
-      throw new Error("BrowserBundle runtime exceeds the browser consumer 20 MiB ceiling");
+      throw new Error("BrowserBundle runtime exceeds the browser consumer 32 MiB ceiling");
     }
     if (file.path !== "runtime.wasm" && file.bytes > MAXIMUM_MODULE_BYTES) {
       throw new Error(`BrowserBundle asset ${file.path} exceeds the browser consumer 256 KiB ceiling`);

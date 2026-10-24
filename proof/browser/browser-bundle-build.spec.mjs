@@ -157,8 +157,8 @@ test("BrowserBundle verification binds release declarations and bytes to the rev
 test("BrowserBundle BUILD applies browser per-asset bounds before hashing payloads", async () => {
   const cases = [
     { path: "runtime.wasm", size: 0, accepted: false },
-    { path: "runtime.wasm", size: 20 * 1024 * 1024, accepted: true },
-    { path: "runtime.wasm", size: 20 * 1024 * 1024 + 1, accepted: false },
+    { path: "runtime.wasm", size: 32 * 1024 * 1024, accepted: true },
+    { path: "runtime.wasm", size: 32 * 1024 * 1024 + 1, accepted: false },
     { path: "host.mjs", size: 256 * 1024, accepted: true },
     { path: "host.mjs", size: 256 * 1024 + 1, accepted: false },
   ];
