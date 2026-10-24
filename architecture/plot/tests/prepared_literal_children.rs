@@ -27,10 +27,7 @@ fn packet_source_keeps_dynamic_branches_and_exact_reference_bytes() {
     });
     eprintln!("packet-source rounded retained bytes: {retained}");
     if cfg!(target_pointer_width = "64") {
-        assert!(
-            retained <= 5 * 1024,
-            "packet preparation storage regressed"
-        );
+        assert!(retained <= 5 * 1024, "packet preparation storage regressed");
     }
     let Shape::Record { fields, .. } = program.input_type.shape() else {
         panic!("Frame");
