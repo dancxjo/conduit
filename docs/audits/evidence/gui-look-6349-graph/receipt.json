@@ -9,7 +9,7 @@
   "look_limits": "Journey capture names containing engineering are inherited names for Phosphor palette transitions; they do not establish Engineering typography selection",
   "files": {
     "native-graph-cleanup.json": "eb5629060dbb8723726c3a94a21618b70d7424c35fb064c7669877f1a97582ce",
-    "journey-serial.log": "f31a66ce2866dc18eda47fc1051e58a65f71b4e0159171c471efa7cbbdf9ca75",
+    "journey-serial.log.gz": "82a5afdae59b50c5780d2b1ff7f3211b7389eb06f0a179872cc1d6474024c0b6",
     "native-shell-paired-linear.json": "670db3c03b24423586c018af3dd07b1c6c1deed3d4f6b4e03c16d6f21eacd9ec",
     "compositor-lifecycle-proof.json": "0b90b542383becaec9d6680a67753746970254a128e450b055787fd5136dadd8",
     "native-graph-icons-ports.log": "1c2dd18564a6b4e43e0b2feb90406507ee511dbbae304a5d247b88cfb58dcb51",
@@ -48,5 +48,13 @@
     "journey-frames/patchbay-reentered.png": "fcfb2ec9a719e32fe6e405a07002b3d8170a92650fdc82b6c5599c3f7176cadb",
     "journey-frames/patchbay-source-editor-loaded.png": "49727e29eed36d27118593cda2fb168126ca8a7a27f73e28917db591b8c11590",
     "journey-frames/patchbay-workspace.png": "8fedd2286247284a5d13213d2e5aaa9fabb499e2a9daa12bea3edc6bd67af31b"
-  }
+  },
+  "archives": {
+    "journey-serial.log": {
+      "artifact": "journey-serial.log.gz",
+      "uncompressed_sha256": "f31a66ce2866dc18eda47fc1051e58a65f71b4e0159171c471efa7cbbdf9ca75",
+      "uncompressed_bytes": 3318524
+    }
+  },
+  "archive_note": "Lossless gzip; decompress to the original filenames before validating raw serial-prefix custody and compositor receipts."
 }
