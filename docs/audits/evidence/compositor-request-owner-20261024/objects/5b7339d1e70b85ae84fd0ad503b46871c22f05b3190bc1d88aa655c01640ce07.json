@@ -1,0 +1,1501 @@
+{
+  "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "tree": "b08e9272154b35b4ebce9ba67203db7239fa0164",
+  "status": "commands-passed-independent-review-pending",
+  "argv": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "graphical-profile-proof",
+    "--locked"
+  ],
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CONDUIT_CONDUITOS_TARGET_ROOT": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native"
+  },
+  "start_resources": {
+    "time": 1792812691.73219,
+    "root_free": 15697305600,
+    "tmp_quota": {
+      "used_bytes": 17347076096,
+      "hard_bytes": 26414723072,
+      "remaining_bytes": 9067646976
+    },
+    "shm_free": 33018404864
+  },
+  "proof_class": "normal-product-freestanding-emulator",
+  "scope": "actual production compositor owner custody, not selected policy or native preemption",
+  "attempts": 2,
+  "prior_attempt": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/receipt.json",
+  "cache_freshness_repair": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-core-cache-freshness-e93/receipt.json",
+  "samples": [
+    {
+      "time": 1792812691.735643,
+      "root_free": 15697301504,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812706.7359636,
+      "root_free": 15759994880,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812721.7363007,
+      "root_free": 15743111168,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812736.7369008,
+      "root_free": 15745994752,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812751.7374818,
+      "root_free": 15696199680,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812766.7379096,
+      "root_free": 15427706880,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812781.7384799,
+      "root_free": 15424290816,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812796.7390187,
+      "root_free": 15418654720,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812811.7395525,
+      "root_free": 15405821952,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812826.7400675,
+      "root_free": 15425269760,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812841.740646,
+      "root_free": 15402786816,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812856.7412074,
+      "root_free": 15396909056,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812871.7416525,
+      "root_free": 15514722304,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812886.7422,
+      "root_free": 15389659136,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812901.7427783,
+      "root_free": 15388622848,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812916.743349,
+      "root_free": 14603116544,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812931.7439141,
+      "root_free": 14589505536,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812946.744484,
+      "root_free": 14613258240,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812961.7450643,
+      "root_free": 14591184896,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812976.7456636,
+      "root_free": 14572433408,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792812991.746168,
+      "root_free": 14512885760,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813006.7467837,
+      "root_free": 14486740992,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813021.7475033,
+      "root_free": 14444244992,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813036.7480626,
+      "root_free": 14405115904,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813051.7486825,
+      "root_free": 14306557952,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813066.7492487,
+      "root_free": 14286114816,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813081.7498443,
+      "root_free": 14277730304,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813096.7504425,
+      "root_free": 14196240384,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813111.7509115,
+      "root_free": 14195068928,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813126.751449,
+      "root_free": 14094028800,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813141.752059,
+      "root_free": 14059024384,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813156.7526646,
+      "root_free": 13999415296,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813171.7532885,
+      "root_free": 13965189120,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813186.7538939,
+      "root_free": 13958828032,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813201.754526,
+      "root_free": 14093963264,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813216.7551458,
+      "root_free": 13829513216,
+      "tmp_quota": {
+        "used_bytes": 17348284416,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9066438656
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813231.7558296,
+      "root_free": 13806002176,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813246.7563405,
+      "root_free": 13809377280,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813261.756845,
+      "root_free": 13811691520,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813276.7573833,
+      "root_free": 13819719680,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813291.7578225,
+      "root_free": 13818040320,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813306.7583163,
+      "root_free": 12987256832,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813321.7587516,
+      "root_free": 12930818048,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813336.759254,
+      "root_free": 12922720256,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813351.7598112,
+      "root_free": 12898365440,
+      "tmp_quota": {
+        "used_bytes": 17376833536,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9037889536
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813366.760246,
+      "root_free": 12799848448,
+      "tmp_quota": {
+        "used_bytes": 17418240000,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 8996483072
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813381.7606995,
+      "root_free": 12725575680,
+      "tmp_quota": {
+        "used_bytes": 17500790784,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 8913932288
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813396.7611682,
+      "root_free": 12735000576,
+      "tmp_quota": {
+        "used_bytes": 17576824832,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 8837898240
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813411.7617774,
+      "root_free": 12677132288,
+      "tmp_quota": {
+        "used_bytes": 17662590976,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 8752132096
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813426.7625043,
+      "root_free": 12677144576,
+      "tmp_quota": {
+        "used_bytes": 17782644736,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 8632078336
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813441.7632,
+      "root_free": 12642586624,
+      "tmp_quota": {
+        "used_bytes": 18113552384,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 8301170688
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813456.7638772,
+      "root_free": 12425834496,
+      "tmp_quota": {
+        "used_bytes": 18365370368,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 8049352704
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813471.764501,
+      "root_free": 12359401472,
+      "tmp_quota": {
+        "used_bytes": 18505412608,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 7909310464
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813486.7650468,
+      "root_free": 12306751488,
+      "tmp_quota": {
+        "used_bytes": 18593624064,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 7821099008
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813501.7657182,
+      "root_free": 12259692544,
+      "tmp_quota": {
+        "used_bytes": 18662576128,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 7752146944
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813516.766546,
+      "root_free": 12262367232,
+      "tmp_quota": {
+        "used_bytes": 18759831552,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 7654891520
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813531.7716634,
+      "root_free": 12256468992,
+      "tmp_quota": {
+        "used_bytes": 18942967808,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 7471755264
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813546.772435,
+      "root_free": 12390973440,
+      "tmp_quota": {
+        "used_bytes": 19341799424,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 7072923648
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813561.7731233,
+      "root_free": 12248154112,
+      "tmp_quota": {
+        "used_bytes": 19571535872,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 6843187200
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813576.7739472,
+      "root_free": 12248997888,
+      "tmp_quota": {
+        "used_bytes": 19800907776,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 6613815296
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813591.7746727,
+      "root_free": 12202352640,
+      "tmp_quota": {
+        "used_bytes": 19897049088,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 6517673984
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813606.7753398,
+      "root_free": 11903066112,
+      "tmp_quota": {
+        "used_bytes": 19897049088,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 6517673984
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813621.775969,
+      "root_free": 11697647616,
+      "tmp_quota": {
+        "used_bytes": 19914088448,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 6500634624
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813636.7766871,
+      "root_free": 11616616448,
+      "tmp_quota": {
+        "used_bytes": 20062998528,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 6351724544
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813651.7774544,
+      "root_free": 11343392768,
+      "tmp_quota": {
+        "used_bytes": 20340305920,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 6074417152
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813666.778179,
+      "root_free": 10842505216,
+      "tmp_quota": {
+        "used_bytes": 20340490240,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 6074232832
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813681.778947,
+      "root_free": 9920831488,
+      "tmp_quota": {
+        "used_bytes": 20501610496,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5913112576
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813696.7795763,
+      "root_free": 9579302912,
+      "tmp_quota": {
+        "used_bytes": 20501610496,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5913112576
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813711.7803233,
+      "root_free": 9203380224,
+      "tmp_quota": {
+        "used_bytes": 20501610496,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5913112576
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813726.7811687,
+      "root_free": 8708214784,
+      "tmp_quota": {
+        "used_bytes": 20501610496,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5913112576
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813741.7817876,
+      "root_free": 9604124672,
+      "tmp_quota": {
+        "used_bytes": 20501610496,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5913112576
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792813756.7822714,
+      "root_free": 9149235200,
+      "tmp_quota": {
+        "used_bytes": 20501610496,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5913112576
+      },
+      "shm_free": 33018404864
+    }
+  ],
+  "child_pid": 3785710,
+  "exit_code": 0,
+  "source_unchanged": true,
+  "artifact_inventory": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/conduitos.iso",
+      "bytes": 9244672,
+      "sha256": "363ffc5d61c15da9b4ada0ca13398bc31b8c6c058220c258e88a62a96041b59f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/privilege-inventory-6426a95f933e1ec9fc5283ccadc481e1e670067197caba920896737648313dc1-product-host.json",
+      "bytes": 33503,
+      "sha256": "125bfdea15443272569e56c8b8dad48c6b4dba81e5471fade037ba53ec2f2a98"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/make-record.rs",
+      "bytes": 675,
+      "sha256": "9ca9cec276917b7d3296b0fe85c81e1e50d605bb246a3f3c075ccf96439ddc55"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/conduitos",
+      "bytes": 5031208,
+      "sha256": "6426a95f933e1ec9fc5283ccadc481e1e670067197caba920896737648313dc1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/build.json",
+      "bytes": 327,
+      "sha256": "ff3707a9bda53aaeb2ed039d795f1786dfe834ab8944eeebc939cafbfea5d4ba"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/privilege-inventory-6426a95f933e1ec9fc5283ccadc481e1e670067197caba920896737648313dc1-product-host.map",
+      "bytes": 12109896,
+      "sha256": "3888bb9561c937b3c52184f4e3b87d85240e5a80f848c9a64f88eef3987e6775"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/image.json",
+      "bytes": 336,
+      "sha256": "a82412d4a31521ffc653c0615585b9354bb5ef79fd0144b791db5c652d675af4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/privilege-inventory-42d78dc7e3c99d728003bee56cb6b87eab427f4145c90d1d0d25cc0f60aa5097-product-host.json",
+      "bytes": 33556,
+      "sha256": "19c70dd897322495f840595f171a75e990f40bc7d4788271c0c2ed24350fd5a0"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/conduitos.iso",
+      "bytes": 11964416,
+      "sha256": "5ecae0d02ae2be80711d54393a0dc11f0dd967fe9d7ea101059ea0537171a06c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/make-record.rs",
+      "bytes": 678,
+      "sha256": "3cb7f5db038f764644cca270765c8482ce592ac2528c849892c31748e5dfdcd6"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/conduitos",
+      "bytes": 7734448,
+      "sha256": "42d78dc7e3c99d728003bee56cb6b87eab427f4145c90d1d0d25cc0f60aa5097"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/build.json",
+      "bytes": 321,
+      "sha256": "3e7947ac2ad76591c10b97809ed44314b7701fcac7db402b59f4bedffcf463aa"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/privilege-inventory-42d78dc7e3c99d728003bee56cb6b87eab427f4145c90d1d0d25cc0f60aa5097-product-host.map",
+      "bytes": 12974796,
+      "sha256": "a786872592bc3a09bedfb11a098185d0b7afcbb13f878c88fb5d46ab100ab403"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/image.json",
+      "bytes": 336,
+      "sha256": "c0a12c2fef9422181744812601dca9d2fe332007eab0d63764ca40302a9ba16a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/privilege-inventory-d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d-product-host.map",
+      "bytes": 22980503,
+      "sha256": "46f3267c4093e404e81d1b817aff5462e18c0249074cf2d7e88e5187561733fd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-serial.log",
+      "bytes": 3326376,
+      "sha256": "c2dc6c4c3516989eb30d68659007d5f5e247a28425e88e0e7f5d5d27a96e13dd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/graphical-profile-proof.json",
+      "bytes": 74981,
+      "sha256": "54a4a0906a28fa9223df453cf2842e66855db9920498d180beaeeb7e1f3bc1ef"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/conduitos.iso",
+      "bytes": 83175424,
+      "sha256": "68963c307cf4d0d666f80704835d383f31083816e17e9813a3e9ea7014a33831"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/native-shell-paired-linear.json",
+      "bytes": 4535993,
+      "sha256": "ccd830814a2ba453d8e315e52a2b7776b2afdd69f15d10017a443f0ef9364078"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/compositor-lifecycle-proof.json",
+      "bytes": 68911,
+      "sha256": "f775afe2db3d1f9c80722169cb4b597b4d07fc5df40950c5e98fd64da189a22e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/memory-lantern-native-edit.json",
+      "bytes": 5055,
+      "sha256": "c28d22dfd721813b0995e66a3533402990f1a87756ca5d58ff80218957c6907d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/make-record.rs",
+      "bytes": 684,
+      "sha256": "c4d2f0b3b3060a68990077158dba764ca0068bce344e8dfe1dc9e971909d28cf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-proof.json",
+      "bytes": 1494579,
+      "sha256": "025ccb02eaab32a7a7f418de8879da6ff082225d98d227893825192892e6607a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/conduitos",
+      "bytes": 78902872,
+      "sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/build.json",
+      "bytes": 319,
+      "sha256": "41a1d06de97a15b6c4ee806effa1207d133271fd4a625d67b9d834652a2d5c11"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-qmp.log",
+      "bytes": 222585,
+      "sha256": "a94f6cb20148dbda61595768be0bb723d5c07517e0173fd0621c4602117e12c7"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/graphical-profile-gallery.html",
+      "bytes": 2967,
+      "sha256": "7566dbdb81d11cb1fa7a20d6c3222854fb98bff91bee81fd124eebadc142b03e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/privilege-inventory-d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d-product-host.json",
+      "bytes": 63223,
+      "sha256": "968149c82cf905ae31c83a938e52fe91cabca76cdd4e5074ce4541ccdb766902"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/image.json",
+      "bytes": 335,
+      "sha256": "5a4e11def3248db83f377e897752956f1e1c004424f30c3328a6b4b227631fcc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/conduitos.iso",
+      "bytes": 10221568,
+      "sha256": "c95b915e43a5204638a8376e72930c776925c279d811f4b6e8f90adeab600512"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/make-record.rs",
+      "bytes": 670,
+      "sha256": "cb7a4157bfcac7d618e95d31e770061e9c9dfc12c0e2223b916e3dd027e70a4f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/privilege-inventory-3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427-product-host.map",
+      "bytes": 8102334,
+      "sha256": "def0fc2b124ff44819e016965e6292c3fc5f5729a3176d5236f4bfedddbd0bbc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/privilege-inventory-3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427-product-host.json",
+      "bytes": 33624,
+      "sha256": "02008a581d8398814088da35c3657332bfcfeba13ec484011a61c2134401445f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/conduitos",
+      "bytes": 5937172,
+      "sha256": "3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/build.json",
+      "bytes": 336,
+      "sha256": "3f891ab4ed5a7207435e0e82ef9f411a243c4f51141f237b7a12970d64892db7"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/image.json",
+      "bytes": 333,
+      "sha256": "21a873c91afba8e3f631369f9e5d03bdadfd41d94728ec0a4c1d4920b35a95dd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/conduitos.iso",
+      "bytes": 10948608,
+      "sha256": "028465d46a5d71fc9cdc6faa44de60234322c51776d6f4a1b645e8756f5683e8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/privilege-inventory-7d235873feae359f2a1981462cad802351d52e447aeaf241ee25f4b2303948a1-product-host.map",
+      "bytes": 10228940,
+      "sha256": "e00838839ef2aa6ff9deb13cfee2c2ff021474022381e55f9c20a23bad28ce09"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/make-record.rs",
+      "bytes": 679,
+      "sha256": "03fa9c75f894e6b396cf56a2fb1c6909389c422e31f77877e1968c22df799fca"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/privilege-inventory-7d235873feae359f2a1981462cad802351d52e447aeaf241ee25f4b2303948a1-product-host.json",
+      "bytes": 33513,
+      "sha256": "beb027d938929b932fc0186e408a8ddb203367f65710bfc948116dc229233be4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/conduitos",
+      "bytes": 6685792,
+      "sha256": "7d235873feae359f2a1981462cad802351d52e447aeaf241ee25f4b2303948a1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/build.json",
+      "bytes": 329,
+      "sha256": "2712918a6081a9601668dfbcd6536bf5aa54b1cfdeee441f301e1c7f403d8020"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/image.json",
+      "bytes": 340,
+      "sha256": "8473abd034b5c7cac991bdd0964126ca317adaa934873b641d0eaf73b03ec46a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/iso-root/limine.conf",
+      "bytes": 251,
+      "sha256": "a9b5767f411066d6d55af5b613e4341fe1a74b69affb06edc375058263b6f69c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/iso-root/boot/conduit-build.json",
+      "bytes": 3776,
+      "sha256": "478b2923ee588b585187b96c1c66741c9bfbbde362d62097997807fa05ceb806"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/iso-root/boot/conduitos",
+      "bytes": 6685792,
+      "sha256": "7d235873feae359f2a1981462cad802351d52e447aeaf241ee25f4b2303948a1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/loongarch64/iso-root/EFI/BOOT/BOOTLOONGARCH64.EFI",
+      "bytes": 339968,
+      "sha256": "0ca8c5fa21ac6adbf318fbb134ff4e086bc34cdc56715c2703043254e017ff3a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/iso-root/limine.conf",
+      "bytes": 241,
+      "sha256": "da9814bbb18df6241368e3078ed21418c71c527f1f597f0b1d9fae1436ea342f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/iso-root/boot/conduit-build.json",
+      "bytes": 3734,
+      "sha256": "f9110f10ab6acf5e59e6b5c6c5f1c1af325cab13f649ff1ce1e8bdaa58d40927"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/iso-root/boot/conduitos",
+      "bytes": 5937172,
+      "sha256": "3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/ia32/iso-root/EFI/BOOT/BOOTIA32.EFI",
+      "bytes": 360448,
+      "sha256": "9ea0e91ded4a8053b37437c3ee99399bf970018624d5a373d734e59259ef6d42"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-editorial-compact.png",
+      "bytes": 159929,
+      "sha256": "be27280c5535f18e5d365f5fb68b929dda125bc8f485137e7bb2223dcbe5bb75"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-diagram.png",
+      "bytes": 153577,
+      "sha256": "2f2ead8ab2ccbb4e94a07953e707f61258bc8659f4c4e524201ba40d719393fd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 159386,
+      "sha256": "e256e1e9a338d9915648670417886eac11f3247c68d09502c46757703a6fb571"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-gear-details.png",
+      "bytes": 244407,
+      "sha256": "a64042233ac0fddfb0325a7c7f889a28573f4aa3c05298ec4e9f4554ce7d4e7f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 153241,
+      "sha256": "4972483239c8bcda5ac59fdcf8e02de2de6781fade72569b36279cd6a776c6df"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-engineering-spacious.png",
+      "bytes": 141094,
+      "sha256": "c96e0242601c765bb4d5bbc20edf9e9b904ec255de19897e1e449d9fbd1f394d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 69974,
+      "sha256": "b7d11d5d2d8b8ea0de53fe7df3315baca3baf81fbc9222d077de79f68e9d9669"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 159455,
+      "sha256": "ac9fe0fa7b180c524a0b5f666ceb29d89a24863ab968c7ec11acaad2e8891fe1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-mask-replanned.png",
+      "bytes": 145259,
+      "sha256": "400eafd7c9a3e093da494d9e3cc628c26d895c46ca1b3883e4019333df44b24c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/wake-refused.png",
+      "bytes": 127670,
+      "sha256": "661da6ecb84449e6efab0a6d73e49088c43a8c7845b2c24857cffdaf1fe0cb6f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-four-restored.png",
+      "bytes": 159303,
+      "sha256": "ce03ec66e9ee9b7d5ae511931a542a8f090665047f784a3ce07dd383c7ae503b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-inspected-other-and-returned.png",
+      "bytes": 156466,
+      "sha256": "0268ff1d944a3fe7b2dc87f6eea6a926a1cd2af1cd0c2e4b5438b602ab59f771"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/body-stopped.png",
+      "bytes": 200207,
+      "sha256": "a8a3bc9d4f1b40f10897c12d37934f5f5fddb38411f8f437b8c97706f8a6570f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/manifest.json",
+      "bytes": 473888,
+      "sha256": "963299c806f3aa90fcc2c08cdbede4664dee631c8c4c09a59c372a9b0f432992"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-fourth-checked.png",
+      "bytes": 159330,
+      "sha256": "a11bc1e1e43b663db340e844a85e09be39c2338356444655b61b36258340f1bb"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-ready.png",
+      "bytes": 159005,
+      "sha256": "6e3b8ee10b8e73303e46b66264f10f44ec825271caecce0e96986ffa6b4a1530"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/body-playing.png",
+      "bytes": 69041,
+      "sha256": "1a1ad7997494e8edb4a7e007559d3432de65825e5df6fce992dc55b1f15cedd2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-three-selected.png",
+      "bytes": 159374,
+      "sha256": "47fe21c9933ff3cb9ee69b9f147e6c5241ab404cefd7b74e9880b3f58d06fa24"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/home-returned.png",
+      "bytes": 57306,
+      "sha256": "9a2003c09cc87f691c3da1a5200a113b9a958c7088531f399a7633ef95b17330"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-face.png",
+      "bytes": 156466,
+      "sha256": "0268ff1d944a3fe7b2dc87f6eea6a926a1cd2af1cd0c2e4b5438b602ab59f771"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-engineering-compact.png",
+      "bytes": 159178,
+      "sha256": "35dc3696043062b2484f94678f463fc204c5da96d2c9165ea52c9c0e3edf4ac4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/home.png",
+      "bytes": 69041,
+      "sha256": "1a1ad7997494e8edb4a7e007559d3432de65825e5df6fce992dc55b1f15cedd2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/creche-editorial-spacious.png",
+      "bytes": 141792,
+      "sha256": "7109e7d46e86644e3fde9cbbcfdc145b78387375887d0eae0ef7ab7e0b4d02c1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/protected-memory-lantern.png",
+      "bytes": 64176,
+      "sha256": "9c6af39f7e979983504a8cd425f65c869ce379403939f2921714af0eaca52c52"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-reentered.png",
+      "bytes": 56255,
+      "sha256": "a1166b787721cedb41c5cf756bc3ef59cc5283685283bf06af4f8c4440550fa1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-source-editor-loaded.png",
+      "bytes": 101930,
+      "sha256": "8892603de44b710c097ba7a6ecedff653018ab78d29a2aedba34127d9e1a38a6"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/journey-frames/patchbay-workspace.png",
+      "bytes": 156466,
+      "sha256": "0268ff1d944a3fe7b2dc87f6eea6a926a1cd2af1cd0c2e4b5438b602ab59f771"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-checked-source/source-selected.png",
+      "bytes": 156539,
+      "sha256": "9ba444673480db2c404b27d3d6a3976588de54955585726969ca608b1263adee"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-checked-source/manifest.json",
+      "bytes": 534264,
+      "sha256": "193d71f4c81d9ee9328bd2e29c9a5805060eb1348df935a5c871f86b17f0106a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-checked-source/details-port.png",
+      "bytes": 321561,
+      "sha256": "6f8f14219879d99af7ed5d70e0b1d103ffc5e997289cd62a74846b7e1ce165fa"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-checked-source/details-gear.png",
+      "bytes": 321546,
+      "sha256": "b5c4cc5858f7f531810bd4beec1af418c6e90ba4b223c21ef38c6c2b69703554"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-checked-source/diagram-backward-000.png",
+      "bytes": 210818,
+      "sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-checked-source/details-cord.png",
+      "bytes": 351212,
+      "sha256": "8030ccbc1c2cecd8fbdff9e03521b757204be92a69b2e19cfee09655df33ec20"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-checked-source/diagram-forward-000.png",
+      "bytes": 210818,
+      "sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-checked-source/diagram-forward-001.png",
+      "bytes": 127971,
+      "sha256": "528990410d976b382a346a720f959b8e50e6b803a119c3b0915106882654a7ac"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-016.png",
+      "bytes": 299677,
+      "sha256": "1a24d4157bf470e7bb8c46b8c8e4bf918fca7900816ace3865826c2e7253f3cb"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-014.png",
+      "bytes": 341672,
+      "sha256": "19bd427a41bfe8a25def2201ec4b470691557e1e079c6b4ace15a8fac99d7085"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-013.png",
+      "bytes": 308345,
+      "sha256": "81d6d42c309662409604e038e16f66bef884edb1282df2a22075474470d92895"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-018.png",
+      "bytes": 242669,
+      "sha256": "3464532fe5628adacb406d27da61630ca18e978f7c1d34e9cbadf205cd80e885"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-001.png",
+      "bytes": 240382,
+      "sha256": "09cc27a842d6cb0e99381b4ca4b9239f5d6bc097c26b3e995b0698c71f9dd91d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-011.png",
+      "bytes": 359599,
+      "sha256": "53ea5290054ef5b9e1b863f063477ceedd4e44d8b5e972a3ec4eb1ddb05d4cf7"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-017.png",
+      "bytes": 326463,
+      "sha256": "7405fcb9b0958ff08b4e38837a0bbfda8e6b54aa8fc6d8fab460af909de5eb2d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/manifest.json",
+      "bytes": 26926,
+      "sha256": "4f665250863a9c3d6ec6134f7d4022447db1654c485a47cb9f7baa53137e9ccf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-009.png",
+      "bytes": 370712,
+      "sha256": "cbdd48ae73187abbfe75f0c6d3209c6742b02d6e21fd3980a3e538a003190094"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-015.png",
+      "bytes": 392959,
+      "sha256": "d42fba40f7ceef1c5c4e3295abf61884052d67ed42d2299a3f86aae7c86d0dc4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-012.png",
+      "bytes": 323619,
+      "sha256": "3ddf7a8f3e15e49a8250b1dd390f1484dfd09864fa0e5814c203e5903642bf52"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-019.png",
+      "bytes": 308067,
+      "sha256": "9267c578552df86ca38c029fa5b67344ce876cc47179e8f67c9bd44303a2e5c8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-020.png",
+      "bytes": 361751,
+      "sha256": "2526fadec08ee72e73b46b030359e74a8b9e4fbd92f3312b2f011ececc12e682"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-003.png",
+      "bytes": 414426,
+      "sha256": "d961a99255608140b08207b54066548a6079725a2384fa66e74c06dc49e6910c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-008.png",
+      "bytes": 355506,
+      "sha256": "e765563f4c69ed6e1c415a9c16df9296ae8f29492183659d5f13b49d56bd040f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-005.png",
+      "bytes": 149926,
+      "sha256": "3a6caba499c97d8b19cec163468030e6057ac090a9dcda2ff7a5db1105e3f496"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-007.png",
+      "bytes": 341595,
+      "sha256": "6340a170b59622f8f0dc18e604b402ded973e4ae0cddf273fa066ddfdaac2e47"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-006.png",
+      "bytes": 225582,
+      "sha256": "20ee0bbd312c981f1089bf07c1354701587654f09b616e704626a8eeda3cca37"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-004.png",
+      "bytes": 153745,
+      "sha256": "4c1bcd6cd707e1b1e56a37e3d768724a8a2efb8761cb231de3b1a2d456ab3b79"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-002.png",
+      "bytes": 329190,
+      "sha256": "3cab9f0c130b10d7805bc3c55981ca43fa37b7083d352d9794b002c42d7f9a9b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/patchbay-refusal-details/details-010.png",
+      "bytes": 339923,
+      "sha256": "0cb188225f1a32f94b79e9522b01c20cb5c0342c5bee13b39c3a08b3d0d4f6af"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/iso-root/limine.conf",
+      "bytes": 247,
+      "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/iso-root/boot/conduit-build.json",
+      "bytes": 4453,
+      "sha256": "1d3884a49dc35a556cff7044bd2c1f62c73eda4044e4c623f61dcf9ea960764c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/iso-root/boot/conduitos",
+      "bytes": 78902872,
+      "sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+      "bytes": 348160,
+      "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/iso-root/limine.conf",
+      "bytes": 258,
+      "sha256": "b0955c66c513bfec9c75fe2fb9b064a5cbeab7fac0708fe9c3fae75c5787a57e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/iso-root/boot/conduit-build.json",
+      "bytes": 3740,
+      "sha256": "e7d259145636d3d85a703ef7d4f7bf649fa9ce591ab87a001ac58c93369854c3"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/iso-root/boot/conduitos",
+      "bytes": 7734448,
+      "sha256": "42d78dc7e3c99d728003bee56cb6b87eab427f4145c90d1d0d25cc0f60aa5097"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/aarch64/iso-root/EFI/BOOT/BOOTAA64.EFI",
+      "bytes": 307200,
+      "sha256": "b3510d5a3eae21517f73be939358f720266fe47f95abd249b78664171bd65c0e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/iso-root/limine.conf",
+      "bytes": 142,
+      "sha256": "1129d03a73cb67d8209c724dfd60f7c820031b9009ae05e19788c0be891f7a39"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/iso-root/boot/conduit-build.json",
+      "bytes": 3795,
+      "sha256": "6946d9399e801ca468fa05074274cd95a0e93854b85292dd304959fcf2f49e1e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/iso-root/boot/conduitos",
+      "bytes": 5031208,
+      "sha256": "6426a95f933e1ec9fc5283ccadc481e1e670067197caba920896737648313dc1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104-fresh-core/native/riscv64/iso-root/EFI/BOOT/BOOTRISCV64.EFI",
+      "bytes": 290816,
+      "sha256": "6654e92e198ca710b0119e0a2e77e360ab9cf9e5e9a1658eae7d6895647a5bf7"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "bytes": 83175424,
+      "sha256": "68963c307cf4d0d666f80704835d383f31083816e17e9813a3e9ea7014a33831"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "1d3884a49dc35a556cff7044bd2c1f62c73eda4044e4c623f61dcf9ea960764c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/conduitos-kernel.elf",
+      "bytes": 78902872,
+      "sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "8a02c6c0507e9225f5706cec3221b99bc02faee90da7a19993b03af60d2a9b8d"
+    }
+  ],
+  "ended": 1792813772.230251,
+  "end_resources": {
+    "time": 1792813772.230252,
+    "root_free": 8209002496,
+    "tmp_quota": {
+      "used_bytes": 20501610496,
+      "hard_bytes": 26414723072,
+      "remaining_bytes": 5913112576
+    },
+    "shm_free": 33018404864
+  }
+}

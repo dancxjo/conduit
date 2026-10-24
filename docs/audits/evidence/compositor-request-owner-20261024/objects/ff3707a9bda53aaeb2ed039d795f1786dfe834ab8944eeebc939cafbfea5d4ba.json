@@ -1,0 +1,9 @@
+{
+  "schema": "conduit.conduitos.build/v2",
+  "artifact_role": "product-host",
+  "base_commit": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "architecture": "riscv64",
+  "rust_target": "riscv64gc-unknown-none-elf",
+  "limine_crate": "0.5.0",
+  "elf_sha256": "6426a95f933e1ec9fc5283ccadc481e1e670067197caba920896737648313dc1"
+}

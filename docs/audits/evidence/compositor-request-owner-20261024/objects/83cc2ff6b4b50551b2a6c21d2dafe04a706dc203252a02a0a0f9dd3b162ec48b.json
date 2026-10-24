@@ -1,0 +1,25 @@
+{
+  "source": "2845d3ed73caa405b44a45b13135e01c824354b4",
+  "reviewed_at": 1792801618.4227993,
+  "result": "passed",
+  "tests": 11,
+  "failed": 0,
+  "ignored": 0,
+  "clippy": "strict -D warnings exit0",
+  "source_unchanged": true,
+  "binary": {
+    "original": "/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/compositor_request_owner-28b36b86c2cbe67a",
+    "sha256": "a442e7e913b815dfa41032e2bade0c0b3209e9001228e4800c4d52d764efdc04",
+    "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-focused-2845d3ed7/a442e7e913b815dfa41032e2bade0c0b3209e9001228e4800c4d52d764efdc04.elf.gz",
+    "bytes": 1329984
+  },
+  "source_review": "work/6342-source-review-2845.json",
+  "proof_class": "hosted-actual-production-owner-module-not-native-entry",
+  "limits": [
+    "Not native CPL3 service transport proof",
+    "No selected ProtectedOperation accounting or resumable preemption",
+    "Full native and hosted Candidate/Integration remain required"
+  ],
+  "retained_compressed_binary_sha256": "84463d95b41c9d0f3a0722ae4ffa64b6de6450ed0490181b753a97500460b835",
+  "format_log": "work/6342-focused-2845d3ed7/format.log"
+}

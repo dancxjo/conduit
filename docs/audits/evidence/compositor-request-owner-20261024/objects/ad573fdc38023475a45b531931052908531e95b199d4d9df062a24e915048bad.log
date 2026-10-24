@@ -1,0 +1,2047 @@
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/tools/xtask-dispatch)
+    Finished `dev` profile [unoptimized] target(s) in 1.13s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target/debug/conduit-xtask-dispatch make conduitos graphical-profile-proof --locked`
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plot)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/kernel)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plan-lowering)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/thermostat/model)
+   Compiling ring v0.17.14
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/composite)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/protected-line)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/browser/runtime)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos)
+   Compiling conduit-create-oi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/devices/create-oi)
+   Compiling ureq v3.4.2
+   Compiling conduitos-runtime-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/runtime-core)
+   Compiling patchbay-workbench-host-contract v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/workbench/host-contract)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/commons)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/rp2040/network-realization)
+   Compiling conduit-mpu6050 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/devices/mpu6050)
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/make/embedded-build)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/data)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/face)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/alife)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/purpose)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/ai)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/tongues)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/wire)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/tutorial)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/protocols/bluetooth)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/observatory)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/body-invitation)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/graph)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/std/offers)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/application)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/tour)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/std/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/rp2040/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/orange-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/avr/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/raspberry-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/esp32/make)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/birth)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/make/body)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/thermostat/face)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/little-seismograph/fixture)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/home)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/finance)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/make/workspace)
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/application-core)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/proof/conformance/network-r1)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/proof/conformance/patchbay-workbench)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/todo/face)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/proof/conformance/alife-distributed)
+   Compiling conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-core)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-offer)
+   Compiling conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/bodies/pete)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/workbench/model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 4m 39s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target/debug/xtask make conduitos graphical-profile-proof --locked`
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/body)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/kernel)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plan-lowering)
+    Checking patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/human)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/language)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/face)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/audio)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/process)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/purpose)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/net)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/ai)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/tutorial)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/home)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/wire)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/birth)
+    Checking conduitos-creche-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/creche-core)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/observatory)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/implementations/synth)
+    Checking conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-core)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-offer)
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/protected-line)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/composite)
+    Checking conduitos-runtime-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/runtime-core)
+    Checking conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/commons)
+    Checking conduitos-compositor-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/compositor-core)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/education)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/catalog)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/graph)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/tour)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/application)
+    Checking conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/application-core)
+warning: unused import: `ProtectedDocument`
+  --> targets/conduitos/src/text_protection.rs:14:27
+   |
+14 | pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+   |                           ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `FaceBack`, `IndicatorBack`, `LiteralBack`, `LiteralState`, `MorseBack`, `TourMorseBack`, and `UpperBack`
+ --> targets/conduitos/src/tour_morse_kernel.rs:4:25
+  |
+4 |     text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
+  |                         ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^
+5 |     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
+  |                        ^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused imports: `FixedHostCallBindings`, `FixedRoutes`, `FixedScheduler`, `FixedSignLog`, `FixedValueStore`, `KernelEvent`, and `ValueStorage`
+  --> targets/conduitos/src/tour_morse_kernel.rs:9:22
+   |
+ 9 |     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+   |                      ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                           ^^^^^^^^^^^                              ^^^^^^^^^^^^
+11 |     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+   |                 ^^^^^^^^^^^^^^
+
+warning: unused import: `SignSink`
+  --> targets/conduitos/src/tour_morse_kernel.rs:10:64
+   |
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                                                ^^^^^^^^
+
+warning: associated function `prepare` is never used
+  --> targets/conduitos/src/front_door/commons.rs:17:19
+   |
+16 | impl Commons {
+   | ------------ associated function in this implementation
+17 |     pub(crate) fn prepare() -> Result<Self, Error> {
+   |                   ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated items `embedded_image_bytes` and `observation` are never used
+   --> targets/conduitos/src/protected_compositor.rs:46:19
+    |
+ 43 | impl CompositorService {
+    | ---------------------- associated items in this implementation
+...
+ 46 |     pub(crate) fn embedded_image_bytes() -> &'static [u8] {
+    |                   ^^^^^^^^^^^^^^^^^^^^
+...
+114 |     pub(crate) fn observation(&self) -> lifecycle::ServiceObservation {
+    |                   ^^^^^^^^^^^
+
+warning: fields `host`, `boot`, `generation`, `base`, and `format` are never read
+  --> targets/conduitos/src/protected_compositor/display_grant.rs:14:5
+   |
+13 | pub(crate) struct DisplayGrant {
+   |                   ------------ fields in this struct
+14 |     host: HostId,
+   |     ^^^^
+15 |     boot: BootId,
+   |     ^^^^
+16 |     generation: OfferGeneration,
+   |     ^^^^^^^^^^
+17 |     base: HostBaseId,
+   |     ^^^^
+18 |     format: DisplayFormat,
+   |     ^^^^^^
+   |
+   = note: `DisplayGrant` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: struct `DisplayIdentity` is never constructed
+  --> targets/conduitos/src/protected_compositor/display_grant.rs:22:19
+   |
+22 | pub(crate) struct DisplayIdentity<'a> {
+   |                   ^^^^^^^^^^^^^^^
+
+warning: associated items `identity`, `new`, `matches`, `format_matches`, and `extent` are never used
+  --> targets/conduitos/src/protected_compositor/display_grant.rs:31:19
+   |
+30 | impl DisplayGrant {
+   | ----------------- associated items in this implementation
+31 |     pub(crate) fn identity(&self) -> DisplayIdentity<'_> {
+   |                   ^^^^^^^^
+...
+44 |     pub(crate) fn new(
+   |                   ^^^
+...
+64 |     pub(crate) fn matches(
+   |                   ^^^^^^^
+...
+77 |     pub(crate) fn format_matches(&self, format: DisplayFormat) -> bool {
+   |                   ^^^^^^^^^^^^^^
+...
+81 |     pub(crate) fn extent(&self) -> (u16, u16) {
+   |                   ^^^^^^
+
+warning: constant `STAGING_BYTES` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:25:18
+   |
+25 | pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
+   |                  ^^^^^^^^^^^^^
+
+warning: constant `SERVICE_RESERVED_BYTES` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:26:18
+   |
+26 | pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `PreparationError` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:31:17
+   |
+31 | pub(crate) enum PreparationError {
+   |                 ^^^^^^^^^^^^^^^^
+
+warning: fields `report`, `grant`, `guest_image_sha256`, `staging_preparation_raw_ticks`, and `preparation_raw_ticks` are never read
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:54:5
+   |
+49 | pub(crate) struct DisplayOwner {
+   |                   ------------ fields in this struct
+...
+54 |     report: PreparationReport,
+   |     ^^^^^^
+55 |     grant: SharedDisplayGrant,
+   |     ^^^^^
+56 |     guest_image_sha256: [u8; 32],
+   |     ^^^^^^^^^^^^^^^^^^
+...
+61 |     staging_preparation_raw_ticks: Option<u64>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+62 |     preparation_raw_ticks: Option<u64>,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> targets/conduitos/src/protected_compositor/display_owner.rs:73:19
+    |
+ 68 | impl DisplayOwner {
+    | ----------------- associated items in this implementation
+...
+ 73 |     pub(crate) fn prepare(grant: DisplayGrant) -> Result<SharedDisplayOwner, PreparationError> {
+    |                   ^^^^^^^
+...
+ 85 |     pub(crate) fn prepare_shared(
+    |                   ^^^^^^^^^^^^^^
+...
+144 |     pub(crate) fn guest_image_sha256(&self) -> &[u8; 32] {
+    |                   ^^^^^^^^^^^^^^^^^^
+...
+149 |     pub(crate) fn embedded_image_bytes(&self) -> &'static [u8] {
+    |                   ^^^^^^^^^^^^^^^^^^^^
+...
+154 |     pub(crate) fn display_identity(&self) -> super::display_grant::DisplayIdentity<'_> {
+    |                   ^^^^^^^^^^^^^^^^
+...
+158 |     pub(crate) fn matches_scope(
+    |                   ^^^^^^^^^^^^^
+...
+168 |     pub(crate) fn format_matches(&self, format: crate::display::DisplayFormat) -> bool {
+    |                   ^^^^^^^^^^^^^^
+...
+202 |     pub(crate) fn lifecycle_observation(&self) -> super::lifecycle::DisplayObservation {
+    |                   ^^^^^^^^^^^^^^^^^^^^^
+...
+216 |     pub(crate) fn service_cost(&self) -> DomainCost {
+    |                   ^^^^^^^^^^^^
+...
+220 |     pub(crate) fn preparation_report(&self) -> PreparationReport {
+    |                   ^^^^^^^^^^^^^^^^^^
+...
+229 |     pub(crate) fn with_raster<R>(
+    |                   ^^^^^^^^^^^
+
+warning: constant `STAGING_PIXELS` is never used
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:6:11
+  |
+6 | pub const STAGING_PIXELS: usize = 2_097_152;
+  |           ^^^^^^^^^^^^^^
+
+warning: constant `UPLOAD_CHUNK_PIXELS` is never used
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:7:11
+  |
+7 | pub const UPLOAD_CHUNK_PIXELS: usize = 16_384;
+  |           ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `RasterStaging` is never constructed
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:9:12
+  |
+9 | pub struct RasterStaging<'a> {
+  |            ^^^^^^^^^^^^^
+
+warning: associated items `admit` and `lease` are never used
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:14:12
+   |
+12 | impl<'a> RasterStaging<'a> {
+   | -------------------------- associated items in this implementation
+13 |     /// Validate capacity before touching the caller's buffer. No allocation.
+14 |     pub fn admit(pixels: &'a mut [u32]) -> Result<Self, DisplayError> {
+   |            ^^^^^
+...
+25 |     pub fn lease(&mut self, width: u16, height: u16) -> Result<RasterLease<'_>, DisplayError> {
+   |            ^^^^^
+
+warning: struct `RasterLease` is never constructed
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:53:12
+   |
+53 | pub struct RasterLease<'a> {
+   |            ^^^^^^^^^^^
+
+warning: methods `upload_chunks` and `index` are never used
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:66:12
+   |
+57 | impl RasterLease<'_> {
+   | -------------------- methods in this implementation
+...
+66 |     pub fn upload_chunks(&self) -> impl ExactSizeIterator<Item = &[u32]> {
+   |            ^^^^^^^^^^^^^
+...
+69 |     fn index(&self, x: u32, y: u32) -> Result<usize, DisplayError> {
+   |        ^^^^^
+
+warning: methods `instance`, `observed_cost`, `request`, `upload`, and `visit_frame` are never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:13:8
+   |
+11 | pub(crate) trait Transport {
+   |                  --------- methods in this trait
+12 |     type Error;
+13 |     fn instance(&self) -> u64;
+   |        ^^^^^^^^
+14 |     fn observed_cost(&self) -> Option<crate::protected_region::DomainCost> {
+   |        ^^^^^^^^^^^^^
+...
+17 |     fn request(&mut self, request: Request) -> Result<Response, Self::Error>;
+   |        ^^^^^^^
+18 |     fn upload(&mut self, offset: u32, pixels: &[u32]) -> Result<Response, Self::Error>;
+   |        ^^^^^^
+19 |     fn visit_frame<R>(
+   |        ^^^^^^^^^^^
+
+warning: struct `Activation` is never constructed
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:34:19
+   |
+34 | pub(crate) struct Activation {
+   |                   ^^^^^^^^^^
+
+warning: enum `OwnerError` is never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:40:17
+   |
+40 | pub(crate) enum OwnerError<E> {
+   |                 ^^^^^^^^^^
+
+warning: fields `instance`, `namespace`, `generations`, and `activation_observation` are never read
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:53:5
+   |
+51 | pub(crate) struct SessionOwner<T: Transport> {
+   |                   ------------ fields in this struct
+52 |     transport: T,
+53 |     instance: u64,
+   |     ^^^^^^^^
+54 |     namespace: u64,
+   |     ^^^^^^^^^
+...
+57 |     generations: [u64; MAX_SURFACES],
+   |     ^^^^^^^^^^^
+58 |     terminated: bool,
+59 |     activation_observation: lifecycle::ActivationObservation,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:62:12
+    |
+ 61 | impl<T: Transport> SessionOwner<T> {
+    | ---------------------------------- associated items in this implementation
+ 62 |     pub fn new(mut transport: T) -> Result<Self, OwnerError<T::Error>> {
+    |            ^^^
+...
+ 79 |     pub fn active_session(&self) -> Option<SessionId> {
+    |            ^^^^^^^^^^^^^^
+...
+ 82 |     pub fn active_namespace(&self) -> Option<u64> {
+    |            ^^^^^^^^^^^^^^^^
+...
+ 85 |     pub fn service_instance(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^^^
+...
+ 89 |     pub fn activation_observation(&self) -> lifecycle::ActivationObservation {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+ 98 |     pub fn activate(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+    |            ^^^^^^^^
+...
+101 |     fn observe_activation(&mut self, withdrawn: bool) -> Result<Activation, OwnerError<T::Error>> {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+127 |     fn activate_inner(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+    |        ^^^^^^^^^^^^^^
+...
+189 |     pub fn activate_withdrawn(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+200 |     pub fn is_terminated(&self) -> bool {
+    |            ^^^^^^^^^^^^^
+...
+203 |     pub fn is_active(&self, session: SessionId) -> bool {
+    |            ^^^^^^^^^
+...
+206 |     fn session(&self, session: SessionId) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^^
+...
+215 |     fn handle(&self, handle: Handle) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^
+...
+227 |     fn command(&self, session: SessionId, request: Request) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^^
+...
+243 |     fn response(
+    |        ^^^^^^^^
+...
+293 |     pub fn request(
+    |            ^^^^^^^
+...
+307 |     pub fn upload_chunk(
+    |            ^^^^^^^^^^^^
+...
+325 |     pub fn with_frame_step<R>(
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `mapped_coverage` is never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:357:4
+    |
+357 | fn mapped_coverage(handles: &[Option<Handle>; MAX_SURFACES], span: FrameSpan) -> bool {
+    |    ^^^^^^^^^^^^^^^
+
+warning: methods `service_observation` and `service_cost` are never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:396:19
+    |
+395 | impl SessionOwner<super::CompositorService> {
+    | ------------------------------------------- methods in this implementation
+396 |     pub(crate) fn service_observation(&self) -> lifecycle::ServiceObservation {
+    |                   ^^^^^^^^^^^^^^^^^^^
+...
+399 |     pub(crate) fn service_cost(&self) -> crate::protected_region::DomainCost {
+    |                   ^^^^^^^^^^^^
+
+warning: struct `DisplayObservation` is never constructed
+  --> targets/conduitos/src/protected_compositor/lifecycle.rs:86:19
+   |
+86 | pub(crate) struct DisplayObservation {
+   |                   ^^^^^^^^^^^^^^^^^^
+
+warning: method `record_result` is never used
+   --> targets/conduitos/src/protected_creche/home.rs:124:19
+    |
+ 14 | impl Home {
+    | --------- method in this implementation
+...
+124 |     pub(crate) fn record_result(
+    |                   ^^^^^^^^^^^^^
+
+warning: field `display_owner` is never read
+  --> targets/conduitos/src/native_surface_provider.rs:14:16
+   |
+ 9 | pub struct NativeSurfaceProvider {
+   |            --------------------- field in this struct
+...
+14 |     pub(crate) display_owner:
+   |                ^^^^^^^^^^^^^
+   |
+   = note: `NativeSurfaceProvider` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:28:7
+   |
+28 | const QUEUE_SLOTS: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:29:7
+   |
+29 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:30:7
+   |
+30 | const ROUTE_TARGETS: usize = 2;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:31:7
+   |
+31 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:32:7
+   |
+32 | const PENDING_REQUESTS: usize = 3;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:33:7
+   |
+33 | const VALUE_SLOTS: usize = 6;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:34:7
+   |
+34 | const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:35:7
+   |
+35 | const SIGN_CAPACITY: usize = 64;
+   |       ^^^^^^^^^^^^^
+
+warning: method `read_document` is never used
+  --> targets/conduitos/src/text_protection/document.rs:26:12
+   |
+25 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+26 |     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+   |            ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:21:7
+   |
+21 | const QUEUE_SLOTS: usize = 4;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:22:7
+   |
+22 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:23:7
+   |
+23 | const ROUTE_TARGETS: usize = 4;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:24:7
+   |
+24 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:25:7
+   |
+25 | const PENDING_REQUESTS: usize = 4;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:26:7
+   |
+26 | const VALUE_SLOTS: usize = 12;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:27:7
+   |
+27 | const VALUE_BYTES: usize =
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:29:7
+   |
+29 | const SIGN_CAPACITY: usize = 96;
+   |       ^^^^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 47 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `dev` profile [unoptimized] target(s) in 3m 03s
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/human)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/language)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/face)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/planner)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/body)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/audio)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/kernel)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/robotics)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/purpose)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/net)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/ai)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/home)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/tutorial)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/catalog)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/graph)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plan-lowering)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/wire)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/application)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/tour)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/birth)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/protected-line)
+   Compiling conduitos-creche-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/creche-core)
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/application-core)
+   Compiling conduitos-tls-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/tls-core)
+   Compiling conduitos-network-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/network-core)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/composite)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/observatory)
+   Compiling conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-core)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/implementations/synth)
+   Compiling conduitos-runtime-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/runtime-core)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-offer)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/commons)
+   Compiling conduitos-compositor-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/compositor-core)
+warning: unused import: `ProtectedDocument`
+  --> targets/conduitos/src/text_protection.rs:14:27
+   |
+14 | pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+   |                           ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `FaceBack`, `IndicatorBack`, `LiteralBack`, `LiteralState`, `MorseBack`, `TourMorseBack`, and `UpperBack`
+ --> targets/conduitos/src/tour_morse_kernel.rs:4:25
+  |
+4 |     text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
+  |                         ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^
+5 |     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
+  |                        ^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused imports: `FixedHostCallBindings`, `FixedRoutes`, `FixedScheduler`, `FixedSignLog`, `FixedValueStore`, `KernelEvent`, and `ValueStorage`
+  --> targets/conduitos/src/tour_morse_kernel.rs:9:22
+   |
+ 9 |     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+   |                      ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                           ^^^^^^^^^^^                              ^^^^^^^^^^^^
+11 |     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+   |                 ^^^^^^^^^^^^^^
+
+warning: unused import: `SignSink`
+  --> targets/conduitos/src/tour_morse_kernel.rs:10:64
+   |
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                                                ^^^^^^^^
+
+warning: method `lifecycle_copy_ack` is never used
+ --> targets/conduitos/src/native_face_mask/lifecycle_evidence.rs:6:19
+  |
+4 | impl NativeFaceMask {
+  | ------------------- method in this implementation
+5 |     /// Read-only current validated-copy ACK; never acknowledges or enters the guest.
+6 |     pub(crate) fn lifecycle_copy_ack(
+  |                   ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `embedded_image_bytes` is never used
+   --> targets/conduitos/src/protected_compositor/display_owner.rs:149:19
+    |
+ 68 | impl DisplayOwner {
+    | ----------------- method in this implementation
+...
+149 |     pub(crate) fn embedded_image_bytes(&self) -> &'static [u8] {
+    |                   ^^^^^^^^^^^^^^^^^^^^
+
+warning: method `active_session` is never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:79:12
+   |
+61 | impl<T: Transport> SessionOwner<T> {
+   | ---------------------------------- method in this implementation
+...
+79 |     pub fn active_session(&self) -> Option<SessionId> {
+   |            ^^^^^^^^^^^^^^
+
+warning: variant `Disposal` is never constructed
+  --> targets/conduitos/src/protected_compositor/lifecycle_sign.rs:46:5
+   |
+42 | pub(crate) enum Stage {
+   |                 ----- variant in this enum
+...
+46 |     Disposal,
+   |     ^^^^^^^^
+   |
+   = note: `Stage` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: method `record_result` is never used
+   --> targets/conduitos/src/protected_creche/home.rs:124:19
+    |
+ 14 | impl Home {
+    | --------- method in this implementation
+...
+124 |     pub(crate) fn record_result(
+    |                   ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:28:7
+   |
+28 | const QUEUE_SLOTS: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:29:7
+   |
+29 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:30:7
+   |
+30 | const ROUTE_TARGETS: usize = 2;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:31:7
+   |
+31 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:32:7
+   |
+32 | const PENDING_REQUESTS: usize = 3;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:33:7
+   |
+33 | const VALUE_SLOTS: usize = 6;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:34:7
+   |
+34 | const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:35:7
+   |
+35 | const SIGN_CAPACITY: usize = 64;
+   |       ^^^^^^^^^^^^^
+
+warning: method `read_document` is never used
+  --> targets/conduitos/src/text_protection/document.rs:26:12
+   |
+25 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+26 |     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+   |            ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:21:7
+   |
+21 | const QUEUE_SLOTS: usize = 4;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:22:7
+   |
+22 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:23:7
+   |
+23 | const ROUTE_TARGETS: usize = 4;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:24:7
+   |
+24 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:25:7
+   |
+25 | const PENDING_REQUESTS: usize = 4;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:26:7
+   |
+26 | const VALUE_SLOTS: usize = 12;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:27:7
+   |
+27 | const VALUE_BYTES: usize =
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:29:7
+   |
+29 | const SIGN_CAPACITY: usize = 96;
+   |       ^^^^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 26 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 20m 37s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/conduitos.iso
+ConduitOS live media: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso
+Host type: conduitos/x86_64/pc
+manifest: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/build-manifest.json
+ConduitOS Face journey proof: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-proof.json
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/assigned-plan)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/language)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plot)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/human)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/planner)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/body)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/face)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/audio)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/kernel)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/purpose)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/text)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/web)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/robotics)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/alife)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/education)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/ai)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/catalog)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/tutorial)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/graph)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plan-lowering)
+    Checking patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/home)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/wire)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/application)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/tour)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos)
+    Checking conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/application-core)
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/protected-line)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/composite)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/observatory)
+    Checking conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-core)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-offer)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/birth)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/implementations/synth)
+    Checking conduitos-runtime-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/runtime-core)
+    Checking conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/commons)
+warning: unused imports: `prepare_exact` and `propose_partitions`
+  --> targets/conduitos/src/native_workset.rs:23:27
+   |
+23 | pub(crate) use planning::{prepare_exact, propose_partitions};
+   |                           ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `AdmittedKernelCompositeHostRequest`
+  --> targets/conduitos/src/protocol_host_calls.rs:15:25
+   |
+15 | use conduit_composite::{AdmittedKernelCompositeHostRequest, KernelCompositeHost};
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `body_play::storage_preparation::StorageBodyPreparation`
+   --> targets/conduitos/src/protocol_source.rs:402:16
+    |
+402 | pub(crate) use body_play::storage_preparation::StorageBodyPreparation;
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> targets/conduitos/src/protocol_source/body_play.rs:229:17
+    |
+229 |             let mut kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `VECTOR` is never used
+ --> targets/conduitos/src/arch/ia32/domain_budget.rs:9:18
+  |
+9 | pub(super) const VECTOR: u8 = 0x28;
+  |                  ^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `timer_initialized` is never read
+  --> targets/conduitos/src/arch/ia32/../ordinary_domain.rs:40:5
+   |
+35 | pub struct TextDomain {
+   |            ---------- field in this struct
+...
+40 |     timer_initialized: bool,
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: struct `TimerDomainObservation` is never constructed
+ --> targets/conduitos/src/arch/ia32/../ordinary_domain/timer.rs:8:19
+  |
+8 | pub(crate) struct TimerDomainObservation {
+  |                   ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `TimerDomainRequest` is never constructed
+  --> targets/conduitos/src/arch/ia32/../ordinary_domain/timer.rs:14:19
+   |
+14 | pub(crate) struct TimerDomainRequest {
+   |                   ^^^^^^^^^^^^^^^^^^
+
+warning: methods `initialize_timer`, `timer_initialized`, `timer_command`, `timer_completion`, `timer_observation`, and `timer_request` are never used
+   --> targets/conduitos/src/arch/ia32/../ordinary_domain/timer.rs:25:19
+    |
+ 24 | impl TextDomain {
+    | --------------- methods in this implementation
+ 25 |     pub(crate) fn initialize_timer(
+    |                   ^^^^^^^^^^^^^^^^
+...
+ 50 |     pub(crate) fn timer_initialized(&mut self) -> Result<(), DomainRefusal> {
+    |                   ^^^^^^^^^^^^^^^^^
+...
+ 59 |     pub(crate) fn timer_command(&mut self, command: u32) -> Result<(), DomainRefusal> {
+    |                   ^^^^^^^^^^^^^
+...
+ 70 |     pub(crate) fn timer_completion(
+    |                   ^^^^^^^^^^^^^^^^
+...
+ 95 |     pub(crate) fn timer_observation(&mut self) -> Result<TimerDomainObservation, DomainRefusal> {
+    |                   ^^^^^^^^^^^^^^^^^
+...
+113 |     pub(crate) fn timer_request(&mut self) -> Result<TimerDomainRequest, DomainRefusal> {
+    |                   ^^^^^^^^^^^^^
+
+warning: struct `ObservedModule` is never constructed
+  --> targets/conduitos/src/boot/modules.rs:12:19
+   |
+12 | pub(crate) struct ObservedModule<'a> {
+   |                   ^^^^^^^^^^^^^^
+
+warning: function `select_named` is never used
+  --> targets/conduitos/src/boot/modules.rs:17:15
+   |
+17 | pub(crate) fn select_named<'a>(
+   |               ^^^^^^^^^^^^
+
+warning: method `open_source_editor` is never used
+  --> targets/conduitos/src/native_workset/play/editor_encounter.rs:87:19
+   |
+83 | impl NativeWorksetPlay {
+   | ---------------------- method in this implementation
+...
+87 |     pub(crate) fn open_source_editor(
+   |                   ^^^^^^^^^^^^^^^^^^
+
+warning: associated function `complete_failure` is never used
+   --> targets/conduitos/src/protocol_host_calls/dispatch.rs:384:8
+    |
+ 13 | impl<P: I2cProvider> PreparedProtocolCalls<P> {
+    | --------------------------------------------- associated function in this implementation
+...
+384 |     fn complete_failure(
+    |        ^^^^^^^^^^^^^^^^
+
+warning: field `selected_entry` is never read
+  --> targets/conduitos/src/protocol_source/entry.rs:17:5
+   |
+12 | pub struct PreparedProtocolEntry {
+   |            --------------------- field in this struct
+...
+17 |     selected_entry: alloc::string::String,
+   |     ^^^^^^^^^^^^^^
+
+warning: method `selected_entry` is never used
+  --> targets/conduitos/src/protocol_source/entry.rs:43:19
+   |
+20 | impl PreparedProtocolEntry {
+   | -------------------------- method in this implementation
+...
+43 |     pub(crate) fn selected_entry(&self) -> &str {
+   |                   ^^^^^^^^^^^^^^
+
+warning: variant `WithoutClock` is never constructed
+  --> targets/conduitos/src/protocol_source/body_play/kernel.rs:15:5
+   |
+13 | pub(super) enum ProtocolKernel<P, C> {
+   |                 -------------- variant in this enum
+14 |     WithClock(Box<PreparedTimedProtocolPlay<P, C>>),
+15 |     WithoutClock(Box<PreparedProtocolPlay<P>>),
+   |     ^^^^^^^^^^^^
+
+warning: method `plan` is never used
+  --> targets/conduitos/src/protocol_source/body_play/storage_preparation.rs:16:19
+   |
+12 | impl StorageBodyPreparation {
+   | --------------------------- method in this implementation
+...
+16 |     pub(crate) fn plan(&self) -> &PlanId {
+   |                   ^^^^
+
+warning: struct `StorageScopeAdmission` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:10:19
+   |
+10 | pub(crate) struct StorageScopeAdmission<'a> {
+   |                   ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `Scope` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:16:8
+   |
+16 | struct Scope {
+   |        ^^^^^
+
+warning: struct `StorageAuthorizationSubmission` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:24:19
+   |
+24 | pub(crate) struct StorageAuthorizationSubmission {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `request`, `ordinal`, and `preparation` are never used
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:31:19
+   |
+30 | impl StorageAuthorizationSubmission {
+   | ----------------------------------- methods in this implementation
+31 |     pub(crate) fn request(&self) -> BlockReadRequest {
+   |                   ^^^^^^^
+...
+34 |     pub(crate) fn ordinal(&self) -> u32 {
+   |                   ^^^^^^^
+...
+37 |     pub(crate) fn preparation(&self) -> &[u8; 32] {
+   |                   ^^^^^^^^^^^
+
+warning: struct `StorageSettlementReceipt` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:43:19
+   |
+43 | pub(crate) struct StorageSettlementReceipt(StorageAuthorizationSubmission, bool);
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `StorageCancellationReceipt` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:44:19
+   |
+44 | pub(crate) struct StorageCancellationReceipt(StorageAuthorizationSubmission);
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `into_submission` and `stopped` are never used
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:46:19
+   |
+45 | impl StorageCancellationReceipt {
+   | ------------------------------- associated items in this implementation
+46 |     pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
+   |                   ^^^^^^^^^^^^^^^
+...
+52 |     pub(crate) unsafe fn stopped(submission: StorageAuthorizationSubmission) -> Self {
+   |                          ^^^^^^^
+
+warning: associated items `into_submission`, `acknowledged`, and `stopped` are never used
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:57:19
+   |
+56 | impl StorageSettlementReceipt {
+   | ----------------------------- associated items in this implementation
+57 |     pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
+   |                   ^^^^^^^^^^^^^^^
+...
+66 |     pub(crate) unsafe fn acknowledged(submission: StorageAuthorizationSubmission) -> Self {
+   |                          ^^^^^^^^^^^^
+...
+73 |     pub(crate) unsafe fn stopped(submission: StorageAuthorizationSubmission) -> Self {
+   |                          ^^^^^^^
+
+warning: struct `BlockReadTransactionOwner` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:90:19
+   |
+90 | pub(crate) struct BlockReadTransactionOwner {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> targets/conduitos/src/storage_base/transaction_owner.rs:108:19
+    |
+104 | impl BlockReadTransactionOwner {
+    | ------------------------------ associated items in this implementation
+...
+108 |     pub(crate) fn bind(
+    |                   ^^^^
+...
+192 |     pub(crate) fn retained_bytes(&self) -> usize {
+    |                   ^^^^^^^^^^^^^^
+...
+195 |     pub(crate) fn authorize_claim(&self) -> &BaseOperationClaim {
+    |                   ^^^^^^^^^^^^^^^
+...
+198 |     pub(crate) fn settle_claim(&self) -> &BaseOperationClaim {
+    |                   ^^^^^^^^^^^^
+...
+201 |     pub(crate) fn preparation(&self) -> &[u8; 32] {
+    |                   ^^^^^^^^^^^
+...
+204 |     pub(crate) fn authorize_node(&self) -> NodeId {
+    |                   ^^^^^^^^^^^^^^
+...
+207 |     pub(crate) fn settle_node(&self) -> NodeId {
+    |                   ^^^^^^^^^^^
+...
+210 |     pub(crate) fn authorize(
+    |                   ^^^^^^^^^
+...
+269 |     pub(crate) fn request_cancel(&mut self) -> Result<(), StorageTransactionRefusal> {
+    |                   ^^^^^^^^^^^^^^
+...
+280 |     pub(crate) fn retire_cancelled(
+    |                   ^^^^^^^^^^^^^^^^
+...
+303 |     pub(crate) fn settle(
+    |                   ^^^^^^
+
+warning: function `bind_scope` is never used
+   --> targets/conduitos/src/storage_base/transaction_owner.rs:386:4
+    |
+386 | fn bind_scope(
+    |    ^^^^^^^^^^
+
+warning: function `validate_candidate` is never used
+   --> targets/conduitos/src/storage_base/transaction_owner.rs:411:4
+    |
+411 | fn validate_candidate(
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `metadata` is never used
+ --> targets/conduitos/src/storage_base/transaction_owner/retention.rs:4:15
+  |
+4 | pub(super) fn metadata(
+  |               ^^^^^^^^
+
+warning: function `charge` is never used
+  --> targets/conduitos/src/storage_base/transaction_owner/retention.rs:21:15
+   |
+21 | pub(crate) fn charge(
+   |               ^^^^^^
+
+warning: methods `validate` and `append_to_advertisement` are never used
+  --> targets/conduitos/src/usb_base/installation.rs:27:19
+   |
+26 | impl UsbNativeIdentity {
+   | ---------------------- methods in this implementation
+27 |     pub(crate) fn validate(&self) -> Result<(), UsbInstallationRefusal> {
+   |                   ^^^^^^^^
+...
+43 |     pub(crate) fn append_to_advertisement(
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `encode` is never used
+  --> targets/conduitos/src/tour_timer_runtime/wire.rs:16:19
+   |
+14 | impl PreparedTimerGraph {
+   | ----------------------- method in this implementation
+15 |     #[cfg(any(test, conduitos_domain_backend))]
+16 |     pub(crate) fn encode(&self, output: &mut [u8]) -> Result<usize, SchedulerError> {
+   |                   ^^^^^^
+
+warning: function `invalid` is never used
+   --> targets/conduitos/src/tour_timer_runtime/wire.rs:174:4
+    |
+174 | fn invalid<T>() -> Result<T, SchedulerError> {
+    |    ^^^^^^^
+
+warning: struct `Writer` is never constructed
+   --> targets/conduitos/src/tour_timer_runtime/wire.rs:179:8
+    |
+179 | struct Writer<'a> {
+    |        ^^^^^^
+
+warning: methods `bytes`, `u16`, `u32`, and `endpoint` are never used
+   --> targets/conduitos/src/tour_timer_runtime/wire.rs:185:8
+    |
+184 | impl Writer<'_> {
+    | --------------- methods in this implementation
+185 |     fn bytes(&mut self, bytes: &[u8]) -> Result<(), SchedulerError> {
+    |        ^^^^^
+...
+197 |     fn u16(&mut self, value: u16) -> Result<(), SchedulerError> {
+    |        ^^^
+...
+200 |     fn u32(&mut self, value: u32) -> Result<(), SchedulerError> {
+    |        ^^^
+...
+203 |     fn endpoint(&mut self, value: CordEndpoint) -> Result<(), SchedulerError> {
+    |        ^^^^^^^^
+
+warning: function `prepare` is never used
+  --> targets/conduitos/src/tour_two_host.rs:11:8
+   |
+11 | pub fn prepare(
+   |        ^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host.rs:19:8
+   |
+19 | pub fn run(
+   |        ^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:48:5
+   |
+47 | pub struct SourceKernel {
+   |            ------------ fields in this struct
+48 |     scheduler: SourceScheduler,
+   |     ^^^^^^^^^
+49 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+50 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:54:5
+   |
+53 | pub struct SinkKernel {
+   |            ---------- fields in this struct
+54 |     scheduler: SinkScheduler,
+   |     ^^^^^^^^^
+55 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+56 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: methods `step`, `offer`, `accept`, `delivered`, `decisions`, and `signs` are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:114:12
+    |
+ 59 | impl SourceKernel {
+    | ----------------- methods in this implementation
+...
+114 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+118 |     pub fn offer(&mut self) -> Result<Option<(u64, &[u8])>, SchedulerError> {
+    |            ^^^^^
+...
+131 |     pub fn accept(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^
+...
+136 |     pub fn delivered(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^^
+...
+141 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+144 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: multiple methods are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:189:12
+    |
+149 | impl SinkKernel {
+    | --------------- methods in this implementation
+...
+189 |     pub fn admit(
+    |            ^^^^^
+...
+198 |     pub fn close(&mut self) -> Result<(), SchedulerError> {
+    |            ^^^^^
+...
+202 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+205 |     pub fn request(&mut self) -> Option<HostCallRequest> {
+    |            ^^^^^^^
+...
+208 |     pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
+    |            ^^^^^
+...
+211 |     pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^
+...
+222 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+225 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: fields `source` and `sink` are never read
+  --> targets/conduitos/src/tour_two_host_plan.rs:31:16
+   |
+24 | pub struct PreparedTourTwoHostPlan {
+   |            ----------------------- fields in this struct
+...
+31 |     pub(crate) source: crate::tour_two_host_kernel::SourceKernel,
+   |                ^^^^^^
+32 |     pub(crate) sink: crate::tour_two_host_kernel::SinkKernel,
+   |                ^^^^
+
+warning: constant `MAXIMUM_STEPS` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:11:7
+   |
+11 | const MAXIMUM_STEPS: u32 = 32;
+   |       ^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:13:8
+   |
+13 | pub fn run(
+   |        ^^^
+
+warning: function `step_source` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:96:4
+   |
+96 | fn step_source(
+   |    ^^^^^^^^^^^
+
+warning: function `step_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:107:4
+    |
+107 | fn step_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^
+
+warning: function `drain_source` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:116:4
+    |
+116 | fn drain_source(
+    |    ^^^^^^^^^^^^
+
+warning: function `drain_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:129:4
+    |
+129 | fn drain_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^^
+
+warning: function `format` is never used
+ --> targets/conduitos/src/protocol_boot/step_failure.rs:8:15
+  |
+8 | pub(super) fn format(
+  |               ^^^^^^
+
+warning: constant `ROOT_MODULE_COMMAND` is never used
+ --> targets/conduitos/src/protocol_boot/usb_request.rs:7:11
+  |
+7 | pub const ROOT_MODULE_COMMAND: &[u8] = b"conduit.protocol/usb-root-request@1";
+  |           ^^^^^^^^^^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 51 warnings (run `cargo fix --lib -p conduitos` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized] target(s) in 1m 30s
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/assigned-plan)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/language)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/core)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/human)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plot)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/planner)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/body)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/face)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/audio)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/kernel)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/purpose)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/robotics)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/net)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/web)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/education)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/protocols/midi)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/catalog)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/ai)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/tutorial)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/graph)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/plan-lowering)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/wire)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/home)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/patchbay/application)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/tour)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos)
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/application-core)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/composite)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/observatory)
+   Compiling conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-core)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/implementations/synth)
+   Compiling conduitos-runtime-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/runtime-core)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/mask-offer)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/birth)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/plots/commons)
+warning: unused import: `AdmittedKernelCompositeHostRequest`
+  --> targets/conduitos/src/protocol_host_calls.rs:15:25
+   |
+15 | use conduit_composite::{AdmittedKernelCompositeHostRequest, KernelCompositeHost};
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `body_play::storage_preparation::StorageBodyPreparation`
+   --> targets/conduitos/src/protocol_source.rs:402:16
+    |
+402 | pub(crate) use body_play::storage_preparation::StorageBodyPreparation;
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ProtectedDocumentError` and `ProtectedDocument`
+  --> targets/conduitos/src/text_protection.rs:14:27
+   |
+14 | pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+   |                           ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `KeyboardChainError`
+  --> targets/conduitos/src/text_protection.rs:17:24
+   |
+17 | pub(crate) use chain::{KeyboardChainError, PureKeyboardOutput};
+   |                        ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `body::BodyTextAdmission`
+  --> targets/conduitos/src/text_protection.rs:20:16
+   |
+20 | pub(crate) use body::BodyTextAdmission;
+   |                ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> targets/conduitos/src/protocol_source/body_play.rs:229:17
+    |
+229 |             let mut kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `VECTOR` is never used
+ --> targets/conduitos/src/arch/ia32/domain_budget.rs:9:18
+  |
+9 | pub(super) const VECTOR: u8 = 0x28;
+  |                  ^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `ObservedModule` is never constructed
+  --> targets/conduitos/src/boot/modules.rs:12:19
+   |
+12 | pub(crate) struct ObservedModule<'a> {
+   |                   ^^^^^^^^^^^^^^
+
+warning: function `select_named` is never used
+  --> targets/conduitos/src/boot/modules.rs:17:15
+   |
+17 | pub(crate) fn select_named<'a>(
+   |               ^^^^^^^^^^^^
+
+warning: associated function `complete_failure` is never used
+   --> targets/conduitos/src/protocol_host_calls/dispatch.rs:384:8
+    |
+ 13 | impl<P: I2cProvider> PreparedProtocolCalls<P> {
+    | --------------------------------------------- associated function in this implementation
+...
+384 |     fn complete_failure(
+    |        ^^^^^^^^^^^^^^^^
+
+warning: field `selected_entry` is never read
+  --> targets/conduitos/src/protocol_source/entry.rs:17:5
+   |
+12 | pub struct PreparedProtocolEntry {
+   |            --------------------- field in this struct
+...
+17 |     selected_entry: alloc::string::String,
+   |     ^^^^^^^^^^^^^^
+
+warning: method `selected_entry` is never used
+  --> targets/conduitos/src/protocol_source/entry.rs:43:19
+   |
+20 | impl PreparedProtocolEntry {
+   | -------------------------- method in this implementation
+...
+43 |     pub(crate) fn selected_entry(&self) -> &str {
+   |                   ^^^^^^^^^^^^^^
+
+warning: variant `WithoutClock` is never constructed
+  --> targets/conduitos/src/protocol_source/body_play/kernel.rs:15:5
+   |
+13 | pub(super) enum ProtocolKernel<P, C> {
+   |                 -------------- variant in this enum
+14 |     WithClock(Box<PreparedTimedProtocolPlay<P, C>>),
+15 |     WithoutClock(Box<PreparedProtocolPlay<P>>),
+   |     ^^^^^^^^^^^^
+
+warning: method `plan` is never used
+  --> targets/conduitos/src/protocol_source/body_play/storage_preparation.rs:16:19
+   |
+12 | impl StorageBodyPreparation {
+   | --------------------------- method in this implementation
+...
+16 |     pub(crate) fn plan(&self) -> &PlanId {
+   |                   ^^^^
+
+warning: struct `StorageScopeAdmission` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:10:19
+   |
+10 | pub(crate) struct StorageScopeAdmission<'a> {
+   |                   ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `Scope` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:16:8
+   |
+16 | struct Scope {
+   |        ^^^^^
+
+warning: struct `StorageAuthorizationSubmission` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:24:19
+   |
+24 | pub(crate) struct StorageAuthorizationSubmission {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `request`, `ordinal`, and `preparation` are never used
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:31:19
+   |
+30 | impl StorageAuthorizationSubmission {
+   | ----------------------------------- methods in this implementation
+31 |     pub(crate) fn request(&self) -> BlockReadRequest {
+   |                   ^^^^^^^
+...
+34 |     pub(crate) fn ordinal(&self) -> u32 {
+   |                   ^^^^^^^
+...
+37 |     pub(crate) fn preparation(&self) -> &[u8; 32] {
+   |                   ^^^^^^^^^^^
+
+warning: struct `StorageSettlementReceipt` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:43:19
+   |
+43 | pub(crate) struct StorageSettlementReceipt(StorageAuthorizationSubmission, bool);
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `StorageCancellationReceipt` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:44:19
+   |
+44 | pub(crate) struct StorageCancellationReceipt(StorageAuthorizationSubmission);
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `into_submission` and `stopped` are never used
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:46:19
+   |
+45 | impl StorageCancellationReceipt {
+   | ------------------------------- associated items in this implementation
+46 |     pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
+   |                   ^^^^^^^^^^^^^^^
+...
+52 |     pub(crate) unsafe fn stopped(submission: StorageAuthorizationSubmission) -> Self {
+   |                          ^^^^^^^
+
+warning: associated items `into_submission`, `acknowledged`, and `stopped` are never used
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:57:19
+   |
+56 | impl StorageSettlementReceipt {
+   | ----------------------------- associated items in this implementation
+57 |     pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
+   |                   ^^^^^^^^^^^^^^^
+...
+66 |     pub(crate) unsafe fn acknowledged(submission: StorageAuthorizationSubmission) -> Self {
+   |                          ^^^^^^^^^^^^
+...
+73 |     pub(crate) unsafe fn stopped(submission: StorageAuthorizationSubmission) -> Self {
+   |                          ^^^^^^^
+
+warning: struct `BlockReadTransactionOwner` is never constructed
+  --> targets/conduitos/src/storage_base/transaction_owner.rs:90:19
+   |
+90 | pub(crate) struct BlockReadTransactionOwner {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> targets/conduitos/src/storage_base/transaction_owner.rs:108:19
+    |
+104 | impl BlockReadTransactionOwner {
+    | ------------------------------ associated items in this implementation
+...
+108 |     pub(crate) fn bind(
+    |                   ^^^^
+...
+192 |     pub(crate) fn retained_bytes(&self) -> usize {
+    |                   ^^^^^^^^^^^^^^
+...
+195 |     pub(crate) fn authorize_claim(&self) -> &BaseOperationClaim {
+    |                   ^^^^^^^^^^^^^^^
+...
+198 |     pub(crate) fn settle_claim(&self) -> &BaseOperationClaim {
+    |                   ^^^^^^^^^^^^
+...
+201 |     pub(crate) fn preparation(&self) -> &[u8; 32] {
+    |                   ^^^^^^^^^^^
+...
+204 |     pub(crate) fn authorize_node(&self) -> NodeId {
+    |                   ^^^^^^^^^^^^^^
+...
+207 |     pub(crate) fn settle_node(&self) -> NodeId {
+    |                   ^^^^^^^^^^^
+...
+210 |     pub(crate) fn authorize(
+    |                   ^^^^^^^^^
+...
+269 |     pub(crate) fn request_cancel(&mut self) -> Result<(), StorageTransactionRefusal> {
+    |                   ^^^^^^^^^^^^^^
+...
+280 |     pub(crate) fn retire_cancelled(
+    |                   ^^^^^^^^^^^^^^^^
+...
+303 |     pub(crate) fn settle(
+    |                   ^^^^^^
+
+warning: function `bind_scope` is never used
+   --> targets/conduitos/src/storage_base/transaction_owner.rs:386:4
+    |
+386 | fn bind_scope(
+    |    ^^^^^^^^^^
+
+warning: function `validate_candidate` is never used
+   --> targets/conduitos/src/storage_base/transaction_owner.rs:411:4
+    |
+411 | fn validate_candidate(
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `metadata` is never used
+ --> targets/conduitos/src/storage_base/transaction_owner/retention.rs:4:15
+  |
+4 | pub(super) fn metadata(
+  |               ^^^^^^^^
+
+warning: function `charge` is never used
+  --> targets/conduitos/src/storage_base/transaction_owner/retention.rs:21:15
+   |
+21 | pub(crate) fn charge(
+   |               ^^^^^^
+
+warning: methods `validate` and `append_to_advertisement` are never used
+  --> targets/conduitos/src/usb_base/installation.rs:27:19
+   |
+26 | impl UsbNativeIdentity {
+   | ---------------------- methods in this implementation
+27 |     pub(crate) fn validate(&self) -> Result<(), UsbInstallationRefusal> {
+   |                   ^^^^^^^^
+...
+43 |     pub(crate) fn append_to_advertisement(
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `editor` is never read
+   --> targets/conduitos/src/text_protection.rs:126:5
+    |
+120 | pub(crate) struct ProtectedText<I: TextOwner = RegionBinding> {
+    |                   ------------- field in this struct
+...
+126 |     editor: bool,
+    |     ^^^^^^
+
+warning: methods `reset_editor` and `reset_keymap` are never used
+   --> targets/conduitos/src/text_protection.rs:222:12
+    |
+221 | impl<I: TextOwner> ProtectedText<I> {
+    | ----------------------------------- methods in this implementation
+222 |     pub fn reset_editor(&mut self, maximum: u64) -> Result<(), MachineRunError> {
+    |            ^^^^^^^^^^^^
+...
+233 |     pub fn reset_keymap(&mut self) -> Result<(), MachineRunError> {
+    |            ^^^^^^^^^^^^
+
+warning: enum `KeyboardChainError` is never used
+ --> targets/conduitos/src/text_protection/chain.rs:5:17
+  |
+5 | pub(crate) enum KeyboardChainError {
+  |                 ^^^^^^^^^^^^^^^^^^
+
+warning: struct `PureKeyboardOutput` is never constructed
+  --> targets/conduitos/src/text_protection/chain.rs:15:19
+   |
+15 | pub(crate) struct PureKeyboardOutput {
+   |                   ^^^^^^^^^^^^^^^^^^
+
+warning: methods `source`, `edit_refused`, and `transformed` are never used
+  --> targets/conduitos/src/text_protection/chain.rs:22:12
+   |
+21 | impl PureKeyboardOutput {
+   | ----------------------- methods in this implementation
+22 |     pub fn source(&self) -> &[u8] {
+   |            ^^^^^^
+...
+25 |     pub fn edit_refused(&self) -> bool {
+   |            ^^^^^^^^^^^^
+...
+28 |     pub fn transformed(&self) -> &[u8] {
+   |            ^^^^^^^^^^^
+
+warning: method `keymap_chain` is never used
+  --> targets/conduitos/src/text_protection/chain.rs:34:12
+   |
+33 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+34 |     pub fn keymap_chain(
+   |            ^^^^^^^^^^^^
+
+warning: enum `ProtectedDocumentError` is never used
+ --> targets/conduitos/src/text_protection/document.rs:6:17
+  |
+6 | pub(crate) enum ProtectedDocumentError {
+  |                 ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ProtectedDocument` is never constructed
+  --> targets/conduitos/src/text_protection/document.rs:12:19
+   |
+12 | pub(crate) struct ProtectedDocument {
+   |                   ^^^^^^^^^^^^^^^^^
+
+warning: methods `as_bytes` and `document` are never used
+  --> targets/conduitos/src/text_protection/document.rs:17:12
+   |
+16 | impl ProtectedDocument {
+   | ---------------------- methods in this implementation
+17 |     pub fn as_bytes(&self) -> &[u8] {
+   |            ^^^^^^^^
+...
+20 |     pub fn document(&self) -> TextDocument<'_> {
+   |            ^^^^^^^^
+
+warning: methods `read_document`, `replace_document`, and `document_exchange` are never used
+  --> targets/conduitos/src/text_protection/document.rs:26:12
+   |
+25 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- methods in this implementation
+26 |     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+   |            ^^^^^^^^^^^^^
+...
+30 |     pub fn replace_document(
+   |            ^^^^^^^^^^^^^^^^
+...
+52 |     fn document_exchange(
+   |        ^^^^^^^^^^^^^^^^^
+
+warning: struct `BodyTextAdmission` is never constructed
+ --> targets/conduitos/src/text_protection/body.rs:8:19
+  |
+8 | pub(crate) struct BodyTextAdmission {
+  |                   ^^^^^^^^^^^^^^^^^
+
+warning: associated items `prepare` and `activate` are never used
+   --> targets/conduitos/src/text_protection/body.rs:20:12
+    |
+ 19 | impl BodyTextAdmission {
+    | ---------------------- associated items in this implementation
+ 20 |     pub fn prepare(
+    |            ^^^^^^^
+...
+135 |     pub fn activate(
+    |            ^^^^^^^^
+
+warning: function `body_binding_heap` is never used
+   --> targets/conduitos/src/text_protection/body.rs:228:4
+    |
+228 | fn body_binding_heap(binding: &BodyRegionBinding) -> usize {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `prepare` is never used
+  --> targets/conduitos/src/tour_two_host.rs:11:8
+   |
+11 | pub fn prepare(
+   |        ^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host.rs:19:8
+   |
+19 | pub fn run(
+   |        ^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:48:5
+   |
+47 | pub struct SourceKernel {
+   |            ------------ fields in this struct
+48 |     scheduler: SourceScheduler,
+   |     ^^^^^^^^^
+49 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+50 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:54:5
+   |
+53 | pub struct SinkKernel {
+   |            ---------- fields in this struct
+54 |     scheduler: SinkScheduler,
+   |     ^^^^^^^^^
+55 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+56 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: methods `step`, `offer`, `accept`, `delivered`, `decisions`, and `signs` are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:114:12
+    |
+ 59 | impl SourceKernel {
+    | ----------------- methods in this implementation
+...
+114 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+118 |     pub fn offer(&mut self) -> Result<Option<(u64, &[u8])>, SchedulerError> {
+    |            ^^^^^
+...
+131 |     pub fn accept(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^
+...
+136 |     pub fn delivered(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^^
+...
+141 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+144 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: multiple methods are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:189:12
+    |
+149 | impl SinkKernel {
+    | --------------- methods in this implementation
+...
+189 |     pub fn admit(
+    |            ^^^^^
+...
+198 |     pub fn close(&mut self) -> Result<(), SchedulerError> {
+    |            ^^^^^
+...
+202 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+205 |     pub fn request(&mut self) -> Option<HostCallRequest> {
+    |            ^^^^^^^
+...
+208 |     pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
+    |            ^^^^^
+...
+211 |     pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^
+...
+222 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+225 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: fields `source` and `sink` are never read
+  --> targets/conduitos/src/tour_two_host_plan.rs:31:16
+   |
+24 | pub struct PreparedTourTwoHostPlan {
+   |            ----------------------- fields in this struct
+...
+31 |     pub(crate) source: crate::tour_two_host_kernel::SourceKernel,
+   |                ^^^^^^
+32 |     pub(crate) sink: crate::tour_two_host_kernel::SinkKernel,
+   |                ^^^^
+
+warning: constant `MAXIMUM_STEPS` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:11:7
+   |
+11 | const MAXIMUM_STEPS: u32 = 32;
+   |       ^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:13:8
+   |
+13 | pub fn run(
+   |        ^^^
+
+warning: function `step_source` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:96:4
+   |
+96 | fn step_source(
+   |    ^^^^^^^^^^^
+
+warning: function `step_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:107:4
+    |
+107 | fn step_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^
+
+warning: function `drain_source` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:116:4
+    |
+116 | fn drain_source(
+    |    ^^^^^^^^^^^^
+
+warning: function `drain_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:129:4
+    |
+129 | fn drain_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^^
+
+warning: function `format` is never used
+ --> targets/conduitos/src/protocol_boot/step_failure.rs:8:15
+  |
+8 | pub(super) fn format(
+  |               ^^^^^^
+
+warning: constant `ROOT_MODULE_COMMAND` is never used
+ --> targets/conduitos/src/protocol_boot/usb_request.rs:7:11
+  |
+7 | pub const ROOT_MODULE_COMMAND: &[u8] = b"conduit.protocol/usb-root-request@1";
+  |           ^^^^^^^^^^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 57 warnings (run `cargo fix --lib -p conduitos` to apply 6 suggestions)
+warning: suspicious definition of the runtime `memcmp` symbol used by the standard library
+   --> targets/conduitos/src/bin/ia32_product.rs:311:1
+    |
+311 | unsafe extern "C" fn memcmp(left: *const u8, right: *const u8, length: usize) -> i32 {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected `unsafe extern "C" fn(*const c_void, *const c_void, usize) -> i32`
+            found    `unsafe extern "C" fn(*const u8, *const u8, usize) -> i32`
+    = help: either fix the signature or remove any attributes like `#[unsafe(no_mangle)]`, `#[unsafe(export_name = "memcmp")]`, or `#[link_name = "memcmp"]`
+    = help: allow this lint if the signature is compatible
+    = note: `#[warn(suspicious_runtime_symbol_definitions)]` on by default
+
+warning: suspicious definition of the runtime `bcmp` symbol used by the standard library
+   --> targets/conduitos/src/bin/ia32_product.rs:323:1
+    |
+323 | unsafe extern "C" fn bcmp(left: *const u8, right: *const u8, length: usize) -> i32 {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected `unsafe extern "C" fn(*const c_void, *const c_void, usize) -> i32`
+            found    `unsafe extern "C" fn(*const u8, *const u8, usize) -> i32`
+    = help: either fix the signature or remove any attributes like `#[unsafe(no_mangle)]`, `#[unsafe(export_name = "bcmp")]`, or `#[link_name = "bcmp"]`
+    = help: allow this lint if the signature is compatible
+
+warning: suspicious definition of the runtime `memmove` symbol used by the standard library
+   --> targets/conduitos/src/bin/ia32_product.rs:328:1
+    |
+328 | unsafe extern "C" fn memmove(destination: *mut u8, source: *const u8, length: usize) -> *mut u8 {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected `unsafe extern "C" fn(*mut c_void, *const c_void, usize) -> *mut c_void`
+            found    `unsafe extern "C" fn(*mut u8, *const u8, usize) -> *mut u8`
+    = help: either fix the signature or remove any attributes like `#[unsafe(no_mangle)]`, `#[unsafe(export_name = "memmove")]`, or `#[link_name = "memmove"]`
+    = help: allow this lint if the signature is compatible
+
+warning: suspicious definition of the runtime `memcpy` symbol used by the standard library
+   --> targets/conduitos/src/bin/ia32_product.rs:342:1
+    |
+342 | unsafe extern "C" fn memcpy(destination: *mut u8, source: *const u8, length: usize) -> *mut u8 {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected `unsafe extern "C" fn(*mut c_void, *const c_void, usize) -> *mut c_void`
+            found    `unsafe extern "C" fn(*mut u8, *const u8, usize) -> *mut u8`
+    = help: either fix the signature or remove any attributes like `#[unsafe(no_mangle)]`, `#[unsafe(export_name = "memcpy")]`, or `#[link_name = "memcpy"]`
+    = help: allow this lint if the signature is compatible
+
+warning: suspicious definition of the runtime `memset` symbol used by the standard library
+   --> targets/conduitos/src/bin/ia32_product.rs:350:1
+    |
+350 | unsafe extern "C" fn memset(destination: *mut u8, value: i32, length: usize) -> *mut u8 {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected `unsafe extern "C" fn(*mut c_void, i32, usize) -> *mut c_void`
+            found    `unsafe extern "C" fn(*mut u8, i32, usize) -> *mut u8`
+    = help: either fix the signature or remove any attributes like `#[unsafe(no_mangle)]`, `#[unsafe(export_name = "memset")]`, or `#[link_name = "memset"]`
+    = help: allow this lint if the signature is compatible
+
+warning: `conduitos` (bin "conduitos-ia32-product") generated 5 warnings
+    Finished `release` profile [optimized] target(s) in 4m 48s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/conduitos.iso
+ConduitOS live media: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/ia32-pc/conduitos-ia32.iso
+Host type: conduitos/ia32/pc
+manifest: /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/ia32-pc/build-manifest.json
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/human)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/face)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/semantics/audio)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/architecture/planner)
+error[E0422]: cannot find struct, variant or union type `ExecutionContinuationStorage` in this scope
+  --> architecture/planner/src/execution_regions/protected.rs:73:23
+   |
+73 |         let context = ExecutionContinuationStorage {
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0609]: no field `protected_preemption` on type `&ComputePoolContract`
+  --> architecture/planner/src/execution_regions/protected.rs:63:14
+   |
+63 |             .protected_preemption
+   |              ^^^^^^^^^^^^^^^^^^^^ unknown field
+   |
+   = note: available fields are: `service_guarantee`, `architecture_base_id`, `architecture_base_kind`, `topology_groups`
+
+error[E0599]: no variant named `ProtectedPreemptibleStep` found for enum `conduit_core::ExecutionScheduling`
+   --> architecture/planner/src/execution_regions/protected.rs:101:46
+    |
+101 |             scheduling: ExecutionScheduling::ProtectedPreemptibleStep {
+    |                                              ^^^^^^^^^^^^^^^^^^^^^^^^ variant not found in `conduit_core::ExecutionScheduling`
+
+error[E0599]: no variant named `ProtectedPreemptibleStep` found for enum `conduit_core::ExecutionScheduling`
+   --> architecture/planner/src/execution_regions/protected.rs:120:38
+    |
+120 |             let ExecutionScheduling::ProtectedPreemptibleStep { context, .. } = &r.scheduling
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^ variant not found in `conduit_core::ExecutionScheduling`
+
+error[E0599]: no variant named `ProtectedPreemptibleStep` found for enum `conduit_core::ExecutionScheduling`
+   --> architecture/planner/src/execution_regions/protected.rs:128:34
+    |
+128 |         let ExecutionScheduling::ProtectedPreemptibleStep { context, .. } = &region.scheduling
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^ variant not found in `conduit_core::ExecutionScheduling`
+
+Some errors have detailed explanations: E0422, E0599, E0609.
+For more information about an error, try `rustc --explain E0422`.
+error: could not compile `conduit-planner` (lib) due to 5 previous errors
+warning: build failed, waiting for other jobs to finish...
+xtask error: ConduitOS proof refusal [live-media-build-failed]: ConduitOS proof refusal [matrix-common-backbone-failed]: shared ConduitOS backbone did not compile for aarch64-unknown-none

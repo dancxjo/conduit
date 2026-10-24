@@ -1,0 +1,429 @@
+{
+  "time": 1792812466.4666967,
+  "owner": {
+    "owner": "Root/6342-native-proof",
+    "cache": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+    "status": "reserved-idle-for-6342-proof",
+    "restoration": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6335-native-generated-restoration-result.json",
+    "restore_required": false,
+    "previous_owner": {
+      "owner": "root/6318-normal-proof",
+      "cache": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+      "status": "released",
+      "receipt": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6318-normal-product-proof/receipt.json",
+      "6318_generated_relocation": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6318-native-generated-relocation.json",
+      "restore_required": false
+    },
+    "no_other_use_until_release": true,
+    "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e"
+  },
+  "active_references": [],
+  "exclusive_cargo_locks": 68,
+  "records": [
+    {
+      "dep": "aarch64-unknown-linux-gnu/release/deps/conduit_core-93259ca326648db8.d",
+      "fingerprint": "aarch64-unknown-linux-gnu/release/.fingerprint/conduit-core-93259ca326648db8",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "b3a53e8127b303108bf3000111c6275b98c0e9113c7352f098be3d872cf49e76",
+      "old_rmeta_sha256": "38f3d37b1424b7d88d633c0b8b16cf41daebf07241005e1d611a09805c142447",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "aarch64-unknown-none/debug/build/conduitos-1d8b523b75f59b6a/out/domain-target/aarch64-unknown-none/release/deps/conduit_core-3f6b3ef49306d3c7.d",
+      "fingerprint": "aarch64-unknown-none/debug/build/conduitos-1d8b523b75f59b6a/out/domain-target/aarch64-unknown-none/release/.fingerprint/conduit-core-3f6b3ef49306d3c7",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "282a0631a89994db6a241f3f80c9a97f967a8e34c98015d8913d7542aa3fe4e5",
+      "old_rmeta_sha256": "b4fd985e44ba1a919970a6d219c4c86e3530b4270c0e6c87c89de4dc8ba40cfd",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "aarch64-unknown-none/debug/build/conduitos-1d8b523b75f59b6a/out/domain-target/release/deps/conduit_core-72a62d56b6fcdd7e.d",
+      "fingerprint": "aarch64-unknown-none/debug/build/conduitos-1d8b523b75f59b6a/out/domain-target/release/.fingerprint/conduit-core-72a62d56b6fcdd7e",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "7ed73e3636c254d5290e4a3c3f1fc0ef66df15f139d80756e5dd5d34f8b59a47",
+      "old_rmeta_sha256": "43d6f7fb36f56a671f1bfa8436149e3d4eefd27e5d4755606efa20f5553c8283",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "aarch64-unknown-none/debug/deps/conduit_core-5aadf1b2b77302e9.d",
+      "fingerprint": "aarch64-unknown-none/debug/.fingerprint/conduit-core-5aadf1b2b77302e9",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "3c6fb89a963f57ef101e7e32a6c6e548fc174b43af7ada86aa0b883a45c2f6ce",
+      "old_rmeta_sha256": "497777bb7157866dd98b77d5704480d7af6af5ba1ed8b1bdf79a38f1d39cc2a8",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "aarch64-unknown-none/release/build/conduitos-b7c7863935b0c952/out/domain-target/aarch64-unknown-none/release/deps/conduit_core-3f6b3ef49306d3c7.d",
+      "fingerprint": "aarch64-unknown-none/release/build/conduitos-b7c7863935b0c952/out/domain-target/aarch64-unknown-none/release/.fingerprint/conduit-core-3f6b3ef49306d3c7",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "05a568f2730b302284b4d9a8d2df1b4aa7575072307a56c81720ec0f40fe3c81",
+      "old_rmeta_sha256": "27b59888090cb0048b7788ba559ec6e56156135172baac6006f1c32619b64688",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "aarch64-unknown-none/release/build/conduitos-b7c7863935b0c952/out/domain-target/release/deps/conduit_core-72a62d56b6fcdd7e.d",
+      "fingerprint": "aarch64-unknown-none/release/build/conduitos-b7c7863935b0c952/out/domain-target/release/.fingerprint/conduit-core-72a62d56b6fcdd7e",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "5fc90f08376dcd5b6fb7278b3d55e8fd0a408b9cda27379ebf5c4746e8abbdd7",
+      "old_rmeta_sha256": "d7fa9ea1d6c17b144c59bc5bc98832b8325fbcccd6874c76c5d445499d893578",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "aarch64-unknown-none/release/deps/conduit_core-0cb69acf5a8f561a.d",
+      "fingerprint": "aarch64-unknown-none/release/.fingerprint/conduit-core-0cb69acf5a8f561a",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "d36611516daf0b28a9ec2fd028c990a390ab2ccc4e45c97e5e9418588eebca55",
+      "old_rmeta_sha256": "f8b94ad5526f74cbd2dd7703ac69bccf5b6169669e4f713b69cb2d9262fa1774",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "debug/deps/conduit_core-3c506e5e3823d27e.d",
+      "fingerprint": "debug/.fingerprint/conduit-core-3c506e5e3823d27e",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "3d461b8599b8a810a4cb58a7cd6a6743425c9edeb8ac03334a8d75d62c6784e8"
+    },
+    {
+      "dep": "debug/deps/conduit_core-adcb909c0222a0c4.d",
+      "fingerprint": "debug/.fingerprint/conduit-core-adcb909c0222a0c4",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "50507f733c0f60f7e4bab3c8f3543b4bc4d1be7b22261ca3cff0d8a1d918377c"
+    },
+    {
+      "dep": "debug/deps/conduit_core-be55d712145019ba.d",
+      "fingerprint": "debug/.fingerprint/conduit-core-be55d712145019ba",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "484840f0b8fe48110be71e02126d375d8416bb6e5f559a02948f85b477a663f7",
+      "old_rmeta_sha256": "c5e136324a3bffe2d7468aa49dbd21a7790b522ee29e8ff51f30bd7999d95687",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "debug/deps/conduit_core-e9934fb3b6b11800.d",
+      "fingerprint": "debug/.fingerprint/conduit-core-e9934fb3b6b11800",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "520f05e31c31d0de4d328fac433570d42cf32a7970ec0b2d13628d32a8834ca8"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/debug/build/conduitos-f90203dff95a4c52/out/domain-target/i686-unknown-linux-gnu/release/deps/conduit_core-6df050f00631239d.d",
+      "fingerprint": "i686-unknown-linux-gnu/debug/build/conduitos-f90203dff95a4c52/out/domain-target/i686-unknown-linux-gnu/release/.fingerprint/conduit-core-6df050f00631239d",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "9e8b0b9def7ba28aa8c51d3563fe513173c3ab6dc3e73f5ff1277a280a26cf51"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/debug/build/conduitos-f90203dff95a4c52/out/domain-target/i686-unknown-linux-gnu/release/deps/conduit_core-b046512bdc47b8a9.d",
+      "fingerprint": "i686-unknown-linux-gnu/debug/build/conduitos-f90203dff95a4c52/out/domain-target/i686-unknown-linux-gnu/release/.fingerprint/conduit-core-b046512bdc47b8a9",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "ba3b137117100972d366418ec0e072e0f2e53d62c0311287ef8bfd23798806e6",
+      "old_rmeta_sha256": "7a7a574f547e8de846e64401e4b12972d5a73f91ff619ca1726d8e22186711fb",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/debug/build/conduitos-f90203dff95a4c52/out/domain-target/release/deps/conduit_core-c16e54419db383e9.d",
+      "fingerprint": "i686-unknown-linux-gnu/debug/build/conduitos-f90203dff95a4c52/out/domain-target/release/.fingerprint/conduit-core-c16e54419db383e9",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "27df265148c1cc5a19d1f4fa3feace0276040e0789e154f73ca06ffe44d221a1"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/debug/build/conduitos-f90203dff95a4c52/out/domain-target/release/deps/conduit_core-cea3321855603e1f.d",
+      "fingerprint": "i686-unknown-linux-gnu/debug/build/conduitos-f90203dff95a4c52/out/domain-target/release/.fingerprint/conduit-core-cea3321855603e1f",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "d8ffa1c38ead8bf5a675834c4afb43e5a6c2eb38f0e1ebdd8b4720199ca71a08",
+      "old_rmeta_sha256": "c5a108a90f199fdbd02a8aa675e091c0b12d0cdb4727d0e084b051257a35d615",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/debug/deps/conduit_core-8077935918723edf.d",
+      "fingerprint": "i686-unknown-linux-gnu/debug/.fingerprint/conduit-core-8077935918723edf",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "3d4cb4ba252d515eaa1e2866fac758d20886ccbb219bd2a5a73444408460d7b4"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/release/build/conduitos-d41e17c8e6d1140a/out/domain-target/i686-unknown-linux-gnu/release/deps/conduit_core-6df050f00631239d.d",
+      "fingerprint": "i686-unknown-linux-gnu/release/build/conduitos-d41e17c8e6d1140a/out/domain-target/i686-unknown-linux-gnu/release/.fingerprint/conduit-core-6df050f00631239d",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "a2209021a6802f110245c08487a03517e1305d428c953bdb6932266e4fd62865"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/release/build/conduitos-d41e17c8e6d1140a/out/domain-target/i686-unknown-linux-gnu/release/deps/conduit_core-b046512bdc47b8a9.d",
+      "fingerprint": "i686-unknown-linux-gnu/release/build/conduitos-d41e17c8e6d1140a/out/domain-target/i686-unknown-linux-gnu/release/.fingerprint/conduit-core-b046512bdc47b8a9",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "f074044dae6403affce0d55bf6bb5ced3798f8b7508be381bad5b1464fa3b94c",
+      "old_rmeta_sha256": "b60349253fc18077846c955b77d730c988e06925e47da0642465e90d3412f11d",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/release/build/conduitos-d41e17c8e6d1140a/out/domain-target/release/deps/conduit_core-c16e54419db383e9.d",
+      "fingerprint": "i686-unknown-linux-gnu/release/build/conduitos-d41e17c8e6d1140a/out/domain-target/release/.fingerprint/conduit-core-c16e54419db383e9",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "8fa75f48f97d2f35ba10ee961cfb3affe92419044dea70134f6882acf511b4a0"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/release/build/conduitos-d41e17c8e6d1140a/out/domain-target/release/deps/conduit_core-cea3321855603e1f.d",
+      "fingerprint": "i686-unknown-linux-gnu/release/build/conduitos-d41e17c8e6d1140a/out/domain-target/release/.fingerprint/conduit-core-cea3321855603e1f",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "96c7d8c4d4281eb4b2d0bc5f49571ccffbfae02415c99ddb66c2635766470e1c",
+      "old_rmeta_sha256": "161d4007006d0717508e1a7526b906de68c9252158cc569ccfb5886c8f82ac06",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "i686-unknown-linux-gnu/release/deps/conduit_core-f97452583b764840.d",
+      "fingerprint": "i686-unknown-linux-gnu/release/.fingerprint/conduit-core-f97452583b764840",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "97e55a50ef16e6a7fe31daf95c3ccb9946808f57ddb43eab5c45a3a2ff4579b7"
+    },
+    {
+      "dep": "loongarch64-unknown-none/debug/build/conduitos-5154b700b2182015/out/domain-target/loongarch64-unknown-none/release/deps/conduit_core-48f7f31a7bc3ab88.d",
+      "fingerprint": "loongarch64-unknown-none/debug/build/conduitos-5154b700b2182015/out/domain-target/loongarch64-unknown-none/release/.fingerprint/conduit-core-48f7f31a7bc3ab88",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "afdcb5b95dfed11b64ed777bf9e5d67201f5d2961cd5d187cb0a4111149dcc06",
+      "old_rmeta_sha256": "563f929197afe9c2831ce5dda1da843c844df7d23e09f76af2e4ad2b00e09918",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "loongarch64-unknown-none/debug/build/conduitos-5154b700b2182015/out/domain-target/release/deps/conduit_core-72a62d56b6fcdd7e.d",
+      "fingerprint": "loongarch64-unknown-none/debug/build/conduitos-5154b700b2182015/out/domain-target/release/.fingerprint/conduit-core-72a62d56b6fcdd7e",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "b8eadeeb6f66b9da03689b493b865dd5f541cb67f77475d6299e8d570e76c37e",
+      "old_rmeta_sha256": "5588dfe5b3aba2ba6a1f0289f6a764101a465990e679a7d60733e76b942ede7f",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "loongarch64-unknown-none/debug/deps/conduit_core-2f694fdf3a5dfe11.d",
+      "fingerprint": "loongarch64-unknown-none/debug/.fingerprint/conduit-core-2f694fdf3a5dfe11",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "fd92163398bdfbfba0a0f125f6cb8edde8cebbb59490d2a2f55d6bd4518b8ef4",
+      "old_rmeta_sha256": "e8b63ea89df7f9bfa6f8d0883c670aac52e479d8a9560555b51e4215b82b58a2",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "loongarch64-unknown-none/release/build/conduitos-88486f9a1432cbb4/out/domain-target/loongarch64-unknown-none/release/deps/conduit_core-48f7f31a7bc3ab88.d",
+      "fingerprint": "loongarch64-unknown-none/release/build/conduitos-88486f9a1432cbb4/out/domain-target/loongarch64-unknown-none/release/.fingerprint/conduit-core-48f7f31a7bc3ab88",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "3569dfdcf15d81022691afbc7d0035de0b3b7f24146d43ba5c7368e4291f6ed5",
+      "old_rmeta_sha256": "244196efa76240d21103c942b072ca6ecf6689845e6eca51c6e19ef75e4ae784",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "loongarch64-unknown-none/release/build/conduitos-88486f9a1432cbb4/out/domain-target/release/deps/conduit_core-72a62d56b6fcdd7e.d",
+      "fingerprint": "loongarch64-unknown-none/release/build/conduitos-88486f9a1432cbb4/out/domain-target/release/.fingerprint/conduit-core-72a62d56b6fcdd7e",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "c927a0e0fc3598062c9ba768f1c330ed6223e37f16a29ede658972240419a60c",
+      "old_rmeta_sha256": "efc38b360069e520aa7a00b6485d4d26673eefe3db94d4af5043e68b4b4cdda9",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "loongarch64-unknown-none/release/deps/conduit_core-0ed861851be52eb9.d",
+      "fingerprint": "loongarch64-unknown-none/release/.fingerprint/conduit-core-0ed861851be52eb9",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "4ca56305759e8584c254ed0ad124672690a08e161a77472263bce277d5ac13d1",
+      "old_rmeta_sha256": "b5ed678c3846464574154bec1580690aa15d8e53295568159157551f57a1a445",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "release/deps/conduit_core-35b58e4c14b8343f.d",
+      "fingerprint": "release/.fingerprint/conduit-core-35b58e4c14b8343f",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "ed19a19cae71a0007492c16006741b76aaf2da89cbccfa03be4c5ce8aac36da9",
+      "old_rmeta_sha256": "a881942e605b8009f97b4cc8e4c7f620604890e068aa95cc83b761d5582b2493",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "release/deps/conduit_core-49ac3185920405ae.d",
+      "fingerprint": "release/.fingerprint/conduit-core-49ac3185920405ae",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "6a8c41284762c865d465e4fc33a65a0c2d5caf1b58eaa1f65c497343471ee17d",
+      "old_rmeta_sha256": "e3e2ef1464d0b5be4673a54426c2c0ee2a807d5d27b9ae4532a57cfef241b2a3",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "release/deps/conduit_core-60ba87067c84c51b.d",
+      "fingerprint": "release/.fingerprint/conduit-core-60ba87067c84c51b",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "1ed0b719368ba233da52b74651e277c259f78e6f87ee712a6432a1c61416014b",
+      "old_rmeta_sha256": "be1598f632b2e0e61e1e098b475dbc9be4704a3a25bf02bb78a136084ce1c739",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "release/deps/conduit_core-e0a9a54995c08588.d",
+      "fingerprint": "release/.fingerprint/conduit-core-e0a9a54995c08588",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "44a5da2fd4e65fb84631ae382ffc196aef22f9044d0b52f20e207d7603d25c75"
+    },
+    {
+      "dep": "riscv64gc-unknown-none-elf/debug/build/conduitos-02d594d98d9b3bd7/out/domain-target/release/deps/conduit_core-cea3321855603e1f.d",
+      "fingerprint": "riscv64gc-unknown-none-elf/debug/build/conduitos-02d594d98d9b3bd7/out/domain-target/release/.fingerprint/conduit-core-cea3321855603e1f",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "069da83c6533be43a2211c0ee91a97d3b22a0bc12db04b82900d7d6bcdf0f761",
+      "old_rmeta_sha256": "d0a5b31c806c96d0c77cfa4518ba4f2c1f0e18845884763ca02a66c64e255341",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "riscv64gc-unknown-none-elf/debug/build/conduitos-02d594d98d9b3bd7/out/domain-target/riscv64gc-unknown-none-elf/release/deps/conduit_core-aa6098c3cd98f749.d",
+      "fingerprint": "riscv64gc-unknown-none-elf/debug/build/conduitos-02d594d98d9b3bd7/out/domain-target/riscv64gc-unknown-none-elf/release/.fingerprint/conduit-core-aa6098c3cd98f749",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "2caedc2b7eadb01df74a3a097db4eef6ef4b8537f22ddaf27b00fe4786812a24",
+      "old_rmeta_sha256": "ce23e44455916a54a73181b0c75b0e24730f5d94c04e64de0ff1e8770bd08d65",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "riscv64gc-unknown-none-elf/debug/deps/conduit_core-6405051e8b08f470.d",
+      "fingerprint": "riscv64gc-unknown-none-elf/debug/.fingerprint/conduit-core-6405051e8b08f470",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "eba20ba4e6e845e9ef12ef57fdc3224d269f04eb2f415c8e67ff825c475fc21d",
+      "old_rmeta_sha256": "b13501b962881c8b920bc9f477ad48c19204b57fd9ec90b52307ce7a398885b9",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "riscv64gc-unknown-none-elf/release/build/conduitos-5fd661d01218cdd3/out/domain-target/release/deps/conduit_core-cea3321855603e1f.d",
+      "fingerprint": "riscv64gc-unknown-none-elf/release/build/conduitos-5fd661d01218cdd3/out/domain-target/release/.fingerprint/conduit-core-cea3321855603e1f",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "8b0bf5315526e4985937b71536782fea0ce054d9095c6354449cf45b6e4096a3",
+      "old_rmeta_sha256": "7b466ef218735e8b9a9acf788d206777d5cf6bd8cb170e89a350b376c9275ef0",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "riscv64gc-unknown-none-elf/release/build/conduitos-5fd661d01218cdd3/out/domain-target/riscv64gc-unknown-none-elf/release/deps/conduit_core-aa6098c3cd98f749.d",
+      "fingerprint": "riscv64gc-unknown-none-elf/release/build/conduitos-5fd661d01218cdd3/out/domain-target/riscv64gc-unknown-none-elf/release/.fingerprint/conduit-core-aa6098c3cd98f749",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "a2626786fd6f490345e6d4082b043af4acaf7b1729f7ba43a27fcca53cb4dbdf",
+      "old_rmeta_sha256": "6c58e299b5c3bf3a720d77abf380a295932e70a111de8807c23bafe871c29b55",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "riscv64gc-unknown-none-elf/release/deps/conduit_core-c005558c162c7ea8.d",
+      "fingerprint": "riscv64gc-unknown-none-elf/release/.fingerprint/conduit-core-c005558c162c7ea8",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "3aea0285627977a95dcaeae7a6659c4d9a8df1b8c6b417d13517e541f25944b4",
+      "old_rmeta_sha256": "c52305b2526821cfcb0eb547da0366fe523c780aaa21343749972ebf4b20b7c8",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "wasm32-unknown-unknown/release/deps/conduit_core-670f655286fcaa24.d",
+      "fingerprint": "wasm32-unknown-unknown/release/.fingerprint/conduit-core-670f655286fcaa24",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "2e73ac528ddcbf7e8ef25f8dc0d995c00251324e1bf042fff13d7b088d8263fb",
+      "old_rmeta_sha256": "04a28db734549213daf728bcf7459bf02e3b81ac9ab0462e09d48a6ee3c2e8e9",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/release/deps/conduit_core-72a62d56b6fcdd7e.d",
+      "fingerprint": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/release/.fingerprint/conduit-core-72a62d56b6fcdd7e",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "048014c31ac535034b9bf899184f49556b74601a51f98a15ff06520969193152",
+      "old_rmeta_sha256": "178e6231c7b42f72a6f96e74ab53e358ad802f4e48849963633b80bf956a0a0c",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/release/deps/conduit_core-d0eabc9dfba48790.d",
+      "fingerprint": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/release/.fingerprint/conduit-core-d0eabc9dfba48790",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "74d76a979d6340ea52e434dee3f642a8f5cd16ee02fbfbfc355386ba6e094e13"
+    },
+    {
+      "dep": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/release/deps/conduit_core-ea476c6a39feeb8d.d",
+      "fingerprint": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/release/.fingerprint/conduit-core-ea476c6a39feeb8d",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "09cc321eed16db0161a65257d6f37ef884c98846ff7a180e32b7b59888695462",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/x86_64-unknown-none/release/deps/conduit_core-2621c780b67dc3d7.d",
+      "fingerprint": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/x86_64-unknown-none/release/.fingerprint/conduit-core-2621c780b67dc3d7",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "691909f825fb9cc91380cdab8f8304cf44197a66663e35bbf9994dfb756dc6af"
+    },
+    {
+      "dep": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/x86_64-unknown-none/release/deps/conduit_core-4be8b6b01d44ce5f.d",
+      "fingerprint": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/x86_64-unknown-none/release/.fingerprint/conduit-core-4be8b6b01d44ce5f",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "18254aac3dc73a3813e42e56a9704115cb117a33c03b5de427d04ac572ac45b3",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/x86_64-unknown-none/release/deps/conduit_core-bac0872e5b7389d5.d",
+      "fingerprint": "x86_64-unknown-none/debug/build/conduitos-6d760ba43e55e541/out/domain-target/x86_64-unknown-none/release/.fingerprint/conduit-core-bac0872e5b7389d5",
+      "contains_current_unconditional_modules": false,
+      "dep_sha256": "da38ec3c01ec2aa4a2cfa45b67fad8fb52a403e8cda81e015c8273ce018853dd",
+      "old_rmeta_sha256": "eec1b5091c70c6160a155030736d6bf91229551f01fd3b54f5b0f0dfaf306828",
+      "action": "archived metadata fingerprint only; dependency libraries/executables/images untouched"
+    },
+    {
+      "dep": "x86_64-unknown-none/debug/deps/conduit_core-58ce1f500e0ba775.d",
+      "fingerprint": "x86_64-unknown-none/debug/.fingerprint/conduit-core-58ce1f500e0ba775",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "873637360952660b53dfa31e82b549420efbd39d9bef2a8e636b936e647130b2"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application-target/release/deps/conduit_core-9c078a7bf05b9018.d",
+      "fingerprint": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application-target/release/.fingerprint/conduit-core-9c078a7bf05b9018",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "e93c387469b88d52934180d6b0e60d0c9d80fb2cfb1b9ffc6b89a474d6d713d2"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application-target/x86_64-unknown-none/release/deps/conduit_core-f9a7db40969e9183.d",
+      "fingerprint": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application-target/x86_64-unknown-none/release/.fingerprint/conduit-core-f9a7db40969e9183",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "63bbe935e1c69694a5ffb2482aa8d54b9690906d3433b970bce64a1c0069883f"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/creche-target/release/deps/conduit_core-9c078a7bf05b9018.d",
+      "fingerprint": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/creche-target/release/.fingerprint/conduit-core-9c078a7bf05b9018",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "6aa517deb43f7da1b6f24392d14a91712584c46a5c55d5a5ef3bc1c07d85a3f9"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/creche-target/x86_64-unknown-none/release/deps/conduit_core-f9a7db40969e9183.d",
+      "fingerprint": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/creche-target/x86_64-unknown-none/release/.fingerprint/conduit-core-f9a7db40969e9183",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "e7f1dab9ab92bbe963c24cd67b3b95714a68795f9bff9de01e95c145e0b3d144"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/domain-target/release/deps/conduit_core-d0eabc9dfba48790.d",
+      "fingerprint": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/domain-target/release/.fingerprint/conduit-core-d0eabc9dfba48790",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "a595aadecc15058074b2dd1f5a8c704e35a6d9504ce9b4a310a8c4614f5bd289"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/domain-target/x86_64-unknown-none/release/deps/conduit_core-2621c780b67dc3d7.d",
+      "fingerprint": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/domain-target/x86_64-unknown-none/release/.fingerprint/conduit-core-2621c780b67dc3d7",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "2440a97906848b5317c4dc012b54441df8fe39a92edfa8f4444bdeaf19445c67"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/mask-target/release/deps/conduit_core-9c078a7bf05b9018.d",
+      "fingerprint": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/mask-target/release/.fingerprint/conduit-core-9c078a7bf05b9018",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "e3858e5876c951d536f8eb18e80d0188aef803f7548594cf8ffc3529d32c1e4f"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/mask-target/x86_64-unknown-none/release/deps/conduit_core-f9a7db40969e9183.d",
+      "fingerprint": "x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/mask-target/x86_64-unknown-none/release/.fingerprint/conduit-core-f9a7db40969e9183",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "a701fa1a8dd40eab4b88351fa9124a69f4422270efb51242c5217332ee5cb302"
+    },
+    {
+      "dep": "x86_64-unknown-none/release/deps/conduit_core-1e6798402a91a2bf.d",
+      "fingerprint": "x86_64-unknown-none/release/.fingerprint/conduit-core-1e6798402a91a2bf",
+      "contains_current_unconditional_modules": true,
+      "dep_sha256": "e463d15a5ee0aa9ba876e2500437aeb4ed1b5f5480108a57c6541eee89f2baf0"
+    }
+  ],
+  "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "change": "cache metadata only; no source or proof assertion change",
+  "result": "focused-aarch64-backbone-passed-no-source-change",
+  "argv": [
+    "cargo",
+    "+stable",
+    "check",
+    "--locked",
+    "-p",
+    "conduitos",
+    "--lib",
+    "--target",
+    "aarch64-unknown-none"
+  ],
+  "exit_code": 0,
+  "log_sha256": "462845d7c539f025397aaafd9ac2129a1a4adc45bf596443c593bff18a66aec2",
+  "new_core_dep_sha256": "c96e5c8e841cd1a649831fb836a1644fe14c2cc33e70c8a8d59cfb115effad88",
+  "source_unchanged": true,
+  "ended": 1792812691.659591
+}

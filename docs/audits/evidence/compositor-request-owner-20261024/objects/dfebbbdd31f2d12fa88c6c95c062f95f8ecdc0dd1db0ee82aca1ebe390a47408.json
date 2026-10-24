@@ -1,0 +1,1999 @@
+{
+  "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "tree": "b08e9272154b35b4ebce9ba67203db7239fa0164",
+  "status": "failed",
+  "argv": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "graphical-profile-proof",
+    "--locked"
+  ],
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CONDUIT_CONDUITOS_TARGET_ROOT": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native"
+  },
+  "start_resources": {
+    "time": 1792809700.5536401,
+    "root_free": 24623628288,
+    "tmp_quota": {
+      "used_bytes": 17346486272,
+      "hard_bytes": 26414723072,
+      "remaining_bytes": 9068236800
+    },
+    "shm_free": 33018404864
+  },
+  "proof_class": "normal-product-freestanding-emulator",
+  "scope": "actual production compositor owner custody, not selected policy or native preemption",
+  "attempts": 1,
+  "samples": [
+    {
+      "time": 1792809700.5578027,
+      "root_free": 24623558656,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809715.558132,
+      "root_free": 24449429504,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809730.5585806,
+      "root_free": 24453804032,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809745.5591595,
+      "root_free": 24349642752,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809760.580999,
+      "root_free": 24322609152,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809775.5815678,
+      "root_free": 24458379264,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809790.58212,
+      "root_free": 24344702976,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809805.582654,
+      "root_free": 24311123968,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809820.5832138,
+      "root_free": 24282943488,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809835.5837975,
+      "root_free": 23765094400,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809850.5844066,
+      "root_free": 23095939072,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809865.584919,
+      "root_free": 22882320384,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809880.5855718,
+      "root_free": 22829760512,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809895.58617,
+      "root_free": 22402859008,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809910.586669,
+      "root_free": 22319845376,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809925.5872853,
+      "root_free": 22223335424,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809940.5878935,
+      "root_free": 21898969088,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809955.5885098,
+      "root_free": 21940989952,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809970.5891314,
+      "root_free": 21783166976,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792809985.5897524,
+      "root_free": 21754056704,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810000.590252,
+      "root_free": 21701373952,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810015.5908952,
+      "root_free": 21561774080,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810030.5916243,
+      "root_free": 21491593216,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810045.5922115,
+      "root_free": 21479247872,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810060.5927014,
+      "root_free": 21461401600,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810075.5933058,
+      "root_free": 21450440704,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810090.5939307,
+      "root_free": 21379538944,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810105.5945475,
+      "root_free": 29314846720,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810120.595151,
+      "root_free": 29259333632,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810135.5957732,
+      "root_free": 29249499136,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810150.5962565,
+      "root_free": 29246734336,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810165.596949,
+      "root_free": 29230477312,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810180.5974283,
+      "root_free": 29266243584,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810195.5979092,
+      "root_free": 29255385088,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810210.598424,
+      "root_free": 29245042688,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810225.5989232,
+      "root_free": 29232381952,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810240.5994153,
+      "root_free": 29219504128,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810255.5999756,
+      "root_free": 29369389056,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810270.6005456,
+      "root_free": 29237788672,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810285.6010447,
+      "root_free": 29246889984,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810300.6014633,
+      "root_free": 29256507392,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810315.601965,
+      "root_free": 29253918720,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810330.6025047,
+      "root_free": 29238677504,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810345.60301,
+      "root_free": 29262139392,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810360.603558,
+      "root_free": 29249818624,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810375.604094,
+      "root_free": 29223743488,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810390.6046424,
+      "root_free": 29216202752,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810405.6051674,
+      "root_free": 29163339776,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810420.6055975,
+      "root_free": 29103513600,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810435.6061165,
+      "root_free": 29097992192,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810450.606703,
+      "root_free": 29058535424,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810465.6072392,
+      "root_free": 33904832512,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810480.6077683,
+      "root_free": 33776656384,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810495.608213,
+      "root_free": 33569320960,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810510.6087863,
+      "root_free": 33520402432,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810525.6094282,
+      "root_free": 33497968640,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810540.609954,
+      "root_free": 33317998592,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810555.6105206,
+      "root_free": 33317892096,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810570.6111205,
+      "root_free": 33317765120,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810585.6116872,
+      "root_free": 33317711872,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810600.612231,
+      "root_free": 32994525184,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810615.6126997,
+      "root_free": 32801366016,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810630.6132748,
+      "root_free": 32758902784,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810645.6137803,
+      "root_free": 32727474176,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810660.6142936,
+      "root_free": 32727089152,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810675.6147532,
+      "root_free": 32727056384,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810690.615204,
+      "root_free": 32703086592,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810705.6158714,
+      "root_free": 32704892928,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810720.6163893,
+      "root_free": 32670466048,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810735.6169605,
+      "root_free": 32302882816,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810750.6175468,
+      "root_free": 31867138048,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810765.6180816,
+      "root_free": 31462998016,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810780.618695,
+      "root_free": 31311024128,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810795.6191952,
+      "root_free": 31028625408,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810810.6200256,
+      "root_free": 30115479552,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810825.6205964,
+      "root_free": 29549973504,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810840.6211655,
+      "root_free": 28992405504,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810855.6216917,
+      "root_free": 28613603328,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810870.6223378,
+      "root_free": 28124086272,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810885.6229715,
+      "root_free": 27617632256,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810900.6235871,
+      "root_free": 26702733312,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810915.6241112,
+      "root_free": 25928478720,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810930.6246054,
+      "root_free": 25385619456,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810945.625143,
+      "root_free": 25339908096,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810960.6256912,
+      "root_free": 25237917696,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810975.626324,
+      "root_free": 25048457216,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792810990.6268888,
+      "root_free": 24444846080,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811005.6274612,
+      "root_free": 24065495040,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811020.628017,
+      "root_free": 23672623104,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811035.628886,
+      "root_free": 22188744704,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811050.6295178,
+      "root_free": 22108598272,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811065.6300488,
+      "root_free": 21930442752,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811080.6306124,
+      "root_free": 21742039040,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811095.6311665,
+      "root_free": 21692895232,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811110.631699,
+      "root_free": 21681020928,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811125.6323252,
+      "root_free": 21583441920,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811140.6328986,
+      "root_free": 21064724480,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811155.6336923,
+      "root_free": 20813385728,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811170.6343853,
+      "root_free": 20223700992,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811185.6350517,
+      "root_free": 19661287424,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811200.635895,
+      "root_free": 19083706368,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811215.6366682,
+      "root_free": 18522681344,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811230.6375399,
+      "root_free": 17644216320,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811245.638282,
+      "root_free": 17273634816,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811260.6390564,
+      "root_free": 16975134720,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811275.639944,
+      "root_free": 16536137728,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811290.6406946,
+      "root_free": 16132587520,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811305.6415594,
+      "root_free": 15701585920,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811320.6423795,
+      "root_free": 14996611072,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811335.6431024,
+      "root_free": 14186979328,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811350.6439462,
+      "root_free": 13792505856,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811365.6448135,
+      "root_free": 13792243712,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811380.6456451,
+      "root_free": 22630092800,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811395.6464932,
+      "root_free": 22125387776,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811410.6473205,
+      "root_free": 21191372800,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811425.6481342,
+      "root_free": 20624736256,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811440.6489222,
+      "root_free": 19838730240,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811455.649717,
+      "root_free": 17879732224,
+      "tmp_quota": {
+        "used_bytes": 17346486272,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9068236800
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811470.650405,
+      "root_free": 17872719872,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811485.651104,
+      "root_free": 17861140480,
+      "tmp_quota": {
+        "used_bytes": 17353601024,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9061122048
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811500.6517375,
+      "root_free": 17824624640,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811515.652385,
+      "root_free": 17733419008,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811530.6529868,
+      "root_free": 17694523392,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811545.6535296,
+      "root_free": 17484013568,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811560.6544645,
+      "root_free": 19489103872,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811575.6554139,
+      "root_free": 19403526144,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811590.656321,
+      "root_free": 19339689984,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811605.656965,
+      "root_free": 19415425024,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811620.6576116,
+      "root_free": 19181711360,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811635.6585312,
+      "root_free": 18790862848,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811650.6595707,
+      "root_free": 18723991552,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811665.6605544,
+      "root_free": 18562150400,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811680.6615071,
+      "root_free": 18449764352,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811695.6720722,
+      "root_free": 18381320192,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811710.6729722,
+      "root_free": 18107363328,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811725.6739464,
+      "root_free": 17999863808,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811740.6749535,
+      "root_free": 17847615488,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811755.6759093,
+      "root_free": 17725542400,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811770.6767757,
+      "root_free": 17575063552,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811785.6777215,
+      "root_free": 17505558528,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811800.678686,
+      "root_free": 17444139008,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811815.6796048,
+      "root_free": 17329807360,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811830.6804676,
+      "root_free": 17298669568,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811845.6813686,
+      "root_free": 17274740736,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    },
+    {
+      "time": 1792811860.6823103,
+      "root_free": 17224736768,
+      "tmp_quota": {
+        "used_bytes": 17347076096,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 9067646976
+      },
+      "shm_free": 33018404864
+    }
+  ],
+  "child_pid": 3714472,
+  "exit_code": 1,
+  "source_unchanged": true,
+  "artifact_inventory": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/aarch64/make-record.rs",
+      "bytes": 678,
+      "sha256": "3cb7f5db038f764644cca270765c8482ce592ac2528c849892c31748e5dfdcd6"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/privilege-inventory-d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d-product-host.map",
+      "bytes": 22980503,
+      "sha256": "46f3267c4093e404e81d1b817aff5462e18c0249074cf2d7e88e5187561733fd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-serial.log",
+      "bytes": 3324987,
+      "sha256": "46482e27b6fe3f30b12ccb83782e906fa0ed3c657a41b3a5f67b9868b39b4517"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/conduitos.iso",
+      "bytes": 83175424,
+      "sha256": "68963c307cf4d0d666f80704835d383f31083816e17e9813a3e9ea7014a33831"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/native-shell-paired-linear.json",
+      "bytes": 4534331,
+      "sha256": "838a3d3149316b828910c7653a9ee050912dbf5c49d038a299870ad781b5fdb7"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/compositor-lifecycle-proof.json",
+      "bytes": 68911,
+      "sha256": "caab8d0d64f6c3e6439d89697052621b47c06c88acef7f082f936e57f3264f5e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/memory-lantern-native-edit.json",
+      "bytes": 5051,
+      "sha256": "8b692caced272e060679659ee50897af3d5973c7aa1850e9d946bb37c785b613"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/make-record.rs",
+      "bytes": 684,
+      "sha256": "c4d2f0b3b3060a68990077158dba764ca0068bce344e8dfe1dc9e971909d28cf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-proof.json",
+      "bytes": 1494385,
+      "sha256": "dbc97a49f1e528e040d2a1772f899d69cc4055148f7eb6e74acedee4c0459a12"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/conduitos",
+      "bytes": 78902872,
+      "sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/build.json",
+      "bytes": 319,
+      "sha256": "41a1d06de97a15b6c4ee806effa1207d133271fd4a625d67b9d834652a2d5c11"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-qmp.log",
+      "bytes": 221999,
+      "sha256": "7dbc889899cc48dc1598b3b2620327fc5afb60efde85fa7e2dfe6be33b48f432"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/privilege-inventory-d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d-product-host.json",
+      "bytes": 63223,
+      "sha256": "968149c82cf905ae31c83a938e52fe91cabca76cdd4e5074ce4541ccdb766902"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/image.json",
+      "bytes": 335,
+      "sha256": "5a4e11def3248db83f377e897752956f1e1c004424f30c3328a6b4b227631fcc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/conduitos.iso",
+      "bytes": 10221568,
+      "sha256": "c95b915e43a5204638a8376e72930c776925c279d811f4b6e8f90adeab600512"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/make-record.rs",
+      "bytes": 670,
+      "sha256": "cb7a4157bfcac7d618e95d31e770061e9c9dfc12c0e2223b916e3dd027e70a4f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/privilege-inventory-3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427-product-host.map",
+      "bytes": 8102334,
+      "sha256": "def0fc2b124ff44819e016965e6292c3fc5f5729a3176d5236f4bfedddbd0bbc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/privilege-inventory-3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427-product-host.json",
+      "bytes": 33624,
+      "sha256": "02008a581d8398814088da35c3657332bfcfeba13ec484011a61c2134401445f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/conduitos",
+      "bytes": 5937172,
+      "sha256": "3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/build.json",
+      "bytes": 336,
+      "sha256": "3f891ab4ed5a7207435e0e82ef9f411a243c4f51141f237b7a12970d64892db7"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/image.json",
+      "bytes": 333,
+      "sha256": "21a873c91afba8e3f631369f9e5d03bdadfd41d94728ec0a4c1d4920b35a95dd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/iso-root/limine.conf",
+      "bytes": 241,
+      "sha256": "da9814bbb18df6241368e3078ed21418c71c527f1f597f0b1d9fae1436ea342f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/iso-root/boot/conduit-build.json",
+      "bytes": 3734,
+      "sha256": "f9110f10ab6acf5e59e6b5c6c5f1c1af325cab13f649ff1ce1e8bdaa58d40927"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/iso-root/boot/conduitos",
+      "bytes": 5937172,
+      "sha256": "3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/ia32/iso-root/EFI/BOOT/BOOTIA32.EFI",
+      "bytes": 360448,
+      "sha256": "9ea0e91ded4a8053b37437c3ee99399bf970018624d5a373d734e59259ef6d42"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-editorial-compact.png",
+      "bytes": 159895,
+      "sha256": "1502095f40d337e8781a7b565531922c2ea42ab5411a25580ca2e65abf4d1cb0"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-diagram.png",
+      "bytes": 153577,
+      "sha256": "2f2ead8ab2ccbb4e94a07953e707f61258bc8659f4c4e524201ba40d719393fd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 159351,
+      "sha256": "945624291cddfc8c5a47de635445447beca70a0586ecb791bde10f5d5f0825ad"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-gear-details.png",
+      "bytes": 244407,
+      "sha256": "a64042233ac0fddfb0325a7c7f889a28573f4aa3c05298ec4e9f4554ce7d4e7f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 153241,
+      "sha256": "4972483239c8bcda5ac59fdcf8e02de2de6781fade72569b36279cd6a776c6df"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-engineering-spacious.png",
+      "bytes": 141342,
+      "sha256": "f2949893739ae3de1666f9af6068f7939f027733e1fb667629bcaed6dfbf8120"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 69730,
+      "sha256": "ef0c3e1639d63d47c70e04a6dc85a6d437a4c529a938654049dc14b379c50c6b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 159420,
+      "sha256": "baec05ee6cb3428413f79e3f14ead68011a0c1907798e6f6ea5dc15c509496f5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-mask-replanned.png",
+      "bytes": 145016,
+      "sha256": "4a581b5324eee393469df5c8c8d15bb2ded9ef1a195742a13250baf93fbbc918"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/wake-refused.png",
+      "bytes": 127426,
+      "sha256": "75d2d5a47a68ca98e615d843fd94412c2203649a88cc2c45cf5074da9aa3be8e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-four-restored.png",
+      "bytes": 159273,
+      "sha256": "f286200bea9b313a8a14f8079f221c967c8c30dd9423f4c3996f837346ec2cf9"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-inspected-other-and-returned.png",
+      "bytes": 156223,
+      "sha256": "0516f2c2453885440c2e32cb5ed2cc0a7f42c96c80fd69d1a500e7c29267be3d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/body-stopped.png",
+      "bytes": 199964,
+      "sha256": "2ce72a3530d259f22b811194fdd584875387209beb867638dcbadf66051023e9"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/manifest.json",
+      "bytes": 477025,
+      "sha256": "03b62cfa8fc1abcc73687593980d60997c68457bdb67d97578e188211a75effd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-fourth-checked.png",
+      "bytes": 159304,
+      "sha256": "b893f730403050c30c1aadef96a9aedb3c82eec7bfc9cfea854b8dbd7000bb58"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-ready.png",
+      "bytes": 158962,
+      "sha256": "118485517003cba06c75de14da7828160d7420f42f0c7d09082840f1a063c31d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/body-playing.png",
+      "bytes": 68953,
+      "sha256": "7e392b4bb1e557ac68e4ccffc2789466e7e6ce34bd52b3abfc06ec79981f13e1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-three-selected.png",
+      "bytes": 159344,
+      "sha256": "425f3ec06252f0c5c58d9b4000aae8f7eefa153755348d66c4faeec18cc872f7"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/home-returned.png",
+      "bytes": 57218,
+      "sha256": "928121c6b905c66197d7c3fd2c7f0333b3b973156ad2f1ae8b97da57c94e61ce"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-face.png",
+      "bytes": 156223,
+      "sha256": "0516f2c2453885440c2e32cb5ed2cc0a7f42c96c80fd69d1a500e7c29267be3d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-engineering-compact.png",
+      "bytes": 159144,
+      "sha256": "a5258bd3b90e4052cd74ae275462ba9850897c15b53bdc331d7d6548eb78df48"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/home.png",
+      "bytes": 68953,
+      "sha256": "7e392b4bb1e557ac68e4ccffc2789466e7e6ce34bd52b3abfc06ec79981f13e1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/creche-editorial-spacious.png",
+      "bytes": 142048,
+      "sha256": "54aaf6caa8db1959f407fa09933052049052d258fdeafe6ccc05b92edf15a0cf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/protected-memory-lantern.png",
+      "bytes": 64176,
+      "sha256": "9c6af39f7e979983504a8cd425f65c869ce379403939f2921714af0eaca52c52"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-reentered.png",
+      "bytes": 56011,
+      "sha256": "0fe46a02aeb5347b6f115f702dbf0ecd193ac94ce10d988ea82827a85376b0e7"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-source-editor-loaded.png",
+      "bytes": 102917,
+      "sha256": "f2e4b1626e52bd1c8e8dd89d1acb6389421298a34f1a278f2b9438a9f3cf827c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/journey-frames/patchbay-workspace.png",
+      "bytes": 156223,
+      "sha256": "0516f2c2453885440c2e32cb5ed2cc0a7f42c96c80fd69d1a500e7c29267be3d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-checked-source/source-selected.png",
+      "bytes": 156296,
+      "sha256": "910a7fc6cca459d7939b8cef1123422a743b2984b9ffb142477db64eeeba9a77"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-checked-source/manifest.json",
+      "bytes": 534228,
+      "sha256": "195719cb40bb7ea0b02669b66cd15afb5f80d2fc7eae6aad733c4c0b66ee3f50"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-checked-source/details-port.png",
+      "bytes": 321561,
+      "sha256": "6f8f14219879d99af7ed5d70e0b1d103ffc5e997289cd62a74846b7e1ce165fa"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-checked-source/details-gear.png",
+      "bytes": 321546,
+      "sha256": "b5c4cc5858f7f531810bd4beec1af418c6e90ba4b223c21ef38c6c2b69703554"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-checked-source/diagram-backward-000.png",
+      "bytes": 210818,
+      "sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-checked-source/details-cord.png",
+      "bytes": 351212,
+      "sha256": "8030ccbc1c2cecd8fbdff9e03521b757204be92a69b2e19cfee09655df33ec20"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-checked-source/diagram-forward-000.png",
+      "bytes": 210818,
+      "sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-checked-source/diagram-forward-001.png",
+      "bytes": 127971,
+      "sha256": "528990410d976b382a346a720f959b8e50e6b803a119c3b0915106882654a7ac"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-016.png",
+      "bytes": 306330,
+      "sha256": "1d6586c51f7d0be9afb2391ea014b5faee0d2057ac3537d592f627cb23b5a6d5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-014.png",
+      "bytes": 350416,
+      "sha256": "5208b02529d3e9a3cff401a4155eb719814614e01da55f1e71907205995ed5f6"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-013.png",
+      "bytes": 307041,
+      "sha256": "5768cb342a3c14b2f7cdcd55da71986969f694df0184243ed2167f5b34173d7c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-018.png",
+      "bytes": 235960,
+      "sha256": "b4f77c9a9c08f6f40c9279e1d66b1d042f7d5e4087c66aaa2671e2f647a14fb5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-001.png",
+      "bytes": 240382,
+      "sha256": "09cc27a842d6cb0e99381b4ca4b9239f5d6bc097c26b3e995b0698c71f9dd91d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-011.png",
+      "bytes": 350570,
+      "sha256": "e72450c98f185b7fb7056c208c74921cd716a3549ac8471f2f0abd5586333e3f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-017.png",
+      "bytes": 317262,
+      "sha256": "39f15773feeaebb025823f518c65da064ee3ede386d29328177e2bed97629f6c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/manifest.json",
+      "bytes": 26926,
+      "sha256": "8a44f32124adc57c0edd604c25aa0f329ace304b5c4208c7b70f21fe3ac469f4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-009.png",
+      "bytes": 380983,
+      "sha256": "7cab6b6b55ba3d75317ca954cd1e28fe4793e5113c46f9fcd0180815b58c1d12"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-015.png",
+      "bytes": 386993,
+      "sha256": "84c26d1b41f7854008610308c359fe72a87451843d0b6f96220e5ed6aa12ea31"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-012.png",
+      "bytes": 316142,
+      "sha256": "924451dffffb0c5ba0aeb32cf8d7c4f4ffcd1bf2d25250382a23cef5f997be20"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-019.png",
+      "bytes": 311504,
+      "sha256": "891116c2b97be7af376ca9a77b982e67707c7606a2fc7d0e1aa9976defb32354"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-020.png",
+      "bytes": 351138,
+      "sha256": "015db39f19146ad85297b627fb14f45112aef1da09220e194eb1458141b83851"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-003.png",
+      "bytes": 414426,
+      "sha256": "d961a99255608140b08207b54066548a6079725a2384fa66e74c06dc49e6910c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-008.png",
+      "bytes": 353094,
+      "sha256": "91f6c557081cf4478cb3e4c467f6887f78a0b47bd45b5baa3ce4f58290595911"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-005.png",
+      "bytes": 149759,
+      "sha256": "5c0e0fa2c79da761d73d8d57f6939a1dc96a649292d7e5bb5148795c464713da"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-007.png",
+      "bytes": 339532,
+      "sha256": "812352bde39d15413e269c6527453281db661c25c672ce6ac1d4af43b197781c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-006.png",
+      "bytes": 225319,
+      "sha256": "67de986b0eb31c00cb4f6c39c6a2e2b683102ef15f6b41c9542f4b062863d96f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-004.png",
+      "bytes": 153675,
+      "sha256": "f434239106fa9f74b547890b199999ffc5fc19382541a64935fa119d2aa81770"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-002.png",
+      "bytes": 329190,
+      "sha256": "3cab9f0c130b10d7805bc3c55981ca43fa37b7083d352d9794b002c42d7f9a9b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/patchbay-refusal-details/details-010.png",
+      "bytes": 355576,
+      "sha256": "9e2a9ded7765383cec0a127f5a5010e2e8d8b11e9166ce957bbf202be1ab6f41"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/iso-root/limine.conf",
+      "bytes": 247,
+      "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/iso-root/boot/conduit-build.json",
+      "bytes": 4453,
+      "sha256": "1d3884a49dc35a556cff7044bd2c1f62c73eda4044e4c623f61dcf9ea960764c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/iso-root/boot/conduitos",
+      "bytes": 78902872,
+      "sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-native-product-e93c9a104/native/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+      "bytes": 348160,
+      "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "bytes": 83175424,
+      "sha256": "68963c307cf4d0d666f80704835d383f31083816e17e9813a3e9ea7014a33831"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "1d3884a49dc35a556cff7044bd2c1f62c73eda4044e4c623f61dcf9ea960764c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/conduitos-kernel.elf",
+      "bytes": 78902872,
+      "sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target/conduitos/live/x86_64-pc/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "8a02c6c0507e9225f5706cec3221b99bc02faee90da7a19993b03af60d2a9b8d"
+    }
+  ],
+  "ended": 1792811876.0443883,
+  "end_resources": {
+    "time": 1792811876.04439,
+    "root_free": 17156276224,
+    "tmp_quota": {
+      "used_bytes": 17347076096,
+      "hard_bytes": 26414723072,
+      "remaining_bytes": 9067646976
+    },
+    "shm_free": 33018404864
+  }
+}

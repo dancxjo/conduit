@@ -1,0 +1,124 @@
+{
+  "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "tree": "b08e9272154b35b4ebce9ba67203db7239fa0164",
+  "status": "passed",
+  "started": 1792805857.4950848,
+  "proof_class": "hosted-actual-production-owner-module-not-native-entry",
+  "start_resources": {
+    "time": 1792805857.492339,
+    "root_free": 23575367680,
+    "tmp_quota": {
+      "used_bytes": 20554711040,
+      "hard_bytes": 26414723072,
+      "remaining_bytes": 5860012032
+    }
+  },
+  "checks": [
+    {
+      "name": "tests",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--test",
+        "compositor_request_owner",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "clippy",
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--test",
+        "compositor_request_owner",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "samples": [
+    {
+      "time": 1792805857.495634,
+      "root_free": 23575363584,
+      "tmp_quota": {
+        "used_bytes": 20554711040,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5860012032
+      }
+    },
+    {
+      "time": 1792805867.4959588,
+      "root_free": 23575281664,
+      "tmp_quota": {
+        "used_bytes": 20563324928,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5851398144
+      }
+    },
+    {
+      "time": 1792805877.4964027,
+      "root_free": 23575027712,
+      "tmp_quota": {
+        "used_bytes": 20481785856,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5932937216
+      }
+    },
+    {
+      "time": 1792805887.4968572,
+      "root_free": 23575019520,
+      "tmp_quota": {
+        "used_bytes": 20448387072,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5966336000
+      }
+    },
+    {
+      "time": 1792805897.502139,
+      "root_free": 23574925312,
+      "tmp_quota": {
+        "used_bytes": 20554739712,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5859983360
+      }
+    },
+    {
+      "time": 1792805907.5080898,
+      "root_free": 23574863872,
+      "tmp_quota": {
+        "used_bytes": 20554731520,
+        "hard_bytes": 26414723072,
+        "remaining_bytes": 5859991552
+      }
+    }
+  ],
+  "source_unchanged": true,
+  "actual_binary": {
+    "original": "/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/compositor_request_owner-28b36b86c2cbe67a",
+    "sha256": "a442e7e913b815dfa41032e2bade0c0b3209e9001228e4800c4d52d764efdc04",
+    "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-focused-e93c9a104/a442e7e913b815dfa41032e2bade0c0b3209e9001228e4800c4d52d764efdc04.elf.gz",
+    "bytes": 1329984
+  },
+  "ended": 1792805917.5741773,
+  "end_resources": {
+    "time": 1792805917.5741782,
+    "root_free": 23574294528,
+    "tmp_quota": {
+      "used_bytes": 20554743808,
+      "hard_bytes": 26414723072,
+      "remaining_bytes": 5859979264
+    }
+  }
+}

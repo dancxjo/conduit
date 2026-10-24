@@ -1,0 +1,33 @@
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/make/host)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/browser/make)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/std/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/make/body)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/rp2040/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/raspberry-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/conduitos/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/orange-pi/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/esp32/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/avr/make)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 38.06s
+     Running tests/compositor_request_owner.rs (/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/compositor_request_owner-28b36b86c2cbe67a)
+
+running 11 tests
+test frame_grant::tests::coverage_and_selection_are_bounded_but_fully_obscured_selection_is_valid ... ok
+test frame_grant::tests::descriptor_refuses_empty_overlapping_outside_unused_and_overflow_before_effects ... ok
+test frame_grant::tests::exact_rectangles_rows_and_completion_are_required ... ok
+test frame_grant::tests::stale_sequence_and_invalid_window_do_not_advance_progress ... ok
+test production_begin_complete_and_quarantine_allocate_nothing ... ok
+test request_owner::tests::actual_numeric_frame_grant_is_validated_before_retirement_and_applied_once ... ok
+test request_owner::tests::duplicate_begin_preserves_command_and_response_overwrite_cannot_replace_it ... ok
+test request_owner::tests::every_supported_request_fits_exact_immutable_command_bound ... ok
+test request_owner::tests::fault_cancel_quarantine_and_ordinal_wrap_never_refill ... ok
+test request_owner::tests::malformed_foreign_and_wrong_kind_packets_are_terminal ... ok
+test request_owner::tests::page_length_bounds_and_completion_without_live_request_are_terminal ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

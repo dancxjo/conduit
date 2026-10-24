@@ -1,0 +1,17 @@
+{
+  "status": "refreshed-current-dev-four-file-delta",
+  "old_source": "2845d3ed73caa405b44a45b13135e01c824354b4",
+  "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "base": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "branch": "prep/6342-current-dev-20261024",
+  "changed_files": [
+    "targets/conduitos/src/protected_compositor.rs",
+    "targets/conduitos/src/protected_compositor/request_owner.rs",
+    "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+    "targets/conduitos/tests/compositor_request_owner.rs"
+  ],
+  "same_owned_blobs_as_focused_source": true,
+  "normal_native": "held until owned6353/6339 collector repair delivered",
+  "original_branch_preserved": "prep/6342-command-owner-20261023",
+  "time": 1792805857.3622842
+}

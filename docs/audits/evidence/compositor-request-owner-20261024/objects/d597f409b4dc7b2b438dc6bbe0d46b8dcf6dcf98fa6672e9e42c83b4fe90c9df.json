@@ -1,0 +1,22 @@
+{
+  "source": "2845d3ed73caa405b44a45b13135e01c824354b4",
+  "scope": "6342 production immutable command custody only; 6317 accounting and6311 native resume remain open",
+  "blocking_findings": [],
+  "reviewed": [
+    "Production exchange now uses actual RequestOwner, replacing instance/ordinal/FrameGrant state rather than maintaining second ledger.",
+    "begin retains canonical57byte maximum command and exact Request/Envelope, rejects busy before mutation.",
+    "Ordinal now advances only after valid bounded decoded response and FrameGrant validation; MAX refuses before creation; failures terminal through owner and outer service quarantine. Valid Refused retires once.",
+    "response_matches moved verbatim; shared-page declared length and exact decoder semantics preserved. BeginFrame/FrameStep grants validated before pending retirement, ACK consumes same existing FrameGrant once.",
+    "Request errors/quarantine and non-Yielded termination remain fail-closed; lifecycle request measurements unchanged.",
+    "Fixed inline Pending storage, no dynamic collection or allocation introduced; owning allocation test covers production methods.",
+    "All Request encodings tested at finite maximum including25byte BeginUpload payload. Tests call production decoder/validator, not test-local substitute."
+  ],
+  "nonblocking_observation": "Encoding/ordinal-exhaustion checks now precede frame admission side effects; on those failures legacy outer service also quarantined, so no surviving observable authority difference identified.",
+  "proof_limits": [
+    "No test executed by reviewer; Root owning focused checks in progress.",
+    "No ProtectedOperation invocation/canonical policy admission or actual Gate/Preempted continuation introduced.",
+    "Native combined compilation/normal changed-Back QEMU and Candidate/postmerge Integration remain required.",
+    "Hosted module integration test compiles actual production RequestOwner/FrameGrant via path; it does not execute ServiceDomain CPL3 transport."
+  ],
+  "actions": "Read-only source review; no builds/edits/cache/GH observations"
+}

@@ -1,0 +1,96 @@
+{
+  "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "tree": "b08e9272154b35b4ebce9ba67203db7239fa0164",
+  "status": "x86-normal-product-portion-independently-valid-full-command-failed",
+  "full_command_exit": 1,
+  "full_command_status_preserved": "failed",
+  "verified_artifact_hashes": 99,
+  "verified_pngs": 27,
+  "journey_steps": [
+    "arrive",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "birth",
+    "wake",
+    "plan",
+    "play",
+    "commons-hub",
+    "commons-workshop",
+    "unavailable-wake-refused",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "gear-details",
+    "diagram-return",
+    "stop",
+    "home-returned",
+    "patchbay-reentered"
+  ],
+  "root_elf_sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d",
+  "iso_sha256": "68963c307cf4d0d666f80704835d383f31083816e17e9813a3e9ea7014a33831",
+  "serial_sha256": "46482e27b6fe3f30b12ccb83782e906fa0ed3c657a41b3a5f67b9868b39b4517",
+  "embedded_guest_sha256": "9104748a5bb99bc0602d07a44fd08a5d42ed4cb07e43e8b8b5472df9404b28bb",
+  "embedded_guest_bytes": 29256,
+  "unique_actual_root_guest_match_offsets": [
+    18884499
+  ],
+  "lifecycle_records": 23,
+  "actual_ack_checkpoints": [
+    {
+      "ack": null,
+      "activation_count": null,
+      "checkpoint": "prepared",
+      "request_count": null
+    },
+    {
+      "ack": {
+        "frame_sequence": 1,
+        "guest_sequence": 1,
+        "instance": 1,
+        "namespace": 1
+      },
+      "activation_count": 1,
+      "checkpoint": "initial-hub",
+      "request_count": 874
+    },
+    {
+      "ack": {
+        "frame_sequence": 3,
+        "guest_sequence": 5,
+        "instance": 1,
+        "namespace": 2
+      },
+      "activation_count": 2,
+      "checkpoint": "first-creche",
+      "request_count": 9955
+    },
+    {
+      "ack": {
+        "frame_sequence": 2179,
+        "guest_sequence": 58,
+        "instance": 1,
+        "namespace": 16
+      },
+      "activation_count": 16,
+      "checkpoint": "playing-hub",
+      "request_count": 120448
+    }
+  ],
+  "source_unchanged": true,
+  "live_manifest_source_build_join": true,
+  "later_failure": "aarch64 shared backbone compiled against stale Core API metadata; exact signatures missing while x86 completed earlier",
+  "cache_scope": "No cache was read or mutated by reviewer. Root reports x86 current release depfiles include new modules and separate focused aarch64 check passes after stale fingerprint custody; that followup is not this first failed command.",
+  "limits": [
+    "Full supported command remains failed, not PASS.",
+    "x86 actual normal product portion establishes current source/image/journey/ACK behavior only.",
+    "No selected policy or ProtectedOperation integration/native preemption/fairness/physical/full6317 claim.",
+    "Fresh supported retry and Candidate/postmerge Integration remain separate required gates."
+  ],
+  "actions": "Read-only retained99artifacts and source/live manifests; no builds/cache/CI or source edits"
+}

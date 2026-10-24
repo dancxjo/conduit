@@ -1,0 +1,22 @@
+{
+  "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "tree": "b08e9272154b35b4ebce9ba67203db7239fa0164",
+  "changed_paths": [
+    {
+      "path": "targets/conduitos/src/protected_compositor.rs",
+      "blob": "69daa0ea84a675e70ecb478d0f58013df092ec9c"
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner.rs",
+      "blob": "adef09ab3f306cc059f3e50216fd6807ad215753"
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+      "blob": "3bc21b6a3689cbffd067f3920daace0c632479c4"
+    },
+    {
+      "path": "targets/conduitos/tests/compositor_request_owner.rs",
+      "blob": "b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c"
+    }
+  ]
+}

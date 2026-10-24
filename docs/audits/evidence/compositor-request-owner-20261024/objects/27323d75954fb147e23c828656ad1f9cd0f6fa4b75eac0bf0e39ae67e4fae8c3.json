@@ -1,0 +1,143 @@
+{
+  "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+  "tree": "b08e9272154b35b4ebce9ba67203db7239fa0164",
+  "status": "independent-full-supported-normal-review-pass",
+  "command_exit_code": 0,
+  "attempts": 2,
+  "source_unchanged": true,
+  "actual_artifact_hashes_verified": 145,
+  "png_hashes_verified": 27,
+  "journey_steps": [
+    "arrive",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "birth",
+    "wake",
+    "plan",
+    "play",
+    "commons-hub",
+    "commons-workshop",
+    "unavailable-wake-refused",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "gear-details",
+    "diagram-return",
+    "stop",
+    "home-returned",
+    "patchbay-reentered"
+  ],
+  "lifecycle_records": 23,
+  "actual_ack_checkpoints": [
+    {
+      "ack": null,
+      "activation_count": null,
+      "checkpoint": "prepared",
+      "request_count": null
+    },
+    {
+      "ack": {
+        "frame_sequence": 1,
+        "guest_sequence": 1,
+        "instance": 1,
+        "namespace": 1
+      },
+      "activation_count": 1,
+      "checkpoint": "initial-hub",
+      "request_count": 874
+    },
+    {
+      "ack": {
+        "frame_sequence": 3,
+        "guest_sequence": 5,
+        "instance": 1,
+        "namespace": 2
+      },
+      "activation_count": 2,
+      "checkpoint": "first-creche",
+      "request_count": 9907
+    },
+    {
+      "ack": {
+        "frame_sequence": 2163,
+        "guest_sequence": 58,
+        "instance": 1,
+        "namespace": 16
+      },
+      "activation_count": 16,
+      "checkpoint": "playing-hub",
+      "request_count": 120584
+    }
+  ],
+  "root_elf_sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d",
+  "iso_sha256": "68963c307cf4d0d666f80704835d383f31083816e17e9813a3e9ea7014a33831",
+  "serial_sha256": "c2dc6c4c3516989eb30d68659007d5f5e247a28425e88e0e7f5d5d27a96e13dd",
+  "embedded_guest_sha256": "9104748a5bb99bc0602d07a44fd08a5d42ed4cb07e43e8b8b5472df9404b28bb",
+  "unique_actual_root_guest_offsets": [
+    18884499
+  ],
+  "architecture_build_identities": [
+    {
+      "architecture": "x86_64",
+      "elf_sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d",
+      "iso_sha256": "68963c307cf4d0d666f80704835d383f31083816e17e9813a3e9ea7014a33831"
+    },
+    {
+      "architecture": "ia32",
+      "elf_sha256": "3578059f2872d8eb7b3644511d79de04a98be2fe99de5682d414766027ad2427",
+      "iso_sha256": "c95b915e43a5204638a8376e72930c776925c279d811f4b6e8f90adeab600512"
+    },
+    {
+      "architecture": "aarch64",
+      "elf_sha256": "42d78dc7e3c99d728003bee56cb6b87eab427f4145c90d1d0d25cc0f60aa5097",
+      "iso_sha256": "5ecae0d02ae2be80711d54393a0dc11f0dd967fe9d7ea101059ea0537171a06c"
+    },
+    {
+      "architecture": "riscv64",
+      "elf_sha256": "6426a95f933e1ec9fc5283ccadc481e1e670067197caba920896737648313dc1",
+      "iso_sha256": "363ffc5d61c15da9b4ada0ca13398bc31b8c6c058220c258e88a62a96041b59f"
+    },
+    {
+      "architecture": "loongarch64",
+      "elf_sha256": "7d235873feae359f2a1981462cad802351d52e447aeaf241ee25f4b2303948a1",
+      "iso_sha256": "028465d46a5d71fc9cdc6faa44de60234322c51776d6f4a1b645e8756f5683e8"
+    }
+  ],
+  "headless_asset_controls": [
+    {
+      "graphical_assets": false,
+      "host": "conduitos/ia32/pc",
+      "image_sha256": "c95b915e43a5204638a8376e72930c776925c279d811f4b6e8f90adeab600512"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/aarch64/virt",
+      "image_sha256": "5ecae0d02ae2be80711d54393a0dc11f0dd967fe9d7ea101059ea0537171a06c"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/riscv64/virt",
+      "image_sha256": "363ffc5d61c15da9b4ada0ca13398bc31b8c6c058220c258e88a62a96041b59f"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/loongarch64/virt",
+      "image_sha256": "028465d46a5d71fc9cdc6faa44de60234322c51776d6f4a1b645e8756f5683e8"
+    }
+  ],
+  "source_live_manifest_join_verified": true,
+  "first_command_failure_preserved": true,
+  "proof_scope": "Normal x86 product boot/journey/lifecycle/Show plus four architecture build/asset controls; not those architectures runtime proof.",
+  "limits": [
+    "New295a prepared four-blob-identical source remains untested; e93 results not relabeled.",
+    "No selected policy integration/native capture-restore/preemption/fairness/physical/full6317 claim.",
+    "Candidate/postmerge Integration remain delivery gates."
+  ],
+  "actions": "Read-only completed artifact145inventory/rawserial/PNGs/manifests; no builds/cache/source/GH changes"
+}
