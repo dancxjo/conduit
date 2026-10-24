@@ -27,7 +27,7 @@ const ROOT_RTC_BYTES: usize = if cfg!(feature = "native-face-root") {
 const ROOT_REBALANCE_BYTES: usize = if cfg!(feature = "native-face-root") {
     // Preserve the keyed image's 36 KiB stack floor without reducing total
     // Root backing; this space is available in the reclaimed RAM bank.
-    768
+    1280
 } else {
     384
 };

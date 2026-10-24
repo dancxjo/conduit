@@ -374,3 +374,41 @@ fn explicit_reader_cannot_override_bootstrap_and_absence_returns_unavailable() {
         assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     }
 }
+
+#[test]
+fn retained_response_backing_is_reused_without_leaking_a_previous_reading() {
+    let mut response = heapless::String::new();
+    for available in [true, false] {
+        let mut socket = Socket::new(b"GET /reading HTTP/1.1\r\n\r\n");
+        let ((), memory) = allocation_probe::observe(|| {
+            let result = poll(exchange_buffered(
+                &mut socket,
+                || 42,
+                None,
+                &mut response,
+                |now, json| {
+                    assert_eq!(now, 42);
+                    assert!(json);
+                    available.then(|| {
+                        heapless::String::try_from("HTTP/1.1 200 OK\r\n\r\nfixture").unwrap()
+                    })
+                },
+            ));
+            assert_eq!(
+                result,
+                Poll::Ready(Ok(if available {
+                    ExchangeOutcome::Reading
+                } else {
+                    ExchangeOutcome::ReadingUnavailable
+                }))
+            );
+        });
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+        if available {
+            assert_eq!(&socket.output[..socket.written], response.as_bytes());
+        } else {
+            assert!(response.is_empty());
+            assert!(socket.output[..socket.written].starts_with(b"HTTP/1.1 503"));
+        }
+    }
+}

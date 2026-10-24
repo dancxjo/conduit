@@ -61,6 +61,10 @@ impl NativeRoot {
                     ack::State::Released
                 }
                 owner::Operation::Cancel => {
+                    #[cfg(feature = "native-face-root")]
+                    if let Some(reader) = self.face_reader {
+                        reader.withdraw_http();
+                    }
                     worker.abort_preparation();
                     embassy_time::with_timeout(embassy_time::Duration::from_secs(2), async {
                         loop {

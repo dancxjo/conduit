@@ -9,6 +9,26 @@ use embassy_net::Stack;
 pub static MAILBOX: ServiceMailbox = ServiceMailbox::new();
 #[embassy_executor::task]
 pub async fn run(stack: Stack<'static>, setup: Option<NetworkSetupWriter<'static>>) {
+    #[cfg(feature = "native-face-root")]
+    let reading = Some(
+        crate::native_face::http_response as conduit_environment_http::exchange::ReadingProvider,
+    );
+    // Prepare once before serving; mode changes retain and reuse this backing.
+    // Missing capacity refuses the selected service instead of allocating later.
+    #[cfg(feature = "native-face-root")]
+    let mut responses = {
+        let stats = esp_alloc::HEAP.stats();
+        if stats.size.saturating_sub(stats.current_usage)
+            < core::mem::size_of::<crate::http_ap::ReadingBuffers>() + 8192
+        {
+            None
+        } else {
+            Some(alloc::boxed::Box::new([
+                heapless::String::new(),
+                heapless::String::new(),
+            ]))
+        }
+    };
     let mut command = MAILBOX.next_command().await;
     loop {
         match command.mode {
@@ -25,26 +45,38 @@ pub async fn run(stack: Stack<'static>, setup: Option<NetworkSetupWriter<'static
                     conduit_environment_http::set_ap_unavailable();
                 }
                 let ready = Cell::new(0_u8);
-                let next = select(
-                    crate::http_ap::serve_acknowledged(
+                let ready_callback = |service| {
+                    let bit = match service {
+                        crate::http_ap::ServiceReady::Dhcp => 1,
+                        crate::http_ap::ServiceReady::Http0 => 2,
+                        crate::http_ap::ServiceReady::Http1 => 4,
+                    };
+                    ready.set(ready.get() | bit);
+                    if ready.get() == 7 {
+                        MAILBOX.acknowledge(command, ServiceState::Ready);
+                    }
+                };
+                #[cfg(feature = "native-face-root")]
+                let serving = async {
+                    let buffers = responses.as_deref_mut().ok_or(())?;
+                    crate::http_ap::serve_acknowledged_with_reading(
                         stack,
                         setup.clone(),
                         setup.is_some(),
-                        |service| {
-                            let bit = match service {
-                                crate::http_ap::ServiceReady::Dhcp => 1,
-                                crate::http_ap::ServiceReady::Http0 => 2,
-                                crate::http_ap::ServiceReady::Http1 => 4,
-                            };
-                            ready.set(ready.get() | bit);
-                            if ready.get() == 7 {
-                                MAILBOX.acknowledge(command, ServiceState::Ready);
-                            }
-                        },
-                    ),
-                    MAILBOX.next_command(),
-                )
-                .await;
+                        reading,
+                        buffers,
+                        ready_callback,
+                    )
+                    .await
+                };
+                #[cfg(not(feature = "native-face-root"))]
+                let serving = crate::http_ap::serve_acknowledged(
+                    stack,
+                    setup.clone(),
+                    setup.is_some(),
+                    ready_callback,
+                );
+                let next = select(serving, MAILBOX.next_command()).await;
                 // select owns and has now dropped all socket/request futures.
                 match next {
                     Either::First(_) => {

@@ -1,6 +1,6 @@
 //! Fixed-capacity DHCP and HTTP service over the existing AP network base.
 use conduit_environment_http::{
-    exchange::NetworkSetupRoute,
+    exchange::{NetworkSetupRoute, ReadingProvider},
     network_setup::{NetworkSetupLimits, NetworkSetupWriter},
 };
 use conduit_rp2040_network_realization::{answer_appliance_dhcp, DhcpLeasePool};
@@ -16,6 +16,8 @@ use embassy_net::{
 };
 use embassy_time::{with_timeout, Duration, Instant};
 
+pub type ReadingBuffers = [heapless::String<2048>; 2];
+
 #[derive(Clone, Copy)]
 pub enum ServiceReady {
     Dhcp,
@@ -30,11 +32,42 @@ pub async fn serve_acknowledged(
     connect: bool,
     ready: impl Fn(ServiceReady),
 ) -> Result<(), ()> {
+    let mut responses = [heapless::String::new(), heapless::String::new()];
+    serve_acknowledged_with_reading(stack, setup, connect, None, &mut responses, ready).await
+}
+
+/// Root explicitly selects reading availability. This entry retains no Face or
+/// sampler and cannot bypass bootstrap through the exchange callback alone.
+pub async fn serve_acknowledged_with_reading(
+    stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
+    reading: Option<ReadingProvider>,
+    responses: &mut ReadingBuffers,
+    ready: impl Fn(ServiceReady),
+) -> Result<(), ()> {
+    let [first, second] = responses;
     let _ = select(
         dhcp(stack, &ready),
         select(
-            http(stack, setup.clone(), connect, ServiceReady::Http0, &ready),
-            http(stack, setup, connect, ServiceReady::Http1, &ready),
+            http(
+                stack,
+                setup.clone(),
+                connect,
+                reading,
+                first,
+                ServiceReady::Http0,
+                &ready,
+            ),
+            http(
+                stack,
+                setup,
+                connect,
+                reading,
+                second,
+                ServiceReady::Http1,
+                &ready,
+            ),
         ),
     )
     .await;
@@ -70,6 +103,8 @@ async fn http(
     stack: Stack<'static>,
     setup: Option<NetworkSetupWriter<'static>>,
     connect: bool,
+    reading: Option<ReadingProvider>,
+    response: &mut heapless::String<2048>,
     service: ServiceReady,
     ready: &impl Fn(ServiceReady),
 ) -> Result<(), ()> {
@@ -95,7 +130,7 @@ async fn http(
         {
             let _ = with_timeout(
                 Duration::from_secs(5),
-                exchange(&mut socket, setup.as_ref(), connect),
+                exchange(&mut socket, setup.as_ref(), connect, reading, response),
             )
             .await;
             socket.close();
@@ -108,6 +143,8 @@ async fn exchange(
     socket: &mut TcpSocket<'_>,
     setup: Option<&NetworkSetupWriter<'static>>,
     connect: bool,
+    reading: Option<ReadingProvider>,
+    response: &mut heapless::String<2048>,
 ) -> Result<(), ()> {
     let mut guard = if let Some(writer) = setup {
         Some(writer.lock().await)
@@ -115,7 +152,9 @@ async fn exchange(
         None
     };
     let route = if let Some(mailbox) = guard.as_deref_mut() {
-        let route = if connect {
+        let route = if connect && reading.is_some() {
+            NetworkSetupRoute::new
+        } else if connect {
             NetworkSetupRoute::bootstrap_control
         } else {
             NetworkSetupRoute::preparation_only
@@ -133,8 +172,16 @@ async fn exchange(
     } else {
         None
     };
-    conduit_environment_http::exchange::exchange(socket, || Instant::now().as_millis(), route)
-        .await
-        .map(|_| ())
-        .map_err(|_| ())
+    let selected =
+        reading.unwrap_or(|now, json| Some(conduit_environment_http::response(now, json)));
+    conduit_environment_http::exchange::exchange_buffered(
+        socket,
+        || Instant::now().as_millis(),
+        route,
+        response,
+        selected,
+    )
+    .await
+    .map(|_| ())
+    .map_err(|_| ())
 }

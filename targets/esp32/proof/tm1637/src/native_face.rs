@@ -9,18 +9,25 @@ use conduit_environment_runtime::{
 };
 use conduit_face::{Face, FaceBasis, FacePropertyValue};
 use static_cell::StaticCell;
+#[path = "native_face_http.rs"]
+mod http;
 #[path = "native_face_scope.rs"]
 mod scope;
+pub use http::response as http_response;
 const CONTROL_RESERVE: usize = 8192;
 const PREPARATION_BYTES: usize = 4608;
 static SLOT: StaticCell<Box<LocalPublicationFace>> = StaticCell::new();
+static READER: StaticCell<Reader> = StaticCell::new();
 /// Actual task publication custody, bound to the same non-Send executor owner.
 pub struct Publisher {
     inner: custody::Publisher<'static>,
+    reader: &'static Reader,
+    http: http::Publisher,
 }
 /// Root retains this private, non-Clone reader; claimed IDs cannot recover it.
 pub struct Reader {
     inner: custody::Reader<'static>,
+    http: http::Control,
 }
 #[derive(Clone, Copy, serde::Serialize)]
 pub struct Inspection {
@@ -36,7 +43,9 @@ pub struct Inspection {
 /// task registration. Owner backing, dynamic data and control headroom are
 /// admitted here, without polling a Step.
 #[inline(never)]
-pub fn prepare(reservation: &OwnerReservation) -> Result<(Publisher, Reader), &'static str> {
+pub fn prepare(
+    reservation: &OwnerReservation,
+) -> Result<(Publisher, &'static Reader), &'static str> {
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
@@ -66,12 +75,10 @@ pub fn prepare(reservation: &OwnerReservation) -> Result<(Publisher, Reader), &'
         active_play_id: Some(reservation.active.active_play_id.clone()),
         sign_ids: alloc::vec![],
     };
-    let face = RetainedPublicationFace::prepare(
-        basis,
-        cadence.count.try_into().map_err(|_| "face-count")?,
-        cadence.period_ms.checked_mul(2).ok_or("face-clock-bound")?,
-    )
-    .map_err(|_| "face-preparation")?;
+    let count = cadence.count.try_into().map_err(|_| "face-count")?;
+    let stale_after_ms = cadence.period_ms.checked_mul(2).ok_or("face-clock-bound")?;
+    let face = RetainedPublicationFace::prepare(basis, count, stale_after_ms)
+        .map_err(|_| "face-preparation")?;
     let face = Box::new(LocalPublicationFace::new(face));
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < CONTROL_RESERVE {
@@ -80,12 +87,26 @@ pub fn prepare(reservation: &OwnerReservation) -> Result<(Publisher, Reader), &'
     let owner: &'static LocalPublicationFace =
         &**SLOT.try_init(face).ok_or("face-already-claimed")?;
     let (publisher, reader) = owner.claim().map_err(|e| e.code())?;
-    Ok((Publisher { inner: publisher }, Reader { inner: reader }))
+    let (http, control) = http::prepare(count, stale_after_ms)?;
+    let reader: &'static Reader = READER
+        .try_init(Reader {
+            inner: reader,
+            http: control,
+        })
+        .ok_or("face-reader-already-claimed")?;
+    Ok((
+        Publisher {
+            inner: publisher,
+            reader,
+            http,
+        },
+        reader,
+    ))
 }
 impl Publisher {
     #[inline(never)]
     pub fn publish(&mut self, snapshot: &PublicationSnapshot<'_>, committed_ms: u64) {
-        let _ = self.inner.publish(
+        let published = self.inner.publish(
             PublicationSnapshot {
                 channel: snapshot.channel,
                 sequence: snapshot.sequence,
@@ -93,6 +114,19 @@ impl Publisher {
             },
             committed_ms,
         );
+        if published.is_err() {
+            self.reader.withdraw_http();
+            return;
+        }
+        let prepared = self.reader.with_current(committed_ms, |face, status| {
+            if !status.publisher_retained || status.refusal.is_some() {
+                return Err("http-mask-reader-unavailable");
+            }
+            self.http.publish(face, committed_ms)
+        });
+        if !matches!(prepared, Ok(Ok(()))) {
+            self.reader.withdraw_http();
+        }
     }
 }
 fn digest(face: &Face) -> [u8; 32] {
@@ -112,6 +146,9 @@ fn digest(face: &Face) -> [u8; 32] {
     result
 }
 impl Reader {
+    pub fn withdraw_http(&self) {
+        self.http.withdraw();
+    }
     /// Synchronous local access only; Root still admits the consuming Mask and
     /// its exact route/work. The borrowed Face cannot escape this callback.
     pub fn with_current<R>(

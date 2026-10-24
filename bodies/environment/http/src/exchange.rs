@@ -4,6 +4,9 @@ use crate::network_setup::*;
 use embedded_io_async::{Read, Write};
 use zeroize::Zeroizing;
 
+/// Trusted Root's synchronous bounded Mask entry; a callback is not authority.
+pub type ReadingProvider = fn(u64, bool) -> Option<heapless::String<2048>>;
+
 pub struct NetworkSetupRoute<'a> {
     mailbox: &'a mut NetworkSetupMailbox,
     limits: NetworkSetupLimits,
@@ -87,6 +90,19 @@ pub async fn exchange_with_reading<T: Read + Write>(
     route: Option<NetworkSetupRoute<'_>>,
     mut reading: impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
 ) -> Result<ExchangeOutcome, ExchangeRefusal> {
+    let mut response = heapless::String::new();
+    exchange_buffered(io, now, route, &mut response, &mut reading).await
+}
+
+/// Response backing is prepared and retained by the selected service owner.
+/// No request allocates; temporary rendering completes before socket awaits.
+pub async fn exchange_buffered<T: Read + Write>(
+    io: &mut T,
+    now: impl Fn() -> u64,
+    route: Option<NetworkSetupRoute<'_>>,
+    response: &mut heapless::String<2048>,
+    mut reading: impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
+) -> Result<ExchangeOutcome, ExchangeRefusal> {
     let limits = route
         .as_ref()
         .map(|route| route.limits)
@@ -119,16 +135,15 @@ pub async fn exchange_with_reading<T: Read + Write>(
             write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
             Ok(ExchangeOutcome::ReadingUnavailable)
         }
-        (Some(NetworkHttpRequest::Reading { json }), _) => match reading(now(), json) {
-            Some(response) => {
+        (Some(NetworkHttpRequest::Reading { json }), _) => {
+            if render_into(&mut reading, now(), json, response) {
                 write(io, response.as_bytes()).await?;
                 Ok(ExchangeOutcome::Reading)
-            }
-            None => {
+            } else {
                 write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
                 Ok(ExchangeOutcome::ReadingUnavailable)
             }
-        },
+        }
         (Some(NetworkHttpRequest::Page), Some(route)) => {
             let page = if route.preparation_only {
                 preparation_page(route.limits)
@@ -163,6 +178,21 @@ pub async fn exchange_with_reading<T: Read + Write>(
         }
     }
 }
+fn render_into(
+    reading: &mut impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
+    now: u64,
+    json: bool,
+    output: &mut heapless::String<2048>,
+) -> bool {
+    output.clear();
+    if let Some(response) = reading(now, json) {
+        *output = response;
+        true
+    } else {
+        false
+    }
+}
+
 async fn write<T: Write>(io: &mut T, bytes: &[u8]) -> Result<(), ExchangeRefusal> {
     let mut written = 0;
     while written < bytes.len() {
