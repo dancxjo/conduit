@@ -45,3 +45,12 @@ passed 345 tests; the original harness invocation omitted its required base
 argument and is retained as a failed invocation. The [complete packet](../../proof/tools/riscv64/firmware-231bb012d/index.json)
 keeps the commands, logs, digests and qualifications. This is firmware tool
 preparation, not a graphical product boot or stable-release acceptance.
+
+The [prepared-tools machine probes](../../proof/tools/riscv64/firmware-231bb012d/machine-probes/index.json)
+use the preserved normal ISO at historical source `79a04199e`. With `ramfb`,
+the actual display is 800×600 and that guest refuses its unrepresented
+framebuffer. Without `ramfb`, the corrected probe reaches serial ready; its
+640×384 dump exactly matches the retained QEMU placeholder control. The first
+attempt at the negative probe had a variant-selection bug and timed out during
+QMP stop; its failed raw evidence remains separate. No source-backed graphical
+Show is claimed by either machine probe.

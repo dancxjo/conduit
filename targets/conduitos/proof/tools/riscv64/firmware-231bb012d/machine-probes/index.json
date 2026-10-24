@@ -1,0 +1,157 @@
+{
+  "runtime_source": "79a04199eeaea4721bb2405c7bbb699a72cea25c",
+  "emulator_preparation_source": "6162901d6e02b7e6d7d6b3566627ec4dec0c395a",
+  "firmware_preparation_source": "231bb012dd7653e926d3fa69e421b9541e1621c5",
+  "scope": "prepared-tools G0 probe using preserved normal historical ISO only; no current graphical product frame",
+  "ramfb": "actual800x600 and guest observatory-framebuffer-unrepresented refusal",
+  "no_ramfb_corrected": "actual serial-ready and640x384 QEMU placeholder exactly matching retained paused control",
+  "original_no_ramfb_attempt": "invalid variant: help loop overwrote variant variable, so ramfb remained; QMP stop timed out; retain as failed harness, not negative provider evidence",
+  "original_receipt_tool_source_field": "means firmware preparation source; emulator preparation source separately qualified here",
+  "source_backed_show_proved": false,
+  "files": [
+    {
+      "path": "prepared-riscv64-ramfb-g0/device-help.log.gz",
+      "sha256": "835e59d91ab077e3f89c7c16d9f985ec11e1fe6cfe98d14565e8782985b134f6",
+      "original_sha256": "6ed8c312c980375f1cbfb193d9a9ce5bc8b8d51ee5b7f9b664a30a1821a4c310",
+      "original_bytes": 16646
+    },
+    {
+      "path": "prepared-riscv64-ramfb-g0/display.ppm.gz",
+      "sha256": "8e7125fbb622ebd02e86f370270297a9126bbb7d4f96700786537afce1ba6217",
+      "original_sha256": "6be243a925d3474def1751734b7887c4950529360dbb078fca7e48290e5be97f",
+      "original_bytes": 1440015
+    },
+    {
+      "path": "prepared-riscv64-ramfb-g0/machine-help.log.gz",
+      "sha256": "72bec8007170a24ebcb871d7c506a8cb596407d7617a51fb69768d9fbd184b39",
+      "original_sha256": "8eee4a5788f299f5d74e5c2a2ed40a33e73e7b5aaf1efc2ccd98468efb27b5d9",
+      "original_bytes": 550
+    },
+    {
+      "path": "prepared-riscv64-ramfb-g0/qmp.json.gz",
+      "sha256": "23092ed161af236355feb2b40be245068d2b7765f1af665d65efa9723d9c3154",
+      "original_sha256": "af5213c75bd80ad98428b9a7d2afdf8f696b47194a3636317d9e3ed78a61eb67",
+      "original_bytes": 447
+    },
+    {
+      "path": "prepared-riscv64-ramfb-g0/receipt.json.gz",
+      "sha256": "9104c6d276ece3af9fd68725035f6b3a6b827a18d87c0306826bf4606f11adfd",
+      "original_sha256": "90d27ca575d3ce163cd97168e330316b881e3b35f6eb25b61e78713a5d005a17",
+      "original_bytes": 8932
+    },
+    {
+      "path": "prepared-riscv64-ramfb-g0/serial.log.gz",
+      "sha256": "c95dd5a22a2eab4bbdd6898ae205eebde97db4c6a161c85d434f0870b68ad289",
+      "original_sha256": "c3c76bb28a4c82472d1f7a93e6043e7d999b708d61ecaa5e5c831c7ed23f5866",
+      "original_bytes": 3133
+    },
+    {
+      "path": "prepared-riscv64-ramfb-g0/stderr.log.gz",
+      "sha256": "75f6e419612b48b6329a6a7fd3bee5bb4fc26daead51f738018ec8f77ae367a0",
+      "original_sha256": "d2487ff7cf501d3b20f01a50dff5d5400601518d8be0db74d9f3297990c81e60",
+      "original_bytes": 72
+    },
+    {
+      "path": "prepared-riscv64-ramfb-g0/outer.log.gz",
+      "sha256": "e6fb367d81258aea9ddf75f7283e4247de34406820a539cdb3c049ec0e290ed5",
+      "original_sha256": "fc0cebc89dd2f51d5714cfe323060245db29c8f35bf611e350e74c46a71eb8b4",
+      "original_bytes": 1475
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0/device-help.log.gz",
+      "sha256": "835e59d91ab077e3f89c7c16d9f985ec11e1fe6cfe98d14565e8782985b134f6",
+      "original_sha256": "6ed8c312c980375f1cbfb193d9a9ce5bc8b8d51ee5b7f9b664a30a1821a4c310",
+      "original_bytes": 16646
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0/machine-help.log.gz",
+      "sha256": "72bec8007170a24ebcb871d7c506a8cb596407d7617a51fb69768d9fbd184b39",
+      "original_sha256": "8eee4a5788f299f5d74e5c2a2ed40a33e73e7b5aaf1efc2ccd98468efb27b5d9",
+      "original_bytes": 550
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0/serial.log.gz",
+      "sha256": "c95dd5a22a2eab4bbdd6898ae205eebde97db4c6a161c85d434f0870b68ad289",
+      "original_sha256": "c3c76bb28a4c82472d1f7a93e6043e7d999b708d61ecaa5e5c831c7ed23f5866",
+      "original_bytes": 3133
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0/stderr.log.gz",
+      "sha256": "793d46f28b70bc2a396de8b8250076c11e9934f277b86d7bd6c36a26d1561f67",
+      "original_sha256": "e8ec11ff6cde3c7ff02ea6bff8b8215be9da61b11ad67a8b2eba5f52da4a5eb4",
+      "original_bytes": 72
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0/outer.log.gz",
+      "sha256": "6dd9dc44d7ad8518f761cd313358ff31677152add7ee181d3ea707fe6198ef15",
+      "original_sha256": "57cb13666df0087fd96569948b59b62373fdfa586f381ede955c7b01c6f503e8",
+      "original_bytes": 974
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/device-help.log.gz",
+      "sha256": "835e59d91ab077e3f89c7c16d9f985ec11e1fe6cfe98d14565e8782985b134f6",
+      "original_sha256": "6ed8c312c980375f1cbfb193d9a9ce5bc8b8d51ee5b7f9b664a30a1821a4c310",
+      "original_bytes": 16646
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/display.ppm.gz",
+      "sha256": "14beb68c410ecb9087fea1d50fe14e8dfc17e50f8fd8578651d2b9142ee689a7",
+      "original_sha256": "0febc060e4d667cae5354a4b65e1cbad7ffb0df86eb00fd445e7cd4e2f77e9b6",
+      "original_bytes": 737295
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/launch.json.gz",
+      "sha256": "990fe05915741b24b1f3f3869c97d19e54b1075bf79425056f6423720024bc7a",
+      "original_sha256": "8e8626d1a57d679e7a4d552772a99e294b22f8a4afc184ee56b9cfdce08ccfd9",
+      "original_bytes": 7704
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/machine-help.log.gz",
+      "sha256": "72bec8007170a24ebcb871d7c506a8cb596407d7617a51fb69768d9fbd184b39",
+      "original_sha256": "8eee4a5788f299f5d74e5c2a2ed40a33e73e7b5aaf1efc2ccd98468efb27b5d9",
+      "original_bytes": 550
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/qmp.json.gz",
+      "sha256": "a882418f85ec8c493765058abe4e53ee1478b6b6657bf051eb291e66f58dfb29",
+      "original_sha256": "52fa3648a9520b4ec55ec48c2b37178e1ec66d97c52284e77e033e7ea151b761",
+      "original_bytes": 447
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/receipt.json.gz",
+      "sha256": "27b87248804bc6add38ad807ed21ede764392ad3481646c3cd8acc0c8b95a814",
+      "original_sha256": "7bee7c4b8bcce259ec577125598b5806640b38a382db273de32ed5514c891529",
+      "original_bytes": 9171
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/serial.log.gz",
+      "sha256": "f0022c71a086236cc53c4f4e856ac4ede53f6ce645b780df3c51136c62e1d862",
+      "original_sha256": "8559430a095824ee12ff0915c737fc2197b43268e2a887c1c5e8048a8e75b78f",
+      "original_bytes": 43483
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/stderr.log.gz",
+      "sha256": "c819cf188e6a80b2fcc520dfd72807824c5e5fb2bf274f211375924b8285896b",
+      "original_sha256": "d7d98bcd4b091fc10f08f37f3ecfec11c0a28faf5c830e1b4d15eba65c179406",
+      "original_bytes": 72
+    },
+    {
+      "path": "prepared-riscv64-no-ramfb-g0-corrected/outer.log.gz",
+      "sha256": "6568a6d27664e761448d3b6554f9c34b35342227b5af38ed7990fcb38f5f4660",
+      "original_sha256": "6bab00e67db1a67bb594cf677151ab9dc99d4678f8d16b45b0daed7c6c51fb2e",
+      "original_bytes": 1474
+    },
+    {
+      "path": "probe-prepared-riscv64-g0.py.gz",
+      "sha256": "7dc1ede79d2ff1a824bd3a1080fab64649fb723c1b34323ddec0c21c0ee837dc",
+      "original_sha256": "837fce5893e855891d039aaa62409a821d477ddddc9f3ec7173c7e3e18700439",
+      "original_bytes": 5336
+    },
+    {
+      "path": "probe-prepared-riscv64-g0-original.py.gz",
+      "sha256": "ee210dfedd2db0725c27aeb808fb2a94274502cb6ca1a278807b24777860ff77",
+      "original_sha256": "8171e5571242ccbd3fe09e576b89763cb0c9350f9a34f0bfe1a1cf2a4aee157d",
+      "original_bytes": 5125
+    }
+  ]
+}
