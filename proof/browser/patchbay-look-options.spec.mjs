@@ -4,6 +4,25 @@ import { writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
+// Read actual SVG badge paint, including renderer-supplied inline styles.
+async function cordLabelContrasts(page) {
+  return page.locator('.flow-cord .react-flow__edge-text').evaluateAll(nodes => {
+    const luminance = color => {
+      const channels = color.match(/[\d.]+/gu)?.slice(0, 3).map(Number);
+      if (channels?.length !== 3) throw new Error(`Unresolved label color: ${color}`);
+      const linear = channels.map(channel => { const value=channel/255; return value<=.04045?value/12.92:((value+.055)/1.055)**2.4; });
+      return .2126*linear[0]+.7152*linear[1]+.0722*linear[2];
+    };
+    return nodes.map(node => {
+      const background=node.parentElement.querySelector('.react-flow__edge-textbg');
+      if (!background) throw new Error('Cord label background absent');
+      const ink=getComputedStyle(node).fill, paper=getComputedStyle(background).fill;
+      const a=luminance(ink),b=luminance(paper);
+      return {text:node.textContent,ink,paper,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
+    });
+  });
+}
+
 // Documentary graph: checks appearance and retained renderer identities, not
 // live Body execution or native Mask selection.
 test('four typed application Looks retain the exact Face and graph', async ({ page }, info) => {
@@ -25,6 +44,7 @@ test('four typed application Looks retain the exact Face and graph', async ({ pa
     const baseline=await (await page.request.get(`${url}/api/snapshot`)).json();
     const theme=await (await page.request.get(`${url}/assets/theme.css`)).body();
     await writeFile(info.outputPath('theme.css'),theme);
+    const cordLabels=[];
     const nodes=await page.locator('.flow-frontplate').evaluateAll(nodes=>nodes.map(node=>node.dataset.subject));
     const picker=page.getByRole('combobox',{name:'Look',exact:true});
     await picker.focus();
@@ -44,6 +64,9 @@ test('four typed application Looks retain the exact Face and graph', async ({ pa
       const current=await (await page.request.get(`${url}/api/snapshot`)).json();
       expect(current.face).toEqual(baseline.face);
       await page.screenshot({path:info.outputPath(`look-${name}.png`),fullPage:true,animations:'disabled'});
+      const labels=await cordLabelContrasts(page);expect(labels.length).toBeGreaterThan(0);
+      for(const label of labels)expect(label.ratio,`${name} Cord ${label.text}: ${label.ink} / ${label.paper}`).toBeGreaterThanOrEqual(4.5);
+      cordLabels.push({look:name,labels});
     }
     await page.setViewportSize({width:390,height:844});
     await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
@@ -73,7 +96,10 @@ test('four typed application Looks retain the exact Face and graph', async ({ pa
     }
     expect((await (await page.request.get(`${url}/api/snapshot`)).json()).face).toEqual(baseline.face);
     await page.screenshot({path:info.outputPath('look-narrow-forced.png'),fullPage:true,animations:'disabled'});
+    const forcedLabels=await cordLabelContrasts(page);
+    for(const label of forcedLabels)expect(label.ratio,'forced-color Cord badge').toBeGreaterThanOrEqual(4.5);
     await writeFile(info.outputPath('look-receipt.json'),JSON.stringify({
+      cord_labels:cordLabels,forced_color_cord_labels:forcedLabels,
       scope:'documentary browser application Look switching; not live Body or native proof',
       face:baseline.face, nodes, looks:['conduit.look/phosphor@1','conduit.look/editorial@1','conduit.look/engineering@1','conduit.look/navy@1'],
       unchanged_face:true, keyboard_selection:true, narrow_forced_colors:true,
