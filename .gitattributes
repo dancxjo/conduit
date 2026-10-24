@@ -115,3 +115,10 @@ docs/audits/evidence/gui-look-6349-current-native/embedded-extraction-tests.log 
 docs/audits/evidence/gui-look-6349-handbook-chrome/native-selection-cpu-tests.log -text whitespace=-trailing-space,-blank-at-eof
 docs/audits/evidence/gui-look-6349-handbook-chrome/native-selection-offer-tests.log -text whitespace=-trailing-space,-blank-at-eof
 docs/audits/evidence/gui-look-6349-local-a11y-baseline-refusal/guard-tests.log -text whitespace=-trailing-space,-blank-at-eof
+
+# Exact raw accessibility producer logs; retain byte-for-byte evidence.
+docs/audits/evidence/gui-look-6349-local-a11y-field-split/cluster-after.log -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/gui-look-6349-local-a11y-field-split/selection-after.log -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/gui-look-6349-local-a11y/cpu-selection.log -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/gui-look-6349-local-a11y/layout-after.log -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/gui-look-6349-local-a11y/selection-after-layout.log -text whitespace=-trailing-space,-blank-at-eof
