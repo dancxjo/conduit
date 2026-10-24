@@ -200,3 +200,11 @@ Source cb1efa2f5 adds measured local Crèche shortcut guidance for density, pale
 typography, user text minimum and forced colors. The actual 1280×800 accessibility
 scenario passes with the full footer visible; geometry/priority CPU checks pass
 without new layout space or commands. [Exact source, captures and limits](evidence/gui-look-6349-native-look-guidance/README.md).
+
+## Large-text native icon rhythm
+
+Source dfeb14b59 scales existing semantic row icons and their reserved gap with
+admitted text size across flat/Details, panel and mechanical layouts. 147 native
+scene cases and the eighteen-replacement Look/draft case pass. Actual wide and
+narrow QEMU primary accessibility scenarios pass at 200%/forced colors.
+[Before state, current captures and precise boundaries](evidence/gui-look-6349-native-icon-scale/README.md).
