@@ -107,6 +107,18 @@ impl<P> RetiredDisplay<P> {
     }
 }
 impl<P: conduit_tm1637_wire::OpenDrain> RetiredDisplay<P> {
+    pub fn retire_boxed(
+        owner: &mut Option<alloc::boxed::Box<conduit_tm1637_wire::owner::WriteHostCall<P>>>,
+    ) -> Result<Self, &'static str> {
+        let current = owner.as_ref().ok_or("display-unavailable")?.inspection();
+        if current.lifecycle != c::CapabilityLifecycle::Revoked || current.in_flight_operations != 0
+        {
+            return Err("display-retirement-unavailable");
+        }
+        let mut returned = Some(*owner.take().expect("preflighted boxed display"));
+        Self::retire(&mut returned)
+    }
+
     pub fn retire(
         owner: &mut Option<conduit_tm1637_wire::owner::WriteHostCall<P>>,
     ) -> Result<Self, &'static str> {

@@ -152,4 +152,16 @@ kernel preparation, that dormant kernel remains held for an authenticated retry.
 The production binding helper passes CPU proof with pin methods that panic on
 any electrical operation, capacity refusal preserving readiness, and repeated
 transfer refusal. Both ESP32 profiles compile. Physical binding and memory
-admission remain unverified, and Body start/worker execution is not connected.
+admission remain unverified, and worker execution is not connected.
+
+The display profile accepts authenticated, reservation-matched Start as
+`StartedHeld` using the same held-start/release transition functions as the
+sampler task. It checks actual issued idle driver custody and an unstepped
+kernel. Start runs no Step or pin operation. Cancel revokes that held driver
+and cancels the kernel; Retire consumes revoked idle boxed custody and completes
+Root retirement. Release explicitly refuses until an executor owns the context.
+
+CPU tests cover shared transition refusal/replay/cancellation and production
+boxed retirement preserving ownership before revocation. Both target profiles
+compile. These checks do not prove full Body installation, physical lifecycle
+commands, continuing execution, sensor-to-Mask integration or recording.

@@ -97,35 +97,21 @@ impl Handle {
     pub fn accept_start(&self) -> Result<(), &'static str> {
         STATE.lock(|state| {
             let mut state = state.borrow_mut();
-            if state.cancel_requested {
-                return Err("worker-cancellation-requested");
-            }
-            let status = &mut state.status;
-            if status.phase != "ready-held"
-                || !status.native_live
-                || status.native_in_flight != Some([0, 0])
-                || status.native_lifecycles != Some(["issued", "issued"])
-                || !status.progress_current
-                || status.steps != 0
-                || status.publication_sequence != 0
-            {
-                return Err("worker-not-ready-held");
-            }
-            status.phase = "started-held";
-            Ok(())
+            let ready = state.status.native_live
+                && state.status.native_in_flight == Some([0, 0])
+                && state.status.native_lifecycles == Some(["issued", "issued"])
+                && state.status.progress_current
+                && state.status.steps == 0
+                && state.status.publication_sequence == 0;
+            let cancelled = state.cancel_requested;
+            crate::native_execution_gate::accept_start(&mut state.status.phase, cancelled, ready)
         })
     }
     pub fn release(&self) -> Result<(), &'static str> {
         STATE.lock(|state| {
             let mut state = state.borrow_mut();
-            if state.cancel_requested {
-                return Err("worker-cancellation-requested");
-            }
-            let status = &mut state.status;
-            if status.phase != "started-held" {
-                return Err("worker-not-started-held");
-            }
-            status.phase = "released";
+            let cancelled = state.cancel_requested;
+            crate::native_execution_gate::release(&mut state.status.phase, cancelled)?;
             COMMAND.signal(Command::Release);
             Ok(())
         })

@@ -29,6 +29,10 @@ pub struct NativeDisplay {
     staged: Option<assignment::StagedDisplayAssignment>,
     #[cfg(feature = "display-ready-root")]
     kernel: Option<kernel::Prepared>,
+    #[cfg(feature = "display-ready-root")]
+    phase: &'static str,
+    #[cfg(feature = "display-ready-root")]
+    retired: Option<crate::native_retirement::RetiredDisplay<DisplayPins<'static>>>,
     ready: Option<ReadyWriteBase<DisplayPins<'static>>>,
     #[cfg(feature = "display-ready-root")]
     bound: Option<Box<conduit_tm1637_wire::owner::WriteHostCall<DisplayPins<'static>>>>,
@@ -100,6 +104,10 @@ impl NativeDisplay {
             staged: None,
             #[cfg(feature = "display-ready-root")]
             kernel: None,
+            #[cfg(feature = "display-ready-root")]
+            phase: "unprepared",
+            #[cfg(feature = "display-ready-root")]
+            retired: None,
             ready: Some(ready),
             #[cfg(feature = "display-ready-root")]
             bound: None,
@@ -292,6 +300,63 @@ impl NativeDisplay {
                 available_bytes: available,
             },
         )?);
+        self.phase = "ready-held";
+        Ok(())
+    }
+}
+
+#[cfg(feature = "display-ready-root")]
+impl NativeDisplay {
+    /// This acknowledges held custody only. No Step or electrical call runs.
+    pub fn accept_start(&mut self) -> Result<(), &'static str> {
+        let ready = self.kernel.is_some()
+            && self.bound.as_ref().is_some_and(|owner| {
+                let status = owner.inspection();
+                status.lifecycle == c::CapabilityLifecycle::Issued
+                    && status.in_flight_operations == 0
+                    && status.completed_operations == 0
+            });
+        crate::native_execution_gate::accept_start(&mut self.phase, false, ready)
+    }
+}
+
+#[cfg(feature = "display-ready-root")]
+impl NativeDisplay {
+    pub fn cancel_held(&mut self) -> Result<(), &'static str> {
+        if !matches!(self.phase, "ready-held" | "started-held") {
+            return Err("display-not-held");
+        }
+        let kernel = self.kernel.as_mut().ok_or("display-kernel-unavailable")?;
+        self.bound
+            .as_mut()
+            .ok_or("display-binding-unavailable")?
+            .revoke(kernel.write, conduit_kernel::HostCallId(0))
+            .map_err(|_| "display-revocation")?;
+        kernel.kernel.cancel().map_err(|_| "display-cancellation")?;
+        self.phase = "quiesced";
+        Ok(())
+    }
+    pub fn retire_held(
+        &mut self,
+        issuer: &mut crate::native_authority::RootIssuer,
+        active: &c::ActivePlayIdentity,
+    ) -> Result<(), &'static str> {
+        if self.phase != "quiesced" {
+            return Err("display-not-quiesced");
+        }
+        if self.retired.is_none() {
+            self.retired = Some(crate::native_retirement::RetiredDisplay::retire_boxed(
+                &mut self.bound,
+            )?);
+        }
+        issuer
+            .finish_display_play(
+                active,
+                self.retired.as_ref().expect("returned display custody"),
+            )
+            .map_err(|_| "display-retirement-scope")?;
+        self.kernel = None;
+        self.phase = "retired";
         Ok(())
     }
 }

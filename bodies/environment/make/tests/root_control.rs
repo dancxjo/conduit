@@ -261,3 +261,8 @@ mod native_display_kernel;
 
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_display_binding.rs"]
 mod native_display_binding;
+
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_execution_gate.rs"]
+mod native_execution_gate;
+#[path = "root_control_support/execution_gate.rs"]
+mod execution_gate;

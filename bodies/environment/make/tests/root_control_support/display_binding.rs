@@ -60,4 +60,16 @@ pub(super) fn check(
         active.active_play_id
     );
     assert!(bind(&mut issuer, &mut owner, input(usize::MAX)).is_err());
+    let mut bound = Some(bound);
+    assert!(native_retirement::RetiredDisplay::retire_boxed(&mut bound).is_err());
+    assert!(bound.is_some());
+    bound
+        .as_mut()
+        .unwrap()
+        .revoke(profile.write, conduit_kernel::HostCallId(0))
+        .unwrap();
+    let retired = native_retirement::RetiredDisplay::retire_boxed(&mut bound).unwrap();
+    assert!(bound.is_none());
+    issuer.finish_display_play(&active, &retired).unwrap();
+    assert!(issuer.finish_display_play(&active, &retired).is_err());
 }

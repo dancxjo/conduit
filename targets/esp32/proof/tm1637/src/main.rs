@@ -53,6 +53,8 @@ mod native_worker;
 #[cfg(feature = "native-root")]
 mod native_task;
 #[cfg(feature = "native-root")]
+mod native_execution_gate;
+#[cfg(feature = "native-root")]
 mod native_owner_control;
 #[cfg(feature = "native-root")]
 mod native_owner_receipt;
