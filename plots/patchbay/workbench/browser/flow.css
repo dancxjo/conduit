@@ -156,3 +156,7 @@
   color: var(--conduit-text-primary);
   pointer-events: none;
 }
+
+/* Shared pinned symbols remain noninteractive decoration at the text scale. */
+.faceplate-icon svg,.faceplate-inline-icon svg{display:inline-block;width:1.1em;height:1.1em;vertical-align:-.15em;fill:none;stroke:currentColor;pointer-events:none}
+.faceplate-inline-icon{display:inline;margin-inline-end:.4em}

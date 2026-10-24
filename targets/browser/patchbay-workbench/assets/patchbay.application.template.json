@@ -24,7 +24,7 @@
     { "role": "patchbay-workspace", "kind": "module", "path": "assets/flow-workspace.js", "source": "plots/patchbay/workbench/browser/flow-workspace.js", "maximum_bytes": 32768, "dependencies": [] },
     { "role": "patchbay-workspace-view", "kind": "module", "path": "assets/flow-workspace-view.js", "source": "plots/patchbay/workbench/browser/flow-workspace-view.js", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "patchbay-flow-layout", "kind": "module", "path": "assets/flow-layout.js", "source": "plots/patchbay/workbench/browser/flow-layout.js", "maximum_bytes": 16384, "dependencies": [] },
-    { "role": "patchbay-frontplate", "kind": "module", "path": "assets/flow-frontplate.js", "source": "plots/patchbay/workbench/browser/flow-frontplate.js", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "patchbay-frontplate", "kind": "module", "path": "assets/flow-frontplate.js", "source": "plots/patchbay/workbench/browser/flow-frontplate.js", "maximum_bytes": 8192, "dependencies": [{"role":"gui-icons","specifier":"./gui-icons.mjs"}] },
     { "role": "shared-face", "kind": "module", "path": "assets/shared-face.js", "source": "plots/patchbay/workbench/browser/shared-face.js", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "portable-navigation", "kind": "module", "path": "assets/portable-navigation.js", "source": "plots/patchbay/workbench/browser/portable-navigation.js", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "websocket-line", "kind": "module", "path": "assets/websocket-line.mjs", "source": "targets/browser/host/assets/websocket-line.mjs", "maximum_bytes": 16384, "dependencies": [] },

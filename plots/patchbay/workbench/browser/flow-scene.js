@@ -177,6 +177,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
       role: subject.role,
       accessibilityName: subject.name,
       icon: subjectProperties.get(subject.identity)?.get("icon-token") || (subject.role === "Gear" ? "◆" : "◇"),
+      iconToken: subjectProperties.get(subject.identity)?.get("icon-token") || null,
       iconName: subjectProperties.get(subject.identity)?.get("icon-name") || subject.role,
       clue: compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens),
       reviewedBack: subjectProperties.get(subject.identity)?.get("reviewed-back") === "available",

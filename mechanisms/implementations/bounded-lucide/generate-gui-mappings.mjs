@@ -11,6 +11,10 @@ if (JSON.stringify(keys) !== JSON.stringify(enumKeys)) throw new Error('Vocabula
 for (const value of [...Object.values(data.roles), ...Object.values(data.intents)]) {
   if (!Object.hasOwn(data.icons, value)) throw new Error(`Unknown mapped icon ${value}`);
 }
+// Reuse the canonical wire tokens rather than maintaining a second alias list.
+const tokenBody = enumSource.match(/pub const fn as_str\(self\) -> &'static str \{([\s\S]*?)\n    \}/)?.[1];
+const tokens = Object.fromEntries([...tokenBody.matchAll(/Self::([A-Z][A-Za-z0-9]*) => "([a-z0-9-]+)"/g)].map(([,key,token]) => [token,key]));
+if (Object.keys(tokens).length !== keys.length || keys.some(key => !Object.values(tokens).includes(key))) throw new Error('Canonical icon tokens must match the complete vocabulary');
 const geometry = {};
 for (const [key, name] of Object.entries(data.icons)) {
   if (!/^[A-Z][A-Za-z0-9]*$/.test(key) || !/^[a-z0-9-]+$/.test(name)) throw new Error('Invalid icon identity');
@@ -42,8 +46,10 @@ if (license.includes('*/')) throw new Error('License cannot be embedded in a mod
 const browser = `${header}/*\n${license}*/\nconst geometry = ${JSON.stringify(geometry)};
 const roles = ${JSON.stringify(data.roles)};
 const intents = ${JSON.stringify(data.intents)};
+const tokens = ${JSON.stringify(tokens)};
 export const iconForRole = role => typeof role === 'string' && Object.hasOwn(roles, role) ? roles[role] : undefined;
 export const iconForIntent = intent => typeof intent === 'string' && Object.hasOwn(intents, intent) ? intents[intent] : undefined;
+export const iconForToken = token => typeof token === 'string' && Object.hasOwn(tokens, token) ? tokens[token] : undefined;
 export const iconForKey = key => typeof key === 'string' && Object.hasOwn(geometry, key) ? key : undefined;
 export function decorate(node, key) {
   if (!iconForKey(key)) return node;

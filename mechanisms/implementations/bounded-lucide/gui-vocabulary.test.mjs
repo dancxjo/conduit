@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { iconForRole, iconForIntent, iconForKey } from '../../../targets/browser/handbook/owner-face-icons.mjs';
+import { iconForRole, iconForIntent, iconForKey, iconForToken } from '../../../targets/browser/handbook/owner-face-icons.mjs';
 
 test('search, inspection and lifecycle intents keep distinct shared identities', () => {
   assert.equal(iconForIntent('conduit.intent/creche.search@1'), 'Search');
@@ -15,8 +15,17 @@ test('unknown captions, versions and object/prototype names cannot select decora
     assert.equal(iconForRole(value), undefined);
     assert.equal(iconForIntent(value), undefined);
     assert.equal(iconForKey(value), undefined);
+    assert.equal(iconForToken(value), undefined);
   }
   for (const value of ['Birth Body', 'creche.birth', 'conduit.intent/creche.birth@2', 'custom/conduit.intent/creche.birth@1']) {
     assert.equal(iconForIntent(value), undefined);
   }
+});
+
+test('canonical icon wire tokens share the pinned geometry keys without caption guessing', () => {
+  assert.equal(iconForToken('clock'), 'Clock');
+  assert.equal(iconForToken('conduit-generic-gear'), 'GenericGear');
+  assert.equal(iconForToken('conduit-port'), 'Port');
+  assert.equal(iconForToken('face'), 'Face');
+  for (const value of ['Clock', 'text', 'repeating flow', 'generic Gear; icon metadata missing', 'clock@2', 'settings']) assert.equal(iconForToken(value), undefined);
 });

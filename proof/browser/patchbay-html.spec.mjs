@@ -90,7 +90,7 @@ async function expectFaceplateTextContained(page) {
       fields:fields.map(field=>{
         const owner=field.matches(".faceplate-clue")?field:field.closest("header,.faceplate-port");
         const style=getComputedStyle(field);
-        return {className:field.className,inside:inside(bounds(field),bounds(owner)),overflow:style.overflow,textOverflow:style.textOverflow,whiteSpace:style.whiteSpace,title:field.title,text:field.textContent};
+        return {className:field.className,inside:inside(bounds(field),bounds(owner)),overflow:style.overflow,textOverflow:style.textOverflow,whiteSpace:style.whiteSpace,title:field.title,text:field.textContent,decorativeIcon:field.classList.contains("faceplate-icon")&&field.querySelector('svg[aria-hidden="true"]')!==null};
       }),
       regions:regions.map(region=>({inside:inside(bounds(region),bounds(faceplate))})),
     };
@@ -101,7 +101,7 @@ async function expectFaceplateTextContained(page) {
       expect(field.inside,`${faceplate.subject} ${field.className} escaped its owned region`).toBe(true);
       expect({overflow:field.overflow,textOverflow:field.textOverflow,whiteSpace:field.whiteSpace}).toEqual({overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"});
       expect(field.title).toBeTruthy();
-      expect(field.text).toBeTruthy();
+      expect(field.text || field.decorativeIcon).toBeTruthy();
     }
     for(const region of faceplate.regions){
       expect(region.inside,`${faceplate.subject} region escaped its faceplate`).toBe(true);
