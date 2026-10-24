@@ -1,0 +1,31 @@
+diff --git a/architecture/plot/tests/native_law_custody.rs b/architecture/plot/tests/native_law_custody.rs
+index 32b3a3d58..959969ab6 100644
+--- a/architecture/plot/tests/native_law_custody.rs
++++ b/architecture/plot/tests/native_law_custody.rs
+@@ -4,7 +4,7 @@ use conduit_plot::*;
+ fn checked(source: &str, catalog: &StartupCatalog) -> CheckedSyntaxDocument {
+     check_syntax_document(&parse_syntax_document(source), catalog).unwrap()
+ }
+-const SOURCE: &str = "type Duration = {\n denominator: U64\n numerator: U64\n where .denominator > 0\n where .numerator > 0\n}\ntype Timing = {\n start: Duration\n duration: Duration\n where .start.denominator == .duration.denominator\n where .start.numerator + .duration.numerator <= 65535\n}\n";
++const SOURCE: &str = "type CustodyDuration = {\n denominator: U64\n numerator: U64\n where .denominator > 0\n where .numerator > 0\n}\ntype Timing = {\n start: CustodyDuration\n duration: CustodyDuration\n where .start.denominator == .duration.denominator\n where .start.numerator + .duration.numerator <= 65535\n}\n";
+ #[test]
+ fn exact_local_nested_declarations_round_trip_without_changing_schema_or_laws() {
+     let doc = checked(SOURCE, &StartupCatalog::new());
+@@ -30,7 +30,7 @@ fn missing_substituted_reordered_and_duplicate_claimed_laws_are_not_self_certify
+     ));
+     let mut replaced = original.clone();
+     replaced.claimed.invariants[0] = doc
+-        .native_law_witness("Duration")
++        .native_law_witness("CustodyDuration")
+         .unwrap()
+         .checked_type()
+         .invariants[0]
+@@ -113,7 +113,7 @@ fn retained_cross_field_predicate_still_identifies_invalid_timing_input() {
+     use conduit_core::{StructuredFieldValue, StructuredInfoType, StructuredInfoValue};
+     use conduit_plot::rust_binding::primitive_into_structured;
+     let doc = checked(SOURCE, &StartupCatalog::new());
+-    let duration = doc.native_law_witness("Duration").unwrap().checked_type();
++    let duration = doc.native_law_witness("CustodyDuration").unwrap().checked_type();
+     let timing = doc.native_law_witness("Timing").unwrap().checked_type();
+     let u64_type = StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap();
+     let value = |denominator: u64| {
