@@ -131,6 +131,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-time",
+ "miniz_oxide",
  "serde",
  "serde_json",
  "sha2",
