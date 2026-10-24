@@ -1,0 +1,85 @@
+{
+  "source_state": "WIP, not finalclean acceptance",
+  "owning_source_sha256": {
+    "semantics/language/src/lib.rs": "9106eb15e342e131d877b7223d9892c677db93a037fc1f4d4a22e554ccec6caf",
+    "semantics/language/build.rs": "1b17945e8c02ff74808f1798bcfba28ae95e73cd054e9ec84497511806ea3c7e",
+    "semantics/language/tests/actual_beam_prepared_decode.rs": "10a182e35cffa2799f527314807d6b6e964e018bcab42d56a51736eb3e32cd88",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "07d216765b988873e7654ed3b8e419cbd2d993d47ab6a3bb1ca50ee0cdfaffe4",
+    "architecture/plot/src/rust_binding/mod.rs": "2f765c844e14c4710759e4354d3a1efeafa2f80fb177f049ba3513f52dbf881d",
+    "architecture/plot/src/rust_binding/prepared_decode.rs": "b69f604d61b0fa7cc868591dfc04a22129112a33db17949ab8af26919f5105f8",
+    "architecture/plot/src/rust_binding/generate_prepared_storage.rs": "521897586c6d2b6ebe68f9405610bbf0af27039a5a68886130104976b75c92ea",
+    "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs": "fc7388041506c85fae169f673aae24e105857eea8e967e6ca5bc25ffe117f159",
+    "architecture/plot/tests/prepared_native_decode.rs": "07921433576ec3be465dc25fe56e870d48a4fa471adcbce0b34249fa0199769c"
+  },
+  "started": 1792825371.5170016,
+  "checks": [
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "prepared_native_admission",
+        "--test",
+        "prepared_native_occurrences",
+        "--test",
+        "prepared_native_optional",
+        "--test",
+        "prepared_native_decode",
+        "--",
+        "--test-threads=1"
+      ],
+      "started": 1792825371.5171163,
+      "log": "check-0.log",
+      "exit_code": 0,
+      "ended": 1792825380.2771153,
+      "log_sha256": "61bc3f6727730c924d19a36215835e32aa1721c2547afc69e17c2d013e6e7b0f"
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-language",
+        "--test",
+        "prepared_beam_admission",
+        "--",
+        "--test-threads=1"
+      ],
+      "started": 1792825380.277198,
+      "log": "check-1.log",
+      "exit_code": 0,
+      "ended": 1792825546.1849935,
+      "log_sha256": "352e2487e5e3cb110767d2705229069a28c78b824f92b45fc378b56b00a0dbbc"
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "-p",
+        "conduit-language",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started": 1792825546.1850805,
+      "log": "check-2.log",
+      "exit_code": 0,
+      "ended": 1792825602.0540898,
+      "log_sha256": "0ae72a16f8e988789d40785f10b559f5d91e5fb21342b0ed0ea46ff5f44c784f"
+    }
+  ],
+  "source_unchanged": true,
+  "status": "passed",
+  "ended": 1792825602.0542994
+}

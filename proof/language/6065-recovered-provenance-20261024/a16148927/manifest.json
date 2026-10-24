@@ -1,0 +1,61 @@
+{
+  "source": "a161489278d7170d309db9d35add9216111127d7",
+  "recorded_base": "fdc2a582dd20c19d5f9479f66746e36e036a228d",
+  "files": [
+    {
+      "path": "focused-receipt.json",
+      "bytes": 2876,
+      "sha256": "adfc1565490bfa9826783b8360fc0fe1717df42b2bded969ee6e2a3f049644b7"
+    },
+    {
+      "path": "beam-receipt.json",
+      "bytes": 2181,
+      "sha256": "40bfeabdb33145b67482c177381d534c40c2532662efbf37b8a475de434113f7"
+    },
+    {
+      "path": "focused-producer.py",
+      "bytes": 2351,
+      "sha256": "c97f7a6993999a87b42f426f8e12fc39d854bf6b1a1cf9fee4b78ac12da4c6d6"
+    },
+    {
+      "path": "beam-producer.py",
+      "bytes": 3256,
+      "sha256": "509a4fa7e23098822ee01846471db6db79640a2ad890122b044284b3249281c0"
+    },
+    {
+      "path": "focused-check-0.log.gz",
+      "bytes": 985,
+      "sha256": "cff1dea9fa74742c03c5efe09adcffe7924af130e3c016ccc5cba98e1ff0b258"
+    },
+    {
+      "path": "focused-check-1.log.gz",
+      "bytes": 386,
+      "sha256": "1e417f555d49f341a632f4896fbe3825f0ba5209e82678c51de7c84e40d2d5e2"
+    },
+    {
+      "path": "focused-check-2.log.gz",
+      "bytes": 378,
+      "sha256": "96a1c7668c48e8fff989f1dc4830c5b0c757bf11b03e127e50e39717d8ac31db"
+    },
+    {
+      "path": "actual-beam.log.gz",
+      "bytes": 790,
+      "sha256": "eea83977229c7f0cf40da50c16228863a9cfa7aa70531547eb071aa56e3260d0"
+    },
+    {
+      "path": "actual-beam-test.elf.gz",
+      "bytes": 7384702,
+      "sha256": "9c6521f525c7d418cb37f351427494ab300522ceadfba89e16ed3183a7be21b7"
+    },
+    {
+      "path": "independent-review.json",
+      "bytes": 8143,
+      "sha256": "12bf923cf11ae7d4fe47ba67f9ccabeaa5abf981a8990d040d31d5fc5ff1d5d3"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1576,
+      "sha256": "a5023f069fececbbf80aa25340227dd450c2c3de5fb954c431918532de64517d"
+    }
+  ]
+}

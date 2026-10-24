@@ -1,0 +1,44 @@
+{
+  "base": "fdc2a582dd20c19d5f9479f66746e36e036a228d",
+  "source_state": "isolated preparation WIP; exact nine owning source hashes, not finalcleanSourceacceptance",
+  "owning_source_sha256": {
+    "semantics/language/src/lib.rs": "9106eb15e342e131d877b7223d9892c677db93a037fc1f4d4a22e554ccec6caf",
+    "semantics/language/build.rs": "1b17945e8c02ff74808f1798bcfba28ae95e73cd054e9ec84497511806ea3c7e",
+    "semantics/language/tests/actual_beam_prepared_decode.rs": "10a182e35cffa2799f527314807d6b6e964e018bcab42d56a51736eb3e32cd88",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "07d216765b988873e7654ed3b8e419cbd2d993d47ab6a3bb1ca50ee0cdfaffe4",
+    "architecture/plot/src/rust_binding/mod.rs": "2f765c844e14c4710759e4354d3a1efeafa2f80fb177f049ba3513f52dbf881d",
+    "architecture/plot/src/rust_binding/prepared_decode.rs": "b69f604d61b0fa7cc868591dfc04a22129112a33db17949ab8af26919f5105f8",
+    "architecture/plot/src/rust_binding/generate_prepared_storage.rs": "521897586c6d2b6ebe68f9405610bbf0af27039a5a68886130104976b75c92ea",
+    "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs": "fc7388041506c85fae169f673aae24e105857eea8e967e6ca5bc25ffe117f159",
+    "architecture/plot/tests/prepared_native_decode.rs": "07921433576ec3be465dc25fe56e870d48a4fa471adcbce0b34249fa0199769c"
+  },
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-language",
+    "--test",
+    "actual_beam_prepared_decode",
+    "--",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "started": 1792825035.8690753,
+  "status": "passed-owning-generic-preparation",
+  "proof_class": "current-generated Rust/no_std and finite Native materialization owning tests; no controller/Current authority",
+  "free_before": 16799633408,
+  "exit_code": 0,
+  "owning_source_unchanged": true,
+  "retained_artifacts": [
+    {
+      "file": "actual_beam_prepared_decode-26ddf78078dd5fef",
+      "bytes": 35772920,
+      "sha256": "0e3f3bc1d5616a46af105644c093233c44552c768462e61704cf8c80ee0f974d"
+    }
+  ],
+  "ended": 1792825329.414774,
+  "free_after": 17410084864,
+  "log_sha256": "baef1d6e67d7530f5ff1fb473bb874db77f9c5d4d8cf14e3e957bb158bef9172"
+}

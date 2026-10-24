@@ -1,0 +1,179 @@
+{
+  "source": "a161489278d7170d309db9d35add9216111127d7",
+  "recorded_base": "fdc2a582dd20c19d5f9479f66746e36e036a228d",
+  "nine_owning_source_hashes": {
+    "semantics/language/src/lib.rs": "9106eb15e342e131d877b7223d9892c677db93a037fc1f4d4a22e554ccec6caf",
+    "semantics/language/build.rs": "1b17945e8c02ff74808f1798bcfba28ae95e73cd054e9ec84497511806ea3c7e",
+    "semantics/language/tests/actual_beam_prepared_decode.rs": "10a182e35cffa2799f527314807d6b6e964e018bcab42d56a51736eb3e32cd88",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "07d216765b988873e7654ed3b8e419cbd2d993d47ab6a3bb1ca50ee0cdfaffe4",
+    "architecture/plot/src/rust_binding/mod.rs": "2f765c844e14c4710759e4354d3a1efeafa2f80fb177f049ba3513f52dbf881d",
+    "architecture/plot/src/rust_binding/prepared_decode.rs": "b69f604d61b0fa7cc868591dfc04a22129112a33db17949ab8af26919f5105f8",
+    "architecture/plot/src/rust_binding/generate_prepared_storage.rs": "521897586c6d2b6ebe68f9405610bbf0af27039a5a68886130104976b75c92ea",
+    "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs": "fc7388041506c85fae169f673aae24e105857eea8e967e6ca5bc25ffe117f159",
+    "architecture/plot/tests/prepared_native_decode.rs": "07921433576ec3be465dc25fe56e870d48a4fa471adcbce0b34249fa0199769c"
+  },
+  "complete_delta_paths": [
+    "architecture/plot/src/rust_binding/generate_prepared_storage.rs",
+    "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs",
+    "architecture/plot/src/rust_binding/mod.rs",
+    "architecture/plot/src/rust_binding/prepared_decode.rs",
+    "architecture/plot/src/rust_binding/prepared_native.rs",
+    "architecture/plot/tests/prepared_native_decode.rs",
+    "proof/language/6065-current-prepared-native/README.md",
+    "proof/language/6065-current-prepared-native/actual-beam.log.gz",
+    "proof/language/6065-current-prepared-native/beam-admission-regression.log.gz",
+    "proof/language/6065-current-prepared-native/plot-regressions.log.gz",
+    "proof/language/6065-current-prepared-native/results.json",
+    "proof/language/6065-current-prepared-native/strict-library-clippy.log.gz",
+    "semantics/language/build.rs",
+    "semantics/language/src/lib.rs",
+    "semantics/language/tests/actual_beam_prepared_decode.rs",
+    "tools/xtask/src/suites/native_source_laws.rs"
+  ],
+  "all_outside_nine_changes": [
+    "proof/language/6065-current-prepared-native/README.md",
+    "proof/language/6065-current-prepared-native/actual-beam.log.gz",
+    "proof/language/6065-current-prepared-native/beam-admission-regression.log.gz",
+    "proof/language/6065-current-prepared-native/plot-regressions.log.gz",
+    "proof/language/6065-current-prepared-native/results.json",
+    "proof/language/6065-current-prepared-native/strict-library-clippy.log.gz",
+    "tools/xtask/src/suites/native_source_laws.rs"
+  ],
+  "all_other_tracked_production_inputs_equal_base": true,
+  "sample_exact_unchanged_critical_inputs": {
+    "Cargo.toml": "d2d5273953e62bc058c9942986d6b893d89adf9b",
+    "Cargo.lock": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+    "rust-toolchain.toml": "906b1d8542b6f94b5238046e198e9c2672b6c8e0",
+    "architecture/plot/Cargo.toml": "7e3a7823e70a9668dac9a3aa831ec72d3982d45e",
+    "semantics/language/Cargo.toml": "4ac42e3ef8a03ba12af03eaba0ef83e003eff6d3",
+    "architecture/plot/tests/common/generated_rust.rs": "109a5b95390c1fb7e794c4cbf4d39afc539cb514",
+    "architecture/plot/tests/common/allocation_probe.rs": "90274ef35a7323f41ebb774cd8bdaeb97a26efe2",
+    "architecture/plot/src/rust_binding/prepared_native/traversal.rs": "9014720c8ab9f8f5a568611375c9d54d3439b1a4"
+  },
+  "raw_command_proof": [
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "prepared_native_admission",
+        "--test",
+        "prepared_native_occurrences",
+        "--test",
+        "prepared_native_optional",
+        "--test",
+        "prepared_native_decode",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "raw_log_sha256": "61bc3f6727730c924d19a36215835e32aa1721c2547afc69e17c2d013e6e7b0f",
+      "published_log": "plot-regressions.log.gz"
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-language",
+        "--test",
+        "prepared_beam_admission",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "raw_log_sha256": "352e2487e5e3cb110767d2705229069a28c78b824f92b45fc378b56b00a0dbbc",
+      "published_log": "beam-admission-regression.log.gz"
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "-p",
+        "conduit-language",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "raw_log_sha256": "0ae72a16f8e988789d40785f10b559f5d91e5fb21342b0ed0ea46ff5f44c784f",
+      "published_log": "strict-library-clippy.log.gz"
+    }
+  ],
+  "beam_command": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-language",
+    "--test",
+    "actual_beam_prepared_decode",
+    "--",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "actual_direct_Beam_binary_evidence": [
+    {
+      "path": "actual-beam-test.elf.gz",
+      "raw_bytes": 35772920,
+      "raw_sha256": "0e3f3bc1d5616a46af105644c093233c44552c768462e61704cf8c80ee0f974d",
+      "historical_expected_sha256": "0e3f3bc1d5616a46af105644c093233c44552c768462e61704cf8c80ee0f974d",
+      "actual_Cargo_Running_name": "actual_beam_prepared_decode-26ddf78078dd5fef"
+    }
+  ],
+  "generic_proof": "Actualfinal15Plotouterregressions include2prepared_native_decode cases. Currentgenerated_rust::exercise compilesCURRENTemittedsource, executes4innercases withfailclosedcount/statusassertions, compilesno_std thenreturns; retainedouterPASSthereforecoversinnerbehavior/no_std. Innerbinarytemporariesdeletedbyexistinghelper; noexactinnerexeSHAclaim.",
+  "prior_generic_binary_qualification": {
+    "receipt_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-generic-owner-fix-fdc2a582d/receipt.json",
+    "status": "passed-owning-generic-preparation",
+    "source_hash_differs_from_final": [
+      "architecture/plot/src/rust_binding/generate_prepared_storage.rs"
+    ],
+    "retained_binary": [
+      {
+        "file": "prepared_native_decode-54e4d10e3f979ea8",
+        "bytes": 14191640,
+        "sha256": "d6072bdcdeca0bd3ce56538d5525dc411176f3db450a6c73868afa8ea0703ea9"
+      }
+    ],
+    "relabelled_as_final": false
+  },
+  "strict_library_lint": {
+    "actual_argv": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "--locked",
+      "-p",
+      "conduit-plot",
+      "-p",
+      "conduit-language",
+      "--lib",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "raw_log_sha256": "0ae72a16f8e988789d40785f10b559f5d91e5fb21342b0ed0ea46ff5f44c784f",
+    "receipt_exit_code": 0,
+    "source_unchanged_during_run": true,
+    "scope": "Plot+Language--lib, notalltargets; originalrawlogdidnotprintargv, nowjoinedviaactualproducerandreceipt"
+  },
+  "proof_boundary": "HistoricalpreparationWIP withall9finalowningsourcebytesfrozen before/after and recordedfdcbase. PRa161 retainsidenticalowningbytes; supported-suite routingaddedlaterandnotlocallywhole-suiteexecuted. CompletePRdelta provesallothertrackedproductioninputs equalrecordedbase, buthistoricalreceiptdidnotcapturewholeWIPtree/cleanstate/compilerattestation; donotretroactivelyclaimcleancommita161execution. Exact-headCandidate/acceptedIntegrationremainrequired.",
+  "assessment": "Recoveredpreciseproducer/argv/rawlogsandretainedBeamELFsubstantivelycloseidentifiedlocalprovenancegaps. No newtestcampaignnecessary; genericproof remainscheckedhelperexecutionratherthanretainedinnerbinary.",
+  "limits": [
+    "No build/test rerun/CIpoll/sourceorownerbranch/cachemutation.",
+    "No streamingcontroller/installedCurrentauthority/nativeUI/firmware/physical/realtimelatency/parent4907completion.",
+    "No newCIacceptance or6065closure."
+  ]
+}
