@@ -1,0 +1,196 @@
+{
+  "source": "b4bd081dceb2dda11492d7697cd1416f7513fba6",
+  "upstream_commit": "b7b6ecf1316d0af64c97a6b0392abe5e816a8e30",
+  "upstream_repository": "lucide-icons/lucide",
+  "tree_sha": "b7b6ecf1316d0af64c97a6b0392abe5e816a8e30",
+  "tree_truncated": false,
+  "matched": 14,
+  "total": 23,
+  "inputs": [
+    {
+      "key": "Clock",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/clock.svg",
+      "local_blob": "d40bc3b8e82b20f0ed405a09659736cf12aaab30",
+      "upstream_path": "icons/clock.svg",
+      "upstream_blob": "b6ae2834e60fc09547007a89067994e8b5ea55b5",
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "Repeat2",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/repeat-2.svg",
+      "local_blob": "0f653118328dc2b31b544a2079744a2b4777fddb",
+      "upstream_path": "icons/repeat-2.svg",
+      "upstream_blob": "63a3d0ceb6844c7affcfe812fb101fcca627e9d1",
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "Face",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/face.svg",
+      "local_blob": "c50ac05ee5e88bfe954f49b74459f147f48a8ace",
+      "upstream_path": "icons/face.svg",
+      "upstream_blob": null,
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "Type",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/type.svg",
+      "local_blob": "807d9eaec8198c376ac1d7e4bbb08b91f4d0994e",
+      "upstream_path": "icons/type.svg",
+      "upstream_blob": "8f269e72e02cd39c8bd8bf8712bc83fa817fe198",
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "CaseUpper",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/case-upper.svg",
+      "local_blob": "37c94e8bc7a2379f4db7c85baae64bbdecfe6832",
+      "upstream_path": "icons/case-upper.svg",
+      "upstream_blob": "0d2c9585ab9f9464fb38bde3e40fdbd45de29689",
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "Combine",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/combine.svg",
+      "local_blob": "94272390f35a3b05b32e6500ede75e6da41ee4ad",
+      "upstream_path": "icons/combine.svg",
+      "upstream_blob": "de02c62be59fc25bde7e350d8ca0963205d206db",
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "Tally5",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/tally-5.svg",
+      "local_blob": "fc555f9ec2591b07816ad97346b58f34ebc51f4f",
+      "upstream_path": "icons/tally-5.svg",
+      "upstream_blob": "bf0ee1a707324573bc643c3f31dba5f689534841",
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "ChartColumnsIncreasing",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/chart-no-axes-column-increasing.svg",
+      "local_blob": "e68f3eaea5912c24155585389aaf819680aab5af",
+      "upstream_path": "icons/chart-no-axes-column-increasing.svg",
+      "upstream_blob": "81653631e04e2dca1238eb0a26ba2fdfc73916d5",
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "FileOutput",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/file-output.svg",
+      "local_blob": "878a43678f4997214d7022397dc336a951e0a9fb",
+      "upstream_path": "icons/file-output.svg",
+      "upstream_blob": "e35d26a9bd04a3645b9918ea65a11422a256d152",
+      "identical_to_pinned_upstream": false
+    },
+    {
+      "key": "Keyboard",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/keyboard.svg",
+      "local_blob": "254582887503f763af4e284f05bc858464ff664d",
+      "upstream_path": "icons/keyboard.svg",
+      "upstream_blob": "254582887503f763af4e284f05bc858464ff664d",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "GenericGear",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/settings.svg",
+      "local_blob": "4c6263af909841a3911f41a385021778eacba736",
+      "upstream_path": "icons/settings.svg",
+      "upstream_blob": "4c6263af909841a3911f41a385021778eacba736",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Body",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/box.svg",
+      "local_blob": "114e73759ecb7d3480409ab876b600803fc4bdd7",
+      "upstream_path": "icons/box.svg",
+      "upstream_blob": "114e73759ecb7d3480409ab876b600803fc4bdd7",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Wake",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/sunrise.svg",
+      "local_blob": "11c3f5b8bebcc372976be6b4472044626f2e269f",
+      "upstream_path": "icons/sunrise.svg",
+      "upstream_blob": "11c3f5b8bebcc372976be6b4472044626f2e269f",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Plan",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/list-checks.svg",
+      "local_blob": "602734bab9f0c9938f0e99c209ac6e7bec695810",
+      "upstream_path": "icons/list-checks.svg",
+      "upstream_blob": "602734bab9f0c9938f0e99c209ac6e7bec695810",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Play",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/play.svg",
+      "local_blob": "199743ed2e546fdcef48f9ebbe4030e8f75c59c1",
+      "upstream_path": "icons/play.svg",
+      "upstream_blob": "199743ed2e546fdcef48f9ebbe4030e8f75c59c1",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Host",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/server.svg",
+      "local_blob": "a8b6ad92b3cc90688bfaa4d259dce75b26c81d2e",
+      "upstream_path": "icons/server.svg",
+      "upstream_blob": "a8b6ad92b3cc90688bfaa4d259dce75b26c81d2e",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Port",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/plug.svg",
+      "local_blob": "f28b6f0abef77a6e843dfa99f81731332c72db64",
+      "upstream_path": "icons/plug.svg",
+      "upstream_blob": "f28b6f0abef77a6e843dfa99f81731332c72db64",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Line",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/cable.svg",
+      "local_blob": "26742d2c0471d2d27ea7529ab4c5b708654017b4",
+      "upstream_path": "icons/cable.svg",
+      "upstream_blob": "26742d2c0471d2d27ea7529ab4c5b708654017b4",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Status",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/info.svg",
+      "local_blob": "2a46eac2b55a1ead226035d1efa8721f6f08bd17",
+      "upstream_path": "icons/info.svg",
+      "upstream_blob": "2a46eac2b55a1ead226035d1efa8721f6f08bd17",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Warning",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/circle-alert.svg",
+      "local_blob": "578d25c022d9dd30b851d4ad72d9ec7640408a21",
+      "upstream_path": "icons/circle-alert.svg",
+      "upstream_blob": "578d25c022d9dd30b851d4ad72d9ec7640408a21",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Close",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/x.svg",
+      "local_blob": "e31794349d3eecea1b3ae8e974b68bb8f4becda7",
+      "upstream_path": "icons/x.svg",
+      "upstream_blob": "e31794349d3eecea1b3ae8e974b68bb8f4becda7",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Back",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/arrow-left.svg",
+      "local_blob": "b40bff851c85eff44f678eb7984fc6070d7ea721",
+      "upstream_path": "icons/arrow-left.svg",
+      "upstream_blob": "b40bff851c85eff44f678eb7984fc6070d7ea721",
+      "identical_to_pinned_upstream": true
+    },
+    {
+      "key": "Confirm",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/check.svg",
+      "local_blob": "5abe1527434e7b251bde0661f99af96178976d8c",
+      "upstream_path": "icons/check.svg",
+      "upstream_blob": "5abe1527434e7b251bde0661f99af96178976d8c",
+      "identical_to_pinned_upstream": true
+    }
+  ],
+  "scope": "GitHub upstream Git-tree object IDs compared with independently computed full Git blob IDs for actual retained SVG bytes. No atlas regeneration or native runtime claim."
+}

@@ -1,0 +1,1094 @@
+{
+  "source": "b4bd081dceb2dda11492d7697cd1416f7513fba6",
+  "upstream_commit": "b7b6ecf1316d0af64c97a6b0392abe5e816a8e30",
+  "upstream_repository": "lucide-icons/lucide",
+  "mode": "Read-only source/primary Git blob API comparison; no builds/regeneration/source mutation.",
+  "legacy_inputs": [
+    {
+      "key": "Clock",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/clock.svg",
+      "local_git_blob": "d40bc3b8e82b20f0ed405a09659736cf12aaab30",
+      "upstream_path": "icons/clock.svg",
+      "upstream_git_blob": "b6ae2834e60fc09547007a89067994e8b5ea55b5",
+      "upstream_sha256": "e9d3e3acf4d1c280fcf8092293439dc0a4756a908ceb859de144b12451cd1cb9",
+      "upstream_bytes": 271,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "circle",
+          [
+            [
+              "cx",
+              "12"
+            ],
+            [
+              "cy",
+              "12"
+            ],
+            [
+              "r",
+              "10"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M12 6v6l4 2"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "circle",
+          [
+            [
+              "cx",
+              "12"
+            ],
+            [
+              "cy",
+              "12"
+            ],
+            [
+              "r",
+              "10"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M12 6v6l4 2"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/clock.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/clock.svg",
+      "root_attributes_identical": true
+    },
+    {
+      "key": "Repeat2",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/repeat-2.svg",
+      "local_git_blob": "0f653118328dc2b31b544a2079744a2b4777fddb",
+      "upstream_path": "icons/repeat-2.svg",
+      "upstream_git_blob": "63a3d0ceb6844c7affcfe812fb101fcca627e9d1",
+      "upstream_sha256": "788912bbfdeab0401a36e29cde95ef594b59957a13d3e08a392d10f59c49e7da",
+      "upstream_bytes": 346,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "m2 9 3-3 3 3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M13 18H7a2 2 0 0 1-2-2V6"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m22 15-3 3-3-3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M11 6h6a2 2 0 0 1 2 2v10"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "m2 9 3-3 3 3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M13 18H7a2 2 0 0 1-2-2V6"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m22 15-3 3-3-3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M11 6h6a2 2 0 0 1 2 2v10"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/repeat-2.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/repeat-2.svg",
+      "root_attributes_identical": true
+    },
+    {
+      "key": "Face",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/face.svg",
+      "local_git_blob": "c50ac05ee5e88bfe954f49b74459f147f48a8ace",
+      "upstream_path": "icons/presentation.svg",
+      "upstream_git_blob": "7795726d7f5eeb14ca17b94d5b524d2cc913a412",
+      "upstream_sha256": "5d15abfdfca21e40abe3b8daead5e8f6a7d38e623fb1a4dd8890448c79e75342",
+      "upstream_bytes": 316,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M2 3h20"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m7 21 5-5 5 5"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M2 3h20"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m7 21 5-5 5 5"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs_localFacealias_of_upstreamPresentation",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/presentation.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/presentation.svg",
+      "root_attributes_identical": true
+    },
+    {
+      "key": "Type",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/type.svg",
+      "local_git_blob": "807d9eaec8198c376ac1d7e4bbb08b91f4d0994e",
+      "upstream_path": "icons/type.svg",
+      "upstream_git_blob": "8f269e72e02cd39c8bd8bf8712bc83fa817fe198",
+      "upstream_sha256": "82c514732330f9c36c0f1f7fd1034634fa6ad21ba2016ffa76cf5d9608c3d6b1",
+      "upstream_bytes": 310,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M12 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M9 20h6"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M12 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M9 20h6"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/type.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/type.svg",
+      "root_attributes_identical": true
+    },
+    {
+      "key": "CaseUpper",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/case-upper.svg",
+      "local_git_blob": "37c94e8bc7a2379f4db7c85baae64bbdecfe6832",
+      "upstream_path": "icons/case-upper.svg",
+      "upstream_git_blob": "0d2c9585ab9f9464fb38bde3e40fdbd45de29689",
+      "upstream_sha256": "48fc913046a72e193e706d3cd54bb89b112b21652200fd5a8e0bcb5ed9f70bf3",
+      "upstream_bytes": 391,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M15 11h4.5a1 1 0 0 1 0 5h-4a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h3a1 1 0 0 1 0 5"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M3.304 13h6.392"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M15 11h4.5a1 1 0 0 1 0 5h-4a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h3a1 1 0 0 1 0 5"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M3.304 13h6.392"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/case-upper.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/case-upper.svg",
+      "root_attributes_identical": true
+    },
+    {
+      "key": "Combine",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/combine.svg",
+      "local_git_blob": "94272390f35a3b05b32e6500ede75e6da41ee4ad",
+      "upstream_path": "icons/combine.svg",
+      "upstream_git_blob": "de02c62be59fc25bde7e350d8ca0963205d206db",
+      "upstream_sha256": "b0d09553ac122e19df8e938ba82ecba5afb0403439e34e801b2faa44254461fe",
+      "upstream_bytes": 483,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M14 3a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M19 3a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m7 15 3 3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m7 21 3-3H5a2 2 0 0 1-2-2v-2"
+            ]
+          ],
+          []
+        ],
+        [
+          "rect",
+          [
+            [
+              "height",
+              "7"
+            ],
+            [
+              "rx",
+              "1"
+            ],
+            [
+              "width",
+              "7"
+            ],
+            [
+              "x",
+              "14"
+            ],
+            [
+              "y",
+              "14"
+            ]
+          ],
+          []
+        ],
+        [
+          "rect",
+          [
+            [
+              "height",
+              "7"
+            ],
+            [
+              "rx",
+              "1"
+            ],
+            [
+              "width",
+              "7"
+            ],
+            [
+              "x",
+              "3"
+            ],
+            [
+              "y",
+              "3"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M14 3a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M19 3a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m7 15 3 3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m7 21 3-3H5a2 2 0 0 1-2-2v-2"
+            ]
+          ],
+          []
+        ],
+        [
+          "rect",
+          [
+            [
+              "height",
+              "7"
+            ],
+            [
+              "rx",
+              "1"
+            ],
+            [
+              "width",
+              "7"
+            ],
+            [
+              "x",
+              "14"
+            ],
+            [
+              "y",
+              "14"
+            ]
+          ],
+          []
+        ],
+        [
+          "rect",
+          [
+            [
+              "height",
+              "7"
+            ],
+            [
+              "rx",
+              "1"
+            ],
+            [
+              "width",
+              "7"
+            ],
+            [
+              "x",
+              "3"
+            ],
+            [
+              "y",
+              "3"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/combine.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/combine.svg",
+      "root_attributes_identical": true
+    },
+    {
+      "key": "Tally5",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/tally-5.svg",
+      "local_git_blob": "fc555f9ec2591b07816ad97346b58f34ebc51f4f",
+      "upstream_path": "icons/tally-5.svg",
+      "upstream_git_blob": "bf0ee1a707324573bc643c3f31dba5f689534841",
+      "upstream_sha256": "2910f404111310bfbfb5dc6fcd495030a4c7133081ef37a70f10f14ffe0fdf9e",
+      "upstream_bytes": 328,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M4 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M9 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M14 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M19 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M22 6 2 18"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M4 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M9 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M14 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M19 4v16"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M22 6 2 18"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/tally-5.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/tally-5.svg",
+      "root_attributes_identical": true
+    },
+    {
+      "key": "ChartColumnsIncreasing",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/chart-no-axes-column-increasing.svg",
+      "local_git_blob": "e68f3eaea5912c24155585389aaf819680aab5af",
+      "upstream_path": "icons/chart-no-axes-column-increasing.svg",
+      "upstream_git_blob": "81653631e04e2dca1238eb0a26ba2fdfc73916d5",
+      "upstream_sha256": "f794958dce141db48b4d7d76175ee56b0f229459a5ef683393e8389270eb1a41",
+      "upstream_bytes": 280,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M5 21v-6"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M12 21V9"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M19 21V3"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M5 21v-6"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M12 21V9"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M19 21V3"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/chart-no-axes-column-increasing.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/chart-no-axes-column-increasing.svg",
+      "root_attributes_identical": true
+    },
+    {
+      "key": "FileOutput",
+      "local_path": "mechanisms/implementations/bounded-lucide/svg/file-output.svg",
+      "local_git_blob": "878a43678f4997214d7022397dc336a951e0a9fb",
+      "upstream_path": "icons/file-output.svg",
+      "upstream_git_blob": "e35d26a9bd04a3645b9918ea65a11422a256d152",
+      "upstream_sha256": "94a0abe002d76ae0047b9a7e9ec2e2045381c4f4a81372da1d961d6bc14c5868",
+      "upstream_bytes": 442,
+      "children_structurally_identical": true,
+      "local_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "upstream_root_attributes": {
+        "width": "24",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      "child_geometry_local": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M4.226 20.925A2 2 0 0 0 6 22h12a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.127"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M14 2v5a1 1 0 0 0 1 1h5"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m5 11-3 3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m5 17-3-3h10"
+            ]
+          ],
+          []
+        ]
+      ],
+      "child_geometry_upstream": [
+        [
+          "path",
+          [
+            [
+              "d",
+              "M4.226 20.925A2 2 0 0 0 6 22h12a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.127"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "M14 2v5a1 1 0 0 0 1 1h5"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m5 11-3 3"
+            ]
+          ],
+          []
+        ],
+        [
+          "path",
+          [
+            [
+              "d",
+              "m5 17-3-3h10"
+            ]
+          ],
+          []
+        ]
+      ],
+      "classification": "sameSVG_structure_only_serialization_whitespace_differs",
+      "response_path": "outputs/6351-primary-upstream-legacy-blobs/file-output.svg.response.json",
+      "bytes_path": "outputs/6351-primary-upstream-legacy-blobs/file-output.svg",
+      "root_attributes_identical": true
+    }
+  ],
+  "all_legacy_child_geometry_equal": true,
+  "license_review": "Existing ISC/MIT notices remain beside corpus; wrapper/alias does not remove notices. NewGUIicons exactupstream bytes already verified by Root; README says newGUIicons copiedunchanged, doesnotclaimalllegacySVG files byteidentical.",
+  "actionable_findings": [],
+  "conclusion": "All9legacyinputs haveexactrootattributesandchildgeometryofpinnedupstream; differencesareserializationwhitespaceonly. Faceislocalfilenamealiasoficons/presentation.svg. Noactionableprovenancefinding."
+}

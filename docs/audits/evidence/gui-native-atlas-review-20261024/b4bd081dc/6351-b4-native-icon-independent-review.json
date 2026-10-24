@@ -1,0 +1,188 @@
+{
+  "head": "b4bd081dceb2dda11492d7697cd1416f7513fba6",
+  "mode": "Read-only exact Git-object/source and retained-byte audit. No builds, browser generation, CI polling or owner writes.",
+  "findings": [],
+  "receipt_custody": {
+    "atlas_bytes": 105984,
+    "atlas_sha256": "d81e5101d648674149f96c01ad3d4e97adbe252dc7c255ba19558b39ed51c3ff",
+    "all23_input_hashes_match": true,
+    "rust_index_map_receipt_order_match": true,
+    "all23_nonempty_bounded": true,
+    "all23_unsmoothed_24px_nonempty": true,
+    "inputs": [
+      {
+        "key": "Clock",
+        "svg": "clock",
+        "sha256": "bba5f9ab8346c7486cb0770c02b2192a70854201202a3e5652c88f3c2f70cc2f"
+      },
+      {
+        "key": "Repeat2",
+        "svg": "repeat-2",
+        "sha256": "142579c98353107e4461da28ca12dd56ed213198fe030824ea76f5acba866ca4"
+      },
+      {
+        "key": "Face",
+        "svg": "face",
+        "sha256": "5da5aceb5ff10683e7e1297103b97b411a7fc1eaf87c8b5dc4bff4ba65331db7"
+      },
+      {
+        "key": "Type",
+        "svg": "type",
+        "sha256": "43651fd28b89246e1d4bc88fcd3b4e96a97707444d39f2693569110902f459a8"
+      },
+      {
+        "key": "CaseUpper",
+        "svg": "case-upper",
+        "sha256": "1835d70b38a40214daaa9c2e799506a08643c273a0ffa91ed26e086a9f0a7b32"
+      },
+      {
+        "key": "Combine",
+        "svg": "combine",
+        "sha256": "97c2d463459f698f5c445a212102b0adf81eef1c67cb406dc78434fa6b994427"
+      },
+      {
+        "key": "Tally5",
+        "svg": "tally-5",
+        "sha256": "b5d92bcb75aaff1185a0b8301043eae871e493b6b4dd263ee1ddf58fa776d0db"
+      },
+      {
+        "key": "ChartColumnsIncreasing",
+        "svg": "chart-no-axes-column-increasing",
+        "sha256": "f41b68bdba08889e8817e76c5b66fc1bd923f7a16598fa1772186868975c0082"
+      },
+      {
+        "key": "FileOutput",
+        "svg": "file-output",
+        "sha256": "804acc1ece7dee600f8ddb0fa2261f94e2f893d2694534ddda7fa60ec745f68f"
+      },
+      {
+        "key": "Keyboard",
+        "svg": "keyboard",
+        "sha256": "f509925ca81964ed06251ad4702e989bb81a566ffc74d15c2226b4f07ded67be"
+      },
+      {
+        "key": "GenericGear",
+        "svg": "settings",
+        "sha256": "0ae27fd0f81999229e3127ac96c5b32edfea448e291d509e76212b917551d66b"
+      },
+      {
+        "key": "Body",
+        "svg": "box",
+        "sha256": "511862693d914d2bf1947c9ccc513595f2a256541f5dd4f6f9ac8383cd41ac4f"
+      },
+      {
+        "key": "Wake",
+        "svg": "sunrise",
+        "sha256": "0ca8d5d0b0eda9f79c87c07b04cfcdbd968fda13d942668b4ddfba36817ed8e1"
+      },
+      {
+        "key": "Plan",
+        "svg": "list-checks",
+        "sha256": "08d26ab05aaf724222c4c0cd5a19d5eae753b2a5fff0eb2d81759dde11bac6b6"
+      },
+      {
+        "key": "Play",
+        "svg": "play",
+        "sha256": "d7c34786135922a92b6896f6c2384ceeb0346afbf6041dc79982011411409833"
+      },
+      {
+        "key": "Host",
+        "svg": "server",
+        "sha256": "f7bea54b609dc488f3b848995014041846b2443fd2a880653e9e583d7a034f61"
+      },
+      {
+        "key": "Port",
+        "svg": "plug",
+        "sha256": "11ba780e4b6f15d37906a8a73537144b59720333d7a9fc8048a437d0389422f8"
+      },
+      {
+        "key": "Line",
+        "svg": "cable",
+        "sha256": "939a8e577c9b0eaf824fd288b3f3b760d7eca3ef30c910dbee60da2e215baa16"
+      },
+      {
+        "key": "Status",
+        "svg": "info",
+        "sha256": "bc977a64eb96f3e9c1041ffd09a3fceb70e3e65c02b571f76064062ed31f3cb9"
+      },
+      {
+        "key": "Warning",
+        "svg": "circle-alert",
+        "sha256": "ce3e98b7a03b78c0071131df42466e4e1ff5187fccad30e739ec9ce951cf685a"
+      },
+      {
+        "key": "Close",
+        "svg": "x",
+        "sha256": "4a9cdab38fbb96162e7dace28e33f4ca0e49d8963a6162abc3d4691b7d675117"
+      },
+      {
+        "key": "Back",
+        "svg": "arrow-left",
+        "sha256": "c5f4b88076108eb1a0d95336e1aa7e7bb1419a3a92af96f6247d88cd3456f933"
+      },
+      {
+        "key": "Confirm",
+        "svg": "check",
+        "sha256": "7f33acc9a77a61659531044525fc008edebe215bf4dcf1c789c8674ad3277db0"
+      }
+    ],
+    "ink_counts": {
+      "Clock": 9528,
+      "Repeat2": 7198,
+      "Face": 9584,
+      "Type": 5676,
+      "CaseUpper": 8005,
+      "Combine": 11678,
+      "Tally5": 11001,
+      "ChartColumnsIncreasing": 5226,
+      "FileOutput": 10552,
+      "Keyboard": 11705,
+      "GenericGear": 11146,
+      "Body": 11061,
+      "Wake": 8948,
+      "Plan": 6282,
+      "Play": 6924,
+      "Host": 13858,
+      "Port": 6919,
+      "Line": 11772,
+      "Status": 8908,
+      "Warning": 8908,
+      "Close": 4564,
+      "Back": 4415,
+      "Confirm": 3136
+    },
+    "unsmoothed_24px_ink_counts": {
+      "Clock": 150,
+      "Repeat2": 112,
+      "Face": 153,
+      "Type": 87,
+      "CaseUpper": 121,
+      "Combine": 179,
+      "Tally5": 175,
+      "ChartColumnsIncreasing": 81,
+      "FileOutput": 164,
+      "Keyboard": 180,
+      "GenericGear": 172,
+      "Body": 171,
+      "Wake": 139,
+      "Plan": 99,
+      "Play": 108,
+      "Host": 214,
+      "Port": 104,
+      "Line": 183,
+      "Status": 139,
+      "Warning": 139,
+      "Close": 73,
+      "Back": 69,
+      "Confirm": 51
+    }
+  },
+  "bounds_review": "ink rejects negative/outside192 before casting/indexing. Compile-time array length105984 checks atlas size. Exhaustive23variant match indices0..22; max bit36863, max total byte105983. No allocation/floating point/parser/runtime loading added. draw/draw_smooth source unchanged; existing4x4 raster clips retained destination before per-sample constant lookup.",
+  "geometry_boundary": "Retained bytes hash-audited, not independently regenerated from SVG here. Existing -4 lattice sampling offset and nonretained integer24px sampling remain unchanged; not identified as new defect. No QEMU/output screenshot joins in these48new files.",
+  "semantics": "ExistingFaceIconKey/tokensunchanged. GenericGear\u2192settings,Body\u2192box,Wake\u2192sunrise,Plan\u2192list-checks,Play\u2192play,Host\u2192server,Port\u2192plug,Line\u2192cable,Status\u2192info,Warning\u2192circle-alert,Close\u2192x,Back\u2192arrow-left,Confirm\u2192check. Browser role mappings agree with native role mapping for overlapping supported roles. Plot\u2192Face andDocument\u2192Type newlyadded; semantics preserve source roles/name-independent matching.",
+  "paint_review": "Only admittedEditorial palette changes; forced colors higher branch retained, absentLook/Phosphor fallback unchanged. All paintroles exhaustive. Existing contrast tests named by owner but not executed in this read-only review. Color-only changes do not alter command/semantic identity.",
+  "provenance": "Receipt upstream commit matches vendoredREADME pinnedb7b6ecf; input content hashes exact. ISC/MIT license source retained. Cannot independently establish upstream-original byte identity solely from receipt; no upstream fetch performed. Generator records browserversion,threshold,order,inputhashes,outputdigest; no full-pack/runtime dependency.",
+  "acceptance_limits": "Draft audit candidly labels icon sheet preview, standalone tests, mixed-source browser preview and missing freshnativeQEMU/fullacceptance. No builds/QEMU here; notsource-boundnativeacceptance. Prior forcedcolorsCSS finding intentionally not duplicated.",
+  "overlap_with_root_collector_two_files": false,
+  "overlap_explanation": "Changednative paths only assets/icons,display/icons,display/icons/coverage,native_compositor/paint,native_face_scene/semantic_icons,tools/generate-lucide-icons. No collector paths changed."
+}
