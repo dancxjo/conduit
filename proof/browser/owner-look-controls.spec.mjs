@@ -68,3 +68,26 @@ test('Look controls remain readable and reachable at narrow width and large forc
   await expect(palette).toBeFocused();
   expect(await palette.evaluate(node => getComputedStyle(node).outlineStyle)).toBe('solid');
 });
+
+test('fresh Faces preserve unfinished Look proposals until the acknowledged policy changes', async ({ page }) => {
+  const generic={body_id:'fixture/body',face_id:'fixture/face',face_revision:1,show_id:'show/1'};
+  await mount(page,generic);
+  await page.getByLabel('Density',{exact:true}).selectOption('spacious');
+  await page.getByLabel('Palette',{exact:true}).selectOption('editorial');
+  await page.getByLabel('Layout',{exact:true}).selectOption('grouped');
+  await page.getByLabel('Minimum text size',{exact:true}).selectOption('150');
+  const layout=page.getByLabel('Layout',{exact:true});await layout.focus();
+  await page.evaluate(view=>lookControls.observe({...view,face_revision:2,show_id:'show/2'}),generic);
+  await expect(layout).toBeFocused();
+  await expect(layout).toHaveValue('grouped');
+  await expect(page.getByLabel('Density',{exact:true})).toHaveValue('spacious');
+  await expect(page.getByLabel('Palette',{exact:true})).toHaveValue('editorial');
+  await expect(page.getByLabel('Minimum text size',{exact:true})).toHaveValue('150');
+  await page.getByRole('button',{name:'Apply face',exact:true}).click();
+  expect(await page.evaluate(()=>calls)).toEqual([{look:'spacious',recipe:'grouped',minimumTextScalePercent:150}]);
+  await page.evaluate(view=>lookControls.observe({...view,body_id:'fixture/body'}),shown);
+  await expect(page.getByLabel('Density',{exact:true})).toHaveValue('compact');
+  await expect(page.getByLabel('Palette',{exact:true})).toHaveValue('phosphor');
+  await expect(layout).toHaveValue('grouped');
+  await expect(page.getByLabel('Minimum text size',{exact:true})).toHaveValue('200');
+});

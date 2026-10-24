@@ -56,10 +56,19 @@ export function createOwnerLookControls(onApply) {
   });
   const setDisabled = value => { element.disabled = Boolean(value); apply.disabled = Boolean(value); };
   setDisabled(true);
+  let observedPolicy;
   return {
     element, apply, setDisabled,
     observe(view) {
       const expression = view?.component?.expression?.expression;
+      // New Face/Show occurrences do not erase an unfinished local proposal.
+      // Reconcile fields only when their acknowledged policy actually changes.
+      const policy = JSON.stringify([view?.body_id, view?.component?.recipe_identity,
+        expression?.density, expression?.palette, expression?.typography,
+        expression?.text_scale_percent,
+        view?.component?.expression?.accessibility_overrides?.text_scale]);
+      if (policy === observedPolicy) return;
+      observedPolicy = policy;
       if (expression && Object.hasOwn(presets, `${expression.density}/${expression.palette}`)) {
         density.value = expression.density; palette.value = expression.palette;
         feedback.textContent = `Shown: ${expression.density} · ${expression.palette} · ${expression.typography ?? 'default'} type · ${expression.text_scale_percent}% text.`;
