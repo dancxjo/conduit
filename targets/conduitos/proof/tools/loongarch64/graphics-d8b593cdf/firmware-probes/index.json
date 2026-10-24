@@ -1,0 +1,92 @@
+{
+  "scope": "canonical prepared tool booting historical normal ISO; firmware discovery and serial baseline only",
+  "runtime_source": "79a04199eeaea4721bb2405c7bbb699a72cea25c",
+  "tool_source": "d8b593cdf668e95bdd5845200a33a12a6ab5c098",
+  "graphical_product_proved": false,
+  "files": [
+    {
+      "path": "prepared-loongarch-ramfb-g0/display.ppm.gz",
+      "sha256": "6d090e0ba92e9affbe7f1b66f1fec7bb84282da30f1317bdd6fe35194389f3de",
+      "original_sha256": "982d4f25384ec99ef6270c84cbd8fb0e46148377429f848b83b01cfbd837df2d",
+      "original_bytes": 1440015
+    },
+    {
+      "path": "prepared-loongarch-ramfb-g0/qmp.json.gz",
+      "sha256": "9d3262b73d757d2bc969ade723786a1bbb7f956e4059bef6018f624cd15dda0d",
+      "original_sha256": "5d6b345e86fa05da34828d1793f2f59b371ea435b2ae963cf1bc6b67fc0d0e47",
+      "original_bytes": 451
+    },
+    {
+      "path": "prepared-loongarch-ramfb-g0/receipt.json.gz",
+      "sha256": "8abf133a9139705950e033bf3a490c6c15f122d18a3a634c4021860aa538d9e5",
+      "original_sha256": "1b76b4b69f25e67e3a518172795210b9c793e51f58ace99299bbe674ed6953c8",
+      "original_bytes": 9381
+    },
+    {
+      "path": "prepared-loongarch-ramfb-g0/serial.log.gz",
+      "sha256": "8d9f6fc878f9b1c6e42fd2fcf7c81d3c0711d78fb3e3a414810a09e6ce6fa333",
+      "original_sha256": "880bee60fc56570cc73d1a44d7a25bc389a503d002cca6de88dd7276426e0f63",
+      "original_bytes": 3731
+    },
+    {
+      "path": "prepared-loongarch-ramfb-g0/stderr.log.gz",
+      "sha256": "931d224ba7e4f5152d4767aac077aae7b243788d19761ea9ea26a91ba2a619b1",
+      "original_sha256": "7d1c1e08c48cafaaf583d8cb7d6184ee42dfa309a491effc385329daf0d146d6",
+      "original_bytes": 76
+    },
+    {
+      "path": "prepared-loongarch-no-ramfb-g0/display.ppm.gz",
+      "sha256": "14beb68c410ecb9087fea1d50fe14e8dfc17e50f8fd8578651d2b9142ee689a7",
+      "original_sha256": "0febc060e4d667cae5354a4b65e1cbad7ffb0df86eb00fd445e7cd4e2f77e9b6",
+      "original_bytes": 737295
+    },
+    {
+      "path": "prepared-loongarch-no-ramfb-g0/qmp.json.gz",
+      "sha256": "4fd08a004348a364fffab55309ce42055edaff0ebdba9e877d0d2c8eace32261",
+      "original_sha256": "39bd3994d6dda030b2c9e284d0ad573d8f59083c3a8c5a6fd85276312e749e0b",
+      "original_bytes": 450
+    },
+    {
+      "path": "prepared-loongarch-no-ramfb-g0/receipt.json.gz",
+      "sha256": "8e8923b880d3739ba2c9017bf1bf9f76083b4999585cf48f95bfb78906d9fa69",
+      "original_sha256": "b6bf298ee82112faaf777c3be82337e2cb36f4830f4a6dbab4e9858d8795f46e",
+      "original_bytes": 9356
+    },
+    {
+      "path": "prepared-loongarch-no-ramfb-g0/serial.log.gz",
+      "sha256": "d9939799e1e083f7fb226a02aa318c043fc4c28aa01d20a40eeffa42c81bed5d",
+      "original_sha256": "10b50189bdb14abdf4cebabf9f42b107c0042fc090099e7540c19d7fba02481d",
+      "original_bytes": 20857
+    },
+    {
+      "path": "prepared-loongarch-no-ramfb-g0/stderr.log.gz",
+      "sha256": "6e4174c544f0a1890c27c0aa718cf742a6956b537d1861b6cd2eeb3e5f0744a3",
+      "original_sha256": "75eff4f3a8d8f860133de581997a9f976b983a473615e7a0b6557b07e4038248",
+      "original_bytes": 76
+    },
+    {
+      "path": "probe-prepared-loongarch-ramfb.py.gz",
+      "sha256": "28fee4c8ed9f40e87b67f8eae7a41866902744529f45fa57b998818303cc3859",
+      "original_sha256": "5661465151a86c500aefc534f96cbcda878a3289f975fd8f37b0fb50ff95d962",
+      "original_bytes": 4990
+    },
+    {
+      "path": "probe-prepared-loongarch-no-ramfb.py.gz",
+      "sha256": "51605730de40d951d9d25fb03e1c9f82b44656e8bd7291ae5d0639894ea3ea3a",
+      "original_sha256": "81dfe7d932041f7f95549511a739d5854a564efc166a0d34cccd0b58601c2ae0",
+      "original_bytes": 4975
+    },
+    {
+      "path": "prepared-loongarch-ramfb-g0/device-help.log.gz",
+      "sha256": "287bf7a3b39bedf43a17ec840de7b5779de5ad9b863e8202d5313b96d9f72a6a",
+      "original_sha256": "c40d510ddd9873dcc631fba537d6a2f2a57d0664275fe8abb7c35db5fd8450f2",
+      "original_bytes": 10227
+    },
+    {
+      "path": "prepared-loongarch-ramfb-g0/record-audit.json.gz",
+      "sha256": "6bf1f06763bcaf4bc097f4eb3ccfccad6bf70107c55578cd1c547283acae7fae",
+      "original_sha256": "afc2eb273244b2ba914d3608c051f61e3ded97788c2364e24d1fb6257481469d",
+      "original_bytes": 2288
+    }
+  ]
+}

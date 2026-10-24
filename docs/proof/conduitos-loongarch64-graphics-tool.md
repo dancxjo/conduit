@@ -13,3 +13,11 @@ Four focused tool tests, the command parsing test, strict xtask Clippy, and supp
 ## Remaining product proof
 
 This packet proves source-built tool preparation and capability discovery. It proves no firmware framebuffer, graphical Conduit frame, checked Face/Mask/Show, GPU acceleration, input support, physical hardware, or accepted release. It changes no default live-product route. LoongArch's actual normal graphical product frame and its comparison with the other architectures remain required by #6057.
+
+## Actual firmware-path probe
+
+A later [retained machine probe](../../targets/conduitos/proof/tools/loongarch64/graphics-d8b593cdf/firmware-probes/index.json) uses this exact prepared executable with the existing reviewed Debian EDK2 ROM and a retained normal PROFILE-built ISO at historical source `79a04199eeaea4721bb2405c7bbb699a72cea25c`. Actual ELF/ISO and firmware digests are checked before launch. Each boot supplies fresh bounded 4096-byte cryptographic entropy through the existing admitted firmware channel; secret bytes and their hashes are not retained.
+
+Without explicit `ramfb`, the product reaches its serial ready record, independently joined to the manifest's Profile/Build/logical Image. With `ramfb`, it reaches the expected `observatory-framebuffer-unrepresented` refusal and QMP captures 800×600. This confirms that the canonical prepared tool can boot the reviewed firmware/product path and expose a framebuffer to the historical boot contract. It still proves no checked graphical Show. The no-ramfb 640×384 image equals the separately retained paused-before-guest console placeholder exactly; screenshot success is not counted as graphics.
+
+The original probe receipt's inherited `template_vars_unchanged` field denotes only the unchanged selected firmware ROM here. These launches use one BIOS ROM and no VARS pair; the separate audit records that correction. This additional evidence does not relabel the historical ISO as current source or change any public launch route.
