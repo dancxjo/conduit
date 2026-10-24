@@ -10,6 +10,8 @@ mod owner_preparation;
 mod software_ready;
 #[path = "environment_proof/wait.rs"]
 mod wait;
+#[path = "environment_proof/publication_face.rs"]
+mod publication_face;
 use std::{
     error::Error,
     path::{Path, PathBuf},
@@ -31,6 +33,9 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
     }
     if arguments == ["owner-prepare-esp32"] {
         return owner_preparation::prove(&root, "prepare");
+    }
+    if arguments == ["face-publication"] {
+        return publication_face::prove(&root);
     }
     if arguments == ["wait"] {
         return wait::prove(&root);
@@ -297,24 +302,8 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                 .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
-    if arguments
-        .iter()
-        .map(String::as_str)
-        .collect::<Vec<_>>()
-        .as_slice()
-        == ["face"]
-    {
-        return execute(
-            Command::new("cargo")
-                .current_dir(&root)
-                .args([
-                    "test",
-                    "--locked",
-                    "--manifest-path",
-                    "bodies/environment/face/Cargo.toml",
-                ])
-                .env("CARGO_TARGET_DIR", host_target(&root)),
-        );
+    if arguments == ["face"] {
+        return publication_face::prove(&root);
     }
     if arguments == ["publication"] || arguments == ["publication-32"] {
         let mut command = Command::new("cargo");

@@ -1,0 +1,23 @@
+# Committed publication to Face
+
+`PreparedPublicationFace` prepares the exact four publication-channel validators
+and projects a validated committed snapshot into an ordinary environmental Face
+contribution. It reuses the Face crate's existing semantic result decoder.
+Temperature and humidity retain their original first-class quantity bytes.
+Decoder failures and capture/provider/geometry failures remain distinct.
+
+Root supplies authenticated publication provenance; the owning Host supplies the
+contribution's exact Body Plan/Play basis and freshness policy. This projection
+does not derive those facts from data, receipt time or a channel number. It owns
+no clock, transport, retry, cache, store or lifecycle. Its ordinary Face allocation
+belongs in admitted Host Face construction, outside allocation-sealed Steps.
+Failures carry no measurement in this stateless contribution; the existing
+`PreparedObservationFace` retains its separate last-valid-value policy.
+
+Run `cargo xtask prove environment face-publication` (also included in `face`).
+The CPU tests replay an actual physical canonical observation and compare exact
+quantity bytes, check explicit freshness and provenance, reject wrong-channel
+bytes, and construct the four decoder failure variants plus provider/geometry
+failures from their actual authored payload types. This proves interpretation,
+not live Mask delivery. The retained native owner still uses its existing local
+valid-reading projection; integration with this shared boundary remains work.
