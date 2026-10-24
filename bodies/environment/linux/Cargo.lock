@@ -412,6 +412,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-environment-runtime",
+ "conduit-face",
  "conduit-kernel",
  "conduit-linux-snapshot-store",
  "conduit-plan-lowering",

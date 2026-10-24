@@ -19,6 +19,7 @@ struct Sink<'a> {
     input: PreparedRecordingInput,
     owners: Vec<PreparedFileRecordingPublication<'a>>,
     active: Vec<c::ActivePlayIdentity>,
+    faces: Vec<conduit_environment_linux::PreparedFilePublicationFace>,
     ready: &'a Cell<bool>,
     stop: &'a Cell<bool>,
     accepted: usize,
@@ -57,6 +58,9 @@ impl PublicationSink for Sink<'_> {
         let last = ((generation + 1) * self.per_generation).min(self.limit);
         let owner = &mut self.owners[generation];
         let active = &self.active[generation];
+        let face = &mut self.faces[generation];
+        face.refresh(active).unwrap();
+        assert_eq!(face.current().revision, 0);
         // Explicit producer-clock fixture; never the poll or file receipt time.
         owner
             .append_publication(
@@ -93,6 +97,12 @@ impl PublicationSink for Sink<'_> {
                 assert_eq!(effect.disposition, k::HostCallDisposition::Completed);
                 assert!(effect.refusal.is_none());
                 assert_eq!(owner.observer().committed(), None);
+                face.refresh(active).unwrap();
+                assert_eq!(
+                    face.current().revision,
+                    0,
+                    "file I/O is not a committed Face"
+                );
                 effects += 1;
             }
             let mut expected_reference = [0u8; 512];
@@ -118,6 +128,11 @@ impl PublicationSink for Sink<'_> {
                 samples: last - first + 1
             })
         );
+        face.refresh(active).unwrap();
+        assert_eq!(face.current().revision, 1);
+        assert!(face.current().properties.iter().any(|p| p.name == "samples"
+            && p.value == conduit_face::FacePropertyValue::Count((last - first + 1) as u64)));
+        face.current().validate().unwrap();
         self.accepted += 1;
         self.committed = self.accepted;
         self.held = None;
@@ -161,6 +176,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
                 input: PreparedRecordingInput::prepare(&contract).unwrap(),
                 owners: Vec::with_capacity(generations),
                 active: Vec::with_capacity(generations),
+                faces: Vec::with_capacity(generations),
                 ready: &ready,
                 stop: &stop,
                 accepted: 0,
@@ -229,6 +245,25 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
                     .unwrap(),
                 );
                 assert!(generation.is_none());
+                sink.faces.push(
+                    sink.owners
+                        .last()
+                        .unwrap()
+                        .prepare_face(
+                            fragment,
+                            conduit_face::FaceBasis {
+                                body_id: None,
+                                wake_id: None,
+                                source_document_id: Some(fragment.source_document_id.clone()),
+                                checked_plot_id: Some(fragment.checked_plot_id.clone()),
+                                expanded_plot_id: Some(fragment.expanded_plot_id.clone()),
+                                plan_id: Some(fragment.plan_id.clone()),
+                                active_play_id: Some(active.active_play_id.clone()),
+                                sign_ids: vec![],
+                            },
+                        )
+                        .unwrap(),
+                );
                 sink.active.push(active);
                 references.push(reference);
             }
@@ -285,6 +320,8 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         );
         assert!(sink.owners[0].observer().committed().is_some());
         assert_eq!(sink.owners[1].observer().committed(), None);
+        assert_eq!(sink.faces[0].current().revision, 1);
+        assert_eq!(sink.faces[1].current().revision, 0);
         let observers: Vec<_> = sink.owners.iter().map(|o| o.observer().clone()).collect();
         assert!(matches!(
             PreparedRecordingCatalog::prepare_committed(&references, &observers, 3, 12288),
@@ -404,6 +441,6 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     }
     #[cfg(feature = "installed-recording-proof")]
     checkpoint::check(&reopened, &references, &observers);
-    eprintln!("native_file_sink_cpu accepted={limit} committed={limit} generations={generations} native_play_allocations=0 kernel_commit_observed=true line_fixture=true");
+    eprintln!("native_file_sink_cpu accepted={limit} committed={limit} generations={generations} native_play_allocations=0 kernel_commit_observed=true committed_face_generations={generations} line_fixture=true");
     retirement(super::retire(execution));
 }

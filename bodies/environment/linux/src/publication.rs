@@ -418,6 +418,30 @@ impl<'a> PreparedFileRecordingPublication<'a> {
             .map_err(E::Kernel)?;
         Ok(Some(&self.delivered[..len]))
     }
+    /// Prepare a shared Face from this writer's actual observer, before Play.
+    /// No caller-supplied range or acknowledgement can advance its projection.
+    pub fn prepare_face(
+        &self,
+        fragment: &c::PlanFragment,
+        basis: conduit_face::FaceBasis,
+    ) -> Result<crate::PreparedFilePublicationFace, crate::FilePublicationFaceRefusal> {
+        use crate::FilePublicationFaceRefusal as E;
+        if self.admitted
+            || self.cancelled
+            || !c::verify_plan_fragment(fragment)
+            || fragment.plan_id != self.active.plan_id
+            || fragment.host_id != self.active.host_id
+            || fragment.boot_id != self.active.boot_id
+            || basis.source_document_id.as_ref() != Some(&fragment.source_document_id)
+            || basis.checked_plot_id.as_ref() != Some(&fragment.checked_plot_id)
+            || basis.expanded_plot_id.as_ref() != Some(&fragment.expanded_plot_id)
+            || basis.plan_id.as_ref() != Some(&fragment.plan_id)
+            || basis.active_play_id.as_ref() != Some(&self.active.active_play_id)
+        {
+            return Err(E::Scope);
+        }
+        crate::PreparedFilePublicationFace::prepare(&self.active, self.observer.clone(), basis)
+    }
     pub fn observer(&self) -> &RecordingCommitObserver {
         &self.observer
     }

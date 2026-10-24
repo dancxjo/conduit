@@ -82,6 +82,26 @@ fn execute(mode: Mode) {
     )
     .unwrap();
     assert!(generation.is_none());
+    let basis = conduit_face::FaceBasis {
+        body_id: None,
+        wake_id: None,
+        source_document_id: Some(fragment.source_document_id.clone()),
+        checked_plot_id: Some(fragment.checked_plot_id.clone()),
+        expanded_plot_id: Some(fragment.expanded_plot_id.clone()),
+        plan_id: Some(fragment.plan_id.clone()),
+        active_play_id: Some(active.active_play_id.clone()),
+        sign_ids: vec![],
+    };
+    let mut bad = basis.clone();
+    bad.active_play_id = Some(foreign.active_play_id.clone());
+    assert!(owner.prepare_face(fragment, bad).is_err());
+    let mut bad_fragment = fragment.clone();
+    bad_fragment.source_document_id = "foreign/source".into();
+    assert!(owner.prepare_face(&bad_fragment, basis.clone()).is_err());
+    let mut face = owner.prepare_face(fragment, basis).unwrap();
+    assert_eq!(face.current().revision, 0);
+    assert!(face.refresh(&foreign).is_err());
+
     assert!(matches!(
         owner.admit(&foreign),
         Err(FilePublicationRefusal::Scope)
@@ -114,6 +134,12 @@ fn execute(mode: Mode) {
                     owner.observer().committed(),
                     None,
                     "file effect is not a Back commit"
+                );
+                face.refresh(&active).unwrap();
+                assert_eq!(
+                    face.current().revision,
+                    0,
+                    "file effect cannot publish committed Face"
                 );
                 assert_eq!(completion.failure.is_some(), matches!(mode, Mode::Occupied));
                 if completion.refusal.is_some() {
@@ -148,6 +174,26 @@ fn execute(mode: Mode) {
             }
         }
     });
+    let (_, projection) = allocation_probe::observe(|| {
+        face.refresh(&active).unwrap();
+        face.current().validate().unwrap();
+        face.refresh(&active).unwrap();
+        assert!(face.refresh(&foreign).is_err());
+        let committed = matches!(mode, Mode::Published);
+        assert_eq!(face.current().revision, u64::from(committed));
+        assert!(face
+            .current()
+            .properties
+            .iter()
+            .any(|p| p.name == "has-committed-range"
+                && p.value == conduit_face::FacePropertyValue::Flag(committed)));
+        assert!(face.current().properties.iter().any(|p|
+            p.name == "publication-status" && matches!(&p.value,
+                conduit_face::FacePropertyValue::Text(v) if v == if committed {"committed"} else {"not-committed"})));
+        assert!(face.current().properties.iter().any(|p| p.name == "samples"
+            && p.value == conduit_face::FacePropertyValue::Count(if committed { 2 } else { 0 })));
+    });
+    assert_eq!((projection.allocations, projection.reallocations), (0, 0));
     assert!(terminal, "publication mode {mode:?} did not terminate");
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert_eq!(requests, 1);
@@ -180,6 +226,12 @@ fn execute(mode: Mode) {
         assert_eq!(checkpoint.content(), catalog.content());
         owner.cancel(&active).unwrap();
         assert!(owner.observer().committed().is_some());
+        face.refresh(&active).unwrap();
+        assert_eq!(
+            face.current().revision,
+            1,
+            "later cancellation preserves committed Face facts"
+        );
     } else {
         assert_eq!(delivered, 0);
         assert_eq!(owner.observer().committed(), None);

@@ -24,3 +24,6 @@ pub use publication_offer::{
     recording_publication_offer, RECORDING_PUBLICATION_ARTIFACT,
     RECORDING_PUBLICATION_IMPLEMENTATION, RECORDING_PUBLICATION_PROFILE,
 };
+
+mod publication_face;
+pub use publication_face::{FilePublicationFaceRefusal, PreparedFilePublicationFace};

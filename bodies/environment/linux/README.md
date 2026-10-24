@@ -115,3 +115,21 @@ references; all 960 logical samples recover from actual files. Host instances
 share a process, and admission, authenticated producer identity, grants and
 full capacity are fixtures. This is not live ingress, an elapsed overnight run,
 a process-crash proof or an installed resident appliance.
+
+`PreparedFileRecordingPublication::prepare_face` binds a read-only publication
+Face to that writer's actual commit observer and exact checked Source/Plan/Play.
+Prepare it before admitting the chunk; Root supplies each current Body Play loan
+to `refresh`. A caller cannot supply a committed range or replace the observer.
+The Face starts at `not-committed`, which means no commit has been observed, not
+that work is active. File completion alone, occupied generations and cancellation
+before the Back's ordinary commit leave it unchanged. One actual commit exposes
+that generation's sample/sequence range; repeated refresh and later cancellation
+preserve the same revision and historical fact.
+
+This is per-generation publication evidence, distinct from recovered history,
+current sensor readings, catalogue/Body-State checkpointing and read authority.
+The ordinary Face can feed browser or native Masks; no formatting or independent
+recording store is introduced. The native worker/file CPU proof prepares all
+fifteen projections before 960 publications and refreshes them without allocating
+in Play. Its producer clock, cross-Host Line and Host admission remain fixtures;
+this does not establish an installed Pi boot service or physical HDMI output.
