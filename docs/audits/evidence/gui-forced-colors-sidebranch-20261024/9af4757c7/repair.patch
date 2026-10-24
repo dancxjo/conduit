@@ -1,0 +1,45 @@
+diff --git a/proof/browser/owner-face-component.spec.mjs b/proof/browser/owner-face-component.spec.mjs
+index 244a5e7c4..7bcaa9812 100644
+--- a/proof/browser/owner-face-component.spec.mjs
++++ b/proof/browser/owner-face-component.spec.mjs
+@@ -1410,3 +1410,27 @@ test('action icons retain labels and do not infer intent from captions', async (
+   await expect(unknown).toBeVisible();
+   await expect(unknown.locator('svg')).toHaveCount(0);
+ });
++
++for (const palette of ['editorial', 'phosphor']) {
++  test(`forced colors replace admitted ${palette} palette tokens`, async ({ page }) => {
++    await page.emulateMedia({ forcedColors: 'active' });
++    await page.goto('/proof/browser/signal-dom-host.test.html');
++    const tokens = await page.evaluate(async ({ view, palette }) => {
++      await import('/targets/browser/handbook/owner-face-component.mjs');
++      const element = document.createElement('conduit-owner-face');
++      document.body.replaceChildren(element);
++      const current = structuredClone(view);
++      current.component = { maximum_columns: 1, reflow_width: 720, gutter: 12,
++        subject_regions: current.subjects.map(() => null), groups: [],
++        expression: { expression: { identity: 'fixture/forced-look', version: 2,
++          density: 'compact', palette, typography: 'engineering', text_scale_percent: 100 } } };
++      element.show(current, { invoke: async () => {} });
++      await new Promise(resolve => requestAnimationFrame(resolve));
++      const style = getComputedStyle(element);
++      return Object.fromEntries(['paper', 'card', 'ink', 'muted', 'line', 'accent', 'control', 'focus']
++        .map(key => [key, style.getPropertyValue(`--face-${key}`).trim()]));
++    }, { view, palette });
++    expect(tokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText',
++      muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
++  });
++}
+diff --git a/targets/browser/handbook/owner-face-look.css b/targets/browser/handbook/owner-face-look.css
+index 650e674b5..478c5ddc9 100644
+--- a/targets/browser/handbook/owner-face-look.css
++++ b/targets/browser/handbook/owner-face-look.css
+@@ -57,7 +57,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visi
+ :host([data-component-palette=phosphor]) .owner-face-role{font-family:ui-monospace,monospace;letter-spacing:.08em}
+ :host([data-component-expression]) button:focus-visible,:host([data-component-expression]) input:focus-visible,:host([data-component-expression]) select:focus-visible,:host([data-component-expression]) summary:focus-visible{outline-color:var(--face-focus)}
+ :host([data-component-expression]) input,:host([data-component-expression]) select{background:var(--face-card);color:var(--face-ink)}
+-@media(forced-colors:active){:host{--face-paper:Canvas;--face-card:Canvas;--face-ink:CanvasText;--face-muted:CanvasText;--face-line:CanvasText;--face-accent:LinkText;--face-control:ButtonText;--face-focus:Highlight}.owner-face-document{box-shadow:none}:host([data-component-expression]) input,:host([data-component-expression]) select{background:Canvas;color:CanvasText}:host([data-component-expression]) button:focus-visible,:host([data-component-expression]) input:focus-visible,:host([data-component-expression]) select:focus-visible,:host([data-component-expression]) summary:focus-visible{outline-color:Highlight}}
++@media(forced-colors:active){:host,:host([data-component-palette]),:host([data-component-typography]){--face-paper:Canvas;--face-card:Canvas;--face-ink:CanvasText;--face-muted:CanvasText;--face-line:CanvasText;--face-accent:LinkText;--face-control:ButtonText;--face-focus:Highlight}.owner-face-document{box-shadow:none}:host([data-component-expression]) input,:host([data-component-expression]) select{background:Canvas;color:CanvasText}:host([data-component-expression]) button:focus-visible,:host([data-component-expression]) input:focus-visible,:host([data-component-expression]) select:focus-visible,:host([data-component-expression]) summary:focus-visible{outline-color:Highlight}}
+ :host([data-component-typography=engineering]) h4{font-family:system-ui,sans-serif;font-size:calc(21px * var(--face-text-scale,1));font-weight:650;letter-spacing:-.4px}
+ :host([data-component-palette=phosphor]) .owner-face-subject[data-face-role=Status] p{background:var(--face-card);color:var(--face-ink);border-inline-start:2px solid var(--face-accent)}
+ @media(forced-colors:active){:host([data-component-palette=phosphor]) .owner-face-subject[data-face-role=Status] p{background:Canvas;color:CanvasText;border-color:Highlight}}

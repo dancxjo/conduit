@@ -1,0 +1,35 @@
+{
+  "source": "9af4757c74cb4ac233a90e3823fd964df0dda602",
+  "parent": "2ab838ae2da3e4b8755d4c52dc2c5b11831ce7ff",
+  "source_branch": "repair/6351-forced-colors-2ab-20261024",
+  "scope": "Isolated sidebranch renderer proof only, not owner PR delivery, actual Body, native, CI/stable or closure acceptance.",
+  "changes": "Only forced-color token selector specificity and two admittedpalette regression cases. No typography change.",
+  "original_negative": {
+    "base_css_source": "2ab838ae2da3e4b8755d4c52dc2c5b11831ce7ff",
+    "test_source": "9af4757c74cb4ac233a90e3823fd964df0dda602",
+    "failed": 2
+  },
+  "corrected_focused": {
+    "source": "9af4757c74cb4ac233a90e3823fd964df0dda602",
+    "passed": 2
+  },
+  "complete_owner_component_suite": {
+    "source": "9af4757c74cb4ac233a90e3823fd964df0dda602",
+    "passed": 105,
+    "failed": 0,
+    "workers": 1,
+    "retries": 0,
+    "duration_seconds": 14.4,
+    "browser": "existing pinned Chromium"
+  },
+  "commands": [
+    "CONDUIT_BROWSER_HOST_PORT=46753 CONDUIT_BROWSER_PROOF_SHARD=6351-2ab-forced-negative node_modules/.bin/playwright test --config proof/browser/playwright.config.mjs --project chromium --workers=1 --retries=0 owner-face-component.spec.mjs --grep forced-colors-tests",
+    "same command with correctedCSS and shard6351-2ab-forced-positive",
+    "CONDUIT_BROWSER_HOST_PORT=46753 CONDUIT_BROWSER_PROOF_SHARD=6351-2ab-complete node_modules/.bin/playwright test --config proof/browser/playwright.config.mjs --project chromium --workers=1 --retries=0 owner-face-component.spec.mjs"
+  ],
+  "source_blobs": {
+    "targets/browser/handbook/owner-face-look.css": "478c5ddc9135bc2bfe7dbd9071266dbd533ff11a",
+    "proof/browser/owner-face-component.spec.mjs": "7bcaa9812caedb2a14507e0bf96fc5f4a13109ca"
+  },
+  "environment": "Reused read-only existing conduit/node_modules symlink; removed own symlink after checks. No installs/cache cleanup/nativebuild/owner mutation."
+}
