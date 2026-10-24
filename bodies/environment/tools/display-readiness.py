@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only attended MCU output-software initialization/heap proof."""
+"""Read-only attended output initialization and current software-offer proof."""
 import argparse
 import json
 from pathlib import Path
@@ -17,54 +17,77 @@ port.dtr = True
 port.rts = True
 pending = bytearray()
 log = bytearray()
-result = None
-try:
-    port.open()
-    deadline = time.monotonic() + 30
-    ping = 0
+records = {}
+
+
+def receive(event, command, seconds, frame_limit, poll=False):
+    deadline = time.monotonic() + seconds
+    next_ping = 0
     while time.monotonic() < deadline:
-        if time.monotonic() >= ping:
-            port.write(b'offer\n')  # Readiness inspection only; no mutation retry.
-            ping = time.monotonic() + 3
+        if time.monotonic() >= next_ping:
+            port.write(command)  # Only read-only inspection may be polled.
+            next_ping = time.monotonic() + 3 if poll else deadline + 1
         incoming = port.read(8192)
-        if len(log) + len(incoming) > 65536:
+        if len(log) + len(incoming) > 192 * 1024:
             raise RuntimeError('readiness log capacity')
         log.extend(incoming)
         pending.extend(incoming)
-        if len(pending) > 24 * 1024:
-            raise RuntimeError('readiness frame capacity')
+        if len(pending) > 128 * 1024:
+            raise RuntimeError('readiness pending capacity')
         while b'\n' in pending:
             line, _, tail = pending.partition(b'\n')
             pending[:] = tail
-            if len(line) > 12 * 1024:
+            if len(line) > frame_limit:
                 raise RuntimeError('readiness frame capacity')
             try:
                 value = json.loads(line)
             except ValueError:
                 continue
-            if isinstance(value, dict) and value.get('event') == 'native-root-offer':
-                result = value
-                break
-        if result is not None:
-            break
+            if isinstance(value, dict):
+                if value.get('event') == 'native-root-request-refused':
+                    raise RuntimeError('read-only inspection refused')
+                if value.get('event') == event:
+                    return value
+    raise RuntimeError('readiness reply deadline: ' + event)
+
+
+try:
+    port.open()
+    before = receive('native-root-offer', b'offer\n', 30, 12 * 1024, poll=True)
+    records['readiness'] = before
+    if before['advertisement']['host_id'] != 'esp32/b0a732286178':
+        raise RuntimeError('unexpected physical MCU')
+    if before.get('sampling_software_ready') is not False or before.get('display_software_ready') is not True:
+        raise RuntimeError('wrong/refused diagnostic profile: ' + before.get('display_software_refusal', 'unknown'))
+    software = receive('native-display-software-offer', b'display-software-offer\n', 12, 64 * 1024)
+    records['software-offer'] = software
+    after = receive('native-root-offer', b'offer\n', 8, 12 * 1024)
+    records['readiness-after'] = after
+    if before['advertisement'] != after['advertisement']:
+        raise RuntimeError('native availability changed during software inspection')
+    for key in ('host_id', 'boot_id', 'offer_generation'):
+        if software[key] != before['advertisement'][key]:
+            raise RuntimeError('software scope differs: ' + key)
+    for value in (before, software, after):
+        if value.get('body_installed') is not False or value.get('native_plan_installed') is not False:
+            raise RuntimeError('readiness is not an installed Body or Play')
+    if software.get('capability_possession_issued') is not False:
+        raise RuntimeError('software inspection cannot issue native possession')
+    offers = software['capabilities']
+    if len(offers) != 3 or len({v['capability_id'] for v in offers}) != 3:
+        raise RuntimeError('wrong/duplicate output computation inventory')
+    canonical = json.dumps(offers, separators=(',', ':'), ensure_ascii=False).encode()
+    if len(canonical) != software['capabilities_bytes']:
+        raise RuntimeError('software inventory extent differs')
+    for value in (before, after):
+        if not (0 < value['native_root_heap_used_bytes'] <= value['native_root_heap_peak_bytes'] <= value['native_root_heap_bytes']):
+            raise RuntimeError('invalid Root heap counters')
 finally:
     port.close()
     (args.output / 'serial.log').write_bytes(log)
-    if result is not None:
-        (args.output / 'readiness.json').write_text(json.dumps(result, indent=2) + '\n')
-if result is None:
-    raise RuntimeError('no readiness reply within 30 seconds')
-if result['advertisement']['host_id'] != 'esp32/b0a732286178':
-    raise RuntimeError('unexpected physical MCU')
-if result.get('sampling_software_ready') is not False:
-    raise RuntimeError('wrong diagnostic profile')
-if result.get('body_installed') is not False or result.get('native_plan_installed') is not False:
-    raise RuntimeError('readiness is not an installed Body or Play')
-if result.get('display_software_ready') is not True:
-    raise RuntimeError('output initialization refused: ' + result.get('display_software_refusal', 'unknown'))
-if not (0 < result['native_root_heap_used_bytes'] <= result['native_root_heap_peak_bytes'] <= result['native_root_heap_bytes']):
-    raise RuntimeError('invalid Root heap counters')
+    for name, value in records.items():
+        (args.output / (name + '.json')).write_text(json.dumps(value, indent=2) + '\n')
 print(json.dumps({'event': 'display-readiness-verified', 'capture': str(args.output),
-                  'root_heap_used': result['native_root_heap_used_bytes'],
-                  'root_heap_peak': result['native_root_heap_peak_bytes'],
-                  'physical_display_delivery': False}))
+                  'root_heap_used': after['native_root_heap_used_bytes'],
+                  'root_heap_peak': after['native_root_heap_peak_bytes'],
+                  'software_offers': len(offers), 'physical_display_delivery': False}))

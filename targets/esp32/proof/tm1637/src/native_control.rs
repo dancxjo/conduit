@@ -56,6 +56,16 @@ pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Res
                 crate::native_assignment::receive(root, &mut uart, &mut output).await?
             }
             Ok(Ok(Command::Offer)) => offer(root, &mut uart, &mut output).await?,
+            Ok(Ok(Command::DisplaySoftwareOffer)) => {
+                if crate::native_display_offer::write(root, &mut uart)
+                    .await
+                    .is_err()
+                {
+                    with_timeout(Duration::from_secs(2), write_all(&mut uart, REFUSED))
+                        .await
+                        .map_err(|_| ())??;
+                }
+            }
             Ok(Ok(Command::SoftwareOffer)) => {
                 if crate::native_software_offer::write(root, &mut uart)
                     .await

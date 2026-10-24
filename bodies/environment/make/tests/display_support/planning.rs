@@ -247,3 +247,76 @@ fn trusted_material_preserves_source_and_exact_selection_without_a_rich_graph() 
     assert!(!rust.contains(host.host_id.as_str()));
     assert!(!rust.contains(host.boot_id.as_str()));
 }
+#[test]
+fn borrowed_current_offers_preserve_scope_and_withdraw_selected_instances() {
+    let source = DisplayOutputSource::compile().unwrap();
+    let (host, grant, mut software) = fixture(&source);
+    for (host_id, boot_id, epoch) in [
+        (c::HostId::from("foreign"), host.boot_id.clone(), 2),
+        (host.host_id.clone(), c::BootId::from("foreign"), 2),
+        (host.host_id.clone(), host.boot_id.clone(), 0),
+    ] {
+        assert!(matches!(
+            software.current_offers(&host_id, &boot_id, c::OfferGeneration(epoch)),
+            Err(SoftwareRefusal::Advertisement)
+        ));
+    }
+    let prepared = PreparedDisplayOutput::prepare(
+        &source,
+        &host,
+        &["fixture/base".into(), "conduit.base/local@1".into()],
+        &[grant],
+    )
+    .unwrap();
+    let fragment = &prepared.plan().fragments[0];
+    let placement = fragment
+        .placements
+        .iter()
+        .find(|p| p.kind_id.as_str() != conduit_tm1637_wire::WRITE_KIND)
+        .unwrap();
+    software
+        .check_selected(fragment, &placement.placement_id)
+        .unwrap();
+    {
+        let view = software
+            .current_offers(&host.host_id, &host.boot_id, host.offer_generation)
+            .unwrap();
+        assert_eq!(view.source(), &source.plot.expanded.source_document_id);
+        assert_eq!(view.checked(), &source.plot.expanded.checked_plot_id);
+        assert_eq!(view.expanded(), &source.plot.expanded.expanded_plot_id);
+        assert_eq!(
+            (view.host(), view.boot(), view.generation()),
+            (&host.host_id, &host.boot_id, host.offer_generation)
+        );
+        assert_eq!(view.iter().count(), 3);
+    }
+    software
+        .take_selected(fragment, &placement.placement_id)
+        .unwrap();
+    let view = software
+        .current_offers(&host.host_id, &host.boot_id, c::OfferGeneration(2))
+        .unwrap();
+    assert_eq!(view.iter().count(), 2);
+    assert!(view
+        .iter()
+        .all(|offer| offer.capability_id != placement.capability_id));
+    assert!(software
+        .check_selected(fragment, &placement.placement_id)
+        .is_err());
+    assert!(matches!(
+        software.current_offers(&host.host_id, &host.boot_id, host.offer_generation),
+        Err(SoftwareRefusal::Advertisement)
+    ));
+    let remaining = fragment
+        .placements
+        .iter()
+        .find(|p| {
+            p.kind_id.as_str() != conduit_tm1637_wire::WRITE_KIND
+                && p.placement_id != placement.placement_id
+        })
+        .unwrap();
+    assert!(matches!(
+        software.check_selected(fragment, &remaining.placement_id),
+        Err(SoftwareRefusal::Selection)
+    ));
+}

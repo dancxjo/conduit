@@ -57,6 +57,22 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
             execute(&mut command)?;
         }
     }
+    execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                "clippy",
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/make/Cargo.toml",
+                "--example",
+                "display_offers",
+                "--",
+                "-D",
+                "warnings",
+            ]),
+    )?;
     Ok(())
 }
 

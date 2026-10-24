@@ -5,6 +5,7 @@
 extern crate alloc;
 mod display_material;
 mod display_output;
+mod display_observation;
 pub use display_material::DisplaySourceMaterial;
 pub use display_output::{DisplayOutputSource, DisplayPlanningRefusal, PreparedDisplayOutput};
 mod recording_recovery;

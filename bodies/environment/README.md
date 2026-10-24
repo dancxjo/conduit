@@ -1531,3 +1531,21 @@ retained the output computations, with 63,192 Root heap bytes used and a reporte
 readiness profile, with sampling absent and no display Play or physical packet
 transmission. This proves native preparation only; combined admission and
 physical display execution remain unfinished.
+
+Root can now borrow the actual retained output computation offers through
+`display-software-offer`. Host/Boot and monotonic offer epochs remain exact;
+foreign/zero/older epochs refuse, selected objects are omitted, and inspection
+refuses during retained owner custody/execution. A separately projected display
+permission comes from Root's actual retained pin identity; no bearer possession
+is issued. Each response uses one fallibly reserved 32 KiB buffer, has a 64 KiB
+frame ceiling and twelve-second UART deadline, and preserves 8 KiB control
+headroom. No catalogue is copied and no electrical operation is dispatched.
+
+`DisplayOutputSource::observe_native_offers` requires unchanged native snapshots,
+exact Source/checked/expanded identities, the independently reconstructed exact
+portable offers and current scoped output permission. It refuses substituted
+metadata, stale Boot/epoch, an installed Play or a claim of issued possession.
+The caller still owns channel authentication/currentness and Body membership.
+The attended readiness proof now captures before/software/after replies and
+uses ordinary host-side planning/lowering to save an explicitly uninstalled
+output Plan. Native installation and physical delivery remain separate.

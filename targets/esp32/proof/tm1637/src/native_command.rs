@@ -5,6 +5,7 @@ pub enum Command {
     Offer,
     Admission,
     SoftwareOffer,
+    DisplaySoftwareOffer,
     AppliancePolicy,
     AssignmentTransfer,
     KernelPrepare,
@@ -37,6 +38,8 @@ impl CommandBuffer {
                     Command::Admission
                 } else if bytes == b"offer" {
                     Command::Offer
+                } else if bytes == b"display-software-offer" {
+                    Command::DisplaySoftwareOffer
                 } else if bytes == b"software-offer" {
                     Command::SoftwareOffer
                 } else if bytes == b"appliance-policy" {

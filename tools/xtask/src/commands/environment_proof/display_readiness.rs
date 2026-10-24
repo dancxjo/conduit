@@ -1,9 +1,22 @@
 //! Source-pinned attended readiness experiment, distinct from an output Play.
 use super::super::owner_preparation::provision_flash_tool;
-use super::execute;
+use super::{execute, host_target};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path, process::Command};
 pub(super) fn flash_and_capture(root: &Path) -> Result<(), Box<dyn Error>> {
+    execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .args([
+                "build",
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/make/Cargo.toml",
+                "--example",
+                "display_offers",
+            ])
+            .env("CARGO_TARGET_DIR", host_target(root)),
+    )?;
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
@@ -59,6 +72,7 @@ pub(super) fn flash_and_capture(root: &Path) -> Result<(), Box<dyn Error>> {
             .current_dir(root)
             .arg("bodies/environment/tools/display-readiness.py")
             .arg("--output")
-            .arg(output),
-    )
+            .arg(&output),
+    )?;
+    execute(Command::new(host_target(root).join("debug/examples/display_offers")).arg(output))
 }

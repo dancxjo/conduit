@@ -83,6 +83,9 @@ impl NativeDisplay {
             software,
         }))
     }
+    pub fn native_identity(&self) -> &WriteNativeIdentity {
+        self.ready.native_identity()
+    }
     pub fn software_ready(&self) -> bool {
         #[cfg(feature = "display-ready-root")]
         {
@@ -101,6 +104,26 @@ impl NativeDisplay {
         #[cfg(not(feature = "display-ready-root"))]
         {
             None
+        }
+    }
+    pub fn current_software_offers(
+        &mut self,
+        host: &c::HostId,
+        boot: &c::BootId,
+        generation: c::OfferGeneration,
+    ) -> Result<conduit_environment_runtime::appliance::software::ReadySoftwareOffers<'_>, ()> {
+        #[cfg(feature = "display-ready-root")]
+        {
+            self.software
+                .as_mut()
+                .map_err(|_| ())?
+                .current_offers(host, boot, generation)
+                .map_err(|_| ())
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            let _ = (host, boot, generation);
+            Err(())
         }
     }
     pub fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {

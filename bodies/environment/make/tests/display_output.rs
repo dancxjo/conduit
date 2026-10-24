@@ -24,3 +24,6 @@ mod planning;
 
 #[path = "display_support/execution.rs"]
 mod execution;
+
+#[path = "display_support/observation.rs"]
+mod observation;

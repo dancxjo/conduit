@@ -33,6 +33,8 @@ mod native_entry;
 #[cfg(feature = "native-root")]
 mod native_display;
 #[cfg(feature = "native-root")]
+mod native_display_offer;
+#[cfg(feature = "native-root")]
 mod native_network;
 #[cfg(feature = "native-root")]
 mod native_play;

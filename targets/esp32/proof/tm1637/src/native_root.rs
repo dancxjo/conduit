@@ -274,6 +274,21 @@ impl NativeRoot {
             c::OfferGeneration(self.offer_generation),
         )
     }
+    pub fn display_software_offers(
+        &mut self,
+    ) -> Result<conduit_environment_runtime::appliance::software::ReadySoftwareOffers<'_>, ()> {
+        if self.owner_reservation.is_some() || self.execution_context_prepared() {
+            return Err(());
+        }
+        self.display.current_software_offers(
+            &self.host,
+            &self.boot,
+            c::OfferGeneration(self.offer_generation),
+        )
+    }
+    pub fn display_policy_grant(&self) -> Result<c::AuthorityGrant, ()> {
+        self.issuer.grant_display(self.display.native_identity())
+    }
     pub fn display_software_status(&self) -> (bool, &'static str) {
         (
             self.display.software_ready(),
