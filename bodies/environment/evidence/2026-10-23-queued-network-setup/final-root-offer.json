@@ -1,0 +1,48 @@
+{
+  "event": "native-root-offer",
+  "body_installed": false,
+  "native_plan_installed": false,
+  "image_sha256": null,
+  "network_configuration": "access-point-restored",
+  "native_sdk_heap_bytes": 73728,
+  "native_sdk_heap_used_bytes": 33548,
+  "native_sdk_heap_peak_bytes": 39604,
+  "native_root_heap_bytes": 114688,
+  "native_root_heap_used_bytes": 15492,
+  "native_root_heap_peak_bytes": 105592,
+  "prechecked_network_source": "8035c9210bb15c49bbbb9085fac9189016b5609f5ed065a9db9b860fce747754",
+  "network_plan_preparation": "access-point-restored",
+  "native_network_ready": false,
+  "network_control_installed": true,
+  "network_control_failure_phase": "associate",
+  "network_control_failure_reason": "rejected",
+  "network_control_steps": 7,
+  "network_control_dispatches": [
+    1,
+    1,
+    0
+  ],
+  "network_control_receipt": false,
+  "network_control_kernel_bytes": 6112,
+  "network_control_binding": {
+    "active_play_id": "a13d6872fd64c60e377e1f8c379a5c97e9f7bd41ce76b149c250fd35b6734bd9",
+    "plan_id": "8d10b5044cdab02549b8faa5ca0ac5ade34d90852aaa60f09253d74953715be9",
+    "host_id": "esp32/b0a732286178",
+    "boot_id": "boot/4ef70850dabeba3221d5bd32c64eac6b",
+    "play_sequence": 2
+  },
+  "assignment_staged": false,
+  "appliance_kernel_prepared": false,
+  "owner_control_configured": true,
+  "owner_control_sequence": 41,
+  "advertisement": {
+    "protocol_version": 1,
+    "host_id": "esp32/b0a732286178",
+    "boot_id": "boot/4ef70850dabeba3221d5bd32c64eac6b",
+    "offer_generation": 3,
+    "profile": "environment/esp32-native-root@1",
+    "resources": [],
+    "capabilities": [],
+    "planner_capabilities": []
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "route": "/network",
+  "status": 200,
+  "body_bytes": 862,
+  "body_sha256": "522309202f824b4faabac8a7402398cac67fcd5ea7fde9cf66895666c1378f41",
+  "setup_form_present": true,
+  "post_fallback_readback": true
+}
