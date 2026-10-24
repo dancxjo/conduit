@@ -1,0 +1,125 @@
+{
+  "issue": 6400,
+  "code_commit": "8d51360b80c6acb97aeaa07805e2f49681f69418",
+  "source_manifest": {
+    "architecture/core/src/primitive_info.rs": "eedd2e86992768264faa90b247c2bee119e95692971386b5f08297a9ecad091f",
+    "architecture/plot/src/expression_evaluate.rs": "2233de93e87b2386f6414263805b4d3e0e705e476da0c01a5154ce31339f2a03",
+    "architecture/plot/src/expression_evaluate/equality.rs": "f2a5dc5830ed35357e913bfcb0f8cfaa737080bcd596e7e0fe00f85fc2a4d481",
+    "architecture/plot/src/expression_prepared/equality.rs": "d0817dfa3cc0d18634c1ca8e74cb268e7edc6a4ff3eac9b8f4e866867bc3934e",
+    "architecture/plot/tests/resource_reference_equality.rs": "18898bdfcff90e087030e8da335a1cf380b5693bd8d19cba7f0ccb5db67c126c",
+    "targets/std/tests/resource_reference_equality.rs": "a0e22780389f9bd289ccc38026318989a0497b06666d829e98a6234419e8d81d",
+    "tools/xtask/src/commands/check.rs": "80a80a1bff5a0b3f0f55caabb23701cc3992d3d0d457da77c34dad3cbc0c179d",
+    "tools/xtask/src/commands/check/cli.rs": "9a11f0bff4b1af9c463c73c81df8e0375c23ac29b8d8c3fcded39686aa93a227",
+    "tools/xtask/src/suites/resource_reference_equality.rs": "f62ea2514fd047f0b746bc3452691eaa3a2003e122808c4a8742519f235e99b2"
+  },
+  "supported_command": "cargo +stable xtask check resource-reference-equality",
+  "supported_tests": {
+    "reference_controls": 4,
+    "existing_structured_equality": 6,
+    "installed_std_kernel": 1,
+    "ignored": 0
+  },
+  "additional_core_reference_tests": 8,
+  "total_passed": 19,
+  "strict_clippy": "Core/Plot/Std libraries and owning test targets; xtask binary; -D warnings",
+  "format_and_patch_check": "pass",
+  "logs": [
+    {
+      "file": "6400-supported-resource-reference-equality-verified.log.gz",
+      "raw_sha256": "6ebf79a4a09584a5e6ff00b655d4bd78398c3c84f7f6d486a55275a0b8aa344b",
+      "bytes": 14486,
+      "status": "passed",
+      "note": "Final scoped validation"
+    },
+    {
+      "file": "6400-core-reference-regressions.log.gz",
+      "raw_sha256": "22c3c9828f137675f6b5b94b210e44a7e7b0893dbfee3bc9447fd737ae4235f9",
+      "bytes": 1535,
+      "status": "passed",
+      "note": "Final scoped validation"
+    },
+    {
+      "file": "6400-final-library-test-lint.log.gz",
+      "raw_sha256": "74ed1d65d4711831fe475a1861455fe8581af389b6991a1267e4a91235816f65",
+      "bytes": 16921,
+      "status": "passed",
+      "note": "Final scoped validation"
+    },
+    {
+      "file": "6400-final-xtask-lint.log.gz",
+      "raw_sha256": "8c88e00b819361ee55f25befcbb2fe36b7b44cfa11e0494437d589597cf150f9",
+      "bytes": 18972,
+      "status": "passed",
+      "note": "Final scoped validation"
+    },
+    {
+      "file": "6400-final-format.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "status": "passed",
+      "note": "Final scoped validation"
+    },
+    {
+      "file": "6400-short-circuit-negative-control.log.gz",
+      "raw_sha256": "7d0e24ed0279f4a6865bd54c57bae5dafe4e9b4d4373ce87e1e941089a1e6f63",
+      "bytes": 1263,
+      "status": "historical negative",
+      "note": "causal negative: malformed nested reference bypassed by equality short-circuit before Core codec validation"
+    },
+    {
+      "file": "6400-ordinary-kernel-tests.log.gz",
+      "raw_sha256": "312d4610d3e5c729de61b7c2f9ac201d0b6c4aa9edc4ef5efca565e8cfb2b208",
+      "bytes": 18626,
+      "status": "historical negative",
+      "note": "corrected harness error: selected Std expression Back legitimately uses generic Host Call"
+    },
+    {
+      "file": "6400-supported-resource-reference-equality.log.gz",
+      "raw_sha256": "0863165cbc7100c2d4d62aa88cdc3b82014233d69977e78cab291793f97fcb9d",
+      "bytes": 22249,
+      "status": "historical negative",
+      "note": "corrected fixture error: multiline variant syntax"
+    },
+    {
+      "file": "6400-supported-resource-reference-equality-final.log.gz",
+      "raw_sha256": "0e1f558cceddcefab7c97852bf55a0f4c57abca19c6b423947f2381530b35b7e",
+      "bytes": 2282,
+      "status": "historical negative",
+      "note": "corrected fixture error: nominal sequence representation"
+    },
+    {
+      "file": "6400-final-reference-controls.log.gz",
+      "raw_sha256": "379a71852f122ea76de8856abda9574da7db646fd4531097e6dab16f58a33436",
+      "bytes": 1206,
+      "status": "historical negative",
+      "note": "corrected fixture error: fixed collection constructor used for bounded sequence"
+    }
+  ],
+  "tested_executables": [
+    {
+      "file": "resource_reference_equality-ab608eb8bf067e38",
+      "sha256": "acbc0f82731df72f700ddcce45cbed07dbe7ffb5eb67296b15fec8e5f4856008",
+      "bytes": 17967512,
+      "source_log": "6400-supported-resource-reference-equality-verified.log"
+    },
+    {
+      "file": "structured_expression_equality-efefc5e65848296b",
+      "sha256": "e88a8e5930547074039d32969743822716f2f957fa76578713f9173426fb04c2",
+      "bytes": 17863352,
+      "source_log": "6400-supported-resource-reference-equality-verified.log"
+    },
+    {
+      "file": "resource_reference_equality-99c6832586f1ceb6",
+      "sha256": "d381bcddd956680fbb13438a365c8acfeed94da722dcb95326a81dcc0ff1f3e4",
+      "bytes": 68658392,
+      "source_log": "6400-supported-resource-reference-equality-verified.log"
+    },
+    {
+      "file": "resource_reference-d2c26b99a30aca9f",
+      "sha256": "88a94dcc99a70c99bdbbad69793609c2cba10ce5ad2e8671fa52216e6fae5f0f",
+      "bytes": 2032776,
+      "source_log": "6400-core-reference-regressions.log"
+    }
+  ],
+  "proof_boundary": "Prepared evaluation controls allocate/reallocate zero; installed Std Back uses generic Host Call without resource read grant/residence. Scalar tape remains unsupported. No lexicon, parser epoch or authority claim. Candidate and applicable Integration remain required."
+}
