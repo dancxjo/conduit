@@ -72,20 +72,7 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
 }
 
 pub fn quantity_info_wrap_semantic_contract() -> Kind {
-    let mut kind =
-        quantity_info_wrap_contract().into_semantic_contract(QUANTITY_INFO_WRAP_REVISION);
-    let contracts = kind
-        .semantic_laws
-        .iter_mut()
-        .find_map(|law| match law {
-            conduit_core::KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
-            _ => None,
-        })
-        .expect("the canonical Quantity input has a checked value bound");
-    contracts.push(wrapped_quantity_front(
-        conduit_core::FrontValueLocation::Output(port_id("out")),
-    ));
-    kind
+    quantity_info_wrap_contract().into_semantic_contract(QUANTITY_INFO_WRAP_REVISION)
 }
 
 pub fn quantity_face_definition() -> conduit_plot::KindProjection {
@@ -239,6 +226,14 @@ mod admission_tests {
 
     #[test]
     fn quantity_producer_wrapper_and_display_admit_complete_canonical_values() {
+        let palette = crate::GearPalette::standard().unwrap();
+        assert_eq!(
+            palette
+                .find(&kind_id(QUANTITY_INFO_WRAP_KIND))
+                .unwrap()
+                .front,
+            quantity_info_wrap_semantic_contract().checked_front()
+        );
         let map = crate::quantity_map_semantic_contract();
         let wrap = quantity_info_wrap_semantic_contract();
         let display = quantity_face_semantic_contract();

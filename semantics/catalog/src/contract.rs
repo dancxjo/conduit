@@ -79,6 +79,18 @@ fn portable_value_maximum_bytes(owner: &str, kind: &str) -> Option<u64> {
     {
         return Some(conduit_core::QUANTITY_ENCODED_LEN as u64);
     }
+    if owner == crate::QUANTITY_INFO_WRAP_KIND
+        && kind
+            == crate::wrapped_quantity_type()
+                .profile()
+                .expect("canonical Quantity profile")
+                .value_kind()
+                .as_str()
+    {
+        return Some(
+            (crate::quantity_info_prefix().len() + conduit_core::QUANTITY_ENCODED_LEN) as u64,
+        );
+    }
     match kind {
         conduit_face::FACE_COMPOSITION_KIND => {
             Some(conduit_face::MAX_FACE_COMPOSITION_BYTES as u64)
