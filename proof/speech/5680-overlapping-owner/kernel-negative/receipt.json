@@ -1,0 +1,33 @@
+{
+  "schema": "5680-g2-kernel-blocked@1",
+  "source_commit": "25099a85a62926b56373765188d9a92cba43bb20",
+  "command": "cargo +stable test --locked -p conduit-speech --features semantic-bindings,kernel --test phone_gesture_kernel -- --nocapture --test-threads=1",
+  "session": 83404,
+  "exit_code": 101,
+  "tests": {
+    "passed": 0,
+    "failed": 1,
+    "ignored": 0,
+    "seconds": 0.96
+  },
+  "log_sha256": "34f2eb73dfae515886f7e4b723c707d6073f351d696a2c15f9e95575a26c40a9",
+  "log": "work/5680-g2-kernel-first.log",
+  "test_executable": {
+    "path": "work/5680-g2-kernel-proof/phone_gesture_kernel-5ab12952af9ff6e9",
+    "sha256": "0b56ec0852897150a4d9b40fd59f5a311160195c399003ed42539557a29e368c",
+    "bytes": 43889112
+  },
+  "failure": "std/source-expression/arithmetic-witness-unavailable@1",
+  "stage": "StdHost.prepare_expression_realizations; before Plan/Play; exact retained owner program identity matched",
+  "owning_guard": "targets/std/src/numerical_host/expressions/reference_validation.rs:38",
+  "reason": "structured Source arithmetic has proven Binary annotations; scalar tape unavailable and reference fallback deliberately lacks retained arithmetic witnesses",
+  "existing_path_review": "Manual pure_expression_std_offer/from_advertisement used by older Audio tests bypasses this automatic admission guard; not substituted as passing evidence. No other proof-aware structured admission found.",
+  "retained_positive": "work/5680-g2-focused-proof/receipt.json:6 owner+3 Source PASS0ignored",
+  "remaining_gate": "lawful selected Std ordinary-kernel admission of all4 exact retained Source programs; no guard removal/hint stripping/Source weakening authorized",
+  "cache": "work/5680-g2-build-target idle; no additional builds",
+  "nonclaims": [
+    "no kernel PASS",
+    "no issue completion",
+    "no PCM/rendering/listening/device proof"
+  ]
+}
