@@ -1,0 +1,32 @@
+     Locking 11 packages to latest compatible versions
+   Compiling zmij v1.0.23
+   Compiling serde_core v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling loongarch-collector-mapping-test v0.0.0 (/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/loongarch64-collector-mapping-tests)
+warning: function `validate` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/targets/conduitos/make/xtask/loongarch64_product_boot/graphical_mapping.rs:3:15
+  |
+3 | pub(super) fn validate(proof: &Value) -> Result<(), &'static str> {
+  |               ^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `loongarch-collector-mapping-test` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.42s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/loongarch64-collector-mapping-tests/target/debug/deps/loongarch_collector_mapping_test-c65bd017c31643db)
+
+running 3 tests
+test mapping::tests::physical_extent_must_fit_the_observed_cpu_width ... ok
+test mapping::tests::geometry_page_coverage_and_completion_must_all_agree ... ok
+test mapping::tests::malformed_or_shadowed_paging_evidence_is_not_accepted ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests loongarch_collector_mapping_test
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

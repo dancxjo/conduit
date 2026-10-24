@@ -1,0 +1,37 @@
+{
+  "schema": "conduit.loongarch64/collector-mapping-tests@1",
+  "scope": "isolated hosted conformance of actual held collector mapping validator, not whole xtask compilation or normal firmware execution",
+  "command": [
+    "cargo",
+    "+1.98.1",
+    "test",
+    "--offline",
+    "--manifest-path",
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/loongarch64-collector-mapping-tests/Cargo.toml"
+  ],
+  "exit_code": 0,
+  "passed": 3,
+  "controls": "scanout geometry/page/completion agreement, malformed/shadowed regime, physical range vs CPUwidth",
+  "source_sha256": {
+    "targets/conduitos/make/xtask/loongarch64_product_boot/graphical_mapping.rs": "13fe180694ce7bc04ece7dfcff240464b484f8f16a87109a70097b8fb12b260e",
+    "targets/conduitos/make/xtask/loongarch64_product_boot/graphical_mapping_tests.rs": "26be5fb51634b720b64e78dea2f3f4b669bc98d6250a5f3c1bd1e23775fc03b3"
+  },
+  "files": [
+    {
+      "path": "Cargo.toml.txt",
+      "sha256": "6a6fef0670256ebae0de804b79d43495cfa1be049b2b32db689742b574067ac5"
+    },
+    {
+      "path": "Cargo.lock.txt",
+      "sha256": "797909341655872c132399c8a4d55d06e8548bb0b0bda2dfa90cbf7dab80f8f1"
+    },
+    {
+      "path": "harness.rs.txt",
+      "sha256": "62736bd2719afe5fb4d7b80efdb081bd472525a4ad1ef8b4a38f01888bd554a4"
+    },
+    {
+      "path": "tests.log",
+      "sha256": "fe377baac411ce1b2093f6619fc7258e5ab5bf297f09e5f174ffe2179195f5fc"
+    }
+  ]
+}

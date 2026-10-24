@@ -5,6 +5,8 @@ use super::super::{
 };
 use super::{refusal, Paths, OBSERVATORY_PREFIX, PRODUCT_PREFIX};
 use serde_json::Value;
+#[path = "graphical_mapping.rs"]
+mod mapping;
 use std::{
     fs,
     path::Path,
@@ -105,7 +107,7 @@ pub(super) fn boot_if_selected(
         let bytes = fs::read(capture.serial_path()).unwrap_or_default();
         let transcript = String::from_utf8_lossy(&bytes);
         if let Some(reason) = transcript
-            .split("CONDUIT_RISCV64_PRODUCT_REFUSAL ")
+            .split("CONDUIT_LOONGARCH64_PRODUCT_REFUSAL ")
             .nth(1)
             .and_then(|s| s.lines().next())
         {
@@ -117,7 +119,7 @@ pub(super) fn boot_if_selected(
         ) {
             let product: Value = serde_json::from_str(product).map_err(io)?;
             let proof = capture.finish_static(&mut child, &transcript, &product, started)?;
-            validate_mapping(&proof)?;
+            mapping::validate(&proof).map_err(io)?;
             return Ok(Some((transcript.into_owned(), proof)));
         }
         if started.elapsed() >= Duration::from_secs(45) {
@@ -136,59 +138,6 @@ pub(super) fn boot_if_selected(
         return Err(io("firmware ROM changed during boot"));
     }
     result
-}
-fn validate_mapping(proof: &Value) -> Result<(), ConduitosError> {
-    let evidence = &proof["mapping"];
-    let m = &evidence["mapping"];
-    let f = &proof["face"]["framebuffer"];
-    let bytes = f["pitch"]
-        .as_u64()
-        .and_then(|pitch| {
-            f["height"]
-                .as_u64()
-                .and_then(|height| pitch.checked_mul(height))
-        })
-        .ok_or_else(|| io("framebuffer extent missing"))?;
-    let pages = bytes.div_ceil(4096);
-    let descriptors = m["descriptors_read"].as_u64().unwrap_or(0);
-    if evidence["schema"] != "conduit.conduitos/loongarch64-framebuffer-mapping@1"
-        || evidence["cache_policy"] != "mat-observed-qemu-tcg-shared-ram"
-        || evidence["store_completion"] != "volatile-stores-dbar0"
-        || evidence["exclusive_writer"] != true
-        || evidence["framebuffer_reserved"] != true
-        || evidence["table_page_custody"] != "bootloader-reclaimable"
-        || evidence["physical_memory_type_claimed"] != false
-        || bytes == 0
-        || bytes > 8 * 1024 * 1024
-        || m["byte_length"] != bytes
-        || m["checked_pages"] != pages
-        || !(pages..=pages * 4).contains(&descriptors)
-        || m["memory_access_type"].as_u64().is_none_or(|v| v > 2)
-        || m["regime"]["virtual_bits"] != 48
-        || m["regime"]["reduced_address_config"] != 0
-        || m["regime"]["crmd"]
-            .as_u64()
-            .is_none_or(|v| v & 0x1fb != 0xb0)
-        || m["regime"]["pwcl"] != 333763884_u64
-        || m["regime"]["pwch"] != 615_u64
-        || m["regime"]["stlbps"] != 12
-        || m["regime"]["pgdh"]
-            .as_u64()
-            .is_none_or(|v| v == 0 || !v.is_multiple_of(4096))
-        || m["physical_start"].as_u64().is_none_or(|v| {
-            v == 0
-                || !v.is_multiple_of(4096)
-                || v.checked_add(bytes).is_none_or(|end| end > 1 << 48)
-        })
-        || m["virtual_start"]
-            .as_u64()
-            .is_none_or(|v| !v.is_multiple_of(4096))
-    {
-        return Err(io(
-            "mapping or completion evidence disagrees with admitted scanout",
-        ));
-    }
-    Ok(())
 }
 /// The graphical proof must refer to the same finite Base and boot inventory,
 /// not merely a screenshot with matching dimensions.

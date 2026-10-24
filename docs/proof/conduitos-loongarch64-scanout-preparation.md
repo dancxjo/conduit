@@ -139,3 +139,12 @@ It intentionally requires the existing firmware helper's visibility and the
 common capture target to be wired after the required integration gate; it
 cannot execute as currently held. Its exact Base inventory and canonical
 records still require normal-product compilation and runtime validation.
+
+Three [isolated hosted collector-mapping tests](../../targets/conduitos/proof/tools/loongarch64/collector-mapping-tests/index.json)
+now pass against the actual held validation module. They reject disagreement
+in scanout geometry/page counts, missing custody/completion assertions,
+malformed or shadowing direct windows, unsupported paging regimes and extents
+outside the supplied CPU address width. Contract fixtures label supplied
+custody/completion claims separately from historical measured addresses.
+This does not compile the complete collector or establish normal firmware proof.
+The collector's inherited RISC-V refusal marker was also corrected to LoongArch.
