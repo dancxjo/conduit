@@ -31,7 +31,10 @@ guards during preparation) are retained beside the final focused result.
 The Std library contract compile passes, including the browser dependency.
 Its original non-exhaustive refusal match is retained, with shared Native-law
 details 301..310 added to both adapters. This is compilation, not browser
-product or newly installed offer proof. Four original G2 guarded preparations
-are running separately. These results do not authenticate a law expression envelope,
+product or newly installed offer proof. All four unchanged original G2 programs pass guarded preparation within the
+standing bounds: advance2 / phases4 / curve25 / energy25 guards, with the
+largest canonical-buffer capacity 1,619,410 bytes and conservative Native-step
+bound 2,420,736. The actual G2 test passes once with zero failures/ignored.
+These are preparation results, not G2 execution or ordinary kernel proof. These results do not authenticate a law expression envelope,
 produce its canonical Kind, install an automatic Std offer, or prove the four
 ordinary G2 Plan/Play/Host Call journeys. Those remain required for #6406.

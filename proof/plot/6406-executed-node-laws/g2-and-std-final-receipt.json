@@ -1,0 +1,65 @@
+{
+  "started": 1792872729.8017259,
+  "steps": [
+    {
+      "name": "format",
+      "argv": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all"
+      ],
+      "exit_code": 0,
+      "ended": 1792872741.6906319
+    },
+    {
+      "name": "std-contract",
+      "argv": [
+        "cargo",
+        "+stable",
+        "check",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "ended": 1792872967.2192621
+    },
+    {
+      "name": "g2",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-speech",
+        "--features",
+        "semantic-bindings",
+        "--test",
+        "native_law_registry_capacity",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "ended": 1792873712.9326978
+    }
+  ],
+  "source": "4d9555639",
+  "source_binding": "c5a78be85 runtime guard source plus independently sealed adapter hashes; no Source changes during run",
+  "g2_passed": 1,
+  "g2_failed": 0,
+  "g2_ignored": 0,
+  "programs": {
+    "advance": "PreparedExpressionLawCapacityReport { guards: 2, canonical_buffer_capacity: 1663, scopes: 4, evaluators: 5, contracts: 4, admission_step_bound: 61440 }",
+    "phases": "PreparedExpressionLawCapacityReport { guards: 4, canonical_buffer_capacity: 5056, scopes: 8, evaluators: 6, contracts: 10, admission_step_bound: 114688 }",
+    "curve": "PreparedExpressionLawCapacityReport { guards: 25, canonical_buffer_capacity: 1619410, scopes: 154, evaluators: 16, contracts: 396, admission_step_bound: 2420736 }",
+    "energy": "PreparedExpressionLawCapacityReport { guards: 25, canonical_buffer_capacity: 1619410, scopes: 154, evaluators: 16, contracts: 396, admission_step_bound: 2420736 }"
+  },
+  "actual_executable": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_registry_capacity-a4bf55d5233b2ea2",
+  "actual_executable_sha256": "eb6e3d9ed7ae9af8b7a59652771be4e6f0eedf2a6426f0e06f24853501208c3c",
+  "sealed": 1792873767.2696097,
+  "boundary": "all4 original G2 program guarded preparation only; no execution/automatic Std/ordinary kernel claim"
+}
