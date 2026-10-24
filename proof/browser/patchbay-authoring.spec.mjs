@@ -263,6 +263,9 @@ for (const includeLifecycle of [false, true]) {
         }
       }
     } finally {
+      if (server.errors.length) await testInfo.attach("authoring-server-stderr", {
+        body: server.errors.join(""), contentType: "text/plain",
+      });
       server.child.kill("SIGTERM");
       await rm(server.directory, { recursive: true, force: true });
     }

@@ -442,3 +442,14 @@ failure. Two scoped Look checks, seven contracts/vocabulary checks and two exact
 package checks pass separately. Native, cross-component Look and full parent
 acceptance remain open; no CI campaign was started. Audited inactive incremental
 caches recovered 2,404,630,528 bytes while preserving source and unique evidence.
+
+## Quantity Play diagnosis
+
+The complex Play delivery failure is now reproduced independently with a four-Gear
+Quantity Source. The server exits 101 on `ready math output: OutputBlocked`; Open,
+Birth, Wake and Plan succeed against actual current Face actions. Focused runtime
+prerequisite [#6387](https://github.com/dancxjo/conduit/issues/6387) retains both
+checked queue-bound and temporary completion-pressure acceptance.
+[Minimal Source, exact requests and negative receipts](evidence/gui-look-6349-quantity-play/README.md).
+The browser proof now attaches server stderr on failure. No production runtime
+fix, full-suite pass or parent completion is claimed.
