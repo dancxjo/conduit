@@ -319,7 +319,7 @@ test("enlarged narrow shell retains a useful scrollable graph viewport", async (
     await expect.poll(overlaps).toBe(0);
     await expect.poll(()=>page.locator('.flow-frontplate').evaluateAll(nodes=>nodes.every(node=>{
       const card=node.getBoundingClientRect(),box=node.closest('.react-flow__node').getBoundingClientRect();
-      return card.left>=box.left-1 && card.top>=box.top-1 && card.right<=box.right+1 && card.bottom<=box.bottom+1;
+      return ["left","top","right","bottom"].every(edge=>Math.abs(card[edge]-box[edge])<=1);
     }))).toBe(true);
     const baseline=await (await page.request.get(`${await server.url}/api/snapshot`)).json();
     const graph=page.locator('#flow-root');

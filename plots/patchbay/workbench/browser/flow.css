@@ -1,4 +1,4 @@
-.react-flow__node-frontplate {
+.react-flow__node-faceplate {
   width: 15rem;
   min-width: 15rem;
   padding: 0;
@@ -114,7 +114,7 @@
 .react-flow__controls { box-shadow: none; border: 1px solid var(--conduit-structure-secondary); }
 .react-flow__controls-button { border-radius: 0; padding: 0; }
 @media (max-width: 720px) {
-  .react-flow__node-frontplate,.flow-frontplate { width: 13rem; min-width: 13rem; max-width: 13rem; }
+  .react-flow__node-faceplate,.flow-frontplate { width: 13rem; min-width: 13rem; max-width: 13rem; }
 }
 .flow-frontplate.debugger-active,
 .faceplate-port.debugger-active {
@@ -169,4 +169,4 @@
 
 /* Platform colors outrank Look paint for SVG as well as native controls. */
 @media(forced-colors:active){#flow-root{--conduit-background:Canvas;--conduit-surface:Canvas;--conduit-text-primary:CanvasText;--conduit-text-secondary:CanvasText;--conduit-structure-primary:CanvasText;--conduit-structure-secondary:CanvasText;--conduit-emphasis:LinkText;--conduit-focus:Highlight;--conduit-success:CanvasText;--conduit-warning:CanvasText;--conduit-failure:CanvasText}}
-.react-flow .react-flow__node-frontplate{padding:0;border:0;min-width:0;background:transparent}
+.react-flow .react-flow__node-faceplate{padding:0;border:0;min-width:0;background:transparent}
