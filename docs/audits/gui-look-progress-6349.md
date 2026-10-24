@@ -410,3 +410,18 @@ The broader authoring run with an explicit existing sealed runtime still fails
 both scenarios (zero initial Gear nodes; selection inside hidden inspector).
 Those failures are retained without attributing a cause or claiming acceptance.
 No CI or native acceptance is added by this browser slice.
+
+## Actual catalog capacity and serialized workspace actions
+
+Source `7e16ac058` fixes two concrete failures uncovered by real authoring:
+82 admitted Kinds exceeded the Library's 80-entry pool (now aligned with the
+existing 128 transport ceiling), and overlapping workspace operations lost a
+named layout. Pending workspace actions now serialize with aria-busy and exact
+availability restoration. Thirteen focused browser checks, three contracts and
+the full simple author/save/Birth/Wake/Plan/Play scenario pass. The unbodied
+workspace variant preserves exact Face and Source through both layouts and
+reload. [Screenshot, root-cause evidence and proof boundaries](evidence/gui-look-6349-authoring/README.md).
+The complex nine-Gear lifecycle variant remains negative at Play delivery with
+ERR_EMPTY_RESPONSE; the full authoring suite is not accepted. Native and checked
+cross-component Look acceptance are still open. Draft checkpoints continue to
+skip CI.
