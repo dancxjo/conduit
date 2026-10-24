@@ -56,7 +56,7 @@ def elf_sections(path):
 def ledger(sampling_image=None, output_image=None):
     inputs = {
         "sampling": EVIDENCE / "2026-10-24-constructor-tape-hardware/sampling.json",
-        "output": EVIDENCE / "2026-10-24-constructor-tape-hardware/output.json",
+        "output": EVIDENCE / "2026-10-24-output-retention-hardware/measurement.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
         "expression_cpu": EVIDENCE / "2026-10-24-tape-join-repair/measurement.json",
         "sign_budget": EVIDENCE / "2026-10-24-derived-output-signs/measurement.json",
@@ -118,6 +118,7 @@ def ledger(sampling_image=None, output_image=None):
                 "dormant_retained_bytes": output["root_used_bytes"],
                 "execution_peak_bytes": None, "linked_stack_bytes": output["linked_stack_bytes"],
                 "captured_value_slot_capacities": output["value_slot_capacities"],
+                "derived_sign_budget_installed": output["derived_sign_budget_installed"],
                 "stack_high_water_bytes": None,
             },
         },
@@ -181,7 +182,7 @@ def markdown(value):
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
         f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
-        f"The output capture still used {sum(output['captured_value_slot_capacities']):,} payload bytes. The current Type-derived profile uses {value['inventory']['output_value_payload']['bytes']:,}; its MCU retained/peak effect has not been captured. The capture also predates sign-budget reduction and used 256 ordinary and 256 remote slots. These are distinct source profiles.", "",
+        f"The output capture used {sum(output['captured_value_slot_capacities']):,} payload bytes and the linked work-derived sign budget. Its measured retained/peak totals apply to the finite native construction profile. Continuing renderer retention, shared backing and combined execution remain unproven.", "",
         "The CPU Mask figure and separately captured MCU profiles are intentionally not combined numerically. Source identities and input hashes are in memory-ledger.json.", "",
     ]
     if all("linked_image" in p for p in profiles.values()):

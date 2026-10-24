@@ -1,0 +1,74 @@
+{
+  "schema": "conduit.environment/output-retention-held-memory@1",
+  "source": "589f2cada997d8a8e54f0a925080ada2530be5c0",
+  "proof_class": "physical-authenticated-dormant-preparation",
+  "root_capacity_bytes": 114688,
+  "root_used_bytes": 32708,
+  "root_peak_bytes": 79652,
+  "peak_headroom_bytes": 35036,
+  "linked_stack_bytes": 32316,
+  "stack_floor_bytes": 28672,
+  "stack_high_water_claimed": false,
+  "start_sent": false,
+  "release_sent": false,
+  "frame_submitted": false,
+  "combined_sampling_output_claimed": false,
+  "value_slot_capacities": [
+    651,
+    651,
+    651,
+    651,
+    651,
+    651,
+    651,
+    651,
+    651,
+    651,
+    651,
+    651
+  ],
+  "derived_sign_budget_installed": true,
+  "sign_capacities_independently_exported": false,
+  "measured_sign_storage_bytes": null,
+  "maximum_input_frames": 2,
+  "image_receipt": {
+    "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-display-readiness/1792852894/root.elf",
+    "body_started": false,
+    "elf_sha256": "83d7015ccba6c95c7e7ea9b5240c4679fb3592b3dda29634a3b85807c5a67b28",
+    "physical_display_delivery": false,
+    "profile": "display-ready-root",
+    "sampling_prepared": false,
+    "schema": "conduit.environment/display-readiness-image@1",
+    "source_dirty": false,
+    "source_head": "589f2cada997d8a8e54f0a925080ada2530be5c0"
+  },
+  "recovery": {
+    "source": "589f2cada997d8a8e54f0a925080ada2530be5c0",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": true,
+    "native_exit": 0,
+    "captures": {
+      "environment-display-readiness": [
+        "target/environment-display-readiness/1792852894"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  },
+  "capture_sha256": {
+    "native-owner-receipt.json": "c9d1a8edd9d4008ff8f833f6601d6e170c23e247f7ba4c83d57f3678a5cb44c0"
+  },
+  "previous_capture": {
+    "source": "8887862b876d07c4cf893088dc4ac62c23dab365",
+    "root_used_bytes": 49388,
+    "root_peak_bytes": 81572,
+    "isolated_causal_comparison": false
+  }
+}
