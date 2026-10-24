@@ -233,3 +233,13 @@ wide/narrow QEMU both pass all four combinations, large text/forced colors and
 restoration over unchanged complete Face/structure. [Actual same-Face palette comparison and proof limits](evidence/gui-look-6349-native-navy/README.md).
 Browser navy selection, complete metric enactment and cross-component reuse
 retain their own open scope.
+
+## Browser Navy, Cord badges and platform colors
+
+Source e09d67b96 adds canonical Navy to the Patchbay application picker. Four Looks
+retain complete Face/graph identity under keyboard selection, including 390px/32px
+forced-color checks. Real captures exposed pale Cord text over inline white
+badges; selected Look paint now drives badges, and SVG honors platform system
+colors with restoration. Nine pinned Chromium cases and package resource checks
+pass within unchanged caps. [Actual before/after, failure and scope](evidence/gui-look-6349-browser-navy/README.md).
+Owner component Navy transport/catalog and broader graph/accessibility remain open.

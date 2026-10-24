@@ -56,8 +56,10 @@ build. Normal product/guest profiles remain unchanged.
 
 This establishes the navy color direction and four local Crèche Look choices,
 not exact reference pixel parity. Full native token-metric/radius enactment and
-reference depth remain separate gaps. The browser picker does not yet offer navy;
-these captures do not prove Todo/Patchbay reuse, every control/page under navy,
+reference depth remain separate gaps. The owner-acknowledged component picker does not yet offer navy;
+[the later Patchbay application picker follow-up](../gui-look-6349-browser-navy/README.md)
+retains its own browser Source and scope.
+These captures do not prove Todo/Patchbay reuse, every control/page under navy,
 unavailable/resource cases, full Body/Patchbay/Stop, physical/human evidence or
 integration/publication. No CI campaign or parent closure is claimed. Earlier
 negative evidence and the known later Application WorkExhausted remain retained.
