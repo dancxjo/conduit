@@ -104,10 +104,17 @@ impl StructuredTape {
         }
         let start = self.constants.len() as u32;
         self.constants.extend_from_slice(bytes);
+        // A jump to the next instruction must also execute these bytes. Do not
+        // merge them into the previous branch's instruction across that join.
+        let at_join = self.code.iter().any(|operation| {
+            matches!(operation,
+                Operation::Jump(target) | Operation::BranchFalse { target, .. }
+                if usize::from(*target) == self.code.len())
+        });
         if let Some(Operation::Bytes {
             start: previous,
             length,
-        }) = self.code.last_mut()
+        }) = self.code.last_mut().filter(|_| !at_join)
         {
             if *previous + *length == start {
                 *length += bytes.len() as u32;
