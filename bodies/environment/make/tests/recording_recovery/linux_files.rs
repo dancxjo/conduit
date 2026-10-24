@@ -210,3 +210,119 @@ fn execute(mode: Mode) {
         }
     );
 }
+
+#[test]
+fn owned_file_kernel_requires_exact_play_and_uses_the_retained_body_binding() {
+    use conduit_body::BodyPlayIdentity;
+    use conduit_environment_linux::{FileRecoveryRefusal, PreparedFileRecovery};
+    use conduit_environment_make::NativeBodyBinding;
+    let contract = ObservationContract::prepare().unwrap();
+    let mut chunk = PreparedRecordingChunk::prepare(context(), &contract).unwrap();
+    chunk
+        .append(1, 10, RecordingDisposition::CaptureTimeout, None)
+        .unwrap();
+    let content = chunk.seal().unwrap();
+    let mut reference = reference();
+    reference.extent.bytes = content.len() as u64;
+    let source = RecordingRecoverySource::compile(&reference).unwrap();
+    let (mut host, grant) = fixture_store(&reference);
+    let (mut generations, mut recovery, mut singleton) = software(&source, &mut host);
+    let plan = PreparedRecordingRecovery::prepare(&source, &host, &bases(), &[grant]).unwrap();
+    let fragment = &plan.plan().fragments[0];
+    let mut owner = super::body_lifecycle::support::body_owner(
+        plan.resident_plot(),
+        &host.host_id,
+        &host.boot_id,
+        false,
+    );
+    let proposal = plan.propose_to_body(&mut owner, vec![]).unwrap();
+    let body_play = BodyPlayIdentity::bind(&proposal.plan, 1);
+    let fragment_play = c::bind_active_play(&fragment.plan_id, &host.host_id, &host.boot_id, 7);
+    let mut binding =
+        NativeBodyBinding::prepare_recording(&plan, &owner, &body_play, &fragment_play).unwrap();
+    assert!(binding.fragment_play(&owner).is_err());
+    let root = directory::Root::prepare();
+    let directory = root.directory();
+    let (mut write, stored) =
+        publisher_fixture::placement("fixture/recorder/old-boot", true, content.len());
+    write.host_id = "fixture/recorder".into();
+    write.authority[0].host_id = write.host_id.clone();
+    write.resources[0].content.as_mut().unwrap().owner_host = write.host_id.clone();
+    conduit_linux_snapshot_store::PreparedFileSnapshot::prepare(&directory, &write, &stored)
+        .unwrap()
+        .publish(&write.authority[0], content.as_bytes())
+        .unwrap();
+    let mut wrong_preparation = fragment_play.clone();
+    wrong_preparation.boot_id = "fixture/foreign-boot".into();
+    assert!(matches!(
+        PreparedFileRecovery::prepare(
+            &directory,
+            fragment,
+            plan.lowered(),
+            &wrong_preparation,
+            &mut generations,
+            &mut singleton,
+            &mut recovery
+        ),
+        Err(FileRecoveryRefusal::Scope)
+    ));
+    let mut driver = PreparedFileRecovery::prepare(
+        &directory,
+        fragment,
+        plan.lowered(),
+        &fragment_play,
+        &mut generations,
+        &mut singleton,
+        &mut recovery,
+    )
+    .unwrap();
+    let foreign = c::bind_active_play(
+        &fragment.plan_id,
+        &host.host_id,
+        &"fixture/foreign-boot".into(),
+        7,
+    );
+    let signs = driver.kernel().signs().events().count();
+    assert!(matches!(
+        driver.step(&foreign),
+        Err(FileRecoveryRefusal::Scope)
+    ));
+    assert!(matches!(
+        driver.service_next(&foreign),
+        Err(FileRecoveryRefusal::Scope)
+    ));
+    assert_eq!(driver.kernel().signs().events().count(), signs);
+    super::body_lifecycle::support::start_body(
+        &mut owner,
+        &body_play,
+        &host.host_id,
+        &host.boot_id,
+    );
+    binding.confirm_started(&owner).unwrap();
+    let mut requests = 0;
+    let mut drained = false;
+    let (_, memory) = allocation_probe::observe(|| {
+        for _ in 0..80 {
+            let current = binding.fragment_play(&owner).unwrap();
+            if let Some(completion) = driver.service_next(current).unwrap() {
+                requests += 1;
+                assert_eq!(completion.disposition, k::HostCallDisposition::Completed);
+                assert!(completion.refusal.is_none());
+                assert_eq!(driver.history(), RecoveredHistory::default());
+            }
+            if driver.step(current).unwrap() == SchedulerStatus::Drained {
+                drained = true;
+                break;
+            }
+        }
+    });
+    assert!(drained);
+    assert_eq!(requests, 1);
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert_eq!(driver.history().samples, 1);
+    owner
+        .lull(&host.host_id, &host.boot_id, Some(&body_play))
+        .unwrap();
+    assert!(binding.fragment_play(&owner).is_err());
+    driver.cancel(&fragment_play).unwrap();
+}

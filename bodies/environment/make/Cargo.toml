@@ -57,3 +57,4 @@ conduit-time = { path = "../../../semantics/time", features = ["kernel-step"] }
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
 conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
+conduit-environment-linux = { path = "../linux" }

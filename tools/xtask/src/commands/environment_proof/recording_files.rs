@@ -24,5 +24,15 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         "--",
         "-D",
         "warnings",
+    ]))?;
+    execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/linux/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings",
     ]))
 }

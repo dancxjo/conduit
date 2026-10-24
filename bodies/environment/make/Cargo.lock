@@ -335,6 +335,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-environment-linux"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-runtime",
+ "conduit-kernel",
+ "conduit-linux-snapshot-store",
+ "conduit-plan-lowering",
+ "conduit-resource-snapshot",
+]
+
+[[package]]
 name = "conduit-environment-make"
 version = "0.1.0"
 dependencies = [
@@ -346,6 +358,7 @@ dependencies = [
  "conduit-environment-browser",
  "conduit-environment-face",
  "conduit-environment-http",
+ "conduit-environment-linux",
  "conduit-environment-runtime",
  "conduit-face",
  "conduit-host-browser-make",
