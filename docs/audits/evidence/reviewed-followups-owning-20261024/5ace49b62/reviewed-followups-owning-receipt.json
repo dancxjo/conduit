@@ -1,0 +1,83 @@
+{
+  "source_head": "5ace49b62516b1dca0ddcca9bdf7eeab716963e4",
+  "parents": [
+    "5c2cb5c02c0ce8bfe1252c3a38985abf234b7247",
+    "1d62af38d72b6a7117c30554d7d9af5562278066"
+  ],
+  "prior_staging_head": "5c2cb5c02c0ce8bfe1252c3a38985abf234b7247",
+  "verified_dev": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "source_delta": [
+    "mechanisms/io/monotonic-wait/tests/support/exhausted_retirement.rs",
+    "mechanisms/io/monotonic-wait/tests/support/selected_binding.rs",
+    "mechanisms/io/monotonic-wait/tests/wait_owner.rs",
+    "mechanisms/io/pulse-capture/tests/pulse_owner.rs",
+    "mechanisms/io/pulse-capture/tests/support/exhausted_retirement.rs",
+    "mechanisms/io/pulse-capture/tests/support/owner_fixture.rs"
+  ],
+  "static_review": "Normal merge resolved without conflicts. Every changed file is test/helper source; no production feature or implementation change. Both parent heads retained as ancestors. Direct generic binder cases cover ordinary/assigned contiguous/borrowed and configuration/shape refusal. Exhausted tests use actual one-operation budgets and preserve exact provider custody until explicit revocation.",
+  "results": {
+    "supported_resource_snapshot": {
+      "generic": 5,
+      "browser_codec": 5,
+      "browser_operation_names": [
+        "browser_todo_resource_requests_publish_then_restore_only_after_storage_acknowledges",
+        "full_recording_field_reaches_snapshot_storage_without_json_tree_limits",
+        "browser_resource_missing_authority_and_failed_storage_never_become_success"
+      ],
+      "browser_operation_count": 3,
+      "strict_clippy": "passed"
+    },
+    "supported_monotonic_wait": {
+      "tests": 12,
+      "strict_all_targets_clippy": "passed"
+    },
+    "pulse_host_call_plot_catalog": {
+      "tests": 14,
+      "groups": [
+        2,
+        2,
+        6,
+        4
+      ],
+      "strict_all_targets_clippy": "passed"
+    },
+    "final_preflight": {
+      "base": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+      "tests": 345,
+      "passed": 345
+    }
+  },
+  "environment": {
+    "private_owning_cache": "work/reviewed-followups-owning-target",
+    "jobs": 2,
+    "incremental": 0,
+    "dev_debug": 0,
+    "test_debug": 0,
+    "cache_bytes_approx": "2.8GiB",
+    "disk_free_end": "16GiB",
+    "preflight_cache": "work/6339-refresh-preflight-target (Root explicitly handed off inactive cache; used prior exact settings)"
+  },
+  "commands": [
+    "cargo +stable xtask check resource-snapshot",
+    "cargo +stable xtask check monotonic-wait",
+    "cargo +stable test --locked --manifest-path mechanisms/io/pulse-capture/Cargo.toml --features host-call,plot-catalog",
+    "cargo +stable clippy --locked --manifest-path mechanisms/io/pulse-capture/Cargo.toml --features host-call,plot-catalog --all-targets -- -D warnings",
+    "cargo +stable xtask ci pipeline preflight dd3cdb41f7a0320658e0c5c00d458db32e5adf56"
+  ],
+  "logs": {
+    "reviewed-followups-pulse-tests.log": "4e0fc7e9463d747b3be835d7cab44d18d0e4c0493bd7f0f87b2f3d0649818725",
+    "reviewed-followups-pulse-clippy.log": "ab98f33f03ca55ff3ffdb55122265477299d39c97f9fa696b9b119f6a69dd564",
+    "reviewed-followups-monotonic-wait.log": "23fe51828340f17f327d9ff245f822db771b987fbc152e4f00202611043888cc",
+    "reviewed-followups-preflight.log": "5057ca346a24e5cd52c359cea34aa9870824266d23f58e01d77ea6666dea1a47",
+    "reviewed-followups-resource-snapshot.log": "005e7c6e046556179168ae166f99506e2a86cad4d8bd6b29256ad33971471c6e"
+  },
+  "negative_local_failures": [],
+  "acceptance_boundary": "Local scoped CPU/source checks passed; exact-source independent correspondence retained separately. Actual native gate remains failed as recorded in failed_native_gate. No Integration/stable acceptance, successful full lifecycle collector, physical installation, rearm, subsequent Play or issue closure claimed.",
+  "publication": "Root released scoped publication hold after live P0 triage packet linkage; this is retained local proof, not native gate acceptance.",
+  "failed_native_gate": {
+    "issue": 6318,
+    "immutable_evidence_commit": "a30d210e0cccf6caf7fa752556d83703b6fe2a31",
+    "path": "docs/audits/evidence/native-application-current-refusal-20261024/6975a29c2",
+    "detail": "Existing P0: stage4496 PatchbayPublishCommit exceeds64 RTC-tick entry envelope. Collector never reached; current native Candidate remains failed. Final staging must later absorb necessary6318 fix."
+  }
+}

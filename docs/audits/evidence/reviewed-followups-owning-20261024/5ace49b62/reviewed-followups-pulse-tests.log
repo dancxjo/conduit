@@ -1,0 +1,46 @@
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-followups/mechanisms/io/pulse-capture)
+    Finished `test` profile [unoptimized] target(s) in 0.77s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-followups-owning-target/debug/deps/conduit_pulse_capture-da8899e0ecec5f4d)
+
+running 2 tests
+test tests::partial_capture_has_explicit_extent_and_cannot_publish_padding ... ok
+test tests::geometry_refuses_before_any_electrical_provider_is_needed ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/pulse_installation.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-followups-owning-target/debug/deps/pulse_installation-8b2d29ce78056f85)
+
+running 2 tests
+test wrong_boot_and_invalid_native_generations_do_not_publish_availability ... ok
+test ready_provider_projects_exact_contract_resource_and_authority_without_effects ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/pulse_owner.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-followups-owning-target/debug/deps/pulse_owner-fe61bd4d6e14e20b)
+
+running 6 tests
+test retirement_requires_revocation_and_returns_exact_native_custody_once ... ok
+test matching_identifiers_cannot_substitute_lowering_or_active_play ... ok
+test exact_binding_and_replay_are_checked_before_any_effect ... ok
+test dropping_a_pending_dispatch_quiesces_provider_and_revokes_unfinished_possession ... ok
+test exhausted_retirement::exhausted_pulse_refuses_retirement_until_explicit_revocation ... ok
+test refused_geometry_and_malformed_completion_consume_once_and_release_leases ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/source_contract.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-followups-owning-target/debug/deps/source_contract-21ad98fc73579763)
+
+running 4 tests
+test typed_timeout_and_provider_loss_preserve_extent_without_allocating ... ok
+test actual_source_request_crosses_exact_codec_without_allocating ... ok
+test source_request_composes_over_the_class_neutral_fore ... ok
+test the_source_read_graph_preserves_electrical_outcomes_on_distinct_ports ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+   Doc-tests conduit_pulse_capture
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

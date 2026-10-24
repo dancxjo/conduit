@@ -1,0 +1,36 @@
+{
+  "observed_utc": "2026-10-24T02:08:58.234335+00:00",
+  "proof": "https://github.com/dancxjo/conduit/tree/a30d210e0cccf6caf7fa752556d83703b6fe2a31/docs/audits/evidence/native-application-current-refusal-20261024/6975a29c2",
+  "linked": [
+    {
+      "number": 6318,
+      "state": "open",
+      "url": "https://github.com/dancxjo/conduit/issues/6318",
+      "updated_at": "2026-10-24T02:08:47Z"
+    },
+    {
+      "number": 6353,
+      "state": "open",
+      "url": "https://github.com/dancxjo/conduit/issues/6353",
+      "updated_at": "2026-10-24T02:08:48Z"
+    },
+    {
+      "number": 6312,
+      "state": "open",
+      "url": "https://github.com/dancxjo/conduit/issues/6312",
+      "updated_at": "2026-10-24T02:08:49Z"
+    },
+    {
+      "number": 6332,
+      "state": "open",
+      "url": "https://github.com/dancxjo/conduit/issues/6332",
+      "updated_at": "2026-10-24T02:08:56Z"
+    },
+    {
+      "number": 6339,
+      "state": "open",
+      "url": "https://github.com/dancxjo/conduit/pull/6339",
+      "updated_at": "2026-10-24T02:08:57Z"
+    }
+  ]
+}
