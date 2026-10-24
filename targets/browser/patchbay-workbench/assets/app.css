@@ -198,3 +198,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   #patchbay-root [data-application-key="product-navigation"] a{display:inline-flex;align-items:center;min-height:44px;max-width:100%;overflow-wrap:anywhere}
   #patchbay-root>[data-application-slot="product-masthead"] [data-application-key="product-status"]{margin-inline-start:0;text-align:start;overflow-wrap:anywhere}
 }
+
+@media(max-width:720px){.canvas-heading>*{flex-shrink:0;min-width:0}}
