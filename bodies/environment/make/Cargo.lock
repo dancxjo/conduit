@@ -118,16 +118,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-environment-specification-proof"
+name = "conduit-environment-make"
 version = "0.1.0"
 dependencies = [
  "conduit-body-make",
+ "conduit-core",
+ "conduit-environment-runtime",
  "conduit-face",
  "conduit-host-browser-make",
  "conduit-host-make",
  "conduit-host-rp2040",
+ "conduit-plan-lowering",
+ "conduit-planner",
  "conduit-plot",
+ "conduit-tm1637-wire",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+ "conduit-semantic-catalog",
 ]
 
 [[package]]
@@ -186,6 +201,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
+]
+
+[[package]]
 name = "conduit-language"
 version = "0.1.0"
 dependencies = [
@@ -208,6 +230,14 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]
@@ -266,6 +296,7 @@ dependencies = [
  "conduit-education",
  "conduit-face",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
@@ -295,6 +326,16 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
 ]
 
 [[package]]
