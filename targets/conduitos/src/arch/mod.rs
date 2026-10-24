@@ -298,3 +298,9 @@ mod riscv64_framebuffer_mapping;
 
 #[cfg(all(target_arch = "riscv64", feature = "native-compositor-core"))]
 pub use riscv64::framebuffer;
+
+#[cfg(test)]
+#[path = "loongarch64/framebuffer/mapping.rs"]
+mod loongarch64_framebuffer_mapping;
+#[cfg(all(target_arch = "loongarch64", feature = "native-compositor-core"))]
+pub use loongarch64::framebuffer;

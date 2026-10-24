@@ -1,0 +1,334 @@
+{
+  "scope": "all five retained real QMP first-Creche frames: direct PNG CRC/RGBA and acknowledged Face/Show/source-semantic correspondence; not new guest runs or workload/input/physical parity",
+  "same_source_checked_expanded_projection": {
+    "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+    "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+    "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b"
+  },
+  "same_source_checked_expanded_mask": {
+    "checked_plot_id": "d329bed9178fd32bad8445b248df4d2b9a9338c1afbe796209437276bb131cde",
+    "expanded_plot_id": "0aaf3438896dccb41615e32215ddba3c8cb8089fb8ede981d4e86b56f2cf656c",
+    "source_document_id": "67c4a34efebcf3ca7d05d6f6d474df1014b11b7a4382914f3648d983fe531a87"
+  },
+  "same_five_plot_subjects": [
+    "birth/conduitos/creche/current/initial-plots/0",
+    "birth/conduitos/creche/current/initial-plots/1",
+    "birth/conduitos/creche/current/initial-plots/2",
+    "birth/conduitos/creche/current/initial-plots/3",
+    "birth/conduitos/creche/current/initial-plots/4"
+  ],
+  "non_x86_owner_action_availability_equal": true,
+  "explicit_x86_owner_availability_differences": [
+    "creche.birth",
+    "creche.plot.0",
+    "creche.plot.1",
+    "creche.plot.2",
+    "creche.plot.3"
+  ],
+  "rows": [
+    {
+      "architecture": "x86_64",
+      "runtime_source": "abd896d14633a45c69d93996bcebee0e343cbfd7",
+      "png_path": "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-ready.png",
+      "png_sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6",
+      "pixel_sha256": "a039e1acc01041b3b79a15dac7abfeda55544ebb825aedd9b24493a0fad29027",
+      "width": 1280,
+      "height": 800,
+      "host_id": "6dced207525b0534f3b79353194977c1a2590f033699f9ecb054818e8449322e",
+      "boot_id": "a546c1e2478511ad9ecfd03331045cb5854cc8c8825facb0ae1ee97558ee555c",
+      "face_id": "3f1d68db9bb580916a826f8d7b5e2e51a81867aed3ce06634454e05cb4af688a",
+      "show_id": "show/b1b274be68b6287d98ce7e335f72d885fb18b42d4b4906bb737234d9ae6abdb5",
+      "local_input": "actual retained keyboard/pointer journey, not rerun by this audit",
+      "owner_action_availability": {
+        "creche.name": "Available",
+        "creche.naming": "Available",
+        "creche.suggest": "Available",
+        "creche.search": "Available",
+        "creche.plot.0": "Available",
+        "creche.plot.1": "Available",
+        "creche.plot.2": "Available",
+        "creche.plot.3": "Available",
+        "creche.plot.4": {
+          "Unavailable": {
+            "explanation": "native-body-plot-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.birth": "Available"
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "runtime_source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+      "png_path": "targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/creche-read-only.png",
+      "png_sha256": "6f76d6d7ec226e47d79aa093a8a64f4e246ae0f741c960dc9ba97d95a1c356c2",
+      "pixel_sha256": "1fb3bb699e1ce6d86b2d642c600b3c00e5148f2106f88e06fa5ec46b6ad8a6c9",
+      "width": 800,
+      "height": 600,
+      "host_id": "493df6cfac1ecd822936aa16046ac347e66369b22848af8caca07f3152a4a8dd",
+      "boot_id": "ea475a7ad1ac65e34310d845b7274170327a17c46de984e7ea34850ae9e41a90",
+      "face_id": "6e71d6b525dbfb581143b81351d827d80563780bb0329a5cc295b1028be269d2",
+      "show_id": "show/0f17637e7a985c1d46285b7fe8ddfc1df439471709d5db34fa56bb3857104610",
+      "local_input": false,
+      "owner_action_availability": {
+        "creche.name": "Available",
+        "creche.naming": "Available",
+        "creche.suggest": "Available",
+        "creche.search": "Available",
+        "creche.plot.0": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.1": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.2": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.3": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.4": {
+          "Unavailable": {
+            "explanation": "native-body-plot-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.birth": {
+          "Unavailable": {
+            "explanation": "EmptySelection",
+            "reason_code": "birth/unavailable"
+          }
+        }
+      }
+    },
+    {
+      "architecture": "ia32",
+      "runtime_source": "64d5130753466f44c0b605ad6b366d54083eeafd",
+      "png_path": "targets/conduitos/proof/firmware-frame/ia32-64d513075/first/creche-read-only.png",
+      "png_sha256": "fd2623f8a997a06096f564aa782db7e04c1c9f76c1933561090493e69cc0bb9f",
+      "pixel_sha256": "b11b3ed21eeb8b2ace895bf6b4225fbb1c3b3a173523a6b4af0e8e9029fec549",
+      "width": 1280,
+      "height": 800,
+      "host_id": "8bec6c8302cd415f258dacaf7dba1ded0c7030738273d24f504d8a90cf65e30c",
+      "boot_id": "fbaebcb7c27473b04d3050c90d7db3608bc84206ab8b1586758197672cdcea0b",
+      "face_id": "e32399c1ffdc9d905d2239d01066830bc2992106f77b6f32707f26b8be43e5db",
+      "show_id": "show/fcb7057c12ba6e64785feb856edf8e88aa6fb5aa93fa8c85862c547de32beb41",
+      "local_input": false,
+      "owner_action_availability": {
+        "creche.name": "Available",
+        "creche.naming": "Available",
+        "creche.suggest": "Available",
+        "creche.search": "Available",
+        "creche.plot.0": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.1": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.2": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.3": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.4": {
+          "Unavailable": {
+            "explanation": "native-body-plot-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.birth": {
+          "Unavailable": {
+            "explanation": "EmptySelection",
+            "reason_code": "birth/unavailable"
+          }
+        }
+      }
+    },
+    {
+      "architecture": "riscv64",
+      "runtime_source": "61084bb3ae35324bfb7dc2c280b37b6c60b7b00e",
+      "png_path": "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/creche-read-only.png",
+      "png_sha256": "95f854f8ccee636e611db82401a313bebfe23e1de4fb40b0f1e9ff1e0d13352d",
+      "pixel_sha256": "40b76f1a21e1ec927fd5b6b068edc1f18caf1786242047c36645327a38c45b22",
+      "width": 800,
+      "height": 600,
+      "host_id": "89b8e6cf72423498d98bb4525308e97f16c9aacfe092eaec6808fbe2224c8d09",
+      "boot_id": "b6844da02450d2f40f4eefc850d3349973a5ab36a77f19c0aeb2bcd9b8a046b0",
+      "face_id": "50f23fd490dfc41ac00a199bf23bc08a371f560b4e5bd97951d3882ca7fc8387",
+      "show_id": "show/6ec62fefced23bd4340184a161b884d141b040fe53e5c2ad3e29edea14b10c84",
+      "local_input": false,
+      "owner_action_availability": {
+        "creche.name": "Available",
+        "creche.naming": "Available",
+        "creche.suggest": "Available",
+        "creche.search": "Available",
+        "creche.plot.0": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.1": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.2": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.3": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.4": {
+          "Unavailable": {
+            "explanation": "native-body-plot-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.birth": {
+          "Unavailable": {
+            "explanation": "EmptySelection",
+            "reason_code": "birth/unavailable"
+          }
+        }
+      }
+    },
+    {
+      "architecture": "loongarch64",
+      "runtime_source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+      "png_path": "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/creche-read-only.png",
+      "png_sha256": "768d292584c692e0ccd5b58b41a3393623e9eb222d8e02316e892c6642639d68",
+      "pixel_sha256": "35303322fcc7ece45e94278dc4afd7df606d2e8f18ee141039310e6a8f75a609",
+      "width": 800,
+      "height": 600,
+      "host_id": "d14b4c1175d30423e847289895ab25ffeb6f7c4df1d9caaaf564d16f3a051713",
+      "boot_id": "0427a827bf5c102e99973d57f2afa13011a5964633183e907bc0a449dd6b0846",
+      "face_id": "d2a09bb68c0d1a730f3d554dd82cfcc5122662d6d073c083345959af9b651afb",
+      "show_id": "show/5033f8cbee0cf8e45e85d5e4e39001f10ec196cc9423a946a371518a47375150",
+      "local_input": false,
+      "owner_action_availability": {
+        "creche.name": "Available",
+        "creche.naming": "Available",
+        "creche.suggest": "Available",
+        "creche.search": "Available",
+        "creche.plot.0": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.1": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.2": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.3": {
+          "Unavailable": {
+            "explanation": "native-body-current-host-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.plot.4": {
+          "Unavailable": {
+            "explanation": "native-body-plot-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "creche.birth": {
+          "Unavailable": {
+            "explanation": "EmptySelection",
+            "reason_code": "birth/unavailable"
+          }
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "path": "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/manifest.json.gz",
+      "sha256": "8314719f9bad6e6be1e1c0ed3bc59211e13c28b25f49416fdad900a69a136738"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/native-shell-paired-linear.json.gz",
+      "sha256": "05bb8ddcc37b6751a3c11406c9d0a114cd6220197f6c44198a6a31baa42a462c"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/two-architecture-semantic-audit.json",
+      "sha256": "1775ddc874f9c62942885dda4f4388caa9e0f011c22ddbe3bb9194e77524731e"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/capture.json.gz",
+      "sha256": "f4096fb2f7e598734164fd989ca39f797c06e5c67f02c0395e11c1172fcee1a2"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/launch.json",
+      "sha256": "dddef67e25c54f17913b4e70bca63455052f960a27902cd3615ee8f812d8b19e"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/ia32-64d513075/first/capture.json.gz",
+      "sha256": "04c6b0ddf423659e1210bcf5597c846209c43c6bd5dc90c2b168a768f0f4eba6"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/ia32-64d513075/first/launch.json",
+      "sha256": "33788f10625124f5a7f20b1ed72bd8a2ce7ed0b90c86707e94353f67051285c5"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/capture.json.gz",
+      "sha256": "3eef1f2c68ba878e61da9145248582057bd05dd6a7f744ea3d7592b178fda92a"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/launch.json",
+      "sha256": "16c2a999bc9e0682e8d8780a1b6505a9a2a8fb887b12ea6953c6f7d6072b593f"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/capture.json.gz",
+      "sha256": "73e621fb8e8bd5fac4ff07b082fe44c528db80c13b8ef65b0aa89a60f52e3bd5"
+    },
+    {
+      "path": "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/launch.json",
+      "sha256": "a208f5dc29a1539b7e4b8fc9ed9e6c05a474525138b1ab28c04e38a50b2c7b2e"
+    }
+  ],
+  "pixel_equality_claimed": false,
+  "physical_scanout_proved": false,
+  "gpu_acceleration_proved": false
+}

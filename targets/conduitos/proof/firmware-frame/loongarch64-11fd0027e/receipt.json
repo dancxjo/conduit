@@ -1,0 +1,77 @@
+{
+  "source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+  "base": "5b266161926f920bbf266288fe0f1f757d419632",
+  "product": "target/host-build/6057-loongarch64-graphical-11fd0027e",
+  "commands": [
+    {
+      "name": "preflight",
+      "command": [
+        "cargo",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "5b266161926f920bbf266288fe0f1f757d419632"
+      ],
+      "pid": 1363832,
+      "exit_code": 0,
+      "seconds": 24.327,
+      "log_sha256": "d3dd99a487a49e49dca60406cea8f4be8a53e9f75bccf454559db106868782ab"
+    },
+    {
+      "name": "prepare-tools-and-firmware",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "prepare-loongarch64-domain-emulator",
+        "--graphical"
+      ],
+      "pid": 1365978,
+      "exit_code": 0,
+      "seconds": 37.289,
+      "log_sha256": "4c6712d6768840cf9c75461aeea1b0cacf772766acefd7ad6d682de0ec584820"
+    },
+    {
+      "name": "build",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "build",
+        "targets/conduitos/profiles/conduitos-loongarch64-graphical.host.conduit",
+        "--output",
+        "target/host-build/6057-loongarch64-graphical-11fd0027e"
+      ],
+      "pid": 1366361,
+      "exit_code": 0,
+      "seconds": 442.831,
+      "log_sha256": "996f403d068152e269b33edcf0490e917a29ad12c0d474391aa70462d331bb2c"
+    },
+    {
+      "name": "boot",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "target/host-build/6057-loongarch64-graphical-11fd0027e",
+        "--boot"
+      ],
+      "pid": 1379442,
+      "exit_code": 0,
+      "seconds": 17.794,
+      "log_sha256": "0354bacfcbae6e7cffb23c4bfb1e1421edcdc2bd1c1b0e03a34cdb7c6e532aa7"
+    }
+  ],
+  "status": "commands-passed-review-pending",
+  "capture_directories": [
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/loongarch64/loongarch64-frame-1379453-1792865342945120816",
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/target/conduitos/loongarch64/loongarch64-frame-1379453-1792865351441215138"
+  ],
+  "clean_after": true,
+  "source_unchanged": true
+}

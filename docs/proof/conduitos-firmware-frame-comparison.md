@@ -1,17 +1,23 @@
-# Firmware-frame comparison: four retained references
+# Firmware-frame comparison: five retained references
 
-This is partial evidence for #6057. Normal PROFILE-built x86_64, AArch64, IA-32 and
-RISC-V64 products have real QMP captures of the same authored Crèche projection
-and checked Mask. The LoongArch64 graphical frame, the complete
-five-architecture PNG comparison, capability matrices and persistent launcher
-remain open. This report does not establish full product parity or stable
+Normal PROFILE-built x86_64, AArch64, IA-32, RISC-V64 and LoongArch64 products
+have real QMP captures of the same authored Crèche projection and checked Mask.
+This is source-pinned local comparative evidence for #6057. Required merge and
+integration acceptance remain outstanding. The separate persistent launcher
+and capability documentation now cover all five targets. It establishes neither full product parity nor stable
 release acceptance.
 
-| x86_64 PC | AArch64 virt | IA-32 PC | RISC-V64 virt |
-| --- | --- | --- | --- |
-| ![x86_64 Crèche](../../targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-ready.png) | ![AArch64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/creche-read-only.png) | ![IA-32 read-only Crèche](../../targets/conduitos/proof/firmware-frame/ia32-64d513075/first/creche-read-only.png) | ![RISC-V64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/creche-read-only.png) |
-| 1280×800; pitch 5120; 32 bpp; firmware RGB scanout through QEMU std VGA | 800×600; pitch 3200; 32 bpp; firmware RAM framebuffer | 1280×800; pitch 5120; 32 bpp; UEFI32 GOP through QEMU std VGA | 800×600; pitch 3200; 32 bpp; EDK2 GOP through firmware ramfb |
-| `creche-ready`, before Birth; keyboard and pointer exercised later | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable |
+| x86_64 PC | AArch64 virt | IA-32 PC | RISC-V64 virt | LoongArch64 virt |
+| --- | --- | --- | --- | --- |
+| ![x86_64 Crèche](../../targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-ready.png) | ![AArch64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/creche-read-only.png) | ![IA-32 read-only Crèche](../../targets/conduitos/proof/firmware-frame/ia32-64d513075/first/creche-read-only.png) | ![RISC-V64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/creche-read-only.png) | ![LoongArch64 read-only Crèche](../../targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/creche-read-only.png) |
+| 1280×800; pitch 5120; 32 bpp; firmware RGB scanout through QEMU std VGA | 800×600; pitch 3200; 32 bpp; firmware RAM framebuffer | 1280×800; pitch 5120; 32 bpp; UEFI32 GOP through QEMU std VGA | 800×600; pitch 3200; 32 bpp; EDK2 GOP through firmware ramfb | 800×600; pitch 3200; 32 bpp; reviewed EDK2 GOP through firmware ramfb |
+| `creche-ready`, before Birth; keyboard and pointer exercised later | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable | First source-backed read-only Show; local input unavailable |
+
+The [all-five direct audit](../../targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/five-architecture-audit.json)
+rechecks each actual PNG's CRC/RGBA pixels and acknowledged Face/Show, all six
+projection/Mask identities and all five typed Plot subjects. Four non-x86 owner
+availability maps agree; the five explicit x86 availability differences remain
+recorded. It performs no new guest run and claims no pixel or workload parity.
 
 The thumbnails may be scaled by the viewer. The underlying lossless PNGs retain
 actual dimensions. Pixel equality is neither asserted nor used as semantic proof.
@@ -31,6 +37,17 @@ boots, Sv39 mapping/custody, QMP frames and negative controls. Its final collect
 source is `22f9ee6fa0d02a5aa913e75e59e268fa1173c86e`; only xtask collector files
 differ from the immutable guest image. Later evidence commits do not change
 those runtime identities.
+
+The LoongArch64 runtime and collector source is
+`11fd0027ee3342bbbb50f501ec4c60f78c346065`. Its [separate report](conduitos-loongarch64-firmware-frame.md)
+retains two fresh normal boots, four-level mapping with observed MAT 2,
+exclusive custody and DBAR completion, the actual PNGs and negative controls.
+Its [independent audit](../../targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/independent-audit.json)
+checks full ELF/ISO bytes, PNG CRC/RGBA pixels, eight-Base/sealed-boot joins,
+Source/Checked/Expanded projection and Mask identities, all owner actions and
+five typed Plot subjects against the AArch64 reference. No entropy bytes or
+hashes are retained. Its one-shot read-only guest remains running during QMP
+capture; the harness stops it afterwards.
 
 The [RISC-V independent audit](../../targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/independent-audit.json)
 joins its full ELF/ISO, source identities, PNG CRC/decoded pixels, mappings,
@@ -99,7 +116,25 @@ reclaiming inactive compiler caches, the journey and final artifact verification
 used the same immutable ISO. The earlier wrapper receipt is retained; there was
 no guest failure, image substitution or replacement build.
 
-## Reproduction and remaining acceptance
+## Refusal matrix
+
+These are actual negative controls, kept separate from successful frames. Each
+linked report retains the exact image, launch, transcript and source scope.
+
+| Host | Provider absent | Source/capture boundary |
+| --- | --- | --- |
+| x86_64 | [Historical normal product without VGA](../audits/native-missing-graphics-20261022.md): `display-absent`, exit 35, no Show; retained diagnostic source `bc3ff641a` | Current journey has its own immutable-image and Face/Show checks; the historical negative is not relabelled as that journey source |
+| AArch64 | [Same graphical image without ramfb](conduitos-aarch64-firmware-frame.md): `display-absent`, no graphical Show | Supported verifier refuses dirty source before guest launch |
+| IA-32 | [Same graphical image without VGA](conduitos-ia32-firmware-frame.md): `display-absent`, 4128 ms, no graphical Show | Supported verifier refuses dirty source before guest launch |
+| RISC-V64 | [Same graphical image without ramfb](conduitos-riscv64-firmware-frame.md): `display-absent`, 8535 ms, no graphical Show | Supported verifier refuses dirty source before normal guest launch |
+| LoongArch64 | [Same graphical image without ramfb](conduitos-loongarch64-firmware-frame.md): `display-absent`, 5018 ms, no graphical Show | Supported verifier refuses dirty source before normal guest launch |
+
+The four non-x86 negatives preserve their image and immutable firmware bytes.
+Placeholder QMP images from absent providers never count as graphical success.
+The prepared-tool capability probes can run paused empty machines before a
+source refusal; those probes execute no normal guest instructions.
+
+## Reproduction and acceptance scope
 
 At the pinned x86 source, with the repository's normal x86 tool prerequisites:
 
@@ -110,7 +145,19 @@ cargo xtask make host verify target/host-build/6057-x86-gallery-abd896d14
 ```
 
 The journey verifies the supplied normal product image; it never rebuilds it.
-It deliberately stops its guests. A persistent user launcher is still required
-by #6057. Remaining architecture frames must retain comparable source, machine,
-geometry, input/absence and acknowledged Show evidence. This four-architecture
-reference does not satisfy the five-architecture exit condition.
+It deliberately stops its guests. Each architecture report records its own
+source-pinned reproduction, machine, geometry and refusal scope. The first
+normal source-backed frame is the Crèche for each read-only product.
+
+These products retain their selected firmware modes. The x86 compact/spacious
+Look variants keep 1280×800 geometry; runtime mode switching and additional
+native geometries are not claimed. Real input and subsequent source-backed Show
+revisions are exercised in the x86 journey. The other four Hosts have no admitted
+local input and claim no interactive revision. Their independently fresh boots
+preserve different generated names and exact Host/Boot/Face/Show identities.
+
+The five-image comparison, optional-profile capability matrices and separate
+[persistent launcher](conduitos-persistent-launch.md) are implemented locally.
+#6057 remains open for the required Candidate and applicable merged-source
+Integration gates. Physical display and input parity retain their
+separate issues.

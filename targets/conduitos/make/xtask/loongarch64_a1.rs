@@ -17,14 +17,12 @@ use super::{
     ConduitosArch, ConduitosError,
 };
 
+use super::loongarch64_firmware::{
+    prepare as prepare_firmware, FIRMWARE_SHA256, FIRMWARE_VERSION, QEMU_ROM_SHA256,
+};
+
 const PREFIX: &str = "CONDUIT_LOONGARCH64_ENTRY_SIGN ";
 const PROFILE: &str = "qemu-loongarch64-virt-single-cpu-2g-edk2";
-const FIRMWARE_VERSION: &str = "2025.02-8+deb13u1";
-const FIRMWARE_URL: &str =
-    "https://deb.debian.org/debian/pool/main/e/edk2/qemu-efi-loongarch64_2025.02-8+deb13u1_all.deb";
-const FIRMWARE_SHA256: &str = "2a1bd3b00413af313d6105f38bda3f8156be514f5026f3ec29ba8e81b68f0633";
-const QEMU_ROM_BYTES: usize = 4 * 1024 * 1024;
-const QEMU_ROM_SHA256: &str = "b4c32ce95a54346c8bc180241a21ad763c5fcf43310e95aa93ed58bf0cc0864e";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub(super) struct EntrySign {
@@ -334,95 +332,6 @@ fn require_supported_qemu(version: &str) -> Result<(), ConduitosError> {
             "unsupported-loongarch64-emulator",
             format!(
                 "QEMU 10 or newer is required for correct large-page translation; found {version}"
-            ),
-        ))
-    }
-}
-
-fn prepare_firmware(paths: &Paths) -> Result<PathBuf, ConduitosError> {
-    let toolchain = paths.root.join("target/conduitos/toolchain");
-    let package = toolchain.join("qemu-efi-loongarch64.deb");
-    let root = toolchain.join("loongarch64-root");
-    let packaged_firmware = root.join("usr/share/qemu-efi-loongarch64/QEMU_EFI.fd");
-    let firmware = toolchain.join("QEMU_EFI.loongarch64-qemu8.fd");
-    fs::create_dir_all(&toolchain)
-        .map_err(|error| refusal("unavailable-loongarch64-firmware", error.to_string()))?;
-    if !package.is_file() {
-        command(
-            "curl",
-            &[
-                "--fail",
-                "--location",
-                "--remove-on-error",
-                "--retry",
-                "3",
-                "--retry-all-errors",
-                "--retry-delay",
-                "1",
-                "--output",
-                package.to_str().unwrap(),
-                FIRMWARE_URL,
-            ],
-            &paths.root,
-        )?;
-    }
-    let digest = sha256_file(&package)?;
-    if digest != FIRMWARE_SHA256 {
-        return Err(refusal(
-            "stale-loongarch64-firmware",
-            format!("firmware package digest {digest} does not match pinned {FIRMWARE_SHA256}"),
-        ));
-    }
-    if !packaged_firmware.is_file() {
-        fs::create_dir_all(&root)
-            .map_err(|error| refusal("unavailable-loongarch64-firmware", error.to_string()))?;
-        command(
-            "dpkg-deb",
-            &[
-                "--extract",
-                package.to_str().unwrap(),
-                root.to_str().unwrap(),
-            ],
-            &paths.root,
-        )?;
-    }
-    if !firmware.is_file() {
-        let bytes = fs::read(&packaged_firmware)
-            .map_err(|error| refusal("unavailable-loongarch64-firmware", error.to_string()))?;
-        if bytes.len() < QEMU_ROM_BYTES {
-            return Err(refusal(
-                "stale-loongarch64-firmware",
-                format!("packaged firmware is only {} bytes", bytes.len()),
-            ));
-        }
-        fs::write(&firmware, &bytes[..QEMU_ROM_BYTES])
-            .map_err(|error| refusal("unavailable-loongarch64-firmware", error.to_string()))?;
-    }
-    let rom_digest = sha256_file(&firmware)?;
-    if rom_digest != QEMU_ROM_SHA256 {
-        return Err(refusal(
-            "stale-loongarch64-firmware",
-            format!("QEMU ROM digest {rom_digest} does not match pinned {QEMU_ROM_SHA256}"),
-        ));
-    }
-    Ok(firmware)
-}
-
-fn command(program: &str, args: &[&str], cwd: &Path) -> Result<(), ConduitosError> {
-    let output = Command::new(program)
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .map_err(|error| refusal("unavailable-loongarch64-firmware", error.to_string()))?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(refusal(
-            "unavailable-loongarch64-firmware",
-            format!(
-                "{program} exited {}; stderr: {}",
-                output.status,
-                String::from_utf8_lossy(&output.stderr).trim()
             ),
         ))
     }
