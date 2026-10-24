@@ -1,5 +1,5 @@
 //! Pinned preparation of the reviewed diagnostic emulator, separate from stock QEMU.
-use super::qemu_source::version;
+use super::qemu_source::{graphics, version};
 use super::{profile::Paths, report::sha256_file, ConduitosArch, ConduitosError};
 use crate::cli::GlobalOpts;
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,6 @@ use std::{
 };
 
 const ARCHIVE_SHA256: &str = "a3717477d8e2c84d630bfffbc20f6cd3293eb45aa1e6dac6d0cc27689991c9e1";
-mod graphics;
 const GRAPHICAL_VERSION: &str =
     "QEMU emulator version 10.2.1 (conduit-diagnostic-misc-drdtl-graphics)";
 const VERSION: &str = "QEMU emulator version 10.2.1 (conduit-diagnostic-misc-drdtl)";
@@ -212,6 +211,9 @@ pub(super) fn prepare(graphical: bool, opts: &GlobalOpts) -> Result<(), Conduito
             destination.display()
         );
         return Ok(());
+    }
+    if graphical {
+        super::loongarch64_firmware::prepare(&paths)?;
     }
     if let Some(binary) = cached(&paths, &inputs)? {
         if opts.json {

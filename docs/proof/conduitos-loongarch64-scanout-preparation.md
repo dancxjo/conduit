@@ -1,9 +1,16 @@
 # LoongArch64 scanout preparation
 
-This held preparation supports the remaining LoongArch64 frame in #6057.
-It changes no Host offer, profile, renderer, boot collector or default firmware
-route, and proves no new graphical product frame. RISC-V's current PR retains
-its own Candidate/combined-Integration gate before overlapping implementation.
+This report retains the isolated preparation through source `2994f4de9` for
+the remaining LoongArch64 frame in #6057. At those sources it changed no Host
+offer, profile, renderer, boot collector or default firmware route and proved
+no new graphical product frame. The historical held-file descriptions below
+refer to that preparation, before normal-product wiring.
+
+RISC-V PR #6412 subsequently merged, and [applicable combined Integration](https://github.com/dancxjo/conduit/actions/runs/40107606433)
+passed at descendant `b0bc8d714c1d34d30231c75a7e3ea02c7395b6b9`, retaining the
+merge. The preparation is now refreshed onto current development and wired into
+an optional normal graphical profile. Its actual normal product/frame proof
+remains pending; the preparation packets do not establish that new claim.
 
 The [source packet](../../targets/conduitos/proof/tools/loongarch64/scanout-source-review/index.json)
 retains seven exact original QEMU 10.2.1 files, their licensing, hashes and

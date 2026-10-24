@@ -66,6 +66,7 @@ mod loongarch64_a4;
 mod loongarch64_domain_proof;
 mod loongarch64_emulator;
 mod loongarch64_entropy_input;
+mod loongarch64_firmware;
 mod loongarch64_product_boot;
 mod make_resolution;
 mod native_latency;

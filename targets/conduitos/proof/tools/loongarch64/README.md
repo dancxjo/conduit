@@ -70,3 +70,10 @@ instructions and retains its bounded protocol transcript under
 physical scanout nor GPU acceleration. A later graphical product must supply its
 own actual framebuffer, checked Face/Mask/Show and screenshot evidence. This
 preparation option alone does not change the canonical live-product route.
+
+Graphical preparation also prepares the existing reviewed Debian
+`2025.02-8+deb13u1` firmware ROM, validating both its package and selected 4 MiB
+ROM hashes. Graphical product execution selects only that already prepared ROM;
+missing or corrupt firmware refuses with the preparation command. Execution
+never downloads or substitutes a firmware image. This remains the single-ROM
+`-bios` route, with no CODE/VARS pair or persistent firmware variable store.

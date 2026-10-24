@@ -1,9 +1,8 @@
-//! Exact product closure for the LoongArch64 QEMU virt Host.
-
-use conduit_host_make::BuildManifest;
-
-use super::{ConduitosError, TargetBuildInputs, PRESENT_OPERATION};
-
+//! Exact LoongArch64 serial plus optional firmware-framebuffer product closure.
+use super::{
+    refusal, BuildManifest, ConduitosError, TargetBuildInputs, FRAMEBUFFER_DRIVER,
+    NATIVE_COMPOSITOR, NATIVE_PRESENTER, PRESENT_OPERATION, SCANOUT_BASE, SURFACE_CLASS,
+};
 const UART_DRIVER: &str = "conduitos/loongarch64-uart@1";
 const UART_BASE: &str = "conduitos/loongarch64-uart-text";
 const LINEAR_PRESENTER: &str = "presenter/loongarch64-linear-uart@1";
@@ -11,95 +10,153 @@ const LINEAR_PRESENTER: &str = "presenter/loongarch64-linear-uart@1";
 pub(crate) fn lower_loongarch64_virt(
     manifest: &BuildManifest,
 ) -> Result<TargetBuildInputs, ConduitosError> {
-    let presenters = manifest.presenters.as_slice();
-    let bases = manifest
-        .base_selections
-        .iter()
-        .map(|item| item.kind.clone())
-        .collect::<Vec<_>>();
-    let drivers = manifest
-        .driver_selections
-        .iter()
-        .map(|item| item.kind.clone())
-        .collect::<Vec<_>>();
-    if presenters != [LINEAR_PRESENTER]
-        || bases != [UART_BASE]
-        || drivers != [UART_DRIVER]
-        || manifest.base_selections[0].driver != UART_DRIVER
-        || manifest.host_calls.as_slice() != [PRESENT_OPERATION]
-        || !manifest.facilities.is_empty()
-        || !manifest.resource_budgets.is_empty()
-        || !manifest.profile_fragments.is_empty()
-    {
-        return Err(ConduitosError::refusal(
+    let graphical = manifest.presenters.iter().any(|p| p == NATIVE_PRESENTER);
+    let mut presenters = vec![LINEAR_PRESENTER];
+    let mut bases = vec![UART_BASE];
+    let mut drivers = vec![UART_DRIVER];
+    let mut facilities = Vec::new();
+    if graphical {
+        presenters.push(NATIVE_PRESENTER);
+        bases.push(SCANOUT_BASE);
+        drivers.push(FRAMEBUFFER_DRIVER);
+        facilities.push(NATIVE_COMPOSITOR);
+    }
+    exact("presenter", &presenters, &manifest.presenters)?;
+    exact(
+        "base",
+        &bases,
+        &manifest
+            .base_selections
+            .iter()
+            .map(|b| b.kind.clone())
+            .collect::<Vec<_>>(),
+    )?;
+    exact(
+        "driver",
+        &drivers,
+        &manifest
+            .driver_selections
+            .iter()
+            .map(|d| d.kind.clone())
+            .collect::<Vec<_>>(),
+    )?;
+    exact("facility", &facilities, &manifest.facilities)?;
+    exact("host-call", &[PRESENT_OPERATION], &manifest.host_calls)?;
+    if !manifest.profile_fragments.is_empty() {
+        return Err(refusal(
             "loongarch64-product-closure-mismatch",
-            "LoongArch64 product requires exactly its admitted UART face closure",
+            "ordinary LoongArch64 product cannot select proof instrumentation".into(),
         ));
     }
-    let portable = conduitos::make::IMPL_TIME_TICK
+    for base in &manifest.base_selections {
+        let expected = if base.kind == UART_BASE {
+            UART_DRIVER
+        } else {
+            FRAMEBUFFER_DRIVER
+        };
+        if base.driver != expected {
+            return Err(refusal(
+                if base.kind == UART_BASE {
+                    "loongarch64-serial-driver-mismatch"
+                } else {
+                    "loongarch64-scanout-driver-mismatch"
+                },
+                format!(
+                    "base {} selects {}, expected {expected}",
+                    base.kind, base.driver
+                ),
+            ));
+        }
+    }
+    let (surface_slots, surface_bytes) = match manifest.resource_budgets.as_slice() {
+        [] if !graphical => (0, 0),
+        [surface]
+            if graphical
+                && surface.class == SURFACE_CLASS
+                && surface.slots != 0
+                && surface.bytes != 0 =>
+        {
+            (surface.slots, surface.bytes)
+        }
+        _ => return Err(refusal(
+            "loongarch64-product-closure-mismatch",
+            "graphical LoongArch64 requires exactly one finite face/surface budget; serial selects none"
+                .into(),
+        )),
+    };
+    let mut features = vec!["loongarch64-product"];
+    if graphical {
+        features.push("native-compositor-core");
+    }
+    let portable_backbone = conduitos::make::IMPL_TIME_TICK
         | conduitos::make::IMPL_TICK_FACE
         | conduitos::make::IMPL_TEXT_LITERAL
         | conduitos::make::IMPL_TEXT_UPPER
         | conduitos::make::IMPL_TEXT_FACE;
     Ok(TargetBuildInputs {
-        cargo_features: vec!["loongarch64-product"],
-        implementations: portable | conduitos::make::IMPL_LINEAR_PRESENTER,
-        facilities: 0,
-        resources: 0,
-        bases: conduitos::make::BASE_SERIAL_TEXT,
-        drivers: conduitos::make::DRIVER_LOONGARCH64_UART,
-        presenters: conduitos::make::PRESENTER_LINEAR_SERIAL,
+        cargo_features: features,
+        implementations: portable_backbone
+            | conduitos::make::IMPL_LINEAR_PRESENTER
+            | if graphical {
+                conduitos::make::IMPL_NATIVE_PRESENTER
+            } else {
+                0
+            },
+        facilities: if graphical {
+            conduitos::make::FACILITY_NATIVE_COMPOSITOR
+        } else {
+            0
+        },
+        resources: if graphical {
+            conduitos::make::RESOURCE_FACE_SURFACE
+        } else {
+            0
+        },
+        bases: conduitos::make::BASE_SERIAL_TEXT
+            | if graphical {
+                conduitos::make::BASE_DISPLAY_SCANOUT
+            } else {
+                0
+            },
+        drivers: conduitos::make::DRIVER_LOONGARCH64_UART
+            | if graphical {
+                conduitos::make::DRIVER_LINEAR_FRAMEBUFFER
+            } else {
+                0
+            },
+        presenters: conduitos::make::PRESENTER_LINEAR_SERIAL
+            | if graphical {
+                conduitos::make::PRESENTER_NATIVE_GRAPHICAL
+            } else {
+                0
+            },
         proof_instrumentation: 0,
-        face_surface_slots: 0,
-        face_surface_bytes: 0,
+        face_surface_slots: surface_slots,
+        face_surface_bytes: surface_bytes,
     })
+}
+fn exact(class: &str, expected: &[&str], selected: &[String]) -> Result<(), ConduitosError> {
+    if selected.len() != expected.len()
+        || expected.iter().any(|value| {
+            selected
+                .iter()
+                .filter(|item| item.as_str() == *value)
+                .count()
+                != 1
+        })
+    {
+        return Err(refusal(
+            "loongarch64-product-closure-mismatch",
+            format!("expected exactly {class}:{expected:?}, found {selected:?}"),
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_host_make::{
-        build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
-        BuildInputs,
-    };
+#[path = "loongarch64_tests.rs"]
+mod tests;
 
-    fn manifest() -> BuildManifest {
-        let packages = conduit_workspace_make::package_set();
-        let profile = check_host_configuration(
-            parse_host_configuration_conduit(include_str!(
-                "../../../profiles/conduitos-loongarch64-virt.host.conduit"
-            ))
-            .unwrap(),
-            &conduit_workspace_make::catalog(),
-            &packages,
-        )
-        .unwrap()
-        .into_profile();
-        build_default_host_image(
-            profile,
-            &conduit_workspace_make::catalog(),
-            &conduit_workspace_make::package_set(),
-            &BuildInputs {
-                source_identity: "test-source".into(),
-                toolchain_available: true,
-            },
-        )
-        .unwrap()
-        .0
-        .manifest
-    }
-
-    #[test]
-    fn exact_closure_lowers_and_foreign_bindings_refuse() {
-        let mut checked = manifest();
-        let lowered = lower_loongarch64_virt(&checked).unwrap();
-        assert_eq!(lowered.cargo_features, ["loongarch64-product"]);
-        assert_eq!(lowered.drivers, conduitos::make::DRIVER_LOONGARCH64_UART);
-
-        checked.presenters[0] = "presenter/riscv64-linear-sbi-console@1".into();
-        assert!(lower_loongarch64_virt(&checked).is_err());
-        checked.presenters[0] = LINEAR_PRESENTER.into();
-        checked.driver_selections[0].kind = "conduitos/pl011@1".into();
-        assert!(lower_loongarch64_virt(&checked).is_err());
-    }
-}
+#[cfg(test)]
+#[path = "loongarch64_serial_tests.rs"]
+mod serial_tests;

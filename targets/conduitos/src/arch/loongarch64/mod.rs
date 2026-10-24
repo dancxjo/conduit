@@ -2,6 +2,8 @@
 
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
+#[cfg(feature = "native-compositor-core")]
+pub mod framebuffer;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 mod domain_budget;

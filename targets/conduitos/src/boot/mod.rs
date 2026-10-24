@@ -31,7 +31,11 @@ mod observation;
 pub use modules::BootModuleRefusal;
 
 #[cfg(all(
-    any(target_arch = "aarch64", target_arch = "riscv64"),
+    any(
+        target_arch = "aarch64",
+        target_arch = "riscv64",
+        target_arch = "loongarch64"
+    ),
     feature = "native-compositor-core"
 ))]
 pub(crate) use limine::framebuffer_reserved_range;
@@ -103,5 +107,8 @@ mod tests {
     }
 }
 
-#[cfg(all(target_arch = "riscv64", feature = "native-compositor-core"))]
+#[cfg(all(
+    any(target_arch = "riscv64", target_arch = "loongarch64"),
+    feature = "native-compositor-core"
+))]
 pub(crate) use limine::bootloader_table_page;

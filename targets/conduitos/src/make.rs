@@ -200,13 +200,14 @@ impl MakeRecord {
                     | DRIVER_LOONGARCH64_UART)
                 != expected_serial_drivers
             || (self.presenters & PRESENTER_LINEAR_SERIAL != 0) != linear
+            || (matches!(self.target, "conduitos/aarch64/orange-pi-5-rk3588s")
+                && (native || !linear))
             || (matches!(
                 self.target,
-                "conduitos/loongarch64/virt" | "conduitos/aarch64/orange-pi-5-rk3588s"
-            ) && (native || !linear))
-            || (matches!(
-                self.target,
-                "conduitos/aarch64/virt" | "conduitos/ia32/pc" | "conduitos/riscv64/virt"
+                "conduitos/aarch64/virt"
+                    | "conduitos/ia32/pc"
+                    | "conduitos/riscv64/virt"
+                    | "conduitos/loongarch64/virt"
             ) && !linear)
             || (self.target == "conduitos/x86_64/pc" && linear)
         {

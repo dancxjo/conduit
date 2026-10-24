@@ -1,4 +1,5 @@
 use super::*;
+use alloc::vec::Vec;
 const VA: u64 = 0xffff_8000_8000_0000;
 const PA: u64 = 0x8000_0000;
 fn regime() -> Regime {
@@ -99,9 +100,11 @@ fn unsupported_regimes_and_matching_direct_windows_never_read_tables() {
     }
     let mut r = regime();
     r.direct_windows[1] = 0xf000_0000_0000_0011;
+    let refusal = validate(VA, PA, PAGE, r, |_| panic!("DMW shadows page walk")).unwrap_err();
+    assert_eq!(refusal, Refusal::DirectWindow);
     assert_eq!(
-        validate(VA, PA, PAGE, r, |_| panic!("DMW shadows page walk")),
-        Err(Refusal::DirectWindow)
+        refusal.as_str(),
+        "loongarch64-framebuffer-direct-window-unsupported"
     );
 }
 #[test]

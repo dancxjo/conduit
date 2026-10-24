@@ -1,6 +1,6 @@
-//! Held normal PROFILE graphical collector; not yet wired or product-tested.
+//! Normal PROFILE graphical collector with prepared tools and finite evidence.
 use super::super::{
-    emitted_line, loongarch64_a1, loongarch64_emulator, loongarch64_entropy_input, report,
+    emitted_line, loongarch64_emulator, loongarch64_entropy_input, loongarch64_firmware, report,
     target_build::graphical::Capture, ConduitosArch, ConduitosError,
 };
 use super::{refusal, Paths, OBSERVATORY_PREFIX, PRODUCT_PREFIX};
@@ -48,9 +48,8 @@ pub(super) fn boot_if_selected(
         .ok_or_else(|| io("source identity missing"))?;
     let capture = Capture::prepare(&paths.target, ConduitosArch::Loongarch64)?;
     let qemu = loongarch64_emulator::selected_graphical(paths)?;
-    // Make this existing pinned firmware helper visible during gated wiring;
-    // the held file is deliberately not compiled before that admission.
-    let firmware = loongarch64_a1::prepare_firmware(paths)?;
+    // Execution verifies only the prepared ROM; it never downloads firmware.
+    let firmware = loongarch64_firmware::paths(paths)?;
     let firmware_hash = report::sha256_file(&firmware)?;
     let entropy = loongarch64_entropy_input::Input::acquire(&paths.target)?;
     let mut command = Command::new(&qemu);
