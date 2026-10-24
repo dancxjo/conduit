@@ -1,0 +1,158 @@
+{
+  "issue": 5372,
+  "live_issue_snapshot": "work/5372-live-parent-issue.json",
+  "observed_state": "OPEN",
+  "scope": "Read-only parent acceptance audit; no builds, runtime, CI observations, issue or source writes.",
+  "criteria": [
+    {
+      "criterion": "Written mapping, ownership and concrete forward/return examples",
+      "status": "delivered",
+      "evidence": [
+        "docs/architecture/face-renderer.md",
+        "docs/audits/renderer-interlock.md"
+      ],
+      "finding": "Exact Face/revision/action and typed arguments flow through checked Mask admission, prepared/acknowledged Show and correlation. Renderer-owned local element identities do not authorize effects."
+    },
+    {
+      "criterion": "One offered action, two independently admitted realizations, two distinct inputs, different Shows, committed effects",
+      "status": "current_positive_independently_proved_prepared_delivery",
+      "evidence": [
+        "8d76796e7f24daf839ae6d2c1bcf6bc8106e0de5:site/evidence/mask-correspondence-continuation-20261021/README.md",
+        "8d76796e7f24daf839ae6d2c1bcf6bc8106e0de5:site/evidence/mask-correspondence-continuation-20261021/receipt.json"
+      ],
+      "finding": "Same actual fa59 Body; full canonical todo.add equality; actual browser pointer and one independent owner-terminal command; distinct available Mask Shows/Plans/Plays and completed write/read Signs; one item to two. Current independent review retained. Historical witness stays unchanged and is not imported."
+    },
+    {
+      "criterion": "Inaccessible pseudo-button and missing semantic action",
+      "status": "delivered_scoped_controls",
+      "evidence": [
+        "docs/audits/renderer-adversarial-correspondence.md",
+        "docs/audits/renderer-adversarial-local-receipt.json"
+      ],
+      "finding": "Renderer-only Chromium rejects pseudo/nameless/hidden/inert/transparent/clipped controls; installed hidden Add surface refuses before ACK, clears/retire authority, restored reachable control does not replay rejected input."
+    },
+    {
+      "criterion": "Forged action/arguments, stale Show/revision, disabled action",
+      "status": "delivered_scoped_controls",
+      "evidence": [
+        "docs/audits/browser-todo-action-correspondence.md",
+        "docs/audits/renderer-adversarial-correspondence.md",
+        "semantics/face/tests/cross_mask_lifecycle.rs"
+      ],
+      "finding": "Actual installed SDK refuses invented action/wrong target/missing duplicate unknown or malformed arguments and old acknowledged Show without owner mutation. Prepared/failed surfaces disable controls; generic Face/Show tests cover current availability/revision. SDK-before-WASM observations are not claimed as execution of Rust error variants."
+    },
+    {
+      "criterion": "Outdated input binding and misleading spoken instruction reject or truthful fallback",
+      "status": "delivered_bounded_typed_and_terminal_controls",
+      "evidence": [
+        "docs/architecture/face-grammar-conformance.md",
+        "semantics/face/tests/input_binding_source.rs",
+        "semantics/face/tests/parsec_input_instruction_producer.rs",
+        "semantics/face/tests/parsec_map_transition.rs",
+        "products/conduit/src/parsec_instruction_encounter_tests.rs"
+      ],
+      "finding": "Current Face/Show/input-map correlation and source-owned policy; unavailable withdrawal says Input unavailable; forged/stale/cross-action candidates refuse; changed source refuses; actual terminal prompt custody/map remap retires obsolete instructions. Spoken output is checked wording/frame reconstruction, not human speech comprehension or completed cross-Mask instruction reconstruction. Broader #5355/#5369 gaps remain distinct."
+    },
+    {
+      "criterion": "Focus/scroll/decoration remain Mask-local, no fake application actions or global widget taxonomy",
+      "status": "delivered",
+      "evidence": [
+        "docs/audits/renderer-interlock.md",
+        "docs/audits/renderer-adversarial-correspondence.md"
+      ],
+      "finding": "Tab/focus/scroll preserve whole owner state; finite semantic Face values carry no coordinates/toolkit widgets. Local renderer operations are not app action authority."
+    },
+    {
+      "criterion": "Component Plot/Fores/Look/accessibility/device mapping remain separate; no duplicate semantics/raw DOM callback authority",
+      "status": "delivered_with_explicit_boundary",
+      "evidence": [
+        "docs/architecture/face-renderer.md",
+        "docs/architecture/face-grammar-conformance.md",
+        "semantics/face/src/input_binding_correlation.rs"
+      ],
+      "finding": "Ordinary checked source constructs semantic proposals; Host/device availability and actual event custody remain separate. Correlation helper explicitly does not certify physical input availability; DOM callbacks cannot invent action authority."
+    },
+    {
+      "criterion": "Plan/Play/Host/Boot and Source/Show preserved; production deltas split into named tickets",
+      "status": "delivered_types_and_historical_runtime_identity; current_parent_evidence_join_pending",
+      "evidence": [
+        "docs/audits/renderer-interlock.md",
+        "8d76796e7f24daf839ae6d2c1bcf6bc8106e0de5:site/evidence/mask-correspondence-continuation-20261021/receipt.json"
+      ],
+      "finding": "Retained runtime witness records Source, separate Mask Plans/Plays/Shows, owner Host/Boot and actual write/read signs. Children are not evidence by closure alone. Historical README unmerged-6209 gate must be reconciled with current accepted implementation, not silently deleted."
+    }
+  ],
+  "historical_positive_packet": {
+    "head": "8d76796e7f24daf839ae6d2c1bcf6bc8106e0de5",
+    "remote_ref": "refs/remotes/origin/prep/5372-cross-mask-witness 8d76796e7f24daf839ae6d2c1bcf6bc8106e0de5",
+    "measured_source": "a2b2f631aa9c784608502ebab95b2f5cd72d52d7",
+    "path": "site/evidence/mask-correspondence-continuation-20261021",
+    "files": 11,
+    "present_in_current_dev": false,
+    "commit_delta": "Evidence-only commit, 11 added packet files / 1606 lines, no production source edits. Producer guards exact installed Source, Body, latest checkpoint and prior interaction, refuses output-directory reuse, verifies exactly one terminal Add, actual completed write/read and fresh available initiating Show. Full canonical object equality was audited after execution and explicitly recorded; producer checks action identity/target/intent, not full object itself."
+  },
+  "exact_critical_source_coverage": [
+    {
+      "path": "semantics/face/src/renderer_execution.rs",
+      "measured_blob": "a489419505c82e120a39735a8b7688415c4034f9",
+      "accepted_blob": "a489419505c82e120a39735a8b7688415c4034f9",
+      "exact": true
+    },
+    {
+      "path": "semantics/face/src/renderer_inspection.rs",
+      "measured_blob": "a55c9e253585b67f8d63706fe137ee744a417cb7",
+      "accepted_blob": "a55c9e253585b67f8d63706fe137ee744a417cb7",
+      "exact": true
+    },
+    {
+      "path": "semantics/face/src/input_binding_correlation.rs",
+      "measured_blob": "82cf19dc1027b1422d936464cf582e32fd47cb0f",
+      "accepted_blob": "82cf19dc1027b1422d936464cf582e32fd47cb0f",
+      "exact": true
+    },
+    {
+      "path": "semantics/face/tests/parsec_input_instruction_producer.rs",
+      "measured_blob": "ad10b2eb0255947a5edbc2cd96502293a957dcae",
+      "accepted_blob": "ad10b2eb0255947a5edbc2cd96502293a957dcae",
+      "exact": true
+    },
+    {
+      "path": "semantics/face/tests/parsec_map_transition.rs",
+      "measured_blob": "395de320df0e2a60a0a6c77c9cfae38c30ed33e9",
+      "accepted_blob": "395de320df0e2a60a0a6c77c9cfae38c30ed33e9",
+      "exact": true
+    }
+  ],
+  "additional_source_correspondence": {
+    "terminal_mask_execution_delta": [],
+    "remaining_browser_and_owner_deltas": "Not proven identical: 119 targets/browser files changed; owner todo_read/todo_waiting changed plus tests. These broad file counts are investigation pointers, not evidence of semantic regression or demand to rerun everything.",
+    "current_review": "Targeted final review in source-correspondence-review.json supersedes initial unreviewed broad file-count pointer; not all-tree byte identity."
+  },
+  "existing_native_packet": {
+    "path": "site/evidence/todo-browser-development/todo-native-action-receipt.json",
+    "source": "56481bf14857bdc62f54d30b1c424cfe5c92f896",
+    "finding": "Actual native complete.task-18 accepted and owner 3\u21922 open, matching acknowledged Shows. Companion long-list browser capture is read-only. Do not combine unrelated Body/Add captures into a fabricated same-action witness; use the stronger explicit 5372 continuation."
+  },
+  "closure_eligible_now": false,
+  "exact_remaining_gate": "Publish safe current witness and parent map; required final delivery/relevant accepted Integration. Historicalpositive is preserved without importing its branch.",
+  "ownership": {
+    "root": "Root coordinates this parent audit; no production ownership assumed.",
+    "historical_preparation": "Published prep/5372-cross-mask-witness; live issue comments preserve original custody. Confirm explicit handoff before absorbing retained evidence/source work.",
+    "active_competing_production_pr": "Not established by relevant issue/docs; no broad PR query performed.",
+    "explicit_handoff_language": "Latest issue comment is a prepared-proof delivery declaration, says no new overlapping PR is admitted; it is not an explicit inter-owner handoff. Historical producer embeds this same workspace root. Root should verify current ownership/obtain handoff before importing the 11 evidence files; do not absorb the full branch.",
+    "current_resolution": "Current witness was produced from Root-owned6335 installation in this same workspace; historical branch is only referenced and no work is absorbed. Historical producer/private outputs also originate in this workspace."
+  },
+  "next_safe_action": "Confirm custody/handoff for the existing 11-file evidence-only packet, then minimally deliver it with an up-to-date parent requirement map and source correspondence review. Do not execute a new runtime campaign solely because this durable witness is on a prep ref. Browser/owner effect-path drift remains a bounded review gate; preserve historical measured identity instead of relabeling the receipt current.",
+  "non_claims": [
+    "No child closure used as parent proof",
+    "No current-source runtime proof inferred solely from historical receipt",
+    "No physical/human accessibility or generic #5355/#5369 completion",
+    "No aggregate CI result or live deployment claimed"
+  ],
+  "current_dev_source_observed": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "current_positive_update": {
+    "source": "fa59a9cdf6cf2af69cec86973e09865cb1f25ec1",
+    "result": "Actual same-Body browser pointer Add and one terminal Add independently reviewed PASS; one to two items; no historical branch absorption or rebuild",
+    "review": "5372-current-terminal-independent-review.json"
+  }
+}

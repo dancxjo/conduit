@@ -1,0 +1,290 @@
+{
+  "schema": "conduit.proof/mask-correspondence-continuation@1",
+  "source": "fa59a9cdf6cf2af69cec86973e09865cb1f25ec1",
+  "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+  "browser_input": "trusted browser pointer click; exact frozen6335 coordinator and Add receipt retained",
+  "browser_producer_sha256": "93cc0c3d42e41162c9d6ae2a9c44156306598f803d7235383526dd8a8f083f65",
+  "terminal_input": "one scripted public owner-terminal action command",
+  "canonical_action_contract_identical": true,
+  "canonical_action": {
+    "identity": "todo.add",
+    "intent": "todo/add@1",
+    "target": "todo/list",
+    "name": "add an item",
+    "arguments": [
+      {
+        "name": "text",
+        "value_name": "Item text",
+        "contract": {
+          "value_kind": "value/text",
+          "maximum_bytes": 72,
+          "constraints": [
+            {
+              "ByteLength": {
+                "minimum": 1,
+                "maximum": 72
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "disclosure": "CurrentAction",
+    "availability": "Available"
+  },
+  "prior_items": 1,
+  "terminal_items": 2,
+  "terminal_mutations": 1,
+  "resulting_face_id": "497127fbd215c0d20a4693632fe16ae0012a241e35e2609da1e529a9dc974d52",
+  "scope": "Same actual installed Body after verified browser Add and native read-only Show; fresh owner Boot and independently admitted terminal Mask. Different current Face revisions/Shows, no physical/human claim; one new command, no uncertain replay.",
+  "browser_effect": {
+    "show": {
+      "show_id": "show/a132f9a2f3a6322611dbe10f2e7be93681b7a50457b976c6338bda7e2fbe69c9",
+      "face_id": "47b5f4f274f6212935b44c091b7791573eab34ce6dcc9e2a4d04af885491a644",
+      "face_revision": 6888957975223900245
+    },
+    "mask_plan": {
+      "plan_id": "36a9ec47f605f52dc93dcaba7c857ed8de527f6cc5f64ff7545eee77faf5c67d",
+      "source_document_id": "12943ac0c48ef943f17ef226cd274b80ae774ce184327d8ec1784549e38a2698",
+      "checked_plot_id": "a87a85c48ba9f4e66ac69030366abba78c1fa6aac6e05f589248799b6f4c62a2",
+      "expanded_plot_id": "3d7a05f7cc37062b3f1cfed3921ea0378a46809341dbc5be83870565853dff8a"
+    },
+    "manifestation": {
+      "active_play_id": "4d0f8bb825bf8b50609f4cc029f740a592dc61538235d1c9f974eace4fbee646",
+      "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+      "boot_id": "browser-boot/247cac8b-0f75-4265-9d2d-21d2fd714e48",
+      "face_id": "47b5f4f274f6212935b44c091b7791573eab34ce6dcc9e2a4d04af885491a644",
+      "face_revision": 6888957975223900245,
+      "host_id": "browser/895e9572-10e8-4fb4-8718-0d20ded99660",
+      "lifecycle": "Available",
+      "manifestation_id": "8f6b83ad2780d387b2d0c41361a06f02a35631ca2efeec7c7fd133168b4008b9",
+      "offer_generation": 1,
+      "placement_id": "52187c85da6d50410226b4f394ac10f6c3113c96ff83acb24dc37c90d800ecca",
+      "plan_id": "36a9ec47f605f52dc93dcaba7c857ed8de527f6cc5f64ff7545eee77faf5c67d",
+      "play_sequence": 3
+    },
+    "interaction": {
+      "identity": "aefce5e919fd9d6919f2e0dd145cb40bfa8777b1c8a61ad6b61ac52ceb33f0cc",
+      "action_id": "todo.add",
+      "target": "todo/list",
+      "face_id": "47b5f4f274f6212935b44c091b7791573eab34ce6dcc9e2a4d04af885491a644",
+      "face_revision": 6888957975223900245,
+      "show_id": "show/a132f9a2f3a6322611dbe10f2e7be93681b7a50457b976c6338bda7e2fbe69c9",
+      "sequence": 1
+    },
+    "write": {
+      "schema": "conduit.todo/first-checkpoint-receipt@1",
+      "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+      "terminal": "Completed",
+      "plan_id": "body-plan/sha256:870d8637445a75e6e771e0a09101e26113e00882150d9c6d3f71c080d2f3d370",
+      "interaction_id": "aefce5e919fd9d6919f2e0dd145cb40bfa8777b1c8a61ad6b61ac52ceb33f0cc",
+      "committed_fore_count": 1,
+      "committed_fore_sha256": "sha256:7d78e83cf51a6085b5644c1244a94e54b66b7825e6682ba0e40449f7daca7dc9",
+      "play": {
+        "active_play_id": "body-play/sha256:6f4cafbf76e12cac358435cd08e23c3afd4786b32dc13fe9faba97c024e976ba",
+        "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+        "plan_id": "body-plan/sha256:870d8637445a75e6e771e0a09101e26113e00882150d9c6d3f71c080d2f3d370",
+        "play_sequence": 0,
+        "wake_id": "7be5386e765d154881fc95d65888c1086a5cb6596231acce758f2734d91fceb1"
+      },
+      "terminal_sign": {
+        "active_play_id": "body-play/sha256:6f4cafbf76e12cac358435cd08e23c3afd4786b32dc13fe9faba97c024e976ba",
+        "boot_id": "boot/installed/27c7e8a0f2bb66281edfe78ef11337a2c3c7b404b6f5607b6fce4ec3efb5adc3",
+        "host_id": "host/installed/34fda6add5996dfbd60f5f9c383b585cddd56e57863ee539b43f1b040127b582",
+        "sequence": 2,
+        "sign_id": "3dee8ab325e4d03bb7d40501a55e2a5b4fec4fb7d654b00163591c643ea50df5"
+      }
+    },
+    "read": {
+      "schema": "conduit.todo/verified-read-receipt@1",
+      "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+      "verified": true,
+      "read_plan_id": "body-plan/sha256:909fae36221d6d8367eb9be84cece7dd5c695dbe0b7bf17b450a0577854aa764",
+      "read_terminal": "Completed",
+      "restored_fore_sha256": "sha256:7d78e83cf51a6085b5644c1244a94e54b66b7825e6682ba0e40449f7daca7dc9",
+      "play": {
+        "active_play_id": "body-play/sha256:b448f534b5d9052a9c9e2e0484c16910e6335fb2389b36e7142c8409be00d412",
+        "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+        "plan_id": "body-plan/sha256:909fae36221d6d8367eb9be84cece7dd5c695dbe0b7bf17b450a0577854aa764",
+        "play_sequence": 1,
+        "wake_id": "b9ad903222e994b00590037dd76ed65bfdc00886da63a712b1450f71ee3b21ff"
+      },
+      "terminal_sign": {
+        "active_play_id": "body-play/sha256:b448f534b5d9052a9c9e2e0484c16910e6335fb2389b36e7142c8409be00d412",
+        "boot_id": "boot/installed/27c7e8a0f2bb66281edfe78ef11337a2c3c7b404b6f5607b6fce4ec3efb5adc3",
+        "host_id": "host/installed/34fda6add5996dfbd60f5f9c383b585cddd56e57863ee539b43f1b040127b582",
+        "sequence": 2,
+        "sign_id": "dcd5c94e13942dc2d7b548d4cb11e19db3475a400225f165e617f6bc5e40f802"
+      }
+    }
+  },
+  "terminal_effect": {
+    "show": {
+      "show_id": "show/538ef3fccc0e4cbac70a3ddad6b2183ef9b2627c06ed143e651c6e67cc1efcc4",
+      "face_id": "d8c046c100ad0f65f9926fc39f76e8dcad137c85ebcf74d588d773841cab8a8c",
+      "face_revision": 6888957975223900265
+    },
+    "mask_plan": {
+      "plan_id": "ebcc05f2408e6fa97dc1cfb16d52e9ce926d7274e3e7b880d6936826cf3ea92e",
+      "source_document_id": "192c74854fda30ca5467e73bdea6cdbf7b7a43000316033eaecfd39d70bac057",
+      "checked_plot_id": "6200b9790226da21da56ecd674a0d09cebee1770894aa84594e36b6c9fceade7",
+      "expanded_plot_id": "078ab2140a7ebefa6cde1a614aa60e21d8be27402102ad0427ac0a1ece329e11"
+    },
+    "manifestation": {
+      "active_play_id": "dfde22f292c534f5cedc752cf866c5a07217bcd9699518560ade803517ee577f",
+      "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+      "boot_id": "boot/installed/4090799065aa3f80039aaca659c503410702c383643066567420d09481a5c12c",
+      "face_id": "d8c046c100ad0f65f9926fc39f76e8dcad137c85ebcf74d588d773841cab8a8c",
+      "face_revision": 6888957975223900265,
+      "host_id": "host/installed/34fda6add5996dfbd60f5f9c383b585cddd56e57863ee539b43f1b040127b582",
+      "lifecycle": "Available",
+      "manifestation_id": "7f005156b26c97be6b2acd84aeb1730330349754f3d94cf7b538c125e81f9166",
+      "offer_generation": 3,
+      "placement_id": "b649cd4d0f9fae107adceb2d636ac7a9fc68cf14c77d7e0c8f8503410070130a",
+      "plan_id": "ebcc05f2408e6fa97dc1cfb16d52e9ce926d7274e3e7b880d6936826cf3ea92e",
+      "play_sequence": 1
+    },
+    "interaction": {
+      "identity": "01e5ae4ac4942bc7e1fcb6e7879a89c2731ea7c77ed1abd1d666b8d5cfb5bbe6",
+      "action_id": "todo.add",
+      "target": "todo/list",
+      "face_id": "d8c046c100ad0f65f9926fc39f76e8dcad137c85ebcf74d588d773841cab8a8c",
+      "face_revision": 6888957975223900265,
+      "show_id": "show/538ef3fccc0e4cbac70a3ddad6b2183ef9b2627c06ed143e651c6e67cc1efcc4",
+      "sequence": 1
+    },
+    "write": {
+      "schema": "conduit.todo/next-checkpoint-receipt@1",
+      "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+      "terminal": "Completed",
+      "plan_id": "body-plan/sha256:ca65b0bdf0e0ccb24a086fb7d580b5b2360653c2f5a90f66b17e78e339376d1a",
+      "interaction_id": "01e5ae4ac4942bc7e1fcb6e7879a89c2731ea7c77ed1abd1d666b8d5cfb5bbe6",
+      "committed_fore_count": 1,
+      "committed_fore_sha256": "sha256:5e380fb0bf8b14921c385c895d3e91c82cca0bd15a20250fd420e4baf850c549",
+      "play": {
+        "active_play_id": "body-play/sha256:424579181b6dc4212c828c2f82fce5598e51f3596f76bed3c7934c6ddf41c756",
+        "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+        "plan_id": "body-plan/sha256:ca65b0bdf0e0ccb24a086fb7d580b5b2360653c2f5a90f66b17e78e339376d1a",
+        "play_sequence": 1,
+        "wake_id": "2c6ec6714f435bd9edb90d76b2493007e56d4b532796fabbbf124d5858f1a9c7"
+      },
+      "terminal_sign": {
+        "active_play_id": "body-play/sha256:424579181b6dc4212c828c2f82fce5598e51f3596f76bed3c7934c6ddf41c756",
+        "boot_id": "boot/installed/4090799065aa3f80039aaca659c503410702c383643066567420d09481a5c12c",
+        "host_id": "host/installed/34fda6add5996dfbd60f5f9c383b585cddd56e57863ee539b43f1b040127b582",
+        "sequence": 2,
+        "sign_id": "3d32249763333097d6080c7ed35a0a5e9fa59adaae9caf34712e2aac17cb531f"
+      }
+    },
+    "read": {
+      "schema": "conduit.todo/verified-read-receipt@1",
+      "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+      "verified": true,
+      "read_plan_id": "body-plan/sha256:5027fc7e0c3e898c56a33fe5ff26d49fb5bdda71323d5c89cd17b5b904fbecc0",
+      "read_terminal": "Completed",
+      "restored_fore_sha256": "sha256:5e380fb0bf8b14921c385c895d3e91c82cca0bd15a20250fd420e4baf850c549",
+      "play": {
+        "active_play_id": "body-play/sha256:97df61bcf144176e7033977a1c7ece4f91382ade77a0a3e061f5eb2e283fcff5",
+        "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+        "plan_id": "body-plan/sha256:5027fc7e0c3e898c56a33fe5ff26d49fb5bdda71323d5c89cd17b5b904fbecc0",
+        "play_sequence": 2,
+        "wake_id": "a68f9df45e7a1681d54735a280627fb813d67acf5575e447456fc5290fa6b753"
+      },
+      "terminal_sign": {
+        "active_play_id": "body-play/sha256:97df61bcf144176e7033977a1c7ece4f91382ade77a0a3e061f5eb2e283fcff5",
+        "boot_id": "boot/installed/4090799065aa3f80039aaca659c503410702c383643066567420d09481a5c12c",
+        "host_id": "host/installed/34fda6add5996dfbd60f5f9c383b585cddd56e57863ee539b43f1b040127b582",
+        "sequence": 2,
+        "sign_id": "dd42c83aa742f7df9e426b7dffefde23f725200adc62d8be7b38561516d545ee"
+      }
+    }
+  },
+  "terminal_acknowledgement": {
+    "body_id": "cf8af35976a4eee171709b77c7d50f4ef22257bfb699c9d04510cbc1607efae9",
+    "boot_id": "boot/installed/4090799065aa3f80039aaca659c503410702c383643066567420d09481a5c12c",
+    "bytes_written": 655,
+    "face_id": "d8c046c100ad0f65f9926fc39f76e8dcad137c85ebcf74d588d773841cab8a8c",
+    "face_revision": "6888957975223900265",
+    "frame_sha256": [
+      149,
+      189,
+      118,
+      54,
+      78,
+      220,
+      219,
+      198,
+      203,
+      152,
+      60,
+      42,
+      163,
+      131,
+      69,
+      79,
+      51,
+      200,
+      113,
+      85,
+      98,
+      110,
+      115,
+      232,
+      99,
+      159,
+      18,
+      213,
+      253,
+      187,
+      248,
+      3
+    ],
+    "host_id": "host/installed/34fda6add5996dfbd60f5f9c383b585cddd56e57863ee539b43f1b040127b582",
+    "mask_plan_id": "ebcc05f2408e6fa97dc1cfb16d52e9ce926d7274e3e7b880d6936826cf3ea92e",
+    "mask_play_id": "dfde22f292c534f5cedc752cf866c5a07217bcd9699518560ade803517ee577f",
+    "owner_selected_show_current": true,
+    "route_plan_id": "plan/local-owner-mask/eff94d3de4f5054f43a4b8406f65d96a25241d343eee5a21dc602df1fb8731d6",
+    "schema": "conduit.body/terminal-show-evidence@1",
+    "show_id": "show/538ef3fccc0e4cbac70a3ddad6b2183ef9b2627c06ed143e651c6e67cc1efcc4",
+    "show_sha256": [
+      190,
+      208,
+      80,
+      225,
+      28,
+      103,
+      163,
+      109,
+      33,
+      215,
+      8,
+      199,
+      22,
+      176,
+      151,
+      138,
+      91,
+      5,
+      151,
+      124,
+      164,
+      142,
+      91,
+      107,
+      28,
+      64,
+      64,
+      203,
+      60,
+      6,
+      130,
+      230
+    ],
+    "show_state": "available"
+  },
+  "publication": {
+    "method": "explicit whitelist derivative, not original full private receipt",
+    "original_receipt_sha256": "233c2682b4a2fbaae0ff5a4bd831f415b6468869bba5b588cb6d2b7e66a58d7d",
+    "excluded": "credential-bearing Mask bindings, nested previous read/write receipts, host-call requests, installed owner state, tokens, invitations and private logs"
+  }
+}
