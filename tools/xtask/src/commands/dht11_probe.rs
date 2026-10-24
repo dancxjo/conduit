@@ -1,4 +1,6 @@
 //! Focused environmental Body specification, Mask and physical diagnostic proof.
+#[path = "environment_face_publication.rs"]
+mod environment_face_publication;
 #[path = "environment_output.rs"]
 mod environment_output;
 #[path = "environment_source.rs"]
@@ -20,6 +22,9 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["face-publication"] {
+        return environment_face_publication::prove(&root);
+    }
     if arguments == ["display-output"] {
         return environment_output::prove(&root);
     }
@@ -300,7 +305,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, source, display-output, face, recording, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, source, display-output, face-publication, face, recording, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(
