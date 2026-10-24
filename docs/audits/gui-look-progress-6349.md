@@ -32,3 +32,45 @@ local presentation evidence, not exact-source runtime or stable acceptance.
 All three Looks at 1440px and 390px had no document horizontal overflow;
 changing Looks retained the entered name, and actual Birth reached the Body
 surface. Desktop and narrow captures are retained in the chat outputs.
+
+## Native Lucide preparation
+
+All 23 existing native icon keys now map to pinned Lucide silhouettes. Packed
+192×192 one-bit masks preserve the existing eighth-pixel lookup and 4×4 coverage
+blend, replacing the native approximation drawings. The fixed read-only corpus
+is 105984 bytes. Input hashes, Chromium version and output digest are retained;
+preparation reproduces masks and receipt exactly with `--check`.
+
+Browser and native subject-role mappings agree for Body, Plot, Host, Gear, Port,
+Cord/Line, Plan, Play, Document, Status and Diagnostic. Native Document/Plot
+headings now use their existing Type/Face icon keys, with layout insets and
+command costs handled by the existing icon-aware layout. This does not assert
+that every native action already carries an icon.
+
+The native icon sheet is a preview of these exact prepared coverage masks. It
+is not an emulator capture, native Show acknowledgement or containment proof.
+A standalone compilation of the actual lookup module passes its finite,
+nonempty-coverage and out-of-bounds checks. Full native crate checks and fresh
+QEMU captures remain independently required.
+
+## Coverage still to finish
+
+| Surface / requirement | Current local evidence | Remaining work |
+| --- | --- | --- |
+| Browser Crèche | Three Looks, wide/narrow captures, real Birth with retained WASM | Fresh source runtime; full accessibility audit |
+| Workspace chrome | Look picker; lifecycle, membership, back icons | Broader live Body/inspection/library capture |
+| Shared browser Face | Role icons; 102 renderer checks before native continuation | Complete action/icon coverage and Look selection convergence |
+| Native Face | Prepared Lucide resources and role bindings | Full native checks, actual QEMU before/after |
+| Native Crèche reference #6174 | Existing checked layout/Look owners preserved | Actual reference comparison and original acceptance |
+| Visual Look parent #5366 | Browser appearance experiments and existing selected native contracts | Original cross-component, cross-renderer and accessibility acceptance |
+| Patchbay / Commons | Existing semantic authority unchanged | Inspect real graphical surfaces and apply coherent coverage |
+| Release / closure | Draft PR checkpoints skip CI | Defer CI campaign; no issue closure claim |
+
+Native crate validation now passes the packed lookup test and both role/layout
+checks. All 102 shared browser renderer checks also pass after role convergence.
+The staged Crèche WCAG 2 A/AA and 2.1 AA axe scan reports zero violations at
+390px for all three Looks. The scan exposed transient low contrast when text
+colors interpolated across Look changes while backgrounds changed immediately;
+Workspace now switches those text colors atomically. Disabled controls retain
+readable muted text and dashed edges instead of faded opacity. Automated axe
+results do not replace keyboard, screen-reader or complete accessibility proof.

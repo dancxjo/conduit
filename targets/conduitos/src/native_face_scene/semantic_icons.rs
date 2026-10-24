@@ -5,6 +5,8 @@ use conduit_face::{FaceIconKey, FaceRole};
 pub(super) fn for_role(role: &FaceRole) -> Option<FaceIconKey> {
     Some(match role {
         FaceRole::Body => FaceIconKey::Body,
+        FaceRole::Plot => FaceIconKey::Face,
+        FaceRole::Document => FaceIconKey::Type,
         FaceRole::Host => FaceIconKey::Host,
         FaceRole::Gear => FaceIconKey::GenericGear,
         FaceRole::Port => FaceIconKey::Port,
@@ -53,6 +55,8 @@ mod tests {
     fn roles_select_only_truthful_existing_icons_without_name_inference() {
         for (role, icon) in [
             (FaceRole::Body, FaceIconKey::Body),
+            (FaceRole::Plot, FaceIconKey::Face),
+            (FaceRole::Document, FaceIconKey::Type),
             (FaceRole::Host, FaceIconKey::Host),
             (FaceRole::Diagnostic, FaceIconKey::Warning),
             (FaceRole::Status, FaceIconKey::Status),
