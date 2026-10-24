@@ -9,7 +9,13 @@ pub struct RecordingCatalogSeedSource {
 }
 impl RecordingCatalogSeedSource {
     pub fn compile() -> Result<Self, String> {
-        let source = include_str!("../../profiles/catalog-seed.conduit");
+        Self::compile_source(include_str!("../../profiles/catalog-seed.conduit"))
+    }
+    /// Recover the same Body/State without supplying a new value.
+    pub fn compile_read_only() -> Result<Self, String> {
+        Self::compile_source(include_str!("../../profiles/catalog-seed-read.conduit"))
+    }
+    fn compile_source(source: &str) -> Result<Self, String> {
         let mut startup = conduit_plot::StartupCatalog::new();
         startup
             .insert_value_kind_alias("ResourceRef", c::kind_id(c::RESOURCE_REFERENCE_INFO_ID))?;

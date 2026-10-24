@@ -29,6 +29,30 @@ authority, Body identity, installation and restart evidence still required. The
 reference carries no residence, grants, current Host/Boot or authenticity proof.
 This Source preparation does not yet install or persist the recorder seed.
 
+`compile_read_only` checks the separate read-only authored view with the same
+Body/State path and exact value type. It exposes current State without a write
+Fore, so observing recovery cannot submit a replacement value. The State remains
+bounded at 1 KiB; external queue capacity is independently sealed by the Plan.
+
+`cargo xtask prove environment catalog-residence` connects these authored views
+to the existing std installed kernel and `FileDurableStateResidence`. The proof
+writes a fixture catalog reference in one child process, recovers its exact
+canonical bytes under a fresh Boot in another, and checks that read-only recovery
+leaves the committed file unchanged. A different Root-supplied Body sees empty
+State. A truncated seed refuses without exposing an empty default or repairing
+the damaged file. Each successful inspection requests an attributed ordinary
+stop after the expected current value is delivered; idle State is not completion.
+The same command runs the existing durable State regressions and library lint.
+
+Actual metadata recovery now narrows the validated 42-byte metadata value from
+the recovery result allowance to its exact next-input allowance before reusing
+the same value reference. The kernel's input-bound check remains unchanged.
+
+Host offers, Body admission and the catalog reference are CPU fixtures in this
+proof. Actual process separation, installed execution and file effects are real;
+catalog/chunk publication-to-seed custody, a resident recorder controller, live
+capability/capacity admission and power-loss acceptance remain incomplete.
+
 `install_recovery_kind` and `install_generation_source_kind` register meaning
 with the ordinary Source checker and expansion catalogs. They initialize no
 provider and create no Host, Boot, storage authority or generation.

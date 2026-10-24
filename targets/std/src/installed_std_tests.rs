@@ -887,3 +887,5 @@ plot count-demo {
 }
 
 mod timing_plot_catalogs;
+
+mod catalog_seed;

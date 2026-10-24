@@ -1,6 +1,41 @@
 //! Planned production recovery kernel with actual local Linux file effects.
 use super::{execute, host_target};
 use std::{error::Error, path::Path, process::Command};
+pub(super) fn catalog_residence(root: &Path) -> Result<(), Box<dyn Error>> {
+    for filter in [
+        "installed_std_tests::catalog_seed",
+        "state_value::durable::",
+    ] {
+        execute(
+            Command::new("cargo")
+                .current_dir(root)
+                .env("CARGO_TARGET_DIR", host_target(root))
+                .args([
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduit-std-host",
+                    "--lib",
+                    filter,
+                ]),
+        )?;
+    }
+    execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                "clippy",
+                "--locked",
+                "-p",
+                "conduit-std-host",
+                "--lib",
+                "--",
+                "-D",
+                "warnings",
+            ]),
+    )
+}
 pub(super) fn catalog_seed(root: &Path) -> Result<(), Box<dyn Error>> {
     for (manifest, test) in [
         (

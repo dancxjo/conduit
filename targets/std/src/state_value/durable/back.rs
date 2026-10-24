@@ -136,9 +136,20 @@ impl DurableStateBack {
                 StepOutcome::Progress
             }
             Ok(Some((generation, digest))) => {
+                // The recovery operation's result may admit a whole State,
+                // while its next input admits only exact metadata. Retain the
+                // same value with the narrower validated input allowance.
+                if metadata_value.value.byte_len != RECOVERY_HEADER_BYTES as u32 {
+                    return fail(FailureCode::InvalidInput, 3);
+                }
+                let metadata_input = BoundedValueRef::new(
+                    metadata_value.value,
+                    RECOVERY_HEADER_BYTES as u32,
+                )
+                .expect("validated recovery metadata length");
                 io.consume_host_completion()
                     .expect("observed recovery metadata");
-                io.request_host_call(RequestId(1), HostCallId(1), metadata_value)
+                io.request_host_call(RequestId(1), HostCallId(1), metadata_input)
                     .expect("prepared recovery value Host Call");
                 self.phase = Phase::RecoveringValue { generation, digest };
                 StepOutcome::Progress

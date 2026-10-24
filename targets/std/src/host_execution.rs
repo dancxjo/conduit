@@ -1,6 +1,7 @@
 //! Ordinary host reservation, execution and owned State result handling.
 use super::*;
 pub(crate) mod continuity;
+mod durable;
 mod reporting;
 mod spoken_mask;
 mod stream;
