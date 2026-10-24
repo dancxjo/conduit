@@ -1,0 +1,65 @@
+{
+  "source_commit": "9460924ba31f6a072a57ce88cad3ae6a9d0ff8ee",
+  "proof_class": "checked-Type storage bounds, CPU kernel/recorder worksets and keyed ESP32 link; not flashed",
+  "previous_slot_capacities": [
+    2274,
+    2274,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024
+  ],
+  "slot_capacities": [
+    2274,
+    2274,
+    573,
+    573,
+    573,
+    573,
+    573,
+    573,
+    573
+  ],
+  "previous_payload_bytes": 11716,
+  "payload_bytes": 8559,
+  "payload_bytes_saved": 3157,
+  "maximum_ordinary_checked_type_bytes": 573,
+  "maximum_complete_checked_type_bytes": 2274,
+  "native_tick_bytes": 8,
+  "existing_slot_count_preserved": 9,
+  "public_publication_tests_passed": 21,
+  "native_root_tests_passed": 17,
+  "native_recorder_samples": 960,
+  "actual_file_generations_in_cpu_workset": 15,
+  "strict_runtime_library_and_appliance_test_lint_passed": true,
+  "recurring_test_allocations": 0,
+  "linked_stack_bytes": 36988,
+  "stack_floor_bytes": 36864,
+  "root_heap_capacity_bytes": 114688,
+  "sdk_heap_capacity_bytes": 73728,
+  "hardware_flashed": false,
+  "physical_root_heap_saving_bytes": null,
+  "combined_admitted": false,
+  "source_acquisition_coordinate_added": false,
+  "public_commands": [
+    "cargo xtask prove environment publication",
+    "cargo xtask prove environment root-face-esp32"
+  ],
+  "code_sha256": {
+    "bodies/environment/runtime/build/sampling_extents.rs": "e861eae90bf86110b574ded2cebe3d3042f661603cd14281a4c75f32a22ceba5",
+    "bodies/environment/runtime/src/appliance/value_storage.rs": "2997cacbc3b975958c747093dbed112bc3da9d0a0112fbdf2d533b804a4e8db7",
+    "bodies/environment/runtime/tests/appliance_kernel.rs": "3ddb138c1318575ae31e5077997fd615633dc29a5940ce476e57514db6f847cf"
+  },
+  "elf_sha256": "8601775fe37b04e4a3ecdad8b92461b2cb418c13e76c9c0d7fd862f1718e1ebc",
+  "capture_sha256": {
+    "publication-proof.log": "dd660cf73ac2cebc3210c7c034e26553c14ad96a1b9ee03cd6d5292361ab1dae",
+    "root-tests.log": "7bf06275e8d1fcfedb72cc2db68b8eac45244fbf62680e6cb09932f71df38558",
+    "clippy.log": "558d0f3414758a7c4a3eb7f3568d593cd6b94a2b55e3ec80becfc8e8a4c5976e",
+    "root.elf": "8601775fe37b04e4a3ecdad8b92461b2cb418c13e76c9c0d7fd862f1718e1ebc",
+    "esp32-link.log": "4fb53d48ec42edd25236e2308444eaab9bb11b30c80779669f2e750160d0e0e5",
+    "native-root.map": "88f008026157cba968772c4b434211f5de5ff587fa444fab28cabba92c5968fa"
+  }
+}
