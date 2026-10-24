@@ -14,10 +14,14 @@ quiescence; dropping its publisher closes the mailbox permanently.
 
 Two fixed response buffers are allocated once before the service task accepts
 commands and retained across service mode switches. Insufficient preparation
-capacity refuses service. Requests do not allocate response backing. The native
-profile excludes the legacy inline-buffer future from its task type. Root keeps
-112 KiB and the SDK 72 KiB; 512 additional bytes of existing Root backing move to
-the reclaimed RAM bank to preserve the 36 KiB stack floor.
+capacity refuses service. Requests do not allocate response backing. Reading,
+setup pages and submission acknowledgements share this backing; rendering scratch
+ends before socket awaits. The native profile excludes the legacy inline-buffer
+future from its task type. Releasing duplicate response state recovers 4,080 static
+bytes in the keyed image. This exact capacity moves into Root's internal heap,
+raising it from 114,688 to 118,768 bytes. The SDK keeps 73,728 bytes and the linked
+CPU stack keeps 36,988 bytes against its unchanged 36 KiB floor. Earlier captures
+retain their original heap capacities; this new partition requires hardware proof.
 
 CPU tests cover actual target projection, Face identity, observed coordinates,
 failure, expiry, withdrawal and zero allocations during projection/rendering.

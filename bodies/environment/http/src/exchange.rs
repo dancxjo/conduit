@@ -145,23 +145,14 @@ pub async fn exchange_buffered<T: Read + Write>(
             }
         }
         (Some(NetworkHttpRequest::Page), Some(route)) => {
-            let page = if route.preparation_only {
-                preparation_page(route.limits)
-            } else {
-                network_setup_page(route.limits)
-            }
-            .map_err(ExchangeRefusal::Submission)?;
-            write(io, page.as_bytes()).await?;
+            render_page_into(route.preparation_only, route.limits, response)?;
+            write(io, response.as_bytes()).await?;
             Ok(ExchangeOutcome::NetworkPage)
         }
         (Some(NetworkHttpRequest::Join(input)), Some(route)) => {
             let pending = PendingNetworkResponse::prepare(route.mailbox, input)
                 .map_err(ExchangeRefusal::Submission)?;
-            let response = if route.preparation_only {
-                pending.preparation_response()
-            } else {
-                pending.response()
-            };
+            render_ack_into(route.preparation_only, &pending, response)?;
             write(io, response.as_bytes()).await?;
             pending
                 .response_flushed()
@@ -178,6 +169,40 @@ pub async fn exchange_buffered<T: Read + Write>(
         }
     }
 }
+// Keep render scratch synchronous and outside the retained socket future. The
+// page/acknowledgement cannot coexist with another response on this connection.
+#[inline(never)]
+fn render_page_into(
+    preparation_only: bool,
+    limits: NetworkSetupLimits,
+    output: &mut heapless::String<2048>,
+) -> Result<(), ExchangeRefusal> {
+    output.clear();
+    *output = if preparation_only {
+        preparation_page(limits)
+    } else {
+        network_setup_page(limits)
+    }
+    .map_err(ExchangeRefusal::Submission)?;
+    Ok(())
+}
+#[inline(never)]
+fn render_ack_into(
+    preparation_only: bool,
+    pending: &PendingNetworkResponse<'_>,
+    output: &mut heapless::String<2048>,
+) -> Result<(), ExchangeRefusal> {
+    output.clear();
+    let acknowledgement = if preparation_only {
+        pending.preparation_response()
+    } else {
+        pending.response()
+    };
+    output
+        .push_str(acknowledgement.as_str())
+        .map_err(|_| ExchangeRefusal::Submission(NetworkSetupRefusal::TooLarge))
+}
+#[inline(never)]
 fn render_into(
     reading: &mut impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
     now: u64,

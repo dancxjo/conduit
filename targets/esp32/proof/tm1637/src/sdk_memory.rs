@@ -11,10 +11,19 @@ const HEADER: usize = core::mem::size_of::<usize>();
 
 #[cfg(feature = "native-root")]
 pub const SDK_BYTES: usize = 72 * 1024;
-// Keep the same total Root heap while leaving the fixed CPU stack floor intact
-// as the admitted management envelope and retained providers grow.
+// Reuse static task backing released by the shared HTTP response buffer. The
+// keyed link separately enforces the unchanged CPU stack floor.
 #[cfg(feature = "native-root")]
-pub const ROOT_INTERNAL_BYTES: usize = 60 * 1024 - ROOT_REBALANCE_BYTES - ROOT_RTC_BYTES;
+pub const ROOT_INTERNAL_BYTES: usize =
+    60 * 1024 + ROOT_HTTP_BACKING_BYTES - ROOT_REBALANCE_BYTES - ROOT_RTC_BYTES;
+#[cfg(feature = "native-root")]
+const ROOT_HTTP_BACKING_BYTES: usize = if cfg!(feature = "native-face-root") {
+    // Exact static reduction in the keyed Face profile after page/ACK response
+    // bytes reuse the already prepared per-connection buffer across awaits.
+    4080
+} else {
+    0
+};
 // CPU0-only awake native Face profile. RTC-fast backing is never offered to
 // SDK/DMA callers and is not retained lifecycle state across reset or sleep.
 #[cfg(feature = "native-root")]
@@ -34,7 +43,7 @@ const ROOT_REBALANCE_BYTES: usize = if cfg!(feature = "native-face-root") {
 #[cfg(feature = "native-root")]
 const ROOT_RECLAIMED_BYTES: usize = 52 * 1024 + ROOT_REBALANCE_BYTES;
 #[cfg(feature = "native-root")]
-pub const ROOT_BYTES: usize = 112 * 1024;
+pub const ROOT_BYTES: usize = 112 * 1024 + ROOT_HTTP_BACKING_BYTES;
 #[cfg(feature = "native-root")]
 static SDK_HEAP: esp_alloc::EspHeap = esp_alloc::EspHeap::empty();
 
@@ -62,8 +71,10 @@ impl NativeSdkReservation {
     }
 }
 
-/// Called once before RTOS/radio startup. The total backing remains 184 KiB:
+/// Called once before RTOS/radio startup. The base partition is 184 KiB:
 /// 112 KiB for Root Rust allocations and 32+40 KiB for the SDK C boundary.
+/// The native Face profile adds 4,080 bytes released from HTTP task storage
+/// to Root; no bytes come from the SDK reservation or admitted stack floor.
 /// The awake CPU0 Face profile moves 8 KiB of Root backing to RTC-fast RAM.
 /// This is a fixed partition before radio startup, not borrowing or fallback.
 /// Complete appliance and SDK work admission remains a separate requirement.
@@ -126,7 +137,7 @@ pub fn initialize() -> NativeSdkReservation {
     }
     assert_eq!(SDK_HEAP.stats().size, SDK_BYTES);
     assert_eq!(esp_alloc::HEAP.stats().size, ROOT_BYTES);
-    assert_eq!(ROOT_BYTES + SDK_BYTES, 184 * 1024);
+    assert_eq!(ROOT_BYTES + SDK_BYTES, 184 * 1024 + ROOT_HTTP_BACKING_BYTES);
     self_check();
     NativeSdkReservation { _private: () }
 }
