@@ -1,0 +1,81 @@
+{
+  "scope": "actual normal-product native Cr\u00e8che accessibility, two widths; no Body startup or complete Details/unavailable-control proof",
+  "runs": [
+    {
+      "source_commit": "7fb59889906e8d8f6d15c24249e06ec7727d17c7",
+      "root_sha256": "04597abfbee81adb1db3e3f0a697cd1b24d741dac8ce8e3c411e1fbac2eaf87b",
+      "iso_sha256": "309a35e53dbf84f8fd4f5c3eea42d4834fe49182416858d1dd131e189dc7111c",
+      "viewport": [
+        640,
+        480
+      ],
+      "status": "passed scoped accessibility scenario",
+      "captures": 13,
+      "capture_limit": 27,
+      "frame_budget": {
+        "command_high_water": 20,
+        "command_limit": 48,
+        "command_payload_byte_limit": 192,
+        "focus_observations": 181,
+        "maximum_command_payload_bytes": 99,
+        "maximum_frame_payload_bytes": 340,
+        "retained_compositor_surface_count": "not observed by this receipt",
+        "schema": "conduit.native-prepared-frame-budget-proof/v1",
+        "scope": "current prepared Mask frame used for focus; not compositor/scanout history"
+      },
+      "states": [
+        {
+          "label": "editorial-forced",
+          "forward_focus_count": 13,
+          "reverse_focus_count": 13,
+          "primary_page_count": 13
+        },
+        {
+          "label": "engineering-forced",
+          "forward_focus_count": 13,
+          "reverse_focus_count": 13,
+          "primary_page_count": 14
+        }
+      ],
+      "override_transitions": 7
+    },
+    {
+      "source_commit": "7fb59889906e8d8f6d15c24249e06ec7727d17c7",
+      "root_sha256": "04597abfbee81adb1db3e3f0a697cd1b24d741dac8ce8e3c411e1fbac2eaf87b",
+      "iso_sha256": "309a35e53dbf84f8fd4f5c3eea42d4834fe49182416858d1dd131e189dc7111c",
+      "viewport": [
+        1280,
+        800
+      ],
+      "status": "passed scoped accessibility scenario",
+      "captures": 13,
+      "capture_limit": 27,
+      "frame_budget": {
+        "command_high_water": 48,
+        "command_limit": 48,
+        "command_payload_byte_limit": 192,
+        "focus_observations": 143,
+        "maximum_command_payload_bytes": 99,
+        "maximum_frame_payload_bytes": 699,
+        "retained_compositor_surface_count": "not observed by this receipt",
+        "schema": "conduit.native-prepared-frame-budget-proof/v1",
+        "scope": "current prepared Mask frame used for focus; not compositor/scanout history"
+      },
+      "states": [
+        {
+          "label": "editorial-forced",
+          "forward_focus_count": 13,
+          "reverse_focus_count": 13,
+          "primary_page_count": 4
+        },
+        {
+          "label": "engineering-forced",
+          "forward_focus_count": 13,
+          "reverse_focus_count": 13,
+          "primary_page_count": 4
+        }
+      ],
+      "override_transitions": 7
+    }
+  ]
+}

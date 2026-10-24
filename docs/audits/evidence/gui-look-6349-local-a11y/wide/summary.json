@@ -1,0 +1,127 @@
+{
+  "source_commit": "7fb59889906e8d8f6d15c24249e06ec7727d17c7",
+  "root_sha256": "04597abfbee81adb1db3e3f0a697cd1b24d741dac8ce8e3c411e1fbac2eaf87b",
+  "iso_sha256": "309a35e53dbf84f8fd4f5c3eea42d4834fe49182416858d1dd131e189dc7111c",
+  "viewport": [
+    1280,
+    800
+  ],
+  "status": "passed scoped accessibility scenario",
+  "captures": 13,
+  "capture_limit": 27,
+  "frame_budget": {
+    "command_high_water": 48,
+    "command_limit": 48,
+    "command_payload_byte_limit": 192,
+    "focus_observations": 143,
+    "maximum_command_payload_bytes": 99,
+    "maximum_frame_payload_bytes": 699,
+    "retained_compositor_surface_count": "not observed by this receipt",
+    "schema": "conduit.native-prepared-frame-budget-proof/v1",
+    "scope": "current prepared Mask frame used for focus; not compositor/scanout history"
+  },
+  "states": [
+    {
+      "label": "editorial-forced",
+      "forward_focus_count": 13,
+      "reverse_focus_count": 13,
+      "primary_page_count": 4
+    },
+    {
+      "label": "engineering-forced",
+      "forward_focus_count": 13,
+      "reverse_focus_count": 13,
+      "primary_page_count": 4
+    }
+  ],
+  "override_transitions": 7,
+  "pngs": {
+    "creche-input-incomplete.png": {
+      "sha256": "44db8c09f227b4615b93c4867129e3897be078210b7f416e58e0aec2a4790b8e",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-controls-editorial-forced-2.png": {
+      "sha256": "4f4baf7f3f21f2632762db63b451d587228545b2662537004731b6ebe142b0ed",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-controls-engineering-forced-4.png": {
+      "sha256": "6a5ccf378917dbe6c55a8d034cd5311e24232ac133cb16af6a02c25c9d0ee3ca",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-controls-editorial-forced-4.png": {
+      "sha256": "bbec5ab769e907be2981ea8084be06691986942e6343bd8388d3900f8e6dda1e",
+      "width": 1280,
+      "height": 800
+    },
+    "front-door-ready.png": {
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-a11y-long-name.png": {
+      "sha256": "217e6b6d32e098b4244dda341c76cff6ca9045db468878ef1d672d99c16ddb05",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-controls-engineering-forced-2.png": {
+      "sha256": "bd5e24bbdc2ca4514a22a764eb4beef13189419fbec8e1614a7b1694d6ad3175",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-controls-engineering-forced-1.png": {
+      "sha256": "3af72d242361db2b1868986d4166981ddc491e0278fee912e36f48a1972bd185",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-controls-ready.png": {
+      "sha256": "dffe03052bb02857432b6ec01b1359863ad10d0e6a1569da815a4c9ca86cf351",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-a11y-engineering-forced-pointer.png": {
+      "sha256": "92f051ed91684885c628993bad0240730e4b0d2cacec7d8f3a8d69e0c0cd6486",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-a11y-user-overrides-cleared.png": {
+      "sha256": "b16f9a0c0d964509bdb757ef83bfa9e556d6be45736b1d0e6a59f4bbf871eb46",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-controls-editorial-forced-1.png": {
+      "sha256": "8a95cbb04203bc2edd902b56b438a74212ab437a542f8888ca1810f423e34ef1",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-a11y-editorial-forced-pointer.png": {
+      "sha256": "f17ad1a08fcbbd84630f3919912f44e8c28db75b0aab0e72318ee395d72ac717",
+      "width": 1280,
+      "height": 800
+    }
+  },
+  "archives": [
+    {
+      "file": "journey-serial.log.gz",
+      "raw_sha256": "f3dea2492924da335adda6662c2b6c40404cb91c8d1fbe2f493828a93db8df91",
+      "archive_sha256": "c15979ea6139ada3c48bca5d55d1a5afd22238ccc66fb3a1d308e340bffa7460"
+    },
+    {
+      "file": "journey-qmp.log.gz",
+      "raw_sha256": "037f1e7ffdf2614170d38a3ca70aca9520c28e7cac1e348fd71474bdef09f83e",
+      "archive_sha256": "d3deda54ee04ea5eefc2797362868bfa6b753e63bd08dbe6606f5d590b36aa0a"
+    },
+    {
+      "file": "journey-frames/manifest.json.gz",
+      "raw_sha256": "a68a66391d0e336a8d380b591a195b3828ea93d6298c6130dc52bc7519046e82",
+      "archive_sha256": "3030b2c654c54d85ced2d675dc37703ec191b6a2e915bf73acf2f9481b05f3d0"
+    },
+    {
+      "file": "profile.log.gz",
+      "raw_sha256": "6a12038bf0710ad2c425ac077dd60513c71b1a115f52e7f8c07e0baacabc3b84",
+      "archive_sha256": "ef73bcfcda6802dcd1a3567a25ae434cf0f4d3886cb71ab4867bfa0e26acdd48"
+    }
+  ]
+}
