@@ -1,0 +1,292 @@
+{
+  "dev": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+  "reviewed_gui": "04d55d563450b7678d8897dd317185ead9dbce9a",
+  "forced_color_repair": "de99283abc6f9d0c572d7f18737c25777860a43e",
+  "mode": "Prospective pureGitobjectcomposition only. Unreferencedsyntheticcommitallowed; no branchrefs/worktrees/checkouts/sourcewrites/builds/browser/Candidate/CI.",
+  "dev_gui_merge_exit": 0,
+  "dev_gui_merge_output": "40c335f05546fafa1e2d69fb823d3e58d1a3eb4a\n",
+  "dev_gui_merge_stderr": "",
+  "qualified": "Not compiled/executed or admittedsourceCandidate; ownerdraftnotabsorbed.",
+  "dev_gui_tree": "40c335f05546fafa1e2d69fb823d3e58d1a3eb4a",
+  "unreferenced_synthetic_commit": "20742c3ddcc5bb762a0367a7e2a8aef445b702f5",
+  "forced_repair_merge_exit": 0,
+  "forced_repair_merge_output": "f3a2c42c5f50f4aaa3544060b631bef4f6890cda\n",
+  "forced_repair_merge_stderr": "",
+  "final_tree": "f3a2c42c5f50f4aaa3544060b631bef4f6890cda",
+  "blob_checks": [
+    {
+      "category": "gui_native",
+      "path": "targets/conduitos/src/native_face_scene/diagram.rs",
+      "expected_source": "04d55d563450b7678d8897dd317185ead9dbce9a",
+      "expected_blob": "27cb07f75299966c997b3ffd775b56450254cc66",
+      "composed_blob": "27cb07f75299966c997b3ffd775b56450254cc66",
+      "exact": true
+    },
+    {
+      "category": "gui_native",
+      "path": "targets/conduitos/src/native_face_scene/diagram_badges.rs",
+      "expected_source": "04d55d563450b7678d8897dd317185ead9dbce9a",
+      "expected_blob": "c27f2630dd8146db38cead82e1a802e696aa2c3e",
+      "composed_blob": "c27f2630dd8146db38cead82e1a802e696aa2c3e",
+      "exact": true
+    },
+    {
+      "category": "gui_native",
+      "path": "targets/conduitos/src/native_face_scene/diagram_geometry.rs",
+      "expected_source": "04d55d563450b7678d8897dd317185ead9dbce9a",
+      "expected_blob": "7028c27f875cde0b659ca50880e9332cf5096141",
+      "composed_blob": "7028c27f875cde0b659ca50880e9332cf5096141",
+      "exact": true
+    },
+    {
+      "category": "gui_native",
+      "path": "targets/conduitos/src/native_face_scene/diagram_port_badges.rs",
+      "expected_source": "04d55d563450b7678d8897dd317185ead9dbce9a",
+      "expected_blob": "cdb10169301e879fd60c727c013555b53292a4e4",
+      "composed_blob": "cdb10169301e879fd60c727c013555b53292a4e4",
+      "exact": true
+    },
+    {
+      "category": "dev_collector",
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "composed_blob": "453ca95a6caf09d3258cf5a56f2cf00634043426",
+      "exact": true
+    },
+    {
+      "category": "dev_collector",
+      "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "composed_blob": "c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+      "exact": true
+    },
+    {
+      "category": "forcedcolor_repair",
+      "path": "targets/browser/handbook/owner-face-look.css",
+      "expected_source": "de99283abc6f9d0c572d7f18737c25777860a43e",
+      "expected_blob": "3629d7ef99f484bfabedbc71c30b43e6de2bc8b3",
+      "composed_blob": "3629d7ef99f484bfabedbc71c30b43e6de2bc8b3",
+      "exact": true
+    },
+    {
+      "category": "forcedcolor_repair",
+      "path": "proof/browser/owner-face-component.spec.mjs",
+      "expected_source": "de99283abc6f9d0c572d7f18737c25777860a43e",
+      "expected_blob": "114a3c09a17aaf1938a5c6fe5fe69b6900b2d8cb",
+      "composed_blob": "114a3c09a17aaf1938a5c6fe5fe69b6900b2d8cb",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "Cargo.lock",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "composed_blob": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "architecture/core",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "composed_blob": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "architecture/plan-lowering",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+      "composed_blob": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/monotonic-wait/Cargo.lock",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "composed_blob": "75a7354df7e81203e56f36bab2d4a7391b47c930",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/monotonic-wait/Cargo.toml",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "874933e8ff6bc0ca1909029e19931ee19531329e",
+      "composed_blob": "874933e8ff6bc0ca1909029e19931ee19531329e",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/monotonic-wait/src",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "composed_blob": "91dd2e07858a32859e47c9214ebee76331b789c8",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/monotonic-wait/tests",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "0938ffc8f825e5313c743bab3c22d635e54ae0fa",
+      "composed_blob": "0938ffc8f825e5313c743bab3c22d635e54ae0fa",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/pulse-capture/Cargo.toml",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "34da23b774f626f90fbc48530e226d187569e086",
+      "composed_blob": "34da23b774f626f90fbc48530e226d187569e086",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/pulse-capture/src",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "composed_blob": "e04b6416a512e42be10b74d12be776c7c30e44ab",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/pulse-capture/tests",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "61002c38162ceaf965b375faaf0817d76a0c67b8",
+      "composed_blob": "61002c38162ceaf965b375faaf0817d76a0c67b8",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/resource-snapshot/Cargo.toml",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "composed_blob": "a80eacdcc53905f59243fe5fe3889ba34c48d567",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/resource-snapshot/README.md",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "0147d1009d4209f4f15a18083241692b85593a42",
+      "composed_blob": "0147d1009d4209f4f15a18083241692b85593a42",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "composed_blob": "679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/resource-snapshot/src/record.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "composed_blob": "01081e1ad83b3f4648d2baf98b849078378a4f95",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "composed_blob": "6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "56695afe99420befd10aa7b21ab56f60446edace",
+      "composed_blob": "56695afe99420befd10aa7b21ab56f60446edace",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "semantics/face/src/manifestation.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "5dd65d69389bf6f634b85d560ff016b09de29edb",
+      "composed_blob": "5dd65d69389bf6f634b85d560ff016b09de29edb",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "semantics/face/src/mask_show.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "1e3d491e9a514b70d079b1ac87f9c738ab8ec46a",
+      "composed_blob": "1e3d491e9a514b70d079b1ac87f9c738ab8ec46a",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "semantics/face/src/mask_topology.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "63df0817b87f0e6968946b27b2162e2889ddf22f",
+      "composed_blob": "63df0817b87f0e6968946b27b2162e2889ddf22f",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "targets/browser/runtime/Cargo.toml",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "64250fbaad3d8df6faa561609513f2bc111460b1",
+      "composed_blob": "64250fbaad3d8df6faa561609513f2bc111460b1",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "targets/browser/runtime/src/resource_snapshot.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "composed_blob": "ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "tools/xtask/src/suites/monotonic_wait.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "b2111536fb17157196074793cba817c5e717430b",
+      "composed_blob": "b2111536fb17157196074793cba817c5e717430b",
+      "exact": true
+    },
+    {
+      "category": "prior_root_features",
+      "path": "tools/xtask/src/suites/resource_snapshot.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "composed_blob": "d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+      "exact": true
+    },
+    {
+      "category": "prior_root_checkedFace",
+      "path": "semantics/face/src/manifestation/validation.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "949df0102751c45d7284f136c1946a5db8e3b36f",
+      "composed_blob": "949df0102751c45d7284f136c1946a5db8e3b36f",
+      "exact": true
+    },
+    {
+      "category": "prior_root_checkedFace",
+      "path": "semantics/face/tests/mask_plot.rs",
+      "expected_source": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+      "expected_blob": "d65cc313925fb0feb9557b016e910d9ab7dffe31",
+      "composed_blob": "d65cc313925fb0feb9557b016e910d9ab7dffe31",
+      "exact": true
+    }
+  ],
+  "all_existing_checked_blobs_exact": true,
+  "missing_expected_paths": [],
+  "result": "clean_both_merges",
+  "two_repair_files_delta": [
+    "proof/browser/owner-face-component.spec.mjs",
+    "targets/browser/handbook/owner-face-look.css"
+  ],
+  "gui_original_native4_unchanged": true,
+  "new_root_collector2_preserved": true,
+  "checkedFace_four_paths_preserved": true
+}

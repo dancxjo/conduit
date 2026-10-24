@@ -21,6 +21,12 @@
       "path": "patchbay-diagram.png",
       "bytes": 163311,
       "sha256": "55d7346c7ae82a6af988ddf4885dcbfd36c504ae90471a7e7d87d6ab1deccc4c"
+    },
+    {
+      "path": "6351-04d55-prospective-dev-forced-repair-composition.json",
+      "bytes": 12374,
+      "sha256": "8d6bdec6079cbce6acab8d15d73cfdf9abc025849eec3ed947eb75836ddf2808"
     }
-  ]
+  ],
+  "prospective_scope": "Clean source composition only; no branch candidate, compilation or runtime execution."
 }
