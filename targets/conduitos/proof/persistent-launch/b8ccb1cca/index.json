@@ -195,6 +195,24 @@
       "sha256": "a65412eea8492d9cba82bf8ab8bb5cef9c41e88f11ced792acceae8f4b441620",
       "original_sha256": "1b8bfb0ac136c97e21d144a17bae6ca71c7f3f3919ffd0fab87a71694f410aa6",
       "original_bytes": 650
+    },
+    {
+      "path": "validation/persistent-launcher-preflight-format-order-failure.log.gz",
+      "sha256": "f9b27861563b1c8ee8c79bc357a61085c609291d449153dce746398fc93ad2dc",
+      "original_sha256": "c82f9d876d753bf41e54498e79c53a6d3a29cc99873d2f84ab22a7e409a09daa",
+      "original_bytes": 963
+    },
+    {
+      "path": "validation/persistent-launcher-preflight.log.gz",
+      "sha256": "1332eb98557b8d217473cd4b971b293da2cb2583dc836edd8df7f97873070bab",
+      "original_sha256": "115b1ecaaba6ed6f23c966444f38759bfda792027a5789ffb9d3163efff14e42",
+      "original_bytes": 34744
     }
-  ]
+  ],
+  "preflight": {
+    "source": "954af1306",
+    "exit_code": 0,
+    "passed": 345,
+    "initial_failure": "module declaration alphabetical ordering, corrected without behavioral change; original failure retained"
+  }
 }

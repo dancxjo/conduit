@@ -38,7 +38,9 @@ contains the full commands, raw output, session records, runners and hashes.
 Two focused hosted tests passed: independently writable 0600 VARS copies do
 not modify the template or each other, cleanup removes only owned copies, and
 dry-run preparation neither reads a template nor creates a copy. Strict xtask
-Clippy with warnings denied and all targets passed.
+Clippy with warnings denied and all targets passed. Supported pipeline preflight
+also passed all 345 tests after correcting module declaration ordering; the
+original formatting failure is retained.
 
 Three supervised sessions use the previously retained normal graphical
 products, without rebuilding their guests:
