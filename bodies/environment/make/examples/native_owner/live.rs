@@ -2,6 +2,8 @@
 //! committed publications become ordinary Body Face contributions, not fields
 //! invented by a UART diagnostic or an independently scheduled sensor loop.
 use super::{acknowledgement::AdmittedBoot, control, exchange, Scope};
+#[path = "display.rs"]
+mod display;
 use conduit_body::BodyLifecycleSession;
 use conduit_core::ActivePlayIdentity;
 use conduit_environment_make::NativeBodyBinding;
@@ -50,6 +52,25 @@ pub(super) fn run(
         let mut projector =
             PreparedPublicationFace::prepare().map_err(|e| format!("Face preparation: {e:?}"))?;
         let maximum_age_ms = scope.cadence_ms.checked_mul(2).ok_or("freshness bound")?;
+        let mut display = display::Display::prepare(
+            conduit_seven_segment_mask::Tm1637Profile {
+                digits: core::array::from_fn(|index| conduit_seven_segment_mask::DigitWiring {
+                    address: index as u8,
+                    segment_bits: [0, 1, 2, 3, 4, 5, 6],
+                }),
+                decimal_points: [None; 4],
+                colon: Some(conduit_seven_segment_mask::WireBit { address: 1, bit: 7 }),
+            },
+            conduit_seven_segment_mask::SevenSegmentLook::fahrenheit().with_colon_fraction(),
+            3_000,
+            scope
+                .cadence_ms
+                .checked_mul(960)
+                .ok_or("display lifetime bound")?,
+            3,
+        )
+        .map_err(|e| format!("display preparation: {e}"))?;
+        let released_at = Instant::now();
         let release = exchange(key, scope.request(control::Operation::Release, 5, active))?;
         admitted.transition(
             &scope.request(control::Operation::Release, 5, active),
@@ -92,6 +113,28 @@ pub(super) fn run(
                         fresh,
                         owner,
                         scope,
+                    )?;
+                    let elapsed_ms = u64::try_from(released_at.elapsed().as_millis())
+                        .map_err(|_| "display elapsed bound")?;
+                    let frame = display
+                        .render(&face, elapsed_ms)
+                        .map_err(|e| format!("display interpretation: {e}"))?;
+                    fs::write(
+                        output.join(format!("physical-show-{}.json", snapshot.sequence)),
+                        serde_json::to_vec_pretty(&serde_json::json!({
+                            "face_content_id": frame.rendered.face_content_id,
+                            "face_revision": frame.rendered.face_revision,
+                            "elapsed_ms": elapsed_ms,
+                            "show": {
+                                "digits": frame.rendered.show.digits().map(|digit|
+                                    conduit_seven_segment_mask::SegmentPatternForm::encode(digit)[0]),
+                                "decimal_points": frame.rendered.show.decimal_points(),
+                                "colon": frame.rendered.show.colon(),
+                            },
+                            "registers": frame.registers,
+                            "packets": frame.packets.packets(),
+                            "physical_delivery": false,
+                        }))?,
                     )?;
                     faces += 1;
                     let available = face.properties.iter().any(|p| {

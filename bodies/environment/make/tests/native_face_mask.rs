@@ -71,3 +71,67 @@ fn assert_pages(sources: [&str; 3]) {
         assert_eq!(parent, before);
     }
 }
+
+#[path = "../examples/native_owner/display.rs"]
+mod owner_display;
+
+#[test]
+fn owner_display_packets_retain_the_actual_body_face_and_timed_look() {
+    let parent: Face = serde_json::from_str(include_str!(
+        "../../evidence/2026-10-23-owner-shared-face/physical-face-1.json"
+    ))
+    .unwrap();
+    let before = parent.clone();
+    let profile = || Tm1637Profile {
+        digits: core::array::from_fn(|index| DigitWiring {
+            address: index as u8,
+            segment_bits: [0, 1, 2, 3, 4, 5, 6],
+        }),
+        decimal_points: [None; 4],
+        colon: Some(WireBit { address: 1, bit: 7 }),
+    };
+    let look = SevenSegmentLook::fahrenheit().with_colon_fraction();
+    assert!(matches!(
+        owner_display::Display::prepare(profile(), look.clone(), 3000, 6000, 8),
+        Err(owner_display::Refusal::Brightness)
+    ));
+    let mut display = owner_display::Display::prepare(profile(), look, 3000, 6000, 3).unwrap();
+    for (elapsed, expected) in [
+        (0, MaskDisposition::Temperature { decimal_places: 1 }),
+        (3000, MaskDisposition::Humidity),
+        (
+            6000,
+            MaskDisposition::Unavailable(
+                conduit_seven_segment_mask::MaskUnavailable::OutsideLifetime,
+            ),
+        ),
+    ] {
+        let frame = display.render(&parent, elapsed).unwrap();
+        assert_eq!(frame.rendered.face_content_id, parent.identity.as_str());
+        assert_eq!(frame.rendered.face_revision, parent.revision);
+        assert_eq!(frame.rendered.disposition, expected);
+        let packets = frame.packets.packets();
+        assert_eq!(packets[0], [0x40]);
+        assert_eq!(packets[1][0], 0xc0);
+        assert_eq!(packets[1][1..], frame.registers);
+        assert_eq!(packets[2], [0x8b]);
+    }
+    let mut stale = parent.clone();
+    stale
+        .properties
+        .iter_mut()
+        .find(|property| property.subject == "environment" && property.name == "fresh")
+        .unwrap()
+        .value = conduit_face::FacePropertyValue::Flag(false);
+    // Re-project through the canonical Face owner so the changed property has
+    // its proper content identity, rather than forging a retained revision.
+    stale.revision += 1;
+    stale.reseal_prepared().unwrap();
+    let frame = display.render(&stale, 0).unwrap();
+    assert_eq!(
+        frame.rendered.disposition,
+        MaskDisposition::Unavailable(conduit_seven_segment_mask::MaskUnavailable::Stale)
+    );
+    assert_eq!(frame.registers, [0x40, 0x40, 0x40, 0x40, 0, 0]);
+    assert_eq!(parent, before);
+}

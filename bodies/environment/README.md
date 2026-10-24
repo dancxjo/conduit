@@ -1366,3 +1366,17 @@ bytes with a 105,592-byte peak. See `evidence/2026-10-23-queued-network-setup/`.
 The failed startup and concurrent-construction captures remain separate evidence.
 This profile serializes those constructions; it does not yet provide production
 host-driven pause/resume, a second native Play or durable overnight recording.
+
+The finite owner run also interprets each newly projected Body Face through the
+ordinary timed seven-segment Mask and authored TM1637 packet expression. It
+prepares the independently selected colon-only hardware profile, Fahrenheit
+colon-fraction Look, three-second temperature/RH alternation and finite lifetime
+before release. `physical-show-<sequence>.json` retains the exact Face content
+identity/revision, elapsed Mask time, four segment patterns, separate
+annunciators, six mapped registers and finite Source-encoded packets. Its
+`physical_delivery: false` field is intentional: this owner-side interpretation
+has no GPIO effects and is not an admitted display output Line or Host Call.
+The existing native construction proof covers both physical Face replay sets
+and this owner path, including stale observations, lifetime expiry and brightness
+refusal. Native output admission, resident page delivery and physical verification
+remain required before claiming the MCU display has resumed updating.
