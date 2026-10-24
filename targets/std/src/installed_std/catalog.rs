@@ -206,6 +206,10 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    &super::linux_snapshot_back::PUBLISH,
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    &super::linux_snapshot_back::READ,
     &super::ieee_back::FACTORY,
     &super::near_back::FACTORY,
     &super::numerical_back::EXACT_FACTORY,

@@ -103,6 +103,7 @@ package_test_shard!(
         "conduit-browser-host",
         "conduit-std-host",
         "conduit-std-offers",
+        "conduit-linux-snapshot-store",
         "conduit-browser-runtime",
         "conduit-browser-mask-offer",
         "conduit-conduitos-mask-offer",
@@ -129,10 +130,10 @@ package_test_shard!(
     HOST_STD_TEST_STEP,
     "check.test.hosts-std",
     "Std host unit and integration tests",
-    ["conduit-std-host", "conduit-std-offers",],
+    ["conduit-std-host", "conduit-std-offers", "conduit-linux-snapshot-store"],
     [
         "--features",
-        "conduit-std-host/burn-model,conduit-std-host/local-model-proof,conduit-std-host/pete-create",
+        "conduit-std-host/burn-model,conduit-std-host/local-model-proof,conduit-std-host/pete-create,conduit-std-host/linux-snapshot",
         "--",
         "--test-threads=1"
     ]

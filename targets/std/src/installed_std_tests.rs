@@ -889,3 +889,6 @@ plot count-demo {
 mod timing_plot_catalogs;
 
 mod catalog_seed;
+
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod catalog_checkpoint;

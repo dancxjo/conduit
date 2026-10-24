@@ -39,11 +39,29 @@ The focused seed proof checks the actual expanded cords, evaluates the portable
 optional constructor with a real encoded reference, preserves the read-only
 view's State identity, and rejects incompatible or oversized references.
 
-This establishes checked composition and pure representation, not executed
-publication-to-seed ordering. The existing std installed profile has no generic
-Linux snapshot executor yet. Connecting its exact prepared file operation to
-ordinary Host Calls, and proving failed publication leaves the previous seed
-unchanged, remain required before using this view as the recorder checkpoint.
+The optional std `linux-snapshot` feature now installs exact snapshot factories
+and prepares the existing file executor for each selected placement before Play.
+Root supplies actual directory custody separately from the Body State residence;
+ordinary std execution entrances supply none by default. The original kernel
+request reaches the prepared operation and its result completes that request.
+File refusal aborts with its actual refusal/candidate information and no success
+reference. Cancellation does not undo a completed immutable file effect.
+
+`cargo xtask prove environment catalog-checkpoint` executes the authored graph
+with actual files. Successful publication supplies the reference which reaches
+the existing durable State through ordinary kernel steps. An occupied later
+generation refuses without emitting that reference or replacing the old seed
+file. Missing directory custody refuses before State/file effects. Fixture JSON,
+Host offers and independent grants remain explicit proof inputs; this proves
+publication-to-seed ordering, not catalog-domain validation or prior chunk
+commit. Full memory/disk capacity, directory-to-residence identity, current
+capability custody and real Body admission remain Root responsibilities.
+
+The prepared expression evaluator retains ResourceRef semantic identity, checks
+the Core reference encoding and reserves scratch from Core's 512-byte ceiling.
+The optional-constructor regression preserves canonical bytes without execution
+allocations and refuses corrupt or truncated references. The allocating
+evaluator is not substituted into the installed Step path.
 
 `compile_read_only` checks the separate read-only authored view with the same
 Body/State path and exact value type. It exposes current State without a write

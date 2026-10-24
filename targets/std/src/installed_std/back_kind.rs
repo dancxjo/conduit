@@ -173,6 +173,8 @@ pub(super) enum InstalledBack {
     FinalNormalizedPattern(FinalNormalizedPatternBack),
     TimedPattern(TimedPatternBack),
     TimedButtonAttempt(TimedButtonAttemptBack),
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    LinuxSnapshot(conduit_kernel::scheduler::HostCallBack),
     TemplateStorage(TemplateStorageBack),
     DataSaveText(DataTextBack),
     DataLoadText(DataTextBack),

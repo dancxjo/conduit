@@ -32,6 +32,8 @@ impl StdHost {
                 }),
                 spoken_mask: None,
                 direct_spoken_mask: Some(preparation),
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                snapshot_directory: None,
                 durable_state: None,
             },
         )
@@ -91,6 +93,8 @@ impl StdHost {
                 }),
                 spoken_mask: Some(preparation),
                 direct_spoken_mask: None,
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                snapshot_directory: None,
                 durable_state: None,
             },
         )

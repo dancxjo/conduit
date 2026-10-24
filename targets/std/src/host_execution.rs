@@ -22,6 +22,8 @@ struct HostRunInputs<'a> {
     external_fore: Option<ExternalForeRun<'a>>,
     spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
     direct_spoken_mask: Option<crate::direct_spoken_mask_runtime::DirectSpokenMaskPreparation>,
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    snapshot_directory: Option<&'a conduit_linux_snapshot_store::SnapshotDirectory>,
     durable_state: Option<installed_std::DurableStateRun<'a>>,
 }
 
@@ -93,6 +95,8 @@ impl StdHost {
                 external_fore: None,
                 spoken_mask: None,
                 direct_spoken_mask: None,
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                snapshot_directory: None,
                 durable_state: None,
             },
         )
@@ -120,6 +124,8 @@ impl StdHost {
                 external_fore: None,
                 spoken_mask: None,
                 direct_spoken_mask: None,
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                snapshot_directory: None,
                 durable_state: None,
             },
         )
@@ -150,6 +156,8 @@ impl StdHost {
                 external_fore: None,
                 spoken_mask: None,
                 direct_spoken_mask: None,
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                snapshot_directory: None,
                 durable_state: Some(installed_std::DurableStateRun {
                     body,
                     root: residence_root,
@@ -180,6 +188,8 @@ impl StdHost {
                 external_fore: None,
                 spoken_mask: None,
                 direct_spoken_mask: None,
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                snapshot_directory: None,
                 durable_state: None,
             },
         )
@@ -277,6 +287,8 @@ impl StdHost {
                 }),
                 spoken_mask: None,
                 direct_spoken_mask: None,
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                snapshot_directory: None,
                 durable_state: None,
             },
         )
@@ -299,6 +311,8 @@ impl StdHost {
             external_fore,
             spoken_mask,
             direct_spoken_mask,
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            snapshot_directory,
             durable_state,
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
@@ -359,6 +373,8 @@ impl StdHost {
                         external_fore,
                         spoken_mask,
                         direct_spoken_mask,
+                        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                        snapshot_directory,
                         durable_state,
                     },
                 )

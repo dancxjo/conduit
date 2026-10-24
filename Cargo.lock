@@ -2161,6 +2161,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-linux-snapshot-store"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-resource-snapshot",
+ "libc",
+]
+
+[[package]]
 name = "conduit-little-seismograph-fixture"
 version = "0.1.0"
 dependencies = [
@@ -2567,6 +2577,7 @@ dependencies = [
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
+ "conduit-linux-snapshot-store",
  "conduit-midi",
  "conduit-net",
  "conduit-observatory",

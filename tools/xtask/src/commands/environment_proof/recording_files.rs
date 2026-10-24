@@ -1,6 +1,54 @@
 //! Planned production recovery kernel with actual local Linux file effects.
 use super::{execute, host_target};
 use std::{error::Error, path::Path, process::Command};
+pub(super) fn dispatch(root: &Path, arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
+    match arguments {
+        [command] if command == "recording-files" => Some(prove(root)),
+        [command] if command == "catalog-seed" => Some(catalog_seed(root)),
+        [command] if command == "catalog-residence" => Some(catalog_residence(root)),
+        [command] if command == "catalog-checkpoint" => Some(catalog_checkpoint(root)),
+        _ => None,
+    }
+}
+fn catalog_checkpoint(root: &Path) -> Result<(), Box<dyn Error>> {
+    if !cfg!(target_os = "linux") {
+        return Err("catalog-checkpoint requires Linux".into());
+    }
+    for filter in ["installed_std_tests::catalog_", "state_value::durable::"] {
+        execute(
+            Command::new("cargo")
+                .current_dir(root)
+                .env("CARGO_TARGET_DIR", host_target(root))
+                .args([
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduit-std-host",
+                    "--features",
+                    "linux-snapshot",
+                    "--lib",
+                    filter,
+                ]),
+        )?;
+    }
+    execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                "clippy",
+                "--locked",
+                "-p",
+                "conduit-std-host",
+                "--features",
+                "linux-snapshot",
+                "--lib",
+                "--",
+                "-D",
+                "warnings",
+            ]),
+    )
+}
 pub(super) fn catalog_residence(root: &Path) -> Result<(), Box<dyn Error>> {
     for filter in [
         "installed_std_tests::catalog_seed",

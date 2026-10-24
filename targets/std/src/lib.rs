@@ -59,6 +59,8 @@ pub mod flow_activation;
 pub mod pure_chain_fusion;
 pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub mod linux_snapshot;
 mod reluctant_replan;
 pub use reluctant_replan::{
     StdReluctantReplanError, StdReluctantReplanOutcome, StdReluctantReplanRefusal,

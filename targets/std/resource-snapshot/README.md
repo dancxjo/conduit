@@ -52,3 +52,12 @@ full admission and the recorder service remain Root integration responsibilities
 Preparation currently retains both typed-operation and file-primitive record
 buffers; their complete memory closure must be admitted, rather than inferred
 from either output bound.
+
+The std Host's optional `linux-snapshot` feature now uses this executor beneath
+its existing installed kernel. Root supplies a retained `SnapshotDirectory`
+independently of durable Body State. `cargo xtask prove environment
+catalog-checkpoint` checks the actual authored publication-to-seed path and
+refusal preservation. Resource/authority and Body admission are fixtures there;
+the primitive still creates no readiness or storage-capacity reservation. This
+crate is now a root workspace member, with root lock/shard custody and the same
+focused `cargo xtask check linux-snapshot` entrance.
