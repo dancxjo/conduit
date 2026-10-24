@@ -128,7 +128,10 @@ fn wrapped_quantity_front(
                 .value_kind()
                 .clone(),
             (quantity_info_prefix().len() + QUANTITY_ENCODED_LEN) as u32,
-            Vec::new(),
+            vec![conduit_core::ValueConstraint::ByteLength {
+                minimum: (quantity_info_prefix().len() + QUANTITY_ENCODED_LEN) as u32,
+                maximum: (quantity_info_prefix().len() + QUANTITY_ENCODED_LEN) as u32,
+            }],
         )
         .expect("canonical Quantity leaf envelope is finite"),
     }

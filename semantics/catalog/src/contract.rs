@@ -30,8 +30,8 @@ impl StandardKindContract {
             .iter()
             .chain(&self.outputs)
             .filter_map(|port| {
-                portable_value_maximum_bytes(self.kind_id.as_str(), port.value_kind.as_str()).map(
-                    |maximum_bytes| FrontValueContract {
+                portable_value_bounds(self.kind_id.as_str(), port.value_kind.as_str()).map(
+                    |(minimum_bytes, maximum_bytes)| FrontValueContract {
                         location: match port.direction {
                             PortDirection::Input => FrontValueLocation::Input(port.port_id.clone()),
                             PortDirection::Output => {
@@ -41,7 +41,14 @@ impl StandardKindContract {
                         contract: CheckedValueContract::new(
                             port.value_kind.clone(),
                             maximum_bytes as u32,
-                            Vec::new(),
+                            if minimum_bytes == 0 {
+                                Vec::new()
+                            } else {
+                                alloc::vec![conduit_core::ValueConstraint::ByteLength {
+                                    minimum: minimum_bytes as u32,
+                                    maximum: maximum_bytes as u32,
+                                }]
+                            },
                         )
                         .expect("portable Face value envelope is finite"),
                     },
@@ -68,7 +75,7 @@ impl StandardKindContract {
 
 /// Domain-owned finite envelopes for the portable Face values whose encoding
 /// size is not implied by a primitive core Info Kind.
-fn portable_value_maximum_bytes(owner: &str, kind: &str) -> Option<u64> {
+fn portable_value_bounds(owner: &str, kind: &str) -> Option<(u64, u64)> {
     // Only these existing Fores promise the canonical decimal capsule. Other
     // Quantity realization profiles keep their own admitted representation bounds.
     if kind == conduit_core::QUANTITY_INFO_ID
@@ -77,7 +84,8 @@ fn portable_value_maximum_bytes(owner: &str, kind: &str) -> Option<u64> {
             crate::QUANTITY_MAP_KIND | crate::QUANTITY_INFO_WRAP_KIND
         )
     {
-        return Some(conduit_core::QUANTITY_ENCODED_LEN as u64);
+        let bytes = conduit_core::QUANTITY_ENCODED_LEN as u64;
+        return Some((bytes, bytes));
     }
     if owner == crate::QUANTITY_INFO_WRAP_KIND
         && kind
@@ -87,17 +95,19 @@ fn portable_value_maximum_bytes(owner: &str, kind: &str) -> Option<u64> {
                 .value_kind()
                 .as_str()
     {
-        return Some(
-            (crate::quantity_info_prefix().len() + conduit_core::QUANTITY_ENCODED_LEN) as u64,
-        );
+        let bytes =
+            (crate::quantity_info_prefix().len() + conduit_core::QUANTITY_ENCODED_LEN) as u64;
+        return Some((bytes, bytes));
     }
     match kind {
         conduit_face::FACE_COMPOSITION_KIND => {
-            Some(conduit_face::MAX_FACE_COMPOSITION_BYTES as u64)
+            Some((0, conduit_face::MAX_FACE_COMPOSITION_BYTES as u64))
         }
-        conduit_face::LAYOUT_FRAME_KIND => Some(conduit_face::MAX_LAYOUT_FRAME_BYTES as u64),
-        conduit_face::GRAPHICS_SCENE_KIND => Some(conduit_face::MAX_GRAPHICS_SCENE_BYTES as u64),
-        conduit_face::BITMAP_FACE_KIND => Some(conduit_face::MAX_GRAY8_BITMAP_BYTES as u64),
+        conduit_face::LAYOUT_FRAME_KIND => Some((0, conduit_face::MAX_LAYOUT_FRAME_BYTES as u64)),
+        conduit_face::GRAPHICS_SCENE_KIND => {
+            Some((0, conduit_face::MAX_GRAPHICS_SCENE_BYTES as u64))
+        }
+        conduit_face::BITMAP_FACE_KIND => Some((0, conduit_face::MAX_GRAY8_BITMAP_BYTES as u64)),
         _ => None,
     }
 }
