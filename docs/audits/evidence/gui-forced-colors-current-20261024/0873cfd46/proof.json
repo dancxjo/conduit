@@ -1,0 +1,93 @@
+{
+  "base": "22542ed3b36de60816e299c1feca590e03089550",
+  "source": "0873cfd464a92223b90f5b4418db38126c5bd4df",
+  "source_tree": "28a5fae8b10358d10d6742c8c1220369a8a01d61",
+  "negative": {
+    "actual_git_HEAD": "22542ed3b36de60816e299c1feca590e03089550",
+    "modified_test_bytes_equal_commit": "7264f827e0f071bae3889e7baa9bdb5ca7d6bb1f",
+    "CSS_source": "22542ed3b36de60816e299c1feca590e03089550",
+    "tests_failed": 2,
+    "meaning": "Working-tree test addition on original CSS; test-only commit created after execution. No clean-commit negative execution claim."
+  },
+  "positive": {
+    "actual_git_HEAD": "0873cfd464a92223b90f5b4418db38126c5bd4df",
+    "focused_passed": 2,
+    "complete_fixture_suite_passed": 107,
+    "workers": 1,
+    "retries": 0,
+    "browser": "existing installed Chromium",
+    "actual_terminal_logs_retained": true
+  },
+  "commands": [
+    {
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-forced-current-225",
+      "environment": {
+        "CONDUIT_BROWSER_HOST_PORT": "46766",
+        "CONDUIT_BROWSER_PROOF_SHARD": "6351-22542-forced-negative"
+      },
+      "argv": [
+        "/home/dancxjo/conduit/node_modules/.bin/playwright",
+        "test",
+        "--config",
+        "proof/browser/playwright.config.mjs",
+        "--project",
+        "chromium",
+        "--workers=1",
+        "--retries=0",
+        "owner-face-component.spec.mjs",
+        "--grep",
+        "forced colors replace admitted"
+      ],
+      "exit_code": 1
+    },
+    {
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-forced-current-225",
+      "environment": {
+        "CONDUIT_BROWSER_HOST_PORT": "46766",
+        "CONDUIT_BROWSER_PROOF_SHARD": "6351-22542-forced-positive"
+      },
+      "argv": [
+        "/home/dancxjo/conduit/node_modules/.bin/playwright",
+        "test",
+        "--config",
+        "proof/browser/playwright.config.mjs",
+        "--project",
+        "chromium",
+        "--workers=1",
+        "--retries=0",
+        "owner-face-component.spec.mjs",
+        "--grep",
+        "forced colors replace admitted"
+      ],
+      "exit_code": 0
+    },
+    {
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-forced-current-225",
+      "environment": {
+        "CONDUIT_BROWSER_HOST_PORT": "46766",
+        "CONDUIT_BROWSER_PROOF_SHARD": "6351-22542-complete"
+      },
+      "argv": [
+        "/home/dancxjo/conduit/node_modules/.bin/playwright",
+        "test",
+        "--config",
+        "proof/browser/playwright.config.mjs",
+        "--project",
+        "chromium",
+        "--workers=1",
+        "--retries=0",
+        "owner-face-component.spec.mjs"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "source_blobs": {
+    "targets/browser/handbook/owner-face-look.css": "b7ff1310ed34d7a0a7e788308c72dc0a11aa3519",
+    "proof/browser/owner-face-component.spec.mjs": "2b7d48e870a98cb3a44d9cc56367cd8e23305ff3"
+  },
+  "limits": [
+    "Isolated browser renderer fixture proof, not current GUI PR delivery or production Body enactment",
+    "No fresh WASM, native, physical, full canonicalLook, CI, stable publication or issue closure claim",
+    "Owner source branch unchanged; repair is a two-file handoff"
+  ]
+}

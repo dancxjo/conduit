@@ -1,0 +1,118 @@
+[WebServer] (node:227759) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 107 tests using 1 worker
+
+(node:227770) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/107] [chromium] › proof/browser/owner-face-component.spec.mjs:14:1 › semantic icons remain bounded decoration without the Look stylesheet
+[2/107] [chromium] › proof/browser/owner-face-component.spec.mjs:34:1 › owner Face parts swap density while preserving controls and accessible actions
+[3/107] [chromium] › proof/browser/owner-face-component.spec.mjs:83:1 › configured groups preserve interleaved controls and user text scale
+[4/107] [chromium] › proof/browser/owner-face-component.spec.mjs:162:1 › application controls remain primary while Body management is disclosed separately
+[5/107] [chromium] › proof/browser/owner-face-component.spec.mjs:201:1 › a Body without primary application content keeps its arrival controls visible
+[6/107] [chromium] › proof/browser/owner-face-component.spec.mjs:220:3 › replaced owner controls cannot invoke the current route (reuse view: false)
+[7/107] [chromium] › proof/browser/owner-face-component.spec.mjs:220:3 › replaced owner controls cannot invoke the current route (reuse view: true)
+[8/107] [chromium] › proof/browser/owner-face-component.spec.mjs:251:1 › a replaced exclusive-choice listener cannot dispatch or reset current selection
+[9/107] [chromium] › proof/browser/owner-face-component.spec.mjs:296:3 › current forms refuse invalid unsupported arguments before invoking
+[10/107] [chromium] › proof/browser/owner-face-component.spec.mjs:296:3 › current forms refuse invalid utf8 arguments before invoking
+[11/107] [chromium] › proof/browser/owner-face-component.spec.mjs:296:3 › current forms refuse invalid choice arguments before invoking
+[12/107] [chromium] › proof/browser/owner-face-component.spec.mjs:296:3 › current forms refuse invalid minimum arguments before invoking
+[13/107] [chromium] › proof/browser/owner-face-component.spec.mjs:296:3 › current forms refuse invalid required arguments before invoking
+[14/107] [chromium] › proof/browser/owner-face-component.spec.mjs:346:1 › argument names come from the current Face caption rather than choice contents
+[15/107] [chromium] › proof/browser/owner-face-component.spec.mjs:384:1 › named Face values expose their labels and exact values without styling
+[16/107] [chromium] › proof/browser/owner-face-component.spec.mjs:407:3 › current Face refresh preserves submit focus by semantic identity
+[17/107] [chromium] › proof/browser/owner-face-component.spec.mjs:407:3 › current Face refresh preserves argument focus by semantic identity
+[18/107] [chromium] › proof/browser/owner-face-component.spec.mjs:462:1 › Face refresh neither transfers focus to a different target nor steals external focus
+[19/107] [chromium] › proof/browser/owner-face-component.spec.mjs:491:3 › unsent text survives only an unchanged same-Body argument contract
+[20/107] [chromium] › proof/browser/owner-face-component.spec.mjs:491:3 › unsent choice survives only an unchanged same-Body argument contract
+[21/107] [chromium] › proof/browser/owner-face-component.spec.mjs:541:3 › disconnected owner forms lose their route (reattach: false)
+[22/107] [chromium] › proof/browser/owner-face-component.spec.mjs:541:3 › disconnected owner forms lose their route (reattach: true)
+[23/107] [chromium] › proof/browser/owner-face-component.spec.mjs:573:1 › a disconnected exclusive-choice listener cannot dispatch or reset current selection
+[24/107] [chromium] › proof/browser/owner-face-component.spec.mjs:573:1 › a hidden exclusive-choice listener cannot dispatch or reset current selection
+[25/107] [chromium] › proof/browser/owner-face-component.spec.mjs:573:1 › a transparent exclusive-choice listener cannot dispatch or reset current selection
+[26/107] [chromium] › proof/browser/owner-face-component.spec.mjs:573:1 › a collapsed exclusive-choice listener cannot dispatch or reset current selection
+[27/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (attribute)
+[28/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (owner-attribute)
+[29/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (visibility)
+[30/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (opacity)
+[31/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (owner-opacity)
+[32/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (scale)
+[33/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (owner-scale)
+[34/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (disclosure)
+[35/107] [chromium] › proof/browser/owner-face-component.spec.mjs:628:3 › hidden owner actions refuse dispatch (fieldset)
+[36/107] [chromium] › proof/browser/owner-face-component.spec.mjs:685:1 › Handbook refresh preserves current controls and refuses interrupted none routes
+[37/107] [chromium] › proof/browser/owner-face-component.spec.mjs:685:1 › Handbook refresh preserves current controls and refuses interrupted prepare routes
+[38/107] [chromium] › proof/browser/owner-face-component.spec.mjs:685:1 › Handbook refresh preserves current controls and refuses interrupted acknowledge routes
+[39/107] [chromium] › proof/browser/owner-face-component.spec.mjs:685:1 › Handbook refresh preserves current controls and refuses interrupted inaccessible routes
+[40/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (missing)
+[41/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (non-array)
+[42/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (negative-bound)
+[43/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (negative-minimum)
+[44/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (reversed-bounds)
+[45/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (choice-bytes)
+[46/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (too-many)
+[47/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (missing-name)
+[48/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (empty-name)
+[49/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (duplicate-name)
+[50/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (missing-label)
+[51/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (empty-label)
+[52/107] [chromium] › proof/browser/owner-face-component.spec.mjs:808:3 › malformed owner argument contracts refuse without losing other actions (choice-unicode)
+[53/107] [chromium] › proof/browser/owner-face-component.spec.mjs:850:3 › exclusive-choice contracts use reachable generic fallback (ambiguous-flag)
+[54/107] [chromium] › proof/browser/owner-face-component.spec.mjs:850:3 › exclusive-choice contracts use reachable generic fallback (duplicate-option)
+[55/107] [chromium] › proof/browser/owner-face-component.spec.mjs:850:3 › exclusive-choice contracts use reachable generic fallback (missing-arguments)
+[56/107] [chromium] › proof/browser/owner-face-component.spec.mjs:850:3 › exclusive-choice contracts use reachable generic fallback (non-array-flags)
+[57/107] [chromium] › proof/browser/owner-face-component.spec.mjs:885:3 › collection layout preserves additional collection semantics (content)
+[58/107] [chromium] › proof/browser/owner-face-component.spec.mjs:885:3 › collection layout preserves additional item semantics (content)
+[59/107] [chromium] › proof/browser/owner-face-component.spec.mjs:885:3 › collection layout preserves additional status semantics (content)
+[60/107] [chromium] › proof/browser/owner-face-component.spec.mjs:885:3 › collection layout preserves additional collection semantics (flag)
+[61/107] [chromium] › proof/browser/owner-face-component.spec.mjs:885:3 › collection layout preserves additional item semantics (flag)
+[62/107] [chromium] › proof/browser/owner-face-component.spec.mjs:885:3 › collection layout preserves additional status semantics (flag)
+[63/107] [chromium] › proof/browser/owner-face-component.spec.mjs:934:3 › exclusive-choice layout preserves additional group semantics (content)
+[64/107] [chromium] › proof/browser/owner-face-component.spec.mjs:934:3 › exclusive-choice layout preserves additional option semantics (content)
+[65/107] [chromium] › proof/browser/owner-face-component.spec.mjs:934:3 › exclusive-choice layout preserves additional group semantics (flag)
+[66/107] [chromium] › proof/browser/owner-face-component.spec.mjs:934:3 › exclusive-choice layout preserves additional option semantics (flag)
+[67/107] [chromium] › proof/browser/owner-face-component.spec.mjs:987:3 › inert owner controls refuse dispatch (owner)
+[68/107] [chromium] › proof/browser/owner-face-component.spec.mjs:987:3 › inert owner controls refuse dispatch (light-ancestor)
+[69/107] [chromium] › proof/browser/owner-face-component.spec.mjs:987:3 › inert owner controls refuse dispatch (shadow-ancestor)
+[70/107] [chromium] › proof/browser/owner-face-component.spec.mjs:987:3 › inert owner controls refuse dispatch (outer-shadow-host)
+[71/107] [chromium] › proof/browser/owner-face-component.spec.mjs:987:3 › inert owner controls refuse dispatch (slotted-ancestor)
+[72/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1025:3 › collection fallback does not invent item totals (partial)
+[73/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1025:3 › collection fallback does not invent item totals (duplicate)
+[74/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1025:3 › collection fallback does not invent item totals (duplicate-without-status)
+[75/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1025:3 › collection fallback does not invent item totals (without-status)
+[76/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1059:3 › local facts disclosure survives refresh within its encounter
+[77/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1059:3 › local completed disclosure survives refresh within its encounter
+[78/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1114:1 › owner refresh does not restore keyboard focus into a transparent encounter
+[79/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1144:3 › owner forms refuse unavailable argument controls (disabled)
+[80/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1144:3 › owner forms refuse unavailable argument controls (inert)
+[81/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1144:3 › owner forms refuse unavailable argument controls (hidden)
+[82/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1144:3 › owner forms refuse unavailable argument controls (transparent)
+[83/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1175:1 › owner forms do not dispatch an argument while text composition is active
+[84/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1206:3 › owner forms refuse ill-formed Unicode text (d800)
+[85/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1206:3 › owner forms refuse ill-formed Unicode text (dfff)
+[86/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (text, normal)
+[87/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (choice, normal)
+[88/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (text, normal)
+[89/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (choice, normal)
+[90/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (text, forced-colors)
+[91/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (choice, forced-colors)
+[92/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (text, forced-colors)
+[93/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (choice, forced-colors)
+[94/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (text, reduced-motion)
+[95/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (choice, reduced-motion)
+[96/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (text, reduced-motion)
+[97/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1230:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (choice, reduced-motion)
+[98/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1277:3 › owner choice labels expose significant whitespace (" ")
+[99/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1277:3 › owner choice labels expose significant whitespace ("a\nb")
+[100/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1277:3 › owner choice labels expose significant whitespace ("a  b")
+[101/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1301:1 › an unchecked exclusive-choice change cannot dispatch an owner action
+[102/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1345:1 › nested choice metadata retains the generic facts instead of becoming a radio option
+[103/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1368:1 › admitted typography changes title family independently of palette, density and actions
+[104/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1420:1 › action icons retain labels and do not infer intent from captions
+[105/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1449:1 › browser root text preference enlarges owner controls without a new Show
+[106/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1486:3 › forced colors replace admitted editorial palette tokens
+[107/107] [chromium] › proof/browser/owner-face-component.spec.mjs:1486:3 › forced colors replace admitted phosphor palette tokens
+  107 passed (14.4s)
