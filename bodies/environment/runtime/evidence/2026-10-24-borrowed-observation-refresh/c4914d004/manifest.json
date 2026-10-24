@@ -1,0 +1,62 @@
+{
+  "source": "c4914d0043cea604b66492ffada27d4d05d7533e",
+  "captured_dev": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+  "files": [
+    {
+      "path": "6313-current-dev-b-proof.json",
+      "stored_sha256": "f9b94852d73c7a7b75cedbd196e116fcd71f3b2259ce4d9d5515456860b2023e",
+      "raw_sha256": "f9b94852d73c7a7b75cedbd196e116fcd71f3b2259ce4d9d5515456860b2023e",
+      "raw_bytes": 2229,
+      "encoding": "identity"
+    },
+    {
+      "path": "6313-current-dev-b-source-audit.json",
+      "stored_sha256": "663539b184069e3062e33280ceff901943ee30f85de438da3f941449c0d54bd0",
+      "raw_sha256": "663539b184069e3062e33280ceff901943ee30f85de438da3f941449c0d54bd0",
+      "raw_bytes": 913,
+      "encoding": "identity"
+    },
+    {
+      "path": "6313-current-requirements-0411.json",
+      "stored_sha256": "ce6361d3ccfc1b819a59de5d38537977f0d8cd2206444968c5ca9c5e00bf2bdf",
+      "raw_sha256": "ce6361d3ccfc1b819a59de5d38537977f0d8cd2206444968c5ca9c5e00bf2bdf",
+      "raw_bytes": 6110,
+      "encoding": "identity"
+    },
+    {
+      "path": "run-6313-current-dev-b-proof.py",
+      "stored_sha256": "0f8b9fe2ed16bc2a448d73721d59b39c0893bd8b881fe0c763c2748649a92acc",
+      "raw_sha256": "0f8b9fe2ed16bc2a448d73721d59b39c0893bd8b881fe0c763c2748649a92acc",
+      "raw_bytes": 3713,
+      "encoding": "identity"
+    },
+    {
+      "path": "6313-current-dev-b-tests.log.gz",
+      "stored_sha256": "b95b3a2ec83b38cb946c7311dc4e477a819b00050dcfa0e7bf62be0dcf1b4b0e",
+      "raw_sha256": "daf01d7bcedeeafff3e4ef81e33695264a29a6fa1814e12fb62df52225574781",
+      "raw_bytes": 10863,
+      "encoding": "gzip"
+    },
+    {
+      "path": "6313-current-dev-b-clippy.log.gz",
+      "stored_sha256": "4eded10b9a35dca88851f667ea2424f720ccfc305aef88accad7c92e61504e7f",
+      "raw_sha256": "5098dcab635fb412b3fb2fbe563160923e0947e043930efc1717c244b672f40c",
+      "raw_bytes": 5358,
+      "encoding": "gzip"
+    },
+    {
+      "path": "6313-current-dev-b-setup-ci.log.gz",
+      "stored_sha256": "ac0159f84785b4f70caad2b7e741f8a62811b3444bd38c3a956841e3d869d3ff",
+      "raw_sha256": "91338ccd9860e59bf13a0b99c854990e61b2f226e83ee9e8ccb5627903adfd4d",
+      "raw_bytes": 1249,
+      "encoding": "gzip"
+    },
+    {
+      "path": "6313-current-dev-b-preflight.log.gz",
+      "stored_sha256": "29f460711b1e8f9a4a77b20dcfb2fafec99434491f5b3377d1740242bffff970",
+      "raw_sha256": "111981f5f6b5261dbcff97c019499a27288df752123b81a07c1cf09f91d61d92",
+      "raw_bytes": 35785,
+      "encoding": "gzip"
+    }
+  ]
+}

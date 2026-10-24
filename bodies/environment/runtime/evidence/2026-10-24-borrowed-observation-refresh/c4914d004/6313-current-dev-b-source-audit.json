@@ -1,0 +1,20 @@
+{
+  "source": "c4914d0043cea604b66492ffada27d4d05d7533e",
+  "old_source": "85520586a1d11f48abe68b602cf058c2f548a6b9",
+  "captured_dev": "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9",
+  "branch": "prep/6313-current-dev-20261024-b",
+  "parents": [
+    "85520586a1d11f48abe68b602cf058c2f548a6b9",
+    "a72f7d6ff7be2c4115ca055c6b395482ef2e2dc9"
+  ],
+  "delta_paths": [
+    "bodies/environment/runtime/tests/observation_kernel.rs",
+    "bodies/environment/runtime/tests/support/assignment.rs"
+  ],
+  "source_clean": true,
+  "merge_conflicts": [],
+  "runtime_production_tree_exact_old_source": true,
+  "bridge_two_file_blobs_exact_old_source": true,
+  "only_runtime_tree_delta_from855": "Accepted currentdev support/pulse.rs SelectedAssignedOperationPlan bytes->input:AssignedOperationInput::Contiguous migration; exactcurrentdevblob retained. Not a new6313change.",
+  "verified_utc": "2026-10-24T04:37:19.995744+00:00"
+}

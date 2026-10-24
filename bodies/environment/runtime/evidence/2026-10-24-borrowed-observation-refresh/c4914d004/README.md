@@ -1,0 +1,9 @@
+# Held borrowed observation proof refreshed onto current dev
+
+The existing two-test-file bridge was normally merged from clean85520586a onto captured developmenta72f7d6ff in a new Root-owned preparation branch. Both bridge blobs and the production runtime source tree remain byte-identical to855. The complete runtime tree intentionally differs by one already accepted pulse fixture API migration: SelectedAssignedOperationPlan now uses input: AssignedOperationInput::Contiguous rather than bytes. The current dev pulse-helper blob is preserved exactly; it is not new6313 work.
+
+At the exact clean refreshed source recorded in the receipt, all29 separate-workspace owning runtime tests passed, strict all-target Clippy passed, supported setup-ci completed and supported preflight passed345 tests. Exclusive private target/TMPDIR and two jobs are recorded. Both sensor and all seven observation scenarios execute owned borrowed-input tables after preparation descriptors/payloads drop, retaining the existing selected pulse binding, finite storage and sign bounds. This refresh changes no implementation or limits.
+
+Original rejected fixture variants, missing-actionlint environment failure and independent review remain in https://github.com/dancxjo/conduit/tree/c6e08b231f413d16e9c8754220501d116c6f038c/bodies/environment/runtime/evidence/2026-10-23-borrowed-observation . Earlier exact855 proof remains in https://github.com/dancxjo/conduit/tree/6fb01304205a4ec71df375f8616841ec3b79c7c4/bodies/environment/runtime/evidence/2026-10-23-borrowed-observation-refresh/85520586a . They are not relabeled as new execution.
+
+Source and immutable proof are published for recovery. Preparation remains outside the PR queue while6369 proceeds. No Candidate, accepted dev delivery, applicable Integration, firmware/physical/stable release or issue closure is claimed. Broad workspace acceptance does not replace this separate Cargo workspace owning proof.
