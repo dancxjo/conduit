@@ -396,3 +396,17 @@ a focused stronger Fit check additionally proves all five nodes are in bounds.
 Canonical Face remains equal across the actual presentation navigation. This
 is documentary-fixture browser proof; checked graph component selection,
 current native enactment and original parent acceptance remain open.
+
+## Measured status footer and clear graph
+
+Source `a74afe3f5` moves current truth, observation, run and workspace furniture
+into a bounded native-scroll footer and reserves its actual height in the graph.
+The omitted-Cord notice uses the same React tree with an explicit footer target,
+retaining exact wording/status and a fallback for other Flow consumers. Desktop
+navigation uses available width. All 12 HTML/furniture checks pass on a fresh
+local executable; exact semantic identities and interactions remain checked.
+[Current wide/narrow screenshots and receipts](evidence/gui-look-6349-status-footer/README.md).
+The broader authoring run with an explicit existing sealed runtime still fails
+both scenarios (zero initial Gear nodes; selection inside hidden inspector).
+Those failures are retained without attributing a cause or claiming acceptance.
+No CI or native acceptance is added by this browser slice.
