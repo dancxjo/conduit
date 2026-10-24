@@ -12,7 +12,7 @@ Four focused tool tests, the command parsing test, strict xtask Clippy, and supp
 
 ## Remaining product proof
 
-This packet proves source-built tool preparation and capability discovery. It proves no firmware framebuffer, graphical Conduit frame, checked Face/Mask/Show, GPU acceleration, input support, physical hardware, or accepted release. It changes no default live-product route. LoongArch's actual normal graphical product frame and its comparison with the other architectures remain required by #6057.
+This packet proves source-built tool preparation and capability discovery. It proves no firmware framebuffer, graphical Conduit frame, checked Face/Mask/Show, GPU acceleration, input support, physical hardware, or accepted release. It changes no default live-product route. The later [normal-product report](conduitos-loongarch64-firmware-frame.md) and [five-architecture comparison](conduitos-firmware-frame-comparison.md) provide separate evidence for those #6057 requirements.
 
 ## Actual firmware-path probe
 

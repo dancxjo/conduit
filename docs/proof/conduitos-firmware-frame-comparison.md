@@ -3,8 +3,8 @@
 Normal PROFILE-built x86_64, AArch64, IA-32, RISC-V64 and LoongArch64 products
 have real QMP captures of the same authored Crèche projection and checked Mask.
 This is source-pinned local comparative evidence for #6057. Required merge and
-integration acceptance and the complete launcher/capability documentation remain
-separate obligations. It establishes neither full product parity nor stable
+integration acceptance remain outstanding. The separate persistent launcher
+and capability documentation now cover all five targets. It establishes neither full product parity nor stable
 release acceptance.
 
 | x86_64 PC | AArch64 virt | IA-32 PC | RISC-V64 virt | LoongArch64 virt |

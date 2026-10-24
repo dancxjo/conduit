@@ -9,8 +9,9 @@ refer to that preparation, before normal-product wiring.
 RISC-V PR #6412 subsequently merged, and [applicable combined Integration](https://github.com/dancxjo/conduit/actions/runs/40107606433)
 passed at descendant `b0bc8d714c1d34d30231c75a7e3ea02c7395b6b9`, retaining the
 merge. The preparation is now refreshed onto current development and wired into
-an optional normal graphical profile. Its actual normal product/frame proof
-remains pending; the preparation packets do not establish that new claim.
+an optional normal graphical profile. The [normal-product report](conduitos-loongarch64-firmware-frame.md)
+now retains its two actual graphical boots and negative controls. Those are
+separate later evidence; the preparation packets do not establish that claim.
 
 The [source packet](../../targets/conduitos/proof/tools/loongarch64/scanout-source-review/index.json)
 retains seven exact original QEMU 10.2.1 files, their licensing, hashes and

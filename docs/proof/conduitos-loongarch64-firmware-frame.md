@@ -117,5 +117,6 @@ cargo xtask make host launch target/host-build/loongarch64-graphics
 
 Verification captures two guests and stops them. PR admission, merged-source
 integration and any stable publication retain their separate gates. This local
-proof does not by itself close #6057's remaining launcher/documentation and
+proof is complemented by the [persistent launcher](conduitos-persistent-launch.md)
+and capability documentation. #6057 remains open for required
 acceptance obligations.
