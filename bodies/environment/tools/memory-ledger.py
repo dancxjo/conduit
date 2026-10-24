@@ -65,7 +65,7 @@ def ledger(sampling_image=None, output_image=None):
         "linked_schema_cpu": EVIDENCE / "2026-10-24-publication-sink/schema-compatibility.json",
         "prepared_show_cpu": EVIDENCE / "2026-10-24-prepared-alternating-show/measurement.json",
         "publication_sink_cpu": EVIDENCE / "2026-10-24-publication-sink/measurement.json",
-        "native_file_sink_cpu": EVIDENCE / "2026-10-24-recorder-prefix-storage/measurement.json",
+        "native_file_sink_cpu": EVIDENCE / "2026-10-24-primitive-projection-locations/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])

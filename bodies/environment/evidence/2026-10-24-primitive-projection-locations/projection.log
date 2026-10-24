@@ -1,0 +1,27 @@
+    Blocking waiting for file lock on build directory
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 5m 18s
+     Running tests/nominal_field_projection.rs (target/environment-lean-host/debug/deps/nominal_field_projection-eee6b65320247f4d)
+
+running 1 test
+test projected_nominal_text_compares_equal_to_an_identical_contextual_literal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/nominal_record_projection.rs (target/environment-lean-host/debug/deps/nominal_record_projection-e88d80617f06297d)
+
+running 1 test
+test reference_and_prepared_projection_preserve_refined_nominal_primitive_record_fields ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/prepared_fixed_projection.rs (target/environment-lean-host/debug/deps/prepared_fixed_projection-b3b7ed7ad44c8f2b)
+
+running 4 tests
+test incorrect_projection_type_never_becomes_an_eligible_location ... ok
+test variable_preceding_fields_keep_runtime_selection_and_validate_every_input ... ok
+test primitive_locations_preserve_exact_inputs_and_do_not_skip_unselected_validation ... ok
+test fixed_record_tuple_collection_and_nominal_nodes_match_the_reference ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

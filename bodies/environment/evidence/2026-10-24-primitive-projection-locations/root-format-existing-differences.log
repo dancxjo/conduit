@@ -1,0 +1,50 @@
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering/tests/../../../targets/conduitos/src/machine_membrane/selection_fixture.rs:1:
+ //! Shared exact-selection fixture for cooperative Host Call contract tests.
+ use alloc::{format, vec};
+ use conduit_core::*;
+-use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
++use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+ 
+ pub(crate) fn selected(
+     scope: &BaseCapabilityScope,
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/src/installed_std.rs:424:
+         durable_state.as_ref().map(|state| state.body),
+     )?;
+     #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+-    let mut snapshot_hosts = linux_snapshot_host::PreparedSnapshots::prepare(snapshot_directory, fragment, &lowered)?;
++    let mut snapshot_hosts =
++        linux_snapshot_host::PreparedSnapshots::prepare(snapshot_directory, fragment, &lowered)?;
+     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
+     for state in &lowered.states {
+         let placement = fragment
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/src/installed_std.rs:3773:
+ 
+ fn snapshot_operation(contract: &str) -> bool {
+     #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+-    { linux_snapshot_host::is_operation(contract) }
++    {
++        linux_snapshot_host::is_operation(contract)
++    }
+     #[cfg(not(all(feature = "linux-snapshot", target_os = "linux")))]
+-    { let _ = contract; false }
++    {
++        let _ = contract;
++        false
++    }
+ }
+ 
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/src/state_value/durable/back.rs:142:
+                 if metadata_value.value.byte_len != RECOVERY_HEADER_BYTES as u32 {
+                     return fail(FailureCode::InvalidInput, 3);
+                 }
+-                let metadata_input = BoundedValueRef::new(
+-                    metadata_value.value,
+-                    RECOVERY_HEADER_BYTES as u32,
+-                )
+-                .expect("validated recovery metadata length");
++                let metadata_input =
++                    BoundedValueRef::new(metadata_value.value, RECOVERY_HEADER_BYTES as u32)
++                        .expect("validated recovery metadata length");
+                 io.consume_host_completion()
+                     .expect("observed recovery metadata");
+                 io.request_host_call(RequestId(1), HostCallId(1), metadata_input)
