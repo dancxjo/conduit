@@ -56,6 +56,7 @@ pub struct NativeRoot {
     credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
     network: crate::native_network::NativeNetwork,
     pulse: Option<ReadyPulseBase<Esp32PulseCapture<'static>>>,
+    display: alloc::boxed::Box<crate::native_display::NativeDisplay>,
     contract: PulseReadContract,
     wait: Option<conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>>,
     host: c::HostId,
@@ -69,6 +70,7 @@ impl NativeRoot {
         network_source: conduit_plot::ExpandedCanonicalPlot,
         sdk_reservation: crate::sdk_memory::NativeSdkReservation,
         wait: conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>,
+        display: alloc::boxed::Box<crate::native_display::NativeDisplay>,
     ) -> Self {
         let issuer = crate::native_authority::RootIssuer::observe(boot)
             .expect("initialized hardware entropy for Root issuance");
@@ -144,6 +146,7 @@ impl NativeRoot {
             assignment: None,
             network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
             pulse: Some(pulse),
+            display,
             contract: PulseReadContract::prepare().unwrap(),
             wait: Some(wait),
             host,
@@ -246,7 +249,7 @@ impl NativeRoot {
             freshness_sequence: self.admission_freshness,
         };
         let output = output
-            .get_mut(..crate::native_admission::MAXIMUM_ADVERTISEMENT_BYTES)
+            .get_mut(..crate::native_admission::MAXIMUM_ENVELOPE_BYTES)
             .ok_or(())?;
         serde_json_core::to_slice(&offer, output).map_err(|_| ())
     }
@@ -360,6 +363,9 @@ impl NativeRoot {
     /// Projection is made from the still-retained provider each time. It is an
     /// offer, not authority, membership, a Body birth or an installed native Play.
     pub fn write_offer(&self, output: &mut [u8]) -> Result<usize, ()> {
+        let output = output
+            .get_mut(..crate::native_admission::MAXIMUM_ADVERTISEMENT_BYTES)
+            .ok_or(())?;
         serde_json_core::to_slice(&self.advertisement()?, output).map_err(|_| ())
     }
     fn advertisement(&self) -> Result<c::HostAdvertisement, ()> {
@@ -388,6 +394,7 @@ impl NativeRoot {
             wait.append_to_advertisement(&mut advertisement)
                 .map_err(|_| ())?;
         }
+        self.display.append_to_advertisement(&mut advertisement)?;
         self.play.append_offer(&mut advertisement);
         self.network.append_to_advertisement(&mut advertisement)?;
         // Providers append their own retained facts. Root composes the complete

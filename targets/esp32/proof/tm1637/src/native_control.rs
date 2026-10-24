@@ -12,7 +12,7 @@ const REFUSED: &[u8] =
 /// UART0 owns GPIO1 TX/GPIO3 RX. Command storage holds at most 64 bytes;
 /// reception has a five-second deadline and each response has two seconds.
 pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Result<(), ()> {
-    let mut output = [0; 8192];
+    let mut output = [0; crate::native_admission::MAXIMUM_ENVELOPE_BYTES];
     offer(root, &mut uart, &mut output).await?;
     loop {
         let mut byte = [0];

@@ -588,6 +588,12 @@ dependencies = [
 [[package]]
 name = "conduit-tm1637-wire"
 version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
 
 [[package]]
 name = "conduit-web"

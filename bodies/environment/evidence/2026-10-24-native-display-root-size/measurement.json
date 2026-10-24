@@ -1,0 +1,33 @@
+{
+  "proof_class": "recorded-Boot CPU size fixture and release-link bounds; no physical display execution",
+  "measurements": [
+    {
+      "admission_bytes": 8198,
+      "bounded_encoder_bytes": 8198,
+      "proof": "maximum-counter-envelope-size-fixture"
+    },
+    {
+      "advertisement_bytes": 7919,
+      "bounded_encoder_bytes": 7919,
+      "complete_root_frame_bytes": 8731,
+      "physical_io": false,
+      "proof": "recorded-boot-size-fixture"
+    }
+  ],
+  "advertisement_ceiling_bytes": 8192,
+  "admission_envelope_ceiling_bytes": 8512,
+  "host_frame_ceiling_bytes": 12288,
+  "stack_bytes": 28836,
+  "stack_floor_bytes": 28672,
+  "root_heap_bytes": 114688,
+  "sdk_heap_bytes": 73728,
+  "root_internal_bytes": 61056,
+  "root_reclaimed_bytes": 53632,
+  "elf_sha256": "c2940fd111e928c00f430f8ac18629435a4bb2bc9dc1b4998b70f8b211cd2b64",
+  "native_display_sha256": "64d192aad745782598dc18130cb9cfef619a0377b655a24b073fd95c884ef6c9",
+  "historical_offer_fixture": "bodies/environment/evidence/2026-10-23-fixed-native-memory-partition/offers.json",
+  "fixture_sha256": "d3bc85470802489d3f2836cb06a39eb3e26bfdea118c66ad1771efb88c5b1699",
+  "probe_sha256": "02f4dab79057d87adf972a9d4effd00255dd2a5a5c8e14ec4d9809ec76fb6e7a",
+  "root_initializes_real_pins_in_firmware": true,
+  "physical_display_delivery_proved": false
+}

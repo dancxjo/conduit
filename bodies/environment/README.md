@@ -1405,3 +1405,13 @@ scheduler, selected owner and wire engine, covering electrical refusal,
 cancellation, finite operation exhaustion and late completion rejection without
 heap allocation. Routing, authority and pins are CPU fixtures. Native Mask Play
 installation and continuous physical display delivery remain unfinished.
+
+The native ESP32 composition now initializes and retains the real GPIO18/19
+output provider and projects its Ready offer for the observed Host/Boot. This
+starts no packet transmission and installs no Mask Play. The bare advertisement
+keeps its 8 KiB limit, while its admission envelope has a separate 320-byte
+reservation and the host bootstrap reader admits 12 KiB diagnostic frames.
+The release link preserves the 28 KiB stack floor and both heap totals by moving
+384 bytes between the two existing Root regions. See the size/link evidence in
+`evidence/2026-10-24-native-display-root-size/`; actual output selection, resident
+page delivery and physical display verification remain unfinished.

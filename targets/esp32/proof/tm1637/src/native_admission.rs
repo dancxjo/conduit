@@ -6,6 +6,9 @@ use ed25519_dalek::{Signer, SigningKey};
 // This UART carrier admits a larger offer than the Pico USB carrier; the
 // borrowed challenge/proof documents and Body verifier remain unchanged.
 pub const MAXIMUM_ADVERTISEMENT_BYTES: usize = 8192;
+// Independently bounded wrapper fields: protocol, friendly label, verifying key
+// and freshness counter. The bare advertisement keeps its existing 8 KiB cap.
+pub const MAXIMUM_ENVELOPE_BYTES: usize = MAXIMUM_ADVERTISEMENT_BYTES + 320;
 pub struct NativeAdmission {
     key: SigningKey,
 }

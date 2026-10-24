@@ -8,6 +8,12 @@ import subprocess
 import time
 import serial
 
+# The advertisement remains bounded to 8 KiB on Root. Its surrounding
+# diagnostic/status envelope is distinct and grows when another Ready Base is
+# projected; the five-provider frame exceeds the former 8 KiB line cap.
+MAXIMUM_FRAME_BYTES = 12 * 1024
+MAXIMUM_PENDING_BYTES = 2 * MAXIMUM_FRAME_BYTES
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--verifier', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
@@ -38,12 +44,12 @@ def receive(predicate, seconds=8, readiness_ping=None):
             startup_log.extend(incoming[:remaining])
             startup_truncated |= len(incoming) > remaining
         pending.extend(incoming)
-        if len(pending) > 16384:
+        if len(pending) > MAXIMUM_PENDING_BYTES:
             raise RuntimeError('UART ingress capacity exceeded')
         while b'\n' in pending:
             line, _, tail = pending.partition(b'\n')
             pending[:] = tail
-            if len(line) > 8192:
+            if len(line) > MAXIMUM_FRAME_BYTES:
                 raise RuntimeError('UART frame capacity exceeded')
             try:
                 value = json.loads(line)

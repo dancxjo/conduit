@@ -11,6 +11,12 @@ const HEADER: usize = core::mem::size_of::<usize>();
 
 #[cfg(feature = "native-root")]
 pub const SDK_BYTES: usize = 72 * 1024;
+// Keep the same total Root heap while leaving the fixed CPU stack floor intact
+// as the admitted management envelope and retained providers grow.
+#[cfg(feature = "native-root")]
+pub const ROOT_INTERNAL_BYTES: usize = 60 * 1024 - 384;
+#[cfg(feature = "native-root")]
+const ROOT_RECLAIMED_BYTES: usize = 52 * 1024 + 384;
 #[cfg(feature = "native-root")]
 pub const ROOT_BYTES: usize = 112 * 1024;
 #[cfg(feature = "native-root")]
@@ -52,10 +58,11 @@ pub fn initialize() -> NativeSdkReservation {
     };
     static INITIALIZED: AtomicBool = AtomicBool::new(false);
     assert!(!INITIALIZED.swap(true, Ordering::SeqCst));
-    assert_eq!(esp_alloc::HEAP.stats().size, 60 * 1024);
+    assert_eq!(esp_alloc::HEAP.stats().size, ROOT_INTERNAL_BYTES);
     assert_eq!(esp_alloc::HEAP.used(), 0);
     #[esp_hal::ram(reclaimed)]
-    static mut ROOT: [MaybeUninit<u32>; 52 * 1024 / 4] = [MaybeUninit::uninit(); 52 * 1024 / 4];
+    static mut ROOT: [MaybeUninit<u32>; ROOT_RECLAIMED_BYTES / 4] =
+        [MaybeUninit::uninit(); ROOT_RECLAIMED_BYTES / 4];
     static mut FIRST: [MaybeUninit<u32>; 32 * 1024 / 4] = [MaybeUninit::uninit(); 32 * 1024 / 4];
     #[esp_hal::ram(reclaimed)]
     static mut SECOND: [MaybeUninit<u32>; 40 * 1024 / 4] = [MaybeUninit::uninit(); 40 * 1024 / 4];
@@ -64,7 +71,7 @@ pub fn initialize() -> NativeSdkReservation {
     unsafe {
         esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
             ptr::addr_of_mut!(ROOT).cast(),
-            52 * 1024,
+            ROOT_RECLAIMED_BYTES,
             esp_alloc::MemoryCapability::Internal.into(),
         ));
         SDK_HEAP.add_region(esp_alloc::HeapRegion::new(

@@ -9,7 +9,7 @@ use esp_hal::{
 #[esp_rtos::main]
 async fn main(spawner: Spawner) {
     let p = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
-    esp_alloc::heap_allocator!(size: 60 * 1024);
+    esp_alloc::heap_allocator!(size: crate::sdk_memory::ROOT_INTERNAL_BYTES);
     let sdk_reservation = crate::sdk_memory::initialize();
     let timer = TimerGroup::new(p.TIMG0);
     let interrupts = SoftwareInterruptControl::new(p.SW_INTERRUPT);
@@ -22,6 +22,8 @@ async fn main(spawner: Spawner) {
     // Root retains one pending software-timer slot; Play admission is separate.
     let wait =
         unsafe { crate::native_wait::prepare(&boot) }.expect("initialized monotonic timer slot");
+    let display = crate::native_display::NativeDisplay::prepare(p.GPIO18, p.GPIO19, &boot)
+        .expect("initialized Root display provider");
     let source = crate::native_source::load();
     let mut root = crate::native_root::NativeRoot::prepare(
         sensor,
@@ -30,6 +32,7 @@ async fn main(spawner: Spawner) {
         source,
         sdk_reservation,
         wait,
+        display,
     );
     root.start_preparation_service(spawner)
         .await
