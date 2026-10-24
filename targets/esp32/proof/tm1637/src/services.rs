@@ -8,7 +8,10 @@ use embassy_futures::select::{select, Either};
 use embassy_net::Stack;
 pub static MAILBOX: ServiceMailbox = ServiceMailbox::new();
 #[embassy_executor::task]
-pub async fn run(stack: Stack<'static>, setup: Option<NetworkSetupWriter<'static>>) {
+pub async fn run(
+    stacks: (Stack<'static>, Stack<'static>),
+    setup: Option<NetworkSetupWriter<'static>>,
+) {
     #[cfg(feature = "native-face-root")]
     let reading = Some(
         crate::native_face::http_response as conduit_environment_http::exchange::ReadingProvider,
@@ -40,7 +43,9 @@ pub async fn run(stack: Stack<'static>, setup: Option<NetworkSetupWriter<'static
                 MAILBOX.acknowledge(command, ServiceState::Stopped);
                 command = MAILBOX.next_command().await;
             }
-            ServiceMode::Running => {
+            ServiceMode::Running | ServiceMode::Station => {
+                let station = command.mode == ServiceMode::Station;
+                let stack = if station { stacks.1 } else { stacks.0 };
                 if setup.is_none() {
                     conduit_environment_http::set_ap_unavailable();
                 }
@@ -52,30 +57,65 @@ pub async fn run(stack: Stack<'static>, setup: Option<NetworkSetupWriter<'static
                         crate::http_ap::ServiceReady::Http1 => 4,
                     };
                     ready.set(ready.get() | bit);
-                    if ready.get() == 7 {
-                        MAILBOX.acknowledge(command, ServiceState::Ready);
+                    if ready.get() == if station { 6 } else { 7 } {
+                        MAILBOX.acknowledge(
+                            command,
+                            if station {
+                                ServiceState::StationReady
+                            } else {
+                                ServiceState::Ready
+                            },
+                        );
                     }
                 };
                 #[cfg(feature = "native-face-root")]
                 let serving = async {
                     let buffers = responses.as_deref_mut().ok_or(())?;
-                    crate::http_ap::serve_acknowledged_with_reading(
-                        stack,
-                        setup.clone(),
-                        setup.is_some(),
-                        reading,
-                        buffers,
-                        ready_callback,
-                    )
-                    .await
+                    if station {
+                        crate::http_ap::serve_station_with_reading(
+                            stack,
+                            setup.clone(),
+                            false,
+                            reading,
+                            buffers,
+                            ready_callback,
+                        )
+                        .await
+                    } else {
+                        crate::http_ap::serve_acknowledged_with_reading(
+                            stack,
+                            setup.clone(),
+                            setup.is_some(),
+                            reading,
+                            buffers,
+                            ready_callback,
+                        )
+                        .await
+                    }
                 };
                 #[cfg(not(feature = "native-face-root"))]
-                let serving = crate::http_ap::serve_acknowledged(
-                    stack,
-                    setup.clone(),
-                    setup.is_some(),
-                    ready_callback,
-                );
+                let serving = async {
+                    if station {
+                        let mut responses = [heapless::String::new(), heapless::String::new()];
+                        crate::http_ap::serve_station_with_reading(
+                            stack,
+                            setup.clone(),
+                            false,
+                            None,
+                            &mut responses,
+                            ready_callback,
+                        )
+                        .await
+                    } else {
+                        crate::http_ap::serve_acknowledged(
+                            stack,
+                            setup.clone(),
+                            setup.is_some(),
+                            ready_callback,
+                        )
+                        .await
+                    }
+                };
                 let next = select(serving, MAILBOX.next_command()).await;
                 // select owns and has now dropped all socket/request futures.
                 match next {
@@ -106,6 +146,12 @@ impl conduit_esp32_network_switch::AccessPointServices for Owner {
         }
         self.control
             .request(ServiceMode::Stopped)
+            .await
+            .map_err(|_| conduit_net::StationFailure::ProviderUnavailable)
+    }
+    async fn station(&mut self) -> Result<(), conduit_net::StationFailure> {
+        self.control
+            .request(ServiceMode::Station)
             .await
             .map_err(|_| conduit_net::StationFailure::ProviderUnavailable)
     }

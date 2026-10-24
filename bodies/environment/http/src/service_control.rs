@@ -7,11 +7,13 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ServiceMode {
     Running,
+    Station,
     Stopped,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ServiceState {
     Ready,
+    StationReady,
     Stopped,
     Failed,
 }
@@ -135,6 +137,7 @@ impl<'a> ServiceControl<'a> {
             }
             let expected = match mode {
                 ServiceMode::Running => ServiceState::Ready,
+                ServiceMode::Station => ServiceState::StationReady,
                 ServiceMode::Stopped => ServiceState::Stopped,
             };
             return if ack.state == expected {

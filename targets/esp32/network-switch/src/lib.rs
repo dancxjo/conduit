@@ -22,6 +22,9 @@ pub use host_call::{Esp32JoinPreparationRefusal, Esp32NetworkJoinProvider};
 pub trait AccessPointServices {
     fn withdraw(&mut self) -> impl Future<Output = Result<(), StationFailure>>;
     fn restore(&mut self) -> impl Future<Output = Result<(), StationFailure>>;
+    /// Start station listeners only after link/address readiness. Completion is
+    /// actual service evidence, within the same attempt deadline; not membership.
+    fn station(&mut self) -> impl Future<Output = Result<(), StationFailure>>;
 }
 
 /// One absolute deadline, shared across withdrawal, association and DHCP.
@@ -104,7 +107,7 @@ impl<S: AccessPointServices> StationOperations for Esp32ApStationSwitch<'_, '_, 
         if !self.station_stack.is_link_up() || self.station_stack.config_v4().is_none() {
             return Err(StationFailure::ProviderUnavailable);
         }
-        Ok(())
+        self.services.station().await
     }
 }
 impl<S: AccessPointServices> AccessPointSwitchOperations for Esp32ApStationSwitch<'_, '_, S> {

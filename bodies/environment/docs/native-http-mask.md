@@ -19,8 +19,8 @@ setup pages and submission acknowledgements share this backing; rendering scratc
 ends before socket awaits. The native profile excludes the legacy inline-buffer
 future from its task type. Releasing duplicate response state recovers 4,080 static
 bytes in the keyed image. This exact capacity moves into Root's internal heap,
-raising it from 114,688 to 118,768 bytes. The SDK keeps 73,728 bytes and the linked
-CPU stack keeps 36,988 bytes against its unchanged 36 KiB floor. Earlier captures
+raising it from 114,688 to 118,768 bytes. The SDK keeps 73,728 bytes and that captured image retains a linked
+CPU stack of 36,988 bytes against its unchanged 36 KiB floor. Earlier captures
 retain their original heap capacities; the attended run below verifies this new partition.
 
 CPU tests cover actual target projection, Face identity, observed coordinates,
@@ -56,3 +56,21 @@ case. All allocated RAM section addresses/extents match the preceding image; the
 stack floor is unchanged. The protected operational image was restored and
 verified. See [ordered native setup proof](../evidence/2026-10-24-http-response-lifetimes/README.md).
 This does not admit joining while sampling or prove successful station attachment.
+
+## Station service ownership
+
+The experimental service owner retains the distinct AP and station stacks. A
+selected network attempt first retires AP socket futures, then associates and
+obtains an address. It now requests station listeners within the same deadline
+and returns only after both have bound. `StationReady` is distinct from AP
+`Ready`; stale/cancelled commands cannot acknowledge a newer restoration.
+Station mode runs two HTTP listeners and no DHCP server. Both modes use the same
+prepared response backing and native reading provider; the web client remains a
+Mask of the same producer Face. No credential copy, implicit retry, Body join or
+mDNS name is created by changing the interface.
+
+The keyed release link succeeds with a 36,924-byte linked stack (60 bytes above
+the existing 36 KiB floor). That is static placement, not stack high-water or
+proof of successful station HTTP. Physical success on an upstream network and
+link-loss handling remain open. Root's sampling/network workspace guard stays
+in place until combined preparation/execution resources are admitted.

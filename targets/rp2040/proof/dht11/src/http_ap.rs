@@ -46,28 +46,42 @@ pub async fn serve_acknowledged_with_reading(
     responses: &mut ReadingBuffers,
     ready: impl Fn(ServiceReady),
 ) -> Result<(), ()> {
-    let [first, second] = responses;
     let _ = select(
         dhcp(stack, &ready),
-        select(
-            http(
-                stack,
-                setup.clone(),
-                connect,
-                reading,
-                first,
-                ServiceReady::Http0,
-                &ready,
-            ),
-            http(
-                stack,
-                setup,
-                connect,
-                reading,
-                second,
-                ServiceReady::Http1,
-                &ready,
-            ),
+        serve_station_with_reading(stack, setup, connect, reading, responses, &ready),
+    )
+    .await;
+    Err(())
+}
+/// Station mode retains only the two HTTP sockets. It must never serve DHCP on
+/// the selected upstream network. Dropping this future retires both requests.
+pub async fn serve_station_with_reading(
+    stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
+    reading: Option<ReadingProvider>,
+    responses: &mut ReadingBuffers,
+    ready: impl Fn(ServiceReady),
+) -> Result<(), ()> {
+    let [first, second] = responses;
+    let _ = select(
+        http(
+            stack,
+            setup.clone(),
+            connect,
+            reading,
+            first,
+            ServiceReady::Http0,
+            &ready,
+        ),
+        http(
+            stack,
+            setup,
+            connect,
+            reading,
+            second,
+            ServiceReady::Http1,
+            &ready,
         ),
     )
     .await;

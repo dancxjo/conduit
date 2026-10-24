@@ -412,7 +412,7 @@ impl NativeRoot {
         use conduit_esp32_network_switch::AccessPointServices;
         spawner.spawn(
             crate::services::run(
-                self.network.ap_stack().ok_or(())?,
+                self.network.stacks().ok_or(())?,
                 Some(self.credential_writer.clone()),
             )
             .map_err(|_| ())?,

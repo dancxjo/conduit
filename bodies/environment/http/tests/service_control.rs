@@ -94,3 +94,47 @@ fn service_failure_revokes_readiness_and_wrong_terminal_is_not_success() {
         Poll::Ready(Err(ServiceControlRefusal::Failed))
     );
 }
+
+#[test]
+fn station_readiness_is_distinct_from_access_point_readiness() {
+    for state in [
+        ServiceState::Ready,
+        ServiceState::StationReady,
+        ServiceState::Failed,
+    ] {
+        let mailbox = ServiceMailbox::new();
+        let mut control = mailbox.claim_control(1).unwrap();
+        let mut start = core::pin::pin!(control.request(ServiceMode::Station));
+        assert!(poll(start.as_mut()).is_pending());
+        let cmd = command(&mailbox);
+        assert_eq!(cmd.mode, ServiceMode::Station);
+        mailbox.acknowledge(cmd, state);
+        assert_eq!(
+            poll(start.as_mut()),
+            Poll::Ready(if state == ServiceState::StationReady {
+                Ok(())
+            } else {
+                Err(ServiceControlRefusal::Failed)
+            })
+        );
+    }
+}
+#[test]
+fn cancelled_station_start_cannot_acknowledge_restored_ap() {
+    let mailbox = ServiceMailbox::new();
+    let mut control = mailbox.claim_control(2).unwrap();
+    let station = {
+        let mut start = core::pin::pin!(control.request(ServiceMode::Station));
+        assert!(poll(start.as_mut()).is_pending());
+        command(&mailbox)
+    };
+    let mut restore = core::pin::pin!(control.request(ServiceMode::Running));
+    assert!(poll(restore.as_mut()).is_pending());
+    let ap = command(&mailbox);
+    mailbox.acknowledge(station, ServiceState::StationReady);
+    assert!(poll(restore.as_mut()).is_pending());
+    mailbox.acknowledge(ap, ServiceState::Ready);
+    assert_eq!(poll(restore.as_mut()), Poll::Ready(Ok(())));
+    mailbox.acknowledge(station, ServiceState::StationReady);
+    assert_eq!(mailbox.observed_state(), Some(ServiceState::Ready));
+}

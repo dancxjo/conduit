@@ -33,8 +33,8 @@ impl NativeNetwork {
             selected: false,
         }
     }
-    pub fn ap_stack(&self) -> Option<embassy_net::Stack<'static>> {
-        self.radio.as_ref().map(|radio| radio.stacks.0)
+    pub fn stacks(&self) -> Option<(embassy_net::Stack<'static>, embassy_net::Stack<'static>)> {
+        self.radio.as_ref().map(|radio| radio.stacks)
     }
     pub fn retain_services(&mut self, services: crate::services::Owner) {
         assert!(self.services.is_none() && self.radio.is_some());

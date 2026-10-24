@@ -44,10 +44,10 @@ by its actual socket task. Withdrawal awaits socket/request retirement; restorat
 awaits DHCP and both HTTP listeners. The unique control handle and finite command
 generations survive cancellation; obsolete acknowledgements cannot satisfy a new
 request. This bridge is compiled into the AP bench, whose startup uses restoration.
-Physical station withdrawal/restoration is still unproved.
+The experimental native profile has separate physical failed-join/AP-restoration evidence; successful station association and station HTTP are still unproved.
 
 A real installation still needs the private page mailbox connected through admitted `network/credentials` and `network/join`
-Host Calls, current Body lifecycle, actual station-service ownership, and physical
+Host Calls, current Body lifecycle and physical
 success/failure/link-loss proof. No placeholder service implementation is shipped.
 
 `Esp32NetworkJoinProvider` now connects the actual controller/stack/service
@@ -127,3 +127,12 @@ failure. Selected-owner conformance checks that pressure spends the one attempt,
 retains the cleanup obligation until cleanup succeeds, and never permits a
 second join invocation. These are deterministic CPU and SDK compilation checks;
 physical pressure injection and join/fallback remain unproved.
+
+The experimental native service owner now retains both stacks and starts two
+HTTP listeners on the station stack after current link/DHCP readiness. The
+service acknowledgement is distinct from AP readiness. No DHCP server runs on
+the upstream station network. A failure or cancellation of listener preparation
+remains inside the original attempt deadline and requires ordinary bounded AP
+restoration. The same two native HTTP response buffers survive mode changes.
+This adds neither mDNS nor Body membership. Root still defers network preparation
+until sampler retirement; concurrent native memory admission is not established.
