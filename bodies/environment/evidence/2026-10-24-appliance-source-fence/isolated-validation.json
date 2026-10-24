@@ -1,0 +1,10 @@
+{
+  "candidate_commit": "4d3dc5116",
+  "candidate_own_build_cache": true,
+  "appliance_tests": 10,
+  "capture_regressions": 8,
+  "strict_lint": true,
+  "appliance_only_feature_check": true,
+  "construction_ledger_cli_own_build_cache": true,
+  "physical_run": false
+}

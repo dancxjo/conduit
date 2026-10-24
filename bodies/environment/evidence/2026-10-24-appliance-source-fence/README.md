@@ -17,3 +17,10 @@ The fresh delivery candidate contains the same fix in its independent commit.
 The fixture/provider and physical-proof limitations of the existing tests remain
 unchanged. Validation is at preparation; no new interpreter, runtime truth,
 retries or host effects are introduced during Play.
+
+The fresh candidate's complete public appliance proof and eight capture
+regressions were rerun in its own build cache and pass. The construction ledger
+was also regenerated using a separately built CLI. An attempted ledger run with
+a shared cross-checkout target directory had selected the other checkout's
+command dispatcher and refused the command. No ledger was accepted from that
+attempt. Keep build directories separate between checkouts for future proofs.
