@@ -33,3 +33,15 @@ These entrances prepare firmware only. They do not select a graphical product
 profile or change the existing serial RISC-V route. Runtime integration must
 use a private writable VARS copy for each boot and leave the pinned template
 unchanged. Product boot, acknowledged Show and screenshot proof remain open.
+
+## Retained local validation
+
+At source `231bb012dd7653e926d3fa69e421b9541e1621c5`, the supported doctor
+refused the missing cache, actual cold setup acquired and verified the fixed
+archive, warm setup and doctor passed, and an independent audit verified both
+read-only 32 MiB files and exact installed notices. Four focused refusal/cache
+tests and strict all-target xtask Clippy passed. Corrected repository preflight
+passed 345 tests; the original harness invocation omitted its required base
+argument and is retained as a failed invocation. The [complete packet](../../proof/tools/riscv64/firmware-231bb012d/index.json)
+keeps the commands, logs, digests and qualifications. This is firmware tool
+preparation, not a graphical product boot or stable-release acceptance.
