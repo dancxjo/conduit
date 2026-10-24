@@ -1,0 +1,23 @@
+{
+  "source_commit": "4f5a52473bea69f0f88a9655cef902d1e725d56c",
+  "proof_class": "CPU linked packet validation and ordinary output kernel; native pins/authority fixtures",
+  "pointer_bits": 64,
+  "validator_retained_heap_before_bytes": 794,
+  "validator_retained_heap_after_bytes": 0,
+  "validator_inline_after_bytes": 0,
+  "driver_tests_passed": 14,
+  "output_tests_passed": 15,
+  "play_allocations": 0,
+  "play_reallocations": 0,
+  "strict_driver_all_target_lint_passed": true,
+  "wire_only_dependency_check_passed": true,
+  "schema_and_wire_abi_preserved": true,
+  "complete_input_validation_retained": true,
+  "hardware_flashed": false,
+  "combined_appliance_admitted": false,
+  "public_command": "cargo xtask check tm1637-output",
+  "code_sha256": {
+    "mechanisms/io/tm1637/src/codec.rs": "9e8e596162f2e533598c8b9a1c0f6cdf592e4d7ccfc331de2db9d34bbba76eec",
+    "mechanisms/io/tm1637/tests/linked_packet_validation.rs": "02847589d9a40083ba3aec3a760ec25aacba2f686df99649ebb095b1e550b52b"
+  }
+}
