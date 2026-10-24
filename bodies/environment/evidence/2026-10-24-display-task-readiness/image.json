@@ -1,0 +1,11 @@
+{
+  "body_started": false,
+  "elf_sha256": "f5b5b6fbc025d27f660b20f4d747167408bf0214ab0a424687f6170cbc9fc74c",
+  "physical_display_delivery": false,
+  "profile": "display-ready-root",
+  "sampling_prepared": false,
+  "schema": "conduit.environment/display-readiness-image@1",
+  "source_dirty": false,
+  "source_head": "864c2b7053fd1c1f7dc9fc4c30edefd8ab4c9f0f",
+  "retained_artifact": "target/environment-display-readiness/1792827656/root.elf"
+}

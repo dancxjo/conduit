@@ -1,0 +1,20 @@
+{
+  "body_installed": false,
+  "native_plan_installed": false,
+  "native_sdk_heap_bytes": 73728,
+  "native_sdk_heap_used_bytes": 33408,
+  "native_sdk_heap_peak_bytes": 33436,
+  "native_root_heap_bytes": 114688,
+  "native_root_heap_used_bytes": 64024,
+  "native_root_heap_peak_bytes": 96984,
+  "display_software_ready": true,
+  "sampling_software_ready": false,
+  "host_id": "esp32/b0a732286178",
+  "boot_id": "boot/82a8b31d1139e04b7024480cdee32102",
+  "offer_generation": 1,
+  "advertisement_unchanged": true,
+  "software_offers": 3,
+  "capability_possession_issued": false,
+  "advertisement_sha256": "dce5510b00bd3a168954f0fe35e36de4ee39a5963b51f84d51136a4904ba7c26",
+  "software_offer_sha256": "57892720e1cfc8f8765f39d220d0983d86372bf2d7f5faf59d1d011a00505d4d"
+}
