@@ -54,3 +54,22 @@ the physical address, requires exact physical identity and uniform nonreserved
 MAT. The future machine reader must separately prove complete table-page
 custody and supply actual CSR and descriptor observations before this model
 can contribute to a graphical product claim.
+
+## Observed historical normal-product CSR prerequisite
+
+The [actual CSR probe](../../targets/conduitos/proof/tools/loongarch64/paging-csr-probe/index.json)
+boots the preserved normal product at source `79a04199e` with the prepared
+graphics emulator, pinned ROM and ramfb. It reaches the existing
+`observatory-framebuffer-unrepresented` refusal, with no graphical Show. A
+read-only QMP monitor query then observes CRMD `0xb0`, PWCL `333763884`,
+PWCH `615`, STLBPS `12`, nonzero page-aligned PGDH, DMW0 `0x11`, other DMWs
+zero and RVACFG zero. These match the model's paging prerequisites. This does
+not observe the framebuffer's HHDM pointer, actual table descriptors or custody.
+
+Only the named CSR whitelist is retained; general/FPU registers and the raw
+register dump are discarded. Fresh ephemeral fw_cfg entropy is not retained
+or hashed. Inputs and the unchanged firmware ROM were independently rechecked.
+The original inherited `template_vars_unchanged` field is explicitly qualified
+as ROM-hash stability: this launch uses `-bios` and selects no CODE/VARS pair.
+The running guest was not paused for observation. This evidence neither
+relabels the historical image as current source nor proves a graphical Frame.
