@@ -1,0 +1,214 @@
+{
+  "accepted_v2_artifact_preserved": "ewt_joint_v2/ewt_joint.i16",
+  "artifact_sha256": "fcd5baafa388f47410a37ed44b51c2228bdf3c84d9c034c80045f34d90be025c",
+  "base_trainer_sha256": "7e738a0e3656fa2b90b6e94d199894dba84de5a343dd1cb1b1e83dbf09b23530",
+  "calibration": "raw structured ranking scores; no probability or lexical confidence claim",
+  "commit": "b7711cce01cdd4f5fcc0a8199b8a50d951b16c0c",
+  "conditional_gold_action_lexical_and_gold_state_joint_diagnostics": {
+    "dev": {
+      "ambiguous_pos_correct": 1,
+      "ambiguous_tokens": 1,
+      "joint_context_action_accuracy": 1.0,
+      "joint_context_action_correct": 22,
+      "oracle_steps": 22,
+      "pos_correct": 11,
+      "tokens": 11
+    },
+    "test": {
+      "ambiguous_pos_correct": 4,
+      "ambiguous_tokens": 4,
+      "joint_context_action_accuracy": 0.8846153846153846,
+      "joint_context_action_correct": 23,
+      "oracle_steps": 26,
+      "pos_correct": 13,
+      "tokens": 13
+    },
+    "train": {
+      "ambiguous_pos_correct": 51,
+      "ambiguous_tokens": 51,
+      "joint_context_action_accuracy": 0.9892307692307692,
+      "joint_context_action_correct": 1286,
+      "oracle_steps": 1300,
+      "pos_correct": 650,
+      "tokens": 650
+    }
+  },
+  "corpus_profile_exclusions": {
+    "dev": {
+      "multiword_or_empty_node": 9,
+      "over_four_tokens": 1538
+    },
+    "test": {
+      "multiword_or_empty_node": 9,
+      "over_four_tokens": 1535
+    },
+    "train": {
+      "multiword_or_empty_node": 19,
+      "over_four_tokens": 10539
+    }
+  },
+  "corpus_sha256": {
+    "dev": "39239e0a60db3ae68f4b7036189f11b6692741d10ff8240dd91f74f2760d90f8",
+    "test": "fa024f43dc5da3c5ac02563bc9bd0e974f46cbb1560823976a8f342a37dc494a",
+    "train": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143"
+  },
+  "dataset": "UD_English-EWT",
+  "eligible_sentences": {
+    "dev": 454,
+    "test": 533,
+    "train": 1986
+  },
+  "epochs": 12,
+  "evaluation_classification": "Previously observed EWT DEV/TEST regression diagnostics; reserved authored cases not consumed by training",
+  "excluded_motivator_training_rows": [],
+  "feature_class_contract_identity": "4ef50a4b93019af66f02c59328e816dc118d1a64f3c15ab0c9e2eaed9ae083a3",
+  "features": 413,
+  "heldout_incremental_gold_state_action_ranking": {
+    "dev": {
+      "accuracy": 0.8461538461538461,
+      "condition": "gold parser state/POS; available prefix ends at next; future candidate membership withheld; not blind attachment accuracy",
+      "correct": 11,
+      "total": 13
+    },
+    "test": {
+      "accuracy": 0.8125,
+      "condition": "gold parser state/POS; available prefix ends at next; future candidate membership withheld; not blind attachment accuracy",
+      "correct": 13,
+      "total": 16
+    }
+  },
+  "lexical_coverage_exclusions": {
+    "dev": {
+      "normalized_sentence_seen_in_prior_split_or_teaching": 48,
+      "profile_oov": 401
+    },
+    "test": {
+      "normalized_sentence_seen_in_prior_split_or_teaching": 75,
+      "profile_oov": 453
+    },
+    "train": {
+      "profile_oov": 1592
+    }
+  },
+  "lexical_profile_covered_sentences": {
+    "dev": 5,
+    "test": 5,
+    "train": 394
+  },
+  "lexical_profile_identity": "37e56df9605021d58cdd29dd542996f1c6944644391ed159fa108561f713aef3",
+  "lexical_profile_selection": "TRAIN frequency57 excluding seven separately authored reviewed demonstrator/generalization forms; exact-case; native capacity64",
+  "license": "CC BY-SA 4.0",
+  "lookups": 25,
+  "maximum_absolute_score": 165675,
+  "model_bytes": 62796,
+  "model_content_identity": "20296199940f9c812871507e688601813ad0cced00f7564680121d88b4d078ef",
+  "native_decode_metrics": "not evaluated by this training script; diagnostics condition on gold state/action and are not blind POS or attachment accuracy",
+  "outputs": 76,
+  "pos": [
+    "ADJ",
+    "ADP",
+    "ADV",
+    "AUX",
+    "CCONJ",
+    "DET",
+    "INTJ",
+    "NOUN",
+    "NUM",
+    "PART",
+    "PRON",
+    "PROPN",
+    "PUNCT",
+    "SCONJ",
+    "SYM",
+    "VERB",
+    "X"
+  ],
+  "precision": "i16-weights-i64-sums",
+  "preparation_profile": "ewt-punctuation-v3; same feature ABI, fixed seed/epochs; unaccepted",
+  "quantization_scale": 256,
+  "relations": [
+    "acl",
+    "advcl",
+    "advmod",
+    "amod",
+    "appos",
+    "aux",
+    "case",
+    "cc",
+    "ccomp",
+    "clf",
+    "compound",
+    "conj",
+    "cop",
+    "csubj",
+    "dep",
+    "det",
+    "discourse",
+    "dislocated",
+    "expl",
+    "fixed",
+    "flat",
+    "goeswith",
+    "iobj",
+    "list",
+    "mark",
+    "nmod",
+    "nsubj",
+    "nummod",
+    "obj",
+    "obl",
+    "orphan",
+    "parataxis",
+    "punct",
+    "reparandum",
+    "root",
+    "vocative",
+    "xcomp"
+  ],
+  "reviewed_lexical_alternatives": {
+    "Alex": [
+      7,
+      11
+    ],
+    "Hello": [
+      6,
+      7
+    ],
+    "Hi": [
+      6,
+      7
+    ],
+    "Morgan": [
+      7,
+      11
+    ],
+    "Travis": [
+      7,
+      11
+    ],
+    "friend": [
+      7
+    ],
+    "pal": [
+      7
+    ]
+  },
+  "reviewed_teaching_conditional_gold_action_and_state_diagnostic": {
+    "ambiguous_pos_correct": 20,
+    "ambiguous_tokens": 20,
+    "joint_context_action_accuracy": 1.0,
+    "joint_context_action_correct": 66,
+    "oracle_steps": 66,
+    "pos_correct": 33,
+    "tokens": 33
+  },
+  "reviewed_teaching_sentences": 10,
+  "reviewed_teaching_sha256": "62b24370eee752586973f73da1b23b7bf2033d22a8b1338d0e4f1e762c86c569",
+  "reviewed_teaching_training_repetitions": 16,
+  "seed": 4907,
+  "trainer_sha256": "16790f2d71ffee98ed32a0ab0a31aa1e4e55b47c03fd381c629291da318ac85b",
+  "training_examples": 2356,
+  "training_steps": 28272,
+  "ud_release": "2.18",
+  "weights_tensor_content_identity": "2d7f790c79d323ef7c5fbc6e29adb0b61e17870226254c5ac656f45daad940e8"
+}

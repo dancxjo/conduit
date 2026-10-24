@@ -30,9 +30,8 @@ fn adopt(
     };
     Arc::new(AdmittedModelResource::adopt(artifact, signature, Arc::from(bytes), &binding).unwrap())
 }
-fn residence() -> ResourceContentOffer {
-    let (artifact, _) = english_parser_scorer_descriptor();
-    let reference = artifact.content;
+fn residence(artifact: &ModelArtifact) -> ResourceContentOffer {
+    let reference = artifact.content.clone();
     ResourceContentOffer {
         contract: ResourceContentRequirement {
             identity: reference.identity,
@@ -264,15 +263,34 @@ pub struct ModelDriver {
     shared: Rc<RefCell<Shared>>,
     scheduler: Scheduler,
 }
+pub type ParserModelPreparation = fn(
+    Option<Arc<AdmittedModelResource>>,
+    ResourcePoolId,
+    ResourceContentOffer,
+) -> Result<PreparedCategoricalStep, ParserScorerRefusal>;
 impl ModelDriver {
     pub fn new() -> Self {
         let (artifact, signature) = english_parser_scorer_descriptor();
-        let resource = adopt(artifact, signature, ENGLISH_PARSER_WEIGHTS);
+        Self::with_descriptor(
+            artifact,
+            signature,
+            ENGLISH_PARSER_WEIGHTS,
+            prepare_english_parser_scorer,
+        )
+    }
+    pub fn with_descriptor(
+        artifact: ModelArtifact,
+        signature: ModelSignature,
+        weights: &[u8],
+        prepare: ParserModelPreparation,
+    ) -> Self {
+        let selected_residence = residence(&artifact);
+        let resource = adopt(artifact, signature, weights);
         let profile = Arc::new(
-            prepare_english_parser_scorer(
+            prepare(
                 Some(resource),
                 "test/parser-model-pool".into(),
-                residence(),
+                selected_residence,
             )
             .unwrap(),
         );

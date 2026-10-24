@@ -128,3 +128,7 @@ mod parser_scorer;
 pub use parser_scorer::*;
 
 pub mod parser_commitment;
+
+/// Explicit unaccepted candidate, never the default accepted model selection.
+#[cfg(all(feature = "parser-model", target_has_atomic = "ptr"))]
+pub mod parser_punctuation_model;

@@ -1,0 +1,5 @@
+{"forms": ["Jeff", "!"], "heads": [4, 0], "id": "email-enronsent29_01-0077", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Hi", "."], "heads": [4, 0], "id": "email-enronsent19_02-0045", "pos": [6, 12], "relations": ["root", "punct"]}
+{"forms": ["Jim", ","], "heads": [4, 0], "id": "email-enronsent00_02-0052", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Great", "service"], "heads": [1, 4], "id": "reviews-356361-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"forms": ["Excellent", "service", "!"], "heads": [1, 4, 1], "id": "reviews-371492-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
