@@ -1523,3 +1523,11 @@ requires the expected MCU, output software ready, sampling software absent, no
 installed Body/Play and valid Root heap counters. It records a refusal before
 failing; it neither retries a mutation nor claims physical display delivery.
 The ordinary `root-esp32` and `owner-run-esp32` paths keep their sampling profile.
+
+The attended readiness run completed on source `e134d947a`: the actual ESP32
+retained the output computations, with 63,192 Root heap bytes used and a reported
+74,432-byte peak of 114,688. See
+`evidence/2026-10-24-display-software-readiness/`. The device now runs the separate
+readiness profile, with sampling absent and no display Play or physical packet
+transmission. This proves native preparation only; combined admission and
+physical display execution remain unfinished.
