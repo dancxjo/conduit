@@ -1431,3 +1431,13 @@ contract at bootstrap and reconstructs its decoded metadata only during offer
 or binding preparation, retaining the actual GPIO owner throughout. No kernel
 admission guard, control headroom or heap total was reduced. The corrected
 release builds; its native execution still requires the physical repeat.
+
+The physical repeat of the metadata correction passed on firmware source
+`055673a4d`: observed output readiness, Body admission, paced assignment staging,
+signed native preparation/start/release, three real one-minute DHT observations,
+ordinary Body Faces and timed Mask Show/packet interpretation, then verified
+quiescence, Lull and provider retirement. Root peaked at 105,860 of 114,688 heap
+bytes and ended at 10,380 bytes. See
+`evidence/2026-10-24-native-display-readiness/`. Output remained unselected and
+the Shows explicitly record no physical delivery. The device is quiesced after
+the finite run; this does not claim a resident or overnight appliance.

@@ -1,0 +1,33 @@
+{
+  "body_active": false,
+  "body_faces": 3,
+  "body_id": "271ecd800252e45d17e997df26ff9f2c0281f0da152b27705c8327b443c7861f",
+  "completed": true,
+  "device_start_attributed": true,
+  "event": "owner-run-complete",
+  "fragment_play": {
+    "active_play_id": "7328f6e0b6075b9de6c60102b72251aec869e70b8c9d13862414bce5d0746261",
+    "boot_id": "boot/69ec41c265e3c6620ac87d1afe3bda55",
+    "host_id": "esp32/b0a732286178",
+    "plan_id": "462060f87aa5b3915cff375f630f9c47479953d56b23af4ba4f66bd468caad84",
+    "play_sequence": 1
+  },
+  "overnight_recording_claimed": false,
+  "owner_retained_through_execution": true,
+  "physical_observations": 3,
+  "worker_quiesced": true,
+  "worker_retired": true,
+  "final_offer_generation": 2,
+  "final_network_configuration": "uninstalled",
+  "proof_class": "physical-owner-run",
+  "root_heap_used_bytes": 10380,
+  "root_heap_peak_bytes": 105860,
+  "native_root_heap_bytes": 114688,
+  "body_start_attributed": true,
+  "body_lulled_after_quiescence": true,
+  "worker_retirement_acknowledged": true,
+  "worker_release_acknowledged": true,
+  "carrier_sha256": "c78889958e6fce4ef882b7b8a398043f3999cfdcd3a44635e95adefbfdf6a56e",
+  "owner_executable_sha256": "a5d819ce740b1edf897acb9ef5159d40167a53245b14324040c88ae4fc035dc3",
+  "retained_uart_bytes": 65536
+}

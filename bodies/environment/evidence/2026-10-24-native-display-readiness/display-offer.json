@@ -1,0 +1,62 @@
+{
+  "host": "esp32/b0a732286178",
+  "boot": "boot/69ec41c265e3c6620ac87d1afe3bda55",
+  "offer_generation": 1,
+  "offer": {
+    "startup_parameters": [],
+    "shorthand": null,
+    "capability_id": "conduit/tm1637-write@1",
+    "kind_id": "machine/tm1637/write",
+    "kind_contract_revision": "machine/tm1637/write@1",
+    "inputs": [
+      {
+        "port_id": "packets",
+        "value_kind": "structured-info/profile-62a3ee17ca288ea85770176f7663302f34f54ac477fbb157b7b0704a731ee655@1",
+        "direction": "Input",
+        "temporal": {
+          "Flow": {
+            "closes": true
+          }
+        }
+      }
+    ],
+    "outputs": [],
+    "semantic_contract": {
+      "configuration": [],
+      "laws": []
+    },
+    "execution_profile_id": "conduit/tm1637-cooperative-bounded@1",
+    "implementation_id": "esp32/tm1637-write@1",
+    "artifact_id": "native/esp32-tm1637-root@1",
+    "host_calls": [
+      {
+        "contract_id": "conduit.host/tm1637-write@1",
+        "target_kind": "machine/tm1637/write",
+        "maximum_in_flight": 1,
+        "maximum_input_bytes": 1024,
+        "maximum_output_bytes": 0
+      }
+    ],
+    "resource_requirements": [
+      {
+        "class_id": "machine/tm1637-attachment",
+        "units": 1,
+        "protected_role": null,
+        "compute": null
+      }
+    ],
+    "authority_requirements": [
+      {
+        "contract_id": "conduit.authority/tm1637-write@1",
+        "host_call_contract_id": "conduit.host/tm1637-write@1",
+        "subject_kind": "machine/tm1637/write"
+      }
+    ],
+    "limits": {
+      "max_active_instances": 1,
+      "max_queue_items": 1,
+      "max_queue_bytes": 1024
+    }
+  },
+  "physical_transmission": false
+}

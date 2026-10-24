@@ -1,0 +1,46 @@
+{
+  "elapsed_ms": 65935,
+  "face_content_id": "220335ac6b7dfc04093cc923c0338ba2f5263df294fbcdcf83d3e501ef9b312c",
+  "face_revision": 1,
+  "packets": [
+    [
+      64
+    ],
+    [
+      192,
+      0,
+      7,
+      6,
+      118,
+      0,
+      0
+    ],
+    [
+      139
+    ]
+  ],
+  "physical_delivery": false,
+  "registers": [
+    0,
+    7,
+    6,
+    118,
+    0,
+    0
+  ],
+  "show": {
+    "colon": false,
+    "decimal_points": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "digits": [
+      0,
+      7,
+      6,
+      118
+    ]
+  }
+}
