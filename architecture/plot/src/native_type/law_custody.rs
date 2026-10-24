@@ -19,6 +19,7 @@ use verification::verify;
 mod material_preflight;
 pub(crate) mod requested_roots;
 mod root_source;
+mod wire;
 
 const MAXIMUM_MODULES: usize = 256;
 const MAXIMUM_BYTES: usize = 4 * 1024 * 1024;

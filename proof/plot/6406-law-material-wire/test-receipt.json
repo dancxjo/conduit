@@ -1,0 +1,16 @@
+{
+  "base": "897b6df11",
+  "tests_passed": 5,
+  "failed": 0,
+  "ignored": 0,
+  "executable": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_wire-f3fef65cb2d558ee",
+  "executable_sha256": "4ff38cad59ffd07c150267da382861daef64a44f1a8c7b0a236352b0150dad2f",
+  "source_hashes": {
+    "architecture/plot/src/native_type/law_custody.rs": "152d5a832f5c52170a962f67a29378fed31dedcfde7249e7c099e6f7d4555ec7",
+    "architecture/plot/src/native_type/law_custody/wire.rs": "fa68f985cb128439f39e81a7f7e17fb11b4233790ba9e9d4c543ff450ecf94c6",
+    "architecture/plot/tests/native_law_wire.rs": "225bf3a658d1af6214e5314500d282ac8b100d849cf241b050b6b88937308263",
+    "tools/xtask/src/suites/native_law_custody.rs": "c67e8da6805f7612e8f8d04a59d4863ea8371ffe2d9501b02fedcd143af4f881"
+  },
+  "sealed": 1792871176.4052014,
+  "boundary": "untrusted law-material transport only; no expression-envelope/Kind/Back authority"
+}

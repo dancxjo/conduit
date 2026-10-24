@@ -16,6 +16,8 @@ pub const STEPS: &[Step] = &[Step::new(
         "native_law_packages",
         "--test",
         "native_law_families",
+        "--test",
+        "native_law_wire",
         "--",
         "--nocapture",
         "--test-threads=1",
