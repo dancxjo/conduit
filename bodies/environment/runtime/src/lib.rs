@@ -8,20 +8,20 @@ mod canonical_input;
 mod canonical_storage;
 #[cfg(feature = "construction")]
 pub mod construction;
-pub mod display_packets;
 #[cfg(feature = "display-mask")]
 pub mod display_mask;
 #[cfg(feature = "display-output")]
 pub mod display_output;
+pub mod display_packets;
 pub mod observation;
 pub mod publication;
 #[cfg(feature = "face-projection")]
 pub mod publication_face;
+#[cfg(feature = "face-projection")]
+pub mod publication_face_custody;
 pub mod recording;
 #[cfg(feature = "face-projection")]
 pub mod retained_publication_face;
-#[cfg(feature = "face-projection")]
-pub mod publication_face_custody;
 use alloc::{boxed::Box, string::String};
 use conduit_core::PortTemporal;
 use conduit_kernel::{
