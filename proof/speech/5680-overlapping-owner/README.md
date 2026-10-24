@@ -1,3 +1,5 @@
+Historical preparation receipt (ab6661fb4): the automatic-admission negative below remains valid, but the inference that it blocks the scoped explicit approved Host profile was corrected. See `explicit-host-profile/README.md` and its current-source results.
+
 The finite G2 owner retains exact selected G1 definition/occurrence/neighbor custody, three shared overlapping resonance trajectories, overlapping overall energy and three separately authored closure/release/aspiration phases. All numerical timing policy remains checked Source. No detached phone tape, frame-derived semantic time or one-box-per-phone replacement is introduced.
 
 At code25099a85a, six owner tests and three existing checked Source controls pass with zero ignored. Raw initial quota, compiler and invalid-G1-fixture negatives remain labeled in the focused receipt. These are scoped semantic conformance results, not the final ordinary-kernel or parent delivery proof.
