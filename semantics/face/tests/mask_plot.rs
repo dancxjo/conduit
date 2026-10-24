@@ -693,6 +693,33 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
     )
     .unwrap();
     show.validate(&face).unwrap();
+    // This ordinary planner fixture is not a complete typed Mask topology.
+    // A valid Face still reaches that unchanged plan admission refusal.
+    assert_eq!(
+        show.show.validate_against_mask_topology(&face, &plan),
+        Err(conduit_face::ManifestationError::InvalidPlan)
+    );
+    // Keep the acknowledged identity and plan unchanged while corrupting the
+    // content they bind. Neither shared checked validation nor the standalone
+    // naked-Face topology entrance may trust that old identity.
+    let mut tampered = face.clone();
+    tampered.text[0].text.push_str(" tampered");
+    assert_eq!(show.validate(&tampered), Err(MaskShowError::StaleFace));
+    assert_eq!(
+        show.show.validate_against_mask_topology(&tampered, &plan),
+        Err(conduit_face::ManifestationError::InvalidFace)
+    );
+    let mut invalid_reference = face.clone();
+    invalid_reference.text[0].subject = "missing/subject".into();
+    assert_eq!(
+        show.validate(&invalid_reference),
+        Err(MaskShowError::StaleFace)
+    );
+    assert_eq!(
+        show.show
+            .validate_against_mask_topology(&invalid_reference, &plan),
+        Err(conduit_face::ManifestationError::InvalidFace)
+    );
     assert_eq!(show.mask_plot, mask.plot_identity);
     assert_eq!(
         show.face_plan_id,

@@ -1,4 +1,5 @@
-//! Structural binding of one compositor ELF actually present in loaded Root bytes.
+//! Structural binding of one unique compositor image in loaded Root bytes.
+//! Repeated complete byte-identical copies carry the same image identity.
 //! This is not authenticated linker provenance or executed guest confinement.
 #[derive(Debug, PartialEq, Eq)]
 pub(super) enum Error {
@@ -127,7 +128,7 @@ fn compositor_extent(b: &[u8]) -> Option<usize> {
 }
 pub(super) fn extract(root: &[u8]) -> Result<&[u8], Error> {
     let loaded = loads(root).ok_or(Error::Root)?;
-    let mut found = None;
+    let mut found: Option<&[u8]> = None;
     for (offset, _) in root
         .windows(7)
         .enumerate()
@@ -145,10 +146,15 @@ pub(super) fn extract(root: &[u8]) -> Result<&[u8], Error> {
         if !loaded.iter().any(|x| offset >= x.0 && end <= x.0 + x.1) {
             continue;
         }
-        if found.is_some() {
-            return Err(Error::Ambiguous);
+        let candidate = &root[offset..end];
+        if let Some(previous) = found {
+            // Compare complete validated bytes, not a serial-selected digest.
+            if previous != candidate {
+                return Err(Error::Ambiguous);
+            }
+        } else {
+            found = Some(candidate);
         }
-        found = root.get(offset..end);
     }
     found.ok_or(Error::Missing)
 }
@@ -231,10 +237,30 @@ mod tests {
         assert_eq!(extract(&root(&guest)).unwrap_err(), Error::Missing);
     }
     #[test]
-    fn duplicate_valid_images_are_ambiguous() {
+    fn identical_loaded_copies_are_one_image() {
         let guest = elf();
         let mut b = root(&guest);
         b.extend_from_slice(&guest);
+        let n = b.len() as u64;
+        put(&mut b, 96, n, 8);
+        put(&mut b, 104, n, 8);
+        assert_eq!(extract(&b).unwrap(), guest);
+    }
+    #[test]
+    fn unloaded_valid_image_is_not_custody() {
+        let guest = elf();
+        let mut b = root(&guest);
+        put(&mut b, 96, 512, 8);
+        put(&mut b, 104, 512, 8);
+        assert_eq!(extract(&b).unwrap_err(), Error::Missing);
+    }
+    #[test]
+    fn distinct_valid_images_are_ambiguous() {
+        let guest = elf();
+        let mut b = root(&guest);
+        let mut distinct = guest.clone();
+        distinct[300] = 1; // Different complete image, unchanged valid ELF structure.
+        b.extend_from_slice(&distinct);
         let n = b.len() as u64;
         put(&mut b, 96, n, 8);
         put(&mut b, 104, n, 8);
