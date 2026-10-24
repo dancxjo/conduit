@@ -1,6 +1,7 @@
 import { assertOwnerFaceReachability } from "./owner-face-reachability.mjs";
 import "./owner-face-component.mjs";
 import { createOwnerLookControls } from "./owner-look-controls.mjs";
+import { decorate } from "./owner-face-icons.mjs";
 
 // Optional, explicitly authorized participation in a Body owned by a running
 // Linux Host. All admission and biography facts come from the production SDK.
@@ -95,6 +96,7 @@ export function checkedOwnerRouteEvidence(view, hostId, bootId) {
 }
 
 export async function startOwnerParticipation(application, root) {
+  root.classList.add('owner-participation');
   document.title = 'Join a running Body · Conduit Handbook';
   document.querySelector('.handbook-introduction h1').textContent = 'Join the Body you already made.';
   document.querySelector('.handbook-introduction .lede').textContent =
@@ -146,6 +148,16 @@ export async function startOwnerParticipation(application, root) {
       <p role="status" data-owner-speech-result>Join and show the Face first.</p></section>
     <button type="button" data-owner-leave disabled>Leave this window</button>
     <p><a href="?">Return to my local Handbook</a>. Your local Body remains retained; this join mode does not open or change it.</p>`;
+  // Local chrome operations have fixed decoration, separate from Face intents.
+  for (const [selector, icon] of [
+    ['#owner-identity-title', 'Host'], ['[data-owner-join] h3', 'Body'],
+    ['#owner-result-title', 'Confirm'], ['#owner-face-title', 'Face'],
+    ['#owner-wardrobe-title', 'Face'], ['[data-owner-face-refresh]', 'Repeat2'],
+    ['[data-owner-wardrobe-refresh]', 'Inspect'], ['[data-owner-speech-start]', 'Play'],
+    ['[data-owner-speech-status]', 'Status'], ['[data-owner-speech-stop]', 'Close'],
+    ['[data-owner-leave]', 'Back'], ['[data-owner-join] button', 'Body'],
+    ['details > summary', 'Inspect'],
+  ]) for (const node of root.querySelectorAll(selector)) decorate(node, icon);
   const status = root.querySelector('[data-owner-status]');
   const form = root.querySelector('[data-owner-join]');
   const result = root.querySelector('[data-owner-result]');
@@ -183,6 +195,7 @@ export async function startOwnerParticipation(application, root) {
         button.textContent = `${label} ${route.maskName}`;
         button.disabled = !enabled;
         button.addEventListener('click', () => changeWardrobe(current.raw, route.routeId, verb));
+        decorate(button, verb === 'doff' ? 'Close' : 'Confirm');
         controls.append(button);
       }
       item.append(controls); list.append(item);

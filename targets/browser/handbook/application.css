@@ -103,3 +103,15 @@
 @media(max-width:900px) { .handbook-first-steps ol { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:540px) { .handbook-first-steps ol, .handbook-reading { grid-template-columns: 1fr; }.handbook-application { padding: 1rem; }.handbook-application select { max-width: 100%; }.handbook-controls button { flex: 1 1 8rem; } }
 @media(max-width:540px) { .owner-identity { grid-template-columns: minmax(0,1fr); gap: .3rem; }.owner-identity dt:not(:first-child) { margin-top: .8rem; } }
+
+/* Local owner chrome shares symbols and target rhythm with the Face reader. */
+.owner-participation{min-width:0;overflow-wrap:anywhere}
+.owner-participation .owner-face-icon{width:1em;height:1em;vertical-align:-.15em;margin-inline-end:.5em;pointer-events:none;flex-shrink:0}
+.owner-participation button,.owner-participation select,.owner-participation input{box-sizing:border-box;min-height:44px;max-width:100%}
+.owner-participation button{line-height:1.4;white-space:normal;text-align:start;margin-block:.25rem}
+.owner-participation button:focus-visible,.owner-participation input:focus-visible,.owner-participation summary:focus-visible{outline:3px solid var(--conduit-focus,Highlight);outline-offset:3px}
+.owner-participation details>summary{padding-block:12px;cursor:pointer}
+.owner-participation>section:not(.owner-face){margin-block:2rem;padding-block:1rem;border-top:1px solid var(--conduit-structure-secondary,CanvasText)}
+.owner-participation .owner-wardrobe{padding:clamp(1rem,2vw,1.5rem)}
+@media(max-width:600px){.owner-participation .owner-identity{grid-template-columns:minmax(0,1fr);gap:.35rem}.owner-participation .owner-identity dd{margin-bottom:1rem}}
+@media(forced-colors:active){.owner-participation button,.owner-participation input{background:Canvas;color:CanvasText;border-color:CanvasText}.owner-participation button:disabled{color:GrayText;opacity:1}}

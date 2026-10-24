@@ -51,6 +51,10 @@
         {
           "role": "owner-look-controls",
           "specifier": "./owner-look-controls.mjs"
+        },
+        {
+          "role": "owner-face-icons",
+          "specifier": "./owner-face-icons.mjs"
         }
       ]
     },
