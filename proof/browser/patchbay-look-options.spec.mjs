@@ -17,7 +17,10 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     await page.setViewportSize({width:1440,height:1000});
     await page.goto(url);
     await expect(page.locator('body')).toHaveAttribute('data-application-ready','true');
+    await page.getByRole('button',{name:'Plot',exact:true}).click();
+    await expect(page.locator('#lens-label')).toHaveText('PLOT · STRUCTURE');
     await expect(page.locator('.flow-frontplate').first()).toBeVisible();
+    await page.locator('#fit-flow').click();
     const baseline=await (await page.request.get(`${url}/api/snapshot`)).json();
     const nodes=await page.locator('.flow-frontplate').evaluateAll(nodes=>nodes.map(node=>node.dataset.subject));
     const picker=page.getByRole('combobox',{name:'Look',exact:true});
@@ -41,6 +44,11 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     await page.setViewportSize({width:390,height:844});
     await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
     await page.addStyleTag({content:'html { font-size:32px; }'});
+    // The narrow action tray scrolls horizontally. Reach the picker through
+    // the real Tab sequence so the browser reveals its focused control.
+    await page.locator('#arrange').focus();
+    await page.keyboard.press('Tab');
+    await expect(picker).toBeFocused();
     for(const name of ['phosphor','editorial','engineering']) {
       await picker.selectOption(`conduit.look/${name}@1`);
       await picker.focus();
