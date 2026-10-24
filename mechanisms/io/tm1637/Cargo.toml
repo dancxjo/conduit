@@ -5,3 +5,19 @@ edition = "2021"
 publish = false
 
 [workspace]
+
+[features]
+host-call = ["dep:conduit-core", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:conduit-plot"]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core", optional = true }
+conduit-kernel = { path = "../../../architecture/kernel", optional = true }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional = true }
+
+[build-dependencies]
+conduit-plot = { path = "../../../architecture/plot", optional = true }
+
+[dev-dependencies]
+conduit-kernel = { path = "../../../architecture/kernel", features = ["step-test-support"] }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-embedded-build = { path = "../../../make/embedded-build" }
