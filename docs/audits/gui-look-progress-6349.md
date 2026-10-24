@@ -634,3 +634,16 @@ Unicode fixture fits all four Looks at 49,494–49,828 bytes; strict runtime Cli
 71 bridge and 19 SDK checks pass. The arena and carrier bounds are unchanged.
 [Contract, logs and retained prior failure](evidence/gui-look-6349-view-projection/README.md).
 The rebuilt complete live sequence is pending.
+
+## Live continuing actions after complete Look replacement
+
+Source `cce8accbd` now passes the complete installed-owner/browser sequence:
+eight unchanged-Face Look selections, followed by four real Todo additions on
+the same Body with newly acknowledged Shows. Renewals are acknowledged during
+every pending durable action; there are no lease expirations or browser errors.
+The 1.43–1.48 second action requests no longer prevent those renewals. The earlier
+lease and ABI-output failures remain source-bound negative evidence. The new
+v2 view and 16,010,315-byte runtime stay within all existing output/delivery bounds.
+[Current viewport captures, immutable baseline, action/Show receipts, timings and hashes](evidence/gui-look-6349-live-pending-action/README.md).
+Native/current-source QEMU, checked Patchbay component reuse and the remaining
+surface/accessibility acceptance are still open.
