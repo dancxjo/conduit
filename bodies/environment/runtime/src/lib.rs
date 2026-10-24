@@ -1,9 +1,13 @@
 #![no_std]
 //! Shared kernel Backs for the environmental Source composition.
 extern crate alloc;
+#[cfg(feature = "appliance")]
+pub mod appliance;
 pub mod assigned;
 mod canonical_input;
 mod canonical_storage;
+#[cfg(feature = "construction")]
+pub mod construction;
 #[cfg(feature = "display-mask")]
 pub mod display_mask;
 pub mod display_packets;

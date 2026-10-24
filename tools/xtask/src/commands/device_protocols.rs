@@ -10,6 +10,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_suite(
         &[
             Step::new(
+                "device-protocols.environment-appliance",
+                "Check authored sampling, retained software selection and bounded overnight execution",
+                "cargo",
+                &["xtask", "prove", "environment", "appliance"],
+            ),
+            Step::new(
                 "device-protocols.environment-publication",
                 "Check finite committed environmental publication and canonical input validation",
                 "cargo",
