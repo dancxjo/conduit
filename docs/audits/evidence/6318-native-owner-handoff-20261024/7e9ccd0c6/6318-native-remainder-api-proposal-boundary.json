@@ -1,0 +1,38 @@
+{
+  "observed_utc": "2026-10-24T06:25:08.773069+00:00",
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "owner_source": "ec37536e34754873b4e679e348feb4a097447f12",
+  "disk_headroom_GiB_rounded": {
+    "root": 8,
+    "tmp": 12
+  },
+  "planned_branch": "proposal/6318-application-rtc-remainder-20261024",
+  "branch_or_worktree_created": false,
+  "implementation_started": false,
+  "stop_reason": "Before-ownership-release immutable count receipt has no existing native carrier in audited source. No CostSnapshot type exists at7e9 or activeownercommitec375; TransitionReturn value/origin only. Reserved transition releasesACTIVE before ServiceDomain snapshotsglobalcounts. Exactentryreceipt cannot be claimed from postrelease global reads.",
+  "minimal_safe_native_owner_boundary": [
+    "Nativeowner adds opaque perentry RTC/source CostSnapshot captured inside transition while interrupts/ACTIVEownership stillheld and returned tocaller or callerownedreceipt slot. Capturemustjoinactualreturn/origin andremainvalidafteranotherentry; failurepaths mustnotexposeprevioussnapshot.",
+    "Then disjoint domain_budget.rs adds checkedremainingcap1..64 on existingDraft mechanism and Budget::arm(profile) remainsentrypoint; service_domain.rs addsApplication-only instance/entrysequence/result receipt and calls existingtransitioncap. Ordinary16/Draft64 normalcaller behaviorunchanged; no productionactivation orSourcegrant."
+  ],
+  "alternative_requiring_explicit_owner_interface_review": "A new EntryBudget variant could carry a safely borrowed caller-owned Cell<Option<CostSnapshot>> and Budget::drop could fill it before ACTIVErelease. This avoids globals/rawsink and may avoid textual transition edits, but introduces a lifetime-bearing EntryBudget contract through the reserved transition interface. Do not silently assume that signature/lifetime change is authorized or bypass ownership. Needs nativeowner handoff/review before implementation.",
+  "unsafe_rejected_alternatives": [
+    "Globalambientremainingoverride",
+    "GlobalfrozenlastsnapshotreadafterACTIVErelease",
+    "Posthocoverruncheckinstead of native lowerlimit enforcement",
+    "Rawpointercallerreceipt lacking checkedlifetime",
+    "SourceInterruptsV1 conversion or newly inventedlogicalN"
+  ],
+  "planned_checks_after_handoff": [
+    "PureCPU testscheckedremainingreject0/65/MAX,accept1/64,Ordinary16/Draft64unchanged",
+    "Receiptclearedbeforeentry,immutableRTC/sourcecounts capturedbeforeunlock, subsequententrycannotreplaceearlierreceipt",
+    "Application-onlyprofile/instance/sequence/result correlation; wrongprofile/stale/reusedsequence/missingreceipt refuses and quarantines",
+    "Loweredbudgethardwarearmenforcesremainingbeforeentry; actualnativefaultsterminal, no resumption/newcontinuationcode",
+    "Privatecache/jobs2/debug0 strictcompile onlyif>=7GB; no fullnativeimage; retainactualELF/rawlogs andno runtimeproofclaim"
+  ],
+  "source_blobs": {
+    "targets/conduitos/src/arch/x86_64/domain_budget.rs": "90ed2e12a705f2fb922284b7cdbf56d794344ae5",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "86db39d2914310f52e2fe19eeaeee77c03e23281"
+  },
+  "status": "STOPPED before reserved interface change; await Root/nativeowner handoff. No source edits/builds/CI/newPR/publication."
+}

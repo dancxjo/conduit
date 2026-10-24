@@ -1,0 +1,37 @@
+{
+  "observed_utc": "2026-10-24T06:28:36.204778+00:00",
+  "issues": [
+    {
+      "issue": 6318,
+      "url": "https://github.com/dancxjo/conduit/issues/6318",
+      "state": "open",
+      "id": 6005343985,
+      "before_body_sha256": "b95f2919addb21bbe51bd4f2a8dd6dd21e0921dfe8f254fbc362813980814291",
+      "after_body_sha256": "678f964bc32a821e704785c7868700102e701f82c686ad97225c43ccfa9542d0",
+      "before_updated_at": "2026-10-24T05:59:13Z",
+      "after_updated_at": "2026-10-24T06:28:32Z",
+      "original_body_preserved_verbatim_prefix": true,
+      "original_six_criteria_unchanged": true,
+      "packet": "a4274fcc640a417416476e5ed5471e131d988071",
+      "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+      "append_only": true
+    },
+    {
+      "issue": 6317,
+      "url": "https://github.com/dancxjo/conduit/issues/6317",
+      "state": "open",
+      "id": 6004731441,
+      "before_body_sha256": "e07416833c8afa05972178131c56569df20592a67fed916f715c8bab0422b1b0",
+      "after_body_sha256": "e5d03cc1bea6e9c75505117633a36753912f757d4f7f5a4bb9d8871138595d0a",
+      "before_updated_at": "2026-10-24T05:59:15Z",
+      "after_updated_at": "2026-10-24T06:28:35Z",
+      "original_body_preserved_verbatim_prefix": true,
+      "original_six_criteria_unchanged": "6318 scope explicitly preserved by append",
+      "packet": "a4274fcc640a417416476e5ed5471e131d988071",
+      "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+      "append_only": true
+    }
+  ],
+  "no_source_changes": true,
+  "no_implementation_or_completion_claim": true
+}

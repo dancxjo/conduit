@@ -1,0 +1,46 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "owner_identity": "ec37536e34754873b4e679e348feb4a097447f12",
+  "files": [
+    {
+      "path": "6318-native-remainder-api-proposal-boundary.json",
+      "bytes": 3386,
+      "sha256": "148cdb0401e35724a5e21d2bed8842ce226b72211116e1cfebd2a6e19cfc70f0"
+    },
+    {
+      "path": "6318-native-entry-ownership-path-inventory.json",
+      "bytes": 3330,
+      "sha256": "a1e45507e5630d44cf35db143cefb8a356c57288b8d7b6845b77fccdbbecb744"
+    },
+    {
+      "path": "6318-existing-rtc-cumulative-staging-fidelity-review.json",
+      "bytes": 11326,
+      "sha256": "66c932257bc997ecaaf809a43eefb86e75bc303834499819871c1ac510b7613b"
+    },
+    {
+      "path": "6318-existing-rtc-fidelity-publication.json",
+      "bytes": 614,
+      "sha256": "fad520e9b7a97a45fa6d2767c4834cda0b07d8108ef9b0daa3a972a7832a7ec8"
+    },
+    {
+      "path": "6317-6318-rtc-scope-correction-live-receipt.json",
+      "bytes": 1560,
+      "sha256": "b2e86030a4bb1da939c3aab478bb90c2b54b75271245ee12643aea00edbfac05"
+    },
+    {
+      "path": "6311-before-native-rtc-handoff-scope.json",
+      "bytes": 13693,
+      "sha256": "5d3c78046cad979a880eccfca6c695071f6497c2d5d31b6642a9a3d51fcfb281"
+    },
+    {
+      "path": "handoff-requirements.json",
+      "bytes": 2458,
+      "sha256": "401424a27bd896145b4e2304555c393184bbed2e7b84b782d3b5c1b3ee14220f"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3322,
+      "sha256": "7e5a37c3e17fe3769ef6150aaea6a1e5c1ade98a3b03ebd6d7bb72c559f66bc1"
+    }
+  ]
+}

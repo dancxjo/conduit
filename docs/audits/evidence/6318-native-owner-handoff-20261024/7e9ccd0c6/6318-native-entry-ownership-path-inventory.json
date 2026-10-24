@@ -1,0 +1,45 @@
+{
+  "observed_utc": "2026-10-24T06:20:55.222899+00:00",
+  "owner_worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6311-native-continuation",
+  "head": "ec37536e34754873b4e679e348feb4a097447f12",
+  "branch": "prep/6311-current-native-continuation-20261024",
+  "status_entries_paths_only": [],
+  "clean_at_observation": true,
+  "owned_changed_paths_vs_current7e9": [
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs",
+    "targets/conduitos/src/arch/x86_64/domain_transition/capture.rs",
+    "targets/conduitos/src/arch/x86_64/domain_transition/continuation.rs",
+    "targets/conduitos/src/arch/x86_64/domain_transition/continuation/tests.rs",
+    "targets/conduitos/src/arch/x86_64/domain_transition/entry_return.S",
+    "targets/conduitos/src/arch/x86_64/domain_transition/resume.S",
+    "targets/conduitos/src/arch/x86_64/interrupt_controller.rs",
+    "targets/conduitos/src/arch/x86_64/irq.rs",
+    "targets/conduitos/src/arch/x86_64/mod.rs",
+    "targets/conduitos/src/arch/x86_64/pic.rs",
+    "targets/conduitos/src/arch/x86_64/preemption_clock.rs",
+    "targets/conduitos/src/arch/x86_64/preemption_clock/tests.rs",
+    "targets/conduitos/src/arch/x86_64/providers.rs",
+    "targets/conduitos/tests/native_continuation.rs"
+  ],
+  "public_pr_observation": "outputs/6318-native-owner-public-pr-observation.json",
+  "exact_branch_open_public_prs": 0,
+  "default_interface_overlap": [
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs"
+  ],
+  "possible_disjoint_patch_files": [
+    "targets/conduitos/src/arch/x86_64/domain_budget.rs",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs",
+    "targets/conduitos/src/protected_application/transport.rs"
+  ],
+  "possible_disjoint_overlap": [],
+  "possible_disjoint_design": "Preserve existing EntryBudget parameter type at transition boundary and Budget::arm(profile) signature. Add checked Application/Draft remaining-cap constructor/value inside domain_budget (strict1..existing64, not new canonical profile). Add Application-only ServiceDomain entry method that uses same existing enter_context_with_budget with this checked cap and returns entry-local RTC receipt; factor current entry/cost/fault handling so no new parallel native path. Existing domain_transition.rs call/assembly/capture/continuation code remains byte-unchanged. Wire private ledger only in existing protected_application transport later.",
+  "ownership_limit": "No textual overlap possible with this design, but domain_budget/service_domain native interface and timer ownership still require explicit handoff. Clean worktree or no matching process is NOT ownership release. Do not implement yet.",
+  "public_scope_overlap": "No open PR found for exact currentnative branch. Existing Source/continuation obligations remain separately owned; do not infer no owner.",
+  "cache_preservation": [
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+    "/tmp/conduit-6335-focused-5bd7050e"
+  ],
+  "read_dirty_content": false,
+  "source_mutations": false,
+  "decision": "A minimal isolated API patch COULD avoid all currently changed files by preserving transition signature; wait for Root/native-owner coordination before preparing it. No branch/worktree/API patch created."
+}

@@ -1,0 +1,27 @@
+{
+  "audited_source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "reserved_owner_source": "ec37536e34754873b4e679e348feb4a097447f12",
+  "requirements": [
+    {
+      "id": 1,
+      "requirement": "Checked Application-only native RTC remainder1..=64, enforced BEFORE actualentry.64 is theexistingDraft ceiling; no inventedgrant/profile, no SourceIRQconversion, no ambientoverride and no posthoc-onlyoverruncheck."
+    },
+    {
+      "id": 2,
+      "requirement": "Immutable entry-local RTC consumption, Sourcecount separately, joined to actualserviceinstance/entrysequence/result/fault. Snapshot while nativeentryownership/interruptguard stillheld, before ACTIVEunlock; subsequententrymustnotreplace previousreceipt. No staleglobalreads or guestdeclaredconsumption."
+    },
+    {
+      "id": 3,
+      "requirement": "Preserve existing Ordinary16/Draft64 entrypoints/callers andterminalfault/quarantine semantics. Add no activation, newoffer, scheduler/continuationauthority or full6317migration claim."
+    }
+  ],
+  "reserved_boundary": "targets/conduitos/src/arch/x86_64/domain_transition.rs and its activecapture/continuation/assemblyfiles. CurrentTransitionReturn value/origin only; Budgetdrops thenACTIVEunlocks beforeServiceDomain globalcountread. No existingCostSnapshot at audited7e9/ec375. Nativeowner mustown receiptcarrier/interfacehandoff.",
+  "proof_plan": [
+    "PureCPU testscheckedremainingreject0/65/MAX,accept1/64,Ordinary16/Draft64unchanged",
+    "Receiptclearedbeforeentry,immutableRTC/sourcecounts capturedbeforeunlock, subsequententrycannotreplaceearlierreceipt",
+    "Application-onlyprofile/instance/sequence/result correlation; wrongprofile/stale/reusedsequence/missingreceipt refuses and quarantines",
+    "Loweredbudgethardwarearmenforcesremainingbeforeentry; actualnativefaultsterminal, no resumption/newcontinuationcode",
+    "Privatecache/jobs2/debug0 strictcompile onlyif>=7GB; no fullnativeimage; retainactualELF/rawlogs andno runtimeproofclaim"
+  ],
+  "eventual_acceptance": "Stage sameApplicationCoreowner/protocol, oneoperation64ledger acrossallphases includingBeginWriteRead, finitezeroIRQprogress; measurecausalCommitphases andtotalfit64 withoutheap/timeout/retriesincrease. Originalnegative/refusal/atomicpublication/oneuseShow retained. ExactnormalPROFILEPatchbayaction+remainingStopreturnjourney/sourceELFISOHostBootACKserialQMPPNG, fullCandidate andmergedIntegration required. No6311/6317closure fromthishandoff."
+}
