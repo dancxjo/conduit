@@ -1,0 +1,15 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "blobs": {
+    "targets/conduitos/src/arch/x86_64/domain_budget.rs": "90ed2e12a705f2fb922284b7cdbf56d794344ae5",
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "86db39d2914310f52e2fe19eeaeee77c03e23281",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+    "targets/conduitos/src/protected_region.rs": "d02b68a280ec6ca0016a794b6ecaa805009e3493",
+    "targets/conduitos/src/protected_application.rs": "c56200726cf9f2da5ae1cbec58194b5981302ecb",
+    "targets/conduitos/src/protected_application/transport.rs": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+    "targets/conduitos/src/protected_application/canonical_patchbay.rs": "57be56c849e6ddfe4462ccb14c16149a41df8784",
+    "targets/conduitos/application-core/src/state.rs": "4d4660a230de3dcf2e3ca6a509e94c68230ce6ef",
+    "targets/conduitos/application-core/src/models/canonical.rs": "7e4d68f9e68a786566befc8031638775a156777b",
+    "targets/conduitos/application-core/src/data/codec.rs": "40b6d33f48fa98d390627fdd91cab396965228f9"
+  }
+}

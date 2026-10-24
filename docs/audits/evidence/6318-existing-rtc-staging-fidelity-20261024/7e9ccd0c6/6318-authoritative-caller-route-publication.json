@@ -1,0 +1,12 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "branch": "evidence/6318-authoritative-caller-route-20261024",
+  "commit": "fa8faed44859acba87214009fc6ae59813bdbd26",
+  "url": "https://github.com/dancxjo/conduit/tree/fa8faed44859acba87214009fc6ae59813bdbd26/docs/audits/evidence/6318-authoritative-caller-route-20261024/7e9ccd0c6",
+  "remote_verified": true,
+  "parent": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "files": 10,
+  "source_blobs": 17,
+  "scope": "Immutable documentary audit; no production changes/build/CI/execution/closure",
+  "published_utc": "2026-10-24T05:58:38.168075+00:00"
+}
