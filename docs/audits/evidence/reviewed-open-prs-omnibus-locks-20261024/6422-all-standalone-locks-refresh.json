@@ -1,0 +1,751 @@
+{
+  "parent": "1cf7f4e7de59240a5d84fd736557d06664811dda",
+  "manifests": [
+    "targets/std/display/Cargo.toml",
+    "bodies/environment/face/Cargo.toml",
+    "bodies/environment/http/Cargo.toml",
+    "bodies/environment/make/Cargo.toml",
+    "targets/rp2040/proof/dht11/Cargo.toml",
+    "targets/conduitos/application-service/Cargo.toml",
+    "targets/conduitos/creche-service/Cargo.toml",
+    "targets/conduitos/mask-service/Cargo.toml",
+    "targets/esp32/firmware/c3-signal/Cargo.toml",
+    "targets/esp32/firmware/s3-signal/Cargo.toml",
+    "targets/esp32/firmware/wroom-signal/Cargo.toml",
+    "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.toml",
+    "targets/rp2040/firmware/pico-w-signal/Cargo.toml"
+  ],
+  "steps": [
+    {
+      "name": "all-standalone-locks-before",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "standalone-locks",
+        "--locked"
+      ],
+      "exit_code": 1,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-all-standalone-locks-before.log",
+      "sha256": "fbce93d6b3e448a0d061a206b9f867b7888cb6211b742bbfbc054b3a8b41430b",
+      "start": 1792864097.018859,
+      "end": 1792864105.9021425
+    },
+    {
+      "name": "standalone-refresh-00",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--offline",
+        "--workspace",
+        "--manifest-path",
+        "targets/std/display/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-00.log",
+      "sha256": "3319e07fc045c9575cf91141a6a20b5322654dfc5cbde0bf55d461d04b33db86",
+      "start": 1792864105.906546,
+      "end": 1792864106.0296776
+    },
+    {
+      "name": "standalone-refresh-01",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--offline",
+        "--workspace",
+        "--manifest-path",
+        "bodies/environment/face/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-01.log",
+      "sha256": "d616e103bc3a57a5a41712b82aeecb9c24360cc125494f04f96754eb1dd49699",
+      "start": 1792864106.0367095,
+      "end": 1792864106.1122034
+    },
+    {
+      "name": "standalone-refresh-02",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--offline",
+        "--workspace",
+        "--manifest-path",
+        "bodies/environment/http/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-02.log",
+      "sha256": "ba9899f08c572906d1a33bcb34b702fcc139b105aa8528b019fcd9f9ee3d87ba",
+      "start": 1792864106.114091,
+      "end": 1792864106.174867
+    },
+    {
+      "name": "standalone-refresh-03",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--offline",
+        "--workspace",
+        "--manifest-path",
+        "bodies/environment/make/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-03.log",
+      "sha256": "ba9899f08c572906d1a33bcb34b702fcc139b105aa8528b019fcd9f9ee3d87ba",
+      "start": 1792864106.1776464,
+      "end": 1792864106.2696009
+    },
+    {
+      "name": "standalone-refresh-04",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--offline",
+        "--workspace",
+        "--manifest-path",
+        "targets/rp2040/proof/dht11/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-04.log",
+      "sha256": "77986b1dbdd5952742376721d76292b59adea48f7405c01d765fdb3cbdcc1058",
+      "start": 1792864106.281868,
+      "end": 1792864106.465521
+    },
+    {
+      "name": "standalone-refresh-online-00",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/std/display/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-00.log",
+      "sha256": "92c7ecb370f51c479a2efb942756cde30b6f8a603cac46bdd7594da76f304de9",
+      "start": 1792864162.3518264,
+      "end": 1792864162.4279008
+    },
+    {
+      "name": "standalone-refresh-online-01",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "bodies/environment/face/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-01.log",
+      "sha256": "c7f1d00b9172d430630339dbb17cf75f14b6874b163d84a9a2e3b49156e2e76f",
+      "start": 1792864162.4379337,
+      "end": 1792864162.4905038
+    },
+    {
+      "name": "standalone-refresh-online-02",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "bodies/environment/http/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-02.log",
+      "sha256": "96074c1ad0e2e6d690b8e48ec024739ed1a3ca15aa195a19ac6097dd9c9373ed",
+      "start": 1792864162.4993432,
+      "end": 1792864162.5609558
+    },
+    {
+      "name": "standalone-refresh-online-03",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "bodies/environment/make/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-03.log",
+      "sha256": "44dc2f1de649831445b0513d666cb0ede6bd230fa25dee021e5633c41ed94b63",
+      "start": 1792864162.5710373,
+      "end": 1792864162.6517003
+    },
+    {
+      "name": "standalone-refresh-online-04",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/rp2040/proof/dht11/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-04.log",
+      "sha256": "9c56abaa7545b667475bf0ef9e9f707713e45118d9f2458babb011a0b6fa62aa",
+      "start": 1792864162.6677566,
+      "end": 1792864163.120771
+    },
+    {
+      "name": "standalone-refresh-online-05",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/conduitos/application-service/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-05.log",
+      "sha256": "54d7b43751585dcecd1cde19a50749a2e88e325b6951de9785870bca8f8179cd",
+      "start": 1792864163.136383,
+      "end": 1792864163.2046044
+    },
+    {
+      "name": "standalone-refresh-online-06",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/conduitos/creche-service/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-06.log",
+      "sha256": "82a2390574bdf99b1ea3fcf392a353cb32daca1a41fa70331eb0f075d555bd39",
+      "start": 1792864163.2140465,
+      "end": 1792864163.4555352
+    },
+    {
+      "name": "standalone-refresh-online-07",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/conduitos/mask-service/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-07.log",
+      "sha256": "82a2390574bdf99b1ea3fcf392a353cb32daca1a41fa70331eb0f075d555bd39",
+      "start": 1792864163.4660234,
+      "end": 1792864163.729866
+    },
+    {
+      "name": "standalone-refresh-online-08",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/esp32/firmware/c3-signal/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-08.log",
+      "sha256": "a57040a73c29f9ad5532d71c267a5d6aac176370eefd3d399c9ce31c7f1301c1",
+      "start": 1792864163.7480724,
+      "end": 1792864164.3850875
+    },
+    {
+      "name": "standalone-refresh-online-09",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/esp32/firmware/s3-signal/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-09.log",
+      "sha256": "a57040a73c29f9ad5532d71c267a5d6aac176370eefd3d399c9ce31c7f1301c1",
+      "start": 1792864164.41143,
+      "end": 1792864164.948242
+    },
+    {
+      "name": "standalone-refresh-online-10",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/esp32/firmware/wroom-signal/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-10.log",
+      "sha256": "b7d35345aa9cf6f94fcec2d24908f904e414e0d7d238b26e35d43ab76adaf3e6",
+      "start": 1792864164.9719527,
+      "end": 1792864165.4020228
+    },
+    {
+      "name": "standalone-refresh-online-11",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-11.log",
+      "sha256": "aaeaf2f3a7ef30b7ed095012a8eff8b05c924b6ec86d346ff4e893063faac515",
+      "start": 1792864165.4203238,
+      "end": 1792864165.645711
+    },
+    {
+      "name": "standalone-refresh-online-12",
+      "argv": [
+        "cargo",
+        "+stable",
+        "update",
+        "--workspace",
+        "--manifest-path",
+        "targets/rp2040/firmware/pico-w-signal/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-standalone-refresh-online-12.log",
+      "sha256": "3ee3d010ab07868b9eee58da60d91ca4e0877c50ba98a79d4c22c3b560199115",
+      "start": 1792864165.6641474,
+      "end": 1792864166.1897368
+    },
+    {
+      "name": "all-standalone-locks-after",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "standalone-locks",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-all-standalone-locks-after.log",
+      "sha256": "679d390db58d5d2c160675dafebf2f0050d0db55557bc576d08d8e5f34986faa",
+      "start": 1792864166.2067509,
+      "end": 1792864168.5189502
+    }
+  ],
+  "status": "committed_full_preflight_passed_and_remote_verified",
+  "offline_attempt": "Stopped before publication whenDHT11resolutionattemptedunrelatedregistrydowngrades; restoringonlyknownownlockeditfromparent thenonlineworkspaceupdates preservepins.",
+  "changes": [
+    {
+      "manifest": "targets/std/display/Cargo.toml",
+      "lock": "targets/std/display/Cargo.lock",
+      "before_sha256": "e6671888a8297e332c6f0bf425925b71986c718f146b26fd00fadc495c4268cd",
+      "after_sha256": "fca80b217e442d3876d7bf48c648268beb917d9bbb2e933bbe25936fb78934f7",
+      "added_registry_packages": [],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "bodies/environment/face/Cargo.toml",
+      "lock": "bodies/environment/face/Cargo.lock",
+      "before_sha256": "f4d5b25ae03fd43fde3369c18ba23e8a184845c7157cba33f2a4e30f29b6bceb",
+      "after_sha256": "6f9b2688397d078759d1a81a0d9224a25ace598657b7d874c122d595e31f23f7",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "bodies/environment/http/Cargo.toml",
+      "lock": "bodies/environment/http/Cargo.lock",
+      "before_sha256": "b342172c3f860241a8e89d39c8157a6936d131e4e5b22e6fe049a5830ee9fd01",
+      "after_sha256": "c0d8b46884ecc45a27d5c00ec900e2cf366457883c91583e151f0d5f73cdcaf8",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "bodies/environment/make/Cargo.toml",
+      "lock": "bodies/environment/make/Cargo.lock",
+      "before_sha256": "04aa635404b98540b1b38d0633e3e7bf63197b805160f3a9ef00aaf4302104ff",
+      "after_sha256": "6ebf2067bdd82c1d70ca63d6f079b0878a5a93e99220e5a0c6a2c7f346d7d021",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/rp2040/proof/dht11/Cargo.toml",
+      "lock": "targets/rp2040/proof/dht11/Cargo.lock",
+      "before_sha256": "5f04ed271a60f3fdf551b7b9d866b6810ff651e62df190455bcf562300f4bb5f",
+      "after_sha256": "ff4bf82c46293beaf8e30a2afacd6d7c7292863be0f5a8bbd89d713a7eda6a12",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/conduitos/application-service/Cargo.toml",
+      "lock": "targets/conduitos/application-service/Cargo.lock",
+      "before_sha256": "c614c318ceaf87a4b7b3fdedd39fd3ff22ba067faddfb3b43bc15819f5fc45c1",
+      "after_sha256": "e617f6a378fc567137348de358abd4d1bed01227224d33122f45280b8f0bc85e",
+      "added_registry_packages": [],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/conduitos/creche-service/Cargo.toml",
+      "lock": "targets/conduitos/creche-service/Cargo.lock",
+      "before_sha256": "0679a5d6e006f375b7135e4569b54ba9a1ea349f0cedc2a7b4d4c5d4b14b3d16",
+      "after_sha256": "0be60b9003f82bb60b4a1adf293adb0d0c917b1366d649596d3f97c8b0ab555a",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/conduitos/mask-service/Cargo.toml",
+      "lock": "targets/conduitos/mask-service/Cargo.lock",
+      "before_sha256": "5c3b08eb1268e9b9da34f5cd320b683d751c9050f391fb1ef61f99a5ced16a9d",
+      "after_sha256": "e14ccfaa13849c17edb7e68fcaa66d4f91e9083938223a4f1aaced2c07224a81",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/esp32/firmware/c3-signal/Cargo.toml",
+      "lock": "targets/esp32/firmware/c3-signal/Cargo.lock",
+      "before_sha256": "a1681c2c5545a53e3bc19438c86d93e7798b0d4aacc4a0f3c70ec859597fbc31",
+      "after_sha256": "36585465f43a66c8f0169bbba51846f0a6024cb8310afc969034ebeed196cba3",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/esp32/firmware/s3-signal/Cargo.toml",
+      "lock": "targets/esp32/firmware/s3-signal/Cargo.lock",
+      "before_sha256": "17e688421c84af4cc1d2b2995047b6aa77412c2678c725de9139f699db4190f6",
+      "after_sha256": "ebce3b332d5bf116e7f1c591fc3fd977fc6b893aaa2af45747507244b2df6a9e",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/esp32/firmware/wroom-signal/Cargo.toml",
+      "lock": "targets/esp32/firmware/wroom-signal/Cargo.lock",
+      "before_sha256": "02d00bc471de3cf81182540405001dedb279b2fa4725425a702483ddfe6b97b2",
+      "after_sha256": "11af6806dbf650d2cdeba914f89894b2c7e00c4af11d1eca1a5ca0316c087b89",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.toml",
+      "lock": "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.lock",
+      "before_sha256": "dffa4c1c8d137516147697ff418d34ff5078fc9788bdafdc18e4f6e8c3231959",
+      "after_sha256": "53823316ec9eff008b2511378fc7a0a066547fe8efa7e198355156df9231ab4e",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    },
+    {
+      "manifest": "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
+      "lock": "targets/rp2040/firmware/pico-w-signal/Cargo.lock",
+      "before_sha256": "0b74ef9dad0f8dffd42a0be88f6d21bf8df87c847ec2822d99d611eef103a076",
+      "after_sha256": "2cc97c0f3650963309db5701426dcdaf1c8960986c742634c121e81c6d0c799e",
+      "added_registry_packages": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ],
+      "removed_registry_packages": []
+    }
+  ],
+  "only_named_lockfiles_changed": true,
+  "source": "4e9cad06aaa21a59257d9d42181395ff17ed0b52",
+  "all_existing_registry_versions_and_checksums_preserved": {
+    "targets/conduitos/creche-service/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "targets/rp2040/firmware/pico-w-signal/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "targets/std/display/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": []
+    },
+    "targets/esp32/firmware/wroom-signal/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "targets/conduitos/application-service/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": []
+    },
+    "targets/esp32/firmware/s3-signal/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "bodies/environment/face/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "bodies/environment/http/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "targets/conduitos/mask-service/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "bodies/environment/make/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "targets/esp32/firmware/c3-signal/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    },
+    "targets/rp2040/proof/dht11/Cargo.lock": {
+      "all_existing_registry_versions_and_checksums_preserved": true,
+      "added": [
+        [
+          "adler2",
+          "2.0.1",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ],
+        [
+          "miniz_oxide",
+          "0.8.9",
+          "registry+https://github.com/rust-lang/crates.io-index"
+        ]
+      ]
+    }
+  }
+}
