@@ -293,3 +293,16 @@ continues to succeed. [Positive and negative evidence](evidence/gui-look-6349-in
 This focused drawer check is not full zoom or whole-shell accessibility proof.
 The enlarged capture shows masthead/navigation crowding outside the drawer;
 that remains an explicit next surface gap. No native or CI proof is added.
+
+## Narrow masthead and canvas action reachability
+
+Source `cba55f945` makes Patchbay's narrow masthead follow existing source order,
+wraps product navigation before status, and retains 44px link targets. One
+observer measures three existing bands in dependency order, replacing fixed
+vertical offsets while retaining bounded native scrolling. Actual Fit activation
+exposed flex shrinking that clipped canvas controls; groups now retain content
+height. Five furniture checks pass, including Fit at 390px / 32px text / forced
+colors. Captures at 1440px, 390px ordinary text and 390/320px enlarged forced-color
+text retain initial and explicit Fit states, without document overflow, header
+band overlap or browser errors. [Evidence and failures](evidence/gui-look-6349-masthead/README.md).
+Full browser zoom, cross-component Look and native acceptance remain separate.

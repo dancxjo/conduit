@@ -151,3 +151,44 @@ test("bottom inspection remains above workspace tools with reachable enlarged co
     server.process.kill('SIGTERM');
   }
 });
+
+test("enlarged narrow product navigation precedes status and shell bands do not overlap", async ({ page }) => {
+  const server = startServer();
+  try {
+    await page.setViewportSize({ width: 390, height: 1100 });
+    await page.goto(await server.url);
+    await expect(page.locator('body')).toHaveAttribute('data-application-ready', 'true');
+    await page.addStyleTag({ content: 'html{font-size:32px!important}' });
+    await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
+    const bandsFit = () => page.evaluate(() => {
+      const masthead = document.querySelector('[data-application-slot="product-masthead"]').getBoundingClientRect();
+      const nav = document.querySelector('nav[aria-label="Patchbay workspace"]').getBoundingClientRect();
+      const heading = document.querySelector('.canvas-heading').getBoundingClientRect();
+      const product = document.querySelector('[data-application-key="product-navigation"]').getBoundingClientRect();
+      const status = document.querySelector('[data-application-key="product-status"]').getBoundingClientRect();
+      return product.bottom <= status.top + 1 && nav.top >= masthead.bottom && heading.top >= nav.bottom;
+    });
+    await expect.poll(bandsFit).toBe(true);
+    const links = page.locator('[data-application-key="product-navigation"] a');
+    await expect(links).toHaveCount(3);
+    for (const link of await links.all()) {
+      await link.scrollIntoViewIfNeeded();
+      await link.focus();
+      expect(await link.evaluate(node => {
+        const r = node.getBoundingClientRect();
+        return r.height >= 44 && r.left >= 0 && r.right <= innerWidth &&
+          node.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+      })).toBe(true);
+    }
+    await page.locator('[data-application-key="product-status"]').scrollIntoViewIfNeeded();
+    const fit = page.getByRole('button', { name: 'Fit', exact: true });
+    await fit.click();
+    expect(await fit.evaluate(node => {
+      const r = node.getBoundingClientRect();
+      return r.height >= 44 && node.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+    })).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  } finally {
+    server.lines.close(); server.process.kill('SIGTERM');
+  }
+});
