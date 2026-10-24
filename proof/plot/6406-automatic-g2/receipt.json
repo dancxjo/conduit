@@ -1,0 +1,32 @@
+{
+  "source": "3474129412d1113cdf828e9d28b1d806a81baf1b",
+  "supported_command": "cargo +stable xtask check phone-gestures",
+  "test_results": {
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "automatic_all_four_runtime_seconds": 351.9
+  },
+  "automatic_kernel_requests": 84,
+  "kernel_events": 1260,
+  "retained_plans": 4,
+  "retained_requests": 84,
+  "archive_sha256": "9135d67532329ab131f672609a6fcf0da408811b592d33e1969ad88c94591e18",
+  "executable_sha256": {
+    "phone_gesture_owner-516e472cc6373d47": "d21bc1c274748b7347ceaa23e97f21245d34257cefaee7957eff3f59c36ce899",
+    "phone_gesture_source-e1b0724076e105e8": "09700764807027a58efa7304656100b89992b452ad9493b838a0006967cefcdd",
+    "phone_gesture_automatic_laws-785777a4b9e4236d": "cc955916a2f80e4e07c8bcbb603f22f5791fb6f468e70a24478e7f36998e0e54",
+    "phone_gesture_kernel-00f1c66e011db258": "de314727d1dc0ddf5bcff8b80284b06abce3320802e5dd9c112f4f2e797f89d8"
+  },
+  "remaining": [
+    "reviewed core repair/prerequisite gates before new overlapping implementation PR",
+    "Candidate",
+    "merged-source Integration",
+    "exact issue closure audit"
+  ],
+  "limits": "Standing law bounds retained; value-store capacity equality is not whole-path allocation freedom. No PCM, listening, device or containment proof.",
+  "strict": {
+    "command": "cargo +stable clippy --locked -p conduit-speech --features semantic-bindings,kernel --test phone_gesture_automatic_laws -- -D warnings",
+    "exit_code": 0
+  }
+}
