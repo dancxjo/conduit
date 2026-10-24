@@ -6,5 +6,16 @@ mod protected_region {
 mod protection_domain {
     pub use conduitos::protection_domain::ProtectionDomainId;
 }
-#[path = "../src/arch/x86_64/domain_transition/continuation.rs"]
-mod continuation;
+// Preserve the production module ancestry and its restricted visibility while
+// compiling the actual custody and scoped IRQ-sink source on the hosted target.
+#[path = "../src/arch"]
+mod arch {
+    pub mod x86_64 {
+        pub mod domain_transition {
+            #[path = "capture.rs"]
+            mod capture;
+            #[path = "continuation.rs"]
+            mod continuation;
+        }
+    }
+}
