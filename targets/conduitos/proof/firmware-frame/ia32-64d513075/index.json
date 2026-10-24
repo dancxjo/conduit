@@ -465,6 +465,18 @@
       "original_sha256": "c3283beff58f35c535c6520c1d08a6c23f35ae13625584eb2f390a2b2bf68bbd",
       "original_bytes": 51,
       "compressed": true
+    },
+    {
+      "path": "validation/packet-preflight.log.gz",
+      "sha256": "c3879462a8cb967fd918301de4c9ce57e699883fc4f60c279e0faf3fac484795",
+      "original_sha256": "47e2c0db6bf3242eb4a949f86984536645c44b89466763fa68add092aa52653d",
+      "original_bytes": 34816,
+      "compressed": true
     }
-  ]
+  ],
+  "packaging_preflight": {
+    "source": "289626d483de99c9ef36b239a5987db8419b73d1",
+    "status": "passed",
+    "tests": 345
+  }
 }
