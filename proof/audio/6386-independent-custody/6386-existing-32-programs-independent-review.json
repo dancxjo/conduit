@@ -1,0 +1,176 @@
+{
+  "status": "passed",
+  "baseline_actual_source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "baseline_audio_tree": "02e93bdd3085f5e481c2bb9bd33de3e97186c62f",
+  "baseline_matches_feature_parent_audio_tree": "8654335335504a879e78b481d1c0cdb252c4735b",
+  "baseline_generated_files": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/build/conduit-audio-4cae76a3528e9d8a/out/acoustic_programs.rs",
+      "sha256": "2fccddebcf46f8236672b10abf38248dfd61d75d3846a6dda5c2484032c62452"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/build/conduit-audio-77d8f870103899fc/out/acoustic_programs.rs",
+      "sha256": "2fccddebcf46f8236672b10abf38248dfd61d75d3846a6dda5c2484032c62452"
+    }
+  ],
+  "owning_generated_files": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/conduit-audio-7499d270d0c1e60b-acoustic_programs.rs.gz",
+      "decoded_sha256": "0e70507f73bf02c691442371a99cdeba25985ed60bcf636a3e78ee13f289a729"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/conduit-audio-3797bc4a09a5de35-acoustic_programs.rs.gz",
+      "decoded_sha256": "0e70507f73bf02c691442371a99cdeba25985ed60bcf636a3e78ee13f289a729"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/conduit-audio-494ce3149f867135-acoustic_programs.rs.gz",
+      "decoded_sha256": "0e70507f73bf02c691442371a99cdeba25985ed60bcf636a3e78ee13f289a729"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/conduit-audio-085d4ad9c1f391c0-acoustic_programs.rs.gz",
+      "decoded_sha256": "0e70507f73bf02c691442371a99cdeba25985ed60bcf636a3e78ee13f289a729"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/conduit-audio-1737dfc62a693c31-acoustic_programs.rs.gz",
+      "decoded_sha256": "0e70507f73bf02c691442371a99cdeba25985ed60bcf636a3e78ee13f289a729"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/conduit-audio-765de1769950f18e-acoustic_programs.rs.gz",
+      "decoded_sha256": "0e70507f73bf02c691442371a99cdeba25985ed60bcf636a3e78ee13f289a729"
+    }
+  ],
+  "old_programs": {
+    "CLOCK_BINDING_VALID": {
+      "bytes": 28475,
+      "sha256": "893cb2ba5149f8bc2483c06e83d9f482486c5fe1509647f100d44913ae3570c8"
+    },
+    "CLOCK_QUERY_ELIGIBLE": {
+      "bytes": 18953,
+      "sha256": "b55f354aa1420ab9a8eca745fa71ce3c997d692a018bdf715a21f10ae6bb7b02"
+    },
+    "CLOCK_PROJECT": {
+      "bytes": 70316,
+      "sha256": "61fed4541389e0d88a908ab5218799910a900af98e2be2441b0efa98f10baf4d"
+    },
+    "CONTROL_QUERY_TIME": {
+      "bytes": 14828,
+      "sha256": "3725924f4aaacd667d6f6ad0d755710835647be1a51815f9067705a0b00b792f"
+    },
+    "CONTROL_FINAL_TIME": {
+      "bytes": 8810,
+      "sha256": "7a384e594495389f4e2a380cdbc5254c31768c6a796d892ea0d29e292c6801b3"
+    },
+    "FREQUENCY_TO_CYCLE": {
+      "bytes": 1000,
+      "sha256": "99347e59e26cb87a0dc03838fa2b647c11fb99a6e566b7a4b60ee24f2cc58be2"
+    },
+    "CYCLE_TO_FREQUENCY": {
+      "bytes": 1007,
+      "sha256": "79c28b8bbc640f246803dd9e799fec9cb976d9edeedb1bea355f4479594268b0"
+    },
+    "AMPLITUDE_TO_POWER": {
+      "bytes": 6150,
+      "sha256": "c2760eb303805fbd8b4b4d930a1a8f427f8bbe1618479c6ad814294b37187192"
+    },
+    "TRAJECTORY_RATIO": {
+      "bytes": 15638,
+      "sha256": "4e0eb394009948c23324d6b5e88e1a85dd23dc399efd0d3b42c231f84faa3fd0"
+    },
+    "TRAJECTORY_ANCHOR": {
+      "bytes": 6806,
+      "sha256": "13e9f02588beec2503c63118f8e35306497ad373bca278e9fa2fa92d2d43482b"
+    },
+    "TRAJECTORY_VALID": {
+      "bytes": 24065,
+      "sha256": "cabd7fff4ba905d4709d6272489da27269e66a435e42448d10adb1427df3200d"
+    },
+    "TRAJECTORY_DOMAIN": {
+      "bytes": 2199,
+      "sha256": "1df6a0402ae1dc00c25561ef823632e5fbd9246790e06cd54e560c3cba172883"
+    },
+    "TRAJECTORY_COVERS": {
+      "bytes": 48203,
+      "sha256": "d53757f87864b715ade3b179638e9711b5c0a260c8fea5580814a0f561816694"
+    },
+    "TRAJECTORY_WEIGHT": {
+      "bytes": 37940,
+      "sha256": "644933546dad246845aeee8856202dd0d5e6999b787f05410b6c34cbad9f2fa6"
+    },
+    "TRAJECTORY_BLEND": {
+      "bytes": 77218,
+      "sha256": "761017e41e4c223a646fe132ba11fa76c8cde806f028bc7d0fcba5e05ef582d4"
+    },
+    "TRAJECTORY_IS_STEP": {
+      "bytes": 476,
+      "sha256": "f61d4bb28c93d6acb7e321e2f1c74ec2bd097f6125af78e56747d063a7ffd6c2"
+    },
+    "TRAJECTORY_STEP_VALID": {
+      "bytes": 24030,
+      "sha256": "124cd8f610122b90e73313979377dd8642b0f71b9297a8ad2168e71fa117dfc6"
+    },
+    "TRAJECTORY_ORDER_U32": {
+      "bytes": 5934,
+      "sha256": "25e0f9f03a71bbc7d72ffb8ca11ef16ff51cf77ba20e268ed50ef6bf14e92df9"
+    },
+    "TRAJECTORY_STEP_COVERS": {
+      "bytes": 48133,
+      "sha256": "95201b0172d0be08910384268810b679226e913af6a632f55b744efef59b66c4"
+    },
+    "TRAJECTORY_STEP_SELECT": {
+      "bytes": 24254,
+      "sha256": "a4c67e011816c07c203c7a5a75954fb36be54f61fecfe16b7e277edbec82c8b7"
+    },
+    "CONTROL_PRIORITY": {
+      "bytes": 1499,
+      "sha256": "2169394ebee433bf6787373f0b1f1cfae8cdfd771ae72b3d9719bdb20f16d4d0"
+    },
+    "SAMPLE_FRACTION": {
+      "bytes": 4590,
+      "sha256": "f9cd7b3d24e66344ed84542232130bd5b79eec943753ae3347ddcc6928b502ee"
+    },
+    "SAMPLE_AT_RATE": {
+      "bytes": 16124,
+      "sha256": "1217d370fe67844be1f4970c46a6982cd3bc17fa2bb26979229412a476f40ad2"
+    },
+    "FRAME_GRID_FIDELITY": {
+      "bytes": 1178,
+      "sha256": "497b9872d7c86b28a4e950f4f32b207b810a398a1ab699b943be84890f56fa8a"
+    },
+    "CUMULATIVE_BASIS": {
+      "bytes": 72730,
+      "sha256": "481d43ec0d8f6ecc55b3821de633d9506edf9622f4c4a1f71f70fc1bcc7a6f19"
+    },
+    "CUMULATIVE_APPEND": {
+      "bytes": 65476,
+      "sha256": "de16bf36b69ade6a2b5c7006de7e53afc7630636d10ae7124691a5171db98b77"
+    },
+    "CUMULATIVE_ORIGIN": {
+      "bytes": 1416,
+      "sha256": "384e2fef317e35be8bc298b731f0006278237b47ac5d2f771c77253760edd878"
+    },
+    "DECIBEL_WORKING": {
+      "bytes": 19308,
+      "sha256": "1efcfe13c9b1b312ad60e6e013a0eb9d1b1de8e6da12821cab73b5f9c5d1a8c9"
+    },
+    "DECIBEL_RECOGNIZE": {
+      "bytes": 37398,
+      "sha256": "04ddfc75fe37cbebdcb980bcd9b9b4dcf3b0c03a3bc3a820a34fde9a7d093a6e"
+    },
+    "DECIBEL_FROM_POWER": {
+      "bytes": 4459,
+      "sha256": "63e9eba0674d681f161fbb70112cdd15167054a0fd6d73a4864883da405f25d1"
+    },
+    "DECIBEL_INVERSE": {
+      "bytes": 16825,
+      "sha256": "dfe4b0bc66787895df669bbb22bbaf9afc976a62e30140378bc03cdbabcced03"
+    },
+    "DECIBEL_TO_POWER": {
+      "bytes": 65505,
+      "sha256": "2a6bcc03c63dab09d7466c75cafdb5eb5d6d86766b2b25d149dad0231b80faae"
+    }
+  },
+  "old_program_count": 32,
+  "new_program_count": 35,
+  "all_existing_program_canonical_bytes_identical": true,
+  "scope": "Independent comparison of retained actual emitted program bytes from earlier composed-source cache and feature owning custody. No fresh regeneration, hosted acceptance or moving dev execution."
+}
