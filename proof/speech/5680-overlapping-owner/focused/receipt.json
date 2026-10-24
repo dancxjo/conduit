@@ -1,0 +1,96 @@
+{
+  "schema": "5680-g2-focused-proof@1",
+  "source_head": "04d8230228cdedf530789d799ccc76615c859439",
+  "source_dirty": true,
+  "source_sha256": {
+    "semantics/speech/build.rs": "d0bbe552068b4f516214ba21aed3e4b3cacdfeff4e908f1e198993f0a6b84543",
+    "semantics/speech/phone_gestures.conduit": "c48f0f58468a1f055373dc16f08f4640a591ecb3c1d4b9aa24072e45ed317d52",
+    "semantics/speech/src/lib.rs": "e2d2a81f99f01c7fe0f5a9afe3264a10e84930eca4399f020a0dc73723ecec20",
+    "semantics/speech/build_support/phone_gesture_programs.rs": "6a4e2558f4405e03e77bcac9dc62186690d9d460e34e7c92148cbdceb0113c40",
+    "semantics/speech/src/phone_gestures.rs": "e586f9611e33ad29163277f8741fcc82e0d3c9374bc713e93f283f621add8e42",
+    "semantics/speech/src/phone_gestures/prepare.rs": "9b22511cd45ec50aea4b63edbdd26164cf704cb564edcbcf161a37615730fffc",
+    "semantics/speech/src/phone_gestures/source.rs": "020f6528df817cead68d37ade86fe55699512b02dfad137df6d55d8bfad936b9",
+    "semantics/speech/tests/common/phone_gestures/fixture.rs": "4af54fe107fde88099866ca353d952cb872c74a471fd3e6bc0158169cfcdfc0a",
+    "semantics/speech/tests/phone_gesture_owner.rs": "f67253fcbbb20b830f2269f6d230564d6050f5ebe753d44372db1030b507d7af",
+    "semantics/speech/tests/phone_gesture_kernel.rs": "cf6eadcc172c909658852725e84f9513af9a849f5bce8937c92b08bf5bab3774",
+    "semantics/speech/tests/phone_gesture_source.rs": "08cfead5063754e4e7443fd117acde911845586f5250aa2f26549409df221775"
+  },
+  "command": "cargo +stable test --locked -p conduit-speech --features semantic-bindings --test phone_gesture_source --test phone_gesture_owner -- --nocapture --test-threads=1",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5680-g2-build-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true"
+  },
+  "session": 51248,
+  "exit_code": 0,
+  "owner_tests": 6,
+  "source_tests": 3,
+  "failed": 0,
+  "ignored": 0,
+  "logs": [
+    {
+      "path": "work/5680-g2-owner-source-first-tests.log",
+      "sha256": "9aa555deb46ec713da4ec7ee9f533f1b10e78200d1bad6e80198a04e33aaf642",
+      "gzip": "work/5680-g2-focused-proof/5680-g2-owner-source-first-tests.log.gz"
+    },
+    {
+      "path": "work/5680-g2-owner-source-corrected-tests.log",
+      "sha256": "2721b35f0fe0296630e7bdeac2954eb0e001a361d7511025bda6715519596515",
+      "gzip": "work/5680-g2-focused-proof/5680-g2-owner-source-corrected-tests.log.gz"
+    },
+    {
+      "path": "work/5680-g2-owner-source-basis-tests.log",
+      "sha256": "f0c5f23810b07c5d19e79286b1cc28ad6e8189ef6379758af0175545ea223c1a",
+      "gzip": "work/5680-g2-focused-proof/5680-g2-owner-source-basis-tests.log.gz"
+    },
+    {
+      "path": "work/5680-g2-owner-source-query-tests.log",
+      "sha256": "bc58d30eb405fd9d31b0521a09a1c90377609796e3f0d3a1004d3e7f89c48c29",
+      "gzip": "work/5680-g2-focused-proof/5680-g2-owner-source-query-tests.log.gz"
+    },
+    {
+      "path": "work/5680-g2-owner-source-relocated-tests.log",
+      "sha256": "4fd907605db2cacbb8de44ef5dd65b8214499f77a037457231269e4e195397d6",
+      "gzip": "work/5680-g2-focused-proof/5680-g2-owner-source-relocated-tests.log.gz"
+    },
+    {
+      "path": "work/5680-g2-owner-source-typed-tests.log",
+      "sha256": "1ba7849e48c6f0c350152462ca4ee6e8bf6ccce68d39ee42ee170f0ca05e9914",
+      "gzip": "work/5680-g2-focused-proof/5680-g2-owner-source-typed-tests.log.gz"
+    },
+    {
+      "path": "work/5680-g2-owner-source-receipt-tests.log",
+      "sha256": "1f582378cafe8c2db03d602422bfe179fa17b1da8be3b41249e374e22ba87272",
+      "gzip": "work/5680-g2-focused-proof/5680-g2-owner-source-receipt-tests.log.gz"
+    }
+  ],
+  "test_executables": [
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5680-g2-build-target/debug/deps/phone_gesture_owner-7e435a24017b6225",
+      "retained": "work/5680-g2-focused-proof/phone_gesture_owner-7e435a24017b6225",
+      "sha256": "332f822ebcd91db96e9dbbfe71b9259ddaba5ebf95131955f1d25fe9d1371198",
+      "bytes": 9625024
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5680-g2-build-target/debug/deps/phone_gesture_source-26505c4873db7285",
+      "retained": "work/5680-g2-focused-proof/phone_gesture_source-26505c4873db7285",
+      "sha256": "7b20165655e66ec8d734d5fd8e6d054053fdd2e1c7b9a4282bf4e1efa0c9ec9c",
+      "bytes": 15486520
+    }
+  ],
+  "boundaries": [
+    "kernel test prepared but unexecuted",
+    "no PCM/rendering/listening/device claim",
+    "no supported CLI/lint/current combined commit proof yet"
+  ],
+  "negative_history": [
+    "quota122 before any tests",
+    "own accessor/type/query compile failures",
+    "G1 Renderer(TimingDomain) refusal before G2 for original negative setup; replaced with legal G1 equal fraction foreign to G2"
+  ]
+}

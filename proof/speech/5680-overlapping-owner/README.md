@@ -1,0 +1,7 @@
+The finite G2 owner retains exact selected G1 definition/occurrence/neighbor custody, three shared overlapping resonance trajectories, overlapping overall energy and three separately authored closure/release/aspiration phases. All numerical timing policy remains checked Source. No detached phone tape, frame-derived semantic time or one-box-per-phone replacement is introduced.
+
+At code25099a85a, six owner tests and three existing checked Source controls pass with zero ignored. Raw initial quota, compiler and invalid-G1-fixture negatives remain labeled in the focused receipt. These are scoped semantic conformance results, not the final ordinary-kernel or parent delivery proof.
+
+The actual ordinary-kernel test fails before Plan/Play because automatic Std expression admission rejects proven structured arithmetic without an admissible realization. Exact retained program matching succeeded first. This genuine blocker is tracked by #6406; the guard, Source contracts and canonical program were preserved. No manual offer bypass was substituted.
+
+Actual test executables are retained outside build caches at the receipt paths. The Source hashes and compressed logs are committed here. Kernel success, supported check execution, strict lint, current-source refresh, Candidate and applicable acceptance remain incomplete. No PCM, listening, physical or allocation-free Play claim. #5680 remains open.
