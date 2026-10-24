@@ -200,3 +200,98 @@ fn reader_can_compose_owned_mask_frames_without_allocations_or_escaping_face_bor
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }
+
+#[test]
+fn retained_reads_share_one_revision_until_the_owner_explicitly_advances_age() {
+    let owner = owner();
+    let bytes = reading();
+    let (mut publisher, reader) = owner.claim().unwrap();
+    publisher.publish(snapshot(&bytes, 1), 1000).unwrap();
+    let before = reader.with_retained(|face, _| face.clone()).unwrap();
+    let ((), memory) = allocation_probe::observe(|| {
+        for _ in 0..3 {
+            reader
+                .with_retained(|face, status| {
+                    assert_eq!(face, &before);
+                    assert_eq!(status.source_sequence, 1);
+                    reader
+                        .with_retained(|same, _| assert!(core::ptr::eq(face, same)))
+                        .unwrap();
+                    assert_eq!(publisher.publish(snapshot(&bytes, 2), 1050), Err(E::Busy));
+                    assert!(matches!(reader.with_current(1101, |_, _| ()), Err(E::Busy)));
+                    assert_eq!(face, &before);
+                })
+                .unwrap();
+        }
+        reader
+            .with_current(1101, |face, status| {
+                assert_eq!((face.revision, status.source_sequence), (2, 1));
+                assert!(face
+                    .properties
+                    .iter()
+                    .any(|p| p.name == "fresh" && p.value == FacePropertyValue::Flag(false)));
+                assert!(matches!(reader.with_retained(|_, _| ()), Err(E::Busy)));
+            })
+            .unwrap();
+        drop(publisher);
+        reader
+            .with_retained(|face, status| {
+                assert_eq!((face.revision, status.source_sequence), (2, 1));
+                assert!(!status.publisher_retained);
+            })
+            .unwrap();
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}
+
+#[cfg(feature = "display-mask")]
+#[test]
+fn mask_local_pages_use_the_same_retained_quantity_face_without_clock_mutation() {
+    use conduit_environment_runtime::display_mask::PreparedDisplayMask;
+    use conduit_seven_segment_mask::{
+        DigitWiring, MaskDisposition, SevenSegmentLook, Tm1637Profile, WireBit,
+    };
+    let owner = owner();
+    let bytes = reading();
+    let (mut publisher, reader) = owner.claim().unwrap();
+    publisher.publish(snapshot(&bytes, 1), 1000).unwrap();
+    let before = reader.with_retained(|face, _| face.clone()).unwrap();
+    let profile = Tm1637Profile {
+        digits: core::array::from_fn(|n| DigitWiring {
+            address: n as u8,
+            segment_bits: [0, 1, 2, 3, 4, 5, 6],
+        }),
+        decimal_points: [None; 4],
+        colon: Some(WireBit { address: 1, bit: 7 }),
+    };
+    let mut mask = PreparedDisplayMask::prepare(
+        profile,
+        SevenSegmentLook::fahrenheit().with_colon_fraction(),
+        30,
+        90,
+        3,
+    )
+    .unwrap();
+    let ((), memory) = allocation_probe::observe(|| {
+        for (elapsed, expected) in [
+            (0, MaskDisposition::Temperature { decimal_places: 1 }),
+            (30, MaskDisposition::Humidity),
+            (60, MaskDisposition::Temperature { decimal_places: 1 }),
+        ] {
+            reader
+                .with_retained(|face, status| {
+                    assert!(status.publisher_retained);
+                    assert_eq!(face, &before);
+                    let frame = mask.render(face, elapsed).unwrap();
+                    assert_eq!(frame.rendered.disposition, expected);
+                    assert_eq!(frame.rendered.face_revision, 1);
+                    assert_eq!(frame.rendered.face_content_id, before.identity.as_str());
+                })
+                .unwrap();
+        }
+        reader
+            .with_retained(|face, _| assert_eq!(face, &before))
+            .unwrap();
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}

@@ -1,0 +1,14 @@
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+    Finished `test` profile [unoptimized] target(s) in 0.89s
+     Running tests/publication_face_custody.rs (target/environment-lean-host/debug/deps/publication_face_custody-14b21465d71e15af)
+
+running 6 tests
+test dropping_a_publisher_while_reading_never_leaves_false_retained_custody ... ok
+test mask_local_pages_use_the_same_retained_quantity_face_without_clock_mutation ... ok
+test one_producer_and_reader_preserve_quantity_revisions_freshness_and_terminal_custody ... ok
+test reader_can_compose_owned_mask_frames_without_allocations_or_escaping_face_borrows ... ok
+test reentrant_pressure_and_rejected_clock_or_publication_preserve_committed_values ... ok
+test retained_reads_share_one_revision_until_the_owner_explicitly_advances_age ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
