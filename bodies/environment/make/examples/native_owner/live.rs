@@ -4,6 +4,8 @@
 use super::{acknowledgement::AdmittedBoot, control, exchange, Scope};
 #[path = "display.rs"]
 mod display;
+#[path = "face_replay.rs"]
+mod face_replay;
 use conduit_body::BodyLifecycleSession;
 use conduit_core::ActivePlayIdentity;
 use conduit_environment_make::NativeBodyBinding;
@@ -53,6 +55,26 @@ pub(super) fn run(
         let mut projector =
             PreparedPublicationFace::prepare().map_err(|e| format!("Face preparation: {e:?}"))?;
         let maximum_age_ms = scope.cadence_ms.checked_mul(2).ok_or("freshness bound")?;
+        let mut source_face =
+            if std::env::var_os("CONDUIT_ENVIRONMENT_REQUIRE_NATIVE_FACE").is_some() {
+                let plan = scope.native.plan();
+                Some(face_replay::Replay::prepare(
+                    conduit_face::FaceBasis {
+                        body_id: Some(scope.body_play.body_id.clone()),
+                        wake_id: Some(scope.body_play.wake_id.clone()),
+                        source_document_id: Some(plan.source_document_id.clone()),
+                        checked_plot_id: Some(plan.checked_plot_id.clone()),
+                        expanded_plot_id: Some(plan.expanded_plot_id.clone()),
+                        plan_id: Some(active.plan_id.clone()),
+                        active_play_id: Some(active.active_play_id.clone()),
+                        sign_ids: vec![],
+                    },
+                    scope.maximum_publications,
+                    maximum_age_ms,
+                )?)
+            } else {
+                None
+            };
         let mut display = display::Display::prepare(
             conduit_seven_segment_mask::Tm1637Profile {
                 digits: core::array::from_fn(|index| conduit_seven_segment_mask::DigitWiring {
@@ -97,6 +119,22 @@ pub(super) fn run(
             )? {
                 let snapshot = publication.snapshot;
                 let canonical = publication.canonical;
+                if let Some(replay) = &mut source_face {
+                    let face = replay.verify(
+                        face_replay::Committed {
+                            channel: snapshot.channel,
+                            sequence: snapshot.sequence,
+                            canonical: &canonical,
+                            committed_ms: snapshot.committed_millis,
+                            observed_ms: snapshot.observed_millis,
+                        },
+                        &reply["face"],
+                    )?;
+                    fs::write(
+                        output.join(format!("native-source-face-{}.json", snapshot.sequence)),
+                        serde_json::to_vec_pretty(face)?,
+                    )?;
+                }
                 if snapshot.sequence < last {
                     return Err("publication sequence regressed".into());
                 }

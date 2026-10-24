@@ -1569,3 +1569,15 @@ totals and the linked 28 KiB stack floor. The release link emits a memory map.
 This profile still requires actual preparation and publication verification on
 the MCU, plus Source Face replay comparison; it is not a deployed continuous
 Body, physical Mask connection or web/recorder integration.
+
+`cargo xtask prove environment owner-face-run-esp32` explicitly flashes that
+profile, admits the actual Boot and finite sampling owner, and requires the
+MCU producer Face to match an independent host replay of each verified signed
+publication. The replay uses the actual Source/Body/Wake/Plan/Play basis and
+signed commit/inspection clocks, checks repeated-publication identity and
+freshness, and retains `native-source-face-*.json` independently of aggregate
+Body Faces. Reported Face metadata is compared evidence, not a separate signed
+Face attestation. A changed/missing Face, missing publisher, stream gap or scope
+mismatch fails the finite owner run. This diagnostic does not install an ongoing
+Mask, network transition or recording host. Restore and verify the operational
+image after an attended diagnostic run.

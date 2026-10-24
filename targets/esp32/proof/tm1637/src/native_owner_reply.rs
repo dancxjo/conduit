@@ -66,6 +66,7 @@ pub(super) fn encode(
         None
     };
     let publication_bytes = snapshot.map_or(0, |s| s.publication_bytes);
+    let observed_ms = embassy_time::Instant::now().as_millis();
     if let (Some(command), Some(snapshot)) = (inspect_command, snapshot) {
         use sha2::{Digest, Sha256};
         acknowledgement = Some(crate::native_owner_receipt::Receipt {
@@ -74,7 +75,7 @@ pub(super) fn encode(
             snapshot: Some(crate::native_owner_receipt::Snapshot {
                 sequence: snapshot.publication_sequence,
                 committed_millis: snapshot.committed_millis.ok_or(())?,
-                observed_millis: embassy_time::Instant::now().as_millis(),
+                observed_millis: observed_ms,
                 channel: snapshot.publication_channel.ok_or(())?,
                 bytes: publication_bytes.try_into().map_err(|_| ())?,
                 sha256: Sha256::digest(&publication[..publication_bytes]).into(),
@@ -102,7 +103,7 @@ pub(super) fn encode(
         execution_context_bytes: root.execution_context_bytes(),
         worker: snapshot.or_else(|| root.worker_status()),
         #[cfg(feature = "native-face-root")]
-        face: crate::native_face::inspect(embassy_time::Instant::now().as_millis()),
+        face: crate::native_face::inspect(observed_ms),
         retired_native_attachments: root.retired_native_attachments(),
         kernel_additional_preparation_bound: root.kernel_preparation_bound(),
         #[cfg(feature = "display-ready-root")]

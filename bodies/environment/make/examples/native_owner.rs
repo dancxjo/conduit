@@ -28,6 +28,7 @@ struct Scope<'a> {
     body_play: &'a BodyPlayIdentity,
     seal: [u8; 32],
     cadence_ms: u64,
+    maximum_publications: u32,
 }
 impl Scope<'_> {
     fn request<'a>(
@@ -116,6 +117,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         body_play: &body_play,
         seal,
         cadence_ms: recipe.cadence().period_ms,
+        maximum_publications: recipe.cadence().count.try_into()?,
     };
     let inspect = exchange(
         &key,

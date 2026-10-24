@@ -20,6 +20,7 @@ pub(super) fn owner_key_directory() -> Result<std::path::PathBuf, Box<dyn Error>
     Ok(parent.join("environment-owner"))
 }
 pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
+    let native_face = mode == "run-face";
     let keys = owner_key_directory()?;
     execute(
         Command::new("cargo")
@@ -54,7 +55,11 @@ pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
                 "--locked",
                 "--release",
                 "--features",
-                "native-root",
+                if native_face {
+                    "native-face-root"
+                } else {
+                    "native-root"
+                },
             ])
             .env("CARGO_TARGET_DIR", root.join("target/environment-esp32"))
             .env(
@@ -125,19 +130,22 @@ pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
         capture.join("owner-root-image.json"),
         serde_json::to_vec_pretty(&image_receipt)?,
     )?;
-    execute(
-        Command::new("python3")
-            .current_dir(root)
-            .arg("bodies/environment/tools/native-owner-preparation.py")
-            .arg("--capture")
-            .arg(capture)
-            .arg("--admission")
-            .arg(admission)
-            .arg("--keys")
-            .arg(keys)
-            .arg("--mode")
-            .arg(mode)
-            .arg("--owner")
-            .arg(host_target(root).join("debug/examples/native_owner")),
-    )
+    let mut observation = Command::new("python3");
+    observation
+        .current_dir(root)
+        .arg("bodies/environment/tools/native-owner-preparation.py")
+        .arg("--capture")
+        .arg(capture)
+        .arg("--admission")
+        .arg(admission)
+        .arg("--keys")
+        .arg(keys)
+        .arg("--mode")
+        .arg(if native_face { "run" } else { mode })
+        .arg("--owner")
+        .arg(host_target(root).join("debug/examples/native_owner"));
+    if native_face {
+        observation.env("CONDUIT_ENVIRONMENT_REQUIRE_NATIVE_FACE", "1");
+    }
+    execute(&mut observation)
 }

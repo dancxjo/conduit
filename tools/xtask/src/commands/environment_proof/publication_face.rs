@@ -21,5 +21,13 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         "retained_publication_face",
         "--test",
         "publication_validation",
+    ]))?;
+    execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/make/Cargo.toml",
+        "--test",
+        "native_face_replay",
     ]))
 }
