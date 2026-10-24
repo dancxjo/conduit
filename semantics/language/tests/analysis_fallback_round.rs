@@ -445,6 +445,58 @@ fn run_scenario(runtime: &mut runtime::Runtime, dispute: bool) {
     assert_eq!(archive.commitment_receipts().len(), 1);
     assert_eq!(archive.frontiers().committed, TokenFrontier(1));
     assert_eq!(next_owner.frontiers().committed, TokenFrontier(1));
+    assert_eq!(next_owner.rebase_receipts().len(), 4);
+    for ((prior, next), replay) in [
+        previous.candidate0(),
+        previous.candidate1(),
+        previous.candidate2(),
+        previous.candidate3(),
+    ]
+    .into_iter()
+    .zip([
+        next_owner.beam().candidate0(),
+        next_owner.beam().candidate1(),
+        next_owner.beam().candidate2(),
+        next_owner.beam().candidate3(),
+    ])
+    .zip(next_owner.rebase_receipts())
+    {
+        let before = prior.parser().state();
+        let after = next.parser().state();
+        assert_eq!(replay.preparation().request().previous(), before);
+        assert_eq!(after, replay.result());
+        assert_eq!(next.parser().identity(), prior.parser().identity());
+        assert_eq!(next.parser().active(), prior.parser().active());
+        assert_eq!(next.selected(), after.unread());
+        assert_eq!(after.committed(), before.committed());
+        if *prior.parser().active() {
+            assert_eq!(*after.committed(), 1);
+        }
+        let protected = usize::try_from(*before.committed()).unwrap();
+        assert!(protected <= 4);
+        assert_eq!(&next.choices()[..protected], &prior.choices()[..protected]);
+        assert!(next.choices()[protected..]
+            .iter()
+            .all(|choice| *choice == 0));
+        assert_eq!(&after.heads()[..protected], &before.heads()[..protected]);
+        for (old_relation, new_relation) in [
+            before.relation0(),
+            before.relation1(),
+            before.relation2(),
+            before.relation3(),
+        ]
+        .into_iter()
+        .zip([
+            after.relation0(),
+            after.relation1(),
+            after.relation2(),
+            after.relation3(),
+        ])
+        .take(protected)
+        {
+            assert_eq!(new_relation, old_relation);
+        }
+    }
     assert_eq!(next_owner.history().count(), 0);
     assert!(next_owner.commitment_receipts().is_empty());
     assert!(next_owner.current(proposed.reference(), &receipt).is_err());
