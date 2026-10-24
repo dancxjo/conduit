@@ -7,6 +7,26 @@ const HEADER: &[u8] = b"conduit.native-law-material.v1\0";
 const MAXIMUM_WIRE_BYTES: usize = MAXIMUM_BYTES;
 
 impl NativeLawMaterial {
+    /// Internal aggregate framing preflight for a complete expression capsule.
+    /// The caller sums this count across every expanded material before replay.
+    pub(crate) fn wire_document_count(bytes: &[u8]) -> Result<usize> {
+        if bytes.len() > MAXIMUM_WIRE_BYTES {
+            return Err(NativeLawCustodyRefusal::Capacity);
+        }
+        let body = bytes
+            .strip_prefix(HEADER)
+            .ok_or(NativeLawCustodyRefusal::Source)?;
+        let mut cursor = Cursor {
+            remaining: body,
+            modules: 0,
+        };
+        let _ = cursor.material(0, false)?;
+        if !cursor.remaining.is_empty() {
+            return Err(NativeLawCustodyRefusal::Source);
+        }
+        Ok(cursor.modules)
+    }
+
     pub fn canonical_bytes(&self) -> Result<Vec<u8>> {
         material_preflight::check(self)?;
         let mut size = HEADER.len();

@@ -1,0 +1,86 @@
+{
+  "started": 1792874495.8142526,
+  "steps": [
+    {
+      "name": "format",
+      "argv": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all"
+      ],
+      "exit_code": 0,
+      "ended": 1792874509.1671062
+    },
+    {
+      "name": "tests",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "law_expression_envelope",
+        "--test",
+        "native_law_wire",
+        "--test",
+        "prepared_expression_laws",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "ended": 1792874519.7835765
+    },
+    {
+      "name": "strict",
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "ended": 1792874527.075151
+    }
+  ],
+  "base": "9fa3283ae",
+  "source_hashes": {
+    "architecture/plot/src/law_expression/definition.rs": "fa161e760eff5b74ae87690b840942c050c3ba51163f7b65a7a4e17231c59167",
+    "architecture/plot/src/law_expression/mod.rs": "1ba54cbfd0a9dc2daf6a41c430fcd0abf01cb9d6312485954224ac8c6cee9cc0",
+    "architecture/plot/src/law_expression/wire.rs": "e654842192fd936c9390f3ddef36df403651b7610a92985016ee602f4fd05460",
+    "architecture/plot/src/lib.rs": "6eb78dbeb4fde00e9d04dda805a524e7842e06ed2b5630b93fc93e3f50ca5e1b",
+    "architecture/plot/src/native_type/law_custody/wire.rs": "bc4e075ad59b77875bf6d89a3ef369db4fdd1eb4cb990af4df54162fe8531545",
+    "architecture/plot/tests/law_expression_envelope.rs": "b66d05237cf31fd778cad0e581f82330a01dd0c128399132b5aaa3db0c07aa65"
+  },
+  "passed": 20,
+  "failed": 0,
+  "ignored": 0,
+  "executables": [
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/law_expression_envelope-f69d301c08ad9651",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-law-envelope-staged/law_expression_envelope-f69d301c08ad9651.elf.gz",
+      "sha256": "4af2b011c73a12f94f217eb903d17e7434eb0838ae9cbf8658e3ef574c209c4e"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_wire-f3fef65cb2d558ee",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-law-envelope-staged/native_law_wire-f3fef65cb2d558ee.elf.gz",
+      "sha256": "5dca1f05706aadd814afb16e9f0ea701c641ab10de3764ff3b56b30f139e23b4"
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_expression_laws-66db01a35ace4485",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-law-envelope-staged/prepared_expression_laws-66db01a35ace4485.elf.gz",
+      "sha256": "679e67e35d4fb7425fd52f762a27cc9ba8576507ef32a29c3a98c7494f625dac"
+    }
+  ],
+  "sealed": 1792874722.0114567,
+  "boundary": "canonical capsule + independent Source verification + distinct Kind/Fore projection only; no compiler routing or automatic Std installation/kernel claim"
+}
