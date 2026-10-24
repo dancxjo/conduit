@@ -129,30 +129,40 @@ fn unsupported_name_tls_and_missing_authority_refuse_before_network_use() {
         );
         assert_eq!(endpoint.seen_len, 0);
     }
-    assert_eq!(
+    assert!(matches!(
         NativeHttpClient::prepare().begin(&request("http", "192.0.2.1:80"), false),
         Err(HttpClientFailure::AuthorityDenied)
-    );
+    ));
 }
 
 #[test]
-fn pressure_cancellation_and_stale_completion_are_distinct() {
+fn forgotten_request_refuses_reuse_and_cancellation_releases_custody() {
     let mut client = NativeHttpClient::prepare();
     let encoded = request("http", "192.0.2.1:80");
-    let ticket = client.begin(&encoded, true).unwrap();
-    assert_eq!(
+    client.begin(&encoded, true).unwrap().cancel().unwrap();
+    let guard = client.begin(&encoded, true).unwrap();
+    assert!(!guard.request_bytes().is_empty());
+    core::mem::forget(guard);
+    assert!(matches!(
         client.begin(&encoded, true),
         Err(HttpClientFailure::Pressure)
+    ));
+}
+
+#[test]
+fn response_preflight_refuses_small_output_without_touching_old_bytes() {
+    let mut bytes = [0x5a; 17];
+    let before = bytes;
+    assert!(
+        encode_info_response(
+            44,
+            b"HTTP/1.1 200 OK\r\ncontent-length: 1\r\n\r\nx",
+            b"type",
+            &mut bytes
+        )
+        .is_err()
     );
-    client.cancel().unwrap();
-    assert_eq!(
-        client.request_bytes(ticket),
-        Err(HttpClientFailure::StaleCompletion)
-    );
-    assert_eq!(
-        client.complete(ticket, 0, &mut FixedHttpOutput::new()),
-        Err(HttpClientFailure::StaleCompletion)
-    );
+    assert_eq!(bytes, before);
 }
 
 #[test]
