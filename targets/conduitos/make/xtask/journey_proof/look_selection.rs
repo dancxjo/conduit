@@ -1,19 +1,30 @@
 //! Actual product preference transitions, joined to complete Face/Show receipts.
 use super::super::{qemu_artifacts::Artifacts, qmp};
 use super::live_serial;
-use super::{face_correspondence, io_error, journey_input, refusal, ConduitosError};
+use super::{ConduitosError, face_correspondence, io_error, journey_input, refusal};
 use conduit_face::{Face, Show};
-use serde_json::{json, Value};
-use std::{os::unix::net::UnixStream, path::Path, process::Child};
+use serde_json::{Value, json};
+use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 const PREFIX: &str = "CONDUIT_NATIVE_COMPONENT_REALIZATION ";
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn exercise(
     serial: &Path,
     child: &mut Child,
     stream: &mut UnixStream,
     reader: &mut qmp::Reader,
     artifacts: &mut Artifacts,
+    identity: (&str, &str),
 ) -> Result<Value, ConduitosError> {
+    let receipt_path = serial
+        .parent()
+        .ok_or_else(|| refusal("Look receipt directory absent"))?
+        .join("local-look-proof.json");
+    match fs::remove_file(&receipt_path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(io_error(error)),
+    }
     let initial = live_serial::read_complete(serial).map_err(io_error)?;
     let faces = face_correspondence::records(&initial, "CONDUIT_NATIVE_FACE ")?;
     let origin = faces
@@ -25,13 +36,15 @@ pub(super) fn exercise(
     let mut seen = vec![origin_show.id.clone()];
     let mut component = None;
     let mut recipe = None;
+    let mut layout = None;
     let mut receipts = Vec::new();
-    for (key, density, palette, scale, frame) in [
+    for (key, density, palette, scale, typography, frame) in [
         (
             "f7",
             "compact",
             "editorial",
             100,
+            "editorial",
             "creche-editorial-compact",
         ),
         (
@@ -39,6 +52,7 @@ pub(super) fn exercise(
             "spacious",
             "editorial",
             125,
+            "editorial",
             "creche-editorial-spacious",
         ),
         (
@@ -46,14 +60,64 @@ pub(super) fn exercise(
             "spacious",
             "phosphor",
             125,
-            "creche-engineering-spacious",
+            "editorial",
+            "creche-phosphor-spacious",
         ),
         (
             "f6",
             "compact",
             "phosphor",
             100,
-            "creche-engineering-compact",
+            "editorial",
+            "creche-phosphor-compact",
+        ),
+        (
+            "f8",
+            "compact",
+            "phosphor",
+            100,
+            "engineering",
+            "creche-engineering-phosphor-compact",
+        ),
+        (
+            "f7",
+            "compact",
+            "editorial",
+            100,
+            "engineering",
+            "creche-engineering-editorial-compact",
+        ),
+        (
+            "f6",
+            "spacious",
+            "editorial",
+            125,
+            "engineering",
+            "creche-engineering-editorial-spacious",
+        ),
+        (
+            "f7",
+            "spacious",
+            "phosphor",
+            125,
+            "engineering",
+            "creche-engineering-phosphor-spacious",
+        ),
+        (
+            "f6",
+            "compact",
+            "phosphor",
+            100,
+            "engineering",
+            "creche-engineering-phosphor-restored",
+        ),
+        (
+            "f8",
+            "compact",
+            "phosphor",
+            100,
+            "editorial",
+            "creche-editorial-type-restored",
         ),
     ] {
         let before = face_correspondence::records(
@@ -102,11 +166,15 @@ pub(super) fn exercise(
             || record["manifestation_id"] != json!(fresh.show.manifestation_id)
             || expression["density"] != density
             || expression["palette"] != palette
+            || expression["typography"] != typography
             || expression["text_scale_percent"] != scale
             || !record["fallback"].is_null()
             || configuration["root"].as_str().is_none_or(str::is_empty)
             || configuration["component"].is_null()
             || configuration["recipe_canonical_sha256"]
+                .as_str()
+                .is_none_or(|hash| hash.len() != 64)
+            || configuration["layout_canonical_sha256"]
                 .as_str()
                 .is_none_or(|hash| hash.len() != 64)
             || record["render"]["commands"].as_u64().is_none_or(|count| {
@@ -124,27 +192,53 @@ pub(super) fn exercise(
             || recipe
                 .as_ref()
                 .is_some_and(|first| first != &configuration["recipe_canonical_sha256"])
+            || layout
+                .as_ref()
+                .is_some_and(|first| first != &configuration["layout_canonical_sha256"])
         {
-            return Err(refusal("Look swap changed checked component or recipe"));
+            return Err(refusal(
+                "Look swap changed checked component, recipe or layout",
+            ));
         }
         component = Some(configuration["component"].clone());
         recipe = Some(configuration["recipe_canonical_sha256"].clone());
-        artifacts.capture(stream, reader, frame, true)?;
+        layout = Some(configuration["layout_canonical_sha256"].clone());
+        // Four representative captures retain the existing journey admission.
+        // Every transition, including uncaptured restores, is checked above.
+        let captured = matches!(
+            frame,
+            "creche-editorial-compact"
+                | "creche-engineering-phosphor-compact"
+                | "creche-engineering-editorial-compact"
+                | "creche-engineering-phosphor-spacious"
+        );
+        if captured {
+            artifacts.capture(stream, reader, frame, true)?;
+        }
         seen.push(fresh.id.clone());
         previous = fresh;
-        receipts.push(record.clone());
+        let mut receipt = record.clone();
+        receipt["screenshot_checkpoint"] = if captured { json!(frame) } else { Value::Null };
+        receipts.push(receipt);
     }
     if previous.show.plan_id != origin_show.show.plan_id {
         return Err(refusal(
             "Look matrix did not return to the original planned configuration",
         ));
     }
-    Ok(
-        json!({"schema":"conduit.conduitos/local-look-proof@1", "status":"passed",
+    let proof = json!({"schema":"conduit.conduitos/local-look-proof@1", "status":"passed",
+        "source_commit":identity.0,"image_sha256":identity.1,
+        "scope":"local Crèche Look switches only; full journey and compositor lifecycle are separate",
         "input":"real-qmp-keyboard", "face_id":face.identity,"face_revision":face.revision,
         "same_checked_component":component,"same_recipe_canonical_sha256":recipe,
-        "transitions":receipts,"body_actions":0,"physical_evidence":false,"human_enactment":false}),
+        "same_layout_canonical_sha256":layout,
+        "transitions":receipts,"body_actions":0,"physical_evidence":false,"human_enactment":false});
+    fs::write(
+        &receipt_path,
+        serde_json::to_vec_pretty(&proof).map_err(|error| refusal(error.to_string()))?,
     )
+    .map_err(io_error)?;
+    Ok(proof)
 }
 
 #[derive(Clone)]

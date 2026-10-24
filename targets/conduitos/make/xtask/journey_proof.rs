@@ -228,9 +228,9 @@ fn execute_with_viewport(
                 &mut qmp,
                 &mut reader,
                 &mut artifacts,
+                (&source, &image_sha256),
             )?
         };
-
         creche_choices::exercise(
             &serial_path,
             &mut child,

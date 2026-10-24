@@ -113,3 +113,20 @@ fails at a later Patchbay prepare-target operation with Application WorkExhauste
 No full journey or compositor-lifecycle receipt follows; current narrow/forced/
 200% native proof and actual Engineering selection remain open. This supersedes
 neither the older Source receipts nor the original parent acceptance scope.
+
+## Native typography selection follow-up
+
+Crèche now has an independent local Engineering typography choice (F8), beside
+F6 density and F7 palette. Each combination selects another complete canonical
+Look through a reviewed Source root; it does not patch a prepared expression.
+The same admitted Host fonts measure and paint the replacement before the old
+Show retires. Other product states retain their existing F8 action binding.
+
+The focused actual Source/offer test covers both Crèche structures and all four
+density/palette combinations: component, recipe, layout, renderer and paint
+remain identical across typography choices, while the Look and plan differ.
+Actual native switching, retained draft submission and QEMU evidence are still
+pending for this follow-up. The source-specific older evidence above remains
+unchanged. The failed speed-optimized decoder experiment is retained separately
+in [its negative record](evidence/gui-look-6349-native-decoder-experiment/README.md)
+and was reverted; it did not fix Application WorkExhausted.

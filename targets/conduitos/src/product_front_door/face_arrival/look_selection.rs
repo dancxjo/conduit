@@ -1,6 +1,8 @@
 //! Local preference keys select checked roots; they never dispatch a Body action.
 use super::*;
-use conduit_face::{ComponentVisualSelection, CrecheComponentRecipe, VisualDensity, VisualPalette};
+use conduit_face::{
+    ComponentVisualSelection, CrecheComponentRecipe, VisualDensity, VisualPalette, VisualTypography,
+};
 use conduit_human::KeyTransition;
 use sha2::{Digest, Sha256};
 
@@ -16,7 +18,7 @@ impl FaceArrival {
             || !door.creche_open()
             || event.transition() != KeyTransition::Pressed
             || event.modifiers_after().bits() != 0
-            || !matches!(event.usage(), 63 | 64)
+            || !matches!(event.usage(), 63 | 64 | 65)
         {
             return Ok(false);
         }
@@ -29,15 +31,22 @@ impl FaceArrival {
             density: current.density,
             palette: current.palette,
         };
+        let mut typography = current.typography;
         if event.usage() == 63 {
             selection.density = match selection.density {
                 VisualDensity::Compact => VisualDensity::Spacious,
                 VisualDensity::Spacious => VisualDensity::Compact,
             };
-        } else {
+        } else if event.usage() == 64 {
             selection.palette = match selection.palette {
                 VisualPalette::Phosphor => VisualPalette::Editorial,
                 VisualPalette::Editorial => VisualPalette::Phosphor,
+            };
+        }
+        if event.usage() == 65 {
+            typography = match typography {
+                VisualTypography::Editorial => VisualTypography::Engineering,
+                VisualTypography::Engineering => VisualTypography::Editorial,
             };
         }
         let face = door
@@ -48,7 +57,7 @@ impl FaceArrival {
             return Err("creche-look-face-stale");
         }
         let context = &self.preparation;
-        let mut replacement = NativeFaceMask::prepare_creche_selected(
+        let mut replacement = NativeFaceMask::prepare_creche_typographic(
             context.host_id.clone(),
             context.boot_id.clone(),
             context.generation,
@@ -58,6 +67,7 @@ impl FaceArrival {
             &context.provider,
             CrecheComponentRecipe::ResponsiveColumns,
             selection,
+            typography,
         )
         .map_err(|error| error.as_str())?;
         replacement
@@ -92,7 +102,7 @@ impl FaceArrival {
             "configuration":{
                 "component":configuration.component,
                 "invocation_path":configuration.invocation_path,
-                "root":selection.creche_root(CrecheComponentRecipe::ResponsiveColumns),
+                "root":selection.creche_root_with_typography(CrecheComponentRecipe::ResponsiveColumns, typography),
                 "recipe_canonical_sha256":alloc::format!("{:x}", Sha256::digest(configuration.recipe.canonical_value())),
                 "recipe_canonical_bytes":configuration.recipe.canonical_value().len(),
                 "layout_canonical_sha256":alloc::format!("{:x}", Sha256::digest(layout.canonical_value())),

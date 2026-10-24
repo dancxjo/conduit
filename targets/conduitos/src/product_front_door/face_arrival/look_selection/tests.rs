@@ -53,12 +53,68 @@ fn local_selection_keeps_face_and_draft_while_retiring_each_old_show() {
         .mask
         .key(key(4), interaction_sequence, &mut display)
         .unwrap();
-    // An unsubmitted 'a' survives four independent palette/density transitions.
-    for (usage, density, palette) in [
-        (64, VisualDensity::Compact, VisualPalette::Editorial),
-        (63, VisualDensity::Spacious, VisualPalette::Editorial),
-        (64, VisualDensity::Spacious, VisualPalette::Phosphor),
-        (63, VisualDensity::Compact, VisualPalette::Phosphor),
+    // An unsubmitted 'a' survives independent palette/density/type transitions.
+    for (usage, density, palette, typography) in [
+        (
+            64,
+            VisualDensity::Compact,
+            VisualPalette::Editorial,
+            VisualTypography::Editorial,
+        ),
+        (
+            63,
+            VisualDensity::Spacious,
+            VisualPalette::Editorial,
+            VisualTypography::Editorial,
+        ),
+        (
+            64,
+            VisualDensity::Spacious,
+            VisualPalette::Phosphor,
+            VisualTypography::Editorial,
+        ),
+        (
+            63,
+            VisualDensity::Compact,
+            VisualPalette::Phosphor,
+            VisualTypography::Editorial,
+        ),
+        (
+            65,
+            VisualDensity::Compact,
+            VisualPalette::Phosphor,
+            VisualTypography::Engineering,
+        ),
+        (
+            64,
+            VisualDensity::Compact,
+            VisualPalette::Editorial,
+            VisualTypography::Engineering,
+        ),
+        (
+            63,
+            VisualDensity::Spacious,
+            VisualPalette::Editorial,
+            VisualTypography::Engineering,
+        ),
+        (
+            64,
+            VisualDensity::Spacious,
+            VisualPalette::Phosphor,
+            VisualTypography::Engineering,
+        ),
+        (
+            63,
+            VisualDensity::Compact,
+            VisualPalette::Phosphor,
+            VisualTypography::Engineering,
+        ),
+        (
+            65,
+            VisualDensity::Compact,
+            VisualPalette::Phosphor,
+            VisualTypography::Editorial,
+        ),
     ] {
         let prior_show = arrival.mask.show().unwrap().clone();
         assert!(
@@ -84,6 +140,7 @@ fn local_selection_keeps_face_and_draft_while_retiring_each_old_show() {
         );
         let expression = &arrival.mask.visual_expression().unwrap().expression;
         assert_eq!((expression.density, expression.palette), (density, palette));
+        assert_eq!(expression.typography, typography);
         assert_eq!(arrival.next_interaction, interaction_sequence);
         let frame = arrival.mask.scene().unwrap().frame().unwrap();
         assert!(frame.scene.commands().iter().any(|command| command.kind
