@@ -1,0 +1,61 @@
+{
+  "source": "83f8595dbfd439c28af66246f92ac180c21aedc0",
+  "status": "failed",
+  "scope": null,
+  "image_sha256": "7eb3bc4e47ac49cc9ecaca739ee40caa8c6bf5795e5a518483754b28737e2336",
+  "root_sha256": "edf055a53b56621e159d816dbc42c122847f26abff87bf2d1a773ddeb8c77d7f",
+  "prepared_frame_budget": null,
+  "archives": {
+    "journey-serial.log": {
+      "raw_sha256": "7e7ebd8e44c4b3efa34d654ee61a8133494a5ba8d9e848c0db65acf740a6ef06",
+      "archive_sha256": "454a3efd9096edf9ac61f8281f6e5dee6de13743ce4c446d47698ad30a03eb15"
+    },
+    "journey-qmp.log": {
+      "raw_sha256": "e6ea51b5308fdfe364d1ca004abe6eee23aeb83fe5db9d0e2f1fdb1e5e645b1b",
+      "archive_sha256": "443f7c014436a3141b6c3bebb72962df9a65a0add2f34fe5ae4fc23c01f0e600"
+    },
+    "capture-manifest.json": {
+      "raw_sha256": "b0c244f5b1ab1d5b041f4bcad498000b5b5a3aba15fbbde5c0a470a9abe4ef86",
+      "archive_sha256": "f24540e376ddb36e35c3ea3a5e124fab8d7ad37eee62ed28601f0555d616664d"
+    },
+    "profile.log": {
+      "raw_sha256": "6b35d53bf04f5cf42b6c7fa7fcea2cad05112aae9d6902d7fe0558956766eac4",
+      "archive_sha256": "c0e39c4b994b39f0ea3b602cf9c34c94d44c39609315d6b931e2f3c4593d0864"
+    },
+    "build.json": {
+      "raw_sha256": "577231056e1982d770fd033e77df247d932a75e9a498c774dcb93cc21b5baf0d",
+      "archive_sha256": "1f64a6b3f6bcc9d157ba905a511f861ef8e455d640ed38ea64c54eeba55ac116"
+    },
+    "image.json": {
+      "raw_sha256": "8f64a12f55f84b429617b268a26536a1981ba83f973b492747568377bbd9087d",
+      "archive_sha256": "ac5f1412fb4ec4f0f9c3bcdae81cc444468c410817e295bf4df2f0e9aa30f870"
+    }
+  },
+  "pngs": {
+    "creche-a11y-long-name.png": {
+      "sha256": "f33fa2da6ecd593fff15a5d17ddaf3ccfc66f1ef884d12806ca080dd6dda6f08",
+      "width": 640,
+      "height": 480
+    },
+    "creche-controls-ready.png": {
+      "sha256": "debf9d19e6030024d3c17bc8783331ffb34276dade157ac54ce4798bfa417a65",
+      "width": 640,
+      "height": 480
+    },
+    "creche-input-incomplete.png": {
+      "sha256": "2a578bbec266347fe72b1990b5286f674cfb85964b1a7f573e4d59b256f76e9d",
+      "width": 640,
+      "height": 480
+    },
+    "failure.png": {
+      "sha256": "b7487b2d6cc1b0890ae5dd2c94411c376fc92ed23beed9d3f536aee77ef761e6",
+      "width": 640,
+      "height": 480
+    },
+    "front-door-ready.png": {
+      "sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+      "width": 640,
+      "height": 480
+    }
+  }
+}

@@ -92,6 +92,14 @@ pub(super) fn prepare(
             _ => GraphicsTextRole::Body,
         };
         let mut detail = item(clause.text.clone(), detail_role);
+        if let Provenance::Subject(value) = &clause.provenance {
+            let subject = face
+                .subjects
+                .iter()
+                .find(|subject| subject.identity.as_str() == value.identity())
+                .ok_or(FaceSceneError::InvalidFace)?;
+            detail.icon = super::semantic_icons::for_role(&subject.role);
+        }
         let action_name = match &clause.provenance {
             Provenance::Action(value) => Some((value.identity(), None)),
             Provenance::ActionArgument(value) => {
@@ -106,6 +114,9 @@ pub(super) fn prepare(
                 .enumerate()
                 .find(|(_, action)| &action.identity == name)
                 .ok_or(FaceSceneError::InvalidFace)?;
+            if argument_name.is_none() {
+                detail.icon = super::semantic_icons::for_intent(&action.intent);
+            }
             detail.control = interaction_admitted.then_some(FaceControl {
                 action: index,
                 argument: argument_name

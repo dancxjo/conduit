@@ -14,7 +14,11 @@ pub(super) fn exercise(
     world: &Value,
     boot: &Value,
 ) -> Result<JourneyIdentity, ConduitosError> {
-    let details = metadata["proof_scenario"] == "accessibility-details";
+    let scenario = metadata["proof_scenario"].as_str().unwrap_or("");
+    let editorial_only = scenario == "accessibility-details-editorial";
+    let engineering_only = scenario == "accessibility-details-engineering";
+    let single = editorial_only || engineering_only;
+    let details = scenario == "accessibility-details" || single;
     let incomplete = run.incomplete_argument_refusal()?;
     let name = "Café Llanfairpwllgwyngyll long Body name".as_bytes();
     let change = run.rename(name, "creche-a11y-long-name")?;
@@ -47,6 +51,15 @@ pub(super) fn exercise(
             "editorial",
         ),
     ] {
+        if (editorial_only && typography != "editorial")
+            || (engineering_only && typography != "engineering")
+        {
+            continue;
+        }
+        if engineering_only {
+            transitions.push(select(run, &baseline, "f9", 200, false)?);
+            transitions.push(select(run, &baseline, "f10", 200, true)?);
+        }
         for (input, forced) in keys {
             transitions.push(select(run, &baseline, input, 200, *forced)?);
         }
@@ -114,7 +127,11 @@ pub(super) fn exercise(
         } else {
             label.into()
         };
-        let pages = run.pages(&selected, &label)?;
+        let pages = if single {
+            run.details_pages(&selected, &label)?
+        } else {
+            run.pages(&selected, &label)?
+        };
         if details && pages.iter().any(|page| page["showing_details"] != true) {
             return Err(refusal("page traversal left the acknowledged Details view"));
         }
@@ -129,7 +146,13 @@ pub(super) fn exercise(
     // User requirements survive palette/type/density changes, then clearing the
     // user minimum reveals the still-requested spacious 125%, not a forged 100%.
     transitions.push(select(run, &baseline, "f10", 200, false)?);
-    transitions.push(select(run, &baseline, "f9", 125, false)?);
+    transitions.push(select(
+        run,
+        &baseline,
+        "f9",
+        if editorial_only { 100 } else { 125 },
+        false,
+    )?);
     run.capture("creche-a11y-user-overrides-cleared")?;
     let final_state = snapshot(&text(run.serial)?)?;
     let serial = text(run.serial)?;
@@ -154,7 +177,7 @@ pub(super) fn exercise(
     let proof = json!({
         "schema":if details { "conduit.conduitos/creche-accessibility-details-proof@1" } else { "conduit.conduitos/creche-accessibility-proof@1" }, "status":"passed",
         "proof_class":"freestanding-emulator", "source_commit":source,"image_sha256":image,
-        "canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
+        "requested_scenario":scenario,"canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
         "selected_recipe":recipe,"long_unicode_name":name,"checked_name_change":change,
         "incomplete_argument_refusal":incomplete,"override_transitions":transitions,
         "same_keyboard_order":forward_order,"states":states,
@@ -162,7 +185,7 @@ pub(super) fn exercise(
         "prepared_frame_budget":frame_budget::summarize(&serial)?,
         "observations":run.observations,"captures":run.captures,"capture_limit":27,
         "screenshots":"journey-frames/manifest.json",
-        "scope":if details { "complete Details control cycles/pages at 200% in two Looks; acknowledged F2 entry/return; no Body startup or Details pointer claim" } else { "complete primary control cycles/pages at 200% in two Looks; actual pointer argument focus and incomplete-input refusal; no Body startup" },
+        "scope":if details { "complete Details control cycles/pages at 200% in requested Look(s); acknowledged F2 entry/return; no Body startup or Details pointer claim" } else { "complete primary control cycles/pages at 200% in two Looks; actual pointer argument focus and incomplete-input refusal; no Body startup" },
         "details_pages":if details { "all traversed with explicit view receipts; first/middle/last PNGs" } else { "not traversed by this scenario" },
         "pixel_contrast":"actual QMP captures retained for visual inspection; no OCR or inferred pixel contrast",
         "physical_evidence":false,"human_enactment":false

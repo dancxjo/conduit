@@ -88,7 +88,12 @@ pub(super) fn exercise(
     run.capture("creche-controls-ready")?;
     if matches!(
         metadata["proof_scenario"].as_str(),
-        Some("accessibility" | "accessibility-details")
+        Some(
+            "accessibility"
+                | "accessibility-details"
+                | "accessibility-details-editorial"
+                | "accessibility-details-engineering"
+        )
     ) {
         return accessibility::exercise(
             &mut run,

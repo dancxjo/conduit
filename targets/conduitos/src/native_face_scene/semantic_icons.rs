@@ -95,6 +95,76 @@ mod tests {
     }
 
     #[test]
+    fn details_reuses_explicit_mappings_without_changing_clauses_or_read_only_binding() {
+        let mut face = super::super::tests::face(7);
+        face.subjects[0].role = FaceRole::Host;
+        face.actions[0].intent = "conduit.intent/creche.name@1".into();
+        // A familiar caption cannot select an icon for an unknown intent.
+        face.actions[1].name = "Search Plots".into();
+        let face = Face::new_with_semantics(
+            face.revision,
+            face.basis,
+            face.subjects,
+            face.relationships,
+            face.properties,
+            face.text,
+            face.actions,
+            face.disclosures,
+        )
+        .unwrap();
+        let clauses = conduit_face::plan_face_utterances(&face).unwrap();
+        for admitted in [true, false] {
+            let (_, details) = document::prepare(&face, admitted).unwrap();
+            assert_eq!(
+                details
+                    .iter()
+                    .map(|row| row.text.as_str())
+                    .collect::<Vec<_>>(),
+                clauses
+                    .clauses
+                    .iter()
+                    .map(|clause| clause.text.as_str())
+                    .collect::<Vec<_>>()
+            );
+            assert!(
+                details
+                    .iter()
+                    .any(|row| row.icon == Some(FaceIconKey::Host))
+            );
+            assert_eq!(
+                details
+                    .iter()
+                    .filter(|row| row.icon == Some(FaceIconKey::Type))
+                    .count(),
+                1
+            );
+            if admitted {
+                let action = details
+                    .iter()
+                    .find(|row| {
+                        row.control
+                            == Some(FaceControl {
+                                action: 0,
+                                argument: None,
+                            })
+                    })
+                    .unwrap();
+                assert_eq!(action.icon, Some(FaceIconKey::Type));
+                assert!(
+                    details
+                        .iter()
+                        .filter(|row| row.control.is_some_and(
+                            |control| control.argument.is_some() || control.action == 1
+                        ))
+                        .all(|row| row.icon.is_none())
+                );
+            } else {
+                assert!(details.iter().all(|row| row.control.is_none()));
+            }
+        }
+    }
+
+    #[test]
     fn icons_are_measured_before_wrap_and_fit_bounded_pages_without_semantic_changes() {
         let mut face = super::super::tests::face(7);
         face.subjects[0].role = FaceRole::Host;
