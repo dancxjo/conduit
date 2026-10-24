@@ -41,6 +41,10 @@ fn main() {
                         }
                         CheckScope::Pete => commands::pete_workload_check::run(&opts),
                         CheckScope::DeviceProtocols => commands::device_protocols::run(&opts),
+                        CheckScope::ResourceEpochs(args) => {
+                            commands::check::run_resource_epochs(args, &opts)
+                                .map_err(|error| Box::new(error) as Box<dyn std::error::Error>)
+                        }
                     }
                 }
             } else {

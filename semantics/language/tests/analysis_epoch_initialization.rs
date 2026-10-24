@@ -173,6 +173,11 @@ fn check_handoff(close: bool) {
         "/parser_rebase_program.hex"
     )))
     .unwrap();
+    let adapter = PortableExpressionProgram::from_canonical_hex(include_str!(concat!(
+        env!("OUT_DIR"),
+        "/parser_rebase_adapter.hex"
+    )))
+    .unwrap();
     let mut receipts = Vec::new();
     for slot in [
         previous.candidate0(),
@@ -188,12 +193,13 @@ fn check_handoff(close: bool) {
             request.default_relation().clone(),
         )
         .unwrap();
-        let observed = LanguageParserNumericState::decode(
-            &expression
-                .evaluate(&p.request().clone().encode().unwrap())
-                .unwrap(),
-        )
-        .unwrap();
+        // The shared numeric body receives the exact checked legacy adapter
+        // output, just as PreparedParserRebaseProgram does in production.
+        let adapted = adapter
+            .evaluate(&p.request().clone().encode().unwrap())
+            .unwrap();
+        let observed =
+            LanguageParserNumericState::decode(&expression.evaluate(&adapted).unwrap()).unwrap();
         receipts.push(replay_program.replay(p, &observed).unwrap());
     }
     let receipts = receipts.try_into().ok().unwrap();

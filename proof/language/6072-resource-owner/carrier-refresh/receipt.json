@@ -1,0 +1,41 @@
+{
+  "producer_code_commit": "c7e1f51f5199b988977c78f2612761c54a3b4151",
+  "source_changes": "only refreshed retained carrier artifacts and proof metadata; no Rust, authored Source or test assertions changed",
+  "tests": {
+    "supported_generator": 1,
+    "fresh_process_independent_reload": 1,
+    "alternate_structure_evidence_reuse_refusal": 1,
+    "failures": 0,
+    "ignored": 0
+  },
+  "files": {
+    "you-would.native": {
+      "bytes": 1773627,
+      "sha256": "d71c3cbc4da0a7fd20783aec5e60ffea143ceba679159008fe91cf244df43c50"
+    },
+    "you-would.wav": {
+      "bytes": 8044,
+      "sha256": "ef4d192fa9e12133953f5dfcdf057c868a9d37c09c8bef912ca3db5a837b283f"
+    },
+    "you-would.json": {
+      "bytes": 35345,
+      "sha256": "dddfe9f6cd9dd0a32584fa6f8584d27a1fb2a96cc5247bf9656e7135d47b0b47"
+    }
+  },
+  "executable_sha256": {
+    "carried_formant-50dda38546d6b55b": "dc1bab8ee01170d6b91936e2e1bb28742c3888338bb3932d9fb851a50987354c",
+    "shared_carrier_projections-1073fd6369d27cf5": "673aad2d631491eb7e9b831780262b427a9816182f41aa0d4df5891a4701b779"
+  },
+  "wav_unchanged": true,
+  "original_candidate_failure": {
+    "run": 40126513064,
+    "job": 120971717670,
+    "head": "c7e1f51f5199b988977c78f2612761c54a3b4151"
+  },
+  "pending": [
+    "new-head Candidate",
+    "merged-source Integration",
+    "parent shared publication/acceptance batch",
+    "all dependency closure gates"
+  ]
+}
