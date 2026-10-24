@@ -149,6 +149,10 @@ fn automatic_source_laws_replay_all_four_g2_programs_through_std_kernel() {
         )
         .unwrap();
         assert!(verify_plan(&plan));
+        retain_receipt(
+            &format!("{operation}-plan"),
+            &serde_json::to_value(&plan).unwrap(),
+        );
         eprintln!(
             "G2-kernel operation={operation} requests={} program-kind={} offer={} plan={:?}",
             matching.len(),
@@ -158,7 +162,7 @@ fn automatic_source_laws_replay_all_four_g2_programs_through_std_kernel() {
         );
         // Every exact retained input is replayed, including all three distinct
         // formants and energy via the one curve program. No detached caller tape.
-        for retained in matching {
+        for (request_index, retained) in matching.into_iter().enumerate() {
             let mut output = Outputs::default();
             let report = host
                 .run_external_plot_to(
@@ -194,6 +198,35 @@ fn automatic_source_laws_replay_all_four_g2_programs_through_std_kernel() {
                 _ => unreachable!(),
             }
             let kernel = report.kernel.unwrap();
+            let signs = kernel
+                .kernel_sign
+                .iter()
+                .map(|event| {
+                    serde_json::json!({
+                        "sequence":event.sequence,"node":event.node.0,
+                        "port":event.port.map(|port| port.0),
+                        "request":event.request.map(|request| request.0),
+                        "kind":format!("{:?}", event.kind),
+                    })
+                })
+                .collect::<Vec<_>>();
+            retain_receipt(
+                &format!("{operation}-request-{request_index}"),
+                &serde_json::json!({
+                    "operation":operation,"request_index":request_index,
+                    "source":authored.expanded.source_document_id,
+                    "checked":authored.expanded.checked_plot_id,
+                    "expanded":authored.expanded.expanded_plot_id,
+                    "plan":plan.plan_id,"active_play":kernel.active_play_id,
+                    "gear":gear.gear_id,"selected_offer":selected_offer,
+                    "input_canonical":retained.input_canonical(),
+                    "expected_output_canonical":retained.output_canonical(),
+                    "delivered_output_canonical":output.0[0].bytes,
+                    "kernel_sign":signs,
+                    "value_capacity_before":kernel.value_allocation_capacity_before,
+                    "value_capacity_after":kernel.value_allocation_capacity_after,
+                }),
+            );
             assert_eq!(
                 kernel.value_allocation_capacity_before,
                 kernel.value_allocation_capacity_after
@@ -255,4 +288,16 @@ fn actual_law_sources(
         .install_expression_law_witnesses(&witnesses)
         .unwrap();
     (speech, catalog, context)
+}
+
+fn retain_receipt(name: &str, value: &serde_json::Value) {
+    if let Some(root) = std::env::var_os("CONDUIT_G2_LAW_RECEIPT_OUTPUT") {
+        let root = std::path::PathBuf::from(root);
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join(format!("{name}.json")),
+            serde_json::to_vec_pretty(value).unwrap(),
+        )
+        .unwrap();
+    }
 }
