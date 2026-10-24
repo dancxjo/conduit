@@ -108,3 +108,10 @@ docs/audits/evidence/gui-look-6349-vocabulary/shared-vocabulary-native-retry.log
 docs/audits/evidence/quantity-play-6387/catalog.log -text whitespace=-trailing-space,-blank-at-eof
 docs/audits/evidence/quantity-play-6387/completion-pressure.log -text whitespace=-trailing-space,-blank-at-eof
 docs/audits/evidence/quantity-play-6387/default-queues-kernel.log -text whitespace=-trailing-space,-blank-at-eof
+
+# Exact additional raw GUI producer logs; retain byte-for-byte evidence.
+docs/audits/evidence/gui-look-6349-current-native/application-program-headers.log -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/gui-look-6349-current-native/embedded-extraction-tests.log -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/gui-look-6349-handbook-chrome/native-selection-cpu-tests.log -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/gui-look-6349-handbook-chrome/native-selection-offer-tests.log -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/gui-look-6349-local-a11y-baseline-refusal/guard-tests.log -text whitespace=-trailing-space,-blank-at-eof
