@@ -93,7 +93,7 @@ fn owner_display_frames_retain_the_actual_body_face_and_timed_look() {
     let look = SevenSegmentLook::fahrenheit().with_colon_fraction();
     assert!(matches!(
         owner_display::Display::prepare(profile(), look.clone(), 3000, 6000, 8),
-        Err(owner_display::Refusal::Brightness)
+        Err(conduit_environment_runtime::display_mask::Refusal::Brightness)
     ));
     let mut display = owner_display::Display::prepare(profile(), look, 3000, 6000, 3).unwrap();
     for (elapsed, expected) in [
