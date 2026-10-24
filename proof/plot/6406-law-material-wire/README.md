@@ -14,7 +14,7 @@ and independently trusted family anchors. Those anchors are absent from the
 wire format. A well-framed omitted law and a foreign package anchor still refuse
 verification; transporting a claim does not authorize its laws.
 
-All five owning tests pass, including real imported and generic-package closure
+Formatting and strict owning Plot/xtask checks pass. All five owning tests pass, including real imported and generic-package closure
 round trips, complete predicate correspondence, every truncated prefix, trailing
 and unknown bytes, excessive length, raw depth and aggregate document pressure.
 The supported native-law-custody entrance includes this target. The prior shared

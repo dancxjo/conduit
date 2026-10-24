@@ -1,0 +1,49 @@
+{
+  "started": 1792871116.9073966,
+  "steps": [
+    {
+      "name": "format",
+      "argv": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "strict-owning",
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "strict-xtask",
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "xtask",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    }
+  ]
+}
