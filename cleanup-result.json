@@ -1,0 +1,268 @@
+{
+  "start_free": 64160583680,
+  "removed": [
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-current-native-materialization",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6400-resource-reference-equality",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5680-overlapping-phone-gestures",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6355-canonical-compositor-image",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-verified-law-realization",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6430-publication-command-order",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6387-current-product-evidence",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6433-standalone-lock-registry",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-source-law-realization",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6068-finite-analysis-owner",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6430-current-carrier-source",
+    "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/parser-punctuation-training",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6335-current-dev-20261024",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6335-whole-item-intrinsic",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-stale-show-diagnostic",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6311-native-continuation",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-common-basis-linear",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-bound",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6318-native-rtc-receipt",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6429-current-temperature",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-delivery",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-compact-size-only",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-resource-epochs",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6209-browser-current",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6315-ack-lint-commit",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-native-current",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6409-lifetime-audit",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/record-stress-cue",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6207-init-stream",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/pagination-fix",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6267-review",
+    "/home/dancxjo/Documents/Codex/2026-10-17/goal-please-finish-and-close-https/work/face-shell",
+    "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-local-face",
+    "/tmp/conduit-6396-linked-validation-source",
+    "/tmp/conduit-6398-carrier-refresh-source",
+    "/tmp/conduit-next-two-face-proof-source",
+    "/tmp/conduit-next-three-focused-source",
+    "/tmp/conduit-creche-protected-cpu",
+    "/tmp/conduit-6389-be722-source",
+    "/tmp/conduit-6351-cb498-linux-release-source",
+    "/tmp/conduit-6351-cb498-forced-fixture"
+  ],
+  "retained": [],
+  "moved": [
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6430-publication-command-order/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6430-publication-command-order-46e49ba7/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/parser-punctuation-training/semantics/language/training/__pycache__",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/parser-punctuation-training-41afed0b/semantics/language/training/__pycache__"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6335-current-dev-20261024/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6335-current-dev-20261024-ee9b8caa/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6335-whole-item-intrinsic/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6335-whole-item-intrinsic-41c403dc/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-bound/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6393-permanent-cord-bound-d52d6bd9/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6318-native-rtc-receipt/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6318-native-rtc-receipt-a052f75a/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-delivery/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6176-current-delivery-0eb36cb4/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6209-browser-current/proof/browser/node_modules",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6209-browser-current-db475cd6/proof/browser/node_modules"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6209-browser-current/proof/browser/test-results",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6209-browser-current-db475cd6/proof/browser/test-results"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6209-browser-current/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6209-browser-current-db475cd6/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-native-current/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6185-native-current-9c5a64cc/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6342-command-owner-a645d2e9/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6207-init-stream/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6207-init-stream-3e008abd/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/pagination-fix/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/pagination-fix-9e7e5cee/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/browser/node_modules",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/access-5630-24b54051/proof/browser/node_modules"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/browser/test-results",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/access-5630-24b54051/proof/browser/test-results"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/access-5630-24b54051/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6267-review/proof/browser/node_modules",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6267-review-35f9be27/proof/browser/node_modules"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6267-review/proof/browser/test-results",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6267-review-35f9be27/proof/browser/test-results"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6267-review/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/6267-review-35f9be27/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-17/goal-please-finish-and-close-https/work/face-shell/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/face-shell-c8317e83/target"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/proof/browser/node_modules",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/gui-pr-update-88de5e38/proof/browser/node_modules"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/proof/browser/test-results",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/gui-pr-update-88de5e38/proof/browser/test-results"
+    },
+    {
+      "from": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/gui-pr-update-88de5e38/target"
+    },
+    {
+      "from": "/home/dancxjo/conduit/node_modules",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/node_modules"
+    },
+    {
+      "from": "/home/dancxjo/conduit/proof/browser/node_modules",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/proof/browser/node_modules"
+    },
+    {
+      "from": "/home/dancxjo/conduit/proof/browser/test-results",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/proof/browser/test-results"
+    },
+    {
+      "from": "/home/dancxjo/conduit/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/target"
+    },
+    {
+      "from": "/home/dancxjo/conduit/targets/esp32/firmware/c3-signal/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/targets/esp32/firmware/c3-signal/target"
+    },
+    {
+      "from": "/home/dancxjo/conduit/targets/esp32/firmware/s3-signal/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/targets/esp32/firmware/s3-signal/target"
+    },
+    {
+      "from": "/home/dancxjo/conduit/targets/esp32/firmware/wroom-signal/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/targets/esp32/firmware/wroom-signal/target"
+    },
+    {
+      "from": "/home/dancxjo/conduit/targets/rp2040/firmware/pico-w-signal/target",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/targets/rp2040/firmware/pico-w-signal/target"
+    },
+    {
+      "from": "/home/dancxjo/conduit/test-results",
+      "to": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/outputs/local-cleanup-20261024/retained-ignored/conduit-2520ac5d/test-results"
+    },
+    {
+      "from": "/tmp/conduit-6351-cb498-linux-release-source/target",
+      "to": "/tmp/conduit-cleanup-retained-20261024/conduit-6351-cb498-linux-release-source-767d7747/target"
+    },
+    {
+      "from": "/tmp/conduit-6351-cb498-forced-fixture/proof/browser/test-results",
+      "to": "/tmp/conduit-cleanup-retained-20261024/conduit-6351-cb498-forced-fixture-5ebdba3f/proof/browser/test-results"
+    }
+  ],
+  "snapshots": {
+    "/home/dancxjo/conduit": "5fedc8eca1c4c7cf20026f10afc7aea50e2ba722",
+    "/home/dancxjo/Documents/Codex/2026-10-17/goal-please-finish-and-close-https/work/face-shell": "7afcb6e0e754373fe568590c926cd3d318389068",
+    "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/parser-punctuation-training": "57a950f315c30b30a4a0db17bbd525d94dea2f21",
+    "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-local-face": "81e778a80804005030e07cf5f1f08d8a0bcb4191",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6355-canonical-compositor-image": "48b8c14a373533f48a7eb384ee53a89e3d506bda",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/record-stress-cue": "2f8af0018dc123e8ce7474f043c69fe43abb2ec8",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6430-current-carrier-source": "011dfcd8a87059eb9805c79e12e35ecc548322fa",
+    "/tmp/conduit-creche-protected-cpu": "195f5a6058a374b4abb0e27dab6fd5f37e316049"
+  },
+  "primary": "clean detached origin/dev",
+  "deleted_branches": [
+    "refs/heads/archive/cleanup-20261024/wip/6355-canonical-compositor-image-f039bc2d",
+    "refs/heads/archive/cleanup-20261024/wip/6430-current-carrier-source-c7f03e2f",
+    "refs/heads/archive/cleanup-20261024/wip/browser-local-face-ee89e54a",
+    "refs/heads/archive/cleanup-20261024/wip/conduit-2520ac5d",
+    "refs/heads/archive/cleanup-20261024/wip/conduit-creche-protected-cpu-349f43b4",
+    "refs/heads/archive/cleanup-20261024/wip/face-shell-c8317e83",
+    "refs/heads/archive/cleanup-20261024/wip/parser-punctuation-training-41afed0b",
+    "refs/heads/archive/cleanup-20261024/wip/record-stress-cue-c7dd2cae",
+    "refs/heads/codex/6349-gui-polish",
+    "refs/heads/dev",
+    "refs/heads/diagnostic/6179-stale-show-stack",
+    "refs/heads/evidence/6185-current-hostile-bridge-20261023",
+    "refs/heads/evidence/6387-current-product-20261024",
+    "refs/heads/fix/5604-current-face",
+    "refs/heads/fix/6176-privilege-inventory",
+    "refs/heads/fix/6209-owner-browser-current-dev",
+    "refs/heads/fix/6400-resource-reference-equality-20261024",
+    "refs/heads/integrate/reviewed-open-prs-with-custody-20261024",
+    "refs/heads/perf/creche-defer-candidate-planning",
+    "refs/heads/prep/4907-parser-punctuation",
+    "refs/heads/prep/5680-current-gestures-20261024",
+    "refs/heads/prep/6041-local-creche-mask",
+    "refs/heads/prep/6065-current-native-materialization-20261024",
+    "refs/heads/prep/6068-finite-analysis-owner-20261024",
+    "refs/heads/prep/6072-resource-epochs-20261024",
+    "refs/heads/prep/6176-current-dev-99dd",
+    "refs/heads/prep/6185-current-dev-61b",
+    "refs/heads/prep/6311-current-native-continuation-20261024",
+    "refs/heads/prep/6318-native-rtc-receipt-20261024",
+    "refs/heads/prep/6335-current-dev-20261024",
+    "refs/heads/prep/6335-whole-item-intrinsic-20261023",
+    "refs/heads/prep/6342-refreshed-9607-20261024",
+    "refs/heads/prep/6355-canonical-compositor-image-20261024",
+    "refs/heads/prep/6386-common-basis-linear-20261024",
+    "refs/heads/prep/6389-be722-independent-proof-20261024",
+    "refs/heads/prep/6406-source-law-realization-20261024",
+    "refs/heads/prep/6406-verified-law-realization-20261024",
+    "refs/heads/prep/6407-native-law-custody-20261024",
+    "refs/heads/prep/6409-persistent-host-proof-20261024",
+    "refs/heads/prep/next-three-focused-20261024",
+    "refs/heads/prep/next-two-face-proof-20261024",
+    "refs/heads/prep/record-stress-cue-20261024",
+    "refs/heads/repair/6398-current-source-carrier-20261024",
+    "refs/heads/repair/6422-compact-size-only-20261024",
+    "refs/heads/repair/6429-current-temperature-20261024",
+    "refs/heads/repair/6430-current-carrier-source-20261024",
+    "refs/heads/repair/6430-publication-command-order-20261024",
+    "refs/heads/repair/6433-standalone-lock-registry-20261024",
+    "refs/heads/repair/environment-schema-mask-locks-20261024",
+    "refs/heads/test/6351-cb498-forced-colors-20261024"
+  ],
+  "retained_branches": [],
+  "end_free": 91160649728,
+  "final": {
+    "worktrees": 1,
+    "local_branches": 0,
+    "original_worktrees": 128,
+    "original_local_branches": 499,
+    "total_worktrees_removed": 127,
+    "total_local_branches_removed": 499,
+    "primary_clean": true
+  }
+}

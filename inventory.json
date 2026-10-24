@@ -1,0 +1,3045 @@
+{
+  "time": 1792880626.2136903,
+  "worktrees": [
+    {
+      "worktree": "/home/dancxjo/conduit",
+      "HEAD": "9c2847e431280ea1ed816ae1f09bd065b8b587aa",
+      "branch": "refs/heads/perf/creche-defer-candidate-planning",
+      "status_raw": "?? work/6159-open-layout-children.json\u0000?? work/birth-control-current/\u0000",
+      "ignored_count": 63781,
+      "dirty": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-17/goal-please-finish-and-close-https/work/face-shell",
+      "HEAD": "0dd4d2a9c024a2c7f86a4de75e641453a2f5ba06",
+      "branch": "refs/heads/fix/5604-current-face",
+      "status_raw": " M docs/audits/native-shell-face-f2.md\u0000 M docs/proof/native-shell-cross-mask.md\u0000M  proof/ci/pipeline-conduitos-journey-docs.spec.mjs\u0000 M targets/conduitos/make/xtask/journey_proof.rs\u0000MM targets/conduitos/make/xtask/journey_proof/face_correspondence.rs\u0000A  targets/conduitos/make/xtask/journey_proof/face_correspondence_tests.rs\u0000 M targets/conduitos/make/xtask/journey_proof/face_input.rs\u0000 M targets/conduitos/src/product_front_door/face_workspace.rs\u0000 M targets/conduitos/src/product_front_door/face_workspace_editor_admission_tests.rs\u0000 M targets/conduitos/src/product_front_door/native_action_evidence.rs\u0000M  tools/ci/pipeline/targets.mjs\u0000M  tools/ci/stage-conduitos-pages-evidence.mjs\u0000?? targets/conduitos/src/product_front_door/face_workspace/submission.rs\u0000",
+      "ignored_count": 131,
+      "dirty": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/parser-punctuation-training",
+      "HEAD": "3ddae3bb9d41a466e446a55464348dc043eb6ed4",
+      "branch": "refs/heads/prep/4907-parser-punctuation",
+      "status_raw": " M semantics/language/src/lib.rs\u0000 M semantics/language/tests/common/parser_model_kernel.rs\u0000 M semantics/language/tests/common/parser_selection_driver.rs\u0000?? semantics/language/PUNCTUATION_EVALUATION.md\u0000?? semantics/language/src/parser_punctuation_model.rs\u0000?? semantics/language/tests/parser_punctuation_selection.rs\u0000?? semantics/language/training/analyze_ewt_punctuation_v3.py\u0000?? semantics/language/training/ewt_punctuation_v3/CORPUS_LICENSE.txt\u0000?? semantics/language/training/ewt_punctuation_v3/CORPUS_README.txt\u0000?? semantics/language/training/ewt_punctuation_v3/PREPARATION.md\u0000?? semantics/language/training/ewt_punctuation_v3/conditional-regression-analysis.json\u0000?? semantics/language/training/ewt_punctuation_v3/custody.json\u0000?? semantics/language/training/ewt_punctuation_v3/dev_annotations.jsonl\u0000?? semantics/language/training/ewt_punctuation_v3/ewt_joint.i16\u0000?? semantics/language/training/ewt_punctuation_v3/feature-group-bound.json\u0000?? semantics/language/training/ewt_punctuation_v3/lexical_profile.json\u0000?? semantics/language/training/ewt_punctuation_v3/manifest.json\u0000?? semantics/language/training/ewt_punctuation_v3/preparation-result.json\u0000?? semantics/language/training/ewt_punctuation_v3/ranking_cases.json\u0000?? semantics/language/training/ewt_punctuation_v3/reserved_evaluation.json\u0000?? semantics/language/training/ewt_punctuation_v3/reviewed_teaching.json\u0000?? semantics/language/training/ewt_punctuation_v3/schema.json\u0000?? semantics/language/training/ewt_punctuation_v3/teaching-provenance.json\u0000?? semantics/language/training/ewt_punctuation_v3/test_annotations.jsonl\u0000?? semantics/language/training/train_ewt_punctuation_v3.py\u0000",
+      "ignored_count": 2,
+      "dirty": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-local-face",
+      "HEAD": "ad35c67a03d67364bf47d7b7a83cd1c859f9fa00",
+      "branch": "refs/heads/prep/6041-local-creche-mask",
+      "status_raw": "?? targets/browser/host/assets/portable-face-combobox.mjs\u0000?? targets/browser/host/assets/portable-face-component.mjs\u0000?? targets/browser/host/assets/portable-face-controls.mjs\u0000?? targets/browser/host/assets/portable-face-look.css\u0000?? targets/browser/host/assets/portable-face-model.mjs\u0000",
+      "ignored_count": 0,
+      "dirty": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-parallel-preparation",
+      "HEAD": "a1735beceee316ebe273c0845a8c867815e30117",
+      "branch": "refs/heads/fix/6271-parallel-host-preparation",
+      "status_raw": "",
+      "ignored_count": 6,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-rendezvous-current",
+      "HEAD": "0d83b6af0554294a1f24694045c4c8c23c894352",
+      "branch": "refs/heads/fix/browser-rendezvous-ready-current",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-rendezvous-repair",
+      "HEAD": "e8c25e24ff0af4a669a54f306ee40e924b08d045",
+      "branch": "refs/heads/fix/creche-rendezvous-evidence",
+      "status_raw": "",
+      "ignored_count": 3,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/browser-serial-reference",
+      "HEAD": "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782",
+      "branch": "refs/heads/codex/ci-single-chromium-reference-20261020",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/checked-layout-profile",
+      "HEAD": "c7fabcf3cbd11a8c82ef4d86a7a8738e5edb9ded",
+      "branch": "refs/heads/fix/6159-checked-layout-profile",
+      "status_raw": "",
+      "ignored_count": 651,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/collection-source",
+      "HEAD": "97277a818aae7e01b0a4812e0dfc4b0fd0ddb1b7",
+      "branch": "refs/heads/codex/6039-source-contract",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/component-admission",
+      "HEAD": "43ebd1005c529bafb3256eda135d715f7a63e040",
+      "branch": "refs/heads/prep/6041-component-admission",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/layout-dispositions",
+      "HEAD": "150509ad745556426dad318559d05a4531664056",
+      "branch": "refs/heads/fix/6159-layout-dispositions",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/mechanical-layout-design",
+      "HEAD": "fb335ca254bebbcf34e479d19d5b239709c6b2ad",
+      "branch": "refs/heads/codex/6159-mechanical-layout-design",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-canonical-multi-plot",
+      "HEAD": "36b7301ad30448208a4c3c912e998a7de8535989",
+      "branch": "refs/heads/fix/native-canonical-multi-plot",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-face-readonly",
+      "HEAD": "a9ed419828d41ea58da7c1ed4c011bd441f3081b",
+      "branch": "refs/heads/prep/6042-readonly-browser",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-field-pagination",
+      "HEAD": "e1c6dda63e71247c268aaf44fd7d3cdad8b925da",
+      "branch": "refs/heads/codex/6158-field-pagination",
+      "status_raw": "",
+      "ignored_count": 65,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels",
+      "HEAD": "e29922753a2fca04145551bbb6ae00504fed76a9",
+      "branch": "refs/heads/prep/5990-responsive-panels",
+      "status_raw": "",
+      "ignored_count": 65,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-pressure-proof",
+      "HEAD": "5bb0783f2a8e13167b582c3abd74530523fbf8e1",
+      "branch": "refs/heads/fix/5608-native-pressure-proof",
+      "status_raw": "",
+      "ignored_count": 1,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-source-inspection",
+      "HEAD": "2515b89e11f0c042956bef0726f1ab4b88d43e97",
+      "branch": "refs/heads/fix/6257-native-source-inspection",
+      "status_raw": "",
+      "ignored_count": 1,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography",
+      "HEAD": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+      "branch": "refs/heads/codex/native-acceptance-58979c509",
+      "status_raw": "",
+      "ignored_count": 66,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/open-pr-omnibus",
+      "HEAD": "e54605b7696ab993e7875a04b0d821304d4d4afb",
+      "branch": "refs/heads/codex/open-pr-omnibus-20261021",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/owner-presentation",
+      "HEAD": "bc1448c4bd233257c416bfe5b30c21c940b57293",
+      "branch": "refs/heads/refresh/5645-current-dev",
+      "status_raw": "",
+      "ignored_count": 41,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/owner-proof-lint-dev",
+      "HEAD": "a5a7875699d9af032f8b10bab9b9e8d05a403330",
+      "branch": "refs/heads/codex/ci-owner-proof-lint-expectation",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration",
+      "HEAD": "882e17b00655241058838f4f11ff542992230eb0",
+      "branch": "refs/heads/fix/native-home-capture-proof",
+      "status_raw": "",
+      "ignored_count": 6041,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/portable-controls",
+      "HEAD": "263a5b4a702957daaf47b9ef3e165deafd9c84dc",
+      "branch": "refs/heads/prep/6039-on-creche",
+      "status_raw": "",
+      "ignored_count": 279,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner",
+      "HEAD": "63a4a88474e2719652615ed6e6306215cd10ec37",
+      "branch": "refs/heads/codex/native-local-progress",
+      "status_raw": "",
+      "ignored_count": 237,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-lint-repair",
+      "HEAD": "31ef6eeeb84ccfaaef75dedd7b8add8d3d2581bf",
+      "branch": "refs/heads/codex/5628-remove-stale-lint-expectation",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled",
+      "HEAD": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+      "branch": "refs/heads/codex/5628-reconciled-selection",
+      "status_raw": "",
+      "ignored_count": 237,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look",
+      "HEAD": "ba44c5cb3ddf9447b46349346d16ee490ec9a173",
+      "branch": "refs/heads/codex/5628-selected-typography",
+      "status_raw": "",
+      "ignored_count": 1,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/source-inspection-actor",
+      "HEAD": "dc63e5836ef3ca5d8fcd721ae26260267fb34ae5",
+      "branch": "refs/heads/fix/6257-source-inspection-actor",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/application-authority",
+      "HEAD": "25b5389f08e4741a1735123534c0a5cc118e608e",
+      "branch": "refs/heads/prep/conduitos-application-authority",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/application-guest",
+      "HEAD": "120f81eae92618c0ad81938d9b111282105ab586",
+      "branch": "refs/heads/prep/conduitos-application-guest",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/application-service-profile",
+      "HEAD": "3832f1469a7334c1b66b874ef614e5f018821136",
+      "branch": "refs/heads/agent/application-service-profile",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-ack-parity",
+      "HEAD": "69063ee94db121db4ed687dc4241b246194b1fdd",
+      "branch": "refs/heads/prep/conduitos-ack-parity",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-contracts",
+      "HEAD": "63e983a190f0072ea93802d9eb6e5c452215ceca",
+      "branch": "refs/heads/prep/conduitos-compositor-contracts",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-core",
+      "HEAD": "365bfb8e76994ef6a759a16e64fcf24470fdf649",
+      "branch": "refs/heads/prep/conduitos-retained-core",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-display-grant",
+      "HEAD": "df77cef4cbc7729f8fe7e020e3d7d549bde9a666",
+      "branch": "refs/heads/prep/conduitos-compositor-display-grant",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-display-owner",
+      "HEAD": "37ea88e17dff7518b96dc8d3d185c8901647b92c",
+      "branch": "refs/heads/agent/compositor-display-owner",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-fidelity",
+      "HEAD": "de732d3766c325eac31e1b235d6a43a10ca9645b",
+      "branch": "refs/heads/prep/conduitos-compositor-fidelity",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-frame-plan",
+      "HEAD": "ecab81789c59d9d83382a4a75ebef6a9e1b24bbb",
+      "branch": "refs/heads/agent/compositor-frame-plan",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-frame-refusals",
+      "HEAD": "b3cf7bd7af5083f9f7d508b0c9fcc1ec10d278ec",
+      "branch": "refs/heads/prep/conduitos-frame-refusal-tests",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-hostile-proof",
+      "HEAD": "07913062893ffdf21873f491e0c623c5e2a83444",
+      "branch": "refs/heads/prep/conduitos-hostile-broker-proof",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-integration",
+      "HEAD": "8b296da4d673a5c43d125d8367bb9cd7d4aba950",
+      "branch": "refs/heads/prep/conduitos-compositor-service",
+      "status_raw": "",
+      "ignored_count": 94,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-lifecycle-cleanup",
+      "HEAD": "4b1a2c429474f7e7bbe52733c6c522bfa2173591",
+      "branch": "refs/heads/prep/conduitos-lifecycle-cleanup",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-owner",
+      "HEAD": "907e1fe8cfc65aee634618f43b7b85c518b85654",
+      "branch": "refs/heads/prep/conduitos-compositor-owner",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-owner-recovery",
+      "HEAD": "0ccda77111f2aa7bde96a069f81dfb9727f3f308",
+      "branch": "refs/heads/prep/conduitos-owner-recovery-proof",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-proof-warnings",
+      "HEAD": "fe1874f0dcefd8ecaec933bdbcf463727506e31b",
+      "branch": "refs/heads/prep/conduitos-proof-warning-cleanup",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-raster-staging",
+      "HEAD": "48c272e5319da97a0742efe0257c08351a9c14e2",
+      "branch": "refs/heads/agent/compositor-raster-staging",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-semantic-profile",
+      "HEAD": "414b12fd5eb4a603f432da9f62dc26d2a7e254d5",
+      "branch": "refs/heads/prep/conduitos-semantic-proof-profile",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-semantic-recovery",
+      "HEAD": "e5bf0ab76c91995c11ce91f34f6a1a4e8b63b1a5",
+      "branch": "refs/heads/prep/conduitos-semantic-copy-recovery",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-service-guest",
+      "HEAD": "13aa1a2de28b36e2d3e6578e440e167cc4e0917a",
+      "branch": "refs/heads/agent/compositor-service-guest",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-service-release",
+      "HEAD": "425b7966a7bac8e1ce5dccee49805f5dbdb51621",
+      "branch": "refs/heads/prep/conduitos-service-release",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/compositor-shared-grant",
+      "HEAD": "0aabc45c4835743307e0716e5cdab7466c7add60",
+      "branch": "refs/heads/prep/conduitos-shared-recovery-grant",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/controller-platform",
+      "HEAD": "2bdd9b4cc723dbefefe3cc4000765950b4ed46e5",
+      "branch": "refs/heads/prep/conduitos-controller-platform",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/creche-controller",
+      "HEAD": "df9ba9c078be70e37f178b55adfce2be87a3cc24",
+      "branch": "refs/heads/prep/conduitos-creche-controller",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/creche-guest",
+      "HEAD": "deb698310bf7918a6c3855322855e7e45fc67509",
+      "branch": "refs/heads/prep/conduitos-creche-guest",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/creche-projection",
+      "HEAD": "15e860c20e117a637ac5ebe0155158104e967793",
+      "branch": "refs/heads/prep/conduitos-creche-projection",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/creche-root-broker",
+      "HEAD": "902355d0a398ccf532771b7515851124191c22ef",
+      "branch": "refs/heads/agent/creche-root-broker",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/graph-controls-wire",
+      "HEAD": "43cd5a0de1fbe09983d3c319b423f7c36820620e",
+      "branch": "refs/heads/prep/conduitos-graph-controls-wire",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/graph-facts",
+      "HEAD": "1226cf4a08d5414c95a809ff0aeaab6db3a6efa7",
+      "branch": "refs/heads/prep/conduitos-graph-facts",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/home-controller",
+      "HEAD": "4f596f0fa8d9af44981ed91a75d1f602d7b33403",
+      "branch": "refs/heads/prep/conduitos-home-controller",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/home-presentation",
+      "HEAD": "17060e630f293ebdda8db4a19746489a8836acbb",
+      "branch": "refs/heads/prep/conduitos-home-presentation",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/home-service-profile",
+      "HEAD": "0bca6dbd7943c3445ea893d7a7259864a1608442",
+      "branch": "refs/heads/agent/home-service-profile",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/mask-control",
+      "HEAD": "b2ac37c822692c3a415b32d046040ffbceee9ae9",
+      "branch": "refs/heads/prep/conduitos-mask-control",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/mask-entrance",
+      "HEAD": "c4b644d9a0da54ff0b18013423ced7553795d02f",
+      "branch": "refs/heads/prep/conduitos-mask-entrance",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/mask-fault-view-fence",
+      "HEAD": "cc75cf8ae8d82adef75aafa7b5ef7062d8fd4dc6",
+      "branch": "refs/heads/agent/mask-fault-view-fence",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/microkernel",
+      "HEAD": "4d68db258c095eb83d085a8f7b37ef109bbeb0c9",
+      "branch": "refs/heads/arch/conduitos-microkernel",
+      "status_raw": "",
+      "ignored_count": 36,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/network-codec-refusal-parity",
+      "HEAD": "21d697d09edff98014d03a122b98ef90246828cb",
+      "branch": "refs/heads/agent/network-codec-refusal-parity",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/network-service-profile",
+      "HEAD": "22fcf0c79a3e6f647a85bf61670544eb0e28c30b",
+      "branch": "refs/heads/prep/conduitos-network-service-profile",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/ordinary-runtime-core",
+      "HEAD": "29c51502bdafdd4a192140d0586d1c19bfdaf87d",
+      "branch": "refs/heads/prep/conduitos-ordinary-runtime-core",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/protected-native",
+      "HEAD": "43f38eb26a0cc6bf31bee4667f5e4c0505279b2a",
+      "branch": "refs/heads/prep/conduitos-protected-native",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/runtime-guest",
+      "HEAD": "16894e8ebbff35a02fb22a993f3b939e2aa3ba4a",
+      "branch": "refs/heads/prep/conduitos-runtime-guest",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/runtime-service-profile",
+      "HEAD": "62643c058c59b23e8fb01dd662bdd2d944e87f08",
+      "branch": "refs/heads/agent/runtime-service-profile",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/service-memory",
+      "HEAD": "9d33ce11295486d0e621f7dd8df2c38bca850f3a",
+      "branch": "refs/heads/prep/conduitos-service-memory",
+      "status_raw": "",
+      "ignored_count": 31,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/snapshot-runtime-core",
+      "HEAD": "ecf9a0c3374e075b6d42f25c539ee930ea9c5543",
+      "branch": "refs/heads/prep/conduitos-snapshot-runtime-core",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/tcp-root",
+      "HEAD": "2075b94af7145969fc12c0ce157fcbdc0cba4aea",
+      "branch": "refs/heads/prep/conduitos-tcp-root",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/timer-runtime-core",
+      "HEAD": "a257fd4697f51ceba52010656bee3be2a2990553",
+      "branch": "refs/heads/prep/conduitos-timer-runtime-core",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/tls-root-proxy",
+      "HEAD": "01c595f26c813decc4a7ef41892ad517cc5ec4f7",
+      "branch": "refs/heads/prep/conduitos-tls-root-proxy",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/tutorial-projection",
+      "HEAD": "4fe52b4664a538d1ea00662f2263070b71327038",
+      "branch": "refs/heads/prep/conduitos-tutorial-projection",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/two-service-profiles",
+      "HEAD": "3821fded6b521cfe4babfa8670a21b3dc01ca05d",
+      "branch": "refs/heads/agent/two-service-profiles",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-fix-conduitos-s-model-to/work/workspace-mask",
+      "HEAD": "6dcd5c561d3be013706146d60234d644f79d291f",
+      "branch": "refs/heads/prep/conduitos-workspace-mask",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-20/goal-read-the-codex-goal-objective/work/creche-catalog-first",
+      "HEAD": "05a713e83b8cd9c696fee9788c94a61146a65084",
+      "branch": "refs/heads/perf/creche-catalog-first",
+      "status_raw": "",
+      "ignored_count": 86,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5680-overlapping-phone-gestures",
+      "HEAD": "2ba989ee9ad5c3a30bf88162bdf0762135588351",
+      "branch": "refs/heads/prep/5680-current-gestures-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-current-native-materialization",
+      "HEAD": "90a373aa5b37b424755337fa0d5afa2101243764",
+      "branch": "refs/heads/prep/6065-current-native-materialization-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6068-finite-analysis-owner",
+      "HEAD": "e59f38d70c67e97cf7f50badaf0bff5e857d115b",
+      "branch": "refs/heads/prep/6068-finite-analysis-owner-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6072-resource-epochs",
+      "HEAD": "6e58aafdf5fedf276e3c00534a44dd7d94e20f5a",
+      "branch": "refs/heads/prep/6072-resource-epochs-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-delivery",
+      "HEAD": "c97d4375afdf341852df89538ac510d955c87c4a",
+      "branch": "refs/heads/prep/6176-current-dev-99dd",
+      "status_raw": "",
+      "ignored_count": 16,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-native-current",
+      "HEAD": "864033a09487526a34a90d4de8f0ff4f62acc873",
+      "branch": "refs/heads/prep/6185-current-dev-61b",
+      "status_raw": "",
+      "ignored_count": 16,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6207-init-stream",
+      "HEAD": "cc31ffb0c8a814e508788dbd16df7ab62f43f280",
+      "detached": true,
+      "status_raw": "",
+      "ignored_count": 72,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6209-browser-current",
+      "HEAD": "ae67e850aad24a0eef7e5d5040259b852640a7ed",
+      "branch": "refs/heads/fix/6209-owner-browser-current-dev",
+      "status_raw": "",
+      "ignored_count": 1076,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6311-native-continuation",
+      "HEAD": "ec37536e34754873b4e679e348feb4a097447f12",
+      "branch": "refs/heads/prep/6311-current-native-continuation-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6315-ack-lint-commit",
+      "HEAD": "fb7a8bd42983d9a9a898935f3ca9bda56426a9c1",
+      "branch": "refs/heads/evidence/6185-current-hostile-bridge-20261023",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6318-native-rtc-receipt",
+      "HEAD": "5c43c4812f71f617adc799877687e157078f8baf",
+      "branch": "refs/heads/prep/6318-native-rtc-receipt-20261024",
+      "status_raw": "",
+      "ignored_count": 35,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6335-current-dev-20261024",
+      "HEAD": "5bd7050e6fbff4fc528dceced2ca7c88a95c113b",
+      "branch": "refs/heads/prep/6335-current-dev-20261024",
+      "status_raw": "",
+      "ignored_count": 36,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6335-whole-item-intrinsic",
+      "HEAD": "fa59a9cdf6cf2af69cec86973e09865cb1f25ec1",
+      "branch": "refs/heads/prep/6335-whole-item-intrinsic-20261023",
+      "status_raw": "",
+      "ignored_count": 36,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6342-command-owner",
+      "HEAD": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+      "branch": "refs/heads/prep/6342-refreshed-9607-20261024",
+      "status_raw": "",
+      "ignored_count": 36,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6355-canonical-compositor-image",
+      "HEAD": "c375807a059d3a5cc5d8e866cb27861fe04d7087",
+      "branch": "refs/heads/prep/6355-canonical-compositor-image-20261024",
+      "status_raw": " M targets/conduitos/src/ordinary_domain_proof/compositor.rs\u0000",
+      "ignored_count": 0,
+      "dirty": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-common-basis-linear",
+      "HEAD": "ea4deb875fcf5c247eaa7588d4d1d230806db4b4",
+      "branch": "refs/heads/prep/6386-common-basis-linear-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6400-resource-reference-equality",
+      "HEAD": "725b7952e26f7d5b48431379f0e0a7dbc66c6621",
+      "branch": "refs/heads/fix/6400-resource-reference-equality-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-source-law-realization",
+      "HEAD": "dd111fe3a81fb578d1e2271620eeb8b21ef60ddd",
+      "branch": "refs/heads/prep/6406-source-law-realization-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-verified-law-realization",
+      "HEAD": "5746e23b5e2bf0b6bfa408e7ba284991d2f10ffd",
+      "branch": "refs/heads/prep/6406-verified-law-realization-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody",
+      "HEAD": "ae5e9acd9b7ee439363fb28985ef911f6d17d8d8",
+      "branch": "refs/heads/prep/6407-native-law-custody-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6409-lifetime-audit",
+      "HEAD": "845a8ce66091e8a31573755223bfb0abfa1312db",
+      "branch": "refs/heads/prep/6409-persistent-host-proof-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630",
+      "HEAD": "996cefe6e85c2991f51a773cfcad5b2494d21bd4",
+      "detached": true,
+      "status_raw": "",
+      "ignored_count": 2,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/pagination-fix",
+      "HEAD": "55f21840b5ba482451d8fa58f7ed14789d1bdf69",
+      "branch": "refs/heads/fix/6176-privilege-inventory",
+      "status_raw": "",
+      "ignored_count": 62,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/record-stress-cue",
+      "HEAD": "67764535f84f7674a84a0119abe727fc970fc753",
+      "branch": "refs/heads/prep/record-stress-cue-20261024",
+      "status_raw": " M semantics/speech/tests/common/vocative/carrier.rs\u0000?? semantics/speech/tests/record_stress_cue.rs\u0000",
+      "ignored_count": 0,
+      "dirty": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-stale-show-diagnostic",
+      "HEAD": "b639d2e76c5b8a23d34878d587ee974d162833f0",
+      "branch": "refs/heads/diagnostic/6179-stale-show-stack",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6267-review",
+      "HEAD": "3b3f539ae4b376ce6eaaecb6146c2c1533f6d4b0",
+      "detached": true,
+      "status_raw": "",
+      "ignored_count": 2815,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6387-current-product-evidence",
+      "HEAD": "b0dfaa79566d3ba0ff23b433e52e69f386613ce3",
+      "branch": "refs/heads/evidence/6387-current-product-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-bound",
+      "HEAD": "4b2c1560ea28a97839108eee21fff27891646d7c",
+      "branch": "refs/heads/integrate/reviewed-open-prs-with-custody-20261024",
+      "status_raw": "",
+      "ignored_count": 643,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure",
+      "HEAD": "e57b33ea074e3a6e92e610c52044b3051d482d0c",
+      "branch": "refs/heads/repair/environment-schema-mask-locks-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-compact-size-only",
+      "HEAD": "f321147cfcb0277b8a7b78040794cc73b9755855",
+      "branch": "refs/heads/repair/6422-compact-size-only-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6429-current-temperature",
+      "HEAD": "d504f02fa7b4037fed0896ab869cd6889613221c",
+      "branch": "refs/heads/repair/6429-current-temperature-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6430-current-carrier-source",
+      "HEAD": "c7e1f51f5199b988977c78f2612761c54a3b4151",
+      "branch": "refs/heads/repair/6430-current-carrier-source-20261024",
+      "status_raw": " M site/evidence/shared-speech-carrier/manifest.json\u0000 M site/evidence/shared-speech-carrier/you-would.json\u0000 M site/evidence/shared-speech-carrier/you-would.native\u0000",
+      "ignored_count": 0,
+      "dirty": true
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6430-publication-command-order",
+      "HEAD": "a684ab35a8b1688a3ffa0e28e5ef5d98b0d5da9d",
+      "branch": "refs/heads/repair/6430-publication-command-order-20261024",
+      "status_raw": "",
+      "ignored_count": 2,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6433-standalone-lock-registry",
+      "HEAD": "c690f1b644ce79ffb6c1c2736cd0d111d23d6b6a",
+      "branch": "refs/heads/repair/6433-standalone-lock-registry-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish",
+      "HEAD": "9083e6a0611cbcdf16832536d79f767a7ba19748",
+      "branch": "refs/heads/codex/6349-live-quantity-proof",
+      "status_raw": "",
+      "ignored_count": 115,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update",
+      "HEAD": "422566f58b136c0ea76ca2ed0b7e9758291acef0",
+      "branch": "refs/heads/codex/6349-gui-polish",
+      "status_raw": "",
+      "ignored_count": 25,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/quantity-pr-update",
+      "HEAD": "60f39853d1d81756a77c66b18b3630560faa0b04",
+      "branch": "refs/heads/codex/6387-quantity-play",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/home/dancxjo/conduit/work/birth-control-current",
+      "HEAD": "8009e25a93e0d535ec51ce4e2ccd523340f86743",
+      "branch": "refs/heads/fix/birth-control-ci",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/tmp/conduit-6351-cb498-forced-fixture",
+      "HEAD": "e8be16ebad96ffa32db6e360a491a3d7dbaa0255",
+      "branch": "refs/heads/test/6351-cb498-forced-colors-20261024",
+      "status_raw": "",
+      "ignored_count": 15,
+      "dirty": false
+    },
+    {
+      "worktree": "/tmp/conduit-6351-cb498-linux-release-source",
+      "HEAD": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+      "detached": true,
+      "status_raw": "",
+      "ignored_count": 1074,
+      "dirty": false
+    },
+    {
+      "worktree": "/tmp/conduit-6389-be722-source",
+      "HEAD": "f7a959cdc7304f74d6b058f69f139af94037bab5",
+      "branch": "refs/heads/prep/6389-be722-independent-proof-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/tmp/conduit-6396-linked-validation-source",
+      "HEAD": "62087817d08b174c0301499d3723d861a9d06f80",
+      "detached": true,
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/tmp/conduit-6398-carrier-refresh-source",
+      "HEAD": "cc51be1376775bd5ffd77845ff1c3e3fc3a6c02a",
+      "branch": "refs/heads/repair/6398-current-source-carrier-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/tmp/conduit-creche-protected-cpu",
+      "HEAD": "f2b752d3d305ee9df317581670e54a459678ad3c",
+      "detached": true,
+      "status_raw": " M targets/conduitos/Cargo.toml\u0000 M targets/conduitos/src/native_face_mask/creche_tests.rs\u0000",
+      "ignored_count": 0,
+      "dirty": true
+    },
+    {
+      "worktree": "/tmp/conduit-next-three-focused-source",
+      "HEAD": "b9c397aefcda065859bbcafb78cb5a5df0131395",
+      "branch": "refs/heads/prep/next-three-focused-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    },
+    {
+      "worktree": "/tmp/conduit-next-two-face-proof-source",
+      "HEAD": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae",
+      "branch": "refs/heads/prep/next-two-face-proof-20261024",
+      "status_raw": "",
+      "ignored_count": 0,
+      "dirty": false
+    }
+  ],
+  "branches": [
+    {
+      "ref": "refs/heads/agent/application-service-profile",
+      "sha": "3832f1469a7334c1b66b874ef614e5f018821136"
+    },
+    {
+      "ref": "refs/heads/agent/compositor-display-owner",
+      "sha": "37ea88e17dff7518b96dc8d3d185c8901647b92c"
+    },
+    {
+      "ref": "refs/heads/agent/compositor-frame-plan",
+      "sha": "ecab81789c59d9d83382a4a75ebef6a9e1b24bbb"
+    },
+    {
+      "ref": "refs/heads/agent/compositor-raster-staging",
+      "sha": "48c272e5319da97a0742efe0257c08351a9c14e2"
+    },
+    {
+      "ref": "refs/heads/agent/compositor-service-guest",
+      "sha": "13aa1a2de28b36e2d3e6578e440e167cc4e0917a"
+    },
+    {
+      "ref": "refs/heads/agent/creche-root-broker",
+      "sha": "902355d0a398ccf532771b7515851124191c22ef"
+    },
+    {
+      "ref": "refs/heads/agent/home-service-profile",
+      "sha": "0bca6dbd7943c3445ea893d7a7259864a1608442"
+    },
+    {
+      "ref": "refs/heads/agent/mask-fault-view-fence",
+      "sha": "cc75cf8ae8d82adef75aafa7b5ef7062d8fd4dc6"
+    },
+    {
+      "ref": "refs/heads/agent/network-codec-refusal-parity",
+      "sha": "21d697d09edff98014d03a122b98ef90246828cb"
+    },
+    {
+      "ref": "refs/heads/agent/runtime-service-profile",
+      "sha": "62643c058c59b23e8fb01dd662bdd2d944e87f08"
+    },
+    {
+      "ref": "refs/heads/agent/two-service-profiles",
+      "sha": "3821fded6b521cfe4babfa8670a21b3dc01ca05d"
+    },
+    {
+      "ref": "refs/heads/arch/conduitos-microkernel",
+      "sha": "4d68db258c095eb83d085a8f7b37ef109bbeb0c9"
+    },
+    {
+      "ref": "refs/heads/audit/6202-cord-acceptance",
+      "sha": "824288001a55c898d2522c7c18358eda9f9e5575"
+    },
+    {
+      "ref": "refs/heads/codex/5628-current-owner-reconciliation",
+      "sha": "db1f41fcc4fe2dea2fe9eaedf799855661542eab"
+    },
+    {
+      "ref": "refs/heads/codex/5628-reconciled-selection",
+      "sha": "253dcb985eb8890ddf873d672d3a282f2366e6db"
+    },
+    {
+      "ref": "refs/heads/codex/5628-remove-stale-lint-expectation",
+      "sha": "31ef6eeeb84ccfaaef75dedd7b8add8d3d2581bf"
+    },
+    {
+      "ref": "refs/heads/codex/5628-selected-typography",
+      "sha": "ba44c5cb3ddf9447b46349346d16ee490ec9a173"
+    },
+    {
+      "ref": "refs/heads/codex/5992-native-typography",
+      "sha": "3860faa7e51d0ca8c85f244cbdf9b0101877981f"
+    },
+    {
+      "ref": "refs/heads/codex/5992-repaired-dev-preparation",
+      "sha": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7"
+    },
+    {
+      "ref": "refs/heads/codex/6039-source-contract",
+      "sha": "97277a818aae7e01b0a4812e0dfc4b0fd0ddb1b7"
+    },
+    {
+      "ref": "refs/heads/codex/6158-field-pagination",
+      "sha": "e1c6dda63e71247c268aaf44fd7d3cdad8b925da"
+    },
+    {
+      "ref": "refs/heads/codex/6159-mechanical-layout-design",
+      "sha": "fb335ca254bebbcf34e479d19d5b239709c6b2ad"
+    },
+    {
+      "ref": "refs/heads/codex/6349-gui-polish",
+      "sha": "422566f58b136c0ea76ca2ed0b7e9758291acef0"
+    },
+    {
+      "ref": "refs/heads/codex/6349-live-quantity-proof",
+      "sha": "9083e6a0611cbcdf16832536d79f767a7ba19748"
+    },
+    {
+      "ref": "refs/heads/codex/6387-quantity-play",
+      "sha": "60f39853d1d81756a77c66b18b3630560faa0b04"
+    },
+    {
+      "ref": "refs/heads/codex/ci-owner-proof-lint-expectation",
+      "sha": "a5a7875699d9af032f8b10bab9b9e8d05a403330"
+    },
+    {
+      "ref": "refs/heads/codex/ci-single-chromium-reference-20261020",
+      "sha": "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782"
+    },
+    {
+      "ref": "refs/heads/codex/native-acceptance-58979c509",
+      "sha": "58979c5094efa8d8a5711402e99a29eb1ad1dcad"
+    },
+    {
+      "ref": "refs/heads/codex/native-ci-feature-coverage",
+      "sha": "10fbda078498ae23370789510117733877c411bc"
+    },
+    {
+      "ref": "refs/heads/codex/native-document-ledger",
+      "sha": "0faefb751a6145cc47dd6993c7088ccb73508dc3"
+    },
+    {
+      "ref": "refs/heads/codex/native-document-owner",
+      "sha": "a0f7e8612c6c89fb88600d117718c9ff70572a8d"
+    },
+    {
+      "ref": "refs/heads/codex/native-document-runtime",
+      "sha": "33c7d1365a6ac519f4b39d93b1c5ec1ccedfc707"
+    },
+    {
+      "ref": "refs/heads/codex/native-editor-runtime",
+      "sha": "2f1dc580f6c18f533af067bd79cce8eb47c90bb7"
+    },
+    {
+      "ref": "refs/heads/codex/native-face-runtime-profile",
+      "sha": "5d7258f1573bb01e49bb3b079ee5000e3f08e884"
+    },
+    {
+      "ref": "refs/heads/codex/native-local-progress",
+      "sha": "63a4a88474e2719652615ed6e6306215cd10ec37"
+    },
+    {
+      "ref": "refs/heads/codex/native-patchbay-ingress",
+      "sha": "96804b81fb82bf4295ac85951a16b84def921be0"
+    },
+    {
+      "ref": "refs/heads/codex/native-patchbay-publication",
+      "sha": "5009e70fa72cd4ac15f672107806b1a1c6cbab62"
+    },
+    {
+      "ref": "refs/heads/codex/native-patchbay-publication-test",
+      "sha": "ada527280358a9e51e67cefb99b4773c719acb8e"
+    },
+    {
+      "ref": "refs/heads/codex/native-source-handoff",
+      "sha": "526ff2fb848522dec6e3074f07d227dc6d4e44f8"
+    },
+    {
+      "ref": "refs/heads/codex/open-pr-omnibus-20261021",
+      "sha": "e54605b7696ab993e7875a04b0d821304d4d4afb"
+    },
+    {
+      "ref": "refs/heads/codex/open-pr-omnibus-20261022",
+      "sha": "e56a7c02819e1a994e380b036186dda95f32fc0f"
+    },
+    {
+      "ref": "refs/heads/codex/patchbay-source-fore",
+      "sha": "4948581e6e9260c01ead174409ebb9352c987d0c"
+    },
+    {
+      "ref": "refs/heads/codex/shared-shard-test-module-path",
+      "sha": "e24fe3f402ab22a78df3bbfdb17e12b13331e7f4"
+    },
+    {
+      "ref": "refs/heads/debug/6181-current-runtime-refusal",
+      "sha": "ece9f2ca064ddb02975908e309cb60a85f2281f2"
+    },
+    {
+      "ref": "refs/heads/dev",
+      "sha": "72ab3b367c236653dff0b5726939e08de62390b9"
+    },
+    {
+      "ref": "refs/heads/diagnostic/6179-stale-show-stack",
+      "sha": "b639d2e76c5b8a23d34878d587ee974d162833f0"
+    },
+    {
+      "ref": "refs/heads/docs/5372-renderer-correspondence-acceptance-20261024",
+      "sha": "2fa5667893948dd4e9d014ae756faeb54b922aad"
+    },
+    {
+      "ref": "refs/heads/docs/5994-current-native-handoff",
+      "sha": "cfa51d3db32aa0d71b2c337074012a4a797fcc4f"
+    },
+    {
+      "ref": "refs/heads/docs/6291-evidence-count",
+      "sha": "bb50cfaba2ab3b0396508b1d824f92cacfe9dad4"
+    },
+    {
+      "ref": "refs/heads/docs/service-slot-delivery-correspondence",
+      "sha": "9d79a6cb7b70890951baa668c9719eb51bce14da"
+    },
+    {
+      "ref": "refs/heads/evidence/5372-retained-private-review-20261024",
+      "sha": "e51ab23d6e125ed540b74293080eb058b06fe274"
+    },
+    {
+      "ref": "refs/heads/evidence/5679-contextual-ipa-20261024",
+      "sha": "f256d0c733d5c355be4e290a2b471a7bdbb42a3d"
+    },
+    {
+      "ref": "refs/heads/evidence/5679-integration-40060628788-a1",
+      "sha": "d7ac2cf000333b2e06543664b35b1bc590e26e3c"
+    },
+    {
+      "ref": "refs/heads/evidence/5694-dev-0d83-771156116",
+      "sha": "05158ce16bf00358c8d2ddc5aae526daacd54845"
+    },
+    {
+      "ref": "refs/heads/evidence/5695-supported-f12fd3043",
+      "sha": "f03e95b9309a85447791428d42b5ace359ce1a1f"
+    },
+    {
+      "ref": "refs/heads/evidence/5755-dev-8650-b2f8a0a09",
+      "sha": "abe9e3e2e18121a506852769a04b1b6964dcb20e"
+    },
+    {
+      "ref": "refs/heads/evidence/5755-refreshed-b13019952",
+      "sha": "af9599bd843aa1bdec7ef976418bbcd7672d1c2c"
+    },
+    {
+      "ref": "refs/heads/evidence/6057-aarch64-first-frame-20261023",
+      "sha": "639d137afcd5836ced0757a6e828ea4e0b30e518"
+    },
+    {
+      "ref": "refs/heads/evidence/6065-post-closure-e879-20261024",
+      "sha": "d263f395a401a31e323672124274b9f7c48fb52f"
+    },
+    {
+      "ref": "refs/heads/evidence/6176-current-74bf191d8",
+      "sha": "a3401105cce71dd2a0e2eea30dfa578dad55c951"
+    },
+    {
+      "ref": "refs/heads/evidence/6176-refreshed-c97d4375a",
+      "sha": "b79f36171c1c8e8232087f3ec493f1d2d764cef6"
+    },
+    {
+      "ref": "refs/heads/evidence/6180-matched-cache-control-20261022",
+      "sha": "5f5ecd140f6f6e7ec3a650e973a632012eceda8d"
+    },
+    {
+      "ref": "refs/heads/evidence/6183-direct-entry-72d6",
+      "sha": "6dfc07636a8c7923ce122ccb763e5ce3522e93d7"
+    },
+    {
+      "ref": "refs/heads/evidence/6183-normal-pair-1f727",
+      "sha": "9dbb968f5ab915739de84e1e8dab506d853beb7f"
+    },
+    {
+      "ref": "refs/heads/evidence/6183-normal-pair-1f727-2ffef",
+      "sha": "f19f779608bb490407a78a09bc78f3357a92baab"
+    },
+    {
+      "ref": "refs/heads/evidence/6183-trap-native-b0883a753",
+      "sha": "47f1c6e423587b3613cb2d0298fb32ddef2ac8ae"
+    },
+    {
+      "ref": "refs/heads/evidence/6185-accepted-lifecycle-20261023",
+      "sha": "477b1cfb1d0ee2d1674a258130dc0403f83511c4"
+    },
+    {
+      "ref": "refs/heads/evidence/6185-combined-hosted-ab4864bfb",
+      "sha": "09d782b4aad75501d8382d69f73be371316700af"
+    },
+    {
+      "ref": "refs/heads/evidence/6185-current-hostile-bridge-20261023",
+      "sha": "fb7a8bd42983d9a9a898935f3ca9bda56426a9c1"
+    },
+    {
+      "ref": "refs/heads/evidence/6185-normal-c6bf3e72c",
+      "sha": "dce84cb8ba2d7240904b12d6a0b9c623dd31dd6a"
+    },
+    {
+      "ref": "refs/heads/evidence/6204-native-handoff-20261021",
+      "sha": "824ad4f56c8c79bf693c42512821a3793623bd9c"
+    },
+    {
+      "ref": "refs/heads/evidence/6213-complete-graphical-proof",
+      "sha": "6d4d863667b872b93cc3192127afb061f2c6ceae"
+    },
+    {
+      "ref": "refs/heads/evidence/6213-graph-commit-refusal",
+      "sha": "93135bc6eae641c4632c1748abb50a2345070c7f"
+    },
+    {
+      "ref": "refs/heads/evidence/6291-focused-fd6e792b0",
+      "sha": "2db84bf054bb1a9e7f7c5ddcbe54abb17d02296b"
+    },
+    {
+      "ref": "refs/heads/evidence/6302-numeric-policy-c65e91c17",
+      "sha": "9dcb98d8b3ce80d9bb8bcd8859a2dc8d4fe7c089"
+    },
+    {
+      "ref": "refs/heads/evidence/6311-native-rust-check-20261024",
+      "sha": "b6516784710e8f807b40483fd1383963329eaad4"
+    },
+    {
+      "ref": "refs/heads/evidence/6312-6332-integration-40049499201-a1",
+      "sha": "4032fdcdb1472dde1d0c4041010ac0915b9ecdde"
+    },
+    {
+      "ref": "refs/heads/evidence/6312-delivery-custody-20261024",
+      "sha": "07a20b903ed3826356acecc9a0828fef0b2ebd58"
+    },
+    {
+      "ref": "refs/heads/evidence/6312-supported-optional-inputs-20261023",
+      "sha": "7fe3e427aebcd10d67f89dfb51fe521d45e36bb3"
+    },
+    {
+      "ref": "refs/heads/evidence/6313-borrowed-observation-20261023",
+      "sha": "c6e08b231f413d16e9c8754220501d116c6f038c"
+    },
+    {
+      "ref": "refs/heads/evidence/6313-current-dev-b-20261024",
+      "sha": "7a758d39cd77ecec879378fabd528e894075d857"
+    },
+    {
+      "ref": "refs/heads/evidence/6313-current-dev-c-20261024",
+      "sha": "acb8f975a9e7f79b5607c6efe38a7676bc44e0fd"
+    },
+    {
+      "ref": "refs/heads/evidence/6313-full-acceptance-40076050737-a1",
+      "sha": "2027b9655c0292e326ba8fd3bb334aa32deccedb"
+    },
+    {
+      "ref": "refs/heads/evidence/6313-refreshed-85520586",
+      "sha": "6fb01304205a4ec71df375f8616841ec3b79c7c4"
+    },
+    {
+      "ref": "refs/heads/evidence/6314-independent-runtime-20261023",
+      "sha": "4f83ed52003d5d60b95db21327c1867c53b5b076"
+    },
+    {
+      "ref": "refs/heads/evidence/6315-current-semantic-audit-20261023",
+      "sha": "7f7d057a2219554acc1601a8e0de6f2318fc9502"
+    },
+    {
+      "ref": "refs/heads/evidence/6315-semantic-outer-command-20261023",
+      "sha": "bddd5eb31fa81b1527925644cc38134a86fd0f81"
+    },
+    {
+      "ref": "refs/heads/evidence/6317-6318-accounting-prerequisite-20261024",
+      "sha": "0b67906aef6cb0957b90b7b2a72ad3b8f6e42b2a"
+    },
+    {
+      "ref": "refs/heads/evidence/6318-authoritative-caller-route-20261024",
+      "sha": "fa8faed44859acba87214009fc6ae59813bdbd26"
+    },
+    {
+      "ref": "refs/heads/evidence/6318-current-455-negative-20261024",
+      "sha": "a30d210e0cccf6caf7fa752556d83703b6fe2a31"
+    },
+    {
+      "ref": "refs/heads/evidence/6318-current-phase-coverage-20261024",
+      "sha": "28ebc96783d5d7f9a6ee0a88841cf93eac9f382d"
+    },
+    {
+      "ref": "refs/heads/evidence/6318-existing-rtc-staging-fidelity-20261024",
+      "sha": "a4274fcc640a417416476e5ed5471e131d988071"
+    },
+    {
+      "ref": "refs/heads/evidence/6318-native-owner-handoff-20261024",
+      "sha": "70826614710a8667a6d2c69f7539098d46d27abb"
+    },
+    {
+      "ref": "refs/heads/evidence/6318-normal-prerequisite-20261023",
+      "sha": "a8a2a73df57a2972ab25c0eced5e21292feb1fdf"
+    },
+    {
+      "ref": "refs/heads/evidence/6318-publication-refusal-20261023",
+      "sha": "e5f5ab228807acb77f72a185bb04acc6bc2f6f25"
+    },
+    {
+      "ref": "refs/heads/evidence/6319-accepted-publication-20261024",
+      "sha": "7836e8e41649597f9bf08e4f8c513c268512a6f3"
+    },
+    {
+      "ref": "refs/heads/evidence/6320-independent-runtime-20261023",
+      "sha": "cbace82dc987f46f052ab8d662518aa1711a94af"
+    },
+    {
+      "ref": "refs/heads/evidence/6321-6323-independent-frames-20261024",
+      "sha": "2899dd96b02ca3f32af649901b3ba634e0c6a0f7"
+    },
+    {
+      "ref": "refs/heads/evidence/6332-combined-mask-20261023",
+      "sha": "b329037cfea4d8a2fac6b844c5e0b1e08853be9c"
+    },
+    {
+      "ref": "refs/heads/evidence/6334-combined-retirement-20261024",
+      "sha": "6023aa29805ab099e685eb1c3722e6f4907b0238"
+    },
+    {
+      "ref": "refs/heads/evidence/6335-6386-integration-40082798831-a1",
+      "sha": "a439046867456cd6d54d1b1c7801ec324a3ab296"
+    },
+    {
+      "ref": "refs/heads/evidence/6335-b3-native-20261024",
+      "sha": "951f145c4184615eb1b1e507569cc820ab8a94f8"
+    },
+    {
+      "ref": "refs/heads/evidence/6335-current-intrinsic-20261024",
+      "sha": "ab36370d73238825630ef7cd7c8698ebcac93f8f"
+    },
+    {
+      "ref": "refs/heads/evidence/6335-whole-item-native-20261024",
+      "sha": "b60f5acf05cad3865c25638d8e599e2532708a49"
+    },
+    {
+      "ref": "refs/heads/evidence/6339-identical-tree-native-captures-20261024",
+      "sha": "e07c2609dfd06ffa3e7ba89bc9c3ca0e69fc6973"
+    },
+    {
+      "ref": "refs/heads/evidence/6339-parallel-refresh-3e115ac4d",
+      "sha": "2f5c0e26c54d7ff0ce3d54b98b62ceb730a1cdf3"
+    },
+    {
+      "ref": "refs/heads/evidence/6342-compositor-request-owner-20261024",
+      "sha": "801a6f955f1e3f7a48be012f05c33fa27328c946"
+    },
+    {
+      "ref": "refs/heads/evidence/6344-pulse-retirement-20261024",
+      "sha": "a336f06e2f5e11cbe554925c352736959c4b85e1"
+    },
+    {
+      "ref": "refs/heads/evidence/6346-generic-binding-20261023",
+      "sha": "710f7c6c0ce42a1590919e174c70d6ed998dcbae"
+    },
+    {
+      "ref": "refs/heads/evidence/6348-current-dev-20261024",
+      "sha": "428263c5ddeb4f49a6a5c5aaf7618af44cfde792"
+    },
+    {
+      "ref": "refs/heads/evidence/6351-4f6-workspace-js-20261024",
+      "sha": "e892694fe4924abea4d7481d9f17c87247211524"
+    },
+    {
+      "ref": "refs/heads/evidence/6351-cb498-forced-colors-20261024",
+      "sha": "9c8849ba05c8c0eba80cc86fc8fe262aaa9529b5"
+    },
+    {
+      "ref": "refs/heads/evidence/6351-cb498-linux-release-20261024",
+      "sha": "2cd03adf064a522923382677a8cb59a8dae73ae1"
+    },
+    {
+      "ref": "refs/heads/evidence/6351-forced-colors-22542-20261024",
+      "sha": "f6796391cba7abda082f2fcf19847537187e44c9"
+    },
+    {
+      "ref": "refs/heads/evidence/6351-forced-colors-2ab-20261024",
+      "sha": "1fe730d36dd964fdc7d24a6bd873b8fffccba3fe"
+    },
+    {
+      "ref": "refs/heads/evidence/6351-forced-colors-8a0-20261024",
+      "sha": "37a10b8a89491bb0fa9f46ceec138ae1f29cdd5c"
+    },
+    {
+      "ref": "refs/heads/evidence/6351-independent-look-repair-20261024",
+      "sha": "0aeec22d4b0790894517362da0bb7a8dd23613bb"
+    },
+    {
+      "ref": "refs/heads/evidence/6351-native-atlas-review-20261024",
+      "sha": "175a777dd31abe91bd7fd3940a553169ea365b6e"
+    },
+    {
+      "ref": "refs/heads/evidence/6353-collector-repair-20261024",
+      "sha": "3282213cb5f25182a927a09a08331f04ccd8f759"
+    },
+    {
+      "ref": "refs/heads/evidence/6356-browser-operation-proof-20261024",
+      "sha": "de5573a2096451ab3ff7b162b861c610b55d6bb9"
+    },
+    {
+      "ref": "refs/heads/evidence/6357-integration-40064866866-a1",
+      "sha": "a910db4fd3b52c406ca5da99bea527b40fb6dad6"
+    },
+    {
+      "ref": "refs/heads/evidence/6365-current-native-product-20261024",
+      "sha": "b9c7d9325c53382e4bb5b0c93b62e4af9f72e425"
+    },
+    {
+      "ref": "refs/heads/evidence/6366-retained-selected-output-20261024",
+      "sha": "8cc73d89553fec79deb02aa7febe48b531794e56"
+    },
+    {
+      "ref": "refs/heads/evidence/6373-dd6-independent-proof-20261024",
+      "sha": "2852a4d0242821c0fe47ff5f125f03dd46e7ef8d"
+    },
+    {
+      "ref": "refs/heads/evidence/6377-efc-independent-proof-20261024",
+      "sha": "cde36f3b399374d5782498423a19a27ef1bf2819"
+    },
+    {
+      "ref": "refs/heads/evidence/6380-6377-combined-proof-20261024",
+      "sha": "794a75ae73a3566d99034568c32f695f0bbd0ef8"
+    },
+    {
+      "ref": "refs/heads/evidence/6381-accepted-8a17af455",
+      "sha": "c96e997fa5a07b85df0dbbe77cc1eaaa5d506fc2"
+    },
+    {
+      "ref": "refs/heads/evidence/6382-6ab-independent-proof-20261024",
+      "sha": "fb4810392e0a942a0e4a633d5d13ac05167995de"
+    },
+    {
+      "ref": "refs/heads/evidence/6384-recovered-provenance-20261024",
+      "sha": "30ad5457663e0ccce9c53b0cbe9094e16ec9f171"
+    },
+    {
+      "ref": "refs/heads/evidence/6385-fore-independent-proof-20261024",
+      "sha": "e7577ca68fdaf8763bc25be3a78263449c22bc5d"
+    },
+    {
+      "ref": "refs/heads/evidence/6386-independent-custody-20261024",
+      "sha": "32594e93f2068c4f8630cdafaa3c7a6fefeeaf83"
+    },
+    {
+      "ref": "refs/heads/evidence/6387-current-product-20261024",
+      "sha": "b0dfaa79566d3ba0ff23b433e52e69f386613ce3"
+    },
+    {
+      "ref": "refs/heads/evidence/6389-be722-owning-20261024",
+      "sha": "fa84636d7446cd6724a5f5fac0f8688429edce0f"
+    },
+    {
+      "ref": "refs/heads/evidence/6389-be722-runtime-supported-20261024",
+      "sha": "08dd7a420cf6a65aafc7a445d92ec9b1ac92fc2e"
+    },
+    {
+      "ref": "refs/heads/evidence/6393-minimum-cord-storage-20261024",
+      "sha": "f58968f3facadb2601044ba2e40ce4f7b487bc12"
+    },
+    {
+      "ref": "refs/heads/evidence/6396-linked-validation-20261024",
+      "sha": "231e599d62d93f25afc60932b5401c25904f1256"
+    },
+    {
+      "ref": "refs/heads/evidence/6398-current-source-carrier-20261024",
+      "sha": "1c85862eb12c4add69a9f82614fbf1c5f59cf704"
+    },
+    {
+      "ref": "refs/heads/evidence/6402-native-reference-fixture-20261024",
+      "sha": "39fbdcdf809c4181c8f9fb21a765c52723ebc890"
+    },
+    {
+      "ref": "refs/heads/evidence/6403-independent-custody-20261024",
+      "sha": "fb24d254bf656b65d411597548cd626b8235081a"
+    },
+    {
+      "ref": "refs/heads/evidence/6405-display-output-owning-20261024",
+      "sha": "b9ce22c54b4574cab6ce4d0cc4fbadeddb69161f"
+    },
+    {
+      "ref": "refs/heads/evidence/6410-join-ci-regressions-20261024",
+      "sha": "2fc76bac2e282d54b6faca17f7c5bcf9b6d440dc"
+    },
+    {
+      "ref": "refs/heads/evidence/6410-tape-branch-join-20261024",
+      "sha": "2fd28f06e337176b04eb25bc0346fc90908e5835"
+    },
+    {
+      "ref": "refs/heads/evidence/6411-payload-ceiling-owning-20261024",
+      "sha": "f570c67f3a8f6893c07655f052e6d39aed918050"
+    },
+    {
+      "ref": "refs/heads/evidence/6418-optional-custody-pressure-20261024",
+      "sha": "09c1514e7bb3055345a9906b6afb1c3def46885e"
+    },
+    {
+      "ref": "refs/heads/evidence/compositor-6342-40072454599-a1",
+      "sha": "c581e1dc75f0a3e1e388cbb88ad0fb20b5cc2b54"
+    },
+    {
+      "ref": "refs/heads/evidence/d677-current-native-product-20261024",
+      "sha": "a3bacc64ad92cac726d0f92021793022332c6d5c"
+    },
+    {
+      "ref": "refs/heads/evidence/d677-omnibus-lock-registry-20261024",
+      "sha": "d43f2818a0143dcdb81ee319ee11c975a578f5cc"
+    },
+    {
+      "ref": "refs/heads/evidence/dd111-prepare-target-negative-20261024",
+      "sha": "6d663dfbc2888b8294c0895aca85bc1ae00907e9"
+    },
+    {
+      "ref": "refs/heads/evidence/dd3-successful-native-baseline-20261024",
+      "sha": "983644115f2317bdf1494bad38ba225630d6d90d"
+    },
+    {
+      "ref": "refs/heads/evidence/eac-omnibus-final-proof-20261024",
+      "sha": "dc6cdb60a0214d50c05b3396b0f862c02e0354d7"
+    },
+    {
+      "ref": "refs/heads/evidence/electrical-driver-6366-40072454599-a1",
+      "sha": "b29d612e2a156043d4806e1031bc9e6fe8adcbd7"
+    },
+    {
+      "ref": "refs/heads/evidence/electrical-driver-6366-40072454599-a1-be722",
+      "sha": "52973253f54447fbac4ae9d5be6d430fa5149b95"
+    },
+    {
+      "ref": "refs/heads/evidence/environment-6371-integration-40072454599-a1",
+      "sha": "05dc2dd07768cb6e89ae5ac04624e9dcdc86027a"
+    },
+    {
+      "ref": "refs/heads/evidence/environment-schema-mask-coverage-20261024",
+      "sha": "0ab3041a36234a01cba5c47e7ec00936623482f6"
+    },
+    {
+      "ref": "refs/heads/evidence/environment-schema-mask-locks-20261024",
+      "sha": "7f73d3f323aff354b3f9568c3ddcd7666bfb307f"
+    },
+    {
+      "ref": "refs/heads/evidence/gui-stale-collector-review-20261024",
+      "sha": "994f3a0453b22a7a05c9c82a85c9158e8b372955"
+    },
+    {
+      "ref": "refs/heads/evidence/next-three-focused-20261024",
+      "sha": "ad06568054f0009a821414ea35b69bf89226bb1b"
+    },
+    {
+      "ref": "refs/heads/evidence/next-three-independent-review-20261024",
+      "sha": "95d8303f5a7f52ce234482900894186087361914"
+    },
+    {
+      "ref": "refs/heads/evidence/next-two-face-proof-20261024",
+      "sha": "2c04cf7326be2fe18432f75d1db2e56bb786ef60"
+    },
+    {
+      "ref": "refs/heads/evidence/performance-6141-release-8a17-20261024",
+      "sha": "71df7e9ca1511a0adcdabafabaa43187c18ced3f"
+    },
+    {
+      "ref": "refs/heads/evidence/quantity-joined-independent-20261024",
+      "sha": "8c549fa55cce96fb5e690b26de2ef6ab0c65064b"
+    },
+    {
+      "ref": "refs/heads/evidence/ready-four-combined-proof-20261024",
+      "sha": "1102cb8b2c6acab97d4b1528a4fcad6607435b55"
+    },
+    {
+      "ref": "refs/heads/evidence/ready-four-native-owning-20261024",
+      "sha": "5514e2b950887dc70bdf5fa5d8c4b2df9b93311c"
+    },
+    {
+      "ref": "refs/heads/evidence/ready-four-supported-supplement-20261024",
+      "sha": "294a3c03affbb4fd3c42c1d82430f4b042b265b7"
+    },
+    {
+      "ref": "refs/heads/evidence/ready-prs-compatibility-20261024",
+      "sha": "b246bb9a00967ca863e073001be1b1fb1e8cda0a"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-environment-combined-20261024",
+      "sha": "643d30f8279f88375cd53256f2bc16cff1aaf61a"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-followups-accepted-40060628788-a1",
+      "sha": "ef872f185c0df9b8a8bff62a2badc33c6e03bea1"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-followups-owning-20261024",
+      "sha": "4ce70418618fa0445826942aafbace17eae1e533"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-followups-preflight-20261024",
+      "sha": "545d9928fed926384d2c96a3dc3f18f977a66831"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-omnibus-2fd2bcb03",
+      "sha": "b8162b95f3206e0723ca7945d703460b4c17cf8e"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-omnibus-368695685",
+      "sha": "bc83908e3d6adbb56ae6667ca642141da17cf613"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-omnibus-native-20261024",
+      "sha": "30d742ed269b7dc636048a93f6544977622b27ce"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-open-prs-omnibus-20261024",
+      "sha": "c95f46953ed55424c1ba0294cd6c8fab71e545b0"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-open-prs-omnibus-locks-20261024",
+      "sha": "97ddf1303642f5ccd10c4153377ca363a5357744"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-prs-omnibus-b-20261024",
+      "sha": "85c0b1400c51f60ac5aef5698be06a263e48de36"
+    },
+    {
+      "ref": "refs/heads/evidence/reviewed-prs-omnibus-b-refresh-20261024",
+      "sha": "c3755980ce466122f9993b3566a922048f803267"
+    },
+    {
+      "ref": "refs/heads/fix/5219-imported-inspection-admission",
+      "sha": "a6092ae50868b40f2cc7203bb38c8d79730dcc2f"
+    },
+    {
+      "ref": "refs/heads/fix/5516-exact-graph-reading",
+      "sha": "4880ee0e0765fffdea001c3f0769a3ff9893af07"
+    },
+    {
+      "ref": "refs/heads/fix/5518-cross-mask-graph-correspondence",
+      "sha": "1fd12cb37f4e294c2062cf03993746a31deead71"
+    },
+    {
+      "ref": "refs/heads/fix/5604-current-face",
+      "sha": "0dd4d2a9c024a2c7f86a4de75e641453a2f5ba06"
+    },
+    {
+      "ref": "refs/heads/fix/5608-native-pressure-proof",
+      "sha": "5bb0783f2a8e13167b582c3abd74530523fbf8e1"
+    },
+    {
+      "ref": "refs/heads/fix/5628-selected-typography-v2",
+      "sha": "d4bf158e825993495b0ccf2a0c9612a43488cfa6"
+    },
+    {
+      "ref": "refs/heads/fix/5645-component-proof-entry",
+      "sha": "582f549075c74bfe486a2f8bae48c73991dd62ac"
+    },
+    {
+      "ref": "refs/heads/fix/5645-live-component-proof",
+      "sha": "4384c2b935e337dae140f5c43427c34fbb7f8ade"
+    },
+    {
+      "ref": "refs/heads/fix/5694-native-ort-adapter",
+      "sha": "85550738e2457ac0e26e4930f134c019fc470ec9"
+    },
+    {
+      "ref": "refs/heads/fix/5694-optional-ort-cpu",
+      "sha": "e54605b7696ab993e7875a04b0d821304d4d4afb"
+    },
+    {
+      "ref": "refs/heads/fix/5695-hosted-pending-lifecycle",
+      "sha": "71bae89c0780c90030c0b2435cf220c8c2b558c1"
+    },
+    {
+      "ref": "refs/heads/fix/5755-committed-vocative",
+      "sha": "addc4c6c368fd1a693423f0096bc92a0018e56cb"
+    },
+    {
+      "ref": "refs/heads/fix/6158-full-width-continuation",
+      "sha": "c2d8987e0d2b4648e3f83d1cf597bcecd4f71739"
+    },
+    {
+      "ref": "refs/heads/fix/6158-panel-continuation",
+      "sha": "1a74b634802142fe4ee142a6c1738ca890913ab2"
+    },
+    {
+      "ref": "refs/heads/fix/6159-checked-layout-profile",
+      "sha": "c7fabcf3cbd11a8c82ef4d86a7a8738e5edb9ded"
+    },
+    {
+      "ref": "refs/heads/fix/6159-layout-dispositions",
+      "sha": "150509ad745556426dad318559d05a4531664056"
+    },
+    {
+      "ref": "refs/heads/fix/6176-privilege-inventory",
+      "sha": "55f21840b5ba482451d8fa58f7ed14789d1bdf69"
+    },
+    {
+      "ref": "refs/heads/fix/6182-msix-rtc-wake",
+      "sha": "b24a37716841f2908f2587c671f86eb4050e4631"
+    },
+    {
+      "ref": "refs/heads/fix/6182-qualified-hid-wake",
+      "sha": "a4b3962c6c51d0cd55e0eca923aa5f2b1651de97"
+    },
+    {
+      "ref": "refs/heads/fix/6182-transfer-generation",
+      "sha": "9dd209e5f252f436549c65aad1ad1bea34682a3e"
+    },
+    {
+      "ref": "refs/heads/fix/6190-required-item-fallback-harness",
+      "sha": "4bdeae2c37a426f5ff3fc329af4d8a850240fa55"
+    },
+    {
+      "ref": "refs/heads/fix/6201-cord-source-provenance",
+      "sha": "0cfc3afeafa2ca9b697e772fe4dc83d886fa7866"
+    },
+    {
+      "ref": "refs/heads/fix/6201-installed-patchbay-cutover",
+      "sha": "9e6bb1286a9770af1a3ba4c413587346899562ff"
+    },
+    {
+      "ref": "refs/heads/fix/6201-native-fore-admission",
+      "sha": "b88dba634718190e308b04c5cda49775a7e878ea"
+    },
+    {
+      "ref": "refs/heads/fix/6201-native-owner-transport",
+      "sha": "441faa708c3a3fa68ac2c70b609d3b021b788586"
+    },
+    {
+      "ref": "refs/heads/fix/6201-native-runtime-profiles",
+      "sha": "80788a74009719fb775314d59ed5ab31ac428815"
+    },
+    {
+      "ref": "refs/heads/fix/6201-portable-owner-contract",
+      "sha": "af5cc4cef1851116806ff5223189259d77942185"
+    },
+    {
+      "ref": "refs/heads/fix/6201-retained-owner-publication",
+      "sha": "c53f1fef7b5e7dab511af60912affddb5e0fae4d"
+    },
+    {
+      "ref": "refs/heads/fix/6201-root-face-custody",
+      "sha": "b5dd1497ee378abef0e38da6d366aeb089c1883b"
+    },
+    {
+      "ref": "refs/heads/fix/6201-shared-graph-consumers",
+      "sha": "56e20faaf89f09eefdf22945818baa967421f03a"
+    },
+    {
+      "ref": "refs/heads/fix/6205-staged-target-preparation",
+      "sha": "f3e582ce98ede25394a392de4ed06e0b6b086133"
+    },
+    {
+      "ref": "refs/heads/fix/6206-compositor-handoff",
+      "sha": "522eb027e4a94edcd2f02b1fd58703f86c521aff"
+    },
+    {
+      "ref": "refs/heads/fix/6207-bounded-application-codec",
+      "sha": "cbc9c1482f6ad57aa7622caff65b3e5665050567"
+    },
+    {
+      "ref": "refs/heads/fix/6207-bounded-application-init",
+      "sha": "ffd0479fe1e8c583c90e47e7916ebaa2865b9c9d"
+    },
+    {
+      "ref": "refs/heads/fix/6207-exact-sequence-transport",
+      "sha": "6ddf73279ba47f200343eb971d9c4b1d87739193"
+    },
+    {
+      "ref": "refs/heads/fix/6207-staged-graph-projection",
+      "sha": "939af4eb7a54f0eb668e6caac3c7ef2e2df20c12"
+    },
+    {
+      "ref": "refs/heads/fix/6208-ieee-current",
+      "sha": "44671ed44da480b6922c3d931530a078dd4f15b4"
+    },
+    {
+      "ref": "refs/heads/fix/6208-ieee-domain-current",
+      "sha": "806883d5604a82569b9f318691ddea4485937ec5"
+    },
+    {
+      "ref": "refs/heads/fix/6208-native-model-backing",
+      "sha": "2f655918af382a562bcc7b4c5930be6cc5618c69"
+    },
+    {
+      "ref": "refs/heads/fix/6209-custody-current-dev",
+      "sha": "3f1589e0712ffd18fd42d53b0bb6c90870c481f5"
+    },
+    {
+      "ref": "refs/heads/fix/6209-owner-browser-current-dev",
+      "sha": "ae67e850aad24a0eef7e5d5040259b852640a7ed"
+    },
+    {
+      "ref": "refs/heads/fix/6209-owner-refusal-evidence",
+      "sha": "4ff62494ef26bfc2ad94f88315fac693ec209990"
+    },
+    {
+      "ref": "refs/heads/fix/6210-rank-zero-current",
+      "sha": "ecba52b33b4b3720660f4d732c0bb39093f4ec83"
+    },
+    {
+      "ref": "refs/heads/fix/6210-rank-zero-model-tensors",
+      "sha": "ca560a57b09dc6ada9b31abde4cf810b798a228b"
+    },
+    {
+      "ref": "refs/heads/fix/6213-staged-graph-reply",
+      "sha": "0e6ffe777e5ac5e7bb4a3ea5ee8a9baeb409cf61"
+    },
+    {
+      "ref": "refs/heads/fix/6243-defer-required-item-wire",
+      "sha": "1a651d7e5dc9c5439fcd7b9e6d2718bad7b7ddc4"
+    },
+    {
+      "ref": "refs/heads/fix/6252-prepared-application-storage",
+      "sha": "3fd53c851fdc49892d098b2365e77527d41f36c5"
+    },
+    {
+      "ref": "refs/heads/fix/6257-native-source-inspection",
+      "sha": "2515b89e11f0c042956bef0726f1ab4b88d43e97"
+    },
+    {
+      "ref": "refs/heads/fix/6257-source-inspection-actor",
+      "sha": "dc63e5836ef3ca5d8fcd721ae26260267fb34ae5"
+    },
+    {
+      "ref": "refs/heads/fix/6263-bounded-graph-reply",
+      "sha": "1657357ba6463621ee4465aeccff8f682ec6a9d2"
+    },
+    {
+      "ref": "refs/heads/fix/6263-combined-proof",
+      "sha": "5c06c894e0f93892b8ae0ee7afb4a80ecf4237d4"
+    },
+    {
+      "ref": "refs/heads/fix/6271-parallel-host-preparation",
+      "sha": "a1735beceee316ebe273c0845a8c867815e30117"
+    },
+    {
+      "ref": "refs/heads/fix/6276-native-source-artifact-custody",
+      "sha": "8bf7ec50ff95620ff3b165fa54b754b01569bd95"
+    },
+    {
+      "ref": "refs/heads/fix/6283-encounter-preparation-budget",
+      "sha": "6fb23a36bf7f5a37d2515ca58de75037da4de5bb"
+    },
+    {
+      "ref": "refs/heads/fix/6283-native-startup-phases",
+      "sha": "900fc874d3de25e1f2a0d3c7e0eb6b1802f4612e"
+    },
+    {
+      "ref": "refs/heads/fix/6313-borrowed-observation-20261023",
+      "sha": "85520586a1d11f48abe68b602cf058c2f548a6b9"
+    },
+    {
+      "ref": "refs/heads/fix/6315-standalone-ack-lint-327f",
+      "sha": "864033a09487526a34a90d4de8f0ff4f62acc873"
+    },
+    {
+      "ref": "refs/heads/fix/6366-retained-selected-output-20261024",
+      "sha": "b584f81559e59b0ccbf1e93225c7547007c7bba2"
+    },
+    {
+      "ref": "refs/heads/fix/6400-resource-reference-equality-20261024",
+      "sha": "725b7952e26f7d5b48431379f0e0a7dbc66c6621"
+    },
+    {
+      "ref": "refs/heads/fix/application-bitmap-word-ranges",
+      "sha": "7368c9685faf13c1bd422273503feee6b51e552d"
+    },
+    {
+      "ref": "refs/heads/fix/application-codec-fixture-custody",
+      "sha": "fe7e2dbdd32a230490a1b8ed3d3cec2400599cb8"
+    },
+    {
+      "ref": "refs/heads/fix/avr-canonical-hex-compat",
+      "sha": "110d3edc0620338120bad22373c87b3a4642d947"
+    },
+    {
+      "ref": "refs/heads/fix/birth-control-ci",
+      "sha": "8009e25a93e0d535ec51ce4e2ccd523340f86743"
+    },
+    {
+      "ref": "refs/heads/fix/browser-membership-admission",
+      "sha": "191c01228a93ae2b65da72b16c1b761850a1bb8f"
+    },
+    {
+      "ref": "refs/heads/fix/browser-rendezvous-ready-current",
+      "sha": "0d83b6af0554294a1f24694045c4c8c23c894352"
+    },
+    {
+      "ref": "refs/heads/fix/creche-rendezvous-evidence",
+      "sha": "e8c25e24ff0af4a669a54f306ee40e924b08d045"
+    },
+    {
+      "ref": "refs/heads/fix/current-dev-format",
+      "sha": "1dfd0ec64593663a8876624741a531b107029ce2"
+    },
+    {
+      "ref": "refs/heads/fix/imported-onnx-admission-current",
+      "sha": "930aec1f0ba23ab6a2dbad7811d88dbaa6569c55"
+    },
+    {
+      "ref": "refs/heads/fix/native-canonical-multi-plot",
+      "sha": "36b7301ad30448208a4c3c912e998a7de8535989"
+    },
+    {
+      "ref": "refs/heads/fix/native-graph-notice-expectations",
+      "sha": "939af4eb7a54f0eb668e6caac3c7ef2e2df20c12"
+    },
+    {
+      "ref": "refs/heads/fix/native-home-capture-proof",
+      "sha": "882e17b00655241058838f4f11ff542992230eb0"
+    },
+    {
+      "ref": "refs/heads/fix/native-ingress-unused-plan",
+      "sha": "0011ac990303649a13d376472ea6ee4f164754d9"
+    },
+    {
+      "ref": "refs/heads/fix/native-pages-checkpoint-contract",
+      "sha": "7e0aea1e93af39a7eabb3c96ebbb971a471f6668"
+    },
+    {
+      "ref": "refs/heads/fix/native-play-proof-refusal",
+      "sha": "84b86ee725dd8950fce6036470466f9dfdcc4c4b"
+    },
+    {
+      "ref": "refs/heads/fix/native-scene-control-regressions",
+      "sha": "c331443484a190e20b29a603d6daaa520a262595"
+    },
+    {
+      "ref": "refs/heads/fix/ordinary-runtime-present-bound",
+      "sha": "50360a080863f112d65a0220531ca94c1dc7da30"
+    },
+    {
+      "ref": "refs/heads/fix/publication-creche-look-captures",
+      "sha": "05b112a587aa6f89b0af271c5b05ce5cc7c92c54"
+    },
+    {
+      "ref": "refs/heads/fix/publish-native-journey-27",
+      "sha": "eb2a3a3cf61cb8b73dcce76390be3463740569d5"
+    },
+    {
+      "ref": "refs/heads/fix/x86-nm-fault-return",
+      "sha": "3aace474e5734df15824900cee9fd7272bf7f401"
+    },
+    {
+      "ref": "refs/heads/integrate/6284-json-encounter-budget",
+      "sha": "3e04b6000af3c6dc207f6cc0b6800d5d86053d27"
+    },
+    {
+      "ref": "refs/heads/integrate/6291-lint-custody",
+      "sha": "f70d24c058f96cad54d15f47702ada6f2ebea863"
+    },
+    {
+      "ref": "refs/heads/integrate/6300-evidence-20261023",
+      "sha": "c59ba9b81f9e3eb3b3a9c1c318917f984d174693"
+    },
+    {
+      "ref": "refs/heads/integrate/6348-current-dev-20261024",
+      "sha": "238ee89b354077d3085fc51ecb6802d819d8f223"
+    },
+    {
+      "ref": "refs/heads/integrate/current-reviewed-prs-20261024",
+      "sha": "91889ba78fd66e3e11d087b06cce979f308a222b"
+    },
+    {
+      "ref": "refs/heads/integrate/environment-prepared-face-clock",
+      "sha": "d17b9a2757a47d4d941565bf24bcee47465a8ff9"
+    },
+    {
+      "ref": "refs/heads/integrate/open-prs-20261023",
+      "sha": "5c06c894e0f93892b8ae0ee7afb4a80ecf4237d4"
+    },
+    {
+      "ref": "refs/heads/integrate/open-prs-reviewed-repairs-20261024",
+      "sha": "8cf3859d0037e91a35b5aa0e634fc08f0b238ba7"
+    },
+    {
+      "ref": "refs/heads/integrate/ready-prs-with-tape-repair-20261024",
+      "sha": "51c2dee0c0607585c6f20dc4991394909f613bc9"
+    },
+    {
+      "ref": "refs/heads/integrate/remaining-prs-20261023",
+      "sha": "3840ca6d2caebf4bb0b5845efe7ba94d1bae797d"
+    },
+    {
+      "ref": "refs/heads/integrate/reviewed-followups-20261024",
+      "sha": "5ace49b62516b1dca0ddcca9bdf7eeab716963e4"
+    },
+    {
+      "ref": "refs/heads/integrate/reviewed-open-prs-with-custody-20261024",
+      "sha": "4b2c1560ea28a97839108eee21fff27891646d7c"
+    },
+    {
+      "ref": "refs/heads/integrate/reviewed-prs-20261023-2327",
+      "sha": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee"
+    },
+    {
+      "ref": "refs/heads/integrate/reviewed-prs-20261024-b",
+      "sha": "ed1b1cdb9e4cd8edd618211a189bcbd863240e18"
+    },
+    {
+      "ref": "refs/heads/perf/6180-matched-cache-control",
+      "sha": "fb255724930a3a8e91cc6d279121a2a125e745cd"
+    },
+    {
+      "ref": "refs/heads/perf/creche-catalog-first",
+      "sha": "05a713e83b8cd9c696fee9788c94a61146a65084"
+    },
+    {
+      "ref": "refs/heads/perf/creche-defer-candidate-planning",
+      "sha": "9c2847e431280ea1ed816ae1f09bd065b8b587aa"
+    },
+    {
+      "ref": "refs/heads/prep/4907-parser-punctuation",
+      "sha": "3ddae3bb9d41a466e446a55464348dc043eb6ed4"
+    },
+    {
+      "ref": "refs/heads/prep/5219-imported-source-boundary",
+      "sha": "66efaab26e74da47ac197d1242ca6e181b0cc9ba"
+    },
+    {
+      "ref": "refs/heads/prep/5372-cross-mask-witness",
+      "sha": "8d76796e7f24daf839ae6d2c1bcf6bc8106e0de5"
+    },
+    {
+      "ref": "refs/heads/prep/5372-current-acceptance-20261024",
+      "sha": "1c9da65cfed26ab4f3e8973ad4f06394127eed12"
+    },
+    {
+      "ref": "refs/heads/prep/5630-accessible-owner-receipt",
+      "sha": "10c6c57a6104a92807436e6a193042e302ab7265"
+    },
+    {
+      "ref": "refs/heads/prep/5630-generic-proof-20261022",
+      "sha": "0f9863ce248c1d4b65c71a2083e09372df01ebd5"
+    },
+    {
+      "ref": "refs/heads/prep/5679-contextual-ipa-20261024",
+      "sha": "7667b7f7ef5f1982c54065236696cb3e8f4ebe88"
+    },
+    {
+      "ref": "refs/heads/prep/5680-current-gestures-20261024",
+      "sha": "2ba989ee9ad5c3a30bf88162bdf0762135588351"
+    },
+    {
+      "ref": "refs/heads/prep/5680-overlapping-phone-gestures-20261024",
+      "sha": "6a2a58f78c444c65f3154b96cfb56c7895840c15"
+    },
+    {
+      "ref": "refs/heads/prep/5694-current-proof-5887-20261023",
+      "sha": "e1a00684ed96cf474a74f0fb046bdf0e1db2f93f"
+    },
+    {
+      "ref": "refs/heads/prep/5694-native-adapter-current",
+      "sha": "5887a39ebb4f4902524560a3e485c2707fed5061"
+    },
+    {
+      "ref": "refs/heads/prep/5694-native-dev-0d83",
+      "sha": "771156116d612cac4d86d2bc8700341ca5c869cb"
+    },
+    {
+      "ref": "refs/heads/prep/5694-native-dev-8650",
+      "sha": "7b9c8e0f4ad1d95aa993c7b96f9447e0efaa0cf4"
+    },
+    {
+      "ref": "refs/heads/prep/5695-native-current-dev",
+      "sha": "d16a18289e5564662844885cc48e42b535a048f0"
+    },
+    {
+      "ref": "refs/heads/prep/5695-native-lifecycle",
+      "sha": "ded3c6df8e3eb51de0cefde686b562df75b814f8"
+    },
+    {
+      "ref": "refs/heads/prep/5695-native-lifecycle-tests",
+      "sha": "eb725f00ed8205f8f0cd2b64bc929d14d8b616fd"
+    },
+    {
+      "ref": "refs/heads/prep/5695-native-pending-transport",
+      "sha": "c05275b30c4f0139bd9a56091f57d4ec88ab787e"
+    },
+    {
+      "ref": "refs/heads/prep/5755-current-corrected-verb",
+      "sha": "00c14f768d55f0a73488995e035cb4ed1441e131"
+    },
+    {
+      "ref": "refs/heads/prep/5755-current-dev-99dd",
+      "sha": "b1301995250f94733b933b9d4f29316a93b7a185"
+    },
+    {
+      "ref": "refs/heads/prep/5755-current-proof-00c14-20261023",
+      "sha": "7622cd70531745d716ec7e2389c35f33426348aa"
+    },
+    {
+      "ref": "refs/heads/prep/5755-vocative-dev-8650",
+      "sha": "b2f8a0a09ba13e017ea901f2db2fac1dfe206839"
+    },
+    {
+      "ref": "refs/heads/prep/5990-responsive-panels",
+      "sha": "e29922753a2fca04145551bbb6ae00504fed76a9"
+    },
+    {
+      "ref": "refs/heads/prep/6039-on-creche",
+      "sha": "263a5b4a702957daaf47b9ef3e165deafd9c84dc"
+    },
+    {
+      "ref": "refs/heads/prep/6041-component-admission",
+      "sha": "43ebd1005c529bafb3256eda135d715f7a63e040"
+    },
+    {
+      "ref": "refs/heads/prep/6041-local-creche-mask",
+      "sha": "ad35c67a03d67364bf47d7b7a83cd1c859f9fa00"
+    },
+    {
+      "ref": "refs/heads/prep/6042-readonly-browser",
+      "sha": "a9ed419828d41ea58da7c1ed4c011bd441f3081b"
+    },
+    {
+      "ref": "refs/heads/prep/6057-aarch64-g0-20261023",
+      "sha": "b33a0de8984008c789c1bf68a730f475a33ea467"
+    },
+    {
+      "ref": "refs/heads/prep/6057-aarch64-graphics-20261023",
+      "sha": "9cb90b2a2a8ac1e0e10a9d15d9a69264c8ad3a87"
+    },
+    {
+      "ref": "refs/heads/prep/6057-graphical-product-current-dev-20261023",
+      "sha": "58735aee2ca16d668c46d88c9578b8efbc06066a"
+    },
+    {
+      "ref": "refs/heads/prep/6064-current-native-laws",
+      "sha": "56ab5ce372eb1f5151434822786f30722ce03610"
+    },
+    {
+      "ref": "refs/heads/prep/6064-current-source-laws",
+      "sha": "f86c193c4d0b1ebe6c530bfe385a50dd4e21cbde"
+    },
+    {
+      "ref": "refs/heads/prep/6065-current-native-materialization-20261024",
+      "sha": "90a373aa5b37b424755337fa0d5afa2101243764"
+    },
+    {
+      "ref": "refs/heads/prep/6068-finite-analysis-owner-20261024",
+      "sha": "e59f38d70c67e97cf7f50badaf0bff5e857d115b"
+    },
+    {
+      "ref": "refs/heads/prep/6071-current-snapshot-retention",
+      "sha": "44f85d511c28c1098ba1d5cf6fa68a0390d7ac65"
+    },
+    {
+      "ref": "refs/heads/prep/6072-resource-epochs-20261024",
+      "sha": "6e58aafdf5fedf276e3c00534a44dd7d94e20f5a"
+    },
+    {
+      "ref": "refs/heads/prep/6158-bounded-control-captures",
+      "sha": "4435c53863d128a30d447e6c1a0af27f4e7c20a2"
+    },
+    {
+      "ref": "refs/heads/prep/6158-layout-acceptance-tests",
+      "sha": "478c4b74a6f52cd2d080e97970b6007d8ba11dd6"
+    },
+    {
+      "ref": "refs/heads/prep/6158-naming-controls-proof",
+      "sha": "09934e9014c394f76f62024ca76ccd23a3d1d73b"
+    },
+    {
+      "ref": "refs/heads/prep/6158-viewport-proof",
+      "sha": "d2fe01da6bd9ad00dcb572b883e4669b4675949d"
+    },
+    {
+      "ref": "refs/heads/prep/6176-current-delivery-c9d",
+      "sha": "74bf191d84c1c15bad1e6f36479ac30294f0bd47"
+    },
+    {
+      "ref": "refs/heads/prep/6176-current-dev-99dd",
+      "sha": "c97d4375afdf341852df89538ac510d955c87c4a"
+    },
+    {
+      "ref": "refs/heads/prep/6179-after-browser-review",
+      "sha": "fb7ee51338ccd3052851c1213ca1dc518369ed03"
+    },
+    {
+      "ref": "refs/heads/prep/6181-closure-correspondence-20261023",
+      "sha": "37da9a6a9dba9c49f1589f59b59aefc9f673d5d2"
+    },
+    {
+      "ref": "refs/heads/prep/6183-bounded-trap-envelope",
+      "sha": "8eeeb8b145eb8f94d7ae33e53c215146bce8c60e"
+    },
+    {
+      "ref": "refs/heads/prep/6183-clean-service-slot-reuse",
+      "sha": "2f27e75265abb6ca45cd1ea0cc4d46a73f236be3"
+    },
+    {
+      "ref": "refs/heads/prep/6183-clean-slot-evidence",
+      "sha": "497f12960867a4413a4b3a29fb451459cf052aec"
+    },
+    {
+      "ref": "refs/heads/prep/6183-combined-baseline",
+      "sha": "96a9bb5c1f312f6beca5efb8f9c6c2316bafa22c"
+    },
+    {
+      "ref": "refs/heads/prep/6183-combined-evidence-96a9",
+      "sha": "4e363400a9f714d7f534b4ac7a0b55c7726b5f56"
+    },
+    {
+      "ref": "refs/heads/prep/6183-cr3-attribution",
+      "sha": "56623af64643ae070e47a0c572855fb995f9ae72"
+    },
+    {
+      "ref": "refs/heads/prep/6183-cr3-evidence-5662",
+      "sha": "da9ddbc6c855a277fb031c0236adccea5aabd072"
+    },
+    {
+      "ref": "refs/heads/prep/6183-current-clearing-elision",
+      "sha": "46e3f0bd9130680ab9fdbf8467602f3f15c2e2bb"
+    },
+    {
+      "ref": "refs/heads/prep/6183-current-dev-c801",
+      "sha": "c5c857380f524bde2fbd39da91e5120278a00bf4"
+    },
+    {
+      "ref": "refs/heads/prep/6183-current-dev-irq",
+      "sha": "72d6c3b8e5c68d0c92d0622dde9b8caf123dc13f"
+    },
+    {
+      "ref": "refs/heads/prep/6183-current-lifecycle-proof-20261023",
+      "sha": "1fcff50a3d0349200fea22bc19607b8d74ad8e1d"
+    },
+    {
+      "ref": "refs/heads/prep/6183-current-protection-proof-20261023",
+      "sha": "7deda45596fae3747166f23dbdcef2f9552195f4"
+    },
+    {
+      "ref": "refs/heads/prep/6183-d2fc-clearing-elision",
+      "sha": "7fbb4d733525745c3884db999f94d85898441cd6"
+    },
+    {
+      "ref": "refs/heads/prep/6183-delivery-clearing-e577",
+      "sha": "fd6e792b0d4ac0aad22f6ab33e4868716119fc51"
+    },
+    {
+      "ref": "refs/heads/prep/6183-domain-baseline",
+      "sha": "2e084dca80d819a5f138347233ad8efa98583853"
+    },
+    {
+      "ref": "refs/heads/prep/6183-domain-baseline-current",
+      "sha": "83ebd26660c7f858d8ac7da41589d644822fb19d"
+    },
+    {
+      "ref": "refs/heads/prep/6183-normal-baseline-1f727",
+      "sha": "1f7278327cfeb41e0fb2b86218efcde1cffaea83"
+    },
+    {
+      "ref": "refs/heads/prep/6183-normal-clearing-1f727",
+      "sha": "2ffef51ca29975f2fe858d32f10d1385934db419"
+    },
+    {
+      "ref": "refs/heads/prep/6183-privilege-boundary",
+      "sha": "1b5d93a17665beaf85b84231b1f7a3318e768765"
+    },
+    {
+      "ref": "refs/heads/prep/6183-root-state-attribution",
+      "sha": "6582ce15f699ef415a65af58a4c3603b65ed4d28"
+    },
+    {
+      "ref": "refs/heads/prep/6183-service-setup-attribution",
+      "sha": "27df4a09493bc88e10e375be8c50b8b9ebc5eefe"
+    },
+    {
+      "ref": "refs/heads/prep/6183-software-irq-envelope",
+      "sha": "f15475ea2a1e151e1510bd39bb43eed217b4c4b0"
+    },
+    {
+      "ref": "refs/heads/prep/6183-staged-ipc",
+      "sha": "d2d7b69eca496280a0e07ee7cc18396b12f12dac"
+    },
+    {
+      "ref": "refs/heads/prep/6183-staged-ipc-evidence-d2d7",
+      "sha": "5c2187d65cc02a5aea136ed11cb265768cf95e22"
+    },
+    {
+      "ref": "refs/heads/prep/6183-state-evidence-6582",
+      "sha": "c1334ae826a3850889486378a751b64ea5e7f6fe"
+    },
+    {
+      "ref": "refs/heads/prep/6183-transition-assembly-extraction",
+      "sha": "65869425ec2bc4b2a0f02d74d337c769a8e69ebd"
+    },
+    {
+      "ref": "refs/heads/prep/6183-transition-evidence-6586",
+      "sha": "d89ea974f132553f2bd622939b364ce8afc0e437"
+    },
+    {
+      "ref": "refs/heads/prep/6183-trap-current-integration",
+      "sha": "b0883a7531d30d98f7704e29906027c7e7b7bfdf"
+    },
+    {
+      "ref": "refs/heads/prep/6183-trap-envelope-collector",
+      "sha": "69a54cb9fc3b45567fdda6241c761444b09c7b54"
+    },
+    {
+      "ref": "refs/heads/prep/6183-trap-native-b088",
+      "sha": "b0883a7531d30d98f7704e29906027c7e7b7bfdf"
+    },
+    {
+      "ref": "refs/heads/prep/6185-compositor-lifecycle-observation",
+      "sha": "42dc6b201a6fe900725882eb9eef922a31abc3f5"
+    },
+    {
+      "ref": "refs/heads/prep/6185-current-dev-61b",
+      "sha": "864033a09487526a34a90d4de8f0ff4f62acc873"
+    },
+    {
+      "ref": "refs/heads/prep/6185-current-dev-99dd",
+      "sha": "a1610d7d95b42aac1ee0d4d1907f878a8a65e05b"
+    },
+    {
+      "ref": "refs/heads/prep/6185-current-dev-b878",
+      "sha": "d341a1ed0c07c9b7e513b2458adbf71fc305cd48"
+    },
+    {
+      "ref": "refs/heads/prep/6185-current-dev-c801",
+      "sha": "9b388a136bf9241dee7895f407462e3c2649de26"
+    },
+    {
+      "ref": "refs/heads/prep/6185-current-product-integration",
+      "sha": "ab4864bfbf4f5bf2cabf60c6d314b4f32ba43c16"
+    },
+    {
+      "ref": "refs/heads/prep/6185-final-hosted-evidence-20261023",
+      "sha": "4a24141097acbb8c27b0ad931ce074ce55d44e68"
+    },
+    {
+      "ref": "refs/heads/prep/6185-hosted-evidence-20261023",
+      "sha": "f98380d00d8610eb767fab6230079f12d444b29b"
+    },
+    {
+      "ref": "refs/heads/prep/6185-lifecycle-sign",
+      "sha": "1e7909dda5f4d2c7fcae7f5ac5ca915912e1947c"
+    },
+    {
+      "ref": "refs/heads/prep/6185-native-current",
+      "sha": "d059c374e492f46c8e57308ebd875e4233918d67"
+    },
+    {
+      "ref": "refs/heads/prep/6185-normal-lifecycle-collector",
+      "sha": "edd7b4d401c9f9c350480a28bcda4f597e2997a1"
+    },
+    {
+      "ref": "refs/heads/prep/6185-product-hooks",
+      "sha": "804747b19be28b3162885c1bebee763420a3de1f"
+    },
+    {
+      "ref": "refs/heads/prep/6185-pure-lifecycle-parser",
+      "sha": "1663f8a7122155474385b07cdf52e3a0dfd9fddf"
+    },
+    {
+      "ref": "refs/heads/prep/6185-whole-zero-observer",
+      "sha": "9950a16f8c0ea8a9b81fbc24cdf462296ba84585"
+    },
+    {
+      "ref": "refs/heads/prep/6202-accepted-proof-a4eb-20261023",
+      "sha": "fc564f328400657619f65160814c6ea40ce0c5b6"
+    },
+    {
+      "ref": "refs/heads/prep/6207-framed-native-proof",
+      "sha": "c8c304554842095f723c774df5ec2313bbdbe427"
+    },
+    {
+      "ref": "refs/heads/prep/6207-staged-projection-proof",
+      "sha": "ecdaf2037e017fe618bc2fac43d13d2c9b7191d1"
+    },
+    {
+      "ref": "refs/heads/prep/6207-staged-workspace-negative-20261021",
+      "sha": "8aabdc468d70fa793fd5644de640c3a7025277a4"
+    },
+    {
+      "ref": "refs/heads/prep/6208-ieee-current-d2fc",
+      "sha": "a48d3b43c9bdcfa77f3fda5809395bee0e20a3ff"
+    },
+    {
+      "ref": "refs/heads/prep/6208-native-backing-feasibility",
+      "sha": "227d168c5de1065a5a5bb45ee14d96c54910fd59"
+    },
+    {
+      "ref": "refs/heads/prep/6302-current-dev-c801",
+      "sha": "b6c49fead7cfb35a588f04e32462cce75f8eec47"
+    },
+    {
+      "ref": "refs/heads/prep/6302-model-numeric-policy",
+      "sha": "c65e91c1770d13097ad716a8ab44b6ec48539c04"
+    },
+    {
+      "ref": "refs/heads/prep/6311-current-native-continuation-20261024",
+      "sha": "ec37536e34754873b4e679e348feb4a097447f12"
+    },
+    {
+      "ref": "refs/heads/prep/6311-native-continuation-20261024",
+      "sha": "3f7ee5e8c1a5394f5b76cbbbd2f70a72c829564f"
+    },
+    {
+      "ref": "refs/heads/prep/6312-current-delivery-20261023",
+      "sha": "6cf7d453c93348280a8b28c823f12e2884986f44"
+    },
+    {
+      "ref": "refs/heads/prep/6312-current-dev-61b",
+      "sha": "330e05561829aed05511e8bebcaa47c200c648bd"
+    },
+    {
+      "ref": "refs/heads/prep/6312-optional-inputs-c801",
+      "sha": "3875375bddcb2395ba1b85de78ba0875faa08d5e"
+    },
+    {
+      "ref": "refs/heads/prep/6313-current-dev-20261024-b",
+      "sha": "c4914d0043cea604b66492ffada27d4d05d7533e"
+    },
+    {
+      "ref": "refs/heads/prep/6313-current-dev-20261024-c",
+      "sha": "40e63b6a7a79bb5691f98f0706396630bf168047"
+    },
+    {
+      "ref": "refs/heads/prep/6315-ack-validation-test-20261023",
+      "sha": "ef406f8c92c333061a6c33f68988cd2dc1225af6"
+    },
+    {
+      "ref": "refs/heads/prep/6317-canonical-preemption-20261023",
+      "sha": "13cdf05e865c260f23a866c18b20d2beb516a3fb"
+    },
+    {
+      "ref": "refs/heads/prep/6317-current-delivery-20261023",
+      "sha": "512c77d8a155837c0b43203c97083d80df4cd7c9"
+    },
+    {
+      "ref": "refs/heads/prep/6317-quantity-dev-delivery-20261023",
+      "sha": "6663e81a282d4dd912d52d3c098eaf0de183ec45"
+    },
+    {
+      "ref": "refs/heads/prep/6318-bounded-publication-20261023",
+      "sha": "4cc7afae50ca1b591f0c077a9c4d0401af89ab82"
+    },
+    {
+      "ref": "refs/heads/prep/6318-native-rtc-receipt-20261024",
+      "sha": "5c43c4812f71f617adc799877687e157078f8baf"
+    },
+    {
+      "ref": "refs/heads/prep/6331-bootstrap-yaml-fix-20261023",
+      "sha": "1e5e7d4bea8103f5c0059bd81be077f6fc1b4996"
+    },
+    {
+      "ref": "refs/heads/prep/6335-current-dev-20261024",
+      "sha": "5bd7050e6fbff4fc528dceced2ca7c88a95c113b"
+    },
+    {
+      "ref": "refs/heads/prep/6335-whole-item-intrinsic-20261023",
+      "sha": "fa59a9cdf6cf2af69cec86973e09865cb1f25ec1"
+    },
+    {
+      "ref": "refs/heads/prep/6342-command-owner-20261023",
+      "sha": "2845d3ed73caa405b44a45b13135e01c824354b4"
+    },
+    {
+      "ref": "refs/heads/prep/6342-current-dev-20261024",
+      "sha": "e93c9a104942ad813d49baac3573d5bb1b81f88e"
+    },
+    {
+      "ref": "refs/heads/prep/6342-refreshed-9607-20261024",
+      "sha": "295a7170ba0e4e952e281597817db5f2d9e6ad04"
+    },
+    {
+      "ref": "refs/heads/prep/6355-canonical-compositor-image-20261024",
+      "sha": "c375807a059d3a5cc5d8e866cb27861fe04d7087"
+    },
+    {
+      "ref": "refs/heads/prep/6373-independent-proof-20261024",
+      "sha": "dd6b05ec7e72a122fab73e43bfb93089e3b5e58d"
+    },
+    {
+      "ref": "refs/heads/prep/6377-independent-proof-20261024",
+      "sha": "efc427b1926159c9d93a55f6591c76d024798b5e"
+    },
+    {
+      "ref": "refs/heads/prep/6380-6377-combined-proof-20261024",
+      "sha": "0872c37862e62d657fcd57a7740e4655008ebea1"
+    },
+    {
+      "ref": "refs/heads/prep/6382-independent-proof-20261024",
+      "sha": "6ab212c0016048791bcd014f3931f6658c1fe712"
+    },
+    {
+      "ref": "refs/heads/prep/6385-independent-fore-proof-20261024",
+      "sha": "19e5233c44f12bfbd710015c226f8ef94020f057"
+    },
+    {
+      "ref": "refs/heads/prep/6386-common-basis-linear-20261024",
+      "sha": "ea4deb875fcf5c247eaa7588d4d1d230806db4b4"
+    },
+    {
+      "ref": "refs/heads/prep/6389-be722-independent-proof-20261024",
+      "sha": "f7a959cdc7304f74d6b058f69f139af94037bab5"
+    },
+    {
+      "ref": "refs/heads/prep/6406-source-law-realization-20261024",
+      "sha": "dd111fe3a81fb578d1e2271620eeb8b21ef60ddd"
+    },
+    {
+      "ref": "refs/heads/prep/6406-verified-law-realization-20261024",
+      "sha": "5746e23b5e2bf0b6bfa408e7ba284991d2f10ffd"
+    },
+    {
+      "ref": "refs/heads/prep/6407-native-law-custody-20261024",
+      "sha": "ae5e9acd9b7ee439363fb28985ef911f6d17d8d8"
+    },
+    {
+      "ref": "refs/heads/prep/6409-lifetime-audit-20261024",
+      "sha": "de9352f78f8bab809e0f2073838798e195e84dcf"
+    },
+    {
+      "ref": "refs/heads/prep/6409-persistent-host-proof-20261024",
+      "sha": "845a8ce66091e8a31573755223bfb0abfa1312db"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-ack-parity",
+      "sha": "69063ee94db121db4ed687dc4241b246194b1fdd"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-application-authority",
+      "sha": "25b5389f08e4741a1735123534c0a5cc118e608e"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-application-guest",
+      "sha": "120f81eae92618c0ad81938d9b111282105ab586"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-compositor-contracts",
+      "sha": "63e983a190f0072ea93802d9eb6e5c452215ceca"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-compositor-display-grant",
+      "sha": "df77cef4cbc7729f8fe7e020e3d7d549bde9a666"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-compositor-fidelity",
+      "sha": "de732d3766c325eac31e1b235d6a43a10ca9645b"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-compositor-owner",
+      "sha": "907e1fe8cfc65aee634618f43b7b85c518b85654"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-compositor-service",
+      "sha": "8b296da4d673a5c43d125d8367bb9cd7d4aba950"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-controller-platform",
+      "sha": "2bdd9b4cc723dbefefe3cc4000765950b4ed46e5"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-creche-controller",
+      "sha": "df9ba9c078be70e37f178b55adfce2be87a3cc24"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-creche-guest",
+      "sha": "deb698310bf7918a6c3855322855e7e45fc67509"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-creche-projection",
+      "sha": "15e860c20e117a637ac5ebe0155158104e967793"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-frame-refusal-tests",
+      "sha": "b3cf7bd7af5083f9f7d508b0c9fcc1ec10d278ec"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-graph-controls-wire",
+      "sha": "43cd5a0de1fbe09983d3c319b423f7c36820620e"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-graph-facts",
+      "sha": "1226cf4a08d5414c95a809ff0aeaab6db3a6efa7"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-home-controller",
+      "sha": "4f596f0fa8d9af44981ed91a75d1f602d7b33403"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-home-presentation",
+      "sha": "17060e630f293ebdda8db4a19746489a8836acbb"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-hostile-broker-proof",
+      "sha": "07913062893ffdf21873f491e0c623c5e2a83444"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-lifecycle-cleanup",
+      "sha": "4b1a2c429474f7e7bbe52733c6c522bfa2173591"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-mask-control",
+      "sha": "b2ac37c822692c3a415b32d046040ffbceee9ae9"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-mask-entrance",
+      "sha": "c4b644d9a0da54ff0b18013423ced7553795d02f"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-network-service-profile",
+      "sha": "22fcf0c79a3e6f647a85bf61670544eb0e28c30b"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-ordinary-runtime-core",
+      "sha": "29c51502bdafdd4a192140d0586d1c19bfdaf87d"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-owner-recovery-proof",
+      "sha": "0ccda77111f2aa7bde96a069f81dfb9727f3f308"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-proof-warning-cleanup",
+      "sha": "fe1874f0dcefd8ecaec933bdbcf463727506e31b"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-protected-native",
+      "sha": "43f38eb26a0cc6bf31bee4667f5e4c0505279b2a"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-retained-core",
+      "sha": "365bfb8e76994ef6a759a16e64fcf24470fdf649"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-runtime-guest",
+      "sha": "16894e8ebbff35a02fb22a993f3b939e2aa3ba4a"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-semantic-copy-recovery",
+      "sha": "e5bf0ab76c91995c11ce91f34f6a1a4e8b63b1a5"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-semantic-proof-profile",
+      "sha": "414b12fd5eb4a603f432da9f62dc26d2a7e254d5"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-service-memory",
+      "sha": "9d33ce11295486d0e621f7dd8df2c38bca850f3a"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-service-release",
+      "sha": "425b7966a7bac8e1ce5dccee49805f5dbdb51621"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-shared-recovery-grant",
+      "sha": "0aabc45c4835743307e0716e5cdab7466c7add60"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-snapshot-runtime-core",
+      "sha": "ecf9a0c3374e075b6d42f25c539ee930ea9c5543"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-tcp-root",
+      "sha": "2075b94af7145969fc12c0ce157fcbdc0cba4aea"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-timer-runtime-core",
+      "sha": "a257fd4697f51ceba52010656bee3be2a2990553"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-tls-root-proxy",
+      "sha": "01c595f26c813decc4a7ef41892ad517cc5ec4f7"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-tutorial-projection",
+      "sha": "4fe52b4664a538d1ea00662f2263070b71327038"
+    },
+    {
+      "ref": "refs/heads/prep/conduitos-workspace-mask",
+      "sha": "6dcd5c561d3be013706146d60234d644f79d291f"
+    },
+    {
+      "ref": "refs/heads/prep/next-three-focused-20261024",
+      "sha": "b9c397aefcda065859bbcafb78cb5a5df0131395"
+    },
+    {
+      "ref": "refs/heads/prep/next-two-face-proof-20261024",
+      "sha": "8734a4994af36d8b4c28d3b2bd39cc197d65e1ae"
+    },
+    {
+      "ref": "refs/heads/prep/ready-four-combined-proof-20261024",
+      "sha": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1"
+    },
+    {
+      "ref": "refs/heads/prep/record-stress-cue-20261024",
+      "sha": "67764535f84f7674a84a0119abe727fc970fc753"
+    },
+    {
+      "ref": "refs/heads/prep/reviewed-environment-combined-20261024",
+      "sha": "eb166eaa9b22be2256492f195a56933e1922513e"
+    },
+    {
+      "ref": "refs/heads/proof-source/6393-corrected-cord-negative-20261024",
+      "sha": "9ba29d98b6dc29aa599a81dd7dc170125dce9e9d"
+    },
+    {
+      "ref": "refs/heads/proof/6252-workspace-renderer-route",
+      "sha": "9451f08ee54b68a9e2720b174b4609edd8bed2f1"
+    },
+    {
+      "ref": "refs/heads/proof/6334-combined-retirement-20261024",
+      "sha": "1d62af38d72b6a7117c30554d7d9af5562278066"
+    },
+    {
+      "ref": "refs/heads/recovery/4d1dd-native-ci-feature-coverage",
+      "sha": "4d1dd89260002dc6fd23610688eb3f92a4107ba8"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-before-complete-carrier-d03",
+      "sha": "d03f7fd454344ee865e2aeda330ddc9d6ddbe243"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-carried-before-library-budget",
+      "sha": "5a6c53b5cd154995bc4c6fb18977930eaf7987fd"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-carried-before-native-boolean",
+      "sha": "37279b19e111c01e4b253669d9dcea38a53f74b6"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-carried-on-duplicate-repair",
+      "sha": "a15f6a909b6fa0ce53607bb987f49ba474660377"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-integrated-quantity-prep",
+      "sha": "99d71eb08b0c71342ba33fc0cbe80664fb1f6b91"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-model-and-rate-prep",
+      "sha": "cd12acae79a6f26ab851ec227038533d694c2a0a"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-model-before-expression-94",
+      "sha": "d33649e68fd188c20d6849c19861f4d05f77ff64"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-model-before-library-budget",
+      "sha": "29ba617e2599fefdcce7d443ab294821f6c609a7"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-model-before-q3-admission-1018",
+      "sha": "1018f0cf9febf5679878445e046665f2941c8236"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-model-on-duplicate-repair",
+      "sha": "cacca39799551433825b8264233ce2e8a59b375f"
+    },
+    {
+      "ref": "refs/heads/recovery/5212-quantity-before-audio99",
+      "sha": "aa4d631e44bc43eeb7dfbc6f5e16e6aefdaadb07"
+    },
+    {
+      "ref": "refs/heads/recovery/5645-d571300ba-before-dev-refresh",
+      "sha": "d571300ba8d97f99efabe9b852e49b5b70a09a52"
+    },
+    {
+      "ref": "refs/heads/recovery/5668-fundamental-before-authored",
+      "sha": "f79b93919aab36658b38a88a169d46b263ffcc4b"
+    },
+    {
+      "ref": "refs/heads/recovery/5680-before-dev-refresh-20261024",
+      "sha": "875ca9c94bd99ddfb8adef62eab851deced4d710"
+    },
+    {
+      "ref": "refs/heads/recovery/6055-3dc-before-current-dev",
+      "sha": "3dc68b8a7a0dbfa2e91388f803225a2a244fbfb6"
+    },
+    {
+      "ref": "refs/heads/recovery/6063-current-dev",
+      "sha": "0af5931b96ccf08740449ea531f4fe110a081826"
+    },
+    {
+      "ref": "refs/heads/recovery/6252-browser-admission",
+      "sha": "6cd7cfecaf677756b225ca55b0d9114d4deb77bf"
+    },
+    {
+      "ref": "refs/heads/recovery/6252-current-mask-admission",
+      "sha": "5e62e1530abb4bd9f58cf907da07b3ce8f455fbb"
+    },
+    {
+      "ref": "refs/heads/recovery/6252-native-fixture-contracts",
+      "sha": "226d13be67b55532e62746e819f1251d7696d449"
+    },
+    {
+      "ref": "refs/heads/recovery/6252-source-derived-patchbay",
+      "sha": "137dc9c1b26c32622b299f61fc87adbde64d131d"
+    },
+    {
+      "ref": "refs/heads/recovery/6252-workspace-catalog",
+      "sha": "571b67feadb4932172a2f1fdabdc5bcf94ed6fcf"
+    },
+    {
+      "ref": "refs/heads/recovery/6252-workspace-resource-bound",
+      "sha": "29617cc14fcc8213d7202a772aeda36d311d13b6"
+    },
+    {
+      "ref": "refs/heads/recovery/6263-bounded-graph-reply",
+      "sha": "ed35c35982231e8142956e4c9173b044e3bf75b5"
+    },
+    {
+      "ref": "refs/heads/recovery/6344-pulse-review-20261024",
+      "sha": "222e2c7d15017911c9a24f5de4a4a86e947f7ddf"
+    },
+    {
+      "ref": "refs/heads/recovery/6387-evidence-empty-index-20261024",
+      "sha": "42f8cf7512e651fbb3b93c7dc66981a9bbd2698d"
+    },
+    {
+      "ref": "refs/heads/refresh/5645-current-dev",
+      "sha": "bc1448c4bd233257c416bfe5b30c21c940b57293"
+    },
+    {
+      "ref": "refs/heads/repair/6351-forced-colors-22542-20261024",
+      "sha": "0873cfd464a92223b90f5b4418db38126c5bd4df"
+    },
+    {
+      "ref": "refs/heads/repair/6351-forced-colors-2ab-20261024",
+      "sha": "9af4757c74cb4ac233a90e3823fd964df0dda602"
+    },
+    {
+      "ref": "refs/heads/repair/6351-forced-colors-8a0-20261024",
+      "sha": "de99283abc6f9d0c572d7f18737c25777860a43e"
+    },
+    {
+      "ref": "refs/heads/repair/6351-palette-orthogonality-20261024",
+      "sha": "e22bc731803c074d7b235c6518fc747fb4b4ec68"
+    },
+    {
+      "ref": "refs/heads/repair/6356-browser-operation-proof-20261024",
+      "sha": "a971533d8b8bfb7b0f7740cffe31156bf59b4398"
+    },
+    {
+      "ref": "refs/heads/repair/6393-permanent-cord-bound-20261024",
+      "sha": "9485b9e3d2a2ddec797ff4054b8c68066245d865"
+    },
+    {
+      "ref": "refs/heads/repair/6398-current-source-carrier-20261024",
+      "sha": "cc51be1376775bd5ffd77845ff1c3e3fc3a6c02a"
+    },
+    {
+      "ref": "refs/heads/repair/6402-native-reference-negative-fixture-20261024",
+      "sha": "5ea707e47ae321243113688f893365ca1d92513f"
+    },
+    {
+      "ref": "refs/heads/repair/6410-tape-branch-join-20261024",
+      "sha": "6adc488e20284a93d980b91563b94b6e51f758ba"
+    },
+    {
+      "ref": "refs/heads/repair/6414-rustfmt-20261024",
+      "sha": "ee19d57c4f9a29079e4f44d71a22d96f1e11fe24"
+    },
+    {
+      "ref": "refs/heads/repair/6418-optional-custody-pressure-20261024",
+      "sha": "effbe0eb636a34c213e3205872120c58a4e987df"
+    },
+    {
+      "ref": "refs/heads/repair/6422-compact-size-only-20261024",
+      "sha": "f321147cfcb0277b8a7b78040794cc73b9755855"
+    },
+    {
+      "ref": "refs/heads/repair/6429-current-temperature-20261024",
+      "sha": "d504f02fa7b4037fed0896ab869cd6889613221c"
+    },
+    {
+      "ref": "refs/heads/repair/6430-current-carrier-source-20261024",
+      "sha": "c7e1f51f5199b988977c78f2612761c54a3b4151"
+    },
+    {
+      "ref": "refs/heads/repair/6430-publication-command-order-20261024",
+      "sha": "a684ab35a8b1688a3ffa0e28e5ef5d98b0d5da9d"
+    },
+    {
+      "ref": "refs/heads/repair/6433-standalone-lock-registry-20261024",
+      "sha": "c690f1b644ce79ffb6c1c2736cd0d111d23d6b6a"
+    },
+    {
+      "ref": "refs/heads/repair/environment-schema-mask-coverage-20261024",
+      "sha": "20b34eca6763c2afbd4d742b2a408fbe32ea6c15"
+    },
+    {
+      "ref": "refs/heads/repair/environment-schema-mask-locks-20261024",
+      "sha": "e57b33ea074e3a6e92e610c52044b3051d482d0c"
+    },
+    {
+      "ref": "refs/heads/review/6176-current-dev-inventory",
+      "sha": "2318bd2ccc407a52cef779057c29cc504ed3f12e"
+    },
+    {
+      "ref": "refs/heads/test/6179-after-admission-repair",
+      "sha": "af4f2a51bfde3b6080cbf8ae49f0f0e658320534"
+    },
+    {
+      "ref": "refs/heads/test/6179-automatic-stage-refusals",
+      "sha": "87bfb46529529a25586875794f7b211ffa93cd66"
+    },
+    {
+      "ref": "refs/heads/test/6179-startup-refusal-recovery",
+      "sha": "1fc3374ea025c71f886ecb02baf028a5d968f900"
+    },
+    {
+      "ref": "refs/heads/test/6346-generic-binding-20261023",
+      "sha": "66be635986037d7788aa85b3a25e367e7e7f312a"
+    },
+    {
+      "ref": "refs/heads/test/6351-cb498-forced-colors-20261024",
+      "sha": "e8be16ebad96ffa32db6e360a491a3d7dbaa0255"
+    },
+    {
+      "ref": "refs/heads/work-placeholder",
+      "sha": "ab6661fb4d35120755f16dc27b4ee1aeebe103b7"
+    },
+    {
+      "ref": "refs/heads/work/6158-pagination-acceptance",
+      "sha": "e54605b7696ab993e7875a04b0d821304d4d4afb"
+    }
+  ],
+  "processes": [
+    {
+      "pid": 432183,
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update",
+      "comm": "strace",
+      "worktrees": [
+        "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update"
+      ]
+    },
+    {
+      "pid": 432186,
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update",
+      "comm": "conduit-linux-x",
+      "worktrees": [
+        "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update"
+      ]
+    }
+  ]
+}

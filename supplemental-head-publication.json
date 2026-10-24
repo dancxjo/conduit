@@ -1,0 +1,20 @@
+[
+  {
+    "ref": "refs/heads/codex/5992-native-typography",
+    "sha": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
+    "archive_commit": "dceb62a4c3f2fa8bafefd9040c6b9424c1fabedb",
+    "archive_ref": "refs/heads/archive/local-cleanup-20261024/heads/codex/5992-native-typography"
+  },
+  {
+    "ref": "refs/heads/codex/native-ci-feature-coverage",
+    "sha": "10fbda078498ae23370789510117733877c411bc",
+    "archive_commit": "e38d2987edb1c8259465ace06ae2a40aa66fa677",
+    "archive_ref": "refs/heads/archive/local-cleanup-20261024/heads/codex/native-ci-feature-coverage"
+  },
+  {
+    "ref": "refs/heads/fix/6159-checked-layout-profile",
+    "sha": "c7fabcf3cbd11a8c82ef4d86a7a8738e5edb9ded",
+    "archive_commit": "9d99a4c3972526c6ab83eb5ff484ceed2930510b",
+    "archive_ref": "refs/heads/archive/local-cleanup-20261024/heads/fix/6159-checked-layout-profile"
+  }
+]
