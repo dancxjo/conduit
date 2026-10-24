@@ -1,0 +1,9 @@
+type Ordered = {
+ lo: U8
+ hi: U8
+ where .lo <= .hi
+}
+plot arithmetic (
+ >> value: Ordered
+ result: Boolean >>
+) = (true)

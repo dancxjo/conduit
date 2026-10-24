@@ -1,0 +1,27 @@
+{
+  "source_head": "ae5e9acd9b7ee439363fb28985ef911f6d17d8d8",
+  "exit_code": 0,
+  "elapsed_seconds": 473.311491727829,
+  "checked_input_shape": "Record",
+  "law_count": 1,
+  "invalid_input": "lo=2 hi=1, exactoriginalOrdered schema/canonicalframe",
+  "actual_law_evaluation": "Ok([0])",
+  "actual_portable_expression_evaluation": "Ok([1])",
+  "actual_automatic_Std_prepare": "Ok(())",
+  "capability_count_before": 119,
+  "capability_count_after": 120,
+  "actual_advertised_profile": "std/pure-scalar-tape-kernel-hosted@1",
+  "actual_advertised_implementation": "std/kernel-pure-scalar-tape@1",
+  "proof_class": "sourcechecked Nativewherefalse and automaticStd eligibility gap; generic portable evaluation observed; no ordinarykernel/selectedBack execution or exploitclaim",
+  "source_unchanged": true,
+  "artifact_hashes": {
+    "probe-source.conduit": "65d32303e664be58a4f1df56abdf0aaca5dae4d7e779a866a386ef49b75f8188",
+    "invalid-canonical.bin": "541483f5da1f83d34689d738cd7302b24650232bf0f8ee5b3d745a6c0250fd6d",
+    "program.hex": "806adc48738bff0e1a9d8b525fa4693a4e11f35f6fb474fdb0b41011534650ec",
+    "first.log": "05d8e4a14d043754dd5306052216939fdba79a19b87196d9c8a1899271e69a05",
+    "actual-probe-executable": "053a98d30cc7ab62beb5e31bd625c2c6f8e2623835facbf9054d84347fdb2ea2"
+  },
+  "owner_source_hashes": "owner-source-hashes.json",
+  "lockfile": "Noexternaldependencyupgrades; onlystandaloneprobe rootpackageadded",
+  "cache": "RELEASED terminal0; Rootmayresumeexclusiveuse"
+}
