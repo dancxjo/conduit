@@ -1,12 +1,13 @@
 //! One prepared snapshot Host Call, independent of any particular kernel driver
 //! set. This validates and correlates bytes; it does not execute storage.
 use super::*;
+use alloc::{format, string::String, vec::Vec};
 use conduit_core::{AuthorityBinding, PlannedGear};
 use conduit_kernel::{
     scheduler::HostCallRequest, Failure, FailureCode, HostCallId, NodeId, RequestId,
 };
 
-#[derive(serde::Serialize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct SnapshotStorageRequest<'a> {
     pub effect_kind: &'static str,
     pub key: &'a str,
@@ -26,7 +27,7 @@ impl PreparedSnapshotOperation {
     /// Root must retain current Host/Boot/Play custody, actual storage and the
     /// admitted memory/work closure separately; this creates none of them.
     pub fn prepare(placement: &PlannedGear, node: NodeId) -> Result<Self, String> {
-        let reference = crate::installed_browser::resource::reference(placement)?;
+        let reference = crate::snapshot_reference(placement)?;
         let record = PreparedSnapshotRecord::prepare(placement, &reference)
             .map_err(|error| format!("{error:?}"))?;
         Ok(Self {

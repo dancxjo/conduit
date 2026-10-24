@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+host-call = ["dep:conduit-kernel", "dep:conduit-web"]
+serde = ["dep:serde"]
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel", optional = true }
+conduit-web = { path = "../../../semantics/web", default-features = false, optional = true }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }

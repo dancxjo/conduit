@@ -1,9 +1,12 @@
 //! Exact sealed-placement fixtures; no browser storage or Body start is claimed.
 use super::*;
+use alloc::{format, vec, vec::Vec};
 use conduit_core::{ConfigurationEntry, ConfigurationValue};
 use conduit_kernel::{BoundedValueRef, ValueRef};
-#[path = "../../../../../architecture/plot/tests/common/allocation_probe.rs"]
-mod allocation_probe;
+mod allocation_probe {
+    use std::thread_local;
+    include!("../../../../architecture/plot/tests/common/allocation_probe.rs");
+}
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 
