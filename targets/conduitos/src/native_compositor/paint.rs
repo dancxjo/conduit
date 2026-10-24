@@ -46,3 +46,35 @@ pub(super) fn visual_paint(
 #[cfg(all(test, feature = "native-compositor-core"))]
 #[path = "paint_contrast_tests.rs"]
 mod contrast_tests;
+
+/// Complete Look tokens lower to the existing finite semantic paint roles.
+/// Platform accessibility colors always take precedence over authored tokens.
+#[cfg(feature = "native-compositor-core")]
+pub(super) fn visual_look_paint(
+    format: crate::display::DisplayFormat,
+    role: conduit_face::GraphicsPaintRole,
+    expression: Option<&conduit_face::AdmittedVisualExpression>,
+    look: Option<&conduit_face::LookInfo>,
+) -> u32 {
+    use conduit_face::{GraphicsPaintRole as Role, LookVisualFacetOption};
+    if expression.is_some_and(|value| value.platform_forced_colors) {
+        return visual_paint(format, role, expression);
+    }
+    let Some(LookVisualFacetOption::Some(visual)) = look.map(|look| look.visual()) else {
+        return visual_paint(format, role, expression);
+    };
+    let tokens = visual.tokens();
+    let color = match role {
+        Role::Background => tokens.background(),
+        Role::Surface => tokens.surface(),
+        Role::Foreground => tokens.text_primary(),
+        Role::Muted => tokens.text_secondary(),
+        Role::Accent | Role::Selected => tokens.emphasis(),
+        Role::Status | Role::Warning => tokens.warning(),
+        Role::Success => tokens.success(),
+        Role::Danger => tokens.failure(),
+        Role::Focus | Role::Hovered => tokens.focus(),
+        Role::Border => tokens.structure_primary(),
+    };
+    format.pixel(color.red(), color.green(), color.blue())
+}

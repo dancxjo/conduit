@@ -14,7 +14,7 @@ fn structure<'a>(source: &str, component: &str, face: &'a Face) -> PreparedCompo
     let mut startup = catalog.startup_catalog().unwrap();
     install_mask_plot_value_aliases(&mut startup).unwrap();
     for (name, schema) in [
-        ("VisualExpressionInfo", visual_expression_type()),
+        ("LookInfo", look_type()),
         ("ComponentRecipeInfo", component_recipe_type()),
         ("ComponentLayoutInfo", component_layout_type()),
     ] {

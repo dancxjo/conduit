@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from '@playwright/test';
 
 // Renderer fixture only: the callback is not a Body/action receipt.
@@ -1480,4 +1481,45 @@ test('browser root text preference enlarges owner controls without a new Show', 
   const capture = testInfo.outputPath('owner-root-text-forced.png');
   await page.screenshot({ path: capture, fullPage: true });
   await testInfo.attach('owner-root-text-forced', { path: capture, contentType: 'image/png' });
+});
+
+// Canonical bytes are shared with Rust contract proof. This is renderer proof;
+// the fixture callback is not an owner acknowledgement or Body execution.
+test('complete selected Look tokens override palette hints without changing action meaning', async ({ page }, info) => {
+  const wire = Buffer.from((await readFile('proof/conformance/face-look/phosphor-look-v2.hex','utf8')).replace(/\s/gu,''),'hex');
+  const configured = { ...view, component: {
+    maximum_columns:1,reflow_width:720,gutter:12,subject_regions:[0],groups:[0],fallback:null,
+    selected_look:{canonical_value:Array.from(wire)},
+    expression:{expression:{identity:'conduit.look/phosphor@1',density:'compact',palette:'editorial',typography:'editorial',version:2,text_scale_percent:100}},
+  }};
+  await page.setViewportSize({width:900,height:700});
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view=>{
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();globalThis.calls=[];
+    const element=document.createElement('conduit-owner-face');document.body.append(element);
+    element.show(view,{invoke:async call=>globalThis.calls.push(call)});
+  },configured);
+  const element=page.locator('conduit-owner-face');
+  await expect(element).toHaveAttribute('data-component-look','conduit.look/phosphor@1');
+  await expect(element.locator('.owner-face-document')).toHaveCSS('background-color','rgb(5, 7, 11)');
+  const button=element.getByRole('button',{name:'Complete task'});
+  await expect(button).toHaveCSS('background-color','rgb(9, 13, 22)');
+  await button.focus();
+  // Change one admitted token, retaining identity, typography and all Face data.
+  const altered=Buffer.from(wire),background=altered.lastIndexOf(Buffer.from('background'));
+  const red=altered.indexOf(Buffer.from('red'),background)+3;
+  expect(altered[red]).toBe(0);expect(altered.readUInt32LE(red+1)).toBe(1);
+  altered[red+5]=0x30;
+  configured.component.selected_look.canonical_value=Array.from(altered);
+  await element.evaluate((element,view)=>element.show(view,{invoke:async call=>globalThis.calls.push(call)}),configured);
+  await expect(element.locator('.owner-face-document')).toHaveCSS('background-color','rgb(48, 7, 11)');
+  await expect(button).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(()=>globalThis.calls)).toEqual([{view:configured,action:view.actions[0],arguments:[]}]);
+  // A generic view clears every selected-Look token instead of retaining styling
+  // from the preceding checked component.
+  await element.evaluate((element,view)=>element.show(view,{invoke:async()=>{}}),view);
+  await expect(element).not.toHaveAttribute('data-component-look');
+  expect(await element.evaluate(node=>[...node.style].filter(key=>key.startsWith('--look-')))).toEqual([]);
 });

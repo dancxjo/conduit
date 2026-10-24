@@ -136,3 +136,7 @@ fn alternate_look(
         LookVisualFacetOption::some(expression, tokens)?,
     )
 }
+
+pub fn look_type() -> conduit_core::StructuredInfoType {
+    LookInfo::semantic_type().expect("checked finite Look Type")
+}

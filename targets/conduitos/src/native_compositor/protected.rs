@@ -38,6 +38,7 @@ struct Surface {
     binding: Option<Binding>,
     receipt: Option<CompositionReceipt>,
     expression: Option<conduit_face::AdmittedVisualExpression>,
+    visual_look: Option<conduit_face::LookInfo>,
     upload_sequence: u64,
 }
 struct Scanout {

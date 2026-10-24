@@ -3,9 +3,10 @@
 use conduit_core::*;
 use conduit_face::*;
 use conduit_planner::*;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_plot::*;
 use std::collections::BTreeMap;
-const EXPRESSION: &str = "{density: compact(empty), identity: \"test/look@1\", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2}";
+const EXPRESSION: &str = r#"{generative: some({register: neutral(empty), verbosity: brief(empty)}), identity: "conduit.look/phosphor@1", spoken: some({delivery: neutral(empty), verbosity: brief(empty)}), version: 2, visual: some({expression: {density: compact(empty), identity: "conduit.look/phosphor@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2}, tokens: {background: {blue: 11, green: 7, red: 5}, bootstrap_surface: {blue: 22, green: 13, red: 9}, emphasis: {blue: 37, green: 163, red: 233}, failure: {blue: 114, green: 114, red: 255}, focus: {blue: 0, green: 196, red: 244}, focus_width_px: 3, line_height_percent: 150, muted: {blue: 25, green: 76, red: 140}, radius_control_px: 6, radius_panel_px: 9, reading_paper: {blue: 28, green: 18, red: 12}, space_control_block_px: 7, space_control_inline_px: 10, space_panel_px: 13, space_unit_px: 4, structure_primary: {blue: 246, green: 216, red: 13}, structure_secondary: {blue: 135, green: 31, red: 10}, success: {blue: 155, green: 214, red: 99}, surface: {blue: 22, green: 13, red: 9}, text_primary: {blue: 247, green: 210, red: 147}, text_secondary: {blue: 201, green: 142, red: 87}, type_body_px: 16, type_small_px: 14, warning: {blue: 113, green: 189, red: 242}, workbench_canvas: {blue: 11, green: 7, red: 5}}})}"#;
 const RECIPE: &str = "{gutter: 12, identity: \"test/recipe@1\", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: \"collection\", maximum_subjects: 20, selector: role(\"Collection\")}], version: 1}";
 const LAYOUT: &str = "{candidates: [{nodes: [column({block_alignment: stretch(empty), break_policy: accessible_continuation(empty), children: [{block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 1}, {block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 2}], gap_em_sixteenths: 8, inline_grow: 0, inline_alignment: stretch(empty), padding_em_sixteenths: 8, inline_shrink: 1, minimum_inline_em_sixteenths: 0}), region(0), fallback(empty)], root: 0}], identity: \"test/layout@1\", recipe_identity: \"test/recipe@1\", version: 1}";
 fn fixture(
@@ -46,7 +47,7 @@ fn fixture_with(
     let mut startup = profiles.startup_catalog().unwrap();
     install_mask_plot_value_aliases(&mut startup).unwrap();
     for (name, schema) in [
-        ("VisualExpressionInfo", visual_expression_type()),
+        ("LookInfo", look_type()),
         ("ComponentRecipeInfo", component_recipe_type()),
         ("ComponentLayoutInfo", component_layout_type()),
     ] {
@@ -176,7 +177,7 @@ fn evidence_with(
 
 fn source() -> String {
     format!(
-        "plot component (\n expression: VisualExpressionInfo\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n render: test/configured-renderer(label = \"component\", recipe = {RECIPE}, layout = {LAYOUT}, expression = expression)\n face >> render.face\n render.show >> show\n render.interaction >> interaction\n}}\nplot root (\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n invoke: component(expression = {EXPRESSION})\n face >> invoke.face\n invoke.show >> show\n invoke.interaction >> interaction\n}}\n"
+        "plot component (\n look: LookInfo\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n render: test/configured-renderer(label = \"component\", recipe = {RECIPE}, layout = {LAYOUT}, look = look)\n face >> render.face\n render.show >> show\n render.interaction >> interaction\n}}\nplot root (\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n invoke: component(look = {EXPRESSION})\n face >> invoke.face\n invoke.show >> show\n invoke.interaction >> interaction\n}}\n"
     )
 }
 #[test]
@@ -186,11 +187,11 @@ fn version_three_contract_is_distinct_and_requires_typed_layout() {
     assert_eq!(old.kind_id, new.kind_id);
     assert_eq!(
         old.kind_contract_revision.as_str(),
-        "conduit.face/component-mask@2"
+        "conduit.face/component-mask@4"
     );
     assert_eq!(
         new.kind_contract_revision.as_str(),
-        "conduit.face/component-mask@3"
+        "conduit.face/component-mask@5"
     );
     assert!(!old.configuration.iter().any(|f| f.key == "layout"));
     assert!(new
@@ -220,16 +221,16 @@ fn exact_component_invocation_retains_both_literals() {
 fn layout_literal_at_outer_invocation_cannot_replace_component_literal() {
     let source = source()
         .replace(
-            " expression: VisualExpressionInfo",
-            " expression: VisualExpressionInfo\n layout: ComponentLayoutInfo",
+            " look: LookInfo",
+            " look: LookInfo\n layout: ComponentLayoutInfo",
         )
         .replace(
-            &format!("layout = {LAYOUT}, expression = expression"),
-            "layout = layout, expression = expression",
+            &format!("layout = {LAYOUT}, look = look"),
+            "layout = layout, look = look",
         )
         .replace(
-            &format!("component(expression = {EXPRESSION})"),
-            &format!("component(layout = {LAYOUT}, expression = {EXPRESSION})"),
+            &format!("component(look = {EXPRESSION})"),
+            &format!("component(layout = {LAYOUT}, look = {EXPRESSION})"),
         );
     assert!(matches!(
         evidence(&source, "root"),
@@ -238,7 +239,7 @@ fn layout_literal_at_outer_invocation_cannot_replace_component_literal() {
 }
 
 fn back_source() -> String {
-    "plot layout-back (\n label: Text\n recipe: ComponentRecipeInfo\n expression: VisualExpressionInfo\n layout: ComponentLayoutInfo\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {\n render: test/configured-renderer(label = label, recipe = recipe, layout = layout, expression = expression)\n face >> render.face\n render.show >> show\n render.interaction >> interaction\n}\n".into()
+    "plot layout-back (\n label: Text\n recipe: ComponentRecipeInfo\n look: LookInfo\n layout: ComponentLayoutInfo\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {\n render: test/configured-renderer(label = label, recipe = recipe, layout = layout, look = look)\n face >> render.face\n render.show >> show\n render.interaction >> interaction\n}\n".into()
 }
 #[test]
 fn authenticated_back_forwards_both_literals_without_substitution() {
@@ -275,7 +276,7 @@ fn declared_required_layout_and_version_three_presence_are_enforced() {
         evidence_with(&source, "root", None, |kind| {
             kind.startup_parameters.retain(|p| p.name != "layout");
             kind.configuration.retain(|p| p.key != "layout");
-            kind.kind_contract_revision = KindIdentity::from("conduit.face/component-mask@3");
+            kind.kind_contract_revision = KindIdentity::from("conduit.face/component-mask@5");
         }),
         Err(ConfiguredMaskRefusal::Configuration)
     ));
@@ -291,25 +292,22 @@ fn equal_sibling_literals_and_expression_substitution_do_not_confer_custody() {
         .replace("plot component (", "plot sibling (");
     let delegated = original
         .replace(
-            " expression: VisualExpressionInfo",
-            " expression: VisualExpressionInfo\n layout: ComponentLayoutInfo",
+            " look: LookInfo",
+            " look: LookInfo\n layout: ComponentLayoutInfo",
         )
         .replace(
-            &format!("layout = {LAYOUT}, expression = expression"),
-            "layout = layout, expression = expression",
+            &format!("layout = {LAYOUT}, look = look"),
+            "layout = layout, look = look",
         )
         .replace(
-            &format!("component(expression = {EXPRESSION})"),
-            &format!("component(layout = {LAYOUT}, expression = {EXPRESSION})"),
+            &format!("component(look = {EXPRESSION})"),
+            &format!("component(layout = {LAYOUT}, look = {EXPRESSION})"),
         );
     assert!(matches!(
         evidence(&format!("{delegated}{sibling}"), "root"),
         Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral)
     ));
-    let back = back_source().replace(
-        "expression = expression",
-        &format!("expression = {EXPRESSION}"),
-    );
+    let back = back_source().replace("look = look", &format!("look = {EXPRESSION}"));
     assert!(matches!(
         evidence_with(
             &original.replace("test/configured-renderer(", "face/component-mask("),
@@ -361,13 +359,16 @@ fn named_visual_presets_match_across_distinct_checked_components() {
         } else {
             first_structure = Some(structure);
         }
-        let actual = visual_expression_from_info(
-            StructuredInfoValue::from_canonical_bytes(a.expression.canonical_value()).unwrap(),
-        )
-        .unwrap();
+        let resource = a.requested_look().unwrap();
+        let LookVisualFacetOption::Some(visual) = resource.visual() else {
+            panic!("visual facet")
+        };
+        let actual =
+            visual_expression_from_info(visual.expression().clone().into_structured().unwrap())
+                .unwrap();
         assert_eq!(actual.typography, VisualExpression::phosphor().typography);
-        let todo_expression = a.expression.canonical_value();
-        let creche_expression = b.expression.canonical_value();
+        let todo_expression = a.look.canonical_value();
+        let creche_expression = b.look.canonical_value();
         assert_eq!(
             todo_expression, creche_expression,
             "same named Look must not change policy with its component: {look:?}"
@@ -406,8 +407,8 @@ fn retained_component_roots_share_exact_named_visual_policies() {
         ] {
             let actual = prepare(&todo, selected.todo_root(recipe));
             assert_eq!(
-                actual.expression.canonical_value(),
-                expected.expression.canonical_value(),
+                actual.look.canonical_value(),
+                expected.look.canonical_value(),
                 "same named policy for {look:?} / {recipe:?}"
             );
         }

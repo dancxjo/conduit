@@ -163,10 +163,7 @@ fn planned_mask_configuration(
     if configured {
         for (alias, schema) in [
             ("ComponentRecipeInfo", conduit_face::component_recipe_type()),
-            (
-                "VisualExpressionInfo",
-                conduit_face::visual_expression_type(),
-            ),
+            ("LookInfo", conduit_face::look_type()),
         ] {
             let profile = schema.profile().map_err(|error| format!("{error:?}"))?;
             startup
@@ -436,11 +433,11 @@ mod configured_tests {
                 compact_renderer
                     .configuration
                     .iter()
-                    .find(|field| field.key == "expression"),
+                    .find(|field| field.key == "look"),
                 spacious_renderer
                     .configuration
                     .iter()
-                    .find(|field| field.key == "expression")
+                    .find(|field| field.key == "look")
             );
         }
     }

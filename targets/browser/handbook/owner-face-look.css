@@ -65,3 +65,13 @@ input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visi
 :host([data-component-typography=engineering]) h4{font-family:system-ui,sans-serif;font-size:calc(1.3125rem * var(--face-text-scale,1));font-weight:650;letter-spacing:-.4px}
 :host([data-component-palette=phosphor]) .owner-face-subject[data-face-role=Status] p{background:var(--face-card);color:var(--face-ink);border-inline-start:2px solid var(--face-accent)}
 @media(forced-colors:active){:host([data-component-palette=phosphor]) .owner-face-subject[data-face-role=Status] p{background:Canvas;color:CanvasText;border-color:Highlight}}
+
+/* Full selected Look resources supply appearance. Checked recipes retain layout
+   and source order; accessibility/system colors take precedence below. */
+:host([data-component-look]){--face-paper:var(--look-background);--face-card:var(--look-surface);--face-ink:var(--look-text-primary);--face-muted:var(--look-text-secondary);--face-line:var(--look-structure-secondary);--face-control:var(--look-structure-primary);--face-accent:var(--look-emphasis);--face-focus:var(--look-focus);--face-radius:var(--look-radius-panel);font-size:calc(max(1rem,var(--look-type-body)) * var(--face-text-scale,1));line-height:var(--look-line-height)}
+:host([data-component-look][data-component-typography=editorial]){font-family:Georgia,"Times New Roman",serif}
+:host([data-component-look][data-component-typography=engineering]){font-family:system-ui,sans-serif}
+:host([data-component-look]) .owner-face-document,:host([data-component-look]) .owner-face-subject,:host([data-component-look]) .owner-face-collection,:host([data-component-look]) .owner-face-document>section{padding:var(--look-space-panel);border-radius:var(--look-radius-panel)}
+:host([data-component-look]) button,:host([data-component-look]) input,:host([data-component-look]) select{padding:var(--look-space-control-block) var(--look-space-control-inline);border-radius:var(--look-radius-control)}
+:host([data-component-look]) button:focus-visible,:host([data-component-look]) input:focus-visible,:host([data-component-look]) select:focus-visible,:host([data-component-look]) summary:focus-visible{outline-width:var(--look-focus-width)}
+@media(forced-colors:active){:host([data-component-look]){--face-paper:Canvas;--face-card:Canvas;--face-ink:CanvasText;--face-muted:CanvasText;--face-line:CanvasText;--face-control:ButtonText;--face-accent:LinkText;--face-focus:Highlight}}

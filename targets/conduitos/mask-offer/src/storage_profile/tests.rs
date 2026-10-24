@@ -75,7 +75,7 @@ fn collection_plans_use_exact_capacity_and_refuse_smaller_offers() {
     assert!(prepare_advertised_native_stage_from_offer(&unknown, None).is_err());
     assert_eq!(original.component, collection.component);
     assert_eq!(original.recipe, collection.recipe);
-    assert_eq!(original.expression, collection.expression);
+    assert_eq!(original.look, collection.look);
     let renderer = configured
         .planned_mask
         .plan

@@ -1,3 +1,4 @@
+import { decodeVisualLook } from "../host/assets/application-look.mjs";
 import { decorate, iconForRole, iconForIntent } from "./owner-face-icons.mjs";
 // A reusable browser realization of the checked owner Face. The SDK owns the
 // Mask Plan, Play, Show acknowledgement and typed return route; this element
@@ -118,8 +119,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.#layoutObserver?.disconnect();
     const component = view.component;
     const expression = component?.expression?.expression;
-    for (const key of ['componentExpression', 'componentDensity', 'componentPalette', 'componentTypography', 'componentFallback', 'componentColumns']) delete this.dataset[key];
+    for (const key of ['componentLook', 'componentExpression', 'componentDensity', 'componentPalette', 'componentTypography', 'componentFallback', 'componentColumns']) delete this.dataset[key];
     for (const key of ['--face-columns', '--face-gutter', '--face-text-scale']) this.style.removeProperty(key);
+    for (const key of [...this.style]) if (key.startsWith('--look-')) this.style.removeProperty(key);
+    if (component?.selected_look) {
+      const look = decodeVisualLook(component.selected_look.canonical_value);
+      this.dataset.componentLook = look.identity;
+      for (const [role, value] of Object.entries(look.tokens)) this.style.setProperty(`--look-${role}`, value);
+    }
     if (component && expression) {
       this.dataset.componentExpression = expression.identity;
       this.dataset.componentDensity = expression.density;

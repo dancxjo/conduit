@@ -4,10 +4,11 @@
 use conduit_core::*;
 use conduit_face::*;
 use conduit_planner::*;
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_plot::*;
 use std::collections::BTreeMap;
 
-const VALUE: &str = "{density: compact(empty), identity: \"conduit.look/phosphor@1\", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2}";
+const VALUE: &str = r#"{generative: some({register: neutral(empty), verbosity: brief(empty)}), identity: "conduit.look/phosphor@1", spoken: some({delivery: neutral(empty), verbosity: brief(empty)}), version: 2, visual: some({expression: {density: compact(empty), identity: "conduit.look/phosphor@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2}, tokens: {background: {blue: 11, green: 7, red: 5}, bootstrap_surface: {blue: 22, green: 13, red: 9}, emphasis: {blue: 37, green: 163, red: 233}, failure: {blue: 114, green: 114, red: 255}, focus: {blue: 0, green: 196, red: 244}, focus_width_px: 3, line_height_percent: 150, muted: {blue: 25, green: 76, red: 140}, radius_control_px: 6, radius_panel_px: 9, reading_paper: {blue: 28, green: 18, red: 12}, space_control_block_px: 7, space_control_inline_px: 10, space_panel_px: 13, space_unit_px: 4, structure_primary: {blue: 246, green: 216, red: 13}, structure_secondary: {blue: 135, green: 31, red: 10}, success: {blue: 155, green: 214, red: 99}, surface: {blue: 22, green: 13, red: 9}, text_primary: {blue: 247, green: 210, red: 147}, text_secondary: {blue: 201, green: 142, red: 87}, type_body_px: 16, type_small_px: 14, warning: {blue: 113, green: 189, red: 242}, workbench_canvas: {blue: 11, green: 7, red: 5}}})}"#;
 
 fn port(
     name: &str,
@@ -32,7 +33,7 @@ fn fixture(
     ProfileCatalog,
     HostAdvertisement,
 ) {
-    let value = visual_expression_info(&VisualExpression::phosphor()).unwrap();
+    let value = phosphor_look().unwrap().into_structured().unwrap();
     let profile = value.value_type().profile().unwrap().value_kind().clone();
     let configuration =
         StructuredConfigurationValue::new(profile.clone(), value.canonical_bytes().unwrap())
@@ -40,7 +41,7 @@ fn fixture(
     let kind = Kind {
         kind_id: kind_id("test/configured-renderer"),
         kind_contract_revision: KindIdentity::from("test/configured-renderer@1"),
-        startup_parameters: ["recipe", "expression"]
+        startup_parameters: ["recipe", "look"]
             .into_iter()
             .map(|name| FrontStartupParameter {
                 name: name.into(),
@@ -69,7 +70,7 @@ fn fixture(
                 PortTemporal::Flow { closes: true },
             ),
         ],
-        configuration: ["recipe", "expression"]
+        configuration: ["recipe", "look"]
             .into_iter()
             .map(|name| KindConfigurationField {
                 key: name.into(),
@@ -91,10 +92,10 @@ fn fixture(
     let mut startup = profiles.startup_catalog().unwrap();
     install_mask_plot_value_aliases(&mut startup).unwrap();
     startup
-        .insert_structured_type("VisualExpressionInfo", visual_expression_type())
+        .insert_structured_type("LookInfo", look_type())
         .unwrap();
     startup
-        .ensure_structured_type(profile.as_str(), visual_expression_type())
+        .ensure_structured_type(profile.as_str(), look_type())
         .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, root_name, &profiles).unwrap();
@@ -124,7 +125,7 @@ fn fixture(
     (checked, expanded, profiles, host)
 }
 fn source(gear_name: &str) -> String {
-    format!("plot component (\n expression: VisualExpressionInfo\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n {gear_name}: test/configured-renderer(recipe = {VALUE}, expression = expression)\n face >> {gear_name}.face\n {gear_name}.show >> show\n {gear_name}.interaction >> interaction\n}}\nplot compact-mask (\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n invoke: component(expression = {VALUE})\n face >> invoke.face\n invoke.show >> show\n invoke.interaction >> interaction\n}}\n")
+    format!("plot component (\n look: LookInfo\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n {gear_name}: test/configured-renderer(recipe = {VALUE}, look = look)\n face >> {gear_name}.face\n {gear_name}.show >> show\n {gear_name}.interaction >> interaction\n}}\nplot compact-mask (\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n invoke: component(look = {VALUE})\n face >> invoke.face\n invoke.show >> show\n invoke.interaction >> interaction\n}}\n")
 }
 #[test]
 fn exact_source_and_selected_plan_bind_renderer_configuration() {
@@ -386,7 +387,7 @@ fn evidence(
     Ok((
         prepared.component,
         prepared.recipe.canonical_value().to_vec(),
-        prepared.expression.canonical_value().to_vec(),
+        prepared.look.canonical_value().to_vec(),
         planned.plan.plan_id.clone(),
         expanded.expanded.expanded_plot_id,
     ))
@@ -418,11 +419,8 @@ fn explicit_component_forwarding_and_slash_plot_ancestry_are_checked() {
         .replace("plot component (", "plot component/layout (")
         .replace("invoke: component(", "invoke: component/layout(");
     assert!(evidence(&slash, "compact-mask").is_ok());
-    let forged = ordinary.replace(
-        "expression = expression)",
-        &format!("expression = {VALUE})"),
-    );
-    // Equal expression bytes do not replace direct checked caller forwarding.
+    let forged = ordinary.replace("look = look)", &format!("look = {VALUE})"));
+    // Equal look bytes do not replace direct checked caller forwarding.
     assert!(matches!(
         evidence(&forged, "compact-mask"),
         Err(ConfiguredMaskRefusal::Configuration)
