@@ -25,9 +25,9 @@ pub fn prepare(
     {
         return Err("display-signs");
     }
-    let slots = 256u16;
-    let sign_bytes = 256 * core::mem::size_of::<k::KernelEvent>() as u32;
-    let needed = requirements(profile.maximum_value_bytes)?;
+    let signs = DisplaySignBudget::derive(maximum_frames, profile.sign_items, profile.sign_bytes)
+        .map_err(|_| "display-signs")?;
+    let needed = requirements(profile.maximum_value_bytes, signs)?;
     if available_bytes < needed {
         return Err("display-kernel-capacity");
     }
@@ -38,10 +38,10 @@ pub fn prepare(
     )
     .map_err(|_| "display-values")?;
     let signs = k::HostedSignLog::new_with_remote_storage(
-        slots,
-        sign_bytes,
-        256,
-        k::remote_sign_storage_bytes(256).ok_or("display-signs")?,
+        signs.ordinary_items(),
+        signs.ordinary_bytes(),
+        signs.remote_items(),
+        signs.remote_bytes(),
     )
     .map_err(|_| "display-signs")?;
     let mut records = Vec::new();
@@ -84,15 +84,17 @@ pub fn prepare(
 
 /// Additional backing and control headroom; already retained Source/software,
 /// staged wire and tables remain accounted in Root's current heap usage.
-pub fn requirements(maximum_value_bytes: u32) -> Result<usize, &'static str> {
+pub fn requirements(
+    maximum_value_bytes: u32,
+    signs: DisplaySignBudget,
+) -> Result<usize, &'static str> {
     if maximum_value_bytes == 0 || maximum_value_bytes > 1024 {
         return Err("display-value-extent");
     }
-    let slots = 256u16;
     let values = k::HostedValueStore::canonical_storage_bytes([maximum_value_bytes; 12])
         .map_err(|_| "display-values")?;
     let needed = values
-        + k::HostedSignLog::canonical_storage_bytes(slots, 256).ok_or("display-signs")?
+        + signs.storage_bytes().ok_or("display-signs")?
         + core::mem::size_of::<DisplayKernel<k::HostedValueStore, k::HostedSignLog>>()
         + t::MAXIMUM_RECORDS * core::mem::size_of::<c::AssignedRecord<'_>>()
         + 8192;

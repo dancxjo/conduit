@@ -24,6 +24,9 @@ pub use assigned::{
 #[path = "display_output_validation.rs"]
 mod validation;
 pub use validation::ValidatedAssignedDisplay;
+#[path = "display_signs.rs"]
+mod signs;
+pub use signs::{DisplaySignBudget, SignBudgetRefusal};
 pub enum DisplayBack {
     Software(ApplianceBack),
     Write(WriteBack),
@@ -160,15 +163,20 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedDisplayKernel<S, L> {
         {
             return Err(E::Bounds);
         }
+        let sign_budget =
+            DisplaySignBudget::derive(maximum_frames, lowered.sign_items, lowered.sign_bytes)
+                .map_err(|_| E::Bounds)?;
         if values.item_capacity() < 12
             || values.byte_capacity() < 12 * 1024
             || values.used_items() != 0
             || values.used_bytes() != 0
-            || signs.item_capacity() < lowered.sign_items
-            || signs.byte_capacity() < lowered.sign_bytes
+            || signs.item_capacity() < sign_budget.ordinary_items()
+            || signs.byte_capacity() < sign_budget.ordinary_bytes()
             || !signs.is_empty()
             || signs.used_bytes() != 0
-            || signs.ensure_remote_capacity(256).is_err()
+            || signs
+                .ensure_remote_capacity(sign_budget.remote_items())
+                .is_err()
         {
             return Err(E::Bounds);
         }

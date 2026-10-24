@@ -13,7 +13,7 @@ impl NativeRoot {
         {
             return Err("assignment-seal");
         }
-        const CONSTRUCTION_FRAMES: u32 = 2;
+        use crate::native_display::CONSTRUCTION_FRAMES;
         // Binding's temporary contract/record storage must leave before the
         // kernel's persistent stores are allocated. Both owners stay dormant;
         // a later refusal retains actual custody for retry or explicit cleanup.

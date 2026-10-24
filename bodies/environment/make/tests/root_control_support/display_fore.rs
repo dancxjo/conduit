@@ -132,7 +132,7 @@ pub(super) fn check(
                 2
             }
         ));
-        if matches!(mode, 4 | 8 | 11) {
+        if matches!(mode, 4 | 8 | 11 | 13) {
             return complete(future);
         }
         until(&mut future, &mut cx, || next_calls.get() == 1);
@@ -234,7 +234,7 @@ pub(super) fn check(
             assert_eq!(outcome.progress.native_calls, 0);
             assert_eq!((delivered.get(), edges.get()), (0, 0));
         }
-        4 | 5 | 8 => {
+        4 | 5 | 8 | 13 => {
             assert!(matches!(
                 outcome.exit,
                 Exit::Failed(k::Failure {

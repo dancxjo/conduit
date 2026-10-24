@@ -59,9 +59,14 @@ def ledger(sampling_image=None, output_image=None):
         "output": EVIDENCE / "2026-10-24-constructor-tape-hardware/output.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
         "expression_cpu": EVIDENCE / "2026-10-24-tape-join-repair/measurement.json",
+        "sign_budget": EVIDENCE / "2026-10-24-derived-output-signs/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
+    sign_budget = read_json(inputs["sign_budget"])
+    for relative, digest in sign_budget["code_sha256"].items():
+        if hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() != digest:
+            raise ValueError("output sign-bound code changed; renew finite-profile proof")
     storage = ROOT / "bodies/environment/runtime/src/appliance/value_storage.rs"
     source = storage.read_text()
     capacities = re.search(r"const CAPACITIES: \[u32; \d+\] = \[([^]]+)\]", source)
@@ -78,14 +83,14 @@ def ledger(sampling_image=None, output_image=None):
     extent = int(extent_match[1])
     if items != quota_items or not 0 < extent <= 1024:
         raise ValueError("output backing and live quota differ; account separately")
-    sign_items = set(re.findall(r"let slots = (\d+)u16", output_storage.read_text()))
-    remote_items = re.search(r"new_with_remote_storage\(\s*slots,\s*sign_bytes,\s*(\d+)", output_storage.read_text())
-    if len(sign_items) != 1 or remote_items is None:
-        raise ValueError("output record storage changed; renew ledger parser")
-    output_construction = ROOT / "targets/esp32/proof/tm1637/src/native_display_install.rs"
-    frame_limit = re.search(r"const CONSTRUCTION_FRAMES: u32 = (\d+);", output_construction.read_text())
-    if frame_limit is None or int(frame_limit[1]) == 0:
-        raise ValueError("output construction work limit changed; renew ledger parser")
+    if "DisplaySignBudget::derive(maximum_frames,profile.sign_items,profile.sign_bytes)" not in re.sub(r"\s+", "", output_storage.read_text()):
+        raise ValueError("output sign preparation changed; renew ledger parser")
+    output_construction = ROOT / "targets/esp32/proof/tm1637/src/native_display.rs"
+    frame_limit = re.search(r"pub const CONSTRUCTION_FRAMES: u32 = (\d+);", output_construction.read_text())
+    minimum_items = re.search(r"pub const MINIMUM_SIGN_ITEMS: u16 = (\d+);", linked_layout.read_text())
+    minimum_bytes = re.search(r"pub const MINIMUM_SIGN_BYTES: u32 = (\d+);", linked_layout.read_text())
+    if frame_limit is None or minimum_items is None or minimum_bytes is None or (int(frame_limit[1]), int(minimum_items[1]), int(minimum_bytes[1])) != (sign_budget["maximum_input_frames"], sign_budget["minimum_sign_items"], sign_budget["minimum_sign_bytes"]):
+        raise ValueError("output work/minimum sign contract changed; renew finite-profile proof")
     forms = ROOT / "plots/device-protocols/dht11.conduit"
     temperature = re.search(r"^form device/dht11-temperature = Temperature as i(\d+)le", forms.read_text(), re.M)
     humidity = re.search(r"^form device/dht11-humidity = Ratio as u(\d+)le", forms.read_text(), re.M)
@@ -119,7 +124,7 @@ def ledger(sampling_image=None, output_image=None):
         "inventory": {
             "sampling_value_payload": {"bytes": sum(capacities), "slot_capacities": capacities, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "extent_basis": "Make ceiling from all independently checked payload Types; slot count unchanged", "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
-            "output_sign_records": {"ordinary_items": int(sign_items.pop()), "remote_items": int(remote_items[1]), "native_construction_diagnostic_maximum_frames": int(frame_limit[1]), "class": "persistent mutable", "derived_minimum": None},
+            "output_sign_records": {"ordinary_items": None, "remote_items": sign_budget["remote_items"], "cpu_observed_ordinary_items": sign_budget["cpu_ordinary_items"], "cpu_observed_storage_bytes": sign_budget["cpu_storage_bytes"], "mcu_storage_bytes": None, "ordinary_items_formula": sign_budget["ordinary_items_formula"], "native_construction_diagnostic_maximum_frames": int(frame_limit[1]), "class": "persistent mutable", "derived_minimum": None, "derived_upper_bound_proven_for_finite_profile": True, "continuing_retention_or_handoff_proven": False},
             "mask_cpu": {"bytes": mask["after_mask_owner_bytes"], "heap_bytes": mask["after_mask_requested_heap_peak_bytes"], "pointer_bits": mask["pointer_bits"], "mcu_size_bytes": None},
             "packet_expression_cpu": {"before_bytes": expression_cpu["before_packet_source_bytes"], "after_bytes": expression_cpu["after_packet_source_bytes"], "pointer_bits": expression_cpu["pointer_bits"], "mcu_size_bytes": None, "compact_structured_tape_implemented": expression_cpu["compact_structured_tape_implemented"], "profile": expression_cpu["tape_profile"]},
             "quantity_pair_form": {"bytes": (int(temperature[1]) + int(humidity[1])) // 8, "types": ["Temperature", "Ratio"], "includes_status_clock_or_provenance": False, "selected_for_local_cords": False},
@@ -135,7 +140,7 @@ def ledger(sampling_image=None, output_image=None):
                 "One combined realization with exact initialized Mask/clock/output custody",
                 "Type-derived value extents and overlap including fan-out, pending calls, refusals and cancellation",
                 "Preparation liveness and last-use release for descriptions and temporary schemas",
-                "Mandatory record retention contract and derived ordinary/remote capacities",
+                "Continuing Mask mandatory-record retention or explicit handoff over its admitted lifetime",
                 "Linked combined immutable material, static RAM and measured stack bound",
                 "Concurrent sensing/rendering and AP/join/fallback SDK high water",
             ],
@@ -170,13 +175,13 @@ def markdown(value):
         f"| Local representations | Existing quantity-pair Forms total {value['inventory']['quantity_pair_form']['bytes']} B; semantic Types remain Temperature and Ratio | Admit compact local cord representations; separately retain status, clocks and provenance |",
         "| Scratch | No combined lifetime allocation exists | Include fan-out, pending calls, refusal and cancellation |",
         "| Construction | Output descriptors retire after transfer; schemas and expression trees remain in other paths | Bound transient peaks and every last-use release |",
-        f"| Execution records | Output reserves {value['inventory']['output_sign_records']['ordinary_items']} ordinary and {value['inventory']['output_sign_records']['remote_items']} remote records for the current {value['inventory']['output_sign_records']['native_construction_diagnostic_maximum_frames']}-Frame native diagnostic | Derive mandatory retention; do not discard required evidence |",
+        f"| Execution records | Derived for {value['inventory']['output_sign_records']['native_construction_diagnostic_maximum_frames']} inputs: {value['inventory']['output_sign_records']['remote_items']} remote records; ordinary count follows target record size and Plan minima ({value['inventory']['output_sign_records']['cpu_observed_ordinary_items']} in CPU64) | Admit continuing retention or explicit handoff; never discard required evidence |",
         f"| Root peaks | Sampling/Face {sampling['preparation_and_run_peak_bytes']:,} B; dormant output preparation {output['preparation_peak_bytes']:,} B | Measure combined preparation and execution separately |",
         f"| Retained Root | Dormant output {output['dormant_retained_bytes']:,} B; sampler observed at {min(sampling['observed_sampling_used_bytes']):,}–{max(sampling['observed_sampling_used_bytes']):,} B across three publications | Do not label post-retirement memory as steady state |",
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
         f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
-        f"The output capture still used {sum(output['captured_value_slot_capacities']):,} payload bytes. The current Type-derived profile uses {value['inventory']['output_value_payload']['bytes']:,}; its MCU retained/peak effect has not been captured. These are distinct source profiles.", "",
+        f"The output capture still used {sum(output['captured_value_slot_capacities']):,} payload bytes. The current Type-derived profile uses {value['inventory']['output_value_payload']['bytes']:,}; its MCU retained/peak effect has not been captured. The capture also predates sign-budget reduction and used 256 ordinary and 256 remote slots. These are distinct source profiles.", "",
         "The CPU Mask figure and separately captured MCU profiles are intentionally not combined numerically. Source identities and input hashes are in memory-ledger.json.", "",
     ]
     if all("linked_image" in p for p in profiles.values()):

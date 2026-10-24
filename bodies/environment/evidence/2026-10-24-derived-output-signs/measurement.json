@@ -1,0 +1,29 @@
+{
+  "proof_class": "bounded local-Fore retention derivation, differential CPU execution and ESP32 cross-link",
+  "pointer_bits": 64,
+  "maximum_input_frames": 2,
+  "minimum_sign_items": 13,
+  "minimum_sign_bytes": 717,
+  "cpu_ordinary_items": 36,
+  "remote_items": 10,
+  "cpu_storage_bytes": 960,
+  "previous_cpu_storage_bytes": 11264,
+  "mandatory_items_upper_bound": 17,
+  "burst_items": 18,
+  "ordinary_items_lower_bound": 35,
+  "ordinary_items_formula": "max(4*frames+27, linked minimum items, ceil(linked minimum bytes / sizeof(KernelEvent)))",
+  "retention_is_unchanged": true,
+  "mandatory_records_are_not_evicted": true,
+  "optional_gaps_are_explicit": true,
+  "input_limit_includes_refusals": true,
+  "stop_on_first_failure_required": true,
+  "mcu_storage_bytes": null,
+  "continuing_retention_or_handoff_proven": false,
+  "code_sha256": {
+    "bodies/environment/runtime/src/display_signs.rs": "7b7faa3103a682d1c1ac54da3f3cde3c4cc46cd0217ee0e3cd2041fc731f2ace",
+    "targets/esp32/proof/tm1637/src/native_display_kernel.rs": "dd28833b85dc1c2a818bb03b8372430eb9c13aa980df0074bb793068d0442197",
+    "targets/esp32/proof/tm1637/src/native_display_fore.rs": "d863c6709dda0c1cc463eaddb6195b983b0a31ee9b8f7040a8b2686f61ebb926",
+    "targets/esp32/proof/tm1637/src/native_display.rs": "8c01ff3722eb5577400cf547a037fe67265097dec081b7964fe11c96e7ac5d48",
+    "targets/esp32/proof/tm1637/src/display_layout.rs": "c4c238f60f9b3ed300831bcd278a8fb4d229f24aa249fb2a0334c1edacd414ac"
+  }
+}

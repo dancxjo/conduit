@@ -29,6 +29,7 @@ pub struct AssignedDisplayScope<'a> {
     pub generation: c::OfferGeneration,
 }
 pub struct PreparedAssignedDisplayKernel<S: k::ValueStorage, L: k::SignSink> {
+    maximum_frames: u32,
     pub identity: c::AssignedPlanView,
     pub kernel: Box<DisplayKernel<S, L>>,
     pub selectors: [Option<PreparedCaptureSelector>; 4],
@@ -58,6 +59,9 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
         signs: L,
     ) -> Result<Self, AssignedDisplayRefusal> {
         use AssignedDisplayRefusal as E;
+        let sign_budget =
+            DisplaySignBudget::derive(maximum_frames, profile.sign_items, profile.sign_bytes)
+                .map_err(|_| E::Bounds)?;
         if maximum_frames == 0
             || values.item_capacity() < 12
             || profile.maximum_value_bytes == 0
@@ -68,11 +72,13 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
             || profile.sign_items == 0
             || profile.sign_items > 256
             || profile.sign_bytes > 256 * core::mem::size_of::<k::KernelEvent>() as u32
-            || signs.item_capacity() < profile.sign_items
-            || signs.byte_capacity() < profile.sign_bytes
+            || signs.item_capacity() < sign_budget.ordinary_items()
+            || signs.byte_capacity() < sign_budget.ordinary_bytes()
             || !signs.is_empty()
             || signs.used_bytes() != 0
-            || signs.ensure_remote_capacity(256).is_err()
+            || signs
+                .ensure_remote_capacity(sign_budget.remote_items())
+                .is_err()
         {
             return Err(E::Bounds);
         }
@@ -110,6 +116,7 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
         )
         .expect("preflighted immutable output tables");
         Ok(Self {
+            maximum_frames,
             identity,
             kernel,
             selectors,
@@ -117,5 +124,8 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
             input: admitted.frame,
             refusal: admitted.refusal,
         })
+    }
+    pub fn maximum_frames(&self) -> u32 {
+        self.maximum_frames
     }
 }

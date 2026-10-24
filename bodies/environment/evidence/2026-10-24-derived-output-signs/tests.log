@@ -1,0 +1,79 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+warning: constant `MAXIMUM_ENVELOPE_BYTES` is never used
+  --> tests/root_control_support/../../../../../targets/esp32/proof/tm1637/src/native_admission.rs:11:11
+   |
+11 | pub const MAXIMUM_ENVELOPE_BYTES: usize = MAXIMUM_ADVERTISEMENT_BYTES + 320;
+   |           ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `cancel_held` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_execution.rs:130:12
+    |
+ 44 | impl<P: OpenDrain> Execution<P> {
+    | ------------------------------- method in this implementation
+...
+130 |     pub fn cancel_held(&mut self) -> Result<Outcome, &'static str> {
+    |            ^^^^^^^^^^^
+
+warning: field `request` is never read
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_service.rs:25:9
+   |
+24 | pub struct ServicedCall {
+   |            ------------ field in this struct
+25 |     pub request: HostCallRequest,
+   |         ^^^^^^^
+
+warning: `conduit-environment-make` (test "root_control") generated 3 warnings
+    Finished `test` profile [unoptimized] target(s) in 1.17s
+     Running tests/display_output.rs (target/environment-lean-host/debug/deps/display_output-7f4ea5aaad54a7f7)
+
+running 15 tests
+display_signs ordinary=36 remote=10 bytes=960 previous_bytes=11264
+test sign_retention::budget_derivation_is_finite_and_includes_the_declared_plan_minimum ... ok
+output_type_extent_bytes=651, twelve_slot_payload_bytes=7812
+test layout::value_extent_covers_every_checked_port_and_refuses_unknown_payload_types ... ok
+output metadata: total=16589 largest=12841
+host-only output preparation peak bytes: 67934
+test planning::borrowed_current_offers_preserve_scope_and_withdraw_selected_instances ... ok
+test mask::body_face_temperature_and_rh_frames_execute_the_checked_output_graph ... ok
+test planning::trusted_material_preserves_source_and_exact_selection_without_a_rich_graph ... ok
+test layout::trusted_display_layout_is_stable_across_boots_and_omits_live_identity ... ok
+test execution::admitted_storage_refusals_precede_software_transfer ... ok
+test planning::ordinary_output_planning_requires_current_output_authority_and_seals_both_fore ... ok
+test authored_output_has_explicit_frame_and_refusal_fore_and_one_electrical_sink ... ok
+test observation::observed_output_requires_unchanged_native_scope_exact_source_and_permission ... ok
+test planning::portable_preparation_refuses_unknown_duplicate_and_nonportable_gears ... ok
+test execution::preparation_refusal_preserves_all_unselected_software ... ok
+test assigned::checked_output_runs_from_compact_fore_tables_without_inventing_a_line ... ok
+test execution::checked_output_services_real_requests_and_exposes_refusal_without_pin_effects ... ok
+test sign_retention::derived_logs_preserve_effects_complete_event_trace_and_mandatory_evidence ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.36s
+
+     Running tests/root_control.rs (target/environment-lean-host/debug/deps/root_control-5b2b7377c1368a75)
+
+running 17 tests
+test issuer_requires_entropy_and_never_falls_back_to_a_fixture_key ... ok
+test owner_control::absent_or_weak_provisioning_cannot_be_replaced_by_request_metadata ... ok
+test owner_receipt::signed_publication_age_is_conservative_and_never_wraps ... ok
+test execution_gate::start_is_held_and_release_requires_current_uncancelled_start ... ok
+test wait::wait_issuance_requires_reserved_play_and_exact_independent_cadence ... ok
+test owner_receipt::retired_receipt_cannot_be_substituted_by_quiescence_or_another_command ... ok
+test admission::root_proof_enters_ordinary_admission_without_creating_a_plan_or_play ... ok
+test owner_receipt::boot_acknowledgement_authenticates_command_scope_state_and_device_key ... ok
+test owner_control::foreign_key_truncation_unknown_fields_and_ambiguous_ids_refuse ... ok
+test owner_receipt::observed_receipt_authenticates_exact_committed_snapshot_metadata ... ok
+test sequences::invalid_reservation_preserves_counter_and_existing_reserved_scope ... ok
+test foreign_boot_grants_and_installation_never_consume_ready_owners ... ok
+test sequences::only_root_reserved_play_identity_can_receive_current_capability_possession ... ok
+test owner_control::every_scoped_fact_and_operation_is_authenticated_before_sequence_consumption ... ok
+display_binding_cpu_pointer_bits=64 peak_bytes=9628 requested_bytes=12231 allocations=140
+test production_root_control_dispatches_once_and_retains_failure_cleanup_without_allocating ... ok
+test display_reservation::output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal ... ok
+native_worker_cpu pointer_bits=64 context_bytes=5808 future_bytes=3624 samples=960 queue_capacities=1,1,2 play_allocations=0
+native_worker_cpu pointer_bits=64 context_bytes=5808 future_bytes=3624 samples=960 queue_capacities=1,1,2 play_allocations=0
+test pulse::pulse_and_wait_have_independent_finite_root_authority_for_the_same_source ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.85s
+

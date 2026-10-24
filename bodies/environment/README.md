@@ -1693,3 +1693,11 @@ locations after full input and exact Type validation. The packet evaluator’s
 64-bit rounded retained model is 4,576 bytes, with zero recurring allocation;
 variable geometry retains ordinary selection. This is a CPU/compiler result,
 not a new combined MCU memory measurement. See the fixed-input-location evidence.
+
+The native output diagnostic now derives sign backing from its two-input Fore
+limit, counting semantic refusals, closures, terminal/fault evidence and commit
+reserve as well as linked Plan minima. The kernel retention policy is unchanged;
+optional evictions remain visible gaps. CPU64 backing is 960 bytes (36 ordinary,
+10 remote), versus 11,264 bytes for the earlier 256/256 store. This proves no
+continuing-lifetime evidence handoff; the longer appliance must admit that
+contract separately. Native execution also retains and enforces the input limit.

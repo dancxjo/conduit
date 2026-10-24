@@ -10,6 +10,8 @@ use conduit_tm1637_wire::{
 };
 use esp_hal::gpio::Pin;
 #[cfg(feature = "display-ready-root")]
+pub const CONSTRUCTION_FRAMES: u32 = 2;
+#[cfg(feature = "display-ready-root")]
 #[path = "native_display_assignment.rs"]
 mod assignment;
 #[cfg(feature = "display-ready-root")]
@@ -275,7 +277,13 @@ impl NativeDisplay {
 
 #[cfg(feature = "display-ready-root")]
 pub fn kernel_preparation_bound() -> Result<usize, &'static str> {
-    kernel::requirements(layout::MAXIMUM_VALUE_BYTES)
+    let signs = conduit_environment_runtime::display_output::DisplaySignBudget::derive(
+        CONSTRUCTION_FRAMES,
+        layout::MINIMUM_SIGN_ITEMS,
+        layout::MINIMUM_SIGN_BYTES,
+    )
+    .map_err(|_| "display-signs")?;
+    kernel::requirements(layout::MAXIMUM_VALUE_BYTES, signs)
 }
 
 impl NativeDisplay {

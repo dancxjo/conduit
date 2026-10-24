@@ -45,7 +45,18 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
         &mut conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
     ) -> PreparedDisplayKernel<S, L>,
 ) {
-    let brightness = if mode == 1 { 8 } else { 3 };
+    run_output_mode_with_inspection(mode, assigned_owner, prepare, |_| ());
+}
+pub(super) fn run_output_mode_with_inspection<S: k::ValueStorage, L: k::SignSink, R>(
+    mode: u8,
+    assigned_owner: bool,
+    prepare: impl FnOnce(
+        &PreparedDisplayOutput,
+        &mut conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
+    ) -> PreparedDisplayKernel<S, L>,
+    inspect: impl FnOnce(&L) -> R,
+) -> R {
+    let brightness = if mode == 1 || mode == 3 { 8 } else { 3 };
     let source = DisplayOutputSource::compile().unwrap();
     let (host, grant, mut software) = fixture(&source);
     let prepared = PreparedDisplayOutput::prepare(
@@ -76,7 +87,7 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
             .unwrap(),
         RemoteIngressOutcome::Accepted { sequence: 0 }
     );
-    if mode != 0 {
+    if mode != 0 && mode != 3 {
         execution
             .kernel
             .close_remote_input(execution.input.endpoint, execution.input.cord)
@@ -88,7 +99,7 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
         .to_vec();
     let second_registers = [0, 0x6d, 0x6f, 0x76, 0, 0];
     let second_frame = encoder
-        .encode_frame(second_registers, 3, true)
+        .encode_frame(second_registers, if mode == 3 { 8 } else { 3 }, true)
         .unwrap()
         .to_vec();
     let second_expected = encoder
@@ -120,6 +131,26 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
                             &second_expected
                         }
                     );
+                    if mode == 4 {
+                        // CPU Host boundary reports a failed write completion;
+                        // no electrical provider is invoked for this case.
+                        execution
+                            .kernel
+                            .complete_host_call(
+                                request.node,
+                                request.request,
+                                k::HostCallOutcome {
+                                    disposition: k::HostCallDisposition::Failed,
+                                    output: None,
+                                    failure: Some(k::Failure {
+                                        code: k::FailureCode::HostCallFailed,
+                                        detail: 42,
+                                    }),
+                                },
+                            )
+                            .unwrap();
+                        continue;
+                    }
                     if mode == 2 {
                         execution.kernel.cancel().unwrap();
                         owner.revoke(request.node, request.call).unwrap();
@@ -197,24 +228,59 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
                     .remote_egress_delivered(offer.endpoint, offer.cord, offer.sequence)
                     .unwrap();
                 refusals += 1;
+                if mode == 3 && refusals == 1 {
+                    assert_eq!(
+                        execution
+                            .kernel
+                            .admit_remote_input(
+                                execution.input.endpoint,
+                                execution.input.cord,
+                                1,
+                                &second_frame,
+                            )
+                            .unwrap(),
+                        RemoteIngressOutcome::Accepted { sequence: 1 }
+                    );
+                    execution
+                        .kernel
+                        .close_remote_input(execution.input.endpoint, execution.input.cord)
+                        .unwrap();
+                }
             }
-            if execution.kernel.step().unwrap() == SchedulerStatus::Drained {
-                drained = true;
-                break;
+            match execution.kernel.step() {
+                Ok(SchedulerStatus::Drained) => {
+                    drained = true;
+                    break;
+                }
+                Err(k::scheduler::SchedulerError::BackFailed(_)) if mode == 4 => {
+                    execution.kernel.cancel().unwrap();
+                    owner.revoke(execution.write, k::HostCallId(0)).unwrap();
+                    break;
+                }
+                result => {
+                    result.unwrap();
+                }
             }
         }
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
-    if mode == 2 {
+    if mode == 2 || mode == 4 {
         assert_eq!((writes, refusals, edges.get()), (0, 0, 0));
-        return;
+        return inspect(execution.kernel.signs());
     }
     assert!(drained);
     assert_eq!(
         (writes, refusals),
-        if brightness < 8 { (2, 0) } else { (0, 1) }
+        if brightness < 8 {
+            (2, 0)
+        } else if mode == 3 {
+            (0, 2)
+        } else {
+            (0, 1)
+        }
     );
     assert_eq!(edges.get() > 0, brightness < 8);
+    inspect(execution.kernel.signs())
 }
 #[test]
 fn preparation_refusal_preserves_all_unselected_software() {

@@ -55,7 +55,11 @@ pub(super) fn check(
         0
     )
     .is_err());
-    let needed = native_display_kernel::requirements(profile.maximum_value_bytes).unwrap();
+    let needed = native_display_kernel::requirements(
+        profile.maximum_value_bytes,
+        DisplaySignBudget::derive(2, profile.sign_items, profile.sign_bytes).unwrap(),
+    )
+    .unwrap();
     let (refused, usage) = allocation_probe::observe(|| {
         native_display_kernel::prepare(
             staged.wire(),
@@ -87,6 +91,7 @@ pub(super) fn check(
         usage.requested_bytes
     );
     assert_eq!(prepared.identity, assignment.identity());
+    assert_eq!(prepared.maximum_frames(), 2);
     assert_eq!(prepared.input, assignment.fore()[0]);
     // Replaying preparation cannot reconstruct withdrawn portable owners.
     assert!(native_display_kernel::prepare(

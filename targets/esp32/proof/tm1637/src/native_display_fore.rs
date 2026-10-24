@@ -71,7 +71,10 @@ impl<P: OpenDrain> Execution<P> {
         {
             return self.finish_run(failed(k::FailureCode::InvalidLifecycle, 19));
         }
-        if maximum_frames == 0 || maximum_frames > self.inspection().scope.maximum_operations {
+        if maximum_frames == 0
+            || maximum_frames > self.storage.maximum_frames()
+            || maximum_frames > self.inspection().scope.maximum_operations
+        {
             return self.finish_run(failed(k::FailureCode::WorkBudgetExhausted, 20));
         }
         let exit = match select(stop, self.pump_fore(fore, maximum_frames)).await {

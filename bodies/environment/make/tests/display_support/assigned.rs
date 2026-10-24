@@ -171,15 +171,45 @@ fn checked_output_runs_from_compact_fore_tables_without_inventing_a_line() {
             let extent = prepared.maximum_value_bytes();
             assert!(extent < 1024);
             let values = || k::HostedValueStore::new(12, extent, 12 * extent).unwrap();
+            let budget =
+                DisplaySignBudget::derive(2, resident.sign_items, resident.sign_bytes).unwrap();
             let signs = || {
                 k::HostedSignLog::new_with_remote_storage(
-                    256,
-                    256 * core::mem::size_of::<k::KernelEvent>() as u32,
-                    256,
-                    k::remote_sign_storage_bytes(256).unwrap(),
+                    budget.ordinary_items(),
+                    budget.ordinary_bytes(),
+                    budget.remote_items(),
+                    budget.remote_bytes(),
                 )
                 .unwrap()
             };
+            for case in 0..3 {
+                let items = budget.ordinary_items() - u16::from(case == 0);
+                let bytes = if case == 1 {
+                    budget.ordinary_bytes() - 1
+                } else {
+                    u32::from(items) * core::mem::size_of::<k::KernelEvent>() as u32
+                };
+                let remote = budget.remote_items() - u16::from(case == 2);
+                let too_small = k::HostedSignLog::new_with_remote_storage(
+                    items,
+                    bytes,
+                    remote,
+                    k::remote_sign_storage_bytes(remote).unwrap(),
+                )
+                .unwrap();
+                assert!(matches!(
+                    PreparedAssignedDisplayKernel::prepare(
+                        make_input(),
+                        &resident,
+                        scope(fragment.offer_generation),
+                        software,
+                        2,
+                        values(),
+                        too_small,
+                    ),
+                    Err(AssignedDisplayRefusal::Bounds)
+                ));
+            }
             assert!(matches!(
                 PreparedAssignedDisplayKernel::prepare(
                     make_input(),

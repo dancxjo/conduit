@@ -39,3 +39,6 @@ mod fixture;
 
 #[path = "display_support/mask.rs"]
 mod mask;
+
+#[path = "display_support/sign_retention.rs"]
+mod sign_retention;
