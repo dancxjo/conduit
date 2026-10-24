@@ -22,7 +22,7 @@ pub const STEPS: &[Step] = &[
     ),
     Step::new(
         "prosody-commitment.source-plan-play",
-        "Check committed dependency correlation, symbolic prosody and revision safety",
+        "Check committed dependency correlation, finite analysis epochs and revision safety",
         "cargo",
         &[
             "test",
@@ -35,6 +35,12 @@ pub const STEPS: &[Step] = &[
             "prosody_revision",
             "--test",
             "analysis_session_snapshots",
+            "--test",
+            "analysis_epoch_initialization",
+            "--test",
+            "analysis_epoch_custody",
+            "--test",
+            "analysis_fallback_round",
             "--",
             "--nocapture",
             "--test-threads=1",

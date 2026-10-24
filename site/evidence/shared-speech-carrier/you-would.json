@@ -30,8 +30,8 @@
       "LanguageCommitment"
     ],
     "selected_backend": null,
-    "source_identity": "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e",
-    "terminal_evidence_identity": "ce38bffddc64de220d4be08a7611cd7d21373fcacd879014d11986f15bfe7ae0",
+    "source_identity": "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b",
+    "terminal_evidence_identity": "810e4ce95a79ae9ed3c0ed28336b8c6b2b8e7b6f2349975f2442271b499872d2",
     "trained_weights": false,
     "training_phonemes": 5,
     "training_phones": 5
@@ -44,35 +44,35 @@
     "SpeechOfflinePcmAdmission": "c07c8c5c9767ca8f7f2053219d7300e2683878bb1f516969261a0b3727d951ec",
     "SpeechUtteranceIntent": "a07d611735dcce86781cc9a710bf7925bb2c416e006ddfe20c0c2b2c2d2dfc8c"
   },
-  "original_artifact_identity": "e0a063596abd49a7af7189202021f620fa91b648acfda94bc4f7d1c2cb69401d",
+  "original_artifact_identity": "e79e29677f31011fdc235190b7e08f092f8a5943d2cd2fdc2928656c5929bb88",
   "pcm_frames": 4000,
   "plan": {
-    "checked_plot_id": "febe806710312e085d4106129086f296f148c0364ce6a08c62d65fe8444ba1e4",
+    "checked_plot_id": "1d805fd4e2b180ac9949a9f4b0b60bfc7417fe7726da20c65f654a255c1968d2",
     "completion_policy": "SemanticCompletion",
-    "expanded_plot_id": "1592a9995bd215f04eae36a60de4ce32ffcd6000ff2de82e8a774ea4ed897345",
+    "expanded_plot_id": "ad0e233149d6094a799b05841f4841e31550b831da0f182e49b10ea93af00636",
     "fragments": [
       {
         "boot_id": "proof/carried-formant-boot",
         "cancellation_policy": "CancelAllAndRejectLateCompletion",
-        "checked_plot_id": "febe806710312e085d4106129086f296f148c0364ce6a08c62d65fe8444ba1e4",
+        "checked_plot_id": "1d805fd4e2b180ac9949a9f4b0b60bfc7417fe7726da20c65f654a255c1968d2",
         "completion_policy": "SemanticCompletion",
         "connections": [],
         "execution_fusions": [],
         "execution_regions": [],
-        "expanded_plot_id": "1592a9995bd215f04eae36a60de4ce32ffcd6000ff2de82e8a774ea4ed897345",
+        "expanded_plot_id": "ad0e233149d6094a799b05841f4841e31550b831da0f182e49b10ea93af00636",
         "expected_sign": [
           "PlanFragmentReceived",
           {
-            "PlacementPrepared": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888"
+            "PlacementPrepared": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36"
           },
           {
-            "PlacementTerminal": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888"
+            "PlacementTerminal": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36"
           },
           "PlanTerminal"
         ],
         "expected_terminals": [
           {
-            "PlacementCompleted": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888"
+            "PlacementCompleted": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36"
           },
           "PlanCompleted"
         ],
@@ -83,7 +83,7 @@
             "front_port_id": "source",
             "gear_port_id": "source",
             "item_capacity": 1,
-            "placement_id": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888",
+            "placement_id": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36",
             "pressure_policy": "preserve-order",
             "temporal": "Value",
             "track": "payload",
@@ -100,7 +100,7 @@
             "front_port_id": "audio",
             "gear_port_id": "audio",
             "item_capacity": 1,
-            "placement_id": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888",
+            "placement_id": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36",
             "pressure_policy": "preserve-order",
             "temporal": {
               "Flow": {
@@ -116,12 +116,12 @@
             "value_kind": "audio/pcm-frames@1"
           }
         ],
-        "fragment_id": "8da5ff715c051dae6e6b7a7d2a1c32bf2cec62f319be9eb016805af3e3402b56",
+        "fragment_id": "59cca78ab5b1d6cba187d184e5175e4c3065f3ce7ebee20271bb25480002a8a1",
         "host_id": "proof/carried-formant",
         "offer_generation": 1,
         "placements": [
           {
-            "artifact_id": "conduit-native/carried-formant@1/411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee/74d21c7242bd27764d243b3fe109270883d4205c2ca57481d0126ccfdb1816fb",
+            "artifact_id": "conduit-native/carried-formant@1/ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566/1bd329c8c3656710a4947e3972f0366edf9e24c50f3e8f9fd3eaa685e5929841",
             "authority": [],
             "boot_id": "proof/carried-formant-boot",
             "capability_id": "native-carried-formant",
@@ -135,19 +135,19 @@
               {
                 "key": "offline-authoring",
                 "value": {
-                  "Text": "74d21c7242bd27764d243b3fe109270883d4205c2ca57481d0126ccfdb1816fb"
+                  "Text": "1bd329c8c3656710a4947e3972f0366edf9e24c50f3e8f9fd3eaa685e5929841"
                 }
               },
               {
                 "key": "projection",
                 "value": {
-                  "Text": "411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee"
+                  "Text": "ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566"
                 }
               },
               {
                 "key": "source",
                 "value": {
-                  "Text": "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e"
+                  "Text": "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b"
                 }
               }
             ],
@@ -184,7 +184,7 @@
                 "value_kind": "audio/pcm-frames@1"
               }
             ],
-            "placement_id": "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888",
+            "placement_id": "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36",
             "pool_references": [],
             "realization_characteristics": [],
             "resources": [],
@@ -204,39 +204,39 @@
                 },
                 {
                   "default_value": {
-                    "Text": "74d21c7242bd27764d243b3fe109270883d4205c2ca57481d0126ccfdb1816fb"
+                    "Text": "1bd329c8c3656710a4947e3972f0366edf9e24c50f3e8f9fd3eaa685e5929841"
                   },
                   "key": "offline-authoring",
                   "rule": {
                     "TextOneOf": {
                       "values": [
-                        "74d21c7242bd27764d243b3fe109270883d4205c2ca57481d0126ccfdb1816fb"
+                        "1bd329c8c3656710a4947e3972f0366edf9e24c50f3e8f9fd3eaa685e5929841"
                       ]
                     }
                   }
                 },
                 {
                   "default_value": {
-                    "Text": "411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee"
+                    "Text": "ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566"
                   },
                   "key": "projection",
                   "rule": {
                     "TextOneOf": {
                       "values": [
-                        "411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee"
+                        "ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566"
                       ]
                     }
                   }
                 },
                 {
                   "default_value": {
-                    "Text": "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e"
+                    "Text": "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b"
                   },
                   "key": "source",
                   "rule": {
                     "TextOneOf": {
                       "values": [
-                        "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e"
+                        "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b"
                       ]
                     }
                   }
@@ -281,11 +281,11 @@
         ],
         "plan_fragments": [
           {
-            "fragment_id": "8da5ff715c051dae6e6b7a7d2a1c32bf2cec62f319be9eb016805af3e3402b56",
+            "fragment_id": "59cca78ab5b1d6cba187d184e5175e4c3065f3ce7ebee20271bb25480002a8a1",
             "host_id": "proof/carried-formant"
           }
         ],
-        "plan_id": "4d3c50800e300bbf4b6794cf23cd3706ddd3252687c8413f147d7e015514e5b3",
+        "plan_id": "30e895e83b8f1608409e663267e2335e9ecad5dd47213afd9c040ab78be99986",
         "realization_backs": [],
         "shared_pools": [],
         "sign_storage_budget": {
@@ -295,19 +295,19 @@
         "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc",
         "startup_dependencies": [],
         "startup_order": [
-          "46dc99034161dd7f7f69880b14573e688cd872960269194382c8369435565888"
+          "985e877f3a38413226860c0a0a9fc295eb925992965655ed7c5143838578cd36"
         ],
         "terminal_policy": "RequireAllPlacementsAndConnections"
       }
     ],
-    "plan_id": "4d3c50800e300bbf4b6794cf23cd3706ddd3252687c8413f147d7e015514e5b3",
+    "plan_id": "30e895e83b8f1608409e663267e2335e9ecad5dd47213afd9c040ab78be99986",
     "realization_backs": [],
     "source_document_id": "f928de427d3855713b7e011cd6615a67fc8b2b97addcf5266af16033c56fd5bc"
   },
   "plays": {
-    "proof/carried-formant": "a180fad2077ba95c668f7af7b2a35a0aaabc224f858dedc61afb5af270e62349"
+    "proof/carried-formant": "2d5ce39e1c5b2b9730b7536fad9d1d29d711ca3415ce48c302fc35e8d26ca567"
   },
-  "projection_identity": "411441849d321dd9cf447a9c2b44286981b6c4ce25223056155ea2c61e815cee",
+  "projection_identity": "ffc69384d0a1467e657be8754bba2c94e3e8fa1b6c8d6d1c6df0f88e6443a566",
   "proof_class": "installed factory and execution kernel; offline authored PCM computation",
   "sample_rate_hz": 8000,
   "signs": {
@@ -1469,7 +1469,7 @@
       }
     ]
   },
-  "source_identity": "1c8dc6ebc6d02449bf272ce73ce6bea758175fff422138887cf0ba4545604b8e",
+  "source_identity": "70761afb515ec5e39f2ac5364b02bc22d3dc6bfe4139cc16296886ddcb9b254b",
   "speech_authoring_source": "f95adad6234f12c9bcb1b9d6dc7e5e9b8829aa50741e8f53517a5dcaddbeef2f",
   "text": "you would",
   "wav_identity": "9b9def016acb1b48f7395425d26232f0175f7e182b1c38dd0e62fdd60137f367"

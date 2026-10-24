@@ -9,6 +9,8 @@ pub mod observation;
 pub mod publication;
 #[cfg(feature = "face-projection")]
 pub mod retained_publication_face;
+#[cfg(feature = "face-projection")]
+pub mod publication_face_custody;
 use alloc::{boxed::Box, string::String};
 use conduit_core::{PortTemporal, StructuredSelector};
 use conduit_kernel::{
