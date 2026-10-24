@@ -1,0 +1,42 @@
+{
+  "schema": "conduit.environment/output-metadata-held-memory@1",
+  "source": "3432496dbf1c4d3c04475f41a1de36fe85ecd4a1",
+  "proof_class": "physical-authenticated-dormant-preparation",
+  "root_capacity_bytes": 114688,
+  "root_used_bytes": 60596,
+  "root_peak_bytes": 92780,
+  "peak_headroom_bytes": 21908,
+  "linked_stack_bytes": 32332,
+  "stack_floor_bytes": 28672,
+  "stack_high_water_claimed": false,
+  "start_sent": false,
+  "release_sent": false,
+  "frame_submitted": false,
+  "combined_sampling_output_claimed": false,
+  "previous_capture_comparison": {
+    "source": "4f176fdc66eedf9224f24c37ebb7ea81ba892308",
+    "used_bytes": 97872,
+    "peak_bytes": 105460,
+    "isolated_causal_comparison": false
+  },
+  "recovery": {
+    "source": "3432496dbf1c4d3c04475f41a1de36fe85ecd4a1",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": true,
+    "native_exit": 0,
+    "captures": {
+      "environment-display-readiness": [
+        "target/environment-display-readiness/1792845244"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  }
+}

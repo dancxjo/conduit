@@ -1,0 +1,22 @@
+{
+  "image.json": {
+    "source": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/outputs/environment-display-retirement-probe/1792845216/environment-display-readiness/1792845244/image.json",
+    "sha256": "8f881768423b66ade7bdd90c84d0da98152fba892536627234075eb4f7aff03e"
+  },
+  "preparation.json": {
+    "source": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/outputs/environment-display-retirement-probe/1792845216/environment-display-readiness/1792845244/owner-native-preparation.json",
+    "sha256": "a62efe2b8d5907c67d0e79a64c0e4c6c9b18982bd09541b22f3b7bbdcf34a82e"
+  },
+  "owner-receipt.json": {
+    "source": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/outputs/environment-display-retirement-probe/1792845216/environment-display-readiness/1792845244/native-owner-receipt.json",
+    "sha256": "c53f02240c8e498fa8c8bbb9c00960693b9cff34fea4ef78ce4df25633d2047a"
+  },
+  "recovery.json": {
+    "source": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/outputs/environment-display-retirement-probe/1792845216/result.json",
+    "sha256": "16ca9ae1789df4e0c8a793faa2bf16d9728294c47c326169d7d68b127c4ae688"
+  },
+  "full_linker_map": {
+    "source": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/outputs/environment-display-retirement-probe/1792845216/native-root.map",
+    "sha256": "0f428ce042bb1fe2869216a392fc981df38055a4161d3bd092d02bf495f345c1"
+  }
+}

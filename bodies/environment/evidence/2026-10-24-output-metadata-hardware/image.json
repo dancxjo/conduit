@@ -1,0 +1,11 @@
+{
+  "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-display-readiness/1792845244/root.elf",
+  "body_started": false,
+  "elf_sha256": "ee25e4eda848d63942688c42c622b3b86dfa8ece585a3b9cc9ff0b5a48e1bb8a",
+  "physical_display_delivery": false,
+  "profile": "display-ready-root",
+  "sampling_prepared": false,
+  "schema": "conduit.environment/display-readiness-image@1",
+  "source_dirty": false,
+  "source_head": "3432496dbf1c4d3c04475f41a1de36fe85ecd4a1"
+}

@@ -1,0 +1,20 @@
+{
+  "source": "3432496dbf1c4d3c04475f41a1de36fe85ecd4a1",
+  "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+  "completed": true,
+  "native_exit": 0,
+  "captures": {
+    "environment-display-readiness": [
+      "target/environment-display-readiness/1792845244"
+    ]
+  },
+  "restore_required": true,
+  "restore_exit": 0,
+  "fresh_source_sequences": [
+    1,
+    2,
+    3
+  ],
+  "current_display_updates": 12,
+  "recovery_verified": true
+}
