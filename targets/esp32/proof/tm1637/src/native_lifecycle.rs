@@ -32,6 +32,7 @@ impl NativeRoot {
                     loop {
                         let status = worker.status();
                         if status.phase == "quiesced"
+                            && !status.task_active
                             && !status.cleanup_failure
                             && status.native_lifecycles == Some(["revoked", "revoked"])
                             && status.native_in_flight == Some([0, 0])

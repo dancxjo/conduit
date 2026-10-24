@@ -25,7 +25,9 @@ static READY: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 pub struct Status {
     pub phase: &'static str,
     pub context_bytes: usize,
+    /// Static task-pool reservation remains present even after the task exits.
     pub held_future_bytes: usize,
+    pub task_active: bool,
     pub source_sequence: u64,
     pub publication_sequence: u64,
     pub publication_channel: Option<u8>,
@@ -59,6 +61,7 @@ static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCel
         phase: "unregistered",
         context_bytes: 0,
         held_future_bytes: 0,
+        task_active: false,
         source_sequence: 0,
         publication_sequence: 0,
         publication_channel: None,
@@ -159,7 +162,8 @@ impl Handle {
         >,
         &'static str,
     > {
-        if self.status().phase != "quiesced" {
+        let status = self.status();
+        if status.phase != "quiesced" || status.task_active {
             return Err("worker-not-quiesced");
         }
         let providers = DeviceExecution::retire_retained(&mut self.slot.execution.borrow_mut())?;
@@ -208,6 +212,7 @@ pub fn prepare(
     slot.execution.replace(execution.take());
     update(|state| {
         state.status.phase = "registering";
+        state.status.task_active = true;
         state.status.context_bytes = core::mem::size_of::<DeviceExecution>();
         state.status.held_future_bytes = core::mem::size_of_val(&held(slot));
     });
@@ -218,7 +223,10 @@ pub fn prepare(
         }
         Err(_) => {
             *execution = slot.execution.borrow_mut().take();
-            update(|state| state.status.phase = "registration-refused");
+            update(|state| {
+                state.status.phase = "registration-refused";
+                state.status.task_active = false;
+            });
             Err("worker-task-pool-unavailable")
         }
     }
@@ -229,7 +237,10 @@ async fn worker(slot: &'static Slot) {
 }
 async fn held(slot: &'static Slot) {
     let Some(mut execution) = slot.execution.borrow_mut().take() else {
-        update(|state| state.status.phase = "ownership-refused");
+        update(|state| {
+            state.status.phase = "ownership-refused";
+            state.status.task_active = false;
+        });
         return;
     };
     update(|state| {
@@ -303,11 +314,14 @@ async fn held(slot: &'static Slot) {
         state.status.cleanup_failure = outcome.cleanup.is_err();
         native_status(&mut state.status, &execution);
     });
-    // Publish actual terminal custody before yielding. Root may subsequently
-    // retire it with an authenticated exact-scope command. The task registration
-    // itself stays one-use; this is not automatic rearm or restart recovery.
+    // Publish terminal custody and return without another await. Management and
+    // this worker share one executor, so Root cannot observe task_active=false
+    // until this poll has returned and the executor has released registration.
+    // The StaticCell remains one-use and the task pool's static bytes remain
+    // reserved. Only authenticated retirement may consume the retained kernel;
+    // task completion grants neither provider custody nor a new Play.
     slot.execution.replace(Some(execution));
-    core::future::pending::<()>().await;
+    update(|state| state.status.task_active = false);
 }
 
 fn native_status(status: &mut Status, execution: &DeviceExecution) {
