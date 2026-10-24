@@ -43,6 +43,10 @@ pub fn application_look_css() -> Vec<u8> {
         conduit_face::phosphor_look(),
         conduit_face::editorial_look(),
         conduit_face::engineering_look(),
+        conduit_face::navy_look(
+            conduit_face::VisualDensity::Compact,
+            conduit_face::VisualTypography::Editorial,
+        ),
     ] {
         css.extend(
             theme::render_look_css(&look.expect("checked built-in Look data"))

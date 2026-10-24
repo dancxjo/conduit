@@ -1,11 +1,12 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
 // Documentary graph: checks appearance and retained renderer identities, not
 // live Body execution or native Mask selection.
-test('three typed application Looks retain the exact Face and graph', async ({ page }, info) => {
+test('four typed application Looks retain the exact Face and graph', async ({ page }, info) => {
   const child=spawn('target/debug/conduit-browser-patchbay-workbench',['--documentary-fixture'],{stdio:['ignore','pipe','pipe']});
   const errors=[];child.stderr.on('data',chunk=>errors.push(String(chunk)));
   const lines=createInterface({input:child.stdout});
@@ -22,6 +23,8 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     await expect(page.locator('.flow-frontplate').first()).toBeVisible();
     await page.locator('#fit-flow').click();
     const baseline=await (await page.request.get(`${url}/api/snapshot`)).json();
+    const theme=await (await page.request.get(`${url}/assets/theme.css`)).body();
+    await writeFile(info.outputPath('theme.css'),theme);
     const nodes=await page.locator('.flow-frontplate').evaluateAll(nodes=>nodes.map(node=>node.dataset.subject));
     const picker=page.getByRole('combobox',{name:'Look',exact:true});
     await picker.focus();
@@ -29,6 +32,7 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
       ['phosphor','rgb(5, 7, 11)','Georgia'],
       ['editorial','rgb(244, 240, 231)','Georgia'],
       ['engineering','rgb(234, 240, 246)','Inter'],
+      ['navy','rgb(16, 27, 42)','Georgia'],
     ]) {
       if(name!=='phosphor')await page.keyboard.press('ArrowDown');
       await expect(picker).toHaveValue(`conduit.look/${name}@1`);
@@ -52,7 +56,7 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     await page.keyboard.press('Tab');
     await expect(picker).toBeFocused();
     await page.keyboard.press('Home');
-    for(const name of ['phosphor','editorial','engineering']) {
+    for(const name of ['phosphor','editorial','engineering','navy']) {
       if(name!=='phosphor')await page.keyboard.press('ArrowDown');
       await expect(picker).toHaveValue(`conduit.look/${name}@1`);
       await picker.focus();
@@ -67,12 +71,14 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
       })).toBe(true);
       await expect(page.locator('body')).toHaveAttribute('data-application-look',`conduit.look/${name}@1`);
     }
+    expect((await (await page.request.get(`${url}/api/snapshot`)).json()).face).toEqual(baseline.face);
     await page.screenshot({path:info.outputPath('look-narrow-forced.png'),fullPage:true,animations:'disabled'});
     await writeFile(info.outputPath('look-receipt.json'),JSON.stringify({
       scope:'documentary browser application Look switching; not live Body or native proof',
-      face:baseline.face, nodes, looks:['conduit.look/phosphor@1','conduit.look/editorial@1','conduit.look/engineering@1'],
+      face:baseline.face, nodes, looks:['conduit.look/phosphor@1','conduit.look/editorial@1','conduit.look/engineering@1','conduit.look/navy@1'],
       unchanged_face:true, keyboard_selection:true, narrow_forced_colors:true,
       browser:page.context().browser().version(),
+      theme_css:{bytes:theme.length,sha256:createHash('sha256').update(theme).digest('hex')},
     },null,2));
   } finally { lines.close();child.kill('SIGTERM'); }
 });
