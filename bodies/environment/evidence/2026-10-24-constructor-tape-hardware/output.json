@@ -1,0 +1,50 @@
+{
+  "schema": "conduit.environment/output-tape-held-memory@1",
+  "source": "8887862b876d07c4cf893088dc4ac62c23dab365",
+  "proof_class": "physical-authenticated-dormant-preparation",
+  "root_capacity_bytes": 114688,
+  "root_used_bytes": 49388,
+  "root_peak_bytes": 81572,
+  "peak_headroom_bytes": 33116,
+  "linked_stack_bytes": 32316,
+  "stack_floor_bytes": 28672,
+  "stack_high_water_claimed": false,
+  "start_sent": false,
+  "release_sent": false,
+  "frame_submitted": false,
+  "combined_sampling_output_claimed": false,
+  "image_receipt": {
+    "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-display-readiness/1792848698/root.elf",
+    "body_started": false,
+    "elf_sha256": "feb04df67d25ecf572d058aae3949c6421da7583f8b7c2d014e15399a26f5d94",
+    "physical_display_delivery": false,
+    "profile": "display-ready-root",
+    "sampling_prepared": false,
+    "schema": "conduit.environment/display-readiness-image@1",
+    "source_dirty": false,
+    "source_head": "8887862b876d07c4cf893088dc4ac62c23dab365"
+  },
+  "recovery": {
+    "source": "8887862b876d07c4cf893088dc4ac62c23dab365",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": true,
+    "native_exit": 0,
+    "captures": {
+      "environment-display-readiness": [
+        "target/environment-display-readiness/1792848698"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  },
+  "capture_sha256": {
+    "native-owner-receipt.json": "536ee937e9fd3d2c7fd449c22f075d7bf115861fce639bd4857599ab6fbdc70d"
+  }
+}

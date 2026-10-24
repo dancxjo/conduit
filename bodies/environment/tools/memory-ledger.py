@@ -55,8 +55,8 @@ def elf_sections(path):
 
 def ledger(sampling_image=None, output_image=None):
     inputs = {
-        "sampling": EVIDENCE / "2026-10-24-native-face-custody/measurement.json",
-        "output": EVIDENCE / "2026-10-24-output-metadata-hardware/measurement.json",
+        "sampling": EVIDENCE / "2026-10-24-constructor-tape-hardware/sampling.json",
+        "output": EVIDENCE / "2026-10-24-constructor-tape-hardware/output.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
         "expression_cpu": EVIDENCE / "2026-10-24-structured-constructor-tape/measurement.json",
     }
@@ -93,7 +93,10 @@ def ledger(sampling_image=None, output_image=None):
             "sampling_face": {
                 "source": sampling["source_commit"], "root_capacity_bytes": sampling["root_heap_bytes"],
                 "preparation_and_run_peak_bytes": sampling["root_heap_peak_bytes"],
-                "steady_state_bytes": None, "after_retirement_bytes": sampling["root_heap_after_retirement_bytes"],
+                "steady_state_bytes": None, "observed_sampling_used_bytes": sampling["observed_sampling_root_used_bytes"],
+                "heap_checkpoints": sampling["heap_checkpoints"],
+                "observed_sdk_peak_bytes": sampling["observed_sdk_peak_bytes"],
+                "after_retirement_bytes": sampling["root_heap_after_retirement_bytes"],
                 "sdk_capacity_bytes": sampling["sdk_heap_bytes"],
                 "linked_stack_bytes": sampling["linked_stack_bytes"], "stack_high_water_bytes": None,
             },
@@ -161,9 +164,9 @@ def markdown(value):
         "| Construction | Output descriptors retire after transfer; schemas and expression trees remain in other paths | Bound transient peaks and every last-use release |",
         f"| Execution records | Output reserves {value['inventory']['output_sign_records']['ordinary_items']} ordinary and {value['inventory']['output_sign_records']['remote_items']} remote records | Derive mandatory retention; do not discard required evidence |",
         f"| Root peaks | Sampling/Face {sampling['preparation_and_run_peak_bytes']:,} B; dormant output preparation {output['preparation_peak_bytes']:,} B | Measure combined preparation and execution separately |",
-        f"| Retained Root | Dormant output {output['dormant_retained_bytes']:,} B; sampler steady state not separately captured | Do not label post-retirement memory as steady state |",
+        f"| Retained Root | Dormant output {output['dormant_retained_bytes']:,} B; sampler observed at {min(sampling['observed_sampling_used_bytes']):,}–{max(sampling['observed_sampling_used_bytes']):,} B across three publications | Do not label post-retirement memory as steady state |",
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
-        f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
+        f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
         f"The unchanged stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
         "The CPU Mask figure and separately captured MCU profiles are intentionally not combined numerically. Source identities and input hashes are in memory-ledger.json.", "",
     ]

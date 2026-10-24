@@ -1,0 +1,151 @@
+{
+  "proof_class": "attended native Face and quantity publication replay; finite run",
+  "source_commit": "8887862b876d07c4cf893088dc4ac62c23dab365",
+  "public_command": "cargo xtask prove environment owner-face-run-esp32",
+  "observations": [
+    {
+      "source_sequence": 1,
+      "revision": 1,
+      "face_identity": "02281fd9c6316bc595a31652492c1dd53cc596b22851abaecfa556507e191aeb"
+    },
+    {
+      "source_sequence": 2,
+      "revision": 2,
+      "face_identity": "04a48366c4369675947f42aec25421f0b0f5c2118d84897a5f5cfe070bd31c0c"
+    },
+    {
+      "source_sequence": 3,
+      "revision": 3,
+      "face_identity": "469946bd40a90cd48c022b04d81deca3f6e8b9a6e35b859123d4666453d51275"
+    }
+  ],
+  "root_heap_bytes": 114688,
+  "sdk_heap_bytes": 73728,
+  "root_heap_peak_bytes": 90760,
+  "root_heap_after_retirement_bytes": 9756,
+  "observed_sampling_root_used_bytes": [
+    90760,
+    90760,
+    90760
+  ],
+  "observed_sdk_peak_bytes": 34024,
+  "heap_checkpoints": {
+    "owner-native-preparation.json": {
+      "observed_boot_ms": 31712,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 90760,
+      "root_used_bytes": 90760,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 33716,
+      "sdk_used_bytes": 33408
+    },
+    "owner-release.json": {
+      "observed_boot_ms": 32723,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 90760,
+      "root_used_bytes": 90760,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 33716,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-1.json": {
+      "observed_boot_ms": 93112,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 90760,
+      "root_used_bytes": 90760,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-2.json": {
+      "observed_boot_ms": 156518,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 90760,
+      "root_used_bytes": 90760,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-3.json": {
+      "observed_boot_ms": 214487,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 90760,
+      "root_used_bytes": 90760,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "owner-quiesced.json": {
+      "observed_boot_ms": 215241,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 90760,
+      "root_used_bytes": 90760,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "owner-retired.json": {
+      "observed_boot_ms": 215770,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 90760,
+      "root_used_bytes": 9756,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    }
+  },
+  "linked_stack_bytes": 36956,
+  "stack_floor_bytes": 36864,
+  "stack_high_water_claimed": false,
+  "mask_on_mcu": false,
+  "combined_sampling_output_claimed": false,
+  "telemetry_is_signed_attestation": false,
+  "image_receipt": {
+    "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792848216/root.elf",
+    "body_started": false,
+    "elf_sha256": "ecbdf8719f66dd13bb802d577eca41da0d3b97d4c9db2177e4026227af6849be",
+    "owner_public_key_sha256": "e803269abafd033641cf34da85a65cbd70a8f667957903908d7b29a9d45d3a33",
+    "schema": "conduit.environment/owner-root-image@1",
+    "source_dirty": false,
+    "source_head": "8887862b876d07c4cf893088dc4ac62c23dab365"
+  },
+  "recovery": {
+    "source": "8887862b876d07c4cf893088dc4ac62c23dab365",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": true,
+    "native_exit": 0,
+    "captures": {
+      "environment-owner-images": [
+        "target/environment-owner-images/1792848216"
+      ],
+      "environment-software-ready": [
+        "target/environment-software-ready/1792848349"
+      ],
+      "environment-body-admission": [
+        "target/environment-body-admission/1792848344"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  },
+  "capture_sha256": {
+    "owner-native-preparation.json": "47f6f48fc86323825fe17bf5a4291b9e7b11c5742a98f073293b2e18f964b0f6",
+    "owner-release.json": "438d14a2eafd652250c19d1bf05c26026ae7138bb64f500016a0a3294dc7d3ff",
+    "physical-observation-1.json": "ddcff275eacd84512f641d1b3b36df8b714e144f32ad179ea9ca937f7ff13951",
+    "physical-observation-2.json": "c4dc5cd517ec093d5ec78ec832bc0bfda0a9c622cc597074e95280e2badfa669",
+    "physical-observation-3.json": "69c780f3a69ac8ceb3d985f7c84b2c1e83a69e26aae3fe3d95e41a6c3984ca28",
+    "owner-quiesced.json": "911c7f48b007cd18255fad30a5dc282483228038fef2a404152d7d8592a2964a",
+    "owner-retired.json": "a75434208cf8467d2a253cbc09d1abae5ebdb333d2fa07acd420721682cfad1c",
+    "native-owner-receipt.json": "8323b5e03afaeca1c57e2d8dfb4db47b48f8afa61591dc9119f4b0de1284e885",
+    "native-source-face-1.json": "80f4ea090a301d78c07763bd22a4bfb6f0a40490236631cd24d377b666109935",
+    "native-source-face-2.json": "fe5caabc8d78835d9db238db89b16f6615ffcc043877d1f2b3e93eac29987231",
+    "native-source-face-3.json": "bfd419f8193caba39664f988fd18bbc59665411289690c63303fb80d0dfeac5f"
+  }
+}
