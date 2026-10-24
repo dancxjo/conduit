@@ -15,24 +15,28 @@
   "proof_boundary": "Source bytes identified by hashes; local focused checks, no Candidate/Integration or controller/Current claim",
   "checks": [
     {
-      "log": "actual-beam.log",
-      "sha256": "baef1d6e67d7530f5ff1fb473bb874db77f9c5d4d8cf14e3e957bb158bef9172",
-      "exit_code": 0
+      "log": "actual-beam.log.gz",
+      "exit_code": 0,
+      "raw_log_sha256": "baef1d6e67d7530f5ff1fb473bb874db77f9c5d4d8cf14e3e957bb158bef9172",
+      "compressed_sha256": "eea83977229c7f0cf40da50c16228863a9cfa7aa70531547eb071aa56e3260d0"
     },
     {
-      "log": "plot-regressions.log",
-      "sha256": "61bc3f6727730c924d19a36215835e32aa1721c2547afc69e17c2d013e6e7b0f",
-      "exit_code": 0
+      "log": "plot-regressions.log.gz",
+      "exit_code": 0,
+      "raw_log_sha256": "61bc3f6727730c924d19a36215835e32aa1721c2547afc69e17c2d013e6e7b0f",
+      "compressed_sha256": "cff1dea9fa74742c03c5efe09adcffe7924af130e3c016ccc5cba98e1ff0b258"
     },
     {
-      "log": "beam-admission-regression.log",
-      "sha256": "352e2487e5e3cb110767d2705229069a28c78b824f92b45fc378b56b00a0dbbc",
-      "exit_code": 0
+      "log": "beam-admission-regression.log.gz",
+      "exit_code": 0,
+      "raw_log_sha256": "352e2487e5e3cb110767d2705229069a28c78b824f92b45fc378b56b00a0dbbc",
+      "compressed_sha256": "1e417f555d49f341a632f4896fbe3825f0ba5209e82678c51de7c84e40d2d5e2"
     },
     {
-      "log": "strict-library-clippy.log",
-      "sha256": "0ae72a16f8e988789d40785f10b559f5d91e5fb21342b0ed0ea46ff5f44c784f",
-      "exit_code": 0
+      "log": "strict-library-clippy.log.gz",
+      "exit_code": 0,
+      "raw_log_sha256": "0ae72a16f8e988789d40785f10b559f5d91e5fb21342b0ed0ea46ff5f44c784f",
+      "compressed_sha256": "96a1c7668c48e8fff989f1dc4830c5b0c757bf11b03e127e50e39717d8ac31db"
     }
   ],
   "case_counts": {

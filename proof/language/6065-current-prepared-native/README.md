@@ -7,3 +7,5 @@ The generic generated consumer covers nested records, bounded text, signed/bool 
 Strict library Clippy and workspace formatting passed. Both new tests are selected by the supported native-source-laws suite; this packet records direct owning invocations, not a whole-suite invocation. The suite source was added after the nine mechanism/test files were frozen and checked; results.json separately hashes all ten owning code paths. Exact-head Candidate/Integration remains required.
 
 No streaming controller, epoch publication, installed Current authority or realtime latency proof is supplied. Every leaf revalidates canonical input and walks its generated path. One-shot work/capacity limits and retained-finish ownership are documented at the generator API. Original failed runs and compiled evidence remain retained in the task workspace; the packet does not claim these local passes erase them.
+
+Logs are gzip-compressed byte-for-byte originals; results.json records both compressed and original hashes.
