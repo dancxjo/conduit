@@ -13,3 +13,20 @@ The HTTP reproduction now advances beyond the OutputBlocked panic but is **still
 The GUI worktree's executable link was restored to its retained GUI-specific binary after this separate runtime build, avoiding mixed-source screenshots. Original GUI source and captures remain unchanged.
 
 Maintenance recovered 11,397,365,760 bytes from audited old duplicate native library metadata/archives (newest two versions retained), then 2,216,267,776 bytes from inactive browser compilation intermediates. Executables, final top-level WASM, sealed products, source and unique evidence were preserved. Audits are retained beside the receipts.
+
+## Combined local success after GUI projection repair
+
+The follow-up factory correction at `3db193770` keeps the reviewed palette,
+canonical wrapper and offers on the same complete checked Fore. Combined proof
+`72bee27b9` also includes the GUI Sign/transcript continuation fixes. Its minimal
+HTTP Source now succeeds through Open/Birth/Wake/Plan/Play without stderr;
+`combined-http-success.json` retains the exact requests. The harness terminates
+its own still-running server with SIGTERM after success.
+
+All seventeen focused GUI cases pass together on that combined ref, including
+the original nine-Gear lifecycle and saved-layout identity. Screenshot, full
+Face/Plan/Play receipt and current catalog/model checks are retained in
+[the combined evidence](https://github.com/dancxjo/conduit/tree/9083e6a06/docs/audits/evidence/gui-look-6349-live-quantity).
+This is combined local evidence, not exact isolated-runtime-head, CI, native or
+publication acceptance. The earlier negative HTTP records above remain valid
+for their earlier source. No issue is closed here.
