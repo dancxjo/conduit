@@ -71,3 +71,22 @@ outputs were reclaimed before the successful bounded-cache checks above.
 The original packet predates LoongArch qualification. Its normal graphical
 product and the all-five comparison now have separate retained evidence.
 Required Candidate and combined integration acceptance remain outstanding.
+
+## LoongArch completion
+
+The [LoongArch session packet](../../targets/conduitos/proof/persistent-launch/loongarch64-c5d100999/index.json)
+retains the actual supported launch of the immutable normal product from
+`11fd0027ee3342bbbb50f501ec4c60f78c346065` with the completed launcher.
+Its Face and product-ready signs appeared; the guest stayed alive for another
+3010 ms before the supervisor stopped only its owned QEMU child. The launcher
+returned zero, verified unchanged firmware and image, and removed its private
+4096-byte entropy file. Only metadata was inspected; secret bytes and their
+hash were not retained. This SDL dummy-backend run proves guest/session lifetime,
+not attended human or physical display acceptance.
+
+Three focused session-lifetime tests and strict xtask Clippy passed. Final
+pipeline preflight passed all 345 checks after incorporating current dev.
+An initial matrix-edit compile error and an initial preflight invocation using
+a ref name instead of a full SHA remain retained as failures, separate from
+those passes. Supported live/readiness matrix outputs name five existing
+graphical profiles and advertise local input only for x86_64.

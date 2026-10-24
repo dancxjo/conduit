@@ -1,0 +1,88 @@
+{
+  "scope": "supervised actual normal LoongArch graphical product persistent session using SDL dummy backend; no attended human or physical display proof",
+  "launcher_implementation": "c5d100999",
+  "launcher_tree": "5893f70b3 (documentation-only successor of merge6c8945002)",
+  "runtime_source": "11fd0027ee3342bbbb50f501ec4c60f78c346065",
+  "entropy": "private 0600 4096-byte file present during guest and removed after exit; bytes and hash not retained",
+  "validation": "3 focused session lifetime tests, strict Clippy; initial compile diagnostic corrected before passing run; final pipeline preflight345/345 passed; initial ref-name argument refused before full-SHA invocation; matrix outputs verified",
+  "files": [
+    {
+      "path": "help.log.gz",
+      "sha256": "b55c6fbf92ef60a4088ff878822f565d9ff7bab700f50a669017bdc6dec86e0c",
+      "original_sha256": "029390fb2d80504821457f2dfc1d34756f123b4213ae43f9c714526b88846ce1",
+      "original_bytes": 13665
+    },
+    {
+      "path": "session.log.gz",
+      "sha256": "f5a9015b9916e298c95915bcc488696d586914cd82bc151369b4bf3f9ff82436",
+      "original_sha256": "47dc3fb23f75188085be7e05e5a3b595ae835824c1a5d19fc903c79fdad85cdb",
+      "original_bytes": 116924
+    },
+    {
+      "path": "receipt.json.gz",
+      "sha256": "7e4956c314817d921b15562c935888e1df5e599c22fc74e2144e660421b7dcc9",
+      "original_sha256": "56c2410a07acce6ab1cc5e364d1caa275c45a4f050f283c27fd30b9f19d6144b",
+      "original_bytes": 1192
+    },
+    {
+      "path": "launch.json.gz",
+      "sha256": "5dd7392d9cbe0e6cdeccee4f041e6ec3c4a32835cea288edbcbdcb0255bae6ba",
+      "original_sha256": "296c0d5092ed20bae567b204e1c817bf73c82c26e32c61b4555cf35e76036b31",
+      "original_bytes": 2233
+    },
+    {
+      "path": "exit.json.gz",
+      "sha256": "c12097fb8cec5f6a67c8d3ae863aa74182403d1428138dc50b5dad335ecbebaf",
+      "original_sha256": "e61344f48137e639846b96c6a26479e043dfea6dec1109c3043130fbc20b21b4",
+      "original_bytes": 198
+    },
+    {
+      "path": "loongarch64-persistent-tests.log.gz",
+      "sha256": "b4641773811e5f268921fdf2d438ee316a3b5edabb31b236d6befcbe16c00fa5",
+      "original_sha256": "33b9afeb2e1c22b904c49ab5824ecbefb99088d9e19a4d2ea8e5d96dfdcae377",
+      "original_bytes": 4085
+    },
+    {
+      "path": "loongarch64-persistent-clippy.log.gz",
+      "sha256": "69412a569c77509aabebae8ccfe1e698fb7fb72b55645e122360b461343c1378",
+      "original_sha256": "c7ef3e178924a8cfdfa8ef8041e98deab8995435d20f6f81c7c9f98fd9f2c11f",
+      "original_bytes": 18051
+    },
+    {
+      "path": "loongarch64-persistent-clippy-final.log.gz",
+      "sha256": "381efbd8e27c7f74f9b3c473fb3b256c51941b48eb94f80c59137a71ea08b658",
+      "original_sha256": "0a8557e3870a2252983d9d64946fe97d66fea0d8651e6bb4b7fa35a8a0541316",
+      "original_bytes": 259
+    },
+    {
+      "path": "loongarch64-final-pipeline-preflight.log.gz",
+      "sha256": "06bf96fcdbeb120467139f9ee3b121c53f181d796be5ba4cb5cb9b5b35868de8",
+      "original_sha256": "6f985f7fab4eda68b9f48147270753403cd4d908d189b0a00b54e2198fa0d5b6",
+      "original_bytes": 297
+    },
+    {
+      "path": "loongarch64-final-pipeline-preflight-sha.log.gz",
+      "sha256": "9e2197454c5bfa8ba0656c7407dacc8dda890c55c5aa12d97c19c28a4d6fa9cf",
+      "original_sha256": "5c8420e0b133e508d9ac2817ad3cd40f583cabab83acbd500aee20c3550852bd",
+      "original_bytes": 34739
+    },
+    {
+      "path": "6057-final-live-matrix.json.gz",
+      "sha256": "a2608ff3e249976d52e079191f98c7dbeb259870511004926be5b0e624464f6c",
+      "original_sha256": "8b7553366bfc0b5c1bd92fa6304f34afe320ee9ae44ee6c50d3936032849fa76",
+      "original_bytes": 2098
+    },
+    {
+      "path": "6057-final-readiness-matrix.json.gz",
+      "sha256": "14a5a5e9dd6c81af3604dd8d6daa79d548d3ee290824a5bd94a427040303bfe5",
+      "original_sha256": "da022a5653913fee1c53e72a91f0e38ec5bb9e1f5a64725a597f2f7a6f36b622",
+      "original_bytes": 3727
+    },
+    {
+      "path": "test-persistent-launcher-loongarch64.py.gz",
+      "sha256": "5ba6596672ccf63530179c9cd18e407e9a04cdb6d7d7038fcecacc4a4f0f5ec2",
+      "original_sha256": "329834d4dc25a6d1282d5b9833a21ff2893b3d970fbb5b4ab00dc4efb645f750",
+      "original_bytes": 4003
+    }
+  ]
+}
