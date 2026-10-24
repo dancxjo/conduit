@@ -204,7 +204,7 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         image_length: image_end.saturating_sub(image_start) as u64,
         memory_region_count: 1,
         artifact_count: 0,
-        framebuffer_count: u16::from(framebuffer.is_some()),
+        framebuffer_count: u8::from(framebuffer.is_some()),
         command_line_bytes: 0,
         runtime_arena: RuntimeArena {
             physical_start: unsafe {
