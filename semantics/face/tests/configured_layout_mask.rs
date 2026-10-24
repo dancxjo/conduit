@@ -156,6 +156,15 @@ fn evidence_with(
     )
     .unwrap();
     let planned = PlannedMaskPlot::admit(&MaskPlot::admit(&expanded).unwrap(), &plan).unwrap();
+    let encoded = serde_json::to_vec(&planned).unwrap();
+    let restored: PlannedMaskPlot = serde_json::from_slice(&encoded).unwrap();
+    assert_eq!(
+        restored, planned,
+        "compact transport preserves complete Plan"
+    );
+    assert_eq!(restored.plan.plan_id, plan.plan_id);
+    eprintln!("configured Mask Plan transport: {} bytes", encoded.len());
+
     let selection = || ConfiguredMaskPlanningInputs {
         hosts: std::slice::from_ref(&host),
         placements: &placements,

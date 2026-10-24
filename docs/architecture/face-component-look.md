@@ -239,3 +239,15 @@ Face/component/recipe do not imply an unchanged Mask or route Plan.
 Earlier density/palette QEMU captures stay bound to their recorded source. They
 do not establish v2 typography, owner replacement or acceptance of this combined
 development implementation; those need fresh source-bound proof.
+
+## Complete Plan transport
+
+Configured Looks remain full typed immutable values in the ordinary Mask Plan.
+The JSON `PlannedMaskPlot.plan` envelope is explicitly versioned
+`conduit.face/mask-plan-deflate-json@1`: inspectable `plan_id`, finite
+`expanded_bytes`, and `zlib_hex`. The existing pinned no-std DEFLATE implementation
+restores the exact ordinary Plan before its existing validation. The decoded
+extent is at most 256 KiB; compressed bytes are at most 64 KiB. Exact consumed
+input, decoded length and Plan ID are required. Carrier, route, response, native
+storage and queue admission remain independent. Binary serde retains its field
+sequence; unversioned JSON is rejected rather than given an implicit upgrade.

@@ -761,3 +761,6 @@ fn seven_segment_source_is_an_ordinary_mask_with_one_role_boundary() {
     );
     assert_eq!(mask.show_output.front_port_id.as_str(), "show");
 }
+
+#[path = "mask_plot/wire.rs"]
+mod wire;

@@ -554,3 +554,15 @@ route and acknowledged-Show submission path are retained after refusal; a
 speculative submission queue was reverted. Bounded transport of the full checked
 configuration remains required before live acceptance. Private control traces,
 credentials and owner state are excluded from published evidence.
+
+## Bounded complete-Plan encoding
+
+The local transport repair now carries full configured Looks through a versioned,
+lossless DEFLATE Plan envelope using the repository's existing pinned no-std
+codec. All eight actual Todo Look/recipe combinations round-trip with equal
+Plans and verified fingerprints at 13,367–13,803 bytes. Twenty Face/Mask checks
+pass, including malformed streams, forged lengths/identities, expanded capacity
+and negative legacy JSON. All original carrier and route limits remain.
+[Protocol details and local logs](evidence/gui-look-6349-plan-transport/README.md).
+The preceding installed-owner refusal remains the live evidence until rebuilt
+owner/browser execution proves this source; native execution is also outstanding.
