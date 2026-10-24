@@ -1,10 +1,11 @@
 //! Bounded UART staging into independently provisioned ordinary runtime tables.
 //! Native ownership, Body/Play and complete runtime admission remain separate.
+#[cfg(not(feature = "display-ready-root"))]
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core as c;
-use conduit_environment_runtime::appliance::{
-    assigned::ValidatedAssignedAppliance, assignment_transfer as t,
-};
+#[cfg(not(feature = "display-ready-root"))]
+use conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance;
+use conduit_environment_runtime::appliance::assignment_transfer as t;
 use embassy_time::{with_timeout, Duration};
 use esp_hal::{uart::Uart, Async};
 
@@ -74,6 +75,7 @@ pub async fn receive(
     .map_err(|_| ())?
 }
 
+#[cfg(not(feature = "display-ready-root"))]
 #[inline(never)]
 fn stage(
     root: &mut crate::native_root::NativeRoot,
@@ -123,6 +125,7 @@ fn stage(
     root.assignment = Some(admitted);
     Ok(identity)
 }
+#[cfg(not(feature = "display-ready-root"))]
 #[inline(never)]
 fn admit(
     decoded: t::BorrowedAssignment<'_, '_>,
@@ -152,4 +155,12 @@ async fn read_exact(uart: &mut Uart<'_, Async>, mut output: &mut [u8]) -> Result
         output = &mut output[count..];
     }
     Ok(())
+}
+
+#[cfg(feature = "display-ready-root")]
+fn stage(
+    root: &mut crate::native_root::NativeRoot,
+    wire: &[u8],
+) -> Result<c::AssignedPlanView, &'static str> {
+    root.stage_display_assignment(wire)
 }

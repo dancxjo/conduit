@@ -203,18 +203,38 @@ impl NativeRoot {
         if memory.size.saturating_sub(memory.current_usage) < 4096 {
             return Err("reservation-capacity");
         }
-        let assignment = self.assignment.as_ref().ok_or("assignment-unavailable")?;
-        let seal = self
-            .assignment_seal
-            .as_ref()
-            .ok_or("assignment-seal-unavailable")?;
-        self.owner_reservation = Some(crate::native_owner_reservation::OwnerReservation::reserve(
-            authenticated,
-            assignment,
-            seal,
-            &mut self.issuer,
-        )?);
-        Ok(())
+        #[cfg(feature = "display-ready-root")]
+        {
+            let assignment = self
+                .display
+                .assignment()
+                .ok_or("display-assignment-unavailable")?;
+            self.owner_reservation = Some(
+                crate::native_owner_reservation::OwnerReservation::reserve_display(
+                    authenticated,
+                    &assignment.admitted,
+                    &assignment.seal(),
+                    &mut self.issuer,
+                )?,
+            );
+            return Ok(());
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            let assignment = self.assignment.as_ref().ok_or("assignment-unavailable")?;
+            let seal = self
+                .assignment_seal
+                .as_ref()
+                .ok_or("assignment-seal-unavailable")?;
+            self.owner_reservation =
+                Some(crate::native_owner_reservation::OwnerReservation::reserve(
+                    authenticated,
+                    assignment,
+                    seal,
+                    &mut self.issuer,
+                )?);
+            Ok(())
+        }
     }
     pub fn prepare_appliance_kernel(&mut self) -> Result<(), &'static str> {
         if self.appliance_kernel.is_some() {
@@ -430,5 +450,29 @@ impl NativeRoot {
             .resources
             .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
         Ok(advertisement)
+    }
+}
+
+#[cfg(feature = "display-ready-root")]
+impl NativeRoot {
+    pub fn stage_display_assignment(
+        &mut self,
+        wire: &[u8],
+    ) -> Result<c::AssignedPlanView, &'static str> {
+        if self.owner_reservation.is_some() || self.appliance_kernel_prepared() {
+            return Err("already-reserved-or-prepared");
+        }
+        let memory = esp_alloc::HEAP.stats();
+        let identity = self.display.stage_assignment(
+            wire,
+            conduit_environment_runtime::display_output::AssignedDisplayScope {
+                host: &self.host,
+                boot: &self.boot,
+                generation: c::OfferGeneration(self.offer_generation),
+            },
+            memory.size.saturating_sub(memory.current_usage),
+        )?;
+        self.assignment_seal = self.display.assignment().map(|a| a.seal());
+        Ok(identity)
     }
 }

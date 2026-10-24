@@ -58,6 +58,47 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut rust = String::new();
     material.write_rust(&mut rust)?;
     fs::write(output.join("display-layout.rs"), rust)?;
+    use conduit_core as c;
+    use conduit_embedded_build as build;
+    use conduit_environment_runtime::appliance::{
+        assigned::ResidentSourceIdentity, assignment_transfer as transfer,
+    };
+    let image = build::generate_fore_native_plan(
+        prepared.plan(),
+        &prepared.plan().fragments[0].fragment_id,
+        build::EmbeddedImageBounds::HOST_TOOLING,
+        build::EmbeddedComputationBounds {
+            maximum_program_bytes: 32768,
+            maximum_total_program_bytes: 98304,
+        },
+        2,
+    )
+    .map_err(|e| format!("output assignment: {e:?}"))?;
+    let assignment = image
+        .encode(conduit_environment_make::DisplayLayoutMaterial::maxima())
+        .map_err(|e| format!("output assignment encoding: {e:?}"))?;
+    let records = c::AssignedPlanRecords::new(&assignment)
+        .map_err(|e| format!("output records: {e:?}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("output record: {e:?}"))?;
+    let resident: Vec<_> = records
+        .iter()
+        .filter(|r| r.tag == c::ASSIGNED_CONFIGURATION)
+        .copied()
+        .collect();
+    let mut wire = vec![0; transfer::MAXIMUM_WIRE_BYTES];
+    let size = transfer::encode(
+        &assignment[..c::ASSIGNED_PLAN_HEADER_BYTES],
+        &records,
+        ResidentSourceIdentity::from_expanded(&material.source().expanded_plot_id),
+        &resident,
+        &mut wire,
+    )
+    .map_err(|e| format!("output transfer: {e:?}"))?;
+    fs::write(
+        output.join("uninstalled-output-assignment-transfer.bin"),
+        &wire[..size],
+    )?;
     let receipt = serde_json::json!({"event":"observed-display-plan", "host_id":host.host_id, "boot_id":host.boot_id,
         "plan_id":prepared.plan().plan_id,"nodes":prepared.lowered().nodes.len(),"cords":prepared.lowered().cords.len(),
         "fore_ports":prepared.lowered().fore_ports.len(),"host_calls":prepared.lowered().host_calls.len(),

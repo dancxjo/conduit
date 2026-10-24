@@ -10,12 +10,17 @@ use conduit_tm1637_wire::{
 };
 use esp_hal::gpio::Pin;
 #[cfg(feature = "display-ready-root")]
+#[path = "native_display_assignment.rs"]
+mod assignment;
+#[cfg(feature = "display-ready-root")]
 #[path = "display_layout.rs"]
 mod layout;
 mod software {
     include!(concat!(env!("OUT_DIR"), "/display-software.rs"));
 }
 pub struct NativeDisplay {
+    #[cfg(feature = "display-ready-root")]
+    staged: Option<assignment::StagedDisplayAssignment>,
     ready: ReadyWriteBase<DisplayPins<'static>>,
     #[cfg(feature = "display-ready-root")]
     software: Result<
@@ -81,6 +86,8 @@ impl NativeDisplay {
             }
         };
         Ok(Box::new(Self {
+            #[cfg(feature = "display-ready-root")]
+            staged: None,
             ready,
             #[cfg(feature = "display-ready-root")]
             software,
@@ -134,5 +141,38 @@ impl NativeDisplay {
         self.ready
             .append_to_advertisement(host, &contract)
             .map_err(|_| ())
+    }
+}
+
+#[cfg(feature = "display-ready-root")]
+impl NativeDisplay {
+    pub fn stage_assignment(
+        &mut self,
+        wire: &[u8],
+        scope: conduit_environment_runtime::display_output::AssignedDisplayScope<'_>,
+        available: usize,
+    ) -> Result<c::AssignedPlanView, &'static str> {
+        if self.staged.is_some() {
+            return Err("display-already-staged");
+        }
+        if !self.software_ready() {
+            return Err("display-software-unavailable");
+        }
+        let source = layout::source();
+        let fore = layout::fore();
+        let profile = layout::profile(&source, &fore).map_err(|_| "display-provisioning")?;
+        let staged = assignment::StagedDisplayAssignment::stage(
+            wire,
+            &profile,
+            &layout::configurations(),
+            scope,
+            available,
+        )?;
+        let identity = staged.admitted.identity();
+        self.staged = Some(staged);
+        Ok(identity)
+    }
+    pub fn assignment(&self) -> Option<&assignment::StagedDisplayAssignment> {
+        self.staged.as_ref()
     }
 }

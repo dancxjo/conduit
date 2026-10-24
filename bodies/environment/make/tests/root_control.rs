@@ -252,3 +252,6 @@ mod owner_receipt;
 mod display_fixture;
 #[path = "root_control_support/display_reservation.rs"]
 mod display_reservation;
+
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_display_assignment.rs"]
+mod native_display_assignment;

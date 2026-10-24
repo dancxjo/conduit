@@ -79,8 +79,9 @@ correlates full Plan/fragment identities with its compact identity and checks
 the expected next Root Play before consuming the global sequence. The signed
 owner wrapper additionally binds the assignment seal and Body/Wake provenance.
 CPU tests exercise production reservation/authentication code with explicit
-Boot/entropy substitutes. This API is not yet connected to display ingress or
-native capability issuance, and reserves no physical output operation.
+Boot/entropy substitutes. The display profile connects staging to signed reservation. Native capability
+issuance and kernel installation remain separate from ingress; reservation
+reserves no physical output operation.
 
 Root can now issue bounded display possession for the reserved validated output
 assignment. It checks the exact local Fore pins, current retained provider,
@@ -90,9 +91,9 @@ against replay and transfers no GPIO owner. The existing driver binder then
 transfers the retained owner exactly once without electrical effects.
 
 CPU evidence uses production Root issuance with explicit entropy/Boot/pin
-substitutes. Display ingress, complete installation and start, physical execution
-and display retirement/reoffer remain unconnected. No automatic provider reuse or fresh generation is inferred from dropping a
-handle.
+substitutes. Complete installation and start, physical execution
+and display retirement/reoffer remain unconnected. No automatic provider reuse
+or fresh generation is inferred from dropping a handle.
 
 `RetiredDisplay` now captures private Play scope and provider generation from
 an actual revoked idle driver before consuming it. Root ends display issuance
@@ -102,3 +103,19 @@ cannot issue the returned provider at its old generation. Sampling retirement
 preserves shared Play custody while display possession remains outstanding.
 The CPU test performs issuance, retained binding, revocation and retirement
 without pin operations. MCU control installation/reoffer remains unconnected.
+
+## Bounded display ingress
+
+The display preparation profile now routes the existing assignment transfer
+command through its independently linked Source/layout/configurations. Staging
+admits finite record backing, an owned transfer and a control reserve before
+allocation; it retains the checked tables and transfer seal without selecting
+software or GPIO owners. The normal signed owner reservation uses this staged
+display token and its exact seal. The sampler profile retains its original path.
+
+The host display-offer producer emits the uninstalled bounded transfer. The
+observed-plan fixture produces 2,427 bytes against the 8 KiB transfer limit.
+CPU tests exercise the production staging helper, owned-byte isolation and
+capacity/Boot/Source refusals. Both ESP32 profiles compile. No new image has been
+flashed: live UART staging, kernel installation, Body start and physical output
+still need verification before replacing the working bench.
