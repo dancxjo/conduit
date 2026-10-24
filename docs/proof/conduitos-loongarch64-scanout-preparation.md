@@ -124,3 +124,18 @@ covers the full scanout, and each of the five complete descriptor pages lies
 inside exactly one BOOTLOADER_RECLAIMABLE region. This establishes historical
 map coverage for the observed translations; it does not grant the future
 current product its exclusive writer lease or acknowledge a graphical Show.
+
+## Held normal-product collector
+
+The unlinked `make/xtask/loongarch64_product_boot/graphical.rs` prepares the
+normal-product collector using the common source/Face/Mask/Show capture join,
+the reviewed graphics emulator, pinned single ROM, fresh ephemeral fw_cfg
+entropy and a read-only product image. It retains the finite 45-second/1-MiB
+bounds, static no-input capture policy, guest cleanup, unchanged ROM check,
+mapping/MAT completion policy and exact Base/sealed-boot joins.
+
+Formatting and patch hygiene are the only checks on this held collector.
+It intentionally requires the existing firmware helper's visibility and the
+common capture target to be wired after the required integration gate; it
+cannot execute as currently held. Its exact Base inventory and canonical
+records still require normal-product compilation and runtime validation.
