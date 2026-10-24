@@ -29,6 +29,7 @@ pub enum ControlScenario {
     Layout,
     Search,
     Accessibility,
+    AccessibilityDetails,
     NoGraphics,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]

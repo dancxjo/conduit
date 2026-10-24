@@ -1,10 +1,10 @@
 //! Separate finite real-QMP Crèche control proof. No product/UI state is added.
 use super::super::{qemu_artifacts::Artifacts, qmp};
 use super::{
-    creche_choices, face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError,
-    JourneyIdentity,
+    ConduitosError, JourneyIdentity, creche_choices, face_correspondence, hid_qmp, io_error,
+    journey_input, refusal,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, process::Child};
 mod accessibility;
 mod custody;
@@ -86,10 +86,20 @@ pub(super) fn exercise(
         observations: Vec::new(),
     };
     run.capture("creche-controls-ready")?;
-    if metadata["proof_scenario"] == "accessibility" {
+    if matches!(
+        metadata["proof_scenario"].as_str(),
+        Some("accessibility" | "accessibility-details")
+    ) {
         return accessibility::exercise(
-            &mut run, &initial, destination, source, image, metadata,
-            &selected_recipe, &world, &boot,
+            &mut run,
+            &initial,
+            destination,
+            source,
+            image,
+            metadata,
+            &selected_recipe,
+            &world,
+            &boot,
         );
     }
     if metadata["proof_scenario"] == "search" {

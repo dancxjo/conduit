@@ -129,6 +129,7 @@ pub(super) struct FrameEvidence<'a> {
     pub scene: &'a conduit_face::GraphicsScene,
     pub hit_bounds: Option<conduit_face::LayoutRect>,
     pub display_bounds: conduit_face::LayoutRect,
+    pub showing_details: bool,
 }
 fn frame_budget(scene: &conduit_face::GraphicsScene) -> Value {
     let (payload, maximum) =
@@ -168,7 +169,7 @@ pub(super) fn focus(
             "show_id": show.show_id,
             "action_id": control.map(|value| value.0),
             "argument_name": control.and_then(|value| value.1),
-            "page": page + 1, "pages": pages,
+            "page": page + 1, "pages": pages, "showing_details": frame.showing_details,
             "hit_bounds": frame.hit_bounds.map(rectangle), "display_bounds": rectangle(frame.display_bounds),
             "prepared_frame_budget":frame_budget(frame.scene),
         }),
