@@ -135,6 +135,7 @@ impl TimerBase for Timer {
     }
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
         let _interrupts = cpu::InterruptMask::new();
+        super::preemption_clock::host_arm_allowed().map_err(|_| BaseError::Unavailable)?;
         let token = self.slots.arm(interest).inspect_err(|error| {
             crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL ");
             crate::arch::early_write(error.as_str().as_bytes());

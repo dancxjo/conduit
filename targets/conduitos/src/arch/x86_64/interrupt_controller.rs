@@ -21,6 +21,8 @@ const MASKED: u32 = 1 << 16;
 const TIMER_VECTOR: u32 = 0x20;
 const DIVIDE_BY_SIXTEEN: u32 = 0b0011;
 const ONE_SHOT_COUNT: u32 = 100_000;
+static READY: AtomicBool = AtomicBool::new(false);
+static HOST_ARMED: AtomicBool = AtomicBool::new(false);
 static LEGACY: AtomicBool = AtomicBool::new(false);
 
 const IA32_APIC_BASE: u32 = 0x1b;
@@ -49,6 +51,7 @@ pub(super) fn initialize(
 ) -> Result<(), ControllerRefusal> {
     if __cpuid(1).ecx & (1 << 21) == 0 {
         LEGACY.store(true, Ordering::Release);
+        READY.store(true, Ordering::Release);
         return Ok(());
     }
     let apic_base = read_msr(IA32_APIC_BASE);
@@ -67,10 +70,16 @@ pub(super) fn initialize(
     local_write(LOCAL_TIMER_INITIAL_COUNT, 0);
     local_write(LOCAL_TIMER, MASKED | TIMER_VECTOR);
     local_write(LOCAL_TIMER_DIVIDE, DIVIDE_BY_SIXTEEN);
+    READY.store(true, Ordering::Release);
     Ok(())
 }
 
 pub(super) fn arm_timer() {
+    HOST_ARMED.store(true, Ordering::Release);
+    raw_arm_timer();
+}
+
+pub(super) fn raw_arm_timer() {
     if LEGACY.load(Ordering::Acquire) {
         super::pit::arm_one_shot();
         super::pic::unmask_timer();
@@ -81,6 +90,11 @@ pub(super) fn arm_timer() {
 }
 
 pub(super) fn cancel_timer() {
+    HOST_ARMED.store(false, Ordering::Release);
+    raw_cancel_timer();
+}
+
+pub(super) fn raw_cancel_timer() {
     if LEGACY.load(Ordering::Acquire) {
         super::pic::mask_timer();
         return;
@@ -138,4 +152,16 @@ pub(super) fn restore_budget_route(previous: Option<u32>) {
     if let Some(previous) = previous {
         local_write(LOCAL_LINT_ZERO, previous);
     }
+}
+
+// Caller holds Root's interrupt mask. Refuse pending/in-service Source IRQs;
+// inspecting PIC status does not consume a host wake or change its masks.
+pub(super) fn private_clock_available() -> bool {
+    if !READY.load(Ordering::Acquire) || HOST_ARMED.load(Ordering::Acquire) {
+        return false;
+    }
+    if LEGACY.load(Ordering::Acquire) {
+        return super::pic::timer_quiescent();
+    }
+    local_read(0x210) & 1 == 0 && local_read(0x110) & 1 == 0
 }

@@ -13,6 +13,15 @@ static OVERFLOWED: AtomicBool = AtomicBool::new(false);
 
 #[unsafe(no_mangle)]
 pub(super) extern "C" fn conduitos_timer_irq_handler() {
+    dispatch_source(false);
+}
+
+/// Parent protected IRQ path supplies actual interrupted CPL3 status.
+pub(super) fn dispatch_source(user: bool) -> bool {
+    if let Some(expired) = super::preemption_clock::source_irq(user) {
+        interrupt_controller::end_timer_interrupt();
+        return expired;
+    }
     let tail = TAIL.load(Ordering::Relaxed);
     let head = HEAD.load(Ordering::Acquire);
     if tail.wrapping_sub(head) == FACT_CAPACITY {
@@ -23,6 +32,7 @@ pub(super) extern "C" fn conduitos_timer_irq_handler() {
         TAIL.store(tail.wrapping_add(1), Ordering::Release);
     }
     interrupt_controller::end_timer_interrupt();
+    false
 }
 
 pub(super) fn pop() -> Result<Option<u8>, BaseError> {
@@ -38,4 +48,9 @@ pub(super) fn pop() -> Result<Option<u8>, BaseError> {
     let vector = ENTRIES[index].load(Ordering::Relaxed) as u8;
     HEAD.store(head.wrapping_add(1), Ordering::Release);
     Ok(Some(vector))
+}
+
+pub(super) fn has_pending_facts() -> bool {
+    HEAD.load(Ordering::Acquire) != TAIL.load(Ordering::Acquire)
+        || OVERFLOWED.load(Ordering::Acquire)
 }
