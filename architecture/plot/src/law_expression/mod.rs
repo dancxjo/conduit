@@ -34,7 +34,7 @@ impl LawExpressionMaterial {
         if encoded.len() > MAXIMUM_LAW_EXPRESSION_BYTES * 2 {
             return Err(LawExpressionRefusal::Capacity);
         }
-        if encoded.len() % 2 != 0 {
+        if !encoded.len().is_multiple_of(2) {
             return Err(LawExpressionRefusal::Encoding);
         }
         fn digit(byte: u8) -> Result<u8, LawExpressionRefusal> {
@@ -45,7 +45,7 @@ impl LawExpressionMaterial {
             }
         }
         let mut bytes = Vec::with_capacity(encoded.len() / 2);
-        for pair in encoded.as_bytes().chunks_exact(2) {
+        for pair in encoded.as_bytes().as_chunks::<2>().0 {
             bytes.push(digit(pair[0])? * 16 + digit(pair[1])?);
         }
         Self::from_canonical_bytes(&bytes)
