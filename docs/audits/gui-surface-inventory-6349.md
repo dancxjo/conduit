@@ -243,3 +243,7 @@ badges; selected Look paint now drives badges, and SVG honors platform system
 colors with restoration. Nine pinned Chromium cases and package resource checks
 pass within unchanged caps. [Actual before/after, failure and scope](evidence/gui-look-6349-browser-navy/README.md).
 Owner component Navy transport/catalog and broader graph/accessibility remain open.
+
+## Narrow browser reflow checkpoint
+
+Production Source `422566f58`: at 390×844 with actual 32px root text, scrollable document flow increases visible graph height from 22px to 640px. Explicit Arrange uses actual rendered card dimensions, avoids overlap, and keeps wrappers equal to visible cards. Saved user positions remain unchanged until Arrange. Ten focused Look/furniture checks, one identity/retention case and two package resource cases pass locally. See [source-bound captures, baseline failure and receipts](evidence/gui-look-6349-browser-narrow-reflow/README.md). This is documentary-browser evidence; broader native/live Body acceptance remains open.

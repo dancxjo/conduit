@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+const {layoutFlowScene}=await import(pathToFileURL(process.cwd()+'/plots/patchbay/workbench/browser/flow-layout.js'));
+const nodes=[{id:'a'},{id:'b'},{id:'c'}],edges=[{source:'a',target:'b'},{source:'b',target:'c'}];
+const sizes=new Map([['a',{width:550,height:300}],['b',{width:420,height:220}],['c',{width:350,height:180}]]);
+const positions=layoutFlowScene(nodes,edges,sizes);
+assert.ok(positions.get('b').x>=positions.get('a').x+550,'measured wide card overlaps the next layer');
+assert.ok(positions.get('c').x>=positions.get('b').x+420,'second measured card overlaps the next layer');
+const stacked=layoutFlowScene(nodes,[],sizes);
+assert.ok(stacked.get('b').y>=stacked.get('a').y+300,'measured tall cards overlap');
+assert.deepEqual([...layoutFlowScene([...nodes].reverse(),[...edges].reverse(),sizes)],[...positions]);
+assert.equal(layoutFlowScene(nodes,edges).get('b').x,400,'ordinary unmeasured geometry changed');
+assert.throws(()=>layoutFlowScene(nodes,edges,new Map([['a',{width:NaN,height:300}]])));
+console.log('measured widths/heights, order independence, default geometry and invalid-size refusal passed');

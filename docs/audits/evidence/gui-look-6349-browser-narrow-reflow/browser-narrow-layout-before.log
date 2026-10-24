@@ -1,0 +1,15 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: measured wide card overlaps the next layer
+    at file:///home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/measured-flow-layout-probe.mjs:7:8 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v25.9.0

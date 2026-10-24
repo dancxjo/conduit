@@ -1,0 +1,25 @@
+{
+  "source": "422566f58b136c0ea76ca2ed0b7e9758291acef0",
+  "binary_sha256": "01bd73df5e0c8ef821aa06740591c674460dde3783e80d0654f203ec6fbeb8ec",
+  "proof_class": "documentary-browser-capture",
+  "browser": "151.0.7922.34",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "zoom_in_actions": 7,
+  "unchanged_face": true,
+  "observation": {
+    "font": "32px",
+    "look": "conduit.look/navy@1",
+    "viewport": {
+      "x": 9.835613641004699,
+      "y": 208.09096289820297,
+      "zoom": 0.8917707984480293
+    },
+    "documentHeight": 3678,
+    "graphHeight": 640
+  },
+  "source_unchanged": true,
+  "tracked_tree_clean": true
+}

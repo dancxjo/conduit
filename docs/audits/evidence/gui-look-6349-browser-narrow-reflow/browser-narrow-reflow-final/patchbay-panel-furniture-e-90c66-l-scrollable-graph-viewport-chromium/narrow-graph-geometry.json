@@ -1,0 +1,20 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "graph": {
+    "top": 203.59375,
+    "bottom": 843.59375,
+    "width": 390,
+    "height": 640
+  },
+  "visibleHeight": 640,
+  "documentHeight": 3678,
+  "horizontalOverflow": false,
+  "graphHitSamples": [
+    true,
+    true,
+    true
+  ]
+}

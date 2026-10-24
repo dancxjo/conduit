@@ -647,3 +647,7 @@ v2 view and 16,010,315-byte runtime stay within all existing output/delivery bou
 [Current viewport captures, immutable baseline, action/Show receipts, timings and hashes](evidence/gui-look-6349-live-pending-action/README.md).
 Native/current-source QEMU, checked Patchbay component reuse and the remaining
 surface/accessibility acceptance are still open.
+
+## Narrow browser reflow checkpoint
+
+Production Source `422566f58`: at 390×844 with actual 32px root text, scrollable document flow increases visible graph height from 22px to 640px. Explicit Arrange uses actual rendered card dimensions, avoids overlap, and keeps wrappers equal to visible cards. Saved user positions remain unchanged until Arrange. Ten focused Look/furniture checks, one identity/retention case and two package resource cases pass locally. See [source-bound captures, baseline failure and receipts](evidence/gui-look-6349-browser-narrow-reflow/README.md). This is documentary-browser evidence; broader native/live Body acceptance remains open.
