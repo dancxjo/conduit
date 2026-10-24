@@ -11,6 +11,11 @@ use embassy_futures::{
     select::{select, Either},
     yield_now,
 };
+#[path = "native_display_fore.rs"]
+// Not activated by Root until its actual local caller/consumer are admitted.
+#[allow(dead_code)]
+pub mod fore;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Progress {
     pub steps: u64,
@@ -145,23 +150,32 @@ impl<P: OpenDrain> Execution<P> {
         stop: impl Future<Output = ()>,
         mut idle: impl FnMut() -> F,
     ) -> Outcome {
+        if let Some(outcome) = self.begin_run() {
+            return outcome;
+        }
+        let exit = match select(stop, self.pump(&mut idle)).await {
+            Either::First(()) => Exit::Cancelled,
+            Either::Second(exit) => exit,
+        };
+        self.finish_run(exit)
+    }
+    fn begin_run(&mut self) -> Option<Outcome> {
         if self.begun {
             let cleanup = match self.cleanup {
                 Some(c) => c,
                 None => self.quiesce(),
             };
             self.cleanup = Some(cleanup);
-            return Outcome {
+            return Some(Outcome {
                 exit: Exit::Failed(fail(1)),
                 cleanup,
                 progress: self.progress,
-            };
+            });
         }
         self.begun = true;
-        let exit = match select(stop, self.pump(&mut idle)).await {
-            Either::First(()) => Exit::Cancelled,
-            Either::Second(exit) => exit,
-        };
+        None
+    }
+    fn finish_run(&mut self, exit: Exit) -> Outcome {
         let cleanup = if exit == Exit::Drained {
             self.revoke()
         } else {
@@ -176,43 +190,51 @@ impl<P: OpenDrain> Execution<P> {
     }
     async fn pump<F: Future<Output = ()>>(&mut self, idle: &mut impl FnMut() -> F) -> Exit {
         loop {
-            let mut service = DisplayService {
-                kernel: &mut self.storage.kernel,
-                selectors: &mut self.storage.selectors,
-                write: self.storage.write,
-                owner: self.owner.as_mut().expect("retained owner"),
-            };
-            if let Some(pending) = service.take() {
-                let writing = pending.request().node == self.storage.write;
-                let report = match service.service(pending, || false) {
-                    Ok(report) => report,
-                    Err(failure) => return Exit::Failed(failure),
-                };
-                let counter = if writing {
-                    &mut self.progress.native_calls
-                } else {
-                    &mut self.progress.software_calls
-                };
-                let Some(next) = counter.checked_add(1) else {
-                    return Exit::Failed(fail(2));
-                };
-                *counter = next;
-                if let Some(failure) = report.failure {
-                    return Exit::Failed(failure);
-                }
-            }
-            let Some(next) = self.progress.steps.checked_add(1) else {
-                return Exit::Failed(fail(3));
-            };
-            self.progress.steps = next;
-            match self.storage.kernel.step() {
+            match self.advance() {
                 Ok(SchedulerStatus::Drained) => return Exit::Drained,
                 Ok(SchedulerStatus::Cancelled) => return Exit::Cancelled,
                 Ok(SchedulerStatus::Idle) => idle().await,
-                Err(_) => return Exit::Failed(fail(4)),
+                Err(exit) => return exit,
                 _ => yield_now().await,
             }
         }
+    }
+    /// One ordinary scheduler Step and at most its existing pending Host Call.
+    /// Fore adapters supply values; they do not implement another scheduler.
+    fn advance(&mut self) -> Result<SchedulerStatus, Exit> {
+        let mut service = DisplayService {
+            kernel: &mut self.storage.kernel,
+            selectors: &mut self.storage.selectors,
+            write: self.storage.write,
+            owner: self.owner.as_mut().expect("retained owner"),
+        };
+        if let Some(pending) = service.take() {
+            let writing = pending.request().node == self.storage.write;
+            let report = match service.service(pending, || false) {
+                Ok(report) => report,
+                Err(failure) => return Err(Exit::Failed(failure)),
+            };
+            let counter = if writing {
+                &mut self.progress.native_calls
+            } else {
+                &mut self.progress.software_calls
+            };
+            let Some(next) = counter.checked_add(1) else {
+                return Err(Exit::Failed(fail(2)));
+            };
+            *counter = next;
+            if let Some(failure) = report.failure {
+                return Err(Exit::Failed(failure));
+            }
+        }
+        let Some(next) = self.progress.steps.checked_add(1) else {
+            return Err(Exit::Failed(fail(3)));
+        };
+        self.progress.steps = next;
+        self.storage
+            .kernel
+            .step()
+            .map_err(|_| Exit::Failed(fail(4)))
     }
     pub fn retire_retained(
         execution: &mut Option<Box<Self>>,

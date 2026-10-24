@@ -162,3 +162,32 @@ without Play allocations; the Face stays unchanged. This is interpreted Mask
 input followed by CPU output execution, not an installed Mask-role route, caller
 admission, wakeup wiring or physical delivery. The MCU still has no admitted
 live Frame producer.
+
+## Owned local Fore execution adapter
+
+`Execution::run_with_fore` supplies the mechanical input/refusal boundary around
+that same kernel. It requires pristine kernel/value/Sign state and an exclusive
+local caller/consumer retained by the invoking Host. A fixed 1024-byte Frame
+checks the linked Source type before copying. The caller separately admits its
+finite input count (including semantic refusals), no larger than the actual
+retained native operation budget, and the full concrete future/queue backing.
+The adapter itself creates no producer, queue, permission or network Line.
+
+Only an idle kernel pulls the next Frame. Pending input awaits its actual caller
+future; a normal close remains distinct from producer failure. Kernel admission
+acknowledgement does not claim electrical delivery. The exact refusal output
+sequence is acknowledged only after its consumer accepts it; that sequence does
+not identify an input Frame. Cancellation can interrupt either await and uses
+the existing revocation/cleanup gate. Unaccepted input remains caller-owned;
+retirement returns only the actual quiesced native custody. A caller must retire
+its own admitted queues rather than infer acknowledgement from dropped futures.
+
+The CPU Root-control suite now covers twelve local Fore cases: actual channel
+wakeup, valid/refused inputs in both orders, refusal pressure, cancellation during
+input and refusal waits, retained unaccepted input, zero/oversized/exhausted
+input bounds, producer/consumer failures, empty normal close, and rejection of
+preloaded kernel state. Play allocations/reallocations remain zero and each
+case retires through the actual issuer gate. The default MCU task still uses
+its dormant input wait: Root has not admitted a live local Mask producer or
+consumer, so this adapter is explicitly held inactive there. Its concrete live
+future footprint, caller admission and physical input/output remain unproved.

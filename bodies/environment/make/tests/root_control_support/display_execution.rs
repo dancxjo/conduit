@@ -30,7 +30,7 @@ pub(super) fn check(
     profile: &AssignedDisplayProfile<'_>,
     resident: &[c::AssignedRecord<'_>],
 ) {
-    for mode in 0..3 {
+    for mode in 0..15 {
         let nack = mode == 1;
         let source = DisplayOutputSource::compile().unwrap();
         let mut software = source
@@ -53,7 +53,7 @@ pub(super) fn check(
             usize::MAX,
         )
         .unwrap();
-        if mode < 2 {
+        if mode < 2 || mode == 14 {
             let mut encoder =
                 conduit_environment_runtime::display_packets::PreparedDisplayPackets::prepare()
                     .unwrap();
@@ -131,36 +131,42 @@ pub(super) fn check(
         let mut execution =
             Some(display_execution::Execution::boxed_retained(&mut storage, &mut owner).unwrap());
         assert_eq!(edges.get(), 0);
-        let (outcome, usage) = allocation_probe::observe(|| {
-            if mode < 2 {
-                complete(
-                    execution
+        let (outcome, usage) = if mode >= 3 {
+            local_fore::check(execution.as_mut().unwrap(), mode - 3, &edges)
+        } else {
+            allocation_probe::observe(|| {
+                if mode < 2 {
+                    complete(
+                        execution
+                            .as_mut()
+                            .unwrap()
+                            .run_with_idle(core::future::pending(), core::future::pending::<()>),
+                    )
+                } else {
+                    let stop = Cell::new(false);
+                    let stop_future = core::future::poll_fn(|_| {
+                        if stop.get() {
+                            core::task::Poll::Ready(())
+                        } else {
+                            core::task::Poll::Pending
+                        }
+                    });
+                    let mut future = core::pin::pin!(execution
                         .as_mut()
                         .unwrap()
-                        .run_with_idle(core::future::pending(), core::future::pending::<()>),
-                )
-            } else {
-                let stop = Cell::new(false);
-                let stop_future = core::future::poll_fn(|_| {
-                    if stop.get() {
-                        core::task::Poll::Ready(())
-                    } else {
-                        core::task::Poll::Pending
-                    }
-                });
-                let mut future = core::pin::pin!(execution
-                    .as_mut()
-                    .unwrap()
-                    .run_with_idle(stop_future, core::future::pending::<()>));
-                let mut context = core::task::Context::from_waker(core::task::Waker::noop());
-                assert!(future.as_mut().poll(&mut context).is_pending());
-                stop.set(true);
-                complete(future)
-            }
-        });
+                        .run_with_idle(stop_future, core::future::pending::<()>));
+                    let mut context = core::task::Context::from_waker(core::task::Waker::noop());
+                    assert!(future.as_mut().poll(&mut context).is_pending());
+                    stop.set(true);
+                    complete(future)
+                }
+            })
+        };
         assert_eq!((usage.allocations, usage.reallocations), (0, 0));
         assert_eq!(outcome.cleanup, Ok(()));
-        if mode == 2 {
+        if mode >= 3 {
+            // Local Fore cases verify exact terminal outcomes before retirement.
+        } else if mode == 2 {
             assert_eq!(outcome.exit, display_execution::Exit::Cancelled);
             assert_eq!(outcome.progress.steps, 1);
             assert_eq!(outcome.progress.native_calls, 0);
@@ -195,3 +201,6 @@ fn complete<T>(future: impl core::future::Future<Output = T>) -> T {
     }
     panic!("bounded output fixture failed to terminate");
 }
+
+#[path = "display_fore.rs"]
+mod local_fore;
