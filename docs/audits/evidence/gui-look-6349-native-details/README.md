@@ -51,3 +51,51 @@ Rendered wording reconstruction is covered by earlier CPU cases, not inferred
 from focus receipts or OCR. The full Body/Patchbay/Stop journey, physical/human
 acceptance, integration and publication remain open. No CI campaign or parent
 closure is claimed.
+
+## Narrow Details and shared icons — Source 18f653cf4
+
+Clean Source `18f653cf4eef3f4780413389fee2f4f7a09762ba` now adds the existing
+explicit role/intent icon mappings to Details subject and action clauses.
+Property values and argument contracts keep text-only presentation. No icon asset,
+wording, action, availability or semantic identity changes. Unknown intents keep
+text even when their captions resemble familiar actions; read-only views gain no
+bindings. All 148 native scene CPU cases pass (one existing opt-in case ignored),
+including exact complete Details wording and read-only/unknown-intent checks.
+These host tests use the conduitos package opt-level=0 iteration override.
+
+The ordinary two-Look collector's [narrow baseline](narrow-baseline/README.md)
+refused its 24-page capture profile after completing keyboard cycles over the
+actual 56-page Details view. The new finite one-Look entrances are
+`--scenario accessibility-details-editorial` and
+`--scenario accessibility-details-engineering`, both with `--viewport 640x480`.
+They budget a complete walk against the existing 256 raw focus records before
+input, reserving eight records for return/reset headroom. Each physical PageUp
+reset is observed from the current page through the clamped first endpoint;
+all pages and the clamped last endpoint remain observed. First/middle/last PNG
+sampling retains the existing 27-capture limit. The original two-Look wide mode
+keeps its existing profile. No product or raw serial/record/command limit rises.
+
+Both new normal-product QEMU runs pass with unchanged Source and clean trees:
+
+| Run | Details pages | Available typed controls | Focus records | Original PNGs |
+| --- | ---: | ---: | ---: | ---: |
+| Editorial / compact / Phosphor / 200% / forced colors | 56 | 16 | 184 | 8 |
+| Engineering / spacious / paper / 200% / forced colors | 71 | 16 | 212 | 8 |
+
+Each verifies complete forward/reverse cycles, exact long Unicode draft, explicit
+Details entry/return, every page and checked complete Face/Show stability during
+navigation. The exact cyclic keyboard orders also compare equal across these
+separate Boots. Face preservation across Look/constraint selection is checked
+within each run, not asserted as identity between independent Boots. Clearing
+user constraints restores compact 100% or the requested spacious 125% respectively.
+Command high-water is 20 under 48; maximum command payload is 192 under 192.
+All original PNG/archive/raw hashes were verified. `icons-editorial/` and
+`icons-engineering/` retain full receipts, build/image bindings and capture context.
+
+![Actual narrow Details with shared Host icon](icons-editorial/journey-frames/creche-controls-details-editorial-forced-1.png)
+
+This supersedes the pending narrow Details keyboard/page scope for this Source.
+It does not establish Details pointer behavior, every unavailable/refused control,
+missing-resource fallback, the full Body/Patchbay/Stop journey, physical/human
+evidence or integration/publication. Earlier wide proof remains bound to its own
+Source; it is not relabeled current-source pixel proof.

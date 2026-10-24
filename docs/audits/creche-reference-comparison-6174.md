@@ -1,7 +1,7 @@
 # Crèche reference comparison (#6174)
 
 The user-supplied reference is pinned at `c8fdc8949a426873364665abd98bf8dc34edf98c`.
-The current actual native captures below are from clean Source `e34b12788`,
+The retained typography comparison captures below are from clean Source `e34b12788`,
 with exact image/Root/PNG bindings and the later journey failure retained in
 [the evidence record](evidence/gui-look-6349-native-engineering/README.md).
 This is a visual comparison and gap audit, not completed reference acceptance.
@@ -74,3 +74,12 @@ two forced-color Looks, with explicit scene-mode observations. All sixteen
 typed controls and nineteen/twenty-three pages pass. This supersedes the pending
 wide Details traversal only; narrow Details and unavailable/resource cases remain.
 [Source-bound captures and proof boundaries](evidence/gui-look-6349-native-details/README.md).
+
+## Narrow Details with shared icons
+
+Source 18f653cf4 now passes every narrow Details page and both keyboard directions
+at 200%/forced colors in separate Editorial and Engineering runs (56/71 pages).
+Shared explicit role/intent icons decorate subjects/actions without changing
+wording or contracts. [Exact captures and bounded scope](evidence/gui-look-6349-native-details/README.md#narrow-details-and-shared-icons--source-18f653cf4)
+supersede the pending narrow Details navigation scope only. Unavailable/resource
+cases, closer navy reference and full Body journey remain open.
