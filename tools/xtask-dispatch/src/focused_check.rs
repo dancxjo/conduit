@@ -27,6 +27,9 @@ mod monotonic_wait;
 #[path = "../../xtask/src/suites/resource_snapshot.rs"]
 mod resource_snapshot;
 
+#[path = "../../xtask/src/suites/tm1637_output.rs"]
+mod tm1637_output;
+
 struct Suite {
     steps: &'static [Step],
     path: &'static str,
@@ -35,6 +38,11 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "tm1637-output" => Some(Suite {
+            steps: tm1637_output::STEPS,
+            path: "tools/xtask/src/suites/tm1637_output.rs",
+            source: include_bytes!("../../xtask/src/suites/tm1637_output.rs"),
+        }),
         [check, suite] if check == "check" && suite == "resource-snapshot" => Some(Suite {
             steps: resource_snapshot::STEPS,
             path: "tools/xtask/src/suites/resource_snapshot.rs",
@@ -157,6 +165,7 @@ mod tests {
     #[test]
     fn exact_entrance_selects_the_shared_complete_suite() {
         for (name, expected) in [
+            ("tm1637-output", tm1637_output::STEPS),
             ("monotonic-wait", monotonic_wait::STEPS),
             ("resource-snapshot", resource_snapshot::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
@@ -175,6 +184,7 @@ mod tests {
     #[test]
     fn options_and_other_commands_retain_full_parser() {
         for values in [
+            vec!["check", "tm1637-output", "--dry-run"],
             vec!["--json", "check", "monotonic-wait"],
             vec!["check", "resource-snapshot", "--dry-run"],
             vec!["--json", "check", "acoustic-flow"],
