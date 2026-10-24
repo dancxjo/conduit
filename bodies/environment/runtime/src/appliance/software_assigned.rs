@@ -23,9 +23,14 @@ impl ReadySoftwareBacks {
             || source.source_document_id != self.source
             || source.checked_plot_id != self.checked
             || source.expanded_plot_id != self.expanded
-            || self.operations.len() != 3
             || write.0 >= 4
         {
+            return Err(E::Selection);
+        }
+        if self.metadata_released {
+            return Err(E::AlreadySelected);
+        }
+        if self.operations.len() != 3 {
             return Err(E::Selection);
         }
         let mut indices = [None; 4];
@@ -139,14 +144,20 @@ impl ReadySoftwareBacks {
 }
 impl AssignedOutputSoftware<'_> {
     pub(crate) fn take(self) -> [Option<PreparedSoftwareOperation>; 4] {
-        core::array::from_fn(|i| {
+        let operations = core::array::from_fn(|i| {
             self.indices[i].map(|index| {
                 self.owner.operations[index]
                     .prepared
                     .take()
                     .expect("exclusively preflighted software")
             })
-        })
+        });
+        // assigned_output preflight requires all three owned operations exactly
+        // once. Retire their descriptors before allocating the scheduler box.
+        self.owner
+            .release_transferred_metadata()
+            .expect("complete preflighted output transfer");
+        operations
     }
 }
 fn u16_at(bytes: &[u8], offset: usize) -> Result<u16, SoftwareRefusal> {

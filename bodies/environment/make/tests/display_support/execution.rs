@@ -17,7 +17,7 @@ fn checked_output_services_real_requests_and_exposes_refusal_without_pin_effects
                 .unwrap()
         });
         run_output_mode(mode, false, |prepared, software| {
-            PreparedDisplayKernel::prepare_with_storage(
+            let execution = PreparedDisplayKernel::prepare_with_storage(
                 prepared.plan(),
                 prepared.lowered(),
                 software,
@@ -31,7 +31,9 @@ fn checked_output_services_real_requests_and_exposes_refusal_without_pin_effects
                 )
                 .unwrap(),
             )
-            .unwrap()
+            .unwrap();
+            software.release_transferred_metadata().unwrap();
+            execution
         });
     }
 }

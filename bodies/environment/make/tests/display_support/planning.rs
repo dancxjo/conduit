@@ -9,6 +9,10 @@ use conduit_environment_runtime::appliance::software::{ReadySoftwareBacks, Softw
 fn ordinary_output_planning_requires_current_output_authority_and_seals_both_fore() {
     let source = DisplayOutputSource::compile().unwrap();
     let (host, grant, mut software) = fixture(&source);
+    assert!(matches!(
+        software.release_transferred_metadata(),
+        Err(SoftwareRefusal::Selection)
+    ));
     let bases = [
         c::BaseImplementationId::from("fixture/base"),
         c::BaseImplementationId::from("conduit.base/local@1"),
@@ -74,7 +78,37 @@ fn ordinary_output_planning_requires_current_output_authority_and_seals_both_for
             software.take_selected(fragment, &placement.placement_id),
             Err(SoftwareRefusal::AlreadySelected)
         ));
+        let remaining = software
+            .current_offers(&host.host_id, &host.boot_id, host.offer_generation)
+            .unwrap()
+            .iter()
+            .count();
+        if remaining != 0 {
+            assert!(matches!(
+                software.release_transferred_metadata(),
+                Err(SoftwareRefusal::Selection)
+            ));
+        }
     }
+    let ((), released) = crate::allocation_probe::observe(|| {
+        software.release_transferred_metadata().unwrap();
+    });
+    assert_eq!((released.allocations, released.reallocations), (0, 0));
+    assert!(released.deallocations > 0);
+    let offers = software
+        .current_offers(&host.host_id, &host.boot_id, host.offer_generation)
+        .unwrap();
+    assert_eq!(offers.iter().count(), 0);
+    assert_eq!(offers.source(), &source.plot.expanded.source_document_id);
+    let selected = fragment
+        .placements
+        .iter()
+        .find(|p| p.kind_id.as_str() != conduit_tm1637_wire::WRITE_KIND)
+        .unwrap();
+    assert!(matches!(
+        software.take_selected(fragment, &selected.placement_id),
+        Err(SoftwareRefusal::AlreadySelected)
+    ));
     let mut fresh = host.clone();
     fresh
         .capabilities

@@ -52,6 +52,7 @@ pub struct ReadySoftwareBacks {
     expanded: c::ExpandedPlotId,
     generation: Option<c::OfferGeneration>,
     operations: Vec<ReadyOperation>,
+    metadata_released: bool,
 }
 impl ReadySoftwareBacks {
     pub fn prepare(
@@ -81,6 +82,7 @@ impl ReadySoftwareBacks {
             expanded: source.expanded.expanded_plot_id.clone(),
             generation: None,
             operations,
+            metadata_released: false,
         })
     }
     /// Initialize only the explicitly named portable computations from checked
@@ -112,6 +114,7 @@ impl ReadySoftwareBacks {
             expanded: source.expanded_plot_id.clone(),
             generation: None,
             operations,
+            metadata_released: false,
         })
     }
     /// Initialize portable computations from independently authenticated Make
@@ -148,6 +151,7 @@ impl ReadySoftwareBacks {
             expanded: source.expanded_plot_id,
             generation: None,
             operations,
+            metadata_released: false,
         })
     }
     /// A refusal leaves the advertisement and retained operations unchanged.
@@ -194,6 +198,18 @@ impl ReadySoftwareBacks {
             .take()
             .ok_or(SoftwareRefusal::AlreadySelected)
     }
+    /// Retire construction descriptors only after every initialized operation
+    /// has transferred. Scope and withdrawn-offer inspection remain available;
+    /// this owner can never supply another operation. Refusal changes nothing.
+    /// No allocation, replacement implementation or readiness is introduced.
+    pub fn release_transferred_metadata(&mut self) -> Result<(), SoftwareRefusal> {
+        if self.operations.iter().any(|op| op.prepared.is_some()) {
+            return Err(SoftwareRefusal::Selection);
+        }
+        self.operations = Vec::new();
+        self.metadata_released = true;
+        Ok(())
+    }
     /// Preflight a whole closure before transferring any retained operation.
     pub fn check_selected(
         &self,
@@ -215,6 +231,9 @@ impl ReadySoftwareBacks {
             || fragment.expanded_plot_id != self.expanded
         {
             return Err(SoftwareRefusal::Selection);
+        }
+        if self.metadata_released {
+            return Err(SoftwareRefusal::AlreadySelected);
         }
         let gear = fragment
             .placements
