@@ -31,13 +31,18 @@ impl NativeRoot {
             )?;
             self.offer_generation = withdrawn;
         }
+        if !self.display.native_bound() {
+            let stats = esp_alloc::HEAP.stats();
+            self.display.bind_native(
+                &mut self.issuer,
+                reservation,
+                CONSTRUCTION_FRAMES,
+                stats.size.saturating_sub(stats.current_usage),
+            )?;
+        }
         let stats = esp_alloc::HEAP.stats();
-        self.display.bind_native(
-            &mut self.issuer,
-            reservation,
-            CONSTRUCTION_FRAMES,
-            stats.size.saturating_sub(stats.current_usage),
-        )?;
+        self.display
+            .prepare_context(stats.size.saturating_sub(stats.current_usage))?;
         Ok(())
     }
 }

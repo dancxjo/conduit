@@ -7,6 +7,7 @@ pub(super) fn check(
     bytes: &[u8],
     records: &[c::AssignedRecord<'_>],
     profile: &AssignedDisplayProfile<'_>,
+    prepared: native_display_kernel::Prepared,
 ) {
     use conduit_environment_runtime::appliance::{
         assigned::ResidentSourceIdentity, assignment_transfer as t,
@@ -60,16 +61,35 @@ pub(super) fn check(
         active.active_play_id
     );
     assert!(bind(&mut issuer, &mut owner, input(usize::MAX)).is_err());
+
+    let mut storage = Some(prepared);
     let mut bound = Some(bound);
-    assert!(native_retirement::RetiredDisplay::retire_boxed(&mut bound).is_err());
+    let mut missing = None;
+    assert!(display_execution::Execution::boxed_retained(&mut missing, &mut bound).is_err());
     assert!(bound.is_some());
-    bound
-        .as_mut()
-        .unwrap()
-        .revoke(profile.write, conduit_kernel::HostCallId(0))
-        .unwrap();
-    let retired = native_retirement::RetiredDisplay::retire_boxed(&mut bound).unwrap();
-    assert!(bound.is_none());
+    let mut execution =
+        Some(display_execution::Execution::boxed_retained(&mut storage, &mut bound).unwrap());
+    assert!(storage.is_none() && bound.is_none());
+    assert_eq!(
+        execution
+            .as_ref()
+            .unwrap()
+            .inspection()
+            .completed_operations,
+        0
+    );
+    assert_eq!(
+        execution.as_ref().unwrap().progress(),
+        display_execution::Progress::default()
+    );
+    let outcome = run(execution.as_mut().unwrap().run(core::future::ready(())));
+    assert_eq!(outcome.exit, display_execution::Exit::Cancelled);
+    assert_eq!(outcome.cleanup, Ok(()));
+    assert_eq!(outcome.progress.steps, 0);
+    let replay = run(execution.as_mut().unwrap().run(core::future::ready(())));
+    assert!(matches!(replay.exit, display_execution::Exit::Failed(_)));
+    let retired = display_execution::Execution::retire_retained(&mut execution).unwrap();
+    assert!(execution.is_none());
     issuer.finish_display_play(&active, &retired).unwrap();
     assert!(issuer.finish_display_play(&active, &retired).is_err());
 }

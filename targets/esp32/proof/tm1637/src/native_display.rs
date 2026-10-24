@@ -16,6 +16,9 @@ mod assignment;
 #[path = "native_display_binding.rs"]
 mod binding;
 #[cfg(feature = "display-ready-root")]
+#[path = "native_display_execution.rs"]
+mod execution;
+#[cfg(feature = "display-ready-root")]
 #[path = "native_display_kernel.rs"]
 mod kernel;
 #[cfg(feature = "display-ready-root")]
@@ -34,6 +37,8 @@ pub struct NativeDisplay {
     kernel: Option<kernel::Prepared>,
     #[cfg(feature = "display-ready-root")]
     phase: &'static str,
+    #[cfg(feature = "display-ready-root")]
+    execution: Option<Box<execution::Execution<DisplayPins<'static>>>>,
     #[cfg(feature = "display-ready-root")]
     retired: Option<crate::native_retirement::RetiredDisplay<DisplayPins<'static>>>,
     ready: Option<ReadyWriteBase<DisplayPins<'static>>>,
@@ -109,6 +114,8 @@ impl NativeDisplay {
             kernel: None,
             #[cfg(feature = "display-ready-root")]
             phase: "unprepared",
+            #[cfg(feature = "display-ready-root")]
+            execution: None,
             #[cfg(feature = "display-ready-root")]
             retired: None,
             ready: Some(ready),
@@ -209,7 +216,7 @@ impl NativeDisplay {
     pub fn kernel_prepared(&self) -> bool {
         #[cfg(feature = "display-ready-root")]
         {
-            self.kernel.is_some()
+            self.kernel.is_some() || self.execution.is_some()
         }
         #[cfg(not(feature = "display-ready-root"))]
         {
@@ -259,7 +266,7 @@ impl NativeDisplay {
     pub fn native_bound(&self) -> bool {
         #[cfg(feature = "display-ready-root")]
         {
-            self.bound.is_some()
+            self.bound.is_some() || self.execution.is_some()
         }
         #[cfg(not(feature = "display-ready-root"))]
         {
@@ -312,13 +319,13 @@ impl NativeDisplay {
 impl NativeDisplay {
     /// This acknowledges held custody only. No Step or electrical call runs.
     pub fn accept_start(&mut self) -> Result<(), &'static str> {
-        let ready = self.kernel.is_some()
-            && self.bound.as_ref().is_some_and(|owner| {
-                let status = owner.inspection();
-                status.lifecycle == c::CapabilityLifecycle::Issued
-                    && status.in_flight_operations == 0
-                    && status.completed_operations == 0
-            });
+        let ready = self.execution.as_ref().is_some_and(|context| {
+            let status = context.inspection();
+            status.lifecycle == c::CapabilityLifecycle::Issued
+                && status.in_flight_operations == 0
+                && status.completed_operations == 0
+                && context.progress() == execution::Progress::default()
+        });
         crate::native_execution_gate::accept_start(&mut self.phase, false, ready)
     }
 }
@@ -328,6 +335,11 @@ impl NativeDisplay {
     pub fn cancel_held(&mut self) -> Result<(), &'static str> {
         if !matches!(self.phase, "ready-held" | "started-held") {
             return Err("display-not-held");
+        }
+        if let Some(context) = self.execution.as_mut() {
+            context.cancel_held()?.cleanup?;
+            self.phase = "quiesced";
+            return Ok(());
         }
         let kernel = self.kernel.as_mut().ok_or("display-kernel-unavailable")?;
         self.bound
@@ -348,9 +360,11 @@ impl NativeDisplay {
             return Err("display-not-quiesced");
         }
         if self.retired.is_none() {
-            self.retired = Some(crate::native_retirement::RetiredDisplay::retire_boxed(
-                &mut self.bound,
-            )?);
+            self.retired = Some(if self.execution.is_some() {
+                execution::Execution::retire_retained(&mut self.execution)?
+            } else {
+                crate::native_retirement::RetiredDisplay::retire_boxed(&mut self.bound)?
+            });
         }
         issuer
             .finish_display_play(
@@ -360,6 +374,37 @@ impl NativeDisplay {
             .map_err(|_| "display-retirement-scope")?;
         self.kernel = None;
         self.phase = "retired";
+        Ok(())
+    }
+}
+
+impl NativeDisplay {
+    pub fn context_bytes(&self) -> Option<usize> {
+        #[cfg(feature = "display-ready-root")]
+        {
+            self.execution
+                .as_ref()
+                .map(|_| core::mem::size_of::<execution::Execution<DisplayPins<'static>>>())
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            None
+        }
+    }
+}
+#[cfg(feature = "display-ready-root")]
+impl NativeDisplay {
+    pub fn prepare_context(&mut self, available: usize) -> Result<(), &'static str> {
+        if self.execution.is_some() {
+            return Err("display-context-already-prepared");
+        }
+        if available < core::mem::size_of::<execution::Execution<DisplayPins<'static>>>() + 8192 {
+            return Err("display-context-capacity");
+        }
+        self.execution = Some(execution::Execution::boxed_retained(
+            &mut self.kernel,
+            &mut self.bound,
+        )?);
         Ok(())
     }
 }

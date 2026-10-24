@@ -86,7 +86,7 @@ fn output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal(
         },
     )
     .unwrap();
-    staging_checks::check(
+    let prepared = staging_checks::check(
         &assignment,
         &bytes,
         &records,
@@ -163,7 +163,7 @@ fn output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal(
         &bytes,
         &records,
         &profile,
-        maxima,
+        prepared,
     );
 }
 
@@ -235,8 +235,9 @@ fn possession(
     bytes: &[u8],
     records: &[c::AssignedRecord<'_>],
     profile: &AssignedDisplayProfile<'_>,
-    maxima: c::AssignedPlanMaxima,
+    prepared: native_display_kernel::Prepared,
 ) {
+    let maxima = conduit_environment_make::DisplayLayoutMaterial::maxima();
     use conduit_plan_lowering::{
         selected_assigned_operation::AssignedOperationInput,
         selected_assigned_operation::{
@@ -245,7 +246,7 @@ fn possession(
     };
     let active = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 2);
     let owner = display_fixture::ready(&fragment.host_id, &fragment.boot_id);
-    binding_checks::check(assignment, fragment, bytes, records, profile);
+    binding_checks::check(assignment, fragment, bytes, records, profile, prepared);
     let contract = conduit_tm1637_wire::WriteContract::prepare().unwrap();
     let required = c::AssignedPlanRequirements {
         host: assignment.identity().host,

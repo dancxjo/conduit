@@ -178,3 +178,17 @@ service while retaining exact packet assertions, successive frames, semantic
 brightness refusal and cancellation checks. All eleven display tests pass,
 including zero allocation during Play and no pin effects after cancellation.
 The ESP32 profile compiles. Background execution and Release remain unconnected.
+
+Prepare now assembles the retained output kernel and bound native driver into
+one boxed execution context after separately admitting its storage and control
+headroom. Scope mismatch or a missing side refuses before transferring either.
+Context allocation refusal leaves earlier custody held for authenticated retry;
+Start requires the actual idle context. Replies report its actual context size.
+
+The context pumps the unchanged kernel through `DisplayService`, with cancellation
+between bounded polls, progress counters, terminal cleanup and consuming provider
+retirement. It owns no Frame producer, formatting policy or clock. CPU proof
+covers zero-operation assembly, immediate cancellation with zero Steps, replay
+fencing and exact returned custody. All seventeen Root-control tests pass;
+ESP32 compilation passes. Task registration, Release, typed Fore client wakeup,
+normal physical execution and continuous sensor/Mask composition remain required.

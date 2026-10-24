@@ -30,7 +30,7 @@ impl NativeRoot {
         &self,
         token: crate::native_owner_control::AuthenticatedRequest<'_>,
     ) -> Result<PreparationPermit, &'static str> {
-        if self.display.native_bound()
+        if self.display.context_bytes().is_some()
             || self.native_bindings.is_some()
             || self.appliance_kernel.is_some()
             || self.execution.is_some()
@@ -53,15 +53,18 @@ impl NativeRoot {
                 .is_some_and(|worker| worker.status().native_live)
     }
     pub fn execution_context_prepared(&self) -> bool {
-        self.execution.is_some()
+        self.display.context_bytes().is_some()
+            || self.execution.is_some()
             || self
                 .worker
                 .as_ref()
                 .is_some_and(|w| w.status().phase != "retired")
     }
     pub fn execution_context_bytes(&self) -> Option<usize> {
-        self.execution_context_prepared()
-            .then_some(core::mem::size_of::<super::DeviceExecution>())
+        self.display.context_bytes().or_else(|| {
+            self.execution_context_prepared()
+                .then_some(core::mem::size_of::<super::DeviceExecution>())
+        })
     }
     pub fn worker_status(&self) -> Option<crate::native_task::Status> {
         self.worker.as_ref().map(|worker| worker.status())

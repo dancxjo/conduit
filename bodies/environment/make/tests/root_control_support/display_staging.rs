@@ -8,7 +8,7 @@ pub(super) fn check(
     profile: &AssignedDisplayProfile<'_>,
     host: &c::HostAdvertisement,
     software: &mut conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
-) {
+) -> native_display_kernel::Prepared {
     use conduit_environment_runtime::appliance::{
         assigned::ResidentSourceIdentity, assignment_transfer as t,
     };
@@ -104,4 +104,5 @@ pub(super) fn check(
         StagedDisplayAssignment::stage(&wire, profile, &resident, scope(), usize::MAX).is_err()
     );
     assert_ne!(staged.wire(), wire);
+    prepared
 }
