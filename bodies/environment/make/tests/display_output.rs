@@ -36,3 +36,6 @@ mod layout;
 
 #[path = "display_support/fixture.rs"]
 mod fixture;
+
+#[path = "display_support/mask.rs"]
+mod mask;

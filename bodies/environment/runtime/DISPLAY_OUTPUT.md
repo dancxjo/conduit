@@ -143,3 +143,22 @@ is attempted even if release/observation fails; unknown quiescence preserves
 unresolved evidence rather than recording a Lull. No Frame producer is admitted
 by this mode, so successful kernel startup/input wait cannot prove physical
 output or continuous Mask execution. Operational image recovery remains separate.
+
+## Mask Frame composition
+
+`PreparedDisplayFrame` reserves only the canonical `Tm1637Frame` composers from
+its independently checked linked type. It contains no packet-expression program
+or evaluator. Repeated composition and exact Frame validation allocate nothing;
+invalid brightness remains typed input for the authored encoder's refusal path.
+The existing packet helper delegates Frame composition to the same owner.
+
+The retained host owner's interpretation now produces canonical Frame bytes
+rather than independently executing packet policy. Its attended capture saves
+those bytes and their digest with the originating Face revision/Show. The CPU
+integration proof feeds temperature and RH Frames from an actual retained Body
+Face through the checked output graph, original kernel, selectors and actual
+TM1637 Host Call service with explicit CPU pins/authority. Both outputs drain
+without Play allocations; the Face stays unchanged. This is interpreted Mask
+input followed by CPU output execution, not an installed Mask-role route, caller
+admission, wakeup wiring or physical delivery. The MCU still has no admitted
+live Frame producer.

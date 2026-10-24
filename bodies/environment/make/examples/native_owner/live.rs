@@ -15,6 +15,7 @@ use conduit_face::{
     BodyFace, FaceContext, FaceContribution, FaceContributionBasis, FaceContributionRole, FaceFocus,
 };
 use ed25519_dalek::SigningKey;
+use sha2::{Digest, Sha256};
 use std::{
     error::Error,
     fs,
@@ -120,6 +121,10 @@ pub(super) fn run(
                         .render(&face, elapsed_ms)
                         .map_err(|e| format!("display interpretation: {e}"))?;
                     fs::write(
+                        output.join(format!("physical-frame-{}.bin", snapshot.sequence)),
+                        frame.canonical,
+                    )?;
+                    fs::write(
                         output.join(format!("physical-show-{}.json", snapshot.sequence)),
                         serde_json::to_vec_pretty(&serde_json::json!({
                             "face_content_id": frame.rendered.face_content_id,
@@ -132,7 +137,8 @@ pub(super) fn run(
                                 "colon": frame.rendered.show.colon(),
                             },
                             "registers": frame.registers,
-                            "packets": frame.packets.packets(),
+                            "frame_bytes": frame.canonical.len(),
+                            "frame_sha256": <[u8; 32]>::from(Sha256::digest(frame.canonical)),
                             "physical_delivery": false,
                         }))?,
                     )?;

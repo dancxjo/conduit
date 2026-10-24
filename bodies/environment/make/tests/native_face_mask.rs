@@ -76,7 +76,7 @@ fn assert_pages(sources: [&str; 3]) {
 mod owner_display;
 
 #[test]
-fn owner_display_packets_retain_the_actual_body_face_and_timed_look() {
+fn owner_display_frames_retain_the_actual_body_face_and_timed_look() {
     let parent: Face = serde_json::from_str(include_str!(
         "../../evidence/2026-10-23-owner-shared-face/physical-face-1.json"
     ))
@@ -110,11 +110,29 @@ fn owner_display_packets_retain_the_actual_body_face_and_timed_look() {
         assert_eq!(frame.rendered.face_content_id, parent.identity.as_str());
         assert_eq!(frame.rendered.face_revision, parent.revision);
         assert_eq!(frame.rendered.disposition, expected);
-        let packets = frame.packets.packets();
-        assert_eq!(packets[0], [0x40]);
-        assert_eq!(packets[1][0], 0xc0);
-        assert_eq!(packets[1][1..], frame.registers);
-        assert_eq!(packets[2], [0x8b]);
+        let canonical =
+            conduit_environment_runtime::display_packets::validate_display_frame(frame.canonical)
+                .unwrap();
+        let mut registers = [0; 6];
+        assert_eq!(
+            canonical
+                .record_field("registers")
+                .unwrap()
+                .unwrap()
+                .copy_octet_collection("value/u8", &mut registers)
+                .unwrap(),
+            6
+        );
+        assert_eq!(registers, frame.registers);
+        assert_eq!(
+            canonical
+                .record_field("brightness")
+                .unwrap()
+                .unwrap()
+                .primitive_bytes("value/u8")
+                .unwrap(),
+            &[3]
+        );
     }
     let mut stale = parent.clone();
     stale

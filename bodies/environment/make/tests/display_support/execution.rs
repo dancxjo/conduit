@@ -8,7 +8,7 @@ use conduit_environment_runtime::{
 use conduit_kernel::{self as k, scheduler::*};
 use std::{cell::Cell, rc::Rc};
 #[path = "output_owner.rs"]
-mod output_owner;
+pub(super) mod output_owner;
 #[test]
 fn checked_output_services_real_requests_and_exposes_refusal_without_pin_effects() {
     for mode in 0..3 {
@@ -348,4 +348,4 @@ fn admitted_storage_refusals_precede_software_transfer() {
 }
 
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_display_service.rs"]
-mod native_service;
+pub(super) mod native_service;

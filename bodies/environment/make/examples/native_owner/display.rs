@@ -1,6 +1,6 @@
 //! Owner-side interpretation of its actual Body Face. This produces finite
-//! packets only; GPIO delivery requires a separately admitted output Host Call.
-use conduit_environment_runtime::display_packets::{PreparedDisplayPackets, SourceDisplayPackets};
+//! Frame input only; the checked output Plot owns packet encoding and delivery.
+use conduit_environment_runtime::display_packets::PreparedDisplayFrame;
 use conduit_face::Face;
 use conduit_seven_segment_mask::{
     PreparedEnvironmentFace, RenderedShow, SevenSegmentLook, TimedSevenSegmentMask, Tm1637Profile,
@@ -9,20 +9,20 @@ use conduit_seven_segment_mask::{
 pub struct Display {
     profile: Tm1637Profile,
     mask: TimedSevenSegmentMask,
-    packets: PreparedDisplayPackets,
+    frame: PreparedDisplayFrame,
     brightness: u8,
 }
 pub struct Frame<'a> {
     pub rendered: RenderedShow<'a>,
     pub registers: [u8; 6],
-    pub packets: SourceDisplayPackets,
+    pub canonical: &'a [u8],
 }
 #[derive(Debug)]
 pub enum Refusal {
     Wiring(conduit_seven_segment_mask::WiringRefusal),
     Timing(conduit_seven_segment_mask::TimingRefusal),
     Face(conduit_seven_segment_mask::FaceProjectionRefusal),
-    Packets(conduit_environment_runtime::display_packets::DisplayPacketRefusal),
+    Frame(conduit_core::StructuredInfoRefusal),
     Brightness,
 }
 impl Display {
@@ -41,11 +41,11 @@ impl Display {
             profile,
             mask: TimedSevenSegmentMask::prepare(look, period_ms, lifetime_ms)
                 .map_err(Refusal::Timing)?,
-            packets: PreparedDisplayPackets::prepare().map_err(Refusal::Packets)?,
+            frame: PreparedDisplayFrame::prepare().map_err(Refusal::Frame)?,
             brightness,
         })
     }
-    pub fn render<'a>(&mut self, face: &'a Face, elapsed_ms: u64) -> Result<Frame<'a>, Refusal> {
+    pub fn render<'a>(&'a mut self, face: &'a Face, elapsed_ms: u64) -> Result<Frame<'a>, Refusal> {
         let selected =
             PreparedEnvironmentFace::prepare(face, "environment").map_err(Refusal::Face)?;
         let rendered = self
@@ -53,14 +53,14 @@ impl Display {
             .render(&selected, elapsed_ms, &self.profile)
             .map_err(Refusal::Wiring)?;
         let registers = self.profile.map(&rendered.show).map_err(Refusal::Wiring)?;
-        let packets = self
-            .packets
+        let canonical = self
+            .frame
             .encode(registers, self.brightness, true)
-            .map_err(Refusal::Packets)?;
+            .map_err(Refusal::Frame)?;
         Ok(Frame {
             rendered,
             registers,
-            packets,
+            canonical,
         })
     }
 }
@@ -71,7 +71,7 @@ impl core::fmt::Display for Refusal {
             Self::Wiring(reason) => write!(f, "wiring: {reason:?}"),
             Self::Timing(reason) => write!(f, "timing: {reason:?}"),
             Self::Face(reason) => write!(f, "Face: {reason:?}"),
-            Self::Packets(reason) => write!(f, "packets: {reason:?}"),
+            Self::Frame(reason) => write!(f, "Frame: {reason:?}"),
             Self::Brightness => f.write_str("brightness outside 0..=7"),
         }
     }
