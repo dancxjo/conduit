@@ -144,7 +144,14 @@ fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readabl
                 let frame = mask.scene().unwrap().frame().unwrap();
                 assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
                 for command in frame.scene.commands() {
-                    words.push_str(command.payload());
+                    // Reconstruct continued body text, excluding the repeating
+                    // header/page marker/footer between two pieces of a name.
+                    if command.kind == conduit_face::GraphicsCommandKind::Text
+                        && command.bounds.y >= 56
+                        && i32::from(command.bounds.y) + i32::from(command.bounds.height) <= 184
+                    {
+                        words.push_str(command.payload());
+                    }
                 }
                 birth_hit |= frame
                     .hits

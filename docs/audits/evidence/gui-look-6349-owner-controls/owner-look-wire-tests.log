@@ -1,0 +1,14 @@
+✔ wardrobe response binds to one request and bounded owner report (1.031552ms)
+✔ wardrobe frame preserves exact u64 revision and one controlled numeric slot (0.432038ms)
+✔ owner refusal remains a refusal with its machine-readable code (0.108233ms)
+✔ component selection keeps exact Show integers and refuses open Look fields (0.497644ms)
+✔ component response correlates one bounded request and truthful refusal (0.892786ms)
+✔ component request sequence is canonical and bounded at both limits (0.256745ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.423143

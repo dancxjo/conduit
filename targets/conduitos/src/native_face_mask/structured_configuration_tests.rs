@@ -49,22 +49,38 @@ fn explicit_layout_configuration_reaches_consumer_and_preserves_complete_fallbac
     )
     .unwrap();
     let expected = observe(baseline);
-    for (source, expected_fallback) in [
+    let nonvisual_look = r#"{generative: none(empty), identity: "conduit.look/nonvisual@1", spoken: none(empty), version: 2, visual: none(empty)}"#;
+    let nonvisual_source = CRECHE_LAYOUT_MASK_SOURCE
+        .lines()
+        .map(|line| {
+            if line.trim_start().starts_with("component: ") {
+                let (component, _) = line.split_once("(look = ").unwrap();
+                alloc::format!("{component}(look = {nonvisual_look})")
+            } else {
+                alloc::string::String::from(line)
+            }
+        })
+        .collect::<alloc::vec::Vec<_>>()
+        .join("\n");
+    for (source, expected_fallback, nonvisual) in [
         (
             alloc::string::String::from(CRECHE_LAYOUT_MASK_SOURCE),
+            false,
             false,
         ),
         (
             CRECHE_LAYOUT_MASK_SOURCE.replace("inline_shrink: 1", "inline_shrink: 2"),
             true,
+            false,
         ),
+        (nonvisual_source, false, true),
     ] {
         let (stage, configuration) =
             prepare_layout_component_document(&host, &source, "creche-mask-columns", profile)
                 .unwrap();
         assert_eq!(stage.planned_mask.mask.plot_name, "creche-mask-columns");
         assert!(configuration.layout.is_some());
-        let (scene, _, fallback) = NativeFaceMask::prepare_component_scene(
+        let (scene, admitted, fallback) = NativeFaceMask::prepare_component_scene(
             &configuration,
             &face,
             1280,
@@ -74,6 +90,19 @@ fn explicit_layout_configuration_reaches_consumer_and_preserves_complete_fallbac
         )
         .unwrap();
         assert_eq!(scene.face(), &face);
+        if nonvisual {
+            assert!(matches!(
+                admitted.requested.visual(),
+                conduit_face::LookVisualFacetOption::None
+            ));
+            assert_eq!(admitted.selected.identity(), conduit_face::PHOSPHOR_LOOK_ID);
+            assert!(matches!(
+                admitted.visual.outcome,
+                conduit_face::VisualExpressionOutcome::PhosphorFallback {
+                    refusal: conduit_face::VisualExpressionRefusal::MissingVisualFacet
+                }
+            ));
+        }
         if expected_fallback {
             assert_eq!(
                 fallback.as_deref(),

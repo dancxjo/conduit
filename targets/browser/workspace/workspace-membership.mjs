@@ -4,6 +4,7 @@ import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createInstalledCrecheTargetCatalog } from "./creche-installed-targets.mjs";
 import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
 import { createBrowserConfigurationOutfitter } from "./workspace-host-configuration.mjs";
+import { decorate } from "../handbook/owner-face-icons.mjs";
 
 const SCHEMA = "conduit.workspace/body-invitation@1";
 const CHANNEL_PREFIX = "conduit.workspace/body-admission/";
@@ -82,6 +83,8 @@ export function createBodyInvitationReceiver({ location, onReceive }) {
   const form = receiver.querySelector("form");
   const input = receiver.querySelector("input");
   const status = receiver.querySelector('[role="status"]');
+  decorate(receiver.querySelector('h2'), 'Body');
+  decorate(form.querySelector('button'), 'Inspect');
   form.addEventListener("submit", event => {
     event.preventDefault();
     try {

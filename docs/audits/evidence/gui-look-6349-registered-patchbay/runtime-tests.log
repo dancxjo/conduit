@@ -1,0 +1,13 @@
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/browser/runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.87s
+     Running unittests src/lib.rs (../native-target/debug/deps/conduit_browser_runtime-de40226e23a1a9f9)
+
+running 1 test
+registered Patchbay phosphor: 31673 bytes
+registered Patchbay editorial: 31430 bytes
+registered Patchbay default: 31716 bytes
+registered Patchbay phosphor-forced: 31749 bytes
+test owner_face_mask::patchbay_tests::registered_component::registered_patchbay_looks_preserve_node_and_refuse_oversized_domain_face ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 485 filtered out; finished in 6.53s
+

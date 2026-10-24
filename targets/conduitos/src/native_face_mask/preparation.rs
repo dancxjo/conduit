@@ -277,7 +277,7 @@ impl NativeFaceMask {
             interaction_admitted: true,
             local_input_available: true,
             component_configuration,
-            visual_expression: None,
+            visual_look: None,
             visual_constraints: conduit_face::VisualUserConstraints {
                 forced_colors: false,
                 reduced_motion: true,

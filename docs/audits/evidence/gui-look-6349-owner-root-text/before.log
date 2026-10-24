@@ -1,0 +1,43 @@
+[WebServer] (node:4163786) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+(node:4163797) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [chromium] › proof/browser/owner-face-component.spec.mjs:1449:1 › browser root text preference enlarges owner controls without a new Show
+  1) [chromium] › proof/browser/owner-face-component.spec.mjs:1449:1 › browser root text preference enlarges owner controls without a new Show 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 26
+    Received: 13
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      1463 |   await expect.poll(font).toBe(13);
+      1464 |   await page.evaluate(() => document.documentElement.style.fontSize = '200%');
+    > 1465 |   await expect.poll(font).toBe(26);
+           |                           ^
+      1466 |   expect(await button.evaluate(node => node === globalThis.retainedOwnerControl)).toBe(true);
+      1467 |   await expect(button).toHaveAccessibleName('Complete task');
+      1468 |   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+        at /home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/proof/browser/owner-face-component.spec.mjs:1465:27
+
+    Error Context: proof/browser/test-results/default/owner-face-component-brows-f16f9-controls-without-a-new-Show-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    proof/browser/test-results/default/owner-face-component-brows-f16f9-controls-without-a-new-Show-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace proof/browser/test-results/default/owner-face-component-brows-f16f9-controls-without-a-new-Show-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › proof/browser/owner-face-component.spec.mjs:1449:1 › browser root text preference enlarges owner controls without a new Show 

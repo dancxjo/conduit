@@ -1,0 +1,19 @@
+
+Running 3 tests using 1 worker
+
+(node:4135609) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/3] [chromium] › proof/browser/patchbay-html.spec.mjs:427:1 › full-window Flow mechanics remain face-only
+(node:4135725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[2/3] [chromium] › proof/browser/patchbay-html.spec.mjs:427:1 › full-window Flow mechanics remain face-only
+(node:4135839) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[3/3] [chromium] › proof/browser/patchbay-html.spec.mjs:427:1 › full-window Flow mechanics remain face-only
+  3 passed (16.6s)

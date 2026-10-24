@@ -1,0 +1,48 @@
+{
+  "browser_errors": [],
+  "canonical_resident_look_selection": false,
+  "workspace_chrome_looks": [
+    {
+      "look": "editorial",
+      "font_px": 16,
+      "font": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+      "ink": "rgb(34, 54, 76)",
+      "paper": "rgb(255, 252, 246)"
+    },
+    {
+      "look": "engineering",
+      "font_px": 16,
+      "font": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+      "ink": "rgb(30, 48, 69)",
+      "paper": "rgb(255, 255, 255)"
+    },
+    {
+      "look": "phosphor",
+      "font_px": 16,
+      "font": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+      "ink": "rgb(231, 255, 230)",
+      "paper": "rgb(16, 43, 36)"
+    }
+  ],
+  "identity": {
+    "body_id": "0ad7027147d039c80778e0826aca9969e1622305f545d871c6f2d909b804aa75",
+    "plan_id": "body-plan/sha256:fa87bc64763179b1f2a2b36862cc96b592ec1b3b525fb609f285547edd38821d",
+    "active_play_id": "body-play/sha256:0b8c7703aec4b2ffc3024f174bd0fee7b5f10d259a1b04bfcb6f134eb7600dff"
+  },
+  "text": "A little progress, every day.\n\nChoose a name. Add a Plot. Make something move.\n\n\u0394\u03bf\u03ba\u03b9\u03bc\u03ae \u00b7 hello, \u4e16\u754c \ud83e\ude9e",
+  "narrow": {
+    "width": 390,
+    "editor_font_px": 32,
+    "horizontal_overflow": false,
+    "forced_colors": true,
+    "keyboard_focus": true,
+    "subsequent_authoritative_edit": true
+  },
+  "runtime_sha256": "049e25e7474532fe475c5a9d5e8d8b5a22cdaa4df4f80b4081fb3f5fe557c1b3",
+  "conduit.css_sha256": "264f59677dbe1e421d71b7462a971468ccc939693937c40cbb247c168cb17721",
+  "workspace.css_sha256": "d174664967f8aa8f00efa0a6c429b782f4c57243d96153a0f584aed8ffec2a65",
+  "browser-text-editor.mjs_sha256": "cda7d3f29491e1d789f5ea91d7ea26818fbb73b0d32acb48f30f824705a29d90",
+  "source": "8003d90161fb913d073d67666dec1d8be2d6e870",
+  "runtime_provenance": "Retained Workspace runtime and initial catalog from workspace-activity-product-final, originally staged at 72df3b659; no runtime rebuild in this slice.",
+  "staged_assets_equal_current_source": true
+}

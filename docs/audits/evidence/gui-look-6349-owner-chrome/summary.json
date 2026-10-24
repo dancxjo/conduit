@@ -1,0 +1,11 @@
+{
+  "source": "589a38bcb6cf3a57063f4270f715750def6583c9",
+  "raw_report_sha256": "34802102cc1b7f9418db16384e695b71ff03b2b195c97a551f42771ec3c99cdd",
+  "raw_report_bytes": 7615383,
+  "archive": "report.json.gz",
+  "owner_show_acknowledged": true,
+  "browser_errors": [],
+  "driver_exit": 0,
+  "button_minimum_height_px": 44,
+  "human_or_physical_proof": false
+}

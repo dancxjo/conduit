@@ -109,6 +109,7 @@ impl NativeFaceScene {
                 self.typography,
             )?;
         if !editor_visible && !self.showing_diagram && !self.showing_details {
+            layout::append_region_surfaces(&mut scene, self.rows(), self.page, self.screen)?;
             for row in self.rows().iter().filter(|row| row.page == self.page) {
                 layout::append_panel_chrome(&mut scene, row, self.screen)?;
             }

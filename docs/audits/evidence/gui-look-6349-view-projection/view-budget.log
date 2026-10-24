@@ -1,0 +1,12 @@
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/browser/runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.94s
+     Running unittests src/lib.rs (../native-target/debug/deps/conduit_browser_runtime-de40226e23a1a9f9)
+
+running 1 test
+20 long rows Compact: 49737 bytes
+20 long rows Spacious: 49502 bytes
+20 long rows CompactEditorial: 49494 bytes
+20 long rows SpaciousPhosphor: 49828 bytes
+test owner_face_mask::tests::view_budget_tests::twenty_unicode_rows_and_actions_fit_the_view_without_duplicate_look_bytes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 484 filtered out; finished in 13.03s

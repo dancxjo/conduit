@@ -1,0 +1,50 @@
+
+Running 14 tests using 1 worker
+
+(node:4180655) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/14] [chromium] › proof/browser/patchbay-dynamic-icons.spec.mjs:13:1 › dynamic Patchbay symbols preserve exact node and Port selection
+  1) [chromium] › proof/browser/patchbay-dynamic-icons.spec.mjs:13:1 › dynamic Patchbay symbols preserve exact node and Port selection 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 8
+    Received: 5
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      21 |   const nodes=page.locator('.flow-frontplate');
+      22 |   expect(await nodes.count()).toBeGreaterThan(0);
+    > 23 |   await expect.poll(()=>nodes.locator('.faceplate-icon svg').count()).toBe(await nodes.count());
+         |                                                                       ^
+      24 |   const ports=page.locator('.faceplate-port');
+      25 |   expect(await ports.count()).toBeGreaterThan(0);
+      26 |   await expect(ports.locator('.faceplate-inline-icon svg')).toHaveCount(await ports.count());
+        at /home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/proof/browser/patchbay-dynamic-icons.spec.mjs:23:71
+
+    Error Context: proof/browser/test-results/patchbay-dynamic-icons-dyn-56d59-act-node-and-Port-selection-chromium/error-context.md
+
+
+(node:4180772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[2/14] [chromium] › proof/browser/patchbay-dynamic-icons.spec.mjs:55:1 › unknown graph decoration tokens retain text without selecting a guessed icon
+[3/14] [chromium] › proof/browser/patchbay-html.spec.mjs:138:1 › HTML Patchbay reconstructs one typed state accessibly and survives delivery loss
+[4/14] [chromium] › proof/browser/patchbay-html.spec.mjs:427:1 › full-window Flow mechanics remain face-only
+[5/14] [chromium] › proof/browser/patchbay-html.spec.mjs:522:1 › narrow enlarged-content workspace has exclusive drawers and restored focus
+[6/14] [chromium] › proof/browser/patchbay-html.spec.mjs:624:1 › Flow scene reconciliation is finite and identity-exact
+[7/14] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:19:1 › bounded collections are manifested without numbered static slot farms
+[8/14] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:30:1 › Patchbay has one stable Library and one contextual Inspect surface
+[9/14] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:70:1 › inspection evidence fits right and bottom docks at wide and forced-color narrow widths
+[10/14] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:103:1 › bottom inspection remains above workspace tools with reachable enlarged controls
+[11/14] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:155:1 › enlarged narrow product navigation precedes status and shell bands do not overlap
+[12/14] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:196:1 › Escape dismisses the focused surface when Body inspection leaves Library open
+[13/14] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:221:1 › Patchbay graph consumes canonical typography and surface roles
+[14/14] [chromium] › proof/browser/patchbay-panel-furniture.spec.mjs:258:1 › workspace status and tools reserve canvas space instead of covering nodes
+  1 failed
+    [chromium] › proof/browser/patchbay-dynamic-icons.spec.mjs:13:1 › dynamic Patchbay symbols preserve exact node and Port selection 
+  13 passed (1.1m)

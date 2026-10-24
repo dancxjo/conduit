@@ -1,0 +1,27 @@
+{
+  "baseline_source": "3c37cabe564700dc0ab2425cc775747fe6cc7889",
+  "experiment_source": "0059e318f83c2f5629610548899e321ac2d84c59",
+  "baseline": {
+    "action_request_ms": 1533,
+    "queued_renewal_ms": 1315,
+    "browser_maximum_gap_before_action_ms": 277.69999998807907
+  },
+  "experiment": {
+    "action_request_ms": 1500,
+    "queued_renewal_ms": 1321,
+    "browser_maximum_gap_before_action_ms": 245.89999997615814
+  },
+  "experiment_post_switch_action": {
+    "action_id": "todo.add",
+    "action_target": "todo/list",
+    "before_show": "show/2c21e1450ef22fb27fb3e533b3e203436d3f9e2e38f7f8fe5db6808578d794b3",
+    "after_show": "show/bb7a194cbcbc2576fcf36af3b5b46337ca56f71e5520cc583563de88a2ed2608",
+    "before_face": "3422c4f6a4b0f4715dcc0e9b940c9863db4ee9e07cf18c6c4e77540304acc7b9",
+    "after_face": "dd6225b12945aeafadcd1ee6d709d234f2c44c4bd5bb8a5e8e92f1356d06f06c",
+    "body_id": "39e65a025e6d51bffcfdfdb84c9d27a0feebe2b62d6ed9aff90b59286f85fd87",
+    "added_text": "A selected Look still acts",
+    "acknowledged": true
+  },
+  "lease_failure_fixed": false,
+  "delivery_code_reverted": true
+}

@@ -51,6 +51,42 @@ impl NativeCompositor {
         scene: &GraphicsScene,
         expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        self.update_pending_component_surface(face, show, display, scene, expression, None)
+    }
+    pub fn update_pending_look_mask_surface(
+        &mut self,
+        face: &Face,
+        show: &conduit_face::MaskShow,
+        display: &HostBaseId,
+        scene: &GraphicsScene,
+        look: &conduit_face::AdmittedVisualLook,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        if look.selected.identity().as_str() != look.visual.expression.identity.as_str()
+            || !matches!(
+                look.selected.visual(),
+                conduit_face::LookVisualFacetOption::Some(_)
+            )
+        {
+            return Err(NativeCompositorError::ManifestationInvalid);
+        }
+        self.update_pending_component_surface(
+            face,
+            show,
+            display,
+            scene,
+            &look.visual,
+            Some(&look.selected),
+        )
+    }
+    fn update_pending_component_surface(
+        &mut self,
+        face: &Face,
+        show: &MaskShow,
+        display: &HostBaseId,
+        scene: &GraphicsScene,
+        expression: &conduit_face::AdmittedVisualExpression,
+        look: Option<&conduit_face::LookInfo>,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
         if !(100..=200).contains(&expression.expression.text_scale_percent) {
             return Err(crate::display::DisplayError::InvalidExtent.into());
         }
@@ -58,6 +94,7 @@ impl NativeCompositor {
         let i = self.index(&show.show.target_subject)?;
         self.check_revision(i, face, &show.show, Mode::Pending)?;
         self.surfaces[i].expression = Some(expression.clone());
+        self.surfaces[i].visual_look = look.cloned();
         self.raster(
             face,
             &show.show,
@@ -162,6 +199,7 @@ impl NativeCompositor {
         let handle = self.surfaces[i].handle;
         let bounds = self.surfaces[i].bounds;
         let expression = self.surfaces[i].expression.clone();
+        let visual_look = self.surfaces[i].visual_look.clone();
         self.invalidate();
         self.surfaces[i].receipt = None;
         if let Err(error) = self.unit(Request::BeginUpload {
@@ -195,14 +233,28 @@ impl NativeCompositor {
                     use crate::display::PixelTarget;
                     let format = lease.format();
                     #[cfg(feature = "native-compositor-core")]
-                    let receipt = crate::display::typography::render_scene_configured(
+                    let receipt = crate::display::typography::render_scene_selected(
                         lease,
                         scene,
                         |_, command| command.text_role().into(),
                         expression
                             .as_ref()
                             .map_or(100, |e| e.expression.text_scale_percent),
-                        |role| super::super::paint::visual_paint(format, role, expression.as_ref()),
+                        crate::display::typography::Typography::new(
+                            expression
+                                .as_ref()
+                                .map_or(conduit_face::VisualTypography::Editorial, |e| {
+                                    e.expression.typography
+                                }),
+                        ),
+                        |role| {
+                            super::super::paint::visual_look_paint(
+                                format,
+                                role,
+                                expression.as_ref(),
+                                visual_look.as_ref(),
+                            )
+                        },
                     )?;
                     #[cfg(not(feature = "native-compositor-core"))]
                     let receipt = crate::display::render_scene(lease, scene)?;
@@ -292,6 +344,7 @@ impl NativeCompositor {
             surface_id: id.into(),
             display,
             visual_expression: expression,
+            visual_look,
         });
         surface
             .receipt

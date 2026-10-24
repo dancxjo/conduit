@@ -9,7 +9,21 @@ pub(super) fn arrange(
     let maximum_height = inset(height, context.padding)?;
     let mut fragments = Vec::new();
     let mut current = Fragment::empty();
-    let mut marker = region.is_some();
+    // One surface cue per authored group replaces its per-region dividers.
+    // Charge it to the earliest recipe region, independently of source reading
+    // order. Continuations retain ordinary source-owned text and control order.
+    let group = context.items(region).find_map(|(_, item)| item.region);
+    let mut marker = region.is_some_and(|region| {
+        group.is_some_and(|group| {
+            context
+                .items
+                .iter()
+                .filter(|item| item.region == Some(group))
+                .filter_map(|item| item.region_order)
+                .min()
+                == Some(region)
+        })
+    });
     let mut items = context.items(region).peekable();
     let mut previous = None;
     let mut cluster_atomic = false;
@@ -111,6 +125,8 @@ pub(super) fn arrange(
                     paint: item.paint,
                     control: item.control,
                     subject_index: item.subject_index,
+                    region: item.region,
+                    region_inset: 0,
                     page: 0,
                     bounds: LayoutRect {
                         x: item_inset as i16,

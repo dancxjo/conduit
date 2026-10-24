@@ -1,0 +1,10 @@
+
+running 5 tests
+test native_face_scene::ports::tests::typed_direction_labels_and_exact_endpoints_survive_mixed_fan_graphs ... ok
+test native_face_scene::ports::tests::missing_port_facts_are_not_inferred_from_misleading_wording ... ok
+test native_face_scene::ports::tests::missing_relationship_cannot_be_replaced_by_a_nearby_port ... ok
+test native_face_scene::ports::tests::off_page_ambiguous_endpoint_never_borrows_a_visible_ports_geometry ... ok
+test native_face_scene::ports::tests::large_graphs_keep_every_identity_reachable_and_report_omitted_geometry ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1309 filtered out; finished in 1.80s
+

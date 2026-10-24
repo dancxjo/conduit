@@ -1,0 +1,86 @@
+{
+  "source": "350be7db799114f6e22e472e73878f264166400c",
+  "raw_report_bytes": 7616059,
+  "raw_report_sha256": "424d8fdb0454a0733965c086654fd5df81942004c0e4f8353fe7787ef237793c",
+  "archive": "owner-report.json.gz",
+  "same_body_face_component_recipe_layout": true,
+  "policy": "editorial",
+  "observations": [
+    {
+      "density": "compact",
+      "palette": "editorial",
+      "show_id": "show/59ccd82248a3016d9365adafc5e46f5b6cb0ed9700421341fdaf780742ed44c8",
+      "component": {
+        "source_document_id": "8e4fd27329fe4df962837fe7b35641a42b928e30d64e4cfa2b396f4b6f870969",
+        "checked_plot_id": "8f2c819c15ae004bb176121b357524cb6c8d8bdd91a5fdfeda6492a5eec7e1ac",
+        "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe"
+      },
+      "rendered_typography": {
+        "policy": "editorial",
+        "title": "Look studio",
+        "font_family": "Georgia, \"Times New Roman\", serif",
+        "font_size": "27px"
+      }
+    },
+    {
+      "density": "spacious",
+      "palette": "editorial",
+      "show_id": "show/2f2567e68353ddc1fc54368a26c831c0a854179adfe218b3bbb9db18c9501f83",
+      "component": {
+        "source_document_id": "8e4fd27329fe4df962837fe7b35641a42b928e30d64e4cfa2b396f4b6f870969",
+        "checked_plot_id": "8f2c819c15ae004bb176121b357524cb6c8d8bdd91a5fdfeda6492a5eec7e1ac",
+        "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe"
+      },
+      "rendered_typography": {
+        "policy": "editorial",
+        "title": "Look studio",
+        "font_family": "Georgia, \"Times New Roman\", serif",
+        "font_size": "33.75px"
+      }
+    },
+    {
+      "density": "spacious",
+      "palette": "phosphor",
+      "show_id": "show/a3467338ece4c0ca56b3d43fe94a15aa2c55dd51f3dcf976ef4df3115ede344e",
+      "component": {
+        "source_document_id": "8e4fd27329fe4df962837fe7b35641a42b928e30d64e4cfa2b396f4b6f870969",
+        "checked_plot_id": "8f2c819c15ae004bb176121b357524cb6c8d8bdd91a5fdfeda6492a5eec7e1ac",
+        "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe"
+      },
+      "rendered_typography": {
+        "policy": "editorial",
+        "title": "Look studio",
+        "font_family": "Georgia, \"Times New Roman\", serif",
+        "font_size": "33.75px"
+      }
+    },
+    {
+      "density": "compact",
+      "palette": "phosphor",
+      "show_id": "show/e7e30aa8c1f919272187ef3af1e8e3025c1205453d9faaa6d582a43c813c24a2",
+      "component": {
+        "source_document_id": "8e4fd27329fe4df962837fe7b35641a42b928e30d64e4cfa2b396f4b6f870969",
+        "checked_plot_id": "8f2c819c15ae004bb176121b357524cb6c8d8bdd91a5fdfeda6492a5eec7e1ac",
+        "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe"
+      },
+      "rendered_typography": {
+        "policy": "editorial",
+        "title": "Look studio",
+        "font_family": "Georgia, \"Times New Roman\", serif",
+        "font_size": "27px"
+      }
+    }
+  ],
+  "stale_refusal": {
+    "refused": true,
+    "code": "StaleShow",
+    "message": "Current acknowledged owner Show is required for interaction."
+  },
+  "forced_colors": true,
+  "minimum_text_percent": 200,
+  "narrow_width": 390,
+  "browser_errors": [],
+  "driver_exit": 0,
+  "current_source_native_qemu": false,
+  "physical_evidence": false
+}

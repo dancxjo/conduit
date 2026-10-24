@@ -85,6 +85,7 @@ impl NativeCompositor {
             binding: None,
             receipt: None,
             expression: None,
+            visual_look: None,
             upload_sequence: 0,
         });
         self.admitted_pixels = reserved;

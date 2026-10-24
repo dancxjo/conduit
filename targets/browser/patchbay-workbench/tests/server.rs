@@ -545,10 +545,21 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     assert!(body.len() <= conduit_browser_patchbay_workbench::MAX_THEME_CSS_BYTES);
     assert!(body.contains("--conduit-look-identity:\"conduit.look/phosphor@1\""));
+    for identity in [
+        conduit_face::PHOSPHOR_LOOK_ID,
+        conduit_face::EDITORIAL_LOOK_ID,
+        conduit_face::ENGINEERING_LOOK_ID,
+    ] {
+        assert!(body.contains(&format!("[data-application-look=\"{identity}\"]")));
+    }
+    assert_eq!(body.matches("--conduit-look-identity:").count(), 3);
     assert!(!body.contains("--patchbay-"));
     for (token, color) in [
         ("background", "#05070B"),
         ("surface", "#090D16"),
+        ("reading-paper", "#0C121C"),
+        ("workbench-canvas", "#05070B"),
+        ("bootstrap-surface", "#090D16"),
         ("structure-primary", "#0DD8F6"),
         ("structure-secondary", "#0A1F87"),
         ("text-primary", "#93D2F7"),
@@ -558,6 +569,7 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     ] {
         assert!(body.contains(&format!("--conduit-{token}:{color}")));
     }
+    assert!(body.contains("--conduit-font-body:var(--conduit-font-editorial)"));
     assert!(body.contains("--conduit-type-body:16px"));
     assert!(body.contains("--conduit-line-height:150%"));
     assert!(body.contains("--conduit-space-panel:13px"));

@@ -204,6 +204,10 @@
         {
           "role": "browser-adapter",
           "specifier": "../../../targets/browser/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "owner-face-icons",
+          "specifier": "../handbook/owner-face-icons.mjs"
         }
       ]
     },
@@ -416,6 +420,29 @@
       "kind": "module",
       "path": "owner-face-component.mjs",
       "maximum_bytes": 32768,
+      "dependencies": [
+        {
+          "role": "owner-face-icons",
+          "specifier": "./owner-face-icons.mjs"
+        },
+        {
+          "role": "application-look",
+          "specifier": "../host/assets/application-look.mjs"
+        }
+      ]
+    },
+    {
+      "role": "owner-face-icons",
+      "kind": "module",
+      "path": "owner-face-icons.mjs",
+      "maximum_bytes": 32768,
+      "dependencies": []
+    },
+    {
+      "role": "lucide-license",
+      "kind": "content",
+      "path": "LUCIDE-LICENSE",
+      "maximum_bytes": 8192,
       "dependencies": []
     },
     {

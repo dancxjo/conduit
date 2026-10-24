@@ -72,7 +72,7 @@ function compactClue(role, properties, lens) {
   if (lens === "plot") return properties.get("kind-id") || [...properties.entries()].find(([name]) => name.startsWith("authored-control-"))?.[1] || "checked intent";
   if (lens === "plan") return properties.get("host-id") || properties.get("realization-layer") || "not realized";
   if (lens === "play") return [properties.get("play-state"), properties.get("pressure")].filter(Boolean).join(" · ") || "not playing";
-  if (lens === "signs") return `${[...properties.keys()].filter((name) => name.startsWith("sign-")).length} causal Signs`;
+  if (lens === "signs") return `${[...properties.keys()].filter((name) => /^sign-[0-9]+$/.test(name)).length} causal Signs`;
   return properties.get("operational-state") || properties.get("availability") || (role === "Gear" ? "semantic Gear" : "current world subject");
 }
 
@@ -177,6 +177,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
       role: subject.role,
       accessibilityName: subject.name,
       icon: subjectProperties.get(subject.identity)?.get("icon-token") || (subject.role === "Gear" ? "◆" : "◇"),
+      iconToken: subjectProperties.get(subject.identity)?.get("icon-token") || null,
       iconName: subjectProperties.get(subject.identity)?.get("icon-name") || subject.role,
       clue: compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens),
       reviewedBack: subjectProperties.get(subject.identity)?.get("reviewed-back") === "available",
@@ -191,6 +192,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
         const properties = subjectProperties.get(port.identity) || new Map();
         return {
           id: port.identity,
+          semanticSelected: (snapshot.navigation?.cursor.focus ?? snapshot.interaction.selected_subject) === port.identity,
           label: port.name,
           accessibilityName: port.name,
           direction: properties.get("direction"),

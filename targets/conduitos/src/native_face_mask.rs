@@ -106,7 +106,7 @@ pub struct NativeFaceMask {
     interaction_admitted: bool,
     local_input_available: bool,
     component_configuration: Option<conduit_face::ConfiguredMaskConfiguration>,
-    visual_expression: Option<conduit_face::AdmittedVisualExpression>,
+    visual_look: Option<conduit_face::AdmittedVisualLook>,
     visual_constraints: conduit_face::VisualUserConstraints,
     component_fallback: Option<String>,
     encounter_pending: bool,
@@ -139,7 +139,7 @@ impl NativeFaceMask {
         self.component_configuration.as_ref()
     }
     pub fn visual_expression(&self) -> Option<&conduit_face::AdmittedVisualExpression> {
-        self.visual_expression.as_ref()
+        self.visual_look.as_ref().map(|look| &look.visual)
     }
     pub fn component_fallback(&self) -> Option<&str> {
         self.component_fallback.as_deref()
@@ -270,7 +270,7 @@ impl NativeFaceMask {
                 interaction_admitted,
                 self.visual_constraints,
             )?;
-            self.visual_expression = Some(expression);
+            self.visual_look = Some(expression);
             self.component_fallback = fallback;
             scene
         } else {
@@ -335,8 +335,8 @@ impl NativeFaceMask {
                 .place_surface(&self.surface_id, bounds, 0)
                 .map_err(NativeFaceMaskError::Compositor)?;
         }
-        let composition = if let Some(expression) = &self.visual_expression {
-            self.compositor.update_pending_configured_mask_surface(
+        let composition = if let Some(expression) = &self.visual_look {
+            self.compositor.update_pending_look_mask_surface(
                 request.face(),
                 request.prepared_show(),
                 request.display_base_id(),

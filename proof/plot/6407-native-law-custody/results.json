@@ -1,0 +1,129 @@
+{
+  "issue": 6407,
+  "code_commit": "b6ff4abe94b846ed8625e1faba55aa9b324d1069",
+  "captured_dev": "b0bc8d714c1d34d30231c75a7e3ea02c7395b6b9",
+  "source_clean_during_final_run": true,
+  "supported_command": "cargo +stable xtask check native-law-custody",
+  "supported_exit": 0,
+  "results": [
+    "test result: ok. 480 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 79.26s",
+    "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.02s",
+    "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 33.87s",
+    "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s"
+  ],
+  "passed": 502,
+  "ignored": {
+    "count": 1,
+    "test": "physical_declarations::registry::catalogue::tests::characterize_builtin_catalogue_clone_against_owned_reference",
+    "scope": "pre-existing explicit catalogue clone characterization; not runtime or custody acceptance"
+  },
+  "strict_owning": "PASS conduit-plot --lib and native_law_custody/native_law_packages/native_law_families with -D warnings",
+  "strict_cli": "PASS xtask --bin xtask -D warnings",
+  "format_and_diff": "PASS",
+  "source_sha256": {
+    "architecture/plot/src/checked_syntax.rs": "3c48ffe0873c476e57879f07c2763f70fe8ac658406dcde446ff20020f280b2e",
+    "architecture/plot/src/checked_syntax/startup_catalog.rs": "fbc632fc13f947d9c81ef262eafe49de6d5f2efd739fc112fa2bc6cdc386523d",
+    "architecture/plot/src/checked_syntax/startup_catalog/read_dependencies.rs": "89491ba32c16248a51a570bb7f34b17c7452077210664086e47607786d99f15b",
+    "architecture/plot/src/checked_syntax/startup_catalog/type_catalog.rs": "6f2e03633800094b5148be7c46b86ea388e8270acab817ce3d54e5d3524b51b7",
+    "architecture/plot/src/expression_program.rs": "a2983d7f79964ecbbc6aee0897555111a134cea48923be57b165f0c0f960a274",
+    "architecture/plot/src/native_type.rs": "75815406f8b22c1e0b9f671966b43dd8c2a414987c050fdc9f88daf08e89c372",
+    "architecture/plot/src/native_type/family.rs": "cc026664a7d98f0274acda3d9fe3ad2f64fb3c00bb082aad8c962b329fde1a77",
+    "architecture/plot/src/native_type/family/budget.rs": "e93ac6fb1678fb4a5558661c258040ebd99809e635bf97fce65694ffb02fc260",
+    "architecture/plot/src/native_type/family/custody_budget.rs": "6bb9c992d802d626ea29ec68a686cf2d04036e6294b1fb44ef85cc93a30651dc",
+    "architecture/plot/src/native_type/generic/imports.rs": "db6c7dd0a35a9c2e5ac0bad1cb9973ffeeb62f254e91534e9ea0a93cc326b823",
+    "architecture/plot/src/native_type/generic/imports/tests.rs": "7813fed12a4e811735b93289e53e2a1d9592ae014bbffa1e040b5c90ec32c55b",
+    "architecture/plot/src/native_type/law_custody.rs": "d06fd862ae6cb244a9a728be30739be501ea9cafb5c545482a113c76f41c448f",
+    "architecture/plot/src/native_type/law_custody/export_bounds_tests.rs": "e1c9f04620735438484611613eef675640ced419af1b4e52de907a37f056d682",
+    "architecture/plot/src/native_type/law_custody/family_material.rs": "7ab0758f21f9cb989e01093d3ae3ac87b14e6b1ea00ecd60e3b15da50efa4b0e",
+    "architecture/plot/src/native_type/law_custody/material_preflight.rs": "29dcb97ccbe04e747ae8472bbb99e23af6ff9632841b1bd62ad90b1655bb3fb5",
+    "architecture/plot/src/native_type/law_custody/root_source.rs": "297b62c18a686a54d527e6bbb23f5d49643df4c2f4a2386202a1f856793b752a",
+    "architecture/plot/src/native_type/law_custody/verification.rs": "af6e831b0b4463491cd5b1fb328ea5c63c194521d1402086b2a52efef2fee85f",
+    "architecture/plot/src/native_type/use_contract.rs": "1d6f5712ae18d50c3792d223747c31ec8c31682ce7d9bc6253b2bb3ccd70852d",
+    "architecture/plot/src/package_bundle.rs": "ae9e908aae6b284f9265396ad1b717d5eb240562fd121a594632ce7f385ee335",
+    "architecture/plot/src/package_bundle/shipped_types.rs": "67b7786cf3f23d5d21b0ab0c5adfccbedf15c50504290435b6acb8b2ad439c6a",
+    "architecture/plot/src/syntax_check.rs": "1c210de48ab0f031317af18b38e7f8838b00bf8587766741c6b64b57c1f96f5f",
+    "architecture/plot/tests/native_law_custody.rs": "22916508f494e08f181c023db2953ce3f4df068a9b866104616bbcb735c5ea18",
+    "architecture/plot/tests/native_law_families.rs": "d7a5a2049594229ac64ec2fe421ee34397fc4ec8706cc92b0e527311cbc41c48",
+    "architecture/plot/tests/native_law_packages.rs": "16608f4733be775ac7a6862a1e3b2a03d04880b3b14740cb07f8ee1c74937447",
+    "tools/xtask/src/commands/check.rs": "609fdfd9e9d45660cdbf576ffc99f4c215bcfba85448c5dab7969ee6a9d9f0d1",
+    "tools/xtask/src/commands/check/cli.rs": "ae9fb1997ba7061ef3b670d2b863005afb252b0821f87d56ad1bb3edc756323b",
+    "tools/xtask/src/suites/native_law_custody.rs": "3077a4a7961e8afd15575abfa22591dd1919368283551013d6775041730ff72c"
+  },
+  "logs": [
+    {
+      "file": "6407-final-supported-native-law-custody.log.gz",
+      "raw_sha256": "a8f9f6a3d6f29b2261cb66e89c5d4d66d7782887da8308a99a0113ea0bbcefde",
+      "raw_bytes": 65182,
+      "classification": "final supported conformance"
+    },
+    {
+      "file": "6407-final-strict-owning-lint-corrected.log.gz",
+      "raw_sha256": "65a4841aaa95d4d4a0422e4f5f8c69750022c417ab92916b38eb3a96828e9266",
+      "raw_bytes": 220,
+      "classification": "final strict owning library and three test targets"
+    },
+    {
+      "file": "6407-final-strict-xtask-lint.log.gz",
+      "raw_sha256": "ef5f38496ae2030750c86f9c504b85fa1f9971276c3187dba90d779815082167",
+      "raw_bytes": 20970,
+      "classification": "final strict xtask"
+    },
+    {
+      "file": "6407-final-format.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0,
+      "classification": "final formatting"
+    },
+    {
+      "file": "6407-final-strict-owning-lint.log.gz",
+      "raw_sha256": "65cee767351a89ac63bd27a09247ba7160230331a36d967bd0244afae408beb4",
+      "raw_bytes": 2925,
+      "classification": "historical three lint failures before SourceContext repair"
+    },
+    {
+      "file": "6407-shipped-strict-owning-lint.log.gz",
+      "raw_sha256": "2a3fd70cf5f1afcfc3d2495c3128f552034008582db0a41084038f0b2057112b",
+      "raw_bytes": 1378,
+      "classification": "historical saturating arithmetic lint failure"
+    }
+  ],
+  "actual_executables": [
+    {
+      "name": "conduit_plot-3c0ad4adf9ef9621",
+      "sha256": "66565c8d15931c384bcbc5b309f311661d9159d191910bb7c4821589938a052b",
+      "bytes": 26853576,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-final-artifacts/conduit_plot-3c0ad4adf9ef9621"
+    },
+    {
+      "name": "native_law_custody-149eba2696228c15",
+      "sha256": "60bc374a093d822407e52e53b3af5b8101b1a04a52c1146383b669b36e3d0786",
+      "bytes": 15695616,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-final-artifacts/native_law_custody-149eba2696228c15"
+    },
+    {
+      "name": "native_law_families-b6c63520248c2343",
+      "sha256": "29186d6a6f5cd9787b2aacaf1c6c1903e1d0a1aab94d2c3747df68e4b97b8824",
+      "bytes": 15279784,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-final-artifacts/native_law_families-b6c63520248c2343"
+    },
+    {
+      "name": "native_law_packages-c63c322430dcb464",
+      "sha256": "4e66908c12e5bdee737729d3c97fc219b4b454099c1b27cac33be116ed492115",
+      "bytes": 15224728,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-final-artifacts/native_law_packages-c63c322430dcb464"
+    }
+  ],
+  "bounds": {
+    "expanded_source_documents": 256,
+    "aggregate_source_and_claim_bytes": 4194304,
+    "dependency_depth": 16,
+    "legacy_source_admission_budget": "unchanged; optional custody has independent bounded retention and explicit None under pressure"
+  },
+  "semantics": "Original Native schema identities, contracts, authored Source laws and Frame representation preserved. Untrusted decoded material replays actual checker and original complete package sources against independent expected Type/package anchors.",
+  "boundaries": [
+    "No portable byte codec or generic Std law/arithmetic Back added; #6406 remains open",
+    "Legacy/unsupported or overbound custody is explicitly absent, never an unconstrained law claim",
+    "Candidate and merged-source Integration remain required before issue closure"
+  ],
+  "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n"
+}

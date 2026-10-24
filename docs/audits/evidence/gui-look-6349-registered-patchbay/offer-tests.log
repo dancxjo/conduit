@@ -1,0 +1,23 @@
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/face)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/robotics)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/alife)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/make/host)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/browser/make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/browser/mask-offer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.14s
+     Running unittests src/lib.rs (../native-target/debug/deps/conduit_browser_mask_offer-eacd95741ae6e45e)
+
+running 9 tests
+test topology_tests::actual_typed_mask_plan_projects_its_show_terminal_and_rejects_unsealed_ports ... ok
+test topology_tests::legacy_presenter_contract_cannot_be_reinterpreted_as_a_terminal_mask ... ok
+test topology_tests::sealed_show_with_wrong_temporal_contract_refuses_instead_of_disappearing ... ok
+test remote::tests::interaction_requires_its_own_current_carrier_line ... ok
+test remote::tests::stale_or_unavailable_carrier_offer_refuses_and_smaller_line_reduces_fore_bound ... ok
+test remote::tests::current_lines_select_only_face_and_show_without_changing_the_local_mask ... ok
+test configured_sources::tests::registered_nonvisual_source_recovers_default_without_trusting_unknown_roots ... ok
+test configured_tests::actual_checked_todo_roots_use_exact_configured_offer_and_source_recipe ... ok
+test configured_sources::tests::independent_patchbay_recipe_reuses_exact_todo_looks_and_back_custody ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.74s
+

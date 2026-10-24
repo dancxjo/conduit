@@ -126,3 +126,6 @@ fn browser_patchbay_returns_only_supplied_available_actions() {
         assert_eq!(mask.face, face);
     }
 }
+
+#[path = "registered_component_tests.rs"]
+mod registered_component;

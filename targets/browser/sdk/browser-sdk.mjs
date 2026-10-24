@@ -280,7 +280,7 @@ export class BrowserBodyParticipation {
         if (view?.schema === "conduit.browser/owner-face-refusal@1") {
           throw new Error(`owner Face refused: ${view.code}`);
         }
-        if (view?.schema !== "conduit.browser/owner-face-mask@1" ||
+        if (view?.schema !== "conduit.browser/owner-face-mask@2" ||
             view.body_id !== bodyId || !["prepared", "available"].includes(view.show_state) ||
             typeof view.interactions_admitted !== "boolean") {
           throw new Error("owner Face Mask did not prepare one exact Show");

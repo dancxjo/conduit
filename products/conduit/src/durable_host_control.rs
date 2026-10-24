@@ -2109,18 +2109,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             recipe,
             ..
         } if protocol == PROTOCOL => {
-            use conduit_std_host::browser_admission::{
-                BrowserComponentLook as L, BrowserComponentRecipe as R,
-            };
-            let look = match look {
-                L::Compact => conduit_face::ComponentMaskLook::Compact,
-                L::Spacious => conduit_face::ComponentMaskLook::Spacious,
-            };
-            let recipe = match recipe {
-                R::Flat => conduit_face::TodoComponentRecipe::Flat,
-                R::Grouped => conduit_face::TodoComponentRecipe::Grouped,
-                R::RequiredItem => conduit_face::TodoComponentRecipe::RequiredItem,
-            };
+            let look = look.into();
+            let recipe = recipe.into();
             runtime
                 .select_browser_component_mask(&window_id, &binding, &request, &show, look, recipe)
                 .map(|_| Response::BodyBrowserComponentMaskAccepted { protocol: PROTOCOL })

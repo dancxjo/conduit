@@ -1,0 +1,11 @@
+✔ authoring queries correlate the complete source and checked basis (0.834356ms)
+✔ configuration controls preserve exact canonical integer values for checking (0.940489ms)
+✔ physical configuration submits authored source to Rust admission (0.120198ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 81.330285

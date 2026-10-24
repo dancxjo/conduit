@@ -1,0 +1,7 @@
+# Direct keyboard Port selection
+
+Source `ed9c3db6a` makes existing clickable Port labels native buttons. Enter and Space use the same exact Port ID/onActivate path as pointer selection, with complete accessible names and `aria-pressed` derived solely from the current server navigation cursor. Flow connection handles remain separate siblings. Buttons stop click propagation, avoiding duplicate selection. Focus stays inside the label box. Port rows have a 44 CSS-pixel minimum; the finite initial layout estimate uses that same row height. Canvas zoom still scales the graphical scene; this is not a claim that Fit guarantees a 44-screen-pixel target.
+
+All fourteen local Chromium graph/HTML/inspection checks pass with one worker and no retries. The focused proof verifies Tab from a Gear radio reaches its Port button, Enter selects another exact Port, and Space returns to the first. Server interaction revision increases by exactly one per activation; pressed state follows the exact selected Port. Existing pointer, Port/Cord geometry, finite reconciliation, delivery-loss, focus-return, narrow/forced-color and measured-chrome checks also pass.
+
+The two images are the running documentary workbench fixture at wide and 390px/32px forced-color settings. They do not establish a newly born Body, live Quantity execution, native QEMU or canonical cross-component Look selection. The build explicitly reuses the sealed browser WASM from `350be7db7`. The independent complex Quantity Play fault #6387 remains open, as do native and parent acceptance. No CI was dispatched.

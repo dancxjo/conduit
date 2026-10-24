@@ -1,5 +1,5 @@
 //! Finite checked Source-root selection; this is not a Look wire format.
-//! The selected root still supplies canonical VisualExpressionInfo for admission.
+//! The selected root supplies complete canonical LookInfo for admission.
 use super::{ComponentMaskLook, CrecheComponentRecipe, TodoComponentRecipe};
 use crate::{VisualDensity, VisualPalette};
 

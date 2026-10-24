@@ -2015,6 +2015,7 @@ dependencies = [
  "conduit-plot",
  "conduit-std-offers",
  "conduit-time",
+ "miniz_oxide 0.8.9",
  "postcard",
  "serde",
  "serde_json",

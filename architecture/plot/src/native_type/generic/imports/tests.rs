@@ -431,3 +431,32 @@ fn nested_alias_candidates_are_checked_without_recursing_into_their_own_lookup()
         )
     );
 }
+
+#[test]
+fn actual_family_capture_and_private_import_preserve_parameter_native_custody() {
+    let owner = "type CustodyBound = U16 in 1..=64\ntype CustodyMatrix<N: CustodyBound> = {\n size: U16 in N..=N\n where .size == N\n}\n";
+    let catalog = catalog(owner, "CustodyMatrix");
+    let family = &catalog.native_families["example/families/CustodyMatrix"];
+    let witness = family
+        .dependency_custody
+        .get("CustodyBound")
+        .expect("actual owner parameter custody");
+    assert!(crate::NativeLawWitness::verify(
+        &witness.material().unwrap(),
+        &witness.checked_type().value_type
+    )
+    .is_ok());
+    let prepared = super::Imports::prepare(&catalog).unwrap();
+    let private = prepared
+        .catalog
+        .retained_native_types()
+        .into_iter()
+        .find(|ty| ty.name.ends_with("_CustodyBound"))
+        .expect("actual private imported parameter");
+    let imported = prepared
+        .catalog
+        .native_law_witness(&private.name)
+        .expect("custody survives private alias");
+    assert_eq!(imported.checked_type().value_type, private.value_type);
+    assert_eq!(imported.checked_type().invariants, private.invariants);
+}

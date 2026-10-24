@@ -352,10 +352,10 @@ fn primary_view_leaves_properties_in_details() {
         assert!(scene.details.iter().any(|row| row.text == clause.text));
     }
     let frame = scene.frame().unwrap();
+    // The explicit Document icon is the heading cue; an additional accent
+    // bar would duplicate that cue and spend another bounded command.
     assert!(frame.scene.commands().iter().any(|command| {
-        command.kind == GraphicsCommandKind::Rect
-            && command.paint == GraphicsPaintRole::Accent
-            && command.bounds.width == 3
+        command.kind == GraphicsCommandKind::Icon && command.payload() == FaceIconKey::Type.as_str()
     }));
 }
 
@@ -1021,14 +1021,8 @@ fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
             &original,
         )
         .unwrap();
-        let expression = admit_visual_expression(
-            Ok(visual_expression_from_info(
-                conduit_core::StructuredInfoValue::from_canonical_bytes(
-                    configuration.expression.canonical_value(),
-                )
-                .unwrap(),
-            )
-            .unwrap()),
+        let expression = conduit_face::admit_visual_look(
+            &configuration.requested_look().unwrap(),
             VisualUserConstraints {
                 forced_colors: false,
                 reduced_motion: true,
@@ -1036,7 +1030,8 @@ fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
                 maximum_supported_text_scale_percent: 200,
             },
         )
-        .unwrap();
+        .unwrap()
+        .visual;
         let fallback = NativeFaceScene::prepare_visual_fallback(
             original.clone(),
             1000,
@@ -1157,13 +1152,8 @@ fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_all_native_pro
                 &original,
             )
             .unwrap();
-            let expression = admit_visual_expression(
-                visual_expression_from_info(
-                    conduit_core::StructuredInfoValue::from_canonical_bytes(
-                        configuration.expression.canonical_value(),
-                    )
-                    .unwrap(),
-                ),
+            let expression = conduit_face::admit_visual_look(
+                &configuration.requested_look().unwrap(),
                 VisualUserConstraints {
                     forced_colors: true,
                     reduced_motion: true,
@@ -1171,7 +1161,8 @@ fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_all_native_pro
                     maximum_supported_text_scale_percent: 200,
                 },
             )
-            .unwrap();
+            .unwrap()
+            .visual;
             let mut scene = NativeFaceScene::prepare_configured(
                 original.clone(),
                 320,
@@ -1242,13 +1233,8 @@ fn native_density_changes_measured_padding_without_changing_source_geometry() {
             &original,
         )
         .unwrap();
-        let expression = admit_visual_expression(
-            visual_expression_from_info(
-                conduit_core::StructuredInfoValue::from_canonical_bytes(
-                    configuration.expression.canonical_value(),
-                )
-                .unwrap(),
-            ),
+        let expression = conduit_face::admit_visual_look(
+            &configuration.requested_look().unwrap(),
             VisualUserConstraints {
                 forced_colors: false,
                 reduced_motion: true,
@@ -1256,7 +1242,8 @@ fn native_density_changes_measured_padding_without_changing_source_geometry() {
                 maximum_supported_text_scale_percent: 200,
             },
         )
-        .unwrap();
+        .unwrap()
+        .visual;
         scenes.push(
             NativeFaceScene::prepare_configured(
                 original.clone(),
