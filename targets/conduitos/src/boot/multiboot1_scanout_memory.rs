@@ -87,7 +87,7 @@ fn validate(
         return Err("ia32-scanout-overlaps-owned-storage");
     }
     let mut reserved = false;
-    for entry in bytes.chunks_exact(ENTRY_BYTES) {
+    for entry in bytes.as_chunks::<ENTRY_BYTES>().0 {
         let word = |offset| u32::from_le_bytes(entry[offset..offset + 4].try_into().unwrap());
         if word(0) != 20 {
             return Err("ia32-scanout-memory-entry-unsupported");
@@ -139,7 +139,14 @@ mod tests {
                 .unwrap()
                 .covered_by_reserved_entry
         );
-        assert!(validate(&ram, 0x8000_0000..0x8040_0000, &[0x100000..0x400000]).is_ok());
+        assert!(
+            validate(
+                &ram,
+                0x8000_0000..0x8040_0000,
+                core::slice::from_ref(&(0x100000..0x400000))
+            )
+            .is_ok()
+        );
     }
     #[test]
     fn every_nonreserved_overlap_or_owned_extent_refuses() {
@@ -154,8 +161,22 @@ mod tests {
             );
         }
         let map = entry(0, 0x2000_0000, 1);
-        assert!(validate(&map, 0x8000_0000..0x8040_0000, &[0x8000_1000..0x8000_2000]).is_err());
-        assert!(validate(&map, 0x8000_0000..0x8040_0000, &[4..4]).is_err());
+        assert!(
+            validate(
+                &map,
+                0x8000_0000..0x8040_0000,
+                core::slice::from_ref(&(0x8000_1000..0x8000_2000))
+            )
+            .is_err()
+        );
+        assert!(
+            validate(
+                &map,
+                0x8000_0000..0x8040_0000,
+                core::slice::from_ref(&(4..4))
+            )
+            .is_err()
+        );
     }
     #[test]
     fn malformed_or_conflicting_maps_do_not_hide_ram() {
