@@ -54,13 +54,11 @@ impl NativeDisplay {
             self.phase = "quiesced";
             return Ok(());
         }
-        let kernel = self.kernel.as_mut().ok_or("display-kernel-unavailable")?;
-        self.bound
-            .as_mut()
-            .ok_or("display-binding-unavailable")?
-            .revoke(kernel.write, conduit_kernel::HostCallId(0))
-            .map_err(|_| "display-revocation")?;
-        kernel.kernel.cancel().map_err(|_| "display-cancellation")?;
+        execution::Execution::cancel_prepared(
+            &mut self.kernel,
+            &mut self.bound,
+            self.bound_write.ok_or("display-binding-unavailable")?,
+        )?;
         self.phase = "quiesced";
         Ok(())
     }
@@ -102,6 +100,7 @@ impl NativeDisplay {
             )
             .map_err(|_| "display-retirement-scope")?;
         self.kernel = None;
+        self.bound_write = None;
         self.phase = "retired";
         Ok(())
     }

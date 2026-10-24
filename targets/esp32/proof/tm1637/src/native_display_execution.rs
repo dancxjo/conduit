@@ -66,6 +66,36 @@ impl<P: OpenDrain> Execution<P> {
             cleanup: None,
         }))
     }
+    /// Cancel actual dormant custody even if later kernel preparation refused.
+    /// A wrong ordinal/scope preserves both sides; no Step or GPIO call runs.
+    pub fn cancel_prepared(
+        storage: &mut Option<Prepared>,
+        owner: &mut Option<Box<WriteHostCall<P>>>,
+        write: k::NodeId,
+    ) -> Result<(), &'static str> {
+        let bound = owner.as_mut().ok_or("display-binding-unavailable")?;
+        if let Some(storage) = storage.as_ref() {
+            let scope = &bound.inspection().scope;
+            let id = c::AssignedIdentity::from_text;
+            if storage.write != write
+                || storage.identity.host != id(scope.host_id.as_str())
+                || storage.identity.boot != id(scope.boot_id.as_str())
+                || storage.identity.plan != id(scope.plan_id.as_str())
+            {
+                return Err("display-execution-scope");
+            }
+        }
+        bound
+            .revoke(write, k::HostCallId(0))
+            .map_err(|_| "display-revocation")?;
+        if let Some(storage) = storage.as_mut() {
+            storage
+                .kernel
+                .cancel()
+                .map_err(|_| "display-cancellation")?;
+        }
+        Ok(())
+    }
     pub fn inspection(&self) -> &c::CapabilityInspection {
         self.owner
             .as_ref()

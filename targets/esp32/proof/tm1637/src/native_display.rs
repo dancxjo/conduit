@@ -55,6 +55,8 @@ pub struct NativeDisplay {
     #[cfg(feature = "display-ready-root")]
     bound: Option<Box<conduit_tm1637_wire::owner::WriteHostCall<DisplayPins<'static>>>>,
     #[cfg(feature = "display-ready-root")]
+    bound_write: Option<conduit_kernel::NodeId>,
+    #[cfg(feature = "display-ready-root")]
     software: Result<
         Box<conduit_environment_runtime::appliance::software::ReadySoftwareBacks>,
         &'static str,
@@ -133,6 +135,8 @@ impl NativeDisplay {
             ready: Some(ready),
             #[cfg(feature = "display-ready-root")]
             bound: None,
+            #[cfg(feature = "display-ready-root")]
+            bound_write: None,
             #[cfg(feature = "display-ready-root")]
             software,
         }))
@@ -300,7 +304,7 @@ impl NativeDisplay {
         maximum_frames: u32,
         available: usize,
     ) -> Result<(), &'static str> {
-        if self.kernel.is_none() || self.bound.is_some() {
+        if self.bound.is_some() || self.execution.is_some() || self.worker.is_some() {
             return Err("display-binding-state");
         }
         let staged = self
@@ -327,6 +331,7 @@ impl NativeDisplay {
                 available_bytes: available,
             },
         )?);
+        self.bound_write = Some(profile.write);
         self.phase = "ready-held";
         Ok(())
     }
@@ -365,6 +370,7 @@ impl NativeDisplay {
             &mut self.kernel,
             &mut self.bound,
         )?);
+        self.bound_write = None;
         Ok(())
     }
 }

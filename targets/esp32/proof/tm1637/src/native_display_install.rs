@@ -14,6 +14,23 @@ impl NativeRoot {
             return Err("assignment-seal");
         }
         const CONSTRUCTION_FRAMES: u32 = 2;
+        // Binding's temporary contract/record storage must leave before the
+        // kernel's persistent stores are allocated. Both owners stay dormant;
+        // a later refusal retains actual custody for retry or explicit cleanup.
+        if !self.display.native_bound() {
+            let withdrawn = self
+                .offer_generation
+                .checked_add(1)
+                .ok_or("offer-generation-exhausted")?;
+            let stats = esp_alloc::HEAP.stats();
+            self.display.bind_native(
+                &mut self.issuer,
+                reservation,
+                CONSTRUCTION_FRAMES,
+                stats.size.saturating_sub(stats.current_usage),
+            )?;
+            self.offer_generation = withdrawn;
+        }
         if !self.display.kernel_prepared() {
             let withdrawn = self
                 .offer_generation
@@ -30,15 +47,6 @@ impl NativeRoot {
                 stats.size.saturating_sub(stats.current_usage),
             )?;
             self.offer_generation = withdrawn;
-        }
-        if !self.display.native_bound() {
-            let stats = esp_alloc::HEAP.stats();
-            self.display.bind_native(
-                &mut self.issuer,
-                reservation,
-                CONSTRUCTION_FRAMES,
-                stats.size.saturating_sub(stats.current_usage),
-            )?;
         }
         if self.display.context_bytes().is_none() {
             let stats = esp_alloc::HEAP.stats();

@@ -28,6 +28,7 @@ pub(super) fn check(
     )
     .unwrap();
     wire.truncate(size);
+    partial_custody(assignment, fragment, &wire, profile, &resident);
     fixtures::scope_mode(3);
     let mut issuer = native_authority::RootIssuer::observe(&boot::ObservedBoot).unwrap();
     fixtures::scope_mode(0);
@@ -106,3 +107,70 @@ pub(super) fn check(
 
 #[path = "display_execution.rs"]
 mod execution_checks;
+
+// Independent CPU Root/provider instance: a failed later preparation has no
+// kernel to cancel, but its already transferred native custody must return.
+fn partial_custody(
+    assignment: &ValidatedAssignedDisplay,
+    fragment: &c::PlanFragment,
+    wire: &[u8],
+    profile: &AssignedDisplayProfile<'_>,
+    resident: &[c::AssignedRecord<'_>],
+) {
+    fixtures::scope_mode(3);
+    let mut issuer = native_authority::RootIssuer::observe(&boot::ObservedBoot).unwrap();
+    fixtures::scope_mode(0);
+    let active = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
+    issuer
+        .reserve_display_play_matching(
+            assignment,
+            &fragment.plan_id,
+            &fragment.fragment_id,
+            active.active_play_id.as_str(),
+        )
+        .unwrap();
+    let mut ready = Some(display_fixture::ready(&fragment.host_id, &fragment.boot_id));
+    let mut bound = Some(
+        native_display_binding::bind(
+            &mut issuer,
+            &mut ready,
+            native_display_binding::BindingInput {
+                assignment,
+                wire,
+                profile,
+                resident,
+                fragment: &fragment.fragment_id,
+                active: &active,
+                maximum_frames: 2,
+                available_bytes: usize::MAX,
+            },
+        )
+        .unwrap(),
+    );
+    let mut storage = None;
+    assert!(display_execution::Execution::cancel_prepared(
+        &mut storage,
+        &mut bound,
+        conduit_kernel::NodeId(profile.write.0 + 1)
+    )
+    .is_err());
+    assert_eq!(
+        bound.as_ref().unwrap().inspection().lifecycle,
+        c::CapabilityLifecycle::Issued
+    );
+    let ((), memory) = crate::allocation_probe::observe(|| {
+        display_execution::Execution::cancel_prepared(&mut storage, &mut bound, profile.write)
+            .unwrap();
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert!(storage.is_none() && ready.is_none());
+    assert_eq!(
+        bound.as_ref().unwrap().inspection().lifecycle,
+        c::CapabilityLifecycle::Revoked
+    );
+    assert_eq!(bound.as_ref().unwrap().inspection().completed_operations, 0);
+    let returned = crate::native_retirement::RetiredDisplay::retire_boxed(&mut bound).unwrap();
+    assert!(bound.is_none());
+    issuer.finish_display_play(&active, &returned).unwrap();
+    assert!(issuer.finish_display_play(&active, &returned).is_err());
+}

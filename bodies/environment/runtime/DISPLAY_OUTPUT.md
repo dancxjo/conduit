@@ -42,9 +42,11 @@ The `display-ready-root` profile uses the existing owner control protocol:
 2. Authenticate Reserve against the current offer epoch. Correlate the full
    Plan/fragment identities and expected next Root Play with the admitted token.
    Bind the assignment seal and Body/Wake provenance without issuing possession.
-3. Authenticate Prepare. Construct the dormant kernel from actual retained
-   software, issue finite display possession and bind the retained GPIO owner.
-   Bound pins disappear from ready advertisements. Assemble the exact kernel and
+3. Authenticate Prepare. Issue finite display possession and bind the retained
+   GPIO owner against the independently validated assignment, then construct the
+   dormant kernel from actual retained software. This releases binding scratch
+   before allocating persistent kernel stores. Each transfer withdraws its ready
+   advertisement. Assemble the exact kernel and
    driver into one context, then register it with the existing Embassy executor.
    Wait for actual task custody to report `ready-held` before acknowledging.
 4. Authenticate Start using the shared held-start/release gate. It acknowledges
@@ -58,7 +60,9 @@ The `display-ready-root` profile uses the existing owner control protocol:
    a handle never implies provider reuse, a fresh generation or new authority.
 
 Partial preparation retains already transferred custody for an authenticated
-retry or cleanup; it does not claim rollback. Task status reports context/static
+retry or cleanup; it does not claim rollback. A bound output can be revoked and
+retired even when later kernel preparation refused, without inventing a kernel
+or advancing a Step. Task status reports context/static
 future bytes, exact held/terminal progress, cleanup and native custody separately.
 The task slot is one-use in this Boot. Reoffer remains unconnected.
 
