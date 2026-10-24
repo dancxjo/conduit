@@ -138,7 +138,7 @@ pub fn words() -> Vec<TranslationCorrespondence> {
         .collect()
 }
 pub fn syllables() -> Vec<SpeechSyllableSource> {
-    (0..6)
+    (0_u32..6)
         .map(|i| {
             let ipa = SpeechPhoneticTranscription::decode(&constructors::universal(
                 IpaConstructor::Phonetic,
