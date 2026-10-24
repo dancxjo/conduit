@@ -3,6 +3,8 @@ mod build_observation_source;
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 mod build_display;
+#[path = "build/display_frame.rs"]
+mod display_frame;
 fn main() {
     let path = "../../../plots/device-protocols/dht11.conduit";
     println!("cargo:rerun-if-changed={path}");

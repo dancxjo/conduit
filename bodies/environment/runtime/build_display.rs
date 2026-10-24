@@ -30,4 +30,5 @@ pub fn emit(out: &Path) {
         program.input_type.canonical_bytes().unwrap(),
     )
     .unwrap();
+    crate::display_frame::emit(&program.input_type, out);
 }
