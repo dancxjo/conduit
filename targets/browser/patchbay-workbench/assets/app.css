@@ -97,8 +97,8 @@ body[data-embodied="false"] .canvas-actions { display:none; }
 .status-strip { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; min-height:2.75rem; margin:.75rem 0; padding:.55rem .8rem; border:1px solid var(--conduit-structure-secondary); border-left:5px solid var(--conduit-success); background:var(--conduit-surface); }
 .status-strip span { color:var(--conduit-text-secondary); }
 .deep-inspection { margin-top:.75rem; }
-.truth-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
-.truth-grid>section { overflow:auto; }
+.truth-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap:.75rem; min-width:0; }
+.truth-grid>section { min-width:0; overflow:auto; overflow-wrap:anywhere; }
 .route-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; }
 .route-card { border-left:5px solid var(--conduit-structure-primary); padding:.8rem; background:var(--conduit-surface); }
 .unavailable { text-decoration:line-through; color:var(--conduit-muted); }
@@ -184,3 +184,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(forced-colors:active){button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline-color:Highlight}}
 
 .patchbay-icon{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;width:1.05em;height:1.05em;vertical-align:-.15em;margin-inline-end:.5em;pointer-events:none;flex:none}
+
+/* Docking is a local presentation choice; evidence reflows within its panel. */
+.side-panel{overflow-wrap:anywhere}
+.side-panel[data-furniture-dock="bottom"]{top:auto;right:.75rem!important;bottom:.75rem;left:.75rem!important;width:auto;max-height:48vh}
