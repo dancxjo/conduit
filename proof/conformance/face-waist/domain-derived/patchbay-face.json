@@ -1821,6 +1821,20 @@
       }
     },
     {
+      "subject": "play/931e7fb6c05e56d667c3c06469e685ed7be85a3f8b21d85d4e7c8474c8da84a5",
+      "name": "play-state",
+      "value": {
+        "Text": "Completed"
+      }
+    },
+    {
+      "subject": "play/931e7fb6c05e56d667c3c06469e685ed7be85a3f8b21d85d4e7c8474c8da84a5",
+      "name": "sign-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
       "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
       "name": "host-id",
       "value": {

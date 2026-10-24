@@ -70,6 +70,7 @@ export function installWorkspaceControls(root, selected, restoreLens, navigation
       if (pending.size) return;
       pending.add(control);
       updateAvailability();
+      status.textContent = `${label} pending…`;
       try { await action(); update(); }
       catch (error) { status.textContent = `Workspace refused: ${error.message}${error.correlation ? ` · ${JSON.stringify(error.correlation)}` : ""}`; }
       finally {

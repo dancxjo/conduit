@@ -82,6 +82,20 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     assert_eq!(portable.basis.wake_id.as_ref(), Some(&wake.wake_id));
     assert_eq!(portable.basis.plan_id, identities.plan_id);
     assert_eq!(portable.basis.active_play_id, identities.active_play_id);
+    let play = projection.play.as_ref().unwrap();
+    let subject = format!("play/{}", play.active_play_id.as_str());
+    assert!(portable
+        .properties
+        .iter()
+        .any(|property| property.subject == subject
+            && property.name == "play-state"
+            && property.value == FacePropertyValue::Text(format!("{:?}", play.terminal))));
+    assert!(portable
+        .properties
+        .iter()
+        .any(|property| property.subject == subject
+            && property.name == "sign-count"
+            && property.value == FacePropertyValue::Count(play.signs.len() as u64)));
     for sign in identities
         .sign_ids
         .iter()
