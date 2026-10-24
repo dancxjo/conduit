@@ -33,6 +33,10 @@ const LOCKS: &[StandaloneLock] = &[
         lock: "bodies/environment/runtime/Cargo.lock",
     },
     StandaloneLock {
+        manifest: "mechanisms/io/monotonic-wait/Cargo.toml",
+        lock: "mechanisms/io/monotonic-wait/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "mechanisms/io/pulse-capture/Cargo.toml",
         lock: "mechanisms/io/pulse-capture/Cargo.lock",
     },
