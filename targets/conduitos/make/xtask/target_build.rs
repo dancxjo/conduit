@@ -202,7 +202,7 @@ fn boot_aarch64_product(
         .iter()
         .any(|p| p == "presenter/native-graphical@1");
     let capture = graphical
-        .then(|| graphical::Capture::prepare(&paths.target))
+        .then(|| graphical::Capture::prepare(&paths.target, ConduitosArch::Aarch64))
         .transpose()?;
     let legacy_serial_path = paths.target.join("aarch64-product-boot.log");
     let serial_path = capture
@@ -244,7 +244,7 @@ fn boot_aarch64_product(
         capture.record_launch(
             &command,
             &paths.root,
-            &firmware,
+            &[&firmware],
             image,
             &manifest.source_identity,
         )?;
@@ -450,4 +450,4 @@ fn validate_aarch64_product_sign(
 #[cfg(test)]
 mod tests;
 
-mod graphical;
+pub(super) mod graphical;

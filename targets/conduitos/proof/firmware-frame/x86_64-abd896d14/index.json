@@ -1,0 +1,579 @@
+{
+  "source": "abd896d14633a45c69d93996bcebee0e343cbfd7",
+  "scope": "actual normal x86 graphical product journey and27 source-correlated QMP checkpoints; no physical or human proof",
+  "iso_sha256": "5fd72392680c86522159f2855ea8694cb6b734346cf0abb57f7b7fbec38a1791",
+  "artifacts": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-x86-gallery-abd896d14/conduitos-x86_64.iso",
+      "sha256": "5fd72392680c86522159f2855ea8694cb6b734346cf0abb57f7b7fbec38a1791"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-x86-gallery-abd896d14/conduitos-kernel.elf",
+      "sha256": "22a3ae3a4745581034c378ecac8ad3472e519f072f16f798933b2f022ba268ab"
+    }
+  ],
+  "frames": [
+    {
+      "checkpoint": "front-door-ready",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    {
+      "checkpoint": "creche-ready",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6"
+    },
+    {
+      "checkpoint": "creche-editorial-compact",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e4fc45f1487eccf5fa98bb9b2c3baa247e1d6566a00c808213e2258c009242d5"
+    },
+    {
+      "checkpoint": "creche-editorial-spacious",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "70500f5d11b5e9cb64674f4221ac41773a02423f6650b8b33b608f27db04504c"
+    },
+    {
+      "checkpoint": "creche-engineering-spacious",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "7219b0a21cb81707eeda00db91c1ebae1af6f5675b244de5e1ecf53214a39e0f"
+    },
+    {
+      "checkpoint": "creche-engineering-compact",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6"
+    },
+    {
+      "checkpoint": "creche-three-selected",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "d8056a5dfaa081eba37a7eb241c3d95412d95fa78ee6e2d644abb680db92f5d9"
+    },
+    {
+      "checkpoint": "creche-four-restored",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "1f609a451791dd1700c577746a81710b8533da05eab98f96b36ba3c6e1c29c5c"
+    },
+    {
+      "checkpoint": "creche-fourth-checked",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e17391956ebf148bc1c7655e82869e49ef56d13db808f60a51ccc06380c6a92d"
+    },
+    {
+      "checkpoint": "creche-pointer-three-selected",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "38683af47db8a20fd47263f91b7f8992a7f96b70c595514dfed54c430a6cf8c7"
+    },
+    {
+      "checkpoint": "creche-pointer-four-restored",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "23468944a9898a58edb7dc942b6b0ecd4be74c249ba2e4af03790c33361fdd08"
+    },
+    {
+      "checkpoint": "body-playing",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "fb004fc92948a5f26ae10f07b449380eb3ceeb32382cf9dc24229675892c9c84"
+    },
+    {
+      "checkpoint": "wake-refused",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "1036db0419c7e5a85266a7446f4c6a1342c45649246cbd922a675da80e79a4b0"
+    },
+    {
+      "checkpoint": "protected-keyboard-canvas",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "b36c46c395dfadee711dc81b94a297efdbf3ef71d2565be5b5f5c9cc88f41a25"
+    },
+    {
+      "checkpoint": "protected-memory-lantern",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "93292a113dd32d1e80901692aa89768cd86f9e6b17d7f0f326a0ec7f307dbd86"
+    },
+    {
+      "checkpoint": "home",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "fb004fc92948a5f26ae10f07b449380eb3ceeb32382cf9dc24229675892c9c84"
+    },
+    {
+      "checkpoint": "patchbay-workspace",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6"
+    },
+    {
+      "checkpoint": "patchbay-face",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6"
+    },
+    {
+      "checkpoint": "patchbay-diagram",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "8317450081291ec96fdf112693e61121c5cc0101770dfaa8d33752294ecaa17b"
+    },
+    {
+      "checkpoint": "patchbay-gear-details",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "c9909ce6dc3ffdf79cd75f0a3f26b5fd1dd4cd42779c464ac0526b4b75f4a1f3"
+    },
+    {
+      "checkpoint": "patchbay-diagram-returned",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "bd8e3dcd2e67beeaa076c4cd6ff2aa03cdf1a35979cbb2bbe21403db63066044"
+    },
+    {
+      "checkpoint": "patchbay-inspected-other-and-returned",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6"
+    },
+    {
+      "checkpoint": "patchbay-mask-replanned",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e3702ab85485d777ee2a882d38640dcde9a1650ac00cf70302596c8a8085aa11"
+    },
+    {
+      "checkpoint": "body-stopped",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "eccbefbea103a04d91591e89b5ebc9d79709108d887afa65b301166604b2c806"
+    },
+    {
+      "checkpoint": "home-returned",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "9ae7dfe10704d68a67508670f5a413b4197cc30a63b139f3cf67050bf6ba07e6"
+    },
+    {
+      "checkpoint": "patchbay-reentered",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "67e33ec7b0de1e58d0d04a33e98fb8f493816afe8c1c037770e0296acdadc96f"
+    },
+    {
+      "checkpoint": "patchbay-source-editor-loaded",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "b25012d83b2c928cf6ab89bb3d2e533283a57a526ce68670a56c0427961f63de"
+    }
+  ],
+  "manually_viewed": [
+    "creche-ready"
+  ],
+  "firmware_custody": "Same machine/device/image options in separate paused initialization probe trace default BIOS and VGA ROM selection. This supports an inference for original defaults; original capture log is retained unchanged. Probe executes no guest instructions. First attempted probe rejected invalid -qmp none, corrected by omitting QMP, and both transcripts remain.",
+  "firmware_files": [
+    {
+      "path": "/usr/share/seabios/bios-256k.bin",
+      "resolved_path": "/usr/share/seabios/bios-256k.bin",
+      "bytes": 262144,
+      "sha256": "e26615f9ad430328f49ca105e570b2dc4490a08a34ea73d27cae8b809a30ee06"
+    },
+    {
+      "path": "/usr/share/seabios/vgabios-stdvga.bin",
+      "resolved_path": "/usr/share/seabios/vgabios-stdvga.bin",
+      "bytes": 39424,
+      "sha256": "c944f5fd404a6553a32e1e0527081d40e6040d3ce1740d39766bff01871e4fde"
+    }
+  ],
+  "installed_package_versions_observed_after_capture": "qemu-system-x86 1:10.2.1+ds-1ubuntu3.2\nseabios 1.17.0-1ubuntu1\n",
+  "files": [
+    {
+      "path": "proof/build.json.gz",
+      "sha256": "f9aa3583440132c1242bf0ab5d7de2f9b5bde44ca643c592945a16b99f606674",
+      "original_sha256": "c4fbc6960b3537b2a0ae0dc0b651496c5c7ca807cc578a2c983dd368e7c25dd0",
+      "original_bytes": 319,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/build.json"
+    },
+    {
+      "path": "proof/compositor-lifecycle-proof.json.gz",
+      "sha256": "dc1b8d8017e30668ff3e6c609ac82e323bf67e0f1b5a818cb9653e576d98340d",
+      "original_sha256": "81bdaeec4235256885bf3b6d212d99c53b184ed76cab42e5981a16666f6a8628",
+      "original_bytes": 69139,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/compositor-lifecycle-proof.json"
+    },
+    {
+      "path": "proof/image.json.gz",
+      "sha256": "e8b756ba5152ce375d32f84d0c03763278cdf23ba0ace30390f3b7ee524ff990",
+      "original_sha256": "0c828cdf32ade0639b7fbbbf31c7fd342f821bcbff0a51bae1784f0aec2d4dcc",
+      "original_bytes": 335,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/image.json"
+    },
+    {
+      "path": "proof/journey-proof.json.gz",
+      "sha256": "096fc380380f51d4fabdfa3b822775f43099b4073a74b1e26553835601535813",
+      "original_sha256": "6f0d03129f41faafd97ae4948fb7f38201369555afa3eadb41a8a5e292370507",
+      "original_bytes": 1494572,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-proof.json"
+    },
+    {
+      "path": "proof/journey-qemu-stderr.log.gz",
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-qemu-stderr.log"
+    },
+    {
+      "path": "proof/journey-qmp.log.gz",
+      "sha256": "20e2de1dca99808141560590d56fa3fdf27e9337e4b008b8d38ec93276f2c58d",
+      "original_sha256": "dbe4261345308dd61a8be99789a1aaa734e0dee6f519f536068cc9ef1439b89a",
+      "original_bytes": 221235,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-qmp.log"
+    },
+    {
+      "path": "proof/journey-serial.log.gz",
+      "sha256": "f0ffdfa3d7f30adae905c26b8d5c86fd5fc0a8e7654fee40348742b153a5e908",
+      "original_sha256": "2c2c3f368e648d43123aa871c1efd3d4f8d7c70e52d258d37600225b17b8c9ad",
+      "original_bytes": 3325979,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-serial.log"
+    },
+    {
+      "path": "proof/memory-lantern-native-edit.json.gz",
+      "sha256": "e4f4974cdfb516d955011e72320043ea98caf15ac9474ca11b91fb575293c011",
+      "original_sha256": "5eda4c8dbb49b3f36766164f15e5391688a30a4df3e06e56fe9ac54b048c4ff6",
+      "original_bytes": 5055,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/memory-lantern-native-edit.json"
+    },
+    {
+      "path": "proof/native-shell-paired-linear.json.gz",
+      "sha256": "05bb8ddcc37b6751a3c11406c9d0a114cd6220197f6c44198a6a31baa42a462c",
+      "original_sha256": "cd4fb98b8b1cfa26004c4e872b550fd7435c1ff00db337766e2addad9b4f7833",
+      "original_bytes": 4535976,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/native-shell-paired-linear.json"
+    },
+    {
+      "path": "proof/privilege-inventory-22a3ae3a4745581034c378ecac8ad3472e519f072f16f798933b2f022ba268ab-product-host.json.gz",
+      "sha256": "535241d038eb930e0a8ec6685cf73d6e360801ee15686ec2b21f82fe59ebe113",
+      "original_sha256": "dbfaf003c7c7b0adde4104be3600168f59753c43fa1a5a40a0f39a2da0d1341b",
+      "original_bytes": 63223,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/privilege-inventory-22a3ae3a4745581034c378ecac8ad3472e519f072f16f798933b2f022ba268ab-product-host.json"
+    },
+    {
+      "path": "proof/x86_64-product-journey-proof.json.gz",
+      "sha256": "5f001e256384a0882c8ee2b83918d43f7c336c0e32e197bedb1939a2bc38721f",
+      "original_sha256": "6fd8e348524e08e1315070157707e16370fbbf8e78261ca42a796abb561e33e5",
+      "original_bytes": 1568551,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/x86_64-product-journey-proof.json"
+    },
+    {
+      "path": "frames/body-playing.png",
+      "sha256": "fb004fc92948a5f26ae10f07b449380eb3ceeb32382cf9dc24229675892c9c84",
+      "original_sha256": "fb004fc92948a5f26ae10f07b449380eb3ceeb32382cf9dc24229675892c9c84",
+      "original_bytes": 69629,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/body-playing.png"
+    },
+    {
+      "path": "frames/body-stopped.png",
+      "sha256": "eccbefbea103a04d91591e89b5ebc9d79709108d887afa65b301166604b2c806",
+      "original_sha256": "eccbefbea103a04d91591e89b5ebc9d79709108d887afa65b301166604b2c806",
+      "original_bytes": 201149,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/body-stopped.png"
+    },
+    {
+      "path": "frames/creche-editorial-compact.png",
+      "sha256": "e4fc45f1487eccf5fa98bb9b2c3baa247e1d6566a00c808213e2258c009242d5",
+      "original_sha256": "e4fc45f1487eccf5fa98bb9b2c3baa247e1d6566a00c808213e2258c009242d5",
+      "original_bytes": 160304,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-editorial-compact.png"
+    },
+    {
+      "path": "frames/creche-editorial-spacious.png",
+      "sha256": "70500f5d11b5e9cb64674f4221ac41773a02423f6650b8b33b608f27db04504c",
+      "original_sha256": "70500f5d11b5e9cb64674f4221ac41773a02423f6650b8b33b608f27db04504c",
+      "original_bytes": 142510,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-editorial-spacious.png"
+    },
+    {
+      "path": "frames/creche-engineering-compact.png",
+      "sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6",
+      "original_sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6",
+      "original_bytes": 159549,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-engineering-compact.png"
+    },
+    {
+      "path": "frames/creche-engineering-spacious.png",
+      "sha256": "7219b0a21cb81707eeda00db91c1ebae1af6f5675b244de5e1ecf53214a39e0f",
+      "original_sha256": "7219b0a21cb81707eeda00db91c1ebae1af6f5675b244de5e1ecf53214a39e0f",
+      "original_bytes": 141792,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-engineering-spacious.png"
+    },
+    {
+      "path": "frames/creche-four-restored.png",
+      "sha256": "1f609a451791dd1700c577746a81710b8533da05eab98f96b36ba3c6e1c29c5c",
+      "original_sha256": "1f609a451791dd1700c577746a81710b8533da05eab98f96b36ba3c6e1c29c5c",
+      "original_bytes": 159682,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-four-restored.png"
+    },
+    {
+      "path": "frames/creche-fourth-checked.png",
+      "sha256": "e17391956ebf148bc1c7655e82869e49ef56d13db808f60a51ccc06380c6a92d",
+      "original_sha256": "e17391956ebf148bc1c7655e82869e49ef56d13db808f60a51ccc06380c6a92d",
+      "original_bytes": 159701,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-fourth-checked.png"
+    },
+    {
+      "path": "frames/creche-pointer-four-restored.png",
+      "sha256": "23468944a9898a58edb7dc942b6b0ecd4be74c249ba2e4af03790c33361fdd08",
+      "original_sha256": "23468944a9898a58edb7dc942b6b0ecd4be74c249ba2e4af03790c33361fdd08",
+      "original_bytes": 159753,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-pointer-four-restored.png"
+    },
+    {
+      "path": "frames/creche-pointer-three-selected.png",
+      "sha256": "38683af47db8a20fd47263f91b7f8992a7f96b70c595514dfed54c430a6cf8c7",
+      "original_sha256": "38683af47db8a20fd47263f91b7f8992a7f96b70c595514dfed54c430a6cf8c7",
+      "original_bytes": 159823,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-pointer-three-selected.png"
+    },
+    {
+      "path": "frames/creche-ready.png",
+      "sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6",
+      "original_sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6",
+      "original_bytes": 159549,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-ready.png"
+    },
+    {
+      "path": "frames/creche-three-selected.png",
+      "sha256": "d8056a5dfaa081eba37a7eb241c3d95412d95fa78ee6e2d644abb680db92f5d9",
+      "original_sha256": "d8056a5dfaa081eba37a7eb241c3d95412d95fa78ee6e2d644abb680db92f5d9",
+      "original_bytes": 159754,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/creche-three-selected.png"
+    },
+    {
+      "path": "frames/front-door-ready.png",
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "original_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "original_bytes": 49977,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/front-door-ready.png"
+    },
+    {
+      "path": "frames/home-returned.png",
+      "sha256": "9ae7dfe10704d68a67508670f5a413b4197cc30a63b139f3cf67050bf6ba07e6",
+      "original_sha256": "9ae7dfe10704d68a67508670f5a413b4197cc30a63b139f3cf67050bf6ba07e6",
+      "original_bytes": 57894,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/home-returned.png"
+    },
+    {
+      "path": "frames/home.png",
+      "sha256": "fb004fc92948a5f26ae10f07b449380eb3ceeb32382cf9dc24229675892c9c84",
+      "original_sha256": "fb004fc92948a5f26ae10f07b449380eb3ceeb32382cf9dc24229675892c9c84",
+      "original_bytes": 69629,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/home.png"
+    },
+    {
+      "path": "frames/manifest.json.gz",
+      "sha256": "8314719f9bad6e6be1e1c0ed3bc59211e13c28b25f49416fdad900a69a136738",
+      "original_sha256": "3d7c618dc0000af6345c7cc1bfc0b9b263aacc0f01643aa80444cbccafe086f6",
+      "original_bytes": 477063,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/manifest.json"
+    },
+    {
+      "path": "frames/patchbay-diagram-returned.png",
+      "sha256": "bd8e3dcd2e67beeaa076c4cd6ff2aa03cdf1a35979cbb2bbe21403db63066044",
+      "original_sha256": "bd8e3dcd2e67beeaa076c4cd6ff2aa03cdf1a35979cbb2bbe21403db63066044",
+      "original_bytes": 153231,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-diagram-returned.png"
+    },
+    {
+      "path": "frames/patchbay-diagram.png",
+      "sha256": "8317450081291ec96fdf112693e61121c5cc0101770dfaa8d33752294ecaa17b",
+      "original_sha256": "8317450081291ec96fdf112693e61121c5cc0101770dfaa8d33752294ecaa17b",
+      "original_bytes": 153567,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-diagram.png"
+    },
+    {
+      "path": "frames/patchbay-face.png",
+      "sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "original_sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "original_bytes": 157408,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-face.png"
+    },
+    {
+      "path": "frames/patchbay-gear-details.png",
+      "sha256": "c9909ce6dc3ffdf79cd75f0a3f26b5fd1dd4cd42779c464ac0526b4b75f4a1f3",
+      "original_sha256": "c9909ce6dc3ffdf79cd75f0a3f26b5fd1dd4cd42779c464ac0526b4b75f4a1f3",
+      "original_bytes": 244399,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-gear-details.png"
+    },
+    {
+      "path": "frames/patchbay-inspected-other-and-returned.png",
+      "sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "original_sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "original_bytes": 157408,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-inspected-other-and-returned.png"
+    },
+    {
+      "path": "frames/patchbay-mask-replanned.png",
+      "sha256": "e3702ab85485d777ee2a882d38640dcde9a1650ac00cf70302596c8a8085aa11",
+      "original_sha256": "e3702ab85485d777ee2a882d38640dcde9a1650ac00cf70302596c8a8085aa11",
+      "original_bytes": 146202,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-mask-replanned.png"
+    },
+    {
+      "path": "frames/patchbay-reentered.png",
+      "sha256": "67e33ec7b0de1e58d0d04a33e98fb8f493816afe8c1c037770e0296acdadc96f",
+      "original_sha256": "67e33ec7b0de1e58d0d04a33e98fb8f493816afe8c1c037770e0296acdadc96f",
+      "original_bytes": 57151,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-reentered.png"
+    },
+    {
+      "path": "frames/patchbay-source-editor-loaded.png",
+      "sha256": "b25012d83b2c928cf6ab89bb3d2e533283a57a526ce68670a56c0427961f63de",
+      "original_sha256": "b25012d83b2c928cf6ab89bb3d2e533283a57a526ce68670a56c0427961f63de",
+      "original_bytes": 102497,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-source-editor-loaded.png"
+    },
+    {
+      "path": "frames/patchbay-workspace.png",
+      "sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "original_sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "original_bytes": 157408,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-workspace.png"
+    },
+    {
+      "path": "frames/protected-keyboard-canvas.png",
+      "sha256": "b36c46c395dfadee711dc81b94a297efdbf3ef71d2565be5b5f5c9cc88f41a25",
+      "original_sha256": "b36c46c395dfadee711dc81b94a297efdbf3ef71d2565be5b5f5c9cc88f41a25",
+      "original_bytes": 70870,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/protected-keyboard-canvas.png"
+    },
+    {
+      "path": "frames/protected-memory-lantern.png",
+      "sha256": "93292a113dd32d1e80901692aa89768cd86f9e6b17d7f0f326a0ec7f307dbd86",
+      "original_sha256": "93292a113dd32d1e80901692aa89768cd86f9e6b17d7f0f326a0ec7f307dbd86",
+      "original_bytes": 64177,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/protected-memory-lantern.png"
+    },
+    {
+      "path": "frames/wake-refused.png",
+      "sha256": "1036db0419c7e5a85266a7446f4c6a1342c45649246cbd922a675da80e79a4b0",
+      "original_sha256": "1036db0419c7e5a85266a7446f4c6a1342c45649246cbd922a675da80e79a4b0",
+      "original_bytes": 128566,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/x86_64/journey-frames/wake-refused.png"
+    },
+    {
+      "path": "commands/build.log.gz",
+      "sha256": "431d5a82c812ee91c553bebe265c9193751f8709c0ae52db05c19b8025c082fd",
+      "original_sha256": "ed46536fe36e7dc5c325ab91213eb51eb30d871cced09717f76dad9f76f145e1",
+      "original_bytes": 44346,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-gallery-reference-current/build.log"
+    },
+    {
+      "path": "commands/journey.log.gz",
+      "sha256": "3e129012ee59f18524a6a0137cd6d04a5dba04ab4fb50b52045a85a990d34c17",
+      "original_sha256": "3a6a8447d4e0fae93679094245bca494fd768d6b2fe791031e6a22146d19c921",
+      "original_bytes": 598,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-gallery-reference-current/journey.log"
+    },
+    {
+      "path": "commands/receipt-before-capture-resume.json.gz",
+      "sha256": "87b7c09944c336ce429f8474659e84c11d7389a6a2d979a3475c30423b07e791",
+      "original_sha256": "ed48cc29ba7b2eaefad39334e7b1956d41257291b08e8b52231d7ab5cde91307",
+      "original_bytes": 850,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-gallery-reference-current/receipt-before-capture-resume.json"
+    },
+    {
+      "path": "commands/receipt.json.gz",
+      "sha256": "632ec9aa0f2de6548f79f0275f7402fed5812a5c684f5323aa2b6ab8c67fbacb",
+      "original_sha256": "050fe0c8d484ed5e0e676d4bd2c2d932ab96f5aa2c19afcdb33a0536e764800b",
+      "original_bytes": 2596,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-gallery-reference-current/receipt.json"
+    },
+    {
+      "path": "commands/seal.log.gz",
+      "sha256": "6bcb8f16385d5851e7720b384824fc0e6e1d88986cfb1b04ed6fb5666fb8531d",
+      "original_sha256": "2d4f1d64349583cb994d47d12918c8d8ae95ccc4fd5acb1363eceede571e5407",
+      "original_bytes": 416,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-gallery-reference-current/seal.log"
+    },
+    {
+      "path": "firmware/x86-firmware-default-selection/file-access.log.gz",
+      "sha256": "2691dadc0cf5fca809bb39d786f6f0f68f85963881f76f871161db1551fbee6e",
+      "original_sha256": "1dbe03ee73fcb9f59e32d90340682b16565a34b6dbecc171672d38bd47c2c877",
+      "original_bytes": 5509,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-firmware-default-selection/file-access.log"
+    },
+    {
+      "path": "firmware/x86-firmware-default-selection/receipt.json.gz",
+      "sha256": "7edc24f85e58a16d9b47d57a8e920d68673fa3a39ad31a14377d9f5cbe96626d",
+      "original_sha256": "9792710e6f717147fea59bb4f7f1616335a12cd64534737e06ed8448a966b942",
+      "original_bytes": 2413,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-firmware-default-selection/receipt.json"
+    },
+    {
+      "path": "firmware/x86-firmware-default-selection/stderr.log.gz",
+      "sha256": "2084e6b45dfa2afe49496d05ab585359c49dc1903b6268bc4a4026e848f0d75e",
+      "original_sha256": "bb6b79e3312671b1f38ff7632cb62588ff7fe610e2a48da664ea778ef33b2b83",
+      "original_bytes": 114,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-firmware-default-selection/stderr.log"
+    },
+    {
+      "path": "firmware/x86-firmware-default-selection-without-qmp/file-access.log.gz",
+      "sha256": "b12faa967c10c9951b3488ba85410f40cfd43b954d07539e75b65ece980b97b1",
+      "original_sha256": "92c1fd35dbcc415b87f29bfc2e321a02e1336a8d9f9a01e329efd3789bba0ab6",
+      "original_bytes": 13494,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-firmware-default-selection-without-qmp/file-access.log"
+    },
+    {
+      "path": "firmware/x86-firmware-default-selection-without-qmp/receipt.json.gz",
+      "sha256": "1c2768eef882c5ade1fb18245e5777c8f5ee174dd671686a5acf06ab7cfbfdff",
+      "original_sha256": "d632e64635375fe9de54e6df6793e0edd26d180af857082ebb79df64c6ff2e56",
+      "original_bytes": 2858,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-firmware-default-selection-without-qmp/receipt.json"
+    },
+    {
+      "path": "firmware/x86-firmware-default-selection-without-qmp/stderr.log.gz",
+      "sha256": "1376911b8e9724dfcf1675f5a0c937b2c0ede4d12d0cb8b3709b8a5fa94807dc",
+      "original_sha256": "291ce71ebeaea055771a9f53b80339da3bd5a712e2c3c6b035ea68c06882e44b",
+      "original_bytes": 71,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/x86-firmware-default-selection-without-qmp/stderr.log"
+    },
+    {
+      "path": "build-manifest.json",
+      "sha256": "5c2a2a3c81adfc87601beda0954c05c1d292516fd08d91e82e8a2b47a82d3f63",
+      "original_sha256": "5c2a2a3c81adfc87601beda0954c05c1d292516fd08d91e82e8a2b47a82d3f63",
+      "original_bytes": 4269,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-x86-gallery-abd896d14/build-manifest.json"
+    },
+    {
+      "path": "resolved-image.json",
+      "sha256": "46cb816ee63a6999ce454ee54642c30a27a51de132ceb80c52ab015c9e3f384f",
+      "original_sha256": "46cb816ee63a6999ce454ee54642c30a27a51de132ceb80c52ab015c9e3f384f",
+      "original_bytes": 4453,
+      "origin": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-x86-gallery-abd896d14/resolved-image.json"
+    },
+    {
+      "path": "two-architecture-semantic-audit.json",
+      "sha256": "1775ddc874f9c62942885dda4f4388caa9e0f011c22ddbe3bb9194e77524731e",
+      "original_sha256": "1775ddc874f9c62942885dda4f4388caa9e0f011c22ddbe3bb9194e77524731e",
+      "original_bytes": 5858,
+      "origin": "derived audit of retained source-bound capture records"
+    },
+    {
+      "path": "observed-scanout-geometry.json",
+      "sha256": "4a916d554e38513b9cb9e554af24cbe06250b89ff25e79a6ba86377686539002",
+      "original_sha256": "4a916d554e38513b9cb9e554af24cbe06250b89ff25e79a6ba86377686539002",
+      "original_bytes": 1402,
+      "origin": "derived audit of retained source-bound capture records"
+    }
+  ],
+  "derived_from_retained_packet_index_sha256": "22c2f4ae1a5bda8de09d67b1859f68c11f36faf985ae39c6db2ceb5b810eeb87"
+}

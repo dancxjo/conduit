@@ -1,0 +1,33 @@
+[
+  {
+    "QMP": {
+      "version": {
+        "qemu": {
+          "micro": 1,
+          "minor": 2,
+          "major": 10
+        },
+        "package": "Debian 1:10.2.1+ds-1ubuntu3.2"
+      },
+      "capabilities": [
+        "oob"
+      ]
+    }
+  },
+  {
+    "return": {}
+  },
+  {
+    "timestamp": {
+      "seconds": 1792817609,
+      "microseconds": 266710
+    },
+    "event": "STOP"
+  },
+  {
+    "return": {}
+  },
+  {
+    "return": {}
+  }
+]

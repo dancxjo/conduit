@@ -1,19 +1,28 @@
 //! Source-correlated capture of the normal firmware-framebuffer product.
-use super::super::{emitted_line, qmp, qmp_display, ConduitosError};
+use super::super::{emitted_line, qmp, qmp_display, ConduitosArch, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, os::unix::fs::DirBuilderExt, path::PathBuf, process::Child};
 
-pub(super) struct Capture {
+pub(crate) struct Capture {
     directory: PathBuf,
+    target: &'static str,
     socket_directory: PathBuf,
 }
 impl Capture {
-    pub(super) fn prepare(target: &std::path::Path) -> Result<Self, ConduitosError> {
+    pub(crate) fn prepare(
+        target: &std::path::Path,
+        arch: ConduitosArch,
+    ) -> Result<Self, ConduitosError> {
         let nonce = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| refuse(e.to_string()))?
             .as_nanos();
-        let name = format!("aarch64-frame-{}-{nonce}", std::process::id());
+        let product_target = match arch {
+            ConduitosArch::Aarch64 => "conduitos/aarch64/virt",
+            ConduitosArch::Ia32 => "conduitos/ia32/pc",
+            _ => return Err(refuse("unsupported graphical capture target")),
+        };
+        let name = format!("{}-frame-{}-{nonce}", arch.as_str(), std::process::id());
         let directory = target.join(&name);
         let socket_directory = std::env::temp_dir().join(name);
         fs::DirBuilder::new()
@@ -22,15 +31,16 @@ impl Capture {
             .map_err(io)?;
         fs::create_dir(&directory).map_err(io)?;
         Ok(Self {
+            target: product_target,
             directory,
             socket_directory,
         })
     }
-    pub(super) fn record_launch(
+    pub(crate) fn record_launch(
         &self,
         command: &std::process::Command,
         root: &std::path::Path,
-        firmware: &std::path::Path,
+        firmware: &[&std::path::Path],
         image: &std::path::Path,
         image_source_identity: &str,
     ) -> Result<(), ConduitosError> {
@@ -62,34 +72,45 @@ impl Capture {
                 "commit or preserve source changes before retained graphical proof",
             ));
         }
+        let firmware_inputs = firmware
+            .iter()
+            .map(|path| {
+                Ok(json!({"path":path,
+            "sha256":super::super::report::sha256_file(path)?}))
+            })
+            .collect::<Result<Vec<Value>, ConduitosError>>()?;
+        let first = firmware
+            .first()
+            .ok_or_else(|| refuse("firmware custody unavailable"))?;
         let launch = json!({"image_source_identity":image_source_identity,"source_commit":super::super::report::git_head(root)?,
             "source_dirty":!dirty.stdout.is_empty(),
             "program":executable,"arguments":command.get_args().map(|arg|
                 arg.to_string_lossy().into_owned()).collect::<Vec<_>>(),
             "emulator_version":String::from_utf8_lossy(&version.stdout),
             "emulator_sha256":super::super::report::sha256_file(&executable)?,
-            "firmware":firmware,"firmware_sha256":super::super::report::sha256_file(firmware)?,
+            "firmware":first,"firmware_sha256":super::super::report::sha256_file(first)?,
+            "firmware_inputs":firmware_inputs,
             "image":image,"image_sha256":super::super::report::sha256_file(image)?,
-            "boot_deadline_seconds":45,"serial_maximum_bytes":1048576});
+            "boot_deadline_seconds":if self.target == "conduitos/ia32/pc" {60} else {45},"serial_maximum_bytes":1048576});
         fs::write(
             self.directory.join("launch.json"),
             serde_json::to_vec_pretty(&launch).map_err(|e| refuse(e.to_string()))?,
         )
         .map_err(io)
     }
-    pub(super) fn serial_path(&self) -> PathBuf {
+    pub(crate) fn serial_path(&self) -> PathBuf {
         self.directory.join("serial.log")
     }
-    pub(super) fn stderr_path(&self) -> PathBuf {
+    pub(crate) fn stderr_path(&self) -> PathBuf {
         self.directory.join("qemu-stderr.log")
     }
-    pub(super) fn endpoint(&self) -> String {
+    pub(crate) fn endpoint(&self) -> String {
         format!(
             "unix:{},server=on,wait=off",
             self.socket_directory.join("qmp").display()
         )
     }
-    pub(super) fn finish(
+    pub(crate) fn finish(
         &self,
         child: &mut Child,
         transcript: &str,
@@ -119,7 +140,7 @@ impl Capture {
         .iter()
         .any(|id| id.as_str().is_none_or(str::is_empty))
             || face["status"] != "shown"
-            || face["target"] != "conduitos/aarch64/virt"
+            || face["target"] != self.target
             || face["profile_id"] != product["profile_id"]
             || face["build_id"] != product["build_id"]
             || face["image_id"] != product["image_id"]
@@ -194,7 +215,7 @@ impl Drop for Capture {
     }
 }
 fn refuse(detail: impl Into<String>) -> ConduitosError {
-    ConduitosError::refusal("aarch64-graphical-proof-invalid", detail)
+    ConduitosError::refusal("firmware-frame-graphical-proof-invalid", detail)
 }
 fn io(error: std::io::Error) -> ConduitosError {
     refuse(error.to_string())

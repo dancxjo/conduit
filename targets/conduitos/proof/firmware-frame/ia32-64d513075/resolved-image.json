@@ -1,0 +1,195 @@
+{
+  "payload": {
+    "schema": "conduit.host/image@1",
+    "build_id": "build:sha256:5cc62375a4c2d839444095b6d3e9f154d5d50e5501e4d03ad00135c0fe3cdf88",
+    "profile_id": "sha256:9899692055868790a381f903377e3c31fef462aee22f882fab472bd9b76a3cb5",
+    "source_configuration_id": "sha256:bd3c16963d00609f0e01fa25733881baebec4e14ea0593b06ada948d539cff0c",
+    "target": "conduitos/ia32/pc",
+    "profile_fragments": [],
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "face/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/ia32-debugcon-text",
+        "driver": "conduitos/ia32-debugcon@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/ia32-debugcon@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/ia32-linear-debugcon@1",
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 268435456,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    }
+  },
+  "manifest": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:9899692055868790a381f903377e3c31fef462aee22f882fab472bd9b76a3cb5",
+    "source_configuration_id": "sha256:bd3c16963d00609f0e01fa25733881baebec4e14ea0593b06ada948d539cff0c",
+    "build_id": "build:sha256:5cc62375a4c2d839444095b6d3e9f154d5d50e5501e4d03ad00135c0fe3cdf88",
+    "image_id": "image:sha256:ef941267aaaea32429d5ddd75a1c816af72aae4335de8ba5e9394d81baf3bd4d",
+    "source_identity": "64d5130753466f44c0b605ad6b366d54083eeafd",
+    "toolchain_identity": "rustc:stable+i686-unknown-linux-gnu-object+rust-lld-elf_i386+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-ia32@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-ia32@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/ia32-debugcon@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "display/linear-framebuffer@1",
+        "package_id": "conduit-linear-framebuffer@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/ia32/pc",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "face/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/ia32-debugcon-text",
+        "driver": "conduitos/ia32-debugcon@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/ia32-debugcon@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/ia32-linear-debugcon@1",
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 268435456,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:conduitos/ia32-debugcon-text": [
+        "base:conduitos/ia32-debugcon-text"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main/derived > base:display/scanout": [
+        "base:display/scanout"
+      ],
+      "presenter:presenter/main/derived > driver:display/linear-framebuffer@1": [
+        "base:display/scanout",
+        "driver:display/linear-framebuffer@1"
+      ],
+      "presenter:presenter/main/derived > facility:compositor/native@1": [
+        "facility:compositor/native@1"
+      ],
+      "presenter:presenter/main/derived > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main/derived > resource:face/surface": [
+        "resource:face/surface"
+      ]
+    }
+  }
+}

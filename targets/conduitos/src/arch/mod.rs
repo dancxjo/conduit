@@ -65,10 +65,15 @@ pub use x86_64::{
 };
 #[cfg(target_arch = "x86")]
 mod ia32;
+#[cfg(target_arch = "x86")]
+pub use ia32::framebuffer;
 #[cfg(any(target_arch = "x86", test))]
 #[allow(dead_code)]
 #[path = "ia32/domain_gdt.rs"]
 mod ia32_domain_gdt;
+#[cfg(test)]
+#[path = "ia32/framebuffer/policy.rs"]
+mod ia32_scanout_policy;
 #[cfg(any(target_arch = "x86", test))]
 #[path = "ia32/timer_lifecycle.rs"]
 mod ia32_timer_lifecycle;

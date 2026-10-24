@@ -202,12 +202,11 @@ impl MakeRecord {
             || (self.presenters & PRESENTER_LINEAR_SERIAL != 0) != linear
             || (matches!(
                 self.target,
-                "conduitos/ia32/pc"
-                    | "conduitos/riscv64/virt"
+                "conduitos/riscv64/virt"
                     | "conduitos/loongarch64/virt"
                     | "conduitos/aarch64/orange-pi-5-rk3588s"
             ) && (native || !linear))
-            || (self.target == "conduitos/aarch64/virt" && !linear)
+            || (matches!(self.target, "conduitos/aarch64/virt" | "conduitos/ia32/pc") && !linear)
             || (self.target == "conduitos/x86_64/pc" && linear)
         {
             return Err(MakeError::UnknownInventory);

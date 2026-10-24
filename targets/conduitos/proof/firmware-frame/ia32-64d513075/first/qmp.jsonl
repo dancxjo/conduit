@@ -1,0 +1,11 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":240448}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}","observer_clock":"std::time::Instant","observer_elapsed_ns":307783}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":645505}
+{"direction":"command","message":"{\"execute\":\"stop\",\"id\":\"1:capture-stop\"}","observer_clock":"std::time::Instant","observer_elapsed_ns":693975}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792817581, \"microseconds\": 385804}, \"event\": \"STOP\"}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":1237277}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:capture-stop\"}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":4681067}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-ia32-prep/target/conduitos/ia32/ia32-frame-627201-1792817573580042246/creche-read-only.ppm\"},\"execute\":\"screendump\",\"id\":\"2:creche-read-only\"}","observer_clock":"std::time::Instant","observer_elapsed_ns":4850491}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"2:creche-read-only\"}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":7844535}
+{"direction":"command","message":"{\"execute\":\"cont\",\"id\":\"3:capture-continue\"}","observer_clock":"std::time::Instant","observer_elapsed_ns":154873147}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792817581, \"microseconds\": 539899}, \"event\": \"RESUME\"}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":155234112}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"3:capture-continue\"}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":155272088}

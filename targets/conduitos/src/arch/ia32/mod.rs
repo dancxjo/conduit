@@ -18,6 +18,7 @@ mod ordinary_domain;
 #[cfg(target_os = "linux")]
 pub use ordinary_domain::TextDomain;
 mod entropy;
+pub mod framebuffer;
 pub use entropy::RdrandEntropy;
 
 #[cfg(target_os = "linux")]
