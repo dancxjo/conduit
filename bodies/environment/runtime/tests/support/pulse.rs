@@ -201,7 +201,7 @@ fn bind_mode(
             claim,
             &PulseReadContract::prepare().unwrap(),
             conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan {
-                bytes: &projection.bytes,
+                input: conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Contiguous(&projection.bytes),
                 maxima: super::assignment::NativeProjection::maxima(),
                 requirements: projection.required(),
                 computations: projection.profile(),

@@ -45,6 +45,6 @@ preflight transfers it. CPU tests encode an ordinary assignment, refuse stale
 and missing expectations, then transfer and invoke without Play allocation.
 This does not claim physical assigned timer installation.
 
-This dev delivery uses contiguous assigned input. Borrowed canonical record
-input remains a separate lowering prerequisite for the constrained ESP32
-construction path; no fallback timer loop is introduced. Refs #6346.
+The selected assigned binder accepts either contiguous bytes or borrowed
+canonical records through the same Core validation and custody checks. Both
+forms run the timer transfer/refusal proof. Refs #6346.
