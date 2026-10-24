@@ -14,4 +14,4 @@ Run the supported check with an existing pinned corpus file:
 cargo +stable xtask check resource-epochs --train-conllu /path/to/en_ewt-ud-train.conllu
 ```
 
-The previous consuming-owner source passed all41 supported tests, but its Boolean Source correlation alone did not implement the literal Source lookup requirement. The added actual lookup passes both focused Source tests; the final supported run and exact-head acceptance remain pending. No broad lexical coverage, learned accuracy, installed resource-reader Back or streaming decoder is claimed.
+The previous consuming-owner source passed all41 supported tests, but its Boolean Source correlation alone did not implement the literal Source lookup requirement. The added actual lookup passes both focused Source tests and the final supported run passes all 42 tests, with strict owning checks and formatting. Exact-head Candidate/Integration and shared acceptance remain pending. No broad lexical coverage, learned accuracy, installed resource-reader Back or streaming decoder is claimed.

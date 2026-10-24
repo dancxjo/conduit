@@ -17,7 +17,9 @@ proof now replays that lookup before correlation and all four survivor rebases.
 This is a prepared bounded-sequence profile, not a generic resource-reader Back.
 
 Both focused Source tests pass (all table positions, empty/missing/exact-case,
-complete changed rows and deterministic first match). Full supported conformance,
-strict checks and applicable Candidate/Integration/shared acceptance remain due
-for the final source. Early Native-construction and optional-flow syntax attempts
+complete changed rows and deterministic first match). The final supported run passed all 42 tests across 13 actual executables,
+including four lookup kernel executions and 520 total kernel receipts. Owning
+Language and xtask strict checks and formatting passed. The exact source and
+sealed executable/log hashes are recorded in final-supported-42-tests-receipt.json.
+Candidate/Integration/shared acceptance remain due. Early Native-construction and optional-flow syntax attempts
 are retained locally as unsuccessful preparation; no guard was weakened.
