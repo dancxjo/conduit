@@ -1639,3 +1639,20 @@ operations, publisher drop and allocation-free Mask Frame composition; three
 compile-fail checks enforce transfer/borrow boundaries. These checks do not
 admit a Mask role, clock task, Fore caller or Body membership. Root still owns
 reader work and clock ordering, including clock-only Face revisions for replay.
+
+Frame composition now retains fixed canonical bytes instead of nine prepared
+heap composers. Build-time ordinary composition of the independently checked
+Source type derives the template and all eight scalar byte locations; no
+protocol envelope offsets are handwritten. Runtime validation and the authored
+packet/brightness-refusal Plot remain unchanged. `DISPLAY_FRAME_BYTES` also
+bounds the native local caller's owned Frame instead of reserving 1 KiB for it.
+The exhaustive composer parity proof covers all register/brightness byte values
+and both Boolean states. The supported display-output proof includes it.
+
+On the 64-bit preparation fixture, the full timed Mask now retains 344 inline
+bytes with zero preparation allocations, versus a 952-byte owner plus 3,112
+requested heap bytes before this change. Recurring rendering and Fore execution
+remain allocation-free. This CPU measurement is not complete MCU admission:
+the consumer, timing work, output kernel and physical resource still require
+separate bounds and selection. The existing ESP32 Face profile release link
+passes; this storage change has not been flashed.

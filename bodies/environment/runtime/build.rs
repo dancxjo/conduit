@@ -1,6 +1,8 @@
 //! Check the authored protocol Types and Forms once on the build host.
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
+#[path = "build/display_frame.rs"]
+mod display_frame;
 fn main() {
     let path = "../../../plots/device-protocols/dht11.conduit";
     println!("cargo:rerun-if-changed={path}");
@@ -111,6 +113,7 @@ fn main() {
         program.input_type.canonical_bytes().unwrap(),
     )
     .unwrap();
+    display_frame::emit(&program.input_type, &out);
     let recording = "../profiles/recording.conduit";
     println!("cargo:rerun-if-changed={recording}");
     let syntax = parse_syntax_document(&fs::read_to_string(recording).unwrap());

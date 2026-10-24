@@ -75,6 +75,10 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
     }
     for (manifest, test) in [
         ("bodies/environment/runtime/Cargo.toml", "display_packets"),
+        (
+            "bodies/environment/runtime/Cargo.toml",
+            "display_frame_material",
+        ),
         ("bodies/environment/make/Cargo.toml", "native_face_mask"),
         ("bodies/environment/make/Cargo.toml", "display_output"),
     ] {

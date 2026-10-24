@@ -23,6 +23,8 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         "publication_validation",
         "--test",
         "publication_face_custody",
+        "--test",
+        "display_mask_memory",
     ]))?;
     execute(Command::new("cargo").current_dir(root).args([
         "test",

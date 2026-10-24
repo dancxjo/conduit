@@ -1,7 +1,7 @@
 //! Owned local Fore mechanics. Root separately admits the actual producer,
 //! consumer, scope, finite work and complete future backing before Release.
 use super::{Execution, Exit, Outcome};
-use conduit_environment_runtime::display_packets::validate_display_frame;
+use conduit_environment_runtime::display_packets::{validate_display_frame, DISPLAY_FRAME_BYTES};
 use conduit_kernel::{
     self as k,
     scheduler::{RemoteIngressOutcome, SchedulerStatus},
@@ -15,14 +15,17 @@ use embassy_futures::{
 
 /// A finite owned value, not a caller permit, Line packet or hardware command.
 pub struct Frame {
-    bytes: [u8; 1024],
+    bytes: [u8; DISPLAY_FRAME_BYTES],
     length: u16,
 }
 impl Frame {
     pub fn copy(canonical: &[u8]) -> Result<Self, conduit_core::StructuredInfoRefusal> {
         validate_display_frame(canonical)?;
+        if canonical.len() != DISPLAY_FRAME_BYTES {
+            return Err(conduit_core::StructuredInfoRefusal::WrongType);
+        }
         let mut frame = Self {
-            bytes: [0; 1024],
+            bytes: [0; DISPLAY_FRAME_BYTES],
             length: canonical.len() as u16,
         };
         frame.bytes[..canonical.len()].copy_from_slice(canonical);
