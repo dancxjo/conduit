@@ -58,6 +58,8 @@ The kernel reports `native-body-application-initialization-refused`; the harness
 then times out waiting for `patchbay-action` and stops the guest. Its failed
 capture manifest and logs are retained. The cause of the work-budget refusal
 is not isolated here; no claim that the image optimization solves it is made.
+The complete capture manifest and larger build logs are retained as lossless
+archives; `summary.json` also indexes every PNG digest and capture context.
 The official journey receipt, subsequent full compositor-lifecycle collection,
 headless asset tail and full graphical-profile acceptance are absent. The
 monitor did not stop an optional tail: the proof failed before that stage.
