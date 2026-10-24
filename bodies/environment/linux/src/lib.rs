@@ -5,3 +5,6 @@ pub use recovery::{FileRecoveryCompletion, FileRecoveryRefusal, PreparedFileReco
 
 mod batch;
 pub use batch::{FileBatchSoftware, PreparedFileBatchRecovery};
+
+mod catalog;
+pub use catalog::{FileCatalogRefusal, PreparedFileCatalogRecovery};

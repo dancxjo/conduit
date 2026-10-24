@@ -36,3 +36,19 @@ refuses without extending history beyond the preceding committed prefix. Store
 offers, independent grants and producer authentication are CPU fixtures; the
 test supplies the selected references and does not establish durable catalog-seed
 custody or a live overnight appliance.
+
+`PreparedFileCatalogRecovery` retains an exact snapshot reader and the shared
+bounded catalogue validator during preparation. It returns decoded catalogue
+access only after actual file/envelope and domain validation under independent
+current read authority. Missing files, foreign authority and malformed catalogues
+return no references. Reading allocates no heap; subsequent owned-reference
+and ordinary batch Source preparation may allocate. Root separately admits all
+memory, chunk placements, capacity and authority. The catalogue reference itself
+still comes from Root; this helper does not recover the Body seed, authenticate
+producer membership, acknowledge writes or create committed history.
+
+The file proof now publishes a real 1-, 15- or 16-entry catalogue after successful
+chunk file publications, reopens the directory, reads it under a fresh Boot,
+and plans batch recovery from its validated references. The starting reference,
+resource bindings and grants are fixtures. Separate refusal cases cover missing
+files, foreign Boot authority and valid JSON with the wrong domain schema.

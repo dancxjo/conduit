@@ -437,3 +437,13 @@ The focused seed proof covers all 16 catalogue entries and extent/profile
 refusals. These ceilings remain constraints, not reservations or evidence that
 any listed chunk has committed. Root still needs actual prior publication
 receipts and full capacity/authority admission before supplying this input.
+
+Linux catalogue discovery now uses `PreparedFileCatalogRecovery`, retaining the
+existing exact file reader and shared domain validator. The file proof publishes
+catalogue bytes from `PreparedRecordingCatalogCheckpoint`, reopens the directory
+and reads under a fresh Boot, then decodes references during preparation for the
+ordinary batch Source/planner/kernel. Successful 1-, 15- and 16-chunk runs no
+longer plan directly from the original in-memory reference list. Allocation-free
+read refusal covers missing files, foreign authority and invalid catalogue
+schema. Root's starting catalogue reference, bindings and grants remain fixtures;
+this does not yet connect restart discovery to the durable seed or resident Host.
