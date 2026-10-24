@@ -125,7 +125,10 @@ pub fn framebuffer_display() -> Result<RawDisplay, DisplayError> {
 
 /// Observation only: the selected scanout must be wholly covered by exactly
 /// one bootloader-reserved framebuffer region, never the runtime arena.
-#[cfg(all(target_arch = "aarch64", feature = "native-compositor-core"))]
+#[cfg(all(
+    any(target_arch = "aarch64", target_arch = "riscv64"),
+    feature = "native-compositor-core"
+))]
 pub(crate) fn framebuffer_reserved_range(start: u64, bytes: u64) -> bool {
     let Some(end) = start.checked_add(bytes).filter(|_| bytes != 0) else {
         return false;
@@ -352,4 +355,34 @@ mod module_tests {
         );
         assert_eq!(named_module(b"conduit.protocol/source@1", 16), Ok(None));
     }
+}
+
+/// Read-only inherited page-table custody; never transfer bootloader RAM to play.
+#[cfg(all(target_arch = "riscv64", feature = "native-compositor-core"))]
+pub(crate) fn bootloader_table_page(start: u64) -> bool {
+    if !start.is_multiple_of(4096) {
+        return false;
+    }
+    let Some(end) = start.checked_add(4096) else {
+        return false;
+    };
+    let Some(memory) = MEMORY_MAP.get_response() else {
+        return false;
+    };
+    if memory.entries().len() > super::MAX_MEMORY_REGIONS {
+        return false;
+    }
+    memory
+        .entries()
+        .iter()
+        .filter(|entry| {
+            entry.entry_type == EntryType::BOOTLOADER_RECLAIMABLE
+                && entry.base <= start
+                && entry
+                    .base
+                    .checked_add(entry.length)
+                    .is_some_and(|last| end <= last)
+        })
+        .count()
+        == 1
 }

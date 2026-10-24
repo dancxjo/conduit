@@ -30,7 +30,10 @@ pub use multiboot1_scanout_memory::{ScanoutMemoryEvidence, validate_multiboot1_s
 mod observation;
 pub use modules::BootModuleRefusal;
 
-#[cfg(all(target_arch = "aarch64", feature = "native-compositor-core"))]
+#[cfg(all(
+    any(target_arch = "aarch64", target_arch = "riscv64"),
+    feature = "native-compositor-core"
+))]
 pub(crate) use limine::framebuffer_reserved_range;
 #[cfg(any(
     target_arch = "x86_64",
@@ -99,3 +102,6 @@ mod tests {
         assert!(!has_only_optional_spore_artifact_count(2, true));
     }
 }
+
+#[cfg(all(target_arch = "riscv64", feature = "native-compositor-core"))]
+pub(crate) use limine::bootloader_table_page;

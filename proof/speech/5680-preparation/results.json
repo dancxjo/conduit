@@ -1,0 +1,44 @@
+{
+  "base": "3a99fa7da517c99611f9082393c1a35376480b8f",
+  "source_state": "isolated WIP, not finalclean acceptance",
+  "source_sha256": {
+    "semantics/speech/phone_gestures.conduit": "03c64fdedaf55272a4aeb5aac8d75ce41f3829e5dec44bb9696ccfc385520f7f",
+    "semantics/speech/build_support/semantic_source.rs": "33b1fe89764aff074840a2e328dd68fdc6766b68adc2ba3c83f85d10ba10574e",
+    "semantics/speech/build_support/audio_imports.rs": "5651020245bcb8c3faefebd8bb804a309aca29aea23d3a841745753b324d3371",
+    "semantics/speech/build.rs": "0555a66da5a477456a15bfacb8c391718ab568f817aa32635ee27c8bd0293492",
+    "semantics/speech/tests/phone_gesture_source.rs": "e77b7aec673266697c120ab4dacc5f3248dc2cddca75208a5527ad461a783b98"
+  },
+  "started": 1792827411.4807844,
+  "status": "failed",
+  "scope": "initial exact Source phase and shared Audio curve preparation only; NOT full5680 owner/profile/closure-release-aspiration/kernel/CI acceptance",
+  "free_before": 12996120576,
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-speech",
+    "--features",
+    "semantic-bindings",
+    "--test",
+    "phone_gesture_source",
+    "--",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "exit_code": 101,
+  "source_unchanged": true,
+  "retained_artifacts": [
+    {
+      "file": "phone_gesture_source-02bdad10ccf44295",
+      "sha256": "c89ec7bbce70c30e6e1763a6a1965f8b04ba330f583a726ab3f04dd4b930b27b"
+    }
+  ],
+  "ended": 1792827488.733899,
+  "free_after": 12968116224,
+  "log_sha256": "5519d7ea7b13c37d7176d844d2ac7ff49d9d8ffc12381d8a3abdd7243bf65995",
+  "classification": "2 Source/admission cases passed, 1 shared-Audio linear case failed; explicit6386 numerical prerequisite. NOT full5680 acceptance.",
+  "raw_log_sha256": "5519d7ea7b13c37d7176d844d2ac7ff49d9d8ffc12381d8a3abdd7243bf65995",
+  "compressed_log_sha256": "a84a47652ea0b892adf59eaf9c5bcdbf60d52c7ebd012c1f3a028e1c3b26327c"
+}

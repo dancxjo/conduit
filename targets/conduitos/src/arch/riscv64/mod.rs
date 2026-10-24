@@ -283,3 +283,6 @@ fn record_timer_interrupt() {
         );
     }
 }
+
+#[cfg(feature = "native-compositor-core")]
+pub mod framebuffer;

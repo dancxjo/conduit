@@ -8,6 +8,8 @@ mod graph;
 mod linguistic_rate_program;
 #[path = "build_support/lower.rs"]
 mod lower;
+#[path = "build_support/phone_gesture_programs.rs"]
+mod phone_gesture_programs;
 #[path = "build_support/semantic_source.rs"]
 mod semantic_source;
 use conduit_core::StructuredInfoTypeShape;
@@ -48,6 +50,8 @@ fn main() {
         "acoustic_scoped_energy.conduit",
         "fundamental.conduit",
         "linguistic_rate.conduit",
+        "phone_gestures.conduit",
+        "build_support/phone_gesture_programs.rs",
         "build_support/linguistic_rate_program.rs",
         "ipa.conduit",
         "ipa_syntax.conduit",
@@ -128,6 +132,7 @@ fn main() {
             )
         })
         .collect();
+    phone_gesture_programs::write(&semantic);
     let authoring_bytes =
         postcard::to_allocvec(&(semantic.source_document_id.as_str(), authoring_types))
             .expect("compiled Types encode");

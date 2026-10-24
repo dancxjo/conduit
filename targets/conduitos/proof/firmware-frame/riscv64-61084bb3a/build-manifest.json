@@ -1,0 +1,151 @@
+{
+  "schema": "conduit.host/target-build-manifest@3",
+  "artifact_role": "product-host",
+  "profile_id": "sha256:a086e77882d3c8530a38380b61075649ef9b77ac2b92e488e57f15784bc5a066",
+  "build_id": "build:sha256:d9f465c740695f096d84d5bcabba2a572818662a012f717191523206acbce20e",
+  "image_id": "image:sha256:616ed17feafe529d787c2b780b438d8ff8a05f92a464b0baff6c96e3677118c5",
+  "resolved_description_binding": "image:sha256:25e403760967cac41dcae46e4712a641ac6532232fa6d5c5ab41986aff3ac4f9",
+  "source_identity": "61084bb3ae35324bfb7dc2c280b37b6c60b7b00e",
+  "toolchain_identity": "rustc:stable+riscv64gc-unknown-none-elf+llvm-tools",
+  "target": "conduitos/riscv64/virt",
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "86538c1f10da94afd251df8609f3a5ac79c11af668459306b5183079c7a13e24"
+  },
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-riscv64.iso",
+    "sha256": "616ed17feafe529d787c2b780b438d8ff8a05f92a464b0baff6c96e3677118c5"
+  },
+  "boot_assets": {
+    "packager": "pinned-limine-hybrid-iso",
+    "limine_version": "12.5.2",
+    "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+    "architecture": "riscv64",
+    "machine": "virt",
+    "firmware": "OpenSBI+U-Boot EFI",
+    "boot_entry": "BOOTRISCV64.EFI"
+  },
+  "resolved_build": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:a086e77882d3c8530a38380b61075649ef9b77ac2b92e488e57f15784bc5a066",
+    "source_configuration_id": "sha256:5754982d63080112ec6c6f0a1a5220ee1df4ebb345fa5fbcc56ff062ca6d6359",
+    "build_id": "build:sha256:d9f465c740695f096d84d5bcabba2a572818662a012f717191523206acbce20e",
+    "image_id": "image:sha256:25e403760967cac41dcae46e4712a641ac6532232fa6d5c5ab41986aff3ac4f9",
+    "source_identity": "61084bb3ae35324bfb7dc2c280b37b6c60b7b00e",
+    "toolchain_identity": "rustc:stable+riscv64gc-unknown-none-elf+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-riscv64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-riscv64@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/riscv64-sbi-console@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "display/linear-framebuffer@1",
+        "package_id": "conduit-linear-framebuffer@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/riscv64/virt",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "face/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/riscv64-sbi-console-text",
+        "driver": "conduitos/riscv64-sbi-console@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/riscv64-sbi-console@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/native-graphical@1",
+      "presenter/riscv64-linear-sbi-console@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 268435456,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:conduitos/riscv64-sbi-console-text": [
+        "base:conduitos/riscv64-sbi-console-text"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main/derived > base:display/scanout": [
+        "base:display/scanout"
+      ],
+      "presenter:presenter/main/derived > driver:display/linear-framebuffer@1": [
+        "base:display/scanout",
+        "driver:display/linear-framebuffer@1"
+      ],
+      "presenter:presenter/main/derived > facility:compositor/native@1": [
+        "facility:compositor/native@1"
+      ],
+      "presenter:presenter/main/derived > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main/derived > resource:face/surface": [
+        "resource:face/surface"
+      ]
+    }
+  }
+}
