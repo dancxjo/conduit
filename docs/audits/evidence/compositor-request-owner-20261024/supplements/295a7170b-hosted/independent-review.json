@@ -1,0 +1,45 @@
+{
+  "source": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+  "status": "independent-hosted-supplement-pass",
+  "tests": {
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0
+  },
+  "strict_clippy": "passed-Dwarnings",
+  "source_unchanged": true,
+  "head_clean_verified": true,
+  "four_exact_e93_blobs": [
+    {
+      "path": "targets/conduitos/src/protected_compositor.rs",
+      "blob": "69daa0ea84a675e70ecb478d0f58013df092ec9c"
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner.rs",
+      "blob": "adef09ab3f306cc059f3e50216fd6807ad215753"
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+      "blob": "3bc21b6a3689cbffd067f3920daace0c632479c4"
+    },
+    {
+      "path": "targets/conduitos/tests/compositor_request_owner.rs",
+      "blob": "b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c"
+    }
+  ],
+  "actual_executable": {
+    "sha256": "40be833c98d1821a77cfd92475531f28321be4bf2a1ea35ce75c08bdb16d63db",
+    "bytes": 1329968,
+    "gzip_sha256": "c4fb543ca8a34ed51381a4d4c6f031893ab6d8b6c3ed04cdf50f75a0a40f6fb8"
+  },
+  "test_depinfo": {
+    "path": "/tmp/conduit-6335-focused-5bd7050e/debug/deps/compositor_request_owner-916ea3d3475ef48e.d",
+    "sha256": "f85a70daa6fe556ddb490bedb70c08f7649624faf6d67e7ce1ae94f3cede2e80",
+    "current_request_owner_sources_present": true,
+    "path_scope": "Cargo depinfo is relative; resolve against actual recorded runner cwd/current295a checkout, not an invented absolute path."
+  },
+  "remote_source_verified": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+  "format": "Root format command session27013 PASS; retained format.log empty. No reviewer rerun.",
+  "native_limit": "Native packet remains exacte93; this295a supplement hosted only.",
+  "delivery_limits": "Candidate/postmergeIntegration and parents remain separate."
+}
