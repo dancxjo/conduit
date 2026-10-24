@@ -63,6 +63,20 @@ quantity bytes and an explicit checksum failure. Missing files, invalid JSON in
 a valid record envelope, and valid JSON with invalid recording content all leave
 history empty. All four execution paths allocate no Rust heap during Play.
 
+`PreparedFileRecovery` now retains that kernel and file executor together. Its
+execution methods reject a foreign Play before stepping or dequeuing work.
+The fifth file test obtains each current Play from a retained CPU Body binding:
+the loan refuses before start and after Lull. Reserved-scope cancellation remains
+available for cleanup. This tests lifecycle wiring, not live Host admission.
+
+Linux and browser recovery use the same `PreparedRecordingKernelFace` projection
+in the environment runtime; the browser name remains a public alias. Linux
+projects its owned single-generation kernel, while the browser projects its
+batch kernel. Both read the actual recovery Back's committed range. The Linux
+file test keeps the Face empty after file completion until ordinary sink commit,
+then checks an idempotent, allocation-free projection and its HTTP Mask output.
+Neither projection owns a second history counter or acknowledges a new write.
+
 Store offers/grants, historical producer context and the independent publisher
 binding are explicit CPU fixtures. This proves production-kernel/file effects,
 not live Host capacity admission, a real Body start, the MCU Line, durable

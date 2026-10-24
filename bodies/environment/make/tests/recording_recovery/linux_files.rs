@@ -282,6 +282,30 @@ fn owned_file_kernel_requires_exact_play_and_uses_the_retained_body_binding() {
         &"fixture/foreign-boot".into(),
         7,
     );
+    let basis = conduit_face::FaceBasis {
+        body_id: None,
+        wake_id: None,
+        source_document_id: Some(fragment.source_document_id.clone()),
+        checked_plot_id: Some(fragment.checked_plot_id.clone()),
+        expanded_plot_id: Some(fragment.expanded_plot_id.clone()),
+        plan_id: Some(fragment.plan_id.clone()),
+        active_play_id: Some(fragment_play.active_play_id.clone()),
+        sign_ids: vec![],
+    };
+    let mut face = PreparedRecordingKernelFace::prepare(
+        fragment,
+        plan.lowered(),
+        driver
+            .kernel()
+            .drivers()
+            .iter()
+            .position(|back| matches!(back, RecordingBack::Recovery(_)))
+            .map(|index| k::NodeId(index as u16))
+            .unwrap(),
+        &fragment_play,
+        conduit_environment_face::PreparedRecordingFace::prepare(basis, 1, 64, 4).unwrap(),
+    )
+    .unwrap();
     let signs = driver.kernel().signs().events().count();
     assert!(matches!(
         driver.step(&foreign),
@@ -309,6 +333,8 @@ fn owned_file_kernel_requires_exact_play_and_uses_the_retained_body_binding() {
                 assert_eq!(completion.disposition, k::HostCallDisposition::Completed);
                 assert!(completion.refusal.is_none());
                 assert_eq!(driver.history(), RecoveredHistory::default());
+                face.refresh_single(driver.kernel()).unwrap();
+                assert_eq!(face.current().revision, 0);
             }
             if driver.step(current).unwrap() == SchedulerStatus::Drained {
                 drained = true;
@@ -320,6 +346,20 @@ fn owned_file_kernel_requires_exact_play_and_uses_the_retained_body_binding() {
     assert_eq!(requests, 1);
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert_eq!(driver.history().samples, 1);
+    let (_, projection_memory) = allocation_probe::observe(|| {
+        face.refresh_single(driver.kernel()).unwrap();
+        face.refresh_single(driver.kernel()).unwrap();
+    });
+    assert_eq!(
+        (
+            projection_memory.allocations,
+            projection_memory.reallocations
+        ),
+        (0, 0)
+    );
+    assert_eq!(face.current().revision, 1);
+    let show = conduit_environment_http::recording_response(face.current(), true).unwrap();
+    assert!(show.contains("\"samples\":1"));
     owner
         .lull(&host.host_id, &host.boot_id, Some(&body_play))
         .unwrap();

@@ -12,6 +12,6 @@ conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
-conduit-environment-runtime = { path = "../runtime", features = ["recording-kernel"] }
+conduit-environment-runtime = { path = "../runtime", features = ["recording-kernel", "face-projection"] }
 conduit-browser-runtime = { path = "../../../targets/browser/runtime", default-features = false }
 serde = { version = "1", features = ["derive"] }

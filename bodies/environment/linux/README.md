@@ -17,3 +17,8 @@ the production kernel, a retained CPU Body lifecycle binding, foreign-scope
 refusals, successful recovery, malformed content, missing files, and allocation
 checks during execution. This is not a boot service, live Host admission, MCU
 Line, recording writer, or an overnight recording claim.
+
+The runtime's `PreparedRecordingKernelFace` projects this owner's read-only
+kernel through `refresh_single`. Root retains the matching kernel/Face pair and
+current Body custody. The browser's existing public projector name aliases this
+same implementation; both Masks consume committed recovery state.

@@ -245,3 +245,8 @@ fn hex(output: &mut String, bytes: &[u8]) {
         output.push(DIGITS[usize::from(byte & 15)] as char);
     }
 }
+
+#[cfg(all(feature = "recording-kernel", feature = "face-projection"))]
+mod face;
+#[cfg(all(feature = "recording-kernel", feature = "face-projection"))]
+pub use face::{PreparedRecordingKernelFace, RecordingFaceBindingRefusal};
