@@ -138,7 +138,8 @@ revisions are exercised in the x86 journey. The other four Hosts have no admitte
 local input and claim no interactive revision. Their independently fresh boots
 preserve different generated names and exact Host/Boot/Face/Show identities.
 
-The five-image comparison is complete locally. #6057 remains open for complete
-launcher/capability documentation and the required Candidate and applicable
-merged-source Integration gates. Physical display and input parity retain their
+The five-image comparison, optional-profile capability matrices and separate
+[persistent launcher](conduitos-persistent-launch.md) are implemented locally.
+#6057 remains open for the required Candidate and applicable merged-source
+Integration gates. Physical display and input parity retain their
 separate issues.
