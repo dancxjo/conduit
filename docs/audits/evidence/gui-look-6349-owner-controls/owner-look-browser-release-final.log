@@ -1,4 +1,0 @@
-wasm-opt version 133
-    Finished `release` profile [optimized] target(s) in 0.18s
-Browser runtime: 18484573 linked bytes -> 15943608 optimized bytes
-SEALED existing-computer Host releases in ../../work/owner-look-browser-release-final

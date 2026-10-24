@@ -1,1 +1,0 @@
-*.log -text -diff whitespace=-blank-at-eof,-blank-at-eol,-space-before-tab

@@ -1,5 +1,0 @@
-{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"conduit-protected-riscv64-graphics\"}, \"capabilities\": [\"oob\"]}}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":165511}
-{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}","observer_clock":"std::time::Instant","observer_elapsed_ns":220072}
-{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":483706}
-{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/riscv64/riscv64-frame-1163251-1792849885335062086/creche-read-only.ppm\"},\"execute\":\"screendump\",\"id\":\"1:creche-read-only\"}","observer_clock":"std::time::Instant","observer_elapsed_ns":556768}
-{"direction":"response","message":"{\"return\": {}, \"id\": \"1:creche-read-only\"}\r\n","observer_clock":"std::time::Instant","observer_elapsed_ns":2432751}

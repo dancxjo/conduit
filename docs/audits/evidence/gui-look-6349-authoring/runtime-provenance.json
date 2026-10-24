@@ -1,6 +1,0 @@
-{
-  "source": "350be7db799114f6e22e472e73878f264166400c",
-  "sha256": "f42cc296948557210890027f2f118956b5960cd2b7b74c50e36a35f540bf0893",
-  "bytes": 15945461,
-  "note": "Explicit existing sealed WASM; fresh current-source Patchbay executable serves current browser assets. No new WASM build or native enactment claimed."
-}

@@ -1,2 +1,0 @@
-# Preserve byte-exact producer logs, including Cargo's terminal blank lines.
-*.log whitespace=-blank-at-eof

@@ -1,3 +1,0 @@
-The stricter ResourceRef constructor exposed a pre-existing malformed-fixture shortcut in the generated-binding proof. This follow-up constructs a valid checked record, then injects malformed payload and matching wire length before the generated decoder runs. Malformed generation references, zero semantic/version identities and oversized references remain refusal controls.
-
-The affected generated-binding test passes. The supported resource-reference-equality suite now includes it. Original nineteen local contract tests and their production-source identities remain preserved in the parent proof packet; this test-only follow-up does not change production code. Strict lint and hosted acceptance are tracked separately in results.json.

@@ -1,9 +1,0 @@
-{
-  "run": 40119577451,
-  "job": 120948807921,
-  "head": "4d93fd615ff991ee05dfa01e6e2b97c66f8636ce",
-  "raw_log_sha256": "4a43bad78af7d822c4515be35deb68f9db46da2e605a9cad1c526c7dd1f8c29e",
-  "failure": "E0432 new integration imports feature-gated conduitos::http without a matching crate cfg; CI admission enables hosted-tools/native-compositor rather than native-http-client",
-  "repair": "Gate optional integration target with declared native-http-client feature, retaining enabled-feature owning proof; no production behavior or pipeline weakening",
-  "proof_pending": "Recheck optional integration target with feature enabled and disabled before pushing; earlier11 focused checks remain retained at original source."
-}

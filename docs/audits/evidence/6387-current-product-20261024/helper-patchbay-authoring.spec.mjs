@@ -1,0 +1,493 @@
+import { createHash } from "node:crypto";
+const observedWasm = [];
+const wasmReads = [];
+test.beforeEach(async ({ page }) => {
+  page.on("response", response => {
+    if (response.url().includes(".wasm") || (response.headers()["content-type"] || "").includes("application/wasm")) {
+      const record={url:response.url(),status:response.status(),requestObserved:true,hashScope:"independent GET of same immutable served URL; not proof of WASM execution"}; observedWasm.push(record);
+      wasmReads.push((async () => { const fetched=await fetch(response.url()); const body=Buffer.from(await fetched.arrayBuffer()); Object.assign(record,{servedStatus:fetched.status,bytes:body.length,sha256:createHash("sha256").update(body).digest("hex")}); })().catch(error=>{record.observerError=String(error);}));
+    }
+  });
+});
+test.afterEach(async ({}, testInfo) => { await Promise.all(wasmReads); await writeFile(testInfo.outputPath("observed-wasm-network.json"), JSON.stringify(observedWasm,null,2)); });
+import { spawn } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createInterface } from "node:readline";
+import { expect, test } from "@playwright/test";
+
+async function startAuthoringEntrance(plotSource = "plot making {\n}\n") {
+  const directory = await mkdtemp(join(tmpdir(), "conduit-browser-authoring-"));
+  const source = join(directory, "making.conduit");
+  await writeFile(source, plotSource);
+  return { ...(await spawnEntrance(source)), directory, source };
+}
+
+for (const includeLifecycle of [false, true]) {
+  test(includeLifecycle
+    ? "catalog queries and two durable layouts decorate the same live Plot"
+    : "unbodied catalog and durable layouts preserve the exact source Face", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    const source = `plot authoring {
+      literal: text/literal("authoring truth")
+      prefix: text/join("First: ")
+      upper: text/upper
+      label: text/join("Result: ")
+      display: face/text(label = "Message", maximum-values = 4)
+      scalar: scalar/literal(value = 500000)
+      map: math/map-quantity
+      quantity: face/quantity("Measured quantity")
+      wrapped: structured-info/wrap-quantity
+      literal >> prefix >> upper >> label >> display
+      scalar.value >> map.in
+      map >> wrapped >> quantity
+    }\n`;
+    const server = await startAuthoringEntrance(source);
+    try {
+      await page.goto(server.url);
+      await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
+      await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
+      const initial = await current(page);
+      expect(initial.authoring.palette.length).toBeGreaterThan(80);
+      const basis = initial.authoring.checked_plot_id;
+      const semanticGears = initial.face.subjects.filter(subject => subject.role === "Gear")
+        .map(subject => initial.face.properties.find(property => property.subject === subject.identity
+          && property.name === "semantic-id").value.Identity).sort();
+      expect(initial.face.basis.plan_id).toBeNull();
+      const mapping = initial.authoring.palette.find(entry => entry.kind_id === "math/map-quantity");
+      expect(mapping.authorable).toBe(true);
+      expect(mapping.kind_contract_revision).toBeTruthy();
+      expect(mapping.configuration.length).toBeGreaterThan(4);
+      expect(mapping.front).toBeTruthy();
+      const distinctBases = await page.evaluate(async basis => {
+        const { authoringBasis } = await import("/assets/authoring.js");
+        return [
+          authoringBasis({ ...basis, source_document_id: `${basis.source_document_id}/other` }),
+          authoringBasis({ ...basis, checked_plot_id: `${basis.checked_plot_id}/other` }),
+          authoringBasis({ ...basis, expanded_plot_id: `${basis.expanded_plot_id}/other` }),
+          authoringBasis(basis),
+        ];
+      }, initial.authoring);
+      expect(new Set(distinctBases).size).toBe(4);
+
+      const portIdentity = (snapshot, gear, direction) => {
+        const subject = snapshot.face.subjects.find(subject => subject.role === "Gear"
+          && snapshot.face.properties.some(property => property.subject === subject.identity
+            && property.name === "semantic-id" && property.value.Identity === `gear/authoring/${gear}`));
+        const ports = snapshot.face.relationships.filter(relation => relation.kind === "Contains" && relation.source === subject.identity);
+        const port = ports.find(relation => snapshot.face.properties.some(property =>
+          property.subject === relation.target && property.name === "direction" && property.value.Text === direction));
+        return snapshot.face.properties.find(property => property.subject === port.target && property.name === "semantic-id").value.Identity;
+      };
+      const queries = await page.evaluate(async ({ sourcePort, sinkPort }) => {
+        const snapshot = await (await fetch("/api/snapshot")).json();
+        const response = await fetch("/api/authoring-query", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: "connections", revision: snapshot.authoring.source_revision, expanded_plot_id: snapshot.authoring.expanded_plot_id, source: sourcePort }) });
+        return (await response.json()).candidates.find(candidate => candidate.sink_identity === sinkPort);
+      }, { sourcePort: portIdentity(initial, "map", "outgoing"), sinkPort: portIdentity(initial, "quantity", "receiving") });
+      expect(queries.compatible).toBe(false);
+      expect(queries.diagnostic).toBeTruthy();
+      expect(queries.adapters.map(adapter => adapter.kind_id)).toContain("structured-info/wrap-quantity");
+      expect((await current(page)).authoring.checked_plot_id).toBe(basis);
+
+      await selectRole(page, "Gear", "authoring/map Gear");
+      const field = page.getByRole("textbox", { name: "Configure target-granularity", exact: true });
+      await expect(field).toHaveValue(String(mapping.configuration.find(field => field.key === "target-granularity").default_value.I64));
+      await expect(field).toHaveAccessibleDescription("Whole number from -9223372036854775808 to 9223372036854775807.");
+      const configuration = page.locator('#authoring-actions [data-application-component="plot-field"]').filter({ hasText: "Configure target-granularity" });
+      await page.route("**/api/authoring-query", route => route.abort("failed"));
+      await configuration.getByRole("button", { name: "Apply", exact: true }).click();
+      await expect(configuration.getByRole("status")).not.toBeEmpty();
+      await expect(field).not.toHaveAttribute("aria-invalid");
+      await page.unroute("**/api/authoring-query");
+      await field.fill("9223372036854775808");
+      await configuration.getByRole("button", { name: "Apply", exact: true }).click();
+      await expect(configuration.getByRole("status")).not.toBeEmpty();
+      await expect(field).toHaveAttribute("aria-invalid", "true");
+      await expect(configuration.getByRole("button", { name: "Apply", exact: true }).locator('svg[aria-hidden="true"]')).toHaveCount(1);
+      const exactRule = configuration.locator("details");
+      await expect(exactRule.locator("pre")).toBeHidden();
+      await exactRule.locator("summary").focus();
+      await page.keyboard.press("Enter");
+      await expect(exactRule.locator("pre")).toContainText('"I64Range"');
+      await page.keyboard.press("Enter");
+      await expect(exactRule.locator("pre")).toBeHidden();
+      await field.focus();
+      expect(await page.locator("#inspector").evaluate(panel => {
+        const bounds = panel.getBoundingClientRect();
+        const bar = panel.querySelector(".furniture-bar");
+        const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + 4);
+        return hit === panel || bar.contains(hit);
+      })).toBe(true);
+      expect((await current(page)).authoring.checked_plot_id).toBe(basis);
+      await page.screenshot({ path: testInfo.outputPath("authoring-configuration-refusal.png") });
+      if (!includeLifecycle) {
+        const viewport = page.viewportSize();
+        await page.setViewportSize({ width: 390, height: 1000 });
+        const enlarged = await page.addStyleTag({ content: "html{font-size:32px!important}" });
+        await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+        await expect(field).toHaveCSS("font-size", "32px");
+        await field.focus();
+        expect(await configuration.evaluate(group => {
+          const panel = group.closest("#inspector"), bounds = panel.getBoundingClientRect();
+          return panel.scrollWidth <= panel.clientWidth + 1 &&
+            [...group.querySelectorAll("input,button,summary")].every(control => {
+              const rect = control.getBoundingClientRect();
+              return rect.left >= bounds.left && rect.right <= bounds.right && rect.height >= 44;
+            });
+        })).toBe(true);
+        const apply = configuration.getByRole("button", { name: "Apply", exact: true });
+        await apply.scrollIntoViewIfNeeded();
+        await apply.focus();
+        expect(await apply.evaluate(button => {
+          const rect = button.getBoundingClientRect();
+          return rect.height <= button.closest("#inspector").clientHeight / 2 &&
+            button.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
+        })).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath("authoring-fields-390-32-forced.png") });
+        await enlarged.evaluate(node => node.remove());
+        await page.emulateMedia({ forcedColors: "none", reducedMotion: "reduce" });
+        await page.setViewportSize(viewport);
+      }
+
+      const faceBeforeWorkspace = (await current(page)).face;
+      const workspace = page.locator("#workspace-controls");
+      await workspace.locator("summary").click();
+      await page.getByRole("textbox", { name: "Layout name", exact: true }).fill("Teaching");
+      let releaseValidation, validationArrived;
+      const validationGate = new Promise(resolve => { releaseValidation = resolve; });
+      const validationRequest = new Promise(resolve => { validationArrived = resolve; });
+      await page.route("**/api/workspace", async route => {
+        validationArrived();
+        await validationGate;
+        await route.continue();
+      });
+      await page.getByRole("button", { name: "Save layout", exact: true }).click();
+      await validationRequest;
+      try {
+        await expect(workspace).toHaveAttribute("aria-busy", "true");
+        await expect(page.getByRole("button", { name: "Add note", exact: true })).toBeDisabled();
+        await expect(page.getByRole("button", { name: "Export workspace", exact: true })).toBeDisabled();
+      } finally { releaseValidation(); }
+      await expect(workspace).not.toHaveAttribute("aria-busy");
+      await page.unroute("**/api/workspace");
+      await expect(page.getByRole("combobox", { name: "Saved layouts", exact: true })).toHaveValue("Teaching");
+      await expect(page.locator("#workspace-status")).toContainText("Ready");
+      await page.getByRole("textbox", { name: "Workspace annotation", exact: true }).fill("This frame is not executable scope");
+      await page.getByRole("button", { name: "Add note", exact: true }).click();
+      await page.getByRole("button", { name: "Frame selected Gears", exact: true }).click();
+      await page.getByRole("button", { name: "Export workspace", exact: true }).click();
+      const first = JSON.parse(await page.getByRole("textbox", { name: "Workspace document", exact: true }).inputValue());
+      expect(first.basis.checked_plot_id).toBe(basis);
+      expect(first.layouts.find(layout => layout.name === "Teaching").notes).toHaveLength(1);
+
+      // Import is an explicit face operation; every Gear gets a radically different position.
+      const second = structuredClone(first);
+      const alternate = structuredClone(second.layouts.find(layout => layout.name === "Teaching"));
+      alternate.name = "Wide";
+      alternate.notes[0].id = "note-2";
+      alternate.positions.forEach((position, index) => { position.x = index * 1800 - 6000; position.y = index % 2 ? 4000 : -4000; });
+      alternate.viewport = { x: 100, y: -100, zoom: 0.25 };
+      second.layouts.push(alternate);
+      second.active_layout = "Wide";
+      await page.getByRole("textbox", { name: "Workspace document", exact: true }).fill(JSON.stringify(second));
+      await page.getByRole("button", { name: "Import workspace", exact: true }).click();
+      await expect(page.getByRole("combobox", { name: "Saved layouts", exact: true })).toHaveValue("Wide");
+      await page.getByRole("textbox", { name: "Workspace annotation", exact: true }).fill("A second independent annotation");
+      await page.getByRole("button", { name: "Add note", exact: true }).click();
+      await page.getByRole("button", { name: "Export workspace", exact: true }).click();
+      const annotated = JSON.parse(await page.getByRole("textbox", { name: "Workspace document", exact: true }).inputValue());
+      expect(annotated.layouts.find(layout => layout.name === "Wide").notes.map(note => note.text).sort())
+        .toEqual(["A second independent annotation", "This frame is not executable scope"]);
+      expect((await current(page)).authoring.checked_plot_id).toBe(basis);
+      expect(await readFile(server.source, "utf8")).toBe(source);
+      expect((await current(page)).face).toEqual(faceBeforeWorkspace);
+      await workspace.locator("summary").click();
+      if (!includeLifecycle) return;
+
+      await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
+      await selectRole(page, "Plot", "Empty Plot");
+      await clickInteraction(page, page.getByRole("button", { name: "BIRTH", exact: true }));
+      await selectRole(page, "Plot", "Current checked and expanded Plot");
+      await clickInteraction(page, page.getByRole("button", { name: "WAKE", exact: true }));
+      await clickInteraction(page, page.getByRole("button", { name: "Plan current plot" }));
+      const planned = await current(page);
+      expect(planned.face.basis.plan_id).toBeTruthy();
+      await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
+      const live = await current(page);
+      expect(live.face.basis.active_play_id).toBeTruthy();
+      await expect(page.locator("#body-summary")).toHaveAccessibleName(/^Body(?: overview)?(?:$|:)/);
+      await expect(page.locator('#body-summary svg[aria-hidden="true"]')).toHaveCount(1);
+      expect(live.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
+      const plan = live.face.basis.plan_id;
+      const play = live.face.basis.active_play_id;
+      await clickNavigation(page, page.getByRole("button", { name: "Plot", exact: true }));
+      await workspace.locator("summary").click();
+      for (const layout of ["Teaching", "Wide"]) {
+        await page.getByRole("combobox", { name: "Saved layouts", exact: true }).selectOption(layout);
+        await page.getByRole("button", { name: "Use layout", exact: true }).click();
+        await expect(page.getByRole("button", { name: "Use layout", exact: true })).toBeEnabled();
+        const after = await current(page);
+        expect(after.face.basis.plan_id).toBe(plan);
+        expect(after.face.basis.active_play_id).toBe(play);
+        expect(after.face.basis.checked_plot_id).toBe(basis);
+        const positions = annotated.layouts.find(saved => saved.name === layout).positions
+          .filter(position => semanticGears.includes(position.subject))
+          .sort((left, right) => left.subject.localeCompare(right.subject));
+        const gearSubjects = initial.face.subjects.filter(subject => subject.role === "Gear")
+          .map(subject => [subject.identity, initial.face.properties.find(property =>
+            property.subject === subject.identity && property.name === "semantic-id").value.Identity]);
+        // The admitted application uses blob module identities. Importing the
+        // raw flow asset would inspect a separate, unused module instance.
+        await expect.poll(() => page.locator(".react-flow__node").evaluateAll((nodes, subjects) => {
+          const semanticIds = new Map(subjects);
+          return nodes.filter(node => node.querySelector(".flow-frontplate.role-gear"))
+            .map(node => {
+              const position = new DOMMatrixReadOnly(node.style.transform);
+              return { subject: semanticIds.get(node.dataset.id), x: position.m41, y: position.m42 };
+            })
+            .sort((left, right) => left.subject.localeCompare(right.subject));
+        }, gearSubjects)).toEqual(positions);
+        for (const aspect of ["Plan", "Play", "Signs"]) {
+          const button = page.locator(`#aspect-controls button[data-aspect="${aspect}"]`);
+          await expect(button).toBeVisible();
+          const projected = await clickNavigation(page, button);
+          expect(projected.face.basis.plan_id).toBe(plan);
+          expect(projected.face.basis.active_play_id).toBe(play);
+          const gears = projected.face.subjects.filter(subject => subject.role === "Gear");
+          expect(gears.map(subject => projected.face.properties.find(property =>
+            property.subject === subject.identity && property.name === "semantic-id").value.Identity).sort())
+            .toEqual(semanticGears);
+          await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
+          await expect(page.locator(".flow-frontplate.role-gear").first())
+            .toHaveAttribute("data-lens", aspect.toLowerCase());
+          for (const gear of gears) {
+            const facts = projected.face.properties.filter(property => property.subject === gear.identity);
+            const clue = page.locator(".flow-frontplate.role-gear")
+              .filter({ has: page.locator(`input[data-subject="${gear.identity}"]`) }).locator(".faceplate-clue");
+            if (aspect === "Plan") {
+              await expect(clue).toHaveText(facts.find(property => property.name === "host-id").value.Identity);
+            } else if (aspect === "Play") {
+              await expect(clue).toContainText(facts.find(property => property.name === "play-state").value.Text);
+            } else {
+              await expect(clue).toHaveText(`${facts.filter(property => /^sign-[0-9]+$/.test(property.name)).length} causal Signs`);
+            }
+          }
+        }
+      }
+      await clickNavigation(page, page.locator('#aspect-controls button[data-aspect="Structure"]'));
+      await expect(page.locator("#lens-label")).toHaveText("PROGRAM · STRUCTURE");
+      await expect(page.locator(".flow-frontplate.role-gear").first()).toHaveAttribute("data-lens", "plot");
+      await page.setViewportSize({ width: 1440, height: 1100 });
+      if (await workspace.getAttribute("open") !== null) await workspace.locator("summary").click();
+      if (await page.locator("body").getAttribute("data-inspector-open") === "true") await page.locator("#toggle-inspector").click();
+      await page.getByRole("button", { name: "Arrange", exact: true }).click();
+      await page.getByRole("button", { name: "Fit", exact: true }).click();
+      const capture = await current(page);
+      expect(capture.face.basis.plan_id).toBe(plan);
+      expect(capture.face.basis.active_play_id).toBe(play);
+      await writeFile(testInfo.outputPath("live-authoring-face.json"), JSON.stringify({
+        face: capture.face, navigation: capture.navigation,
+        disposition: capture.interaction.last_disposition,
+      }, null, 2));
+      await page.screenshot({ path: testInfo.outputPath("live-authoring-wide.png"), fullPage: true });
+    } finally {
+      if (server.errors.length) await testInfo.attach("authoring-server-stderr", {
+        body: server.errors.join(""), contentType: "text/plain",
+      });
+      server.child.kill("SIGTERM");
+      await rm(server.directory, { recursive: true, force: true });
+    }
+});
+}
+
+async function spawnEntrance(source) {
+  const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--plot", "Empty Plot", source], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const errors = [];
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", chunk => errors.push(chunk));
+  child.once("exit", (code, signal) => {
+    if ((code !== 0 && code !== null) || (signal && signal !== "SIGTERM"))
+      console.error(`Authoring server exited ${code ?? signal}: ${errors.join("")}`);
+  });
+  const lines = createInterface({ input: child.stdout });
+  const url = await new Promise((resolve, reject) => {
+    lines.once("line", line => resolve(line.replace("PATCHBAY_HTML_URL=", "")));
+    child.once("exit", code => reject(new Error(`Patchbay exited ${code}: ${errors.join("")}`)));
+  });
+  return { child, errors, url };
+}
+
+async function current(page) {
+  return page.evaluate(async () => (await fetch("/api/snapshot", { cache: "no-store" })).json());
+}
+
+async function selectRole(page, role, name = null) {
+  if (await page.locator("#palette").isVisible()) {
+    await page.getByRole("button", { name: "Close Library", exact: true }).click();
+  }
+  if (!await page.locator("#inspector").isVisible()) {
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
+  }
+  const details = page.locator("#inspector details").filter({ has: page.locator("#structured-navigator") });
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
+  const candidates = page.locator('#structured-navigator [data-application-component="choice-option-label"]')
+    .filter({ has: page.locator(`input[type="radio"][data-role="${role}"]`) });
+  const target = name?.startsWith("subject:")
+    ? page.locator(`#structured-navigator input[type="radio"][data-role="${role}"][data-subject*="${name.slice(8)}"]`).first()
+    : (name ? candidates.filter({ hasText: name }).first() : candidates.first()).locator('input[type="radio"]');
+  const identity = await target.getAttribute("data-subject");
+  await expect(target).toBeVisible();
+  await target.click();
+  await expect.poll(async () => (await current(page)).navigation.cursor.focus).toBe(identity);
+}
+
+async function clickEdit(page, locator) {
+  const response = page.waitForResponse(candidate =>
+    candidate.url().endsWith("/api/interaction") && candidate.request().method() === "POST");
+  await locator.click();
+  expect((await response).ok()).toBe(true);
+  await expect.poll(async () => (await current(page)).interaction.last_disposition).toBe("Succeeded");
+}
+
+async function clickInteraction(page, locator) {
+  const response = page.waitForResponse(candidate =>
+    candidate.url().endsWith("/api/interaction") && candidate.request().method() === "POST");
+  const failed = page.waitForEvent("requestfailed", {
+    predicate: request => request.url().endsWith("/api/interaction") && request.method() === "POST",
+  }).then(request => { throw new Error(`Interaction delivery failed: ${request.failure()?.errorText}`); });
+  const deliveredResponse = Promise.race([response, failed]);
+  await locator.click();
+  const delivered = await deliveredResponse;
+  expect(delivered.ok()).toBe(true);
+  await expect.poll(async () => (await current(page)).interaction.last_disposition).toBe("Succeeded");
+}
+
+async function clickNavigation(page, locator) {
+  const aspect = await locator.getAttribute("data-aspect");
+  const response = page.waitForResponse(candidate =>
+    candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST"
+      && (!aspect || candidate.request().postDataJSON()?.operation?.aspect === aspect));
+  await locator.click();
+  const snapshot = await (await response).json();
+  expect(snapshot.interaction.last_disposition).toBe("Succeeded");
+  if (aspect) expect(snapshot.navigation.cursor.aspect).toBe(aspect);
+  return snapshot;
+}
+
+test("actual browser entrance authors, saves, plans, and plays one canonical Plot", async ({ page }) => {
+  test.setTimeout(90_000);
+  const server = await startAuthoringEntrance();
+  try {
+    await page.goto(server.url);
+    await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
+    await expect(page.getByRole("heading", { name: "Gears · reusable Kinds" })).toBeVisible();
+    await expect(page.locator("#gear-results-status")).toContainText(/\d+ of \d+ Gears available/);
+
+    const search = page.getByRole("searchbox", { name: "Find Plots, Gears, and Parts" });
+    await search.fill("text literal");
+    const literal = page.getByRole("button", { name: "Place Text literal Gear" });
+    await clickEdit(page, literal);
+    await clickEdit(page, literal);
+    await search.fill("text face");
+    const beforeNamedPlacement = await current(page);
+    await page.getByRole("button", { name: "Place Text face Gear" }).click();
+    await expect(page.getByRole("heading", { name: "Name the data for Text face" })).toBeVisible();
+    const construction = page.locator("#gear-construction");
+    await construction.getByRole("button", { name: "Place Gear", exact: true }).click();
+    await expect(construction.getByRole("status")).toContainText("Enter a data name");
+    expect((await current(page)).authoring.source_document_id).toBe(beforeNamedPlacement.authoring.source_document_id);
+    await construction.getByRole("textbox", { name: "Data name" }).fill("Greeting");
+    await clickEdit(page, construction.getByRole("button", { name: "Place Gear", exact: true }));
+
+    let snapshot = await current(page);
+    const gears = snapshot.face.subjects.filter(subject => subject.role === "Gear");
+    expect(gears.map(gear => gear.name)).toEqual(expect.arrayContaining([
+      expect.stringContaining("making/literal"),
+      expect.stringContaining("making/literal-2"),
+      expect.stringContaining("making/text"),
+    ]));
+    expect(new Set(gears.map(gear => gear.name)).size).toBe(3);
+    expect(snapshot.face.subjects.filter(subject => subject.role === "Port")).toHaveLength(3);
+
+    await selectRole(page, "Gear", "making/literal Gear");
+    await page.getByRole("textbox", { name: "Configure value" }).fill("Browser-authored truth");
+    await clickEdit(page, page.locator("#authoring-actions").getByRole("button", { name: "Apply" }));
+
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(0).click();
+    await page.getByRole("button", { name: "Start Cord here" }).click();
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(2).click();
+    await clickEdit(page, page.getByRole("button", { name: "Connect selected output here" }));
+    snapshot = await current(page);
+    expect(snapshot.face.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
+
+    await selectRole(page, "Cord");
+    await page.getByRole("button", { name: "Reroute one endpoint" }).click();
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(1).click();
+    await clickEdit(page, page.getByRole("button", { name: "Reroute armed Cord here" }));
+    await selectRole(page, "Cord");
+    await clickEdit(page, page.getByRole("button", { name: "Remove Cord" }));
+    expect((await current(page)).face.subjects.filter(subject => subject.role === "Cord")).toHaveLength(0);
+    await selectRole(page, "Gear", "making/literal-2 Gear");
+    await clickEdit(page, page.getByRole("button", { name: "Remove Gear" }));
+
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(0).click();
+    await page.getByRole("button", { name: "Start Cord here" }).click();
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(1).click();
+    await clickEdit(page, page.getByRole("button", { name: "Connect selected output here" }));
+    await selectRole(page, "Plot");
+    await page.getByRole("button", { name: "SAVE", exact: true }).click();
+    await expect.poll(async () => {
+      const authoring = (await current(page)).authoring;
+      return authoring.saved_revision === authoring.source_revision;
+    }).toBe(true);
+    const saved = await readFile(server.source, "utf8");
+    expect(saved).toContain('literal: text/literal("Browser-authored truth")');
+    expect(saved).toContain('text: face/text("Greeting"');
+    expect(saved).not.toContain("literal-2:");
+    expect(saved).toContain("literal.text >> text.text");
+
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "false");
+    await expect.poll(async () => (await current(page)).navigation.cursor.depth).toBe("Primary");
+    await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
+    await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
+    await selectRole(page, "Plot", "Empty Plot");
+    await clickInteraction(page, page.getByRole("button", { name: "BIRTH", exact: true }));
+    await expect.poll(async () => Boolean((await current(page)).face.basis.body_id)).toBe(true);
+    await selectRole(page, "Plot", "Current checked and expanded Plot");
+    await clickInteraction(page, page.getByRole("button", { name: "WAKE", exact: true }));
+    await expect.poll(async () => Boolean((await current(page)).face.basis.wake_id)).toBe(true);
+    await page.locator("#structured-navigator").evaluate(element => { element.closest("details").open = true; });
+    await clickInteraction(page, page.getByRole("button", { name: "Plan current plot" }));
+    await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
+    await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
+    await expect(page.locator("#front-door-feedback")).toContainText("Play Succeeded");
+    snapshot = await current(page);
+    expect(snapshot.face.basis.plan_id).toBeTruthy();
+    expect(snapshot.face.basis.active_play_id).toBeTruthy();
+    expect(snapshot.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
+    await expect(page.locator("#sign")).not.toBeEmpty();
+
+    server.child.kill("SIGTERM");
+    await new Promise(resolve => server.child.once("exit", resolve));
+    const reopened = await spawnEntrance(server.source);
+    server.child = reopened.child;
+    await page.goto(reopened.url);
+    await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
+    const restored = await current(page);
+    expect(restored.face.subjects.filter(subject => subject.role === "Gear").map(subject => subject.name).sort()).toEqual([
+      "making/literal Gear, text/literal",
+      "making/text Gear, face/text",
+    ]);
+    expect(restored.face.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
+    expect(restored.face.properties.some(property => property.name.startsWith("authored-control-") && property.value.Text.includes("Browser-authored truth"))).toBe(true);
+  } finally {
+    server.child.kill("SIGTERM");
+    await rm(server.directory, { recursive: true, force: true });
+  }
+});

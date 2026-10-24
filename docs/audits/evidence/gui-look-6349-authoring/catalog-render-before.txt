@@ -1,8 +1,0 @@
-CONSOLE_ERROR Failed to load resource: the server responded with a status of 404 (Not Found)
-PAGE_ERROR Error: shared gear-results capacity exceeded
-    at collectionSlots (blob:http://127.0.0.1:35137/61e947c7-f77b-432c-ab85-22ccc1b27b4a:10:13)
-    at Object.boundedActionList (blob:http://127.0.0.1:35137/61e947c7-f77b-432c-ab85-22ccc1b27b4a:112:66)
-    at renderGearPalette (blob:http://127.0.0.1:35137/1310c451-6454-4f60-bb27-d0726eb63274:356:14)
-    at render (blob:http://127.0.0.1:35137/1310c451-6454-4f60-bb27-d0726eb63274:477:457)
-    at dispatchInteraction (blob:http://127.0.0.1:35137/1310c451-6454-4f60-bb27-d0726eb63274:264:76)
-    at async openPlot (blob:http://127.0.0.1:35137/1310c451-6454-4f60-bb27-d0726eb63274:315:3)

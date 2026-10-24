@@ -1,9 +1,0 @@
-placements 0
-
-pulse:
-	host = "std-host-1"
-	capability = "pulse-1"
-
-show:
-	host = "std-host-1"
-	capability = "stdout-show-1"

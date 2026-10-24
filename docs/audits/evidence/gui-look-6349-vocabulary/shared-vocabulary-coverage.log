@@ -1,6 +1,0 @@
-
-running 1 test
-test display::icons::coverage::tests::every_icon_has_finite_nonempty_coverage_and_empty_outside_bounds ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1311 filtered out; finished in 0.03s
-

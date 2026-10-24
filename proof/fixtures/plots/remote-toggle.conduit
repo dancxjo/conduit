@@ -1,8 +1,0 @@
-plot remote-toggle {
-    trigger: interaction/trigger(count = 15)
-    toggle: state/toggle(initial = true)
-    show: face/bool("Current state")
-
-    trigger >> toggle
-    toggle >> show
-}

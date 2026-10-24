@@ -1,7 +1,0 @@
-plot memory_lantern {
-    message: text/edit-document(maximum-bytes = 256)
-    surface: face/editor("Message")
-
-    message.current >> surface.document
-    surface.edit >> message.edit
-}

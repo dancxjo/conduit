@@ -1,6 +1,0 @@
-plot image-text-inspection (
-    >> record: ImageTextRecord
-) {
-    inspect: face/structured-info("Recognized image text")
-    record >> inspect.input
-}

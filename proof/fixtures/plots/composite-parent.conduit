@@ -1,3 +1,0 @@
-plot composite-parent {
-    run: demonstration/run-signal
-}

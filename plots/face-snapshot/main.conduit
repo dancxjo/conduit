@@ -1,8 +1,0 @@
-plot host-face-snapshot (
- >> snapshot: Face
- face: Face >>
-) {
- forward: face/tee("Shared Face")
- snapshot >> forward.source
- forward.face >> face
-}

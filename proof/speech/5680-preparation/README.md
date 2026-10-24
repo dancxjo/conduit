@@ -1,9 +1,0 @@
-## Incomplete #5680 preparation: blocked by #6386
-
-This is held preparation, not a merge candidate. The Source/native field-admission tests prove exact quarter-overlap phase boundaries for unequal neighboring durations, distinct closure/release phase times, invalid duration/basis/capacity refusal, and separate 8 kHz/48 kHz projection of the same exact time. Source arithmetic returns a distinct raw result; generated constructors admit its exact fields through Audio and phase laws. No Native construction guard was weakened.
-
-The third test intentionally exposes the current generic Audio linear-profile blocker: denominator-20000 Source trajectories are well-formed, but PreparedAudioQuantityTrajectory rejects their arithmetic under AudioTrajectoryU8Arithmetic. Real formant frequencies also exceed its 255 limit. The complete run is **2 passed, 1 failed**; the exact negative log is compressed without byte changes and both hashes are retained. #6386 owns a finite generic numerical extension. This branch must not be described as passing/full G2 acceptance.
-
-Remaining #5680 work includes an explicit approved finite phone/control profile, all closure/release/aspiration outputs, opaque selected-phone and neighboring occurrence custody from the existing G1 owner, complete missing-control/foreign-owner/capacity refusals, ordinary kernel conformance, supported xtask wiring, and final exact-head delivery checks. The current pure-expression Source test is not ordinary kernel execution, installed authority, PCM, quality or physical evidence.
-
-No one-box-per-phone replacement is proposed: neighboring trajectories share the whole cross-boundary transition interval and both endpoints, even with unequal durations. The source hashes identify unmerged preparation based on 3a99fa7da; original syntax/Native-guard failures remain retained separately in the task workspace.

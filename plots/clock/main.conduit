@@ -1,5 +1,0 @@
-plot clock-demo {
-    # Standing clock: bounded instantaneous pressure, alive until Stop.
-    clock: time/every(1s)
-    clock >> face/tick("Clock tick")
-}

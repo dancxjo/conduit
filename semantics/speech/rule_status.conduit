@@ -1,6 +1,0 @@
-type SpeechRuleStatus =
-    productive
-    | lexicalized
-    | optional
-    | style_dependent
-    | experimental

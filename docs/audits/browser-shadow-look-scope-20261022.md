@@ -1,9 +1,0 @@
-# Keep the owner Face Look inside its component
-
-Candidate 39847764071, browser job 120067191919, failed ordinary Workspace accessibility: Inspect invitation inherited light Workspace ink over the component Look’s pale button background, contrast 1.08. The package loader activates every style resource in document.head. The owner Face Look contains shadow-scoped defaults and generic control rules; its :host variables do not initialize in the surrounding document.
-
-Workspace and Handbook now admit that stylesheet as content. Packaging, byte bounds and digest admission remain; OwnerFaceElement still links the same resource inside its shadow root. No loader, stylesheet, action, source semantics or accessibility assertion changes.
-
-The added package regression failed before the manifest correction. Both shared-style controls and actual Workspace presentation staging pass afterward (three Node cases). The existing ordinary-product browser smoke reproduced the exact contrast failure on an isolated copy of the retained staged product, then passed after regenerating its package with the corrected manifest: zero axe violations, zero page errors and four checked links. Both runs used the pinned Chromium sequentially without retries or injected styles. This isolates package activation against retained staged bytes; it is not a freshly built, exact-head full product campaign, nor a new component interaction proof.
-
-[Original diagnostic receipts](evidence/browser-shadow-look-scope-20261022/manifest.json) preserve both package identities and accessibility results. Baseline #6252 owns the foundation repair and current Candidate. This small correction is available from #6255 for handoff; semantic integration, current-head Candidate/Integration and remaining native/large-Source proof stay required. No issue is closed here.

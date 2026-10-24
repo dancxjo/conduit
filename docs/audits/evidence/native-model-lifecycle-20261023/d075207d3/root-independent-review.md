@@ -1,9 +1,0 @@
-# Independent #5695 supported-suite review
-
-PASS for frozen d075207d3f49e5ac4ef9cbc5f270de6f892cfb44. Live checkout is clean. The exact supported command, first-attempt exit0, raw log hash, five unique retained test ELF hashes, worker hash and actual installed runtime hash match the receipt. Seven steps executed26tests,0failed,0ignored; the platform tests ran through explicit --ignored selection rather than being skipped.
-
-Parsed actual JSON records verify all19 expected scalar bit patterns exactly, zero parent allocation calls/requested bytes, runtime/worker hashes, the same retained worker/admission/maps across two distinct ordinary Plays with Drop reaping, actual queued9-byte worker cancellation with no output/reaping, and actual provider death with no output/retry at existing String detail71 boundary.
-
-Source review confirms global Stop retires the selected pending owner BEFORE scheduler.cancel clears pending requests. Correct evidence is global CancellationRequested and RunCancelled, with no fabricated per-call cancellation Sign. Pure transport, owner, wrapper and Value Play tests cover late/stale/foreign completion fences. Immutable admitted artifact/requirement/profile/runtime ownership prevents warm cross-profile reuse; there is no general cross-profile cache. Finite sandbox/ledger proof remains its own #6208 evidence, joined with current fixed-I/O/no-growth observations.
-
-No further mandatory local proof gap was identified against the original narrow #5695 criteria. Normal admitted PR and applicable exact-head CI/integration/closure remain delivery gates. Actual native CPU-instruction interruption, performance, and cross-profile caching are not claimed or newly required. The19-case subproof exclusions do not negate the separate actual lifecycle results. Earlier532E0521,804Value/Flow refusal and fc904global-cancel cleanup negatives remain separately retained in the JSON review. No builds, source edits or CI observations performed.

@@ -1,0 +1,8 @@
+plot quantity_reproduction {
+ scalar: scalar/literal(value = 500000)
+ map: math/map-quantity
+ wrap: structured-info/wrap-quantity
+ display: face/quantity("Measured quantity")
+ scalar.value >> map.in
+ map >> wrap >> display
+}

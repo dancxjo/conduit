@@ -1,5 +1,0 @@
-plot signal-demo {
-    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
-    show: face/show("Signal")
-    pulse >> show
-}

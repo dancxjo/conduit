@@ -1,9 +1,0 @@
-# Workspace activity inspection
-
-Source `72df3b659`: fresh browser Host release, one-target release catalog and supported `stage-browser-workspace.sh` product with 92 resources. The initial Body specification and reviewed Workspace catalog were regenerated through xtask. This is an actual new browser Body, with a Unicode friendly name, Birth, Wake and selected Memory Lantern; it is not a renderer sample or an installed Linux owner.
-
-The activity strip now uses pinned Plot, Cord, Inspect and status symbols with labels and 44px minima. Selection updates change an explicit label span rather than replacing the complete button and losing its icon. Flow text retains its source-owned meaning. Three keyboard inspection round trips open the existing Plot/flow/lifecycle views and return focus to the originating button. Body, Plan and active Play IDs remain equal across the three local chrome Looks and inspection; the exact observed IDs are retained in `report.json`.
-
-Unicode text is entered through the existing authoritative Memory Lantern text-edit path and retained across Editorial, Engineering and Phosphor chrome, and at 390px with 32px root text and forced colors. All three strip buttons remain at least 44px tall within the viewport. The driver exits zero without browser errors or horizontal document overflow. Two existing journey checks pass: real Birth/Wake/editor/Plot switching/reload identity, and the narrow listening surface. The tutorial disclosure is closed through its own control for the retained editor screenshots.
-
-These local chrome options do not select canonical resident Mask Looks, and this proof does not establish exact Face/recipe identity across native/browser, full accessibility, CI or stable publication. The editor retains its native/admitted presentation; its font/surface integration remains broader Look work. No private browser storage, membership credentials, compiled binaries or release executables are included.

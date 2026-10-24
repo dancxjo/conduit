@@ -1,5 +1,0 @@
-# Portable Body invitation face meaning. Rust consumes generated bindings.
-
-type InvitationFaceRefusal =
-    invalid-invitation
-    | face

@@ -1,0 +1,34 @@
+{
+  "source": "a6353d7f189358c159bd718092cf2fa53b0aef4a",
+  "artifacts": {
+    "workbench": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/conduit-browser-patchbay-workbench",
+      "sha256": "43947a067c0b16ddc01f6c0afb8064652f1ac789ab9c6be9ab9789c115a27707",
+      "bytes": 113303608,
+      "sealed": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6387-current-product/workbench.elf.gz",
+      "sealed_sha256": "bb25564e33efd5e82efd15490e91400b371267053ddf52d1766ef11feb26965f"
+    },
+    "browser-wasm": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+      "sha256": "a58301a9c2213e67348eb523f689e8f807f7528091d8501a6e0676273fc99aba",
+      "bytes": 18884793,
+      "sealed": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6387-current-product/browser-wasm.wasm.gz",
+      "sealed_sha256": "722dda6ba9a49bb856a78db3dcd3d41fad477019feaa5eebbcc23ab73b40753f"
+    }
+  },
+  "steps": [
+    {
+      "name": "minimal",
+      "command": [
+        "python3",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6387-current-minimal.py"
+      ],
+      "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit",
+      "exit": 1,
+      "elapsed": 6.898998737335205
+    }
+  ],
+  "started": 1792876088.9296117,
+  "final_source_head": "a6353d7f189358c159bd718092cf2fa53b0aef4a",
+  "final_source_status": ""
+}

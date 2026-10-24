@@ -1,2 +1,0 @@
-#[path="/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit-loongarch-prep/targets/conduitos/make/xtask/loongarch64_product_boot/graphical_mapping.rs"]
-mod mapping;

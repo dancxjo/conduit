@@ -1,3 +1,0 @@
-focus body/action/start-clock/6
-activate
-quit

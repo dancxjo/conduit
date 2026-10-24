@@ -1,7 +1,0 @@
-[package]
-name = "loongarch-scanout-compile-probe"
-version = "0.0.0"
-edition = "2024"
-[workspace]
-[dependencies]
-serde = { version = "1", default-features = false, features = ["alloc", "derive"] }

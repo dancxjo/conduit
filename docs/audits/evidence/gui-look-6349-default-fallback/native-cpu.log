@@ -1,9 +1,0 @@
-   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.89s
-     Running unittests src/lib.rs (../native-target/debug/deps/conduitos-e8f5df9d036c3ee5)
-
-running 1 test
-test native_face_mask::tests::structured_configuration::explicit_layout_configuration_reaches_consumer_and_preserves_complete_fallback ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1425 filtered out; finished in 4.25s
-
