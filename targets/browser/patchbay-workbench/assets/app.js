@@ -174,8 +174,17 @@ function renderWatches(subject){
 
 let navigationRequestSequence=0;
 const navigationHeading=document.querySelector(".canvas-heading");
-function reserveNavigationHeading(){document.documentElement.style.setProperty("--patchbay-navigation-bottom",`${navigationHeading.getBoundingClientRect().bottom}px`);}
-new ResizeObserver(reserveNavigationHeading).observe(navigationHeading);
+const shellMasthead=document.querySelector('[data-application-slot="product-masthead"]');
+const shellNavigation=document.querySelector('nav[aria-label="Patchbay workspace"]');
+function reserveNavigationHeading(){
+  // Read in dependency order: each bounded band positions the next one.
+  for(const [name,node] of [["masthead",shellMasthead],["shell-navigation",shellNavigation],["navigation",navigationHeading]]){
+    const value=`${Math.ceil(node.getBoundingClientRect().bottom)}px`,key=`--patchbay-${name}-bottom`;
+    if(document.documentElement.style.getPropertyValue(key)!==value)document.documentElement.style.setProperty(key,value);
+  }
+}
+const shellBandObserver=new ResizeObserver(reserveNavigationHeading);
+for(const node of [shellMasthead,shellNavigation,navigationHeading])shellBandObserver.observe(node);
 window.addEventListener("resize",reserveNavigationHeading);
 reserveNavigationHeading();
 const updateWorkspaceControls=installWorkspaceControls(document.querySelector("#workspace-controls"),()=>state.selected,selectLens,()=>navigationRequestSequence);
