@@ -1,0 +1,101 @@
+    Blocking waiting for file lock on build directory
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/human)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/robotics)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/purpose)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/alife)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/pulse-capture)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/seven-segment-mask)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/face)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/audio)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/midi)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/face)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/catalog)
+    Finished `test` profile [unoptimized] target(s) in 1m 31s
+     Running tests/appliance_kernel.rs (target/environment-lean-host/debug/deps/appliance_kernel-8791c6e9beaabbb9)
+
+running 10 tests
+test a_ready_capability_does_not_replace_authority_or_missing_implementations ... ok
+test assigned_software::assigned_preparation_refuses_wrong_root_scope_roles_and_storage_before_effects ... ok
+test assigned_software::boxed_transfer::boxed_transfer_preserves_both_slots_then_allocates_only_the_destination ... ok
+test assigned_software::resident_initialization_refuses_missing_duplicate_or_changed_text_before_allocating ... ok
+test assigned_software::retained_resident_software_refuses_other_source_then_transfers_without_allocation ... ok
+test authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel ... environment_software_ready_peak=157709
+environment_appliance_host_heap graph_copy_peak=121391 host_copy_peak=66348 plan_copy_peak=142584 ordinary_planning_peak=285424 lowering_peak=35247
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_software_ready_peak=157709
+environment_appliance_host_heap graph_copy_peak=121391 host_copy_peak=66348 plan_copy_peak=142584 ordinary_planning_peak=285424 lowering_peak=35247
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_computation_memory pointer_bits=64 node=4 text_bytes=29798 memory=Observation { allocations: 1632, reallocations: 11, deallocations: 1372, peak_bytes: 81590, requested_bytes: 123707, live_bytes: 19399 }
+environment_computation_memory pointer_bits=64 node=5 text_bytes=3604 memory=Observation { allocations: 157, reallocations: 5, deallocations: 150, peak_bytes: 9100, requested_bytes: 14254, live_bytes: 1024 }
+environment_computation_memory pointer_bits=64 node=6 text_bytes=1738 memory=Observation { allocations: 102, reallocations: 8, deallocations: 86, peak_bytes: 4600, requested_bytes: 7874, live_bytes: 2261 }
+environment_computation_memory pointer_bits=64 node=8 text_bytes=1058 memory=Observation { allocations: 37, reallocations: 3, deallocations: 4, peak_bytes: 3501, requested_bytes: 5103, live_bytes: 2310 }
+environment_computation_memory pointer_bits=64 node=9 text_bytes=1070 memory=Observation { allocations: 31, reallocations: 3, deallocations: 4, peak_bytes: 3196, requested_bytes: 4343, live_bytes: 1670 }
+environment_computation_memory pointer_bits=64 node=10 text_bytes=1072 memory=Observation { allocations: 31, reallocations: 3, deallocations: 4, peak_bytes: 3198, requested_bytes: 4345, live_bytes: 1671 }
+environment_computation_memory pointer_bits=64 node=11 text_bytes=1058 memory=Observation { allocations: 37, reallocations: 3, deallocations: 4, peak_bytes: 3501, requested_bytes: 5103, live_bytes: 2310 }
+environment_assigned_software_preparation=Observation { allocations: 2370, reallocations: 44, deallocations: 1934, peak_bytes: 86750, requested_bytes: 208257, live_bytes: 50914 }
+environment_assigned_storage pointer_bits=64 assignment_bytes=46121 value_backing_bytes=12004 prepared_object_bytes=6376
+environment_kernel_storage pointer_bits=64 ports_per_node=1 object_bytes=11368 sixteen_port_object_bytes=39040
+environment_additional_backing sign_slots=144 sign_logical_bytes=2862 sign_physical_bytes=2880 value_physical_bytes=12004
+ok
+test full_authored_overnight_workload_drains_with_a_small_value_store ... environment_software_ready_peak=157709
+environment_appliance_host_heap graph_copy_peak=121391 host_copy_peak=66348 plan_copy_peak=142584 ordinary_planning_peak=285424 lowering_peak=35247
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_assigned_software_preparation=Observation { allocations: 2370, reallocations: 44, deallocations: 1934, peak_bytes: 86750, requested_bytes: 208257, live_bytes: 50914 }
+environment_assigned_storage pointer_bits=64 assignment_bytes=46121 value_backing_bytes=12004 prepared_object_bytes=6376
+environment_kernel_storage pointer_bits=64 ports_per_node=1 object_bytes=11368 sixteen_port_object_bytes=39040
+environment_additional_backing sign_slots=144 sign_logical_bytes=2862 sign_physical_bytes=2880 value_physical_bytes=12004
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=3837
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=11716
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=2292
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=11716
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1769
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=11716
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1424
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=11716
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1426
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=11716
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=3837
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=11716
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=2296
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=11716
+ok
+test software_tests::forged_selected_facts_refuse_before_transfer_and_selected_objects_cannot_replay ... ok
+test software_tests::unchecked_configuration_and_contract_changes_cannot_initialize_an_available_back ... ok
+test software_tests::wrong_current_advertisement_and_duplicate_projection_leave_it_unchanged ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.22s
+
+     Running tests/observation_forms.rs (target/environment-lean-host/debug/deps/observation_forms-c120d08041ed4562)
+
+running 2 tests
+test authored_quantity_forms_round_trip_exact_observations_without_play_allocations ... ok
+test compact_storage_refuses_inexact_overflowing_truncated_and_wrong_type_values ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/observation_kernel.rs (target/environment-lean-host/debug/deps/observation_kernel-11c112f8f0355ec9)
+
+running 2 tests
+test coordinate_overflow_and_wrong_schemas_refuse_without_allocating ... ok
+test source_and_forms_emit_quantities_and_preserve_all_sensor_outcomes ... observation_type_prefix_bytes=305 result_type_prefix_bytes=640 quantity_bytes=788
+environment_first_class_observation_bytes=2274
+environment_first_class_observation_bytes=2274
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+

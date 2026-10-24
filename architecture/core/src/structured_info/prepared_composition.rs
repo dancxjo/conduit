@@ -1,6 +1,6 @@
 //! Prepared canonical composition of finite exact structured values.
 
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 
 use super::{
     validate_canonical_structured_value, StructuredInfoRefusal as Refusal, StructuredInfoType,
@@ -8,9 +8,40 @@ use super::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
+#[derive(Clone, Copy)]
+struct SchemaSpan {
+    start: u32,
+    length: u32,
+}
+impl SchemaSpan {
+    // These bytes are created from a checked Type during preparation. Sharing
+    // any equal occurrence is safe: the private prefix never changes in Play.
+    fn prepare(prefix: &[u8], bytes: &[u8]) -> Result<Self, Refusal> {
+        let start = if bytes.is_empty() {
+            0
+        } else {
+            prefix
+                .windows(bytes.len())
+                .position(|part| part == bytes)
+                .ok_or(Refusal::WrongType)?
+        };
+        Ok(Self {
+            start: start
+                .try_into()
+                .map_err(|_| Refusal::CanonicalEncodingTooLarge)?,
+            length: bytes
+                .len()
+                .try_into()
+                .map_err(|_| Refusal::CanonicalEncodingTooLarge)?,
+        })
+    }
+    fn bytes(self, prefix: &[u8]) -> &[u8] {
+        &prefix[self.start as usize..self.start as usize + self.length as usize]
+    }
+}
 struct Field {
-    name: String,
-    type_bytes: Vec<u8>,
+    name: SchemaSpan,
+    type_bytes: SchemaSpan,
 }
 
 /// Canonical composition prepares schema bytes and complete output storage
@@ -24,11 +55,11 @@ pub struct PreparedStructuredComposer {
 }
 
 enum CompositionShape {
-    Leaf(String),
+    Leaf(SchemaSpan),
     Record(Vec<Field>),
     Variant(Vec<Field>),
     Collection {
-        element_type: Vec<u8>,
+        element_type: SchemaSpan,
         minimum_items: u16,
         maximum_items: u16,
     },
@@ -41,14 +72,19 @@ impl PreparedStructuredComposer {
             return Err(Refusal::CanonicalEncodingTooLarge);
         }
         let shape = match value_type.shape() {
-            Shape::Leaf(kind) => CompositionShape::Leaf(kind.as_str().into()),
+            Shape::Leaf(kind) => {
+                CompositionShape::Leaf(SchemaSpan::prepare(&prefix, kind.as_str().as_bytes())?)
+            }
             Shape::Record { fields, .. } => CompositionShape::Record(
                 fields
                     .iter()
                     .map(|field| {
                         Ok(Field {
-                            name: field.name().into(),
-                            type_bytes: field.value_type().canonical_bytes()?,
+                            name: SchemaSpan::prepare(&prefix, field.name().as_bytes())?,
+                            type_bytes: SchemaSpan::prepare(
+                                &prefix,
+                                &field.value_type().canonical_bytes()?,
+                            )?,
                         })
                     })
                     .collect::<Result<_, Refusal>>()?,
@@ -58,14 +94,17 @@ impl PreparedStructuredComposer {
                     .iter()
                     .map(|case| {
                         Ok(Field {
-                            name: case.tag().into(),
-                            type_bytes: case.payload_type().canonical_bytes()?,
+                            name: SchemaSpan::prepare(&prefix, case.tag().as_bytes())?,
+                            type_bytes: SchemaSpan::prepare(
+                                &prefix,
+                                &case.payload_type().canonical_bytes()?,
+                            )?,
                         })
                     })
                     .collect::<Result<_, Refusal>>()?,
             ),
             Shape::Collection { element, length } => CompositionShape::Collection {
-                element_type: element.canonical_bytes()?,
+                element_type: SchemaSpan::prepare(&prefix, &element.canonical_bytes()?)?,
                 minimum_items: length,
                 maximum_items: length,
             },
@@ -74,7 +113,7 @@ impl PreparedStructuredComposer {
                 minimum_items,
                 maximum_items,
             } => CompositionShape::Collection {
-                element_type: element.canonical_bytes()?,
+                element_type: SchemaSpan::prepare(&prefix, &element.canonical_bytes()?)?,
                 minimum_items,
                 maximum_items,
             },
@@ -94,15 +133,10 @@ impl PreparedStructuredComposer {
     /// and allocator bookkeeping. Available before Play for resource admission.
     pub fn prepared_heap_bytes(&self) -> usize {
         let shape = match &self.shape {
-            CompositionShape::Leaf(identity) => identity.capacity(),
             CompositionShape::Record(fields) | CompositionShape::Variant(fields) => {
                 fields.capacity() * core::mem::size_of::<Field>()
-                    + fields
-                        .iter()
-                        .map(|field| field.name.capacity() + field.type_bytes.capacity())
-                        .sum::<usize>()
             }
-            CompositionShape::Collection { element_type, .. } => element_type.capacity(),
+            CompositionShape::Leaf(_) | CompositionShape::Collection { .. } => 0,
         };
         self.prefix.capacity() + self.output.capacity() + shape
     }
@@ -116,6 +150,8 @@ impl PreparedStructuredComposer {
             return Err(Refusal::WrongType);
         };
         self.admit_size(5 + bytes.len())?;
+        let identity = core::str::from_utf8(identity.bytes(&self.prefix))
+            .map_err(|_| Refusal::MalformedCanonicalEncoding)?;
         crate::validate_primitive_info(identity, bytes).map_err(Refusal::InvalidPrimitiveLeaf)?;
         self.output.clear();
         self.output.extend_from_slice(&self.prefix);
@@ -135,11 +171,11 @@ impl PreparedStructuredComposer {
         }
         let mut size = 5_usize;
         for (field, value) in fields.iter().zip(values) {
-            if field.type_bytes != value.type_bytes() {
+            if field.type_bytes.bytes(&self.prefix) != value.type_bytes() {
                 return Err(Refusal::WrongType);
             }
             size = size
-                .checked_add(4 + field.name.len())
+                .checked_add(4 + field.name.length as usize)
                 .and_then(|size| size.checked_add(value.value_node().len()))
                 .ok_or(Refusal::CanonicalEncodingTooLarge)?;
         }
@@ -150,7 +186,7 @@ impl PreparedStructuredComposer {
         self.output
             .extend_from_slice(&(values.len() as u32).to_le_bytes());
         for (field, value) in fields.iter().zip(values) {
-            push_bytes(field.name.as_bytes(), &mut self.output);
+            push_bytes(field.name.bytes(&self.prefix), &mut self.output);
             self.output.extend_from_slice(value.value_node());
         }
         self.finish()
@@ -162,9 +198,9 @@ impl PreparedStructuredComposer {
         };
         let case = cases
             .iter()
-            .find(|case| case.name == tag)
+            .find(|case| case.name.bytes(&self.prefix) == tag.as_bytes())
             .ok_or(Refusal::UnknownVariantTag)?;
-        if case.type_bytes != payload.type_bytes() {
+        if case.type_bytes.bytes(&self.prefix) != payload.type_bytes() {
             return Err(Refusal::WrongType);
         }
         let size = 5_usize
@@ -198,7 +234,7 @@ impl PreparedStructuredComposer {
         }
         let mut size = 5_usize;
         for value in values {
-            if element_type.as_slice() != value.type_bytes() {
+            if element_type.bytes(&self.prefix) != value.type_bytes() {
                 return Err(Refusal::WrongType);
             }
             size = size

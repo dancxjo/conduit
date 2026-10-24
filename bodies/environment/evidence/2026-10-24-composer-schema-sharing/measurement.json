@@ -1,0 +1,18 @@
+{
+  "proof_class": "CPU same-kernel sampler resource comparison and generic Core conformance",
+  "pointer_bits": 64,
+  "before_resident_software_bytes": 52087,
+  "after_resident_software_bytes": 50914,
+  "before_preparation_peak_bytes": 86750,
+  "after_preparation_peak_bytes": 86750,
+  "before_evidence": "bodies/environment/evidence/2026-10-24-sampling-value-extents/tests.log",
+  "core_tests_passed": 512,
+  "appliance_tests_passed": 14,
+  "recurring_allocation_bytes": 0,
+  "mcu_size_bytes": null,
+  "physical_capture_updated": false,
+  "code_sha256": {
+    "architecture/core/src/structured_info/prepared_composition.rs": "bbe3c6f8b699dfb5deef915ef562ac62385b59c45a6450c41911a77857235751",
+    "architecture/core/src/structured_info/prepared_composition/tests.rs": "1fe684060ea9aaab1ab0ae80fd55d9eab5a397660f198debf717e85273c33d48"
+  }
+}
