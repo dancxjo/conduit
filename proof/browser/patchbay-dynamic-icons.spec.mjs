@@ -29,7 +29,8 @@ test('dynamic Patchbay symbols preserve exact node and Port selection',async({pa
    await expect(icon).toHaveAttribute('aria-hidden','true');await expect(icon).toHaveAttribute('focusable','false');
    expect(await icon.evaluate(node=>getComputedStyle(node).pointerEvents)).toBe('none');
   }
-  const radio=nodes.locator('input[type=radio]').first(),identity=await radio.getAttribute('data-subject');
+  const radio=page.locator('.flow-frontplate.role-gear input[type=radio]').first(),identity=await radio.getAttribute('data-subject');
+  await expect(radio).not.toBeChecked();
   await radio.focus();await page.keyboard.press('Space');
   await expect.poll(()=>page.evaluate(async()=>(await(await fetch('/api/snapshot')).json()).navigation.cursor.focus)).toBe(identity);
   await expect(radio).toBeChecked();
