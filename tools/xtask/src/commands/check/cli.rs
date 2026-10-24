@@ -42,6 +42,8 @@ pub enum CheckSuite {
     PlotS3,
     /// Admit exact checked Native laws over bounded actual canonical occurrences.
     NativeSourceLaws,
+    /// Prove exact portable ResourceRef equality, refusals and installed kernel execution.
+    ResourceReferenceEquality,
     /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,
