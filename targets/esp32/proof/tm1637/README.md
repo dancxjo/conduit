@@ -128,3 +128,17 @@ provisioning when checked meaning changes. Native call tails still need binding
 to actual retained owners and local opaque authority. Staged tables are separate
 from Body/Play installation and complete runtime memory admission; this path
 starts no climate sampling, display output or recorder.
+
+## Current physical display profile and live restoration
+
+The later all-on and 48-register-bit scan superseded the initial visual dot
+interpretation above: only the centre colon is connected, at address 1 bit 7.
+The profile admits no bottom decimal points. The Fahrenheit Look preserves
+tenths by explicitly choosing that colon as its fractional marker.
+
+On 24 October the live AP bench was restored after native readiness experiments.
+It alternates Fahrenheit and RH every three seconds and samples every fifteen
+seconds. Thirteen captured writes were acknowledged, with three advancing valid
+samples and an HTTP reading from the same Face. See
+[the retained evidence](../../../../bodies/environment/evidence/2026-10-24-live-restoration/README.md).
+This is useful bench behavior, not the installed native recorder appliance.
