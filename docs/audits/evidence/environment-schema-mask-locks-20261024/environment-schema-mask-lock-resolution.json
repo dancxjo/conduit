@@ -1,0 +1,171 @@
+{
+  "at": "2026-10-24T17:03:30.171351+00:00",
+  "pre_lock_source": "d1f054baa8080a940ffbd87960e3637ddf5d5621",
+  "steps": [
+    {
+      "package": "runtime",
+      "phase": "before-locked",
+      "argv": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "face-projection,display-mask"
+      ],
+      "exit": 101,
+      "stderr_log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-runtime-before-locked.log",
+      "stderr_sha256": "ede9625dafc2ff51dea1c159d2797365f6b41d7471d5cfe80dcfb19cad6c87f3",
+      "metadata_bytes": 0,
+      "metadata_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "package": "runtime",
+      "phase": "resolve",
+      "argv": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--offline",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "face-projection,display-mask"
+      ],
+      "exit": 0,
+      "stderr_log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-runtime-resolve.log",
+      "stderr_sha256": "c0e1ce9ea9ba0bc21f3f16a45fa40d2cf6cde2758515ae9d95868df9f3badbf6",
+      "metadata_bytes": 482422,
+      "metadata_sha256": "8e3b5c1dd7254bffb6907c3822540eda76f451f0546e64d6f74357f4e727c5ac",
+      "root_package": "conduit-environment-runtime",
+      "package_count": 62,
+      "miniz_oxide": [
+        {
+          "name": "miniz_oxide",
+          "version": "0.8.9"
+        }
+      ],
+      "metadata_retained": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-runtime-resolve-metadata.json.gz"
+    },
+    {
+      "package": "runtime",
+      "phase": "after-locked",
+      "argv": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "face-projection,display-mask"
+      ],
+      "exit": 0,
+      "stderr_log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-runtime-after-locked.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "metadata_bytes": 482422,
+      "metadata_sha256": "8e3b5c1dd7254bffb6907c3822540eda76f451f0546e64d6f74357f4e727c5ac",
+      "root_package": "conduit-environment-runtime",
+      "package_count": 62,
+      "miniz_oxide": [
+        {
+          "name": "miniz_oxide",
+          "version": "0.8.9"
+        }
+      ],
+      "metadata_retained": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-runtime-after-locked-metadata.json.gz"
+    },
+    {
+      "package": "mask",
+      "phase": "before-locked",
+      "argv": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml"
+      ],
+      "exit": 101,
+      "stderr_log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-mask-before-locked.log",
+      "stderr_sha256": "34eb094515129bb6aacf9b7db7fabbd461cf63af09e358823090e09b6483a22b",
+      "metadata_bytes": 0,
+      "metadata_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "package": "mask",
+      "phase": "resolve",
+      "argv": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--offline",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml"
+      ],
+      "exit": 0,
+      "stderr_log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-mask-resolve.log",
+      "stderr_sha256": "c0e1ce9ea9ba0bc21f3f16a45fa40d2cf6cde2758515ae9d95868df9f3badbf6",
+      "metadata_bytes": 315129,
+      "metadata_sha256": "c41ac4ed217fd4c1e39dc7656382280f154c824c24b27a54690215f844f9ee98",
+      "root_package": "conduit-seven-segment-mask",
+      "package_count": 43,
+      "miniz_oxide": [
+        {
+          "name": "miniz_oxide",
+          "version": "0.8.9"
+        }
+      ],
+      "metadata_retained": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-mask-resolve-metadata.json.gz"
+    },
+    {
+      "package": "mask",
+      "phase": "after-locked",
+      "argv": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml"
+      ],
+      "exit": 0,
+      "stderr_log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-mask-after-locked.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "metadata_bytes": 315129,
+      "metadata_sha256": "c41ac4ed217fd4c1e39dc7656382280f154c824c24b27a54690215f844f9ee98",
+      "root_package": "conduit-seven-segment-mask",
+      "package_count": 43,
+      "miniz_oxide": [
+        {
+          "name": "miniz_oxide",
+          "version": "0.8.9"
+        }
+      ],
+      "metadata_retained": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-lock-mask-after-locked-metadata.json.gz"
+    }
+  ],
+  "changed": [
+    "bodies/environment/runtime/Cargo.lock",
+    "plots/seven-segment-mask/Cargo.lock"
+  ],
+  "scope": "offline resolver/locked metadata only; no builds or product execution; Root Source/cache untouched"
+}

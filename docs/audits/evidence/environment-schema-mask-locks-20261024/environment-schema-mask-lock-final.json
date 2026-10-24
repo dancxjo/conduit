@@ -1,0 +1,59 @@
+{
+  "at": "2026-10-24T17:03:55.970623+00:00",
+  "source": "e57b33ea074e3a6e92e610c52044b3051d482d0c",
+  "packages": [
+    {
+      "name": "runtime",
+      "argv": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "face-projection,display-mask"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "metadata_sha256": "3d87cc8d0038d4e4b00b05acf480119e56bd7e774fbf003bfc8ee0cfbda31478",
+      "metadata_bytes": 482494,
+      "miniz_oxide": [
+        [
+          "miniz_oxide",
+          "0.8.9"
+        ]
+      ],
+      "lock_sha256": "38126298cc8b39c44119daf228f38ab4d5dff0bc19a1dee0b4f864a7724ad6a9"
+    },
+    {
+      "name": "mask",
+      "argv": [
+        "cargo",
+        "+stable",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--format-version",
+        "1",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "metadata_sha256": "ddeb558f4571d6e1bb920c354bedd77edc7d791c7b34d5e0e11202722770d564",
+      "metadata_bytes": 315197,
+      "miniz_oxide": [
+        [
+          "miniz_oxide",
+          "0.8.9"
+        ]
+      ],
+      "lock_sha256": "c3d8c7c07ded972120f7ec1a52da923a0975e688036eb2475320d4dd6a78aced"
+    }
+  ],
+  "source_clean_after": true
+}
