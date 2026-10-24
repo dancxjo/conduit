@@ -259,52 +259,8 @@ pub(super) fn lower_x86_64_pc(
     })
 }
 
-pub(super) fn lower_riscv64_virt(
-    manifest: &BuildManifest,
-) -> Result<TargetBuildInputs, ConduitosError> {
-    let presenters = manifest.presenters.as_slice();
-    let bases = manifest
-        .base_selections
-        .iter()
-        .map(|item| item.kind.clone())
-        .collect::<Vec<_>>();
-    let drivers = manifest
-        .driver_selections
-        .iter()
-        .map(|item| item.kind.clone())
-        .collect::<Vec<_>>();
-    if presenters != [RISCV64_LINEAR_PRESENTER]
-        || bases != [RISCV64_SBI_BASE]
-        || drivers != [RISCV64_SBI_DRIVER]
-        || manifest.base_selections[0].driver != RISCV64_SBI_DRIVER
-        || manifest.host_calls.as_slice() != [PRESENT_OPERATION]
-        || !manifest.facilities.is_empty()
-        || !manifest.resource_budgets.is_empty()
-        || !manifest.profile_fragments.is_empty()
-    {
-        return Err(refusal(
-            "riscv64-product-closure-mismatch",
-            "RISC-V64 product requires exactly its admitted SBI console face closure".into(),
-        ));
-    }
-    let portable = conduitos::make::IMPL_TIME_TICK
-        | conduitos::make::IMPL_TICK_FACE
-        | conduitos::make::IMPL_TEXT_LITERAL
-        | conduitos::make::IMPL_TEXT_UPPER
-        | conduitos::make::IMPL_TEXT_FACE;
-    Ok(TargetBuildInputs {
-        cargo_features: vec!["riscv64-product"],
-        implementations: portable | conduitos::make::IMPL_LINEAR_PRESENTER,
-        facilities: 0,
-        resources: 0,
-        bases: conduitos::make::BASE_SERIAL_TEXT,
-        drivers: conduitos::make::DRIVER_RISCV64_SBI_CONSOLE,
-        presenters: conduitos::make::PRESENTER_LINEAR_SERIAL,
-        proof_instrumentation: 0,
-        face_surface_slots: 0,
-        face_surface_bytes: 0,
-    })
-}
+mod riscv64;
+pub(super) use riscv64::lower_riscv64_virt;
 
 fn refusal(code: &'static str, detail: String) -> ConduitosError {
     ConduitosError::refusal(code, detail)

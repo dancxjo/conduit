@@ -1,0 +1,60 @@
+{
+  "classification": "same normal graphical ISO with only ramfb provider removed",
+  "image_source": "61084bb3ae35324bfb7dc2c280b37b6c60b7b00e",
+  "collector_source": "22f9ee6fa0d02a5aa913e75e59e268fa1173c86e",
+  "image": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-riscv64-graphical-61084bb3a/conduitos-riscv64.iso",
+  "image_sha256": "616ed17feafe529d787c2b780b438d8ff8a05f92a464b0baff6c96e3677118c5",
+  "emulator_sha256": "7cf442811288219dfa1e99f7b1a3766e652aed550377777b3b2ad89cf54038ba",
+  "firmware_inputs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/toolchain/riscv64-domain-qemu/0d92944c833e22da80164750edc352c3f9e7f32829a7ab663dc52fd721a669fd/fw_dynamic.bin",
+      "sha256": "b296d711ecb879489689109c0fd7e0698b5b9550725b4e50fac456bbd3ecbcdf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/toolchain/edk2-riscv64/code.fd",
+      "sha256": "a16aab6e12beab587cf59b4c23f015fcb07a94480b7462198a47310d0d6b1d6f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/toolchain/edk2-riscv64/vars.fd",
+      "sha256": "ea8094e953b1215444bd001ee1cf22818f1f7f8abcb158e62180cbaa6c1f70af"
+    }
+  ],
+  "positive_capture": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/riscv64/riscv64-frame-1163251-1792849885335062086",
+  "graphical_product_proved": false,
+  "arguments": [
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/toolchain/riscv64-domain-qemu/0d92944c833e22da80164750edc352c3f9e7f32829a7ab663dc52fd721a669fd/qemu-system-riscv64",
+    "-machine",
+    "virt,acpi=off",
+    "-cpu",
+    "rv64,zkr=true,sv57=off,sv48=off",
+    "-m",
+    "2G",
+    "-smp",
+    "1",
+    "-accel",
+    "tcg,thread=single",
+    "-bios",
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/toolchain/riscv64-domain-qemu/0d92944c833e22da80164750edc352c3f9e7f32829a7ab663dc52fd721a669fd/fw_dynamic.bin",
+    "-blockdev",
+    "node-name=pflash0,driver=file,read-only=on,filename=/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/toolchain/edk2-riscv64/code.fd",
+    "-blockdev",
+    "node-name=pflash1,driver=file,filename=/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/riscv64-graphical-no-display-61084bb3a/vars.fd",
+    "-machine",
+    "pflash0=pflash0,pflash1=pflash1",
+    "-drive",
+    "file=/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-riscv64-graphical-61084bb3a/conduitos-riscv64.iso,format=raw,if=none,id=boot,readonly=on",
+    "-device",
+    "virtio-blk-pci,drive=boot,bootindex=0",
+    "-display",
+    "none",
+    "-monitor",
+    "none",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/riscv64-graphical-no-display-61084bb3a/serial.log",
+    "-net",
+    "none",
+    "-qmp",
+    "unix:/tmp/c6057-rv-neg-bqnp9nbu/qmp,server=on,wait=off",
+    "-no-reboot"
+  ]
+}

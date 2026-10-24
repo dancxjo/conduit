@@ -18,6 +18,10 @@ fn authored_output_keeps_typed_frame_refusal_and_exact_electrical_selection() {
     )
     .unwrap();
     assert!(conduit_core::verify_plan(prepared.plan()));
+    assert_eq!(
+        prepared.maximum_value_bytes(),
+        source.maximum_value_bytes().unwrap()
+    );
     assert_eq!(prepared.lowered().nodes.len(), 4);
     assert_eq!(prepared.lowered().cords.len(), 5);
     assert_eq!(prepared.lowered().fore_ports.len(), 2);
@@ -35,4 +39,19 @@ fn authored_output_keeps_typed_frame_refusal_and_exact_electrical_selection() {
         .capabilities
         .retain(|offer| offer.kind_id.as_str() != conduit_tm1637_wire::WRITE_KIND);
     assert!(PreparedDisplayOutput::prepare(&source, &missing, &bases, &[fixture.grant]).is_err());
+}
+
+#[test]
+fn payload_extent_comes_from_all_checked_types_and_refuses_unproved_ports() {
+    let mut source = DisplayOutputSource::compile().unwrap();
+    let extent = source.maximum_value_bytes().unwrap();
+    assert!(extent >= conduit_environment_runtime::display_packets::DISPLAY_FRAME_BYTES as u32);
+    assert!(extent < conduit_tm1637_wire::MAXIMUM_BYTES);
+    assert_eq!(extent, 651);
+    let original = source.plot.expanded.gears[0].inputs[0].value_kind.clone();
+    source.plot.expanded.gears[0].inputs[0].value_kind = "fixture/unknown-type".into();
+    assert!(source.maximum_value_bytes().is_err());
+    source.plot.expanded.gears[0].inputs[0].value_kind = original;
+    source.plot.expanded.gears[0].inputs[0].abnormal_kind = Some("fixture/abnormal".into());
+    assert!(source.maximum_value_bytes().is_err());
 }

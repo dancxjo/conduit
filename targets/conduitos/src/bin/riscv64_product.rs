@@ -18,6 +18,10 @@ use conduitos::{
 };
 use core::panic::PanicInfo;
 
+#[cfg(feature = "native-compositor-core")]
+#[path = "riscv64_product/graphical.rs"]
+mod graphical;
+
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.conduitos_riscv64_product_start")]
 pub extern "C" fn conduitos_riscv64_product_start() -> ! {
@@ -105,6 +109,18 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
         .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
     let mut prepared = dual_region_plan::prepare(&identities, &offer, EMBEDDED_MAKE.build_id)
         .unwrap_or_else(|error| refuse(error.as_str()));
+    #[cfg(feature = "native-compositor-core")]
+    let graphical = graphical::prepare(&boot_record, &identities, &offer);
+    #[cfg(feature = "native-compositor-core")]
+    let framebuffer_basis = graphical
+        .as_ref()
+        .map(|graphic| graphic.framebuffer_basis());
+    #[cfg(not(feature = "native-compositor-core"))]
+    let framebuffer_basis = None;
+    #[cfg(not(feature = "native-compositor-core"))]
+    if EMBEDDED_MAKE.includes(conduitos::make::IMPL_NATIVE_PRESENTER) {
+        refuse("firmware-face-renderer-not-linked");
+    }
     let export = observatory::prepare_export(
         &boot_record,
         &identities,
@@ -112,7 +128,7 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
         &prepared,
         EMBEDDED_MAKE.build_id,
         EMBEDDED_MAKE.image_binding,
-        None,
+        framebuffer_basis,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     // Independent diagnostic Plays prepare after the ordinary Play. The
