@@ -1,0 +1,13 @@
+{
+  "run": 40097476352,
+  "job": 120883461531,
+  "head": "ebf9894139d747154d64e2e26ad8d2af749df5d7",
+  "bytes": 585880,
+  "sha256": "8846963eee67ca0be52c9833e1d6a2a4607cb17cd23601664baeefcae1d480ac",
+  "log": "outputs/6410-admission-120883461531-actual-job.log",
+  "actual_failed_targets": [
+    "bme280_lifecycle",
+    "device_frames"
+  ],
+  "limits": "First whole-run gh log request returned no log while run active; completed exact job REST log downloaded once successfully. Diagnosis pending comparison against branch join repair."
+}

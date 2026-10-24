@@ -1,0 +1,63 @@
+{
+  "source": "6adc488e20284a93d980b91563b94b6e51f758ba",
+  "tree": "240d919f140d8dd3c2f3c1f6b1525ef519be63f6",
+  "prior21_ELFs_unchanged": true,
+  "current_ELFs_rehashed": 23,
+  "files": [
+    {
+      "path": "6410-ci-failure-supplement-positive.json",
+      "bytes": 9390,
+      "sha256": "8c11b402cbe29ae33e50406a02dbac2e4bb06167561b675ddcb45631ad2bf12c"
+    },
+    {
+      "path": "6410-admission-failed-log-custody.json",
+      "bytes": 538,
+      "sha256": "a3fd37827d0f628d736b7b01031a34965b83f2f3e6ddb72e92ca77a689a1a067"
+    },
+    {
+      "path": "6410-branch-join-positive.json",
+      "bytes": 9471,
+      "sha256": "d71805e18f5bb9de69c6eef04c403cc3e62e3301d0122148cde053fcc44c1114"
+    },
+    {
+      "path": "run-6410-ci-failure-supplement.py",
+      "bytes": 2292,
+      "sha256": "e77ff408ce7ce54d841afcab49d52d5773d2a4079a9affcf0a30ddaa1673cbae"
+    },
+    {
+      "path": "publish-6410-ci-failure-supplement.py",
+      "bytes": 4299,
+      "sha256": "f9530437c0b71dac79916378f94791e7db46e7d7cae680f2e4957f1a65f871c5"
+    },
+    {
+      "path": "6410-admission-120883461531-actual-job.log.gz",
+      "bytes": 105921,
+      "sha256": "9590fb4a8b5857ce4a016cde5e503317d58e576a168be80b42a13f627e7f2d9f"
+    },
+    {
+      "path": "6410-ci-failure-supplement-owning-regressions.log.gz",
+      "bytes": 1186,
+      "sha256": "c57639939891012804c1e396fd6ea3a903c585cb17419efa9575245a6d13955c"
+    },
+    {
+      "path": "6410-ci-failure-supplement-scoped-strict.log.gz",
+      "bytes": 384,
+      "sha256": "c29ecd2adc317dab99463fd06927a7eff25af1f5427531f86be60d648b14aa68"
+    },
+    {
+      "path": "actual-test-0.elf.gz",
+      "bytes": 3662174,
+      "sha256": "69d41f2351ad8ff8a09e34a952493dbbe2001e6dea71cfcaa9f8b6f8b77492e3"
+    },
+    {
+      "path": "actual-test-1.elf.gz",
+      "bytes": 3614727,
+      "sha256": "66f91108bbc167a27bec72e108fbc91f247e511fcf5db1a61a10e899b985b6ba"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1085,
+      "sha256": "6e1b66193737016cbfbf354c75c6500a4dbd661580962879194bd9904dbf0b5a"
+    }
+  ]
+}
