@@ -98,12 +98,20 @@ fn explicit_capacity(source_kind: &str) -> Result<conduit_core::Plan, PlannerErr
 }
 
 fn assert_storage_refusal(result: Result<conduit_core::Plan, PlannerError>) {
-    assert!(
-        matches!(&result, Err(PlannerError::InvalidConnectionBudget(_))),
-        "undersized Plan admitted={}; unexpected refusal={:?}",
-        result.is_ok(),
-        result.as_ref().err(),
-    );
+    match result {
+        Err(PlannerError::InvalidConnectionBudget(message)) => {
+            assert!(message.starts_with("value/storage-bound@1:"), "{message}");
+            assert!(
+                message.contains("requires at least") && message.contains("admitted"),
+                "{message}"
+            );
+        }
+        other => panic!(
+            "undersized Plan admitted={}; unexpected refusal={:?}",
+            other.is_ok(),
+            other.as_ref().err()
+        ),
+    }
 }
 
 #[test]
