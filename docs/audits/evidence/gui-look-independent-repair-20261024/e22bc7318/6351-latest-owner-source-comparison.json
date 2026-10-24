@@ -1,0 +1,8 @@
+{
+  "head": "849c54edd2a187eeae6dcd36fdd7a90963d0eed9",
+  "review": "Source comparison only; no rebuild/retest at latest head.",
+  "typography_palette_overwrite_removed_by_owner": true,
+  "forced_color_specificity_defect_persists": true,
+  "existing_test_blob_unchanged": true,
+  "overlap": "Owner changed CSS by removing same typography rule independently; retained forced-color correction and tests still applicable semantically; do not fast-forward old repair over active owner head."
+}

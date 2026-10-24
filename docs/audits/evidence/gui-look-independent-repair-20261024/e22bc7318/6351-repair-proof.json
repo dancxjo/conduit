@@ -1,0 +1,57 @@
+{
+  "head": "e22bc731803c074d7b235c6518fc747fb4b4ec68",
+  "base": "3a416f499ec46a2af7beb92b5b2c2b3990099095",
+  "branch": "repair/6351-palette-orthogonality-20261024",
+  "original_negatives": {
+    "typography": {
+      "failed": 1,
+      "actual_dark_rgb": "7,27,23",
+      "incorrect_engineering_rgb": "237,242,247"
+    },
+    "forced_colors": {
+      "failed": 2
+    }
+  },
+  "corrected_suite": {
+    "passed": 104,
+    "failed": 0,
+    "duration_seconds": 14.6,
+    "workers": 1,
+    "retries": 0,
+    "browser": "existing pinned Chromium"
+  },
+  "proof_boundary": "Actual browser renderer fixture only; no live Body/native/physical acceptance. Screenshots at corrected exact commit, served from isolated worktree.",
+  "files": [
+    {
+      "path": "work/6351-negative.log",
+      "bytes": 2535,
+      "sha256": "7aae0f05ff619ae89e2ea2427b11c87ec513056022bc35c1a969799e2237f8e5"
+    },
+    {
+      "path": "work/6351-forced-negative.log",
+      "bytes": 5642,
+      "sha256": "65b4af7608b9710e7cfe7779ebffc1410f396a2d34fd09316a5b48690876d990"
+    },
+    {
+      "path": "work/6351-repaired-tests.log",
+      "bytes": 16050,
+      "sha256": "85226d944f359b873d6b51cec2c1e203644bb0ac9269ab323773e784fcaf93c3"
+    },
+    {
+      "path": "work/capture-6351-repair.mjs",
+      "bytes": 1901,
+      "sha256": "d4b8d1d19c2c4a39dba64a24ec77c39c7c1202142e46c42b3b13c723efca6c32"
+    },
+    {
+      "path": "outputs/6351-repaired-captures/forced.png",
+      "bytes": 18841,
+      "sha256": "73449b516c8c7c2d364b866c23ba3705094a88acbd40cbe924d3d4bb154b7c35"
+    },
+    {
+      "path": "outputs/6351-repaired-captures/normal.png",
+      "bytes": 22829,
+      "sha256": "45a2e0c4bf41b02a4c57c7a914646bde68089f35fed00811fad03c69690d7dae"
+    }
+  ],
+  "source_status": ""
+}

@@ -1,0 +1,111 @@
+[WebServer] (node:3486355) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 2 tests using 1 worker
+
+(node:3486380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/2] [chromium] › proof/browser/owner-face-component.spec.mjs:1390:3 › forced colors replace admitted editorial palette tokens
+  1) [chromium] › proof/browser/owner-face-component.spec.mjs:1390:3 › forced colors replace admitted editorial palette tokens 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 8
+    + Received  + 8
+
+      Object {
+    -   "accent": "LinkText",
+    -   "card": "Canvas",
+    -   "control": "ButtonText",
+    -   "focus": "Highlight",
+    -   "ink": "CanvasText",
+    -   "line": "CanvasText",
+    -   "muted": "CanvasText",
+    -   "paper": "Canvas",
+    +   "accent": "#205690",
+    +   "card": "#fff",
+    +   "control": "#8b9fb4",
+    +   "focus": "#205690",
+    +   "ink": "#1e3045",
+    +   "line": "#c4cfdb",
+    +   "muted": "#4c6074",
+    +   "paper": "#edf2f7",
+      }
+
+      1406 |         .map(key => [key, style.getPropertyValue(`--face-${key}`).trim()]));
+      1407 |     }, { view, palette });
+    > 1408 |     expect(tokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText',
+           |                    ^
+      1409 |       muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
+      1410 |   });
+      1411 | }
+        at /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-palette-repair/proof/browser/owner-face-component.spec.mjs:1408:20
+
+    Error Context: proof/browser/test-results/6351-forced-negative/owner-face-component-force-ec307-ed-editorial-palette-tokens-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    proof/browser/test-results/6351-forced-negative/owner-face-component-force-ec307-ed-editorial-palette-tokens-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace proof/browser/test-results/6351-forced-negative/owner-face-component-force-ec307-ed-editorial-palette-tokens-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:3486685) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[2/2] [chromium] › proof/browser/owner-face-component.spec.mjs:1390:3 › forced colors replace admitted phosphor palette tokens
+  2) [chromium] › proof/browser/owner-face-component.spec.mjs:1390:3 › forced colors replace admitted phosphor palette tokens 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 8
+    + Received  + 8
+
+      Object {
+    -   "accent": "LinkText",
+    -   "card": "Canvas",
+    -   "control": "ButtonText",
+    -   "focus": "Highlight",
+    -   "ink": "CanvasText",
+    -   "line": "CanvasText",
+    -   "muted": "CanvasText",
+    -   "paper": "Canvas",
+    +   "accent": "#205690",
+    +   "card": "#fff",
+    +   "control": "#8b9fb4",
+    +   "focus": "#205690",
+    +   "ink": "#1e3045",
+    +   "line": "#c4cfdb",
+    +   "muted": "#4c6074",
+    +   "paper": "#edf2f7",
+      }
+
+      1406 |         .map(key => [key, style.getPropertyValue(`--face-${key}`).trim()]));
+      1407 |     }, { view, palette });
+    > 1408 |     expect(tokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText',
+           |                    ^
+      1409 |       muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
+      1410 |   });
+      1411 | }
+        at /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-palette-repair/proof/browser/owner-face-component.spec.mjs:1408:20
+
+    Error Context: proof/browser/test-results/6351-forced-negative/owner-face-component-force-db420-ted-phosphor-palette-tokens-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    proof/browser/test-results/6351-forced-negative/owner-face-component-force-db420-ted-phosphor-palette-tokens-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace proof/browser/test-results/6351-forced-negative/owner-face-component-force-db420-ted-phosphor-palette-tokens-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › proof/browser/owner-face-component.spec.mjs:1390:3 › forced colors replace admitted editorial palette tokens 
+    [chromium] › proof/browser/owner-face-component.spec.mjs:1390:3 › forced colors replace admitted phosphor palette tokens 

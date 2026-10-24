@@ -1,0 +1,40 @@
+[WebServer] (node:3485397) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+(node:3485408) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [chromium] › proof/browser/owner-face-component.spec.mjs:1348:1 › admitted typography changes title family independently of palette, density and actions
+  1) [chromium] › proof/browser/owner-face-component.spec.mjs:1348:1 › admitted typography changes title family independently of palette, density and actions 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    Expected: "rgb(237, 242, 247)"
+    Received: "rgb(7, 27, 23)"
+
+      1383 |   expect(observations.result[0].family).not.toBe(observations.result[1].family);
+      1384 |   for (const key of ['palette', 'density', 'paper', 'ink', 'radius', 'text', 'action', 'disabled']) {
+    > 1385 |     expect(observations.result[0][key]).toEqual(observations.result[1][key]);
+           |                                         ^
+      1386 |   }
+      1387 | });
+      1388 |
+        at /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-palette-repair/proof/browser/owner-face-component.spec.mjs:1385:41
+
+    Error Context: proof/browser/test-results/6351-repair/owner-face-component-admit-c435c-palette-density-and-actions-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    proof/browser/test-results/6351-repair/owner-face-component-admit-c435c-palette-density-and-actions-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace proof/browser/test-results/6351-repair/owner-face-component-admit-c435c-palette-density-and-actions-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [chromium] › proof/browser/owner-face-component.spec.mjs:1348:1 › admitted typography changes title family independently of palette, density and actions 

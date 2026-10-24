@@ -1,0 +1,58 @@
+{
+  "pr": 6351,
+  "head": "3a416f499ec46a2af7beb92b5b2c2b3990099095",
+  "base": "c375807a059d3a5cc5d8e866cb27861fe04d7087",
+  "review_mode": "read_only_source_no_builds_no_ci_polling",
+  "findings": [
+    {
+      "priority": "P2",
+      "path": "targets/browser/handbook/owner-face-look.css",
+      "line": 58,
+      "title": "Keep engineering typography independent of the admitted palette",
+      "explanation": "The new typography=engineering selector assigns paper/card/ink/muted/line/accent/control/focus colors and radius. With palette=phosphor plus typography=engineering, later equal-specificity engineering declarations replace the dark palette with light engineering colors while phosphor color-scheme:dark remains. Changing only typography therefore changes palette and density geometry. These are independent admitted expression fields; the existing independent-typography test at proof/browser/owner-face-component.spec.mjs:1348 checks dataset palette equality but does not inspect actual rendered palette colors. Move color declarations to an explicit admitted palette choice and limit typography selector to font treatment; assert computed surface colors remain invariant when typography alone changes."
+    },
+    {
+      "priority": "P2",
+      "path": "targets/browser/handbook/owner-face-look.css",
+      "line": 61,
+      "title": "Match themed selector specificity when overriding forced-color tokens",
+      "explanation": "The forced-colors :host token assignments lose to :host([data-component-palette=...]) theme selectors, leaving explicit themed colors in custom properties. Two actual browser negative controls demonstrate this for editorial and phosphor. Corrective selector includes palette/typography attributes at matching specificity."
+    }
+  ],
+  "changed_paths": [
+    "docs/audits/gui-look-progress-6349.md",
+    "targets/browser/handbook/owner-face-component.mjs",
+    "targets/browser/handbook/owner-face-look.css"
+  ],
+  "overlap": {
+    "6339_bootstrap": false,
+    "6344_pulse": false,
+    "6348_generic_timer": false
+  },
+  "proof_scope": {
+    "pr_is_draft_checkpoint": true,
+    "ci_explicitly_deferred_in_pr_body": true,
+    "reported_browser_checks": 102,
+    "independently_executed_checks": false,
+    "screenshot_in_git_diff": false,
+    "screenshot_source_bound_receipt_in_git_diff": false,
+    "screenshot_claim": "Actual component rendered with fixture data, not live Body or native proof; candidly qualified in PR body and committed audit. No original screenshot file/hash/check log retained by this three-file diff, so visual/proof byte custody cannot be independently checked from commit alone.",
+    "native_proof": false,
+    "issue6349_full_acceptance": false,
+    "issues6174_5366_remain_open_by_stated_scope": true
+  },
+  "icon_review": {
+    "source": "Existing bounded-lucide pinned subset, repository constant path geometry; no runtime network/full-pack dependency.",
+    "interaction": "Decorative aria-hidden focusable=false SVG prepended to existing heading; no action identity or invoke path modifications.",
+    "coverage": "Five geometry constants, role mappings Body/Plot/Document/Info/Status; narrow heading slice, not all GUI surfaces."
+  },
+  "recommendation": "Keep draft, address palette/typography coupling and retain source-bound actual screenshots/check records before claiming reviewed visual acceptance. Do not close6349/6174/5366 from this slice.",
+  "repair": {
+    "head": "e22bc731803c074d7b235c6518fc747fb4b4ec68",
+    "branch": "repair/6351-palette-orthogonality-20261024",
+    "owning_browser_suite": "104passed",
+    "proof": "outputs/6351-repair-proof.json",
+    "original_negatives": "1typography+2forced-colors fail",
+    "source_branch_mutated": false
+  }
+}
