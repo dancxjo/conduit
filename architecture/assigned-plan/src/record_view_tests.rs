@@ -1,7 +1,7 @@
 //! Canonical slice/view equivalence and bounded no-allocation admission.
 use crate::*;
 use std::{vec, vec::Vec};
-mod allocation_probe {
+pub(super) mod allocation_probe {
     use std::thread_local;
     include!("../../plot/tests/common/allocation_probe.rs");
 }

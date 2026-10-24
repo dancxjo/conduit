@@ -27,3 +27,6 @@ mod execution;
 
 #[path = "display_support/observation.rs"]
 mod observation;
+
+#[path = "display_support/assigned.rs"]
+mod assigned;

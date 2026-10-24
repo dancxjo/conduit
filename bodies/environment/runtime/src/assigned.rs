@@ -4,8 +4,10 @@
 use conduit_core as c;
 use conduit_kernel as k;
 use core::mem::MaybeUninit;
+mod boundary;
 #[path = "assigned/record_input.rs"]
 mod record_input;
+use boundary::endpoint;
 use k::scheduler::{
     AssignedConnectionTrack as Track, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
 };
@@ -109,6 +111,29 @@ impl<
         // SAFETY: the shared builder initializes every field before Ok.
         Ok(unsafe { output.assume_init() })
     }
+    /// Explicit local Fore profile. Root must retain the separately checked
+    /// value contracts and authorize ingress before submitting to these cords.
+    pub fn prepare_with_fore(
+        bytes: &[u8],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        fore: &[c::AssignedForeRequirement],
+    ) -> Result<Self, AssignedKernelRefusal> {
+        let mut output = MaybeUninit::uninit();
+        Self::prepare_input_with_fore_into(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+            Some(fore),
+            &mut output,
+        )?;
+        // SAFETY: the shared builder initializes every field before Ok.
+        Ok(unsafe { output.assume_init() })
+    }
     /// Writes every field only after all checks succeed; Err leaves output alone.
     #[inline(never)]
     pub(crate) fn prepare_input_into(
@@ -119,15 +144,36 @@ impl<
         layout: &ResidentLayout<'_>,
         output: &mut MaybeUninit<Self>,
     ) -> Result<(), AssignedKernelRefusal> {
+        Self::prepare_input_with_fore_into(
+            input,
+            maxima,
+            required,
+            computations,
+            layout,
+            None,
+            output,
+        )
+    }
+    fn prepare_input_with_fore_into(
+        input: RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        fore: Option<&[c::AssignedForeRequirement]>,
+        output: &mut MaybeUninit<Self>,
+    ) -> Result<(), AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
         let schema = u16_at(input.header(), 8)?;
         if !matches!(
             schema,
-            c::ASSIGNED_KERNEL_PLAN_SCHEMA | c::ASSIGNED_NATIVE_PLAN_SCHEMA
+            c::ASSIGNED_KERNEL_PLAN_SCHEMA
+                | c::ASSIGNED_NATIVE_PLAN_SCHEMA
+                | c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
         ) {
             return Err(E::Unsupported);
         }
-        let identity = input.decode(maxima, required, computations)?;
+        let identity = input.decode(maxima, required, computations, fore)?;
         if N == 0
             || N > usize::from(u16::MAX)
             || P == 0
@@ -138,7 +184,9 @@ impl<
         {
             return Err(E::Layout);
         }
-        if identity.counts[9] != 0 || identity.counts[12] != 0 {
+        if usize::from(identity.counts[9]) != fore.map_or(0, |f| f.len())
+            || identity.counts[12] != 0
+        {
             return Err(E::Unsupported);
         }
         validate_layout(input, schema, layout)?;
@@ -182,8 +230,8 @@ impl<
                         return Err(E::Layout);
                     }
                     *seen = true;
-                    let source = endpoint::<N, P>(data, 18)?;
-                    let sink = endpoint::<N, P>(data, 23)?;
+                    let source = endpoint::<N, P>(data, 18, fore, cord as u16, true)?;
+                    let sink = endpoint::<N, P>(data, 23, fore, cord as u16, false)?;
                     let byte_capacity = u32_at(data, 32)?;
                     let maximum_value_bytes = u32_at(data, 37)?;
                     if maximum_value_bytes > byte_capacity {
@@ -212,14 +260,13 @@ impl<
                         3 => Track::Quiescence,
                         _ => return Err(E::Unsupported),
                     };
-                    let k::CordEndpoint::Local { node, port } = sink else {
-                        return Err(E::Unsupported);
-                    };
-                    if nodes[usize::from(node.0)].input_cords[usize::from(port.0)]
-                        .replace(spec.cord)
-                        .is_some()
-                    {
-                        return Err(E::Layout);
+                    if let k::CordEndpoint::Local { node, port } = sink {
+                        if nodes[usize::from(node.0)].input_cords[usize::from(port.0)]
+                            .replace(spec.cord)
+                            .is_some()
+                        {
+                            return Err(E::Layout);
+                        }
                     }
                     cords[cord] = spec;
                 }
@@ -236,16 +283,10 @@ impl<
                     range_count += 1;
                 }
                 c::ASSIGNED_ROUTE_TARGET => {
-                    if data.len() != 6 {
-                        return Err(E::Unsupported);
-                    }
                     let destination = targets.get_mut(target_count).ok_or(E::Capacity)?;
                     *destination = k::RouteTarget {
                         cord: k::CordId(u16_at(data, 0)?),
-                        sink: k::CordEndpoint::local(
-                            k::NodeId(u16_at(data, 2)?),
-                            k::PortId(u16_at(data, 4)?),
-                        ),
+                        sink: boundary::route_sink(data, fore)?,
                     };
                     target_count += 1;
                 }
@@ -383,18 +424,4 @@ fn u32_at(data: &[u8], offset: usize) -> Result<u32, AssignedKernelRefusal> {
             .try_into()
             .map_err(|_| AssignedKernelRefusal::Layout)?,
     ))
-}
-fn endpoint<const N: usize, const P: usize>(
-    data: &[u8],
-    offset: usize,
-) -> Result<k::CordEndpoint, AssignedKernelRefusal> {
-    if data[offset] != 0 {
-        return Err(AssignedKernelRefusal::Unsupported);
-    }
-    let node = u16_at(data, offset + 1)?;
-    let port = u16_at(data, offset + 3)?;
-    if usize::from(node) >= N || usize::from(port) >= P {
-        return Err(AssignedKernelRefusal::Capacity);
-    }
-    Ok(k::CordEndpoint::local(k::NodeId(node), k::PortId(port)))
 }

@@ -35,7 +35,7 @@ fn checked_output_services_real_requests_and_exposes_refusal_without_pin_effects
         });
     }
 }
-fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
+pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
     mode: u8,
     prepare: impl FnOnce(
         &PreparedDisplayOutput,

@@ -23,6 +23,24 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
             .args([
                 operation,
                 "--locked",
+                "-p",
+                "conduit-assigned-plan",
+                "-p",
+                "conduit-embedded-build",
+            ]);
+        if operation == "clippy" {
+            command.args(["--all-targets", "--", "-D", "warnings"]);
+        }
+        execute(&mut command)?;
+    }
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                operation,
+                "--locked",
                 "--manifest-path",
                 "mechanisms/io/tm1637/Cargo.toml",
                 "--features",
