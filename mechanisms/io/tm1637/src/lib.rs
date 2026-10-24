@@ -1,6 +1,24 @@
 //! Finite TM1637 electrical transport, called by an admitted Host Call.
 //! Command meaning and register mapping belong upstream, not in this driver.
 #![no_std]
+#[cfg(feature = "host-call")]
+extern crate alloc;
+#[cfg(feature = "host-call")]
+mod back;
+#[cfg(feature = "host-call")]
+mod codec;
+#[cfg(feature = "host-call")]
+mod contract;
+#[cfg(feature = "host-call")]
+pub mod installation;
+#[cfg(feature = "host-call")]
+pub use back::WriteBack;
+#[cfg(feature = "host-call")]
+pub mod owner;
+#[cfg(feature = "host-call")]
+pub use codec::PacketRefusal;
+#[cfg(feature = "host-call")]
+pub use contract::{WriteContract, MAXIMUM_BYTES, WRITE_CALL, WRITE_KIND};
 
 /// Selected GPIO provider. `true` releases a line; it must never drive it high.
 /// Each method must finish within its admitted bound. The provider owns pin
