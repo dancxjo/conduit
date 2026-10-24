@@ -474,6 +474,9 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     expect(snapshot.face.basis.active_play_id).toBeTruthy();
     expect(snapshot.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
     await expect(page.locator("#sign")).not.toBeEmpty();
+    await page.getByRole("button", {name:"Inspect execution",exact:true}).click();
+    await expect(page.locator(".selected-summary")).toContainText("Completed");
+    await expect(page.locator(".selected-summary")).toContainText("Execution Signs");
     await page.screenshot({path:info.outputPath("explicit-play.png")});
 
     server.child.kill("SIGTERM");

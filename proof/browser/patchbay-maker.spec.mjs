@@ -3,6 +3,7 @@ import { createInterface } from "node:readline";
 import { writeFile, readFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 async function entrance(args = []) {
@@ -111,6 +112,11 @@ for (const width of [1440, 980]) test(`ordinary Morse encounter and checked refu
     expect((await snapshot(page)).face.basis.body_id).toBeNull();
     expect(errors).toEqual([]);
     const manifest = await (await page.request.get(`${server.url}/patchbay.application.json`)).json();
+    const template = JSON.parse(await readFile("targets/browser/patchbay-workbench/assets/patchbay.application.template.json", "utf8"));
+    for (const resource of template.resources.filter(resource => !["supplied:", "generated:"].some(prefix => resource.source.startsWith(prefix)))) {
+      const digest = `sha256:${createHash("sha256").update(await readFile(resource.source)).digest("hex")}`;
+      expect(manifest.resources.find(item => item.role === resource.role)?.sha256, resource.source).toBe(digest);
+    }
     await writeFile(info.outputPath("application-manifest.json"),JSON.stringify(manifest,null,2));
     await writeFile(info.outputPath("receipt.json"),JSON.stringify({baseline_source:"dd92bde82017fe685404ef9197b56d3b3127006c",browser:browser.version(),resource_provenance:"application-manifest.json",viewport:{width,height:1000},face:opened.face.identity,authoring:{source_document_id:opened.authoring.source_document_id,checked_plot_id:opened.authoring.checked_plot_id,expanded_plot_id:opened.authoring.expanded_plot_id},gears:4,ports:7,cords:3,palette:opened.authoring.palette.length,refusal:incompatible.diagnostic,errors},null,2));
   } finally {
