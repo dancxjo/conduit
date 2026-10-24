@@ -1,6 +1,21 @@
+import { decorate, iconForRole, iconForToken } from "./gui-icons.mjs";
+
 const React = window.React;
 const Flow = window.ReactFlow;
 const e = React.createElement;
+
+// React owns the empty decoration slot; the shared finite renderer owns its SVG.
+// Unknown authored tokens keep their original text instead of guessing a symbol.
+function SemanticIcon({ role, token, fallback = "", title, className = "faceplate-icon" }) {
+  const key = token ? iconForToken(token) : iconForRole(role);
+  const mount = React.useCallback(node => {
+    if (!node) return;
+    node.replaceChildren();
+    if (key) decorate(node, key);
+    else node.textContent = fallback;
+  }, [key, fallback]);
+  return e("span", { ref: mount, className, title, "aria-hidden": "true" });
+}
 
 function PortRow({ port, onActivate }) {
   const receiving = port.direction === "receiving";
@@ -28,7 +43,14 @@ function PortRow({ port, onActivate }) {
   });
   return e("div", { className: `faceplate-port ${port.direction}${port.diagnosticError ? " diagnostic-error" : ""}${activity ? ` debugger-${activity.phase}` : ""}`, "data-port-id": port.id, "data-compatibility": compatibility, title: diagnostic, "data-debugger-phase": activity?.phase || "inactive", onClick:event=>{event.stopPropagation();onActivate(port.id);} },
     target && handle,
-    e("span", { className: "faceplate-port-name", title: port.accessibilityName }, port.label),
+    e("button", {
+      type: "button",
+      className: "faceplate-port-name faceplate-port-select nodrag nowheel",
+      title: port.accessibilityName,
+      "aria-pressed": port.semanticSelected === true,
+      "aria-label": `Select ${port.boundary ? "Plot boundary: " : ""}${port.accessibilityName}`,
+      onClick: event => { event.stopPropagation(); onActivate(port.id); },
+    }, e(SemanticIcon, { role: "Port", className: "faceplate-inline-icon" }), port.label),
     e("code", { title: port.valueKind }, port.valueKind),
     activity?.latest_value && e("output", { className: "debugger-value", "aria-label": `Latest observed value ${activity.latest_value.summary}` }, activity.latest_value.summary),
     !target && handle,
@@ -57,11 +79,12 @@ export function FaceplateNode({ data }) {
       onClick: (event) => event.stopPropagation(),
       onChange: () => data.onActivate(data.subjectIdentity),
     }),
-    e("span", { className: "faceplate-icon", title: data.iconName, "aria-hidden": "true" }, data.icon),
+    e(SemanticIcon, { role: data.role, token: data.iconToken, fallback: data.icon, title: data.iconName }),
     e("span", { className: "faceplate-title", title: data.label }, title),
     e("span", { className: "faceplate-role", title: data.role }, data.role),
   ),
   data.debugger && e("p", { className: "debugger-status", role: data.debugger.phase === "faulted" ? "alert" : "status" },
+    e(SemanticIcon, { role: data.debugger.phase === "faulted" ? "Diagnostic" : "Status", className: "faceplate-inline-icon" }),
     data.debugger.phase === "faulted"
       ? `Fault ${data.debugger.retained_fault_code}`
       : `${data.debugger.latest_kind} · ${data.debugger.observed_count} observed`,

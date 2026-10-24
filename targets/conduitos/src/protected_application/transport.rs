@@ -53,7 +53,15 @@ impl Service {
         let exchange = domain.exchange().map_err(|_| Refusal::Application)?;
         exchange.fill(0);
         wire::encode_request(envelope, request, exchange)?;
-        match domain.enter(1) {
+        let diagnostic = matches!(request, Request::Preflight | Request::Commit);
+        if diagnostic {
+            record_entry_cost("before", envelope.sequence, request, domain.cost());
+        }
+        let entered = domain.enter(1);
+        if diagnostic {
+            record_entry_cost("after", envelope.sequence, request, domain.cost());
+        }
+        match entered {
             Ok(DomainReturn::Yielded) => {}
             result => {
                 record_refusal(
@@ -151,6 +159,7 @@ impl Service {
     }
     fn exchange_command(&mut self, command: &Command) -> Result<Reply, Refusal> {
         let input = data::encode_command(command)?;
+        record_target_input(command, &input);
         self.request(Request::Begin {
             bytes: input.len() as u32,
         })?;
@@ -269,6 +278,63 @@ fn record_command_refusal(command: &Command, error: Refusal) {
     if writeln!(line,
         "CONDUIT_APPLICATION_COMMAND_REFUSAL operation={operation} slot={slot:?} target={target:?} refusal={error:?}"
     ).is_ok() {
+        write_observation(line.as_bytes());
+    }
+}
+
+/// Root-only diagnostics: no new guest grant, entry, payload copy or authority.
+fn record_target_input(command: &Command, input: &[u8]) {
+    use core::fmt::Write;
+    use sha2::{Digest, Sha256};
+    let Command::PrepareTarget {
+        slot,
+        target,
+        value,
+    } = command
+    else {
+        return;
+    };
+    let compressed = input.starts_with(b"CAPZ\x01\0\0\0");
+    let decoded_bytes = if compressed {
+        input
+            .get(8..12)
+            .and_then(|bytes| bytes.try_into().ok())
+            .map(u32::from_le_bytes)
+            .map(|length| length as usize)
+    } else {
+        Some(input.len())
+    };
+    let digest = Sha256::digest(input);
+    let mut line = crate::sign_format::FixedText::new();
+    let result = (|| -> core::fmt::Result {
+        write!(
+            line,
+            "CONDUIT_APPLICATION_TARGET_INPUT operation=prepare-target slot={slot} target={target} wire_bytes={} capz={compressed} decoded_bytes={decoded_bytes:?} sha256=",
+            input.len()
+        )?;
+        for byte in digest {
+            write!(line, "{byte:02x}")?;
+        }
+        writeln!(
+            line,
+            " source={} checked={} expanded={} body={:?} plan={:?}",
+            value.graph.source_document_id.as_str(),
+            value.graph.checked_plot_id.as_str(),
+            value.graph.expanded_plot_id.as_str(),
+            value.body,
+            value.plan
+        )
+    })();
+    if result.is_ok() {
+        write_observation(line.as_bytes());
+    }
+}
+
+fn record_entry_cost(stage: &str, sequence: u64, request: Request, cost: DomainCost) {
+    use core::fmt::Write;
+    let mut line = crate::sign_format::FixedText::new();
+    let counters = (cost.entries, cost.interrupt_entries, cost.preemptions);
+    if writeln!(line, "CONDUIT_APPLICATION_ENTRY_COST stage={stage} sequence={sequence} request={request:?} cumulative_entries_interrupts_preemptions={counters:?}").is_ok() {
         write_observation(line.as_bytes());
     }
 }

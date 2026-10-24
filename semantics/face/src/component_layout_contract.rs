@@ -13,16 +13,14 @@ pub fn component_layout_type() -> conduit_core::StructuredInfoType {
     ComponentLayoutInfo::semantic_type().expect("checked finite component layout Type")
 }
 
-/// The existing Fore identity with an explicit contract revision and required
-/// layout configuration. Existing component-mask@2 construction is unchanged.
-/// ComponentRecipeInfo supplies existing identity and typed region bindings;
-/// ComponentLayoutInfo owns @3 composition. Legacy gutter/reflow/column fields
-/// and geometry_for_width remain @2 geometry, not a second @3 layout authority.
+/// Complete-Look contract @5 adds required structural layout to @4.
+/// Recipes retain typed region bindings; ComponentLayoutInfo owns composition.
+/// Legacy recipe geometry fields do not acquire a second layout authority.
 #[cfg(feature = "plot-catalog")]
 pub fn layout_component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     use conduit_core::*;
     let mut kind = crate::component_mask_kind(maximum_bytes);
-    kind.kind_contract_revision = KindIdentity::from("conduit.face/component-mask@3");
+    kind.kind_contract_revision = KindIdentity::from("conduit.face/component-mask@5");
     let child = |node| ComponentLayoutChild::new(1, 0, 1, 0, node).unwrap();
     let root = ComponentLayoutNode::column(
         ComponentLayoutAlignment::Stretch,
@@ -72,7 +70,7 @@ pub fn layout_component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     kind
 }
 
-/// Reviewed @3 structural variants. The old @2 sources retain their own identity.
+/// Reviewed structural Source variants with complete Look resources.
 pub const CRECHE_LAYOUT_MASK_SOURCE: &str =
     include_str!("../components/creche-layout-mask.conduit");
 pub const TODO_LAYOUT_MASK_SOURCE: &str = include_str!("../components/todo-layout-mask.conduit");

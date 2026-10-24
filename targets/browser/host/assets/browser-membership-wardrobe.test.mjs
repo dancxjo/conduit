@@ -41,9 +41,12 @@ test('component selection keeps exact Show integers and refuses open Look fields
   const input = { requestId: 'browser-component:1', request: { body_id: 'body' },
     showBytes: new TextEncoder().encode('{"revision":18446744073709551615}'),
     look: 'compact', recipe: 'flat' };
-  const text = new TextDecoder().decode(checkedComponentMaskRequestFrame(input));
-  assert.match(text, /18446744073709551615/);
-  assert.match(text, /"kind":"face-component-mask-request"/);
+  for (const look of ['compact', 'spacious', 'compact-editorial', 'spacious-phosphor']) {
+    const text = new TextDecoder().decode(checkedComponentMaskRequestFrame({ ...input, look }));
+    assert.match(text, /18446744073709551615/);
+    assert.match(text, /"kind":"face-component-mask-request"/);
+    assert.equal(JSON.parse(text).look, look);
+  }
   for (const mutation of [{ look: 'arbitrary-css' }, { recipe: 'change-actions' },
     { requestId: 'unbounded' }, { showBytes: new Uint8Array(65537) }]) {
     assert.throws(() => checkedComponentMaskRequestFrame({ ...input, ...mutation }));

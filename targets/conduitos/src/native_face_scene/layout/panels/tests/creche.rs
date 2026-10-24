@@ -57,14 +57,8 @@ fn actual_creche() -> (
         &face,
     )
     .unwrap();
-    let expression = admit_visual_expression(
-        Ok(visual_expression_from_info(
-            conduit_core::StructuredInfoValue::from_canonical_bytes(
-                configuration.expression.canonical_value(),
-            )
-            .unwrap(),
-        )
-        .unwrap()),
+    let expression = conduit_face::admit_visual_look(
+        &configuration.requested_look().unwrap(),
         VisualUserConstraints {
             forced_colors: false,
             reduced_motion: true,
@@ -72,7 +66,8 @@ fn actual_creche() -> (
             maximum_supported_text_scale_percent: 200,
         },
     )
-    .unwrap();
+    .unwrap()
+    .visual;
     (face, recipe, expression)
 }
 

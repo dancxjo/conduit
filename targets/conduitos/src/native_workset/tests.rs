@@ -261,3 +261,96 @@ fn visible_checked_candidate_does_not_widen_installed_workset_authority() {
         Err(WorksetRefusal::UnknownPlot)
     ));
 }
+
+#[test]
+fn compact_keyboard_target_retains_exact_graph_and_canonical_values() {
+    use conduitos_application_core::data::{self, Command, Target};
+    use sha2::{Digest, Sha256};
+    let expanded = super::checked(super::NativePlot::KeyboardCanvas).unwrap();
+    let graph = patchbay_graph::PatchbayGraph::from_expanded(&expanded).unwrap();
+    assert_eq!(
+        graph.source_document_id.as_str(),
+        "fd681a367856550384d5155c8ba3e7f36c6c008c249029b009aa075ac6c23516"
+    );
+    assert_eq!(
+        graph.checked_plot_id.as_str(),
+        "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b"
+    );
+    assert_eq!(
+        graph.expanded_plot_id.as_str(),
+        "bb0bfd56d97029a496e5b8652134f0c76b3b460fb1de828cc6ef5018a5dcf2f1"
+    );
+    let command = Command::PrepareTarget {
+        slot: 2,
+        target: 3,
+        value: Target {
+            graph,
+            plan: Some("c9f5ac1bcad10e5d1543fb141c3aa734537ddb3ae9cac8cf709213d24538d7a0".into()),
+            body:
+                "body-plan/sha256:d9c386d2771d4e24e104860ac4eab8aec95744c8cc2b60cb4d6bea757f50228d"
+                    .into(),
+        },
+    };
+    let bytes = data::encode_command(&command).unwrap();
+    println!(
+        "COMPACT_KEYBOARD_TARGET wire_bytes={} decoded_bytes={} sha256={:x}",
+        bytes.len(),
+        u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
+        Sha256::digest(&bytes)
+    );
+    // The exact former 17,606-byte / 426,638-expanded-byte payload and its
+    // f92c0894... SHA-256 are retained at d1a15a3e3 and in the native receipt.
+    // V2 changes only the private byte-array representation. Keep the same
+    // complete target and assert its existing wire/expanded bounds directly.
+    assert!(bytes.len() <= conduitos_application_core::MAX_BLOB);
+    assert_eq!(&bytes[..8], b"CAPZ\x01\0\0\0");
+    let expanded_bytes = u32::from_le_bytes(bytes[8..12].try_into().unwrap());
+    assert!(expanded_bytes < 426_638);
+    let mut workspace = data::Workspace::new().unwrap();
+    let started = std::time::Instant::now();
+    let decoded = workspace.decode_command(&bytes).unwrap();
+    let elapsed = started.elapsed();
+    let Command::PrepareTarget {
+        slot,
+        target,
+        value,
+    } = decoded
+    else {
+        panic!("exact command variant");
+    };
+    assert_eq!((slot, target), (2, 3));
+    let Command::PrepareTarget {
+        value: original, ..
+    } = &command
+    else {
+        unreachable!()
+    };
+    assert_eq!(value.graph, original.graph);
+    assert_eq!(value.plan, original.plan);
+    assert_eq!(value.body, original.body);
+    println!(
+        "HOST_DIAGNOSTIC full_public_decode_ns={} includes_decompress_preflight_typed_decode=true guest_budget_proof=false",
+        elapsed.as_nanos()
+    );
+    for gear in &value.graph.gears {
+        for control in &gear.controls {
+            if let conduit_core::ConfigurationValue::Structured(structured) = &control.value {
+                let profile = structured.profile().clone();
+                let canonical = structured.canonical_value().to_vec();
+                let length = canonical.len();
+                let started = std::time::Instant::now();
+                let rebuilt = conduit_core::StructuredConfigurationValue::new(profile, canonical)
+                    .expect("same exact canonical value must retain validation");
+                let elapsed = started.elapsed();
+                assert_eq!(&rebuilt, structured);
+                println!(
+                    "HOST_DIAGNOSTIC gear={} control={} canonical_bytes={} structured_validation_ns={} guest_budget_proof=false",
+                    gear.gear_id.as_str(),
+                    control.key,
+                    length,
+                    elapsed.as_nanos()
+                );
+            }
+        }
+    }
+}

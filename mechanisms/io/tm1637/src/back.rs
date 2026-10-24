@@ -88,6 +88,11 @@ impl<const P: usize> StepBack<P> for WriteBack {
                         None,
                         Some(reason),
                     ) => StepOutcome::Fail(reason),
+                    (HostCallDisposition::Cancelled, None, Some(reason))
+                        if reason.code == FailureCode::Cancelled =>
+                    {
+                        StepOutcome::Fail(reason)
+                    }
                     (HostCallDisposition::Cancelled, None, None) => fail(FailureCode::Cancelled, 0),
                     _ => fail(FailureCode::InvalidLifecycle, 10),
                 }

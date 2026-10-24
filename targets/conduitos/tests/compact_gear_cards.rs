@@ -5,7 +5,8 @@ extern crate alloc;
 mod fixture;
 
 use conduit_face::{
-    Face, FaceRole, GraphicsCommandKind, GraphicsPaintRole, GraphicsShapeStyle, GraphicsTextRole,
+    Face, FaceIconKey, FaceRole, GraphicsCommandKind, GraphicsPaintRole, GraphicsShapeStyle,
+    GraphicsTextRole,
 };
 use conduitos::native_face_scene::NativeFaceScene;
 
@@ -36,14 +37,48 @@ fn cards(scene: &NativeFaceScene) -> Vec<(i16, i16, u16, u16)> {
 }
 
 #[test]
-fn real_patchbay_face_has_compact_cards_on_large_viewport() {
+fn real_patchbay_face_uses_available_columns_with_bounded_card_height() {
     let face = patchbay();
     let retained = face.clone();
     let mut scene = NativeFaceScene::prepare(face, 1280, 720).unwrap();
     scene.show_diagram(true);
     assert_eq!(
         cards(&scene),
-        vec![(32, 64, 320, 192), (368, 64, 320, 192), (32, 272, 320, 192)]
+        vec![(32, 64, 600, 192), (648, 64, 600, 192), (32, 272, 600, 192)]
+    );
+    assert_eq!(
+        scene
+            .frame()
+            .unwrap()
+            .scene
+            .commands()
+            .iter()
+            .filter(|command| { command.kind == GraphicsCommandKind::OrthogonalPath })
+            .count(),
+        2
+    );
+    let show = fixture::show(&retained);
+    assert!(matches!(
+        scene.pointer(1200, 80, &show, 1),
+        Ok(conduitos::native_face_scene::FaceSceneInput::Changed)
+    ));
+    assert!(scene.showing_details());
+    assert!(
+        retained
+            .subjects
+            .iter()
+            .filter(|subject| subject.role == FaceRole::Gear)
+            .any(|subject| {
+                scene
+                    .frame()
+                    .unwrap()
+                    .scene
+                    .commands()
+                    .iter()
+                    .any(|command| {
+                        command.payload() == format!("Gear identity: {}", subject.identity)
+                    })
+            })
     );
     assert_eq!(scene.face(), &retained);
 }
@@ -86,6 +121,17 @@ fn narrow_page_golden_keeps_each_exact_gear_and_unicode_label_bounded() {
             })
             .expect("one visible Gear heading");
         assert!(title.payload().ends_with("..."));
+        let baseline = conduitos::display::typography::single_line_preview(
+            "1 · É中 λ long readable identifier with a final Ω",
+            conduitos::display::typography::TextRole::Heading,
+            236,
+        )
+        .unwrap();
+        assert_eq!(title.payload(), baseline);
+        assert!(frame.scene.commands().iter().all(|command| {
+            command.kind != GraphicsCommandKind::Icon
+                || command.payload() != FaceIconKey::GenericGear.as_str()
+        }));
         let layout = conduitos::display::typography::TextLayout::new(
             title.payload(),
             conduitos::display::typography::TextRole::Heading,
@@ -98,6 +144,74 @@ fn narrow_page_golden_keeps_each_exact_gear_and_unicode_label_bounded() {
         scene.turn_page(true);
     }
     assert_eq!(scene.page(), 2);
+}
+
+#[test]
+fn narrow_short_heading_keeps_exact_text_with_an_admitted_gear_badge() {
+    let mut face = patchbay();
+    for gear in face
+        .subjects
+        .iter_mut()
+        .filter(|subject| subject.role == FaceRole::Gear)
+    {
+        gear.name = "A".into();
+    }
+    let face = Face::new_with_semantics(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+    .unwrap();
+    let retained = face.clone();
+    let mut scene = NativeFaceScene::prepare(face, 320, 240).unwrap();
+    scene.show_diagram(true);
+    let frame = scene.frame().unwrap();
+    let icon = frame
+        .scene
+        .commands()
+        .iter()
+        .find(|command| {
+            command.kind == GraphicsCommandKind::Icon
+                && command.payload() == FaceIconKey::GenericGear.as_str()
+        })
+        .expect("short heading leaves room for its Gear badge");
+    let title = frame
+        .scene
+        .commands()
+        .iter()
+        .find(|command| {
+            command.text_role() == GraphicsTextRole::Heading && command.payload() == "1 · A"
+        })
+        .expect("the complete original heading remains readable");
+    assert_eq!(
+        (
+            icon.bounds.x,
+            icon.bounds.y,
+            icon.bounds.width,
+            icon.bounds.height
+        ),
+        (42, 78, 16, 16)
+    );
+    assert_eq!(
+        (
+            title.bounds.x,
+            title.bounds.y,
+            title.bounds.width,
+            title.bounds.height
+        ),
+        (66, 73, 212, 32)
+    );
+    assert_eq!(
+        title.bounds.x - (icon.bounds.x + icon.bounds.width as i16),
+        8
+    );
+    assert_eq!(title.bounds.x + title.bounds.width as i16, 278);
+    assert_eq!(scene.face(), &retained);
 }
 
 #[test]

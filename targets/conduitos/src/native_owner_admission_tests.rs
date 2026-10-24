@@ -34,6 +34,23 @@ impl BinaryWebSocketIo for ScriptedLine {
 }
 
 fn admitted_exchange() -> (RoutedAdmissionRequest, PortableAdmissionReceipt) {
+    let advertisement = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: "host/native".into(),
+        boot_id: "boot/native".into(),
+        offer_generation: OfferGeneration(1),
+        profile: "profile/native".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    admitted_exchange_with_advertisement(advertisement)
+}
+
+fn admitted_exchange_with_advertisement(
+    advertisement: HostAdvertisement,
+) -> (RoutedAdmissionRequest, PortableAdmissionReceipt) {
     let body = Body::born(
         "source/native-route".into(),
         "checked/native-route".into(),
@@ -50,17 +67,6 @@ fn admitted_exchange() -> (RoutedAdmissionRequest, PortableAdmissionReceipt) {
             NOW + 1_000,
         )
         .unwrap();
-    let advertisement = HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id: "host/native".into(),
-        boot_id: "boot/native".into(),
-        offer_generation: OfferGeneration(1),
-        profile: "profile/native".into(),
-        bases: vec![],
-        resources: vec![],
-        capabilities: vec![],
-        planner_capabilities: vec![],
-    };
     let signature = invitation.secret.sign(&invitation.signing_transcript(
         &advertisement.host_id,
         &advertisement.boot_id,
@@ -94,15 +100,15 @@ fn admitted_exchange() -> (RoutedAdmissionRequest, PortableAdmissionReceipt) {
     let receipt = PortableAdmissionReceipt {
         schema: SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
         credential,
-        host_advertisement: advertisement,
+        host_advertisement: advertisement.clone(),
         membership_admitted: true,
-        current_offers_available: false,
+        current_offers_available: !advertisement.capabilities.is_empty(),
         plan_created: false,
         play_created: false,
     };
     (
         RoutedAdmissionRequest {
-            schema: ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
+            schema: COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
             invitation_id: request.invitation_id.as_str().into(),
             request,
         },
@@ -294,7 +300,18 @@ fn stale_host_and_oversized_request_refuse_before_transmission() {
         Err(NativeOwnerAdmissionRefusal::RequestBasis)
     ));
     assert!(line.sent.is_empty());
+    request.schema = conduit_body::LEGACY_ROUTED_ADMISSION_REQUEST_SCHEMA.into();
     request.request.host_advertisement.profile = "x".repeat(MAXIMUM_BINARY_MESSAGE_BYTES).into();
+    let current = request.request.host_advertisement.clone();
+    assert!(matches!(
+        exchange_document(&mut line, &request, &current),
+        Err(NativeOwnerAdmissionRefusal::RequestPressure)
+    ));
+    assert!(line.sent.is_empty());
+    request.schema = COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA.into();
+    request.request.host_advertisement.profile = "x"
+        .repeat(conduit_body::admission_advertisement_wire::MAXIMUM_EXPANDED_BYTES)
+        .into();
     let current = request.request.host_advertisement.clone();
     assert!(matches!(
         exchange_document(&mut line, &request, &current),
@@ -414,4 +431,54 @@ fn route_candidate_must_match_the_invitation_endpoint_and_certificate() {
         validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 1_000),
         Err(NativeOwnerAdmissionRefusal::EndpointBinding)
     ));
+}
+
+#[test]
+fn actual_native_offer_completes_signed_owner_request_and_receipt_with_both_wire_bounds() {
+    for (identity_bytes, generation) in [(64, 1), (192, u64::MAX)] {
+        let advertisement = crate::product_bases::native_mask_host_advertisement(
+            &"h".repeat(identity_bytes).into(),
+            &"b".repeat(identity_bytes).into(),
+            generation,
+            &crate::product_bases::fixture_surface_provider(),
+        );
+        let raw = serde_json::to_vec(&advertisement).unwrap();
+        if identity_bytes == 64
+            && let Ok(path) = std::env::var("CONDUIT_JOIN_PRODUCT_FIXTURE")
+        {
+            std::fs::write(path, &raw).unwrap();
+        }
+        assert!(raw.len() > MAXIMUM_BINARY_MESSAGE_BYTES);
+        let (request, receipt) = admitted_exchange_with_advertisement(advertisement.clone());
+        let request_wire = serde_json::to_vec(&request).unwrap();
+        let reconstructed: RoutedAdmissionRequest = serde_json::from_slice(&request_wire).unwrap();
+        assert_eq!(
+            serde_json::to_vec(&reconstructed.request).unwrap(),
+            serde_json::to_vec(&request.request).unwrap()
+        );
+        let response = RoutedAdmissionResponse::Admitted {
+            schema: request.response_schema().into(),
+            receipt: Box::new(receipt.clone()),
+        };
+        let response_wire = serde_json::to_vec(&response).unwrap();
+        assert!(request_wire.len() <= MAXIMUM_BINARY_MESSAGE_BYTES);
+        assert!(response_wire.len() <= MAXIMUM_BINARY_MESSAGE_BYTES);
+        let mut line = ScriptedLine {
+            response: response_wire,
+            sent: Vec::new(),
+        };
+        let received = exchange_document(&mut line, &request, &advertisement).unwrap();
+        assert_eq!(
+            serde_json::to_vec(&received).unwrap(),
+            serde_json::to_vec(&receipt).unwrap()
+        );
+        assert_eq!(received.host_advertisement, advertisement);
+        assert_eq!(line.sent, request_wire);
+        std::eprintln!(
+            "native_signed_roundtrip identities={identity_bytes} generation={generation} expanded={} request={} response={} wire_limit={MAXIMUM_BINARY_MESSAGE_BYTES}",
+            raw.len(),
+            line.sent.len(),
+            line.response.len()
+        );
+    }
 }

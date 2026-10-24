@@ -1,9 +1,0 @@
-   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/targets/conduitos)
-    Finished `test` profile [unoptimized] target(s) in 15.85s
-     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/deps/conduitos-8d92eb259810ba83)
-
-running 1 test
-test native_face_scene::tests::primary_action_exposes_only_current_finite_text_choices ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1333 filtered out; finished in 0.24s
-

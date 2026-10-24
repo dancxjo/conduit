@@ -20,6 +20,8 @@ extern crate alloc;
 mod administration;
 #[cfg(feature = "authenticated-admission")]
 mod admission;
+#[cfg(feature = "authenticated-admission")]
+pub mod admission_advertisement_wire;
 mod biography;
 mod body_time_plan;
 mod candidate;

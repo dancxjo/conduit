@@ -271,6 +271,12 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
             .iter()
             .find(|gear| gear.gear_id == connection.sink_gear_id)
             .expect("checked sink gear must exist");
+        crate::value_storage::validate_capacity(
+            connection,
+            source_gear,
+            sink_gear,
+            limits.byte_capacity,
+        )?;
         let resource = resource_port::plan_resource_connection(
             connection,
             source_gear,

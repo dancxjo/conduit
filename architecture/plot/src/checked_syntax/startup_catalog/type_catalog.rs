@@ -268,10 +268,20 @@ impl StartupCatalog {
             .into_iter()
             .find(|ty| ty.name == name)
             .ok_or("native custody requires installed exact Type")?;
-        if !witness.agrees(&actual) || self.native_law_custody.len() >= 4096 {
-            return Err("native custody differs from installed laws or exceeds capacity".into());
+        if !witness.agrees(&actual) {
+            return Err("native custody differs from installed laws".into());
+        }
+        // Custody is optional compiler metadata. A new witness must not make
+        // existing Type/law admission fail when this registry is full. Keep
+        // prior witnesses, and leave this installed Type explicitly unclaimed.
+        if !self.native_law_custody.contains_key(name) && self.native_law_custody.len() >= 4096 {
+            return Ok(());
         }
         self.native_law_custody.insert(name.into(), witness.clone());
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "type_catalog/custody_pressure_tests.rs"]
+mod custody_pressure_tests;

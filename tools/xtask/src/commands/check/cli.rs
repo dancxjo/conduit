@@ -20,6 +20,8 @@ pub enum CheckScope {
     Pete,
     /// Validate portable device protocol plots and finite hardware contracts.
     DeviceProtocols,
+    /// Verify pinned lexical resource admission and consuming epoch custody.
+    ResourceEpochs(super::ResourceEpochArgs),
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

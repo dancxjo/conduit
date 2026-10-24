@@ -15,7 +15,7 @@ use super::{
     ConduitosArch, ConduitosError,
 };
 
-const EXPECTED_IMAGE_FILE_COUNT: usize = 7;
+const EXPECTED_IMAGE_FILE_COUNT: usize = 8;
 const CONDUITOS_GPT_DISK_GUID: &str = "434f4e44-5549-544f-5300-000000000001";
 
 pub fn execute_architecture_proof(
@@ -370,6 +370,12 @@ fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError>
         .and_then(|_| fs::create_dir_all(&efi_boot))
         .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     copy(&paths.kernel, &boot.join("conduitos"))?;
+    copy(
+        &paths
+            .root
+            .join("mechanisms/implementations/bounded-lucide/LICENSE"),
+        &paths.iso_root.join("LUCIDE-LICENSE"),
+    )?;
     let mut spore = vec![0xff; conduitos::spore_provision::REGION_BYTES];
     let magic = b"CONDUIT_SPORE_MEDIA@1\0";
     spore[..magic.len()].copy_from_slice(magic);

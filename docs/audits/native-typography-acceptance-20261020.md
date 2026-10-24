@@ -28,7 +28,7 @@ Host and fresh Boot are bound by the ordinary product journey gate.
 All **22 steps** pass, retaining **22 actual QEMU PNG captures**, source-driven
 4→3→4 choices by keyboard/pointer, Birth/Wake/Plan/Play/Stop, Home/Body/Patchbay,
 protected ordinary execution and failure/refusal transitions. The real
-[initial Crèche](evidence/native-typography-acceptance-20261020/graphical/x86_64/journey-frames/front-door-ready.png)
+[initial Crèche](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
 shows the serif source-owned title and sans controls; this and the native
 Details capture were visually inspected. The [complete journey receipt](evidence/native-typography-acceptance-20261020/graphical/x86_64/x86_64-product-journey-proof.json)
 and compressed serial evidence retain the exact typed Show/interaction custody.

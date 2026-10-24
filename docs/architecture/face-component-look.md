@@ -107,8 +107,12 @@ they do not yet configure a speech or generative provider.
 
 Visual precedence reuses existing admission: user constraints and hard Host
 limits outrank the requested expression. Successful fallback retains both the
-requested Look and the selected canonical Phosphor resource. An impossible
-user/Host constraint combination refuses. Generic no-Look browser realization
+requested Look and the selected canonical Phosphor resource. A requested Look
+without a visual facet selects that same deterministic default, reporting
+`PhosphorFallback { refusal: MissingVisualFacet }`. Its requested visual facet
+still reports `Absent`; its spoken/generative policy stays intact in the
+requested resource and is not enacted by the visual Mask. Accessibility rules
+apply to the default too. An impossible user/Host constraint combination refuses. Generic no-Look browser realization
 clears only paint properties owned by the previous Look and its metadata, while
 preserving Face meaning and unrelated renderer properties.
 
@@ -239,3 +243,28 @@ Face/component/recipe do not imply an unchanged Mask or route Plan.
 Earlier density/palette QEMU captures stay bound to their recorded source. They
 do not establish v2 typography, owner replacement or acceptance of this combined
 development implementation; those need fresh source-bound proof.
+
+## Complete Plan transport
+
+Configured Looks remain full typed immutable values in the ordinary Mask Plan.
+The JSON `PlannedMaskPlot.plan` envelope is explicitly versioned
+`conduit.face/mask-plan-deflate-json@1`: inspectable `plan_id`, finite
+`expanded_bytes`, and `zlib_hex`. The existing pinned no-std DEFLATE implementation
+restores the exact ordinary Plan before its existing validation. The decoded
+extent is at most 256 KiB; compressed bytes are at most 64 KiB. Exact consumed
+input, decoded length and Plan ID are required. Carrier, route, response, native
+storage and queue admission remain independent. Binary serde retains its field
+sequence; unversioned JSON is rejected rather than given an implicit upgrade.
+
+
+## Browser view provenance
+
+The DOM view schema `conduit.browser/owner-face-mask@2` carries one complete
+selected Look for rendering. Its configuration provenance describes the full
+requested Look retained in the ordinary Plan and prepared Mask by profile,
+canonical byte extent and SHA-256. This is diagnostic projection, not a resource
+admission or replacement configuration. Recipe/source/Back provenance and Face
+subjects/actions/relationships remain; the renderer cannot acquire authority
+from a provenance reference. The SDK requires this view version. The 64 KiB
+view arena is unchanged; current twenty-row maximum-length Unicode/action
+fixtures fit all four named component Looks without dropping semantics.

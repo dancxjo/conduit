@@ -271,3 +271,44 @@ fn bounded_backend_preserves_integer_and_finite_float_values() {
         );
     }
 }
+
+#[test]
+fn typed_map_failures_remain_final_malformed() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct Record {
+        count: u8,
+        nested: Nested,
+    }
+    #[derive(Debug, Deserialize, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct Nested {
+        values: Vec<u8>,
+    }
+    for version in ["CAPSEQ1", "CAPSEQ2"] {
+        let valid = format!(r#"[2,"{version}",{{"count":7,"nested":{{"values":[2,8,9]}}}}]"#);
+        assert_eq!(
+            decode::<Record>(valid.as_bytes()).unwrap(),
+            Record {
+                count: 7,
+                nested: Nested { values: vec![8, 9] }
+            }
+        );
+        for payload in [
+            r#"{"nested":{"values":[2,8,9]}}"#,
+            r#"{"count":7,"count":8,"nested":{"values":[2,8,9]}}"#,
+            r#"{"count":"7","nested":{"values":[2,8,9]}}"#,
+            r#"{"count":256,"nested":{"values":[2,8,9]}}"#,
+            r#"{"count":7,"nested":{"values":[2,8,"9"]}}"#,
+            r#"{"count":7,"nested":{"values":[1,8,9]}}"#,
+            r#"{"count":7,"nested":{"values":[3,8,9]}}"#,
+            r#"{"count":7,"nested":{"values":[2,8,9],"unknown":0}}"#,
+        ] {
+            let wire = format!(r#"[2,"{version}",{payload}]"#);
+            assert!(
+                matches!(decode::<Record>(wire.as_bytes()), Err(Refusal::Malformed)),
+                "{wire}"
+            );
+        }
+    }
+}

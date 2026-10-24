@@ -62,7 +62,7 @@ fn project_view(
     route: Option<RouteView>,
 ) -> FaceView {
     FaceView {
-        schema: "conduit.browser/owner-face-mask@1",
+        schema: "conduit.browser/owner-face-mask@2",
         component: None,
         body_id: body_id.as_str().into(),
         face_id: face.identity.as_str().into(),

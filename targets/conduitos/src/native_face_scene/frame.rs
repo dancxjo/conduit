@@ -109,6 +109,7 @@ impl NativeFaceScene {
                 self.typography,
             )?;
         if !editor_visible && !self.showing_diagram && !self.showing_details {
+            layout::append_region_surfaces(&mut scene, self.rows(), self.page, self.screen)?;
             for row in self.rows().iter().filter(|row| row.page == self.page) {
                 layout::append_panel_chrome(&mut scene, row, self.screen)?;
             }
@@ -165,52 +166,66 @@ impl NativeFaceScene {
         } else {
             None
         };
-        let footer = self.local_notice.clone().or(preview).unwrap_or_else(|| {
-            if !self.local_input_available {
-                if chrome.compact {
-                    chrome::NO_LOCAL_INPUT_COMPACT.into()
+        let look_hint = (self.local_creche_preferences
+            && self.local_input_available
+            && self.interaction_admitted
+            && !self.showing_details
+            && !self.showing_diagram
+            && !editor_visible)
+            .then(|| chrome.creche_preferences_hint(self.text_scale_percent))
+            .flatten()
+            .map(String::from);
+        let footer = self
+            .local_notice
+            .clone()
+            .or(preview)
+            .or(look_hint)
+            .unwrap_or_else(|| {
+                if !self.local_input_available {
+                    if chrome.compact {
+                        chrome::NO_LOCAL_INPUT_COMPACT.into()
+                    } else {
+                        chrome::NO_LOCAL_INPUT.into()
+                    }
+                } else if editor_visible {
+                    if chrome.compact {
+                        chrome::EDITOR_COMPACT_FOOTER.into()
+                    } else {
+                        chrome::EDITOR_FOOTER.into()
+                    }
+                } else if self.showing_details
+                    && self
+                        .graph_reading
+                        .as_ref()
+                        .is_some_and(|reading| reading.active)
+                {
+                    if chrome.compact {
+                        "Tab subject · Esc graph".into()
+                    } else {
+                        "Tab next subject · Shift+Tab previous · PgUp/PgDn facts · Esc graph".into()
+                    }
+                } else if chrome.compact && !self.showing_diagram {
+                    if self.interaction_admitted {
+                        "PgDn · F2".into()
+                    } else {
+                        "Read only · F2".into()
+                    }
+                } else if self.showing_diagram {
+                    diagram::link_notice(&self.face, self.screen, self.page)
+                } else if !self.interaction_admitted && self.has_diagram() {
+                    "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
+                } else if !self.interaction_admitted {
+                    "Read only · PgUp/PgDn pages · F2 facts".into()
+                } else if self.showing_details && self.has_diagram() {
+                    "Alt+Left/Right subjects · PgUp/PgDn · F3 graph".into()
+                } else if self.showing_details {
+                    "PgUp/PgDn pages · Tab next · F2 return".into()
+                } else if self.has_diagram() {
+                    "Tab next · Enter act · F2 inspect · F3 Patchbay".into()
                 } else {
-                    chrome::NO_LOCAL_INPUT.into()
+                    "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
                 }
-            } else if editor_visible {
-                if chrome.compact {
-                    chrome::EDITOR_COMPACT_FOOTER.into()
-                } else {
-                    chrome::EDITOR_FOOTER.into()
-                }
-            } else if self.showing_details
-                && self
-                    .graph_reading
-                    .as_ref()
-                    .is_some_and(|reading| reading.active)
-            {
-                if chrome.compact {
-                    "Tab subject · Esc graph".into()
-                } else {
-                    "Tab next subject · Shift+Tab previous · PgUp/PgDn facts · Esc graph".into()
-                }
-            } else if chrome.compact && !self.showing_diagram {
-                if self.interaction_admitted {
-                    "PgDn · F2".into()
-                } else {
-                    "Read only · F2".into()
-                }
-            } else if self.showing_diagram {
-                diagram::link_notice(&self.face, self.screen, self.page)
-            } else if !self.interaction_admitted && self.has_diagram() {
-                "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
-            } else if !self.interaction_admitted {
-                "Read only · PgUp/PgDn pages · F2 facts".into()
-            } else if self.showing_details && self.has_diagram() {
-                "Alt+Left/Right subjects · PgUp/PgDn · F3 graph".into()
-            } else if self.showing_details {
-                "PgUp/PgDn pages · Tab next · F2 return".into()
-            } else if self.has_diagram() {
-                "Tab next · Enter act · F2 inspect · F3 Patchbay".into()
-            } else {
-                "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
-            }
-        });
+            });
         chrome.admit_footer(&footer, self.text_scale_percent)?;
         push(
             &mut scene,

@@ -133,9 +133,9 @@ measured about 2.4% faster. Packing flags and a count into the completion
 reservation also regressed about 4.8%. Those alternatives were not selected.
 Their exact raw results and source identities remain in the
 [inline receipt](evidence/fargan-inline-regression-20261017.json),
-[inline archive](evidence/fargan-inline-regression-20261017-raw.tar.gz),
+[inline archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz),
 [variant receipt](evidence/fargan-scheduler-variants-20261017.json) and
-[variant archive](evidence/fargan-scheduler-variants-20261017-raw.tar.gz).
+[variant archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 No hardware/compiler-layout mechanism was established. The selected design
 keeps original field types and reservations; that storage fact is independent
 of the measured timing result.
@@ -158,7 +158,7 @@ cost under 1,000 µs, 480 µs met elapsed, and distinct met/miss/timer-loss/canc
 stale outcomes. It is a deterministic-emulator proof with `physical_claim=false`.
 
 The [current receipt](evidence/scheduler-fargan-completion-20261017.json) and
-[raw archive](evidence/scheduler-fargan-completion-20261017-raw.tar.gz) reverify
+[raw archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) reverify
 after extraction: 288 FARGAN frames/76 hashes, 1,152 selector samples/67 hashes,
 and 96 terminal pairs/24 hashes. All 24 corruption cases are refused, including
 re-signed false work, output, Sign, allocation, storage and native-word claims.

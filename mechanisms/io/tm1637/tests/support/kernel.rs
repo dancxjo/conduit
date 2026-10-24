@@ -276,3 +276,56 @@ fn sink_phase_advances_only_with_the_ordinary_step_commit() {
     ));
     assert!(io.test_host_request().is_none());
 }
+
+#[test]
+fn cancelled_host_completion_preserves_detail_and_rejects_inconsistent_reason() {
+    for (failure, expected) in [
+        (
+            None,
+            k::Failure {
+                code: k::FailureCode::Cancelled,
+                detail: 0,
+            },
+        ),
+        (
+            Some(k::Failure {
+                code: k::FailureCode::Cancelled,
+                detail: 13,
+            }),
+            k::Failure {
+                code: k::FailureCode::Cancelled,
+                detail: 13,
+            },
+        ),
+        (
+            Some(k::Failure {
+                code: k::FailureCode::HostCallFailed,
+                detail: 13,
+            }),
+            k::Failure {
+                code: k::FailureCode::InvalidLifecycle,
+                detail: 10,
+            },
+        ),
+    ] {
+        let value = k::ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 1,
+        };
+        let input = StepInputBytes::test_frame([None], None);
+        let mut back = WriteBack::new(1);
+        let mut io = StepIo::test_frame([Some(value)], [false], [None], None, 4);
+        assert_eq!(back.step(&mut io, &input), StepOutcome::Progress);
+        <WriteBack as StepBack<1>>::step_committed(&mut back);
+        let outcome = k::HostCallOutcome {
+            disposition: k::HostCallDisposition::Cancelled,
+            output: None,
+            failure,
+        };
+        let mut io =
+            StepIo::test_frame([None], [false], [None], Some((k::RequestId(0), outcome)), 4);
+        assert_eq!(back.step(&mut io, &input), StepOutcome::Fail(expected));
+        assert!(io.test_host_request().is_none());
+    }
+}

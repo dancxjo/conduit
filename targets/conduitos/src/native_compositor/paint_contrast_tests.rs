@@ -95,3 +95,77 @@ fn forced_colors_and_missing_look_fallback_keep_the_same_contrast_contract() {
         }
     }
 }
+
+#[test]
+fn complete_look_tokens_drive_native_roles_with_accessibility_precedence() {
+    use super::visual_look_paint;
+    use conduit_face::{editorial_look, engineering_look, phosphor_look};
+    for (red_shift, blue_shift) in [(16, 0), (0, 16)] {
+        let format = DisplayFormat {
+            width: 640,
+            height: 480,
+            pitch: 2560,
+            bits_per_pixel: 32,
+            red_shift,
+            green_shift: 8,
+            blue_shift,
+        };
+        let hint = expression(VisualPalette::Phosphor, false, false);
+        let forced = expression(VisualPalette::Phosphor, true, false);
+        for look in [
+            phosphor_look().unwrap(),
+            editorial_look().unwrap(),
+            engineering_look().unwrap(),
+            conduit_face::navy_look(
+                conduit_face::VisualDensity::Compact,
+                conduit_face::VisualTypography::Editorial,
+            )
+            .unwrap(),
+            conduit_face::navy_look(
+                conduit_face::VisualDensity::Spacious,
+                conduit_face::VisualTypography::Engineering,
+            )
+            .unwrap(),
+        ] {
+            let conduit_face::LookVisualFacetOption::Some(facet) = look.visual() else {
+                panic!("visual facet")
+            };
+            let background = facet.tokens().background();
+            assert_eq!(
+                visual_look_paint(format, Role::Background, Some(&hint), Some(&look)),
+                format.pixel(background.red(), background.green(), background.blue())
+            );
+            for surface in [Role::Background, Role::Surface] {
+                let backdrop = luminance(
+                    visual_look_paint(format, surface, Some(&hint), Some(&look)),
+                    format,
+                );
+                for (role, minimum) in [
+                    (Role::Foreground, 4.5),
+                    (Role::Muted, 4.5),
+                    (Role::Accent, 4.5),
+                    (Role::Status, 4.5),
+                    (Role::Danger, 4.5),
+                    (Role::Success, 4.5),
+                    (Role::Focus, 3.0),
+                    (Role::Border, 3.0),
+                ] {
+                    let ink = luminance(
+                        visual_look_paint(format, role, Some(&hint), Some(&look)),
+                        format,
+                    );
+                    let ratio = (ink.max(backdrop) + 0.05) / (ink.min(backdrop) + 0.05);
+                    assert!(
+                        ratio >= minimum,
+                        "{} {role:?} {surface:?}: {ratio}",
+                        look.identity()
+                    );
+                    assert_eq!(
+                        visual_look_paint(format, role, Some(&forced), Some(&look)),
+                        visual_paint(format, role, Some(&forced))
+                    );
+                }
+            }
+        }
+    }
+}

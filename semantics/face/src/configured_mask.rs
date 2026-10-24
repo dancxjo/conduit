@@ -7,6 +7,7 @@ use conduit_core::{
     CheckedPlotId, ConfigurationValue, KindId, PlannedGear, SourceDocumentId,
     StructuredConfigurationValue,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_plot::{
     CanonicalBackCatalog, CanonicalStartupValue, CheckedSyntaxDocument, ExpandedAuthoringPlot,
     ExpandedGearProvenance, ProfileCatalog,
@@ -42,7 +43,7 @@ pub struct PreparedConfiguredMask<'a> {
     pub component_invocation_path: Vec<String>,
     pub renderer: &'a PlannedGear,
     pub recipe: &'a StructuredConfigurationValue,
-    pub expression: &'a StructuredConfigurationValue,
+    pub look: &'a StructuredConfigurationValue,
     pub layout: Option<&'a StructuredConfigurationValue>,
 }
 
@@ -101,7 +102,9 @@ pub fn prepare_configured_mask<'a>(
         return Err(ConfiguredMaskRefusal::RendererPlacement);
     }
     let recipe = structured_field(placement, "recipe")?;
-    let expression = structured_field(placement, "expression")?;
+    let look = structured_field(placement, "look")?;
+    crate::LookInfo::decode(look.canonical_value())
+        .map_err(|_| ConfiguredMaskRefusal::Configuration)?;
     let layout = selected_layout(catalog, placement)?;
     let provenance = expanded
         .expanded
@@ -122,7 +125,7 @@ pub fn prepare_configured_mask<'a>(
         component_invocation_path,
         renderer: placement,
         recipe,
-        expression,
+        look,
         layout,
     })
 }
@@ -234,20 +237,19 @@ fn bind_source_recipe(
                     }
                 }
                 if current.startup_parameters.len() != 1
-                    || current.startup_parameters[0].name != "expression"
+                    || current.startup_parameters[0].name != "look"
                 {
                     return Err(ConfiguredMaskRefusal::RecipeNotSourceLiteral);
                 }
-                let expression_binding = gear
+                let look_binding = gear
                     .startup_bindings
                     .iter()
-                    .find(|binding| binding.name == "expression")
+                    .find(|binding| binding.name == "look")
                     .ok_or(ConfiguredMaskRefusal::Configuration)?;
-                let CanonicalStartupValue::Structured(expression_value) = &expression_binding.value
-                else {
+                let CanonicalStartupValue::Structured(look_value) = &look_binding.value else {
                     return Err(ConfiguredMaskRefusal::Configuration);
                 };
-                if expression_value.parameter_reference() != Some("expression") {
+                if look_value.parameter_reference() != Some("look") {
                     return Err(ConfiguredMaskRefusal::Configuration);
                 }
                 component = Some((
@@ -277,15 +279,15 @@ fn bind_source_recipe(
                     return Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral);
                 }
             }
-            let expression_binding = gear
+            let look_binding = gear
                 .startup_bindings
                 .iter()
-                .find(|binding| binding.name == "expression")
+                .find(|binding| binding.name == "look")
                 .ok_or(ConfiguredMaskRefusal::Configuration)?;
-            let CanonicalStartupValue::Structured(value) = &expression_binding.value else {
+            let CanonicalStartupValue::Structured(value) = &look_binding.value else {
                 return Err(ConfiguredMaskRefusal::Configuration);
             };
-            if value.parameter_reference() != Some("expression") {
+            if value.parameter_reference() != Some("look") {
                 return Err(ConfiguredMaskRefusal::Configuration);
             }
         }
@@ -316,7 +318,7 @@ pub struct ConfiguredMaskConfiguration {
     pub execution_profile_id: conduit_core::ExecutionProfileId,
     pub implementation_id: conduit_core::ImplementationId,
     pub recipe: StructuredConfigurationValue,
-    pub expression: StructuredConfigurationValue,
+    pub look: StructuredConfigurationValue,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub layout: Option<StructuredConfigurationValue>,
 }
@@ -332,7 +334,7 @@ impl PreparedConfiguredMask<'_> {
             execution_profile_id: self.renderer.execution_profile_id.clone(),
             implementation_id: self.renderer.implementation_id.clone(),
             recipe: self.recipe.clone(),
-            expression: self.expression.clone(),
+            look: self.look.clone(),
             layout: self.layout.cloned(),
         }
     }
@@ -359,9 +361,8 @@ fn selected_layout<'a>(
         .iter()
         .filter(|p| p.key == "layout")
         .count();
-    let version_three =
-        placement.kind_contract_revision.as_str() == "conduit.face/component-mask@3";
-    if startups.is_empty() && declarations.is_empty() && values == 0 && !version_three {
+    let version_five = placement.kind_contract_revision.as_str() == "conduit.face/component-mask@5";
+    if startups.is_empty() && declarations.is_empty() && values == 0 && !version_five {
         return Ok(None);
     }
     if startups.len() != 1 || declarations.len() != 1 || values != 1 || startups[0].has_default {
@@ -390,4 +391,13 @@ fn selected_layout<'a>(
     )
     .map_err(|_| ConfiguredMaskRefusal::Configuration)?;
     Ok(Some(value))
+}
+
+impl ConfiguredMaskConfiguration {
+    /// Decode the complete resource from this exact selected placement.
+    pub fn requested_look(
+        &self,
+    ) -> Result<crate::LookInfo, conduit_plot::rust_binding::NativeBindingRefusal> {
+        crate::LookInfo::decode(self.look.canonical_value())
+    }
 }

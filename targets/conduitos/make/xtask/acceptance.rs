@@ -388,8 +388,13 @@ fn validate_serial_join(
         )
     })?;
     let expected = &admitted.provision.spore;
-    if join.get("schema").and_then(serde_json::Value::as_str)
-        != Some("conduit.conduitos/serial-spawn-observation@1")
+    let legacy = join.get("schema").and_then(serde_json::Value::as_str)
+        == Some("conduit.conduitos/serial-spawn-observation@1")
+        && join.get("protocol").and_then(serde_json::Value::as_u64) == Some(1);
+    let compact = join.get("schema").and_then(serde_json::Value::as_str)
+        == Some("conduit.conduitos/serial-spawn-observation@2")
+        && join.get("protocol").and_then(serde_json::Value::as_u64) == Some(2);
+    if !(legacy || compact)
         || join.get("spore_id").and_then(serde_json::Value::as_str)
             != Some(expected.spore_id.as_str())
         || join.get("image_id").and_then(serde_json::Value::as_str)
@@ -418,11 +423,18 @@ fn validate_serial_join(
             "guest serial join lost exact spore, invitation, Host, or Boot identity",
         ));
     }
-    let advertisement: HostAdvertisement =
-        serde_json::from_value(join.get("advertisement").cloned().ok_or_else(|| {
-            ConduitosError::refusal("creche-spore-join-invalid", "advertisement absent")
-        })?)
-        .map_err(|error| ConduitosError::refusal("creche-spore-join-invalid", error.to_string()))?;
+    let advertisement_value = join.get("advertisement").cloned().ok_or_else(|| {
+        ConduitosError::refusal("creche-spore-join-invalid", "advertisement absent")
+    })?;
+    let advertisement: HostAdvertisement = if compact {
+        serde_json::from_value::<conduit_body::admission_advertisement_wire::CompactAdvertisement>(
+            advertisement_value,
+        )
+        .map(|value| value.0)
+    } else {
+        serde_json::from_value(advertisement_value)
+    }
+    .map_err(|error| ConduitosError::refusal("creche-spore-join-invalid", error.to_string()))?;
     let claim: SpawnInvitationClaim = serde_json::from_value(serde_json::json!({
         "invitation_id": admitted.provision.invitation_provision.invitation_id,
         "body_id": expected.body_id,

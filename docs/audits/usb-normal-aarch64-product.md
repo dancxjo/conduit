@@ -28,7 +28,7 @@ Independent wire validation observed five class controls and sixteen exact
 OUT/IN pairs, or zero class effects for the mismatched Root. Play reported zero
 allocations and reallocations. Two arena tests and strict all-target xtask
 Clippy passed. Exact current identities and hashes are in
-[evidence/usb-normal-aarch64-product.json](evidence/usb-normal-aarch64-product.json).
+[evidence/usb-normal-aarch64-product.json](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 
 A separately retained comparison at `99cd2c5461a8f4cec1b2bf298708769a20cba5f0`
 executed the same Source package and Root on canonical PC and AArch64 images
