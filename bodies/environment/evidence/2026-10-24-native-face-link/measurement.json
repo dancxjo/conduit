@@ -1,0 +1,34 @@
+{
+  "proof_class": "CPU regressions and ESP32 release link only; no flash or MCU Face admission",
+  "source_commit": "7e17ed13d2156903089ebf3da4998858e51937ea",
+  "public_command": "cargo xtask prove environment root-face-esp32",
+  "stack_bytes": 28788,
+  "stack_floor_bytes": 28672,
+  "root_heap_bytes": 114688,
+  "sdk_heap_bytes": 73728,
+  "root_internal_bytes": 60800,
+  "root_reclaimed_bytes": 53888,
+  "cpu0_rtc_fast_scratch_bytes": 4096,
+  "face_preparation_guard_bytes": 4608,
+  "control_reserve_bytes": 8192,
+  "cpu_fixture_pointer_bits": 64,
+  "cpu_full_scope_face_owner_bytes": 1048,
+  "cpu_full_scope_preparation_peak_bytes": 3487,
+  "cpu_full_scope_cumulative_requested_bytes": 3940,
+  "cpu_full_scope_allocations": 38,
+  "physical_execution": false,
+  "files": {
+    "build.log": {
+      "bytes": 4327,
+      "sha256": "84db19440c417183fbce35520efc28de18659acbd10f2f04b7fc89454bceabe3"
+    },
+    "root.elf": {
+      "bytes": 2849092,
+      "sha256": "1e5add43bb82e20500063ac8b8ca9e08842b03ca95f98b12eb4fdbaad386d227"
+    },
+    "native-root.map": {
+      "bytes": 8638556,
+      "sha256": "1b1d507912258db84fc06a280f222341e039a28a8b14910d6fa098f3e9fd4a75"
+    }
+  }
+}
