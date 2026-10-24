@@ -1,0 +1,81 @@
+{
+  "source": "a161ac4741d1262f69343ea411e3f4f23018239d",
+  "image_sha256": "0c6c3965ec96d4e4757dbbe2496d0d0273548a15cf1b721fc6d78f89122770f2",
+  "normal_qemu_journey_completed": true,
+  "steps": [
+    "arrive",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "birth",
+    "wake",
+    "plan",
+    "play",
+    "commons-hub",
+    "commons-workshop",
+    "unavailable-wake-refused",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "gear-details",
+    "diagram-return",
+    "stop",
+    "home-returned",
+    "patchbay-reentered"
+  ],
+  "body_id": "1f1d74fd78a76d0ec614c1ff371a9e502f28df5b3f599172499a887c064415ec",
+  "host_id": "66b702616d923e86a13e80ddf7a313653cb67dba6310e70fb2114c80bd3639c2",
+  "boot_id": "bb27296277ad1575c69d395e3fced5ec8bf028e1fd5046e30703cd07bbc51b48",
+  "graph_face_id": "77741aa78f881f246a53d2c74fc67cad8d15bc8170da11f3cc4c5ad0aadf4542",
+  "graph_face_revision": 74,
+  "graph_subjects": {
+    "Host": 1,
+    "Plot": 5,
+    "Body": 1,
+    "Document": 1,
+    "Gear": 4,
+    "Port": 7,
+    "Cord": 3,
+    "Info": 1
+  },
+  "qmp_png_hashes_verified": 27,
+  "visual_inspection": {
+    "gear_symbols": 4,
+    "port_symbols": 7,
+    "footer": "3/3 cords shown \u00b7 0 omitted",
+    "observer": "assistant image inspection"
+  },
+  "outer_graphical_profile_exit": 1,
+  "compositor_lifecycle_completed": false,
+  "failure": "compositor-lifecycle-proof-invalid: embedded compositor ELF: Ambiguous",
+  "headless_asset_tail_started": false,
+  "physical_evidence": false,
+  "human_enactment": false,
+  "archives": {
+    "journey-proof.json": {
+      "archive": "journey-proof.json.gz",
+      "raw_bytes": 1494343,
+      "raw_sha256": "74dd1b54414bc6cb6bd734e9e1fc3407b3cce1fed01ccf7ab61663c3ad6577cd"
+    },
+    "journey-serial.log": {
+      "archive": "journey-serial.log.gz",
+      "raw_bytes": 3324783,
+      "raw_sha256": "4335e05ebc39bafd9c67af47b5b528e4ff10d5723b64278d5033f0620c02cfe1"
+    },
+    "native-shell-paired-linear.json": {
+      "archive": "native-shell-paired-linear.json.gz",
+      "raw_bytes": 4533962,
+      "raw_sha256": "28482561b5e90ace4cd76baefbcbe8ca5c133748112086c3308c9ac8fcd097b4"
+    },
+    "journey-qmp.log": {
+      "archive": "journey-qmp.log.gz",
+      "raw_bytes": 221259,
+      "raw_sha256": "775648546e4000069b86928410e386f8cff014cebcf87af47e1a4ddab9060e18"
+    }
+  }
+}

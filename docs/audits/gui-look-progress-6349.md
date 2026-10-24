@@ -323,3 +323,30 @@ font/surface integration and cross-renderer acceptance remain broader Look work.
 About 1.9GiB of actual disk space was recovered from verified inactive task-owned
 incremental cache after staging. Active process maps/open files/crate ownership
 were inventoried; compiled libraries/binaries, source and evidence were preserved.
+
+## Native graph width and Port symbols
+
+Source `a161ac474` removes the native diagram's 320px card-width cap, using the
+available admitted viewport width for its existing two-column structure. Port
+symbols reuse the existing Plug mask and consume only residual commands. A
+measured all-or-none check refuses decoration if any prepared label would be
+shortened. The 48-command ceiling, complete mandatory prefix, source subjects
+and action identities remain unchanged; hit regions and Cord endpoints follow
+the shared wider geometry. The initial narrow positive fixture correctly falls
+back; the corrected wide check and dense 24-Port fallback pass. Full native
+scene checks pass: 144, with one opt-in ignored.
+
+The fresh normal QEMU journey completes at that Source with 27 verified PNGs.
+The visible graph has 4 Gear/7 Port symbols, 3/3 Cords shown and zero omitted.
+[Source-bound captures, canonical Face and raw archives](evidence/gui-look-6349-native-ports/README.md)
+retain the positive journey and a material negative result: the subsequent
+compositor-custody collector refuses `embedded compositor ELF: Ambiguous`, so
+the full graphical-profile command exits 1. No headless asset tail starts and
+no success is claimed for artifact custody, CI, native accessibility, physical
+or publication acceptance. Existing compositor ownership (#6365/#6369) remains
+separate; neither is assumed to fix this exact refusal.
+
+Prior native image/proof trees and the newly built ISO are preserved in task
+storage. Two process/map/open-file audits reclaimed roughly 7GiB of inactive
+incremental cache while preserving compiled libraries, active builds, artifacts
+and other tasks.
