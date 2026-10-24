@@ -103,6 +103,36 @@ impl Drop for Publisher<'_> {
     }
 }
 impl Reader<'_> {
+    /// Borrow the exact retained revision without advancing its freshness clock.
+    /// Mask-local paging may read the same truth repeatedly; the owner advances
+    /// semantic age separately through `with_current`. This creates no clock,
+    /// caller permit, membership or output authority. Shared reads may nest;
+    /// a simultaneous publication or clock update refuses with Busy.
+    /// ```compile_fail
+    /// use conduit_environment_runtime::publication_face_custody::Reader;
+    /// fn leak<'a>(reader: &'a Reader<'a>) -> &'a conduit_face::Face {
+    ///     reader.with_retained(|face, _| face).unwrap()
+    /// }
+    /// ```
+    pub fn with_retained<R>(
+        &self,
+        consume: impl FnOnce(&Face, ReadStatus) -> R,
+    ) -> Result<R, CustodyRefusal> {
+        let face = self
+            .owner
+            .face
+            .try_borrow()
+            .map_err(|_| CustodyRefusal::Busy)?;
+        Ok(consume(
+            face.current(),
+            ReadStatus {
+                source_sequence: face.last_source_sequence(),
+                publisher_retained: self.owner.retained.get(),
+                refusal: self.owner.refusal.get(),
+            },
+        ))
+    }
+
     /// Age and borrow one sealed revision synchronously. The consumer cannot
     /// retain this borrow across await or return a borrowed Face as R. Reentrant
     /// read/write pressure refuses without blocking, retrying or allocating.

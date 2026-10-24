@@ -158,3 +158,46 @@ fn dropping_a_publisher_while_reading_never_leaves_false_retained_custody() {
         .unwrap();
     assert!(matches!(owner.claim(), Err(E::AlreadyClaimed)));
 }
+
+#[test]
+fn retained_reads_share_one_revision_until_the_owner_explicitly_advances_age() {
+    let owner = owner();
+    let bytes = reading();
+    let (mut publisher, reader) = owner.claim().unwrap();
+    publisher.publish(snapshot(&bytes, 1), 1000).unwrap();
+    let before = reader.with_retained(|face, _| face.clone()).unwrap();
+    let ((), memory) = allocation_probe::observe(|| {
+        for _ in 0..3 {
+            reader
+                .with_retained(|face, status| {
+                    assert_eq!(face, &before);
+                    assert_eq!(status.source_sequence, 1);
+                    reader
+                        .with_retained(|same, _| assert!(core::ptr::eq(face, same)))
+                        .unwrap();
+                    assert_eq!(publisher.publish(snapshot(&bytes, 2), 1050), Err(E::Busy));
+                    assert!(matches!(reader.with_current(1101, |_, _| ()), Err(E::Busy)));
+                    assert_eq!(face, &before);
+                })
+                .unwrap();
+        }
+        reader
+            .with_current(1101, |face, status| {
+                assert_eq!((face.revision, status.source_sequence), (2, 1));
+                assert!(face
+                    .properties
+                    .iter()
+                    .any(|p| p.name == "fresh" && p.value == FacePropertyValue::Flag(false)));
+                assert!(matches!(reader.with_retained(|_, _| ()), Err(E::Busy)));
+            })
+            .unwrap();
+        drop(publisher);
+        reader
+            .with_retained(|face, status| {
+                assert_eq!((face.revision, status.source_sequence), (2, 1));
+                assert!(!status.publisher_retained);
+            })
+            .unwrap();
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}
