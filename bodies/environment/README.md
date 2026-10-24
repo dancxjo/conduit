@@ -1672,3 +1672,8 @@ an admission claim. Heap arenas and linked stack reservations already present
 in ELF RAM sections are not charged twice. Section extent sums do not prove
 physical-bank/alias liveness or stack high-water use. Exact combined lowering,
 lifetime allocation and concurrent wireless measurements remain required.
+
+Attended native-owner replies also sample Root and SDK heap capacity, current
+use and high-water use before reply serialization, with a boot-clock timestamp.
+These diagnostic counters are not signed attestation or authority. They expose
+live checkpoints; they do not establish worst-case wireless use or stack bounds.

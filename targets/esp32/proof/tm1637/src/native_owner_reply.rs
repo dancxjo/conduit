@@ -41,6 +41,35 @@ struct Reply<'a> {
     acknowledgement: Option<&'a crate::native_owner_receipt::Receipt>,
     acknowledgement_signature: Option<&'a [u8]>,
     publication_bytes: usize,
+    heap_telemetry: HeapTelemetry,
+}
+
+/// Attended telemetry sampled before serialization, not signed attestation or
+/// storage/work authority. Peaks include preparation and earlier control work.
+#[derive(serde::Serialize)]
+struct HeapTelemetry {
+    observed_boot_ms: u64,
+    root_capacity_bytes: usize,
+    root_used_bytes: usize,
+    root_peak_bytes: usize,
+    sdk_capacity_bytes: usize,
+    sdk_used_bytes: usize,
+    sdk_peak_bytes: usize,
+}
+impl HeapTelemetry {
+    fn sample() -> Self {
+        let root = esp_alloc::HEAP.stats();
+        let sdk = crate::sdk_memory::stats();
+        Self {
+            observed_boot_ms: embassy_time::Instant::now().as_millis(),
+            root_capacity_bytes: root.size,
+            root_used_bytes: root.current_usage,
+            root_peak_bytes: root.max_usage,
+            sdk_capacity_bytes: sdk.size,
+            sdk_used_bytes: sdk.current_usage,
+            sdk_peak_bytes: sdk.max_usage,
+        }
+    }
 }
 
 #[inline(never)]
@@ -114,6 +143,7 @@ pub(super) fn encode(
         acknowledgement_signature: acknowledgement_signature
             .as_ref()
             .map(|value| value.as_slice()),
+        heap_telemetry: HeapTelemetry::sample(),
     };
     let metadata_bytes = serde_json_core::to_slice(&reply, output).map_err(|_| ())?;
     Ok(Encoded {
