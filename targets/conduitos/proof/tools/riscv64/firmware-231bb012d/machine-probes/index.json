@@ -152,6 +152,19 @@
       "sha256": "ee210dfedd2db0725c27aeb808fb2a94274502cb6ca1a278807b24777860ff77",
       "original_sha256": "8171e5571242ccbd3fe09e576b89763cb0c9350f9a34f0bfe1a1cf2a4aee157d",
       "original_bytes": 5125
+    },
+    {
+      "path": "audit-prepared-riscv64-g0.py.gz",
+      "sha256": "837f63cbb4b1e869f9a74d9b6d75da5e90fea6a116d97c741b80485734e1437a",
+      "original_sha256": "191b5f19c68d8f9cdbf0ddb42ce35651ec79a4ab282f2653cbaccc1c027cc8c3",
+      "original_bytes": 2307
+    },
+    {
+      "path": "prepared-riscv64-g0-independent-audit.json.gz",
+      "sha256": "84fe9190194feec02009b999bf05dcda74f89e6128340725df02d7cada33cb0f",
+      "original_sha256": "4a3302e9ba8442494fe83af0eb5434aa64e17dd5a3ff6735c16647c4bffb1f31",
+      "original_bytes": 1855
     }
-  ]
+  ],
+  "independent_serial_audit": "All actual input/output hashes and typed ready record Profile/Build/logical Image join verified; exact source retained, semantic result HELLO, CONDUITOS plus timer wake, serial presenter only"
 }
