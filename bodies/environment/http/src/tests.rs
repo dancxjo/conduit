@@ -224,3 +224,36 @@ fn recorder_mask_refuses_a_foreign_or_semantically_inconsistent_face() {
         Err(RecordingMaskRefusal::UnsupportedFace)
     );
 }
+
+#[test]
+fn external_face_mask_keeps_environment_namespace_and_refuses_unsealed_input() {
+    let owner = PreparedObservationFace::prepare(basis(), 2, 30000).unwrap();
+    let mut face = owner.current().clone();
+    let mut other = face
+        .subjects
+        .iter()
+        .find(|subject| subject.identity == "environment")
+        .unwrap()
+        .clone();
+    other.identity = "other".into();
+    face.subjects.push(other);
+    let mut property = face
+        .properties
+        .iter()
+        .find(|property| property.subject == "environment" && property.name == "fresh")
+        .unwrap()
+        .clone();
+    property.subject = "other".into();
+    property.value = conduit_face::FacePropertyValue::Flag(true);
+    face.properties.insert(0, property);
+    face.reseal_prepared().unwrap();
+    let response = face_response(&face, true, 0, true).unwrap();
+    let json: serde_json::Value = serde_json::from_str(body(&response)).unwrap();
+    assert_eq!(json["fresh"], false);
+    assert_eq!(json["face_identity"], face.identity.as_str());
+    face.properties[0].value = conduit_face::FacePropertyValue::Flag(false);
+    assert!(matches!(
+        face_response(&face, true, 0, true),
+        Err(conduit_seven_segment_mask::FaceProjectionRefusal::InvalidFace)
+    ));
+}

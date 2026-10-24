@@ -42,11 +42,23 @@ pub(crate) fn response(
     now: u64,
     json: bool,
 ) -> heapless::String<2048> {
-    face.validate().expect("prepared semantic Face revision");
+    face_response(face, ap_ready, now, json).expect("prepared semantic Face revision")
+}
+
+/// Interpret this exact immutable Face. Root separately supplies current reader
+/// custody, clock and route admission; the Mask owns units and text only.
+/// Other Body subjects cannot supply or shadow environmental properties.
+pub fn face_response(
+    face: &conduit_face::Face,
+    ap_ready: bool,
+    now: u64,
+    json: bool,
+) -> Result<heapless::String<2048>, conduit_seven_segment_mask::FaceProjectionRefusal> {
+    conduit_seven_segment_mask::PreparedEnvironmentFace::prepare(face, "environment")?;
     let value = |name| {
         face.properties
             .iter()
-            .find(|p| p.name == name)
+            .find(|p| p.subject == "environment" && p.name == name)
             .map(|p| &p.value)
     };
     let count = |name| match value(name) {
@@ -89,5 +101,5 @@ pub(crate) fn response(
     }
     let mut out = heapless::String::<2048>::new();
     write!(out, "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n{}", if json { "application/json" } else { "text/html; charset=utf-8" }, body.len(), body).unwrap();
-    out
+    Ok(out)
 }

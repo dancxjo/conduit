@@ -280,3 +280,97 @@ fn bootstrap_control_offers_joining_without_inventing_an_environmental_face() {
         .unwrap()
         .contains("fixture-password"));
 }
+
+#[test]
+fn supplied_mask_reads_one_exact_face_without_mutation_or_play_allocation() {
+    use conduit_core::Quantity;
+    use conduit_environment_face::{PreparedObservationFace, SensorStatus};
+    use conduit_face::FaceBasis;
+    let mut owner = PreparedObservationFace::prepare(
+        FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: Some("source/explicit-reading".into()),
+            checked_plot_id: Some("checked/explicit-reading".into()),
+            expanded_plot_id: Some("expanded/explicit-reading".into()),
+            plan_id: Some("plan/explicit-reading".into()),
+            active_play_id: Some("play/explicit-reading".into()),
+            sign_ids: alloc::vec![],
+        },
+        2,
+        30000,
+    )
+    .unwrap();
+    owner
+        .publish(
+            Some((
+                Quantity::parse_plot_literal("19°C").unwrap(),
+                Quantity::parse_plot_literal("55%").unwrap(),
+            )),
+            SensorStatus::Available,
+            1000,
+        )
+        .unwrap();
+    let face = owner.current();
+    let before = face.clone();
+    for (request, json) in [
+        (b"GET / HTTP/1.1\r\n\r\n".as_slice(), false),
+        (b"GET /reading HTTP/1.1\r\n\r\n".as_slice(), true),
+    ] {
+        let expected = crate::face_response(face, true, 1100, json).unwrap();
+        let mut socket = Socket::new(request);
+        let mut calls = 0;
+        let ((), memory) = allocation_probe::observe(|| {
+            assert_eq!(
+                poll(exchange_with_reading(
+                    &mut socket,
+                    || 1100,
+                    None,
+                    |now, selected| {
+                        calls += 1;
+                        assert_eq!((now, selected), (1100, json));
+                        crate::face_response(face, true, now, selected).ok()
+                    }
+                )),
+                Poll::Ready(Ok(ExchangeOutcome::Reading))
+            );
+            assert_eq!(calls, 1); // Partial writes do not re-read or re-render.
+            assert_eq!(&socket.output[..socket.written], expected.as_bytes());
+            assert_eq!(face, &before);
+        });
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    }
+}
+
+#[test]
+fn explicit_reader_cannot_override_bootstrap_and_absence_returns_unavailable() {
+    for bootstrap in [false, true] {
+        let mut mailbox = NetworkSetupMailbox::new(1);
+        let mut socket = Socket::new(b"GET /reading HTTP/1.1\r\n\r\n");
+        let route = if bootstrap {
+            NetworkSetupRoute::bootstrap_control(&mut mailbox, limits())
+        } else {
+            NetworkSetupRoute::new(&mut mailbox, limits())
+        }
+        .unwrap();
+        let mut calls = 0;
+        let ((), memory) = allocation_probe::observe(|| {
+            assert_eq!(
+                poll(exchange_with_reading(
+                    &mut socket,
+                    || 0,
+                    Some(route),
+                    |_, _| {
+                        calls += 1;
+                        None
+                    }
+                )),
+                Poll::Ready(Ok(ExchangeOutcome::ReadingUnavailable))
+            );
+            assert_eq!(calls, usize::from(!bootstrap));
+            assert!(socket.output[..socket.written].starts_with(b"HTTP/1.1 503"));
+        });
+        assert!(!mailbox.has_acknowledged());
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    }
+}

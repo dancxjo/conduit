@@ -73,6 +73,20 @@ pub async fn exchange<T: Read + Write>(
     now: impl Fn() -> u64,
     route: Option<NetworkSetupRoute<'_>>,
 ) -> Result<ExchangeOutcome, ExchangeRefusal> {
+    exchange_with_reading(io, now, route, |now, json| Some(crate::response(now, json))).await
+}
+
+/// Root supplies the selected, retained reading Mask rather than another sampler
+/// or a second Face owner. The callback runs synchronously and returns owned,
+/// bounded bytes before socket awaits. None means unavailable; no retry occurs.
+/// Bootstrap routes still deny reads even when a callback exists. Supplying a
+/// callback establishes neither Body membership nor permission to install it.
+pub async fn exchange_with_reading<T: Read + Write>(
+    io: &mut T,
+    now: impl Fn() -> u64,
+    route: Option<NetworkSetupRoute<'_>>,
+    mut reading: impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
+) -> Result<ExchangeOutcome, ExchangeRefusal> {
     let limits = route
         .as_ref()
         .map(|route| route.limits)
@@ -105,10 +119,16 @@ pub async fn exchange<T: Read + Write>(
             write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
             Ok(ExchangeOutcome::ReadingUnavailable)
         }
-        (Some(NetworkHttpRequest::Reading { json }), _) => {
-            write(io, crate::response(now(), json).as_bytes()).await?;
-            Ok(ExchangeOutcome::Reading)
-        }
+        (Some(NetworkHttpRequest::Reading { json }), _) => match reading(now(), json) {
+            Some(response) => {
+                write(io, response.as_bytes()).await?;
+                Ok(ExchangeOutcome::Reading)
+            }
+            None => {
+                write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
+                Ok(ExchangeOutcome::ReadingUnavailable)
+            }
+        },
         (Some(NetworkHttpRequest::Page), Some(route)) => {
             let page = if route.preparation_only {
                 preparation_page(route.limits)
