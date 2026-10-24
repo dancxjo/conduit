@@ -7,6 +7,8 @@ use conduit_face::FaceBasis;
 use core::cell::RefCell;
 use critical_section::Mutex;
 mod mask;
+pub use mask::{face_response, HttpShowTime, PreparedHttpShow};
+pub mod show_mailbox;
 struct Publication {
     face: PreparedObservationFace,
     ap_ready: bool,
