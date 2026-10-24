@@ -285,7 +285,7 @@ fn possession(
     assert_eq!(inspection.completed_operations, 0);
     assert_eq!(inspection.scope.active_play_id, active.active_play_id);
     let mut owner = Some(owner);
-    conduit_tm1637_wire::installation::ReadyWriteBase::bind_assigned_fore_retained(
+    let bound = conduit_tm1637_wire::installation::ReadyWriteBase::bind_assigned_fore_retained(
         &mut owner,
         table,
         handle,
@@ -295,4 +295,45 @@ fn possession(
     )
     .unwrap();
     assert!(owner.is_none());
+    let mut bound = Some(bound);
+    assert!(native_retirement::RetiredDisplay::retire(&mut bound).is_err());
+    assert!(bound.is_some());
+    bound
+        .as_mut()
+        .unwrap()
+        .revoke(profile.write, conduit_kernel::HostCallId(0))
+        .unwrap();
+    let retired = native_retirement::RetiredDisplay::retire(&mut bound).unwrap();
+    assert!(bound.is_none());
+    let foreign = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 3);
+    assert!(issuer.finish_display_play(&foreign, &retired).is_err());
+    issuer.finish_display_play(&active, &retired).unwrap();
+    assert!(issuer.finish_display_play(&active, &retired).is_err());
+    assert_eq!(issuer.next_play_sequence(), Some(3));
+    // The physical owner has returned, but its old generation is not fresh.
+    let identity = display_fixture::ready(&fragment.host_id, &fragment.boot_id)
+        .native_identity()
+        .clone();
+    let returned = unsafe {
+        conduit_tm1637_wire::installation::ReadyWriteBase::new(
+            identity,
+            retired.attachment,
+            retired.provider,
+        )
+    }
+    .unwrap();
+    let next = issuer
+        .reserve_display_play_matching(
+            assignment,
+            &fragment.plan_id,
+            &fragment.fragment_id,
+            foreign.active_play_id.as_str(),
+        )
+        .unwrap();
+    let mut next_selection = selected();
+    next_selection.operation.active = &next;
+    assert!(issuer
+        .issue_assigned_display(&returned, assignment, next_selection, 2, &contract)
+        .is_err());
+    assert_eq!(issuer.next_play_sequence(), Some(4));
 }

@@ -83,3 +83,50 @@ impl<P: PulseReadProvider, W: MonotonicWaitProvider> RetiredProviders<P, W> {
         })
     }
 }
+
+/// Returned display custody with no old bearer, claim or table. Its scope can
+/// only be captured from an actual revoked idle owner, never received metadata.
+pub struct RetiredDisplay<P> {
+    pub provider: P,
+    pub attachment: conduit_tm1637_wire::owner::WriteAttachment,
+    play_scope: [u8; 32],
+    provider_generation: u64,
+}
+impl<P> RetiredDisplay<P> {
+    pub fn matches_active(&self, active: &c::ActivePlayIdentity) -> bool {
+        self.play_scope
+            == play_scope([
+                active.host_id.as_str(),
+                active.boot_id.as_str(),
+                active.plan_id.as_str(),
+                active.active_play_id.as_str(),
+            ])
+    }
+    pub fn provider_generation(&self) -> u64 {
+        self.provider_generation
+    }
+}
+impl<P: conduit_tm1637_wire::OpenDrain> RetiredDisplay<P> {
+    pub fn retire(
+        owner: &mut Option<conduit_tm1637_wire::owner::WriteHostCall<P>>,
+    ) -> Result<Self, &'static str> {
+        use conduit_tm1637_wire::owner::WriteHostCall;
+        let current = owner.as_ref().ok_or("display-unavailable")?;
+        let inspection = current.inspection();
+        if inspection.lifecycle != c::CapabilityLifecycle::Revoked
+            || inspection.in_flight_operations != 0
+        {
+            return Err("display-retirement-unavailable");
+        }
+        let play_scope = scope_identity(&inspection.scope);
+        let provider_generation = inspection.scope.base_provider_generation;
+        let (provider, attachment) = WriteHostCall::retire_retained(owner)
+            .expect("exclusively preflighted idle revoked display");
+        Ok(Self {
+            provider,
+            attachment,
+            play_scope,
+            provider_generation,
+        })
+    }
+}

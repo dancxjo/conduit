@@ -91,6 +91,14 @@ transfers the retained owner exactly once without electrical effects.
 
 CPU evidence uses production Root issuance with explicit entropy/Boot/pin
 substitutes. Display ingress, complete installation and start, physical execution
-and display retirement/reoffer remain unconnected. This temporary issuance path
-is conservatively one-shot; no automatic provider reuse or fresh generation is
-inferred from dropping a handle.
+and display retirement/reoffer remain unconnected. No automatic provider reuse or fresh generation is inferred from dropping a
+handle.
+
+`RetiredDisplay` now captures private Play scope and provider generation from
+an actual revoked idle driver before consuming it. Root ends display issuance
+only for that exact returned custody; a foreign Play or repeated completion
+refuses. Sequence and generation never rewind, so even a newly reserved Play
+cannot issue the returned provider at its old generation. Sampling retirement
+preserves shared Play custody while display possession remains outstanding.
+The CPU test performs issuance, retained binding, revocation and retirement
+without pin operations. MCU control installation/reoffer remains unconnected.

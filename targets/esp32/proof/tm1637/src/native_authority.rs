@@ -171,9 +171,11 @@ impl RootIssuer {
         }
         self.pulse_issued = false;
         self.wait_issued = false;
-        self.native_issued_play = None;
-        if self.reserved_play.as_deref() == Some(active) {
-            self.reserved_play = None;
+        if !self.display_issued {
+            self.native_issued_play = None;
+            if self.reserved_play.as_deref() == Some(active) {
+                self.reserved_play = None;
+            }
         }
         Ok(())
     }

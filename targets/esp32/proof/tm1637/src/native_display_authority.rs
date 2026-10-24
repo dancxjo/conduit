@@ -173,3 +173,30 @@ impl RootIssuer {
         Ok((table, handle, claim))
     }
 }
+
+#[cfg(any(test, feature = "display-ready-root"))]
+impl RootIssuer {
+    /// End issuance only with exact returned provider custody. Provider
+    /// generation and the global Play sequence remain monotonic.
+    pub fn finish_display_play<P>(
+        &mut self,
+        active: &c::ActivePlayIdentity,
+        retired: &crate::native_retirement::RetiredDisplay<P>,
+    ) -> Result<(), ()> {
+        if !self.display_issued
+            || self.native_issued_play.as_deref() != Some(active)
+            || !retired.matches_active(active)
+            || retired.provider_generation() != self.display_generation
+        {
+            return Err(());
+        }
+        self.display_issued = false;
+        if !self.pulse_issued && !self.wait_issued {
+            self.native_issued_play = None;
+            if self.reserved_play.as_deref() == Some(active) {
+                self.reserved_play = None;
+            }
+        }
+        Ok(())
+    }
+}
