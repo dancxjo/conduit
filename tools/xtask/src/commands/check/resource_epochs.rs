@@ -21,7 +21,7 @@ const STEPS: &[Step] = &[Step::new(
     &[
         "test", "--locked", "-p", "conduit-language", "--lib",
         "--test", "train_lexicon", "--test", "resource_lexicon_snapshot",
-        "--test", "resource_lexicon_revision", "--", "--include-ignored",
+        "--test", "resource_lexicon_revision", "--test", "resource_epoch_owner", "--", "--include-ignored",
         "--nocapture", "--test-threads=1",
     ],
 )];

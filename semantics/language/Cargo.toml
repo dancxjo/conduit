@@ -17,6 +17,8 @@ conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 
 [dev-dependencies]
+conduit-std-host = { path = "../../targets/std" }
+conduit-std-offers = { path = "../../targets/std/offers" }
 conduit-ai = { path = "../ai" }
 conduit-data = { path = "../data" }
 conduitos = { path = "../../targets/conduitos" }

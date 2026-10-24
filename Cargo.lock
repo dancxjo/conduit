@@ -2148,6 +2148,8 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-std-host",
+ "conduit-std-offers",
  "conduit-plot",
  "conduitos",
  "serde_json",
