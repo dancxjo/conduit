@@ -49,11 +49,9 @@ fn graphical_closure_refuses_mismatched_or_unbounded_resources_and_drivers() {
                 .resource_budgets
                 .push(manifest.resource_budgets[0].clone()),
         }
-        assert!(
-            lower_ia32_pc(&manifest)
-                .unwrap_err()
-                .to_string()
-                .contains("ia32-")
-        );
+        assert!(lower_ia32_pc(&manifest)
+            .unwrap_err()
+            .to_string()
+            .contains("ia32-"));
     }
 }

@@ -1,8 +1,8 @@
 //! Exact IA-32 serial plus optional firmware-framebuffer product closure.
 use super::{
-    BuildManifest, ConduitosError, FRAMEBUFFER_DRIVER, IA32_DEBUGCON_BASE, IA32_DEBUGCON_DRIVER,
-    IA32_LINEAR_PRESENTER, NATIVE_COMPOSITOR, NATIVE_PRESENTER, PRESENT_OPERATION, SCANOUT_BASE,
-    SURFACE_CLASS, TargetBuildInputs, refusal,
+    refusal, BuildManifest, ConduitosError, TargetBuildInputs, FRAMEBUFFER_DRIVER,
+    IA32_DEBUGCON_BASE, IA32_DEBUGCON_DRIVER, IA32_LINEAR_PRESENTER, NATIVE_COMPOSITOR,
+    NATIVE_PRESENTER, PRESENT_OPERATION, SCANOUT_BASE, SURFACE_CLASS,
 };
 
 pub(crate) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {

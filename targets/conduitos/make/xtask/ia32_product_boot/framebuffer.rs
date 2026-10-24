@@ -1,5 +1,5 @@
 //! Correlate actual bootloader framebuffer facts with the ordinary snapshot.
-use super::{ConduitosError, complete_line, refusal};
+use super::{complete_line, refusal, ConduitosError};
 use serde_json::Value;
 const PREFIX: &str = "CONDUIT_IA32_FRAMEBUFFER ";
 

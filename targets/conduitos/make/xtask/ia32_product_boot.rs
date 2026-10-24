@@ -10,9 +10,10 @@ use std::{
 use crate::cli::GlobalOpts;
 
 use super::{
-    ConduitosArch, ConduitosError, ia32_a1,
+    ia32_a1,
     profile::Paths,
     report::{git_head, sha256_file},
+    ConduitosArch, ConduitosError,
 };
 
 const PREFIX: &str = "CONDUIT_IA32_PRODUCT ";

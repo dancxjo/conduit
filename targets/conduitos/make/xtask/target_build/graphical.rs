@@ -1,6 +1,6 @@
 //! Source-correlated capture of the normal firmware-framebuffer product.
-use super::super::{ConduitosArch, ConduitosError, emitted_line, qmp, qmp_display};
-use serde_json::{Value, json};
+use super::super::{emitted_line, qmp, qmp_display, ConduitosArch, ConduitosError};
+use serde_json::{json, Value};
 use std::{fs, os::unix::fs::DirBuilderExt, path::PathBuf, process::Child};
 
 pub(crate) struct Capture {

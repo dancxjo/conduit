@@ -15,9 +15,10 @@ use conduit_host_make::BuildManifest;
 use crate::cli::GlobalOpts;
 
 use super::{
-    ConduitosArch, ConduitosError, build, image,
+    build, image,
     profile::Paths,
-    report::{ArtifactRole, sha256_file},
+    report::{sha256_file, ArtifactRole},
+    ConduitosArch, ConduitosError,
 };
 
 #[derive(Debug)]

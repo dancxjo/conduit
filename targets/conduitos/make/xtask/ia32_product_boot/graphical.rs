@@ -1,7 +1,7 @@
 //! Retained QMP capture for the separately selected normal IA-32 graphical image.
-use super::super::{ConduitosArch, report, target_build::graphical::Capture};
-use super::{ConduitosError, Paths, refusal};
-use serde_json::{Value, json};
+use super::super::{report, target_build::graphical::Capture, ConduitosArch};
+use super::{refusal, ConduitosError, Paths};
+use serde_json::{json, Value};
 use std::{fs, path::Path, process::Command};
 
 pub(super) struct Selected {
