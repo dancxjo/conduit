@@ -1,0 +1,63 @@
+{
+  "base": "4d93fd615ff991ee05dfa01e6e2b97c66f8636ce",
+  "source_hashes": {
+    "targets/conduitos/src/http.rs": "b7b284a519d7cf2c531f920c9a26c6a44ce85e7ce4724ffaf9c0c8f9bdd86efc",
+    "targets/conduitos/src/http/request.rs": "d20a7e253de9787135a3c35588b8fd53db0277ccf44562894153bc6ca6dcc0df",
+    "targets/conduitos/src/http/codec.rs": "8730451aa838712882a43d89ecdc845c35b741c344fa1652da58eed657123df5",
+    "targets/conduitos/src/http/tests.rs": "c7d58930301410143fa383f793f542b5328bccd3e0206424f9da248f86b4e152",
+    "targets/conduitos/tests/http_ticket_lifetime.rs": "4b0c59202f65cf85570637c4772972316b0b68c9f46bd44a43b1d30e48ae9867"
+  },
+  "started": 1792866914.0783944,
+  "steps": [
+    {
+      "name": "enabled-public-test",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--features",
+        "native-http-client",
+        "--test",
+        "http_ticket_lifetime",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6425-feature-gate-check/enabled-public-test.log",
+      "ended": 1792866935.882166
+    },
+    {
+      "name": "disabled-admission-features",
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--test",
+        "http_ticket_lifetime",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6425-feature-gate-check/disabled-admission-features.log",
+      "ended": 1792867025.022396
+    }
+  ],
+  "source_unchanged": true,
+  "ended": 1792867025.0226624,
+  "actual_enabled_executable": {
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/http_ticket_lifetime-3ba10463e40b7f57",
+    "sha256": "af0003303b2f60989cc7a9a0c36bc9b71243410aeac59ee4bd98f15e5421444e",
+    "bytes": 9037504,
+    "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6425-feature-gate-check/actual-enabled-test.elf.gz"
+  },
+  "boundary": "Actual optional integration test runs with native-http-client; clippy with CI admission hosted-tools/native-compositor features compiles the gated target without importing absent HTTP. Full new Candidate still required."
+}

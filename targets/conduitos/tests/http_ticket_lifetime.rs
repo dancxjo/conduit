@@ -1,3 +1,5 @@
+#![cfg(feature = "native-http-client")]
+
 //! Actual public fixed-storage request lifecycle; no detached request identity.
 use conduit_web::{HttpBody, HttpMethod, HttpRequest, HttpScheme, HttpTarget, HttpTransactionId};
 use conduitos::http::*;
