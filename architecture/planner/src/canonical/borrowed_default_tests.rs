@@ -26,7 +26,7 @@ fn borrowed_default_preserves_plan_spans_completion_and_refusals() {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
             connection_item_capacity: queue_items,
-            connection_byte_capacity: conduit_signal::SIGNAL_ENCODED_LEN as u32,
+            connection_byte_capacity: conduit_signal::SIGNAL_ENCODED_LEN,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
