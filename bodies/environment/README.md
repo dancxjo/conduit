@@ -1656,3 +1656,19 @@ remain allocation-free. This CPU measurement is not complete MCU admission:
 the consumer, timing work, output kernel and physical resource still require
 separate bounds and selection. The existing ESP32 Face profile release link
 passes; this storage change has not been flashed.
+
+# Combined memory accounting
+
+`cargo xtask prove environment memory-ledger` generates JSON and Markdown from
+the pinned preparation captures and current value/record storage profiles.
+Optional `--sampling-image` and `--output-image` arguments add ELF section
+inventories after checking the adjacent clean-source capture receipts and image
+hashes. `--output` selects the report directory.
+
+The report separates persistent payload backing, construction lifetime,
+immutable material, scratch, records, stack and wireless reservations. Unknown
+combined costs remain explicit; separately captured peaks are not summed into
+an admission claim. Heap arenas and linked stack reservations already present
+in ELF RAM sections are not charged twice. Section extent sums do not prove
+physical-bank/alias liveness or stack high-water use. Exact combined lowering,
+lifetime allocation and concurrent wireless measurements remain required.

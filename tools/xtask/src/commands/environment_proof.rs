@@ -163,6 +163,14 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
     if arguments.first().map(String::as_str) == Some("display-output") {
         return display_output::prove(&root, &arguments[1..]);
     }
+    if arguments.first().map(String::as_str) == Some("memory-ledger") {
+        return execute(
+            Command::new("python3")
+                .current_dir(&root)
+                .arg("bodies/environment/tools/memory-ledger.py")
+                .args(&arguments[1..]),
+        );
+    }
     if arguments == ["native-construction"] {
         return native_construction::prove(&root);
     }
@@ -448,7 +456,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment wait, specifications, face, http, publication, publication-32, recording, recording-files, recording-checkpoint, catalog-seed, catalog-residence, catalog-checkpoint, catalog-restart, recording-storage, recording-browser, network-fallback, software-ready-esp32, body-admission-esp32, body-construction-esp32, assignment-ingress-esp32, kernel-prepare-esp32, owner-prepare-esp32, native-construction, network, network-owner, mask, display-output, display-wire, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, root-face-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment memory-ledger, wait, specifications, face, http, publication, publication-32, recording, recording-files, recording-checkpoint, catalog-seed, catalog-residence, catalog-checkpoint, catalog-restart, recording-storage, recording-browser, network-fallback, software-ready-esp32, body-admission-esp32, body-construction-esp32, assignment-ingress-esp32, kernel-prepare-esp32, owner-prepare-esp32, native-construction, network, network-owner, mask, display-output, display-wire, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, root-face-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(
