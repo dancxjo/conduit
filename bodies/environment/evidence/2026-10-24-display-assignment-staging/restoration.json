@@ -1,0 +1,14 @@
+{
+  "recovery_sha256": "8105212d3f64168dd935bb8cb160c137c90df11b6ead1a13649f176c6ddca54b",
+  "restore_exit": 0,
+  "capture_seconds": 18,
+  "live_updates": 6,
+  "source_sequences": [
+    7,
+    8
+  ],
+  "all_current": true,
+  "all_fresh": true,
+  "all_display_writes_acknowledged": true,
+  "reading_capture_sha256": "8d376c3ee815aea371a5de54dc14a73d7a391fa172938c805d2115f5f1445f05"
+}

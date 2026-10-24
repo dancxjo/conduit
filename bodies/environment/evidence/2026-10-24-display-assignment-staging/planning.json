@@ -1,0 +1,13 @@
+{
+  "boot_id": "boot/9168f14627100e59f4caa34a947f7aec",
+  "capability_possession_issued": false,
+  "cords": 5,
+  "event": "observed-display-plan",
+  "fore_ports": 2,
+  "host_calls": 3,
+  "host_id": "esp32/b0a732286178",
+  "installed": false,
+  "nodes": 4,
+  "physical_display_delivery": false,
+  "plan_id": "a7cc7827b35eb2baa6ff63b1624048c30e3d60805e7295160054c7e8e40e6f79"
+}

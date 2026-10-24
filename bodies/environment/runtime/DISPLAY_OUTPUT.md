@@ -92,3 +92,11 @@ continuing sensor execution, network transition alongside sensing, recording
 Hosts and overnight endurance remain unproved. Construction prerequisites are
 tracked by #6374 and #6378; decoder or CPU proof alone cannot close physical
 output acceptance or the continuing appliance goal.
+
+The optional `esp32-readiness --flash --stage` proof now sends the host-produced
+bounded transfer to the MCU, checks Source/Boot/digest refusals and duplicate
+custody, and reads back the active preparation bound. Physical receipts are in
+`../evidence/2026-10-24-display-assignment-staging/`. Read-only offers include both
+sampler and display staging and serialize the active profile's additional kernel
+bound separately from current heap use. This remains staging-only evidence;
+construction, native possession and full memory admission require later gates.
