@@ -1,0 +1,14 @@
+{
+  "source_head": "66be63598",
+  "base": "cc527bec2a935a601ea1cf327094d3e8ffa2d5f8",
+  "scope": "CPU generic binder regression and existing timer contract tests; no physical device or full issue closure proof",
+  "commands": [
+    "CARGO_TARGET_DIR=<private> CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 cargo +stable test --locked --manifest-path mechanisms/io/monotonic-wait/Cargo.toml",
+    "CARGO_TARGET_DIR=<private> CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 cargo +stable clippy --locked --manifest-path mechanisms/io/monotonic-wait/Cargo.toml --all-targets -- -D warnings"
+  ],
+  "results": {
+    "tests": "11 passed, 0 failed",
+    "clippy": "passed strict all-targets"
+  },
+  "initial_fixture_failures": "First draft accidentally indexed an absent Tick semantic input, then introduced duplicate port identities; corrected fixtures to distinct extra ports. No production source changed."
+}
