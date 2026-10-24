@@ -262,7 +262,7 @@ export async function startApplication(application) {
           .flatMap(chain => chain.plan.fragments.flatMap(fragment => fragment.placements)));
       root.querySelector('#surface-title').textContent = plot?.title ?? 'No Plots installed';
       root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, plot, partition, playback.detail, maskPlacements);
-      root.querySelector('.current-plot').textContent = plot?.title ?? 'Your plots';
+      root.querySelector('[data-current-plot-label]').textContent = plot?.title ?? 'Your plots';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       for (const button of activities.querySelectorAll('[data-checked-plot-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedPlotId === selected));
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
