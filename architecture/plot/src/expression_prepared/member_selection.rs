@@ -12,6 +12,7 @@ pub(super) struct PreparedMemberSelection {
     output_type: Vec<u8>,
     output: Vec<u8>,
     primitive: bool,
+    fixed: Option<(u32, u32)>,
 }
 enum Member {
     Field(String),
@@ -120,23 +121,60 @@ pub(super) fn prepare(
         return Err(Refusal::InvalidProgram);
     }
     let primitive = is_primitive(&node.value_type);
+    let output_type = node
+        .value_type
+        .canonical_bytes()
+        .map_err(|_| Refusal::InvalidProgram)?;
+    // The enclosing evaluator validates the complete exact canonical input.
+    // Only direct fixed-width primitive selections can release their names and
+    // output schema; variable layouts and constructed sources retain the path.
+    let fixed = if primitive {
+        match prepared_input {
+            PreparedInput::Structured(prefix, _) => {
+                super::fixed_projection::prepare(input, node, prefix.len())
+            }
+            _ => None,
+        }
+    } else {
+        None
+    };
+    if fixed.is_some() {
+        steps.clear();
+        steps.shrink_to_fit();
+    }
     Ok(PreparedMemberSelection {
         source,
         steps,
-        output_type: node
-            .value_type
-            .canonical_bytes()
-            .map_err(|_| Refusal::InvalidProgram)?,
+        output_type: if fixed.is_some() {
+            Vec::new()
+        } else {
+            output_type
+        },
         output: Vec::with_capacity(if primitive {
             0
         } else {
             storage_bound::expression(node, input, prepared_input.maximum_bytes())?
         }),
         primitive,
+        fixed,
     })
 }
 impl PreparedMemberSelection {
     pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
+        if let Some((start, length)) = self.fixed {
+            // Whole-input validation and checked geometry establish the leaf
+            // framing. Still bound both the slice and its declared byte length.
+            let node = input
+                .get(start as usize..start as usize + length as usize)
+                .ok_or(Refusal::InvalidInput)?;
+            let [0, a, b, c, d, bytes @ ..] = node else {
+                return Err(Refusal::InvalidInput);
+            };
+            if bytes.len() != u32::from_le_bytes([*a, *b, *c, *d]) as usize {
+                return Err(Refusal::InvalidInput);
+            }
+            return Ok(bytes);
+        }
         let selected = match &mut self.source {
             Some(source) => source.evaluate(input)?,
             None => input,

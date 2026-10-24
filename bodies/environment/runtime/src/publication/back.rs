@@ -41,7 +41,11 @@ impl PublicationBack {
         )?;
         Ok(Self {
             channel: contract.channel(),
-            validator: PreparedCanonicalInput::new(contract.value_type(), bytes)?,
+            validator: PreparedCanonicalInput::with_static_schema(
+                contract.value_type(),
+                contract.channel().linked_type_bytes(),
+                bytes,
+            )?,
             current: Vec::with_capacity(bytes),
             pending: vec![0; bytes],
             maximum_events,

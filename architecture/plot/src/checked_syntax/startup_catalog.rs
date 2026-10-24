@@ -36,6 +36,7 @@ pub struct StartupCatalog {
     typed_literal_families: BTreeMap<String, TypedLiteralFamily>,
     fores: BTreeMap<String, CheckedFront>,
     variadic_fores: BTreeMap<String, crate::HomogeneousVariadicFore>,
+    native_law_custody: BTreeMap<String, crate::NativeLawWitness>,
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
     structured_type_contracts: BTreeMap<String, Vec<NativeTypeValueContract>>,
     structured_type_invariants: BTreeMap<String, Vec<crate::PortableExpressionProgram>>,

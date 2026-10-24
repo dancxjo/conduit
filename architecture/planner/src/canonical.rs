@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{
-    default_placements_unvalidated, plan_validated_plot, ConnectionEndpoints,
-    ConnectionQueueLimits, PlacementChoices, PlannerError, PlanningOptions,
+    default_placements_unvalidated, ConnectionEndpoints, ConnectionQueueLimits, PlacementChoices,
+    PlannerError, PlanningOptions,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
@@ -151,22 +151,13 @@ pub fn plan_expanded_canonical_with_options(
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
-    plot.validate_expansion()
-        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
-    let planning_plot = expanded_planning_plot(plot);
-    let mut plan = plan_validated_plot(&planning_plot, hosts, placements, bases, options)?;
-    attach_source_spans(plot, &mut plan)?;
-    Ok(
-        conduit_core::seal_plan_with_realization_backs_and_completion(
-            conduit_core::PlotIdentity {
-                source_document_id: plot.source_document_id.clone(),
-                checked_plot_id: plot.checked_plot_id.clone(),
-                expanded_plot_id: plot.expanded_plot_id.clone(),
-            },
-            crate::plan_completion_policy(plot.completion),
-            plot.realization_backs.clone(),
-            plan.fragments,
-        ),
+    plan_expanded_canonical_with_connection_limits(
+        plot,
+        hosts,
+        placements,
+        bases,
+        options,
+        &BTreeMap::new(),
     )
 }
 
@@ -270,3 +261,6 @@ pub(crate) fn expanded_planning_plot(plot: &ExpandedCanonicalPlot) -> CheckedPlo
         nested_plots: Vec::new(),
     }
 }
+
+#[cfg(test)]
+mod borrowed_default_tests;

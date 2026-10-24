@@ -1,0 +1,16 @@
+# One finite workload; current semantic state remains inspectable after closure.
+# Host offers choose capture, monotonic time, and publication implementations.
+plot environmental-appliance (
+    count: Count = 960
+    period-ms: Count = 60000
+) {
+    sampling: environment-sampling(count, period-ms)
+    observation: environment/observe-dht11
+    timeout: environment/observe-capture-timeout
+    unavailable: environment/observe-provider-failure
+    refused: environment/observe-geometry-refusal
+    sampling.observed >> observation.value
+    sampling.timed_out >> timeout.value
+    sampling.provider_failed >> unavailable.value
+    sampling.geometry_refused >> refused.value
+}

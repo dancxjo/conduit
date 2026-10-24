@@ -5,6 +5,8 @@ use std::{env, fs, path::PathBuf};
 mod build_display;
 #[path = "build/display_frame.rs"]
 mod display_frame;
+#[path = "build/sampling_extents.rs"]
+mod sampling_extents;
 fn main() {
     let path = "../../../plots/device-protocols/dht11.conduit";
     println!("cargo:rerun-if-changed={path}");
@@ -20,6 +22,7 @@ fn main() {
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     build_observation_source::emit(&out);
+    sampling_extents::emit(&checked, &out);
     for (name, file) in [
         ("PulseReadCapture", "pulse-capture.type"),
         ("Dht11DecodedResult", "decoded.type"),
@@ -33,6 +36,30 @@ fn main() {
             .unwrap();
         assert!(ty.invariants.is_empty() && ty.value_contracts.is_empty());
         fs::write(out.join(file), ty.value_type.canonical_bytes().unwrap()).unwrap();
+    }
+    fs::write(
+        out.join("empty.type"),
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::EMPTY_INFO_ID))
+            .unwrap()
+            .canonical_bytes()
+            .unwrap(),
+    )
+    .unwrap();
+    let observation = &checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "Dht11Observation")
+        .unwrap()
+        .value_type;
+    let conduit_core::StructuredInfoTypeShape::Record { fields, .. } = observation.shape() else {
+        panic!("checked observation record");
+    };
+    for field in fields {
+        fs::write(
+            out.join(format!("observation-{}.type", field.name())),
+            field.value_type().canonical_bytes().unwrap(),
+        )
+        .unwrap();
     }
     let forms = conduit_plot::rust_binding::generate_rust_bindings_with_forms(
         &[],

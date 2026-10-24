@@ -255,3 +255,62 @@ fn incorrect_projection_type_never_becomes_an_eligible_location() {
     );
     assert!(Evaluator::new(&wrong).is_err());
 }
+
+#[test]
+fn primitive_locations_preserve_exact_inputs_and_do_not_skip_unselected_validation() {
+    let octet = leaf("value/u8");
+    let boolean = leaf("value/bool");
+    let array = Type::collection(octet.clone(), Some(3)).unwrap();
+    let ty = record(
+        "test/primitive-input",
+        vec![("before", boolean.clone()), ("selected", array.clone())],
+    );
+    let root = select(
+        field(input(&ty), "selected", &array),
+        Projection::TupleIndex(2),
+        &octet,
+    );
+    let program = Program {
+        input_maximum_bytes: None,
+        input_type: ty.clone(),
+        output_type: octet.clone(),
+        root,
+    };
+    let mut prepared = Evaluator::new(&program).unwrap();
+    for byte in [0, 1, 127, 255] {
+        let bytes = values(
+            &ty,
+            vec![
+                ("before", Value::leaf(boolean.clone(), vec![1]).unwrap()),
+                (
+                    "selected",
+                    Value::collection(
+                        array.clone(),
+                        [3, 7, byte]
+                            .into_iter()
+                            .map(|value| Value::leaf(octet.clone(), vec![value]).unwrap())
+                            .collect(),
+                    )
+                    .unwrap(),
+                ),
+            ],
+        );
+        parity(&mut prepared, &program, &bytes);
+        for length in 0..bytes.len() {
+            assert!(prepared.evaluate(&bytes[..length]).is_err());
+        }
+        let before = validate_canonical_structured_value(&bytes)
+            .unwrap()
+            .record_field("before")
+            .unwrap()
+            .unwrap();
+        let offset = before.value_node().as_ptr() as usize - bytes.as_ptr() as usize;
+        let mut malformed = bytes.clone();
+        malformed[offset + 5] = 2;
+        assert!(prepared.evaluate(&malformed).is_err());
+        let mut trailing = bytes.clone();
+        trailing.push(0);
+        assert!(prepared.evaluate(&trailing).is_err());
+        parity(&mut prepared, &program, &bytes);
+    }
+}
