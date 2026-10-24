@@ -83,3 +83,17 @@ An independent browser Source probe still fails before admission: the browser
 catalog and configuration recovery accept registered Todo Source/roots. A live
 nonvisual request, general checked-source/component reuse, and current native
 QEMU remain unproved. Renderer fixtures must not be relabeled as those receipts.
+
+## Registered checked Patchbay document
+
+Browser preparation/recovery now recognizes a separate reviewed Patchbay
+component Source and its Gear/Port/Cord recipe. All four Look resources are
+byte-identical to Todo's; default absence also reaches the configured consumer.
+[Source/custody checks and local captures](evidence/gui-look-6349-registered-patchbay/README.md)
+cover a synthetic node/port Face through actual CPU Mask preparation, simulated
+Show acknowledgement and the real renderer, including 390px forced colors and
+32px controls. This is region grouping, not full graph-node canvas acceptance.
+Owner controls remain Todo-specific. The complete 66-subject domain fixture
+still refuses at the carrier bound; it is not trimmed for positive proof.
+Arbitrary external Source, live owner-selected Patchbay and native QEMU remain
+outside this evidence.

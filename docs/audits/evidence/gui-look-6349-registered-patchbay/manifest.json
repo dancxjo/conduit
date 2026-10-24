@@ -1,0 +1,34 @@
+{
+  "source_commit": "c70ce8edca9eef17f990b41625c0ca610082f4a4",
+  "proof_classes": {
+    "registered_source_and_exact_look_reuse": true,
+    "cpu_mask_and_simulated_acknowledgement": true,
+    "real_dom_renderer_synthetic_face": true,
+    "large_domain_face_acceptance": false,
+    "live_owner_route": false,
+    "native_qemu": false,
+    "ci": false
+  },
+  "production_sha256": {
+    "semantics/face/src/component_recipe.rs": "be795663c8f9f895041bde8913a5a8df9cee8f49ade765f1b93877e1cc5a380e",
+    "semantics/face/components/patchbay-mask.conduit": "3a90e6d111f635faf52a0aedfde68498bbc9c3e8c03e057684e8223edf272f39",
+    "targets/browser/mask-offer/src/lib.rs": "3e3842970064957721029c9153b9d0e9e13f8e7ef5e84b3627e18779c351e174",
+    "targets/browser/mask-offer/src/configured_sources.rs": "29179668a020a1ce97807d612d4df5cff09ce06432047ad9d93816ca92d2f385"
+  },
+  "sha256": {
+    "capture.mjs": "da83914ea71bf6696664e96567629a4acdd3c8ae79fc32398d01e62faaa337c3",
+    "clippy.log": "9eb2603d8f769d071aa8436a181af0227ffc80eb4b71086fd4ea4dc527926873",
+    "default-view.json": "912a533ff42c003644f0833c58fccceea606e0f67413034f755187ab4e599261",
+    "default.png": "48348fd466c0c32fd766bac60c6227a2bc5bfc543aa7a218c444c16d6657cd5c",
+    "editorial-view.json": "9d7183820280fd56a0d14d1cec2b2d6df82cc0b5648040a5cc65631e21901fb8",
+    "editorial.png": "76e442a541ccac48f053858d68040b946cedd776365aea41b94f15828b163823",
+    "initial-full-face-refusal.log": "543f365bb69c674dc007dc9de595e73a4d0c01ea08e8db6bda12e3df1a74cbf5",
+    "offer-tests.log": "f308db5e87a5c0d4ae8b74e3e2630cff5577d4cc19112048bb6018a60c5b0784",
+    "phosphor-forced-view.json": "ed1f487e1f7df811c11c7f43798d3a805f288bcb2acaea1c4f2a722a2e0ff1b4",
+    "phosphor-forced.png": "0f47e92c31a1351eb0cc29007ebbe0efde5216f1baed6cc25d6eb79afbcc305f",
+    "phosphor-view.json": "2063f7d9ffe02b08e07f278916e83c92f84e3100494fec2180fac66c5e8d4d01",
+    "phosphor.png": "3ddbe23d44e60d4b93132d265462c9149e4b2a815eabbcc63f795a0e200ad0c1",
+    "renderer-receipt.json": "c23e80739f7197cc6ab18b852c1bab3ea033086c4ad75f1c6a7098fae9df5078",
+    "runtime-tests.log": "1065af54a2da2e3fe325b4250d6b6fcaaba6ca57d2a35cb0bb68659038896367"
+  }
+}
