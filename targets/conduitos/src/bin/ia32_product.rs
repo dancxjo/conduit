@@ -8,6 +8,9 @@ use core::panic::PanicInfo;
 
 #[path = "ia32_product/framebuffer.rs"]
 mod framebuffer;
+#[cfg(feature = "native-compositor-core")]
+#[path = "ia32_product/graphical.rs"]
+mod graphical;
 
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduitos::{
@@ -32,7 +35,13 @@ unsafe extern "C" {
 
 #[used]
 #[unsafe(link_section = ".multiboot")]
-static MULTIBOOT1_HEADER: [u32; 12] = conduitos::boot::MULTIBOOT1_VIDEO_HEADER;
+static MULTIBOOT1_HEADER: [u32; 12] = {
+    let mut header = conduitos::boot::MULTIBOOT1_VIDEO_HEADER;
+    if EMBEDDED_MAKE.includes(conduitos::make::IMPL_NATIVE_PRESENTER) {
+        header[8] = 0;
+    }
+    header
+};
 
 // Storage follows the checked, source-authored Make budget.
 const RUNTIME_ARENA_BYTES: usize = EMBEDDED_MAKE.runtime_arena_ceiling as usize;
@@ -206,6 +215,19 @@ extern "C" fn conduitos_ia32_product_rust_entry(
             spore_start..spore_start + spore_region.len() as u64,
         ],
     );
+    #[cfg(feature = "native-compositor-core")]
+    let _graphical = unsafe {
+        graphical::prepare(
+            multiboot_magic,
+            multiboot_information,
+            &[
+                image_start as u64..image_end as u64,
+                spore_start..spore_start + spore_region.len() as u64,
+            ],
+            &identities,
+            &offer,
+        )
+    };
     let boot_record = BootRecord {
         firmware,
         timestamp: counter,
@@ -293,7 +315,9 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     arch::present(observatory::EXPORT_PREFIX.as_bytes());
     arch::present(observatory_export.as_bytes());
     arch::present(b"\n");
-    if firmware == conduitos::boot::Firmware::X86Bios {
+    if firmware == conduitos::boot::Firmware::X86Bios
+        && !EMBEDDED_MAKE.includes(conduitos::make::IMPL_NATIVE_PRESENTER)
+    {
         let host = identity::hex(&identities.host);
         let boot = identity::hex(&identities.boot);
         arch::present_legacy_bios_receipt(

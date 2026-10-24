@@ -55,7 +55,7 @@ pub(super) fn basis(
         "build_id":EMBEDDED_MAKE.build_id,"image_id":EMBEDDED_MAKE.image_binding,
         "host_id":identity::hex(&identities.host),"boot_id":identity::hex(&identities.boot),
         "firmware":firmware.as_str(),"framebuffer":framebuffer,"memory_map":memory,
-        "graphical_presenter_selected":false,"graphical_show_proved":false
+        "graphical_presenter_selected":EMBEDDED_MAKE.includes(conduitos::make::IMPL_NATIVE_PRESENTER),"graphical_show_proved":false
     }))
     .unwrap_or_else(|_| super::refuse("framebuffer-observation-encoding"));
     if evidence.len() > 2048 {

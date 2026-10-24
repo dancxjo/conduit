@@ -1,5 +1,5 @@
 //! Correlate actual bootloader framebuffer facts with the ordinary snapshot.
-use super::{complete_line, refusal, ConduitosError};
+use super::{ConduitosError, complete_line, refusal};
 use serde_json::Value;
 const PREFIX: &str = "CONDUIT_IA32_FRAMEBUFFER ";
 
@@ -7,6 +7,7 @@ pub(super) fn capture(
     text: &str,
     product: &Value,
     snapshot: &Value,
+    graphical: bool,
 ) -> Result<Value, ConduitosError> {
     let evidence: Value = serde_json::from_str(complete_line(text, PREFIX).ok_or_else(|| {
         refusal(
@@ -15,11 +16,16 @@ pub(super) fn capture(
         )
     })?)
     .map_err(|e| invalid(e.to_string()))?;
-    validate(&evidence, product, snapshot)?;
+    validate(&evidence, product, snapshot, graphical)?;
     Ok(evidence)
 }
 
-fn validate(evidence: &Value, product: &Value, snapshot: &Value) -> Result<(), ConduitosError> {
+fn validate(
+    evidence: &Value,
+    product: &Value,
+    snapshot: &Value,
+    graphical: bool,
+) -> Result<(), ConduitosError> {
     let sealed = &snapshot["sealed_boot_provenance"][0];
     let frames = sealed["framebuffers"]
         .as_array()
@@ -30,7 +36,7 @@ fn validate(evidence: &Value, product: &Value, snapshot: &Value) -> Result<(), C
     if evidence["schema"] != "conduit.conduitos/ia32-framebuffer-observation@1"
         || evidence["target"] != "conduitos/ia32/pc"
         || evidence["firmware"] != sealed["firmware_environment"]
-        || evidence["graphical_presenter_selected"] != false
+        || evidence["graphical_presenter_selected"] != graphical
         || evidence["graphical_show_proved"] != false
         || evidence.get("framebuffer").is_none()
         || ["profile_id", "build_id", "image_id", "host_id", "boot_id"]
@@ -146,14 +152,24 @@ mod tests {
         (evidence, product, snapshot)
     }
     #[test]
+    fn graphical_selection_requires_the_independently_selected_profile() {
+        let (mut evidence, product, snapshot) = fixture();
+        assert!(validate(&evidence, &product, &snapshot, true).is_err());
+        evidence["graphical_presenter_selected"] = true.into();
+        assert!(validate(&evidence, &product, &snapshot, true).is_ok());
+        assert!(validate(&evidence, &product, &snapshot, false).is_err());
+        evidence["graphical_show_proved"] = true.into();
+        assert!(validate(&evidence, &product, &snapshot, true).is_err());
+    }
+    #[test]
     fn actual_geometry_requires_the_same_boot_and_observatory_base() {
         let (mut evidence, product, mut snapshot) = fixture();
-        assert!(validate(&evidence, &product, &snapshot).is_ok());
+        assert!(validate(&evidence, &product, &snapshot, false).is_ok());
         evidence["boot_id"] = "foreign".into();
-        assert!(validate(&evidence, &product, &snapshot).is_err());
+        assert!(validate(&evidence, &product, &snapshot, false).is_err());
         evidence["boot_id"] = "boot".into();
         snapshot["sealed_boot_provenance"][0]["framebuffers"][0]["width"] = 640.into();
-        assert!(validate(&evidence, &product, &snapshot).is_err());
+        assert!(validate(&evidence, &product, &snapshot, false).is_err());
     }
     #[test]
     fn bad_stride_address_or_graphical_claim_refuses() {
@@ -164,11 +180,11 @@ mod tests {
         ] {
             let (mut evidence, product, snapshot) = fixture();
             evidence["framebuffer"][field] = value;
-            assert!(validate(&evidence, &product, &snapshot).is_err());
+            assert!(validate(&evidence, &product, &snapshot, false).is_err());
         }
         let (mut evidence, product, snapshot) = fixture();
         evidence["graphical_show_proved"] = true.into();
-        assert!(validate(&evidence, &product, &snapshot).is_err());
+        assert!(validate(&evidence, &product, &snapshot, false).is_err());
     }
     #[test]
     fn malformed_or_authority_claiming_memory_observation_refuses() {
@@ -181,11 +197,11 @@ mod tests {
         ] {
             let (mut evidence, product, snapshot) = fixture();
             evidence["memory_map"][field] = value;
-            assert!(validate(&evidence, &product, &snapshot).is_err());
+            assert!(validate(&evidence, &product, &snapshot, false).is_err());
         }
         let (mut evidence, product, snapshot) = fixture();
         evidence["memory_map"] = Value::Null;
-        assert!(validate(&evidence, &product, &snapshot).is_err());
+        assert!(validate(&evidence, &product, &snapshot, false).is_err());
     }
     #[test]
     fn absence_and_ega_text_do_not_invent_an_rgb_base() {
@@ -194,8 +210,8 @@ mod tests {
         evidence["memory_map"] = Value::Null;
         snapshot["sealed_boot_provenance"][0]["framebuffers"] = json!([]);
         snapshot["bases"].as_array_mut().unwrap().pop();
-        assert!(validate(&evidence, &product, &snapshot).is_ok());
+        assert!(validate(&evidence, &product, &snapshot, false).is_ok());
         snapshot["bases"].as_array_mut().unwrap().push(Value::Null);
-        assert!(validate(&evidence, &product, &snapshot).is_err());
+        assert!(validate(&evidence, &product, &snapshot, false).is_err());
     }
 }
