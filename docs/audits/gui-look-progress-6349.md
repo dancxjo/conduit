@@ -125,3 +125,17 @@ The [surface inventory](gui-surface-inventory-6349.md) identifies remaining
 ordinary-GUI coverage gaps and explicit fallbacks. Full resident-Mask Look
 selection, native pointer/large-text enactment and original parent acceptance
 remain outstanding.
+
+The [packaged evidence](evidence/gui-look-6349-packaged/) now retains the wide
+QEMU captures, complete serial prefixes, source/Show receipts, final browser
+captures and checks, and the actual 640×480 control proof at `fefbc1402`. The
+narrow proof passes with 12 reachable controls, forward/reverse traversal, long
+Unicode name changes/restoration, pointer focus/naming, incomplete-argument
+refusal, 4 primary pages and 22 Details pages. Its 17 actual screenshots sample
+first/middle/last pages; unsampled pages have focus receipts, not pixel claims.
+Physical/human evidence and full fallback acceptance remain explicitly false.
+The first attempt failed the Unix socket pathname limit; a short alias to the
+same workspace temporary directory allowed the unmodified proof to pass.
+
+[Reference comparison and remaining visual differences](creche-reference-comparison-6174.md)
+separates meaningful source differences from remaining paint/layout work.
