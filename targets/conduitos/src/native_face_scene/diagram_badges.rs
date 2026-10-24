@@ -7,11 +7,39 @@ pub(super) const INSET: u16 = 24;
 
 /// All visible cards use the same treatment. Dense/small pages retain the
 /// complete labeled graph instead of trading meaningful geometry for ornament.
-pub(super) fn admit(cards: usize, links: usize, count: usize, width: u16, height: u16) -> bool {
-    width >= 112
-        && height >= 48
-        && count > 0
-        && cards + links + count + chrome::COMMANDS <= MAX_GRAPHICS_COMMANDS
+pub(super) fn admit(
+    cards: usize,
+    links: usize,
+    gears: &[&FaceSubject],
+    width: u16,
+    height: u16,
+) -> Result<bool, FaceSceneError> {
+    if width < 112
+        || height < 48
+        || gears.is_empty()
+        || cards + links + gears.len() + chrome::COMMANDS > MAX_GRAPHICS_COMMANDS
+    {
+        return Ok(false);
+    }
+    // As with Port decoration, retain the exact text-only prepared payload.
+    // If any heading would shorten, the entire page keeps its labeled cards.
+    for (index, gear) in gears.iter().enumerate() {
+        let (title, _) = gear_labels(&gear.name);
+        let label = preview(
+            &alloc::format!("{} · {}", index + 1, readable(title)),
+            crate::display::typography::TextRole::Heading,
+            width - 20,
+        )?;
+        if preview(
+            &label,
+            crate::display::typography::TextRole::Heading,
+            width - 20 - INSET,
+        )? != label
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 pub(super) fn append(

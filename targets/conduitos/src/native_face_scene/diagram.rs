@@ -197,10 +197,10 @@ pub(super) fn append<'a>(
     let badges = badges::admit(
         card_commands(face, &gears, height),
         visible_links,
-        gears.len(),
+        &gears,
         geometry.width,
         height,
-    );
+    )?;
     let title_inset = if badges { badges::INSET } else { 0 };
     let port_badges = port_badges::admit(
         face,
