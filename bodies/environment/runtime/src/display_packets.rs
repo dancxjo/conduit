@@ -8,6 +8,23 @@ use conduit_plot::{
     PortableExpressionEvaluationRefusal, PortableExpressionProgram,
     PortableExpressionProgramRefusal, PreparedPortableExpressionEvaluator,
 };
+/// Check a local Fore value against the independently linked Source type.
+/// This grants no caller authority, queues no input and performs no effect.
+/// Brightness above seven remains typed input for the Plot's refusal branch.
+/// Canonical validation checks primitive payloads as well as the envelope.
+pub fn validate_display_frame(
+    encoded: &[u8],
+) -> Result<conduit_core::ValidatedCanonicalStructuredValue<'_>, R> {
+    if encoded.len() > 1024 {
+        return Err(R::CanonicalEncodingTooLarge);
+    }
+    let value = validate(encoded)?;
+    if value.type_bytes() != include_bytes!(concat!(env!("OUT_DIR"), "/tm1637-frame.type")) {
+        return Err(R::WrongType);
+    }
+    Ok(value)
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum DisplayPacketRefusal {
     Program(PortableExpressionProgramRefusal),
