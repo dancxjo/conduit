@@ -5,7 +5,7 @@ use super::*;
 use conduit_environment_linux::{FilePublicationRefusal, PreparedFileRecordingPublication};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 #[path = "publication/plan.rs"]
-mod plan;
+pub(super) mod plan;
 #[derive(Clone, Copy, Debug)]
 enum Mode {
     Published,

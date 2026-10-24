@@ -4,12 +4,61 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match arguments {
         [command] if command == "recording-files" => Some(prove(root)),
+        [command] if command == "recording-checkpoint" => Some(recording_checkpoint(root)),
         [command] if command == "catalog-seed" => Some(catalog_seed(root)),
         [command] if command == "catalog-residence" => Some(catalog_residence(root)),
         [command] if command == "catalog-checkpoint" => Some(catalog_checkpoint(root)),
         [command] if command == "catalog-restart" => Some(catalog_restart(root)),
         _ => None,
     }
+}
+fn recording_checkpoint(root: &Path) -> Result<(), Box<dyn Error>> {
+    if !cfg!(target_os = "linux") {
+        return Err("recording-checkpoint requires Linux".into());
+    }
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                operation,
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/make/Cargo.toml",
+                "--features",
+                "installed-recording-proof",
+                "--test",
+                "recording_recovery",
+            ]);
+        if operation == "test" {
+            command.arg("linux_files_checkpoint");
+        } else {
+            command.args(["--", "-D", "warnings"]);
+        }
+        execute(&mut command)?;
+    }
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                operation,
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/make/Cargo.toml",
+                "--features",
+                "installed-recording-proof",
+                "--test",
+                "catalog_restart",
+            ]);
+        if operation == "clippy" {
+            command.args(["--", "-D", "warnings"]);
+        }
+        execute(&mut command)?;
+    }
+    Ok(())
 }
 fn catalog_restart(root: &Path) -> Result<(), Box<dyn Error>> {
     if !cfg!(target_os = "linux") {

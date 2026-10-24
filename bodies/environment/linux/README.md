@@ -95,7 +95,8 @@ a new Boot, incomplete-encoder refusal before transfer, foreign-Play fencing and
 zero-allocation execution. Actual successful observers feed the checked catalogue
 checkpoint preparation; refused or cancelled publication cannot do so. Host/Body
 admission, authenticated producer context and storage grants are fixtures. The
-resident writer, live MCU ingress and complete checkpoint/restart run remain work.
+resident writer and live MCU ingress remain work. The combined proof below
+connects the actual file and durable-State paths.
 
 
 `recording_publication_offer` describes this implementation for one independently
@@ -103,3 +104,14 @@ selected durable snapshot resource. It is not readiness, a reservation or a gran
 Root must retain the actual generation and directory before advertising it.
 Preparation requires this exact profile, implementation and artifact; a sealed
 Plan selecting a foreign publisher refuses before generation transfer or effects.
+
+The Linux `cargo xtask prove environment recording-checkpoint` proof writes 15
+64-sample chunks through the publication kernel, gates catalogue preparation on
+actual committed observers, executes the authored catalogue checkpoint through
+installed std snapshot and Body-durable State, then recovers under a new
+Host/Boot using the seed returned by State. A refused occupied later catalogue
+preserves the prior seed. Catalogue discovery supplies the batch kernel's
+references; all 960 logical samples recover from actual files. Host instances
+share a process, and admission, authenticated producer identity, grants and
+full capacity are fixtures. This is not live ingress, an elapsed overnight run,
+a process-crash proof or an installed resident appliance.

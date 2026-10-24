@@ -12,6 +12,7 @@ path = "src/main.rs"
 
 [features]
 browser-storage-proof = ["dep:conduit-browser-runtime", "dep:conduit-environment-browser"]
+installed-recording-proof = ["installed-seed-proof", "conduit-std-host/linux-snapshot"]
 installed-seed-proof = ["dep:conduit-std-host", "dep:conduit-std-offers", "dep:tempfile", "conduit-environment-linux/installed-seed"]
 
 [[test]]

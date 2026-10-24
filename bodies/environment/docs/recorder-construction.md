@@ -457,8 +457,8 @@ reference into file catalogue discovery under a new Host/Boot. It preserves
 read-only file bytes, refuses truncated State without repair, and rejects the
 write view before file effects. Empty seed remains distinct from corruption.
 The initial seed update, Body admission and storage grants are fixtures; separate
-Host instances share one test process. Resident Root custody and the complete
-chunk-publication/checkpoint/restart chain remain incomplete.
+Host instances share one test process. Resident Root custody remains incomplete. The combined file/checkpoint proof
+below connects these components with explicit admission fixtures.
 
 `PreparedRecordingCatalog::prepare_committed` is the Root preparation path after
 chunk publication commits: each listed reference must match an opaque observer retained from
@@ -475,8 +475,8 @@ success, failure, denial, cancellation, wrong-reference completion and invalid
 content, plus multiple ordered generations and an uncommitted later generation.
 Existing pressure/uncommitted-Step and zero-allocation execution checks remain.
 Those earlier storage completions are CPU fixtures. The Linux publication proof
-below replaces them with actual file effects; the full publication/checkpoint/
-restart chain remains incomplete.
+below replaces them with actual file effects; the combined checkpoint proof
+then connects publication to durable seed recovery.
 
 
 `RecordingPublicationSource` checks the authored `recording-publication.conduit`:
@@ -504,11 +504,28 @@ an incomplete encoder refuses before transfer or file effects. Foreign Play data
 refuses ingress, Step, file service and Fore consumption. Current Body authority,
 producer authentication, directory/residence identity and full capacity admission
 remain Root responsibilities and fixtures here. This is a Linux writer component,
-not live MCU ingress, a resident recorder, a complete checkpoint/restart run or
-physical overnight evidence.
+not live MCU ingress, a resident recorder or physical overnight evidence.
 
 The writer descriptor names its exact implementation/profile/artifact and selected
 resource contract. Descriptor construction creates no readiness or authority.
 Preparation refuses a foreign publisher selection before transferring the actual
 generation; current providers, capacity, grants and directory custody still need
 independent Root admission.
+
+`cargo xtask prove environment recording-checkpoint` joins the file writer and
+installed std checkpoint paths. It writes 15 actual 64-sample chunks through
+checked publication Sources and ordinary kernel Host Calls, then prepares the
+catalogue only from their committed Back observers. The authored checkpoint
+receives JSON, publishes the catalogue and stores its returned first-class
+reference in existing Body-durable State. An occupied next catalogue refuses
+without changing the last seed.
+
+A new Host/Boot reads that actual seed, reopens the catalogue, plans from its
+decoded references and recovers all 960 samples through the batch kernel and
+file executor. Writer and batch execution allocate no Rust heap; preparation
+and installed hosted State execution retain their existing allocation rules.
+Host instances share one process. Producer authentication, Body admission,
+current grants and whole-appliance capacity remain explicit fixtures. These
+logical one-minute samples prove the file/checkpoint/restart composition, not
+an elapsed overnight run, MCU ingress, process crash recovery or a resident
+recorder service.

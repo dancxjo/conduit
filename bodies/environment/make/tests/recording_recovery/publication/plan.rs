@@ -2,7 +2,7 @@
 use super::super::*;
 use conduit_environment_make::RecordingPublicationSource;
 use std::collections::BTreeMap;
-pub(super) fn plan(
+pub(crate) fn plan(
     reference: &c::BoundedResourceRef,
 ) -> (
     c::Plan,

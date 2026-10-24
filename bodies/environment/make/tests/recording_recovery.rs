@@ -288,3 +288,7 @@ mod linux_batch_files;
 #[cfg(target_os = "linux")]
 #[path = "recording_recovery/linux_files_publication.rs"]
 mod linux_files_publication;
+
+#[cfg(all(target_os = "linux", feature = "installed-recording-proof"))]
+#[path = "recording_recovery/linux_files_checkpoint.rs"]
+mod linux_files_checkpoint;

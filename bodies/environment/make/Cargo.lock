@@ -931,6 +931,7 @@ dependencies = [
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
+ "conduit-linux-snapshot-store",
  "conduit-midi",
  "conduit-net",
  "conduit-observatory",
