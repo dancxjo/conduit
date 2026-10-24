@@ -1,23 +1,33 @@
 # Crèche reference comparison (#6174)
 
-Compare the user-supplied [editorial reference](https://raw.githubusercontent.com/dancxjo/conduit/c8fdc8949a426873364665abd98bf8dc34edf98c/task-6038/outputs/visual-reference-20261021/creche-editorial-reference.png)
-with the normal x86_64 QEMU captures at Source `dd5349718`. This is an explicit
-visual gap audit, not a claim of completed reference acceptance.
+The user-supplied reference is pinned at `c8fdc8949a426873364665abd98bf8dc34edf98c`.
+The current actual native captures below are from clean Source `92598cefd`,
+with exact image/Root/PNG bindings and the later journey failure retained in
+[the evidence record](evidence/gui-look-6349-current-native/README.md).
+This is a visual comparison and gap audit, not completed reference acceptance.
 
-| Reference | Current native realization | Difference and next work |
-| --- | --- | --- |
-| Large serif lead title, quiet sans labels | Pinned measured serif heading; native sans controls; technical Mono remains available | Title is still noticeably smaller and the section hierarchy quieter. Refine purpose/scale through the selected Look, not by changing source text. |
-| Restrained navy surfaces, soft borders and inset fields | Dark navy default and cream/navy Editorial palette; explicit checked group backgrounds | At `6034b2c17`, group fills include the reserved checked container inset. Further title scale, rhythm and richer supported paint remain visual refinement work. No unbounded blur/gradient or runtime asset loader is implied. |
-| Two aligned naming/Plot cards | Actual checked responsive column recipe and two-em outer margin; source order retained | Naming and catalog content share real checked groups. Narrow continuation is its own verified geometry, not a screenshot scale-down. |
-| Body/edit/search/Plot icon rhythm | Shared finite Lucide mappings; exact offered action intents; new search and collection symbols | Lead title currently describes a Host and truthfully uses the Host symbol; it must not be relabeled Body merely to match the drawing. Plot items retain source-selected Boolean indicators; per-Plot artwork is not invented. |
-| Gold keyboard focus and comfortable rows | Current native focused field, selected colors, measured target bounds | Keyboard focus is visible; the separate 640×480 control proof enacts pointer focus/field input and refusal checks. Large-text/forced-colors/native cases still require distinct current receipts. |
-| Large primary Birth and secondary suggestion | Native Birth emphasis and labeled suggestion action | Actual availability stays authoritative. Reference subdued paint cannot disable an available action. |
-| Page position in header with quiet footer | Actual local page count plus proportional page-position line; measured compact help | It represents page position, not workload progress. Native header/footer remain text-first at constrained extents. |
-| Example name and unchecked Plot examples | Real generated name and four source-selected native Plots | Deliberate semantic difference: names/values/checked state come from the current Face and cannot be changed for a picture. |
-| Rich palette/type ensemble | Finite admitted resources and selected palette/density in current native entrance | Full Engineering typography selection, shared resident-Mask Look selection, and reuse on Todo/Patchbay retain their original acceptance scope. |
+| Requested reference | Actual native Phosphor, 1280×800 |
+| --- | --- |
+| ![Requested editorial direction](https://raw.githubusercontent.com/dancxjo/conduit/c8fdc8949a426873364665abd98bf8dc34edf98c/task-6038/outputs/visual-reference-20261021/creche-editorial-reference.png) | ![Actual native Crèche](evidence/gui-look-6349-current-native/journey-frames/creche-engineering-compact.png) |
 
-The wide capture retains four selected Plots on the first page in the unchanged
-48-command budget. Palette/density switches preserve the Face identity/revision
-and acknowledge distinct chained local Shows. Those are local freestanding QEMU
-facts; they do not establish a remote owner acknowledgement, physical display,
-browser/native shared Body, or stable publication.
+| Reference detail | Current native result and remaining work |
+| --- | --- |
+| Serif lead title; quiet Sans controls; technical Mono | Actual serif title and Sans controls are visible. All current presets still request Editorial typography; the Engineering resource/selector enactment is not proved by filenames. Further scale/weight refinement must use measured admitted resources. |
+| Restrained navy, inset surfaces, subtle separators | Current Phosphor is darker with stronger cyan/amber; Editorial offers cream surfaces. Both consume actual canonical Look paint. A closer restrained navy expression and supported depth remain visual refinement; no blur or runtime loader is implied. |
+| Aligned naming and Plot groups | The actual checked responsive structure places naming and catalog side by side in compact wide mode. Spacious mode uses its admitted continuation; identical complete Face/recipe/layout bindings survive the swaps. Current narrow/large-text reachability still needs its own proof. |
+| Body/edit/search/Plot icon rhythm | Finite shared Host, Birth, edit, search, collection and Boolean indicators appear. The title's Host icon follows its actual Face role; it is not relabeled to imitate the drawing. Decorative omission under residual capacity remains allowed. |
+| Gold focus and comfortable targets | The actual name field retains gold focus under Phosphor; the paper Look selects blue. Focus/paint change without semantic action dispatch. Wider/native pointer, unavailable-control, forced-color and 200% correspondence retain their required scope. |
+| Primary Birth and secondary suggestion | The real available Birth action has stronger fill and type. Suggestion remains labeled and available; subdued reference paint cannot disable it. |
+| Page position and quieter footer | The actual header's `1 / 2` and proportional line describe local continuation. The footer retains keyboard guidance. Neither represents workload progress. |
+| Example name and unchecked Plot examples | The real generated name and four source-selected Plots remain authoritative. These are deliberate semantic differences, not visual defects to fix by repainting state. |
+
+The four Look transitions preserve the same complete Face, component Fore,
+recipe/layout and action records, with distinct acknowledged local Shows.
+Compact pages remain at 48 commands. These facts do not establish every control
+on every continuation page or remote owner acknowledgement.
+
+The fresh normal image builds and boots, but the later Patchbay application
+request exhausts its existing work quota. Full journey/compositor-lifecycle,
+exact-tree integration and publication acceptance remain unproved. Earlier
+`dd5349718`/`6034b2c17`/`a161ac474` receipts remain source-specific historical
+proof; they are not silently promoted to this Source.

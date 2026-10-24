@@ -1,0 +1,634 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos)
+warning: unused import: `ProtectedDocument`
+  --> targets/conduitos/src/text_protection.rs:14:27
+   |
+14 | pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+   |                           ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `FaceBack`, `IndicatorBack`, `LiteralBack`, `LiteralState`, `MorseBack`, `TourMorseBack`, and `UpperBack`
+ --> targets/conduitos/src/tour_morse_kernel.rs:4:25
+  |
+4 |     text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
+  |                         ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^
+5 |     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
+  |                        ^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused imports: `FixedHostCallBindings`, `FixedRoutes`, `FixedScheduler`, `FixedSignLog`, `FixedValueStore`, `KernelEvent`, and `ValueStorage`
+  --> targets/conduitos/src/tour_morse_kernel.rs:9:22
+   |
+ 9 |     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+   |                      ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                           ^^^^^^^^^^^                              ^^^^^^^^^^^^
+11 |     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+   |                 ^^^^^^^^^^^^^^
+
+warning: unused import: `SignSink`
+  --> targets/conduitos/src/tour_morse_kernel.rs:10:64
+   |
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                                                ^^^^^^^^
+
+warning: associated function `prepare` is never used
+  --> targets/conduitos/src/front_door/commons.rs:17:19
+   |
+16 | impl Commons {
+   | ------------ associated function in this implementation
+17 |     pub(crate) fn prepare() -> Result<Self, Error> {
+   |                   ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated items `embedded_image_bytes` and `observation` are never used
+   --> targets/conduitos/src/protected_compositor.rs:47:19
+    |
+ 44 | impl CompositorService {
+    | ---------------------- associated items in this implementation
+...
+ 47 |     pub(crate) fn embedded_image_bytes() -> &'static [u8] {
+    |                   ^^^^^^^^^^^^^^^^^^^^
+...
+117 |     pub(crate) fn observation(&self) -> lifecycle::ServiceObservation {
+    |                   ^^^^^^^^^^^
+
+warning: fields `host`, `boot`, `generation`, `base`, and `format` are never read
+  --> targets/conduitos/src/protected_compositor/display_grant.rs:14:5
+   |
+13 | pub(crate) struct DisplayGrant {
+   |                   ------------ fields in this struct
+14 |     host: HostId,
+   |     ^^^^
+15 |     boot: BootId,
+   |     ^^^^
+16 |     generation: OfferGeneration,
+   |     ^^^^^^^^^^
+17 |     base: HostBaseId,
+   |     ^^^^
+18 |     format: DisplayFormat,
+   |     ^^^^^^
+   |
+   = note: `DisplayGrant` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: struct `DisplayIdentity` is never constructed
+  --> targets/conduitos/src/protected_compositor/display_grant.rs:22:19
+   |
+22 | pub(crate) struct DisplayIdentity<'a> {
+   |                   ^^^^^^^^^^^^^^^
+
+warning: associated items `identity`, `new`, `matches`, `format_matches`, and `extent` are never used
+  --> targets/conduitos/src/protected_compositor/display_grant.rs:31:19
+   |
+30 | impl DisplayGrant {
+   | ----------------- associated items in this implementation
+31 |     pub(crate) fn identity(&self) -> DisplayIdentity<'_> {
+   |                   ^^^^^^^^
+...
+44 |     pub(crate) fn new(
+   |                   ^^^
+...
+64 |     pub(crate) fn matches(
+   |                   ^^^^^^^
+...
+77 |     pub(crate) fn format_matches(&self, format: DisplayFormat) -> bool {
+   |                   ^^^^^^^^^^^^^^
+...
+81 |     pub(crate) fn extent(&self) -> (u16, u16) {
+   |                   ^^^^^^
+
+warning: constant `STAGING_BYTES` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:25:18
+   |
+25 | pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
+   |                  ^^^^^^^^^^^^^
+
+warning: constant `SERVICE_RESERVED_BYTES` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:26:18
+   |
+26 | pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `PreparationError` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:31:17
+   |
+31 | pub(crate) enum PreparationError {
+   |                 ^^^^^^^^^^^^^^^^
+
+warning: fields `report`, `grant`, `guest_image_sha256`, `staging_preparation_raw_ticks`, and `preparation_raw_ticks` are never read
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:54:5
+   |
+49 | pub(crate) struct DisplayOwner {
+   |                   ------------ fields in this struct
+...
+54 |     report: PreparationReport,
+   |     ^^^^^^
+55 |     grant: SharedDisplayGrant,
+   |     ^^^^^
+56 |     guest_image_sha256: [u8; 32],
+   |     ^^^^^^^^^^^^^^^^^^
+...
+61 |     staging_preparation_raw_ticks: Option<u64>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+62 |     preparation_raw_ticks: Option<u64>,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> targets/conduitos/src/protected_compositor/display_owner.rs:73:19
+    |
+ 68 | impl DisplayOwner {
+    | ----------------- associated items in this implementation
+...
+ 73 |     pub(crate) fn prepare(grant: DisplayGrant) -> Result<SharedDisplayOwner, PreparationError> {
+    |                   ^^^^^^^
+...
+ 85 |     pub(crate) fn prepare_shared(
+    |                   ^^^^^^^^^^^^^^
+...
+144 |     pub(crate) fn guest_image_sha256(&self) -> &[u8; 32] {
+    |                   ^^^^^^^^^^^^^^^^^^
+...
+149 |     pub(crate) fn embedded_image_bytes(&self) -> &'static [u8] {
+    |                   ^^^^^^^^^^^^^^^^^^^^
+...
+154 |     pub(crate) fn display_identity(&self) -> super::display_grant::DisplayIdentity<'_> {
+    |                   ^^^^^^^^^^^^^^^^
+...
+158 |     pub(crate) fn matches_scope(
+    |                   ^^^^^^^^^^^^^
+...
+168 |     pub(crate) fn format_matches(&self, format: crate::display::DisplayFormat) -> bool {
+    |                   ^^^^^^^^^^^^^^
+...
+202 |     pub(crate) fn lifecycle_observation(&self) -> super::lifecycle::DisplayObservation {
+    |                   ^^^^^^^^^^^^^^^^^^^^^
+...
+216 |     pub(crate) fn service_cost(&self) -> DomainCost {
+    |                   ^^^^^^^^^^^^
+...
+220 |     pub(crate) fn preparation_report(&self) -> PreparationReport {
+    |                   ^^^^^^^^^^^^^^^^^^
+...
+229 |     pub(crate) fn with_raster<R>(
+    |                   ^^^^^^^^^^^
+
+warning: constant `STAGING_PIXELS` is never used
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:6:11
+  |
+6 | pub const STAGING_PIXELS: usize = 2_097_152;
+  |           ^^^^^^^^^^^^^^
+
+warning: constant `UPLOAD_CHUNK_PIXELS` is never used
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:7:11
+  |
+7 | pub const UPLOAD_CHUNK_PIXELS: usize = 16_384;
+  |           ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `RasterStaging` is never constructed
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:9:12
+  |
+9 | pub struct RasterStaging<'a> {
+  |            ^^^^^^^^^^^^^
+
+warning: associated items `admit` and `lease` are never used
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:14:12
+   |
+12 | impl<'a> RasterStaging<'a> {
+   | -------------------------- associated items in this implementation
+13 |     /// Validate capacity before touching the caller's buffer. No allocation.
+14 |     pub fn admit(pixels: &'a mut [u32]) -> Result<Self, DisplayError> {
+   |            ^^^^^
+...
+25 |     pub fn lease(&mut self, width: u16, height: u16) -> Result<RasterLease<'_>, DisplayError> {
+   |            ^^^^^
+
+warning: struct `RasterLease` is never constructed
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:53:12
+   |
+53 | pub struct RasterLease<'a> {
+   |            ^^^^^^^^^^^
+
+warning: methods `upload_chunks` and `index` are never used
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:66:12
+   |
+57 | impl RasterLease<'_> {
+   | -------------------- methods in this implementation
+...
+66 |     pub fn upload_chunks(&self) -> impl ExactSizeIterator<Item = &[u32]> {
+   |            ^^^^^^^^^^^^^
+...
+69 |     fn index(&self, x: u32, y: u32) -> Result<usize, DisplayError> {
+   |        ^^^^^
+
+warning: methods `instance`, `observed_cost`, `request`, `upload`, and `visit_frame` are never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:13:8
+   |
+11 | pub(crate) trait Transport {
+   |                  --------- methods in this trait
+12 |     type Error;
+13 |     fn instance(&self) -> u64;
+   |        ^^^^^^^^
+14 |     fn observed_cost(&self) -> Option<crate::protected_region::DomainCost> {
+   |        ^^^^^^^^^^^^^
+...
+17 |     fn request(&mut self, request: Request) -> Result<Response, Self::Error>;
+   |        ^^^^^^^
+18 |     fn upload(&mut self, offset: u32, pixels: &[u32]) -> Result<Response, Self::Error>;
+   |        ^^^^^^
+19 |     fn visit_frame<R>(
+   |        ^^^^^^^^^^^
+
+warning: struct `Activation` is never constructed
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:34:19
+   |
+34 | pub(crate) struct Activation {
+   |                   ^^^^^^^^^^
+
+warning: enum `OwnerError` is never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:40:17
+   |
+40 | pub(crate) enum OwnerError<E> {
+   |                 ^^^^^^^^^^
+
+warning: fields `instance`, `namespace`, `generations`, and `activation_observation` are never read
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:53:5
+   |
+51 | pub(crate) struct SessionOwner<T: Transport> {
+   |                   ------------ fields in this struct
+52 |     transport: T,
+53 |     instance: u64,
+   |     ^^^^^^^^
+54 |     namespace: u64,
+   |     ^^^^^^^^^
+...
+57 |     generations: [u64; MAX_SURFACES],
+   |     ^^^^^^^^^^^
+58 |     terminated: bool,
+59 |     activation_observation: lifecycle::ActivationObservation,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:62:12
+    |
+ 61 | impl<T: Transport> SessionOwner<T> {
+    | ---------------------------------- associated items in this implementation
+ 62 |     pub fn new(mut transport: T) -> Result<Self, OwnerError<T::Error>> {
+    |            ^^^
+...
+ 79 |     pub fn active_session(&self) -> Option<SessionId> {
+    |            ^^^^^^^^^^^^^^
+...
+ 82 |     pub fn active_namespace(&self) -> Option<u64> {
+    |            ^^^^^^^^^^^^^^^^
+...
+ 85 |     pub fn service_instance(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^^^
+...
+ 89 |     pub fn activation_observation(&self) -> lifecycle::ActivationObservation {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+ 98 |     pub fn activate(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+    |            ^^^^^^^^
+...
+101 |     fn observe_activation(&mut self, withdrawn: bool) -> Result<Activation, OwnerError<T::Error>> {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+127 |     fn activate_inner(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+    |        ^^^^^^^^^^^^^^
+...
+189 |     pub fn activate_withdrawn(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+200 |     pub fn is_terminated(&self) -> bool {
+    |            ^^^^^^^^^^^^^
+...
+203 |     pub fn is_active(&self, session: SessionId) -> bool {
+    |            ^^^^^^^^^
+...
+206 |     fn session(&self, session: SessionId) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^^
+...
+215 |     fn handle(&self, handle: Handle) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^
+...
+227 |     fn command(&self, session: SessionId, request: Request) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^^
+...
+243 |     fn response(
+    |        ^^^^^^^^
+...
+293 |     pub fn request(
+    |            ^^^^^^^
+...
+307 |     pub fn upload_chunk(
+    |            ^^^^^^^^^^^^
+...
+325 |     pub fn with_frame_step<R>(
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `mapped_coverage` is never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:357:4
+    |
+357 | fn mapped_coverage(handles: &[Option<Handle>; MAX_SURFACES], span: FrameSpan) -> bool {
+    |    ^^^^^^^^^^^^^^^
+
+warning: methods `service_observation` and `service_cost` are never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:396:19
+    |
+395 | impl SessionOwner<super::CompositorService> {
+    | ------------------------------------------- methods in this implementation
+396 |     pub(crate) fn service_observation(&self) -> lifecycle::ServiceObservation {
+    |                   ^^^^^^^^^^^^^^^^^^^
+...
+399 |     pub(crate) fn service_cost(&self) -> crate::protected_region::DomainCost {
+    |                   ^^^^^^^^^^^^
+
+warning: struct `DisplayObservation` is never constructed
+  --> targets/conduitos/src/protected_compositor/lifecycle.rs:86:19
+   |
+86 | pub(crate) struct DisplayObservation {
+   |                   ^^^^^^^^^^^^^^^^^^
+
+warning: method `record_result` is never used
+   --> targets/conduitos/src/protected_creche/home.rs:124:19
+    |
+ 14 | impl Home {
+    | --------- method in this implementation
+...
+124 |     pub(crate) fn record_result(
+    |                   ^^^^^^^^^^^^^
+
+warning: field `display_owner` is never read
+  --> targets/conduitos/src/native_surface_provider.rs:14:16
+   |
+ 9 | pub struct NativeSurfaceProvider {
+   |            --------------------- field in this struct
+...
+14 |     pub(crate) display_owner:
+   |                ^^^^^^^^^^^^^
+   |
+   = note: `NativeSurfaceProvider` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:28:7
+   |
+28 | const QUEUE_SLOTS: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:29:7
+   |
+29 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:30:7
+   |
+30 | const ROUTE_TARGETS: usize = 2;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:31:7
+   |
+31 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:32:7
+   |
+32 | const PENDING_REQUESTS: usize = 3;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:33:7
+   |
+33 | const VALUE_SLOTS: usize = 6;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:34:7
+   |
+34 | const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:35:7
+   |
+35 | const SIGN_CAPACITY: usize = 64;
+   |       ^^^^^^^^^^^^^
+
+warning: method `read_document` is never used
+  --> targets/conduitos/src/text_protection/document.rs:26:12
+   |
+25 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+26 |     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+   |            ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:21:7
+   |
+21 | const QUEUE_SLOTS: usize = 4;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:22:7
+   |
+22 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:23:7
+   |
+23 | const ROUTE_TARGETS: usize = 4;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:24:7
+   |
+24 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:25:7
+   |
+25 | const PENDING_REQUESTS: usize = 4;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:26:7
+   |
+26 | const VALUE_SLOTS: usize = 12;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:27:7
+   |
+27 | const VALUE_BYTES: usize =
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:29:7
+   |
+29 | const SIGN_CAPACITY: usize = 96;
+   |       ^^^^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 47 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.30s
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos)
+error: failed to run custom build command for `conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos)`
+
+Caused by:
+  process didn't exit successfully: `/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-target/release/build/conduitos-8ec6c2aa757cd95d/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-changed=domain/main.rs
+  cargo:rerun-if-changed=domain/build.rs
+  cargo:rerun-if-changed=domain/Cargo.toml
+  cargo:rerun-if-changed=domain/Cargo.lock
+  cargo:rerun-if-changed=domain/allocation.rs
+  cargo:rerun-if-changed=domain/keymap.rs
+  cargo:rerun-if-changed=domain/document.rs
+  cargo:rerun-if-changed=domain/morse.rs
+  cargo:rerun-if-changed=domain/timer.rs
+  cargo:rerun-if-changed=src/tour_timer_runtime.rs
+  cargo:rerun-if-changed=src/tour_timer_runtime
+  cargo:rerun-if-changed=../../architecture/kernel
+  cargo:rerun-if-changed=../../semantics/time
+  cargo:rerun-if-changed=../../semantics/text
+  cargo:rerun-if-changed=../../semantics/catalog/src/text_state/retained.rs
+  cargo:rerun-if-changed=../../semantics/catalog/src/text_state/edit_codec.rs
+  cargo:rerun-if-changed=../../semantics/human
+  cargo:rerun-if-changed=../../architecture/core
+  cargo:rerun-if-changed=../../architecture/assigned-plan
+  cargo:rerun-if-changed=../../architecture/plot
+  cargo:rerun-if-changed=domain/gate.rs
+  cargo:rerun-if-changed=domain/memory.rs
+  cargo:rerun-if-changed=domain/memory_words.rs
+  cargo:rerun-if-changed=domain/frame.rs
+  cargo:rerun-if-changed=domain/layout.rs
+  cargo:rerun-if-changed=domain/probes.rs
+  cargo:rerun-if-changed=domain/service_probe.rs
+  cargo:rerun-if-changed=domain/probes_ia32.rs
+  cargo:rerun-if-changed=domain/probes_aarch64.rs
+  cargo:rerun-if-changed=domain/probes_riscv64.rs
+  cargo:rerun-if-changed=domain/probes_loongarch64.rs
+  cargo:rerun-if-changed=domain/probe_gate.rs
+  cargo:rerun-if-changed=domain/linker.ld
+  cargo:rerun-if-changed=src/text_transform.rs
+  cargo:rustc-check-cfg=cfg(conduitos_protected_execution)
+  cargo:rustc-check-cfg=cfg(conduitos_domain_image)
+  cargo:rustc-check-cfg=cfg(conduitos_domain_backend)
+  cargo:rustc-cfg=conduitos_protected_execution
+  cargo:rustc-cfg=conduitos_domain_backend
+  cargo:rustc-check-cfg=cfg(conduitos_compositor_image)
+  cargo:rerun-if-changed=compositor-service
+  cargo:rerun-if-changed=compositor-core
+  cargo:rerun-if-changed=domain/memory.rs
+  cargo:rustc-cfg=conduitos_compositor_image
+  cargo:rustc-check-cfg=cfg(conduitos_creche_image)
+  cargo:rerun-if-changed=creche-service
+  cargo:rerun-if-changed=creche-core
+  cargo:rerun-if-changed=src/service_memory.rs
+  cargo:rustc-cfg=conduitos_creche_image
+  cargo:rustc-check-cfg=cfg(conduitos_runtime_image)
+  cargo:rerun-if-changed=runtime-service
+  cargo:rerun-if-changed=runtime-core
+  cargo:rerun-if-changed=src/service_memory.rs
+  cargo:rerun-if-changed=../../architecture/kernel
+  cargo:rerun-if-changed=../../architecture/assigned-plan
+  cargo:rerun-if-changed=../../Cargo.lock
+  cargo:rustc-cfg=conduitos_runtime_image
+  cargo:rustc-check-cfg=cfg(conduitos_application_image)
+  cargo:rerun-if-changed=application-service
+  cargo:rerun-if-changed=application-core
+  cargo:rerun-if-changed=src/service_memory.rs
+  cargo:rerun-if-changed=../../plots/tour
+  cargo:rerun-if-changed=../../plots/patchbay
+  cargo:rerun-if-changed=../../architecture
+  cargo:rerun-if-changed=../../semantics
+  cargo:rerun-if-changed=../../Cargo.lock
+
+  --- stderr
+
+  thread 'main' (830257) panicked at targets/conduitos/build/application_image.rs:50:5:
+  independent application image failed:    Compiling unicode-ident v1.0.27
+     Compiling version_check v0.9.5
+     Compiling proc-macro2 v1.0.107
+     Compiling generic-array v0.14.7
+     Compiling typenum v1.20.1
+     Compiling quote v1.0.47
+     Compiling syn v3.0.9
+     Compiling serde_core v1.0.229
+     Compiling serde_derive v1.0.229
+     Compiling block-buffer v0.10.4
+     Compiling crypto-common v0.1.7
+     Compiling digest v0.10.7
+     Compiling cpufeatures v0.2.17
+     Compiling cfg-if v1.0.5
+     Compiling sha2 v0.10.9
+     Compiling libm v0.2.16
+     Compiling serde v1.0.229
+     Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/assigned-plan)
+     Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/core)
+     Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/plot)
+     Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/time)
+     Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/data)
+     Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/human)
+     Compiling semver v1.0.28
+     Compiling rustc_version v0.4.1
+     Compiling curve25519-dalek v4.1.3
+     Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/audio)
+     Compiling thiserror-impl v2.0.21
+     Compiling tinyvec v1.13.3
+     Compiling unicode-normalization v0.1.25
+     Compiling thiserror v2.0.21
+     Compiling zmij v1.0.23
+     Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/language)
+     Compiling signature v2.2.0
+     Compiling itoa v1.0.18
+     Compiling memchr v2.8.3
+     Compiling subtle v2.6.1
+     Compiling zeroize v1.9.1
+     Compiling serde_json v1.0.151
+     Compiling ed25519 v2.2.3
+     Compiling cobs v0.3.0
+     Compiling postcard v1.1.3
+     Compiling ed25519-dalek v2.2.0
+     Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/face)
+     Compiling minicbor v2.3.0
+     Compiling adler2 v2.0.1
+     Compiling miniz_oxide v0.8.9
+     Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/body)
+     Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/planner)
+     Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/education)
+     Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/net)
+     Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/alife)
+     Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/robotics)
+     Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/text)
+     Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/purpose)
+     Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/process)
+     Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/web)
+     Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/mechanisms/protocols/midi)
+     Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/ai)
+     Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/tutorial)
+     Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/architecture/kernel)
+     Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/plots/patchbay)
+     Compiling ryu v1.0.23
+     Compiling serde-json-core v0.6.0
+     Compiling conduitos-application-service v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos/application-service)
+     Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/semantics/catalog)
+     Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/plots/patchbay/graph)
+     Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/plots/patchbay/application)
+     Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/plots/tour)
+     Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos/application-core)
+  error: linking with `rust-lld` failed: exit status: 1
+    |
+    = note:  "rust-lld" "-flavor" "gnu" "<1 object files omitted>" "--as-needed" "-Bstatic" "<sysroot>/lib/rustlib/x86_64-unknown-none/lib/libcompiler_builtins-*.rlib" "-L" "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application-target/x86_64-unknown-none/release/deps/rustcK46780/raw-dylibs" "-Bdynamic" "--eh-frame-hdr" "-z" "noexecstack" "-o" "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application-target/x86_64-unknown-none/release/deps/conduitos_application_service-0c48c9403d50b57d" "--gc-sections" "-z" "relro" "-z" "now" "--strip-debug" "-T/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos/application-service/linker.ld" "--build-id=none" "-z" "max-page-size=4096"
+    = note: some arguments are omitted. use `--verbose` to show all linker arguments
+    = note: rust-lld: error: Application image exceeds admitted window
+            
+
+  error: could not compile `conduitos-application-service` (bin "conduitos-application-service") due to 1 previous error
+
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+xtask error: ConduitOS proof refusal [live-media-build-failed]: ConduitOS proof refusal [compile-link-failed]: exit status: 101

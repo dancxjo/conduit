@@ -97,3 +97,19 @@ Owner controls remain Todo-specific. The complete 66-subject domain fixture
 still refuses at the carrier bound; it is not trimmed for positive proof.
 Arbitrary external Source, live owner-selected Patchbay and native QEMU remain
 outside this evidence.
+
+## Fresh native Source 92598cefd
+
+[Actual current Crèche and diagram captures](evidence/gui-look-6349-current-native/README.md)
+now bind 22 QMP PNG hashes to a fresh normal product Root/ISO. Four local Look
+swaps preserve the complete Face, component, recipe and layout. All current
+presets are typographically Editorial; legacy engineering filenames describe
+Phosphor palette captures. [The reference comparison](creche-reference-comparison-6174.md)
+now uses this actual Source and records remaining visual differences.
+
+The image builds after narrowly updating standalone guest locks and fitting the
+Application executable inside its unchanged image window. The journey then
+fails at a later Patchbay prepare-target operation with Application WorkExhausted.
+No full journey or compositor-lifecycle receipt follows; current narrow/forced/
+200% native proof and actual Engineering selection remain open. This supersedes
+neither the older Source receipts nor the original parent acceptance scope.

@@ -1,0 +1,16 @@
+{
+  "source": "92598cefd9a14ff50371b63df41273b4b28294ac",
+  "pid": 867588,
+  "proc_start": "48738180",
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-target/debug/xtask",
+    "make",
+    "conduitos",
+    "graphical-profile-proof",
+    "--locked"
+  ],
+  "output": "/tmp/c6349-gui/native-current-sized",
+  "log": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-current-sized-profile.log",
+  "exit": 1,
+  "stopped_optional_headless_tail": false
+}

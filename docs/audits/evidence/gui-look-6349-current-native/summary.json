@@ -1,0 +1,29 @@
+{
+  "source": "92598cefd9a14ff50371b63df41273b4b28294ac",
+  "image_sha256": "f69a8dd558a8f54774e63df820ce8f75bd2c7d18d821a0b6b7ed290d3892e5b0",
+  "kernel_sha256": "7550b46b2512f4886dbfbe9f5b93bbcc0e346c5698cb2ec42c5dfd53b6dc64af",
+  "guest_elf_bytes": 29232,
+  "guest_elf_sha256": "cf5d3f33f1b061d7e3bc47b512edd1e5f89248962a29e42b3513b5c44baaa0bf",
+  "structural_embedded_image_extraction": true,
+  "qmp_png_hashes_verified": 22,
+  "full_journey_completed": false,
+  "compositor_lifecycle_collected": false,
+  "headless_asset_tail_started": false,
+  "failure": "patchbay-action-timeout with application Commit/prepare-target WorkExhausted",
+  "physical_evidence": false,
+  "human_enactment": false,
+  "archives": {
+    "journey-serial.log": {
+      "bytes": 2441069,
+      "sha256": "86350d80a61ad8304052c7961ad3e661fbba106402bf07ce24ae09270552d505",
+      "archive": "journey-serial.log.gz",
+      "archive_sha256": "07aefcba2edb53c1d0135c1e0530ce5ea35f293fae9e1bfc5406e187818bd614"
+    },
+    "journey-qmp.log": {
+      "bytes": 187606,
+      "sha256": "c780c5f91e243361a88eec334f1304f11ba7d0184604915f2666175a08b7e920",
+      "archive": "journey-qmp.log.gz",
+      "archive_sha256": "a475c2a49f5fff022993208a3b06a38fd61ce47d5a554da9545ab560955e8dee"
+    }
+  }
+}
