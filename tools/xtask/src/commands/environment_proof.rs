@@ -12,6 +12,8 @@ mod software_ready;
 mod wait;
 #[path = "environment_proof/publication_face.rs"]
 mod publication_face;
+#[path = "environment_proof/recording_files.rs"]
+mod recording_files;
 use std::{
     error::Error,
     path::{Path, PathBuf},
@@ -33,6 +35,9 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
     }
     if arguments == ["owner-prepare-esp32"] {
         return owner_preparation::prove(&root, "prepare");
+    }
+    if arguments == ["recording-files"] {
+        return recording_files::prove(&root);
     }
     if arguments == ["face-publication"] {
         return publication_face::prove(&root);

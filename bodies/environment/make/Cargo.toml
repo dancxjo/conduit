@@ -53,3 +53,7 @@ conduit-environment-http = { path = "../http" }
 conduit-network-join-call = { path = "../../../mechanisms/io/network-join" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-time = { path = "../../../semantics/time", features = ["kernel-step"] }
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }

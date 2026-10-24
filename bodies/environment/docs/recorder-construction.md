@@ -49,7 +49,24 @@ through the production kernel with those transferred software objects: one
 exact reference request, no recovery progress while the read is pending,
 and committed recovery only after valid completion. Failed, cancelled and
 invalid-content reads preserve empty history. Execution allocates no storage.
-The external read completion remains a CPU fixture, not a live storage provider.
+That earlier external read completion remains a CPU fixture. The additional
+Linux file/kernel proof below replaces it with actual file effects.
+
+The additional `cargo xtask prove environment recording-files` proof executes the
+ordinary Source-checked, planned and lowered production recovery kernel against
+actual local Linux snapshot files. The kernel's original request and input value
+reach `PreparedFileSnapshotOperation`; validated output is stored in the kernel's
+own value store and completes that same request. History remains empty while
+I/O has completed but the kernel request has not, and until the ordinary sink
+subsequently steps and commits. The successful chunk preserves first-class
+quantity bytes and an explicit checksum failure. Missing files, invalid JSON in
+a valid record envelope, and valid JSON with invalid recording content all leave
+history empty. All four execution paths allocate no Rust heap during Play.
+
+Store offers/grants, historical producer context and the independent publisher
+binding are explicit CPU fixtures. This proves production-kernel/file effects,
+not live Host capacity admission, a real Body start, the MCU Line, durable
+catalogue seed custody, Pi boot/display or physical overnight recording.
 
 Browser snapshot publication validates bounded JSON text without constructing
 the canonical JSON value tree. This admits a full 64-sample chunk's 2,688-byte

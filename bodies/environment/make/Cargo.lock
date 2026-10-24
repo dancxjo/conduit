@@ -353,6 +353,7 @@ dependencies = [
  "conduit-host-make",
  "conduit-host-rp2040",
  "conduit-kernel",
+ "conduit-linux-snapshot-store",
  "conduit-monotonic-wait",
  "conduit-net",
  "conduit-network-join-call",
@@ -360,6 +361,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-resource-snapshot",
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
@@ -512,6 +514,16 @@ name = "conduit-linear-framebuffer-make"
 version = "0.1.0"
 dependencies = [
  "conduit-host-make",
+]
+
+[[package]]
+name = "conduit-linux-snapshot-store"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-resource-snapshot",
+ "libc",
 ]
 
 [[package]]

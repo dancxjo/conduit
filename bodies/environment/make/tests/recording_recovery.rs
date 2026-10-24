@@ -276,3 +276,7 @@ mod software_preparation;
 
 #[path = "recording_recovery/body_lifecycle.rs"]
 mod body_lifecycle;
+
+#[cfg(target_os = "linux")]
+#[path = "recording_recovery/linux_files.rs"]
+mod linux_files;
