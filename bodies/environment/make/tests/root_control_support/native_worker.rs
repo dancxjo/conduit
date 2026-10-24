@@ -57,13 +57,14 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         return;
     }
 
-    if behavior == 19 || behavior == 20 {
+    if (19..=21).contains(&behavior) {
         files::check(
             execution,
             pulse_effects,
             timer_effects,
             samples,
             behavior == 20,
+            behavior == 21,
             retirement,
         );
         return;

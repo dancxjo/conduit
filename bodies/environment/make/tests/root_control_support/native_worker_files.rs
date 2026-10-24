@@ -27,6 +27,8 @@ struct Sink<'a> {
     per_generation: usize,
     period_ms: u64,
     cancel_after: bool,
+    failure: Option<k::Failure>,
+    refusal: Option<conduit_linux_snapshot_store::FileOperationRefusal>,
     held: Option<(u64, usize, usize)>,
     wake: &'a core::cell::RefCell<Option<Waker>>,
 }
@@ -77,6 +79,17 @@ impl PublicationSink for Sink<'_> {
         // Bounded cooperative driving of an already admitted ordinary kernel.
         for _ in 0..40 {
             if let Some(effect) = owner.service_next(active).unwrap() {
+                if let Some(failure) = effect.failure {
+                    assert_eq!(effect.disposition, k::HostCallDisposition::Failed);
+                    assert!(effect.refusal.is_some());
+                    assert_eq!(owner.observer().committed(), None);
+                    assert!(
+                        matches!(owner.step(active), Err(conduit_environment_linux::FilePublicationRefusal::Kernel(k::scheduler::SchedulerError::BackFailed(actual))) if actual == failure)
+                    );
+                    self.failure = Some(failure);
+                    self.refusal = effect.refusal;
+                    return Poll::Ready(Err(failure));
+                }
                 assert_eq!(effect.disposition, k::HostCallDisposition::Completed);
                 assert!(effect.refusal.is_none());
                 assert_eq!(owner.observer().committed(), None);
@@ -120,6 +133,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     timer: &Cell<usize>,
     samples: u64,
     overnight: bool,
+    refuse: bool,
     retirement: impl FnOnce(crate::native_worker::RetiredProviders<P, W>),
 ) {
     let scope = execution.native.pulse.inspection().scope.clone();
@@ -153,6 +167,8 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         per_generation,
         period_ms,
         cancel_after: !overnight,
+        failure: None,
+        refusal: None,
         held: None,
         wake: &wake,
     };
@@ -180,6 +196,25 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         let fragment = &plan.fragments[0];
         let active =
             c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
+        if refuse && index == 1 {
+            // A real pre-existing immutable generation, not an injected failure.
+            let mut occupied =
+                PreparedRecordingSnapshot::prepare(context, &contract, 1, &reference).unwrap();
+            occupied
+                .append(2, 200, RecordingDisposition::CaptureTimeout, None)
+                .unwrap();
+            conduit_linux_snapshot_store::PreparedFileSnapshot::prepare(
+                &directory,
+                &fragment.placements[0],
+                &reference,
+            )
+            .unwrap()
+            .publish(
+                &fragment.placements[0].authority[0],
+                occupied.seal().unwrap().as_bytes(),
+            )
+            .unwrap();
+        }
         sink.owners.push(
             PreparedFileRecordingPublication::prepare_streaming(
                 &directory,
@@ -231,6 +266,69 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         panic!("bounded native/file worker did not retire");
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    if refuse {
+        let failure = sink.failure.expect("original storage failure");
+        assert_eq!(outcome.exit, Exit::Failed(failure));
+        assert_eq!(outcome.cleanup, Ok(()));
+        assert_eq!(
+            (outcome.progress.publications, sink.accepted, sink.committed),
+            (1, 1, 1)
+        );
+        assert!(sink.owners[0].observer().committed().is_some());
+        assert_eq!(sink.owners[1].observer().committed(), None);
+        let observers: Vec<_> = sink.owners.iter().map(|o| o.observer().clone()).collect();
+        assert!(matches!(
+            PreparedRecordingCatalog::prepare_committed(&references, &observers, 3, 12288),
+            Err(RecordingCatalogRefusal::UncommittedGeneration(1))
+        ));
+        assert!(matches!(
+            sink.refusal,
+            Some(conduit_linux_snapshot_store::FileOperationRefusal::Storage(
+                conduit_linux_snapshot_store::FileSnapshotRefusal::PublishedNameExists
+            ))
+        ));
+        // Two immutable publications plus the refused write's retained candidate.
+        assert_eq!(std::fs::read_dir(&root.path).unwrap().count(), 3);
+        let reopened = root.directory();
+        let mut history = PreparedRecordingReader::prepare(context, &contract).unwrap();
+        for (index, reference) in references.iter().enumerate() {
+            let (mut read, _) = file_fixture::placement(
+                "fixture/refusal-read-boot",
+                false,
+                reference.extent.bytes as usize,
+            );
+            read.host_id = "fixture/recorder".into();
+            read.authority[0].host_id = read.host_id.clone();
+            let resource = read.resources[0].content.as_mut().unwrap();
+            resource.owner_host = read.host_id.clone();
+            resource.contract.identity = reference.identity;
+            resource.contract.version = reference.lifetime.version;
+            let mut reader = conduit_linux_snapshot_store::PreparedFileSnapshot::prepare(
+                &reopened, &read, reference,
+            )
+            .unwrap();
+            history
+                .read(core::str::from_utf8(reader.read(&read.authority[0]).unwrap()).unwrap())
+                .unwrap();
+            let sample = history.sample(0).unwrap();
+            assert_eq!(
+                (sample.sequence, sample.sampled_at_boot_ms),
+                (index as u64 + 1, (index as u64 + 1) * 100)
+            );
+            assert_eq!(
+                sample.disposition,
+                if index == 0 {
+                    RecordingDisposition::Available
+                } else {
+                    RecordingDisposition::CaptureTimeout
+                }
+            );
+        }
+        // No catalogue can make the refused generation part of this history.
+        eprintln!("native_file_refusal_cpu accepted=1 committed=1 original_failure={failure:?} catalogue_refused=true cleanup=true");
+        retirement(super::retire(execution));
+        return;
+    }
     assert_eq!(
         outcome.exit,
         if overnight {

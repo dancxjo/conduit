@@ -43,6 +43,10 @@ worker and installed Host code with inert providers; the cross-Host Line, time
 coordinates, actual Body admission and store grants remain fixtures. Only the
 native sample phase has a zero-allocation measurement. Complete checkpoint
 backing, an overnight rolling lifetime and physical deployment remain unproven.
+A real occupied-generation refusal now propagates the original completed
+failure through the native worker, preserves the prior durable watermark and
+published files, refuses a complete catalog, and retains the failed candidate.
+A file effect or queued completion still does not establish a Back commit.
 
 ## Meaning and readiness
 

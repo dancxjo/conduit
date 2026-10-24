@@ -34,6 +34,8 @@ pub enum FilePublicationRefusal {
 }
 pub struct FilePublicationCompletion {
     pub disposition: k::HostCallDisposition,
+    /// Exact failure completed into the original kernel request, if any.
+    pub failure: Option<k::Failure>,
     pub refusal: Option<FileOperationRefusal>,
 }
 /// Root retains this owner and borrows each current Play from its actual Body.
@@ -353,6 +355,7 @@ impl<'a> PreparedFileRecordingPublication<'a> {
             }
         };
         let disposition = outcome.disposition;
+        let failure = outcome.failure;
         let output = outcome.output.map(|value| value.value);
         let completed = self
             .kernel
@@ -368,6 +371,7 @@ impl<'a> PreparedFileRecordingPublication<'a> {
         completed.map_err(E::Kernel)?;
         Ok(Some(FilePublicationCompletion {
             disposition,
+            failure,
             refusal,
         }))
     }

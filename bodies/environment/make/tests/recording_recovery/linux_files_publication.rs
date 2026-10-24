@@ -115,6 +115,7 @@ fn execute(mode: Mode) {
                     None,
                     "file effect is not a Back commit"
                 );
+                assert_eq!(completion.failure.is_some(), matches!(mode, Mode::Occupied));
                 if completion.refusal.is_some() {
                     refused = true;
                 }
