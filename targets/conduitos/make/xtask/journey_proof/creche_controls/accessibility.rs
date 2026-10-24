@@ -26,7 +26,8 @@ pub(super) fn exercise(
             "accessibility probe changed unrelated source values",
         ));
     }
-    let expected = controls(&baseline.face)?;
+    let inventory = if details { details_controls } else { controls };
+    let expected = inventory(&baseline.face)?;
     let mut transitions = Vec::new();
     let mut states = Vec::new();
     let mut forward_order = None;
@@ -54,7 +55,7 @@ pub(super) fn exercise(
         if expression["typography"] != typography
             || expression["density"] != density
             || expression["palette"] != palette
-            || controls(&selected.face)? != expected
+            || inventory(&selected.face)? != expected
         {
             return Err(refusal(
                 "override lost the requested Look or Source controls",

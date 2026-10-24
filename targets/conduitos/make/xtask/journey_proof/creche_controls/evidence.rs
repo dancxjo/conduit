@@ -196,6 +196,27 @@ pub(super) fn controls(face: &Face) -> Result<Vec<(String, Option<String>)>, Con
     }
     Ok(out)
 }
+/// Details exposes the exact Boolean argument separately from its action;
+/// only the primary reversible checkbox combines those two typed controls.
+pub(super) fn details_controls(
+    face: &Face,
+) -> Result<Vec<(String, Option<String>)>, ConduitosError> {
+    let mut result = controls(face)?;
+    for action in face
+        .actions
+        .iter()
+        .filter(|action| action.availability.is_available())
+    {
+        for argument in &action.arguments {
+            let key = (action.identity.clone(), Some(argument.name.clone()));
+            if !result.contains(&key) {
+                result.push(key);
+            }
+        }
+    }
+    Ok(result)
+}
+
 pub(super) fn key(f: &Value) -> Result<(String, Option<String>), ConduitosError> {
     let action = f["action_id"]
         .as_str()
