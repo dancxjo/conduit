@@ -1,0 +1,64 @@
+{
+  "issue": 6057,
+  "files": [
+    {
+      "file": "display.png",
+      "sha256": "0e78e1e00e1b64efefcadff280b26c47573f6b85aa1a36b6d7773abfbc2088f9",
+      "bytes": 1476
+    },
+    {
+      "file": "historical-product-build-manifest.json",
+      "sha256": "02d37fff0c6351aac5dbcd2234d1a213a6934a1b73c65e6a77e01c057a69c0d0",
+      "bytes": 3785
+    },
+    {
+      "file": "initial-socket-path-refusal.json",
+      "sha256": "71238fb4f189fdc68d2eb808d8c2681679fdb067717ef3985ffeba6ede37d5bb",
+      "bytes": 2230
+    },
+    {
+      "file": "isolated-empty-module-failure.json",
+      "sha256": "811c6a7347cab41f61e87583136e70402610cc9c132984b2bb1655482bc40d58",
+      "bytes": 2088
+    },
+    {
+      "file": "missing-matching-opengl-module-failure.json",
+      "sha256": "b84be80b3c132023058b70c31aacb96fcb90254d9203f1088a6c5721b47a4228",
+      "bytes": 2111
+    },
+    {
+      "file": "missing-matching-spice-module-failure.json",
+      "sha256": "e727c642b483253f03255c0f5631fbbfe0de4360bb18e5f948c0b10e899a7bff",
+      "bytes": 2115
+    },
+    {
+      "file": "mixed-qemu-module-failure.json",
+      "sha256": "1abc0583b30b21db6f3a5710be8a048ae9b0165e67327495a8428d60b5c8fdec",
+      "bytes": 1958
+    },
+    {
+      "file": "package-custody.json",
+      "sha256": "ff9c43ccc8f0726934713fbf2dd438ee0c39fa2579be217ba13802932649c730",
+      "bytes": 2437
+    },
+    {
+      "file": "receipt.json",
+      "sha256": "89a46b6eb827a43268ff1153cbe40b51481c6873ea94beffb9d1cc5362ec9a58",
+      "bytes": 2667
+    },
+    {
+      "file": "serial.log.gz",
+      "sha256": "8b3e08ad75f8b6cb3d88aa5578742ae7dac47f7a4c44253a2f822bce03598f49",
+      "bytes": 1576,
+      "uncompressed_sha256": "b89906cdc5e71636fb8d2ad3fa403d80d3a8f23169f88e89b0b205959cef69c6",
+      "uncompressed_bytes": 5899
+    },
+    {
+      "file": "stderr.log",
+      "sha256": "80907f0ac045238fd30f7e4b05fe6fcae294c9bda959eef887e414571b602734",
+      "bytes": 72
+    }
+  ],
+  "proof_class": "historical-product-emulator-diagnostic",
+  "graphical_acceptance": false
+}

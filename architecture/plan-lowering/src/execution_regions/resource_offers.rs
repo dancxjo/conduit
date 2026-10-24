@@ -9,6 +9,7 @@ use super::PreparedExecutionRegions;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RegionResourceOfferError {
+    UnsupportedExecutionProfile,
     StaleHost,
     AmbiguousPool,
     MissingPool,
@@ -51,6 +52,14 @@ impl PreparedExecutionRegions<'_> {
         host: &'host HostAdvertisement,
         observations: &'host [ResourceObservation],
     ) -> Result<CheckedRegionResources<'prepared, 'host>, RegionResourceOfferError> {
+        if self.regions().iter().any(|region| {
+            matches!(
+                region.admitted().scheduling,
+                conduit_core::ExecutionScheduling::ProtectedPreemptibleStep { .. }
+            )
+        }) {
+            return Err(RegionResourceOfferError::UnsupportedExecutionProfile);
+        }
         let fragment = self.fragment();
         if host.protocol_version != PROTOCOL_VERSION
             || fragment.host_id != host.host_id

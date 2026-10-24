@@ -142,7 +142,7 @@ pub fn boot_target(
 ) -> Result<(), Box<dyn std::error::Error>> {
     boot_profile_image(
         &output.join(&manifest.image.file),
-        &manifest.target,
+        &manifest.resolved_build,
         &manifest.profile_id,
         &manifest.build_id,
         &manifest.resolved_description_binding,

@@ -56,6 +56,9 @@ impl NativeFaceMask {
         sequence: u64,
         display: &mut impl PixelTarget,
     ) -> Result<NativeFaceMaskInput, NativeFaceMaskError> {
+        if !self.local_input_available {
+            return Err(NativeFaceMaskError::InputUnavailable);
+        }
         self.input_refusal = None;
         if !self.route_keyboard()? {
             return Err(NativeFaceMaskError::Face);
@@ -81,6 +84,9 @@ impl NativeFaceMask {
         y: u32,
         display: &mut impl PixelTarget,
     ) -> Result<(), NativeFaceMaskError> {
+        if !self.local_input_available {
+            return Err(NativeFaceMaskError::InputUnavailable);
+        }
         let show = self
             .session
             .as_ref()
@@ -112,6 +118,9 @@ impl NativeFaceMask {
         sequence: u64,
         display: &mut impl PixelTarget,
     ) -> Result<NativeFaceMaskInput, NativeFaceMaskError> {
+        if !self.local_input_available {
+            return Err(NativeFaceMaskError::InputUnavailable);
+        }
         self.input_refusal = None;
         let route = self
             .compositor

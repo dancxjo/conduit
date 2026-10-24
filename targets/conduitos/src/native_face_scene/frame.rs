@@ -166,7 +166,13 @@ impl NativeFaceScene {
             None
         };
         let footer = self.local_notice.clone().or(preview).unwrap_or_else(|| {
-            if editor_visible {
+            if !self.local_input_available {
+                if chrome.compact {
+                    chrome::NO_LOCAL_INPUT_COMPACT.into()
+                } else {
+                    chrome::NO_LOCAL_INPUT.into()
+                }
+            } else if editor_visible {
                 if chrome.compact {
                     chrome::EDITOR_COMPACT_FOOTER.into()
                 } else {

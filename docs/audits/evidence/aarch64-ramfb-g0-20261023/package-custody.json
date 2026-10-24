@@ -1,0 +1,52 @@
+[
+  {
+    "file": "work/6057-tools/qemu-efi-aarch64_2025.11-3ubuntu7.3_all.deb",
+    "sha256": "54c19251290402c23418ec0ed644dfa228c6b5653dbef22ab3e394eeaf740b2b",
+    "bytes": 3886614,
+    "metadata": "Package: qemu-efi-aarch64\nVersion: 2025.11-3ubuntu7.3\nArchitecture: all\n",
+    "apt_index_sha256_verified": true,
+    "repository_filename": "pool/main/e/edk2/qemu-efi-aarch64_2025.11-3ubuntu7.3_all.deb",
+    "version": "2025.11-3ubuntu7.3"
+  },
+  {
+    "file": "work/6057-tools/qemu-system-arm_1%3a10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "sha256": "3f52aff3d26eef722df8b5f13f8d9075cd8ff9b3abe8d1f856aa6974256d0f22",
+    "bytes": 11321832,
+    "metadata": "Package: qemu-system-arm\nVersion: 1:10.2.1+ds-1ubuntu3.3\nArchitecture: amd64\n",
+    "apt_index_sha256_verified": true,
+    "repository_filename": "pool/main/q/qemu/qemu-system-arm_10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "version": "1:10.2.1+ds-1ubuntu3.3"
+  },
+  {
+    "file": "work/6057-tools/qemu-system-common_1%3a10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "sha256": "0aa28c0f86dd6488c19b332f1ae1f545fadcbf7d5b08ebde03345229eb097046",
+    "bytes": 1031690,
+    "version": "1:10.2.1+ds-1ubuntu3.3",
+    "repository_filename": "pool/main/q/qemu/qemu-system-common_10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "apt_index_sha256_verified": true
+  },
+  {
+    "file": "work/6057-tools/qemu-system-gui_1%3a10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "sha256": "6cb6a97e421ce1df530656a41b6c7fadfa44f2de8cd83ddb5081173789d99e7f",
+    "bytes": 324500,
+    "version": "1:10.2.1+ds-1ubuntu3.3",
+    "repository_filename": "pool/main/q/qemu/qemu-system-gui_10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "apt_index_sha256_verified": true
+  },
+  {
+    "file": "work/6057-tools/qemu-system-modules-opengl_1%3a10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "sha256": "77b4e35caf40ac79dc0e4f4af1579f28fbe3e2f993b48b62d3cfcb87c7e4c71a",
+    "bytes": 150180,
+    "version": "1:10.2.1+ds-1ubuntu3.3",
+    "repository_filename": "pool/main/q/qemu/qemu-system-modules-opengl_10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "apt_index_sha256_verified": true
+  },
+  {
+    "file": "work/6057-tools/qemu-system-modules-spice_1%3a10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "sha256": "c20a25d2cecc45d0b4c89af154dc823602759b8028716e76a5c31ea999316520",
+    "bytes": 68808,
+    "version": "1:10.2.1+ds-1ubuntu3.3",
+    "repository_filename": "pool/main/q/qemu/qemu-system-modules-spice_10.2.1+ds-1ubuntu3.3_amd64.deb",
+    "apt_index_sha256_verified": true
+  }
+]

@@ -9,6 +9,7 @@ use conduit_core::{
 };
 
 pub use crate::native_surface_provider::NativeSurfaceProvider;
+#[cfg(target_arch = "x86_64")]
 use crate::{arch::UsbDevice, identity, offer::HostOffer};
 
 /// Advertise the same observed framebuffer provider that the native Mask will
@@ -29,6 +30,7 @@ pub fn native_mask_host_advertisement(
 }
 
 const MAXIMUM_EFFECT_BASES: u16 = 5;
+#[cfg(target_arch = "x86_64")]
 const INPUT_CONTROLLER_FAMILY: &str = "conduitos.base/input-controller@1";
 pub const FRAMEBUFFER_RESOURCE_CLASS: &str = conduit_face::SHOW_RESOURCE_CLASS;
 
@@ -61,20 +63,13 @@ struct EffectBinding {
 }
 
 impl NativeProductBases {
+    #[cfg(target_arch = "x86_64")]
     pub fn observe(
         offer: &HostOffer<'_>,
         framebuffer: &conduit_observatory::FramebufferBasis,
         usb_line: Option<&UsbDevice>,
     ) -> Result<Self, EffectBaseRefusal> {
-        let mut registry = BaseRegistry::new(BaseRegistryLimits {
-            maximum_bases: MAXIMUM_EFFECT_BASES,
-            maximum_capabilities_per_base: 0,
-            maximum_resources_per_base: 1,
-            maximum_advertised_capabilities: 1,
-            maximum_advertised_resources: 1,
-        })
-        .map_err(|_| EffectBaseRefusal::InvalidProvider)?;
-        let mut effects = Vec::with_capacity(usize::from(MAXIMUM_EFFECT_BASES));
+        let (mut registry, mut effects) = empty_registry()?;
         if let Some(value) = offer.keyboard {
             register_effect(
                 &mut registry,
@@ -115,7 +110,6 @@ impl NativeProductBases {
                 Vec::new(),
             )?;
         }
-        let framebuffer_base = framebuffer.base_id.as_str().to_owned();
         if let Some(device) = usb_line {
             register_effect(
                 &mut registry,
@@ -132,17 +126,18 @@ impl NativeProductBases {
                 Vec::new(),
             )?;
         }
-        register_effect(
-            &mut registry,
-            &mut effects,
-            EffectFamily::Framebuffer,
-            framebuffer_base.clone(),
-            format!("{framebuffer_base}/provider/1"),
-            1,
-            "conduitos/framebuffer@1",
-            family_kind(EffectFamily::Framebuffer),
-            vec![framebuffer_resource(&framebuffer_base)],
-        )?;
+        register_framebuffer(&mut registry, &mut effects, framebuffer)?;
+        Ok(Self { registry, effects })
+    }
+
+    /// Observe only the discovered framebuffer; no input or transport Base is
+    /// manufactured for a Host whose product has not admitted those devices.
+    /// The caller owns firmware discovery and validation of the mapped scanout.
+    pub fn observe_framebuffer(
+        framebuffer: &conduit_observatory::FramebufferBasis,
+    ) -> Result<Self, EffectBaseRefusal> {
+        let (mut registry, mut effects) = empty_registry()?;
+        register_framebuffer(&mut registry, &mut effects, framebuffer)?;
         Ok(Self { registry, effects })
     }
 
@@ -200,6 +195,38 @@ impl NativeProductBases {
             display_owner: None,
         })
     }
+}
+
+fn empty_registry() -> Result<(BaseRegistry, Vec<EffectBinding>), EffectBaseRefusal> {
+    let registry = BaseRegistry::new(BaseRegistryLimits {
+        maximum_bases: MAXIMUM_EFFECT_BASES,
+        maximum_capabilities_per_base: 0,
+        maximum_resources_per_base: 1,
+        maximum_advertised_capabilities: 1,
+        maximum_advertised_resources: 1,
+    })
+    .map_err(|_| EffectBaseRefusal::InvalidProvider)?;
+    let effects = Vec::with_capacity(usize::from(MAXIMUM_EFFECT_BASES));
+    Ok((registry, effects))
+}
+
+fn register_framebuffer(
+    registry: &mut BaseRegistry,
+    effects: &mut Vec<EffectBinding>,
+    framebuffer: &conduit_observatory::FramebufferBasis,
+) -> Result<(), EffectBaseRefusal> {
+    let framebuffer_base = framebuffer.base_id.as_str().to_owned();
+    register_effect(
+        registry,
+        effects,
+        EffectFamily::Framebuffer,
+        framebuffer_base.clone(),
+        format!("{framebuffer_base}/provider/1"),
+        1,
+        "conduitos/framebuffer@1",
+        family_kind(EffectFamily::Framebuffer),
+        vec![framebuffer_resource(&framebuffer_base)],
+    )
 }
 
 fn framebuffer_resource(base_id: &str) -> ResourceOffer {
@@ -300,6 +327,39 @@ const fn family_kind(family: EffectFamily) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn framebuffer_only_observation_never_advertises_unobserved_input() {
+        let framebuffer = conduit_observatory::FramebufferBasis {
+            base_id: HostBaseId::from("boot-7/framebuffer-0"),
+            width: 800,
+            height: 600,
+            pitch_bytes: 3200,
+            bits_per_pixel: 32,
+        };
+        let bases = NativeProductBases::observe_framebuffer(&framebuffer).unwrap();
+        assert_eq!(bases.entries().len(), 1);
+        for family in [
+            EffectFamily::Keyboard,
+            EffectFamily::Pointer,
+            EffectFamily::Line,
+        ] {
+            assert_eq!(bases.require(family), Err(EffectBaseRefusal::Unavailable));
+        }
+        assert!(matches!(
+            bases.framebuffer_provider([0; 32]),
+            Err(EffectBaseRefusal::InvalidProvider)
+        ));
+        let provider = bases.framebuffer_provider([7; 32]).unwrap();
+        assert_eq!(provider.entry.base_id, framebuffer.base_id);
+        assert!(provider.entry.capabilities.is_empty());
+        assert_eq!(provider.entry.resources.len(), 1);
+        assert_eq!(provider.entry.resources[0].capacity_units, 1);
+        assert_eq!(
+            provider.entry.resources[0].pool_id.as_str(),
+            "boot-7/framebuffer-0/surface"
+        );
+    }
 
     #[test]
     fn framebuffer_resource_identity_is_derived_from_the_discovered_base() {

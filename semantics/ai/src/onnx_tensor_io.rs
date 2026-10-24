@@ -2,7 +2,7 @@
 use crate::{
     imported_onnx::{ImportedOnnxResource, ImportedPortBinding},
     onnx_metadata::{OnnxDimension, OnnxPort},
-    ModelTensorIoRefusal,
+    ModelPortPresence, ModelTensorIoRefusal,
 };
 use conduit_data::NamedTensorBundle;
 
@@ -27,6 +27,7 @@ impl ImportedOnnxResource {
             &self.metadata().inputs,
             &self.sidecar().inputs,
             inputs,
+            true,
             &mut [None; 256],
             &mut 0,
         )
@@ -53,6 +54,7 @@ impl ImportedOnnxResource {
             &self.metadata().inputs,
             &self.sidecar().inputs,
             inputs,
+            true,
             &mut values,
             &mut count,
         )?;
@@ -60,6 +62,7 @@ impl ImportedOnnxResource {
             &self.metadata().outputs,
             &self.sidecar().outputs,
             outputs,
+            false,
             &mut values,
             &mut count,
         )
@@ -70,6 +73,7 @@ fn symbols<'a>(
     graph: &'a [OnnxPort],
     bindings: &[ImportedPortBinding],
     tensors: &NamedTensorBundle,
+    input: bool,
     values: &mut [Option<(&'a str, u64)>; 256],
     count: &mut usize,
 ) -> Result<(), ImportedOnnxTensorRefusal> {
@@ -79,12 +83,17 @@ fn symbols<'a>(
             .iter()
             .find(|p| p.name == binding.graph_name)
             .ok_or(R::InvalidBinding)?;
-        let tensor = &tensors
+        let Some(named) = tensors
             .get()
             .iter()
             .find(|t| t.name == binding.semantic_port)
-            .ok_or(R::InvalidBinding)?
-            .value;
+        else {
+            if input && port.presence == ModelPortPresence::Optional {
+                continue;
+            }
+            return Err(R::InvalidBinding);
+        };
+        let tensor = &named.value;
         if port.dimensions.len() != tensor.dimensions.len() {
             return Err(R::InvalidBinding);
         }

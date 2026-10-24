@@ -1,0 +1,295 @@
+{
+  "schema": "conduit.conduitos/retained-firmware-frame-evidence@1",
+  "image_source_identity": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+  "collector_source_identity": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+  "source_clean_at_both_launches": true,
+  "artifact_role": "product-host",
+  "accepted_release": false,
+  "local_input_proved": false,
+  "physical_scanout_proved": false,
+  "gpu_acceleration_proved": false,
+  "frames": [
+    {
+      "capture": "first/capture.json.gz",
+      "launch": "first/launch.json",
+      "host_id": "493df6cfac1ecd822936aa16046ac347e66369b22848af8caca07f3152a4a8dd",
+      "boot_id": "ea475a7ad1ac65e34310d845b7274170327a17c46de984e7ea34850ae9e41a90",
+      "frame": {
+        "checkpoint": "creche-read-only",
+        "height": 600,
+        "non_background_pixels": 477204,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "1fb3bb699e1ce6d86b2d642c600b3c00e5148f2106f88e06fa5ec46b6ad8a6c9",
+        "png": "creche-read-only.png",
+        "png_bytes": 125264,
+        "png_sha256": "6f76d6d7ec226e47d79aa093a8a64f4e246ae0f741c960dc9ba97d95a1c356c2",
+        "width": 800
+      },
+      "boot_to_capture_millis": 10001
+    },
+    {
+      "capture": "second/capture.json.gz",
+      "launch": "second/launch.json",
+      "host_id": "9c3021158448ba1ebfc8a2b937ba4c1fbf9d78d22ab3d93c19f403ae518a42c8",
+      "boot_id": "d7da865f0452586caf70af15f53176c23a4a93d49093209ed00c5996b9846ade",
+      "frame": {
+        "checkpoint": "creche-read-only",
+        "height": 600,
+        "non_background_pixels": 477204,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "2269f95d25ad876703876df0f7d24b7a6d700bffe07feaef22ac99f6b92b10b3",
+        "png": "creche-read-only.png",
+        "png_bytes": 126115,
+        "png_sha256": "65a8b056884c40a880a9d81d5ad0608e7c3ff6fe7583ffa96f21b76d77f3eadb",
+        "width": 800
+      },
+      "boot_to_capture_millis": 9208
+    }
+  ],
+  "files": [
+    {
+      "path": "first/launch.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796883864780448/launch.json",
+      "bytes": 1822,
+      "sha256": "dddef67e25c54f17913b4e70bca63455052f960a27902cd3615ee8f812d8b19e"
+    },
+    {
+      "path": "first/creche-read-only.png",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796883864780448/creche-read-only.png",
+      "bytes": 125264,
+      "sha256": "6f76d6d7ec226e47d79aa093a8a64f4e246ae0f741c960dc9ba97d95a1c356c2"
+    },
+    {
+      "path": "first/serial.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796883864780448/serial.log",
+      "bytes": 16423,
+      "sha256": "88a965620d1910c43e11c9617a948044a9e04b087abf9987601e185262c1ec06",
+      "uncompressed_sha256": "39d07d38c93f948053b7d0da88122b135f3264a1de58f57d88ca910e8fa81908"
+    },
+    {
+      "path": "first/qmp.jsonl",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796883864780448/qmp.jsonl",
+      "bytes": 2135,
+      "sha256": "ca24b882b401dcccf81a8ca1c0e72b5a67a77600c6fa66ab88db47a3db0b99e4"
+    },
+    {
+      "path": "first/capture.json.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796883864780448/capture.json",
+      "bytes": 11528,
+      "sha256": "f4096fb2f7e598734164fd989ca39f797c06e5c67f02c0395e11c1172fcee1a2",
+      "uncompressed_sha256": "e8684bf2dc5930b54ff14a7d7a858273c6cd3b9670a2ac25e87386116c4f92a4"
+    },
+    {
+      "path": "first/qemu-stderr.log",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796883864780448/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "second/launch.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796894790246523/launch.json",
+      "bytes": 1822,
+      "sha256": "13d0e3520986477de56c2a527e0c0ba1bffdc76eddffed7e7c756fe99a164141"
+    },
+    {
+      "path": "second/creche-read-only.png",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796894790246523/creche-read-only.png",
+      "bytes": 126115,
+      "sha256": "65a8b056884c40a880a9d81d5ad0608e7c3ff6fe7583ffa96f21b76d77f3eadb"
+    },
+    {
+      "path": "second/serial.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796894790246523/serial.log",
+      "bytes": 16454,
+      "sha256": "e2e78b5a2ab6b670ed96678700a2b72bb3f5dd9589d47236d3fce06fae229899",
+      "uncompressed_sha256": "2cab56feb53afdc5edc65e4be621e9f163bdfa2704adea35bbc209d843dff44f"
+    },
+    {
+      "path": "second/qmp.jsonl",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796894790246523/qmp.jsonl",
+      "bytes": 2135,
+      "sha256": "c98d22fd833cf36da9b0f2f4bb4f0cb7757db1e0aa3767118f7aca063814d6ee"
+    },
+    {
+      "path": "second/capture.json.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796894790246523/capture.json",
+      "bytes": 11558,
+      "sha256": "66f73928532500d7c8a282943a14bb2046b07815469fd64db44232f4e7a033fd",
+      "uncompressed_sha256": "23e5cd93d9e84fbbe1cf48b53c4b55b375fa5f91349784c4cd25ff62d1b98f4e"
+    },
+    {
+      "path": "second/qemu-stderr.log",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796894790246523/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build-manifest.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-aarch64-f96860659/build-manifest.json",
+      "bytes": 5069,
+      "sha256": "420b0180e30cc496e260e7f9d10a2ab9608b930e5401aa2fc3f1d40b7a133229"
+    },
+    {
+      "path": "resolved-image.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-aarch64-f96860659/resolved-image.json",
+      "bytes": 5507,
+      "sha256": "456bd1c77e654f76ec36c9834e07b1c74bfcee0702c8be61998d214eb084c6b9"
+    },
+    {
+      "path": "product-proof.json.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-product-proof.json",
+      "bytes": 41171,
+      "sha256": "fd42f7f3e21f4503fc9f766a822d157b4fd35ce14e47e62f20382190211f22c2",
+      "uncompressed_sha256": "1deef6b9ea7e25a87b21decc1e439c3e2c4511c034205681781f48670fda6d1e"
+    },
+    {
+      "path": "build-and-boot-receipt.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-aarch64/receipt.json",
+      "bytes": 1955,
+      "sha256": "5de792cc1d7376d09da6755c2100cc12066d8a6a9c16a6cc47027ac9d75be812"
+    },
+    {
+      "path": "validation/build.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-aarch64/build.log",
+      "bytes": 8568,
+      "sha256": "a00cc503550ffdca81a4d9aa351f599f4107c998c7625630e244fadfa7042ab8",
+      "uncompressed_sha256": "1e1ba1edc16ce80a2d9214ed9cd801be2357b52ff371689d4b1b2dbdde2646ec"
+    },
+    {
+      "path": "validation/boot.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-aarch64/boot.log",
+      "bytes": 544,
+      "sha256": "a6c01fc99e8d7b34c320ec9082ad3a74fc12786049b2858efdab8a642d855cf7",
+      "uncompressed_sha256": "d4d67c33913774560d07dfadfe182d4e8df1c36859f7d42d143bdffd662b8ebc"
+    },
+    {
+      "path": "no-framebuffer/receipt.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/aarch64-no-framebuffer-current/receipt.json",
+      "bytes": 1385,
+      "sha256": "b0ea84271114141e8f1cd4bf510abe4a8cb6266ede752d5df12bef3dd4a1de34"
+    },
+    {
+      "path": "no-framebuffer/serial.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/aarch64-no-framebuffer-current/serial.log",
+      "bytes": 1559,
+      "sha256": "2d3f6cf29c45e458110506ce6b1ed7ab206b5ca5da13e33e04d8e5d7ad60bf58",
+      "uncompressed_sha256": "4755fafa465bb76256c5b8210d35dac23c9c9521bd53d332ea170c0002b90ff0",
+      "uncompressed_bytes": 5876
+    },
+    {
+      "path": "no-framebuffer/stderr.log",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/aarch64-no-framebuffer-current/stderr.log",
+      "bytes": 72,
+      "sha256": "a46a2e46e5e54a031dab0ce3dcd27aa98efc467106c9ecb8bdadc8925b97ca27"
+    },
+    {
+      "path": "dirty-source/receipt.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphical-source-refusal-current.json",
+      "bytes": 423,
+      "sha256": "e8460bde25314bd201ee3f2b8bd67f67fd051d3de35c3482af2bc7dd7464d3d4"
+    },
+    {
+      "path": "dirty-source/output.log",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphical-source-refusal-current.log",
+      "bytes": 469,
+      "sha256": "d319f34bd9d382f49b62c4605f242bef7b04c6d3d8ef3a608dd82e31c37e2b16"
+    },
+    {
+      "path": "validation/current-strict-clippy.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-strict-clippy.log",
+      "bytes": 1602,
+      "sha256": "0723a797f1b512e502959b6d9ab42246c11dec227ffb2094e759a37bf8ea346d",
+      "uncompressed_sha256": "d874759dcbad4a4a0eb5ef022daf2900e530453a86caa6581df914bc4e6a4ff9"
+    },
+    {
+      "path": "validation/current-host-make.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-host-make.log",
+      "bytes": 2504,
+      "sha256": "f2cf900e6c2d3658eaa35b340b16d8289f00d88114542bb742ca22c0be415764",
+      "uncompressed_sha256": "a6092eddee930e08169714304c25ecefadfee7ea490308967112ba814c075548"
+    },
+    {
+      "path": "validation/current-target-lowering.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-target-lowering.log",
+      "bytes": 1416,
+      "sha256": "4739049313f9682871ce08476adb2c541e9837ea030034d6bd4835a67db8895e",
+      "uncompressed_sha256": "cb154f541bd3496662839d854476831a730922719c079d8db9b63c8886a1a0d7"
+    },
+    {
+      "path": "validation/current-validation.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-validation.json",
+      "bytes": 1631,
+      "sha256": "17951ef2a4280adf8084aa483e2b414349a1d2aa69eeff03558f6dce5942e5a0"
+    },
+    {
+      "path": "validation/graphics-focused.json",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/receipt.json",
+      "bytes": 4726,
+      "sha256": "10500b381ce4e4580738910ee1f801b3a80ee9f1929aa9547f3df3b4b860c915"
+    },
+    {
+      "path": "validation/graphics-focused/make.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/make.log",
+      "bytes": 612,
+      "sha256": "22e6c7238cb9f05479b2b2f41d21a3d60e07734dd396fe4068f1297e9c8f66a0",
+      "uncompressed_sha256": "bd5e59a1a8fb8145ea86656663bb75a00ebf0caaad936512bf42f03d672edd6d"
+    },
+    {
+      "path": "validation/graphics-focused/product_bases.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/product_bases.log",
+      "bytes": 554,
+      "sha256": "2b69ae4face5a2732009848e9fabc15cd19672f53a43813bbe575b9a0c5a54f6",
+      "uncompressed_sha256": "0211db931e68a9a3607f60a183e0d97236d81135adb4c518f9595277360c4237"
+    },
+    {
+      "path": "validation/graphics-focused/display.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/display.log",
+      "bytes": 1595,
+      "sha256": "25cf6a861dc75e199c6f7caad48dd474ebfab8ff29623fe4c85e8676c6292d69",
+      "uncompressed_sha256": "e7d1aba280344d57f2dc7887309e6e080e8a5b025369bf1e714ced813be2978f"
+    },
+    {
+      "path": "validation/graphics-focused/native_mask_play.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/native_mask_play.log",
+      "bytes": 762,
+      "sha256": "6800d68d65d6ca1c3c5fe7bc74cde06a54f5b6e0a3fb6b3b787de83df1ac185c",
+      "uncompressed_sha256": "07e57b4e3c61d68551c11988465e2375d40591b069417f67089a8a7549b56ecb"
+    },
+    {
+      "path": "validation/graphics-focused/native_compositor.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/native_compositor.log",
+      "bytes": 1083,
+      "sha256": "dd93eff514290374cee371fe5330477d852370d4cbb2973c73ce3287d6d55c71",
+      "uncompressed_sha256": "6b68db72d7d4c6f962b969b1f49e4b9c2a3e5ac3310d0e5481917cc3d58202b5"
+    },
+    {
+      "path": "validation/graphics-focused/native_face_.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/native_face_.log",
+      "bytes": 6443,
+      "sha256": "9b3b3d7730350fcdee559ebf6caca1660591e5cc4e0cf1d29793aa2dc49b49fe",
+      "uncompressed_sha256": "fc0a70fc143001240f57e40acb92edfc8b6e1a285878fe0377cd3a4b2c87a165"
+    },
+    {
+      "path": "validation/graphics-focused/archaarch64_framebuffer.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/archaarch64_framebuffer.log",
+      "bytes": 670,
+      "sha256": "a5ab32e385b5be6f112152f94b614b1117953651de1a1390406e43ad155bee20",
+      "uncompressed_sha256": "9ed231b681e500e55e73633a9cc875473c980745397f368d0a21ff950f12e9e3"
+    },
+    {
+      "path": "validation/graphics-focused/boot.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/graphics-focused-current/boot.log",
+      "bytes": 1927,
+      "sha256": "01374186898dc5a0fc4d79e62fd927857e09dd8690b98dd64a746349ecdc7ec3",
+      "uncompressed_sha256": "5368b50749d6de6af374717291cc8a75710aed6cde06c2a6d05dd7975eddf9e6"
+    },
+    {
+      "path": "validation/prior-unsealed-broader-native-library-incomplete.log.gz",
+      "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/aarch64-rebase-product-tests.log",
+      "bytes": 29149,
+      "sha256": "ada3e4e7c0c448621947af7a1204070ff9faa5ffcc91e1a87881e10e5e7de95e",
+      "uncompressed_sha256": "e7e71187a86dafe85e77899b28f04ed0f6ad43e1011ae655d7327b3e336d35e2"
+    }
+  ],
+  "validation_note": "Local checks accompany the exact-source clean guest proof. Candidate and combined Integration remain separate required gates. The exact-source focused graphics/boot suites passed; their receipt records per-suite outcomes. An earlier unsealed native-feature library run was terminated by SIGTERM (exit143) before completion and is retained as incomplete, never as a full pass."
+}

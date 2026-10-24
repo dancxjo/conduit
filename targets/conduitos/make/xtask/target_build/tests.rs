@@ -133,3 +133,17 @@ fn incomplete_aarch64_product_sign_is_not_promoted_or_rejected_early() {
         Some("{\"schema\":\"complete\"}")
     );
 }
+
+#[test]
+fn aarch64_refusal_is_distinct_from_timeout_only_after_its_complete_record() {
+    let partial = "CONDUIT_AARCH64_PRODUCT_REFUSAL aarch64-framebuffer-cache-policy-unsupported";
+    assert_eq!(complete_aarch64_product_refusal(partial), None);
+    assert_eq!(
+        complete_aarch64_product_refusal(&format!("{partial}\r\n")),
+        Some("aarch64-framebuffer-cache-policy-unsupported")
+    );
+    assert_eq!(
+        complete_aarch64_product_refusal("firmware: CONDUIT_AARCH64_PRODUCT_REFUSAL pending\n"),
+        None
+    );
+}

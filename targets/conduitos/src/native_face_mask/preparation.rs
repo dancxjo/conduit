@@ -12,6 +12,16 @@ enum Selection<'a> {
 }
 
 impl NativeFaceMask {
+    /// Narrow this prepared Mask before its first Show when the Host has no
+    /// admitted local input provider. Face facts and owner actions stay intact.
+    pub fn without_local_input(mut self) -> Result<Self, NativeFaceMaskError> {
+        if self.scene.is_some() || self.session.is_some() {
+            return Err(NativeFaceMaskError::Face);
+        }
+        self.local_input_available = false;
+        Ok(self)
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn prepare(
         host_id: HostId,
@@ -265,6 +275,7 @@ impl NativeFaceMask {
             publication: None,
             surface_admitted: false,
             interaction_admitted: true,
+            local_input_available: true,
             component_configuration,
             visual_expression: None,
             visual_constraints: conduit_face::VisualUserConstraints {
