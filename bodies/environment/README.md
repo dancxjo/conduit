@@ -1623,3 +1623,19 @@ CPU composition evidence, not live clock wakeups, Root producer admission,
 combined MCU memory admission or physical native Mask delivery. The runtime
 component also compiles for thumbv6m no_std. The supported owning proof remains
 `cargo xtask prove environment native-construction`.
+
+`LocalPublicationFace` gives one prepared stream a single non-Clone publisher
+and reader. Native Root retains the private reader, and only its actual sampling
+task receives the publisher. The shared owner is not Sync, so borrowed handles
+cannot be transferred between threads. Publication, freshness updates and pure
+reader callbacks use fallible local borrows rather than holding an interrupt
+mutex during quantity validation or rendering. Borrow pressure refuses without
+blocking or retry; dropping publication custody remains visible even during a
+read. Handles cannot be reconstructed from the Face's claimed IDs.
+
+Reader callbacks return owned results; the Face borrow cannot escape or cross
+await. Four CPU tests cover quantity/freshness transitions, refused/reentrant
+operations, publisher drop and allocation-free Mask Frame composition; three
+compile-fail checks enforce transfer/borrow boundaries. These checks do not
+admit a Mask role, clock task, Fore caller or Body membership. Root still owns
+reader work and clock ordering, including clock-only Face revisions for replay.

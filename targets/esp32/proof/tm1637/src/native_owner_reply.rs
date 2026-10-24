@@ -103,7 +103,7 @@ pub(super) fn encode(
         execution_context_bytes: root.execution_context_bytes(),
         worker: snapshot.or_else(|| root.worker_status()),
         #[cfg(feature = "native-face-root")]
-        face: crate::native_face::inspect(observed_ms),
+        face: root.face_inspection(observed_ms).map_err(|_| ())?,
         retired_native_attachments: root.retired_native_attachments(),
         kernel_additional_preparation_bound: root.kernel_preparation_bound(),
         #[cfg(feature = "display-ready-root")]

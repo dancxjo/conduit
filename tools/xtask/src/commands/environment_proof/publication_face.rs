@@ -14,13 +14,15 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         "--manifest-path",
         "bodies/environment/runtime/Cargo.toml",
         "--features",
-        "face-projection",
+        "face-projection,display-mask",
         "--test",
         "publication_face",
         "--test",
         "retained_publication_face",
         "--test",
         "publication_validation",
+        "--test",
+        "publication_face_custody",
     ]))?;
     execute(Command::new("cargo").current_dir(root).args([
         "test",

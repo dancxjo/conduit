@@ -14,6 +14,17 @@ use conduit_environment_runtime::appliance::assignment_transfer as t;
 #[cfg(not(feature = "display-ready-root"))]
 use conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput;
 impl NativeRoot {
+    #[cfg(feature = "native-face-root")]
+    pub fn face_inspection(
+        &self,
+        now: u64,
+    ) -> Result<Option<crate::native_face::Inspection>, &'static str> {
+        self.face_reader
+            .as_ref()
+            .map(|reader| reader.inspect(now))
+            .transpose()
+    }
+
     pub fn kernel_preparation_bound(&self) -> Option<usize> {
         #[cfg(feature = "display-ready-root")]
         {
@@ -172,7 +183,8 @@ impl NativeRoot {
         let spawner = self.worker_spawner.ok_or("worker-executor-unavailable")?;
         #[cfg(feature = "native-face-root")]
         {
-            let publisher = crate::native_face::prepare(reservation)?;
+            let (publisher, reader) = crate::native_face::prepare(reservation)?;
+            self.face_reader = Some(reader);
             self.worker = Some(crate::native_task::prepare(
                 &mut self.execution,
                 spawner,

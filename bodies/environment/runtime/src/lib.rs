@@ -20,6 +20,8 @@ pub mod publication_face;
 pub mod recording;
 #[cfg(feature = "face-projection")]
 pub mod retained_publication_face;
+#[cfg(feature = "face-projection")]
+pub mod publication_face_custody;
 use alloc::{boxed::Box, string::String};
 use conduit_core::PortTemporal;
 use conduit_kernel::{

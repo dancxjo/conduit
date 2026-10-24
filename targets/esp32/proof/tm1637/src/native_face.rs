@@ -3,30 +3,24 @@
 use crate::native_owner_reservation::OwnerReservation;
 use alloc::boxed::Box;
 use conduit_environment_runtime::{
-    publication::PublicationSnapshot, retained_publication_face::RetainedPublicationFace,
+    publication::PublicationSnapshot,
+    publication_face_custody::{self as custody, LocalPublicationFace},
+    retained_publication_face::RetainedPublicationFace,
 };
 use conduit_face::{Face, FaceBasis, FacePropertyValue};
-use core::cell::RefCell;
-use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
+use static_cell::StaticCell;
 #[path = "native_face_scope.rs"]
 mod scope;
 const CONTROL_RESERVE: usize = 8192;
 const PREPARATION_BYTES: usize = 4608;
-struct State {
-    face: Option<Box<RetainedPublicationFace>>,
-    claimed: bool,
-    retained: bool,
-    failure: Option<&'static str>,
-}
-static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
-    face: None,
-    claimed: false,
-    retained: false,
-    failure: None,
-}));
-/// Non-Clone local publication possession; only admitted preparation creates it.
+static SLOT: StaticCell<Box<LocalPublicationFace>> = StaticCell::new();
+/// Actual task publication custody, bound to the same non-Send executor owner.
 pub struct Publisher {
-    _private: (),
+    inner: custody::Publisher<'static>,
+}
+/// Root retains this private, non-Clone reader; claimed IDs cannot recover it.
+pub struct Reader {
+    inner: custody::Reader<'static>,
 }
 #[derive(Clone, Copy, serde::Serialize)]
 pub struct Inspection {
@@ -42,10 +36,7 @@ pub struct Inspection {
 /// task registration. Owner backing, dynamic data and control headroom are
 /// admitted here, without polling a Step.
 #[inline(never)]
-pub fn prepare(reservation: &OwnerReservation) -> Result<Publisher, &'static str> {
-    if STATE.lock(|s| s.borrow().claimed) {
-        return Err("face-already-claimed");
-    }
+pub fn prepare(reservation: &OwnerReservation) -> Result<(Publisher, Reader), &'static str> {
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
@@ -81,39 +72,27 @@ pub fn prepare(reservation: &OwnerReservation) -> Result<Publisher, &'static str
         cadence.period_ms.checked_mul(2).ok_or("face-clock-bound")?,
     )
     .map_err(|_| "face-preparation")?;
-    let face = Box::new(face);
+    let face = Box::new(LocalPublicationFace::new(face));
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < CONTROL_RESERVE {
         return Err("face-control-capacity");
     }
-    STATE.lock(|s| {
-        let mut s = s.borrow_mut();
-        s.face = Some(face);
-        s.claimed = true;
-        s.retained = true;
-    });
-    Ok(Publisher { _private: () })
+    let owner: &'static LocalPublicationFace =
+        &**SLOT.try_init(face).ok_or("face-already-claimed")?;
+    let (publisher, reader) = owner.claim().map_err(|e| e.code())?;
+    Ok((Publisher { inner: publisher }, Reader { inner: reader }))
 }
 impl Publisher {
     #[inline(never)]
     pub fn publish(&mut self, snapshot: &PublicationSnapshot<'_>, committed_ms: u64) {
-        STATE.lock(|s| {
-            let mut s = s.borrow_mut();
-            let result = s.face.as_mut().expect("retained Face owner").publish(
-                PublicationSnapshot {
-                    channel: snapshot.channel,
-                    sequence: snapshot.sequence,
-                    canonical: snapshot.canonical,
-                },
-                committed_ms,
-            );
-            s.failure = result.err().map(|e| e.code());
-        });
-    }
-}
-impl Drop for Publisher {
-    fn drop(&mut self) {
-        STATE.lock(|s| s.borrow_mut().retained = false);
+        let _ = self.inner.publish(
+            PublicationSnapshot {
+                channel: snapshot.channel,
+                sequence: snapshot.sequence,
+                canonical: snapshot.canonical,
+            },
+            committed_ms,
+        );
     }
 }
 fn digest(face: &Face) -> [u8; 32] {
@@ -132,20 +111,27 @@ fn digest(face: &Face) -> [u8; 32] {
     }
     result
 }
-pub fn inspect(now: u64) -> Option<Inspection> {
-    STATE.lock(|s| {
-        let mut s = s.borrow_mut();
-        let State { face, retained, failure, .. } = &mut *s;
-        let face = face.as_mut()?;
-        if face.at(now).is_err() { *failure = Some("clock-reversed"); }
-        let value = face.current();
-        let property = |name| value.properties.iter().find(|p| p.name == name).map(|p| &p.value);
-        Some(Inspection {
-            source_sequence: face.last_source_sequence(), revision: value.revision, content_digest: digest(value),
-            publisher_retained: *retained,
-            fresh: matches!(property("fresh"), Some(FacePropertyValue::Flag(true))),
-            available: failure.is_none() && matches!(property("sensor-status"), Some(FacePropertyValue::Text(t)) if t == "available"),
-            refusal: *failure,
+impl Reader {
+    /// Synchronous local access only; Root still admits the consuming Mask and
+    /// its exact route/work. The borrowed Face cannot escape this callback.
+    pub fn with_current<R>(
+        &self,
+        now: u64,
+        consume: impl FnOnce(&Face, custody::ReadStatus) -> R,
+    ) -> Result<R, &'static str> {
+        self.inner.with_current(now, consume).map_err(|e| e.code())
+    }
+    pub fn inspect(&self, now: u64) -> Result<Inspection, &'static str> {
+        self.with_current(now, |value, status| {
+            let property = |name| value.properties.iter().find(|p| p.name == name).map(|p| &p.value);
+            Inspection {
+                source_sequence: status.source_sequence,
+                revision: value.revision, content_digest: digest(value),
+                publisher_retained: status.publisher_retained,
+                fresh: matches!(property("fresh"), Some(FacePropertyValue::Flag(true))),
+                available: status.refusal.is_none() && matches!(property("sensor-status"), Some(FacePropertyValue::Text(t)) if t == "available"),
+                refusal: status.refusal,
+            }
         })
-    })
+    }
 }
