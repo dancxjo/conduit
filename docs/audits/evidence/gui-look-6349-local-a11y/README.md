@@ -46,3 +46,7 @@ missing native assets, the full Body/Patchbay/Stop journey, physical delivery,
 human enactment, exact-tree integration or stable publication. The known later
 Application WorkExhausted failure is not claimed fixed. Original parents remain
 open; these receipts do not narrow their acceptance requirements.
+
+Complete JSON receipts and raw logs are lossless gzip archives. Per-run summaries
+index the raw/archive SHA256 values, exact checks, high-water measurements and
+PNG dimensions/hashes so review does not require a 30,000-line JSON diff.

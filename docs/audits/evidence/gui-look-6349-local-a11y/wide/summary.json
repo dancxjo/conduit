@@ -122,6 +122,11 @@
       "file": "profile.log.gz",
       "raw_sha256": "6a12038bf0710ad2c425ac077dd60513c71b1a115f52e7f8c07e0baacabc3b84",
       "archive_sha256": "ef73bcfcda6802dcd1a3567a25ae434cf0f4d3886cb71ab4867bfa0e26acdd48"
+    },
+    {
+      "file": "creche-accessibility-proof.json.gz",
+      "raw_sha256": "cbb6d9a3dc96e21ba45407c3e0b34e41c565165e859c8be4aeee45f84a8434e3",
+      "archive_sha256": "ee535f2b5713c809083f2e55a512de40dd8d6b5c5cf339a5c67b5db189ab57ed"
     }
   ]
 }
