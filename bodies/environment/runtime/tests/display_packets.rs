@@ -117,3 +117,41 @@ fn frame_keeps_invalid_brightness_for_the_authored_refusal_fore() {
         Err(DisplayPacketRefusal::InvalidBrightness)
     );
 }
+
+use conduit_core::{PreparedStructuredComposer, StructuredInfoType};
+use conduit_environment_runtime::display_packets::validate_display_frame;
+
+#[test]
+fn exact_source_frame_validation_is_bounded_and_allocation_free() {
+    let mut encoder = PreparedDisplayPackets::prepare().unwrap();
+    let frame = encoder.encode_frame([0xff; 6], 255, true).unwrap().to_vec();
+    let mut malformed_bool = frame.clone();
+    // Discover the Boolean leaf through the canonical record, never a fixed
+    // byte offset into the self-describing envelope.
+    let leaf = validate_display_frame(&frame)
+        .unwrap()
+        .record_field("enabled")
+        .unwrap()
+        .unwrap()
+        .value_node();
+    let end = leaf.as_ptr() as usize - frame.as_ptr() as usize + leaf.len();
+    malformed_bool[end - 1] = 2;
+    let mut trailing = frame.clone();
+    trailing.push(0);
+    let too_large = vec![0; 1025];
+    let mut foreign =
+        PreparedStructuredComposer::new(&StructuredInfoType::leaf("value/u8".into()).unwrap(), 64)
+            .unwrap();
+    foreign.leaf(&[7]).unwrap();
+    let ((), measured) = allocation_probe::observe(|| {
+        assert!(validate_display_frame(&frame).is_ok());
+        assert!(validate_display_frame(&malformed_bool).is_err());
+        assert!(validate_display_frame(&trailing).is_err());
+        assert!(validate_display_frame(&too_large).is_err());
+        assert!(validate_display_frame(foreign.encoded()).is_err());
+        for length in 0..frame.len() {
+            assert!(validate_display_frame(&frame[..length]).is_err());
+        }
+    });
+    assert_eq!((measured.allocations, measured.reallocations), (0, 0));
+}
