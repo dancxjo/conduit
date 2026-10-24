@@ -1,0 +1,31 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
+     Running unittests src/lib.rs (../native-target/debug/deps/conduit_patchbay_workbench-8127f7537874ebab)
+
+running 24 tests
+test portable_correlations::tests::exact_plan_properties_correlate_only_matching_host_and_line_subjects ... ok
+test portable_graph_projection::signs::tests::sign_continuation_preserves_every_byte_and_scalar_at_field_boundaries ... ok
+test portable_graph_boundary_tests::root_fore_ports_are_real_subjects_and_missing_endpoints_are_not_invented ... ok
+test portable_vector_search_projection_tests::unknown_vector_implementation_does_not_invent_a_proof_class ... ok
+test topology::tests::portable_planner_offers_are_visible_only_when_reported ... ok
+test portable_vector_search_projection_tests::unchanged_semantics_disclose_distinct_exact_and_hnsw_realizations ... ok
+test portable_resource_projection::tests::retained_state_and_saved_resource_descend_as_distinct_exact_plan_truth ... ok
+test portable_parts_temporal_tests::missing_presence_stays_legacy_exact_and_invalid_relations_fail_closed ... ok
+test portable_parts_temporal_tests::explicit_reference_attaches_exact_signed_observation_and_recomputes_relation ... ok
+test portable_parts_temporal_tests::offline_presence_uses_the_exact_terminal_observation_and_sign ... ok
+test parts_truth_explanation_tests::portable_world_carries_the_canonical_state_explanation ... ok
+test portable_projection_tests::living_patchbay_projection_preserves_lifecycle_plan_play_and_sign ... ok
+test portable_projection_tests::sound_fit_refusal_selection_and_exact_play_reach_the_portable_patchbay ... ok
+test portable_projection_tests::portable_projection_remains_inside_the_reviewed_aggregate_bound ... ok
+test portable_navigation_tests::opening_a_seed_moves_the_default_cursor_from_entrance_to_program ... ok
+test mask_plans_tests::both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects ... ok
+test portable_projection_tests::portable_graph_must_share_the_open_plot_identity_chain ... ok
+test portable_demo::tests::ordinary_startup_has_no_synthetic_diagnostics ... ok
+test portable_projection_tests::patchbay_projects_plot_meaning_without_redeclaring_face_owned_truth ... ok
+test portable_projection_tests::stale_or_terminal_lifecycle_cannot_masquerade_as_live_face ... ok
+test portable_projection_tests::renderer_local_state_cannot_change_portable_content_identity ... ok
+test renderer_preparation_tests::one_portable_face_plans_to_distinct_real_renderer_executions ... ok
+test portable_navigation_tests::birth_removes_entrance_and_keeps_program_and_body_subject_sets_distinct ... ok
+test portable_demo::tests::documentary_fixture_keeps_exact_semantic_identities ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 146 filtered out; finished in 4.04s
+

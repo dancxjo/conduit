@@ -1,0 +1,11 @@
+# Lossless Sign continuation
+
+GUI source `4f6ae7025` fixes oversized exact Sign debug records exceeding a portable Face text property. Play/Sign projection is extracted from the previously over-500-line graph projection module. Short records retain the original `sign-N` property. Long records continue at scalar boundaries through `sign-N-continued-K` properties with an explicit part count. Every original byte remains available; the 1024-byte field, property-count and total Face limits stay unchanged. Excess total content still refuses rather than silently dropping evidence.
+
+The new boundary check reconstructs short, exact-limit, oversized and multibyte-boundary records byte-for-byte. All 24 portable model checks and ten browser workspace/projection checks pass. Browser summary counts recognize only original `sign-N` entries, so continuation parts are not invented causal Signs. Exact-fact disclosures still retain all parts.
+
+The separately published proof ref `codex/6349-live-quantity-proof` / `b3d19598d` combines this GUI source with runtime repair `f6bb831a4` from draft #6393. The first combined build failed because a maintenance pass removed library intermediates still needed by Cargo. Source, final executables and evidence were preserved. Affected Cargo fingerprints were retained in a private backup and invalidated for regeneration; the rebuild is in progress. This is **not yet successful live Quantity or nine-Gear GUI acceptance**. Earlier original server failures remain retained in the runtime draft.
+
+No screenshot of a successful live Play is claimed at this checkpoint. Native/cross-component Look acceptance remains open. No CI was dispatched.
+
+Maintenance audited the clean inactive runtime worktree, refreshed its remote ref, verified exact HEAD reachability and no active filesystem owner, then removed it without force while retaining the local/origin branch and draft. Its unique source/evidence were published. Other cleanup touched only regenerable dependency library archives/metadata. Final executable/ELF/ISO/WASM, source, credentials and proof artifacts were preserved; the erroneous active-cache cleanup and failed build are explicitly retained above. Audit records and fingerprint backups remain in the task's private work directory.

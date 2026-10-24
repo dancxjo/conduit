@@ -1,0 +1,18 @@
+✔ shared native/browser schema keeps radically different arrangements on one checked basis (3.893336ms)
+✔ renderer reorder/reidentification never changes semantic correlation (0.300748ms)
+✔ missing and renamed subjects remain explicit orphans and changed basis refuses applying (0.643038ms)
+✔ migration is deterministic and requires exact legacy wrapper-to-semantic mapping (0.47417ms)
+✔ unknown fields, future versions, counts, UTF-8 bytes and nonfinite geometry refuse (0.750733ms)
+✔ authoring workspace uses exact checked source rather than enclosing Body face (0.167915ms)
+✔ fresh Entrance and Body scenes have no portable Plot workspace and still project (0.601483ms)
+✔ port compatibility is copied from canonical candidates by semantic identity, never label (0.373385ms)
+✔ frames collapse only visual members and leave exact graph connections intact (0.327163ms)
+✔ continued exact facts do not inflate causal Sign counts (0.278925ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.519477
