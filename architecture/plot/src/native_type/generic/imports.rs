@@ -61,6 +61,12 @@ impl Imports {
                         .insert_checked_native_type(name.clone(), dependency)
                         .map_err(|message| error(family.templates[0].name.span, message))?;
                 }
+                if let Some(witness) = family.dependency_custody.get(&dependency.name) {
+                    imports
+                        .catalog
+                        .retain_native_law_witness(name, witness)
+                        .map_err(|message| error(family.templates[0].name.span, message))?;
+                }
                 if let Some(origin) = family.source_origins.get(&dependency.name) {
                     super::super::family::source::register(
                         &mut imports.catalog,

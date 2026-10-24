@@ -1,0 +1,24 @@
+{
+  "source_head": "c5f74fd65295a98923d13c48721215bc6ecfb90f",
+  "session": 40128,
+  "exit_code": 101,
+  "internal_passed": 3,
+  "integration_passed": 5,
+  "integration_failed": 6,
+  "ignored": 0,
+  "failure": "test fixture declaration Duration collides with existing startup catalog; Native/Source guards retained",
+  "test_executables": [
+    {
+      "built_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/conduit_plot-3c0ad4adf9ef9621",
+      "custody": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-initial-proof/conduit_plot-3c0ad4adf9ef9621.gz",
+      "sha256": "d87aa2d6d1c99b8631d71a727e1a5d1765aafe9337c4052c91fe666af036706a",
+      "bytes": 26277920
+    },
+    {
+      "built_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_custody-149eba2696228c15",
+      "custody": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-initial-proof/native_law_custody-149eba2696228c15.gz",
+      "sha256": "884fc577a62de41719067f00f3026347e66b29f06262307ce506bca83ab66648",
+      "bytes": 14361000
+    }
+  ]
+}

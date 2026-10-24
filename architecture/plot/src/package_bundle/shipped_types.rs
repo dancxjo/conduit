@@ -10,12 +10,46 @@ impl PackageExportCatalog {
         &self,
         catalog: &mut crate::StartupCatalog,
     ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
+        self.install_shipped_types_profile(catalog, true)
+    }
+    pub(crate) fn install_shipped_types_for_custody(
+        &self,
+        catalog: &mut crate::StartupCatalog,
+    ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
+        self.install_shipped_types_profile(catalog, false)
+    }
+    fn install_shipped_types_profile(
+        &self,
+        catalog: &mut crate::StartupCatalog,
+        capture: bool,
+    ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
         let mut aliased = catalog.clone();
         for document in &self.type_documents {
             aliased = crate::native_type::install_import_aliases(document, &aliased)?;
         }
-        let (checked, owner) =
+        let (checked, mut owner) =
             crate::native_type::check_native_types(&self.type_definitions, &aliased)?;
+        let custody = if capture {
+            crate::native_type::law_custody::collect_documents(
+                &self.type_documents,
+                &aliased,
+                &checked,
+            )
+        } else {
+            alloc::collections::BTreeMap::new()
+        };
+        for (name, witness) in &custody {
+            let Some(origin) = self.type_origins.get(name) else {
+                continue;
+            };
+            owner
+                .retain_native_law_witness(name, witness)
+                .map_err(|message| crate::SyntaxCheckDiagnostic {
+                    code: "CND-FRM-058",
+                    span: origin.declaration_span,
+                    message,
+                })?;
+        }
         let mut staged = catalog.clone();
         let mut shipped = Vec::new();
         for (source_path, syntax) in &self.type_exports {
@@ -26,8 +60,15 @@ impl PackageExportCatalog {
                     syntax,
                     &self.type_definitions,
                     &owner,
-                    self.package_content_digest,
-                    &self.type_origins,
+                    crate::native_type::family::SourceContext {
+                        package_content_digest: self.package_content_digest,
+                        origins: &self.type_origins,
+                        custody: if capture {
+                            self.native_law_bundle.as_ref().and_then(|bundle| crate::native_type::law_custody::family_material::NativeFamilyWitness::capture(bundle, source_path, &aliased))
+                        } else {
+                            None
+                        },
+                    },
                 )?;
                 continue;
             }
@@ -51,6 +92,15 @@ impl PackageExportCatalog {
                     span: syntax.name.span,
                     message,
                 })?;
+            if let Some(witness) = owner.native_law_witness(&syntax.name.text) {
+                staged
+                    .retain_native_law_witness(source_path, witness)
+                    .map_err(|message| crate::SyntaxCheckDiagnostic {
+                        code: "CND-FRM-058",
+                        span: syntax.name.span,
+                        message,
+                    })?;
+            }
             crate::native_type::family::source::register(
                 &mut staged,
                 source_path,

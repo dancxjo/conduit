@@ -231,3 +231,47 @@ impl StartupCatalog {
         self.value_kind_aliases.get(name)
     }
 }
+
+impl StartupCatalog {
+    pub fn native_law_witness(&self, name: &str) -> Option<&crate::NativeLawWitness> {
+        self.native_law_custody.get(name)
+    }
+    /// Transactional registration of an already verified exact native witness.
+    pub fn insert_native_law_witness(
+        &mut self,
+        name: impl Into<String>,
+        witness: &crate::NativeLawWitness,
+    ) -> Result<(), String> {
+        let name = name.into();
+        if name.is_empty()
+            || self.native_law_custody.contains_key(&name)
+            || self.native_law_custody.len() >= 4096
+        {
+            return Err("native law custody duplicate or capacity".into());
+        }
+        let mut staged = self.clone();
+        staged.insert_checked_native_type(name.clone(), witness.checked_type())?;
+        staged.native_law_custody.insert(name, witness.clone());
+        *self = staged;
+        Ok(())
+    }
+}
+
+impl StartupCatalog {
+    pub(crate) fn retain_native_law_witness(
+        &mut self,
+        name: &str,
+        witness: &crate::NativeLawWitness,
+    ) -> Result<(), String> {
+        let actual = self
+            .retained_native_types()
+            .into_iter()
+            .find(|ty| ty.name == name)
+            .ok_or("native custody requires installed exact Type")?;
+        if !witness.agrees(&actual) || self.native_law_custody.len() >= 4096 {
+            return Err("native custody differs from installed laws or exceeds capacity".into());
+        }
+        self.native_law_custody.insert(name.into(), witness.clone());
+        Ok(())
+    }
+}
