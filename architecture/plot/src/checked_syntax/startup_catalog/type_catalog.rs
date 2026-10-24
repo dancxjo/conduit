@@ -275,3 +275,7 @@ impl StartupCatalog {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "type_catalog/custody_pressure_tests.rs"]
+mod custody_pressure_tests;
