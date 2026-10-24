@@ -40,9 +40,9 @@ attempts both releases, completes the operation and revokes further use. There
 are no automatic retries. Revoked idle retirement returns the original provider
 and attachment; fresh authority is required to bind them again.
 
-`cargo xtask prove environment display-output` checks the exact owner boundary,
-wire traces, canonical Source packet encoding and existing native Face/Mask
-interpretation. Tests use explicit CPU pin/authority/selection fixtures. They
+`cargo xtask check tm1637-output` checks the exact owner boundary, wire traces
+and canonical Source packet encoding. Environmental Face/Mask interpretation
+remains a separate appliance proof. Tests use explicit CPU pin/authority/selection fixtures. They
 cover malformed geometry before effects, substituted Play/ports, stale requests,
 NACK, provider loss, cancellation and allocation-free invocation. This does not
 install a display Back, admit its full memory/work closure, join an output Line

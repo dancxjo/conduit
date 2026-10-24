@@ -50,13 +50,9 @@ impl OpenDrain for Provider {
         }
     }
 }
-fn encoded() -> Vec<u8> {
-    conduit_environment_runtime::display_packets::PreparedDisplayPackets::prepare()
-        .unwrap()
-        .encode_canonical([0x7d, 0x87, 0x7d, 0x71, 0, 0], 3, true)
-        .unwrap()
-        .to_vec()
-}
+#[path = "support/packet.rs"]
+mod packet;
+use packet::encoded;
 #[test]
 fn exact_source_packets_are_authorized_sequenced_and_allocation_free() {
     let state = Rc::new(State::default());

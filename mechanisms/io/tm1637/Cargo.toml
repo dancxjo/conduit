@@ -18,5 +18,6 @@ conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional
 conduit-plot = { path = "../../../architecture/plot", optional = true }
 
 [dev-dependencies]
-conduit-environment-runtime = { path = "../../../bodies/environment/runtime" }
+conduit-kernel = { path = "../../../architecture/kernel", features = ["step-test-support"] }
+conduit-plot = { path = "../../../architecture/plot" }
 conduit-embedded-build = { path = "../../../make/embedded-build" }
