@@ -1,0 +1,92 @@
+[
+  {
+    "packet_path": "actual-test-00.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/bme280_lifecycle-9071bbdecd795acf",
+    "bytes": 18149800,
+    "sha256": "7d835adbb7c5398c896cade88d2a522c27cabe86c955b23bc4848485c3bed1b8"
+  },
+  {
+    "packet_path": "actual-test-01.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/device_frames-c1614bcac15843bf",
+    "bytes": 17942816,
+    "sha256": "0ceefb44954d2c85264c49c91bae9736cc193d25976073f5b83883bc27144a79"
+  },
+  {
+    "packet_path": "actual-test-02.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/display_frame_material-6ed2b1713d6e63bc",
+    "bytes": 5216376,
+    "sha256": "288d7f86a2660aa80c93a9ddef825e694b98cf7d48331e4f84502dfd9bd558a3"
+  },
+  {
+    "packet_path": "actual-test-03.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/display_output-f13d6318a6569a7c",
+    "bytes": 26050360,
+    "sha256": "2232f46aa38d6b3c8e0eb845fcfd082cd7505d7feb6f148feef5524f27254fa7"
+  },
+  {
+    "packet_path": "actual-test-04.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/display_packets-cc50cd0fdffff631",
+    "bytes": 7447088,
+    "sha256": "69365fa361b2d76b5a476a7ebbd3e9f1c703c1ed256e686975548503b5beefc2"
+  },
+  {
+    "packet_path": "actual-test-05.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/native_reference_bindings-55ae586e69f41304",
+    "bytes": 14000048,
+    "sha256": "30177917b42cbbd6f6a904855fd1b0a4a54999d251217af789eef0580022ebc7"
+  },
+  {
+    "packet_path": "actual-test-06.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/prepared_expression_scratch_bounds-e9784b97ef2b41da",
+    "bytes": 4557728,
+    "sha256": "e875add57f0d518ba19498029ba8a2b8dbab923109cf42b01acd68a2d1d561d6"
+  },
+  {
+    "packet_path": "actual-test-07.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/prepared_literal_children-9efe672c99d4b72a",
+    "bytes": 17959896,
+    "sha256": "2547b72c124220f7a32997864f38286e127d7517394c71126db3e93954957cee"
+  },
+  {
+    "packet_path": "actual-test-08.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/prepared_structured_payload-cee82e2f27ab4172",
+    "bytes": 17919440,
+    "sha256": "3f6d1922c214766ee9ea16c4bfb67c3b92fe088a9e2e48143feee82bf2c81b04"
+  },
+  {
+    "packet_path": "actual-test-09.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/prepared_structured_tape-39afeda27e03c85b",
+    "bytes": 4561680,
+    "sha256": "6a52c280896887cf24bf72630e2b7c98d4e9a2eaacede3af1d342dc93cdf79f9"
+  },
+  {
+    "packet_path": "actual-test-10.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/resource_reference-d2c26b99a30aca9f",
+    "bytes": 2032776,
+    "sha256": "88a94dcc99a70c99bdbbad69793609c2cba10ce5ad2e8671fa52216e6fae5f0f"
+  },
+  {
+    "packet_path": "actual-test-11.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/resource_reference_equality-99c6832586f1ceb6",
+    "bytes": 68754560,
+    "sha256": "36fceada245c5e93e5a06439ea73b969d786b684be87eb8fa2c4c2477f505275"
+  },
+  {
+    "packet_path": "actual-test-12.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/resource_reference_equality-ab608eb8bf067e38",
+    "bytes": 18049216,
+    "sha256": "4ea607b0e821f55df8b6dfc1e9dfb4c71602cb8b4b062a5e897c1d43b8c5bf53"
+  },
+  {
+    "packet_path": "actual-test-13.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/structured_expression_equality-efefc5e65848296b",
+    "bytes": 17945520,
+    "sha256": "9294f2ff761fd92fdf94afaf23cd3c629bd99a9ca9e159fd4b50ca4b85e4d824"
+  },
+  {
+    "packet_path": "actual-test-14.elf.gz",
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/omnibus-ready-proof-tmp/conduit-native-reference-bindings-624637/target/debug/deps/generated_reference_proof-149c052645f14476",
+    "bytes": 3121616,
+    "sha256": "1fa3533629d5c45342010cb550032db72b742d774618dcdb8cc1ddfc4792219c"
+  }
+]

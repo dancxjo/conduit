@@ -1,0 +1,10 @@
+{
+  "at": 1792852452.9311821,
+  "branch": "integrate/ready-prs-with-tape-repair-20261024",
+  "head": "51c2dee0c0607585c6f20dc4991394909f613bc9",
+  "tree": "4f27e0a451d2cc716476e7784ed678a5a105dc64",
+  "remote_verified": true,
+  "owner_branches_modified": false,
+  "local_proof_status": "running; 15Resource+8Core+29constructor passed; remaining display/strict stages pending",
+  "new_PR_created": false
+}

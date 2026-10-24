@@ -1,0 +1,17 @@
+{
+  "at": 1792852789.6475058,
+  "original_owner_head": "ebf9894139d747154d64e2e26ad8d2af749df5d7",
+  "new_owner_head": "682c912d07eaf2d8a6c62861af3a6fa0c7d72c0a",
+  "root_repair_head": "6adc488e20284a93d980b91563b94b6e51f758ba",
+  "source_review": "Owner now checks the same existing Jump/BranchFalse destination equal to current code.len before extending prior Bytes. Nested !joins guard is semantically equivalent to RootOption::filter(!at_join), preserving limits/fallback/runtime instructions. New owner regression differs from Rootregression; no exact-source execution equivalence is claimed.",
+  "changed_vs_root": [
+    " .../src/expression_prepared/structured_tape.rs     | 27 ++++++-----",
+    " .../plot/tests/prepared_structured_tape.rs         | 55 ++++------------------",
+    " 2 files changed, 23 insertions(+), 59 deletions(-)"
+  ],
+  "new_candidate": 40101562075,
+  "candidate_observed": "queued",
+  "omnibus_branch": "integrate/ready-prs-with-tape-repair-20261024",
+  "omnibus_head": "51c2dee0c0607585c6f20dc4991394909f613bc9",
+  "decision": "Keep published combined branch as recovery and finish local combined compatibility proof; do not open competing PR while repaired owner Candidate proceeds. No owner branch/source/cache writes."
+}

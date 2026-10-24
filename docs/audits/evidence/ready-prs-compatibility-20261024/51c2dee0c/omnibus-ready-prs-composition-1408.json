@@ -1,0 +1,20 @@
+{
+  "at": 1792850891.6466644,
+  "branch": "integrate/ready-prs-with-tape-repair-20261024",
+  "head": "51c2dee0c0607585c6f20dc4991394909f613bc9",
+  "tree": "4f27e0a451d2cc716476e7784ed678a5a105dc64",
+  "base": "928ea9f6d2b2a822815932f7049776a434f5d1ee",
+  "preserved_heads": [
+    "725b7952e26f7d5b48431379f0e0a7dbc66c6621",
+    "6adc488e20284a93d980b91563b94b6e51f758ba",
+    "cf42934dcfeadd19d645c4317e9aa71092c4865c",
+    "5ea707e47ae321243113688f893365ca1d92513f",
+    "ebf9894139d747154d64e2e26ad8d2af749df5d7"
+  ],
+  "semantic_conflict": {
+    "path": "semantics/data/tests/native_reference_bindings.rs",
+    "resolution": "Retain published5ea exact checked-constructor+decoder primitive refusals and optional generated-consumer retention/Running log harness; keep owner725 supported suite registration. No Core validator or negative case weakened."
+  },
+  "owner_branches_modified": false,
+  "proof_status": "combined tests not yet run; no publication/PR/CI acceptance"
+}

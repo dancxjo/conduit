@@ -1,0 +1,21 @@
+{
+  "source": "51c2dee0c0607585c6f20dc4991394909f613bc9",
+  "tree": "4f27e0a451d2cc716476e7784ed678a5a105dc64",
+  "objects": {
+    "architecture/core": "86613091650f0f6db7c20a9dd245fc02628ed617",
+    "architecture/plot": "aa60c5734632e5a7c148349736390b38630648ea",
+    "semantics/data": "ea17680eb26d8d27b85b0e16eb37815b234e5e88",
+    "targets/std": "e81295b3da70f76b589aa785bf89cc4ac2432a20",
+    "bodies/environment/make": "26451b38d9490b535c49191d86ff9ed76357a447",
+    "bodies/environment/runtime": "bd18ed0e910433bdf84e15cb826ed5bc43886e2b",
+    "tools/xtask/src/suites/resource_reference_equality.rs": "583a081bb80a00328e6cfafee44f5735ca6e59cd",
+    "tools/xtask/src/commands/environment_output.rs": "68b5b4b436f735c1c0904a0ed463f3548362d5aa"
+  },
+  "root_inputs": {
+    "Cargo.toml": "d2d5273953e62bc058c9942986d6b893d89adf9b",
+    "Cargo.lock": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+    "rust-toolchain.toml": "906b1d8542b6f94b5238046e198e9c2672b6c8e0",
+    ".cargo/config.toml": "f78c2a86adf680cfd4100b80183bd01677472aeb"
+  },
+  "inventory_scope": "Retained mixed owned target inventory, including reused/nonexecuted older artifacts. Only actual Running bindings establish execution for current source; oldcf141 artifacts separately archived before reuse."
+}

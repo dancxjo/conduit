@@ -1,0 +1,65 @@
+{
+  "source": "51c2dee0c0607585c6f20dc4991394909f613bc9",
+  "tree": "4f27e0a451d2cc716476e7784ed678a5a105dc64",
+  "branch": "integrate/ready-prs-with-tape-repair-20261024",
+  "started": 1792851000.319925,
+  "steps": [
+    {
+      "name": "supported-resource-equality",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "check",
+        "resource-reference-equality"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/omnibus-ready-supported-resource-equality.log",
+      "sha256": "65beb8239e69345c3ae590525e4baa80e90719da329a0989c2744b9aff33fef2",
+      "before_available_bytes": 11793502208,
+      "actual_passed_counts": [
+        4,
+        6,
+        1,
+        3,
+        0,
+        1
+      ],
+      "actual_test_Running": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/resource_reference_equality-ab608eb8bf067e38",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/structured_expression_equality-efefc5e65848296b",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/resource_reference_equality-99c6832586f1ceb6",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/deps/native_reference_bindings-55ae586e69f41304",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/omnibus-ready-proof-tmp/conduit-native-reference-bindings-624637/target/debug/deps/generated_reference_proof-149c052645f14476"
+      ],
+      "actual_command_Running": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/conduit-xtask-dispatch check resource-reference-equality",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target/debug/xtask check resource-reference-equality"
+      ]
+    }
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6411-payload-ceiling-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/omnibus-ready-proof-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_TERM_COLOR": "never",
+    "CONDUIT_NATIVE_REFERENCE_PROOF_RETAIN": "1"
+  },
+  "prior_exact_cf_target_preserved": {
+    "archive": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6411-before-omnibus-target.tar.gz",
+    "sha256": "85383fa3f685a4eb302c1ea502360d1c8c278775c856082ec61a5ed0792fd496",
+    "custody": "outputs/6411-before-omnibus-target-custody.json"
+  },
+  "root_inputs": {
+    "Cargo.toml": "d2d5273953e62bc058c9942986d6b893d89adf9b",
+    "Cargo.lock": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+    "rust-toolchain.toml": "906b1d8542b6f94b5238046e198e9c2672b6c8e0",
+    ".cargo/config.toml": "f78c2a86adf680cfd4100b80183bd01677472aeb"
+  },
+  "status": "stopped-before-next-command-for-headroom",
+  "clean_after": true,
+  "available_bytes": 3552653312
+}
