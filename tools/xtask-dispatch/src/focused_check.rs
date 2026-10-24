@@ -24,6 +24,8 @@ mod record_pronunciation;
 
 #[path = "../../xtask/src/suites/monotonic_wait.rs"]
 mod monotonic_wait;
+#[path = "../../xtask/src/suites/resource_snapshot.rs"]
+mod resource_snapshot;
 
 struct Suite {
     steps: &'static [Step],
@@ -33,6 +35,11 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "resource-snapshot" => Some(Suite {
+            steps: resource_snapshot::STEPS,
+            path: "tools/xtask/src/suites/resource_snapshot.rs",
+            source: include_bytes!("../../xtask/src/suites/resource_snapshot.rs"),
+        }),
         [check, suite] if check == "check" && suite == "monotonic-wait" => Some(Suite {
             steps: monotonic_wait::STEPS,
             path: "tools/xtask/src/suites/monotonic_wait.rs",

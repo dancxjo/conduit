@@ -14,6 +14,7 @@ creche-surface = []
 protected-line = ["dep:conduit-protected-line"]
 
 [dependencies]
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
 conduit-synth = { path = "../../../mechanisms/implementations/synth" }
 conduit-audio = { path = "../../../semantics/audio" }
 conduit-body-invitation-plot = { path = "../../../semantics/body-invitation" }
