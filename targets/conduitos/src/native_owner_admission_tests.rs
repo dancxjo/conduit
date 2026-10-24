@@ -443,10 +443,10 @@ fn actual_native_offer_completes_signed_owner_request_and_receipt_with_both_wire
             &crate::product_bases::fixture_surface_provider(),
         );
         let raw = serde_json::to_vec(&advertisement).unwrap();
-        if identity_bytes == 64 {
-            if let Ok(path) = std::env::var("CONDUIT_JOIN_PRODUCT_FIXTURE") {
-                std::fs::write(path, &raw).unwrap();
-            }
+        if identity_bytes == 64
+            && let Ok(path) = std::env::var("CONDUIT_JOIN_PRODUCT_FIXTURE")
+        {
+            std::fs::write(path, &raw).unwrap();
         }
         assert!(raw.len() > MAXIMUM_BINARY_MESSAGE_BYTES);
         let (request, receipt) = admitted_exchange_with_advertisement(advertisement.clone());
