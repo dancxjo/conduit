@@ -58,6 +58,12 @@ the initialized provider. Refusal leaves that same provider in Root's slot.
 Both contiguous and borrowed assigned projections use the ordinary exact binder. Claim/identity, assignment,
 capability bounds and packet codec preparation all finish before
 `bind_assigned_retained` takes Root's slot; refusal preserves the provider.
+The explicit `check_assigned_fore` / `bind_assigned_fore_retained` path admits
+schema-7 local fore pins from independently trusted Make material through the
+same possession and exact-operation checks. Legacy binding refuses that schema.
+Neither the fore ABI nor a matching assignment grants permission to use pins.
+Both representations test ABI mismatch, stale Boot and resource-generation
+refusal before effects, one-time provider transfer and replay refusal.
 The assigned tests drop the assignment storage before allocation-free invocation,
 then revoke and return that same provider through idle retirement. These are CPU
 fixtures, not actual initialized ESP32 pins, Root installation or complete native

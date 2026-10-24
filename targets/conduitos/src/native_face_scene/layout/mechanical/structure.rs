@@ -86,26 +86,26 @@ pub(super) fn measure(
                     } else {
                         0
                     };
-                let mut remaining = item.text.as_str();
-                while !remaining.is_empty() {
-                    let mut end = remaining.len().min(conduit_face::MAX_GRAPHICS_TEXT_BYTES);
-                    while !remaining.is_char_boundary(end) {
-                        end -= 1;
-                    }
-                    let metrics = intrinsic_text_metrics(
-                        &remaining[..end],
-                        context.typography.style(item.role.into()),
-                        context.scale,
-                    )
-                    .map_err(|_| FaceSceneError::InvalidExtent)?;
-                    let minimum = u16::try_from(metrics.minimum_inline + extra)
-                        .map_err(|_| FaceSceneError::InvalidExtent)?;
-                    result.minimum = result.minimum.max(minimum);
-                    result.preferred = result.preferred.max(
-                        (metrics.preferred_inline + extra).min(u32::from(context.width)) as u16,
-                    );
-                    remaining = &remaining[end..];
-                }
+                let metrics = intrinsic_item_text_metrics(
+                    item.text.as_str(),
+                    context.typography.style(item.role.into()),
+                    context.scale,
+                    MAX_DOCUMENT_BYTES,
+                )
+                .map_err(|_| FaceSceneError::InvalidExtent)?;
+                let minimum = metrics
+                    .minimum_inline
+                    .checked_add(extra)
+                    .and_then(|value| u16::try_from(value).ok())
+                    .ok_or(FaceSceneError::InvalidExtent)?;
+                result.minimum = result.minimum.max(minimum);
+                let preferred = metrics
+                    .preferred_inline
+                    .checked_add(extra)
+                    .ok_or(FaceSceneError::InvalidExtent)?;
+                result.preferred = result
+                    .preferred
+                    .max(preferred.min(u32::from(context.width)) as u16);
             }
             result.preferred = result.preferred.max(result.minimum);
             result

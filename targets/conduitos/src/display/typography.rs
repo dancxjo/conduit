@@ -13,7 +13,10 @@ mod preview;
 pub use preview::single_line_preview;
 mod ink;
 mod intrinsic;
-pub use intrinsic::{IntrinsicTextMetrics, intrinsic_text_metrics, resolve_em_sixteenths};
+pub use intrinsic::{
+    IntrinsicTextMetrics, intrinsic_item_text_metrics, intrinsic_text_metrics,
+    resolve_em_sixteenths,
+};
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
 mod scene;

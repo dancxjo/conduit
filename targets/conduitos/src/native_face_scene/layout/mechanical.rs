@@ -5,7 +5,7 @@
 //! candidates, then prepare the winner once. Grid continuation keeps finite
 //! span-connected bands intact; oversized bands explicitly refuse.
 use super::*;
-use crate::display::typography::{TextRole, intrinsic_text_metrics, resolve_em_sixteenths};
+use crate::display::typography::{TextRole, intrinsic_item_text_metrics, resolve_em_sixteenths};
 use conduit_face::{
     ComponentLayoutAlignment as Alignment, ComponentLayoutBreak as Break, ComponentLayoutCandidate,
     ComponentLayoutChild, ComponentLayoutNode, PreparedComponentLayout,

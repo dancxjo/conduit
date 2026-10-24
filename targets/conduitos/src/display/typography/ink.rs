@@ -55,3 +55,28 @@ pub(super) fn span(value: &str, role: TextStyle, scale: TextScale, start: u32) -
         right,
     }
 }
+
+/// Preparation-only checked extent over one admitted logical line/cluster.
+/// Unlike a paint command this may cross command boundaries; the caller checks
+/// its existing finite document admission before scanning.
+pub(super) fn checked_span(value: &str, role: TextStyle, scale: TextScale) -> Option<u32> {
+    let mut cursor = 0_u32;
+    let mut left = 0_i32;
+    let mut right = 0_i32;
+    for character in value.chars() {
+        let glyph = scaled_glyph(role, if character == '\t' { ' ' } else { character }, scale);
+        let (width, height) = glyph.extent();
+        if width > 0 && height > 0 {
+            let origin = i32::try_from(cursor / 64)
+                .ok()?
+                .checked_add(i32::from(glyph.bearing().0))?;
+            left = left.min(origin);
+            right = right.max(origin.checked_add(i32::from(width))?);
+        }
+        let advance =
+            u32::from(glyph.advance()).checked_mul(if character == '\t' { 4 } else { 1 })?;
+        cursor = cursor.checked_add(advance)?;
+    }
+    right = right.max(i32::try_from(cursor.div_ceil(64)).ok()?);
+    u32::try_from(right.checked_sub(left.min(0))?).ok()
+}
