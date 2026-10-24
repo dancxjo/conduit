@@ -281,6 +281,21 @@ pub const TODO_COMPONENT_MASK_SOURCE: &str = concat!(
     include_str!("../components/todo-required-item.conduit"),
 );
 
+/// Independent Patchbay recipe; canonical appearance values are shared with Todo.
+pub const PATCHBAY_COMPONENT_MASK_SOURCE: &str =
+    include_str!("../components/patchbay-mask.conduit");
+
+pub const PATCHBAY_DEFAULT_MASK_ROOT: &str = "patchbay-mask-default";
+
+pub const fn patchbay_component_mask_root(look: ComponentMaskLook) -> &'static str {
+    match look {
+        ComponentMaskLook::Compact => "patchbay-mask-compact",
+        ComponentMaskLook::Spacious => "patchbay-mask-spacious",
+        ComponentMaskLook::CompactEditorial => "patchbay-mask-compact-editorial",
+        ComponentMaskLook::SpaciousPhosphor => "patchbay-mask-spacious-phosphor",
+    }
+}
+
 /// Crèche structure admits its three actual fields and full bounded inventory.
 /// Independent finite expression roots retain each checked component structure.
 pub const CRECHE_COMPONENT_MASK_SOURCE: &str = include_str!("../components/creche-mask.conduit");

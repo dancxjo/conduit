@@ -17,6 +17,7 @@ use conduit_face::{
     FACE_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
+mod configured_sources;
 mod remote;
 pub use remote::{planned_owner_face_show_interaction_mask, planned_owner_face_show_mask};
 
@@ -134,7 +135,7 @@ fn planned_mask_configuration(
     ),
     String,
 > {
-    let configured = source == conduit_face::TODO_COMPONENT_MASK_SOURCE;
+    let configured = configured_sources::contains(source);
     let definition = if configured {
         conduit_face::component_mask_kind(MASK_BYTES)
     } else {
@@ -333,9 +334,8 @@ pub fn configured_mask_configuration(
         return Ok(None);
     }
     let root = planned.mask.plot_name.as_str();
-    if conduit_face::ComponentVisualSelection::from_todo_root(root).is_none() {
-        return Err("unknown configured component source root".into());
-    }
+    let source =
+        configured_sources::for_root(root).ok_or("unknown configured component source root")?;
     let budget = |direction, id: &conduit_core::PortId| -> Result<u32, String> {
         let mut ports = planned
             .plan
@@ -351,7 +351,7 @@ pub fn configured_mask_configuration(
     };
     let (expected, configuration) = planned_mask_configuration(
         host,
-        conduit_face::TODO_COMPONENT_MASK_SOURCE,
+        source,
         root,
         Some(OwnerCarrierForeLimits {
             face_bytes: budget(PortDirection::Input, &planned.mask.face_input.front_port_id)?,
