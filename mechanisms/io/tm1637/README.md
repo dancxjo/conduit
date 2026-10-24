@@ -46,5 +46,16 @@ interpretation. Tests use explicit CPU pin/authority/selection fixtures. They
 cover malformed geometry before effects, substituted Play/ports, stale requests,
 NACK, provider loss, cancellation and allocation-free invocation. This does not
 install a display Back, admit its full memory/work closure, join an output Line
-or prove physical delivery. Assigned firmware binding and actual Root installation
-remain separate work.
+or prove physical delivery.
+
+`ReadyWriteBase` retains the actual provider before projecting its Ready Base,
+resource and zero-result offer through the existing registry. A foreign Boot or
+colliding advertisement refuses without mutation or electrical work. Native
+identity remains independent of assignment bytes. Both contiguous and borrowed
+assigned projections use the ordinary exact binder. Claim/identity, assignment,
+capability bounds and packet codec preparation all finish before
+`bind_assigned_retained` takes Root's slot; refusal preserves the provider.
+The assigned tests drop the assignment storage before allocation-free invocation,
+then revoke and return that same provider through idle retirement. These are CPU
+fixtures, not actual initialized ESP32 pins, Root installation or complete native
+memory/work admission. The running firmware has not adopted this component yet.

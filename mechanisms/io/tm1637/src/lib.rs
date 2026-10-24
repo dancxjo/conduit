@@ -8,6 +8,8 @@ mod codec;
 #[cfg(feature = "host-call")]
 mod contract;
 #[cfg(feature = "host-call")]
+pub mod installation;
+#[cfg(feature = "host-call")]
 pub mod owner;
 #[cfg(feature = "host-call")]
 pub use codec::PacketRefusal;

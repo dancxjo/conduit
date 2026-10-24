@@ -1389,3 +1389,11 @@ using reserved storage; the borrowed-packet API uses that same encoding. The
 packet and native Face/Mask regressions. This is a CPU-verified output component,
 not assigned firmware installation, admitted display work, a resident page loop
 or evidence that the physical MCU display has resumed updating.
+
+The retained TM1637 provider component now projects readiness through the existing
+Base registry and binds either contiguous or borrowed assigned-plan records.
+Refusal retains the exact provider in Root's slot; successful preflight transfers
+it once without starting electrical work. The `display-output` proof includes
+foreign Boot/resource claims, advertisement collision, invocation after assignment
+storage is dropped and retirement of the original provider. Actual ESP32 provider
+initialization, selected Back installation and resident delivery remain unfinished.

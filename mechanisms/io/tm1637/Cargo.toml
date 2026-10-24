@@ -19,3 +19,4 @@ conduit-plot = { path = "../../../architecture/plot", optional = true }
 
 [dev-dependencies]
 conduit-environment-runtime = { path = "../../../bodies/environment/runtime" }
+conduit-embedded-build = { path = "../../../make/embedded-build" }

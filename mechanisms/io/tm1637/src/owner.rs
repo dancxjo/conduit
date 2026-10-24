@@ -59,20 +59,7 @@ impl<P: OpenDrain> WriteHostCall<P> {
         selection: SelectedOperationPlan<'_>,
     ) -> Result<Self, WriteCallRefusal<P::Error>> {
         use WriteCallRefusal as E;
-        let mut inspections = table.inspections();
-        let scope = &inspections.next().ok_or(E::Possession)?.scope;
-        if inspections.next().is_some()
-            || scope.maximum_in_flight != 1
-            || scope.maximum_parameter_bytes < MAXIMUM_BYTES
-            || scope.maximum_result_bytes != 0
-            || claim.parameter_bytes != MAXIMUM_BYTES
-            || claim.work_units != 1
-            || attachment.generation == 0
-            || attachment.resource_bytes < 24
-        {
-            return Err(E::Possession);
-        }
-        drop(inspections);
+        check_possession(&table, &claim, attachment)?;
         let node = bind_selected_operation(
             &table,
             &claim,
@@ -95,16 +82,33 @@ impl<P: OpenDrain> WriteHostCall<P> {
         })?;
         let packets = PreparedPackets::prepare(contract)
             .map_err(|reason| E::Packets(PacketRefusal::Canonical(reason)))?;
-        Ok(Self {
+        Ok(Self::from_prepared(
             table,
             handle,
             claim,
             attachment,
             provider,
-            node,
+            PreparedWriteBinding { node, packets },
+        ))
+    }
+    pub(crate) fn from_prepared(
+        table: c::BaseCapabilityTable,
+        handle: c::BaseCapabilityHandle,
+        claim: c::BaseOperationClaim,
+        attachment: WriteAttachment,
+        provider: P,
+        prepared: PreparedWriteBinding,
+    ) -> Self {
+        Self {
+            table,
+            handle,
+            claim,
+            attachment,
+            provider,
+            node: prepared.node,
             next_request: 0,
-            packets,
-        })
+            packets: prepared.packets,
+        }
     }
     /// Decode and authorize before any pin operation. One request consumes one
     /// admitted operation and returns no value. No automatic retries occur.
@@ -208,5 +212,37 @@ impl Drop for Pending<'_> {
         if self.lease.is_some() {
             let _ = self.table.revoke(self.handle);
         }
+    }
+}
+
+pub(crate) struct PreparedWriteBinding {
+    pub(crate) node: NodeId,
+    pub(crate) packets: PreparedPackets,
+}
+pub(crate) fn check_possession<E>(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    attachment: WriteAttachment,
+) -> Result<(), WriteCallRefusal<E>> {
+    let mut inspections = table.inspections();
+    let scope = &inspections
+        .next()
+        .ok_or(WriteCallRefusal::Possession)?
+        .scope;
+    if inspections.next().is_some()
+        || scope.maximum_in_flight != 1
+        || scope.maximum_parameter_bytes < MAXIMUM_BYTES
+        || scope.maximum_result_bytes != 0
+        || claim.parameter_bytes != MAXIMUM_BYTES
+        || claim.work_units != 1
+        || !attachment.valid()
+    {
+        return Err(WriteCallRefusal::Possession);
+    }
+    Ok(())
+}
+impl WriteAttachment {
+    pub(crate) fn valid(self) -> bool {
+        self.generation != 0 && self.resource_bytes >= 24
     }
 }
