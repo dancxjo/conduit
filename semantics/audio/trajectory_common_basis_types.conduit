@@ -1,0 +1,36 @@
+# Exact linear interpolation on an authored common rational basis. Fractions
+# are retained, never normalized or implicitly rebased. Query coverage is a
+# separate decision, so out-of-range queries remain honestly observable.
+type AudioTrajectoryCommonBasisU32 = {
+    input: AudioTrajectoryArithmeticInput
+    where .input.interpolation is linear
+    where .input.start.numerator_seconds <= 4294967295
+    where .input.end.numerator_seconds <= 4294967295
+    where .input.query.numerator_seconds <= 4294967295
+    where .input.start.denominator <= 4294967295
+    where .input.end.denominator == .input.start.denominator
+    where .input.query.denominator == .input.start.denominator
+    where .input.left.numerator <= 4294967295
+    where .input.right.numerator <= 4294967295
+    where .input.left.denominator > 0 && .input.left.denominator <= 4294967295
+    where .input.right.denominator == .input.left.denominator
+    where .input.left.domain == .input.right.domain
+}
+
+# Readmit this Native after coverage succeeds, before any subtraction. The
+# final-endpoint ownership decision remains in the covers Plot below; this
+# arithmetic witness admits either endpoint without inventing coverage.
+type AudioTrajectoryCommonBasisCovered = {
+    request: AudioTrajectoryCommonBasisU32
+    where .request.input.start.numerator_seconds < .request.input.end.numerator_seconds
+    where .request.input.start.numerator_seconds <= .request.input.query.numerator_seconds
+    where .request.input.query.numerator_seconds <= .request.input.end.numerator_seconds
+}
+
+# Preparation admits one shared linear time basis before publishing a prepared
+# trajectory. Step segments retain their separate exact cross-product profile.
+type AudioTrajectoryCommonBasisTimeMatch = {
+    left: AudioExactTimeOffset
+    right: AudioExactTimeOffset
+    where .left.denominator == .right.denominator
+}
