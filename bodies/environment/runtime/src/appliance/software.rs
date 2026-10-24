@@ -108,6 +108,42 @@ impl ReadySoftwareBacks {
             operations,
         })
     }
+    /// Initialize portable computations from independently authenticated Make
+    /// material, decoding one gear at a time instead of retaining a rich graph.
+    /// At most eight portable operations may be prepared through this entrance.
+    ///
+    /// # Safety
+    /// Root must authenticate the complete material and its Source identities
+    /// against an independently trusted build artifact. Received metadata,
+    /// claimed identities or successful decoding do not establish that origin.
+    /// No native readiness, authority, Body membership or Play is created here.
+    pub unsafe fn prepare_portable_make(
+        source: c::PlotIdentity,
+        gears: impl IntoIterator<Item = Result<conduit_plot::CheckedGear, SoftwareRefusal>>,
+        host: c::HostId,
+        boot: c::BootId,
+    ) -> Result<Self, SoftwareRefusal> {
+        let mut operations: Vec<ReadyOperation> = Vec::new();
+        for gear in gears {
+            if operations.len() >= 8 {
+                return Err(SoftwareRefusal::Count);
+            }
+            let gear = gear?;
+            if operations.iter().any(|op| op.gear == gear.gear_id) {
+                return Err(SoftwareRefusal::Selection);
+            }
+            operations.push(ready_operation(&gear, initialize_portable(&gear)?)?);
+        }
+        Ok(Self {
+            host,
+            boot,
+            source: source.source_document_id,
+            checked: source.checked_plot_id,
+            expanded: source.expanded_plot_id,
+            generation: None,
+            operations,
+        })
+    }
     /// A refusal leaves the advertisement and retained operations unchanged.
     /// Selected operations are omitted from newly built advertisements. Root
     /// must replace historical snapshots when availability changes.

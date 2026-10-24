@@ -9,6 +9,9 @@ use conduit_tm1637_wire::{
     WriteContract,
 };
 use esp_hal::gpio::Pin;
+mod software {
+    include!(concat!(env!("OUT_DIR"), "/display-software.rs"));
+}
 pub struct NativeDisplay {
     ready: ReadyWriteBase<DisplayPins<'static>>,
 }
@@ -55,6 +58,22 @@ impl NativeDisplay {
         }
         .map_err(|_| "display-provider")?;
         Ok(Box::new(Self { ready }))
+    }
+    /// Preparation only, for a later independently admitted output selection.
+    /// Do not call this at bootstrap beside the sampling closure without
+    /// admitting the combined peak. No Back is advertised or Play started here.
+    #[allow(
+        dead_code,
+        reason = "output installation awaits the authenticated Root selection path"
+    )]
+    pub fn prepare_output_software(
+        &self,
+    ) -> Result<
+        Box<conduit_environment_runtime::appliance::software::ReadySoftwareBacks>,
+        conduit_environment_runtime::appliance::software::SoftwareRefusal,
+    > {
+        let identity = self.ready.native_identity();
+        software::prepare(identity.host_id.clone(), identity.boot_id.clone()).map(Box::new)
     }
     pub fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
         let contract = WriteContract::prepare().map_err(|_| ())?;

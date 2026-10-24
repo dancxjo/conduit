@@ -3,7 +3,9 @@
 //! The result is construction material; Root must still authenticate it, admit
 //! current possession and storage, and advance the real Body/Wake before Play.
 extern crate alloc;
+mod display_material;
 mod display_output;
+pub use display_material::DisplaySourceMaterial;
 pub use display_output::{DisplayOutputSource, DisplayPlanningRefusal, PreparedDisplayOutput};
 mod recording_recovery;
 pub use recording_recovery::{

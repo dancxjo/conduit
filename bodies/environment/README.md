@@ -1488,3 +1488,22 @@ pin effect, and cancellation before dispatch rejects a late completion with no
 pin effect. Recurring execution measures zero allocations. Refused preparation
 preserves all still-retained software. This is CPU execution evidence, not an
 ESP32 installation, live timed Mask subscription or physical display update.
+
+`DisplaySourceMaterial` now emits trusted firmware construction data rather
+than requiring the complete expanded graph in Root. The existing flat-image
+producer refused this output graph at its unchanged 32 KiB ceiling. The Make
+material separates checked gear metadata from computation text, decodes one
+gear at a time and initializes through the same portable implementation/contract
+checks. Current metadata totals 16,589 bytes with a largest gear of 12,841 bytes.
+The trusted Make entrance admits at most eight operations, requires independent
+artifact/Source authentication and creates no native authority or Play.
+
+A CPU proof reconstructs the actual software from this material, projects its
+retained offers and selects/prepares the same output kernel. Host-only allocation
+measurement reports an 88,273-byte preparation peak; that is not an ESP32 heap
+bound or evidence that sampling and output preparation fit together. The native
+build embeds and type-checks the generated constructor, and the supported
+`root-esp32` release build passes the unchanged 28 KiB stack floor. Its preparation
+entry is not called at bootstrap. Authenticated output selection, combined
+memory/work admission, actual preparation on the MCU and physical output remain
+unfinished; this build was not flashed.

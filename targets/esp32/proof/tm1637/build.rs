@@ -20,10 +20,23 @@ fn main() {
         .unwrap();
         println!("cargo:rustc-link-arg=-T{}", stack.display());
         build_owner_key::emit(&out);
+        println!(
+            "cargo:rerun-if-changed=../../../../bodies/environment/profiles/display-output.conduit"
+        );
+        println!("cargo:rerun-if-changed=../../../../plots/device-protocols/tm1637.conduit");
         std::fs::write(out.join("network-source.json"), &image).unwrap();
         std::fs::write(out.join("network-source.sha256"), Sha256::digest(&image)).unwrap();
         #[cfg(feature = "native-root")]
         {
+            let display = conduit_environment_make::DisplayOutputSource::compile()
+                .expect("checked display Source");
+            let material = conduit_environment_make::DisplaySourceMaterial::prepare(&display)
+                .expect("finite display software material");
+            let mut output = String::new();
+            material
+                .write_rust(&mut output)
+                .expect("resident display software module");
+            std::fs::write(out.join("display-software.rs"), output).unwrap();
             let source = conduit_environment_make::compile_appliance_source()
                 .expect("checked environmental appliance Source");
             let recipe = conduit_environment_make::NativeSoftwareSourceRecipe::prepare(&source)

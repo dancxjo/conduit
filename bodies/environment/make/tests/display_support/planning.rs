@@ -204,3 +204,46 @@ fn portable_preparation_refuses_unknown_duplicate_and_nonportable_gears() {
         .is_err());
     }
 }
+
+#[test]
+fn trusted_material_preserves_source_and_exact_selection_without_a_rich_graph() {
+    let source = DisplayOutputSource::compile().unwrap();
+    let material = conduit_environment_make::DisplaySourceMaterial::prepare(&source).unwrap();
+    eprintln!(
+        "output metadata: total={} largest={}",
+        material.metadata_bytes(),
+        material.largest_metadata_bytes()
+    );
+    let (mut host, grant, _) = fixture(&source);
+    host.capabilities
+        .retain(|offer| offer.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND);
+    let host_id = host.host_id.clone();
+    let boot_id = host.boot_id.clone();
+    let (software, memory) =
+        crate::allocation_probe::observe(|| material.prepare_software(host_id, boot_id));
+    let mut software = software.unwrap();
+    eprintln!(
+        "host-only output preparation peak bytes: {}",
+        memory.peak_bytes
+    );
+    software.append_to_advertisement(&mut host).unwrap();
+    let prepared = PreparedDisplayOutput::prepare(
+        &source,
+        &host,
+        &["fixture/base".into(), "conduit.base/local@1".into()],
+        &[grant],
+    )
+    .unwrap();
+    conduit_environment_runtime::display_output::PreparedDisplayKernel::prepare(
+        prepared.plan(),
+        prepared.lowered(),
+        &mut software,
+        2,
+    )
+    .unwrap();
+    let mut rust = String::new();
+    material.write_rust(&mut rust).unwrap();
+    assert!(rust.contains("prepare_portable_make"));
+    assert!(!rust.contains(host.host_id.as_str()));
+    assert!(!rust.contains(host.boot_id.as_str()));
+}
