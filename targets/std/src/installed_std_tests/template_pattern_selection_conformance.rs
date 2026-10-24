@@ -118,6 +118,7 @@ fn found_storage_result_feeds_reusable_comparison_through_checked_selectors() {
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

@@ -33,6 +33,7 @@ pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
     pub advertisement: &'a HostAdvertisement,
+    pub law_preparation: Option<&'a crate::numerical_host::law_preparation::LawPreparationCache>,
     pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
     pub midi_input: Option<&'a crate::hosted_midi::HostedRawMidiSelection>,
     pub midi_output: Option<&'a crate::hosted_midi::MidiOutputSelection>,

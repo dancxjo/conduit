@@ -9,6 +9,7 @@ mod expressions;
 pub(crate) mod ieee_encoding;
 pub(crate) mod ieee_native;
 pub(crate) mod ieee_step;
+pub(crate) mod law_preparation;
 pub(crate) mod near_encoding;
 pub(crate) mod near_step;
 pub(crate) mod preparation_cache;

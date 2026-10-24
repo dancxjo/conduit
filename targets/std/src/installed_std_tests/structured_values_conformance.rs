@@ -112,6 +112,7 @@ fn authored_quantities_survive_plan_play_sign_and_typed_face() {
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

@@ -89,6 +89,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,
@@ -178,6 +179,7 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
         let result = installed_std::run_fragment(
             installed_std::InstalledRunHost {
                 advertisement: &advertisement,
+                law_preparation: None,
                 playback: None,
                 midi_input: None,
                 midi_output: None,

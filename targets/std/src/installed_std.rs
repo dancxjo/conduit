@@ -291,6 +291,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
+        law_preparation,
         playback,
         midi_input,
         midi_output,
@@ -597,7 +598,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         })
         .collect::<Result<Vec<_>, String>>()?;
     let mut structured_selector_hosts = structured_selector_back::prepare_hosts(fragment)?;
-    let mut pure_expression_hosts = pure_expression_back::prepare_hosts(fragment)?;
+    let mut pure_expression_hosts =
+        pure_expression_back::prepare_hosts_with_law_cache(fragment, law_preparation)?;
     let mut image_text_hosts = image_text_back::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_back::prepare_hosts(fragment);
     let mut vision_request_sequence = 0_u64;

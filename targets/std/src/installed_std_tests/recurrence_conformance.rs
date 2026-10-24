@@ -66,6 +66,7 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

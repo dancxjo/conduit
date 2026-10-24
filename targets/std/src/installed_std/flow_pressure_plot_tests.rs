@@ -95,6 +95,7 @@ fn scalar_source_can_use_coalesce_latest_as_a_continuous_std_plot() {
     let report = super::run_fragment(
         super::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

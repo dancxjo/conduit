@@ -113,6 +113,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

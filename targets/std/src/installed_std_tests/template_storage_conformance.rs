@@ -94,6 +94,7 @@ fn reusable_named_template_storage_requires_a_slot_and_executes_without_play_all
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

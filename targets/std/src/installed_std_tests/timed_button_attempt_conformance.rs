@@ -137,6 +137,7 @@ fn portable_button_flow_becomes_one_timed_attempt_in_the_production_kernel() {
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

@@ -351,6 +351,7 @@ impl StdHost {
                 installed_std::run_fragment_retaining(
                     installed_std::InstalledRunHost {
                         advertisement: &advertisement,
+                        law_preparation: Some(&self.law_preparation),
                         playback: self.playback.as_ref(),
                         midi_input: self.midi_input.as_ref(),
                         midi_output: self.midi_output.as_ref(),

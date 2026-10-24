@@ -87,6 +87,7 @@ fn reusable_pulse_plot_plans_and_executes_outside_choir() {
     let report = crate::installed_std::run_fragment(
         crate::installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

@@ -304,6 +304,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,
@@ -325,6 +326,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let unrelated_report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

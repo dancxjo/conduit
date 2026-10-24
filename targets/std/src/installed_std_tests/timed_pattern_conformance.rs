@@ -97,6 +97,7 @@ fn reusable_ordered_event_intervals_plan_and_execute_through_one_kernel_play() {
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,

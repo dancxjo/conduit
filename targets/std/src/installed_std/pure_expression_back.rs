@@ -19,6 +19,17 @@ pub(super) static FILTER_FACTORY: BackFactory = BackFactory {
     prepare,
 };
 
+pub(super) static LAW_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::LAW_EXPRESSION_STD_IMPLEMENTATION,
+    budget: law_budget,
+    prepare: prepare_law,
+};
+pub(super) static LAW_FILTER_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::LAW_FILTER_STD_IMPLEMENTATION,
+    budget: law_budget,
+    prepare: prepare_law,
+};
+
 pub(super) use conduit_semantic_catalog::PureExpressionBack;
 
 pub(super) struct PureExpressionHost {
@@ -31,14 +42,28 @@ enum PreparedFilterOutput {
     Value(conduit_core::PreparedOptionalInfoEncoder),
 }
 
+#[cfg(test)]
 pub(super) fn prepare_hosts(
     fragment: &conduit_core::PlanFragment,
+) -> Result<Vec<Option<PureExpressionHost>>, String> {
+    prepare_hosts_with_law_cache(fragment, None)
+}
+
+pub(super) fn prepare_hosts_with_law_cache(
+    fragment: &conduit_core::PlanFragment,
+    cache: Option<&crate::numerical_host::law_preparation::LawPreparationCache>,
 ) -> Result<Vec<Option<PureExpressionHost>>, String> {
     fragment
         .placements
         .iter()
         .map(|placement| {
-            if matches!(
+            if law_back::is_law(placement) {
+                let verified = cache
+                    .ok_or("law expression has no owning Host custody")?
+                    .planned(fragment, placement)?;
+                law_back::validate_placement(placement, verified.canonical_bytes())?;
+                PureExpressionHost::from_law(placement, verified).map(Some)
+            } else if matches!(
                 placement.implementation_id.as_str(),
                 conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION
                     | conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
@@ -53,27 +78,21 @@ pub(super) fn prepare_hosts(
 }
 
 impl PureExpressionHost {
+    fn from_law(
+        placement: &PlannedGear,
+        verified: &conduit_plot::VerifiedLawExpression,
+    ) -> Result<Self, String> {
+        Ok(Self {
+            evaluator: verified
+                .prepare_evaluator()
+                .map_err(|why| format!("prepare admitted law evaluator: {why:?}"))?,
+            filter_output: filter_output(placement, verified.program())?,
+        })
+    }
     fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
         let program = program_from_placement(placement)?;
         validate_placement(placement, &program)?;
-        let filter_output = if placement.kind_contract_revision.as_str()
-            == conduit_plot::PURE_FILTER_REVISION
-        {
-            Some(match placement.inputs[0].temporal {
-                conduit_core::PortTemporal::Value => PreparedFilterOutput::Value(
-                    conduit_core::PreparedOptionalInfoEncoder::new(program.input_type.clone())
-                        .map_err(|error| format!("prepare optional filter output: {error:?}"))?,
-                ),
-                conduit_core::PortTemporal::Flow { .. } => PreparedFilterOutput::Flow(
-                    Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
-                ),
-                conduit_core::PortTemporal::Current => {
-                    return Err("when filter does not admit current-value temporal input".into())
-                }
-            })
-        } else {
-            None
-        };
+        let filter_output = filter_output(placement, &program)?;
         Ok(Self {
             evaluator: if placement.implementation_id.as_str()
                 == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
@@ -127,6 +146,31 @@ impl PureExpressionHost {
                 .map_err(|_| conduit_plot::PortableExpressionEvaluationRefusal::InvalidInput),
         }
     }
+}
+
+fn filter_output(
+    placement: &PlannedGear,
+    program: &conduit_plot::PortableExpressionProgram,
+) -> Result<Option<PreparedFilterOutput>, String> {
+    let output = if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION
+        || placement.kind_contract_revision.as_str() == conduit_plot::LAW_FILTER_REVISION
+    {
+        Some(match placement.inputs[0].temporal {
+            conduit_core::PortTemporal::Value => PreparedFilterOutput::Value(
+                conduit_core::PreparedOptionalInfoEncoder::new(program.input_type.clone())
+                    .map_err(|error| format!("prepare optional filter output: {error:?}"))?,
+            ),
+            conduit_core::PortTemporal::Flow { .. } => {
+                PreparedFilterOutput::Flow(Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES))
+            }
+            conduit_core::PortTemporal::Current => {
+                return Err("when filter does not admit current-value temporal input".into())
+            }
+        })
+    } else {
+        None
+    };
+    Ok(output)
 }
 
 pub(super) fn program_from_placement(
@@ -325,3 +369,9 @@ mod scalar_tape_parity_tests;
 #[cfg(test)]
 #[path = "pure_expression_back/exact_quantity_tests.rs"]
 mod exact_quantity_tests;
+
+mod law_back;
+use law_back::{budget as law_budget, prepare as prepare_law};
+
+#[cfg(test)]
+mod law_tests;

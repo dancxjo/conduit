@@ -101,6 +101,7 @@ fn reusable_normalization_plot_executes_outside_secret_knock_without_play_alloca
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
+            law_preparation: None,
             playback: None,
             midi_input: None,
             midi_output: None,
