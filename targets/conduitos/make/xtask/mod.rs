@@ -116,6 +116,7 @@ mod riscv64_a3;
 mod riscv64_a4;
 mod riscv64_domain_proof;
 mod riscv64_emulator;
+mod riscv64_firmware;
 mod riscv64_product_boot;
 mod run;
 mod screen_free_three_host_proof;
@@ -463,6 +464,21 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             }
             ia32_firmware::prepare(&root)
                 .map_err(|e| ConduitosError::refusal("ia32-firmware-setup", e.to_string()))
+        }
+        ConduitosCommand::PrepareRiscv64Firmware => {
+            let root = crate::workspace::workspace_root()
+                .map_err(|e| ConduitosError::refusal("workspace-root", e.to_string()))?;
+            if opts.dry_run {
+                return Ok(());
+            }
+            riscv64_firmware::prepare(&root)
+                .map_err(|e| ConduitosError::refusal("riscv64-firmware-setup", e.to_string()))
+        }
+        ConduitosCommand::DoctorRiscv64Firmware => {
+            let root = crate::workspace::workspace_root()
+                .map_err(|e| ConduitosError::refusal("workspace-root", e.to_string()))?;
+            riscv64_firmware::doctor(&root)
+                .map_err(|e| ConduitosError::refusal("riscv64-firmware-doctor", e.to_string()))
         }
         ConduitosCommand::DoctorIa32Firmware => {
             let root = crate::workspace::workspace_root()

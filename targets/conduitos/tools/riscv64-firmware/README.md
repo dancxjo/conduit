@@ -14,12 +14,22 @@ whitespace normalized. The publisher's build-code MIT/Apache licenses are not
 the firmware's license. Original source lengths and digests remain in the
 manifest and retained packet.
 
-This is reviewed input for the forthcoming explicit preparation entrance.
-No acquisition command, selected product profile, graphical boot, local input,
-or firmware execution is established by these files. The implementation must
-verify the archive before extracting only the two named regular members,
-verify both members, publish an immutable pair atomically under a preparation
-lock, preserve licensing, and refuse an incomplete or corrupt cache. Boot and
-doctor must verify local bytes without downloads; every boot must use its own
-writable VARS copy and leave the pinned template unchanged. The existing
-serial RISC-V route remains separately selected.
+Explicit setup and local verification enter through:
+
+```sh
+cargo xtask make conduitos prepare-riscv64-firmware
+cargo xtask make conduitos doctor-riscv64-firmware
+```
+
+Preparation needs `curl` and `tar` with xz support only for a cold cache. It
+verifies the archive before extracting only the two named members to explicit
+output files, verifies each member, preserves the notices, and publishes the
+immutable pair atomically under a preparation lock. Warm preparation uses
+verified local bytes without network access. An incomplete or corrupt cache
+refuses without replacement; preserve it for diagnosis before moving it aside.
+Doctor verifies local bytes without downloading.
+
+These entrances prepare firmware only. They do not select a graphical product
+profile or change the existing serial RISC-V route. Runtime integration must
+use a private writable VARS copy for each boot and leave the pinned template
+unchanged. Product boot, acknowledged Show and screenshot proof remain open.

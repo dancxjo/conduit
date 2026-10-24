@@ -83,6 +83,10 @@ pub(super) enum ConduitosCommand {
     VerifyPrivilegeInventory(build::privilege_inventory::verify::Args),
     /// Prepare the pinned verified IA-32 UEFI firmware pair without installing packages.
     PrepareIa32Firmware,
+    /// Prepare the pinned RISC-V64 UEFI pair without changing the serial boot route.
+    PrepareRiscv64Firmware,
+    /// Verify local RISC-V64 UEFI bytes without downloading.
+    DoctorRiscv64Firmware,
     /// Verify local IA-32 UEFI firmware; never download during doctor or boot.
     DoctorIa32Firmware,
     /// Boot one exact Crèche-exported ConduitOS spore through the product journey.
