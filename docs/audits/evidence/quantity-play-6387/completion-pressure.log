@@ -1,0 +1,10 @@
+
+running 5 tests
+test installed_std::math_backs::tests::cancellation_clears_pending_transform_without_inventing_output ... ok
+test installed_std::math_backs::tests::quantity_completion_checks_output_bound_and_preserves_failure_detail ... ok
+test installed_std::math_backs::tests::completion_waits_for_the_entire_value_without_consuming_or_poisoning_the_step ... ok
+test installed_std::math_backs::tests::operation_requires_one_exact_completion_and_closure_is_terminal ... ok
+test installed_std::math_backs::tests::transform_vectors_match_the_portable_no_std_semantics ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 880 filtered out; finished in 0.00s
+
