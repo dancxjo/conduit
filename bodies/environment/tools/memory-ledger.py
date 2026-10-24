@@ -73,6 +73,14 @@ def ledger(sampling_image=None, output_image=None):
     if capacities is None:
         raise ValueError("sampling storage profile changed; renew ledger parser")
     capacities = [int(n.strip()) for n in capacities[1].split(",")]
+    captured_storage = subprocess.check_output(
+        ["git", "show", f"{sampling['source_commit']}:bodies/environment/runtime/src/appliance/value_storage.rs"],
+        cwd=ROOT, text=True,
+    )
+    captured_capacities = re.search(r"const CAPACITIES: \[u32; \d+\] = \[([^]]+)\]", captured_storage)
+    if captured_capacities is None:
+        raise ValueError("captured sampler storage needs an independent source inventory")
+    captured_capacities = [int(n.strip()) for n in captured_capacities[1].split(",")]
     output_storage = ROOT / "targets/esp32/proof/tm1637/src/native_display_kernel.rs"
     shape = re.search(r"HostedValueStore::new\(\s*(\d+),\s*profile.maximum_value_bytes,\s*(\d+) \* profile.maximum_value_bytes", output_storage.read_text())
     linked_layout = ROOT / "targets/esp32/proof/tm1637/src/display_layout.rs"
@@ -104,6 +112,7 @@ def ledger(sampling_image=None, output_image=None):
         "captured_profiles": {
             "sampling_face": {
                 "source": sampling["source_commit"], "root_capacity_bytes": sampling["root_heap_bytes"],
+                "source_value_slot_capacities": captured_capacities,
                 "preparation_and_run_peak_bytes": sampling["root_heap_peak_bytes"],
                 "steady_state_bytes": None, "observed_sampling_used_bytes": sampling["observed_sampling_root_used_bytes"],
                 "heap_checkpoints": sampling["heap_checkpoints"],
@@ -183,6 +192,7 @@ def markdown(value):
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
         f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
         f"The output capture used {sum(output['captured_value_slot_capacities']):,} payload bytes and the linked work-derived sign budget. Its measured retained/peak totals apply to the finite native construction profile. Continuing renderer retention, shared backing and combined execution remain unproven.", "",
+        f"The sampling hardware capture used {sum(sampling['source_value_slot_capacities']):,} payload bytes according to its source profile. Current sampling backing is {value['inventory']['sampling_value_payload']['bytes']:,} bytes; the earlier hardware totals are not measurements of that revision.", "",
         "The CPU Mask figure and separately captured MCU profiles are intentionally not combined numerically. Source identities and input hashes are in memory-ledger.json.", "",
     ]
     if all("linked_image" in p for p in profiles.values()):

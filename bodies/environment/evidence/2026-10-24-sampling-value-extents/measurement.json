@@ -1,0 +1,28 @@
+{
+  "proof_class": "CPU canonical Type ceiling and finite kernel execution; ESP32 link only",
+  "normal_payload_ceiling_bytes": 2274,
+  "previous_payload_bytes": 15360,
+  "payload_bytes": 11716,
+  "slot_capacities": [
+    2274,
+    2274,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024
+  ],
+  "slot_count_derived": false,
+  "focused_tests_passed": 44,
+  "recurring_allocation_probe": true,
+  "physical_capture_updated": false,
+  "combined_admitted": false,
+  "code_sha256": {
+    "bodies/environment/runtime/build/sampling_extents.rs": "1c6b8e5af3fc0b5484e8f9a3859ba190605387d5a85f4f6e48865115ae2ac212",
+    "bodies/environment/runtime/src/construction_value_extents.rs": "1bbcfc40cb5e9fae69e283b0c9b922e3b4ad732c4f86f3fb65bf16348c17f3c0",
+    "bodies/environment/runtime/src/appliance/value_storage.rs": "287459a9293dd53098aafdba97ef224c41e272da84fc3e993c7c600bda978f40",
+    "bodies/environment/runtime/tests/sampling_value_extents.rs": "a40aaa76708e27d05f85a73dad54d67faabfb9e489807a19e0e74c3f080e4213"
+  }
+}

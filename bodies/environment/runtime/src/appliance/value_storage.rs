@@ -2,11 +2,13 @@
 //! preparation only; the existing kernel store never grows during Play.
 use conduit_kernel::{HostedValueStore, StorageError};
 
-// Two canonical-output reservations coexist with seven smaller values during
+// Two Type-bounded canonical-output reservations coexist with seven smaller values during
 // the admitted graph's routing. Eight slots exhausted transient item capacity
 // in the full authored workload even though post-Step occupancy peaked at eight.
-const CAPACITIES: [u32; 9] = [4096, 4096, 1024, 1024, 1024, 1024, 1024, 1024, 1024];
-const PAYLOAD_BYTES: u32 = 15_360;
+const CAPACITIES: [u32; 9] = [2274, 2274, 1024, 1024, 1024, 1024, 1024, 1024, 1024];
+const PAYLOAD_BYTES: u32 = 11_716;
+// A changed checked reading Type must not silently outgrow this reviewed profile.
+include!(concat!(env!("OUT_DIR"), "/sampling-reading-extent.rs"));
 
 /// Backing bytes required before construction, including canonical slot
 /// metadata on the compiling architecture. Allocator overhead, the store object,

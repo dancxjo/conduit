@@ -3,6 +3,8 @@ use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog}
 use std::{env, fs, path::PathBuf};
 #[path = "build/display_frame.rs"]
 mod display_frame;
+#[path = "build/sampling_extents.rs"]
+mod sampling_extents;
 fn main() {
     let path = "../../../plots/device-protocols/dht11.conduit";
     println!("cargo:rerun-if-changed={path}");
@@ -20,6 +22,7 @@ fn main() {
     assert!(syntax.diagnostics.is_empty());
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    sampling_extents::emit(&checked, &out);
     let request = conduit_plot::expand_canonical_plot_for_authoring(
         &checked,
         "dht11-capture-request",

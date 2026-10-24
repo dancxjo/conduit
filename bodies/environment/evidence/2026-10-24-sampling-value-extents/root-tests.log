@@ -1,0 +1,74 @@
+    Blocking waiting for file lock on build directory
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+   Compiling conduit-environment-linux v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/linux)
+warning: constant `MAXIMUM_ENVELOPE_BYTES` is never used
+  --> tests/root_control_support/../../../../../targets/esp32/proof/tm1637/src/native_admission.rs:11:11
+   |
+11 | pub const MAXIMUM_ENVELOPE_BYTES: usize = MAXIMUM_ADVERTISEMENT_BYTES + 320;
+   |           ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `cancel_held` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_execution.rs:130:12
+    |
+ 44 | impl<P: OpenDrain> Execution<P> {
+    | ------------------------------- method in this implementation
+...
+130 |     pub fn cancel_held(&mut self) -> Result<Outcome, &'static str> {
+    |            ^^^^^^^^^^^
+
+warning: field `request` is never read
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_service.rs:25:9
+   |
+24 | pub struct ServicedCall {
+   |            ------------ field in this struct
+25 |     pub request: HostCallRequest,
+   |         ^^^^^^^
+
+warning: `conduit-environment-make` (test "root_control") generated 3 warnings
+    Finished `test` profile [unoptimized] target(s) in 2.82s
+     Running tests/native.rs (target/environment-lean-host/debug/deps/native-5aa20183b21756a6)
+
+running 14 tests
+test a_different_retained_body_play_cannot_confirm_the_prepared_binding ... ok
+test body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start ... ok
+test body_binding_refuses_identity_substitution_membership_loss_and_revocation ... ok
+test borrowed_native_input_preserves_real_body_and_fragment_custody ... ok
+test native_construction_enters_the_real_body_proposal_without_inventing_a_play ... ok
+test native_mask_topology::sampler_and_selected_mask_share_one_exact_body_proposal ... ok
+test observed_offers::retained_physical_offers_compose_exactly_without_inventing_native_facts ... ok
+test observed_offers::stale_scope_source_cadence_and_forged_software_refuse ... ok
+test real_authored_source_is_prepared_against_supplied_offers_without_effects ... ok
+test recipe::only_initialized_resident_software_lends_exact_host_free_offer_bytes ... ok
+test recipe::recipe_cadence_is_pinned_and_compiler_role_mapping_refuses_ambiguous_nodes ... ok
+test recipe::resident_recipe_is_boot_independent_while_assignment_and_plan_remain_current ... ok
+test recipe::source_bootstrap_initializes_before_planning_then_accepts_exact_realization ... ok
+test stale_boot_or_wrong_workset_cannot_acquire_a_wake_from_native_preparation ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.90s
+
+     Running tests/root_control.rs (target/environment-lean-host/debug/deps/root_control-5b2b7377c1368a75)
+
+running 17 tests
+test admission::root_proof_enters_ordinary_admission_without_creating_a_plan_or_play ... ok
+test display_reservation::output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal ... ok
+test execution_gate::start_is_held_and_release_requires_current_uncancelled_start ... ok
+test foreign_boot_grants_and_installation_never_consume_ready_owners ... ok
+test issuer_requires_entropy_and_never_falls_back_to_a_fixture_key ... ok
+test owner_control::absent_or_weak_provisioning_cannot_be_replaced_by_request_metadata ... ok
+test owner_control::every_scoped_fact_and_operation_is_authenticated_before_sequence_consumption ... ok
+test owner_control::foreign_key_truncation_unknown_fields_and_ambiguous_ids_refuse ... ok
+test owner_receipt::boot_acknowledgement_authenticates_command_scope_state_and_device_key ... ok
+test owner_receipt::observed_receipt_authenticates_exact_committed_snapshot_metadata ... ok
+test owner_receipt::retired_receipt_cannot_be_substituted_by_quiescence_or_another_command ... ok
+test owner_receipt::signed_publication_age_is_conservative_and_never_wraps ... ok
+test production_root_control_dispatches_once_and_retains_failure_cleanup_without_allocating ... ok
+test pulse::pulse_and_wait_have_independent_finite_root_authority_for_the_same_source ... ok
+test sequences::invalid_reservation_preserves_counter_and_existing_reserved_scope ... ok
+test sequences::only_root_reserved_play_identity_can_receive_current_capability_possession ... ok
+test wait::wait_issuance_requires_reserved_play_and_exact_independent_cadence ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.66s
+

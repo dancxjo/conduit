@@ -11,6 +11,9 @@ use conduit_plot::{
     StartupCatalog, StartupParameterSignature,
 };
 
+#[path = "construction_value_extents.rs"]
+mod value_extents;
+
 pub struct ApplianceSource {
     pub expanded: ExpandedCanonicalPlot,
     pub count: u64,
