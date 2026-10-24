@@ -20,8 +20,20 @@ pub fn intrinsic_text_metrics(
     style: TextStyle,
     percent: u16,
 ) -> Result<IntrinsicTextMetrics, DisplayError> {
+    intrinsic_item_text_metrics(value, style, percent, conduit_face::MAX_GRAPHICS_TEXT_BYTES)
+}
+
+/// Whole-item preparation demand under the caller's existing document byte
+/// admission. This is independent of paint-command partitioning and does not
+/// relax the 192-byte command API. Two linear scans, no retained storage.
+pub fn intrinsic_item_text_metrics(
+    value: &str,
+    style: TextStyle,
+    percent: u16,
+    maximum_bytes: usize,
+) -> Result<IntrinsicTextMetrics, DisplayError> {
     let scale = TextScale::new(percent)?;
-    if value.len() > conduit_face::MAX_GRAPHICS_TEXT_BYTES {
+    if value.len() > maximum_bytes {
         return Err(DisplayError::BufferTooSmall);
     }
     let mut minimum_inline = 0;
@@ -30,15 +42,19 @@ pub fn intrinsic_text_metrics(
         let bytes = ink::cluster_bytes(remaining, style, scale);
         let cluster = &remaining[..bytes];
         if cluster != "\n" {
-            minimum_inline = minimum_inline.max(ink::span(cluster, style, scale, 0).fresh_width());
+            minimum_inline = minimum_inline
+                .max(ink::checked_span(cluster, style, scale).ok_or(DisplayError::InvalidExtent)?);
         }
         remaining = &remaining[bytes..];
     }
     let mut preferred_inline = 0;
-    let mut explicit_lines = 0;
+    let mut explicit_lines = 0_u32;
     for line in value.split('\n') {
-        preferred_inline = preferred_inline.max(ink::span(line, style, scale, 0).fresh_width());
-        explicit_lines += 1;
+        preferred_inline = preferred_inline
+            .max(ink::checked_span(line, style, scale).ok_or(DisplayError::InvalidExtent)?);
+        explicit_lines = explicit_lines
+            .checked_add(1)
+            .ok_or(DisplayError::InvalidExtent)?;
     }
     Ok(IntrinsicTextMetrics {
         minimum_inline,
