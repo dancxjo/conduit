@@ -1,0 +1,24 @@
+{
+  "proof_class": "CPU exact native worker with bounded in-memory recorder staging; ESP32 link only",
+  "pointer_bits": 64,
+  "samples": 960,
+  "preallocated_chunks": 15,
+  "source_projection_variants": 2,
+  "sampler_behavior_modes": 19,
+  "display_behavior_modes_unchanged": 17,
+  "root_tests_passed": 17,
+  "appliance_tests_passed": 10,
+  "play_allocations": 0,
+  "sink_future_bytes": 3648,
+  "sink_backing_included_in_future_bytes": false,
+  "durable_ack": false,
+  "mandatory_sign_handoff": false,
+  "storage_grants_issued": false,
+  "physical_capture_updated": false,
+  "code_sha256": {
+    "bodies/environment/runtime/src/publication/sink.rs": "3c630f4b0df13f72bbc6f434e91f59f1cc256e57806100c8fe457eb9e3c6c84f",
+    "bodies/environment/runtime/src/publication/back.rs": "b2533a2b77ce3e3f2fbb4082587819f84d7964953e4a8c49ed8303530b6df538",
+    "targets/esp32/proof/tm1637/src/native_worker.rs": "575819dd8d8552897f5bbe29f6fe845be949503fb2c608fe127b03172af371a5",
+    "bodies/environment/make/tests/root_control_support/native_worker_sink.rs": "84edec58f284599101634c30b0c9a7be2cde64ba718650c00eac63ca72677eed"
+  }
+}

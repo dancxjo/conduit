@@ -1,0 +1,126 @@
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/seven-segment-mask)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-environment-http v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/http)
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+   Compiling conduit-esp32-tm1637-probe v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/esp32/proof/tm1637)
+warning: field `display_generation` is never read
+  --> src/native_authority.rs:66:5
+   |
+58 | pub struct RootIssuer {
+   |            ---------- field in this struct
+...
+66 |     display_generation: u64,
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `issue_pulse` and `issue_assigned_pulse` are never used
+  --> src/native_pulse_authority.rs:27:12
+   |
+ 7 | impl RootIssuer {
+   | --------------- methods in this implementation
+...
+27 |     pub fn issue_pulse(
+   |            ^^^^^^^^^^^
+...
+94 |     pub fn issue_assigned_pulse<P: conduit_pulse_capture::owner::PulseReadProvider>(
+   |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `issue_wait` and `issue_assigned_wait` are never used
+  --> src/native_wait_authority.rs:26:12
+   |
+ 6 | impl RootIssuer {
+   | --------------- methods in this implementation
+...
+26 |     pub fn issue_wait(
+   |            ^^^^^^^^^^
+...
+76 |     pub fn issue_assigned_wait<P: conduit_monotonic_wait::MonotonicWaitProvider>(
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: function `prepare` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-esp32/xtensa-esp32-none-elf/release/build/conduit-esp32-tm1637-probe-7182c8a87da90554/out/display-software.rs:4:8
+  |
+4 | pub fn prepare(host:c::HostId, boot:c::BootId) -> Result<ReadySoftwareBacks, SoftwareRefusal> {
+  |        ^^^^^^^
+
+warning: struct `RetiredDisplay` is never constructed
+  --> src/native_retirement.rs:89:12
+   |
+89 | pub struct RetiredDisplay<P> {
+   |            ^^^^^^^^^^^^^^
+
+warning: methods `matches_active` and `provider_generation` are never used
+   --> src/native_retirement.rs:96:12
+    |
+ 95 | impl<P> RetiredDisplay<P> {
+    | ------------------------- methods in this implementation
+ 96 |     pub fn matches_active(&self, active: &c::ActivePlayIdentity) -> bool {
+    |            ^^^^^^^^^^^^^^
+...
+105 |     pub fn provider_generation(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+warning: associated functions `retire_boxed` and `retire` are never used
+   --> src/native_retirement.rs:110:12
+    |
+109 | impl<P: conduit_tm1637_wire::OpenDrain> RetiredDisplay<P> {
+    | --------------------------------------------------------- associated functions in this implementation
+110 |     pub fn retire_boxed(
+    |            ^^^^^^^^^^^^
+...
+122 |     pub fn retire(
+    |            ^^^^^^
+
+warning: methods `future_bytes` and `sink_future_bytes` are never used
+   --> src/native_worker.rs:130:12
+    |
+ 71 | impl<P: PulseReadProvider, W: MonotonicWaitProvider> Execution<P, W> {
+    | -------------------------------------------------------------------- methods in this implementation
+...
+130 |     pub fn future_bytes(
+    |            ^^^^^^^^^^^^
+...
+147 |     pub fn sink_future_bytes(
+    |            ^^^^^^^^^^^^^^^^^
+
+warning: method `fresh_within` is never used
+  --> src/native_owner_receipt.rs:28:12
+   |
+25 | impl Snapshot {
+   | ------------- method in this implementation
+...
+28 |     pub fn fresh_within(&self, maximum_age_ms: u64, round_trip_ms: u64) -> bool {
+   |            ^^^^^^^^^^^^
+
+warning: method `verify` is never used
+  --> src/native_owner_receipt.rs:64:12
+   |
+42 | impl Receipt {
+   | ------------ method in this implementation
+...
+64 |     pub fn verify(
+   |            ^^^^^^
+
+warning: enum `Refusal` is never used
+  --> src/native_owner_receipt.rs:99:10
+   |
+99 | pub enum Refusal {
+   |          ^^^^^^^
+
+warning: struct `VerifiedReceipt` is never constructed
+   --> src/native_owner_receipt.rs:107:12
+    |
+107 | pub struct VerifiedReceipt {
+    |            ^^^^^^^^^^^^^^^
+
+warning: method `into_state` is never used
+   --> src/native_owner_receipt.rs:111:12
+    |
+110 | impl VerifiedReceipt {
+    | -------------------- method in this implementation
+111 |     pub fn into_state(self) -> State {
+    |            ^^^^^^^^^^
+
+warning: `conduit-esp32-tm1637-probe` (bin "conduit-esp32-tm1637-probe") generated 13 warnings
+    Finished `release` profile [optimized] target(s) in 29.21s

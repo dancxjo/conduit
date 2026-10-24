@@ -1,0 +1,22 @@
+{
+  "proof_class": "CPU sampler schema preparation unchanged after publication sink API",
+  "pointer_bits": 64,
+  "before_resident_software_bytes": 48483,
+  "after_resident_software_bytes": 48483,
+  "before_preparation_peak_bytes": 86750,
+  "after_preparation_peak_bytes": 86750,
+  "before_evidence": "bodies/environment/evidence/2026-10-24-linked-observation-schemas/appliance-tests.log",
+  "core_tests_passed": null,
+  "appliance_tests_passed": 10,
+  "recurring_allocation_bytes": 0,
+  "mcu_size_bytes": null,
+  "physical_capture_updated": false,
+  "code_sha256": {
+    "architecture/core/src/structured_info/prepared_composition.rs": "e4322e9cd5cbd4af8589bdd225e2d1f3f9d7a0cc13e58d06a5e94b627f0bb76d",
+    "bodies/environment/runtime/src/canonical_input.rs": "2cdbc7d6953eaaf04dbe034fc9ec8ce6a0e33c01c235424277f697d14689bb5e",
+    "bodies/environment/runtime/src/observation.rs": "ba533b1149bdd6f00babffc9a93a69d509475c5a438d1bdc47a4dd2c9eb56f3d",
+    "bodies/environment/runtime/src/publication.rs": "487bb0eccfe51296bc2ef57ef5cd51e6aa87bbfbefb5b8984e81cf8c342cf9ab",
+    "bodies/environment/runtime/src/publication/back.rs": "b2533a2b77ce3e3f2fbb4082587819f84d7964953e4a8c49ed8303530b6df538",
+    "bodies/environment/runtime/build.rs": "e27322f000106db20705b4f2ef9c1df51f9f5228a4d3d0bcdd86365f8584bae9"
+  }
+}

@@ -1,0 +1,62 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+warning: constant `MAXIMUM_ENVELOPE_BYTES` is never used
+  --> tests/root_control_support/../../../../../targets/esp32/proof/tm1637/src/native_admission.rs:11:11
+   |
+11 | pub const MAXIMUM_ENVELOPE_BYTES: usize = MAXIMUM_ADVERTISEMENT_BYTES + 320;
+   |           ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `cancel_held` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_execution.rs:130:12
+    |
+ 44 | impl<P: OpenDrain> Execution<P> {
+    | ------------------------------- method in this implementation
+...
+130 |     pub fn cancel_held(&mut self) -> Result<Outcome, &'static str> {
+    |            ^^^^^^^^^^^
+
+warning: field `request` is never read
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_service.rs:25:9
+   |
+24 | pub struct ServicedCall {
+   |            ------------ field in this struct
+25 |     pub request: HostCallRequest,
+   |         ^^^^^^^
+
+warning: `conduit-environment-make` (test "root_control") generated 3 warnings
+    Finished `test` profile [unoptimized] target(s) in 1.21s
+     Running tests/root_control.rs (target/environment-lean-host/debug/deps/root_control-5b2b7377c1368a75)
+
+running 17 tests
+test admission::root_proof_enters_ordinary_admission_without_creating_a_plan_or_play ... ok
+test display_reservation::output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal ... display_binding_cpu_pointer_bits=64 peak_bytes=9628 requested_bytes=12231 allocations=140
+ok
+test execution_gate::start_is_held_and_release_requires_current_uncancelled_start ... ok
+test foreign_boot_grants_and_installation_never_consume_ready_owners ... ok
+test issuer_requires_entropy_and_never_falls_back_to_a_fixture_key ... ok
+test owner_control::absent_or_weak_provisioning_cannot_be_replaced_by_request_metadata ... ok
+test owner_control::every_scoped_fact_and_operation_is_authenticated_before_sequence_consumption ... ok
+test owner_control::foreign_key_truncation_unknown_fields_and_ambiguous_ids_refuse ... ok
+test owner_receipt::boot_acknowledgement_authenticates_command_scope_state_and_device_key ... ok
+test owner_receipt::observed_receipt_authenticates_exact_committed_snapshot_metadata ... ok
+test owner_receipt::retired_receipt_cannot_be_substituted_by_quiescence_or_another_command ... ok
+test owner_receipt::signed_publication_age_is_conservative_and_never_wraps ... ok
+test production_root_control_dispatches_once_and_retains_failure_cleanup_without_allocating ... ok
+test pulse::pulse_and_wait_have_independent_finite_root_authority_for_the_same_source ... native_worker_cpu pointer_bits=64 context_bytes=5808 future_bytes=3728 samples=960 queue_capacities=1,1,2 play_allocations=0
+native_publication_sink_cpu behavior=15 samples=960 accepted=960 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=16 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=17 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=18 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_worker_cpu pointer_bits=64 context_bytes=5808 future_bytes=3728 samples=960 queue_capacities=1,1,2 play_allocations=0
+native_publication_sink_cpu behavior=15 samples=960 accepted=960 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=16 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=17 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=18 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+ok
+test sequences::invalid_reservation_preserves_counter_and_existing_reserved_scope ... ok
+test sequences::only_root_reserved_play_identity_can_receive_current_capability_possession ... ok
+test wait::wait_issuance_requires_reserved_play_and_exact_independent_cadence ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.48s
+

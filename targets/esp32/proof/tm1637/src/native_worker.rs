@@ -6,7 +6,10 @@ use crate::{
     native_service::{self as service, Dispatch, Invocation, Reply},
 };
 use alloc::boxed::Box;
-use conduit_environment_runtime::{appliance::ApplianceBack, publication::PublicationSnapshot};
+use conduit_environment_runtime::{
+    appliance::ApplianceBack,
+    publication::{PublicationSink, PublicationSnapshot},
+};
 use conduit_kernel::{self as k, scheduler::SchedulerStatus};
 use conduit_monotonic_wait::MonotonicWaitProvider;
 use conduit_pulse_capture::owner::PulseReadProvider;
@@ -40,6 +43,7 @@ pub struct Progress {
     pub submitted: [u64; 2],
     pub completed: [u64; 2],
     pub software: u64,
+    /// Last sequence accepted by the projection/sink, not a durable-store ACK.
     pub publications: u64,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -136,7 +140,27 @@ impl<P: PulseReadProvider, W: MonotonicWaitProvider> Execution<P, W> {
     pub async fn run(
         &mut self,
         stop: impl Future<Output = ()>,
-        mut observer: impl for<'a> FnMut(PublicationSnapshot<'a>),
+        observer: impl for<'a> FnMut(PublicationSnapshot<'a>),
+    ) -> Outcome {
+        self.run_with_sink(stop, Immediate(observer)).await
+    }
+    /// Size the exact unpolled sink invocation before task admission.
+    /// Sink backing/external ownership and the enclosing task pool are separate.
+    pub fn sink_future_bytes(
+        &mut self,
+        stop: impl Future<Output = ()>,
+        sink: impl PublicationSink,
+    ) -> usize {
+        core::mem::size_of_val(&self.run_with_sink(stop, sink))
+    }
+    /// A Pending sink holds the committed snapshot and prevents another kernel
+    /// advance. The sink registers readiness; spurious polls do not advance
+    /// the kernel. Scoped stop and sink failure use ordinary quiescence and
+    /// retirement. Pending does not create a polling or retry loop.
+    pub async fn run_with_sink(
+        &mut self,
+        stop: impl Future<Output = ()>,
+        mut observer: impl PublicationSink,
     ) -> Outcome {
         if self.begun {
             // An abandoned invocation is not a new admission or pre-start
@@ -220,7 +244,7 @@ async fn pump(
     storage: &mut PreparedKernel,
     queues: &Queues,
     progress: &mut Progress,
-    observer: &mut impl for<'a> FnMut(PublicationSnapshot<'a>),
+    observer: &mut impl PublicationSink,
 ) -> Exit {
     loop {
         // Release the finite dispatch/Step stack before projecting committed
@@ -232,10 +256,16 @@ async fn pump(
                 if let ApplianceBack::Publication(back) = driver {
                     if let Some(snapshot) = back.snapshot() {
                         if snapshot.sequence > progress.publications {
+                            // No further Step can overwrite this borrowed
+                            // publication while the separately admitted sink is
+                            // pending. Cancellation drops this wait normally.
+                            if let Err(reason) =
+                                core::future::poll_fn(|cx| observer.poll_publication(snapshot, cx))
+                                    .await
+                            {
+                                return Exit::Failed(reason);
+                            }
                             progress.publications = snapshot.sequence;
-                            // Projection of committed truth only. Caller admits
-                            // observer work/storage; this is no logging authority.
-                            observer(snapshot);
                         }
                     }
                 }
@@ -344,4 +374,18 @@ fn bump(value: &mut u64) -> Result<(), k::Failure> {
 }
 const fn failure(code: k::FailureCode, detail: u16) -> k::Failure {
     k::Failure { code, detail }
+}
+
+// Compatibility for existing synchronous projections; this creates no recording
+// acknowledgement or storage authority beyond the supplied callback contract.
+struct Immediate<F>(F);
+impl<F: for<'a> FnMut(PublicationSnapshot<'a>)> PublicationSink for Immediate<F> {
+    fn poll_publication(
+        &mut self,
+        snapshot: PublicationSnapshot<'_>,
+        _: &mut core::task::Context<'_>,
+    ) -> core::task::Poll<Result<(), k::Failure>> {
+        (self.0)(snapshot);
+        core::task::Poll::Ready(Ok(()))
+    }
 }

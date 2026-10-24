@@ -1,5 +1,7 @@
 //! CPU fixture executor for the exact target worker, not physical clock proof.
 use super::*;
+#[path = "native_worker_sink.rs"]
+mod sink;
 use crate::native_worker::{Execution, Exit};
 use conduit_environment_runtime::publication::{PublicationChannel, PublicationSnapshot};
 #[allow(clippy::too_many_arguments)]
@@ -53,6 +55,17 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         return;
     }
 
+    if behavior >= 15 {
+        sink::check(
+            execution,
+            pulse_effects,
+            timer_effects,
+            samples,
+            behavior,
+            retirement,
+        );
+        return;
+    }
     if behavior == 12 {
         execution
             .native
