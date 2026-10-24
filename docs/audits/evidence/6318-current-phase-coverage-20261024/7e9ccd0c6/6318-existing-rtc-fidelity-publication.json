@@ -1,0 +1,12 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "branch": "evidence/6318-existing-rtc-staging-fidelity-20261024",
+  "commit": "a4274fcc640a417416476e5ed5471e131d988071",
+  "parent": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "url": "https://github.com/dancxjo/conduit/tree/a4274fcc640a417416476e5ed5471e131d988071/docs/audits/evidence/6318-existing-rtc-staging-fidelity-20261024/7e9ccd0c6",
+  "remote_verified": true,
+  "files": 9,
+  "source_blobs": 10,
+  "scope": "Interpretation correction only, no production changes/build/CI/issuewrites",
+  "published_utc": "2026-10-24T06:20:38.750780+00:00"
+}

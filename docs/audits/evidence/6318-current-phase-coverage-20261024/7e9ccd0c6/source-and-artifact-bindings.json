@@ -1,0 +1,119 @@
+{
+  "executed_source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "current_application_source": "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+  "source_blobs": {
+    "targets/conduitos/src/protected_application/transport.rs": {
+      "executed": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+      "current": "a41e213d7e163ad5a1252c213de5d0eebac8cb73"
+    },
+    "targets/conduitos/src/protected_application/canonical_patchbay.rs": {
+      "executed": "57be56c849e6ddfe4462ccb14c16149a41df8784",
+      "current": "57be56c849e6ddfe4462ccb14c16149a41df8784"
+    },
+    "targets/conduitos/application-core/src/state.rs": {
+      "executed": "4d4660a230de3dcf2e3ca6a509e94c68230ce6ef",
+      "current": "4d4660a230de3dcf2e3ca6a509e94c68230ce6ef"
+    },
+    "targets/conduitos/application-core/src/data/codec.rs": {
+      "executed": "40b6d33f48fa98d390627fdd91cab396965228f9",
+      "current": "40b6d33f48fa98d390627fdd91cab396965228f9"
+    },
+    "targets/conduitos/application-core/src/data/transport_codec/mod.rs": {
+      "executed": "325e6325ec1e71f8c3222ff94bea25cb19bd9e30",
+      "current": "325e6325ec1e71f8c3222ff94bea25cb19bd9e30"
+    },
+    "targets/conduitos/application-core/src/models.rs": {
+      "executed": "02b30485a961072deea3ac70583bc2b3bdb6b2eb",
+      "current": "02b30485a961072deea3ac70583bc2b3bdb6b2eb"
+    },
+    "targets/conduitos/application-core/src/models/canonical.rs": {
+      "executed": "7e4d68f9e68a786566befc8031638775a156777b",
+      "current": "7e4d68f9e68a786566befc8031638775a156777b"
+    },
+    "targets/conduitos/application-core/src/wire.rs": {
+      "executed": "ea400a060c510a394e0360851010a35927934c2e",
+      "current": "ea400a060c510a394e0360851010a35927934c2e"
+    },
+    "targets/conduitos/application-service/main.rs": {
+      "executed": "a1e45f058d186577f201fb7922c27f8b507dad1b",
+      "current": "a1e45f058d186577f201fb7922c27f8b507dad1b"
+    },
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": {
+      "executed": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+      "current": "acb3dbda49e5f055ca663e4d54886674de5e629f"
+    },
+    "targets/conduitos/src/arch/x86_64/service_memory.rs": {
+      "executed": "de2e4b612b812a67a399767525b4e0634ba14311",
+      "current": "de2e4b612b812a67a399767525b4e0634ba14311"
+    }
+  },
+  "actual_pending_native_artifact": {
+    "run": 40064866866,
+    "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+    "workflow": "Integration",
+    "run_status": "in_progress",
+    "conclusion": null,
+    "successful_x86_job": 120793333214,
+    "full_gate_success": false,
+    "archive_sha256": "a187eea46784bdd803fcbf8c50ea3a1dbda0ba213f6f46e60d31d3b9800dbc3d"
+  },
+  "artifact": {
+    "id": 12550218676,
+    "name": "product-conduitos-x86_64",
+    "digest": "sha256:a187eea46784bdd803fcbf8c50ea3a1dbda0ba213f6f46e60d31d3b9800dbc3d",
+    "size_in_bytes": 22115471,
+    "workflow_run": {
+      "id": 40064866866,
+      "repository_id": 1315334389,
+      "head_repository_id": 1315334389,
+      "head_branch": "dev",
+      "head_sha": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0"
+    }
+  },
+  "download_receipt_sha256": "04b18d805dae727b1c2d0668f497dc25a75ae613e42b4bcd096e2af9760c4fca",
+  "serial": {
+    "path": "outputs/x86-product-40064866866/conduitos-x86_64/evidence/journey-serial.log",
+    "sha256": "865c682bcb04640df7ea8b99661f6eaeed06c465110c484f8922a72dc9077124",
+    "bytes": 3324083
+  },
+  "raw_negative_bindings": [
+    {
+      "label": "61b",
+      "execution_source": "61b3410c412eed09c62a0499514ac9e85c07e793",
+      "path": "outputs/61b-x86-diagnostics/journey-serial.log",
+      "sha256": "ae305b7d3d72d7cb54acad88b09d19273098669779032daaad6bbecf5c22eaf8",
+      "bytes": 1207994,
+      "terminal_records": [
+        {
+          "line": 1035,
+          "record": "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=4496 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((4496, 219, 1))"
+        },
+        {
+          "line": 1036,
+          "record": "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=patchbay-publish slot=Some(2) target=None refusal=Application"
+        }
+      ],
+      "publication_inner_phase": "UNKNOWN: no innerphase marker/correlation/RTC receipt recorded"
+    },
+    {
+      "label": "455actualpreview6975",
+      "execution_source": "6975a29c2fe879e3e29d65ae1cbcd3f5f724513b",
+      "path": "outputs/6339-455-failed-x86-diagnostics/target/conduitos/x86_64/journey-serial.log",
+      "sha256": "3c642a00e2e7c685906cbd4ae2f18d7111caeb03c391cc96e5d31ef8e0b30c97",
+      "bytes": 1250912,
+      "terminal_records": [
+        {
+          "line": 1058,
+          "record": "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=4496 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((4496, 216, 1))"
+        },
+        {
+          "line": 1059,
+          "record": "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=patchbay-publish slot=Some(2) target=None refusal=Application"
+        }
+      ],
+      "publication_inner_phase": "UNKNOWN: no innerphase marker/correlation/RTC receipt recorded"
+    }
+  ],
+  "raw_bytes_copied": false,
+  "limits": "Source-qualified artifact/hash references only; no duplicate native/archive/private owner bytes. FullIntegration pending at retained observation, no accepted-currentgate claim."
+}

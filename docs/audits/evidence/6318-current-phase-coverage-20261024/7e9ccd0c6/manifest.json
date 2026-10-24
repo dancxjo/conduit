@@ -1,0 +1,35 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "files": [
+    {
+      "path": "6318-7e9-application-heavy-phase-coverage-review.json",
+      "bytes": 25544,
+      "sha256": "85ce15aae6b42f36d90bb45f62c5732c43c5c2f187d582e3cf43b0fa2ca83456"
+    },
+    {
+      "path": "audit-6318-application-phase-coverage.py",
+      "bytes": 12165,
+      "sha256": "de3bad75e727c5563df89171cc0795ecfc314d55aaaae5808301dbf1d0828cca"
+    },
+    {
+      "path": "6318-native-owner-handoff-publication.json",
+      "bytes": 635,
+      "sha256": "981752d2704885ca584f75560697340f94eb10a3bef488d0237b2b35e2d763dc"
+    },
+    {
+      "path": "6318-existing-rtc-fidelity-publication.json",
+      "bytes": 614,
+      "sha256": "fad520e9b7a97a45fa6d2767c4834cda0b07d8108ef9b0daa3a972a7832a7ec8"
+    },
+    {
+      "path": "source-and-artifact-bindings.json",
+      "bytes": 5319,
+      "sha256": "52d0c3e1b847ebe34c65244d43d86734d6882a31b95d085731d6869e34b7a8f0"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2158,
+      "sha256": "f4d231e6de5d1f6189e7b4fce7aec29ec85752808e72acfd6c051a534dc6123d"
+    }
+  ]
+}

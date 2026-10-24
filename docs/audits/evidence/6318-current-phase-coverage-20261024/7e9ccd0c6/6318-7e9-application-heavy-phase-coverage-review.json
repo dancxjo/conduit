@@ -1,0 +1,553 @@
+{
+  "executed_source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "current_application_source": "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+  "run": 40064866866,
+  "completed_x86_job": 120793333214,
+  "full_integration": "pending-notaccepted",
+  "serial": {
+    "path": "outputs/x86-product-40064866866/conduitos-x86_64/evidence/journey-serial.log",
+    "sha256": "865c682bcb04640df7ea8b99661f6eaeed06c465110c484f8922a72dc9077124",
+    "bytes": 3324083
+  },
+  "exact_source_correspondence": {
+    "targets/conduitos/src/protected_application/transport.rs": {
+      "executed": "a41e213d7e163ad5a1252c213de5d0eebac8cb73",
+      "current": "a41e213d7e163ad5a1252c213de5d0eebac8cb73"
+    },
+    "targets/conduitos/src/protected_application/canonical_patchbay.rs": {
+      "executed": "57be56c849e6ddfe4462ccb14c16149a41df8784",
+      "current": "57be56c849e6ddfe4462ccb14c16149a41df8784"
+    },
+    "targets/conduitos/application-core/src/state.rs": {
+      "executed": "4d4660a230de3dcf2e3ca6a509e94c68230ce6ef",
+      "current": "4d4660a230de3dcf2e3ca6a509e94c68230ce6ef"
+    },
+    "targets/conduitos/application-core/src/data/codec.rs": {
+      "executed": "40b6d33f48fa98d390627fdd91cab396965228f9",
+      "current": "40b6d33f48fa98d390627fdd91cab396965228f9"
+    },
+    "targets/conduitos/application-core/src/data/transport_codec/mod.rs": {
+      "executed": "325e6325ec1e71f8c3222ff94bea25cb19bd9e30",
+      "current": "325e6325ec1e71f8c3222ff94bea25cb19bd9e30"
+    },
+    "targets/conduitos/application-core/src/models.rs": {
+      "executed": "02b30485a961072deea3ac70583bc2b3bdb6b2eb",
+      "current": "02b30485a961072deea3ac70583bc2b3bdb6b2eb"
+    },
+    "targets/conduitos/application-core/src/models/canonical.rs": {
+      "executed": "7e4d68f9e68a786566befc8031638775a156777b",
+      "current": "7e4d68f9e68a786566befc8031638775a156777b"
+    },
+    "targets/conduitos/application-core/src/wire.rs": {
+      "executed": "ea400a060c510a394e0360851010a35927934c2e",
+      "current": "ea400a060c510a394e0360851010a35927934c2e"
+    },
+    "targets/conduitos/application-service/main.rs": {
+      "executed": "a1e45f058d186577f201fb7922c27f8b507dad1b",
+      "current": "a1e45f058d186577f201fb7922c27f8b507dad1b"
+    },
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": {
+      "executed": "acb3dbda49e5f055ca663e4d54886674de5e629f",
+      "current": "acb3dbda49e5f055ca663e4d54886674de5e629f"
+    },
+    "targets/conduitos/src/arch/x86_64/service_memory.rs": {
+      "executed": "de2e4b612b812a67a399767525b4e0634ba14311",
+      "current": "de2e4b612b812a67a399767525b4e0634ba14311"
+    }
+  },
+  "actual_graph_reply_cycles": [
+    [
+      {
+        "line": 583,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize begin"
+      },
+      {
+        "line": 584,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize complete"
+      },
+      {
+        "line": 585,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate begin"
+      },
+      {
+        "line": 586,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate complete"
+      },
+      {
+        "line": 587,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack begin"
+      },
+      {
+        "line": 588,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack complete"
+      }
+    ],
+    [
+      {
+        "line": 996,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize begin"
+      },
+      {
+        "line": 997,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize complete"
+      },
+      {
+        "line": 998,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate begin"
+      },
+      {
+        "line": 999,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate complete"
+      },
+      {
+        "line": 1000,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack begin"
+      },
+      {
+        "line": 1001,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack complete"
+      }
+    ],
+    [
+      {
+        "line": 1937,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize begin"
+      },
+      {
+        "line": 1938,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize complete"
+      },
+      {
+        "line": 1939,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate begin"
+      },
+      {
+        "line": 1940,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate complete"
+      },
+      {
+        "line": 1941,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack begin"
+      },
+      {
+        "line": 1942,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack complete"
+      }
+    ],
+    [
+      {
+        "line": 2199,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize begin"
+      },
+      {
+        "line": 2200,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize complete"
+      },
+      {
+        "line": 2201,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate begin"
+      },
+      {
+        "line": 2202,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate complete"
+      },
+      {
+        "line": 2203,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack begin"
+      },
+      {
+        "line": 2204,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack complete"
+      }
+    ],
+    [
+      {
+        "line": 2332,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize begin"
+      },
+      {
+        "line": 2333,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY serialize complete"
+      },
+      {
+        "line": 2334,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate begin"
+      },
+      {
+        "line": 2335,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY validate complete"
+      },
+      {
+        "line": 2336,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack begin"
+      },
+      {
+        "line": 2337,
+        "record": "CONDUIT_APPLICATION_GRAPH_REPLY pack complete"
+      }
+    ]
+  ],
+  "actual_domain_costs": [
+    {
+      "line": 1778,
+      "record": {
+        "schema": "conduit.conduitos/domain-cost@1",
+        "architecture": "x86_64",
+        "region_id": "region/0",
+        "plan_id": "body-plan/sha256:d1ab57a89e3a1cfea370c06fb73acc03b03a42ee7f2985d1a9ec86b58fee46b1",
+        "play_id": "body-play/sha256:aea12ca6165f6674ba2d2877bb879db7b7be95dffe7bde8bc5c07d63eb01c458",
+        "partition_plan_id": "e17fdfc83e9f0e9e5631eadb3743a193f044128ecf5c6ec51e68a2f8a8fdbf98",
+        "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+        "domain_id": 1,
+        "fixture": false,
+        "state": "Revoked(PlayCancelled)",
+        "entries": 7,
+        "interrupt_entries": 0,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 14,
+        "gate_transitions": 7,
+        "copied_bytes": 170,
+        "setup_copied_bytes": 116831,
+        "base_gate_transitions": 0,
+        "tlb_flushes": 14,
+        "setup_ticks": 16174990,
+        "teardown_ticks": 1270490,
+        "tick_unit": "tsc",
+        "teardown_zeroed_bytes": 217088,
+        "shared_peak_bytes": 31,
+        "root_metadata_bytes": 6516,
+        "shared_page_bytes": 4096,
+        "ring_slots": 0,
+        "address_space_switches": 14,
+        "scheduler_returns": 7,
+        "preemptions": 0,
+        "reserved_bytes": 217088,
+        "dma_isolation": false,
+        "driver_isolation": false
+      }
+    },
+    {
+      "line": 1779,
+      "record": {
+        "schema": "conduit.conduitos/domain-cost@1",
+        "architecture": "x86_64",
+        "region_id": "region/0",
+        "plan_id": "body-plan/sha256:d1ab57a89e3a1cfea370c06fb73acc03b03a42ee7f2985d1a9ec86b58fee46b1",
+        "play_id": "body-play/sha256:aea12ca6165f6674ba2d2877bb879db7b7be95dffe7bde8bc5c07d63eb01c458",
+        "partition_plan_id": "d1758e7a567e3ec349691a6d09550d24985b8764e09b2de37a6ce0215010b4ea",
+        "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "domain_id": 2,
+        "fixture": false,
+        "state": "Revoked(PlayCancelled)",
+        "entries": 5,
+        "interrupt_entries": 0,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 10,
+        "gate_transitions": 5,
+        "copied_bytes": 10,
+        "setup_copied_bytes": 116831,
+        "base_gate_transitions": 1,
+        "tlb_flushes": 10,
+        "setup_ticks": 29149900,
+        "teardown_ticks": 1590498,
+        "tick_unit": "tsc",
+        "teardown_zeroed_bytes": 217088,
+        "shared_peak_bytes": 5,
+        "root_metadata_bytes": 6516,
+        "shared_page_bytes": 4096,
+        "ring_slots": 0,
+        "address_space_switches": 10,
+        "scheduler_returns": 5,
+        "preemptions": 0,
+        "reserved_bytes": 217088,
+        "dma_isolation": false,
+        "driver_isolation": false
+      }
+    },
+    {
+      "line": 1957,
+      "record": {
+        "schema": "conduit.conduitos/domain-cost@1",
+        "architecture": "x86_64",
+        "region_id": "region/0",
+        "plan_id": "body-plan/sha256:6b9c1e5a5c37da8ffd0eacbed0e1d12bda4cebeef855528b7e3d3f2033876aff",
+        "play_id": "body-play/sha256:e61b01f840c5cb6e9596063438680516e645ba2eecc479a0d7b1b55a706ab6f3",
+        "partition_plan_id": "e17fdfc83e9f0e9e5631eadb3743a193f044128ecf5c6ec51e68a2f8a8fdbf98",
+        "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+        "domain_id": 3,
+        "fixture": false,
+        "state": "Revoked(PlayCancelled)",
+        "entries": 1,
+        "interrupt_entries": 0,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 2,
+        "gate_transitions": 1,
+        "copied_bytes": 8,
+        "setup_copied_bytes": 116831,
+        "base_gate_transitions": 0,
+        "tlb_flushes": 2,
+        "setup_ticks": 12806742,
+        "teardown_ticks": 656682,
+        "tick_unit": "tsc",
+        "teardown_zeroed_bytes": 217088,
+        "shared_peak_bytes": 8,
+        "root_metadata_bytes": 6516,
+        "shared_page_bytes": 4096,
+        "ring_slots": 0,
+        "address_space_switches": 2,
+        "scheduler_returns": 1,
+        "preemptions": 0,
+        "reserved_bytes": 217088,
+        "dma_isolation": false,
+        "driver_isolation": false
+      }
+    },
+    {
+      "line": 1958,
+      "record": {
+        "schema": "conduit.conduitos/domain-cost@1",
+        "architecture": "x86_64",
+        "region_id": "region/0",
+        "plan_id": "body-plan/sha256:6b9c1e5a5c37da8ffd0eacbed0e1d12bda4cebeef855528b7e3d3f2033876aff",
+        "play_id": "body-play/sha256:e61b01f840c5cb6e9596063438680516e645ba2eecc479a0d7b1b55a706ab6f3",
+        "partition_plan_id": "d1758e7a567e3ec349691a6d09550d24985b8764e09b2de37a6ce0215010b4ea",
+        "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "domain_id": 4,
+        "fixture": false,
+        "state": "Revoked(PlayCancelled)",
+        "entries": 1,
+        "interrupt_entries": 0,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 2,
+        "gate_transitions": 1,
+        "copied_bytes": 0,
+        "setup_copied_bytes": 116831,
+        "base_gate_transitions": 0,
+        "tlb_flushes": 2,
+        "setup_ticks": 25731056,
+        "teardown_ticks": 754520,
+        "tick_unit": "tsc",
+        "teardown_zeroed_bytes": 217088,
+        "shared_peak_bytes": 0,
+        "root_metadata_bytes": 6516,
+        "shared_page_bytes": 4096,
+        "ring_slots": 0,
+        "address_space_switches": 2,
+        "scheduler_returns": 1,
+        "preemptions": 0,
+        "reserved_bytes": 217088,
+        "dma_isolation": false,
+        "driver_isolation": false
+      }
+    },
+    {
+      "line": 2511,
+      "record": {
+        "schema": "conduit.conduitos/domain-cost@1",
+        "architecture": "x86_64",
+        "region_id": "region/0",
+        "plan_id": "body-plan/sha256:99dafe9893ee2f0620b05c1886eb81da190eaae222664dd6ac6cbd4458393507",
+        "play_id": "body-play/sha256:9926216117afef9dd4f865480e6d3029bfd25b7dbc36f061123d3def400c6540",
+        "partition_plan_id": "e17fdfc83e9f0e9e5631eadb3743a193f044128ecf5c6ec51e68a2f8a8fdbf98",
+        "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+        "domain_id": 5,
+        "fixture": false,
+        "state": "Revoked(PlayCancelled)",
+        "entries": 4,
+        "interrupt_entries": 0,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 8,
+        "gate_transitions": 4,
+        "copied_bytes": 830,
+        "setup_copied_bytes": 116831,
+        "base_gate_transitions": 0,
+        "tlb_flushes": 8,
+        "setup_ticks": 13545298,
+        "teardown_ticks": 1195012,
+        "tick_unit": "tsc",
+        "teardown_zeroed_bytes": 217088,
+        "shared_peak_bytes": 398,
+        "root_metadata_bytes": 6516,
+        "shared_page_bytes": 4096,
+        "ring_slots": 0,
+        "address_space_switches": 8,
+        "scheduler_returns": 4,
+        "preemptions": 0,
+        "reserved_bytes": 217088,
+        "dma_isolation": false,
+        "driver_isolation": false
+      }
+    },
+    {
+      "line": 2512,
+      "record": {
+        "schema": "conduit.conduitos/domain-cost@1",
+        "architecture": "x86_64",
+        "region_id": "region/0",
+        "plan_id": "body-plan/sha256:99dafe9893ee2f0620b05c1886eb81da190eaae222664dd6ac6cbd4458393507",
+        "play_id": "body-play/sha256:9926216117afef9dd4f865480e6d3029bfd25b7dbc36f061123d3def400c6540",
+        "partition_plan_id": "d1758e7a567e3ec349691a6d09550d24985b8764e09b2de37a6ce0215010b4ea",
+        "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+        "domain_id": 6,
+        "fixture": false,
+        "state": "Revoked(PlayCancelled)",
+        "entries": 1,
+        "interrupt_entries": 0,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 2,
+        "gate_transitions": 1,
+        "copied_bytes": 0,
+        "setup_copied_bytes": 116831,
+        "base_gate_transitions": 0,
+        "tlb_flushes": 2,
+        "setup_ticks": 27326728,
+        "teardown_ticks": 748618,
+        "tick_unit": "tsc",
+        "teardown_zeroed_bytes": 217088,
+        "shared_peak_bytes": 0,
+        "root_metadata_bytes": 6516,
+        "shared_page_bytes": 4096,
+        "ring_slots": 0,
+        "address_space_switches": 2,
+        "scheduler_returns": 1,
+        "preemptions": 0,
+        "reserved_bytes": 217088,
+        "dma_isolation": false,
+        "driver_isolation": false
+      }
+    }
+  ],
+  "cost_ownership": "Allsix CONDUIT_DOMAIN_COST originate text_protection.rs::costreport, text region/BodyPlay/cancelled state. They are NOT ApplicationService entries and carry no Application instance/transport envelope/Commit subphase. Their zeroirqvalues cannot establish Application RTCconsumption.",
+  "phase_map": [
+    {
+      "phase": "Root replacement authority BEFORE Application entry",
+      "source": "protected_application/canonical_patchbay.rs:58-89",
+      "work": "RetirepriorRootpublication; canonicalslot/BodyFace/show/contribution/revision checks; cloneexactcommand intoService.",
+      "actual_observation": "No phase markers. FaultCommit proves this call gotpastRootchecks forfailedcommand; Rootwork is not inside thatfaultedApplicationRTCentry."
+    },
+    {
+      "phase": "Root command encode,Begin,Write",
+      "source": "protected_application/transport.rs:151-179",
+      "work": "EncodeexactCommand,Beginlength,copyfixedTRANSFERchunks andorderedWrite requests. Everyrequest currentlyfreshdomain.enter(1).",
+      "actual_observation": "No successcommand/envelopelog; guestcorrelatesinstance/sequence butnormalserialdoesnotexposeallrequests. Faultsequence4496 is transportentrysequence, notlogicaloperationid or countofpublicationphases."
+    },
+    {
+      "phase": "OptionalPreflight",
+      "source": "protected_application/transport.rs:180-194; application-core/state.rs:109-128;data/codec.rs:117-130",
+      "work": "OnlyPrepareTarget orPrepareGraphProjection. Decompress/freezevalidframing; laterCommittypeddecodeprevalidatedbytes.",
+      "actual_observation": "PatchbayPublish doesNOTselectthispath; no evidence anaddedPreflightalone wouldfix actualfailedcost."
+    },
+    {
+      "phase": "Commit decode",
+      "source": "application-core/state.rs:130-147;data/codec.rs:57-78,111-113;data/transport_codec/mod.rs:45-60",
+      "work": "Takecompleteincoming, decoded_json checks/possibleinflate, fullCAPSEQ1syntax/countpreflight then typedDeserialize andendcheck; dropincoming.",
+      "actual_observation": "InsideactualfailedCommit butnotdistinguished byexistingrecords."
+    },
+    {
+      "phase": "Commit publication validation/matching/install",
+      "source": "application-core/models.rs:223-230;models/canonical.rs:59-108",
+      "work": "ResolvePatchbay/port/revision; revokepriorCorepublication; show.validate (fullcheckedFace+Maskshow);Available/consumedsequence;Body/contribution/context; port.matches_face_contribution foractions=true thenfalse untilmatch; installcanonicalpublication/sequence andconstructreply.",
+      "actual_observation": "No stage markers; failurecouldbeany precedingdecode/check/matcher/drop/install path. CannotnamefullFace/matcher ascausalhotspot fromoldlogs."
+    },
+    {
+      "phase": "Commit replyencode/normalyield",
+      "source": "application-core/state.rs:250-265;data/codec.rs:159 onward;application-service/main.rs:78-102",
+      "work": "EncodecheckedReply intoexistingworkspace/outgoing boundedblob; correlatedwireencode; allocatorcheck andint0x80return.",
+      "actual_observation": "AlsoinsidefailedCommit; absenceofresponse doesnotdifferentiate fromvalidationfailure. No currentphaseinterruptcounts."
+    },
+    {
+      "phase": "Graph reply Serialize/Validate/Pack AFTER successfulCommand::Graph Commit",
+      "source": "protected_application/transport.rs:108-149,201-207;wire/graph_progress.rs",
+      "work": "ExactmonotoneGraphProgress finiteSerialize/Validate turns; boundedGraphPack offsets.",
+      "actual_observation": "30markers=5successfulcycles; provesloopsfinished, NOTPatchbayPublishCommitstaging, perturncounts, inputsizes, nativeRTCcost, totalnonrenewal or failedinnerphase."
+    },
+    {
+      "phase": "Read/decodeRootreply/publicationack",
+      "source": "protected_application/transport.rs:211-242;canonical_patchbay.rs:90-113",
+      "work": "Readmonotoneboundedchunks;decodeReply;Rootcheckslot/target/revision andonlythenstorepublication.",
+      "actual_observation": "Actualnormaljourney/ACK provesparticularoperationssucceeded semantically; no cumulativegrant or stagecostreceipt."
+    }
+  ],
+  "negative_evidence": [
+    {
+      "label": "61b",
+      "execution_source": "61b3410c412eed09c62a0499514ac9e85c07e793",
+      "path": "outputs/61b-x86-diagnostics/journey-serial.log",
+      "sha256": "ae305b7d3d72d7cb54acad88b09d19273098669779032daaad6bbecf5c22eaf8",
+      "bytes": 1207994,
+      "terminal_records": [
+        {
+          "line": 1035,
+          "record": "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=4496 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((4496, 219, 1))"
+        },
+        {
+          "line": 1036,
+          "record": "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=patchbay-publish slot=Some(2) target=None refusal=Application"
+        }
+      ],
+      "publication_inner_phase": "UNKNOWN: no innerphase marker/correlation/RTC receipt recorded",
+      "prior_graph_reply_marker_count": 12
+    },
+    {
+      "label": "455actualpreview6975",
+      "execution_source": "6975a29c2fe879e3e29d65ae1cbcd3f5f724513b",
+      "path": "outputs/6339-455-failed-x86-diagnostics/target/conduitos/x86_64/journey-serial.log",
+      "sha256": "3c642a00e2e7c685906cbd4ae2f18d7111caeb03c391cc96e5d31ef8e0b30c97",
+      "bytes": 1250912,
+      "terminal_records": [
+        {
+          "line": 1058,
+          "record": "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=4496 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((4496, 216, 1))"
+        },
+        {
+          "line": 1059,
+          "record": "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=patchbay-publish slot=Some(2) target=None refusal=Application"
+        }
+      ],
+      "publication_inner_phase": "UNKNOWN: no innerphase marker/correlation/RTC receipt recorded",
+      "prior_graph_reply_marker_count": 12
+    }
+  ],
+  "criteria_1_5_assessment": {
+    "criterion1": "Originalnegativecustody+responsibleoperation/Commitproven, responsibleINTERNALpublicationwork NOTmeasured/identified. Preserveunknown ratherthanassertsubphase.",
+    "criterion5": "7e9normal24stepnativejourney/sourceRootISOACKPNGproofpassescompletedjob; notstagedownership/adversarialrefusal/resourceproof or budgetcausality. FullIntegrationpending.",
+    "budget_nonrenewal": "MISSING: unchangedServiceDomainrearmsDraft64 perrequest;markerscannotproveoneoperationremaining. No genuineperentryRTCcost/operationid/inputhash/phasegrant association retained."
+  },
+  "root_owned_instrumentation_boundary": {
+    "safe_initial_files": [
+      "targets/conduitos/src/protected_application/transport.rs",
+      "targets/conduitos/application-core/src/state.rs",
+      "targets/conduitos/application-core/src/data/codec.rs",
+      "targets/conduitos/application-core/src/models/canonical.rs"
+    ],
+    "plan": "Root transport can emit boundedstructured command+Envelope begin/end/refusal observations withactualServiceinstance/requestsequence,commandvariant/slot,immutableencodedlength/digest andexpectedresponse. Core can expose noallocationclosedphaseobserver hooks aroundexistingdecode/framing/typeddeserialize/FaceShow/matcher/install/reply code; defaultnoop preservessemantics. Tests exerciseoriginalsamecode withobserver andexactcanonicalrefusalorder. Thisalone doesNOTsendactualnativeinnerphaseevents back toRootduringfault.",
+    "no_authority": "No phase log drives admission, retry, effects orconsumption. Never dump commandFace/basis/Showpayloads orinvitationcontent; bounded tags/identities/hash only. Do notaddentry/yield/rearm ornewbacking toobtainmeasurements."
+  },
+  "last_phase_witness_assessment": {
+    "feasible_with_handoff": true,
+    "root_only_possible": false,
+    "wire_fact": "wire::BYTES48; encode clears ONLYout[..48]. Rootrequest clearsentire4096exchange beforeentry. Tailoffset64..128 couldholdfixedwitness WITHOUT changing48bytewiregrammar/decodedlength orclobberingresponses. Existingtailunusedatcurrentauditedsource; requires explicitreservedconstants/assertions sofuturewiregrowthrefusesoverlap.",
+    "guest_adapter_needed": "application-service/main.rs mustwireclosedCoreobserver tovolatilewrites intofixedtail; includeenvelopeinstance/sequence,schemaversion,phase,writeepoch+complement/commitmarker. Writevaliditylast;malformed/torn/foreign/stalesnapshot\u2192UNKNOWN. MarkphaseenteredBEFOREwork. Markerdoesnotprove completion/exactinstruction, time,RTCcount orhonestguest.",
+    "precise_native_blocker": "ServiceDomain::enter mapsfault thenimmediatelyself.quarantine atservice_domain.rs128-130;AddressSpace::quarantine clearsleasepagesandexchange rejectswhen cleared. Roottransport thereforeCANNOTreadmarkerafterfaultbeforequarantine. Neednativeowner-reviewed boundedprequarantine RAWwitnesscopy inservice_domain.rs, retainedRootsideorpassedthroughboundedcallback; preservequarantineimmediately, neverdefer/readclearedstaleresponse. Noexistingfaultdiagnosticcarrier.",
+    "reserved_overlap": "service_domain.rs is textuallydisjoint active14continuationpaths but is nativeownerinterface; explicithandoffrequired. Nochange domain_transition/assembly/timer neededforNONAUTHORITATIVEwitnesscapture, unlike authoritativeRTC CostSnapshot beforeownershipunlock. Witnessperinstancepage stableafterguestreturnuntilquarantine;doesnotuseglobalcounter orclaimnativecost.",
+    "minimal_additional_files": [
+      "targets/conduitos/application-service/main.rs",
+      "targets/conduitos/application-core/src/wire.rs (tailreservation ornewcloseddiagnosticmodule)",
+      "targets/conduitos/src/arch/x86_64/service_domain.rs",
+      "targets/conduitos/src/protected_application/transport.rs"
+    ],
+    "semantic_risks": [
+      "Guestwritesmaybetorn oradversarial; treatasnon-authoritativephasehintonly. Neverbypassfault/quarantine orvalidateeffectfrommarker.",
+      "Phasehookoverhead perturbsmeasurement; sourcequalifyandretainnativeunchanged64limits, no time/RTCconclusionfromtagsalone.",
+      "Avoidnestedaliasingmutableexchange/transfer/state; useboundeddiagnosticsinklifetime, noarbitraryaddress orrawguestcallbacksintoRoot.",
+      "StoreRootcaptureboundedwithoutheap/newarena;chargeexistingRootmetadata/stackproperly andzeroclearafterconsumption/cancel/instance reuse.",
+      "Finalphaseentered beforefaultcouldmeanthatphaseoritsunmarkedcallee/drop; initialreadablewitnessmustdistinguishpredecodefromunknown.",
+      "Newinstrumentedreproduction coulddiagnoseitsOWNfailedsource, cannotretroactivelyidentify61b/6975 internalphase."
+    ]
+  },
+  "next_action": "AgreeclosedphaseenumandRootcommand/envelopecorrelation first. Nativeownerapproveprequarantinecapture orkeepactualfaultsubphaseUNKNOWN. Thenoneboundedsourcequalifieddiagnosticnormaljourney/negative reproduction withoutnewgrant/retry; userecordedcausalphase tochooseboundedstaging, whiletruecumulativeRTCinterfacehandoffremainsseparate.",
+  "limits": [
+    "Read-only source/logaudit; no instrumentation/source/owner/build/CI/network writes",
+    "No selectedSourcepolicy dependencyreintroduced; no6318criteria/6311/6317completionclaim"
+  ]
+}

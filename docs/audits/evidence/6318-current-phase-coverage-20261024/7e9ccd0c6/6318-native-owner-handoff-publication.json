@@ -1,0 +1,12 @@
+{
+  "source": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "owner_source": "ec37536e34754873b4e679e348feb4a097447f12",
+  "branch": "evidence/6318-native-owner-handoff-20261024",
+  "commit": "70826614710a8667a6d2c69f7539098d46d27abb",
+  "parent": "7e9ccd0c6850d4f5782663f65ec7f5472109edb0",
+  "url": "https://github.com/dancxjo/conduit/tree/70826614710a8667a6d2c69f7539098d46d27abb/docs/audits/evidence/6318-native-owner-handoff-20261024/7e9ccd0c6",
+  "remote_verified": true,
+  "files": 9,
+  "scope": "Native-owner interface handoff proposal, no implementation/build/CI/newPR",
+  "published_utc": "2026-10-24T06:35:13.260695+00:00"
+}
