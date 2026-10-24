@@ -4,10 +4,14 @@
 #[cfg(test)]
 extern crate std;
 #[cfg(test)]
+mod fore_tests;
+#[cfg(test)]
 mod record_view_tests;
 
 mod computation;
 mod execution;
+mod fore;
+pub use fore::*;
 mod native;
 mod records;
 pub use computation::{AssignedComputationProfile, AssignedComputationRequirement};
@@ -167,6 +171,8 @@ pub enum AssignedPlanRefusal {
     ComputationCapacityExceeded,
     UnknownComputation,
     MissingComputation,
+    UnknownForeEndpoint,
+    MissingForeEndpoint,
 }
 
 pub fn decode_assigned_plan(
