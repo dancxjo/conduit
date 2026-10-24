@@ -1,0 +1,19 @@
+{
+  "source_commit": "982c083fd",
+  "proof_class": "attended native owner plus HTTP observation; failed before first publication",
+  "capture": "outputs/environment-native-face-probe/1792870116",
+  "native_owner_completed": false,
+  "http_reading_successes": 0,
+  "failure": "ProCpu stack guard at first sampling boundary; quantity validation decode chain",
+  "linked_stack_bytes": 36988,
+  "stack_floor_bytes": 36864,
+  "root_heap_prepared_bytes": 82828,
+  "root_heap_capacity_bytes": 114688,
+  "sdk_heap_capacity_bytes": 73728,
+  "publisher_stack_frame_before_bytes": 80,
+  "publisher_stack_frame_failed_bytes": 3776,
+  "correction": "separate HTTP Mask scratch into non-inlined phase after semantic publication returns",
+  "recovery_result": "verified protected operational firmware; three fresh source sequences and twelve acknowledged display updates",
+  "corrected_publisher_stack_frame_bytes": 80,
+  "separate_mask_stack_frame_bytes": 3728
+}

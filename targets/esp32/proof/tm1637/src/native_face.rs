@@ -118,6 +118,13 @@ impl Publisher {
             self.reader.withdraw_http();
             return;
         }
+        self.publish_http(committed_ms);
+    }
+    // Keep Mask preparation scratch out of the deeper quantity validation call
+    // chain used by inner.publish. These phases never need their scratch live
+    // together, even though both belong to one committed publication.
+    #[inline(never)]
+    fn publish_http(&mut self, committed_ms: u64) {
         let prepared = self.reader.with_current(committed_ms, |face, status| {
             if !status.publisher_retained || status.refusal.is_some() {
                 return Err("http-mask-reader-unavailable");
