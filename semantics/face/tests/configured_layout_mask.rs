@@ -181,7 +181,7 @@ fn source() -> String {
     )
 }
 #[test]
-fn version_three_contract_is_distinct_and_requires_typed_layout() {
+fn complete_look_contracts_are_distinct_and_require_typed_layout() {
     let old = component_mask_kind(4096);
     let new = layout_component_mask_kind(4096);
     assert_eq!(old.kind_id, new.kind_id);
@@ -198,6 +198,22 @@ fn version_three_contract_is_distinct_and_requires_typed_layout() {
         .startup_parameters
         .iter()
         .any(|p| p.name == "layout" && !p.has_default));
+    for kind in [&old, &new] {
+        assert!(!kind
+            .startup_parameters
+            .iter()
+            .any(|p| p.name == "expression"));
+        let look = kind
+            .startup_parameters
+            .iter()
+            .find(|p| p.name == "look")
+            .unwrap();
+        assert!(!look.has_default);
+        assert_eq!(
+            look.value_type,
+            look_type().profile().unwrap().value_kind().clone()
+        );
+    }
     assert_eq!(new.inputs, old.inputs);
     assert_eq!(new.outputs, old.outputs);
 }
@@ -260,7 +276,7 @@ fn authenticated_back_forwards_both_literals_without_substitution() {
     ));
 }
 #[test]
-fn declared_required_layout_and_version_three_presence_are_enforced() {
+fn declared_required_layout_and_complete_look_revision_are_enforced() {
     assert!(matches!(
         evidence_with(&source(), "root", None, |kind| {
             kind.startup_parameters
@@ -367,6 +383,20 @@ fn named_visual_presets_match_across_distinct_checked_components() {
             visual_expression_from_info(visual.expression().clone().into_structured().unwrap())
                 .unwrap();
         assert_eq!(actual.typography, VisualExpression::phosphor().typography);
+        let reference = if actual.palette == VisualPalette::Phosphor {
+            phosphor_look().unwrap()
+        } else {
+            editorial_look().unwrap()
+        };
+        let LookVisualFacetOption::Some(reference_visual) = reference.visual() else {
+            panic!("reference visual facet")
+        };
+        assert_eq!(visual.tokens(), reference_visual.tokens());
+        assert_eq!(resource.spoken(), reference.spoken());
+        assert_eq!(resource.generative(), reference.generative());
+        if look == ComponentMaskLook::Compact {
+            assert_eq!(resource, reference);
+        }
         let todo_expression = a.look.canonical_value();
         let creche_expression = b.look.canonical_value();
         assert_eq!(
