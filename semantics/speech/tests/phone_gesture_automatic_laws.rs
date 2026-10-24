@@ -149,6 +149,40 @@ fn automatic_source_laws_replay_all_four_g2_programs_through_std_kernel() {
         )
         .unwrap();
         assert!(verify_plan(&plan));
+        let [fragment] = plan.fragments.as_slice() else {
+            panic!("one selected fragment");
+        };
+        let [placement] = fragment.placements.as_slice() else {
+            panic!("one selected law Gear");
+        };
+        assert_eq!(
+            fragment.source_document_id,
+            authored.expanded.source_document_id
+        );
+        assert_eq!(fragment.checked_plot_id, authored.expanded.checked_plot_id);
+        assert_eq!(
+            fragment.expanded_plot_id,
+            authored.expanded.expanded_plot_id
+        );
+        assert_eq!(placement.capability_id, selected_offer);
+        assert_eq!(
+            placement.implementation_id.as_str(),
+            conduit_std_offers::LAW_EXPRESSION_STD_IMPLEMENTATION
+        );
+        assert_eq!(
+            placement.execution_profile_id.as_str(),
+            conduit_std_offers::LAW_EXPRESSION_STD_PROFILE
+        );
+        assert_eq!(
+            placement.artifact_id.as_str(),
+            conduit_std_offers::LAW_EXPRESSION_STD_ARTIFACT
+        );
+        assert_eq!(placement.kind_id, gear.kind_id);
+        assert_eq!(
+            placement.kind_contract_revision,
+            gear.kind_contract_revision
+        );
+        assert_eq!(placement.configuration, gear.configuration);
         retain_receipt(
             &format!("{operation}-plan"),
             &serde_json::to_value(&plan).unwrap(),
