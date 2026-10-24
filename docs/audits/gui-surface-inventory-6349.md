@@ -193,3 +193,10 @@ Complete Details, every unavailable control, missing native assets, the closer
 navy reference, live Look reuse on the full Patchbay node structure, and the
 full Body/Patchbay/Stop journey remain separate open work. The later Application
 work refusal has not been claimed fixed. Original parent acceptance remains.
+
+## Discoverable native Look options
+
+Source cb1efa2f5 adds measured local Crèche shortcut guidance for density, palette,
+typography, user text minimum and forced colors. The actual 1280×800 accessibility
+scenario passes with the full footer visible; geometry/priority CPU checks pass
+without new layout space or commands. [Exact source, captures and limits](evidence/gui-look-6349-native-look-guidance/README.md).
