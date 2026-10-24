@@ -96,7 +96,7 @@ for (const corruptDependency of [false,true]) {
     visit('owner-participation');
     const modules=await Promise.all([...needed].map(async role=>{
       const resource=template.resources.find(resource=>resource.role===role);
-      let source=await readFile(`targets/browser/handbook/${resource.path}`,'utf8');
+      let source=await readFile(`targets/browser/handbook/${resource.source ?? resource.path}`,'utf8');
       if(corruptDependency && role==='owner-participation') source=source.replace('"./owner-face-reachability.mjs"',"'./owner-face-reachability.mjs'");
       return {...resource,source};
     }));

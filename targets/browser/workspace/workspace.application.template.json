@@ -403,21 +403,9 @@
       "maximum_bytes": 8192,
       "dependencies": [
         {
-      "role": "owner-face-component",
-      "kind": "module",
-      "path": "owner-face-component.mjs",
-      "maximum_bytes": 32768,
-      "dependencies": [
-        {
-          "role": "owner-face-icons",
-          "specifier": "./owner-face-icons.mjs"
-        },
-        {
-          "role": "application-look",
-          "specifier": "../host/assets/application-look.mjs"
+          "role": "owner-face-component",
+          "specifier": "../handbook/owner-face-component.mjs"
         }
-      ]
-    }
       ]
     },
     {
@@ -436,6 +424,10 @@
         {
           "role": "owner-face-icons",
           "specifier": "./owner-face-icons.mjs"
+        },
+        {
+          "role": "application-look",
+          "specifier": "../host/assets/application-look.mjs"
         }
       ]
     },
