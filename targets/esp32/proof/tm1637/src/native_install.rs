@@ -1,10 +1,17 @@
 //! Root native installation below the authenticated owner and retained reservation.
 //! Native calls and the ordinary kernel remain dormant until attributed start.
+#[cfg(feature = "display-ready-root")]
+#[path = "native_display_install.rs"]
+mod display_install;
 use super::NativeRoot;
 use crate::native_owner_reservation::PreparationPermit;
+#[cfg(not(feature = "display-ready-root"))]
 use alloc::vec::Vec;
+#[cfg(not(feature = "display-ready-root"))]
 use conduit_core as c;
+#[cfg(not(feature = "display-ready-root"))]
 use conduit_environment_runtime::appliance::assignment_transfer as t;
+#[cfg(not(feature = "display-ready-root"))]
 use conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput;
 impl NativeRoot {
     pub fn authorize_native_preparation(
@@ -45,6 +52,7 @@ impl NativeRoot {
     pub fn worker_status(&self) -> Option<crate::native_task::Status> {
         self.worker.as_ref().map(|worker| worker.status())
     }
+    #[cfg(not(feature = "display-ready-root"))]
     pub async fn prepare_native_assignment(
         &mut self,
         permit: PreparationPermit,
@@ -159,5 +167,16 @@ impl NativeRoot {
             return Err("worker-ownership-unavailable");
         }
         Ok(())
+    }
+}
+
+#[cfg(feature = "display-ready-root")]
+impl NativeRoot {
+    pub async fn prepare_native_assignment(
+        &mut self,
+        permit: PreparationPermit,
+        wire: &[u8],
+    ) -> Result<(), &'static str> {
+        self.prepare_display_kernel(permit, wire)
     }
 }

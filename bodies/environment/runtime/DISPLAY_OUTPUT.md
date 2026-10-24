@@ -119,3 +119,17 @@ CPU tests exercise the production staging helper, owned-byte isolation and
 capacity/Boot/Source refusals. Both ESP32 profiles compile. No new image has been
 flashed: live UART staging, kernel installation, Body start and physical output
 still need verification before replacing the working bench.
+
+The signed Prepare path in the display profile now constructs and retains the
+ordinary output kernel from that transfer and the actual retained software.
+It admits canonical value/Sign backing, record views, boxed kernel storage and
+8 KiB preparation/control headroom before allocation. The Sign log exposes its
+canonical backing estimate without exposing private lifecycle representations;
+a test compares the estimate with prepared retained storage.
+
+This entrance deliberately remains a two-frame construction diagnostic. It
+withdraws the old offer epoch on successful preparation, leaves the kernel
+unstepped and issues no native possession or Body start. CPU tests cover memory
+refusal before transfer, successful construction and replay refusal. ESP32
+compilation passes; physical memory admission and continuous Mask scheduling
+are still unverified. No display image has replaced the working appliance.

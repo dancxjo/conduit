@@ -251,7 +251,9 @@ impl NativeRoot {
         Ok(())
     }
     pub fn appliance_kernel_prepared(&self) -> bool {
-        self.appliance_kernel.is_some() || self.execution_context_prepared()
+        self.appliance_kernel.is_some()
+            || self.display.kernel_prepared()
+            || self.execution_context_prepared()
     }
     pub fn write_admission_offer(&mut self, output: &mut [u8]) -> Result<usize, ()> {
         self.admission_freshness = self.admission_freshness.checked_add(1).ok_or(())?;

@@ -255,3 +255,6 @@ mod display_reservation;
 
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_display_assignment.rs"]
 mod native_display_assignment;
+
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_display_kernel.rs"]
+mod native_display_kernel;

@@ -13,6 +13,9 @@ use esp_hal::gpio::Pin;
 #[path = "native_display_assignment.rs"]
 mod assignment;
 #[cfg(feature = "display-ready-root")]
+#[path = "native_display_kernel.rs"]
+mod kernel;
+#[cfg(feature = "display-ready-root")]
 #[path = "display_layout.rs"]
 mod layout;
 mod software {
@@ -21,6 +24,8 @@ mod software {
 pub struct NativeDisplay {
     #[cfg(feature = "display-ready-root")]
     staged: Option<assignment::StagedDisplayAssignment>,
+    #[cfg(feature = "display-ready-root")]
+    kernel: Option<kernel::Prepared>,
     ready: ReadyWriteBase<DisplayPins<'static>>,
     #[cfg(feature = "display-ready-root")]
     software: Result<
@@ -88,6 +93,8 @@ impl NativeDisplay {
         Ok(Box::new(Self {
             #[cfg(feature = "display-ready-root")]
             staged: None,
+            #[cfg(feature = "display-ready-root")]
+            kernel: None,
             ready,
             #[cfg(feature = "display-ready-root")]
             software,
@@ -174,5 +181,50 @@ impl NativeDisplay {
     }
     pub fn assignment(&self) -> Option<&assignment::StagedDisplayAssignment> {
         self.staged.as_ref()
+    }
+}
+
+impl NativeDisplay {
+    pub fn kernel_prepared(&self) -> bool {
+        #[cfg(feature = "display-ready-root")]
+        {
+            self.kernel.is_some()
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            false
+        }
+    }
+}
+#[cfg(feature = "display-ready-root")]
+impl NativeDisplay {
+    pub fn prepare_kernel(
+        &mut self,
+        scope: conduit_environment_runtime::display_output::AssignedDisplayScope<'_>,
+        maximum_frames: u32,
+        available: usize,
+    ) -> Result<(), &'static str> {
+        if self.kernel.is_some() {
+            return Err("display-already-prepared");
+        }
+        let staged = self
+            .staged
+            .as_ref()
+            .ok_or("display-assignment-unavailable")?;
+        let source = layout::source();
+        let fore = layout::fore();
+        let profile = layout::profile(&source, &fore).map_err(|_| "display-provisioning")?;
+        self.kernel = Some(kernel::prepare(
+            staged.wire(),
+            &profile,
+            &layout::configurations(),
+            scope,
+            self.software
+                .as_mut()
+                .map_err(|_| "display-software-unavailable")?,
+            maximum_frames,
+            available,
+        )?);
+        Ok(())
     }
 }

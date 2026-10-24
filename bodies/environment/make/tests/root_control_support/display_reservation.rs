@@ -5,7 +5,7 @@ use conduit_environment_runtime::display_output::*;
 #[test]
 fn output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal() {
     let source = DisplayOutputSource::compile().unwrap();
-    let (host, mut grant, _software) = display_fixture::fixture(&source);
+    let (host, mut grant, mut software) = display_fixture::fixture(&source);
     grant.grant_id = "grant/esp32/tm1637-write/1".into();
     let prepared = PreparedDisplayOutput::prepare(
         &source,
@@ -86,7 +86,14 @@ fn output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal(
         },
     )
     .unwrap();
-    staging(&assignment, &bytes, &records, &profile, &host);
+    staging(
+        &assignment,
+        &bytes,
+        &records,
+        &profile,
+        &host,
+        &mut software,
+    );
     for mode in [0, 4] {
         fixtures::scope_mode(mode);
         let mut foreign = native_authority::RootIssuer::observe(&boot::ObservedBoot).unwrap();
@@ -345,6 +352,7 @@ fn staging(
     records: &[c::AssignedRecord<'_>],
     profile: &AssignedDisplayProfile<'_>,
     host: &c::HostAdvertisement,
+    software: &mut conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
 ) {
     use conduit_environment_runtime::appliance::{
         assigned::ResidentSourceIdentity, assignment_transfer as t,
@@ -382,6 +390,39 @@ fn staging(
     assert_eq!(staged.admitted.identity(), assignment.identity());
     assert_eq!(staged.seal(), c::assigned_plan_payload_digest(&wire));
     assert_eq!(staged.wire(), wire);
+    assert!(native_display_kernel::prepare(
+        staged.wire(),
+        profile,
+        &resident,
+        scope(),
+        software,
+        2,
+        0
+    )
+    .is_err());
+    let prepared = native_display_kernel::prepare(
+        staged.wire(),
+        profile,
+        &resident,
+        scope(),
+        software,
+        2,
+        usize::MAX,
+    )
+    .unwrap();
+    assert_eq!(prepared.identity, assignment.identity());
+    assert_eq!(prepared.input, assignment.fore()[0]);
+    // Replaying preparation cannot reconstruct withdrawn portable owners.
+    assert!(native_display_kernel::prepare(
+        staged.wire(),
+        profile,
+        &resident,
+        scope(),
+        software,
+        2,
+        usize::MAX
+    )
+    .is_err());
     wire[12] ^= 1;
     assert!(
         StagedDisplayAssignment::stage(&wire, profile, &resident, scope(), usize::MAX).is_err()
