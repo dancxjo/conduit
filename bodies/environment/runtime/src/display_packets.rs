@@ -43,6 +43,7 @@ pub struct PreparedDisplayPackets {
     brightness: C,
     enabled: C,
     frame: C,
+    packet_output: C,
 }
 impl PreparedDisplayPackets {
     pub fn prepare() -> Result<Self, DisplayPacketRefusal> {
@@ -51,6 +52,14 @@ impl PreparedDisplayPackets {
             "/tm1637-packets.program"
         )))
         .map_err(DisplayPacketRefusal::Program)?;
+        let S::Variant { cases, .. } = program.output_type.shape() else {
+            return Err(R::WrongType.into());
+        };
+        let packet_type = cases
+            .iter()
+            .find(|case| case.tag() == "packets")
+            .ok_or(R::WrongType)?
+            .payload_type();
         let input = &program.input_type;
         let registers = field(input, "registers")?;
         let S::Collection { element, length: 6 } = registers.shape() else {
@@ -64,14 +73,17 @@ impl PreparedDisplayPackets {
             brightness: C::new(field(input, "brightness")?, 64)?,
             enabled: C::new(field(input, "enabled")?, 64)?,
             frame: C::new(input, 1024)?,
+            packet_output: C::new(packet_type, 1024)?,
         })
     }
-    pub fn encode(
+    /// Canonical packet input for the selected electrical Host Call. The bytes
+    /// borrow prepared storage and must be consumed/copied before the next call.
+    pub fn encode_canonical(
         &mut self,
         registers: [u8; 6],
         brightness: u8,
         enabled: bool,
-    ) -> Result<SourceDisplayPackets, DisplayPacketRefusal> {
+    ) -> Result<&[u8], DisplayPacketRefusal> {
         for (encoder, value) in self.octets.iter_mut().zip(registers) {
             encoder.leaf(&[value])?;
         }
@@ -97,6 +109,19 @@ impl PreparedDisplayPackets {
         let packets = result
             .variant_payload("packets")?
             .ok_or(R::WrongType)?
+            .record_field("packets")?
+            .ok_or(R::WrongType)?;
+        self.packet_output.record(&[packets])?;
+        Ok(self.packet_output.encoded())
+    }
+    pub fn encode(
+        &mut self,
+        registers: [u8; 6],
+        brightness: u8,
+        enabled: bool,
+    ) -> Result<SourceDisplayPackets, DisplayPacketRefusal> {
+        let canonical = self.encode_canonical(registers, brightness, enabled)?;
+        let packets = validate(canonical)?
             .record_field("packets")?
             .ok_or(R::WrongType)?;
         if packets.collection_length()? != 3 {

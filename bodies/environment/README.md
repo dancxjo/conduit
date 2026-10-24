@@ -1380,3 +1380,12 @@ The existing native construction proof covers both physical Face replay sets
 and this owner path, including stale observations, lifetime expiry and brightness
 refusal. Native output admission, resident page delivery and physical verification
 remain required before claiming the MCU display has resumed updating.
+
+The optional TM1637 `host-call` feature now supplies exact selected output
+possession around the existing wire engine. The authored packet expression can
+return canonical `Tm1637Packets` through `PreparedDisplayPackets::encode_canonical`,
+using reserved storage; the borrowed-packet API uses that same encoding. The
+`display-output` proof combines its owner/negative tests with existing runtime
+packet and native Face/Mask regressions. This is a CPU-verified output component,
+not assigned firmware installation, admitted display work, a resident page loop
+or evidence that the physical MCU display has resumed updating.
