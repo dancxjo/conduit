@@ -1,4 +1,5 @@
 //! Check the authored protocol Types and Forms once on the build host.
+mod build_observation_source;
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 mod build_display;
@@ -16,6 +17,7 @@ fn main() {
     assert!(syntax.diagnostics.is_empty());
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    build_observation_source::emit(&out);
     for (name, file) in [
         ("PulseReadCapture", "pulse-capture.type"),
         ("Dht11DecodedResult", "decoded.type"),

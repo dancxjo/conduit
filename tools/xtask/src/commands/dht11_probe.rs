@@ -1,4 +1,6 @@
 //! Focused environmental Body specification, Mask and physical diagnostic proof.
+#[path = "environment_source.rs"]
+mod environment_source;
 use std::{error::Error, path::Path, process::Command};
 
 pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
@@ -16,6 +18,9 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["source"] {
+        return environment_source::prove(&root);
+    }
     if arguments == ["recording"] {
         return execute(
             Command::new("cargo")
@@ -290,7 +295,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, recording, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, source, face, recording, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(
