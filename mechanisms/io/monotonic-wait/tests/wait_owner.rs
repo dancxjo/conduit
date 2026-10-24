@@ -273,3 +273,6 @@ fn retirement_requires_revocation_and_returns_exact_timer_custody_once() {
 
 #[path = "support/selected_binding.rs"]
 mod selected_binding;
+
+#[path = "support/exhausted_retirement.rs"]
+mod exhausted_retirement;
