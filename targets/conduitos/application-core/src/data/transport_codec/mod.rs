@@ -7,7 +7,7 @@
 //!
 //! Ordinary commands/replies emit CAPSEQ2: the closed schema reserves the
 //! `canonical_value` struct/map field for bounded u8 sequences, encoded as a
-//! canonical base64 string. All other sequences and human-readable scalar
+//! canonical base64 string (V2 arrays at that reserved field refuse). All other sequences and human-readable scalar
 //! semantics stay unchanged. Legacy CAPSEQ1 accepts counted arrays only and
 //! remains the resumable Graph reply format and its exact-byte oracle.
 //! This adapter is for that closed private schema, not arbitrary Serde maps

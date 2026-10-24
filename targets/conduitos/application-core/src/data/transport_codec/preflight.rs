@@ -114,6 +114,8 @@ impl Scan<'_> {
                 let start = self.at;
                 self.string()?;
                 super::packed::json_string(&self.bytes[start..self.at])?;
+            } else if packed {
+                return Err(Refusal::Malformed);
             } else {
                 self.value(depth)?;
             }

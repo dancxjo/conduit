@@ -88,12 +88,7 @@ fn legacy_arrays_and_manual_oracle_stay_v1_only() {
     let array = br#"[2,"CAPSEQ1",{"canonical_value":[2,0,255]}]"#;
     assert_eq!(decode::<Blob>(array).unwrap().canonical_value, vec![0, 255]);
     assert!(decode::<Blob>(br#"[2,"CAPSEQ1",{"canonical_value":"~b64:AP8="}]"#).is_err());
-    assert_eq!(
-        decode::<Blob>(br#"[2,"CAPSEQ2",{"canonical_value":[2,0,255]}]"#)
-            .unwrap()
-            .canonical_value,
-        vec![0, 255]
-    );
+    assert!(decode::<Blob>(br#"[2,"CAPSEQ2",{"canonical_value":[2,0,255]}]"#).is_err());
     let mut legacy = vec![0; 1024];
     let length = encode_unvalidated(
         &Blob {
