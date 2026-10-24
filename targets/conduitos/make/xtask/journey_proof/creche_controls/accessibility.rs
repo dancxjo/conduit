@@ -14,6 +14,11 @@ pub(super) fn exercise(
     world: &Value,
     boot: &Value,
 ) -> Result<JourneyIdentity, ConduitosError> {
+    let scenario = metadata["proof_scenario"].as_str().unwrap_or("");
+    let editorial_only = scenario == "accessibility-details-editorial";
+    let engineering_only = scenario == "accessibility-details-engineering";
+    let single = editorial_only || engineering_only;
+    let details = scenario == "accessibility-details" || single;
     let incomplete = run.incomplete_argument_refusal()?;
     let name = "Café Llanfairpwllgwyngyll long Body name".as_bytes();
     let change = run.rename(name, "creche-a11y-long-name")?;
@@ -25,7 +30,8 @@ pub(super) fn exercise(
             "accessibility probe changed unrelated source values",
         ));
     }
-    let expected = controls(&baseline.face)?;
+    let inventory = if details { details_controls } else { controls };
+    let expected = inventory(&baseline.face)?;
     let mut transitions = Vec::new();
     let mut states = Vec::new();
     let mut forward_order = None;
@@ -45,6 +51,15 @@ pub(super) fn exercise(
             "editorial",
         ),
     ] {
+        if (editorial_only && typography != "editorial")
+            || (engineering_only && typography != "engineering")
+        {
+            continue;
+        }
+        if engineering_only {
+            transitions.push(select(run, &baseline, "f9", 200, false)?);
+            transitions.push(select(run, &baseline, "f10", 200, true)?);
+        }
         for (input, forced) in keys {
             transitions.push(select(run, &baseline, input, 200, *forced)?);
         }
@@ -53,7 +68,7 @@ pub(super) fn exercise(
         if expression["typography"] != typography
             || expression["density"] != density
             || expression["palette"] != palette
-            || controls(&selected.face)? != expected
+            || inventory(&selected.face)? != expected
         {
             return Err(refusal(
                 "override lost the requested Look or Source controls",
@@ -70,9 +85,22 @@ pub(super) fn exercise(
             Some("value"),
             false,
         )?;
+        if details && run.press(&["f2"])?["showing_details"] != true {
+            return Err(refusal("F2 did not acknowledge the Details view"));
+        }
         let selected = snapshot(&text(run.serial)?)?;
         let forward = run.traverse(&selected, &expected, false)?;
         let reverse = run.traverse(&selected, &expected, true)?;
+        if details
+            && forward
+                .iter()
+                .chain(&reverse)
+                .any(|focus| focus["showing_details"] != true)
+        {
+            return Err(refusal(
+                "keyboard traversal left the acknowledged Details view",
+            ));
+        }
         let order = forward.iter().map(key).collect::<Result<Vec<_>, _>>()?;
         if forward_order.as_ref().is_some_and(|prior| prior != &order) {
             return Err(refusal(
@@ -80,24 +108,51 @@ pub(super) fn exercise(
             ));
         }
         forward_order = Some(order);
-        let pointer = super::super::creche_pointer::focus_argument(
-            run.serial,
-            run.child,
-            run.stream,
-            run.reader,
-            "creche.name",
-            "value",
-        )?;
-        run.capture(&format!("creche-a11y-{label}-pointer"))?;
-        let pages = run.pages(&selected, label)?;
+        let pointer = if details {
+            Value::Null
+        } else {
+            let pointer = super::super::creche_pointer::focus_argument(
+                run.serial,
+                run.child,
+                run.stream,
+                run.reader,
+                "creche.name",
+                "value",
+            )?;
+            run.capture(&format!("creche-a11y-{label}-pointer"))?;
+            pointer
+        };
+        let label = if details {
+            format!("details-{label}")
+        } else {
+            label.into()
+        };
+        let pages = if single {
+            run.details_pages(&selected, &label)?
+        } else {
+            run.pages(&selected, &label)?
+        };
+        if details && pages.iter().any(|page| page["showing_details"] != true) {
+            return Err(refusal("page traversal left the acknowledged Details view"));
+        }
         states.push(json!({"label":label,"acknowledged_face":selected.record,
             "expected_controls":expected,"forward":forward,"reverse":reverse,
-            "pointer":pointer,"primary_pages":pages}));
+            "pointer":pointer,"primary_pages":if details { Value::Null } else { json!(pages) },
+            "details_pages":if details { json!(pages) } else { Value::Null }}));
+        if details && run.press(&["f2"])?["showing_details"] != false {
+            return Err(refusal("F2 did not return from Details"));
+        }
     }
     // User requirements survive palette/type/density changes, then clearing the
     // user minimum reveals the still-requested spacious 125%, not a forged 100%.
     transitions.push(select(run, &baseline, "f10", 200, false)?);
-    transitions.push(select(run, &baseline, "f9", 125, false)?);
+    transitions.push(select(
+        run,
+        &baseline,
+        "f9",
+        if editorial_only { 100 } else { 125 },
+        false,
+    )?);
     run.capture("creche-a11y-user-overrides-cleared")?;
     let final_state = snapshot(&text(run.serial)?)?;
     let serial = text(run.serial)?;
@@ -120,9 +175,9 @@ pub(super) fn exercise(
         ));
     }
     let proof = json!({
-        "schema":"conduit.conduitos/creche-accessibility-proof@1", "status":"passed",
+        "schema":if details { "conduit.conduitos/creche-accessibility-details-proof@1" } else { "conduit.conduitos/creche-accessibility-proof@1" }, "status":"passed",
         "proof_class":"freestanding-emulator", "source_commit":source,"image_sha256":image,
-        "canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
+        "requested_scenario":scenario,"canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
         "selected_recipe":recipe,"long_unicode_name":name,"checked_name_change":change,
         "incomplete_argument_refusal":incomplete,"override_transitions":transitions,
         "same_keyboard_order":forward_order,"states":states,
@@ -130,20 +185,24 @@ pub(super) fn exercise(
         "prepared_frame_budget":frame_budget::summarize(&serial)?,
         "observations":run.observations,"captures":run.captures,"capture_limit":27,
         "screenshots":"journey-frames/manifest.json",
-        "scope":"complete primary control cycles/pages at 200% in two Looks; actual pointer argument focus and incomplete-input refusal; no Body startup",
-        "details_pages":"not traversed by this scenario",
+        "scope":if details { "complete Details control cycles/pages at 200% in requested Look(s); acknowledged F2 entry/return; no Body startup or Details pointer claim" } else { "complete primary control cycles/pages at 200% in two Looks; actual pointer argument focus and incomplete-input refusal; no Body startup" },
+        "details_pages":if details { "all traversed with explicit view receipts; first/middle/last PNGs" } else { "not traversed by this scenario" },
         "pixel_contrast":"actual QMP captures retained for visual inspection; no OCR or inferred pixel contrast",
         "physical_evidence":false,"human_enactment":false
     });
     fs::write(
-        destination.join("creche-accessibility-proof.json"),
+        destination.join(if details {
+            "creche-accessibility-details-proof.json"
+        } else {
+            "creche-accessibility-proof.json"
+        }),
         serde_json::to_vec_pretty(&proof).map_err(|error| refusal(error.to_string()))?,
     )
     .map_err(io_error)?;
     identity(world)
 }
 
-fn select(
+pub(super) fn select(
     run: &mut Run<'_>,
     baseline: &Snapshot,
     input: &str,

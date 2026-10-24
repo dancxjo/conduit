@@ -34,6 +34,18 @@ fn local_selection_keeps_face_and_draft_while_retiring_each_old_show() {
         .unwrap();
     let mut display = super::super::tests::Display;
     arrival.present_first(&door, &mut display).unwrap();
+    assert!(
+        arrival
+            .mask
+            .scene()
+            .unwrap()
+            .frame()
+            .unwrap()
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload().contains("F6"))
+    );
     let face = door.creche_face(&arrival.basis).unwrap();
     let component = arrival
         .mask
@@ -147,6 +159,100 @@ fn local_selection_keeps_face_and_draft_while_retiring_each_old_show() {
             == conduit_face::GraphicsCommandKind::Text
             && command.payload().contains('a')
             && command.payload().starts_with("Draft")));
+    }
+    // Navy remains a complete checked Look across density and typography.
+    for (usage, navy, density, typography) in [
+        (
+            68,
+            true,
+            VisualDensity::Compact,
+            VisualTypography::Editorial,
+        ),
+        (
+            63,
+            true,
+            VisualDensity::Spacious,
+            VisualTypography::Editorial,
+        ),
+        (
+            65,
+            true,
+            VisualDensity::Spacious,
+            VisualTypography::Engineering,
+        ),
+        (
+            63,
+            true,
+            VisualDensity::Compact,
+            VisualTypography::Engineering,
+        ),
+        (
+            65,
+            true,
+            VisualDensity::Compact,
+            VisualTypography::Editorial,
+        ),
+        (
+            68,
+            false,
+            VisualDensity::Compact,
+            VisualTypography::Editorial,
+        ),
+        (
+            68,
+            true,
+            VisualDensity::Compact,
+            VisualTypography::Editorial,
+        ),
+    ] {
+        let prior = arrival.mask.show().unwrap().clone();
+        assert!(
+            arrival
+                .select_local_look(key(usage), &door, &mut display)
+                .unwrap()
+        );
+        assert_eq!(arrival.mask.scene().unwrap().face(), &face);
+        assert_eq!(door.creche_face(&arrival.basis).unwrap(), face);
+        assert_eq!(arrival.mask.scene().unwrap().focused(), focus);
+        assert_ne!(arrival.mask.show().unwrap().show_id, prior.show_id);
+        assert_eq!(
+            arrival.mask.component_configuration().unwrap().component,
+            component
+        );
+        assert_eq!(
+            arrival.mask.component_configuration().unwrap().recipe,
+            recipe
+        );
+        assert!(arrival.mask.component_fallback().is_none());
+        let expression = &arrival.mask.visual_expression().unwrap().expression;
+        assert_eq!(conduit_face::is_navy_look_id(&expression.identity), navy);
+        assert_eq!(expression.density, density);
+        assert_eq!(expression.typography, typography);
+        if navy {
+            assert_eq!(
+                arrival
+                    .mask
+                    .component_configuration()
+                    .unwrap()
+                    .requested_look()
+                    .unwrap(),
+                conduit_face::navy_look(density, typography).unwrap()
+            );
+        }
+        assert!(
+            arrival
+                .mask
+                .scene()
+                .unwrap()
+                .frame()
+                .unwrap()
+                .scene
+                .commands()
+                .iter()
+                .any(|command| command.payload().starts_with("Draft")
+                    && command.payload().contains('a'))
+        );
+        assert_eq!(arrival.next_interaction, interaction_sequence);
     }
     // User requirements outrank each app Look without changing its Source root.
     for (usage, minimum, forced, actual_scale) in [

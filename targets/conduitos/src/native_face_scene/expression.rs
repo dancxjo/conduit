@@ -172,6 +172,7 @@ impl NativeFaceScene {
             input: input::InputState::default(),
             interaction_admitted,
             local_input_available: true,
+            local_creche_preferences: false,
             local_notice: None,
         })
     }

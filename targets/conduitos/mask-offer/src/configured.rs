@@ -131,6 +131,21 @@ pub fn prepare_typographic_creche_stage_from_offer(
     )
 }
 
+/// Select an exact complete navy Look through the ordinary reviewed Source path.
+pub fn prepare_navy_creche_stage_from_offer(
+    host: &HostAdvertisement,
+    recipe: CrecheComponentRecipe,
+    selection: ComponentVisualSelection,
+    typography: VisualTypography,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    layout_configured::prepare_offered_component_document(
+        host,
+        (CRECHE_COMPONENT_MASK_SOURCE, CRECHE_LAYOUT_MASK_SOURCE),
+        selection.creche_navy_root(recipe, typography),
+        NativeMaskStorageProfile::Standard,
+    )
+}
+
 pub(super) fn prepare_component_document(
     host: &HostAdvertisement,
     source: &str,

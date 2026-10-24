@@ -42,6 +42,7 @@ pub(super) struct Row {
     pub padding: u16,
     pub checkbox: Option<bool>,
     pub icon: Option<conduit_face::FaceIconKey>,
+    pub icon_size: u16,
     pub panel_bounds: Option<LayoutRect>,
 }
 
@@ -68,7 +69,7 @@ impl Row {
             super::boolean_choice::INSET
         } else {
             0
-        } + super::semantic_icons::inset(self.icon);
+        } + super::semantic_icons::inset(self.icon, self.icon_size);
         LayoutRect {
             x: self.bounds.x + self.padding as i16 + inset as i16,
             y: self.bounds.y + self.padding as i16,
@@ -292,7 +293,8 @@ pub(super) fn admit_with_expression_selected(
         let item_width = width
             .checked_sub(inset)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width = field_clusters::text_width(&item, item_width, padding)?;
+        let text_width =
+            field_clusters::text_width(&item, item_width, padding, text_scale_percent)?;
         if cluster_start
             && let Some(demand) = field_clusters::measure(
                 core::iter::once(&item).chain(items.as_slice().iter()),
@@ -362,6 +364,7 @@ pub(super) fn admit_with_expression_selected(
                 padding,
                 checkbox: item.checkbox,
                 icon: item.icon,
+                icon_size: super::semantic_icons::size(text_scale_percent),
                 panel_bounds: None,
                 bounds: LayoutRect {
                     x: (gutter + column * (width + gutter) + inset) as i16,

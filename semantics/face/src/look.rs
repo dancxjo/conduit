@@ -64,6 +64,8 @@ pub fn editorial_look() -> Result<LookInfo, NativeBindingRefusal> {
         EDITORIAL_LOOK_ID,
         VisualDensityPreference::Spacious,
         VisualTypographyPreference::Editorial,
+        VisualPalettePreference::Editorial,
+        100,
         [
             0xf4f0e7, 0xfffcf5, 0x79452e, 0xa32832, 0x005c9e, 0x716653, 0xfffcf5, 0x386352,
             0xb7ad99, 0x292d29, 0x5b6057, 0x286642, 0x805000,
@@ -76,6 +78,8 @@ pub fn engineering_look() -> Result<LookInfo, NativeBindingRefusal> {
         ENGINEERING_LOOK_ID,
         VisualDensityPreference::Compact,
         VisualTypographyPreference::Engineering,
+        VisualPalettePreference::Editorial,
+        100,
         [
             0xeaf0f6, 0xf8fbff, 0x244e80, 0xa32832, 0x005c9e, 0x66778d, 0xffffff, 0x285c91,
             0xa5b6ca, 0x1e2d40, 0x4f627a, 0x23633f, 0x805000,
@@ -83,21 +87,88 @@ pub fn engineering_look() -> Result<LookInfo, NativeBindingRefusal> {
     )
 }
 
+/// Restrained navy paint over the existing dark-family fallback. Exact tokens
+/// own the selected appearance; identity is independent of Face and component.
+pub fn navy_look(
+    density: VisualDensity,
+    typography: VisualTypography,
+) -> Result<LookInfo, NativeBindingRefusal> {
+    alternate_look(
+        navy_look_id(density, typography),
+        match density {
+            VisualDensity::Compact => VisualDensityPreference::Compact,
+            VisualDensity::Spacious => VisualDensityPreference::Spacious,
+        },
+        match typography {
+            VisualTypography::Editorial => VisualTypographyPreference::Editorial,
+            VisualTypography::Engineering => VisualTypographyPreference::Engineering,
+        },
+        VisualPalettePreference::Phosphor,
+        if density == VisualDensity::Spacious {
+            125
+        } else {
+            100
+        },
+        [
+            0x101b2a, 0x172637, 0xb3cdec, 0xff9b9b, 0xf3c94e, 0x91a6c0, 0x172637, 0x617b98,
+            0x31465f, 0xe7eef8, 0xb3c3d9, 0x96d9b2, 0xf2cc81,
+        ],
+    )
+}
+
+pub const fn navy_look_id(density: VisualDensity, typography: VisualTypography) -> &'static str {
+    match (density, typography) {
+        (VisualDensity::Compact, VisualTypography::Editorial) => "conduit.look/navy@1",
+        (VisualDensity::Spacious, VisualTypography::Editorial) => "conduit.look/navy-spacious@1",
+        (VisualDensity::Compact, VisualTypography::Engineering) => {
+            "conduit.look/navy-engineering@1"
+        }
+        (VisualDensity::Spacious, VisualTypography::Engineering) => {
+            "conduit.look/navy-spacious-engineering@1"
+        }
+    }
+}
+
+pub fn is_navy_look_id(identity: &str) -> bool {
+    [
+        "conduit.look/navy@1",
+        "conduit.look/navy-spacious@1",
+        "conduit.look/navy-engineering@1",
+        "conduit.look/navy-spacious-engineering@1",
+    ]
+    .contains(&identity)
+}
+
 fn alternate_look(
     identity: &str,
     density: VisualDensityPreference,
     typography: VisualTypographyPreference,
+    palette: VisualPalettePreference,
+    scale: u16,
     colors: [u32; 13],
 ) -> Result<LookInfo, NativeBindingRefusal> {
-    let [background, surface, emphasis, failure, focus, muted, paper, primary, secondary, text, text_secondary, success, warning] =
-        colors.map(|rgb| ThemeColor::from_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8));
+    let [
+        background,
+        surface,
+        emphasis,
+        failure,
+        focus,
+        muted,
+        paper,
+        primary,
+        secondary,
+        text,
+        text_secondary,
+        success,
+        warning,
+    ] = colors.map(|rgb| ThemeColor::from_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8));
     let spacious = density == VisualDensityPreference::Spacious;
     let expression = VisualExpressionInfo::new(
         density,
         identity.into(),
         VisualMotionPreference::None,
-        VisualPalettePreference::Editorial,
-        100,
+        palette,
+        scale,
         typography,
         2,
     )?;

@@ -1,0 +1,21 @@
+{
+  "source": "dfeb14b59be128560593fd74fd8fb032580c81dd",
+  "pid": 1128629,
+  "proc_start": "49898949",
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-target/release/xtask",
+    "make",
+    "conduitos",
+    "creche-controls-proof",
+    "--scenario",
+    "accessibility",
+    "--viewport",
+    "640x480",
+    "--locked"
+  ],
+  "output": "/tmp/c6349-gui/native-icon-scale-narrow",
+  "log": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-icon-scale-narrow.log",
+  "exit": 0,
+  "source_unchanged": true,
+  "tracked_tree_clean": true
+}

@@ -1,0 +1,10 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/targets/conduitos)
+    Finished `release` profile [optimized] target(s) in 22.26s
+     Running unittests src/lib.rs (../native-target/release/deps/conduitos-44f6961931ddcfc3)
+
+running 2 tests
+test native_face_scene::local_look_hint_tests::local_look_guidance_selects_measured_help_without_extending_chrome ... ok
+test native_face_scene::local_look_hint_tests::local_look_guidance_preserves_face_hit_geometry_and_command_count ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1427 filtered out; finished in 0.02s
+

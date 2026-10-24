@@ -1,11 +1,31 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+
+// Read actual SVG badge paint, including renderer-supplied inline styles.
+async function cordLabelContrasts(page) {
+  return page.locator('.flow-cord .react-flow__edge-text').evaluateAll(nodes => {
+    const luminance = color => {
+      const channels = color.match(/[\d.]+/gu)?.slice(0, 3).map(Number);
+      if (channels?.length !== 3) throw new Error(`Unresolved label color: ${color}`);
+      const linear = channels.map(channel => { const value=channel/255; return value<=.04045?value/12.92:((value+.055)/1.055)**2.4; });
+      return .2126*linear[0]+.7152*linear[1]+.0722*linear[2];
+    };
+    return nodes.map(node => {
+      const background=node.parentElement.querySelector('.react-flow__edge-textbg');
+      if (!background) throw new Error('Cord label background absent');
+      const ink=getComputedStyle(node).fill, paper=getComputedStyle(background).fill;
+      const a=luminance(ink),b=luminance(paper);
+      return {text:node.textContent,ink,paper,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
+    });
+  });
+}
 
 // Documentary graph: checks appearance and retained renderer identities, not
 // live Body execution or native Mask selection.
-test('three typed application Looks retain the exact Face and graph', async ({ page }, info) => {
+test('four typed application Looks retain the exact Face and graph', async ({ page }, info) => {
   const child=spawn('target/debug/conduit-browser-patchbay-workbench',['--documentary-fixture'],{stdio:['ignore','pipe','pipe']});
   const errors=[];child.stderr.on('data',chunk=>errors.push(String(chunk)));
   const lines=createInterface({input:child.stdout});
@@ -22,6 +42,9 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     await expect(page.locator('.flow-frontplate').first()).toBeVisible();
     await page.locator('#fit-flow').click();
     const baseline=await (await page.request.get(`${url}/api/snapshot`)).json();
+    const theme=await (await page.request.get(`${url}/assets/theme.css`)).body();
+    await writeFile(info.outputPath('theme.css'),theme);
+    const cordLabels=[];
     const nodes=await page.locator('.flow-frontplate').evaluateAll(nodes=>nodes.map(node=>node.dataset.subject));
     const picker=page.getByRole('combobox',{name:'Look',exact:true});
     await picker.focus();
@@ -29,6 +52,7 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
       ['phosphor','rgb(5, 7, 11)','Georgia'],
       ['editorial','rgb(244, 240, 231)','Georgia'],
       ['engineering','rgb(234, 240, 246)','Inter'],
+      ['navy','rgb(16, 27, 42)','Georgia'],
     ]) {
       if(name!=='phosphor')await page.keyboard.press('ArrowDown');
       await expect(picker).toHaveValue(`conduit.look/${name}@1`);
@@ -40,6 +64,9 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
       const current=await (await page.request.get(`${url}/api/snapshot`)).json();
       expect(current.face).toEqual(baseline.face);
       await page.screenshot({path:info.outputPath(`look-${name}.png`),fullPage:true,animations:'disabled'});
+      const labels=await cordLabelContrasts(page);expect(labels.length).toBeGreaterThan(0);
+      for(const label of labels)expect(label.ratio,`${name} Cord ${label.text}: ${label.ink} / ${label.paper}`).toBeGreaterThanOrEqual(4.5);
+      cordLabels.push({look:name,labels});
     }
     await page.setViewportSize({width:390,height:844});
     await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
@@ -52,7 +79,7 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     await page.keyboard.press('Tab');
     await expect(picker).toBeFocused();
     await page.keyboard.press('Home');
-    for(const name of ['phosphor','editorial','engineering']) {
+    for(const name of ['phosphor','editorial','engineering','navy']) {
       if(name!=='phosphor')await page.keyboard.press('ArrowDown');
       await expect(picker).toHaveValue(`conduit.look/${name}@1`);
       await picker.focus();
@@ -67,12 +94,31 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
       })).toBe(true);
       await expect(page.locator('body')).toHaveAttribute('data-application-look',`conduit.look/${name}@1`);
     }
+    expect((await (await page.request.get(`${url}/api/snapshot`)).json()).face).toEqual(baseline.face);
     await page.screenshot({path:info.outputPath('look-narrow-forced.png'),fullPage:true,animations:'disabled'});
+    const forcedSystem=await page.evaluate(()=>{
+      const probe=document.createElement('span');probe.style.color='Canvas';document.body.append(probe);
+      const canvas=getComputedStyle(probe).color;probe.style.color='CanvasText';
+      const canvasText=getComputedStyle(probe).color;probe.remove();return {canvas,canvasText};
+    });
+    const forcedLabels=await cordLabelContrasts(page);
+    expect(forcedLabels.length).toBeGreaterThan(0);
+    for(const label of forcedLabels){expect(label.ink).toBe(forcedSystem.canvasText);expect(label.paper).toBe(forcedSystem.canvas);}
+    for(const label of forcedLabels)expect(label.ratio,'forced-color Cord badge').toBeGreaterThanOrEqual(4.5);
+    await page.emulateMedia({forcedColors:'none',reducedMotion:'reduce'});
+    await expect(page.locator('body')).toHaveAttribute('data-application-look','conduit.look/navy@1');
+    const restoredLabels=await cordLabelContrasts(page),navyLabels=cordLabels.find(value=>value.look==='navy').labels;
+    expect(restoredLabels.map(({ink,paper})=>({ink,paper}))).toEqual(navyLabels.map(({ink,paper})=>({ink,paper})));
+    expect((await (await page.request.get(`${url}/api/snapshot`)).json()).face).toEqual(baseline.face);
+    await page.screenshot({path:info.outputPath('look-narrow-restored.png'),fullPage:true,animations:'disabled'});
     await writeFile(info.outputPath('look-receipt.json'),JSON.stringify({
+      forced_color_restore:true,
+      cord_labels:cordLabels,forced_color_cord_labels:forcedLabels,forced_system_colors:forcedSystem,
       scope:'documentary browser application Look switching; not live Body or native proof',
-      face:baseline.face, nodes, looks:['conduit.look/phosphor@1','conduit.look/editorial@1','conduit.look/engineering@1'],
+      face:baseline.face, nodes, looks:['conduit.look/phosphor@1','conduit.look/editorial@1','conduit.look/engineering@1','conduit.look/navy@1'],
       unchanged_face:true, keyboard_selection:true, narrow_forced_colors:true,
       browser:page.context().browser().version(),
+      theme_css:{bytes:theme.length,sha256:createHash('sha256').update(theme).digest('hex')},
     },null,2));
   } finally { lines.close();child.kill('SIGTERM'); }
 });

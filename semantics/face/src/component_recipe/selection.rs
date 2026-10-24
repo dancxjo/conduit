@@ -114,6 +114,27 @@ impl ComponentVisualSelection {
             (ResponsiveColumns, Spacious, Editorial) => "creche-mask-columns-spacious-engineering",
         }
     }
+    /// Reviewed navy roots reuse the exact same checked component structures.
+    pub const fn creche_navy_root(
+        self,
+        recipe: CrecheComponentRecipe,
+        typography: VisualTypography,
+    ) -> &'static str {
+        use {CrecheComponentRecipe::*, VisualDensity::*, VisualTypography::*};
+        match (recipe, self.density, typography) {
+            (SingleColumn, Compact, Editorial) => "creche-mask-single-navy",
+            (SingleColumn, Spacious, Editorial) => "creche-mask-single-navy-spacious",
+            (SingleColumn, Compact, Engineering) => "creche-mask-single-navy-engineering",
+            (SingleColumn, Spacious, Engineering) => "creche-mask-single-navy-spacious-engineering",
+            (ResponsiveColumns, Compact, Editorial) => "creche-mask-columns-navy",
+            (ResponsiveColumns, Spacious, Editorial) => "creche-mask-columns-navy-spacious",
+            (ResponsiveColumns, Compact, Engineering) => "creche-mask-columns-navy-engineering",
+            (ResponsiveColumns, Spacious, Engineering) => {
+                "creche-mask-columns-navy-spacious-engineering"
+            }
+        }
+    }
+
     pub const fn creche_root(self, recipe: CrecheComponentRecipe) -> &'static str {
         use {CrecheComponentRecipe::*, VisualDensity::*, VisualPalette::*};
         match (recipe, self.density, self.palette) {

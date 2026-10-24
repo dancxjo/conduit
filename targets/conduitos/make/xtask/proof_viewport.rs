@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 // journey correspondence record ceiling; focus records retain their old cap.
 const MAX_FACE_RECORD_BYTES: usize = 2 * 1024 * 1024;
 const MAX_FOCUS_RECORD_BYTES: usize = 96 * 1024;
-const MAX_RECORDS: usize = 256;
+pub(super) const MAX_RECORDS: usize = 256;
 const MAX_SERIAL_BYTES: usize = 16 * 1024 * 1024;
 use std::process::Command;
 #[derive(Args, Debug)]
@@ -29,6 +29,10 @@ pub enum ControlScenario {
     Layout,
     Search,
     Accessibility,
+    Navy,
+    AccessibilityDetails,
+    AccessibilityDetailsEditorial,
+    AccessibilityDetailsEngineering,
     NoGraphics,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]

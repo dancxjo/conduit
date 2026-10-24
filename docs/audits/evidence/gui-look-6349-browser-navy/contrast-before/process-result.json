@@ -1,0 +1,24 @@
+{
+  "source": "ef73f561733c9ea241f23edf0242e45eeb2753de",
+  "pid": 1221293,
+  "proc_start": "50394997",
+  "command": [
+    "node",
+    "proof/browser/node_modules/@playwright/test/cli.js",
+    "test",
+    "--config",
+    "proof/browser/patchbay-html.playwright.config.mjs",
+    "--workers=1",
+    "--retries=0",
+    "--output",
+    "/tmp/c6349-gui/browser-navy-contrast-before",
+    "patchbay-look-options.spec.mjs",
+    "patchbay-panel-furniture.spec.mjs"
+  ],
+  "binary": "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/native-target/release/conduit-browser-patchbay-workbench",
+  "binary_sha256": "8e96a79a79e008832a5ef3a0a085fb09482a994354b62aef1f34d8d58b4919b3",
+  "output": "/tmp/c6349-gui/browser-navy-contrast-before",
+  "exit": 1,
+  "source_unchanged": true,
+  "tracked_tree_clean": true
+}

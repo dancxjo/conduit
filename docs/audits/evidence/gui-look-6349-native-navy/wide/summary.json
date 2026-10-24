@@ -1,0 +1,100 @@
+{
+  "source": "235297c3f003790da6e8bea4cab913d5409ee61a",
+  "status": "passed",
+  "scope": "four navy density/type Looks and user minimum/forced colors with exact Look bytes, unchanged complete Face/structure and fresh local Shows; no Body startup",
+  "image_sha256": "e33a1864b507168683e3574631448bd0f66573ad6923b7f2ad69a0e9765a7d53",
+  "root_sha256": "b08a5734023a3de7829f763d563636be9de5bbf7089598ac961fb5ca7c8d62b4",
+  "prepared_frame_budget": {
+    "command_high_water": 48,
+    "command_limit": 48,
+    "command_payload_byte_limit": 192,
+    "focus_observations": 54,
+    "maximum_command_payload_bytes": 109,
+    "maximum_frame_payload_bytes": 754,
+    "retained_compositor_surface_count": "not observed by this receipt",
+    "schema": "conduit.native-prepared-frame-budget-proof/v1",
+    "scope": "current prepared Mask frame used for focus; not compositor/scanout history"
+  },
+  "archives": {
+    "journey-serial.log": {
+      "raw_sha256": "e3c8f588a70cd7f69ff06a538e3adf8044d2900234aa5d6f701c7e47bfff06c4",
+      "archive_sha256": "372b1691c60d51d2be77207959332affa005bb3379636df223f813cf67ca1602"
+    },
+    "journey-qmp.log": {
+      "raw_sha256": "5de1d0458834aa2a94eb377da1d0abf3a6e3d5f953c81f3420d10a72434229fc",
+      "archive_sha256": "48e6a4081b39eeb8b97efabd87028b628c2dc884eb4e89536e40dbfb15d526a8"
+    },
+    "capture-manifest.json": {
+      "raw_sha256": "f06c968a63943eacb710adf78e3a78f10c76eb3f492451ee16111172aa8cc403",
+      "archive_sha256": "65f0a4e3a7761be2f273b8cbaeb9cc087df4e8a304c4042102c1d85637279988"
+    },
+    "profile.log": {
+      "raw_sha256": "94583a2f5d9c1ef363d90649bc901a37694d8b035bc4311c0d414aab2a9383bb",
+      "archive_sha256": "f074e6687ce3ac4c59c3854608af3f1daca194e3498b3f9f712bfab06e970eb5"
+    },
+    "build.json": {
+      "raw_sha256": "b149f7c5ab0e820c086bdb8dc5a5c8a3dcd415df142a6c872283804d2f34fc76",
+      "archive_sha256": "99401513669e4c3e767a3c2aae3f8c7bd8bdf1ac7008658dd32e8016398b8adf"
+    },
+    "image.json": {
+      "raw_sha256": "de2b36a674f5e53eab6c1523c1b28dd961eefe2abac6b0d2f703b1901e7a9be9",
+      "archive_sha256": "4b05ce669993be85f7b87e6bcdeb26bf28d77841a059fccf6ffb424d36c6f136"
+    },
+    "creche-navy-look-proof.json": {
+      "raw_sha256": "0ee9a12cfe632b91684dd7dbf5cc933a4e0ad54014241d0e6151bf5c228d8ef2",
+      "archive_sha256": "293424d0f1f74b85e995979b851563f731f2cee514f36e976efc4b6f246a6796"
+    }
+  },
+  "pngs": {
+    "creche-controls-ready.png": {
+      "sha256": "685cb1b6b917bf7871b8535eb372db56cae0fa6041be98620577ca13acf9ea4d",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-navy-compact.png": {
+      "sha256": "40c8502f3e1eb7921c2763fc71c3d40006b3f1b97df37cc2ea67052e96d03fbc",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-navy-engineering-compact.png": {
+      "sha256": "ecda04991c4fe98bedd0d2067126e00e304ff67023baf07a8dacc999986503ad",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-navy-engineering-spacious.png": {
+      "sha256": "50da4f0508e4a8c624c9d81db41ead2a0fcabafe49268d10ccf3f5ab58bb8632",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-navy-forced-colors.png": {
+      "sha256": "8608d16a1cdc207bb2ae9d0d09d24af51bb430a1749fe080feae2afea19b8108",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-navy-large-text.png": {
+      "sha256": "a968ea54b1536a1b249f7f6ad9ca199666a92c02a2065ce17fcb525dcd7c4f2e",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-navy-long-name.png": {
+      "sha256": "a00a4d88fe34ba15319d96158dab46fb6ad350a931e36933063a2f626f7b9661",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-navy-spacious.png": {
+      "sha256": "d0538ab75157be53c45e59ad80be246e510eefbc4b36204cb3f3020d59e9e1b9",
+      "width": 1280,
+      "height": 800
+    },
+    "creche-phosphor-restored.png": {
+      "sha256": "a00a4d88fe34ba15319d96158dab46fb6ad350a931e36933063a2f626f7b9661",
+      "width": 1280,
+      "height": 800
+    },
+    "front-door-ready.png": {
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "width": 1280,
+      "height": 800
+    }
+  }
+}

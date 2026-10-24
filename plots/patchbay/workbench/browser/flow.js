@@ -127,6 +127,10 @@ function presentEdges(edges) {
     ...edge,
     className: `flow-cord ${edge.className || ""}`.trim(),
     markerEnd: { type: Flow.MarkerType.ArrowClosed },
+    // React Flow supplies inline white badge paint. Bind its presentation props
+    // to the selected Look so dark and forced-color labels retain contrast.
+    labelBgStyle: { fill: "var(--conduit-surface)" },
+    labelStyle: { fill: "var(--conduit-text-primary)" },
   }));
 }
 

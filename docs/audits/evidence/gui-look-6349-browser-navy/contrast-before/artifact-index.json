@@ -1,0 +1,60 @@
+[
+  {
+    "original_relative_path": ".last-run.json",
+    "retained_file": ".last-run.json",
+    "sha256": "71b601b40c3b1197281c8802bd2253b3de8d7d93afee0d803311ca85d831a309",
+    "bytes": 96
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/error-context.md",
+    "retained_file": "error-context.md",
+    "sha256": "92827951b70354807b382eded2b8ad17b85e4491f4c5a9085126e704643ba22f",
+    "bytes": 16656
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/look-phosphor.png",
+    "retained_file": "look-phosphor.png",
+    "sha256": "03492e1925e6e3c0170b9edf29d342d39078bd188b36f3a692fd914d1026e312",
+    "bytes": 150341,
+    "width": 1440,
+    "height": 1000
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/theme.css",
+    "retained_file": "theme.css",
+    "sha256": "06bf74d3a919fbe0f09ce66c26fcfc892fe097e5225ee2563d816925d2c0d40b",
+    "bytes": 3914
+  },
+  {
+    "original_relative_path": "patchbay-panel-furniture-E-00952-pection-leaves-Library-open-chromium/focused-inspection.png",
+    "retained_file": "focused-inspection.png",
+    "sha256": "5572856db1918c86a1a6a1fd0c39e3fd0ca0b09deb90490897734027c84fb517",
+    "bytes": 113293,
+    "width": 1366,
+    "height": 768
+  },
+  {
+    "original_relative_path": "patchbay-panel-furniture-P-b87ca-ypography-and-surface-roles-chromium/canonical-look-graph.png",
+    "retained_file": "canonical-look-graph.png",
+    "sha256": "bae85ec763c7871abbffcec4e2c16e4495c7aa5364138e567bcf138d12a24ff7",
+    "bytes": 121987,
+    "width": 1366,
+    "height": 768
+  },
+  {
+    "original_relative_path": "patchbay-panel-furniture-w-1c5fd-e-instead-of-covering-nodes-chromium/reserved-status-narrow.png",
+    "retained_file": "reserved-status-narrow.png",
+    "sha256": "c673ee0e2823659aaac118c78d3dcb2270cf35c857eb52cd2160c74f1019cebf",
+    "bytes": 47906,
+    "width": 390,
+    "height": 1000
+  },
+  {
+    "original_relative_path": "patchbay-panel-furniture-w-1c5fd-e-instead-of-covering-nodes-chromium/reserved-status-wide.png",
+    "retained_file": "reserved-status-wide.png",
+    "sha256": "61f4f5d59e53bc4c457befd456f92da87e982a0b88525e600e60f6f7a3de5f68",
+    "bytes": 123496,
+    "width": 1366,
+    "height": 768
+  }
+]

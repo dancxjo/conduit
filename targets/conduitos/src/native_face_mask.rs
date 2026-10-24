@@ -105,6 +105,7 @@ pub struct NativeFaceMask {
     surface_admitted: bool,
     interaction_admitted: bool,
     local_input_available: bool,
+    local_creche_preferences: bool,
     component_configuration: Option<conduit_face::ConfiguredMaskConfiguration>,
     visual_look: Option<conduit_face::AdmittedVisualLook>,
     visual_constraints: conduit_face::VisualUserConstraints,
@@ -280,6 +281,7 @@ impl NativeFaceMask {
         if !self.local_input_available {
             scene.disable_local_input();
         }
+        scene.set_local_creche_preferences(self.local_creche_preferences);
         self.restore_pending_encounter(&mut scene)?;
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
         let front_subject = face

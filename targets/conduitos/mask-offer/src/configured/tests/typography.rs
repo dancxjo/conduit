@@ -55,3 +55,36 @@ fn engineering_changes_only_look_for_each_creche_structure_and_density_palette()
         }
     }
 }
+
+#[test]
+fn navy_roots_supply_exact_complete_look_without_changing_structure() {
+    let host = host();
+    for recipe in [
+        CrecheComponentRecipe::SingleColumn,
+        CrecheComponentRecipe::ResponsiveColumns,
+    ] {
+        for density in [VisualDensity::Compact, VisualDensity::Spacious] {
+            for typography in [VisualTypography::Editorial, VisualTypography::Engineering] {
+                let selection = ComponentVisualSelection {
+                    density,
+                    palette: VisualPalette::Phosphor,
+                };
+                let (_, before) = prepare_typographic_creche_stage_from_offer(
+                    &host, recipe, selection, typography,
+                )
+                .unwrap();
+                let (_, after) =
+                    prepare_navy_creche_stage_from_offer(&host, recipe, selection, typography)
+                        .unwrap();
+                assert_eq!(before.component, after.component);
+                assert_eq!(before.recipe, after.recipe);
+                assert_eq!(before.layout, after.layout);
+                assert_eq!(before.implementation_id, after.implementation_id);
+                assert_eq!(
+                    after.requested_look().unwrap(),
+                    navy_look(density, typography).unwrap()
+                );
+            }
+        }
+    }
+}

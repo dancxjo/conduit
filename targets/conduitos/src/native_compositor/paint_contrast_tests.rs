@@ -116,6 +116,16 @@ fn complete_look_tokens_drive_native_roles_with_accessibility_precedence() {
             phosphor_look().unwrap(),
             editorial_look().unwrap(),
             engineering_look().unwrap(),
+            conduit_face::navy_look(
+                conduit_face::VisualDensity::Compact,
+                conduit_face::VisualTypography::Editorial,
+            )
+            .unwrap(),
+            conduit_face::navy_look(
+                conduit_face::VisualDensity::Spacious,
+                conduit_face::VisualTypography::Engineering,
+            )
+            .unwrap(),
         ] {
             let conduit_face::LookVisualFacetOption::Some(facet) = look.visual() else {
                 panic!("visual facet")

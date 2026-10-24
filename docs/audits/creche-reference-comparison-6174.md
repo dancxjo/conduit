@@ -1,7 +1,13 @@
 # Crèche reference comparison (#6174)
 
+Latest color follow-up: Source 235297c3f now supplies a restrained navy Look
+family with actual wide/narrow QEMU captures. [Same-Face Phosphor/navy comparison](evidence/gui-look-6349-native-navy/README.md)
+moves the palette toward the reference while preserving source facts. This does
+not complete metric/radius/depth or full-journey acceptance.
+
+
 The user-supplied reference is pinned at `c8fdc8949a426873364665abd98bf8dc34edf98c`.
-The current actual native captures below are from clean Source `e34b12788`,
+The retained typography comparison captures below are from clean Source `e34b12788`,
 with exact image/Root/PNG bindings and the later journey failure retained in
 [the evidence record](evidence/gui-look-6349-native-engineering/README.md).
 This is a visual comparison and gap audit, not completed reference acceptance.
@@ -66,3 +72,20 @@ supersede the earlier pending local-primary 200%/forced-color/narrow checks for
 this Source. They do not complete Details, every unavailable-control/resource
 fallback case, the restrained navy expression or the full Body journey. No
 integration, publication, physical or human acceptance is implied.
+
+## Wide Details follow-up
+
+Source 8b9f820f9 now proves wide Details keyboard and continuation at 200% in
+two forced-color Looks, with explicit scene-mode observations. All sixteen
+typed controls and nineteen/twenty-three pages pass. This supersedes the pending
+wide Details traversal only; narrow Details and unavailable/resource cases remain.
+[Source-bound captures and proof boundaries](evidence/gui-look-6349-native-details/README.md).
+
+## Narrow Details with shared icons
+
+Source 18f653cf4 now passes every narrow Details page and both keyboard directions
+at 200%/forced colors in separate Editorial and Engineering runs (56/71 pages).
+Shared explicit role/intent icons decorate subjects/actions without changing
+wording or contracts. [Exact captures and bounded scope](evidence/gui-look-6349-native-details/README.md#narrow-details-and-shared-icons--source-18f653cf4)
+supersede the pending narrow Details navigation scope only. Unavailable/resource
+cases, closer navy reference and full Body journey remain open.

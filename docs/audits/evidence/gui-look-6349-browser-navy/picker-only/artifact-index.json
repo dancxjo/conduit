@@ -1,0 +1,95 @@
+[
+  {
+    "original_relative_path": ".last-run.json",
+    "retained_file": ".last-run.json",
+    "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903",
+    "bytes": 45
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/look-editorial.png",
+    "retained_file": "look-editorial.png",
+    "sha256": "0856873f94eef3dfce85f44e283bf1a5b926b1ee4e82be509bad8d2b5305b0d7",
+    "bytes": 150162,
+    "width": 1440,
+    "height": 1000
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/look-engineering.png",
+    "retained_file": "look-engineering.png",
+    "sha256": "6d43bfbea2c58b6cb2e10a77f97310731143399bd0e90623e5b7fbea4e7aab34",
+    "bytes": 156041,
+    "width": 1440,
+    "height": 1000
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/look-narrow-forced.png",
+    "retained_file": "look-narrow-forced.png",
+    "sha256": "22a7d76908891c3fb944c3a107170e05a694c54e6bed8ac71bea8f5fddaa7ba6",
+    "bytes": 30803,
+    "width": 390,
+    "height": 844
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/look-navy.png",
+    "retained_file": "look-navy.png",
+    "sha256": "6aab9002146e51b8d36d096beda96a0cf3c83bd8bd0c7cbd5f3ffd10ec5dd3df",
+    "bytes": 149082,
+    "width": 1440,
+    "height": 1000
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/look-phosphor.png",
+    "retained_file": "look-phosphor.png",
+    "sha256": "8396b85935b09eb56fbee58fbc176d5fef5e1d436c24b1ea78903e27ef1c69e5",
+    "bytes": 150348,
+    "width": 1440,
+    "height": 1000
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/look-receipt.json",
+    "retained_file": "look-receipt.json.gz",
+    "sha256": "32ad4a9d163c0cded9a3a96c3c640e4d04e1237ea04e06fbc10b7809ce046c2c",
+    "bytes": 20672,
+    "raw_sha256": "8a6e4e1de88302ae94917eae518cbc1da917553bf5ac9321d2dc75fc97a88ac0",
+    "raw_bytes": 362945,
+    "archive_encoding": "gzip"
+  },
+  {
+    "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/theme.css",
+    "retained_file": "theme.css",
+    "sha256": "06bf74d3a919fbe0f09ce66c26fcfc892fe097e5225ee2563d816925d2c0d40b",
+    "bytes": 3914
+  },
+  {
+    "original_relative_path": "patchbay-panel-furniture-E-00952-pection-leaves-Library-open-chromium/focused-inspection.png",
+    "retained_file": "focused-inspection.png",
+    "sha256": "5572856db1918c86a1a6a1fd0c39e3fd0ca0b09deb90490897734027c84fb517",
+    "bytes": 113293,
+    "width": 1366,
+    "height": 768
+  },
+  {
+    "original_relative_path": "patchbay-panel-furniture-P-b87ca-ypography-and-surface-roles-chromium/canonical-look-graph.png",
+    "retained_file": "canonical-look-graph.png",
+    "sha256": "17ec5845331148abe5fd818ed871e896bf090df0cb902bb0e5f8d79ef65f574a",
+    "bytes": 121597,
+    "width": 1366,
+    "height": 768
+  },
+  {
+    "original_relative_path": "patchbay-panel-furniture-w-1c5fd-e-instead-of-covering-nodes-chromium/reserved-status-narrow.png",
+    "retained_file": "reserved-status-narrow.png",
+    "sha256": "c673ee0e2823659aaac118c78d3dcb2270cf35c857eb52cd2160c74f1019cebf",
+    "bytes": 47906,
+    "width": 390,
+    "height": 1000
+  },
+  {
+    "original_relative_path": "patchbay-panel-furniture-w-1c5fd-e-instead-of-covering-nodes-chromium/reserved-status-wide.png",
+    "retained_file": "reserved-status-wide.png",
+    "sha256": "2f62acdf139b9e09717c1222766d1c3554cc358cf67107c2e64baf05a923ff02",
+    "bytes": 122246,
+    "width": 1366,
+    "height": 768
+  }
+]
