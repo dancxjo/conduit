@@ -1,0 +1,19 @@
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling libm v0.2.16
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling serde_json v1.0.151
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 19.40s
+     Running tests/retained_resource_reference.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6367-retained-bind-repair-target/debug/deps/retained_resource_reference-41e3e0896332d01c)
+
+running 1 test
+test optional_resource_reference_bound_uses_canonical_framing_and_the_reference_codec_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+

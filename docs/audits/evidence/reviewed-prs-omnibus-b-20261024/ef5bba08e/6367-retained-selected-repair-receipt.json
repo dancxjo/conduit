@@ -1,0 +1,56 @@
+{
+  "issue": 6366,
+  "PR": 6367,
+  "source_head": "b584f81559e59b0ccbf1e93225c7547007c7bba2",
+  "parent_reviewed_owner_head": "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+  "finding": "Originalscope requires Rootretainedprovider preservation forselectedandassigned routes; ownerhead9d offeredretainedtransfer onlyassigned,rawordinaryconstructorconsumedproviderbeforefalliblechecks.",
+  "repair": "AddsafeReadyWriteBase::bind_selected_retained withnativeidentity,scope,exactPlan/lowering/Playandcodecpreflight beforetake. Extractsharedordinarypreparedbindinghelperwithoutalteringrawconstructorbehavior. Keepassignedimplementationuntouched.",
+  "changed_files": [
+    "mechanisms/io/tm1637/README.md",
+    "mechanisms/io/tm1637/src/installation.rs",
+    "mechanisms/io/tm1637/src/installation_selected.rs",
+    "mechanisms/io/tm1637/src/owner.rs",
+    "mechanisms/io/tm1637/tests/owner.rs",
+    "mechanisms/io/tm1637/tests/support/selected_retained.rs"
+  ],
+  "unchanged_assigned_blob": {
+    "9d658a9295459e39ec0b13fceacc0ffc81686fcc": "33418ef48d59be75ea34ba24690d08a6bd095e88",
+    "b584f81559e59b0ccbf1e93225c7547007c7bba2": "33418ef48d59be75ea34ba24690d08a6bd095e88"
+  },
+  "unchanged_wire_logic": "lib.rs is byteidentical toparent; noelectricalwire/packet/semanticlogicchange.",
+  "regression": "ordinary_selected_refusal_retains_provider_then_exact_transfer_and_retirement: sixrefusals(foreignBoot,resourcegeneration,artifact,profile,semanticport,substitutedlowering)retainexactReadyaddress/nativeidentitywith0pinedges;correctbindtakesonce;allocationfreeinvoke/revocationreturnsactualprovider+attachment;liveandemptyretirementrefuse.",
+  "execution": {
+    "command": "cargo +stable xtask check tm1637-output",
+    "exit_code": 0,
+    "wire_only_check": "passed",
+    "host_call_tests": 10,
+    "wire_tests": 4,
+    "total_tests": 14,
+    "strict_all_targets_clippy": "passed",
+    "unchanged_contiguous_and_borrowed_assigned_tests": "bothpassinrawlog",
+    "source_timing": "Tests ran on dirty precommit repair source. All Rust implementation and test bytes executed are exactly those committed in b584f81559e59b0ccbf1e93225c7547007c7bba2; no whole-commit checkout-at-execution claim. Only README prose line wrapping changed after execution, before commit.",
+    "negative_local_failures": [],
+    "raw_log_scope": "One supported cargo+stable xtask check tm1637-output execution: wire-only check;10 owner tests plus4wiretests,including ordinarysixnegativevectors and both unchangedassignedstorageforms; strictalltargetClippy. No additional dispatcher/fullworkspace/native/physical testexecution byrepairworker."
+  },
+  "environment": {
+    "TMPDIR": "work/6367-retained-bind-repair-tmp",
+    "CARGO_TARGET_DIR": "work/6367-retained-bind-repair-target",
+    "CARGO_BUILD_JOBS": 2,
+    "CARGO_INCREMENTAL": 0,
+    "CARGO_PROFILE_DEV_DEBUG": 0,
+    "CARGO_PROFILE_TEST_DEBUG": 0,
+    "cache_end": "309MiB",
+    "disk_headroom_end": "12GiB"
+  },
+  "raw_log_sha256": "e18d4f594c141e2ddbb48426fbb13395d14d1f6540bdf3263ab5384972d32019",
+  "limits": "CPU/cooperativefixtures; noESP32providerinstallation/fullappliancememoryworkadmission/joinedMaskoutputLine/physicaldisplay/residentsampling/overnightrecording. NoCandidate/Integrationofrepairclaimed. Noownerbranchmutation/newPR/merge/CIpoll.",
+  "static_review": "Rootreviewreportedconsistentnativepreflightorderingand6negativevectors; allnewproductionfilesbelow500lines; noCoreorotherownerchanges.",
+  "exact_changed_source_blob_map": {
+    "mechanisms/io/tm1637/README.md": "b82d07b41cb4c31c4208a8dded61d188a057d103",
+    "mechanisms/io/tm1637/src/installation.rs": "5f7a749f2467d56e514fb04347556ddaa84663e2",
+    "mechanisms/io/tm1637/src/installation_selected.rs": "7ef2a8b34a6799eb5338bca15be8cf737bbf3c54",
+    "mechanisms/io/tm1637/src/owner.rs": "218e63bbc5609851001d81015b1f55a088fb7a6a",
+    "mechanisms/io/tm1637/tests/owner.rs": "c979bcda21f98ae3985934c4439aec6907f07c53",
+    "mechanisms/io/tm1637/tests/support/selected_retained.rs": "ea7e83cb1a9d917729cb9e84952e84c9c0446114"
+  }
+}

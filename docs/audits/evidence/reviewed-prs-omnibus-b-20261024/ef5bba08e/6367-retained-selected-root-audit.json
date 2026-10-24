@@ -1,0 +1,12 @@
+{
+  "source": "b584f81559e59b0ccbf1e93225c7547007c7bba2",
+  "packet": "8cc73d89553fec79deb02aa7febe48b531794e56",
+  "parent_exact": true,
+  "all6_changed_blobs_verified": true,
+  "rawlog_sha256_verified": true,
+  "actual_14_test_result_verified": true,
+  "remote_refs_verified": true,
+  "review": "Native identity/selected/lowered/codec checks precede slot.take; assignedpath/wirelogic unchanged; no actionablefinding",
+  "limits": "ActualtestedRust/testbytes mappedtofinalsource; READMEwrappingafterrun; noCandidate/Integration/adoptionclaim",
+  "observed_utc": "2026-10-24T04:16:24.710053+00:00"
+}

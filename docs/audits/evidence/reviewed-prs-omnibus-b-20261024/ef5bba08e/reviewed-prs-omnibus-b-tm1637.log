@@ -1,0 +1,56 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.15s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6367-retained-bind-repair-target/debug/conduit-xtask-dispatch check tm1637-output`
+» [tm1637-output.wire-only] Check the portable wire driver without native ownership dependencies
+  $ cargo check --locked --manifest-path mechanisms/io/tm1637/Cargo.toml --no-default-features --lib
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/mechanisms/io/tm1637)
+    Finished `dev` profile [unoptimized] target(s) in 0.09s
+» [tm1637-output.contract] Verify exact selected and assigned output, finite kernel execution and electrical failures
+  $ cargo test --locked --manifest-path mechanisms/io/tm1637/Cargo.toml --features host-call
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/plot)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/make/embedded-build)
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/mechanisms/io/tm1637)
+    Finished `test` profile [unoptimized] target(s) in 6.92s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6367-retained-bind-repair-target/debug/deps/conduit_tm1637_wire-510b5a7ca1752547)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/owner.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6367-retained-bind-repair-target/debug/deps/owner-963420a9d8f6d86f)
+
+running 10 tests
+test kernel::sink_phase_advances_only_with_the_ordinary_step_commit ... ok
+test installation::only_retained_native_slot_projects_its_exact_resource_and_zero_result_offer ... ok
+test substituted_play_and_semantic_ports_refuse_before_pin_effects ... ok
+test assigned::assigned_output_preserves_slot_on_refusal_then_transfers_and_writes ... ok
+test nack_provider_loss_and_cancellation_release_revoke_and_never_retry ... ok
+test exact_source_packets_are_authorized_sequenced_and_allocation_free ... ok
+test canonical_but_invalid_packet_lengths_and_padding_refuse_before_authorization ... ok
+test assigned::borrowed_assignment_preserves_slot_then_transfers_and_writes ... ok
+test selected_retained::ordinary_selected_refusal_retains_provider_then_exact_transfer_and_retirement ... ok
+test kernel::kernel_output_requests_reach_exact_pin_possession_without_allocation_or_retry ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
+     Running tests/wire.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6367-retained-bind-repair-target/debug/deps/wire-becb808abd8644f2)
+
+running 4 tests
+test malformed_geometry_has_no_effect_and_cancellation_releases_lines ... ok
+test least_significant_bit_first_and_ninth_clock_releases_data ... ok
+test every_byte_acknowledged_and_nack_stops_without_retry ... ok
+test provider_failure_at_every_transition_attempts_both_releases ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests conduit_tm1637_wire
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+» [tm1637-output.lint] Lint output ownership, wire transport and its contract fixtures
+  $ cargo clippy --locked --manifest-path mechanisms/io/tm1637/Cargo.toml --features host-call --all-targets -- -D warnings
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/mechanisms/io/tm1637)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/plot)
+    Checking conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/make/embedded-build)
+    Finished `dev` profile [unoptimized] target(s) in 2.98s

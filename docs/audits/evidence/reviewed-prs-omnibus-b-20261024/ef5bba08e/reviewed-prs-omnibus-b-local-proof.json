@@ -1,0 +1,89 @@
+{
+  "source": "ef5bba08ec65469a332c463b94d3a2be6210a841",
+  "started_utc": "2026-10-24T04:21:17.003962+00:00",
+  "status": "passed",
+  "steps": [
+    {
+      "name": "setup-ci",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "setup-ci"
+      ],
+      "exit_code": 0,
+      "log": "work/reviewed-prs-omnibus-b-setup-ci.log",
+      "sha256": "1d661a31c1e215c05411ff8663f5f373621397d0232e50c8e4f6288671f890a8"
+    },
+    {
+      "name": "preflight",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "dd92bde82017fe685404ef9197b56d3b3127006c"
+      ],
+      "exit_code": 0,
+      "log": "work/reviewed-prs-omnibus-b-preflight.log",
+      "sha256": "41961b6041d3de95cd39b6cad30e8df683a8f9bc9d48d3dba722e2c72eba17a0"
+    },
+    {
+      "name": "tm1637",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "check",
+        "tm1637-output"
+      ],
+      "exit_code": 0,
+      "log": "work/reviewed-prs-omnibus-b-tm1637.log",
+      "sha256": "1a0bd9ba545856a70e4bb5e4ee9ba1dc9f00195052c55cc9bd3351a18ad8dff9"
+    },
+    {
+      "name": "plot-resource-reference",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "retained_resource_reference"
+      ],
+      "exit_code": 0,
+      "log": "work/reviewed-prs-omnibus-b-plot-resource-reference.log",
+      "sha256": "c8c75a861437232b8fa1b90d63bf08fb404d2f1d62150b65453cc7505bb7ab4b"
+    },
+    {
+      "name": "plot-resource-reference-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "retained_resource_reference",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "work/reviewed-prs-omnibus-b-plot-resource-reference-clippy.log",
+      "sha256": "c75b7d4092e67e3eab058339aaa125943b4b00864e0aba1cce8616c157b5e045"
+    }
+  ],
+  "environment_stop": {
+    "reason": "Before TM1637 step, free-space guard refused below7GiB; no build started or failed. Reclaimed inactive nested Rust libraries before resuming.",
+    "resumed_utc": "2026-10-24T04:22:37.897249+00:00"
+  },
+  "finished_utc": "2026-10-24T04:23:19.521530+00:00"
+}

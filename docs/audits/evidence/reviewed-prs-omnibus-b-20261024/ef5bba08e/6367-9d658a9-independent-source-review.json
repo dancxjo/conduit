@@ -1,0 +1,56 @@
+{
+  "pr": 6367,
+  "head": "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+  "owning_issue": 6366,
+  "decision": "Not ready for full issue completion: ordinary selected retained-provider transfer is missing; concrete custody-preserving repair required. Remaining implementation appears coherent within CPU/cooperative scope.",
+  "finding": {
+    "priority": "P1",
+    "title": "Ordinary selected binding cannot preserve initialized provider on refusal",
+    "issue_requirement": "Retain initialized provider ownership before advertising a Ready Base; bind exact selected and contiguous/borrowed assigned plans to independently issued capability possession. Refusal must preserve Root\u2019s retained provider.",
+    "source": [
+      "mechanisms/io/tm1637/src/owner.rs:50-90: bind_selected owns P before fallible possession/selection/codec ?; Err drops P.",
+      "mechanisms/io/tm1637/src/installation.rs:29-92: ReadyWriteBase private provider and no ordinary retained transfer entrance.",
+      "mechanisms/io/tm1637/src/assigned.rs:66-85: correctly preflights and takes retained provider only for assigned route."
+    ],
+    "effect": "Root cannot transfer its advertised ReadyWriteBase through ordinary selectedPlan with refusal preserving custody. The raw unsafe by-value constructor cannot return provider on WrongBinding/Possession. Existing foreignPlay tests only check zero pin effects, not retained ownership.",
+    "precedent": "Delivered monotonic-wait/src/installation.rs:167-216 supports ordinary retained-slot preflight before provider transfer.",
+    "minimal_fix": "Add ordinary ReadyWriteBase retained selected binder with exactnativeidentity+genericbinding+codec checks before slot.take; test same provider survives ordinary foreign/stale/invalidselection refusal then one correct transfer/recovery. Preserve existing assigned retained behavior."
+  },
+  "other_requirements": {
+    "packets": "Build derives exact authored Tm1637Packets Type; PreparedPackets validates canonical Type,3packets,1..7byte length andzeropadding beforeauthorization/effects. Formatting/quantity/Look staysupstream.",
+    "authority": "Generic ordinary and assigned binding validate sealedPlan/lowering/ActivePlay/issuedscope; assignedNativeIdentity checks exactretainedHostBootBase/provider/resourcegeneration/envelope/artifact/profile/authority beforetake.",
+    "kernel": "WriteBack uses real StepBack, privatephase stagedonlystep_committed; fixedscheduler tests check realrequests/completion, boundedoperationpressure, NACK/cancel/latecompletion andallocationfree.",
+    "failures": "Electricalfailure/cancellation best-effort releases, completeslease, revokesbinding; no retries; retirement onlyRevoked+idle returns actualP/attachment. Cooperativeprovider termination/drop remainsinstallationobligation.",
+    "default_build": "host-call optional and build.rs disabled without it; original portable no_stdwire API remains.",
+    "bounds": "New production files248lines orless, responsibilities separated; existingtm1637lockalreadyregistered.",
+    "supported_proof": "Newcargoxtaskchecktm1637-output runs wire-onlycheck, host-calltests andstrictalltargetClippy. Dispatcher exactroute andfallbackvectors registered."
+  },
+  "owner_proof_review": {
+    "reported": "PRbody reports13deterministic driver tests,wire-onlycheck,strictalltargetClippy and63dispatcherunit+lint.",
+    "independent_execution": "None; reviewer readtestsource. No raw owninglog/immutableproof reference present in PRbody or matching localoutputs found, so do not present ownerreportedcounts as independentlyexecutedproof.",
+    "meaningful_test_sources": [
+      "exact_source_packets_are_authorized_sequenced_and_allocation_free",
+      "nack_provider_loss_and_cancellation_release_revoke_and_never_retry",
+      "substituted_play_and_semantic_ports_refuse_before_pin_effects",
+      "canonical_but_invalid_packet_lengths_and_padding_refuse_before_authorization",
+      "assigned contiguous/borrowed retained-transfer tests",
+      "only_retained_native_slot_projects_its_exact_resource_and_zero_result_offer",
+      "kernel_output_requests_reach_exact_pin_possession_without_allocation_or_retry",
+      "sink_phase_advances_only_with_the_ordinary_step_commit"
+    ]
+  },
+  "Candidate_once": {
+    "run": 40061056323,
+    "head": "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+    "quick": "success",
+    "observed_remaining": "8unit/admissionjobsinprogress;targets skipped",
+    "limits": "Single initial PRcheckrollup observation only; no completion claim/poll."
+  },
+  "overlap_currentdev": "20files confinedtm1637plus focuseddispatcher/suite. Merge-tree withdd92bde82017fe685404ef9197b56d3b3127006c exits0. No rootFace/collector/provider/codec feature overwritten. Focused dispatcher touches sharedintegrationfile but no sourceownershipwrite performed.",
+  "scope_exclusions": [
+    "No initializedESP32pins orphysicaldisplay",
+    "No fullappliancememory/workclosure",
+    "No joinedMaskoutputLine,residentsamplingorovernightrecording"
+  ],
+  "review_actions": "ReadrepoAGENTSandCONTRIBUTING; oneexactPRfetch/onePRstatusdiscovery/owningissueread; no builds/CIpolls/ownerbranchesmutations. Parentauthorizedisolatedrepair nowseparatelyprepared."
+}

@@ -1,0 +1,46 @@
+{
+  "pr": 6363,
+  "head": "851159dd057d55b15667a42e58c9d6fe52db0f06",
+  "reviewed_at_utc": "2026-10-24T04:00:54.697167+00:00",
+  "previous_review": "outputs/6363-3b9cde-independent-source-review.json",
+  "previous_head": "3b9cde59d2408f481eaf13c774efcc1736c06e70",
+  "new_parents": [
+    "3b9cde59d2408f481eaf13c774efcc1736c06e70",
+    "533c18cbb1d0a6e6ba22f7c2daf18a9d6c358ca2"
+  ],
+  "accepted_base_contained": "533c18cbb1d0a6e6ba22f7c2daf18a9d6c358ca2",
+  "source_delta_assessment": "Normal merge of accepteddevelopment533c plus removalofone terminalblankline inownregressiontest. ProductionKEEPboundblobexactold3b9; testsidenticalexceptEOFblankline. Allpreviousstaticcorrectnessfindingsremainclear.",
+  "actual_delta_vs_accepted_base": [
+    "architecture/plot/src/canonical_expansion/retained.rs",
+    "architecture/plot/tests/retained_resource_reference.rs"
+  ],
+  "root_d677_is_ancestor_of_accepted_base": true,
+  "root_feature_overlap": "Rootchangesalreadycontainedinacceptedbase533c; own2Plotpaths disjoint fromRootd677delta. No sourceconflict orownerblobreplacement found.",
+  "findings": [],
+  "proof_review": {
+    "owner_pr_body": "outputs/6363-851-current-pr.json",
+    "claimed": "Focused regression and strict lint pass; no exactheadcommand/log/artifactlink inPRbody. Earlierreviewdidnotverifyactualtestexecution.",
+    "sourcequalification": "Productionexact3b9 andtestsemanticexact3b9; wholebranchnewacceptedbaseline maychangebuildcontext, so oldfocusedproof mustnotberelabeled851execution. CurrentCandidate providesnewexactheadgate whencomplete.",
+    "new_head_initial_candidate_discovery": {
+      "run": 40060565824,
+      "name": "Candidate",
+      "head": "851159dd057d55b15667a42e58c9d6fe52db0f06",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    "ready_for_review": true,
+    "ready_for_merge_or_issue_closure": false,
+    "remaining": [
+      "Inspectactual exact-headCandidate outcome and scopedtestexecution; no inferencethatmerepassregistrationorPRclaimprovesfocusedtest.",
+      "Normaldevdelivery/applicableIntegration andfinal6357scopeaudit."
+    ]
+  },
+  "meaningful_commands": [
+    "cargo +stable test --locked -p conduit-plot --test retained_resource_reference",
+    "cargo +stable clippy --locked -p conduit-plot --test retained_resource_reference -- -D warnings"
+  ],
+  "limits": [
+    "OnePRbodyGET,oneexactheadfetch,oneinitialnewheadCandidatediscovery; no repeatedpoll/build/sourcechanges/ownerbranchmutation/merge.",
+    "Noactualstorageoffer/authority/diskcustody/catalogueseed/Bodyrecorderrestartproof."
+  ]
+}

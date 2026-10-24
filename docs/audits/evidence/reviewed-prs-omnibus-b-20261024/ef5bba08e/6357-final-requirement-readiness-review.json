@@ -1,0 +1,127 @@
+{
+  "issue": 6357,
+  "reviewed_at_utc": "2026-10-24T04:03:00.595153+00:00",
+  "requirements": "outputs/6357-current-requirements.json",
+  "source": "851159dd057d55b15667a42e58c9d6fe52db0f06",
+  "base": "533c18cbb1d0a6e6ba22f7c2daf18a9d6c358ca2",
+  "exact_changed_source_blobs": [
+    {
+      "path": "architecture/plot/src/canonical_expansion/retained.rs",
+      "source_blob": "d856c57eb6741e707641c5fc93e42ebbeccfd5f0"
+    },
+    {
+      "path": "architecture/plot/tests/retained_resource_reference.rs",
+      "source_blob": "8bc0ad4845e793643987302c363efd888ce2b7bb"
+    }
+  ],
+  "unchanged_preservation_sources": [
+    {
+      "path": "architecture/core/src/resource_reference.rs",
+      "blob": "e6120324877dfd3c5613a1e5c3d23397e6870261"
+    },
+    {
+      "path": "architecture/core/src/structured_info.rs",
+      "blob": "ce658d9fb2b838b61fc6e0d9f4f14fbaf660a896"
+    },
+    {
+      "path": "architecture/core/src/structured_info/canonical.rs",
+      "blob": "09acb7eb20504128a6bfed8716bcf4c8acb18a2d"
+    },
+    {
+      "path": "architecture/plot/src/syntax_check.rs",
+      "blob": "e4cbef52e808f3e925eedbde9c23711106097636"
+    },
+    {
+      "path": "architecture/plot/src/syntax_identity.rs",
+      "blob": "47cc1a64413e933ec755189a633aead8aca3de95"
+    },
+    {
+      "path": "architecture/plot/src/canonical_expansion_tests.rs",
+      "blob": "ad75820ae93eb12e1c2de44c75670cad7a4576db"
+    },
+    {
+      "path": "architecture/plot/src/syntax_check_tests.rs",
+      "blob": "9b8e7b33cc4f7bcedd6827b3a84e9e39765792e4"
+    }
+  ],
+  "criteria": [
+    {
+      "requirement": "Derive optional ResourceRef envelope from canonical framing plus Core reference ceiling",
+      "status": "source proven; actual focused execution pending verification",
+      "evidence": "canonical_optional_some_bytes matches exact ResourceRef leaf, constructs canonical none using same optionaltype, adds CoreMAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES512. Shared typeencoding, equal4byte none/some tags andfixedu32 leaflength give identicalframing. Coreencoded_len validates andrefuses>512 includingoptionalexpiry.",
+      "path": "architecture/plot/src/canonical_expansion/retained.rs"
+    },
+    {
+      "requirement": "Preserve canonical identities and source checking",
+      "status": "source preservation proven; no new complete identity execution claimed",
+      "evidence": "Onlysizeadmissionbranchchanged; syntax_check, syntax_identity, canonicalCoretype/valueencoders unchanged. Existing keep_lifetime_optional_and_bound_are_exact_checked_meaning provesoptional/lifetime/bound affectcheckedidentity andlife==body; optional_dimensioned_keep_preserves_none_some_identity_bound_and_duration checksnone/someprofileidentity/duration/bounds. These existingtests not claimed executedbytheone newintegrationtest.",
+      "paths": [
+        "architecture/plot/src/syntax_check_tests.rs",
+        "architecture/plot/src/canonical_expansion_tests.rs"
+      ]
+    },
+    {
+      "requirement": "Preserve unknown-leaf fallback",
+      "status": "source proven",
+      "evidence": "Existing match _=>Ok(None) unmodified, callerunwrap_or(globalMAXIMUM_STRUCTURED_CANONICAL_BYTES) unchanged. Newtestdoesnotexerciseunknownleaf; preservation followsnarrowexactkindbranch andunchangedfallbacksource, notassertionofnewunknownleafregression."
+    },
+    {
+      "requirement": "Preserve lifetime and runtime behavior",
+      "status": "source proven; narrow newtest coversBodyconfiguration only",
+      "evidence": "Stateconstruction/ports/lifetimeconfiguration/runtimeproviders unchanged. Newforlife expansion asserts retained-duration body. No restart/storage/lifecycleexecution inferred."
+    },
+    {
+      "requirement": "Test omitted initializer",
+      "status": "meaningful assertion present; executedpassnotyetverified",
+      "evidence": "expand(None) buildskeepResourceRef? forlife withnoinitializer; decodedinitialcanonicalvalueassertsVariantnone.",
+      "test": "optional_resource_reference_bound_uses_canonical_framing_and_the_reference_codec_limit"
+    },
+    {
+      "requirement": "Test Body lifetime",
+      "status": "meaningful assertion present; executedpassnotyetverified",
+      "evidence": "Actualparse/check/expansion forlife; exactretained-durationConfigurationValue::Text(body)asserted."
+    },
+    {
+      "requirement": "Test exact ceiling admission",
+      "status": "meaningful assertion present; executedpassnotyetverified",
+      "evidence": "Computedmaximum equalsactualinitialnoneencodedlen+Core512, <1024; expand(Some(maximum)) succeeds. This testsdeclaredfiniteenvelope, notclaimofreferenceexactly512bytes."
+    },
+    {
+      "requirement": "Test one-byte-too-small refusal",
+      "status": "meaningful assertion present; executedpassnotyetverified",
+      "evidence": "expand(Some(maximum-1)) musterror withadmittedvalueenvelopemessage; ordinaryretainedadmissionboundaryused."
+    },
+    {
+      "requirement": "Test reference with maximum profile-name lengths",
+      "status": "meaningful assertion present; executedpassnotyetverified",
+      "evidence": "ActualBoundedResourceRef withMAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES repetitions forbothcontent_profile/access_class,maximumreferencedextent,versionidentity anditems encodesintocanonicalSome. AssertactualSomebytes<=maximum. ExpiryNone; testdoesnotclaimthelongestpossibleexpiryencoding or512byteexactpayload."
+    },
+    {
+      "requirement": "Hold construction while6348/6356 occupyreviewslots; no broaderstorageclaim",
+      "status": "historicalslotcoordination notdeterminedbythisread-onlyaudit; source scope stays narrow",
+      "evidence": "Currentparent533c containsactualdeliveryofcodecandtimer/Rootomnibus; ownPRdelta2Plotfiles. Scope ischeckedmeaning/admissiononly. No durableStateoffer/currentauthority/diskcustody/Bodyseed/recorderserviceoractualrestartimplementationadded."
+    },
+    {
+      "requirement": "Actual focused proof, exact Candidate, dev delivery and applicable Integration beforeclosure",
+      "status": "incomplete",
+      "evidence": "PRassertsfocusedregressionandstrictlintpassbutprovidesnoexecutionreceipt/log/hashlink. Rootlocalavailabilityaudit foundnosuitablelinkedproof. Candidate40060565824 initiallyrunning; noCIobservationbythisaudit.",
+      "remaining": [
+        "Inspectactualnamednewtestsuccess andnonzerocount plusstrictlintatproperexecutionsource (completedadmissionlogmayprovide).",
+        "FullCandidate40060565824success orreviewedtestednewhead.",
+        "Normalactualdevdelivery/sourcecorrespondence andsuccessfulapplicableIntegration, thenfreshissueclosureaudit."
+      ]
+    }
+  ],
+  "material_source_correctness_findings": [],
+  "five_requested_cases_have_meaningful_assertions": true,
+  "actual_focused_execution_independently_verified": false,
+  "closure_ready": false,
+  "remaining": "Actualpositiveexecution/lintcoverage, fullCandidate, normaldevdelivery, applicableIntegration andfreshscopeaudit.",
+  "limits": [
+    "No network/build/CIpoll/sourcechanges performed.",
+    "Existingidentityanddimensionedoptionaltests arereferencedassourcecoverage, not relabeledasnewtestexecution.",
+    "Unknownfallbackpreservation verifiedfromsource; no newtest claim.",
+    "Conservativecodecceilingnotexactmaximumreferenceproof; canonicalbytesunchanged, storedStateadmissionboundintentionallyshrinks.",
+    "No readyStateoffer/currentauthority/diskcustody/recorderBodyoractualrestartclaim."
+  ]
+}

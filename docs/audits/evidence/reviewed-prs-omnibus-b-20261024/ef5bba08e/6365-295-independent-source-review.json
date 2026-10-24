@@ -1,0 +1,147 @@
+{
+  "pr": 6365,
+  "issue": 6342,
+  "reviewed_at_utc": "2026-10-24T04:12:14.875101+00:00",
+  "head": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+  "base": "960762cfe41d4491398d6b8e5487bba1d2c97276",
+  "comparison_current_dev": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "AGENTS_read": "exactheadAGENTS.md",
+  "exact_four_feature_blobs": [
+    {
+      "path": "targets/conduitos/src/protected_compositor.rs",
+      "blob": "69daa0ea84a675e70ecb478d0f58013df092ec9c",
+      "exact_native_source_match": true
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner.rs",
+      "blob": "adef09ab3f306cc059f3e50216fd6807ad215753",
+      "exact_native_source_match": true
+    },
+    {
+      "path": "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+      "blob": "3bc21b6a3689cbffd067f3920daace0c632479c4",
+      "exact_native_source_match": true
+    },
+    {
+      "path": "targets/conduitos/tests/compositor_request_owner.rs",
+      "blob": "b6df97d92e26bfff2c1f2e6ab0cf3e5c3fb2f98c",
+      "exact_native_source_match": true
+    }
+  ],
+  "overlap_with_current_dev_delta": [],
+  "findings": [],
+  "production_review": {
+    "single_owner": "CompositorService replaces instance/next_request/frame_grant fields with one RequestOwner containingbootinstance,monotoneordinal,OptionPending andFrameGrant; PendingstoresexactEnvelope,Request,fixed57Bencodedcommand andlength. No secondledger.",
+    "nonrenewal": "Busybegin returnswithoutchangingcommand/ordinal; MAXordinal quarantinesbeforeencode; ordinalincrements onlyafterfullsuccessfulvalidation, including explicitRefusedcommandoutcome. Duplicate/refusedcompletion cannotreuseoldordinal. NewbeginafterRefused is anewcommand, notresume/retrygrant.",
+    "complete_response": "Actualproductioncomplete_exchange boundsdeclaredpacketfromsharedpage thencomplete_response callswire::decode_response onfullpacket; exactpendingEnvelope andmovedresponse_matches inventory checked; FrameGrant.begin/admit appliedbeforependingretirement. Standalonecomplete_responserejectstrailing/truncatedbytes; sharedpagetrailingcapacity intentionallyunused.",
+    "effects": "beginAck invokesexistingFrameGrant.ack once; otherrequestsinvalidateframeasbefore. ExistingvalidRefused returnsOkterminalcommandoutcome anddoesnotbecomeautomaticretry.",
+    "terminalbehavior": "Allprotocol/decode/granterrors quarantineowner; CompositorService::request wraps exchange andquarantinesbackend/nonYielded/domainfaults. QuarantineclearsPending,terminalflag andFrameGrant with idempotentdomainrelease/lifecycleobservation preserved.",
+    "finite_storage": "COMMAND_BYTES=wireHEADER32+25exactlargestcurrentBeginUpload; allrequestencodingscovered. Stack/fixedarrays only, noalloc/resumeloop/extraPlaygrant. Allocationtestchecksalloc/realloc/dealloczero.",
+    "preserved_boundaries": "No Corepolicy/selectedadmission/IRQwatchdog/arena/timeouts/retries orprotectedpreemptibleprofileadded. This isactualproductionlegacyexchange, nottestcallbackonly."
+  },
+  "hosted_proof": {
+    "packet": "801a6f955f1e3f7a48be012f05c33fa27328c946",
+    "source": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+    "manifest_files_rehashed": 8,
+    "actual_elf_sha256": "40be833c98d1821a77cfd92475531f28321be4bf2a1ea35ce75c08bdb16d63db",
+    "actual_elf_bytes": 1329968,
+    "actual_tests": 11,
+    "test_names": [
+      "frame_grant::tests::coverage_and_selection_are_bounded_but_fully_obscured_selection_is_valid",
+      "frame_grant::tests::descriptor_refuses_empty_overlapping_outside_unused_and_overflow_before_effects",
+      "frame_grant::tests::exact_rectangles_rows_and_completion_are_required",
+      "frame_grant::tests::stale_sequence_and_invalid_window_do_not_advance_progress",
+      "production_begin_complete_and_quarantine_allocate_nothing",
+      "request_owner::tests::actual_numeric_frame_grant_is_validated_before_retirement_and_applied_once",
+      "request_owner::tests::duplicate_begin_preserves_command_and_response_overwrite_cannot_replace_it",
+      "request_owner::tests::every_supported_request_fits_exact_immutable_command_bound",
+      "request_owner::tests::fault_cancel_quarantine_and_ordinal_wrap_never_refill",
+      "request_owner::tests::malformed_foreign_and_wrong_kind_packets_are_terminal",
+      "request_owner::tests::page_length_bounds_and_completion_without_live_request_are_terminal"
+    ],
+    "strict_clippy_exit_code": 0,
+    "proof_class": "CPUactualproductionownermodule+FrameGrant; notnativeentry"
+  },
+  "native_proof": {
+    "packet": "c7e6d7478a2625a4893182e2a46dd237375ea01c",
+    "source": "e93c9a104942ad813d49baac3573d5bb1b81f88e",
+    "fresh_subset_entries_rehashed": 147,
+    "successful_native_artifact_entries_rehashed": 145,
+    "png_original_bytes_rehashed": 27,
+    "manifest_checkpoint_png_joins": 27,
+    "journey_status": "complete",
+    "lifecycle_complete_raw_rows": 23,
+    "serial_sha256": "c2dc6c4c3516989eb30d68659007d5f5e247a28425e88e0e7f5d5d27a96e13dd",
+    "root_elf_sha256": "d997892ddde580025edc1fda9db7ba6a48ceb546f6b563b14e7ea1010f0a746d",
+    "iso_sha256": "68963c307cf4d0d666f80704835d383f31083816e17e9813a3e9ea7014a33831",
+    "actual_root_matches_build_manifest": true,
+    "source_matches_build_manifest": true,
+    "supported_command": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "conduitos",
+      "graphical-profile-proof",
+      "--locked"
+    ],
+    "receipt_status": "commands-passed-independent-review-pending",
+    "proof_class": "Prior-source normalx86productQEMUjourney; fourotherarchitecturebuilds notruntime. Current295hostedproof supplements, notrelabelsnativeexecution.",
+    "limits": "StoredPNGhashesverifiedbutthisauditscriptdoesnotindependentlydecodeallRGBApixels/currentACKjoins; existingpacketindependentreviewretainsfulljoins. Root/ISOactualbytesrehash,notmanifestonly. Firstfailure/cache-freshnessnegativepreservedelsewherein419entrypacket; thisauditrehashes147freshentriesonly."
+  },
+  "initial_candidate_discovery": {
+    "run": 40060819187,
+    "head": "295a7170ba0e4e952e281597817db5f2d9e6ad04",
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "readiness": "No actionable source finding; owningCPUproof verifiedactual295execution andnative145artifactprior-sourceproof stronglysupportsreview. FullcurrentCandidate/devdelivery/applicableIntegration stillrequired.",
+  "remaining": [
+    "Successful exact-headCandidate",
+    "Actualdevdeliveryandfinalacceptedfeature/sourcecorrespondence",
+    "ApplicablepostmergeIntegration andfinaloriginal6342requirementaudit beforeclosure"
+  ],
+  "parent_limits": [
+    "6317selectedpolicyaccountingnotimplemented",
+    "6311nativecapture/restoreinterruptaccountingnotimplemented",
+    "6184fairnessnotproved",
+    "6318Applicationpublicationseparate",
+    "No physical/stableacceptanceclaimed"
+  ],
+  "review_limits": [
+    "OnePRGET,oneissueGET,oneexactheadfetch,oneinitialCandidatediscovery; nobuilds/repeatedpolls/sourcewrites/ownerbranchmutation/merge",
+    "No newruntimeexecutionbyreviewer; actualretainedartifactbytes/sourcejoins independentlyrehashed"
+  ],
+  "original_acceptance_readiness": [
+    {
+      "criterion": 1,
+      "status": "source and owning CPU proof established",
+      "detail": "Single immutable command/envelope/ordinal owner, Busy nonreplacement, validcompletion nextordinal, terminalquarantine/MAX/fault paths. No continuationrenewal capabilityadded."
+    },
+    {
+      "criterion": 2,
+      "status": "source and owning CPU proof established",
+      "detail": "Exact57byte bound, enumeration ofallcurrentRequestvariants andlargest==COMMAND_BYTES; noPlayallocator effects; existingpre-admittedRoot composition retained."
+    },
+    {
+      "criterion": 3,
+      "status": "source and owning CPU proof established",
+      "detail": "Actualproductioncomplete_response callsfullwiredecoder+exactenvelope+expectedkind; testsinvokeactualmodulemethod, notcopiedclosure; Refused isterminalcommandoutcome."
+    },
+    {
+      "criterion": 4,
+      "status": "source and owning CPU proof established",
+      "detail": "FrameGrantmovedinsideowner; numericadmission/ACKonce; wrappererrorquarantine+existinglifecycleobservation; noresume/IRQwatchdog/arenatimeoutprofilechange."
+    },
+    {
+      "criterion": 5,
+      "status": "all11 actualCPUtests verified",
+      "detail": "6requestowner+4FrameGrant+1allocationtests actualsuccessfulnames retained; covers commandoverwrite, duplicatebegin, nextordinal, foreigncorrelation/wrongkind/trailing/truncated/lengthbounds, quarantine/exhaustion andFrameGrantapplyonce."
+    },
+    {
+      "criterion": 6,
+      "status": "prior-source supportednormalnativeproof verified; deliverygates pending",
+      "detail": "Actuale93 successfulsupported145artifactsubset includingRootELF/ISOand27journeyPNGshashes/23completeLFlifecyclerows. Feature4blobsidentical295, currenthosted295 supplementverified. Nativeexecutionnotrelabelled295. CurrentCandidate/devdelivery/postmergeIntegrationstillunproven."
+    }
+  ]
+}

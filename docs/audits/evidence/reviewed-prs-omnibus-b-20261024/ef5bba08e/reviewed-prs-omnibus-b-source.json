@@ -1,0 +1,50 @@
+{
+  "branch": "integrate/reviewed-prs-20261024-b",
+  "source": "ef5bba08ec65469a332c463b94d3a2be6210a841",
+  "base": "dd92bde82017fe685404ef9197b56d3b3127006c",
+  "merged_heads": [
+    "b584f81559e59b0ccbf1e93225c7547007c7bba2",
+    "851159dd057d55b15667a42e58c9d6fe52db0f06",
+    "295a7170ba0e4e952e281597817db5f2d9e6ad04"
+  ],
+  "original_pr_heads": [
+    "9d658a9295459e39ec0b13fceacc0ffc81686fcc",
+    "851159dd057d55b15667a42e58c9d6fe52db0f06",
+    "295a7170ba0e4e952e281597817db5f2d9e6ad04"
+  ],
+  "tree": "f1f9a85cc9756ca2a22371b48ebb02c8b6ce5014",
+  "worktree": "work/6366-retained-selected-output",
+  "paths": [
+    "architecture/plot/src/canonical_expansion/retained.rs",
+    "architecture/plot/tests/retained_resource_reference.rs",
+    "mechanisms/io/tm1637/Cargo.lock",
+    "mechanisms/io/tm1637/Cargo.toml",
+    "mechanisms/io/tm1637/README.md",
+    "mechanisms/io/tm1637/build.rs",
+    "mechanisms/io/tm1637/src/assigned.rs",
+    "mechanisms/io/tm1637/src/back.rs",
+    "mechanisms/io/tm1637/src/codec.rs",
+    "mechanisms/io/tm1637/src/contract.rs",
+    "mechanisms/io/tm1637/src/installation.rs",
+    "mechanisms/io/tm1637/src/installation_advertisement.rs",
+    "mechanisms/io/tm1637/src/installation_selected.rs",
+    "mechanisms/io/tm1637/src/lib.rs",
+    "mechanisms/io/tm1637/src/owner.rs",
+    "mechanisms/io/tm1637/tests/owner.rs",
+    "mechanisms/io/tm1637/tests/support/assigned.rs",
+    "mechanisms/io/tm1637/tests/support/fixture.rs",
+    "mechanisms/io/tm1637/tests/support/installation.rs",
+    "mechanisms/io/tm1637/tests/support/kernel.rs",
+    "mechanisms/io/tm1637/tests/support/packet.rs",
+    "mechanisms/io/tm1637/tests/support/selected_retained.rs",
+    "targets/conduitos/src/protected_compositor.rs",
+    "targets/conduitos/src/protected_compositor/request_owner.rs",
+    "targets/conduitos/src/protected_compositor/request_owner/tests.rs",
+    "targets/conduitos/tests/compositor_request_owner.rs",
+    "tools/xtask-dispatch/src/focused_check.rs",
+    "tools/xtask/src/suites/tm1637_output.rs"
+  ],
+  "conflicts": [],
+  "source_clean": true,
+  "observed_utc": "2026-10-24T04:20:50.347197+00:00"
+}

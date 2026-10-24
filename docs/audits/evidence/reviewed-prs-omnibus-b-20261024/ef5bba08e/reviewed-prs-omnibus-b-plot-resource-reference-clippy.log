@@ -1,0 +1,17 @@
+    Checking generic-array v0.14.7
+    Checking serde_core v1.0.229
+    Checking block-buffer v0.10.4
+    Checking crypto-common v0.1.7
+    Checking digest v0.10.7
+    Checking sha2 v0.10.9
+    Checking libm v0.2.16
+    Checking serde v1.0.229
+    Checking zmij v1.0.23
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/assigned-plan)
+    Checking itoa v1.0.18
+    Checking memchr v2.8.3
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/core)
+    Checking serde_json v1.0.151
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/kernel)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/architecture/plot)
+    Finished `dev` profile [unoptimized] target(s) in 10.54s

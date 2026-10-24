@@ -1,0 +1,6 @@
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6366-retained-selected-output/tools/xtask-dispatch)
+    Finished `dev` profile [unoptimized] target(s) in 1.26s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6367-retained-bind-repair-target/debug/conduit-xtask-dispatch ci pipeline setup-ci`
+> tar -xOf /home/dancxjo/.cache/conduit-ci/actionlint/1.7.7/actionlint_1.7.7_linux_amd64.tar.gz actionlint
+> /home/dancxjo/.cache/conduit-ci/actionlint/1.7.7/actionlint -version
+Acquisition preflight: success in 132 ms; report target/acquisition/preflight.json
