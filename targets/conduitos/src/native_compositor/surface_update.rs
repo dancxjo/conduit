@@ -1,6 +1,6 @@
 //! Exact retained raster staging, separately from successful scanout.
 use super::*;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 use crate::display::PixelTarget;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -166,7 +166,7 @@ impl NativeCompositor {
         surface.receipt = None;
         surface.input_ready = false;
         self.scanout_pixels = [0; MAX_COMPOSITOR_SURFACES];
-        #[cfg(feature = "native-compositor")]
+        #[cfg(feature = "native-compositor-core")]
         let display = {
             let format = surface.buffer.format();
             let expression = surface.visual_expression.as_ref();
@@ -185,7 +185,7 @@ impl NativeCompositor {
                 )
             })?
         };
-        #[cfg(not(feature = "native-compositor"))]
+        #[cfg(not(feature = "native-compositor-core"))]
         let display =
             super::raster_reuse::raster(&mut surface.buffer, scene, previous, render_scene)?;
         surface.raster_scene = cacheable.then_some(*scene);
@@ -269,9 +269,9 @@ impl NativeCompositor {
     }
 }
 
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 use super::paint::visual_paint;
 
-#[cfg(all(test, feature = "native-compositor"))]
+#[cfg(all(test, feature = "native-compositor-core"))]
 #[path = "surface_update/paint_tests.rs"]
 mod paint_tests;

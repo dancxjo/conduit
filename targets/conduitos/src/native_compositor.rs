@@ -38,7 +38,7 @@ pub(crate) fn reference_surface_buffer(
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use crate::display::DisplayError;
 #[cfg(all(
-    not(feature = "native-compositor"),
+    not(feature = "native-compositor-core"),
     not(all(target_arch = "x86_64", target_os = "none"))
 ))]
 use crate::display::render_scene;

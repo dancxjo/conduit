@@ -124,6 +124,7 @@ pub struct NativeFaceScene {
     input: input::InputState,
     graph_reading: Option<graph_reading::GraphReading>,
     interaction_admitted: bool,
+    local_input_available: bool,
     local_notice: Option<String>,
 }
 
@@ -163,6 +164,7 @@ impl NativeFaceScene {
             showing_diagram: false,
             input: input::InputState::default(),
             interaction_admitted,
+            local_input_available: true,
             local_notice: None,
         })
     }
@@ -414,6 +416,10 @@ pub(crate) mod raster_layout_tests;
 #[cfg(test)]
 #[path = "native_face_scene/navigation_tests.rs"]
 mod navigation_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/inputless_tests.rs"]
+mod inputless_tests;
 
 #[cfg(test)]
 #[path = "native_face_scene/creche_navigation_tests.rs"]

@@ -21,6 +21,10 @@ pub use ordinary_domain::TextDomain;
 #[allow(dead_code)]
 mod xhci;
 pub use xhci::{VirtXhciRefusal, initialize_xhci};
+#[cfg(feature = "native-compositor-core")]
+mod framebuffer;
+#[cfg(feature = "native-compositor-core")]
+pub use framebuffer::FirmwareScanout;
 mod entropy;
 pub use entropy::RndrEntropy;
 

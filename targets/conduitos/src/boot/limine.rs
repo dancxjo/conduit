@@ -123,6 +123,34 @@ pub fn framebuffer_display() -> Result<RawDisplay, DisplayError> {
     unsafe { RawDisplay::new_word_writable(address, byte_len, format) }
 }
 
+/// Observation only: the selected scanout must be wholly covered by exactly
+/// one bootloader-reserved framebuffer region, never the runtime arena.
+#[cfg(all(target_arch = "aarch64", feature = "native-compositor-core"))]
+pub(crate) fn framebuffer_reserved_range(start: u64, bytes: u64) -> bool {
+    let Some(end) = start.checked_add(bytes).filter(|_| bytes != 0) else {
+        return false;
+    };
+    let Some(memory) = MEMORY_MAP.get_response() else {
+        return false;
+    };
+    if memory.entries().len() > super::MAX_MEMORY_REGIONS {
+        return false;
+    }
+    memory
+        .entries()
+        .iter()
+        .filter(|entry| {
+            entry.entry_type == EntryType::FRAMEBUFFER
+                && entry.base <= start
+                && entry
+                    .base
+                    .checked_add(entry.length)
+                    .is_some_and(|last| end <= last)
+        })
+        .count()
+        == 1
+}
+
 /// Return the one fixed, bootloader-owned ConduitOS spore region.
 ///
 /// The bytes are observation only until `spore_provision` validates their

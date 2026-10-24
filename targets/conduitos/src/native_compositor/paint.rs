@@ -1,5 +1,5 @@
 //! Shared native paint realization for both renderer backends.
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 pub(super) fn visual_paint(
     format: crate::display::DisplayFormat,
     role: conduit_face::GraphicsPaintRole,
@@ -43,6 +43,6 @@ pub(super) fn visual_paint(
     format.pixel(color.0, color.1, color.2)
 }
 
-#[cfg(all(test, feature = "native-compositor"))]
+#[cfg(all(test, feature = "native-compositor-core"))]
 #[path = "paint_contrast_tests.rs"]
 mod contrast_tests;
