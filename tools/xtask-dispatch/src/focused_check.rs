@@ -157,6 +157,8 @@ mod tests {
     #[test]
     fn exact_entrance_selects_the_shared_complete_suite() {
         for (name, expected) in [
+            ("monotonic-wait", monotonic_wait::STEPS),
+            ("resource-snapshot", resource_snapshot::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
             ("acoustic-control", acoustic_control::STEPS),
             ("angle-reference", angle_reference::STEPS),
@@ -173,6 +175,8 @@ mod tests {
     #[test]
     fn options_and_other_commands_retain_full_parser() {
         for values in [
+            vec!["--json", "check", "monotonic-wait"],
+            vec!["check", "resource-snapshot", "--dry-run"],
             vec!["--json", "check", "acoustic-flow"],
             vec!["check", "acoustic-flow", "--quiet"],
             vec!["check", "acoustic-flow", "--dry-run"],
