@@ -243,3 +243,6 @@ mod installation;
 
 #[path = "support/kernel.rs"]
 mod kernel;
+
+#[path = "support/selected_retained.rs"]
+mod selected_retained;
