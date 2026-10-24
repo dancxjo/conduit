@@ -188,3 +188,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 /* Docking is a local presentation choice; evidence reflows within its panel. */
 .side-panel{overflow-wrap:anywhere}
 .side-panel[data-furniture-dock="bottom"]{top:auto;right:.75rem!important;bottom:.75rem;left:.75rem!important;width:auto;max-height:48vh}
+
+/* Wrapped large-text drawer controls must not cover scrolled evidence. */
+@media(max-width:720px){.side-panel .furniture-bar{position:static}}
