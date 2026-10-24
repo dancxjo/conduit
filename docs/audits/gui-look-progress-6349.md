@@ -277,3 +277,19 @@ process maps, open files and working directories before removal. About 5GB of
 allocated regenerable cache was removed across two passes; actual available
 space reached about 10GB after the build completed. Active directories, compiled
 libraries/binaries, private owner state and all other tasks were preserved.
+
+## Inspector occlusion and enlarged text
+
+Visual review led to a failing real hit-test: floating Workspace controls sat
+above the bottom inspector. At `a8faf68c4`, drawers are layered above local tools
+and furniture/status actions have 44px minima with larger text/padding. Source
+`7dda0f703` additionally lets narrow wrapped furniture scroll with evidence,
+avoiding sticky-header occlusion. Four furniture checks pass, including all
+three controls' viewport bounds, dimensions and pointer reachability at 390px,
+32px root text and forced colors; scrolling exposes an evidence heading, and
+closing restores the underlying tools. The documentary typed linear action
+continues to succeed. [Positive and negative evidence](evidence/gui-look-6349-inspector-accessibility/README.md).
+
+This focused drawer check is not full zoom or whole-shell accessibility proof.
+The enlarged capture shows masthead/navigation crowding outside the drawer;
+that remains an explicit next surface gap. No native or CI proof is added.

@@ -99,3 +99,55 @@ test("inspection evidence fits right and bottom docks at wide and forced-color n
     server.process.kill("SIGTERM");
   }
 });
+
+test("bottom inspection remains above workspace tools with reachable enlarged controls", async ({ page }) => {
+  const server = startServer();
+  try {
+    await page.goto(await server.url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
+    await page.getByRole("button", { name: "Move Inspect to bottom", exact: true }).click();
+    await expect(page.locator("#inspector")).toHaveAttribute("data-furniture-dock", "bottom");
+    const drawerCoversTools = () => page.evaluate(() => {
+      const drawer = document.querySelector('#inspector');
+      const a = drawer.getBoundingClientRect();
+      const b = document.querySelector('#workspace-controls').getBoundingClientRect();
+      const left = Math.max(a.left, b.left), right = Math.min(a.right, b.right);
+      const top = Math.max(a.top, b.top), bottom = Math.min(a.bottom, b.bottom);
+      return right > left && bottom > top && drawer.contains(document.elementFromPoint((left + right) / 2, (top + bottom) / 2));
+    });
+    await expect.poll(drawerCoversTools).toBe(true);
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await page.addStyleTag({ content: 'html{font-size:32px!important}' });
+    await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+    const controls = await page.locator('#inspector .furniture-bar button').evaluateAll(nodes => nodes.map(node => {
+      const r = node.getBoundingClientRect();
+      return { label: node.textContent, height: r.height, left: r.left, right: r.right,
+        reachable: node.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)) };
+    }));
+    for (const control of controls) {
+      expect(control.height, control.label).toBeGreaterThanOrEqual(44);
+      expect(control.left, control.label).toBeGreaterThanOrEqual(0);
+      expect(control.right, control.label).toBeLessThanOrEqual(390);
+      expect(control.reachable, control.label).toBe(true);
+    }
+    const close = page.getByRole('button', { name: 'Close Inspect', exact: true });
+    const bounds = await close.boundingBox();
+    expect(bounds.height).toBeGreaterThanOrEqual(44);
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+    const heading = page.locator('#plan h2');
+    await page.locator('#deep-inspection > summary').click();
+    await heading.scrollIntoViewIfNeeded();
+    expect(await heading.evaluate(node => {
+      const r = node.getBoundingClientRect();
+      return node.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+    })).toBe(true);
+    await close.click();
+    await expect(page.locator('#inspector')).toBeHidden();
+    await expect(page.locator('#workspace-controls')).toBeVisible();
+  } finally {
+    server.lines.close();
+    server.process.kill('SIGTERM');
+  }
+});
