@@ -1,0 +1,35 @@
+{
+  "source": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "files": [
+    {
+      "path": "x86-product-40049499201-12545420309.zip",
+      "bytes": 22142016,
+      "sha256": "4f464ef97e0acafe17ffeb3fbf977a3b5f21bdf4b41a3d67c851f41bb92257d5"
+    },
+    {
+      "path": "independent-audit.json",
+      "bytes": 25016,
+      "sha256": "afe2b2724501989529238f428ec0e023f9550a0ee614c5269c467700e4ba04f4"
+    },
+    {
+      "path": "download-custody.json",
+      "bytes": 11286,
+      "sha256": "2ea5afad016bcb41c7d3014d5b6729c36e0bd4a908cbce5c053c28446ea60cf8"
+    },
+    {
+      "path": "audit-script.py",
+      "bytes": 8749,
+      "sha256": "b12971b5c81e483276d27beac6f034f396757e354afc95b899ecd813703645bc"
+    },
+    {
+      "path": "integration.json",
+      "bytes": 4118,
+      "sha256": "bc47e7eeba4742fd2e2bed5ceec1f25f656f3b554d06847ca82ca6b90a744769"
+    },
+    {
+      "path": "README.md",
+      "bytes": 969,
+      "sha256": "c56be60e5a205fcf58416ad1ad59c238409eac39d5ea30007c4336fa24e7c5a9"
+    }
+  ]
+}
