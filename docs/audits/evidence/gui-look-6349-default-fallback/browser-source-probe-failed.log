@@ -1,0 +1,19 @@
+running 1 test
+20 long rows Compact: 49737 bytes
+20 long rows Spacious: 49502 bytes
+20 long rows CompactEditorial: 49494 bytes
+20 long rows SpaciousPhosphor: 49828 bytes
+
+thread 'owner_face_mask::tests::view_budget_tests::twenty_unicode_rows_and_actions_fit_the_view_without_duplicate_look_bytes' (704741) panicked at targets/browser/runtime/src/owner_face_mask/view_budget_tests.rs:150:10:
+called `Result::unwrap()` on an `Err` value: "SyntaxCheckDiagnostic { code: \"CND-FRM-053\", span: Span { start: 34, end: 42, line: 2, column: 8, end_line: 2, end_column: 16 }, message: \"structured startup parameter profile exceeds canonical bounds\" }"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test owner_face_mask::tests::view_budget_tests::twenty_unicode_rows_and_actions_fit_the_view_without_duplicate_look_bytes ... FAILED
+
+failures:
+
+failures:
+    owner_face_mask::tests::view_budget_tests::twenty_unicode_rows_and_actions_fit_the_view_without_duplicate_look_bytes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 484 filtered out; finished in 15.49s
+
+error: test failed, to rerun pass `-p conduit-browser-runtime --lib`
