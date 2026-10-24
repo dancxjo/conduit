@@ -608,3 +608,15 @@ The synchronous carrier call waits for the exact durable checkpoint/terminal
 receipt and stops reading renewals while it waits. One bounded pending owner
 operation with continued lease processing is the next requirement; acknowledgement
 must still wait for the actual receipt. [Comparison and retained evidence](evidence/gui-look-6349-retained-plan/README.md).
+
+
+## Pending owner action preserves presence processing
+
+The carrier now keeps one bounded owner action in flight and continues current-
+credential renewals while waiting for its exact result. Global worker permits
+remain held through disconnect; one bounded follow-up frame may defer. The old
+lease, frame and IPC deadlines remain. Thirteen surrounding participant checks,
+five final focused concurrency/transport checks and strict CLI Clippy pass.
+[Bounds, exact-result checks and partial-frame test](evidence/gui-look-6349-pending-action/README.md).
+A rebuilt real encounter with four consecutive post-Look actions is pending;
+no successful live receipt is inferred from these unit checks.

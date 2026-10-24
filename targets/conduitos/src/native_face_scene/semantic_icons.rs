@@ -1,6 +1,6 @@
 //! Finite Mask decoration from explicit semantic roles, never names or action IDs.
 use super::*;
-use conduit_face::{FaceIconKey, FaceRole};
+use conduit_face::FaceIconKey;
 
 #[path = "semantic_icons/generated.rs"]
 mod mapping;
@@ -37,6 +37,7 @@ pub(super) fn append(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_face::FaceRole;
 
     #[test]
     fn roles_select_only_truthful_existing_icons_without_name_inference() {

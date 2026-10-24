@@ -97,7 +97,7 @@ impl<'de> Deserialize<'de> for PlannedMaskPlot {
             return Err(D::Error::custom("Mask Plan encoding or capacity"));
         }
         let mut compressed = Vec::with_capacity(encoded.zlib_hex.len() / 2);
-        for pair in encoded.zlib_hex.as_bytes().chunks_exact(2) {
+        for pair in encoded.zlib_hex.as_bytes().as_chunks::<2>().0 {
             let nibble = |byte| match byte {
                 b'0'..=b'9' => Some(byte - b'0'),
                 b'a'..=b'f' => Some(byte - b'a' + 10),
