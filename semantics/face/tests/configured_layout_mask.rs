@@ -320,3 +320,96 @@ fn equal_sibling_literals_and_expression_substitution_do_not_confer_custody() {
         Err(ConfiguredMaskRefusal::Configuration)
     ));
 }
+
+#[test]
+fn named_visual_presets_match_across_distinct_checked_components() {
+    let todo = TODO_LAYOUT_MASK_SOURCE.replace("face/component-mask(", "test/configured-renderer(");
+    let creche =
+        CRECHE_LAYOUT_MASK_SOURCE.replace("face/component-mask(", "test/configured-renderer(");
+    let mut first_structure = None;
+    for look in [
+        ComponentMaskLook::Compact,
+        ComponentMaskLook::CompactEditorial,
+        ComponentMaskLook::Spacious,
+        ComponentMaskLook::SpaciousPhosphor,
+    ] {
+        let selected = ComponentVisualSelection::from(look);
+        let a = evidence(&todo, selected.todo_root(TodoComponentRecipe::Grouped)).unwrap();
+        let b = evidence(
+            &creche,
+            selected.creche_root(CrecheComponentRecipe::ResponsiveColumns),
+        )
+        .unwrap();
+        assert_ne!(a.recipe.canonical_value(), b.recipe.canonical_value());
+        let structure = (
+            (
+                a.component.fore_id.clone(),
+                a.recipe.canonical_value().to_vec(),
+                a.layout.as_ref().unwrap().canonical_value().to_vec(),
+            ),
+            (
+                b.component.fore_id.clone(),
+                b.recipe.canonical_value().to_vec(),
+                b.layout.as_ref().unwrap().canonical_value().to_vec(),
+            ),
+        );
+        if let Some(first) = &first_structure {
+            assert_eq!(
+                &structure, first,
+                "Look must preserve each checked structure"
+            );
+        } else {
+            first_structure = Some(structure);
+        }
+        let actual = visual_expression_from_info(
+            StructuredInfoValue::from_canonical_bytes(a.expression.canonical_value()).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(actual.typography, VisualExpression::phosphor().typography);
+        let todo_expression = a.expression.canonical_value();
+        let creche_expression = b.expression.canonical_value();
+        assert_eq!(
+            todo_expression, creche_expression,
+            "same named Look must not change policy with its component: {look:?}"
+        );
+    }
+}
+
+#[test]
+fn retained_component_roots_share_exact_named_visual_policies() {
+    fn prepare(source: &str, root: &str) -> ConfiguredMaskConfiguration {
+        evidence_with(source, root, None, |kind| {
+            *kind = component_mask_kind(4096);
+            kind.kind_id = kind_id("test/configured-renderer");
+        })
+        .unwrap()
+    }
+    let todo =
+        TODO_COMPONENT_MASK_SOURCE.replace("face/component-mask(", "test/configured-renderer(");
+    let creche =
+        CRECHE_COMPONENT_MASK_SOURCE.replace("face/component-mask(", "test/configured-renderer(");
+    for look in [
+        ComponentMaskLook::Compact,
+        ComponentMaskLook::CompactEditorial,
+        ComponentMaskLook::Spacious,
+        ComponentMaskLook::SpaciousPhosphor,
+    ] {
+        let selected = ComponentVisualSelection::from(look);
+        let expected = prepare(
+            &creche,
+            selected.creche_root(CrecheComponentRecipe::ResponsiveColumns),
+        );
+        for recipe in [
+            TodoComponentRecipe::Flat,
+            TodoComponentRecipe::Grouped,
+            TodoComponentRecipe::RequiredItem,
+        ] {
+            let actual = prepare(&todo, selected.todo_root(recipe));
+            assert_eq!(
+                actual.expression.canonical_value(),
+                expected.expression.canonical_value(),
+                "same named policy for {look:?} / {recipe:?}"
+            );
+        }
+    }
+}

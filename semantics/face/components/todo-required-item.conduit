@@ -17,7 +17,7 @@ plot todo-mask-required-item-compact (
  show: Show >>
  interaction: FaceInteraction...| >>
 ) {
- component: todo-required-item(expression = {density: compact(empty), identity: "conduit.face/compact@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: engineering(empty), version: 2})
+ component: todo-required-item(expression = {density: compact(empty), identity: "conduit.face/compact@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2})
  face >> component.face
  component.show >> show
  component.interaction >> interaction
