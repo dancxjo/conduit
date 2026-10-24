@@ -89,3 +89,20 @@ This file has passed formatting, patch hygiene and a [compile-only LoongArch64 t
 the RISC-V merge's required combined Integration passes, its normal product
 wiring and cross-target checks must establish those separate claims. Existing
 pure-model tests and historical CSR observations do not validate this adapter.
+
+## Actual historical framebuffer translation observations
+
+Two additional [read-only QMP probes](../../targets/conduitos/proof/tools/loongarch64/framebuffer-translation-probe/index.json)
+resolve the historical ELF's exact Limine request symbols and response pointers.
+The framebuffer is 800×600, pitch 3200, physical `0x0da90000`, with HHDM
+`0xffff800000000000`. A second fresh boot observes all 473 unique descriptors
+needed for its 469 pages. The held mapping model accepts these observations
+with uniform MAT 2 (WUC), using explicitly assumed 48-bit CPUCFG widths; those
+widths have not been measured by this probe. Actual product wiring must read
+CPUCFG itself and separately prove table-page and scanout custody before stores.
+
+Both guests retain the expected `observatory-framebuffer-unrepresented`
+refusal and acknowledge no graphical Show. The queries neither pause the guest
+nor change registers or memory. Full transcripts, selected memory reads, inputs,
+collector scripts, compile/check output and original failures remain retained.
+This is stronger mapping preparation, not a current graphical product frame.
