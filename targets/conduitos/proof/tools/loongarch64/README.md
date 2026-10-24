@@ -50,3 +50,23 @@ the actual emulator version and executable digest and identifies this correction
 The correction is not an upstream QEMU release, physical-hardware evidence or
 accepted Conduit release evidence. Keep results from this diagnostic emulator
 separate from stock-emulator refusal evidence.
+
+## Optional graphics-capable tool
+
+`cargo xtask make conduitos prepare-loongarch64-domain-emulator --graphical`
+selects a separate input-digest recipe with SDL and pixman, both existing reviewed
+LoongArch corrections, no graphics modules, and the
+`conduit-diagnostic-misc-drdtl-graphics` version suffix. Preparation additionally
+requires SDL2 and pixman development packages visible to the normal pkg-config
+installation. The receipt records their observed versions.
+
+The serial preparation recipe, version, cache identity and fallback discovery
+remain unchanged. Graphical discovery accepts only a matching prepared graphics
+receipt and never substitutes the serial or stock emulator. Cold and warm checks
+verify the executable digest/version, SDL backend and QMP `screendump` command.
+The QMP check uses the empty machine with paused CPU, executes no guest
+instructions and retains its bounded protocol transcript under
+`graphics-probes/`. It proves neither a displayed product frame, firmware GOP,
+physical scanout nor GPU acceleration. A later graphical product must supply its
+own actual framebuffer, checked Face/Mask/Show and screenshot evidence. This
+preparation option alone does not change the canonical live-product route.
