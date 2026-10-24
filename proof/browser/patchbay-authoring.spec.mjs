@@ -205,6 +205,8 @@ for (const includeLifecycle of [false, true]) {
       await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
       const live = await current(page);
       expect(live.face.basis.active_play_id).toBeTruthy();
+      await expect(page.locator("#body-summary")).toHaveText(/^Body(?:$|:)/);
+      await expect(page.locator('#body-summary svg[aria-hidden="true"]')).toHaveCount(1);
       expect(live.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
       const plan = live.face.basis.plan_id;
       const play = live.face.basis.active_play_id;
@@ -263,6 +265,9 @@ for (const includeLifecycle of [false, true]) {
         }
         await clickNavigation(page, page.locator('#aspect-controls button[data-aspect="Structure"]'));
         await page.setViewportSize({ width: 1440, height: 1100 });
+        if (await workspace.getAttribute("open") !== null) await workspace.locator("summary").click();
+        if (await page.locator("body").getAttribute("data-inspector-open") === "true") await page.locator("#toggle-inspector").click();
+        await page.getByRole("button", { name: "Arrange", exact: true }).click();
         await page.getByRole("button", { name: "Fit", exact: true }).click();
         const live = await current(page);
         expect(live.face.basis.plan_id).toBe(plan);
