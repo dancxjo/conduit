@@ -23,7 +23,7 @@
     "browser": "existing pinned Chromium"
   },
   "commands": [
-    "CONDUIT_BROWSER_HOST_PORT=46753 CONDUIT_BROWSER_PROOF_SHARD=6351-2ab-forced-negative node_modules/.bin/playwright test --config proof/browser/playwright.config.mjs --project chromium --workers=1 --retries=0 owner-face-component.spec.mjs --grep forced-colors-tests",
+    "CONDUIT_BROWSER_HOST_PORT=46753 CONDUIT_BROWSER_PROOF_SHARD=6351-2ab-forced-negative node_modules/.bin/playwright test --config proof/browser/playwright.config.mjs --project chromium --workers=1 --retries=0 owner-face-component.spec.mjs --grep \"forced colors replace admitted\"",
     "same command with correctedCSS and shard6351-2ab-forced-positive",
     "CONDUIT_BROWSER_HOST_PORT=46753 CONDUIT_BROWSER_PROOF_SHARD=6351-2ab-complete node_modules/.bin/playwright test --config proof/browser/playwright.config.mjs --project chromium --workers=1 --retries=0 owner-face-component.spec.mjs"
   ],
