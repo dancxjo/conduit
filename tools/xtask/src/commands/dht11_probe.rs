@@ -51,8 +51,15 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "recording_chunks",
                     "--test",
                     "recording_recovery",
+                    "--test",
+                    "recording_publication",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env(
+                    "CARGO_TARGET_DIR",
+                    std::env::var_os("CARGO_TARGET_DIR")
+                        .map(std::path::PathBuf::from)
+                        .unwrap_or_else(|| root.join("target")),
+                ),
         );
     }
     if arguments == ["http"] {

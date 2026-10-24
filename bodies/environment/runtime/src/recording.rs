@@ -5,6 +5,8 @@ use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
 mod history;
+mod host_call;
+pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
 mod reader;
 mod snapshot;
 use alloc::string::String;
