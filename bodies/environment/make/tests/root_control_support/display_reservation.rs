@@ -5,7 +5,8 @@ use conduit_environment_runtime::display_output::*;
 #[test]
 fn output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal() {
     let source = DisplayOutputSource::compile().unwrap();
-    let (host, grant, _software) = display_fixture::fixture(&source);
+    let (host, mut grant, _software) = display_fixture::fixture(&source);
+    grant.grant_id = "grant/esp32/tm1637-write/1".into();
     let prepared = PreparedDisplayOutput::prepare(
         &source,
         &host,
@@ -147,6 +148,15 @@ fn output_reservation_requires_admitted_scope_and_preserves_sequence_on_refusal(
         .is_err());
     assert_eq!(issuer.next_play_sequence(), Some(2));
     signed_reservation(&mut issuer, &assignment, fragment);
+    possession(
+        &mut issuer,
+        &assignment,
+        fragment,
+        &bytes,
+        &records,
+        &profile,
+        maxima,
+    );
 }
 
 fn signed_reservation(
@@ -208,4 +218,81 @@ fn signed_reservation(
             assert_eq!(issuer.next_play_sequence(), Some(3));
         }
     }
+}
+
+fn possession(
+    issuer: &mut native_authority::RootIssuer,
+    assignment: &ValidatedAssignedDisplay,
+    fragment: &c::PlanFragment,
+    bytes: &[u8],
+    records: &[c::AssignedRecord<'_>],
+    profile: &AssignedDisplayProfile<'_>,
+    maxima: c::AssignedPlanMaxima,
+) {
+    use conduit_plan_lowering::{
+        selected_assigned_operation::AssignedOperationInput,
+        selected_assigned_operation::{
+            SelectedAssignedForeOperationPlan, SelectedAssignedOperationPlan,
+        },
+    };
+    let active = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 2);
+    let owner = display_fixture::ready(&fragment.host_id, &fragment.boot_id);
+    let contract = conduit_tm1637_wire::WriteContract::prepare().unwrap();
+    let required = c::AssignedPlanRequirements {
+        host: assignment.identity().host,
+        boot: assignment.identity().boot,
+        host_calls: profile.host_calls,
+        resources: profile.resources,
+        remote_bindings: &[],
+    };
+    let selected = || SelectedAssignedForeOperationPlan {
+        operation: SelectedAssignedOperationPlan {
+            input: AssignedOperationInput::Records {
+                header: &bytes[..125],
+                records,
+            },
+            maxima,
+            requirements: required,
+            node: profile.write,
+            computations: profile.computations,
+            fragment_id: &fragment.fragment_id,
+            active: &active,
+        },
+        fore: profile.fore,
+    };
+    assert!(issuer
+        .issue_assigned_display(&owner, assignment, selected(), 0, &contract)
+        .is_err());
+    let mut missing = selected();
+    missing.fore = &[];
+    assert!(issuer
+        .issue_assigned_display(&owner, assignment, missing, 2, &contract)
+        .is_err());
+    let mut wrong_node = selected();
+    wrong_node.operation.node = conduit_kernel::NodeId((profile.write.0 + 1) % 4);
+    assert!(issuer
+        .issue_assigned_display(&owner, assignment, wrong_node, 2, &contract)
+        .is_err());
+    let (table, handle, claim) = issuer
+        .issue_assigned_display(&owner, assignment, selected(), 2, &contract)
+        .unwrap();
+    assert!(issuer
+        .issue_assigned_display(&owner, assignment, selected(), 2, &contract)
+        .is_err());
+    let inspection = table.inspections().next().unwrap();
+    assert_eq!(inspection.scope.maximum_operations, 2);
+    assert_eq!(inspection.scope.maximum_in_flight, 1);
+    assert_eq!(inspection.completed_operations, 0);
+    assert_eq!(inspection.scope.active_play_id, active.active_play_id);
+    let mut owner = Some(owner);
+    conduit_tm1637_wire::installation::ReadyWriteBase::bind_assigned_fore_retained(
+        &mut owner,
+        table,
+        handle,
+        claim,
+        &contract,
+        selected(),
+    )
+    .unwrap();
+    assert!(owner.is_none());
 }

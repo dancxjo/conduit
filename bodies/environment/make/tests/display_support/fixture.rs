@@ -2,7 +2,7 @@
 use conduit_core as c;
 use conduit_environment_make::DisplayOutputSource;
 use conduit_tm1637_wire::{installation::*, owner::WriteAttachment, WriteContract};
-struct NoPins;
+pub(crate) struct NoPins;
 impl conduit_tm1637_wire::OpenDrain for NoPins {
     type Error = core::convert::Infallible;
     fn clock(&mut self, _: bool) -> Result<(), Self::Error> {
@@ -39,31 +39,7 @@ pub(crate) fn fixture_with_boot(
         capabilities: vec![],
         planner_capabilities: vec![],
     };
-    let identity = WriteNativeIdentity {
-        host_id: host.host_id.clone(),
-        boot_id: host.boot_id.clone(),
-        base_id: "fixture/pins".into(),
-        provider_instance_id: "fixture/provider".into(),
-        provider_generation: 1,
-        resource_pool_id: "fixture/pins".into(),
-        resource_generation_id: c::ResourceGenerationId("fixture/generation".into()),
-        envelope_id: "fixture/envelope".into(),
-        artifact_id: "fixture/driver".into(),
-        implementation_id: "fixture/driver".into(),
-        base_implementation_id: "fixture/base".into(),
-    };
-    // SAFETY: inert owned fixture; any attempted electrical operation panics.
-    let ready = unsafe {
-        ReadyWriteBase::new(
-            identity,
-            WriteAttachment {
-                generation: 1,
-                resource_bytes: 64,
-            },
-            NoPins,
-        )
-    }
-    .unwrap();
+    let ready = ready(&host.host_id, &host.boot_id);
     ready
         .append_to_advertisement(&mut host, &WriteContract::prepare().unwrap())
         .unwrap();
@@ -81,4 +57,32 @@ pub(crate) fn fixture_with_boot(
         capability_id: WRITE_CAPABILITY.into(),
     };
     (host, grant, software)
+}
+
+pub(crate) fn ready(host: &c::HostId, boot: &c::BootId) -> ReadyWriteBase<NoPins> {
+    let identity = WriteNativeIdentity {
+        host_id: host.clone(),
+        boot_id: boot.clone(),
+        base_id: "fixture/pins".into(),
+        provider_instance_id: "fixture/provider".into(),
+        provider_generation: 1,
+        resource_pool_id: "fixture/pins".into(),
+        resource_generation_id: c::ResourceGenerationId("fixture/generation".into()),
+        envelope_id: "fixture/envelope".into(),
+        artifact_id: "fixture/driver".into(),
+        implementation_id: "fixture/driver".into(),
+        base_implementation_id: "fixture/base".into(),
+    };
+    // SAFETY: inert owned fixture; any attempted electrical operation panics.
+    unsafe {
+        ReadyWriteBase::new(
+            identity,
+            WriteAttachment {
+                generation: 1,
+                resource_bytes: 64,
+            },
+            NoPins,
+        )
+    }
+    .unwrap()
 }

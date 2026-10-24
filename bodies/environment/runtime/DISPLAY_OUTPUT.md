@@ -81,3 +81,16 @@ owner wrapper additionally binds the assignment seal and Body/Wake provenance.
 CPU tests exercise production reservation/authentication code with explicit
 Boot/entropy substitutes. This API is not yet connected to display ingress or
 native capability issuance, and reserves no physical output operation.
+
+Root can now issue bounded display possession for the reserved validated output
+assignment. It checks the exact local Fore pins, current retained provider,
+selected native node and finite Root-selected frame budget before committing
+issuance state. Failed checks preserve issuance; successful issuance is fenced
+against replay and transfers no GPIO owner. The existing driver binder then
+transfers the retained owner exactly once without electrical effects.
+
+CPU evidence uses production Root issuance with explicit entropy/Boot/pin
+substitutes. Display ingress, complete installation and start, physical execution
+and display retirement/reoffer remain unconnected. This temporary issuance path
+is conservatively one-shot; no automatic provider reuse or fresh generation is
+inferred from dropping a handle.

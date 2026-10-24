@@ -10,6 +10,10 @@ pub struct ValidatedAssignedDisplay {
     pub(super) refusal: c::AssignedForeRequirement,
 }
 impl ValidatedAssignedDisplay {
+    /// Exact independently pinned local Fore; this confers no caller authority.
+    pub fn fore(&self) -> [c::AssignedForeRequirement; 2] {
+        [self.frame, self.refusal]
+    }
     pub fn identity(&self) -> c::AssignedPlanView {
         self.tables.identity
     }
