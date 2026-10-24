@@ -97,6 +97,9 @@ fn boot_once(
         &serde_json::from_value(snapshot.clone()).map_err(invalid)?,
     )
     .map_err(|e| refusal("invalid-riscv64-product-observatory", e.to_string()))?;
+    if product.get("graphical").is_some() {
+        graphical::validate_snapshot(&snapshot, &product)?;
+    }
     let ordinary_plan: conduit_core::Plan =
         serde_json::from_value(snapshot["plans"][0].clone()).map_err(invalid)?;
     product["ordinary_source_conformance"] =
@@ -134,12 +137,17 @@ fn prove_patchbay(
     product: &serde_json::Value,
 ) -> Result<(), ConduitosError> {
     let linear = super::product_patchbay::render(snapshot, "patchbay-rejected-riscv64-product")?;
+    let expected_bases = if product.get("graphical").is_some() {
+        "BASES 8"
+    } else {
+        "BASES 7"
+    };
     for required in [
         product["host_id"].as_str().unwrap_or_default(),
         product["boot_id"].as_str().unwrap_or_default(),
         product["ordinary_plan_id"].as_str().unwrap_or_default(),
         product["ordinary_play_id"].as_str().unwrap_or_default(),
-        "BASES 7",
+        expected_bases,
         "lifecycle=Completed",
         "firmware=uefi64",
         "proof=FreestandingEmulator",

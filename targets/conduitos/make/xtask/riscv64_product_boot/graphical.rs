@@ -197,6 +197,67 @@ fn validate_mapping(proof: &Value) -> Result<(), ConduitosError> {
     }
     Ok(())
 }
+/// The graphical proof must refer to the same finite Base and boot inventory,
+/// not merely a screenshot with matching dimensions.
+pub(super) fn validate_snapshot(snapshot: &Value, product: &Value) -> Result<(), ConduitosError> {
+    let frame = &product["graphical"]["face"]["framebuffer"];
+    let bases = snapshot["bases"]
+        .as_array()
+        .ok_or_else(|| io("Base inventory missing"))?;
+    if bases.len() != 8 {
+        return Err(io(
+            "graphical product requires seven ordinary Bases plus scanout",
+        ));
+    }
+    let selected = bases
+        .iter()
+        .filter(|base| base["base_id"] == frame["base_id"])
+        .collect::<Vec<_>>();
+    if selected.len() != 1
+        || selected[0]["kind_id"] != "conduitos.base/framebuffer@1"
+        || selected[0]["host_id"] != product["host_id"]
+        || selected[0]["boot_id"] != product["boot_id"]
+        || selected[0]["state"] != "Available"
+        || selected[0]["capacity_units"]
+            != product["graphical"]["mapping"]["mapping"]["byte_length"]
+    {
+        return Err(io(
+            "captured scanout Base differs from current Host/Boot inventory",
+        ));
+    }
+    let sealed = snapshot["sealed_boot_provenance"]
+        .as_array()
+        .ok_or_else(|| io("boot provenance missing"))?;
+    let records = sealed
+        .iter()
+        .filter(|entry| {
+            entry["host_id"] == product["host_id"] && entry["boot_id"] == product["boot_id"]
+        })
+        .collect::<Vec<_>>();
+    if records.len() != 1 {
+        return Err(io("exact current boot provenance required"));
+    }
+    let record = records[0];
+    let frames = record["framebuffers"]
+        .as_array()
+        .ok_or_else(|| io("boot framebuffer observation missing"))?;
+    if record["build_id"] != product["build_id"]
+        || record["image_id"] != product["image_id"]
+        || record["firmware_environment"] != "uefi64"
+        || frames.len() != 1
+        || frames[0]["base_id"] != frame["base_id"]
+        || frames[0]["width"] != frame["width"]
+        || frames[0]["height"] != frame["height"]
+        || frames[0]["pitch_bytes"] != frame["pitch"]
+        || frames[0]["bits_per_pixel"] != frame["bits_per_pixel"]
+    {
+        return Err(io(
+            "captured framebuffer differs from sealed boot observation",
+        ));
+    }
+    Ok(())
+}
+
 fn io(error: impl std::fmt::Display) -> ConduitosError {
     refusal("riscv64-graphical-proof-unavailable", error.to_string())
 }
