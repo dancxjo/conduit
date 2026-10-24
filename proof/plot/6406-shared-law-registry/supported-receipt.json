@@ -1,0 +1,57 @@
+{
+  "source": "db613b343d6a00a54de1023165d7a23c7a23d631",
+  "groups": [
+    [
+      "484",
+      "0",
+      "1"
+    ],
+    [
+      "11",
+      "0",
+      "0"
+    ],
+    [
+      "8",
+      "0",
+      "0"
+    ],
+    [
+      "3",
+      "0",
+      "0"
+    ]
+  ],
+  "passed": 506,
+  "failed": 0,
+  "ignored": 1,
+  "command": "cargo +stable xtask check native-law-custody",
+  "executables": [
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/conduit_plot-3c0ad4adf9ef9621",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/conduit_plot-3c0ad4adf9ef9621.supported.elf.gz",
+      "sha256": "8f5e886d3eefe4862fa6311677fe617d9783b1ed0c1fd79dc2255ac4aa250b55",
+      "bytes": 27095488
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_custody-149eba2696228c15",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/native_law_custody-149eba2696228c15.supported.elf.gz",
+      "sha256": "4a6b06350b1ee04f01dad637d2460df243b95f7113dbd39c78831acc44bd7e1c",
+      "bytes": 15714384
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_families-b6c63520248c2343",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/native_law_families-b6c63520248c2343.supported.elf.gz",
+      "sha256": "6fce283378e618c57a6f80ed328e0990a80025d853faeb57ddc65c04525c8d0c",
+      "bytes": 15298512
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/native_law_packages-c63c322430dcb464",
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-shared-registry-proof/native_law_packages-c63c322430dcb464.supported.elf.gz",
+      "sha256": "d7847adcfc176f28490c992402478313bc2ad44cee3dc7743507f1111eb30979",
+      "bytes": 15243464
+    }
+  ],
+  "log_sha256": "1b6ff1faefc2b01412b2ab0c1de5394b4a81029c52574a33dc7b7a01159f48b3",
+  "sealed": 1792871072.3930783
+}

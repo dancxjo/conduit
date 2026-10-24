@@ -14,7 +14,7 @@ guard refusal. Public tests cover zero allocation/reallocation during repeated
 guard use, exact refusal/cancellation, source lifetime and imported families.
 Actual executable identities are sealed outside the build cache.
 
-The broader supported custody regression is running separately. This foundation
+The broader supported custody regression passes 506 tests, with zero failures and 1 pre-existing ignored test. This foundation
 does not yet implement executed-node law enforcement, a verified wire envelope,
 Std transactional installation, or all four automatic G2 Plan/Play journeys.
 No full #6406, whole-path heap bound, human audio or physical claim follows.
