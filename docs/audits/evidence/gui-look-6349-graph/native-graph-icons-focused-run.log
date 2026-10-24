@@ -1,0 +1,7 @@
+
+running 2 tests
+test native_face_scene::diagram::badges::tests::saturated_graph_keeps_every_card_and_port_and_falls_back_to_labeled_cards ... ok
+test native_face_scene::diagram::badges::tests::graph_cards_use_shared_gear_symbols_without_changing_links_or_subjects ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1312 filtered out; finished in 0.11s
+

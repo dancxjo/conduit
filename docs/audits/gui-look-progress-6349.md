@@ -170,5 +170,17 @@ geometry, hit targets, semantic subjects and omission reporting.
 Focused rendering checks cover the ordinary graph with three Gear symbols and
 its two original Cords, and a saturated six-card/24-Port graph that fills the
 48-command budget and correctly retains text-only cards. Existing exact endpoint,
-fan-graph, ambiguity and large-graph checks pass. Fresh normal-product graph
-capture and current scene-suite results are recorded after the frozen build.
+fan-graph, ambiguity and large-graph checks pass. At Source `d2e7caeb2`, all 140 native scene checks pass (one opt-in ignored).
+The actual normal-product journey reaches Patchbay, Gear Details, diagram return
+and Stop on the same Body. Its four Gear symbols and original three Cords are
+visible in [27 source-bound captures and receipts](evidence/gui-look-6349-graph/).
+The 48-command bound is unchanged.
+
+The supported graphical-profile command also starts headless asset-closure
+builds for four other architectures. That additional build portion was deliberately
+stopped after the completed native journey/compositor collection; exit 143 is
+retained. This is not full graphical-profile or cross-architecture acceptance.
+Inherited capture names containing engineering denote Phosphor palette changes,
+not proof of Engineering typography. About 8 GB of verified inactive task-owned
+incremental cache was removed; compiled libraries, media, evidence, active and
+other-task builds were preserved.
