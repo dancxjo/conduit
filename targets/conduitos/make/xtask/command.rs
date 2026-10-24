@@ -213,7 +213,11 @@ pub(super) enum ConduitosCommand {
     /// Prove ordinary LoongArch64 PLV3 execution and independent boundary checks.
     Loongarch64OrdinaryDomainProof,
     /// Prepare pinned QEMU and OpenSBI for protected RISC-V64 product proofs.
-    PrepareRiscv64DomainEmulator,
+    PrepareRiscv64DomainEmulator {
+        /// Prepare a separate SDL/pixman tool with verified QMP screenshot capability.
+        #[arg(long)]
+        graphical: bool,
+    },
     /// Prepare the pinned diagnostic QEMU with both reviewed LoongArch corrections.
     PrepareLoongarch64DomainEmulator,
     /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
@@ -225,6 +229,35 @@ mod tests {
     use crate::cli::{Cli, Command, MakeArgs, MakeTarget};
     use clap::Parser;
 
+    #[test]
+    fn graphical_riscv_emulator_is_an_explicit_preparation_option() {
+        for graphical in [false, true] {
+            let mut command = vec![
+                "xtask",
+                "make",
+                "conduitos",
+                "prepare-riscv64-domain-emulator",
+            ];
+            if graphical {
+                command.push("--graphical");
+            }
+            let cli = Cli::try_parse_from(command).unwrap();
+            let Command::Make(args) = cli.command else {
+                panic!("wrong command");
+            };
+            let MakeArgs {
+                target:
+                    MakeTarget::Conduitos(ConduitosArgs {
+                        command:
+                            ConduitosCommand::PrepareRiscv64DomainEmulator { graphical: actual },
+                    }),
+            } = *args
+            else {
+                panic!("wrong target");
+            };
+            assert_eq!(actual, graphical);
+        }
+    }
     #[test]
     fn protocol_source_command_requires_package_entry_and_output_directory() {
         let command = ["xtask", "make", "conduitos", "protocol-source"];
