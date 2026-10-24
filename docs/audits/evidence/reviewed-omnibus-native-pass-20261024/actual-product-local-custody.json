@@ -1,0 +1,508 @@
+{
+  "source": "eb691571b702622c1256cd96604dd98822634107",
+  "tree": "cfc299f6540c516fecd0789d1e84d6b7884bc51f",
+  "status": "sealed-roundtrip-verified",
+  "files": [
+    {
+      "path": "outputs/6422-composed-eb691571-application.log",
+      "bytes": 13303,
+      "mtime_ns": 1792872533033710157,
+      "inode": 52473397,
+      "sha256": "0dc9896ec7996b8ada861944958f05df3f84feb0200a9091c37bcec8cd6cdb3b"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-body-documents.log",
+      "bytes": 1295,
+      "mtime_ns": 1792872541045666539,
+      "inode": 52473400,
+      "sha256": "55ad7ed62ccf7e00cd9e376d0747c917bf53821cfed278eb1d5bb2179fcc715d"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-body-lib.log",
+      "bytes": 4430,
+      "mtime_ns": 1792872536744689963,
+      "inode": 52473399,
+      "sha256": "b0a88cf72cd29952ef9103ab5eee60a2dd8810b53db641926fd84bfcdcac2b5b"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-boot.log",
+      "bytes": 1258,
+      "mtime_ns": 1792874955305930701,
+      "inode": 52473429,
+      "sha256": "4d34ff1babd17c4624f291b5e6a759f87ebe4ecaebe8dfe956761e92c02bd2c5"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-build.log",
+      "bytes": 50551,
+      "mtime_ns": 1792874941638866512,
+      "inode": 52473415,
+      "sha256": "5603c80be3649caec81b23530a58379a452a8759b51a50c5839c77db2dbe0e6c"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-environment-appliance.log",
+      "bytes": 14319,
+      "mtime_ns": 1792873662735249863,
+      "inode": 52473411,
+      "sha256": "918aa8ab1f60885d0ff37daed6d92d6983f7788db500aec8a6bd22964ec35c35"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-environment-face.log",
+      "bytes": 10167,
+      "mtime_ns": 1792873819920134886,
+      "inode": 52473412,
+      "sha256": "4d52750f266b211ed239ff91eafd3e70e7d553b0531d0cb653e5c7223d1dbc37"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-environment-http.log",
+      "bytes": 4893,
+      "mtime_ns": 1792873967209540705,
+      "inode": 52473414,
+      "sha256": "105f2e0f40d72cb3c010e4e185bfe80a677db7582473e9bb267d30f8fd0f116f"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-http-doc.log",
+      "bytes": 11870,
+      "mtime_ns": 1792873515549001346,
+      "inode": 52473410,
+      "sha256": "8422716115402f9bf6b5ff5cc6acdfa6c10f5f65bba6bbf14866625952ee2015"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-http-lifecycle.log",
+      "bytes": 950,
+      "mtime_ns": 1792873425289324246,
+      "inode": 52473409,
+      "sha256": "431d506c011c69ae1ec123d41496e75036b86a224b58ccd5801c7cefafd95915"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-installed-owner.log",
+      "bytes": 15931,
+      "mtime_ns": 1792873403016869241,
+      "inode": 52473408,
+      "sha256": "809cbcbd81d13a9d9f3657d0dae125f9007b6e3100fe62cb5a156027d7151d15"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-journey.log",
+      "bytes": 950,
+      "mtime_ns": 1792875027606259452,
+      "inode": 52473430,
+      "sha256": "96a8b8ab672b892e0033f36318d7b19d91de06cce5d49fd7837312f7344e6c9a"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-native-lib.log",
+      "bytes": 2694438,
+      "mtime_ns": 1792873171608928880,
+      "inode": 52473401,
+      "sha256": "26e828de804ebeafb09ea1f8cdd934310de069e4b802dac4794e4a27b9c9576a"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-preflight.log",
+      "bytes": 35228,
+      "mtime_ns": 1792872402278410545,
+      "inode": 52473395,
+      "sha256": "f006c546a701e8b9973558a70380e2e9116f5dce8f29ce679a998a690ba7df28"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-product/build-manifest.json",
+      "bytes": 4269,
+      "mtime_ns": 1792874941638866512,
+      "inode": 52705356,
+      "sha256": "a31565c9a7d0237ace0ceeea74fe1926ca2495ee388f1c3142abd469e2b4311a"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-product/conduitos-kernel.elf",
+      "bytes": 80627288,
+      "mtime_ns": 1792874939479856309,
+      "inode": 52705336,
+      "sha256": "a4005e70720926ae791a2ec063c63b1f15053fd76e670449083f4e34f45a2caf"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-product/conduitos-x86_64.iso",
+      "bytes": 84903936,
+      "mtime_ns": 1792874939495856385,
+      "inode": 52705344,
+      "sha256": "9dc1343a215274f9c5cef97a24d7cec88d0aaf6ffdc68420edeb3696368d7d0e"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-product/resolved-image.json",
+      "bytes": 4453,
+      "mtime_ns": 1792874941638866512,
+      "inode": 52705354,
+      "sha256": "b5b2555232d5dcddc87997dd430871ef990ed68cbfee3a3bbc46956f978c3480"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-proof.json",
+      "bytes": 9623,
+      "mtime_ns": 1792875030287377873,
+      "inode": 52473396,
+      "sha256": "9ac5a35543c418676dd0f57512596be1670d0b7e3ee7fa2d5b4441f02b3d2ca7"
+    },
+    {
+      "path": "outputs/6422-composed-eb691571-verify.log",
+      "bytes": 762,
+      "mtime_ns": 1792875030233271076,
+      "inode": 52473432,
+      "sha256": "3cb7517954d413af36e5de88c090c51ee09bf6f5d326a1a4290b920b200b91f7"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application.elf",
+      "bytes": 2877160,
+      "mtime_ns": 1792874731536243199,
+      "inode": 54405548,
+      "sha256": "9f2b883205ba33d03b8b6cdc4774e9b78a9a8b1f300ee90f7a5ff346d28ace66"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/compositor.elf",
+      "bytes": 29256,
+      "mtime_ns": 1792874271983264258,
+      "inode": 54431045,
+      "sha256": "c793812c2ae043bb4d10b877e708eaafe0b7b1648e6f9009596e3017c4159515"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/creche.elf",
+      "bytes": 1669656,
+      "mtime_ns": 1792874532879256921,
+      "inode": 54431328,
+      "sha256": "8ff532938d14051572168622de2ad1c70dfaaf98680a4e07528c7c1c8153c322"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/domain.elf",
+      "bytes": 142552,
+      "mtime_ns": 1792874271968009378,
+      "inode": 54431042,
+      "sha256": "55025c95a3ff9fe7149872161c511133a3fd7e3c9115af06dd1a2506c596c7fa"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/mask.elf",
+      "bytes": 177160,
+      "mtime_ns": 1792874889784011715,
+      "inode": 54431680,
+      "sha256": "9ab032c87cc236cd48296043b432c06ef0e54fa3f30fab8999962cb7cb50c938"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/network.elf",
+      "bytes": 39632,
+      "mtime_ns": 1792874731594562396,
+      "inode": 54431331,
+      "sha256": "fee7a39bf3d4b93d0da3bea0ae49d7dbfd871321c92d96732fc1558c0a6783dd"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/runtime.elf",
+      "bytes": 238680,
+      "mtime_ns": 1792874532896777695,
+      "inode": 54431329,
+      "sha256": "a963929a713ec2c18924c12d99f5fbb2978b462c41c4b111e2bff9ce345d7a91"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/tls.elf",
+      "bytes": 197600,
+      "mtime_ns": 1792874731672142689,
+      "inode": 54431679,
+      "sha256": "8f43301f7371896d40b0a7994caf14eebbaef41546d10488c60ddf6a1e2510f1"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/build.json",
+      "bytes": 319,
+      "mtime_ns": 1792874938176850143,
+      "inode": 53628246,
+      "sha256": "9fb128d0c15c13e7d4e988573dda3f11727e0ff98b8e111f074e39da6e5daa59"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/compositor-lifecycle-proof.json",
+      "bytes": 69092,
+      "mtime_ns": 1792875025433249823,
+      "inode": 53628289,
+      "sha256": "195584d1db4fdf332e04d9c570881593904e0c750cbd07a8287d373d8fcf1bc9"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/image.json",
+      "bytes": 335,
+      "mtime_ns": 1792874939465856243,
+      "inode": 53628248,
+      "sha256": "00919dccb12253bd0560675012ed45804f54d8bfea79102720020ebf69b1b904"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/body-playing.png",
+      "bytes": 68799,
+      "mtime_ns": 1792874983584061390,
+      "inode": 54818432,
+      "sha256": "a84143219f33778698881d49a762ecc961d7a5749d2853923f18a76c37d12d86"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/body-stopped.png",
+      "bytes": 201298,
+      "mtime_ns": 1792875012488192147,
+      "inode": 54818474,
+      "sha256": "7fcfa6a1a88aea50102d3f8fff5c9fe58e5e7e9c7de51d13c54269925f09c322"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-editorial-compact.png",
+      "bytes": 170541,
+      "mtime_ns": 1792874966184981313,
+      "inode": 54818423,
+      "sha256": "32cbddc67e290fce8f916d3e27c602c0a0f114afe5b1d92336c38900e2b5e21d"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-engineering-editorial-compact.png",
+      "bytes": 170587,
+      "mtime_ns": 1792874971205004526,
+      "inode": 54818425,
+      "sha256": "c481165974e759eb2305f2c76c6a73197d0ea3358d65be40cef0c12b93561524"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-engineering-phosphor-compact.png",
+      "bytes": 159331,
+      "mtime_ns": 1792874970022999068,
+      "inode": 54818424,
+      "sha256": "92172eb2316ca8a1054a3086cbd4cdfe52454bfd23842795c478c29e5e59d395"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-engineering-phosphor-spacious.png",
+      "bytes": 139131,
+      "mtime_ns": 1792874973221013823,
+      "inode": 54818426,
+      "sha256": "713baf8f9a00cbb117b5fad795c1593e67e2bc3ad5097183a6f09b464939f1da"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-four-restored.png",
+      "bytes": 159263,
+      "mtime_ns": 1792874976947030968,
+      "inode": 54818428,
+      "sha256": "d3c2a13c833d199f7c3a183a8157af221ccdc3e99eb07b8015633e0495036be6"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-fourth-checked.png",
+      "bytes": 159265,
+      "mtime_ns": 1792874977777034781,
+      "inode": 54818429,
+      "sha256": "7a166086c77829c66c12d38325f32bce3d86c12c57f839b904a2f6c9941c07df"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 159435,
+      "mtime_ns": 1792874979336041936,
+      "inode": 54818431,
+      "sha256": "ece90c49be2c9c790e9355187c5fa2c3d7ecc271db38cfb7a8ec700990a7ce35"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 159529,
+      "mtime_ns": 1792874978570038421,
+      "inode": 54818430,
+      "sha256": "9a2ab8d7e31ab9d7375ed73d82eca3cbb3f780a016089790fa949750fc42278b"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-ready.png",
+      "bytes": 159249,
+      "mtime_ns": 1792874965056976085,
+      "inode": 54818422,
+      "sha256": "88cb4927d5f43272d3258146078a38d80079db9f1b28a922d14e7dff7cd9b037"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/creche-three-selected.png",
+      "bytes": 159359,
+      "mtime_ns": 1792874976181027447,
+      "inode": 54818427,
+      "sha256": "0be815df61d3a1b1e01cb58e813f24761a32d58c68d26c299881d003f19e0cc0"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "mtime_ns": 1792874964170971975,
+      "inode": 54818421,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/home-returned.png",
+      "bytes": 57064,
+      "mtime_ns": 1792875012846193749,
+      "inode": 54818475,
+      "sha256": "57b59f42e5806d960a922decd96547062fb6c090f26dac9fb1b43cdbe46ae455"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/home.png",
+      "bytes": 68799,
+      "mtime_ns": 1792874988611084332,
+      "inode": 54818436,
+      "sha256": "a84143219f33778698881d49a762ecc961d7a5749d2853923f18a76c37d12d86"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/manifest.json",
+      "bytes": 480508,
+      "mtime_ns": 1792875021192230986,
+      "inode": 54818419,
+      "sha256": "54aa4476c40fe43b2b9f8fae325aecfaebc95cceb53abf8e47d61023958598aa"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 162976,
+      "mtime_ns": 1792874991302096578,
+      "inode": 54818441,
+      "sha256": "9746dedb9a6910ad5028e007ac21b0e937fa2c717328473e755f2507289f5ea4"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-diagram.png",
+      "bytes": 163311,
+      "mtime_ns": 1792874990620093477,
+      "inode": 54818439,
+      "sha256": "55d7346c7ae82a6af988ddf4885dcbfd36c504ae90471a7e7d87d6ab1deccc4c"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-face.png",
+      "bytes": 157301,
+      "mtime_ns": 1792874990168091421,
+      "inode": 54818438,
+      "sha256": "4c1444c14ef8b9763fb07a5f84072fc3321e3416dc33203eb890b8e7feae7f85"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-gear-details.png",
+      "bytes": 244400,
+      "mtime_ns": 1792874990879094655,
+      "inode": 54818440,
+      "sha256": "95cd7f1ae5560c6880e51230b491dc87e2e560fdda870043b43344efe0771dd2"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-inspected-other-and-returned.png",
+      "bytes": 157301,
+      "mtime_ns": 1792875003550152008,
+      "inode": 54818442,
+      "sha256": "4c1444c14ef8b9763fb07a5f84072fc3321e3416dc33203eb890b8e7feae7f85"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-mask-replanned.png",
+      "bytes": 145197,
+      "mtime_ns": 1792875011970189828,
+      "inode": 54818473,
+      "sha256": "c47e43791e06b5ae70b7121ebcb3f37ea188826348dd5bee9fe9ff946a310bf3"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-reentered.png",
+      "bytes": 55630,
+      "mtime_ns": 1792875013111194935,
+      "inode": 54818476,
+      "sha256": "3997554cfa61392eab7db8bd92201be812d15901756d08d3e65e0283b3c979bd"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-source-editor-loaded.png",
+      "bytes": 104772,
+      "mtime_ns": 1792875020240226750,
+      "inode": 54818472,
+      "sha256": "0950b14fa16e4789f224f6883330261f9bfee985a3e84c6a0877c5a8aaee92dd"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/patchbay-workspace.png",
+      "bytes": 157301,
+      "mtime_ns": 1792874989939090379,
+      "inode": 54818437,
+      "sha256": "4c1444c14ef8b9763fb07a5f84072fc3321e3416dc33203eb890b8e7feae7f85"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 69349,
+      "mtime_ns": 1792874985860071788,
+      "inode": 54818434,
+      "sha256": "48dfed8b663c61f02587837afab33b2f0bd7d8fe1e51fc68ccd35327b799c80c"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/protected-memory-lantern.png",
+      "bytes": 64163,
+      "mtime_ns": 1792874987789080587,
+      "inode": 54818435,
+      "sha256": "1932d55f87e31841170aa4e256f0390dffb6192a0b2ee2b2eb3135cb1c5e08b2"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-frames/wake-refused.png",
+      "bytes": 127045,
+      "mtime_ns": 1792874984853067190,
+      "inode": 54818433,
+      "sha256": "342a6b54739776d373c675ad54a44d7ee917058bc6420bc46cca3b95b55795b5"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-proof.json",
+      "bytes": 1511950,
+      "mtime_ns": 1792875021171230893,
+      "inode": 53628264,
+      "sha256": "6ee7ae0ff928f7edfe1ad14066151ad4f533cbaa5a7cf04248a9fdb698671344"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-qemu-stderr.log",
+      "bytes": 0,
+      "mtime_ns": 1792874958992947902,
+      "inode": 53628254,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-qmp.log",
+      "bytes": 227299,
+      "mtime_ns": 1792875020683228721,
+      "inode": 53628256,
+      "sha256": "35cc9bd4f902b6d6d4ef68fe78c18ab8bce1c67d0dd6a34edad057e739e04a74"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/journey-serial.log",
+      "bytes": 3539654,
+      "mtime_ns": 1792875020668228655,
+      "inode": 53628255,
+      "sha256": "f2831bc7ae36156998f55d148790454355f870c0c91804358ccb9f49342a13a0"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/local-look-proof.json",
+      "bytes": 28034,
+      "mtime_ns": 1792874975207022967,
+      "inode": 53628257,
+      "sha256": "9350e0e5dbf7c2a92b8a438ffda725ac8f5cddf430c58d4f00ba3f15316b1b56"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/memory-lantern-native-edit.json",
+      "bytes": 5052,
+      "mtime_ns": 1792874987668080035,
+      "inode": 53628259,
+      "sha256": "a7b2c35fbccb83e5d022bb807a8b5c9e86f85490a53240b91ac470107f3ed920"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/native-shell-paired-linear.json",
+      "bytes": 5098971,
+      "mtime_ns": 1792875021008230168,
+      "inode": 53628263,
+      "sha256": "30322170ce87a04e7f1ec9bdd1ecfcb6a41e856ee74f5b8c9bf32be09b6c8523"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/privilege-inventory-a4005e70720926ae791a2ec063c63b1f15053fd76e670449083f4e34f45a2caf-product-host.json",
+      "bytes": 64072,
+      "mtime_ns": 1792874938175850138,
+      "inode": 53628234,
+      "sha256": "8cc9c5468820a09326e821fc90829a6033f1d67eb604c986ebcfd9ddda65bdce"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/privilege-inventory-a4005e70720926ae791a2ec063c63b1f15053fd76e670449083f4e34f45a2caf-product-host.map",
+      "bytes": 24364829,
+      "mtime_ns": 1792874935611837986,
+      "inode": 53622052,
+      "sha256": "34e8dfdfc6e933ae06941056f09402ba4d40346f42110593ecca81d3205729be"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/profile-built-boot.log",
+      "bytes": 41744,
+      "mtime_ns": 1792874954220045315,
+      "inode": 53628250,
+      "sha256": "c2f8b5d47ffe7e039b4b1fe185eb6c84226937c52862cf3922f96e2aa68917c8"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/x86_64-product-journey-proof.json",
+      "bytes": 1585882,
+      "mtime_ns": 1792875025469249982,
+      "inode": 53628290,
+      "sha256": "462a5c1abc578922e52b700d3b811ca5a3d91f1bc9de4dc96281987cc7231afa"
+    },
+    {
+      "path": "work/6422-composed-eb691571-target/x86_64/x86_64-product-proof.json",
+      "bytes": 1725,
+      "mtime_ns": 1792874955305930701,
+      "inode": 53628252,
+      "sha256": "f22cea8c81d7f7ecb7e91c32d4ea19594a4e115d77f133c5c9bfdb44f496038d"
+    }
+  ],
+  "archive": "outputs/6422-composed-eb691571-product-custody/actual-product-guests-runtime-logs.tar.gz",
+  "archive_sha256": "36938ba804c14c2a6b5df57e62fc6954ce27c0338d10e66929f082bace51713b",
+  "archive_bytes": 25618553,
+  "boundary": "Actual local normal combined product, eight staged guest ELFs, boot and completed ordinary QEMU journey. Exact frozen source eb691571; no final-descendant CI, physical or cross-architecture execution claim."
+}
