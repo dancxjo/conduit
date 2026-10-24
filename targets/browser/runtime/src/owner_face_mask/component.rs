@@ -19,6 +19,8 @@ pub(super) struct VisualConstraints {
 pub(super) struct ComponentView {
     pub configuration: ConfiguredMaskConfiguration,
     pub expression: AdmittedVisualExpression,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recipe_identity: Option<String>,
     pub maximum_columns: u16,
     pub reflow_width: u16,
     pub gutter: u16,
@@ -66,6 +68,8 @@ pub(super) fn prepare(
     )
     .map_err(|_| "component recipe encoding".to_owned())
     .and_then(|value| prepare_component_recipe(value, face).map_err(|error| format!("{error:?}")));
+    let recipe_identity = prepared.as_ref().ok()
+        .map(|prepared| prepared.recipe.identity().to_owned());
     let (maximum_columns, reflow_width, gutter, subject_regions, groups, fallback) = match prepared
     {
         Ok(prepared) => (
@@ -93,6 +97,7 @@ pub(super) fn prepare(
     Ok(Some(ComponentView {
         configuration,
         expression,
+        recipe_identity,
         maximum_columns,
         reflow_width,
         gutter,

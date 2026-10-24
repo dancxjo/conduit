@@ -41,20 +41,8 @@ pub const BROWSER_ADMISSION_PROTOCOL: u16 = 1;
 pub const MAX_BROWSER_ADMISSION_FRAME_BYTES: usize =
     MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 1_024;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum BrowserComponentLook {
-    Compact,
-    Spacious,
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum BrowserComponentRecipe {
-    Flat,
-    Grouped,
-    #[serde(rename = "required-item")]
-    RequiredItem,
-}
+mod component_selection;
+pub use component_selection::{BrowserComponentLook, BrowserComponentRecipe};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]

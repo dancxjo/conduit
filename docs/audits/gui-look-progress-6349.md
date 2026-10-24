@@ -184,3 +184,25 @@ Inherited capture names containing engineering denote Phosphor palette changes,
 not proof of Engineering typography. About 8 GB of verified inactive task-owned
 incremental cache was removed; compiled libraries, media, evidence, active and
 other-task builds were preserved.
+
+## Owner-facing browser Look controls
+
+The owner Handbook now separates Density and Palette proposals over the four
+existing checked presets. Browser wire decoding and installed-owner conversion
+accept those same finite names; arbitrary CSS/Look objects still refuse. A
+small controls module replaces inline orchestration and uses the existing
+select/prepare/acknowledge route. Pending, offline and speech-held encounters
+disable the selectors. Rendered state still comes from the acknowledged Show.
+
+The browser Mask reports the prepared recipe identity explicitly. The controls
+retain a recognized current recipe when only appearance changes; foreign or
+unavailable recipes require an explicit layout choice. No geometry/name-based
+recipe guessing or second Face store is introduced. Minimum text size remains
+a hard user constraint. Typography is supplied by the selected preset and is
+reported in the Shown status; separate typography selection remains outstanding.
+
+Wire checks preserve exact Show integers across all four presets. The 137
+Chromium renderer, reachability, sealed-module and controls checks pass with
+one worker/zero retries, including narrow/forced-color controls. The Rust closed
+transport mapping check passes. A fresh runtime/installed-owner encounter is
+recorded separately; fixture controls do not establish owner acknowledgement.

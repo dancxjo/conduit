@@ -47,6 +47,22 @@
         {
           "role": "owner-face-reachability",
           "specifier": "./owner-face-reachability.mjs"
+        },
+        {
+          "role": "owner-look-controls",
+          "specifier": "./owner-look-controls.mjs"
+        }
+      ]
+    },
+    {
+      "role": "owner-look-controls",
+      "kind": "module",
+      "path": "owner-look-controls.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": [
+        {
+          "role": "owner-face-icons",
+          "specifier": "./owner-face-icons.mjs"
         }
       ]
     },
