@@ -306,3 +306,20 @@ colors. Captures at 1440px, 390px ordinary text and 390/320px enlarged forced-co
 text retain initial and explicit Fit states, without document overflow, header
 band overlap or browser errors. [Evidence and failures](evidence/gui-look-6349-masthead/README.md).
 Full browser zoom, cross-component Look and native acceptance remain separate.
+
+## Ordinary Workspace activity strip
+
+At `72df3b659`, Plot/flow/lifecycle inspection uses pinned labeled symbols and
+44px targets. Dynamic selection updates retain a separate label span, preserving
+the Plot icon. Fresh supported staging regenerates the initial Body and reviewed
+catalog and admits all 92 resources. A real browser Body is birthed and awakened;
+Memory Lantern receives authoritative Unicode text. Three local chrome Looks,
+three keyboard inspection/focus-return round trips and 390px / 32px forced-color
+text retain the same Body/Plan/active Play and editor value. Both existing
+Birth/Wake/reload and narrow listening journey checks pass. [Captures and receipts](evidence/gui-look-6349-workspace-activity/README.md).
+These are chrome preferences, not canonical resident Mask Look selection. Editor
+font/surface integration and cross-renderer acceptance remain broader Look work.
+
+About 1.9GiB of actual disk space was recovered from verified inactive task-owned
+incremental cache after staging. Active process maps/open files/crate ownership
+were inventoried; compiled libraries/binaries, source and evidence were preserved.

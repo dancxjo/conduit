@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {chromium} from '/home/dancxjo/conduit/proof/browser/node_modules/playwright/index.mjs';
+import {startStaticProduct} from './gui-polish/proof/browser/static-product-server.mjs';
+import {enterMemoryText,memoryEditor} from './gui-polish/proof/browser/workspace-editor.mjs';
+const product=process.argv[2],output=process.argv[3];await mkdir(output,{recursive:true});
+const server=await startStaticProduct(product,'/conduit/workspace/');const browser=await chromium.launch();let page;
+try{page=await browser.newPage({viewport:{width:1440,height:1100}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto(server.url);const birth=page.locator('.body-birth-runner');await birth.getByLabel('Friendly Body name',{exact:true}).waitFor({timeout:60000});await birth.getByLabel('Friendly Body name',{exact:true}).fill('Looking Glass — Δοκιμή 🪞');await birth.getByRole('button',{name:'Birth Body',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[data-play-state]').textContent==='Lulled',null,{timeout:60000});
+await page.getByRole('button',{name:'wake body',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[data-play-state]').textContent==='Playing',null,{timeout:60000});await page.getByRole('navigation',{name:'Your plots'}).getByRole('button',{name:'Memory Lantern',exact:true}).click();
+const text=`Choose a name.
+Add a Plot.
+Make something move.
+
+Δοκιμή · hello, 世界 🪞`;await enterMemoryText(page,text);await page.locator('[data-body-tutorial] > summary').click();
+const identity=()=>page.evaluate(()=>{const c=globalThis.__conduitWorkspace.current();return{body_id:c.body_id,plan_id:c.plan_id,active_play_id:c.active_play_id}});const baseline=await identity();
+for(const [kind,count]of[['plot',1],['flow',2],['lifecycle',1]])assert.equal(await page.locator(`[data-inspect="${kind}"] svg[aria-hidden="true"]`).count(),count);
+const looks=[];
+for(const look of ['editorial','engineering','phosphor']){await page.locator('[data-workspace-look-picker]').selectOption(look);assert.deepEqual(await identity(),baseline);assert.equal(await memoryEditor(page).inputValue(),text);await page.screenshot({path:`${output}/workspace-activity-${look}.png`,fullPage:true});looks.push(look)}
+for(const kind of ['plot','flow','lifecycle']){const button=page.locator(`[data-inspect="${kind}"]`);await button.focus();await page.keyboard.press('Enter');assert.equal(await button.getAttribute('aria-expanded'),'true');await page.locator('#workspace-inspection').waitFor({state:'visible'});assert.deepEqual(await identity(),baseline);await page.locator('[data-close-inspection]').click();assert.equal(await button.evaluate(n=>n===document.activeElement),true)}
+await page.setViewportSize({width:390,height:1100});await page.addStyleTag({content:'html{font-size:32px!important}'});await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});const targets=await page.locator('.truth-strip button').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{label:n.textContent.trim(),height:r.height,left:r.left,right:r.right}}));assert.ok(targets.every(t=>t.height>=44&&t.left>=0&&t.right<=390));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(await identity(),baseline);assert.equal(await memoryEditor(page).inputValue(),text);await page.screenshot({path:`${output}/workspace-activity-large-forced.png`,fullPage:true});assert.deepEqual(errors,[]);
+await writeFile(`${output}/report.json`,JSON.stringify({source:'72df3b659',real_browser_body:true,canonical_mask_look_proof:false,retained_unicode_editor_text:text,workspace_chrome_looks:looks,identity:baseline,keyboard_inspection_roundtrips:3,focus_return:true,narrow:390,root_text_px:32,forced_colors:true,targets,browser_errors:errors},null,2)+'\n');console.log('PASS actual Workspace Birth/Wake, icon retention, three chrome Looks, keyboard inspection/focus return, narrow enlarged forced colors');
+}finally{await browser.close();server.child.kill()}
