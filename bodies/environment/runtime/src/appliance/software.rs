@@ -19,6 +19,7 @@ pub const ARTIFACT: &str = "conduit-environment-runtime/appliance-software@1";
 const BYTES: u32 = 1024;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SoftwareRefusal {
+    Source,
     Count,
     Unsupported,
     Contract,
@@ -57,8 +58,11 @@ impl ReadySoftwareBacks {
         host: c::HostId,
         boot: c::BootId,
     ) -> Result<Self, SoftwareRefusal> {
-        let count = u32::try_from(source.count).map_err(|_| SoftwareRefusal::Count)?;
-        let sequence = PublicationSequence::prepare(source.count);
+        let cadence = source
+            .checked_cadence()
+            .map_err(|_| SoftwareRefusal::Source)?;
+        let count = u32::try_from(cadence.count).map_err(|_| SoftwareRefusal::Count)?;
+        let sequence = PublicationSequence::prepare(cadence.count);
         let mut operations = Vec::new();
         for gear in &source.expanded.gears {
             if [
@@ -91,6 +95,9 @@ impl ReadySoftwareBacks {
         host: c::HostId,
         boot: c::BootId,
     ) -> Result<Self, SoftwareRefusal> {
+        source
+            .validate_expansion()
+            .map_err(|_| SoftwareRefusal::Source)?;
         let mut operations = Vec::new();
         for id in gears {
             if operations.iter().any(|op: &ReadyOperation| &op.gear == id) {

@@ -13,6 +13,10 @@ Temperature and relative humidity keep their semantic quantity Types.
 current independently supplied Host offers, Base choices and grants. Source
 checking creates no provider, readiness, authority, Body or running Play.
 
+Preparation rechecks expansion consistency and derives the operation count from
+the checked Tick configuration. Changed cached count/period or changed expansion
+facts refuse with the explicit `Source` class before Back initialization.
+
 `ReadySoftwareBacks` initializes portable expression, selector, observation,
 trigger and publication workspaces before advertising their offers. Selection
 checks the exact planned scope and transfers those retained objects once. It
