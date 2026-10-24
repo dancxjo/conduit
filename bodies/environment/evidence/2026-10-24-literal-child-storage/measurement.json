@@ -1,0 +1,14 @@
+{
+  "proof_class": "CPU reference parity and rounded retained allocation model",
+  "pointer_bits": 64,
+  "allocation_rounding_bytes": 32,
+  "before_literal_padding_bytes": 8064,
+  "after_literal_padding_bytes": 2592,
+  "before_packet_source_bytes": 26912,
+  "after_packet_source_bytes": 18688,
+  "before_core_source_sha256": "0ff521406358dee4d616ab0341a9b58bfa8886dbe6a9cb5f7926b6a68b723297",
+  "after_core_source_sha256": "c799b9ffc20871a6d8fa5960bf0712fcb2d5fd9a23e61efd440ef37a5ecad5a5",
+  "recurring_allocations": 0,
+  "mcu_heap_measurement": null,
+  "compact_structured_tape_implemented": false
+}

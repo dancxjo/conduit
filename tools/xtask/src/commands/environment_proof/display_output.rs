@@ -74,6 +74,7 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
         execute(&mut command)?;
     }
     for (manifest, test) in [
+        ("architecture/plot/Cargo.toml", "prepared_literal_children"),
         ("bodies/environment/runtime/Cargo.toml", "display_packets"),
         (
             "bodies/environment/runtime/Cargo.toml",

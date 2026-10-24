@@ -35,7 +35,31 @@ struct PreparedField {
 
 struct PreparedChild {
     output: ChildOutput,
-    evaluator: PreparedPortableExpressionEvaluator,
+    evaluator: ChildEvaluator,
+}
+enum ChildEvaluator {
+    Constant { encoded: Vec<u8> },
+    Dynamic(Box<PreparedPortableExpressionEvaluator>),
+}
+impl ChildEvaluator {
+    fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
+        match self {
+            Self::Constant { encoded, .. } => Ok(encoded),
+            Self::Dynamic(evaluator) => evaluator.evaluate(input),
+        }
+    }
+    fn output_bytes(&self) -> &[u8] {
+        match self {
+            Self::Constant { encoded, .. } => encoded,
+            Self::Dynamic(evaluator) => evaluator.output_bytes(),
+        }
+    }
+    fn output_type_prefix(&self) -> Option<&[u8]> {
+        match self {
+            Self::Constant { .. } => None,
+            Self::Dynamic(evaluator) => evaluator.output_type_prefix(),
+        }
+    }
 }
 enum ChildOutput {
     Leaf,
@@ -272,7 +296,13 @@ fn child(
     } else {
         Some(type_prefix)
     };
-    let evaluator = PreparedPortableExpressionEvaluator::prepare(child, prepared_input.clone())?;
+    let evaluator = match constant_child(node) {
+        Some(constant) => constant,
+        None => ChildEvaluator::Dynamic(Box::new(PreparedPortableExpressionEvaluator::prepare(
+            child,
+            prepared_input.clone(),
+        )?)),
+    };
     if let Some(expected) = expected_prefix {
         if evaluator.output_type_prefix() != Some(expected.as_slice()) {
             return Err(Refusal::InvalidProgram);
@@ -286,6 +316,33 @@ fn child(
         },
         evaluator,
     })
+}
+
+/// Cache only ordinary Boolean/octet leaves using the existing literal codec.
+/// Other Types, predicates and expression operations retain normal preparation.
+/// Codec refusal falls back without changing its original refusal phase.
+fn constant_child(node: &PortableExpressionNode) -> Option<ChildEvaluator> {
+    if !matches!(node.value_type.shape(), StructuredInfoTypeShape::Leaf(_))
+        || !matches!(
+            super::leaf_kind(&node.value_type).ok()?,
+            conduit_core::PrimitiveInfoKind::Bool | conduit_core::PrimitiveInfoKind::U8
+        )
+    {
+        return None;
+    }
+    let encoded = match &node.operation {
+        PortableExpressionOperation::Literal(literal) => {
+            crate::expression_evaluate::literal_primitive_bytes(&node.value_type, literal).ok()?
+        }
+        PortableExpressionOperation::Constant(value) if value.value_type() == &node.value_type => {
+            let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                return None;
+            };
+            bytes.to_vec()
+        }
+        _ => return None,
+    };
+    Some(ChildEvaluator::Constant { encoded })
 }
 
 fn push_text(output: &mut Vec<u8>, value: &str) -> Result<(), Refusal> {

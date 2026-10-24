@@ -1,0 +1,13 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 4.24s
+     Running tests/prepared_literal_children.rs (target/environment-lean-host/debug/deps/prepared_literal_children-9efe672c99d4b72a)
+
+running 3 tests
+literal-padding rounded retained bytes: 8064
+test structured_child_keeps_conditional_failure_lazy ... ok
+packet-source rounded retained bytes: 26912
+test literal_padding_matches_reference_with_no_recurring_allocation ... ok
+test packet_source_keeps_dynamic_branches_and_exact_reference_bytes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
