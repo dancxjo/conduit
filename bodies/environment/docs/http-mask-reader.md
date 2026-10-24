@@ -16,9 +16,10 @@ A supplied callback does not override the existing bootstrap route's reading
 refusal or create Body membership, a Line, a sensor or radio authority.
 
 The existing `exchange` entrance retains the attended bench's publication owner.
-Native Root continues to use its bootstrap route, so this change does not claim
-that native HTTP has been activated. Its actual non-Clone reader, route admission,
-withdrawal and complete service backing still need to be connected explicitly.
+The experimental native Face profile explicitly connects its retained reader to
+bounded Show custody and prepares response backing before serving. Other native
+profiles retain the bootstrap reading refusal. See [native integration](native-http-mask.md)
+for its finite scope; browser membership and combined network admission remain separate.
 
 `cargo xtask prove environment http` covers the exchange and Mask contracts.
 The explicit-provider tests use the real prepared semantic Face and actual
@@ -50,5 +51,5 @@ not-yet-valid or withdrawn material returns unavailable; expiry does not rewrite
 Face freshness. Stale revisions and invalid leases preserve prior material and
 quota. Withdrawal is permanent for this mailbox and fences late publication;
 producer drop also withdraws it. No replacement producer or retry is implicit.
-The CPU64 mailbox occupies 280 inline bytes and allocates no heap. Native Root
-still needs to connect and independently admit this custody and socket closure.
+The CPU64 mailbox occupies 280 inline bytes and allocates no heap. The native Face profile connects this custody explicitly. Socket deadlines remain
+bounded independently; full continuing appliance admission is not established.

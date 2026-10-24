@@ -55,7 +55,7 @@ def elf_sections(path):
 
 def ledger(sampling_image=None, output_image=None):
     inputs = {
-        "sampling": EVIDENCE / "2026-10-24-primitive-locations-hardware/sampling.json",
+        "sampling": EVIDENCE / "2026-10-24-native-http-face/sampling.json",
         "output": EVIDENCE / "2026-10-24-output-retention-hardware/measurement.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
         "expression_cpu": EVIDENCE / "2026-10-24-tape-join-repair/measurement.json",
@@ -140,6 +140,8 @@ def ledger(sampling_image=None, output_image=None):
             "sampling_face": {
                 "source": sampling["source_commit"], "root_capacity_bytes": sampling["root_heap_bytes"],
                 "source_value_slot_capacities": captured_capacities,
+                "http_mask_scope": sampling["mask_scope"],
+                "http_response_backing_bytes": sampling["http_response_backing_bytes"],
                 "preparation_and_run_peak_bytes": sampling["root_heap_peak_bytes"],
                 "steady_state_bytes": None, "observed_sampling_used_bytes": sampling["observed_sampling_root_used_bytes"],
                 "heap_checkpoints": sampling["heap_checkpoints"],
@@ -218,10 +220,11 @@ def markdown(value):
         f"| Mask | {value['inventory']['mask_cpu']['bytes']} inline bytes, {value['inventory']['mask_cpu']['heap_bytes']} heap bytes in the captured {value['inventory']['mask_cpu']['pointer_bits']}-bit CPU measurement | Obtain MCU representation and admitted runtime custody |",
         f"| Packet expression | CPU retained model {value['inventory']['packet_expression_cpu']['before_bytes']:,} → {value['inventory']['packet_expression_cpu']['after_bytes']:,} B with constructor tape and fixed input locations | Dynamic leaf evaluators remain; flash material, lifetime allocation and MCU measurement still required |",
         f"| Local representations | Existing quantity-pair Forms total {value['inventory']['quantity_pair_form']['bytes']} B; semantic Types remain Temperature and Ratio | Admit compact local cord representations; separately retain status, clocks and provenance |",
+        f"| HTTP Show backing | {sampling['http_response_backing_bytes']:,} B prepared response backing, included in the sampling/Face/HTTP Root capture | Finite native Face correlation only; no browser membership or concurrent station admission |",
         "| Scratch | No combined lifetime allocation exists | Include fan-out, pending calls, refusal and cancellation |",
         "| Construction | Output descriptors retire after transfer; schemas and expression trees remain in other paths | Bound transient peaks and every last-use release |",
         f"| Execution records | Derived for {value['inventory']['output_sign_records']['native_construction_diagnostic_maximum_frames']} inputs: {value['inventory']['output_sign_records']['remote_items']} remote records; ordinary count follows target record size and Plan minima ({value['inventory']['output_sign_records']['cpu_observed_ordinary_items']} in CPU64) | Admit continuing retention or explicit handoff; never discard required evidence |",
-        f"| Root peaks | Sampling/Face {sampling['preparation_and_run_peak_bytes']:,} B; dormant output preparation {output['preparation_peak_bytes']:,} B | Measure combined preparation and execution separately |",
+        f"| Root peaks | Sampling/Face/HTTP {sampling['preparation_and_run_peak_bytes']:,} B; dormant output preparation {output['preparation_peak_bytes']:,} B | Measure combined preparation and execution separately |",
         f"| Retained Root | Dormant output {output['dormant_retained_bytes']:,} B; sampler observed at {min(sampling['observed_sampling_used_bytes']):,}–{max(sampling['observed_sampling_used_bytes']):,} B across three publications | Do not label post-retirement memory as steady state |",
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
         f"| Resolved page material, CPU only | {value['inventory']['prepared_show_cpu']['inline_bytes']} inline bytes, no heap allocation | Additional to the existing Mask/encoder; no native timer, caller or effect admission credited |",

@@ -30,3 +30,13 @@ Run the finite attended native test through
 and verify the protected operational image afterward. Live HTTP/native correlation
 and resource measurements must be recorded separately before claiming deployment.
 The ongoing sampling/display/network/recorder combination remains unadmitted.
+
+The attended finite run on source `76f125afc` passed three physical DHT
+publications and independent producer Face replay. Supplemental HTTP observations
+matched all three native Face identities/revisions across 59 successful responses,
+with 503 observed before publication and after the last publication. Root peaked
+at 82,828 bytes and retained 13,988 after retirement; the link reserved 36,988 stack
+bytes, with no high-water claim. The protected operational image was restored and
+verified. See [retained evidence](../evidence/2026-10-24-native-http-face/README.md).
+The initial stack failure is retained separately; the correction separates Mask
+scratch from the deeper semantic publication validation call chain.

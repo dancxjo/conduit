@@ -1,0 +1,22 @@
+{
+  "proof_class": "attended finite native Face HTTP Mask correlation",
+  "source_commit": "76f125afc73cac3b9aca83041da6ef526fc027e9",
+  "matched_native_face_identities": {
+    "1": "b84c40e558fdabbc9e745449976f6b287c26a0bd4e31ad71bc93c0f8734aa300",
+    "2": "1076f95c3ba421e08e960d4c0d8b9cf6150e8380872c01e25a39f9a611a18bd9",
+    "3": "2d5e790cf68c9ba749d357b840a575c15b7b44def5e3cc376a8c0dad8960e284"
+  },
+  "http_successes": 59,
+  "unavailable_before_publication": true,
+  "unavailable_after_last_publication_observed": true,
+  "recovery_verified": true,
+  "fresh_recovery_sequences": [
+    1,
+    2,
+    3
+  ],
+  "acknowledged_recovery_display_updates": 12,
+  "browser_body_membership": false,
+  "combined_network_transition_admitted": false,
+  "continuous_appliance_deployed": false
+}
