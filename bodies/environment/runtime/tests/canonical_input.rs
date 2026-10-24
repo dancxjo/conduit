@@ -27,6 +27,17 @@ fn borrowed_validation_matches_prepared_shape_checks_without_allocation() {
     .canonical_bytes()
     .unwrap();
     let prepared = canonical_input::PreparedCanonicalInput::new(&ty, value.len()).unwrap();
+    let linked_schema = Box::leak(ty.canonical_bytes().unwrap().into_boxed_slice());
+    let linked = canonical_input::PreparedCanonicalInput::with_static_schema(
+        &ty,
+        linked_schema,
+        value.len(),
+    )
+    .unwrap();
+    assert!(
+        canonical_input::PreparedCanonicalInput::with_static_schema(&ty, &[], value.len(),)
+            .is_err()
+    );
     let constrained = canonical_input::PreparedCanonicalInput::new(&ty, value.len() - 1).unwrap();
     let original = PreparedStructuredValueValidator::new(&ty, value.len()).unwrap();
     assert!(canonical_input::PreparedCanonicalInput::new(&ty, 0).is_err());
@@ -42,6 +53,7 @@ fn borrowed_validation_matches_prepared_shape_checks_without_allocation() {
     trailing.push(0);
     let ((), memory) = allocation_probe::observe(|| {
         assert_eq!(prepared.validate(&value), original.validate(&value));
+        assert_eq!(linked.validate(&value), original.validate(&value));
         for end in 0..value.len() {
             assert_eq!(
                 prepared.validate(&value[..end]).is_ok(),
@@ -50,6 +62,7 @@ fn borrowed_validation_matches_prepared_shape_checks_without_allocation() {
         }
         for invalid in [&wrong_type, &invalid_leaf, &trailing] {
             assert!(prepared.validate(invalid).is_err());
+            assert!(linked.validate(invalid).is_err());
             assert_eq!(
                 prepared.validate(invalid).is_ok(),
                 original.validate(invalid).is_ok()
