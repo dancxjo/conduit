@@ -178,6 +178,7 @@ export async function startOwnerParticipation(application, root) {
   const speechResult = root.querySelector('[data-owner-speech-result]');
   let host, participation, expectedBodyId = null, faceView = null, faceBusy = false, actionSequence = 0;
   let faceRouteEpoch = 0;
+  let appearanceProposalRefresh = false, pendingAppearance = null;
   let speechOperationId = null, speechBusy = false;
   let wardrobeReport = null, wardrobeBusy = false;
   const renderWardrobe = current => {
@@ -265,7 +266,8 @@ export async function startOwnerParticipation(application, root) {
   };
   const speechControls = () => {
     const current = participation?.presenceState() === 'available';
-    lookControls.setDisabled(!current || !faceView || faceBusy || speechBusy || Boolean(speechOperationId));
+    lookControls.setDisabled(!current || ((!faceView || faceBusy) && !appearanceProposalRefresh)
+      || Boolean(pendingAppearance) || speechBusy || Boolean(speechOperationId));
     speechStart.disabled = !current || !faceView || faceBusy || speechBusy || Boolean(speechOperationId);
     speechStatus.disabled = !current || !speechOperationId || speechBusy;
     speechStop.disabled = !current || !speechOperationId || speechBusy;
@@ -309,9 +311,19 @@ export async function startOwnerParticipation(application, root) {
     faceDocument.dataset.showId = view.show_id;
   };
   const refreshFace = async (selection = null) => {
-    if (!participation || faceBusy || participation.presenceState() !== 'available') return;
+    if (!participation || participation.presenceState() !== 'available') return;
+    if (faceBusy) {
+      if (selection) {
+        // One bounded proposal survives an ordinary refresh; it is sent only
+        // after a fresh acknowledged Show on this same owner route.
+        pendingAppearance = { selection: { ...selection }, epoch: faceRouteEpoch, bodyId: expectedBodyId };
+        lookControls.setDisabled(true);
+      }
+      return;
+    }
+    appearanceProposalRefresh = !selection && Boolean(faceView);
     faceBusy = true; faceRefresh.disabled = true;
-    lookControls.setDisabled(true);
+    lookControls.setDisabled(!appearanceProposalRefresh);
     const routeEpoch = faceRouteEpoch;
     const requireCurrentRoute = () => {
       if (routeEpoch !== faceRouteEpoch || participation.presenceState() !== 'available') {
@@ -363,13 +375,20 @@ export async function startOwnerParticipation(application, root) {
       }, null, 2) : 'No current sealed browser Show. Previous route evidence is historical.';
     } finally {
       faceBusy = false;
+      appearanceProposalRefresh = false;
+      const proposal = pendingAppearance;
+      pendingAppearance = null;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
       speechControls();
+      if (proposal && proposal.epoch === faceRouteEpoch && proposal.bodyId === expectedBodyId
+          && faceView && participation?.presenceState() === 'available' && !speechOperationId) {
+        queueMicrotask(() => refreshFace(proposal.selection));
+      }
       if (!wardrobeReport) queueMicrotask(refreshWardrobe);
     }
   };
   const lookControls = createOwnerLookControls(selection => {
-    if (!faceView || faceBusy || speechOperationId) return;
+    if ((!faceView && !appearanceProposalRefresh) || speechOperationId) return;
     refreshFace(selection);
   });
   faceRefresh.insertAdjacentElement('afterend', lookControls.element);
@@ -380,6 +399,7 @@ export async function startOwnerParticipation(application, root) {
       // Presence can recover before a pending response completes. That response
       // still belongs to the interrupted route and cannot restore current agency.
       faceRouteEpoch++;
+      appearanceProposalRefresh = false; pendingAppearance = null;
       delete root.dataset.ownerFaceShown;
       delete root.dataset.ownerShowAcknowledged;
       wardrobeReport = null;
