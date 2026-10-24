@@ -566,3 +566,21 @@ and negative legacy JSON. All original carrier and route limits remain.
 [Protocol details and local logs](evidence/gui-look-6349-plan-transport/README.md).
 The preceding installed-owner refusal remains the live evidence until rebuilt
 owner/browser execution proves this source; native execution is also outstanding.
+
+
+## Actual complete-Look owner/browser replacement
+
+The rebuilt installed Linux owner and freshly packaged Handbook now pass eight
+actual complete-Look selections: compact/spacious × Editorial/Phosphor, at wide
+and 390px forced-color/enlarged-text presentation. Exact owner Face, browser
+subjects/actions/relationships and grouped recipe are retained. Stale Show
+interaction refuses. The optimized runtime is 16,009,320 bytes; all carrier and
+delivery limits remain unchanged.
+[Viewport/element captures, artifact hashes, exact identities and boundaries](evidence/gui-look-6349-live-complete-look/README.md).
+
+The added fresh-action check exposed another gap: the submitted item appears in
+the checkpoint, but its following Face refresh loses the Line with an expired
+2-second presence lease. Owner versus browser renewal blocking is not yet
+isolated. Replacement success does not certify continuing interactive liveness.
+The negative receipt is preserved; native/current-source QEMU and Patchbay
+checked-component reuse remain open.
