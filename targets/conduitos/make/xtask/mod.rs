@@ -54,7 +54,6 @@ mod keyboard_proof;
 mod keyboard_run;
 mod keyboard_text_run;
 mod live_media;
-pub(crate) mod persistent_launch;
 mod live_serial;
 mod loongarch64_a0;
 #[allow(dead_code)]
@@ -84,6 +83,7 @@ mod owner_action_proof;
 mod owner_boot;
 mod owner_model_route;
 mod pc_speaker_proof;
+pub(crate) mod persistent_launch;
 mod prepared_proof_image;
 mod product_journey_gate;
 mod product_observatory;
