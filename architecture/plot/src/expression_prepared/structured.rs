@@ -4,6 +4,8 @@ use super::{PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Ref
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
+#[path = "structured_tape.rs"]
+mod tape;
 
 pub(super) struct PreparedStructuredExpression {
     type_prefix: Vec<u8>,
@@ -11,6 +13,7 @@ pub(super) struct PreparedStructuredExpression {
 }
 
 enum PreparedShape {
+    Tape(Box<tape::StructuredTape>),
     Input,
     Constant(Vec<u8>),
     Selected(Box<super::member_selection::PreparedMemberSelection>),
@@ -75,6 +78,15 @@ impl PreparedStructuredExpression {
         prepared_input: &PreparedInput,
     ) -> Result<Self, Refusal> {
         super::structured_contract::validate(program)?;
+        if let Some(tape) = tape::StructuredTape::prepare(program, prepared_input) {
+            return Ok(Self {
+                type_prefix: program
+                    .output_type
+                    .canonical_bytes()
+                    .map_err(|_| Refusal::InvalidProgram)?,
+                shape: PreparedShape::Tape(Box::new(tape)),
+            });
+        }
         let shape = match &program.root.operation {
             PortableExpressionOperation::Input if program.input_type == program.output_type => {
                 PreparedShape::Input
@@ -188,6 +200,10 @@ impl PreparedStructuredExpression {
 
     pub(super) fn evaluate(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
         match &mut self.shape {
+            PreparedShape::Tape(tape) => {
+                append(output, &self.type_prefix)?;
+                return tape.evaluate(input, output);
+            }
             PreparedShape::Input => return append(output, input),
             PreparedShape::Constant(bytes) => return append(output, bytes),
             PreparedShape::SequenceSelected(selection) => {
@@ -215,6 +231,7 @@ impl PreparedStructuredExpression {
         append(output, &self.type_prefix)?;
         match &mut self.shape {
             PreparedShape::Input
+            | PreparedShape::Tape(_)
             | PreparedShape::Constant(_)
             | PreparedShape::Selected(_)
             | PreparedShape::SequenceSelected(_) => {

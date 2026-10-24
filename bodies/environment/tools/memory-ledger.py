@@ -58,7 +58,7 @@ def ledger(sampling_image=None, output_image=None):
         "sampling": EVIDENCE / "2026-10-24-native-face-custody/measurement.json",
         "output": EVIDENCE / "2026-10-24-output-metadata-hardware/measurement.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
-        "expression_cpu": EVIDENCE / "2026-10-24-literal-child-storage/measurement.json",
+        "expression_cpu": EVIDENCE / "2026-10-24-structured-constructor-tape/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
@@ -110,7 +110,7 @@ def ledger(sampling_image=None, output_image=None):
             "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_sign_records": {"ordinary_items": int(sign_items.pop()), "remote_items": int(remote_items[1]), "class": "persistent mutable", "derived_minimum": None},
             "mask_cpu": {"bytes": mask["after_mask_owner_bytes"], "heap_bytes": mask["after_mask_requested_heap_peak_bytes"], "pointer_bits": mask["pointer_bits"], "mcu_size_bytes": None},
-            "packet_expression_cpu": {"before_bytes": expression_cpu["before_packet_source_bytes"], "after_bytes": expression_cpu["after_packet_source_bytes"], "pointer_bits": expression_cpu["pointer_bits"], "mcu_size_bytes": None, "compact_structured_tape_implemented": False},
+            "packet_expression_cpu": {"before_bytes": expression_cpu["before_packet_source_bytes"], "after_bytes": expression_cpu["after_packet_source_bytes"], "pointer_bits": expression_cpu["pointer_bits"], "mcu_size_bytes": None, "compact_structured_tape_implemented": expression_cpu["compact_structured_tape_implemented"], "profile": expression_cpu["tape_profile"]},
             "quantity_pair_form": {"bytes": (int(temperature[1]) + int(humidity[1])) // 8, "types": ["Temperature", "Ratio"], "includes_status_clock_or_provenance": False, "selected_for_local_cords": False},
             "root_control_reserve": {"bytes": 8192, "class": "admission headroom", "already_allocated_object": False},
         },
@@ -155,7 +155,7 @@ def markdown(value):
         f"| Immutable material | ELF section inventories in JSON when images are supplied | Link one combined image; separate flash material from RAM-resident code/data |",
         f"| Persistent mutable values | Sampling payload {value['inventory']['sampling_value_payload']['bytes']:,} B; output payload {value['inventory']['output_value_payload']['bytes']:,} B, plus metadata/allocator costs | Exact Types and simultaneous lifetimes; no reuse credited |",
         f"| Mask | {value['inventory']['mask_cpu']['bytes']} inline bytes, {value['inventory']['mask_cpu']['heap_bytes']} heap bytes in the captured {value['inventory']['mask_cpu']['pointer_bits']}-bit CPU measurement | Obtain MCU representation and admitted runtime custody |",
-        f"| Packet expression | CPU retained model {value['inventory']['packet_expression_cpu']['before_bytes']:,} → {value['inventory']['packet_expression_cpu']['after_bytes']:,} B after literal caching | Recursive dynamic evaluators remain; compact tape and MCU measurement still required |",
+        f"| Packet expression | CPU retained model {value['inventory']['packet_expression_cpu']['before_bytes']:,} → {value['inventory']['packet_expression_cpu']['after_bytes']:,} B with constructor tape | Dynamic leaf evaluators remain; flash material, lifetime allocation and MCU measurement still required |",
         f"| Local representations | Existing quantity-pair Forms total {value['inventory']['quantity_pair_form']['bytes']} B; semantic Types remain Temperature and Ratio | Admit compact local cord representations; separately retain status, clocks and provenance |",
         "| Scratch | No combined lifetime allocation exists | Include fan-out, pending calls, refusal and cancellation |",
         "| Construction | Output descriptors retire after transfer; schemas and expression trees remain in other paths | Bound transient peaks and every last-use release |",

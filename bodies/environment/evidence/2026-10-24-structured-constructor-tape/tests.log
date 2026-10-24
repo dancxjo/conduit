@@ -1,0 +1,57 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 4.22s
+     Running tests/immutable_expression.rs (target/environment-literal-focus/debug/deps/immutable_expression-84d689acbcae08fd)
+
+running 1 test
+test immutable_quantity_local_is_captured_by_the_lowered_expression ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/prepared_expression_scratch_bounds.rs (target/environment-literal-focus/debug/deps/prepared_expression_scratch_bounds-e9784b97ef2b41da)
+
+running 3 tests
+test bounded_identity_preserves_exact_wire_without_evaluation_allocations ... ok
+test construction_and_selection_can_exceed_the_admitted_input_envelope ... ok
+test seventy_two_packet_selection_reserves_input_bounded_scratch ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_literal_children.rs (target/environment-literal-focus/debug/deps/prepared_literal_children-9efe672c99d4b72a)
+
+running 3 tests
+test structured_child_keeps_conditional_failure_lazy ... ok
+literal-padding rounded retained bytes: 1088
+packet-source rounded retained bytes: 8608
+test literal_padding_matches_reference_with_no_recurring_allocation ... ok
+test packet_source_keeps_dynamic_branches_and_exact_reference_bytes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/prepared_structured_payload.rs (target/environment-literal-focus/debug/deps/prepared_structured_payload-cee82e2f27ab4172)
+
+running 4 tests
+test serialized_identity_cannot_relabel_a_different_structured_type ... ok
+test checked_source_preserves_complete_request_and_selects_every_bounded_payload_length ... ok
+test complete_request_reuse_and_malformed_refusals_do_not_allocate ... ok
+test malformed_payload_and_substituted_type_remain_refusals_after_reuse ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.34s
+
+     Running tests/pure_expression_types.rs (target/environment-literal-focus/debug/deps/pure_expression_types-41b42e3c2bff89d5)
+
+running 12 tests
+test semantic_count_and_scalar_arithmetic_remain_exact_and_checked ... ok
+test fixed_integer_operators_retain_width_and_comparisons_return_boolean ... ok
+test checked_expression_retains_its_exact_input_and_output_contract ... ok
+test conditional_is_boolean_and_unifies_one_exact_branch_type ... ok
+test ambiguous_and_out_of_range_integer_literals_refuse_during_checking ... ok
+test anonymous_expression_types_have_stable_exact_port_identities ... ok
+test prepared_primitive_evaluation_matches_checked_meaning ... ok
+test reviewed_pure_semantic_kind_call_uses_its_exact_front ... ok
+test portable_anonymous_structures_carry_their_exact_checked_profile ... ok
+test portable_fixed_integer_evaluation_is_checked_and_conditional_is_lazy ... ok
+test nominal_structured_input_projects_into_anonymous_structures ... ok
+test scientific_literal_unit_supplies_its_exact_expression_type ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

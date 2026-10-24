@@ -1,0 +1,23 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 0.26s
+     Running tests/prepared_literal_children.rs (target/environment-literal-focus/debug/deps/prepared_literal_children-9efe672c99d4b72a)
+
+running 3 tests
+test structured_child_keeps_conditional_failure_lazy ... ok
+literal-padding rounded retained bytes: 1088
+packet-source rounded retained bytes: 8608
+test literal_padding_matches_reference_with_no_recurring_allocation ... ok
+test packet_source_keeps_dynamic_branches_and_exact_reference_bytes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/prepared_structured_tape.rs (target/environment-literal-focus/debug/deps/prepared_structured_tape-39afeda27e03c85b)
+
+running 4 tests
+test tape_eligibility_never_accepts_duplicate_record_fields ... ok
+test deep_constructors_keep_ordinary_eligibility_and_canonical_parity ... ok
+test tuple_fields_have_the_same_canonical_names_and_order ... ok
+test exceeding_tape_value_capacity_keeps_the_ordinary_prepared_path ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

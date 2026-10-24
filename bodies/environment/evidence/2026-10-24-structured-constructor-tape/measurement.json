@@ -1,0 +1,23 @@
+{
+  "proof_class": "CPU reference parity and bounded constructor tape; ESP32 release link only",
+  "pointer_bits": 64,
+  "allocation_rounding_bytes": 32,
+  "before_literal_padding_bytes": 2592,
+  "after_literal_padding_bytes": 1088,
+  "before_packet_source_bytes": 18688,
+  "after_packet_source_bytes": 8608,
+  "recurring_allocations": 0,
+  "compact_structured_tape_implemented": true,
+  "tape_profile": "constructors and conditional output control; dynamic leaf evaluators retained",
+  "instruction_limit": 512,
+  "dynamic_value_limit": 128,
+  "constant_pool_limit_bytes": 65536,
+  "compiler_depth_limit": 32,
+  "fallback_preserves_ordinary_eligibility": true,
+  "mcu_heap_measurement": null,
+  "hardware_flash": false,
+  "source_sha256": {
+    "architecture/plot/src/expression_prepared/structured.rs": "ad7e269c18949bbe9bfc1a8abd9128eaa86695dd8f13808c1bffcea846f744c0",
+    "architecture/plot/src/expression_prepared/structured_tape.rs": "47732defb86d6d036759c058bec6487851833c65901e8d44766b69f92400d70d"
+  }
+}

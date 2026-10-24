@@ -2,25 +2,14 @@
 #[path = "prepared_structured_payload/allocation.rs"]
 mod allocation;
 use conduit_plot::*;
+#[path = "common/structured_expression.rs"]
+mod source;
+use source::compile;
 
 fn program() -> PortableExpressionProgram {
     let source = "type Frame = {\n value: U8\n padding: collection U8 = 16\n}\n\
         plot envelope (\n value: U8 >> result: Frame\n) = ({value: ., padding: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]})";
     compile(source, "envelope")
-}
-
-fn compile(source: &str, entry: &str) -> PortableExpressionProgram {
-    let syntax = parse_syntax_document(source);
-    assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
-    let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
-    let expanded =
-        expand_canonical_plot_for_authoring(&checked, entry, &ProfileCatalog::new()).unwrap();
-    let conduit_core::ConfigurationValue::Text(encoded) =
-        &expanded.expanded.gears[0].configuration[0].value
-    else {
-        panic!("expression");
-    };
-    PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
 }
 
 #[test]
@@ -39,7 +28,7 @@ fn packet_source_keeps_dynamic_branches_and_exact_reference_bytes() {
     eprintln!("packet-source rounded retained bytes: {retained}");
     if cfg!(target_pointer_width = "64") {
         assert!(
-            retained <= 20 * 1024,
+            retained <= 12 * 1024,
             "packet preparation storage regressed"
         );
     }
@@ -104,7 +93,7 @@ fn literal_padding_matches_reference_with_no_recurring_allocation() {
     });
     eprintln!("literal-padding rounded retained bytes: {retained}");
     if cfg!(target_pointer_width = "64") {
-        assert!(retained <= 4096, "literal child storage regressed");
+        assert!(retained <= 2048, "literal child storage regressed");
     }
     for value in 0..=255 {
         let expected = program.evaluate(&[value]).unwrap();
