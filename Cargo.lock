@@ -1729,6 +1729,7 @@ dependencies = [
  "conduit-core",
  "ed25519-dalek",
  "minicbor",
+ "miniz_oxide 0.8.9",
  "postcard",
  "serde",
  "serde_json",

@@ -170,7 +170,10 @@ export function createConduitOsAdapter({ host, profile, loader, prepareSpore = n
   }
   async function observe({ mode, binding, signal }) {
     requireMake(profile, mode, "observe"); requireCurrent(profile, signal, mode, "observe");
-    const serialJoin = parseConduitOsSerialJoin(loaderReceipt?.serial_output, binding);
+    const observedReceipt = loaderReceipt;
+    const serialJoin = await parseConduitOsSerialJoin(observedReceipt?.serial_output, binding);
+    requireCurrent(profile, signal, mode, "observe");
+    if (loaderReceipt !== observedReceipt) refuse(profile, mode, "observe", "Cancelled", "ConduitOS loader observation changed while decoding");
     const join = Object.freeze({
       spore_id: serialJoin.spore_id, image_id: serialJoin.image_id, advertisement: serialJoin.advertisement,
       invitation_id: serialJoin.invitation_id, body_id: serialJoin.body_id, host_id: serialJoin.host_id,
