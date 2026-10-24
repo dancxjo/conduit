@@ -96,6 +96,7 @@ pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
         "owner_public_key_sha256":format!("{:x}", Sha256::digest(fs::read(keys.join("owner.pub"))?)),
         "source_head":String::from_utf8(source.stdout)?.trim(),
         "source_dirty":!dirty.stdout.is_empty(), "body_started":false,
+        "profile":if native_face { "native-face-root" } else { "native-root" },
     });
     fs::write(
         image.join("image-receipt.json"),
@@ -118,7 +119,15 @@ pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
             .arg(&elf),
     )?;
     let admission = software_ready::capture_ready_body_admission(root)?;
-    let capture = software_ready::capture_and_plan_with_body(root, Some(&admission))?;
+    let capture = software_ready::capture_and_plan_with_body(
+        root,
+        Some(&admission),
+        if native_face {
+            "native-face-root"
+        } else {
+            "native-root"
+        },
+    )?;
     execute(
         Command::new("python3")
             .current_dir(root)

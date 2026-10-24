@@ -41,7 +41,7 @@ pub(super) fn prove_body_admission(root: &Path) -> Result<(), Box<dyn Error>> {
 }
 pub(super) fn prove_body_construction(root: &Path) -> Result<(), Box<dyn Error>> {
     let admission = capture_body_admission(root)?;
-    capture_and_plan_with_body(root, Some(&admission)).map(|_| ())
+    capture_and_plan_with_body(root, Some(&admission), "native-root").map(|_| ())
 }
 pub(super) fn capture_body_admission(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
     execute(
@@ -80,11 +80,12 @@ pub(super) fn capture_ready_body_admission(
     Ok(output)
 }
 fn capture_and_plan(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
-    capture_and_plan_with_body(root, None)
+    capture_and_plan_with_body(root, None, "native-root")
 }
 pub(super) fn capture_and_plan_with_body(
     root: &Path,
     admission: Option<&Path>,
+    profile: &str,
 ) -> Result<std::path::PathBuf, Box<dyn Error>> {
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
@@ -94,6 +95,7 @@ pub(super) fn capture_and_plan_with_body(
         Command::new("python3")
             .current_dir(root)
             .arg("bodies/environment/tools/native-software-ready.py")
+            .args(["--profile", profile])
             .arg("--output")
             .arg(&output),
     )?;

@@ -9,6 +9,7 @@ import serial
 parser = argparse.ArgumentParser()
 parser.add_argument('--port', default='/dev/ttyUSB0')
 parser.add_argument('--output', required=True)
+parser.add_argument('--profile', choices=('native-root', 'native-face-root'), default='native-root')
 args = parser.parse_args()
 out = Path(args.output)
 out.mkdir(parents=True, exist_ok=False)
@@ -70,9 +71,11 @@ try:
     # Readiness inspection must not dispatch IO; earlier completed network
     # control is allowed so this also checks retained software after fallback.
     assert before['network_control_dispatches'] == after['network_control_dispatches']
-    assert before['native_root_heap_bytes'] == after['native_root_heap_bytes'] == 112 * 1024
+    expected_root_bytes = 112 * 1024 + (4080 if args.profile == 'native-face-root' else 0)
+    assert before['native_root_heap_bytes'] == after['native_root_heap_bytes'] == expected_root_bytes
     assert before['native_sdk_heap_bytes'] == after['native_sdk_heap_bytes'] == 72 * 1024
-    result.update(completed=True, boot_id=software['boot_id'], capabilities_bytes=len(encoded),
+    result.update(completed=True, profile=args.profile, expected_root_heap_bytes=expected_root_bytes,
+                  boot_id=software['boot_id'], capabilities_bytes=len(encoded),
                   root_heap_used_bytes=after['native_root_heap_used_bytes'],
                   root_heap_peak_bytes=after['native_root_heap_peak_bytes'],
                   sdk_heap_peak_bytes=after['native_sdk_heap_peak_bytes'])
