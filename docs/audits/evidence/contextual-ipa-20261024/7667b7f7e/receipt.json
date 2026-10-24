@@ -1,0 +1,64 @@
+{
+  "source": "7667b7f7ef5f1982c54065236696cb3e8f4ebe88",
+  "timestamp": 1792808942.878989,
+  "status": "passed",
+  "proof_class": "hosted focused production selection and executed kernel commitment; no native playback or CI acceptance",
+  "command": "cargo +stable test --locked -p conduit-speech --features semantic-bindings,kernel --test contextual_ipa_profile --test contextual_intent --test allophone_selection",
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "source_files": [
+    {
+      "path": "docs/contributing/contextual-ipa-profile.md",
+      "sha256": "6a9dd9b6be32bfef4c75be1a2095613ad07e90fa6a170a447e70317b60607f65"
+    },
+    {
+      "path": "semantics/speech/tests/common/contextual_ipa_profile/carrier.rs",
+      "sha256": "781b9b62cbcca513a249f58671175b7d3025aa54482cb4a0e5bbc1c7d8d057d3"
+    },
+    {
+      "path": "semantics/speech/tests/common/contextual_ipa_profile/declaration.rs",
+      "sha256": "f8e3a3a8105a661eabd5f4d0bf2ecd476400dd892e6eed085b25d3bbd6a266e7"
+    },
+    {
+      "path": "semantics/speech/tests/contextual_ipa_profile.rs",
+      "sha256": "91087e1b2fcdaf6c4f3d58394da8e79dae1300f33b2fa6aaac9c77e9af5ad52a"
+    },
+    {
+      "path": "tools/xtask/src/suites/speech_ipa.rs",
+      "sha256": "b2c04cd48b9b0aad23b67c6c8e678913f3e8e45c87fce75915c6be18f87add02"
+    }
+  ],
+  "artifacts": [
+    {
+      "target": "allophone_selection",
+      "sha256": "e9d87ef64d29615c51914ef79135eec30738966cce2e3c58bdc7dcf0ed4363e8",
+      "retained": "allophone_selection-e9d87ef64d29615c51914ef79135eec30738966cce2e3c58bdc7dcf0ed4363e8.elf.gz"
+    },
+    {
+      "target": "contextual_intent",
+      "sha256": "4e004e321a6945eb75def2e172afb7a450aeddeb6fbc61d72ef9fa808bd616e8",
+      "retained": "contextual_intent-4e004e321a6945eb75def2e172afb7a450aeddeb6fbc61d72ef9fa808bd616e8.elf.gz"
+    },
+    {
+      "target": "contextual_ipa_profile",
+      "sha256": "1ccda4892f809fb44f107a1298813306f74473e8e0d093639087d8333c83bbe7",
+      "retained": "contextual_ipa_profile-1ccda4892f809fb44f107a1298813306f74473e8e0d093639087d8333c83bbe7.elf.gz"
+    }
+  ],
+  "log_sha256": "2f885f5e86e6a2de7adb2957c88a12f95af674c5b0e1997ba3fa95133ad76da2",
+  "non_claims": [
+    "Full speech-ipa suite unrun",
+    "No Candidate/Integration acceptance",
+    "No automatic pronunciation inference or record stress fix",
+    "Parent #5218 and G2/G3 not completed"
+  ],
+  "test_count": 15,
+  "ignored": 0,
+  "strict_clippy": "passed: focused contextual_ipa_profile target, -D warnings",
+  "format_and_diff": "passed",
+  "clippy_log_sha256": "99d927a90c2dbfa04c3538f5c22680516782ec61e2ec927d03584bc24931c4f8"
+}

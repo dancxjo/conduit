@@ -1,0 +1,37 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5679-contextual-ipa/targets/conduitos)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5679-contextual-ipa/semantics/speech)
+    Finished `test` profile [unoptimized] target(s) in 8.60s
+     Running tests/allophone_selection.rs (/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/allophone_selection-be223fa28c8ac5a1)
+
+running 8 tests
+test an_excluded_unsupported_rule_is_not_compared_but_an_allowed_one_refuses ... ok
+test known_phone_constraints_are_never_replaced_and_unresolved_requests_are_retained ... ok
+test a_higher_priority_unknown_blocks_lower_matches_and_default ... ok
+test mismatch_exclusion_default_permission_and_missing_default_are_distinct ... ok
+test selected_phone_lowers_through_exact_profile_without_rewriting_intent ... ok
+test first_eligible_choice_keeps_every_receipt_and_full_bound ... ok
+test native_receipt_admits_only_the_26_meaningful_choice_states ... ok
+test all_status_masks_are_explicit_and_keep_original_declarations ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+
+     Running tests/contextual_intent.rs (/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/contextual_intent-e01657a82a45bf6b)
+
+running 5 tests
+test stale_late_source_and_missing_coverage_cannot_return_a_playable_result ... ok
+test missing_or_misaligned_context_refuses_before_quantitative_preparation ... ok
+test sourced_choice_keeps_exact_materials_and_original_occurrences_through_pcm ... ok
+test choice_timing_and_silent_boundary_keep_original_identity_and_chunk_invariance ... ok
+test deferred_or_missing_late_choice_returns_no_partially_playable_utterance ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/contextual_ipa_profile.rs (/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/contextual_ipa_profile-208d73fb08c36dc3)
+
+running 2 tests
+test eligible_unsupported_context_and_foreign_inventory_refuse_at_the_same_selection_entrance ... ok
+test declared_g1_selects_initial_aspiration_and_medial_plain_without_rewriting_committed_carrier has been running for over 60 seconds
+test declared_g1_selects_initial_aspiration_and_medial_plain_without_rewriting_committed_carrier ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 76.94s
+

@@ -1,0 +1,32 @@
+{
+  "source": "d78c945a6442b72deb76d4350fae2ec1e66462bc",
+  "base": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "scope": "Declared G1@1 profile conformance only, no production semantic change",
+  "blocking_findings": [],
+  "reviewed": [
+    "Five-file net delta: test, two helpers, scoped profile doc, supported speech_ipa registration only.",
+    "Initial /t/ selects aspirated phone vs medial default /t/ through same existing production selector; test checks outcome and actual chosen IPA definition.",
+    "Known supplied phones constrain selection, not generated replacement; doc correctly separates existing unknown-phone derivation tests.",
+    "Nontrivial Variety and inventory revision are admitted through PreparedIpaInventory; stress and borrowed original segment pointer checked.",
+    "Complete carrier canonical bytes/identity and original intent/request/result bytes preserved after contextual selection.",
+    "Commitment executes existing kernel harness; manually supplied lexical/IPA profile is not inferred from parser fixture linguistic tokens.",
+    "Eligible unsupported context and foreign inventory fail at actual selector entrance; disabled aspiration cannot replace Known phone.",
+    "Actual compact voice Aa binding now agrees with declared IPA\u0251; no unsupported a-to-Aa relabeling remains."
+  ],
+  "proof_limits": [
+    "No review-agent builds/tests executed; Root focused run ongoing.",
+    "This proves one manually declared profile, not universal English rule, pronunciation inference, arbitrary record stress repair,5218 or4907 closure.",
+    "Kernel commitment is existing finite parser fixture; not independent proof that its linguistic lexical analysis derives the manually supplied tata pronunciation.",
+    "Focused supported results and delivery/Integration still required; registration alone not full suite pass."
+  ],
+  "actions": "Read-only source/live issue; no edits/cache/CI",
+  "final_source_supplement": {
+    "source": "7667b7f7ef5f1982c54065236696cb3e8f4ebe88",
+    "previous_review_source": "d78c945a6442b72deb76d4350fae2ec1e66462bc",
+    "exact_delta": "3test/helper files +6/-6: five positive-divisor modulo-equality checks replaced by is_multiple_of(2/4); syllable range explicitly0_u32..6",
+    "semantic_finding": "Equivalent predicates over existing nonnegative usize/u32 indices; explicit range matches existing occurrence ordinal arithmetic. No production/source/profile/commitment semantics changed.",
+    "blocking_findings": [],
+    "runtime_status": "Root reports strict Clippy passed; final15test run still ongoing. Reviewer did not execute or observe completion.",
+    "proof_identity": "Earlier source review remains pinned d78c; this supplement alone reviews final six-line delta."
+  }
+}
