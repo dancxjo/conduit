@@ -1,0 +1,15 @@
+{
+  "completed": false,
+  "proof_class": "physical-owner-run",
+  "body_start_attributed": false,
+  "climate_sampling_claimed": false,
+  "root_heap_used_bytes": 101640,
+  "root_heap_peak_bytes": 102152,
+  "native_root_heap_bytes": 114688,
+  "body_lulled_after_quiescence": false,
+  "worker_retirement_acknowledged": false,
+  "worker_release_acknowledged": false,
+  "carrier_sha256": "8cab3bc36c92dd3dffce718fcde928bc8b0e6313aa22a4a05e25731b8e854a1c",
+  "owner_executable_sha256": "766c415d37d854e11a9585f92adaecceada60318ce7e68958fce8faf1ca59f66",
+  "retained_uart_bytes": 18679
+}

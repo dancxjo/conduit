@@ -1,0 +1,9 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 0.31s
+     Running tests/native_face_scope.rs (target/environment-lean-host/debug/deps/native_face_scope-de65a1d65e647f2d)
+
+running 1 test
+test preserves_both_lifecycle_newtypes_and_rejects_unbounded_or_unframed_text ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

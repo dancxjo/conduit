@@ -66,6 +66,8 @@ def host_line():
         if not selected.select(12):
             raise RuntimeError('owner response deadline')
         line = process.stdout.readline(8193)
+    if not line:
+        raise RuntimeError('retained owner exited; see native-owner-stderr.log')
     if len(line) > 8192 or not line.endswith('\n'):
         raise RuntimeError('owner frame bound')
     return json.loads(line)

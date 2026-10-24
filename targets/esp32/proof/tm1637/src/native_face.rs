@@ -8,7 +8,8 @@ use conduit_environment_runtime::{
 use conduit_face::{Face, FaceBasis, FacePropertyValue};
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
-use serde::Deserialize;
+#[path = "native_face_scope.rs"]
+mod scope;
 const CONTROL_RESERVE: usize = 8192;
 const PREPARATION_BYTES: usize = 4608;
 struct State {
@@ -36,12 +37,6 @@ pub struct Inspection {
     pub fresh: bool,
     pub available: bool,
     pub refusal: Option<&'static str>,
-}
-fn id<T: for<'de> Deserialize<'de>>(text: &str) -> Result<T, &'static str> {
-    T::deserialize(serde::de::value::BorrowedStrDeserializer::<
-        serde::de::value::Error,
-    >::new(text))
-    .map_err(|_| "face-scope")
 }
 /// Root calls this only inside its exact reserved native preparation, before
 /// task registration. Owner backing, dynamic data and control headroom are
@@ -71,8 +66,8 @@ pub fn prepare(reservation: &OwnerReservation) -> Result<Publisher, &'static str
         }
     }
     let basis = FaceBasis {
-        body_id: Some(id(&reservation.body)?),
-        wake_id: Some(id(&reservation.wake)?),
+        body_id: Some(scope::identity(&reservation.body)?),
+        wake_id: Some(scope::identity(&reservation.wake)?),
         source_document_id: Some(identity.source_document_id),
         checked_plot_id: Some(identity.checked_plot_id),
         expanded_plot_id: Some(identity.expanded_plot_id),

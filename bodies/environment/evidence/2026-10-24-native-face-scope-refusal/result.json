@@ -1,0 +1,26 @@
+{
+  "source": "27101b0f5eff0e3a9ce04e1550aed4e4d7b1b242",
+  "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+  "completed": false,
+  "native_exit": 1,
+  "captures": {
+    "environment-owner-images": [
+      "target/environment-owner-images/1792839607"
+    ],
+    "environment-software-ready": [
+      "target/environment-software-ready/1792839741"
+    ],
+    "environment-body-admission": [
+      "target/environment-body-admission/1792839737"
+    ]
+  },
+  "restore_required": true,
+  "restore_exit": 0,
+  "fresh_source_sequences": [
+    1,
+    2,
+    3
+  ],
+  "current_display_updates": 12,
+  "recovery_verified": true
+}

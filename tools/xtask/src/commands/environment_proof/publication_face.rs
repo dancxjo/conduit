@@ -29,5 +29,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         "bodies/environment/make/Cargo.toml",
         "--test",
         "native_face_replay",
+        "--test",
+        "native_face_scope",
     ]))
 }
