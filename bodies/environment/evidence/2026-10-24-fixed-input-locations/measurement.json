@@ -1,0 +1,26 @@
+{
+  "proof_class": "CPU reference parity, ordinary sampler/output kernels and MCU cross-builds; no flash",
+  "source_commit_before_change": "7356721a1",
+  "pointer_bits": 64,
+  "allocator_model": "System requested allocation sizes rounded to 32-byte units; not MCU usage",
+  "before_packet_source_bytes": 8608,
+  "after_packet_source_bytes": 4576,
+  "original_packet_source_bytes": 26912,
+  "recurring_allocations": 0,
+  "packet_cases": 512,
+  "fixed_record_cases": 256,
+  "focused_tests_passed": 53,
+  "compact_structured_tape_implemented": true,
+  "fixed_input_projection_locations_implemented": true,
+  "full_input_validation_retained": true,
+  "tape_profile": "bounded constructor tape with fixed input-node copies; dynamic/variable selections retain existing evaluators",
+  "linked_flash_operations_implemented": false,
+  "combined_lifetime_allocation_implemented": false,
+  "mcu_heap_delta_measured": false,
+  "code_sha256": {
+    "architecture/plot/src/expression_prepared/fixed_projection.rs": "ea07583667ef8ced7657b6c0b1cb4ffd4908cf220a7e38d6a965692d436e7b11",
+    "architecture/plot/src/expression_prepared/structured_tape.rs": "5eef9554e45e013722b690033911df3654dcf3c6af8f8b765878842d1e4bed30",
+    "architecture/plot/tests/prepared_fixed_projection.rs": "f7e8f5cb2973dabf12c9bfb7636aad4c306a933e31cbea70e7b320b6ef028254",
+    "architecture/plot/tests/prepared_literal_children.rs": "471a8c6264a7f463b94078bdf278769a761e6c693c2eea532e92c150ec3db370"
+  }
+}

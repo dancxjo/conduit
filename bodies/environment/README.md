@@ -1687,3 +1687,9 @@ same. CPU execution covers normal output, brightness refusal and cancellation
 with this storage, including too-small-storage refusal before software transfer.
 This is a conservative Type ceiling, not a lifetime allocator or shared store;
 the earlier physical output measurement still used the larger slots.
+
+Fixed-width constructor input selections now compile to canonical node-copy
+locations after full input and exact Type validation. The packet evaluator’s
+64-bit rounded retained model is 4,576 bytes, with zero recurring allocation;
+variable geometry retains ordinary selection. This is a CPU/compiler result,
+not a new combined MCU memory measurement. See the fixed-input-location evidence.

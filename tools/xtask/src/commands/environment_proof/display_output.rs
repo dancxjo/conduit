@@ -76,6 +76,7 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
     for (manifest, test) in [
         ("architecture/plot/Cargo.toml", "prepared_literal_children"),
         ("architecture/plot/Cargo.toml", "prepared_structured_tape"),
+        ("architecture/plot/Cargo.toml", "prepared_fixed_projection"),
         ("bodies/environment/runtime/Cargo.toml", "display_packets"),
         (
             "bodies/environment/runtime/Cargo.toml",

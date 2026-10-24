@@ -1,0 +1,14 @@
+   Compiling generic-array v0.14.7
+    Checking typenum v1.20.1
+   Compiling serde_core v1.0.229
+    Checking cfg-if v1.0.5
+   Compiling serde v1.0.229
+   Compiling libm v0.2.16
+    Checking block-buffer v0.10.4
+    Checking crypto-common v0.1.7
+    Checking digest v0.10.7
+    Checking sha2 v0.10.9
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Finished `dev` profile [unoptimized] target(s) in 7.68s

@@ -4,6 +4,8 @@ use crate::expression_prepared::{PreparedInput, ProgramView, Refusal};
 use crate::{PortableExpressionNode as Node, PortableExpressionOperation as Expression};
 use alloc::vec::Vec;
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
+#[path = "fixed_projection.rs"]
+mod fixed_projection;
 
 const MAX_OPERATIONS: usize = 512;
 const MAX_VALUES: usize = 128;
@@ -13,6 +15,7 @@ const MAX_DEPTH: u8 = 32;
 #[derive(Clone, Copy)]
 enum Operation {
     Bytes { start: u32, length: u32 },
+    InputNode { start: u32, length: u32 },
     Value(u16),
     BranchFalse { value: u16, target: u16 },
     Jump(u16),
@@ -57,6 +60,12 @@ impl StructuredTape {
                         .constants
                         .get(start as usize..start as usize + length as usize)
                         .ok_or(Refusal::InvalidProgram)?;
+                    append(output, bytes)?;
+                }
+                Operation::InputNode { start, length } => {
+                    let bytes = input
+                        .get(start as usize..start as usize + length as usize)
+                        .ok_or(Refusal::InvalidInput)?;
                     append(output, bytes)?;
                 }
                 Operation::Value(value) => self
@@ -164,6 +173,14 @@ impl StructuredTape {
             self.bytes(&[0])?;
             self.length(encoded.len())?;
             return self.bytes(&encoded);
+        }
+        if let PreparedInput::Structured(prefix, _) = input {
+            if let Some((start, length)) =
+                fixed_projection::prepare(program.input_type, node, prefix.len())
+            {
+                self.push(Operation::InputNode { start, length })?;
+                return Ok(());
+            }
         }
         match &node.operation {
             Expression::Record(fields) => {

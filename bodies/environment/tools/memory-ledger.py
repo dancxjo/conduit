@@ -58,7 +58,7 @@ def ledger(sampling_image=None, output_image=None):
         "sampling": EVIDENCE / "2026-10-24-constructor-tape-hardware/sampling.json",
         "output": EVIDENCE / "2026-10-24-constructor-tape-hardware/output.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
-        "expression_cpu": EVIDENCE / "2026-10-24-structured-constructor-tape/measurement.json",
+        "expression_cpu": EVIDENCE / "2026-10-24-fixed-input-locations/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
@@ -162,7 +162,7 @@ def markdown(value):
         f"| Immutable material | ELF section inventories in JSON when images are supplied | Link one combined image; separate flash material from RAM-resident code/data |",
         f"| Persistent mutable values | Sampling payload {value['inventory']['sampling_value_payload']['bytes']:,} B; output payload {value['inventory']['output_value_payload']['bytes']:,} B, plus metadata/allocator costs | Exact Types and simultaneous lifetimes; no reuse credited |",
         f"| Mask | {value['inventory']['mask_cpu']['bytes']} inline bytes, {value['inventory']['mask_cpu']['heap_bytes']} heap bytes in the captured {value['inventory']['mask_cpu']['pointer_bits']}-bit CPU measurement | Obtain MCU representation and admitted runtime custody |",
-        f"| Packet expression | CPU retained model {value['inventory']['packet_expression_cpu']['before_bytes']:,} → {value['inventory']['packet_expression_cpu']['after_bytes']:,} B with constructor tape | Dynamic leaf evaluators remain; flash material, lifetime allocation and MCU measurement still required |",
+        f"| Packet expression | CPU retained model {value['inventory']['packet_expression_cpu']['before_bytes']:,} → {value['inventory']['packet_expression_cpu']['after_bytes']:,} B with constructor tape and fixed input locations | Dynamic leaf evaluators remain; flash material, lifetime allocation and MCU measurement still required |",
         f"| Local representations | Existing quantity-pair Forms total {value['inventory']['quantity_pair_form']['bytes']} B; semantic Types remain Temperature and Ratio | Admit compact local cord representations; separately retain status, clocks and provenance |",
         "| Scratch | No combined lifetime allocation exists | Include fan-out, pending calls, refusal and cancellation |",
         "| Construction | Output descriptors retire after transfer; schemas and expression trees remain in other paths | Bound transient peaks and every last-use release |",
