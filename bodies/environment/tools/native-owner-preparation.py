@@ -114,8 +114,8 @@ def carry(frame, wire):
 receipt = {'completed': False, 'proof_class': 'physical-owner-' + args.mode,
            'body_start_attributed': False, 'climate_sampling_claimed': False}
 try:
-    if args.display and args.mode != 'prepare':
-        raise RuntimeError('display proof currently prepares held custody only')
+    if args.display and args.mode == 'start-held':
+        raise RuntimeError('display proof supports prepare or finite idle lifecycle')
     wire_name = 'uninstalled-output-assignment-transfer.bin' if args.display else 'uninstalled-assignment-transfer.bin'
     wire = (args.capture / wire_name).read_bytes()
     if not 0 < len(wire) <= 8192:

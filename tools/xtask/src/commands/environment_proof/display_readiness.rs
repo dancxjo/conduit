@@ -7,6 +7,7 @@ pub(super) fn flash_and_capture(
     root: &Path,
     stage: bool,
     prepare_keys: Option<&Path>,
+    run_idle: bool,
 ) -> Result<(), Box<dyn Error>> {
     execute(
         Command::new("cargo")
@@ -89,7 +90,7 @@ pub(super) fn flash_and_capture(
         )?;
     }
     if let Some(keys) = prepare_keys {
-        super::display_preparation::prepare(root, &output, keys)?;
+        super::display_preparation::prepare(root, &output, keys, run_idle)?;
     }
     Ok(())
 }

@@ -10,8 +10,10 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
         || arguments == ["esp32-readiness", "--flash"]
         || arguments == ["esp32-readiness", "--flash", "--stage"]
         || arguments == ["esp32-readiness", "--flash", "--prepare"]
+        || arguments == ["esp32-readiness", "--flash", "--run-idle"]
     {
-        let preparing = arguments.last().is_some_and(|v| v == "--prepare");
+        let run_idle = arguments.last().is_some_and(|v| v == "--run-idle");
+        let preparing = run_idle || arguments.last().is_some_and(|v| v == "--prepare");
         let keys = if preparing {
             Some(display_preparation::provision(root)?)
         } else {
@@ -19,14 +21,20 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
         };
         build_readiness(root, keys.as_deref())?;
         return if arguments.len() >= 2 {
-            display_readiness::flash_and_capture(root, arguments.len() == 3, keys.as_deref())
+            display_readiness::flash_and_capture(
+                root,
+                arguments.len() == 3,
+                keys.as_deref(),
+                run_idle,
+            )
         } else {
             Ok(())
         };
     }
     if !arguments.is_empty() {
         return Err(
-            "expected display-output [esp32-readiness [--flash [--stage|--prepare]]]".into(),
+            "expected display-output [esp32-readiness [--flash [--stage|--prepare|--run-idle]]]"
+                .into(),
         );
     }
     for operation in ["test", "clippy"] {

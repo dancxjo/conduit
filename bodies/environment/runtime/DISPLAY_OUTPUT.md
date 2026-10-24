@@ -131,3 +131,12 @@ refused binding capacity. Binding-first construction preserved all guards and
 reached actual ready-held task custody, with Root's highest observed peak at
 105,460 of 114,688 bytes. This establishes dormant preparation headroom for the
 two-frame profile, not active output or complete appliance memory closure.
+
+The optional `esp32-readiness --flash --run-idle` extends that same preparation
+through attributed Start/Release, read-only input-wait observation, Cancel and
+Retire. The retained host Body owner changes lifecycle only after verifying
+Boot-signed transition receipts against the admission-pinned key. Cancellation
+is attempted even if release/observation fails; unknown quiescence preserves
+unresolved evidence rather than recording a Lull. No Frame producer is admitted
+by this mode, so successful kernel startup/input wait cannot prove physical
+output or continuous Mask execution. Operational image recovery remains separate.

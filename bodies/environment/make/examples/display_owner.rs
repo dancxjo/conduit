@@ -1,6 +1,9 @@
 //! Retain the real admitted Body owner through dormant display preparation.
-//! No Start, Release, Frame submission or physical output is requested here.
+//! Default preparation stays held; explicit run verifies lifecycle without Frames.
 extern crate alloc;
+#[allow(dead_code)]
+#[path = "native_owner/acknowledgement.rs"]
+mod acknowledgement;
 #[allow(dead_code)]
 #[path = "observed_offers/body.rs"]
 mod body;
@@ -11,6 +14,8 @@ mod control;
 mod exchange;
 #[path = "native_owner/key.rs"]
 mod key;
+#[path = "display_owner/lifecycle.rs"]
+mod lifecycle;
 use conduit_body::BodyPlayIdentity;
 use conduit_core as c;
 use conduit_environment_make::{DisplayOutputSource, NativeBodyBinding, PreparedDisplayOutput};
@@ -49,7 +54,13 @@ impl Scope<'_> {
 }
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args_os().skip(1).map(PathBuf::from).collect();
-    let [directory, admission, keys] = args.as_slice() else {
+    let run = args
+        .get(3)
+        .is_some_and(|mode| mode == std::path::Path::new("run"));
+    if args.len() > 4 || (args.len() == 4 && !run) {
+        return Err("expected optional run mode".into());
+    }
+    let [directory, admission, keys] = args.get(..3).ok_or("display owner arguments")? else {
         return Err("expected capture, display-source admission and private-key directory".into());
     };
     let key = key::open(keys, false)?;
@@ -71,7 +82,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let prepared = PreparedDisplayOutput::prepare(&source, &host, &bases, &grants)
         .map_err(|e| format!("display construction: {e:?}"))?;
     let plan = prepared.plan();
-    let owner = body::propose_plan(plan, &actual, admission, directory)?;
+    let mut owner = body::propose_plan(plan, &actual, admission, directory)?;
     let body_play = BodyPlayIdentity::bind(&owner.realization().ok_or("Body proposal")?.plan, 1);
     let mut wire = Vec::new();
     fs::File::open(directory.join("uninstalled-output-assignment-transfer.bin"))?
@@ -94,7 +105,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .as_u64()
         .ok_or("Root sequence exhausted")?;
     let active = c::bind_active_play(&plan.plan_id, &host.host_id, &host.boot_id, sequence);
-    let binding = NativeBodyBinding::prepare_display(&prepared, &owner, &body_play, &active)
+    let mut binding = NativeBodyBinding::prepare_display(&prepared, &owner, &body_play, &active)
         .map_err(|e| format!("display Body custody: {e:?}"))?;
     let reserved = exchange(&key, scope.request(control::Operation::Reserve, 2, &active))?;
     let reservation = &reserved["reservation"];
@@ -141,6 +152,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     if binding.fragment_play(&owner).is_ok() || owner.realization().unwrap().play.is_some() {
         return Err("dormant preparation incorrectly started Body".into());
+    }
+    if run {
+        return lifecycle::run(
+            &scope,
+            &key,
+            &mut owner,
+            &mut binding,
+            &active,
+            admission,
+            directory,
+        );
     }
     println!(
         "{}",

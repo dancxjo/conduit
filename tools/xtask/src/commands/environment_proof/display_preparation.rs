@@ -27,7 +27,12 @@ pub(super) fn provision(root: &Path) -> Result<PathBuf, Box<dyn Error>> {
     execute(Command::new(host_target(root).join("debug/examples/native_owner_key")).arg(&keys))?;
     Ok(keys)
 }
-pub(super) fn prepare(root: &Path, capture: &Path, keys: &Path) -> Result<(), Box<dyn Error>> {
+pub(super) fn prepare(
+    root: &Path,
+    capture: &Path,
+    keys: &Path,
+    run_idle: bool,
+) -> Result<(), Box<dyn Error>> {
     let admission = capture.join("admission");
     execute(
         Command::new("python3")
@@ -45,6 +50,8 @@ pub(super) fn prepare(root: &Path, capture: &Path, keys: &Path) -> Result<(), Bo
             .current_dir(root)
             .arg("bodies/environment/tools/native-owner-preparation.py")
             .arg("--display")
+            .arg("--mode")
+            .arg(if run_idle { "run" } else { "prepare" })
             .arg("--capture")
             .arg(capture)
             .arg("--admission")
