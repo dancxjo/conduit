@@ -350,3 +350,24 @@ Prior native image/proof trees and the newly built ISO are preserved in task
 storage. Two process/map/open-file audits reclaimed roughly 7GiB of inactive
 incremental cache while preserving compiled libraries, active builds, artifacts
 and other tasks.
+
+## Shared named typography policy
+
+Source `350be7db7` corrects a preset mismatch: Todo's `compact` expression used
+Engineering typography while Crèche and canonical Phosphor used Editorial.
+Five Todo literals now match that existing policy; all other appearance fields,
+recipes and preset names remain unchanged. Prepared checked roots prove exact
+policy equality across Todo/Crèche and unchanged Fore/recipe/layout per component
+across four selections, including retained component roots. Thirty-five focused
+contract checks and the native maximum-Todo profile check pass.
+
+A fresh installed Linux owner/browser run adds three real Todo items, then
+acknowledges all four selections with Editorial policy and computed serif intent.
+The component reference, recipe, layout, full canonical Face/revision and Body
+stay fixed. Retired-Show refusal and 390px / 200% forced-color checks pass, without
+browser errors. [Screenshots, canonical reports and regression failure](evidence/gui-look-6349-shared-policy/README.md).
+This is a correction atop accepted #5627/#5628/#5629, not closure of #5366:
+the owner selection API remains Todo-specific and checked Patchbay reuse is
+still missing. No new current-source native QEMU, full accessibility or CI
+acceptance is claimed. Roughly 2.3GiB of verified inactive incremental cache
+was reclaimed before the fresh builds; active artifacts and evidence remain.

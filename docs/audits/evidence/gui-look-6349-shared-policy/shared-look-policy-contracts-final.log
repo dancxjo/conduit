@@ -1,0 +1,79 @@
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-polish/semantics/face)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.60s
+     Running tests/component_recipe.rs (../native-target/debug/deps/component_recipe-34a5354f1f81fce3)
+
+running 7 tests
+test valid_face_reading_capacity_is_distinct_from_invalid_semantics ... ok
+test action_target_selects_original_subject_without_labels_or_role_assumptions ... ok
+test geometry_checks_outer_and_inter_column_gutters_before_subtraction ... ok
+test interleaved_regions_keep_typed_actions_facts_disclosure_and_reading_order ... ok
+test absent_optional_action_target_preserves_complete_generic_reading ... ok
+test slots_refuse_overlap_duplicate_regions_and_subject_capacity ... ok
+test different_structure_preserves_complete_original_reading_and_unmatched_meaning ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/configured_layout_mask.rs (../native-target/debug/deps/configured_layout_mask-1216baa4ee666fdd)
+
+running 8 tests
+test version_three_contract_is_distinct_and_requires_typed_layout ... ok
+test layout_literal_at_outer_invocation_cannot_replace_component_literal ... ok
+test declared_required_layout_and_version_three_presence_are_enforced ... ok
+test exact_component_invocation_retains_both_literals ... ok
+test equal_sibling_literals_and_expression_substitution_do_not_confer_custody ... ok
+test authenticated_back_forwards_both_literals_without_substitution ... ok
+test named_visual_presets_match_across_distinct_checked_components ... ok
+test retained_component_roots_share_exact_named_visual_policies ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.21s
+
+     Running tests/configured_mask.rs (../native-target/debug/deps/configured_mask-896a3c42a8607921)
+
+running 3 tests
+test exact_source_and_selected_plan_bind_renderer_configuration ... ok
+test explicit_component_forwarding_and_slash_plot_ancestry_are_checked ... ok
+test two_roots_share_checked_component_fore_and_recipe_but_not_realization ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/look_browser_binding.rs (../native-target/debug/deps/look_browser_binding-162a8206b89cc496)
+
+running 1 test
+test browser_profile_matches_checked_source_and_native_type_exactly ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/look_contract.rs (../native-target/debug/deps/look_contract-bc328d1268e15ebf)
+
+running 5 tests
+test unknown_facet_request_is_bounded_and_explicit ... ok
+test historical_look_v1_wire_is_not_silently_extended_with_typography ... ok
+test canonical_identity_version_and_retired_identities_are_exact ... ok
+test spoken_and_generative_facets_are_distinct_closed_parameters ... ok
+test canonical_phosphor_assets_are_typed_and_self_consistent ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/look_selection.rs (../native-target/debug/deps/look_selection-8d1661a2f1a16334)
+
+running 4 tests
+test facet_absence_unknown_and_observed_host_unavailability_stay_distinct ... ok
+test accessibility_changes_realization_without_rewriting_the_look_resource ... ok
+test foreign_visual_identity_cannot_be_attached_to_another_look ... ok
+test host_limit_fallback_retains_requested_and_selected_resource_truth ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/visual_expression.rs (../native-target/debug/deps/visual_expression-c68e6411bb05b0ec)
+
+running 7 tests
+test host_capacity_selects_fallback_without_discarding_user_text_requirement ... ok
+test density_palette_and_text_preferences_are_independently_admitted ... ok
+test invalid_expression_uses_phosphor_and_user_requirements_remain_authoritative ... ok
+test duplicate_fields_and_capacity_edges_are_rejected_or_explicit ... ok
+test expression_has_no_slot_action_topology_or_input_authority ... ok
+test structured_expression_uses_exact_checked_schema_and_validated_values ... ok
+test typography_is_required_versioned_and_independent_of_palette_and_density ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
