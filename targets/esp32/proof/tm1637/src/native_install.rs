@@ -64,6 +64,12 @@ impl NativeRoot {
         {
             return Err("assignment-seal");
         }
+        // Availability and retained reservation custody have separate epochs.
+        // Refuse exhaustion before transferring any provider into native custody.
+        let withdrawn_generation = self
+            .offer_generation
+            .checked_add(1)
+            .ok_or("offer-generation-exhausted")?;
         let assignment = self.assignment.as_ref().ok_or("assignment-unavailable")?;
         let resident = crate::native_software::resident().map_err(|_| "provisioning")?;
         let stats = esp_alloc::HEAP.stats();
@@ -95,6 +101,10 @@ impl NativeRoot {
                 c::AssignedIdentity::from_text(self.host.as_str()),
                 c::AssignedIdentity::from_text(self.boot.as_str()),
             );
+            // From this admission attempt onward the old ready advertisement is
+            // stale, including if a later preparation stage refuses. The owner
+            // continues to authenticate against its immutable reservation epoch.
+            self.offer_generation = withdrawn_generation;
             self.issuer.bind_assigned_native(
                 &mut self.pulse,
                 &mut self.wait,
