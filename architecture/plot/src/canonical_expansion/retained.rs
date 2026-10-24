@@ -236,6 +236,40 @@ fn canonical_optional_some_bytes(
     let conduit_core::StructuredInfoTypeShape::Leaf(kind) = payload_type.shape() else {
         return Ok(None);
     };
+    if kind.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+        // Canonical none and some have equal-length tags and one leaf node.
+        // The empty leaf contributes no bytes; the reference leaf's codec owns
+        // its finite maximum. Derive framing through the canonical encoder.
+        let empty = conduit_core::StructuredInfoValue::leaf(
+            conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                conduit_core::EMPTY_INFO_ID,
+            ))
+            .map_err(|_| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    "optional empty type is invalid".into(),
+                )
+            })?,
+            Vec::new(),
+        )
+        .map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                "optional empty value is invalid".into(),
+            )
+        })?;
+        let none = conduit_core::StructuredInfoValue::variant(optional.clone(), "none", empty)
+            .and_then(|value| value.canonical_bytes())
+            .map_err(|_| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    "optional reference framing is invalid".into(),
+                )
+            })?;
+        return Ok(Some(
+            none.len() as u64 + conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u64,
+        ));
+    }
     let encoded = match kind.as_str() {
         conduit_core::BOOL_INFO_ID => conduit_core::InfoBool::FALSE.encode().to_vec(),
         conduit_core::DISTANCE_INFO_ID => conduit_core::Quantity::new(0, conduit_core::Unit::Meter)
