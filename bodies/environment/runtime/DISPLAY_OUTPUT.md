@@ -90,9 +90,11 @@ not physical providers or device attestation.
 
 The ESP32 display image links with the existing 28 KiB CPU stack floor; the
 sampler profile still compiles. The task-bearing image has physical readiness
-and assignment-staging evidence; task registration and Release remain unproved.
-The working image was restored after those experiments.
-Full physical memory admission, task registration/Release, live Mask/Look Fore input,
+and assignment-staging evidence. The attended preparation proof now constructs
+the dormant kernel/native owner and registers the actual ready-held task within
+measured heap headroom; no Start/Release or Frame was sent. The working image was
+restored and advancing fresh readings were verified afterward.
+Release, active execution memory/stack admission, live Mask/Look Fore input,
 continuing sensor execution, network transition alongside sensing, recording
 Hosts and overnight endurance remain unproved. Construction prerequisites are
 tracked by #6374 and #6378; decoder or CPU proof alone cannot close physical
@@ -122,3 +124,10 @@ its exact response and Root memory observations; it cannot claim a Body start or
 physical output. This command leaves a construction diagnostic, so operational
 firmware restoration is a separate attended recovery step. The preparation proof
 does not install the continuous climate appliance.
+
+The before/after physical preparation receipts are in
+`../evidence/2026-10-24-display-native-preparation/`. Kernel-first construction
+refused binding capacity. Binding-first construction preserved all guards and
+reached actual ready-held task custody, with Root's highest observed peak at
+105,460 of 114,688 bytes. This establishes dormant preparation headroom for the
+two-frame profile, not active output or complete appliance memory closure.

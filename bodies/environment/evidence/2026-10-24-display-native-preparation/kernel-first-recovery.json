@@ -1,0 +1,18 @@
+{
+  "source": "a61bcb6d217f502f11fb664d46a5ec0c256c9808",
+  "recovery_sha256": "8105212d3f64168dd935bb8cb160c137c90df11b6ead1a13649f176c6ddca54b",
+  "completed": false,
+  "prepare_exit": 1,
+  "captures": [
+    "target/environment-display-readiness/1792831882"
+  ],
+  "restore_performed": true,
+  "restore_exit": 0,
+  "restored_current_updates": 12,
+  "restored_source_sequences": [
+    1,
+    2,
+    3
+  ],
+  "recovery_verified": true
+}

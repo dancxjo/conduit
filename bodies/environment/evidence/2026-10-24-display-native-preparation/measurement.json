@@ -1,0 +1,66 @@
+{
+  "schema": "conduit.environment/physical-display-held-preparation@1",
+  "proof_class": "physical-authenticated-dormant-preparation",
+  "mcu": "esp32/b0a732286178",
+  "root_heap_capacity_bytes": 114688,
+  "linked_stack_floor_bytes": 28672,
+  "stack_high_water_claimed": false,
+  "kernel_first": {
+    "source_head": "a61bcb6d217f502f11fb664d46a5ec0c256c9808",
+    "refusal": "display-binding-capacity",
+    "kernel_prepared": true,
+    "native_possession_issued": false,
+    "root_heap_used_bytes": 94924,
+    "root_heap_peak_bytes": 98188
+  },
+  "binding_first": {
+    "source_head": "4f176fdc66eedf9224f24c37ebb7ea81ba892308",
+    "accepted": true,
+    "root_heap_used_bytes": 97872,
+    "root_heap_peak_bytes": 105460,
+    "peak_headroom_bytes": 9228,
+    "worker": {
+      "cleanup_failure": false,
+      "context_bytes": 736,
+      "failure": null,
+      "held_future_bytes": 84,
+      "native_calls": 0,
+      "native_custody": true,
+      "native_in_flight": 0,
+      "native_lifecycle": "issued",
+      "phase": "ready-held",
+      "progress_current": true,
+      "software_calls": 0,
+      "steps": 0,
+      "task_active": true
+    },
+    "native_sdk_heap_bytes": 73728,
+    "native_sdk_heap_used_bytes": 33408,
+    "native_sdk_heap_peak_bytes": 34036
+  },
+  "guards_reduced": false,
+  "start_sent": false,
+  "release_sent": false,
+  "frame_submitted": false,
+  "body_installed": false,
+  "physical_output_claimed": false,
+  "continuous_sampling_claimed": false,
+  "recovery": {
+    "source": "4f176fdc66eedf9224f24c37ebb7ea81ba892308",
+    "recovery_sha256": "8105212d3f64168dd935bb8cb160c137c90df11b6ead1a13649f176c6ddca54b",
+    "completed": true,
+    "prepare_exit": 0,
+    "captures": [
+      "target/environment-display-readiness/1792832545"
+    ],
+    "restore_performed": true,
+    "restore_exit": 0,
+    "restored_current_updates": 12,
+    "restored_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "recovery_verified": true
+  }
+}
