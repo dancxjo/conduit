@@ -129,7 +129,7 @@ main { position:absolute; inset:0; width:100%; height:100%; max-width:none; padd
 #workspace-controls summary { cursor:pointer; }
 #workspace-controls label { display:grid; gap:.25rem; min-width:0; }
 #workspace-controls input,#workspace-controls select,#workspace-controls textarea { width:100%; }
-.side-panel { position:fixed; z-index:9; top:5rem; bottom:.75rem; width:min(25rem,calc(100% - 1.5rem)); max-height:none; overflow:auto; background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:.55rem; box-shadow:0 0 0 1px var(--conduit-structure-primary),0 1rem 4rem #000a; }
+.side-panel { position:fixed; z-index:11; top:5rem; bottom:.75rem; width:min(25rem,calc(100% - 1.5rem)); max-height:none; overflow:auto; background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:.55rem; box-shadow:0 0 0 1px var(--conduit-structure-primary),0 1rem 4rem #000a; }
 #palette { left:.75rem; }
 #inspector { right:.75rem; }
 #deep-inspection,#structured-navigator { position:static; width:auto; max-height:none; margin:.75rem 0; overflow:visible; box-shadow:none; }
@@ -137,7 +137,7 @@ body:not([data-palette-open="true"]) #palette,body[data-inspector-open="false"] 
 .furniture-bar { position:sticky; z-index:2; top:0; padding:.35rem; background:var(--conduit-surface); border-bottom:1px solid var(--conduit-structure-secondary); }
 .furniture-bar [data-application-component="action-group"] { display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; }
 .furniture-bar [data-application-key="title"] { min-width:0; margin:0 auto 0 0; overflow:hidden; color:var(--conduit-emphasis); font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
-.furniture-bar button,.status-strip [data-application-component="button"] { flex:0 0 auto; padding:.3rem .45rem; font-size:.7rem; }
+.furniture-bar button,.status-strip [data-application-component="button"] { flex:0 0 auto; min-height:44px; padding:.45rem .65rem; font-size:.85rem; line-height:1.4; }
 [data-furniture-collapsed="true"] { width:auto!important; height:auto!important; min-height:0!important; bottom:auto!important; max-height:none!important; overflow:hidden!important; }
 [data-furniture-collapsed="true"]>:not(.furniture-bar) { display:none!important; }
 [data-furniture-dock="left"] { top:5rem; right:auto!important; bottom:.75rem; left:.75rem!important; transform:none; }
