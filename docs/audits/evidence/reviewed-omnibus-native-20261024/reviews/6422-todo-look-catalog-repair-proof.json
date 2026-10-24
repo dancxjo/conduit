@@ -1,0 +1,12 @@
+{
+  "source": "208d6c00ddff78a156e459d752809a8cde92a80c",
+  "negative": "outputs/6422-products-120944037346.log",
+  "positive": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-todo-look-catalog-positive.log",
+  "positive_sha256": "32cdfbb152ca570753c810d68777719f57da680f65cc1a4ae872ed33fe04936f",
+  "result": "7passed0failed0ignored",
+  "actual_test": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/component_slots-af0ad5bf5f8c33a2",
+  "actual_test_sha256": "d41da7fcc48af527d5fa703cbba46cfde72e45439914aecee372efac337e85c9",
+  "sealed": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-todo-look-catalog-actual-test.elf.gz",
+  "sealed_sha256": "56400529a0dbf6d0000c6d1b86a5d96d7af9274313a50d0c761ea7b78d27aaa2",
+  "scope": "Testcatalogonly; productionLookstartupunchanged. Native0fffnegativeindependentlyretained."
+}

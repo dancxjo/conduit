@@ -1,0 +1,112 @@
+{
+  "supersedes": "outputs/0fff-preparetarget-nested-deserialize-performance-audit.json fixture attribution:0controls/357stringvalues/noStructuredInfoType construction were vision-fixture-only and DO NOT describe actual failed target3. Prior record retained as negative reasoning custody.",
+  "actual_log": "work/6422-native-0223dffd-target/x86_64/journey-serial.log:612-619",
+  "actual_target": {
+    "slot": 2,
+    "target": 3,
+    "wire_bytes": 17606,
+    "decoded_bytes": 426638,
+    "capz": true,
+    "wire_sha256": "f92c089439bb7814cb4c3d3652115d4e24a1161224a6a55ffd13c007adc04dda",
+    "source": "fd681a367856550384d5155c8ba3e7f36c6c008c249029b009aa075ac6c23516",
+    "checked": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+    "expanded": "bb0bfd56d97029a496e5b8652134f0c76b3b460fb1de828cc6ef5018a5dcf2f1",
+    "plan": "Some(c9f5ac1bcad10e5d1543fb141c3aa734537ddb3ae9cac8cf709213d24538d7a0)",
+    "preflight_interrupt_delta": 24,
+    "commit_interrupt_delta": 64,
+    "commit_terminal_preemptions_delta": 1
+  },
+  "matching_fixture": {
+    "path": "work/6393-permanent-cord-bound/targets/conduitos/application-core/tests/fixtures/startup.catz",
+    "sha256": "8eb19e05b0ccd065cfef9abf696da88ed8019c95c4ce2834e22d2a61ec2c7375",
+    "component": "Init.applications[0].Patchbay.targets[3].graph",
+    "all3graphIDs_match_actual": true,
+    "gears": 4,
+    "cords": 3,
+    "qualification": "Current failed command bytes not retained; fixture graph identity match establishes relevant graph shape/configuration, not exact command body/plan/wire equality. No actual payload reproduction performed."
+  },
+  "controls": [
+    {
+      "gear": "conduitos-keyboard-upper/keymap",
+      "key": "layout",
+      "value_variant": [
+        "Structured"
+      ],
+      "ordinary_json_bytes": 70200,
+      "interaction_ordinary_json_bytes": 4,
+      "canonical_value_bytes": 26189
+    },
+    {
+      "gear": "conduitos-keyboard-upper/keymap",
+      "key": "choices",
+      "value_variant": [
+        "Structured"
+      ],
+      "ordinary_json_bytes": 345066,
+      "interaction_ordinary_json_bytes": 4,
+      "canonical_value_bytes": 129539
+    },
+    {
+      "gear": "conduitos-keyboard-upper/show",
+      "key": "label",
+      "value_variant": [
+        "Text"
+      ],
+      "ordinary_json_bytes": 661,
+      "interaction_ordinary_json_bytes": 561
+    },
+    {
+      "gear": "conduitos-keyboard-upper/show",
+      "key": "maximum-values",
+      "value_variant": [
+        "U64"
+      ],
+      "ordinary_json_bytes": 4175,
+      "interaction_ordinary_json_bytes": 4063
+    },
+    {
+      "gear": "conduitos-keyboard-upper/show",
+      "key": "insertion-caret",
+      "value_variant": [
+        "Bool"
+      ],
+      "ordinary_json_bytes": 623,
+      "interaction_ordinary_json_bytes": 506
+    }
+  ],
+  "nested_hotpaths": [
+    {
+      "path": "architecture/core/src/configuration.rs:37-51,12-25",
+      "fact": "Each Structured configuration Vec<u8> is deserialized then Self::new calls configuration_profile and compares full derived profile identity."
+    },
+    {
+      "path": "architecture/core/src/structured_info/validation.rs:127-141",
+      "fact": "configuration_profile decodes normalizing Type, traverses whole canonical value with primitive validation and exact trailing check, then creates profile."
+    },
+    {
+      "path": "architecture/core/src/structured_info/canonical.rs:146-220",
+      "fact": "Type decoder constructs tree, sorts normalizing record/variant fields, validates subtree limits using existing constructors. Repeated subtree extent work exists structurally; no measured dominance."
+    },
+    {
+      "path": "architecture/core/src/structured_info/profile.rs:41-43",
+      "fact": "value_type.profile clones newly decoded owned Type before hashing; configuration_profile can potentially move it via StructuredInfoProfile::new(value_type), preserving exact normalization/validation/hash while avoiding one schema-tree clone."
+    },
+    {
+      "path": "targets/conduitos/application-core/src/data/transport_codec/de.rs:70,177-202",
+      "fact": "Two canonical bytearrays total155728elements traverse generic JSON integer/Bridge/Sequence visitor perbyte; exact count hints prevent geometric growth but not perbyte parse overhead. Largest choices array129539bytes. This is materially different from20KBvision."
+    }
+  ],
+  "prior_claims_retained": [
+    "Same Preflight\u2192Commit separation; no duplicate whole typed parse.",
+    "Graph/Port/ID outer containers remain derived; Type reconstruction is reached specifically through control.ConfigurationValue::Structured.",
+    "Matching graph has5CheckedValueContracts with0constraints; no evidence quantityconfig constructor invoked by these5control values.",
+    "PrepareTarget retains pending graph; controller construction/admission remains later FinishTarget."
+  ],
+  "bounded_candidates": [
+    "Consider moving owned decoded Type into profile constructor to avoid clone; tiny targeted optimization, benefit unmeasured and likely insufficient alone.",
+    "Measure bulk u8 array parsing and canonical configuration validation separately. A byte-array-specific decoder could preserve CAPSEQ integer range/count/framing/canonical checks while avoiding general visitor overhead; substantial parser review/negative parity needed.",
+    "Preserve full configuration/value/profile authentication: no skip based on Root assertedprofile or hash, no omit controls/graph, no quota expansion.",
+    "Retained outputresize patch removes real independent postdecode work but cannot be credited as fix without exact nativejourney;64IRQdelta is confirmed."
+  ],
+  "operations": "Read-only existingfixture decompress/JSON inspection and Source reads; only Root-local receipt saved. No Source/build/cache/GH mutation."
+}

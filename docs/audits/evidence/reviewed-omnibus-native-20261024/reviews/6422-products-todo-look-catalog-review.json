@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.independent-readonly-review/v1",
+  "source": "0fff4f73fe76acde295eff4940bfce07b03fd431",
+  "failure_log": "outputs/6422-products-120944037346.log",
+  "failure_test": "conduit-todo-face --test component_slots authored_component_fore_checks_and_its_literal_binds_the_actual_todo_face",
+  "observed_result": "6 passed,1 failed; CND-FRM-053 at authored line4 LookInfo (byte169..177)",
+  "cause": "Stale isolated test catalog registers VisualExpressionInfo after authored component startup migrated to complete LookInfo. Bare LookInfo cannot resolve, so checked_front maps WrongType to generic structured-profile bounds diagnostic. No planning or Cord admission occurs.",
+  "source_chain": [
+    "plots/todo/face/tests/component_slots.rs:198 registers old VisualExpressionInfo",
+    "semantics/face/components/todo-required-item.conduit:4 declares look:LookInfo",
+    "semantics/face/src/mask_catalog.rs:10 aliases only Face/FaceInteraction/Show",
+    "architecture/plot/src/value_type.rs:checked_value_kind rejects unknown bare alias; checked_front maps to CND-FRM-053",
+    "semantics/face/src/mask_catalog.rs:26 production component installer already registers LookInfo with look_type()"
+  ],
+  "introducing_migration": "9853de8e9542d9be360074306dfda4650bff4bd0",
+  "quantity_minimum_fence": "Unrelated: failure during Source checking before expansion/planning and minimum_value_bytes fence.",
+  "minimal_repair": "Replace test registration (VisualExpressionInfo,visual_expression_type()) with (LookInfo,look_type()); retain both human alias and canonical profile registration and actual whole authored source/literal bind assertions. No production bound/type relaxation.",
+  "focused_proof": [
+    "cargo +stable test -p conduit-todo-face --test component_slots",
+    "Existing face plot-catalog ordinary_mask_catalog_checks_the_reviewed_component_document test if included by owning lane; does not replace Todo regression"
+  ],
+  "ownership": "Root owns frozen source/build; no other active agent at list_agents observation. GUI original migration has external owner; root should coordinate narrow test-only fix before write.",
+  "operations": "Read existing log/source/git history only; no build/source/cache/GitHub changes; private JSON receipt only."
+}

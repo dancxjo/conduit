@@ -1,0 +1,36 @@
+{
+  "schema": "conduit.independent-readonly-review/v1",
+  "supersedes": [
+    "outputs/6351-92598-prepare-target-payload-review.json payload target/fixture assumptions",
+    "outputs/6422-0fff-commit-workexhausted-diagnosis.json payload shape/no-controls assumptions"
+  ],
+  "correction": "Prior target3=vision inference was wrong. With four resident targets and Patchbay slot2, excluded own index2 is reused for vision. Target3 is resident KeyboardCanvas.",
+  "actual_live_source": "0223dffd diagnostic source; parent owns full SHA",
+  "actual_log": "work/6422-native-0223dffd-target/x86_64/journey-serial.log:612",
+  "actual_input": {
+    "slot": 2,
+    "target": 3,
+    "wire_bytes": 17606,
+    "decoded_bytes": 426638,
+    "capz": true,
+    "sha256": "f92c089439bb7814cb4c3d3652115d4e24a1161224a6a55ffd13c007adc04dda",
+    "source": "fd681a367856550384d5155c8ba3e7f36c6c008c249029b009aa075ac6c23516",
+    "checked": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+    "expanded": "bb0bfd56d97029a496e5b8652134f0c76b3b460fb1de828cc6ef5018a5dcf2f1",
+    "plan": "c9f5ac1bcad10e5d1543fb141c3aa734537ddb3ae9cac8cf709213d24538d7a0",
+    "body": "body-plan/sha256:d9c386d2771d4e24e104860ac4eab8aec95744c8cc2b60cb4d6bea757f50228d"
+  },
+  "measured_entry_delta": {
+    "preflight_interrupt_entries": 24,
+    "commit_interrupt_entries": 64,
+    "commit_preemptions": 1,
+    "qualification": "Differences authenticated from paired cumulative observations, not old cumulative-only tuple."
+  },
+  "near_fixture": "startup.catz existing target3 graph has exact three canonical IDs,4gears/3Cords; keymap Structured controls layout26189 raw canonical bytes and choices129539 raw canonical bytes; ordinary control JSON70200+345066 bytes. Major actual decode shape is numeric byte arrays plus StructuredConfigurationValue::new profile validation.",
+  "near_fixture_limit": "Python recursive count-framing reconstruction with new body/plan yielded425549 decoded bytes,1089 less than live426638. Existing fixture Cords have source_origin:null; fresh from_expanded retains actual provenance. Exact graph ID equality alone is insufficient to establish byte-exact projected graph. Do not benchmark historical fixture as exact current payload.",
+  "faithful_repro_draft": "outputs/6422-keyboard-target-faithful-repro-draft.rs",
+  "repro": "Generate via native_workset::checked(KeyboardCanvas) with exact installed catalogs and PatchbayGraph::from_expanded, set actual new body/plan IDs, encode_command and assert all live wire/decoded/hash receipts. Draft not compiled or run.",
+  "optimization_direction": "If typed decode owns failure, compact private encoding of canonical byte blobs is the strongest measured-shape candidate (155728 byte elements vs ~415KB numeric JSON). Preserve ordinary public canonical encoding, validation and exact semantic fields; any private codec version change needs serializer+decoder+preflight matched bounds and full byte-extrema/escape/invalid/trailing/duplicate/count parity. Do not skip StructuredConfigurationValue validation. Do not alter entry quota, retry or slice fresh budgets.",
+  "remaining_unknown": "Commit phase still not directly reported; profile validation may dominate alongside JSON Vec element dispatch. Need faithful isolated host profiling or explicitly reviewed disjoint existing channel before attributing exclusively to parser.",
+  "operations": "Read existing logs,Source,compressed fixture using Python only. No Source/build/cache/GitHub mutations. Private outputs only."
+}

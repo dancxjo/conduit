@@ -1,0 +1,47 @@
+{
+  "diagnostic_source": "0223dffdb4e25a25dfe1c317ed8d9f317760ad58",
+  "guest_bytes_rehashed_unchanged": [
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application-target/x86_64-unknown-none/release/conduitos-application-service",
+      "bytes": 2825160,
+      "sha256": "63ce1e995d1370a08c09421687011e17e9bf2e3b09e83ad49909a870f1419704"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/compositor-target/x86_64-unknown-none/release/conduitos-compositor-service",
+      "bytes": 29256,
+      "sha256": "c793812c2ae043bb4d10b877e708eaafe0b7b1648e6f9009596e3017c4159515"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/creche-target/x86_64-unknown-none/release/conduitos-creche-service",
+      "bytes": 1669712,
+      "sha256": "4ed2f738921409efc51b6a02081a6cab18c45759716ec642ab4bb7cc4c207228"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/domain-target/x86_64-unknown-none/release/conduitos-domain",
+      "bytes": 142552,
+      "sha256": "55025c95a3ff9fe7149872161c511133a3fd7e3c9115af06dd1a2506c596c7fa"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/mask-target/x86_64-unknown-none/release/conduitos-mask-service",
+      "bytes": 177168,
+      "sha256": "d0211e0145fe6d9f2dd0df2c490adf4c8fcb41e3058d5f1e62ea252d71eaf0f4"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/network-target/x86_64-unknown-none/release/conduitos-network-service",
+      "bytes": 39632,
+      "sha256": "fee7a39bf3d4b93d0da3bea0ae49d7dbfd871321c92d96732fc1558c0a6783dd"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/runtime-target/x86_64-unknown-none/release/conduitos-runtime-service",
+      "bytes": 238680,
+      "sha256": "a963929a713ec2c18924c12d99f5fbb2978b462c41c4b111e2bff9ce345d7a91"
+    },
+    {
+      "path": "work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/tls-target/x86_64-unknown-none/release/conduitos-tls-service",
+      "bytes": 197600,
+      "sha256": "8f43301f7371896d40b0a7994caf14eebbaef41546d10488c60ddf6a1e2510f1"
+    }
+  ],
+  "original_sealed_archive": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-terminal-product-custody.tar.gz",
+  "scope": "Same guest ELF bytes retained; current Root kernel/ISO/log execution separately sealed at0223."
+}

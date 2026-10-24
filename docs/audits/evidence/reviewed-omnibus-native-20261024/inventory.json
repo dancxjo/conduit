@@ -1,0 +1,478 @@
+[
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/6422-native-0fff4f73-application-image-fit.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-application-image-fit.json",
+    "raw_bytes": 1288,
+    "raw_sha256": "24ddab69bb9b6ea1229b9c8ce57f63884d229af84f507ba7c87cc5d7a097c880",
+    "stored_sha256": "24ddab69bb9b6ea1229b9c8ce57f63884d229af84f507ba7c87cc5d7a097c880"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/6422-native-0fff4f73-product-proof.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-product-proof.json",
+    "raw_bytes": 3186,
+    "raw_sha256": "84e87676e5ac4c1c7c567d3397a11f2ce8728243363d076c8c2212d0058cc7c6",
+    "stored_sha256": "84e87676e5ac4c1c7c567d3397a11f2ce8728243363d076c8c2212d0058cc7c6"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/6422-native-0fff4f73-terminal-product-custody.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-terminal-product-custody.json",
+    "raw_bytes": 11246,
+    "raw_sha256": "8de91f41e3a6c3d7cdcc179bf044bf97438a00d0f84f22a7c8754960eea13225",
+    "stored_sha256": "8de91f41e3a6c3d7cdcc179bf044bf97438a00d0f84f22a7c8754960eea13225"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/6422-native-0fff4f73-boot.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-boot.log",
+    "raw_bytes": 1250,
+    "raw_sha256": "7ce0d374379cb815907848408902edd366bd6fe019e8e7e9a59c2b464baed246",
+    "stored_sha256": "959e8cb1ef0fa4a015b93e7d6a09d4a2f0a51f6c07cdb5bdb056d678d622bc24"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/6422-native-0fff4f73-build.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-build.log",
+    "raw_bytes": 59403,
+    "raw_sha256": "b700e24d4d2787974d1e50e3d4f67de5731448ca7dbf88340d827d3bc31aacac",
+    "stored_sha256": "0cc98df880e917628d30a96f9d1972d94c51ef598d313b9aab6aca9732a5bf63"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/6422-native-0fff4f73-journey.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-journey.log",
+    "raw_bytes": 798,
+    "raw_sha256": "0900a09b03053a94d77739332d2acb0ea4744ca6f7afe2cfa4aebe42d08462c5",
+    "stored_sha256": "90aa76a79053df8088a38195462d7ca17861c94547d9d6edadfacff2646127e9"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/6422-native-0fff4f73-preflight.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-preflight.log",
+    "raw_bytes": 35215,
+    "raw_sha256": "edb11362a1f95c17365f33c0bcf3c242080e1b8326458f156d2a85e86351a0af",
+    "stored_sha256": "0e59989e0729d06828db547c85bfef53e91d675516954f604ddf6146f827dbd4"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/build.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/build.json",
+    "raw_bytes": 319,
+    "raw_sha256": "f9c3a27d7b6cf0cf829bdbcd714b65c753b2e22452253d46fe523912754ba85f",
+    "stored_sha256": "f9c3a27d7b6cf0cf829bdbcd714b65c753b2e22452253d46fe523912754ba85f"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/image.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/image.json",
+    "raw_bytes": 335,
+    "raw_sha256": "9295c6a797df857282a311e4fc3e52bc6fcb234a9fa38b78d09a5fb928cd9f35",
+    "stored_sha256": "9295c6a797df857282a311e4fc3e52bc6fcb234a9fa38b78d09a5fb928cd9f35"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/iso-root/boot/conduit-build.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/iso-root/boot/conduit-build.json",
+    "raw_bytes": 4453,
+    "raw_sha256": "d8faff26d94fa35bcf55290273f8e79ba7d40282591aff60fa685811fd700ae1",
+    "stored_sha256": "d8faff26d94fa35bcf55290273f8e79ba7d40282591aff60fa685811fd700ae1"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-failure-registers.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-failure-registers.json",
+    "raw_bytes": 2173,
+    "raw_sha256": "473b09459574f496eb0a989dc6fd92e478d3bad65b3029d680690b062a65420f",
+    "stored_sha256": "473b09459574f496eb0a989dc6fd92e478d3bad65b3029d680690b062a65420f"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-failure-stack.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-failure-stack.json",
+    "raw_bytes": 2071,
+    "raw_sha256": "abc30466914f8f95002dbae30936b9fc4325200590a016a98c390bd3771f9360",
+    "stored_sha256": "abc30466914f8f95002dbae30936b9fc4325200590a016a98c390bd3771f9360"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-editorial-compact.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-editorial-compact.png",
+    "raw_bytes": 172178,
+    "raw_sha256": "4e6f15619aa6e28c6998d931c24f7947bfd6a87fa0aa599e3cfb2f877b7112af",
+    "stored_sha256": "4e6f15619aa6e28c6998d931c24f7947bfd6a87fa0aa599e3cfb2f877b7112af"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-editorial-spacious.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-editorial-spacious.png",
+    "raw_bytes": 149657,
+    "raw_sha256": "91ac95fe098a033f0d391031a390d5e08fe69ddbd6c16bd70cd0ce80ed7f8152",
+    "stored_sha256": "91ac95fe098a033f0d391031a390d5e08fe69ddbd6c16bd70cd0ce80ed7f8152"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-engineering-compact.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-engineering-compact.png",
+    "raw_bytes": 160720,
+    "raw_sha256": "f090af2a0b8e55ae9bc7d29d946775d53a29718c53895e08d922860390221174",
+    "stored_sha256": "f090af2a0b8e55ae9bc7d29d946775d53a29718c53895e08d922860390221174"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-engineering-spacious.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-engineering-spacious.png",
+    "raw_bytes": 141600,
+    "raw_sha256": "c7f4b7d65e4a824e7a7b85deefb58245049b7eea9708f1e20b0a287be60db47d",
+    "stored_sha256": "c7f4b7d65e4a824e7a7b85deefb58245049b7eea9708f1e20b0a287be60db47d"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-four-restored.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-four-restored.png",
+    "raw_bytes": 160700,
+    "raw_sha256": "c294e2d228ba418bed4a327d63124a893a4462faa6974afe50855faa6bfaebdd",
+    "stored_sha256": "c294e2d228ba418bed4a327d63124a893a4462faa6974afe50855faa6bfaebdd"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-fourth-checked.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-fourth-checked.png",
+    "raw_bytes": 160708,
+    "raw_sha256": "42ddc279799827d67fd9f433e5e83129356c411f7a93baaa215f152f7fc002ee",
+    "stored_sha256": "42ddc279799827d67fd9f433e5e83129356c411f7a93baaa215f152f7fc002ee"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-pointer-four-restored.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-pointer-four-restored.png",
+    "raw_bytes": 160833,
+    "raw_sha256": "89e6f7af61107748c2c5d91cda3d027939b54b648f8f80a8d6e6748832106a6f",
+    "stored_sha256": "89e6f7af61107748c2c5d91cda3d027939b54b648f8f80a8d6e6748832106a6f"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-pointer-three-selected.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-pointer-three-selected.png",
+    "raw_bytes": 160923,
+    "raw_sha256": "0ad8bc040f256d15f781dc8b518c58ccb7359c170115fee140f955a7fa46cbe3",
+    "stored_sha256": "0ad8bc040f256d15f781dc8b518c58ccb7359c170115fee140f955a7fa46cbe3"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-ready.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-ready.png",
+    "raw_bytes": 160720,
+    "raw_sha256": "f090af2a0b8e55ae9bc7d29d946775d53a29718c53895e08d922860390221174",
+    "stored_sha256": "f090af2a0b8e55ae9bc7d29d946775d53a29718c53895e08d922860390221174"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/creche-three-selected.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/creche-three-selected.png",
+    "raw_bytes": 160792,
+    "raw_sha256": "6fd0a31f3381d50b96e0376e7fabce4fc8041281df7934ef078250acef28e607",
+    "stored_sha256": "6fd0a31f3381d50b96e0376e7fabce4fc8041281df7934ef078250acef28e607"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/failure.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/failure.png",
+    "raw_bytes": 121489,
+    "raw_sha256": "71608d6401a70133e4f5b02b62996eb18fed2e510fe6736dd4a0f51f9cbe3706",
+    "stored_sha256": "71608d6401a70133e4f5b02b62996eb18fed2e510fe6736dd4a0f51f9cbe3706"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/front-door-ready.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/front-door-ready.png",
+    "raw_bytes": 49977,
+    "raw_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+    "stored_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-frames/manifest.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-frames/manifest.json",
+    "raw_bytes": 121723,
+    "raw_sha256": "65adfc67497fa54203d14ca23c55d0b167e18b23da3f8badf4d5ac42c86d0272",
+    "stored_sha256": "65adfc67497fa54203d14ca23c55d0b167e18b23da3f8badf4d5ac42c86d0272"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-qemu-stderr.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-qemu-stderr.log",
+    "raw_bytes": 0,
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-qmp.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-qmp.log",
+    "raw_bytes": 29102,
+    "raw_sha256": "c1e4b4bec006168a522d01948507eb9a9d1452dc9eedc0ee0a8aeabeff7c84c0",
+    "stored_sha256": "f78016431846653e4f757ca8c690411e044c156471fc54d7e50d591f2e897976"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/journey-serial.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/journey-serial.log",
+    "raw_bytes": 482894,
+    "raw_sha256": "e4be0d3f46b2d15e6907b74b1bcc34424ec58c1c3039783b631eaedd7c0e7548",
+    "stored_sha256": "3c48968b6d42e242ee1bffc65590bbfb6b82b3fbc215128681ae696233eba635"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/privilege-inventory-6085e3017e6cd97f4ba5132cf86818a490cdf4fb40fe60e3aa0e5a087b59e5ea-product-host.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/privilege-inventory-6085e3017e6cd97f4ba5132cf86818a490cdf4fb40fe60e3aa0e5a087b59e5ea-product-host.json",
+    "raw_bytes": 63297,
+    "raw_sha256": "e679b950a1e8b45238b07d875c70d8d42060472f5ea0030c23c17e11564fcb74",
+    "stored_sha256": "e679b950a1e8b45238b07d875c70d8d42060472f5ea0030c23c17e11564fcb74"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/profile-built-boot.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/profile-built-boot.log",
+    "raw_bytes": 41787,
+    "raw_sha256": "c244aaa0ec4b4d4ce71ef4822d45fbffa397ee58e91a91bbecb7f4e058d45a70",
+    "stored_sha256": "2fb232c8a740eea143fbe50d14e1d8a6a0eea0e46bb0760fa29f26f9a2e5f09a"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0fff4f73/native/x86_64-product-proof.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target/x86_64/x86_64-product-proof.json",
+    "raw_bytes": 1725,
+    "raw_sha256": "97443dd8e56cd4cda25a587a6919d7059a73c1183793719e4afa311ea1a7935c",
+    "stored_sha256": "97443dd8e56cd4cda25a587a6919d7059a73c1183793719e4afa311ea1a7935c"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/6422-native-0223dffd-product-proof.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-product-proof.json",
+    "raw_bytes": 3216,
+    "raw_sha256": "a7c0d30975ab2e57862f29c8cda42fd0dcba8008087471a1016c932233853997",
+    "stored_sha256": "a7c0d30975ab2e57862f29c8cda42fd0dcba8008087471a1016c932233853997"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/6422-native-0223dffd-terminal-product-custody.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-terminal-product-custody.json",
+    "raw_bytes": 8951,
+    "raw_sha256": "edb299b3da60bcf1e4dbe4024084305ee9db938676f1caf8104da521970ba84d",
+    "stored_sha256": "edb299b3da60bcf1e4dbe4024084305ee9db938676f1caf8104da521970ba84d"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/6422-native-0223dffd-unchanged-guest-custody.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-unchanged-guest-custody.json",
+    "raw_bytes": 2794,
+    "raw_sha256": "693aacf5ff9330c27c4fb3f01cbf45c2fbd9c030c37733fe36391991db97e47f",
+    "stored_sha256": "693aacf5ff9330c27c4fb3f01cbf45c2fbd9c030c37733fe36391991db97e47f"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/6422-native-0223dffd-boot.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-boot.log",
+    "raw_bytes": 1250,
+    "raw_sha256": "51dc37602579b437e303cca4b1503b222226e0b418bb4af5b51f3112dc8510af",
+    "stored_sha256": "3eb3bb8c4c00e281d9ccd62b326c73a69a84bd6aa3fef007c96832b2e78b8950"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/6422-native-0223dffd-build.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-build.log",
+    "raw_bytes": 26307,
+    "raw_sha256": "379ba454509c48385b06ea06834770f455ff617a23f0041b9df797c8701bdc18",
+    "stored_sha256": "5a7a71b3600436673321cec1951da318005fa8e4b5e2a42f194f437ad5e3ca93"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/6422-native-0223dffd-journey.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-journey.log",
+    "raw_bytes": 798,
+    "raw_sha256": "d851fa5393375fd90cb48149ac0920959d5ac438fb628d1fb7baeb017c2f7554",
+    "stored_sha256": "290fa95571960ae76043d514332de89e88cb98a4c65d652271edd353db8997a7"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/6422-native-0223dffd-preflight.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-preflight.log",
+    "raw_bytes": 35230,
+    "raw_sha256": "688f4576b55b60c95f8e6c56a004299dbfdd32acd86d29d17cb189a9c0cc42ec",
+    "stored_sha256": "1486bcb213489c458bb23164124ecc9d7d9de941d850d1185b989c4ca1544624"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/build.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/build.json",
+    "raw_bytes": 319,
+    "raw_sha256": "7e8735faa58145744e148d9e01f3e3b34a0f413fcd5bc750951befb82fa31928",
+    "stored_sha256": "7e8735faa58145744e148d9e01f3e3b34a0f413fcd5bc750951befb82fa31928"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/image.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/image.json",
+    "raw_bytes": 335,
+    "raw_sha256": "f6a45e2b4be3fdbe26232dee8c488328dab0b87abd3dc20b1d186ad6d58fb2de",
+    "stored_sha256": "f6a45e2b4be3fdbe26232dee8c488328dab0b87abd3dc20b1d186ad6d58fb2de"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/iso-root/boot/conduit-build.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/iso-root/boot/conduit-build.json",
+    "raw_bytes": 4453,
+    "raw_sha256": "520aa2670cecb7dc75589df696b7d52abfa1a62fe3f704c95b836e3ff6e89d10",
+    "stored_sha256": "520aa2670cecb7dc75589df696b7d52abfa1a62fe3f704c95b836e3ff6e89d10"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-failure-registers.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-failure-registers.json",
+    "raw_bytes": 2190,
+    "raw_sha256": "1a6ea5c3eba5ffd37f47dbff43f831a3e2adb90059b3d24d7da9284f34e3ca14",
+    "stored_sha256": "1a6ea5c3eba5ffd37f47dbff43f831a3e2adb90059b3d24d7da9284f34e3ca14"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-failure-stack.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-failure-stack.json",
+    "raw_bytes": 2071,
+    "raw_sha256": "89b08d34c11f5939d88a4f2f207544b35d9d90205b47ea5d674f152c9126b2e4",
+    "stored_sha256": "89b08d34c11f5939d88a4f2f207544b35d9d90205b47ea5d674f152c9126b2e4"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-editorial-compact.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-editorial-compact.png",
+    "raw_bytes": 170194,
+    "raw_sha256": "155ace021da93768ea1d1be35738b3d465e7ec4a9189cdb9009b381120a0fe19",
+    "stored_sha256": "155ace021da93768ea1d1be35738b3d465e7ec4a9189cdb9009b381120a0fe19"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-editorial-spacious.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-editorial-spacious.png",
+    "raw_bytes": 146414,
+    "raw_sha256": "2cd17a19b0b08f0999dc8fc901d80cb6e251d1e8dd40282858463d217c80f644",
+    "stored_sha256": "2cd17a19b0b08f0999dc8fc901d80cb6e251d1e8dd40282858463d217c80f644"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-engineering-compact.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-engineering-compact.png",
+    "raw_bytes": 158982,
+    "raw_sha256": "4ca85ac04314e30f86ed148e57428aeea7f9f8ff7113d0e99f5c9fb131e9ca96",
+    "stored_sha256": "4ca85ac04314e30f86ed148e57428aeea7f9f8ff7113d0e99f5c9fb131e9ca96"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-engineering-spacious.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-engineering-spacious.png",
+    "raw_bytes": 138854,
+    "raw_sha256": "53dae1077306d9db9a018927e02fb839ce1fb463e29abe8c568cf8133b8158b3",
+    "stored_sha256": "53dae1077306d9db9a018927e02fb839ce1fb463e29abe8c568cf8133b8158b3"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-four-restored.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-four-restored.png",
+    "raw_bytes": 158958,
+    "raw_sha256": "d90c67882bd73d40cbb6d025642f560c805a7b18317f7ffdab85c4c414083328",
+    "stored_sha256": "d90c67882bd73d40cbb6d025642f560c805a7b18317f7ffdab85c4c414083328"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-fourth-checked.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-fourth-checked.png",
+    "raw_bytes": 158960,
+    "raw_sha256": "a6857f84bc1fcbceb805e0bba5e170b978cb2a21aafaba2c4782873a62a2e9f3",
+    "stored_sha256": "a6857f84bc1fcbceb805e0bba5e170b978cb2a21aafaba2c4782873a62a2e9f3"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-pointer-four-restored.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-pointer-four-restored.png",
+    "raw_bytes": 159130,
+    "raw_sha256": "aab288d6fa9f1869d9ede58de37b4abb0a0e1cf2be49738f4da7672bda5a21ce",
+    "stored_sha256": "aab288d6fa9f1869d9ede58de37b4abb0a0e1cf2be49738f4da7672bda5a21ce"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-pointer-three-selected.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-pointer-three-selected.png",
+    "raw_bytes": 159224,
+    "raw_sha256": "eaf73cd72f04fe22c5ddddc07b8166b01b8ceb53cf90747e1cf07645ded63a52",
+    "stored_sha256": "eaf73cd72f04fe22c5ddddc07b8166b01b8ceb53cf90747e1cf07645ded63a52"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-ready.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-ready.png",
+    "raw_bytes": 158982,
+    "raw_sha256": "4ca85ac04314e30f86ed148e57428aeea7f9f8ff7113d0e99f5c9fb131e9ca96",
+    "stored_sha256": "4ca85ac04314e30f86ed148e57428aeea7f9f8ff7113d0e99f5c9fb131e9ca96"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/creche-three-selected.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/creche-three-selected.png",
+    "raw_bytes": 159054,
+    "raw_sha256": "1a06be2e877c5b83fad028348fcd9a2aa1f1913041b74f5b403bffd5a64e0145",
+    "stored_sha256": "1a06be2e877c5b83fad028348fcd9a2aa1f1913041b74f5b403bffd5a64e0145"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/failure.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/failure.png",
+    "raw_bytes": 117405,
+    "raw_sha256": "959850dbaa9691c28d4358ca3cc06989c8b5b5fa0b6ec6fa5805dac38ef0ab15",
+    "stored_sha256": "959850dbaa9691c28d4358ca3cc06989c8b5b5fa0b6ec6fa5805dac38ef0ab15"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/front-door-ready.png",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/front-door-ready.png",
+    "raw_bytes": 49977,
+    "raw_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+    "stored_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-frames/manifest.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-frames/manifest.json",
+    "raw_bytes": 121689,
+    "raw_sha256": "9c8ece2a9d315fae0166e9361782d4661155f858029c286453b4483f13e8cb9f",
+    "stored_sha256": "9c8ece2a9d315fae0166e9361782d4661155f858029c286453b4483f13e8cb9f"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-qemu-stderr.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-qemu-stderr.log",
+    "raw_bytes": 0,
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-qmp.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-qmp.log",
+    "raw_bytes": 29092,
+    "raw_sha256": "8138e0669c853f666a33f91faf63355c8c492b3cb2c3fbb997876a919119edf2",
+    "stored_sha256": "272cccab96938fb1971dea0ca4024f2e88f435002370ae8edeafcd9e15792f55"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/journey-serial.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/journey-serial.log",
+    "raw_bytes": 488882,
+    "raw_sha256": "e1102a2bbf74a0fdc2dd8a45ed2f104e9a1bbe845c536e0fea194545ab4890e4",
+    "stored_sha256": "d817ec1bc5d256de9e9d706d4b06a29eb9245cfed0041aef0d0c0bba6dc365db"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/privilege-inventory-79de835fe40745e0e2d54db79cf96df6764a54e6a53c183d7537baa58ff1002c-product-host.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/privilege-inventory-79de835fe40745e0e2d54db79cf96df6764a54e6a53c183d7537baa58ff1002c-product-host.json",
+    "raw_bytes": 63297,
+    "raw_sha256": "af0fa9d43b0fa6221999347d61f171bf141e468025c25ea2d8d3f2213f4c4faa",
+    "stored_sha256": "af0fa9d43b0fa6221999347d61f171bf141e468025c25ea2d8d3f2213f4c4faa"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/profile-built-boot.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/profile-built-boot.log",
+    "raw_bytes": 41785,
+    "raw_sha256": "f88da8dc4f11dc7fed5a359b24e1c88c0785d1e8be2b9fb6635465336a6c9e34",
+    "stored_sha256": "ea70ede5329f301f92b85c9132b77981a03088dc761b919753a7642365fb3e59"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/0223dffd/native/x86_64-product-proof.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target/x86_64/x86_64-product-proof.json",
+    "raw_bytes": 1725,
+    "raw_sha256": "dd0e30cf51abdf5d2470c1ac171eb3768662118d0da7277de11eebd2d5501625",
+    "stored_sha256": "dd0e30cf51abdf5d2470c1ac171eb3768662118d0da7277de11eebd2d5501625"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/reviews/6422-todo-look-catalog-repair-proof.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-todo-look-catalog-repair-proof.json",
+    "raw_bytes": 977,
+    "raw_sha256": "892648e0b482d875aebccde355401036f5457ac30e524b3c4f63b0a1723587cc",
+    "stored_sha256": "892648e0b482d875aebccde355401036f5457ac30e524b3c4f63b0a1723587cc"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/reviews/6422-products-todo-look-catalog-review.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-products-todo-look-catalog-review.json",
+    "raw_bytes": 2279,
+    "raw_sha256": "1b3bce05b6ead54504086b3923a7643432888c6fd2d6dcb990147d8157f95c58",
+    "stored_sha256": "1b3bce05b6ead54504086b3923a7643432888c6fd2d6dcb990147d8157f95c58"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/reviews/6422-0223-actual-keyboard-payload-corrected-review.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-0223-actual-keyboard-payload-corrected-review.json",
+    "raw_bytes": 3536,
+    "raw_sha256": "4da10074087b1ee7034d6bf5fca2cbb700623669e3e6019912e2c6f024b0ce6e",
+    "stored_sha256": "4da10074087b1ee7034d6bf5fca2cbb700623669e3e6019912e2c6f024b0ce6e"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/reviews/0223-actual-keyboardcanvas-nested-deserialize-correction.json",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/0223-actual-keyboardcanvas-nested-deserialize-correction.json",
+    "raw_bytes": 5812,
+    "raw_sha256": "300951a5cf3a8382ed041386ffe252f2a47a987fc62d27eb3160dff48ef20ad4",
+    "stored_sha256": "300951a5cf3a8382ed041386ffe252f2a47a987fc62d27eb3160dff48ef20ad4"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/reviews/6422-todo-look-catalog-positive.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-todo-look-catalog-positive.log",
+    "raw_bytes": 5687,
+    "raw_sha256": "32cdfbb152ca570753c810d68777719f57da680f65cc1a4ae872ed33fe04936f",
+    "stored_sha256": "28ebca4f5f8774c465fc883a35ea823512c52cd0cef965ad33d3d461cf68a9da"
+  },
+  {
+    "public_path": "docs/audits/evidence/reviewed-omnibus-native-20261024/reviews/6422-products-120944037346.log.gz",
+    "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-products-120944037346.log",
+    "raw_bytes": 805934,
+    "raw_sha256": "cf5c7009a73c52655aa8e69df8592fe45e0803b1211eee18616cc7129217d398",
+    "stored_sha256": "4a82168e3aa5fdee01116d5c09d4a8767ecb105ea3ca19cce35652bffde428e1"
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "base_commit": "0223dffdb4e25a25dfe1c317ed8d9f317760ad58",
+  "emulator_profile": "q35-single-cpu-512m-normal-product",
+  "first": {
+    "boot_id": "cd41cfef7cec3fb7f8beac8804b8dafc7ed48ef1375dec5e74dfeac4b758b8aa",
+    "build_id": "build:sha256:4376185f4ce9cdacdc7daf889ea812db562f39b84415171b4c1745bc9097a4b2",
+    "emulator_profile": "q35-single-cpu-512m-normal-product",
+    "guest_memory_bytes": 536870912,
+    "host_id": "ddff1a38b9ee36b09af1e7c520568b140c63316d3eea6c2ee38dedd9c0cb37c5",
+    "image_binding": "image:sha256:13949028e21d232b66c42494a380b900e773ed5baea8b1acb8b35a7d810adf08",
+    "journey_status": "world",
+    "presenter_implementation_id": "presenter/native-graphical@1",
+    "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd"
+  },
+  "fresh_boot_id": true,
+  "fresh_host_id": true,
+  "guest_memory_bytes": 536870912,
+  "image_sha256": "583dabeab32ea1c53c868246a7ba2b10e19ab4a4f49a351f92bef4207e7b80bb",
+  "schema": "conduit.conduitos/x86_64-product-proof@1",
+  "second": {
+    "boot_id": "eeba18458919f934bc75fdba68370a4ad71d9b9e575392a709649d4a72d38370",
+    "build_id": "build:sha256:4376185f4ce9cdacdc7daf889ea812db562f39b84415171b4c1745bc9097a4b2",
+    "emulator_profile": "q35-single-cpu-512m-normal-product",
+    "guest_memory_bytes": 536870912,
+    "host_id": "6975c9f7647696f0e0ab6d788e3f6cbcfb0f959adc861e198939fbc8a2da03dd",
+    "image_binding": "image:sha256:13949028e21d232b66c42494a380b900e773ed5baea8b1acb8b35a7d810adf08",
+    "journey_status": "world",
+    "presenter_implementation_id": "presenter/native-graphical@1",
+    "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd"
+  },
+  "stopped_by_harness": true
+}

@@ -1,0 +1,11 @@
+{
+  "source": "0fff4f73fe76acde295eff4940bfce07b03fd431",
+  "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/x86_64-unknown-none/release/build/conduitos-c48bd4ffbd9df31c/out/application-target/x86_64-unknown-none/release/conduitos-application-service",
+  "bytes": 2825160,
+  "sha256": "63ce1e995d1370a08c09421687011e17e9bf2e3b09e83ad49909a870f1419704",
+  "readelf": "\nElf file type is EXEC (Executable file)\nEntry point 0x400000\nThere are 3 program headers, starting at offset 64\n\nProgram Headers:\n  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align\n  LOAD           0x001000 0x0000000000400000 0x0000000000400000 0x1d2482 0x1d2482 R E 0x1000\n  LOAD           0x1d4000 0x00000000005d3000 0x00000000005d3000 0x026018 0x026018 R   0x1000\n  LOAD           0x1fb000 0x0000000000709000 0x0000000000709000 0x000010 0x000010 RW  0x1000\n\n Section to Segment mapping:\n  Segment Sections...\n   00     .text \n   01     .rodata \n   02     .data \n",
+  "rx_ro_aligned_end": "0x005fa000",
+  "window_end": "0x00600000",
+  "spare_bytes": 24576,
+  "scope": "Applicationguestlinkedunderunchanged2MiBRXROwindow. Fullproductbuild/boot/journeystillrunning; notruntimeacceptance."
+}

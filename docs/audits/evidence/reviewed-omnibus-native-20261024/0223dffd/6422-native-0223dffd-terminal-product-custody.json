@@ -1,0 +1,211 @@
+{
+  "source": "0223dffdb4e25a25dfe1c317ed8d9f317760ad58",
+  "archive": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-terminal-product-custody.tar.gz",
+  "sha256": "2bc3afac52a10fcdc75f2bf1cfb874498658fc67f4a318b21e9f8971dd3537a1",
+  "stream_verified": true,
+  "files": [
+    {
+      "path": "outputs/6422-native-0223dffd-product/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "85bf052d3582e8100e0db17961a980bec4ead541ed5065a6843f70d0a379d10a"
+    },
+    {
+      "path": "outputs/6422-native-0223dffd-product/conduitos-kernel.elf",
+      "bytes": 80111192,
+      "sha256": "79de835fe40745e0e2d54db79cf96df6764a54e6a53c183d7537baa58ff1002c"
+    },
+    {
+      "path": "outputs/6422-native-0223dffd-product/conduitos-x86_64.iso",
+      "bytes": 84387840,
+      "sha256": "583dabeab32ea1c53c868246a7ba2b10e19ab4a4f49a351f92bef4207e7b80bb"
+    },
+    {
+      "path": "outputs/6422-native-0223dffd-product/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "520aa2670cecb7dc75589df696b7d52abfa1a62fe3f704c95b836e3ff6e89d10"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/build.json",
+      "bytes": 319,
+      "sha256": "7e8735faa58145744e148d9e01f3e3b34a0f413fcd5bc750951befb82fa31928"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/conduitos",
+      "bytes": 80111192,
+      "sha256": "79de835fe40745e0e2d54db79cf96df6764a54e6a53c183d7537baa58ff1002c"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/conduitos.iso",
+      "bytes": 84387840,
+      "sha256": "583dabeab32ea1c53c868246a7ba2b10e19ab4a4f49a351f92bef4207e7b80bb"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/image.json",
+      "bytes": 335,
+      "sha256": "f6a45e2b4be3fdbe26232dee8c488328dab0b87abd3dc20b1d186ad6d58fb2de"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+      "bytes": 348160,
+      "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/LUCIDE-LICENSE",
+      "bytes": 3208,
+      "sha256": "a595faee0e3dd03811c49c191d63ef99f24134ceb31a07f26e8a5ef9c7fbca12"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/boot/conduit-build.json",
+      "bytes": 4453,
+      "sha256": "520aa2670cecb7dc75589df696b7d52abfa1a62fe3f704c95b836e3ff6e89d10"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/boot/conduitos",
+      "bytes": 80111192,
+      "sha256": "79de835fe40745e0e2d54db79cf96df6764a54e6a53c183d7537baa58ff1002c"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/iso-root/limine.conf",
+      "bytes": 247,
+      "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-failure-registers.json",
+      "bytes": 2190,
+      "sha256": "1a6ea5c3eba5ffd37f47dbff43f831a3e2adb90059b3d24d7da9284f34e3ca14"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-failure-stack.json",
+      "bytes": 2071,
+      "sha256": "89b08d34c11f5939d88a4f2f207544b35d9d90205b47ea5d674f152c9126b2e4"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-editorial-compact.png",
+      "bytes": 170194,
+      "sha256": "155ace021da93768ea1d1be35738b3d465e7ec4a9189cdb9009b381120a0fe19"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-editorial-spacious.png",
+      "bytes": 146414,
+      "sha256": "2cd17a19b0b08f0999dc8fc901d80cb6e251d1e8dd40282858463d217c80f644"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-engineering-compact.png",
+      "bytes": 158982,
+      "sha256": "4ca85ac04314e30f86ed148e57428aeea7f9f8ff7113d0e99f5c9fb131e9ca96"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-engineering-spacious.png",
+      "bytes": 138854,
+      "sha256": "53dae1077306d9db9a018927e02fb839ce1fb463e29abe8c568cf8133b8158b3"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-four-restored.png",
+      "bytes": 158958,
+      "sha256": "d90c67882bd73d40cbb6d025642f560c805a7b18317f7ffdab85c4c414083328"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-fourth-checked.png",
+      "bytes": 158960,
+      "sha256": "a6857f84bc1fcbceb805e0bba5e170b978cb2a21aafaba2c4782873a62a2e9f3"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 159130,
+      "sha256": "aab288d6fa9f1869d9ede58de37b4abb0a0e1cf2be49738f4da7672bda5a21ce"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 159224,
+      "sha256": "eaf73cd72f04fe22c5ddddc07b8166b01b8ceb53cf90747e1cf07645ded63a52"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-ready.png",
+      "bytes": 158982,
+      "sha256": "4ca85ac04314e30f86ed148e57428aeea7f9f8ff7113d0e99f5c9fb131e9ca96"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/creche-three-selected.png",
+      "bytes": 159054,
+      "sha256": "1a06be2e877c5b83fad028348fcd9a2aa1f1913041b74f5b403bffd5a64e0145"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/failure.png",
+      "bytes": 117405,
+      "sha256": "959850dbaa9691c28d4358ca3cc06989c8b5b5fa0b6ec6fa5805dac38ef0ab15"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-frames/manifest.json",
+      "bytes": 121689,
+      "sha256": "9c8ece2a9d315fae0166e9361782d4661155f858029c286453b4483f13e8cb9f"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-qmp.log",
+      "bytes": 29092,
+      "sha256": "8138e0669c853f666a33f91faf63355c8c492b3cb2c3fbb997876a919119edf2"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/journey-serial.log",
+      "bytes": 488882,
+      "sha256": "e1102a2bbf74a0fdc2dd8a45ed2f104e9a1bbe845c536e0fea194545ab4890e4"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/make-record.rs",
+      "bytes": 684,
+      "sha256": "a27ea3ed0119c4de660302318b5373fe7cc6fc4dc9bb54ad439e21d5f026360f"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/privilege-inventory-79de835fe40745e0e2d54db79cf96df6764a54e6a53c183d7537baa58ff1002c-product-host.json",
+      "bytes": 63297,
+      "sha256": "af0fa9d43b0fa6221999347d61f171bf141e468025c25ea2d8d3f2213f4c4faa"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/privilege-inventory-79de835fe40745e0e2d54db79cf96df6764a54e6a53c183d7537baa58ff1002c-product-host.map",
+      "bytes": 23504002,
+      "sha256": "a14f18467d642daa3c9d74931a6cd9503cd29e8cdcd9ce024eb238cafb4abbd6"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/profile-built-boot.log",
+      "bytes": 41785,
+      "sha256": "f88da8dc4f11dc7fed5a359b24e1c88c0785d1e8be2b9fb6635465336a6c9e34"
+    },
+    {
+      "path": "work/6422-native-0223dffd-target/x86_64/x86_64-product-proof.json",
+      "bytes": 1725,
+      "sha256": "dd0e30cf51abdf5d2470c1ac171eb3768662118d0da7277de11eebd2d5501625"
+    }
+  ],
+  "actual_target": "KeyboardCanvas slot2target3;17606wirebytes;426638decoded;Commit64interruptdelta1preemption",
+  "guest_artifacts": "Application-only unchanged guest byte custody is separately retained in 0fff terminal-product archive; no execution attribution changed.",
+  "deleted": []
+}

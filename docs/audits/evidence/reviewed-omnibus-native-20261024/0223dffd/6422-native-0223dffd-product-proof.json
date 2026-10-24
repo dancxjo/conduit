@@ -1,0 +1,87 @@
+{
+  "source": "0223dffdb4e25a25dfe1c317ed8d9f317760ad58",
+  "tree": "476142733119918804e359dd9cbbd8ecf6168f87",
+  "product": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-product",
+  "native_target": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0223dffd-target",
+  "status": "failed",
+  "steps": [
+    {
+      "name": "preflight",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "5b266161926f920bbf266288fe0f1f757d419632"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-preflight.log",
+      "sha256": "688f4576b55b60c95f8e6c56a004299dbfdd32acd86d29d17cb189a9c0cc42ec",
+      "start": 1792866926.465757,
+      "end": 1792866953.9799242,
+      "clean_after": true
+    },
+    {
+      "name": "build",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "build",
+        "targets/conduitos/profiles/conduitos-native.host.conduit",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-product"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-build.log",
+      "sha256": "379ba454509c48385b06ea06834770f455ff617a23f0041b9df797c8701bdc18",
+      "start": 1792866954.0367212,
+      "end": 1792867013.904088,
+      "clean_after": true
+    },
+    {
+      "name": "boot",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-product",
+        "--boot"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-boot.log",
+      "sha256": "51dc37602579b437e303cca4b1503b222226e0b418bb4af5b51f3112dc8510af",
+      "start": 1792867013.9521043,
+      "end": 1792867027.8768506,
+      "clean_after": true
+    },
+    {
+      "name": "journey",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-product",
+        "--journey"
+      ],
+      "exit_code": 1,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0223dffd-journey.log",
+      "sha256": "d851fa5393375fd90cb48149ac0920959d5ac438fb628d1fb7baeb017c2f7554",
+      "start": 1792867027.9236078,
+      "end": 1792867107.6895823,
+      "clean_after": true
+    }
+  ],
+  "scope": "Root-only bounded target-input and paired cumulative entry-cost diagnostics. No guest protocol/channel/grant, quota, image, heap, work or frame enlargement. Native0fff build/boot pass and journey WorkExhausted retained.",
+  "clean_after": true
+}

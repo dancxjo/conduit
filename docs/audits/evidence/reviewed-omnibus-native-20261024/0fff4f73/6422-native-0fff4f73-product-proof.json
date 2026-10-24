@@ -1,0 +1,87 @@
+{
+  "source": "0fff4f73fe76acde295eff4940bfce07b03fd431",
+  "tree": "14f7ced85958d25522624b14d12c1e8d9734274c",
+  "product": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-product",
+  "native_target": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6422-native-0fff4f73-target",
+  "status": "failed",
+  "steps": [
+    {
+      "name": "preflight",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "5b266161926f920bbf266288fe0f1f757d419632"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-preflight.log",
+      "sha256": "edb11362a1f95c17365f33c0bcf3c242080e1b8326458f156d2a85e86351a0af",
+      "start": 1792865285.8893526,
+      "end": 1792865313.171487,
+      "clean_after": true
+    },
+    {
+      "name": "build",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "build",
+        "targets/conduitos/profiles/conduitos-native.host.conduit",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-product"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-build.log",
+      "sha256": "b700e24d4d2787974d1e50e3d4f67de5731448ca7dbf88340d827d3bc31aacac",
+      "start": 1792865313.2230742,
+      "end": 1792866574.2593036,
+      "clean_after": true
+    },
+    {
+      "name": "boot",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-product",
+        "--boot"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-boot.log",
+      "sha256": "7ce0d374379cb815907848408902edd366bd6fe019e8e7e9a59c2b464baed246",
+      "start": 1792866574.3134518,
+      "end": 1792866588.648028,
+      "clean_after": true
+    },
+    {
+      "name": "journey",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-product",
+        "--journey"
+      ],
+      "exit_code": 1,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6422-native-0fff4f73-journey.log",
+      "sha256": "0900a09b03053a94d77739332d2acb0ea4744ca6f7afe2cfa4aebe42d08462c5",
+      "start": 1792866588.6982934,
+      "end": 1792866672.3894036,
+      "clean_after": true
+    }
+  ],
+  "scope": "Exactnormalnativeproduct/journeyafterone-lineApplicationguestsizeprofileintake. Noquota/image/heap/work/frameenlargement. PreviousGUI92598WorkExhaustedretained; noassumedfixorphysicalclaim.",
+  "clean_after": true
+}
