@@ -24,6 +24,14 @@ fn built_in_options_round_trip_and_keep_readable_text_and_focus() {
         (phosphor_look().unwrap(), PHOSPHOR_LOOK_ID),
         (editorial_look().unwrap(), EDITORIAL_LOOK_ID),
         (engineering_look().unwrap(), ENGINEERING_LOOK_ID),
+        (
+            navy_look(VisualDensity::Compact, VisualTypography::Editorial).unwrap(),
+            navy_look_id(VisualDensity::Compact, VisualTypography::Editorial),
+        ),
+        (
+            navy_look(VisualDensity::Spacious, VisualTypography::Engineering).unwrap(),
+            navy_look_id(VisualDensity::Spacious, VisualTypography::Engineering),
+        ),
     ] {
         assert_eq!(look.identity(), identity);
         let bytes = look.clone().encode().unwrap();

@@ -202,7 +202,7 @@ pub(super) fn exercise(
     identity(world)
 }
 
-fn select(
+pub(super) fn select(
     run: &mut Run<'_>,
     baseline: &Snapshot,
     input: &str,

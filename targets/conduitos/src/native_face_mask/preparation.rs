@@ -9,6 +9,7 @@ enum Selection<'a> {
         conduit_face::CrecheComponentRecipe,
         conduit_face::ComponentVisualSelection,
         conduit_face::VisualTypography,
+        bool,
     ),
 }
 
@@ -177,7 +178,32 @@ impl NativeFaceMask {
             display_base_id,
             surface_id,
             provider,
-            Selection::Creche(recipe, selection, typography),
+            Selection::Creche(recipe, selection, typography, false),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_creche_navy(
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        build_id: &str,
+        display_base_id: HostBaseId,
+        surface_id: &str,
+        provider: &NativeSurfaceProvider,
+        recipe: conduit_face::CrecheComponentRecipe,
+        selection: conduit_face::ComponentVisualSelection,
+        typography: conduit_face::VisualTypography,
+    ) -> Result<Self, NativeFaceMaskError> {
+        Self::prepare_selected(
+            host_id,
+            boot_id,
+            offer_generation,
+            build_id,
+            display_base_id,
+            surface_id,
+            provider,
+            Selection::Creche(recipe, selection, typography, true),
         )
     }
 
@@ -238,17 +264,19 @@ impl NativeFaceMask {
                     planned_mask: route.planned_mask.clone(),
                 }
             }
-            Selection::Creche(recipe, selection, typography) => {
+            Selection::Creche(recipe, selection, typography, navy) => {
                 let offer = crate::product_bases::native_mask_host_advertisement(
                     &host_id,
                     &boot_id,
                     offer_generation.0,
                     provider,
                 );
-                let (stage, configuration) =
-                    conduit_conduitos_mask_offer::prepare_typographic_creche_stage_from_offer(
-                        &offer, recipe, selection, typography,
-                    )
+                let prepare = if navy {
+                    conduit_conduitos_mask_offer::prepare_navy_creche_stage_from_offer
+                } else {
+                    conduit_conduitos_mask_offer::prepare_typographic_creche_stage_from_offer
+                };
+                let (stage, configuration) = prepare(&offer, recipe, selection, typography)
                     .map_err(|_| NativeFaceMaskError::Plan)?;
                 component_configuration = Some(configuration);
                 stage

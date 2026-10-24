@@ -12,6 +12,7 @@ mod evidence;
 mod frame_budget;
 mod input_refusal;
 mod navigation;
+mod navy;
 mod recipe_selection;
 mod search;
 use evidence::*;
@@ -86,6 +87,19 @@ pub(super) fn exercise(
         observations: Vec::new(),
     };
     run.capture("creche-controls-ready")?;
+    if metadata["proof_scenario"] == "navy" {
+        return navy::exercise(
+            &mut run,
+            &initial,
+            destination,
+            source,
+            image,
+            metadata,
+            &selected_recipe,
+            &world,
+            &boot,
+        );
+    }
     if matches!(
         metadata["proof_scenario"].as_str(),
         Some(

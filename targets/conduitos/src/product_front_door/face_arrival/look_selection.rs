@@ -18,7 +18,7 @@ impl FaceArrival {
             || !door.creche_open()
             || event.transition() != KeyTransition::Pressed
             || event.modifiers_after().bits() != 0
-            || !matches!(event.usage(), 63..=67)
+            || !matches!(event.usage(), 63..=68)
         {
             return Ok(false);
         }
@@ -27,6 +27,7 @@ impl FaceArrival {
             .visual_expression()
             .ok_or("creche-look-absent")?
             .expression;
+        let mut navy = conduit_face::is_navy_look_id(&current.identity);
         let mut selection = ComponentVisualSelection {
             density: current.density,
             palette: current.palette,
@@ -45,6 +46,7 @@ impl FaceArrival {
                 VisualDensity::Spacious => VisualDensity::Compact,
             };
         } else if event.usage() == 64 {
+            navy = false;
             selection.palette = match selection.palette {
                 VisualPalette::Phosphor => VisualPalette::Editorial,
                 VisualPalette::Editorial => VisualPalette::Phosphor,
@@ -56,6 +58,9 @@ impl FaceArrival {
                 VisualTypography::Engineering => VisualTypography::Editorial,
             };
         }
+        if event.usage() == 68 {
+            navy = !navy;
+        }
         let face = door
             .creche_face(&self.basis)
             .map_err(|error| error.as_str())?;
@@ -64,7 +69,12 @@ impl FaceArrival {
             return Err("creche-look-face-stale");
         }
         let context = &self.preparation;
-        let mut replacement = NativeFaceMask::prepare_creche_typographic(
+        let prepare = if navy {
+            NativeFaceMask::prepare_creche_navy
+        } else {
+            NativeFaceMask::prepare_creche_typographic
+        };
+        let mut replacement = prepare(
             context.host_id.clone(),
             context.boot_id.clone(),
             context.generation,
@@ -110,7 +120,9 @@ impl FaceArrival {
             "configuration":{
                 "component":configuration.component,
                 "invocation_path":configuration.invocation_path,
-                "root":selection.creche_root_with_typography(CrecheComponentRecipe::ResponsiveColumns, typography),
+                "root":if navy { selection.creche_navy_root(CrecheComponentRecipe::ResponsiveColumns, typography) } else { selection.creche_root_with_typography(CrecheComponentRecipe::ResponsiveColumns, typography) },
+                "look_canonical_sha256":alloc::format!("{:x}", Sha256::digest(configuration.look.canonical_value())),
+                "look_canonical_bytes":configuration.look.canonical_value().len(),
                 "recipe_canonical_sha256":alloc::format!("{:x}", Sha256::digest(configuration.recipe.canonical_value())),
                 "recipe_canonical_bytes":configuration.recipe.canonical_value().len(),
                 "layout_canonical_sha256":alloc::format!("{:x}", Sha256::digest(layout.canonical_value())),

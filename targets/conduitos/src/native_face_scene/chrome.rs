@@ -219,8 +219,8 @@ impl Chrome {
     /// enlarge chrome, displace required Face rows or add graphics commands.
     pub fn creche_preferences_hint(&self, scale: u16) -> Option<&'static str> {
         [
-            "PgUp/PgDn · Tab · Enter · F2 · F6 density · F7 palette · F8 type · F9 size · F10 contrast",
-            "PgDn · F2 · Look F6–F10",
+            "PgUp/PgDn · Tab · Enter · F2 · F6 density · F7 palette · F8 type · F9 size · F10 contrast · F11 navy",
+            "PgDn · F2 · Look F6–F11",
         ]
         .into_iter()
         .find(|text| self.admit_footer(text, scale).is_ok())

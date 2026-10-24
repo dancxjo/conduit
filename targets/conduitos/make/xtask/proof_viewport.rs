@@ -29,6 +29,7 @@ pub enum ControlScenario {
     Layout,
     Search,
     Accessibility,
+    Navy,
     AccessibilityDetails,
     AccessibilityDetailsEditorial,
     AccessibilityDetailsEngineering,

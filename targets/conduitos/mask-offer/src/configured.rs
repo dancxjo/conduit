@@ -3,7 +3,7 @@ use super::*;
 use alloc::collections::BTreeMap;
 use conduit_core::*;
 use conduit_face::*;
-use conduit_plot::{expand_canonical_plot_for_authoring_with_backs, CanonicalBackCatalog};
+use conduit_plot::{CanonicalBackCatalog, expand_canonical_plot_for_authoring_with_backs};
 
 pub const NATIVE_COMPONENT_RENDERER_KIND: &str = "face/native-component-resource-mask";
 const BACK_SOURCE: &str = "plot native-component-back (\n label: Text\n recipe: ComponentRecipeInfo\n look: LookInfo\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: face/tee(\"Shared Face\")\n surface: face/show-resource-source(\"Output resource\")\n render: face/native-component-resource-mask(label = label, recipe = recipe, look = look)\n human: face/interaction(\"User actions\")\n face >> spread.source\n spread.face >> render.face\n surface.show-resource >> render.show-resource\n spread.face >> human.face\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
@@ -127,6 +127,21 @@ pub fn prepare_typographic_creche_stage_from_offer(
         host,
         (CRECHE_COMPONENT_MASK_SOURCE, CRECHE_LAYOUT_MASK_SOURCE),
         selection.creche_root_with_typography(recipe, typography),
+        NativeMaskStorageProfile::Standard,
+    )
+}
+
+/// Select an exact complete navy Look through the ordinary reviewed Source path.
+pub fn prepare_navy_creche_stage_from_offer(
+    host: &HostAdvertisement,
+    recipe: CrecheComponentRecipe,
+    selection: ComponentVisualSelection,
+    typography: VisualTypography,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    layout_configured::prepare_offered_component_document(
+        host,
+        (CRECHE_COMPONENT_MASK_SOURCE, CRECHE_LAYOUT_MASK_SOURCE),
+        selection.creche_navy_root(recipe, typography),
         NativeMaskStorageProfile::Standard,
     )
 }
@@ -371,12 +386,14 @@ mod tests {
         foreign
             .capabilities
             .retain(|offer| offer.capability_id.as_str() != "renderer-conduitos-component");
-        assert!(prepare_component_stage_from_offer(
-            &foreign,
-            ComponentMaskLook::Compact,
-            TodoComponentRecipe::Flat
-        )
-        .is_err());
+        assert!(
+            prepare_component_stage_from_offer(
+                &foreign,
+                ComponentMaskLook::Compact,
+                TodoComponentRecipe::Flat
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -397,11 +414,10 @@ mod tests {
         foreign
             .capabilities
             .retain(|offer| offer.capability_id.as_str() != "renderer-conduitos-component");
-        assert!(prepare_creche_stage_from_offer(
-            &foreign,
-            CrecheComponentRecipe::ResponsiveColumns
-        )
-        .is_err());
+        assert!(
+            prepare_creche_stage_from_offer(&foreign, CrecheComponentRecipe::ResponsiveColumns)
+                .is_err()
+        );
     }
     #[test]
     fn selection_axes_reproduce_one_checked_component_in_both_domains() {
