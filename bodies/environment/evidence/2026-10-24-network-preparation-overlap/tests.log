@@ -1,0 +1,21 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 0.47s
+     Running tests/network_play.rs (target/environment-lean-host/debug/deps/network_play-a357ba6f50518600)
+
+running 1 test
+test checked_network_plot_consumes_only_acknowledged_private_input_through_real_kernel ... network_fresh_preparation pointer_bits=64 preparation=Observation { allocations: 1250, reallocations: 144, deallocations: 1055, peak_bytes: 40898, requested_bytes: 115526, live_bytes: 22657 } kernel_installation=Observation { allocations: 117, reallocations: 20, deallocations: 116, peak_bytes: 8147, requested_bytes: 24387, live_bytes: 2560 }
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=28586 fixed_kernel_bytes=3632
+network_fresh_preparation pointer_bits=64 preparation=Observation { allocations: 1250, reallocations: 144, deallocations: 1055, peak_bytes: 40898, requested_bytes: 115526, live_bytes: 22657 } kernel_installation=Observation { allocations: 117, reallocations: 20, deallocations: 116, peak_bytes: 8147, requested_bytes: 24387, live_bytes: 2560 }
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=28586 fixed_kernel_bytes=3632
+network_fresh_preparation pointer_bits=64 preparation=Observation { allocations: 1250, reallocations: 144, deallocations: 1055, peak_bytes: 40898, requested_bytes: 115526, live_bytes: 22657 } kernel_installation=Observation { allocations: 117, reallocations: 20, deallocations: 116, peak_bytes: 8147, requested_bytes: 24387, live_bytes: 2560 }
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=28586 fixed_kernel_bytes=3632
+network_fresh_preparation pointer_bits=64 preparation=Observation { allocations: 1250, reallocations: 144, deallocations: 1055, peak_bytes: 40898, requested_bytes: 115526, live_bytes: 22657 } kernel_installation=Observation { allocations: 117, reallocations: 20, deallocations: 116, peak_bytes: 8147, requested_bytes: 24387, live_bytes: 2560 }
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=28586 fixed_kernel_bytes=3632
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+

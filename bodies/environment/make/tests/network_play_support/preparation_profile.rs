@@ -24,6 +24,32 @@ pub fn measure(
         conduit_plot::flat_image::decode_trusted(&image).unwrap()
     });
     assert_eq!(restored, source);
+    // Match Root's fresh preparation overlap: its current advertisement,
+    // grants and decoded linked Source coexist with ordinary planning/lowering.
+    // The linked image itself is immutable flash on the MCU. CPU fixture
+    // advertisement sizes are not a native allocator admission bound.
+    let (fresh, combined) = allocation_probe::observe(|| {
+        let host = host.clone();
+        let grants = grants.to_vec();
+        // SAFETY: the image was checked and encoded above in this process.
+        let source = unsafe { conduit_plot::flat_image::decode_trusted(&image).unwrap() };
+        conduit_environment_make::PreparedNetworkSetup::from_checked(&source, &host, bases, &grants)
+            .unwrap()
+    });
+    assert_eq!(fresh.plan(), expected);
+    let (kernel, installation) = allocation_probe::observe(|| {
+        conduit_network_join_call::PreparedNetworkKernel::prepare(
+            &fresh.plan().fragments[0],
+            fresh.lowered(),
+        )
+        .unwrap()
+    });
+    eprintln!(
+        "network_fresh_preparation pointer_bits={} preparation={combined:?} kernel_installation={installation:?}",
+        usize::BITS,
+    );
+    drop(kernel);
+    drop(fresh);
     checked_preparation(&restored, host, bases, grants, expected);
     let mut corrupt: serde_json::Value = serde_json::from_slice(&image).unwrap();
     corrupt["provenance"][0]["construction_owner"] = "not-compiler-authority".into();

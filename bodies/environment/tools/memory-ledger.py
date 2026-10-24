@@ -60,10 +60,15 @@ def ledger(sampling_image=None, output_image=None):
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
         "expression_cpu": EVIDENCE / "2026-10-24-tape-join-repair/measurement.json",
         "sign_budget": EVIDENCE / "2026-10-24-derived-output-signs/measurement.json",
+        "network_cpu": EVIDENCE / "2026-10-24-network-preparation-overlap/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
     sign_budget = read_json(inputs["sign_budget"])
+    network_cpu = read_json(inputs["network_cpu"])
+    for relative, digest in network_cpu["code_sha256"].items():
+        if hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() != digest:
+            raise ValueError("network preparation code changed; renew overlap measurement")
     for relative, digest in sign_budget["code_sha256"].items():
         if hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() != digest:
             raise ValueError("output sign-bound code changed; renew finite-profile proof")
@@ -132,6 +137,7 @@ def ledger(sampling_image=None, output_image=None):
             },
         },
         "inventory": {
+            "network_preparation_cpu": network_cpu,
             "sampling_value_payload": {"bytes": sum(capacities), "slot_capacities": capacities, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "extent_basis": "Make ceiling from all independently checked payload Types; slot count unchanged", "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_sign_records": {"ordinary_items": None, "remote_items": sign_budget["remote_items"], "cpu_observed_ordinary_items": sign_budget["cpu_ordinary_items"], "cpu_observed_storage_bytes": sign_budget["cpu_storage_bytes"], "mcu_storage_bytes": None, "ordinary_items_formula": sign_budget["ordinary_items_formula"], "native_construction_diagnostic_maximum_frames": int(frame_limit[1]), "class": "persistent mutable", "derived_minimum": None, "derived_upper_bound_proven_for_finite_profile": True, "continuing_retention_or_handoff_proven": False},
@@ -189,6 +195,7 @@ def markdown(value):
         f"| Root peaks | Sampling/Face {sampling['preparation_and_run_peak_bytes']:,} B; dormant output preparation {output['preparation_peak_bytes']:,} B | Measure combined preparation and execution separately |",
         f"| Retained Root | Dormant output {output['dormant_retained_bytes']:,} B; sampler observed at {min(sampling['observed_sampling_used_bytes']):,}–{max(sampling['observed_sampling_used_bytes']):,} B across three publications | Do not label post-retirement memory as steady state |",
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
+        f"| Network construction, CPU only | Fresh preparation peak {value['inventory']['network_preparation_cpu']['fresh_preparation_peak_bytes']:,} B; retained Plan/lowering {value['inventory']['network_preparation_cpu']['prepared_plan_and_lowering_retained_bytes']:,} B | Not an MCU bound; excludes concurrent sampling and radio effects |",
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
         f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",
         f"The output capture used {sum(output['captured_value_slot_capacities']):,} payload bytes and the linked work-derived sign budget. Its measured retained/peak totals apply to the finite native construction profile. Continuing renderer retention, shared backing and combined execution remain unproven.", "",

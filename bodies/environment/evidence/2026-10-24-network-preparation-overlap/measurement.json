@@ -1,0 +1,15 @@
+{
+  "proof_class": "CPU fresh native-network construction overlap; radio/authority fixtures",
+  "pointer_bits": 64,
+  "fresh_preparation_peak_bytes": 40898,
+  "prepared_plan_and_lowering_retained_bytes": 22657,
+  "kernel_additional_preparation_peak_bytes": 8147,
+  "kernel_retained_heap_bytes": 2560,
+  "physical_measurement": false,
+  "mcu_admission_bound": false,
+  "sampler_concurrent": false,
+  "code_sha256": {
+    "bodies/environment/make/src/network_planning.rs": "2abcf610109c3738e0bbd5c007a419a16b6db3a751dcab295dfd1db5a2117e26",
+    "bodies/environment/make/tests/network_play_support/preparation_profile.rs": "e32b7fa32324757c4643eb1d89124fabd45d5232fe9a9b472732fc3f10b07be7"
+  }
+}
