@@ -25,3 +25,19 @@ checked graphical PROFILE/BUILD, framebuffer custody/mapping/cache completion,
 Face/Mask/Show, screenshots and input require their own actual product proof.
 This option changes no default live-product route, admits no physical display
 or GPU acceleration, and does not establish the five-architecture #6057 exit.
+
+## Retained local preparation
+
+At source `6162901d6e02b7e6d7d6b3566627ec4dec0c395a`, actual cold preparation,
+warm validation and a second warm invocation without the local SDK environment
+variables passed. The [packet](graphics-6162901d6/index.json) retains all commands,
+logs, capability transcripts, digests and the unchanged serial-key regression.
+The local binary links retained owned SDK runtime libraries; the plain warm
+check does not claim a portable static executable or independence from those
+files. SDL2 2.32.10, pixman 0.46.4 and GLib 2.88.0 were observed.
+
+The separate firmware review rechecks the ThingOS-referenced prebuilt EDK2
+archive against GitHub's release asset digest and exact source/recipe/license
+Git blobs. It is provenance review, not an implemented acquisition entrance or
+a current product boot. The stock paused QEMU control is separately labelled;
+it is not substituted for the canonical source-built cold/warm validation.
