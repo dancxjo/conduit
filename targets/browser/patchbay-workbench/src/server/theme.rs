@@ -1,17 +1,27 @@
 //! Finite CSS transport for the shared Patchbay theme.
 
-use conduit_face::{LookFacetAvailability, LookInfo, LookVisualFacetOption, ThemeColor};
+use conduit_face::{
+    LookFacetAvailability, LookInfo, LookVisualFacetOption, ThemeColor, VisualTypographyPreference,
+};
 
 pub(crate) fn render_look_css(look: &LookInfo) -> Result<Vec<u8>, LookFacetAvailability> {
     let LookVisualFacetOption::Some(visual) = look.visual() else {
         return Err(LookFacetAvailability::Absent);
     };
     let tokens = visual.tokens();
+    let font = match visual.expression().typography() {
+        VisualTypographyPreference::Editorial => "var(--conduit-font-editorial)",
+        VisualTypographyPreference::Engineering => "Inter,ui-sans-serif,system-ui,sans-serif",
+    };
     let identity = serde_json::to_string(look.identity()).expect("finite Look identity serializes");
     Ok(format!(
-        ":root{{--conduit-look-identity:{};--conduit-background:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;}}\n",
+        "[data-application-look={identity}]{{--conduit-look-identity:{};--conduit-background:{};--conduit-reading-paper:{};--conduit-workbench-canvas:{};--conduit-bootstrap-surface:{};--conduit-font-body:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;}}\n",
         identity,
         css_color(*tokens.background()),
+        css_color(*tokens.reading_paper()),
+        css_color(*tokens.workbench_canvas()),
+        css_color(*tokens.bootstrap_surface()),
+        font,
         css_color(*tokens.surface()),
         css_color(*tokens.structure_primary()),
         css_color(*tokens.structure_secondary()),

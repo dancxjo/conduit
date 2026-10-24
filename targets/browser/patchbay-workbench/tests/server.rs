@@ -549,6 +549,9 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     for (token, color) in [
         ("background", "#05070B"),
         ("surface", "#090D16"),
+        ("reading-paper", "#0C121C"),
+        ("workbench-canvas", "#05070B"),
+        ("bootstrap-surface", "#090D16"),
         ("structure-primary", "#0DD8F6"),
         ("structure-secondary", "#0A1F87"),
         ("text-primary", "#93D2F7"),
@@ -558,6 +561,7 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     ] {
         assert!(body.contains(&format!("--conduit-{token}:{color}")));
     }
+    assert!(body.contains("--conduit-font-body:var(--conduit-font-editorial)"));
     assert!(body.contains("--conduit-type-body:16px"));
     assert!(body.contains("--conduit-line-height:150%"));
     assert!(body.contains("--conduit-space-panel:13px"));

@@ -217,3 +217,40 @@ test("Escape dismisses the focused surface when Body inspection leaves Library o
     server.process.kill("SIGTERM");
   }
 });
+
+test("Patchbay graph consumes canonical typography and surface roles", async ({ page }, testInfo) => {
+  const server = startServer();
+  try {
+    await page.goto(await server.url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    const before = await page.evaluate(async () => (await (await fetch('/api/snapshot')).json()).face);
+    await page.getByRole("button", { name: "Plot", exact: true }).click();
+    await expect(page.locator("body")).toHaveCSS("font-family", /Georgia/);
+    await expect(page.locator(".flow-frontplate header").first()).toHaveCSS("font-family", /Georgia/);
+    await expect(page.locator(".react-flow__node").filter({ hasText: "text/upper" })).toBeVisible();
+    await page.getByRole("button", { name: "Fit", exact: true }).click();
+    const tokens = await page.locator("body").evaluate(node => {
+      const style = getComputedStyle(node);
+      return ['reading-paper', 'workbench-canvas', 'bootstrap-surface'].map(role => style.getPropertyValue(`--conduit-${role}`).trim());
+    });
+    expect(tokens).toEqual(['#0C121C', '#05070B', '#090D16']);
+    const after = await page.evaluate(async () => (await (await fetch('/api/snapshot')).json()).face);
+    expect(after).toEqual(before);
+    await expect.poll(() => page.evaluate(() => {
+      const graph = document.querySelector('#flow-root').getBoundingClientRect();
+      const heading = document.querySelector('.canvas-heading').getBoundingClientRect();
+      return graph.top >= heading.bottom && graph.height > 0;
+    })).toBe(true);
+    await expect.poll(() => page.locator('#flow-root').evaluate(root => {
+      const bounds = root.getBoundingClientRect();
+      return [...root.querySelectorAll('.react-flow__node')].every(node => {
+        const rect = node.getBoundingClientRect();
+        return rect.top >= bounds.top && rect.bottom <= bounds.bottom && rect.left >= bounds.left && rect.right <= bounds.right;
+      });
+    })).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('canonical-look-graph.png') });
+  } finally {
+    server.lines.close();
+    server.process.kill("SIGTERM");
+  }
+});
