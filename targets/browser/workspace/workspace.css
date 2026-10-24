@@ -73,7 +73,6 @@ a { color:var(--muted); text-decoration:none; }
 .current-flow { display:flex; align-items:center; gap:1rem; }
 .inspect-hint { font-size:.7rem; }
 .current-state { display:flex; align-items:center; gap:.5rem; }
-.state-dot { width:.35rem; height:.35rem; border-radius:50%; background:var(--amber); }
 .workspace-notice { margin:0 0 1.5rem; color:var(--muted); text-align:center; font-size:.8rem; min-height:1rem; }
 .workspace-notice[data-disposition="refused"] { color:#ffb7ab; }
 .workspace-panel { min-height:32rem; border:1px solid var(--line); border-radius:.5rem; padding:2rem; }
@@ -212,3 +211,8 @@ html:root[data-workspace-look]{background:var(--paper)}
 /* Palette changes are atomic for text/background contrast. Keep optional hover
    geometry feedback, but never interpolate text across unrelated Look colors. */
 :root[data-workspace-look] button[data-application-component]{transition-property:border-color,box-shadow,transform}
+
+/* Inspection chrome uses the same pinned symbols and target rhythm as actions. */
+.truth-strip button{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:.9rem;min-width:0}
+.truth-strip .workspace-icon{margin-inline-end:0}
+.truth-strip .inspect-hint{display:inline-flex;align-items:center;gap:6px;font-size:.8rem}
