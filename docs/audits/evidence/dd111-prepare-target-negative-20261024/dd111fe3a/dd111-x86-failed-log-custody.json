@@ -1,0 +1,10 @@
+{
+  "at": 1792851271.4896734,
+  "source": "dd111fe3a81fb578d1e2271620eeb8b21ef60ddd",
+  "run": 40096456482,
+  "job": 120881450848,
+  "bytes": 214639,
+  "sha256": "dce4f2a32befe707237af1054d41c31a387d8ef5c5871ed881c7d67eb21fcc00",
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/dd111-x86-120881450848-actual-job.log",
+  "scope": "Actual completed job log downloaded once; superseded source, diagnosis pending; no workflow rerun/cancel."
+}

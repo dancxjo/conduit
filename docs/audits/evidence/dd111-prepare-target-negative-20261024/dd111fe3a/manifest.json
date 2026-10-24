@@ -1,0 +1,62 @@
+{
+  "source": "dd111fe3a81fb578d1e2271620eeb8b21ef60ddd",
+  "run": 40096456482,
+  "job": 120881450848,
+  "files": [
+    {
+      "path": "dd111-x86-prepare-target-diagnosis.json",
+      "bytes": 1785,
+      "sha256": "54af23ff9beddfd2ab6b5027e05d804fed6867cb6e937c512de77c29f6b08f21"
+    },
+    {
+      "path": "dd111-x86-failed-log-custody.json",
+      "bytes": 486,
+      "sha256": "bbaab4d202a9e4dddeb81a6b0a7d303de849d4eefc147d421827927803d71552"
+    },
+    {
+      "path": "dd111-x86-diagnostics-custody.json",
+      "bytes": 279,
+      "sha256": "03f36c96b3150b46488cd603f5ecd11535ad877abfbec6d7c10750c188984610"
+    },
+    {
+      "path": "dd111-x86-120881450848-actual-job.log.gz",
+      "bytes": 41375,
+      "sha256": "3ffb6ddabf55722c48dc6826a3b3cacb3fbb8588883ca287a1e1aa5ff857a134"
+    },
+    {
+      "path": "dd111-journey-serial.log.gz",
+      "bytes": 40440,
+      "sha256": "dc9b4687acf624e68d730879f10d867fd145a7cb6dc52ff50c8e71cbeef72e8e"
+    },
+    {
+      "path": "dd111-journey-failure-registers.json",
+      "bytes": 2173,
+      "sha256": "d2f772b88de139be0b7006a03e4ac1c0f770f49ae49d4d128b9f2bb61df57640"
+    },
+    {
+      "path": "dd111-journey-failure-stack.json",
+      "bytes": 2071,
+      "sha256": "eaab43d683c0791342a1fe13454b2582396454655ec0486302e44b58f55ed66c"
+    },
+    {
+      "path": "dd111-x86_64-product-proof.json",
+      "bytes": 1725,
+      "sha256": "47ca194322a0feca4a0fc73e198f0ec188f2d2b2a4ff14af4b64332a9af08d38"
+    },
+    {
+      "path": "dd111-x86-diagnostics-12563026912.zip",
+      "bytes": 9755843,
+      "sha256": "054d099d4e12128fe18818825e94baef028392153c1e56fb027224a00fe2a61c"
+    },
+    {
+      "path": "publish-dd111-x86-prepare-target-negative.py",
+      "bytes": 3661,
+      "sha256": "1ee8ad918d3e1005fa650c81a6b1d3f3c49b2891f387e60e3e4a18d6909f94c5"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1222,
+      "sha256": "c4e0eb095cfd54dfcc2690e24090ba692833be7a8f944779ec107305cf7e20eb"
+    }
+  ]
+}

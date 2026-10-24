@@ -1,0 +1,9 @@
+{
+  "artifact": 12563026912,
+  "run": 40096456482,
+  "source": "dd111fe3a81fb578d1e2271620eeb8b21ef60ddd",
+  "bytes": 9755843,
+  "sha256": "054d099d4e12128fe18818825e94baef028392153c1e56fb027224a00fe2a61c",
+  "matches_actual_upload_log_digest": true,
+  "downloaded_once": true
+}

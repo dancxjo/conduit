@@ -1,0 +1,39 @@
+{
+  "at": 1792852161.4302597,
+  "source": "dd111fe3a81fb578d1e2271620eeb8b21ef60ddd",
+  "run": 40096456482,
+  "job": 120881450848,
+  "artifact": 12563026912,
+  "serial_bytes": 481912,
+  "serial_sha256": "bc813a02e39858985ca0842c4d935f1f17c1eb5a4937db4b36f040e62d47d9cc",
+  "actual_guest_ELF": {
+    "bytes": 78972616,
+    "sha256": "8cd5ea52ea619a1be9835794dbd6822b77d8b7f619b35052f56412516651f392"
+  },
+  "events": [
+    {
+      "line": 583,
+      "record": "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=41 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((41, 124, 1))"
+    },
+    {
+      "line": 584,
+      "record": "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=prepare-target slot=Some(2) target=Some(3) refusal=Application"
+    },
+    {
+      "line": 593,
+      "record": "CONDUIT_STARTUP_STAGE plan refused native-body-application-initialization-refused"
+    }
+  ],
+  "failure": "Collector product-journey-stage-timeout for planned, preceded by explicit Application prepare-target Commit WorkExhausted and native-body-application-initialization-refused.",
+  "boundaries": [
+    "Additional preparation/initialization blocker, distinct from original6318 PatchbayPublish Commit sequence4496.",
+    "Internal Commit subphase remains unknown; postfault Root/compositor registers are not faulted Application instruction evidence.",
+    "Aggregate(41entries,124interrupts,1preemption) is not a per-entry RTC debit or Source-to-RTC conversion.",
+    "No flake attribution, timeout/grant/backing increase, workflow rerun or automatic current-source reproduction.",
+    "Current successor integration still required; this is historicaldd111 exact-source negative evidence."
+  ],
+  "resolved_image_keys": [
+    "payload",
+    "manifest"
+  ]
+}
