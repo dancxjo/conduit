@@ -150,5 +150,9 @@ across every fragment; one homogeneous continuation page cannot accidentally
 turn the root into an enclosing card. Existing unstructured/configured rows
 retain zero additional region inset. The surface check now requires the full
 checked inset around every first-page card row, alongside the unchanged
-four-selected-Plots and 48-command requirements. Fresh capture follows below
-when the frozen source has built.
+four-selected-Plots and 48-command requirements. Fresh normal-product QEMU captures at `6034b2c17` are retained in
+[evidence](evidence/gui-look-6349-inset/). All 138 native scene checks pass
+(one opt-in ignored); the current 640×480 control proof passes. All 13 stable
+long-name focus/hit/page samples equal the earlier `fefbc1402` proof. Compact
+retains all four Plots at 48/48 commands; spacious stays at 25/48. Face revision
+and chained local Show acknowledgement remain unchanged across Look switches.

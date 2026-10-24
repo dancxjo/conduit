@@ -1,0 +1,485 @@
+{
+  "baseline_source": "fefbc140282f1484403f04e6a03deb52d1eecced",
+  "current_source": "6034b2c17e82953e337e293807536227386b437d",
+  "fields": [
+    "action_id",
+    "argument_name",
+    "page",
+    "pages",
+    "hit_bounds",
+    "display_bounds"
+  ],
+  "baseline": [
+    {
+      "action_id": "creche.name",
+      "argument_name": "value",
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 56,
+        "width": 548,
+        "x": 60,
+        "y": 179
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.plot.0",
+      "argument_name": null,
+      "page": 3,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 276
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.plot.1",
+      "argument_name": null,
+      "page": 3,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 320
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.plot.2",
+      "argument_name": null,
+      "page": 4,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 88
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.plot.3",
+      "argument_name": null,
+      "page": 4,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 132
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.naming",
+      "argument_name": null,
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 290
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.naming",
+      "argument_name": "value",
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 334
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.search",
+      "argument_name": null,
+      "page": 3,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 135
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.search",
+      "argument_name": "value",
+      "page": 3,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 179
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.birth",
+      "argument_name": null,
+      "page": 1,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 45,
+        "width": 548,
+        "x": 60,
+        "y": 190
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.suggest",
+      "argument_name": null,
+      "page": 1,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 243
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.name",
+      "argument_name": null,
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 135
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.name",
+      "argument_name": "value",
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 56,
+        "width": 548,
+        "x": 60,
+        "y": 179
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    }
+  ],
+  "current": [
+    {
+      "action_id": "creche.name",
+      "argument_name": "value",
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 56,
+        "width": 548,
+        "x": 60,
+        "y": 179
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.plot.0",
+      "argument_name": null,
+      "page": 3,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 276
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.plot.1",
+      "argument_name": null,
+      "page": 3,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 320
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.plot.2",
+      "argument_name": null,
+      "page": 4,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 88
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.plot.3",
+      "argument_name": null,
+      "page": 4,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 132
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.naming",
+      "argument_name": null,
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 290
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.naming",
+      "argument_name": "value",
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 334
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.search",
+      "argument_name": null,
+      "page": 3,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 135
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.search",
+      "argument_name": "value",
+      "page": 3,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 179
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.birth",
+      "argument_name": null,
+      "page": 1,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 45,
+        "width": 548,
+        "x": 60,
+        "y": 190
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.suggest",
+      "argument_name": null,
+      "page": 1,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 243
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.name",
+      "argument_name": null,
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 36,
+        "width": 548,
+        "x": 60,
+        "y": 135
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "action_id": "creche.name",
+      "argument_name": "value",
+      "page": 2,
+      "pages": 4,
+      "hit_bounds": {
+        "height": 56,
+        "width": 548,
+        "x": 60,
+        "y": 179
+      },
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      }
+    }
+  ],
+  "equal": true
+}
