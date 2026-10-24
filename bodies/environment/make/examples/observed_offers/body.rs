@@ -20,6 +20,14 @@ pub fn propose(
     admission_directory: &Path,
     output: &Path,
 ) -> Result<BodyLifecycleSession, Box<dyn Error>> {
+    propose_plan(prepared.plan(), native_offer, admission_directory, output)
+}
+pub fn propose_plan(
+    plan: &c::Plan,
+    native_offer: &c::HostAdvertisement,
+    admission_directory: &Path,
+    output: &Path,
+) -> Result<BodyLifecycleSession, Box<dyn Error>> {
     let observations = document(&admission_directory.join("observations.json"))?;
     let observed: c::HostAdvertisement = serde_json::from_value(
         observations
@@ -39,16 +47,26 @@ pub fn propose(
     let mut owner =
         BodyLifecycleSession::open_admitted(evidence, &native_offer.host_id, &native_offer.boot_id)
             .map_err(|e| format!("owner scope: {e:?}"))?;
-    // Root does not yet own a ready display or browser Mask realization. Do not
-    // invent that topology from authored wear requests or physical inventory.
-    prepared
-        .propose_to_body(&mut owner, vec![])
+    // No Mask topology is inferred from hardware inventory or a display sink.
+    // Its actual renderer and interaction realization need separate admission.
+    owner
+        .propose(
+            vec![conduit_body::BodyPlotPlan {
+                plot: conduit_body::ResidentPlot::new(
+                    plan.source_document_id.clone(),
+                    plan.checked_plot_id.clone(),
+                ),
+                plan: plan.clone(),
+            }],
+            &native_offer.host_id,
+            &native_offer.boot_id,
+        )
         .map_err(|e| format!("Body proposal: {e:?}"))?;
     let realization = owner.realization().ok_or("proposal missing")?;
     if realization.wake.lifecycle != WakeLifecycle::AwaitingPlan
         || realization.play.is_some()
         || realization.plan.plots.len() != 1
-        || realization.plan.plots[0].plan != *prepared.plan()
+        || realization.plan.plots[0].plan != *plan
     {
         return Err("unexpected Body proposal transition".into());
     }
@@ -65,7 +83,7 @@ pub fn propose(
         serde_json::to_vec_pretty(&serde_json::json!({
             "proof_class":"host-body-proposal-from-physical-admission-and-current-root-offers",
             "body_id":realization.plan.body_id, "body_plan_id":realization.plan.plan_id,
-            "plot_plan_id":prepared.plan().plan_id, "host_id":native_offer.host_id,
+            "plot_plan_id":plan.plan_id, "host_id":native_offer.host_id,
             "boot_id":native_offer.boot_id, "wake":"AwaitingPlan", "masks":0,
             "play_started":false, "body_installed_on_mcu":false,
             "capability_possession_issued":false,

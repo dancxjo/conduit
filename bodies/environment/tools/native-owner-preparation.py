@@ -14,6 +14,7 @@ parser.add_argument('--capture', type=Path, required=True)
 parser.add_argument('--admission', type=Path, required=True)
 parser.add_argument('--keys', type=Path, required=True)
 parser.add_argument('--owner', type=Path, required=True)
+parser.add_argument('--display', action='store_true')
 parser.add_argument('--mode', choices=['prepare', 'start-held', 'run'], default='prepare')
 args = parser.parse_args()
 port = serial.Serial(port=None, baudrate=115200, timeout=.1, write_timeout=2)
@@ -113,7 +114,10 @@ def carry(frame, wire):
 receipt = {'completed': False, 'proof_class': 'physical-owner-' + args.mode,
            'body_start_attributed': False, 'climate_sampling_claimed': False}
 try:
-    wire = (args.capture / 'uninstalled-assignment-transfer.bin').read_bytes()
+    if args.display and args.mode != 'prepare':
+        raise RuntimeError('display proof currently prepares held custody only')
+    wire_name = 'uninstalled-output-assignment-transfer.bin' if args.display else 'uninstalled-assignment-transfer.bin'
+    wire = (args.capture / wire_name).read_bytes()
     if not 0 < len(wire) <= 8192:
         raise RuntimeError('transfer bound')
     port.open()
@@ -155,7 +159,7 @@ try:
     port.write(b'offer\n')
     after = event('native-root-offer')
     assert after['appliance_kernel_prepared'] == (args.mode != 'run')
-    assert not after['assignment_staged']
+    assert after['assignment_staged'] == args.display
     assert not after['body_installed'] and not after['native_plan_installed']
     (args.capture / 'final-root-offer.json').write_text(json.dumps(after, indent=2) + '\n')
     receipt['final_offer_generation'] = after['advertisement']['offer_generation']

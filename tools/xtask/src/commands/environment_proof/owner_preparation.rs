@@ -8,7 +8,7 @@ use std::{error::Error, fs, path::Path, process::Command};
 pub(super) fn provision_flash_tool(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
     flash_tool::provision_espflash(root)
 }
-pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
+pub(super) fn owner_key_directory() -> Result<std::path::PathBuf, Box<dyn Error>> {
     let data = std::env::var_os("XDG_DATA_HOME")
         .map(std::path::PathBuf::from)
         .or_else(|| {
@@ -17,7 +17,10 @@ pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
         .ok_or("host has no private data directory")?;
     let parent = data.join("conduit");
     fs::create_dir_all(&parent)?;
-    let keys = parent.join("environment-owner");
+    Ok(parent.join("environment-owner"))
+}
+pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
+    let keys = owner_key_directory()?;
     execute(
         Command::new("cargo")
             .current_dir(root)

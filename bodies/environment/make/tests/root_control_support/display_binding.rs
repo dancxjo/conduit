@@ -53,7 +53,16 @@ pub(super) fn check(
     };
     assert!(bind(&mut issuer, &mut owner, input(0)).is_err());
     assert!(owner.is_some());
-    let bound = bind(&mut issuer, &mut owner, input(usize::MAX)).unwrap();
+    let (bound, binding_memory) = crate::allocation_probe::observe(|| {
+        bind(&mut issuer, &mut owner, input(usize::MAX)).unwrap()
+    });
+    eprintln!(
+        "display_binding_cpu_pointer_bits={} peak_bytes={} requested_bytes={} allocations={}",
+        usize::BITS,
+        binding_memory.peak_bytes,
+        binding_memory.requested_bytes,
+        binding_memory.allocations
+    );
     assert!(owner.is_none());
     assert_eq!(bound.inspection().completed_operations, 0);
     assert_eq!(

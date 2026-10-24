@@ -58,6 +58,21 @@ impl NativeBodyBinding {
             prospective_fragment_play,
         )
     }
+    /// The output construction diagnostic uses the same exact Body custody gate.
+    /// Neither this binding nor dormant preparation starts its Body.
+    pub fn prepare_display(
+        display: &crate::PreparedDisplayOutput,
+        owner: &BodyLifecycleSession,
+        prospective_body_play: &BodyPlayIdentity,
+        prospective_fragment_play: &ActivePlayIdentity,
+    ) -> Result<Self, NativeBodyBindingRefusal> {
+        Self::prepare_plan(
+            display.plan(),
+            owner,
+            prospective_body_play,
+            prospective_fragment_play,
+        )
+    }
     fn prepare_plan(
         plan: &Plan,
         owner: &BodyLifecycleSession,

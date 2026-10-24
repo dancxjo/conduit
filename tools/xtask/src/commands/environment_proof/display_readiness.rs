@@ -3,7 +3,11 @@ use super::super::owner_preparation::provision_flash_tool;
 use super::{execute, host_target};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path, process::Command};
-pub(super) fn flash_and_capture(root: &Path, stage: bool) -> Result<(), Box<dyn Error>> {
+pub(super) fn flash_and_capture(
+    root: &Path,
+    stage: bool,
+    prepare_keys: Option<&Path>,
+) -> Result<(), Box<dyn Error>> {
     execute(
         Command::new("cargo")
             .current_dir(root)
@@ -83,6 +87,9 @@ pub(super) fn flash_and_capture(root: &Path, stage: bool) -> Result<(), Box<dyn 
                 .arg("--capture")
                 .arg(&output),
         )?;
+    }
+    if let Some(keys) = prepare_keys {
+        super::display_preparation::prepare(root, &output, keys)?;
     }
     Ok(())
 }

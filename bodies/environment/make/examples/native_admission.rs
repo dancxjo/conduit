@@ -19,6 +19,12 @@ fn line(input: &mut impl BufRead) -> Result<String, Box<dyn Error>> {
     Ok(line)
 }
 fn main() -> Result<(), Box<dyn Error>> {
+    let arguments: Vec<_> = std::env::args().skip(1).collect();
+    let display = match arguments.as_slice() {
+        [] => false,
+        [profile] if profile == "display-output" => true,
+        _ => return Err("expected optional display-output admission profile".into()),
+    };
     let mut input = io::stdin().lock();
     let offered: PicoAdmissionAdvertisement = serde_json::from_str(&line(&mut input)?)?;
     if offered.protocol != PICO_ADMISSION_PROTOCOL
@@ -39,11 +45,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     )
     .into();
     let sign = |seq| c::bind_sign(&host, &boot, None, seq).sign_id;
-    let source = conduit_environment_make::compile_appliance_source()?;
+    let (source_document_id, checked_plot_id) = if display {
+        let source = conduit_environment_make::DisplayOutputSource::compile()?;
+        (
+            source.plot.expanded.source_document_id,
+            source.plot.expanded.checked_plot_id,
+        )
+    } else {
+        let source = conduit_environment_make::compile_appliance_source()?;
+        (
+            source.expanded.source_document_id,
+            source.expanded.checked_plot_id,
+        )
+    };
     let birth_sequence = (u64::from_le_bytes(nonce[8..16].try_into()?) & i64::MAX as u64).max(1);
     let body = Body::born(
-        source.expanded.source_document_id.clone(),
-        source.expanded.checked_plot_id.clone(),
+        source_document_id,
+        checked_plot_id,
         birth_sequence,
         sign(birth_sequence),
     )

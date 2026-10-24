@@ -85,9 +85,10 @@ Play and return revoked custody for retirement. CPU Boot/entropy/GPIO models are
 not physical providers or device attestation.
 
 The ESP32 display image links with the existing 28 KiB CPU stack floor; the
-sampler profile still compiles. No task image has been flashed or its UART
-lifecycle verified. The working image has not been replaced by this work.
-Physical memory admission, task registration/Release, live Mask/Look Fore input,
+sampler profile still compiles. The task-bearing image has physical readiness
+and assignment-staging evidence; task registration and Release remain unproved.
+The working image was restored after those experiments.
+Full physical memory admission, task registration/Release, live Mask/Look Fore input,
 continuing sensor execution, network transition alongside sensing, recording
 Hosts and overnight endurance remain unproved. Construction prerequisites are
 tracked by #6374 and #6378; decoder or CPU proof alone cannot close physical
@@ -100,3 +101,20 @@ custody, and reads back the active preparation bound. Physical receipts are in
 sampler and display staging and serialize the active profile's additional kernel
 bound separately from current heap use. This remains staging-only evidence;
 construction, native possession and full memory admission require later gates.
+
+## Attended dormant preparation
+
+`cargo xtask prove environment display-output esp32-readiness --flash --prepare`
+provisions the existing private host owner key, compiles its public trust into
+the diagnostic, observes/stages the current output assignment, and admits the
+actual MCU to a Body born from that checked display Source. A retained Rust Body
+owner proposes the exact output Plan and signs Inspect, Reserve and Prepare.
+The shared carrier only transports those bounded frames.
+
+Success requires the registered display task to report actual `ready-held`
+custody, positive context/future backing, issued idle native permission and zero
+steps/software/native calls. No Start, Release or Frame is sent. Refusal retains
+its exact response and Root memory observations; it cannot claim a Body start or
+physical output. This command leaves a construction diagnostic, so operational
+firmware restoration is a separate attended recovery step. The preparation proof
+does not install the continuous climate appliance.

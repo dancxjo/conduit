@@ -1,5 +1,7 @@
 //! Finite exact display output possession and existing Mask/packet regression.
 use super::{execute, host_target};
+#[path = "display_preparation.rs"]
+mod display_preparation;
 #[path = "display_readiness.rs"]
 mod display_readiness;
 use std::{error::Error, path::Path, process::Command};
@@ -7,16 +9,25 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
     if arguments == ["esp32-readiness"]
         || arguments == ["esp32-readiness", "--flash"]
         || arguments == ["esp32-readiness", "--flash", "--stage"]
+        || arguments == ["esp32-readiness", "--flash", "--prepare"]
     {
-        build_readiness(root)?;
+        let preparing = arguments.last().is_some_and(|v| v == "--prepare");
+        let keys = if preparing {
+            Some(display_preparation::provision(root)?)
+        } else {
+            None
+        };
+        build_readiness(root, keys.as_deref())?;
         return if arguments.len() >= 2 {
-            display_readiness::flash_and_capture(root, arguments.len() == 3)
+            display_readiness::flash_and_capture(root, arguments.len() == 3, keys.as_deref())
         } else {
             Ok(())
         };
     }
     if !arguments.is_empty() {
-        return Err("expected display-output [esp32-readiness [--flash [--stage]]]".into());
+        return Err(
+            "expected display-output [esp32-readiness [--flash [--stage|--prepare]]]".into(),
+        );
     }
     for operation in ["test", "clippy"] {
         let mut command = Command::new("cargo");
@@ -97,7 +108,7 @@ pub(super) fn prove(root: &Path, arguments: &[String]) -> Result<(), Box<dyn Err
     Ok(())
 }
 
-fn build_readiness(root: &Path) -> Result<(), Box<dyn Error>> {
+fn build_readiness(root: &Path, keys: Option<&Path>) -> Result<(), Box<dyn Error>> {
     let package = root.join("targets/esp32/proof/tm1637");
     let toolchain: toml::Value = toml::from_str(&std::fs::read_to_string(
         package.join("rust-toolchain.toml"),
@@ -107,17 +118,23 @@ fn build_readiness(root: &Path) -> Result<(), Box<dyn Error>> {
         .and_then(|t| t.get("channel"))
         .and_then(toml::Value::as_str)
         .ok_or("missing ESP32 toolchain")?;
-    execute(
-        Command::new("cargo")
-            .current_dir(package)
-            .arg(format!("+{channel}"))
-            .args([
-                "build",
-                "--locked",
-                "--release",
-                "--features",
-                "display-ready-root",
-            ])
-            .env("CARGO_TARGET_DIR", root.join("target/environment-esp32")),
-    )
+    let mut command = Command::new("cargo");
+    command
+        .current_dir(package)
+        .arg(format!("+{channel}"))
+        .args([
+            "build",
+            "--locked",
+            "--release",
+            "--features",
+            "display-ready-root",
+        ])
+        .env("CARGO_TARGET_DIR", root.join("target/environment-esp32"));
+    if let Some(keys) = keys {
+        command.env(
+            "CONDUIT_ENVIRONMENT_OWNER_PUBLIC_KEY_FILE",
+            keys.join("owner.pub"),
+        );
+    }
+    execute(&mut command)
 }

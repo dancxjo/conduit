@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--verifier', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--port', default='/dev/ttyUSB0')
+parser.add_argument('--source', choices=['appliance', 'display-output'], default='appliance')
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=False)
 port = serial.Serial(port=None, baudrate=115200, timeout=.1, write_timeout=2)
@@ -88,7 +89,8 @@ try:
     if offered['advertisement']['host_id'] != 'esp32/b0a732286178':
         raise RuntimeError('unexpected physical ESP32')
     with (args.output / 'host-stderr.log').open('w') as errors:
-        process = subprocess.Popen([str(args.verifier.resolve())], stdin=subprocess.PIPE,
+        process = subprocess.Popen([str(args.verifier.resolve())] +
+                                   (['display-output'] if args.source == 'display-output' else []), stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE, stderr=errors, text=True)
         process.stdin.write(json.dumps(offered) + '\n')
         process.stdin.flush()
