@@ -174,3 +174,13 @@ body[data-lens="signs"] .flow-frontplate { border-style:double; }
 
 nav[aria-label="Patchbay workspace"] button[aria-expanded="true"] { border-color:var(--conduit-emphasis); color:var(--conduit-emphasis); }
 .status-strip>strong { color:var(--conduit-emphasis); }
+
+.shell-launchers button,.canvas-actions button{min-height:44px;line-height:1.4}
+.shell-launchers{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.parts-panel,#inspector{border-radius:12px}
+.parts-heading,.panel-heading{gap:16px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--conduit-focus);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){button{transition:none!important;transform:none!important}}
+@media(forced-colors:active){button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline-color:Highlight}}
+
+.patchbay-icon{width:1.05em;height:1.05em;vertical-align:-.15em;margin-inline-end:.5em;pointer-events:none;flex:none}

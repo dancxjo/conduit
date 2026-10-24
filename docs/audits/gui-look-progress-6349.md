@@ -74,3 +74,28 @@ colors interpolated across Look changes while backgrounds changed immediately;
 Workspace now switches those text colors atomically. Disabled controls retain
 readable muted text and dashed edges instead of faded opacity. Automated axe
 results do not replace keyboard, screen-reader or complete accessibility proof.
+
+## Native Editorial and Patchbay continuation
+
+Native Editorial now resolves warm paper/navy roles, matching the browser Look
+intent and Crèche reference rather than retaining the previous unrelated dark
+blue palette. The existing actual paint-role contrast tests pass against the
+changed implementation (standalone harness): text/status/accent roles at 4.5:1
+and controls/focus/borders at 3:1 on both native surfaces, including RGB/BGR and
+forced-color/fallback cases. Fresh normal x86_64 live-media build is in progress.
+
+Patchbay chrome adds pinned Lucide icons to Library, Inspect, canvas navigation,
+arrangement, contrast, selection clearing and evidence download. SVGs are inline
+and decorative, preserving text and native button semantics under the existing
+`img-src 'self'` policy. CSS data-image masks were rejected by that real policy
+and replaced before publication; the policy is unchanged. Local preview uses
+the retained native-origin Patchbay server/runtime with current HTML/CSS,
+resealed resource hashes and an unchanged security policy. It is mixed-source
+presentation evidence, not exact-source production acceptance. Library/Inspect
+keyboard activation remains usable and no CSP image error occurs. The stylesheet
+remains within its existing 32768-byte resource bound.
+
+Environment: inactive regenerable native-origin Cargo build-script outputs were
+removed after process/fd inspection, recovering about 22 GB in this continuation.
+Source, compiled retained runtime/server, proof captures and active builds were
+preserved. This allowed the isolated native build to continue with headroom.
