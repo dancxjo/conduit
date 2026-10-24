@@ -8,9 +8,9 @@ pub mod display_packets;
 pub mod observation;
 pub mod publication;
 #[cfg(feature = "face-projection")]
-pub mod retained_publication_face;
-#[cfg(feature = "face-projection")]
 pub mod publication_face_custody;
+#[cfg(feature = "face-projection")]
+pub mod retained_publication_face;
 use alloc::{boxed::Box, string::String};
 use conduit_core::{PortTemporal, StructuredSelector};
 use conduit_kernel::{
