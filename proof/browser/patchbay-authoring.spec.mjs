@@ -257,10 +257,21 @@ for (const includeLifecycle of [false, true]) {
             } else if (aspect === "Play") {
               await expect(clue).toContainText(facts.find(property => property.name === "play-state").value.Text);
             } else {
-              await expect(clue).toHaveText(`${facts.filter(property => property.name.startsWith("sign-")).length} causal Signs`);
+              await expect(clue).toHaveText(`${facts.filter(property => /^sign-[0-9]+$/.test(property.name)).length} causal Signs`);
             }
           }
         }
+        await clickNavigation(page, page.locator('#aspect-controls button[data-aspect="Structure"]'));
+        await page.setViewportSize({ width: 1440, height: 1100 });
+        await page.getByRole("button", { name: "Fit", exact: true }).click();
+        const live = await current(page);
+        expect(live.face.basis.plan_id).toBe(plan);
+        expect(live.face.basis.active_play_id).toBe(play);
+        await writeFile(testInfo.outputPath("live-authoring-face.json"), JSON.stringify({
+          face: live.face, navigation: live.navigation,
+          disposition: live.interaction.last_disposition,
+        }, null, 2));
+        await page.screenshot({ path: testInfo.outputPath("live-authoring-wide.png"), fullPage: true });
       }
     } finally {
       if (server.errors.length) await testInfo.attach("authoring-server-stderr", {
