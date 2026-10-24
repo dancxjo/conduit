@@ -93,6 +93,12 @@ pub(crate) fn install_import_aliases_borrowed<'a>(
                 invariants,
             )
             .map_err(|message| super::diagnostic(declaration.alias.span, message))?;
+        if let Some(witness) = base.native_law_witness(&declaration.path) {
+            catalog
+                .to_mut()
+                .retain_native_law_witness(&declaration.alias.text, witness)
+                .map_err(|message| super::diagnostic(declaration.alias.span, message))?;
+        }
         if let Some(origin) = base.native_type_source(&declaration.path) {
             super::family::source::register(
                 catalog.to_mut(),
