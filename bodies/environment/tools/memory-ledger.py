@@ -55,7 +55,7 @@ def elf_sections(path):
 
 def ledger(sampling_image=None, output_image=None):
     inputs = {
-        "sampling": EVIDENCE / "2026-10-24-linked-schemas-hardware/sampling.json",
+        "sampling": EVIDENCE / "2026-10-24-primitive-locations-hardware/sampling.json",
         "output": EVIDENCE / "2026-10-24-output-retention-hardware/measurement.json",
         "mask_cpu": EVIDENCE / "2026-10-24-inline-frame-storage/measurement.json",
         "expression_cpu": EVIDENCE / "2026-10-24-tape-join-repair/measurement.json",
@@ -214,7 +214,7 @@ def markdown(value):
         "| Category | Current evidence | Combined obligation |", "|---|---|---|",
         f"| Immutable material | ELF section inventories in JSON when images are supplied | Link one combined image; separate flash material from RAM-resident code/data |",
         f"| Persistent mutable values | Sampling payload {value['inventory']['sampling_value_payload']['bytes']:,} B; output payload {value['inventory']['output_value_payload']['bytes']:,} B, plus metadata/allocator costs | Exact Types and simultaneous lifetimes; no reuse credited |",
-        f"| Sampler software, CPU only | Retained {value['inventory']['sampler_software_cpu']['after_resident_software_bytes']:,} B after sharing and borrowing immutable schema bytes | Whole CPU software-owner measurement; not additive to the MCU Root heap or value-backing subtotal |",
+        f"| Sampler software, historical CPU | Retained {value['inventory']['sampler_software_cpu']['after_resident_software_bytes']:,} B after sharing and borrowing immutable schema bytes | Predates primitive-location lowering; not additive to the MCU Root heap or value-backing subtotal |",
         f"| Mask | {value['inventory']['mask_cpu']['bytes']} inline bytes, {value['inventory']['mask_cpu']['heap_bytes']} heap bytes in the captured {value['inventory']['mask_cpu']['pointer_bits']}-bit CPU measurement | Obtain MCU representation and admitted runtime custody |",
         f"| Packet expression | CPU retained model {value['inventory']['packet_expression_cpu']['before_bytes']:,} → {value['inventory']['packet_expression_cpu']['after_bytes']:,} B with constructor tape and fixed input locations | Dynamic leaf evaluators remain; flash material, lifetime allocation and MCU measurement still required |",
         f"| Local representations | Existing quantity-pair Forms total {value['inventory']['quantity_pair_form']['bytes']} B; semantic Types remain Temperature and Ratio | Admit compact local cord representations; separately retain status, clocks and provenance |",

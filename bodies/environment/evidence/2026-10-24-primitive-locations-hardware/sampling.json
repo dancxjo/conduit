@@ -1,0 +1,182 @@
+{
+  "proof_class": "attended native Face and quantity publication replay; finite run",
+  "source_commit": "4e5fc4af2669c76d5e87eeb35fc99c431954c156",
+  "public_command": "cargo xtask prove environment owner-face-run-esp32",
+  "observations": [
+    {
+      "source_sequence": 1,
+      "revision": 1,
+      "face_identity": "11b9e9096218a10379f16ec363a3d0a88c83ee942b8eea27bcc618f05be8b515",
+      "native_face_identity": "4aff5ae68bda1ec9b2569e7b7915383481455df94c4f45cfbb4a584e7fd85ab5",
+      "identity_note": "Native execution Face and host Body replay Face have different provenance; identities are not equated."
+    },
+    {
+      "source_sequence": 2,
+      "revision": 2,
+      "face_identity": "0084112f144a915b0889c702665a7c7181a7155917ae05124e63503df1c86528",
+      "native_face_identity": "e1292183535d2b2857d76e3897206eb3aa4ae884bce9456b97ee60e3e59cd4b7",
+      "identity_note": "Native execution Face and host Body replay Face have different provenance; identities are not equated."
+    },
+    {
+      "source_sequence": 3,
+      "revision": 3,
+      "face_identity": "b02d6dbf820e29e73cb75fa2f37429da7d6f7d54c783068f6628bc83e6b54b64",
+      "native_face_identity": "4dd092b719edda7a237e9352698b598a3fa5d490b70e4a01e31679e0ea10b913",
+      "identity_note": "Native execution Face and host Body replay Face have different provenance; identities are not equated."
+    }
+  ],
+  "root_heap_bytes": 114688,
+  "sdk_heap_bytes": 73728,
+  "root_heap_peak_bytes": 78596,
+  "root_heap_after_retirement_bytes": 9756,
+  "observed_sampling_root_used_bytes": [
+    78596,
+    78596,
+    78596
+  ],
+  "observed_sdk_peak_bytes": 34024,
+  "heap_checkpoints": {
+    "owner-native-preparation.json": {
+      "observed_boot_ms": 29154,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 78596,
+      "root_used_bytes": 78596,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "owner-release.json": {
+      "observed_boot_ms": 30169,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 78596,
+      "root_used_bytes": 78596,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-1.json": {
+      "observed_boot_ms": 90584,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 78596,
+      "root_used_bytes": 78596,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-2.json": {
+      "observed_boot_ms": 153828,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 78596,
+      "root_used_bytes": 78596,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "physical-observation-3.json": {
+      "observed_boot_ms": 211322,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 78596,
+      "root_used_bytes": 78596,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "owner-quiesced.json": {
+      "observed_boot_ms": 212085,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 78596,
+      "root_used_bytes": 78596,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    },
+    "owner-retired.json": {
+      "observed_boot_ms": 212614,
+      "root_capacity_bytes": 114688,
+      "root_peak_bytes": 78596,
+      "root_used_bytes": 9756,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 34024,
+      "sdk_used_bytes": 33408
+    }
+  },
+  "linked_stack_bytes": 36980,
+  "stack_floor_bytes": 36864,
+  "stack_high_water_claimed": false,
+  "mask_on_mcu": false,
+  "combined_sampling_output_claimed": false,
+  "telemetry_is_signed_attestation": false,
+  "image_receipt": {
+    "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792866421/root.elf",
+    "body_started": false,
+    "elf_sha256": "b0bb09142c4092b37600db7e4f1ea89e576877e96a1ca3b48f4f34ee75ac115c",
+    "owner_public_key_sha256": "e803269abafd033641cf34da85a65cbd70a8f667957903908d7b29a9d45d3a33",
+    "schema": "conduit.environment/owner-root-image@1",
+    "source_dirty": false,
+    "source_head": "4e5fc4af2669c76d5e87eeb35fc99c431954c156"
+  },
+  "recovery": {
+    "source": "4e5fc4af2669c76d5e87eeb35fc99c431954c156",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": true,
+    "native_exit": 0,
+    "captures": {
+      "environment-owner-images": [
+        "target/environment-owner-images/1792866421"
+      ],
+      "environment-software-ready": [
+        "target/environment-software-ready/1792866553"
+      ],
+      "environment-body-admission": [
+        "target/environment-body-admission/1792866548"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  },
+  "capture_sha256": {
+    "result.json": "b01e315510f8417054d61bcf2cceabc8523cc09ccc4871e7794c36d228151146",
+    "native-root.map": "12c087c5e8a44c91c9ffeb692662a95b1dd8a7e90d11bbe4bcc8554a19b45738",
+    "environment-software-ready/1792866553/owner-native-preparation.json": "dd75904911b9dd25cdaad765244347e2cf0c0b6b883e7e88edbff2c302da1d4b",
+    "environment-software-ready/1792866553/owner-release.json": "0a9e76ebc3abe80b769804d020abd2fac04a4daf34f6923aba8c9c9a023243fe",
+    "environment-software-ready/1792866553/physical-observation-1.json": "573729d2842c1824097ec1bf7e2fdad1a706463ba98b91729af522bd57dcb843",
+    "environment-software-ready/1792866553/physical-face-1.json": "39cea71fdb8a46379ad84b62539ffc7868a1046ac5293281749f9a18ccdced70",
+    "environment-software-ready/1792866553/physical-observation-2.json": "d4f9d4ff1735c038df357604802b93ece48d4c571ab85a48d714da0536fe8dc3",
+    "environment-software-ready/1792866553/physical-face-2.json": "61daab4842bc7c19c3be03ac5360ffdebcb3da3072c4270813572347c5b6fd2c",
+    "environment-software-ready/1792866553/physical-observation-3.json": "2bbaf7a579c15416bde3d3a8e37b5178b80576e888a20b16b6b4c8feef270ae3",
+    "environment-software-ready/1792866553/physical-face-3.json": "898534a4fdc818bf09a4b5004096841c43d782183e2058fd9fa9cb16b9d79924",
+    "environment-software-ready/1792866553/owner-quiesced.json": "3cd15d14490706807d2d7893b38b61c06bbda17b02624969819fd1d4bea8bdea",
+    "environment-software-ready/1792866553/owner-retired.json": "14221556843e8e7ad9088c0e692f4b16ca23c3929c0ef3326de0cbc2c3350ef1",
+    "environment-owner-images/1792866421/image-receipt.json": "b715223874860f79fd556b09c4164431bc41ea4df9759e71d023a54a64482563"
+  },
+  "value_slot_capacities": [
+    2274,
+    2274,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024,
+    1024
+  ],
+  "previous_root_peak_bytes": 80572,
+  "whole_image_root_peak_reduction_bytes": 1976,
+  "isolated_compiler_saving_claimed": false,
+  "root_rebalance_bytes": 768,
+  "root_heap_partition_total_preserved": true,
+  "preceding_keyed_link_refused": {
+    "source": "ba9ff021138ac24f282dbf527171eb80b011b383",
+    "stack_bytes": 36852,
+    "floor_bytes": 36864,
+    "hardware_flashed": false,
+    "capture": "outputs/environment-native-face-probe/1792866289"
+  }
+}
