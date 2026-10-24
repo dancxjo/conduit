@@ -1,0 +1,125 @@
+{
+  "case": "/tmp/c6349-gui/quantity-play-az66o4ak",
+  "source": "plot quantity_reproduction {\n scalar: scalar/literal(value = 500000)\n map: math/map-quantity\n wrap: structured-info/wrap-quantity\n display: face/quantity(\"Measured quantity\")\n scalar.value >> map.in\n map >> wrap >> display\n}\n",
+  "records": [
+    {
+      "intent": "open",
+      "request": {
+        "face_id": "3642c48684e3ab0af1b394ed00c87048b955643a45fc4e12215a4965a543e460",
+        "face_revision": 2,
+        "kind": "invoke",
+        "action_id": "action/open/0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6"
+      },
+      "disposition": "Succeeded",
+      "basis": {
+        "body_id": null,
+        "wake_id": null,
+        "source_document_id": null,
+        "checked_plot_id": null,
+        "expanded_plot_id": null,
+        "plan_id": null,
+        "active_play_id": null,
+        "sign_ids": [
+          "patchbay-html/plot-source/1",
+          "patchbay/front-door/clock-available",
+          "patchbay/front-door/plot-available"
+        ]
+      }
+    },
+    {
+      "intent": "birth",
+      "request": {
+        "face_id": "969aadedfd31156c5e7e45219c71832dbd8e5d65f4f45ac6ba8eb9d5944ff4f1",
+        "face_revision": 3,
+        "kind": "invoke",
+        "action_id": "action/birth/0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6"
+      },
+      "disposition": "Succeeded",
+      "basis": {
+        "body_id": "8e8794c8347ed68e9f95d9cc19a6959febc835569f315eb7f8a49af59653c2fd",
+        "wake_id": null,
+        "source_document_id": "efa410919b8b47b292e88b6b3d2a1d7f7a58301b33cc8367fb7b453a0c9af90f",
+        "checked_plot_id": "0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6",
+        "expanded_plot_id": "54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e",
+        "plan_id": null,
+        "active_play_id": null,
+        "sign_ids": [
+          "patchbay-lifecycle/patchbay-boot/18e1677c073fa74e/0",
+          "patchbay-lifecycle/patchbay-boot/18e1677c073fa74e/1",
+          "patchbay/front-door/born/3/host-boot/aff0a8748940d10588519842b8d7f3e689583688ca786a4ebc66882a665fad71",
+          "patchbay/front-door/born/host/3",
+          "patchbay/front-door/born/part/3"
+        ]
+      }
+    },
+    {
+      "intent": "wake",
+      "request": {
+        "face_id": "749cf00d7f895dda17b0199e4136461d028cb83913787796e29c36f28e066b17",
+        "face_revision": 4,
+        "kind": "invoke",
+        "action_id": "action/wake/54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e"
+      },
+      "disposition": "Succeeded",
+      "basis": {
+        "body_id": "8e8794c8347ed68e9f95d9cc19a6959febc835569f315eb7f8a49af59653c2fd",
+        "wake_id": "eadf91611be01e9a7ea728e94106036e41f3596ca0f9411ab44be6f124bd5e6d",
+        "source_document_id": "efa410919b8b47b292e88b6b3d2a1d7f7a58301b33cc8367fb7b453a0c9af90f",
+        "checked_plot_id": "0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6",
+        "expanded_plot_id": "54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e",
+        "plan_id": null,
+        "active_play_id": null,
+        "sign_ids": [
+          "patchbay-lifecycle/patchbay-boot/18e1677c073fa74e/0",
+          "patchbay-lifecycle/patchbay-boot/18e1677c073fa74e/1",
+          "patchbay/front-door/born/3/host-boot/aff0a8748940d10588519842b8d7f3e689583688ca786a4ebc66882a665fad71",
+          "patchbay/front-door/born/host/3",
+          "patchbay/front-door/born/part/3",
+          "patchbay/front-door/woke/4"
+        ]
+      }
+    },
+    {
+      "intent": "plan",
+      "request": {
+        "face_id": "0354419d35148a7f8f4322244f8352281bdfa608ba20513fde91f483802fcdd1",
+        "face_revision": 5,
+        "kind": "invoke",
+        "action_id": "action/plan/54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e"
+      },
+      "disposition": "Succeeded",
+      "basis": {
+        "body_id": "8e8794c8347ed68e9f95d9cc19a6959febc835569f315eb7f8a49af59653c2fd",
+        "wake_id": "eadf91611be01e9a7ea728e94106036e41f3596ca0f9411ab44be6f124bd5e6d",
+        "source_document_id": "efa410919b8b47b292e88b6b3d2a1d7f7a58301b33cc8367fb7b453a0c9af90f",
+        "checked_plot_id": "0d15b93e12faf51c363d7b11fbabf731df70e32d52474544c17c453b334bf8e6",
+        "expanded_plot_id": "54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e",
+        "plan_id": "84262d2468713bcea4dde0189ccc733fe5b6b5e128346ef2ee6a1f929d6f603f",
+        "active_play_id": null,
+        "sign_ids": [
+          "patchbay-lifecycle/patchbay-boot/18e1677c073fa74e/0",
+          "patchbay-lifecycle/patchbay-boot/18e1677c073fa74e/1",
+          "patchbay/front-door/born/3/host-boot/aff0a8748940d10588519842b8d7f3e689583688ca786a4ebc66882a665fad71",
+          "patchbay/front-door/born/host/3",
+          "patchbay/front-door/born/part/3",
+          "patchbay/front-door/planned/5",
+          "patchbay/front-door/woke/4"
+        ]
+      }
+    },
+    {
+      "intent": "play",
+      "request": {
+        "face_id": "1d5018ec0b173a6c346c5fdf62034b6975f20282ae8da4e2aef184a8048f62f7",
+        "face_revision": 6,
+        "kind": "invoke",
+        "action_id": "action/play/54c6b7f149cd7a2e68f5a664e5de075ee1cc3f4444f31e3b873f0d069179772e"
+      }
+    },
+    {
+      "delivery_error": "Remote end closed connection without response"
+    }
+  ],
+  "server_returncode": 101,
+  "stderr": "\nthread 'main' (4159100) panicked at targets/std/src/installed_std/math_backs.rs:75:46:\nready math output: OutputBlocked\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+}
