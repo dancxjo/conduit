@@ -453,3 +453,14 @@ checked queue-bound and temporary completion-pressure acceptance.
 [Minimal Source, exact requests and negative receipts](evidence/gui-look-6349-quantity-play/README.md).
 The browser proof now attaches server stderr on failure. No production runtime
 fix, full-suite pass or parent completion is claimed.
+
+## Owner Face browser text preference
+
+Owner component fonts now use root-relative units, preserving default sizing
+while composing browser text preferences with admitted minimum text scaling.
+The regression first failed with an unchanged 13px button; final checks prove
+26px at a 200% browser root and 52px with the additional 200% admitted scale,
+without horizontal overflow at 390px. All 141 owner renderer/reachability/Look
+checks pass. [Source-bound receipt and 400% forced-color capture](evidence/gui-look-6349-owner-root-text/README.md).
+This is browser renderer evidence; full native and cross-component acceptance
+remain open.
