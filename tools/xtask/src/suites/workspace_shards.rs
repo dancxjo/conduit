@@ -65,6 +65,7 @@ package_test_shard!(
         "conduit-midi",
         "conduit-face",
         "conduit-protected-line",
+        "conduit-resource-snapshot",
         "conduit-process",
         "conduit-purpose",
         "conduit-robotics",
