@@ -1,0 +1,9 @@
+{
+  "source": "5ea707e47ae321243113688f893365ca1d92513f",
+  "base": "567a4816dcf919dd2c049505494ae604f60d90b1",
+  "branch": "repair/6402-native-reference-negative-fixture-20261024",
+  "remote_verified": "5ea707e47ae321243113688f893365ca1d92513f",
+  "changed_path": "semantics/data/tests/native_reference_bindings.rs",
+  "proof": "outputs/6402-native-reference-fixture-local-proof.json",
+  "limits": "Recoveryhandoffonly; noownerbranchupdate/newPR/Candidate/Integration acceptance."
+}

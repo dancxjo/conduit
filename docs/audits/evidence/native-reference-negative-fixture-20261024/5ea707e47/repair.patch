@@ -1,0 +1,96 @@
+diff --git a/semantics/data/tests/native_reference_bindings.rs b/semantics/data/tests/native_reference_bindings.rs
+index 57b5f004c..083e36710 100644
+--- a/semantics/data/tests/native_reference_bindings.rs
++++ b/semantics/data/tests/native_reference_bindings.rs
+@@ -71,7 +71,7 @@ fn generated_reference_bindings_enforce_exact_leaf_contracts() {
+     )
+     .unwrap();
+     let execution = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+-        .args(["test", "--offline", "--quiet", "--manifest-path"])
++        .args(["test", "--offline", "--manifest-path"])
+         .arg(directory.join("Cargo.toml"))
+         .env("CARGO_TARGET_DIR", directory.join("target"))
+         .output()
+@@ -82,7 +82,15 @@ fn generated_reference_bindings_enforce_exact_leaf_contracts() {
+         String::from_utf8_lossy(&execution.stdout),
+         String::from_utf8_lossy(&execution.stderr)
+     );
+-    fs::remove_dir_all(directory).unwrap();
++    println!(
++        "generated reference proof at {}:\n{}\n{}",
++        directory.display(),
++        String::from_utf8_lossy(&execution.stdout),
++        String::from_utf8_lossy(&execution.stderr)
++    );
++    if std::env::var_os("CONDUIT_NATIVE_REFERENCE_PROOF_RETAIN").is_none() {
++        fs::remove_dir_all(directory).unwrap();
++    }
+ }
+ 
+ const EXERCISE: &str = r#"
+@@ -135,10 +143,47 @@ mod reference_proof {
+                 StructuredInfoValue::leaf(field.value_type().clone(), encoded.to_vec()).unwrap(),
+             ).unwrap()
+         };
+-        StructuredInfoValue::record(
++        // Start with checked, valid leaves, then replace only each length-delimited
++        // leaf node. Malformed payloads must reach Native decoding without making
++        // the checked constructor manufacture an invalid ResourceRef.
++        let valid_image = raw_reference(&generation_content_kind("image")).encode().unwrap();
++        let valid_text = raw_reference(&generation_content_kind("text")).encode().unwrap();
++        let valid_resource = raw_reference("application/octet-stream@1").encode().unwrap();
++        let mut encoded = StructuredInfoValue::record(
+             semantic.clone(),
+-            vec![leaf("image", image), leaf("resource", resource), leaf("text", text)],
+-        ).unwrap().canonical_bytes().unwrap()
++            vec![leaf("image", &valid_image), leaf("resource", &valid_resource), leaf("text", &valid_text)],
++        ).unwrap().canonical_bytes().unwrap();
++        assert!(References::decode(&encoded).is_ok());
++        let checked = conduit_core::validate_canonical_structured_value(&encoded).unwrap();
++        let mut replacements = Vec::new();
++        for (name, payload) in [("image", image), ("resource", resource), ("text", text)] {
++            let node = checked.record_field(name).unwrap().unwrap().value_node();
++            assert_eq!(node[0], 0); // canonical leaf node: tag, u32 length, bytes
++            assert_eq!(u32::from_le_bytes(node[1..5].try_into().unwrap()) as usize, node.len() - 5);
++            let start = node.as_ptr() as usize - encoded.as_ptr() as usize;
++            let mut replacement = vec![0];
++            replacement.extend_from_slice(&u32::try_from(payload.len()).unwrap().to_le_bytes());
++            replacement.extend_from_slice(payload);
++            replacements.push((start..start + node.len(), replacement));
++        }
++        // Descending offsets keep every other field and the exact Type intact.
++        replacements.sort_by_key(|(range, _)| std::cmp::Reverse(range.start));
++        for (range, replacement) in replacements { encoded.splice(range, replacement); }
++        encoded
++    }
++
++    fn resource_refusal(payload: &[u8], expected: conduit_core::ResourceReferenceRefusal,
++        image: &[u8], text: &[u8]) {
++        use conduit_core::{PrimitiveInfoRefusal, StructuredInfoRefusal};
++        use conduit_plot::rust_binding::NativeBindingRefusal;
++        let leaf_type = conduit_core::StructuredInfoType::leaf(RESOURCE_REFERENCE_INFO_ID.into()).unwrap();
++        let structured = StructuredInfoRefusal::InvalidPrimitiveLeaf(
++            PrimitiveInfoRefusal::ResourceReference(expected));
++        // Checked construction must still refuse early; the independently forged
++        // wire record below exercises the generated Native decoder separately.
++        assert_eq!(StructuredInfoValue::leaf(leaf_type, payload.to_vec()).unwrap_err(), structured);
++        assert_eq!(References::decode(&encoded_record(image, payload, text)).unwrap_err(),
++            NativeBindingRefusal::InvalidValue(structured));
+     }
+ 
+     #[test]
+@@ -189,11 +234,11 @@ mod reference_proof {
+ 
+         let mut zero_identity = valid_resource.clone();
+         zero_identity[1..33].fill(0);
+-        assert!(References::decode(&encoded_record(&valid_image, &zero_identity, &valid_text)).is_err());
++        resource_refusal(&zero_identity, conduit_core::ResourceReferenceRefusal::ZeroSemanticIdentity, &valid_image, &valid_text);
+         let mut zero_version = valid_resource.clone();
+         zero_version[33..65].fill(0);
+-        assert!(References::decode(&encoded_record(&valid_image, &zero_version, &valid_text)).is_err());
+-        assert!(References::decode(&encoded_record(&valid_image, &vec![0; 513], &valid_text)).is_err());
++        resource_refusal(&zero_version, conduit_core::ResourceReferenceRefusal::ZeroVersionIdentity, &valid_image, &valid_text);
++        resource_refusal(&vec![0; 513], conduit_core::ResourceReferenceRefusal::EncodingTooLarge, &valid_image, &valid_text);
+     }
+ 
+     #[test]

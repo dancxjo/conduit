@@ -1,0 +1,78 @@
+{
+  "run": 40090800763,
+  "head": "567a4816dcf919dd2c049505494ae604f60d90b1",
+  "job": 120863247054,
+  "raw_path": "outputs/6402-foundation-120863247054-actual-job.log",
+  "bytes": 1010623,
+  "sha256": "c8c3320d2e4dbfd84ff761b916e8d097b516e0d29ed4d0a0ab83695de6c7b1ca",
+  "actual_download_once": true,
+  "bounded_errors": [
+    {
+      "line": 3167,
+      "text": "2026-10-24T11:57:44.1963455Z test generated_reference_bindings_enforce_exact_leaf_contracts ... FAILED",
+      "following": [
+        "2026-10-24T11:57:44.1963848Z ",
+        "2026-10-24T11:57:44.1964499Z failures:",
+        "2026-10-24T11:57:44.1964672Z "
+      ]
+    },
+    {
+      "line": 3173,
+      "text": "2026-10-24T11:57:44.1966375Z thread 'generated_reference_bindings_enforce_exact_leaf_contracts' (30770) panicked at semantics/data/tests/native_reference_bindings.rs:79:5:",
+      "following": [
+        "2026-10-24T11:57:44.1967193Z generated Rust reference proof failed:",
+        "2026-10-24T11:57:44.1967425Z ",
+        "2026-10-24T11:57:44.1967535Z running 3 tests"
+      ]
+    },
+    {
+      "line": 3184,
+      "text": "2026-10-24T11:57:44.1970291Z thread 'reference_proof::malformed_zero_digest_and_oversize_references_refuse' (31547) panicked at src/lib.rs:171:89:",
+      "following": [
+        "2026-10-24T11:57:44.1970998Z called `Result::unwrap()` on an `Err` value: InvalidPrimitiveLeaf(ResourceReference(ZeroSemanticIdentity))",
+        "2026-10-24T11:57:44.1971829Z note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace",
+        "2026-10-24T11:57:44.1972203Z "
+      ]
+    },
+    {
+      "line": 3192,
+      "text": "2026-10-24T11:57:44.1973649Z test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "following": [
+        "2026-10-24T11:57:44.1974081Z ",
+        "2026-10-24T11:57:44.1974087Z ",
+        "2026-10-24T11:57:44.1974914Z \u001b[1m\u001b[91merror\u001b[0m: test failed, to rerun pass `-p conduit-data --test native_reference_bindings`"
+      ]
+    },
+    {
+      "line": 3227,
+      "text": "2026-10-24T11:57:44.1990242Z test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 49.55s",
+      "following": [
+        "2026-10-24T11:57:44.1990522Z ",
+        "2026-10-24T11:57:44.1990533Z ",
+        "2026-10-24T11:57:44.1990606Z running 3 tests"
+      ]
+    },
+    {
+      "line": 11403,
+      "text": "2026-10-24T12:19:48.6247172Z xtask error: FAILED: foundation/check.test.foundation",
+      "following": [
+        "2026-10-24T12:19:48.6247567Z reproduce: cargo xtask ci pipeline unit foundation",
+        "2026-10-24T12:19:48.6247932Z candidate: acda93e31ebcb72439a39210206041659e9f0587",
+        "2026-10-24T12:19:48.6248404Z Independent target proof runs in parallel. See the test failure above for its exact test filter."
+      ]
+    }
+  ],
+  "source_diagnosis": {
+    "classification": "Expectedinvalidleaf fixture constructor now refuses before decode assertion; Candidate failure is real, not currentdevred or randomflake",
+    "failing_outer": "semantics/data/tests/native_reference_bindings.rs:79 generated test runner status",
+    "failing_inner": "generated src/lib.rs:171 StructuredInfoValue::leaf(...).unwrap() inside encoded_record closure; invalidzeroResourceRef rejectedbynewCorevalidator",
+    "exact_source_pointers": {
+      "fixture_helper": "semantics/data/tests/native_reference_bindings.rs:129 encoded_record; leaf constructor at135",
+      "negative_test": "semantics/data/tests/native_reference_bindings.rs:184 malformed_zero_digest_and_oversize_references_refuse",
+      "new_production_validation": "architecture/core/src/primitive_info.rs:143 BoundedResourceRef::validate_encoded forRESOURCE_REFERENCE_INFO_ID"
+    },
+    "cause": "6402Corehardening rejects zero semantic/version digests and oversizedResourceRef duringcheckedStructuredInfoValue::leaf construction. Existingnegativefixture calls encoded_record withbadResourceRef andunwraps whileattemptingto reachReferences::decode. Samefixturecurrentlyexpectsconstructionofinvalidstructuredleaf.",
+    "minimum_fix_direction": "Coordinateowner6402: update testfixture to inject deliberatelymalformedbytes intoanotherwisevalidcanonicalrecord OR assert correctearlierconstructorrefusal pluskeepindependentdecodernegativecoverage. Preserveall3zeroidentity/zeroversion/oversizeddecoderrefusals andexactvalidroundtrip; do notrelaxCoreResourceRefvalidation or turnnegative intoemptyfilter.",
+    "scope": "Read-onlyexact567a source+actualfailedjob; no build/sourceedit/ownermutation"
+  }
+}

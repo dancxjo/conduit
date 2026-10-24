@@ -1,0 +1,7 @@
+{
+  "source": "5ea707e47ae321243113688f893365ca1d92513f",
+  "base": "567a4816dcf919dd2c049505494ae604f60d90b1",
+  "tree": "31e70bc6585363f7c8109303d3f441ae158b69fe",
+  "only_path": "semantics/data/tests/native_reference_bindings.rs",
+  "blob": "083e36710dde495363e6f93abfff94547dbe4121"
+}

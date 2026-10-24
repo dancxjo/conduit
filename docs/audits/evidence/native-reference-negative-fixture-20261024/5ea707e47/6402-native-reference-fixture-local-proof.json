@@ -1,0 +1,282 @@
+{
+  "source": "5ea707e47ae321243113688f893365ca1d92513f",
+  "base": "567a4816dcf919dd2c049505494ae604f60d90b1",
+  "tree": "31e70bc6585363f7c8109303d3f441ae158b69fe",
+  "started": 1792844853.3590028,
+  "steps": [
+    {
+      "name": "generated-reference-test",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-data",
+        "--test",
+        "native_reference_bindings",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "before_available_bytes": 10552610816,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-generated-reference-test.log",
+      "sha256": "effc1444f96f9c5aa07863bc9d43856ae1c94853b7b890c543c5f139e8da3d68",
+      "actual_passed_counts": [
+        3,
+        0,
+        1
+      ],
+      "actual_Running": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/deps/native_reference_bindings-55ae586e69f41304",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/deps/generated_reference_proof-f02f2086a5c95688"
+      ]
+    },
+    {
+      "name": "scoped-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-data",
+        "--test",
+        "native_reference_bindings",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "before_available_bytes": 16508059648,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-scoped-strict.log",
+      "sha256": "219bcced25200d665a8eb102975e341e1f03a13247d66b9ebf043471f7370da4",
+      "actual_passed_counts": [],
+      "actual_Running": []
+    }
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CONDUIT_NATIVE_REFERENCE_PROOF_RETAIN": "1"
+  },
+  "status": "passed",
+  "finished": 1792845005.0782175,
+  "clean_after": true,
+  "executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/deps/libserde_derive-5cf603e79f9c2c5b.so",
+      "bytes": 2908672,
+      "sha256": "dffa5afba863c7a2dd15f46d5da9863712d19d864937c4d907d4342bf43cf612"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/deps/native_reference_bindings-55ae586e69f41304",
+      "bytes": 13998304,
+      "sha256": "18cee8dee4ff5429b7580d8b57cfc9dda6ea23e1249b35dd44eee89851492ae4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/conduit-data-a6d9e61b6fe5eb7f/build_script_build-a6d9e61b6fe5eb7f",
+      "bytes": 6340312,
+      "sha256": "e41bb2784318fabea81fee823a9b74e8f3071535424ccb66817603a9c254797d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/conduit-data-a6d9e61b6fe5eb7f/build-script-build",
+      "bytes": 6340312,
+      "sha256": "e41bb2784318fabea81fee823a9b74e8f3071535424ccb66817603a9c254797d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/quote-576bc7579314484c/build_script_build-576bc7579314484c",
+      "bytes": 529416,
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/quote-576bc7579314484c/build-script-build",
+      "bytes": 529416,
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/serde-15822d110748cc9f/build_script_build-15822d110748cc9f",
+      "bytes": 540208,
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/serde-15822d110748cc9f/build-script-build",
+      "bytes": 540208,
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/proc-macro2-0c65f04c11310072/build_script_build-0c65f04c11310072",
+      "bytes": 564496,
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/proc-macro2-0c65f04c11310072/build-script-build",
+      "bytes": 564496,
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/libm-13320032431223a2/build_script_build-13320032431223a2",
+      "bytes": 494704,
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/libm-13320032431223a2/build-script-build",
+      "bytes": 494704,
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/conduit-time-93589004b8778d5c/build_script_build-93589004b8778d5c",
+      "bytes": 6228416,
+      "sha256": "ee9df450d15511c9826777010ffb1d4e58c3f954d6dc7e9684974cad83c78c9f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/conduit-time-93589004b8778d5c/build-script-build",
+      "bytes": 6228416,
+      "sha256": "ee9df450d15511c9826777010ffb1d4e58c3f954d6dc7e9684974cad83c78c9f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/conduit-time-2fb85a0691ff544f/build_script_build-2fb85a0691ff544f",
+      "bytes": 6200056,
+      "sha256": "06fd04d6c045c6c6cef854edb80c927f576b19343065decb08d0906d2567c977"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/conduit-time-2fb85a0691ff544f/build-script-build",
+      "bytes": 6200056,
+      "sha256": "06fd04d6c045c6c6cef854edb80c927f576b19343065decb08d0906d2567c977"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/generic-array-ec043840ceaa47ee/build_script_build-ec043840ceaa47ee",
+      "bytes": 562400,
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/generic-array-ec043840ceaa47ee/build-script-build",
+      "bytes": 562400,
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/serde_core-4502401426c6e232/build_script_build-4502401426c6e232",
+      "bytes": 541560,
+      "sha256": "97462b530c9aa50144cdfb2a493f6b86d74de5d65388ab3714507e5d0d52c76b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/serde_core-4502401426c6e232/build-script-build",
+      "bytes": 541560,
+      "sha256": "97462b530c9aa50144cdfb2a493f6b86d74de5d65388ab3714507e5d0d52c76b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/conduit-data-b4f7f0a6cb0c38c0/build_script_build-b4f7f0a6cb0c38c0",
+      "bytes": 6371432,
+      "sha256": "5cd4b51d141738356f65b73ed4a3c4f5588e5cf152a44bf81cbca36d6008c43b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-target/debug/build/conduit-data-b4f7f0a6cb0c38c0/build-script-build",
+      "bytes": 6371432,
+      "sha256": "5cd4b51d141738356f65b73ed4a3c4f5588e5cf152a44bf81cbca36d6008c43b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/deps/libserde_derive-3a9a92b455e63785.so",
+      "bytes": 4102280,
+      "sha256": "d322b270cd68cb7ae01773e3f69a30ab01b5790e32a7c51bf6850024dee96efc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/deps/generated_reference_proof-f02f2086a5c95688",
+      "bytes": 3120336,
+      "sha256": "cbe7bccfb8fb244589a91ab3708172b41ae83505dc3fa29c4d7d8d4a611b7795"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/serde-247d56cd5e7fa925/build_script_build-247d56cd5e7fa925",
+      "bytes": 603544,
+      "sha256": "69eff29ef542c974fe752543636852c996a20fdd89b7dc4d5db3a315bb3c7ec4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/serde-247d56cd5e7fa925/build-script-build",
+      "bytes": 603544,
+      "sha256": "69eff29ef542c974fe752543636852c996a20fdd89b7dc4d5db3a315bb3c7ec4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/conduit-data-1067d74a6669b86c/build_script_build-1067d74a6669b86c",
+      "bytes": 13681728,
+      "sha256": "5608d4dcbf0aa2a8a95196b697c9f4ee354cc34993b9e909ead532b7a8caf685"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/conduit-data-1067d74a6669b86c/build-script-build",
+      "bytes": 13681728,
+      "sha256": "5608d4dcbf0aa2a8a95196b697c9f4ee354cc34993b9e909ead532b7a8caf685"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/serde_core-b8ac279ad143839b/build_script_build-b8ac279ad143839b",
+      "bytes": 606376,
+      "sha256": "7af6d3f080848a07bc7e75fca68bfab4912293340da05ba276ed575361c7fa64"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/serde_core-b8ac279ad143839b/build-script-build",
+      "bytes": 606376,
+      "sha256": "7af6d3f080848a07bc7e75fca68bfab4912293340da05ba276ed575361c7fa64"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/conduit-time-6abd05b36ca075fe/build_script_build-6abd05b36ca075fe",
+      "bytes": 13511840,
+      "sha256": "55b535925d32aac15cf04843a3244a3fcb6c77c54fdb89bfb733db2a36f226e3"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/conduit-time-6abd05b36ca075fe/build-script-build",
+      "bytes": 13511840,
+      "sha256": "55b535925d32aac15cf04843a3244a3fcb6c77c54fdb89bfb733db2a36f226e3"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/libm-e50aa47372ad36b2/build_script_build-e50aa47372ad36b2",
+      "bytes": 557704,
+      "sha256": "220541cfa0ab88846cb041e2c777b78268380159f31f7c25f586b39b4ca93557"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/libm-e50aa47372ad36b2/build-script-build",
+      "bytes": 557704,
+      "sha256": "220541cfa0ab88846cb041e2c777b78268380159f31f7c25f586b39b4ca93557"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/quote-3fc8325c542a7467/build_script_build-3fc8325c542a7467",
+      "bytes": 570672,
+      "sha256": "ed3457564f103b2ef7d511510e4608482373fce0938402a7f80d603dcac32c92"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/quote-3fc8325c542a7467/build-script-build",
+      "bytes": 570672,
+      "sha256": "ed3457564f103b2ef7d511510e4608482373fce0938402a7f80d603dcac32c92"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/generic-array-3e7865b8dbffc0be/build_script_build-3e7865b8dbffc0be",
+      "bytes": 638296,
+      "sha256": "6bdf8f006652090a086d675e2014d370009c2a0b2d765b24a50b20b4c54d3478"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/generic-array-3e7865b8dbffc0be/build-script-build",
+      "bytes": 638296,
+      "sha256": "6bdf8f006652090a086d675e2014d370009c2a0b2d765b24a50b20b4c54d3478"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/proc-macro2-7fb462984b0328da/build_script_build-7fb462984b0328da",
+      "bytes": 628728,
+      "sha256": "5c104e40c5484b107386f3e86b6e910f767caae2c6b46bbff861c146c2d53a22"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6402-native-reference-tmp/conduit-native-reference-bindings-461585/target/debug/build/proc-macro2-7fb462984b0328da/build-script-build",
+      "bytes": 628728,
+      "sha256": "5c104e40c5484b107386f3e86b6e910f767caae2c6b46bbff861c146c2d53a22"
+    }
+  ],
+  "custody_audit": {
+    "all40ELFs_rehashed": true,
+    "actual_Running_paths_all_join_inventory": true,
+    "generated_inner_cases": 3,
+    "outer_cases": 1,
+    "generated_doc_tests": 0,
+    "original_CI_negative_sha256": "c8c3320d2e4dbfd84ff761b916e8d097b516e0d29ed4d0a0ab83695de6c7b1ca",
+    "limits": "Generatedconsumer rustc emits2preexistingdeadcodewarnings; strictPASSisowningconduit-data --testnative_reference_bindings only, notgeneratedsubcrate Clippy/alltargets/wholeCI. No productionCore changes."
+  }
+}
