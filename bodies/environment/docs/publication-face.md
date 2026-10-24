@@ -19,5 +19,17 @@ The CPU tests replay an actual physical canonical observation and compare exact
 quantity bytes, check explicit freshness and provenance, reject wrong-channel
 bytes, and construct the four decoder failure variants plus provider/geometry
 failures from their actual authored payload types. This proves interpretation,
-not live Mask delivery. The retained native owner still uses its existing local
-valid-reading projection; integration with this shared boundary remains work.
+not live Mask delivery. The retained native owner now uses this shared boundary for every authenticated
+channel. It saves unavailable-status Faces separately while still requiring
+three valid readings for the finite sampling proof. Physical acceptance of this
+integration remains pending.
+
+The Root acknowledgement transcript version 2 binds committed and inspected
+monotonic Boot times along with the exact publication sequence, channel, length
+and digest. Future commit times refuse verification. The finite owner admits a
+maximum age of twice the checked Source cadence and adds its entire measured
+inspection round trip to the signed age as a conservative transport bound.
+Reversed time and arithmetic overflow cannot become fresh. Receipt verification
+still binds the exact current command and the already admitted Boot key.
+These are publication commit times, not claims about precise sensor acquisition
+time or a global wall clock. Refs #6347.

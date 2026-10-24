@@ -69,6 +69,8 @@ pub(super) fn encode(
             state: crate::native_owner_receipt::State::Observed,
             snapshot: Some(crate::native_owner_receipt::Snapshot {
                 sequence: snapshot.publication_sequence,
+                committed_millis: snapshot.committed_millis.ok_or(())?,
+                observed_millis: embassy_time::Instant::now().as_millis(),
                 channel: snapshot.publication_channel.ok_or(())?,
                 bytes: publication_bytes.try_into().map_err(|_| ())?,
                 sha256: Sha256::digest(&publication[..publication_bytes]).into(),
@@ -84,7 +86,7 @@ pub(super) fn encode(
         operation,
         refusal,
         sequence: root.owner_control_sequence(),
-        current_offer_generation: root.offer_scope().2.0,
+        current_offer_generation: root.offer_scope().2 .0,
         setup_status: root.control_status(),
         next_play_sequence: root.next_play_sequence(),
         reservation: root.owner_reservation(),

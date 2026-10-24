@@ -3,7 +3,7 @@ use super::{control, document};
 use sha2::{Digest, Sha256};
 #[allow(dead_code)]
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_owner_receipt.rs"]
-mod receipt;
+pub(super) mod receipt;
 use conduit_core::HostAdvertisement;
 use std::{error::Error, path::Path};
 pub struct VerifiedPublication {
@@ -123,6 +123,8 @@ mod tests {
             state: receipt::State::Observed,
             snapshot: Some(receipt::Snapshot {
                 sequence: 4,
+                committed_millis: 100,
+                observed_millis: 150,
                 channel: 0,
                 bytes: 4,
                 sha256: Sha256::digest(&canonical).into(),

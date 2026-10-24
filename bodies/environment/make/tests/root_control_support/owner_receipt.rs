@@ -117,6 +117,8 @@ fn observed_receipt_authenticates_exact_committed_snapshot_metadata() {
     let command = request.transcript().unwrap();
     let snapshot = native_owner_receipt::Snapshot {
         sequence: 3,
+        committed_millis: 100,
+        observed_millis: 150,
         channel: 0,
         bytes: 1234,
         sha256: [4; 32],
@@ -134,7 +136,7 @@ fn observed_receipt_authenticates_exact_committed_snapshot_metadata() {
             .into_state(),
         State::Observed
     );
-    for change in 0..7 {
+    for change in 0..10 {
         let mut altered = snapshot;
         match change {
             0 => altered.sequence += 1,
@@ -143,7 +145,10 @@ fn observed_receipt_authenticates_exact_committed_snapshot_metadata() {
             3 => altered.sha256[0] ^= 1,
             4 => altered.sequence = 0,
             5 => altered.channel = 4,
-            _ => altered.bytes = 4097,
+            6 => altered.bytes = 4097,
+            7 => altered.committed_millis += 1,
+            8 => altered.observed_millis += 1,
+            _ => altered.committed_millis = 151,
         }
         let forged = Receipt {
             command,
@@ -189,4 +194,21 @@ fn retired_receipt_cannot_be_substituted_by_quiescence_or_another_command() {
             .err(),
         Some(Refusal::Scope)
     );
+}
+
+#[test]
+fn signed_publication_age_is_conservative_and_never_wraps() {
+    let mut snapshot = native_owner_receipt::Snapshot {
+        sequence: 1,
+        committed_millis: 100,
+        observed_millis: 150,
+        channel: 0,
+        bytes: 1,
+        sha256: [1; 32],
+    };
+    assert!(snapshot.fresh_within(60, 10));
+    assert!(!snapshot.fresh_within(59, 10));
+    assert!(!snapshot.fresh_within(u64::MAX, u64::MAX));
+    snapshot.committed_millis = 151;
+    assert!(!snapshot.fresh_within(u64::MAX, 0));
 }

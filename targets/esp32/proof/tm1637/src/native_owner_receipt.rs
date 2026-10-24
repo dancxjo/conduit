@@ -15,9 +15,22 @@ pub enum State {
 #[serde(deny_unknown_fields)]
 pub struct Snapshot {
     pub sequence: u64,
+    pub committed_millis: u64,
+    pub observed_millis: u64,
     pub channel: u8,
     pub bytes: u16,
     pub sha256: [u8; 32],
+}
+
+impl Snapshot {
+    /// Conservative age at the owning Host: caller adds its measured request
+    /// round trip, never substitutes a wall clock for the signed Boot clock.
+    pub fn fresh_within(&self, maximum_age_ms: u64, round_trip_ms: u64) -> bool {
+        self.observed_millis
+            .checked_sub(self.committed_millis)
+            .and_then(|age| age.checked_add(round_trip_ms))
+            .is_some_and(|age| age <= maximum_age_ms)
+    }
 }
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -29,13 +42,15 @@ pub struct Receipt {
 impl Receipt {
     pub fn transcript(&self) -> [u8; 32] {
         let mut hash = Sha256::new();
-        hash.update(b"conduit.environment/root-owner-acknowledgement@1");
+        hash.update(b"conduit.environment/root-owner-acknowledgement@2");
         hash.update(self.command);
         hash.update([self.state as u8]);
         match self.snapshot {
             Some(snapshot) => {
                 hash.update([1]);
                 hash.update(snapshot.sequence.to_le_bytes());
+                hash.update(snapshot.committed_millis.to_le_bytes());
+                hash.update(snapshot.observed_millis.to_le_bytes());
                 hash.update([snapshot.channel]);
                 hash.update(snapshot.bytes.to_le_bytes());
                 hash.update(snapshot.sha256);
@@ -61,7 +76,8 @@ impl Receipt {
         }
         if (self.state == State::Observed) != self.snapshot.is_some()
             || self.snapshot.is_some_and(|s| {
-                s.sequence == 0
+                s.committed_millis > s.observed_millis
+                    || s.sequence == 0
                     || s.channel >= 4
                     || s.bytes == 0
                     || s.bytes > 4096
