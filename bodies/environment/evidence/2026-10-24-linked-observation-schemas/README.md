@@ -19,4 +19,5 @@ This is not an MCU heap measurement or a whole appliance total. All 513 Core
 tests and 23 appliance/quantity/publication tests pass, including the full
 960-sample finite workload and recurring-allocation probes. Cortex-M0 Core
 checking and strict library linting are recorded alongside these results.
+The ESP32 native Face release image also links successfully (13 existing warnings).
 Physical captures remain historical until a separately recorded native run.
