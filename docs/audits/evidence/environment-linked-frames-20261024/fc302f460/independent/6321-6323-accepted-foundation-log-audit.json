@@ -1,0 +1,25 @@
+{
+  "source": "49f96286079c6ee35aaf5a77c0b3b9a4b8a26b61",
+  "integration": 40034779003,
+  "job": 120699793795,
+  "job_conclusion": "success",
+  "actual_log": "work/49f-foundation-job-120699793795.log",
+  "actual_log_sha256": "39b02394eb15b99e54508b1244c2b3a306ff4aa36cf6c79738d3116105fefffc",
+  "plot_library_tests": {
+    "passed": 476,
+    "failed": 0,
+    "existing_ignored": 1
+  },
+  "planner_library_tests": {
+    "passed": 84,
+    "failed": 0,
+    "ignored": 0
+  },
+  "explicit_numeric_admission_tests_verified": [
+    "ordinary_candidate_still_validates_properties_without_numeric_requirements",
+    "direct_placement_cannot_bypass_a_numeric_requirement",
+    "precision_gates_the_ordinary_selector_before_policy_and_is_sealed_in_plan"
+  ],
+  "scope": "Actual accepted-source foundation execution; no physical or frame-size claim from these CPU tests.",
+  "observed_utc": "2026-10-24T00:23:52.945113+00:00"
+}

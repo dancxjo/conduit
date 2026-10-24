@@ -1,0 +1,33 @@
+{
+  "issues": [
+    6321,
+    6323
+  ],
+  "accepted": "49f96286079c6ee35aaf5a77c0b3b9a4b8a26b61",
+  "integration": 40034779003,
+  "integration_successful_jobs": 25,
+  "new_rebuilt_source": "fc302f4600cd9e0021fa279c6b67e1b2d0467550",
+  "new_elf_sha256": "c2c3df87cb60e102dcaa242e1bf754d4874385724ae1518e2e8d7d7b9e290b4d",
+  "requirements": {
+    "6321": {
+      "ordinary_property_validation": "Actual accepted84planner tests include ordinary_candidate_still_validates_properties_without_numeric_requirements.",
+      "numerical_admission_and_ranking": "Actual direct-placement bypass and precision/ordinary-policy Plan sealing tests passed; unchanged request validation/certificate/refusal/work bounds independently reviewed.",
+      "tests_lint_delivery": "Owner84tests/strict lint and Candidate40028583374 passed; exact delivered before/after blobs verified; applicable accepted Integration25jobs passed.",
+      "exact_target_build_and_disassembly": "New pinned native-root release ELF and raw objdump retained. Ordinary candidate64bytes; optional numerical18144 and request10400 remain separately emitted. Both implementation files match accepted-source blobs.",
+      "separate_hardware_outcome": "Original planner-only flash/reset/preparation stack-guard negative retained byte-for-byte under historical847845ef5. Later ready-held outcome remains separate broader image; no startup claim from planner-only change."
+    },
+    "6323": {
+      "tests_lint_delivery": "Actual accepted476Plot tests/one existing ignored; owner strict Plot lint retained; Candidate40032973061 passed; actual tested-preview and delivered tree identical; accepted Integration25jobs passed.",
+      "target_effect_before_physical_test": "Original hash-bound frame report atfc302 precedes retained physical preparation; new independent ELF reproduces ordinary literal432bytes, quantity3328 and Unit1616; prior4416value remains original historical measurement.",
+      "retained_hardware_outcome": "Original ready-held physical task receipts retain zero Steps/dispatches/publications and exact sourcefc302/ELF72c45 identities; new public-test-key ELF is a different independent compile.",
+      "broader_scope_remains_open": "No complete Body start/release, Face/network/recorder/climate-sampling/overnight acceptance claim or closure."
+    }
+  },
+  "limits": [
+    "This newly built ELF is not the original physical72c45f6c image.",
+    "Public test-key provisioning differs; package release profile, semantic/resource/stack bounds and source are unchanged.",
+    "Function frames are not a complete call-graph stack bound.",
+    "No flashing, physical startup/task custody, Body start/release, sensor/network/Face/recorder execution or overnight claim from this rebuild."
+  ],
+  "observed_utc": "2026-10-24T00:32:00.318923+00:00"
+}

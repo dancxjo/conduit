@@ -1,0 +1,7 @@
+{
+  "conduit_planner::numerical_realization::has_requests": 48,
+  "conduit_planner::numerical_realization::requests": 10400,
+  "conduit_planner::numerical_realization::candidate_check": 64,
+  "conduit_planner::numerical_realization::is_profile": 48,
+  "conduit_planner::numerical_realization::numerical_candidate_check": 18144
+}

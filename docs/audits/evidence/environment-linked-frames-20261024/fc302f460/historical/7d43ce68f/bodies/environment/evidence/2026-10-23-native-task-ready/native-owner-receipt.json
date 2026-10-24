@@ -1,0 +1,23 @@
+{
+  "body_id": "ae2e03477c34ec3b12982675f340aa10e53da6e73d8dfc1ba4a75783f05c3968",
+  "body_started": false,
+  "climate_sampling_claimed": false,
+  "completed": true,
+  "event": "owner-preparation-complete",
+  "fragment_play": {
+    "active_play_id": "937810abd96a616c5c83e4233c4317a37746a473f62fe39ad37ddcb0320e38f8",
+    "boot_id": "boot/d4ea3a47331befcd59e2c84c50fe4374",
+    "host_id": "esp32/b0a732286178",
+    "plan_id": "80b9b378ace25ed4615079b9b783007b0fed6f28c3d3cf518b9955dba287be7a",
+    "play_sequence": 1
+  },
+  "owner_retained_through_preparation": true,
+  "plot_plan": "80b9b378ace25ed4615079b9b783007b0fed6f28c3d3cf518b9955dba287be7a",
+  "worker_context_bytes": 4640,
+  "worker_held_future_bytes": 3536,
+  "worker_task_held": true,
+  "proof_class": "physical-signed-native-preparation",
+  "root_heap_used_bytes": 105164,
+  "root_heap_peak_bytes": 109704,
+  "native_root_heap_bytes": 114688
+}

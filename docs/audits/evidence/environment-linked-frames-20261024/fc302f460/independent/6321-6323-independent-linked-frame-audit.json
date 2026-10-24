@@ -1,0 +1,92 @@
+{
+  "rebuilt_source": "fc302f4600cd9e0021fa279c6b67e1b2d0467550",
+  "new_elf_sha256": "c2c3df87cb60e102dcaa242e1bf754d4874385724ae1518e2e8d7d7b9e290b4d",
+  "new_elf_bytes": 2750168,
+  "public_test_key_sha256": "72cd6e8422c407fb6d098690f1130b7ded7ec2f7f5e1d30bd9d521f015363793",
+  "actual_frames": {
+    "conduit_planner::numerical_realization::has_requests": {
+      "address": "401a3c84",
+      "frame_bytes": 48,
+      "entry_instruction": "401a3c84:\t006136        \tentry\ta1, 48",
+      "disassembly_line": 361779
+    },
+    "conduit_planner::numerical_realization::requests": {
+      "address": "401a3cc4",
+      "frame_bytes": 10400,
+      "entry_instruction": "401a3cc4:\t514136        \tentry\ta1, 0x28a0",
+      "disassembly_line": 361807
+    },
+    "conduit_planner::numerical_realization::candidate_check": {
+      "address": "401a4754",
+      "frame_bytes": 64,
+      "entry_instruction": "401a4754:\t008136        \tentry\ta1, 64",
+      "disassembly_line": 362847
+    },
+    "conduit_planner::numerical_realization::is_profile": {
+      "address": "401b2964",
+      "frame_bytes": 48,
+      "entry_instruction": "401b2964:\t006136        \tentry\ta1, 48",
+      "disassembly_line": 385714
+    },
+    "conduit_planner::numerical_realization::numerical_candidate_check": {
+      "address": "401b2da4",
+      "frame_bytes": 18144,
+      "entry_instruction": "401b2da4:\t8dc136        \tentry\ta1, 0x46e0",
+      "disassembly_line": 386175
+    },
+    "conduit_plot::expression_evaluate::literal::literal_value": {
+      "address": "401c39c0",
+      "frame_bytes": 432,
+      "entry_instruction": "401c39c0:\t036136        \tentry\ta1, 0x1b0",
+      "disassembly_line": 413193
+    },
+    "conduit_plot::expression_evaluate::literal::quantity_literal_bytes": {
+      "address": "401cd6fc",
+      "frame_bytes": 3328,
+      "entry_instruction": "401cd6fc:\t1a0136        \tentry\ta1, 0xd00",
+      "disassembly_line": 428713
+    },
+    "conduit_plot::expression_evaluate::literal::unit_literal_bytes": {
+      "address": "401cdcec",
+      "frame_bytes": 1616,
+      "entry_instruction": "401cdcec:\t0ca136        \tentry\ta1, 0x650",
+      "disassembly_line": 429298
+    },
+    "conduit_plot::expression_evaluate::literal::literal_primitive_bytes": {
+      "address": "401d647c",
+      "frame_bytes": 144,
+      "entry_instruction": "401d647c:\t012136        \tentry\ta1, 144",
+      "disassembly_line": 443034
+    }
+  },
+  "linked_cpu_stack": {
+    "_stack_start_cpu0": 1073610752,
+    "_stack_end_cpu0": 1073581764,
+    "span_bytes": 28988
+  },
+  "symbols_sha256": "6726b6ee4dd5a602cae4571e629c5cbce66e91241a1417918292c36d378089e4",
+  "accepted_source": "49f96286079c6ee35aaf5a77c0b3b9a4b8a26b61",
+  "source_correspondence": [
+    {
+      "path": "architecture/plot/src/expression_evaluate/literal.rs",
+      "rebuilt_source_blob": "20ae71943fd440847848d063cf7375d0a0b5e78d",
+      "accepted_blob": "20ae71943fd440847848d063cf7375d0a0b5e78d",
+      "identical": true
+    },
+    {
+      "path": "architecture/planner/src/numerical_realization.rs",
+      "rebuilt_source_blob": "194c056c236e49a2bb0c20df90c98cb48b33f1f3",
+      "accepted_blob": "194c056c236e49a2bb0c20df90c98cb48b33f1f3",
+      "identical": true
+    }
+  ],
+  "matches_all_nine_retained_owner_frame_values": true,
+  "status": "independently rebuilt and measured exact target functions",
+  "limits": [
+    "This newly built ELF is not the original physical72c45f6c image.",
+    "Public test-key provisioning differs; package release profile, semantic/resource/stack bounds and source are unchanged.",
+    "Function frames are not a complete call-graph stack bound.",
+    "No flashing, physical startup/task custody, Body start/release, sensor/network/Face/recorder execution or overnight claim from this rebuild."
+  ],
+  "observed_utc": "2026-10-24T00:30:48.143757+00:00"
+}

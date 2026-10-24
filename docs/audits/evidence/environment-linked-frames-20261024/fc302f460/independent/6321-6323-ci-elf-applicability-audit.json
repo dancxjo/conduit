@@ -1,0 +1,26 @@
+{
+  "integration": 40034779003,
+  "artifact_id": 12538496860,
+  "artifact_name": "product-esp32-wroom",
+  "source": "49f96286079c6ee35aaf5a77c0b3b9a4b8a26b61",
+  "zip_sha256": "04a3273f92a5b528968483562895a33483d5c40f898be482bee5538cc820c90c",
+  "elf_sha256": "e55dc9ae46465a974edaedfa01867d17b55555aed354f08dbcd761b960efb823",
+  "receipt_file_hashes_verified": [
+    "esp32-wroom.bin",
+    "esp32-wroom.elf",
+    "esp32-wroom.json",
+    "firmware-build.json",
+    "proof-scope.txt"
+  ],
+  "actual_disassembly_sha256": "a138f18e3f38dba4f1b2c0a954b17899dc68dd6c4bff3aeeebd01ef28242c327",
+  "actual_objdump": "/home/dancxjo/.rustup/toolchains/esp-conduit-1.91.1/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin/xtensa-esp32-elf-objdump -Cd",
+  "absent_required_symbols": [
+    "conduit_plot::expression_evaluate::literal::literal_value",
+    "conduit_plot::expression_evaluate::literal::quantity_literal_bytes",
+    "conduit_planner::numerical_realization::candidate_check",
+    "conduit_planner::numerical_realization::numerical_candidate_check"
+  ],
+  "decision": "Different Bluetooth firmware; cannot independently establish environmental planner/literal frame counts or substitute for original physical appliance ELF.",
+  "scope": "Retained actual CI binary/disassembly inspected; no physical execution and no issue closure from unrelated firmware.",
+  "observed_utc": "2026-10-24T00:12:50.321461+00:00"
+}

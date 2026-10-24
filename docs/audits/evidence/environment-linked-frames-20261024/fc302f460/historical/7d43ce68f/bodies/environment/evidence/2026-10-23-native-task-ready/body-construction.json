@@ -1,0 +1,13 @@
+{
+  "body_id": "ae2e03477c34ec3b12982675f340aa10e53da6e73d8dfc1ba4a75783f05c3968",
+  "body_installed_on_mcu": false,
+  "body_plan_id": "body-plan/sha256:88227d79d7096374a48412ec689f295ca952975eba24291ff888f8b3a670c9c6",
+  "boot_id": "boot/d4ea3a47331befcd59e2c84c50fe4374",
+  "capability_possession_issued": false,
+  "host_id": "esp32/b0a732286178",
+  "masks": 0,
+  "play_started": false,
+  "plot_plan_id": "80b9b378ace25ed4615079b9b783007b0fed6f28c3d3cf518b9955dba287be7a",
+  "proof_class": "host-body-proposal-from-physical-admission-and-current-root-offers",
+  "wake": "AwaitingPlan"
+}

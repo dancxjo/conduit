@@ -1,0 +1,164 @@
+{
+  "conclusion": "success",
+  "headSha": "49f96286079c6ee35aaf5a77c0b3b9a4b8a26b61",
+  "jobs": [
+    {
+      "databaseId": 120699037503,
+      "name": "proof / candidate/quick",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793683,
+      "name": "proof / unit (hosts-std)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793712,
+      "name": "proof / unit (hosts-conduitos)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793721,
+      "name": "proof / unit (products)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793723,
+      "name": "proof / unit (hosts-workbench)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793731,
+      "name": "proof / unit (hosts-browser)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793758,
+      "name": "proof / unit (lint)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793795,
+      "name": "proof / unit (foundation)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793873,
+      "name": "proof / target / browser",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793896,
+      "name": "proof / target / avr",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793904,
+      "name": "proof / target / conduitos-loongarch64",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793908,
+      "name": "proof / target / conduitos-ia32",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793916,
+      "name": "proof / target / conduitos-x86_64",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793939,
+      "name": "proof / target / hosted-linux",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793944,
+      "name": "proof / target / conduitos-aarch64",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793949,
+      "name": "proof / target / orange-pi",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793954,
+      "name": "proof / target / raspberry-pi",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793962,
+      "name": "proof / target / conduitos-riscv64",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793972,
+      "name": "proof / target / esp32-wroom",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793973,
+      "name": "proof / target / esp32-c3",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699793984,
+      "name": "proof / target / hosted-windows",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699794015,
+      "name": "proof / target / esp32-s3",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699794041,
+      "name": "proof / target / hosted-macos",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699794178,
+      "name": "proof / target / rp2040",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "databaseId": 120699795144,
+      "name": "proof / admission",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "databaseId": 120718087141,
+      "name": "proof / complete",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/dancxjo/conduit/actions/runs/40034779003"
+}
