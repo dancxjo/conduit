@@ -1,47 +1,20 @@
 #![cfg(target_os = "linux")]
 use conduit_core::{self as c, AuthorityBinding};
-use conduit_linux_snapshot_store::{
-    FileSnapshotRefusal as E, PreparedFileSnapshot, SnapshotDirectory,
-};
+use conduit_linux_snapshot_store::{FileSnapshotRefusal as E, PreparedFileSnapshot};
 use conduit_resource_snapshot::{
     PreparedSnapshotRecord, SnapshotRefusal, MAXIMUM_RECORD_BYTES, PUBLISH_OPERATION,
     READ_OPERATION,
 };
-use std::{
-    fs::{self, File},
-    path::PathBuf,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use std::{fs, path::PathBuf};
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
 #[path = "../../../../mechanisms/io/resource-snapshot/tests/support/fixture.rs"]
 mod fixture;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
-struct Root {
-    path: PathBuf,
-}
-impl Root {
-    fn prepare() -> Self {
-        use std::os::unix::fs::DirBuilderExt;
-        static NEXT: AtomicU64 = AtomicU64::new(0);
-        let path = std::env::temp_dir().join(format!(
-            "conduit-snapshot-{}-{}",
-            std::process::id(),
-            NEXT.fetch_add(1, Ordering::Relaxed)
-        ));
-        fs::DirBuilder::new().mode(0o700).create(&path).unwrap();
-        Self { path }
-    }
-    fn directory(&self) -> SnapshotDirectory {
-        SnapshotDirectory::prepare(File::open(&self.path).unwrap()).unwrap()
-    }
-}
-impl Drop for Root {
-    fn drop(&mut self) {
-        fs::remove_dir_all(&self.path).unwrap();
-    }
-}
+#[path = "support/directory.rs"]
+mod directory;
+use directory::Root;
 fn published_path(
     root: &Root,
     placement: &c::PlannedGear,

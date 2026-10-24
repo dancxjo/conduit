@@ -34,3 +34,21 @@ Directory ownership must exclude competing mutators. OS sync success is the
 publication boundary here; crash/power-loss acceptance has not been performed.
 The Pi service, planned MCU Line and recorder application remain unfinished.
 Refs #6352 and #6350.
+
+`PreparedFileSnapshotOperation` now connects the shared typed Host Call operation
+to these file effects. It validates JSON or the exact reference before I/O,
+performs once per pending request, and retains completion bytes for output
+pressure without repeating I/O. `finish` retires correlation only after the
+caller attempts the actual kernel completion or cancellation. A valid envelope
+hash alone cannot make invalid JSON a typed read result. Storage uncertainty
+remains a distinct refusal and produces no success output.
+
+Four additional request-protocol tests use explicit numeric node/request fixtures
+with actual file effects. They cover allocation-free publish/read completion,
+foreign and duplicate requests, invalid inputs, invalid stored JSON and storage
+refusals. They do not demonstrate a started production kernel or Body. Current
+Host/Boot/Play custody, live capability checks, selected node/directory identity,
+full admission and the recorder service remain Root integration responsibilities.
+Preparation currently retains both typed-operation and file-primitive record
+buffers; their complete memory closure must be admitted, rather than inferred
+from either output bound.

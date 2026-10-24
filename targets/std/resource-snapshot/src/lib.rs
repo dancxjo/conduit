@@ -10,3 +10,8 @@ mod snapshot;
 pub use directory::SnapshotDirectory;
 #[cfg(target_os = "linux")]
 pub use snapshot::{FileSnapshotRefusal, IoStage, PreparedFileSnapshot};
+
+#[cfg(target_os = "linux")]
+mod operation;
+#[cfg(target_os = "linux")]
+pub use operation::{FileOperationRefusal, PreparedFileSnapshotOperation};

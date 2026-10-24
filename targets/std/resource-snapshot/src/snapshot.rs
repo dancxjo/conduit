@@ -55,6 +55,7 @@ pub struct PreparedFileSnapshot<'a> {
     candidate: Name,
     buffer: [u8; MAXIMUM_RECORD_BYTES],
     attempted: bool,
+    buffer_len: usize,
 }
 impl<'a> PreparedFileSnapshot<'a> {
     pub fn prepare(
@@ -74,6 +75,7 @@ impl<'a> PreparedFileSnapshot<'a> {
             candidate,
             buffer: [0; MAXIMUM_RECORD_BYTES],
             attempted: false,
+            buffer_len: 0,
         })
     }
     /// Success follows file sync, non-replacing link, candidate removal and
@@ -152,6 +154,15 @@ impl<'a> PreparedFileSnapshot<'a> {
         &'b mut self,
         authority: &AuthorityBinding,
     ) -> Result<&'b [u8], FileSnapshotRefusal> {
+        self.load_record(authority)?;
+        self.record
+            .restore(authority, &self.buffer[..self.buffer_len])
+            .map_err(Into::into)
+    }
+    pub(crate) fn load_record(
+        &mut self,
+        authority: &AuthorityBinding,
+    ) -> Result<(), FileSnapshotRefusal> {
         self.record.check_read_binding(authority)?;
         let file = self
             .directory
@@ -202,8 +213,10 @@ impl<'a> PreparedFileSnapshot<'a> {
         if count != 0 {
             return Err(FileSnapshotRefusal::InvalidFile);
         }
-        self.record
-            .restore(authority, &self.buffer[..length])
-            .map_err(Into::into)
+        self.buffer_len = length;
+        Ok(())
+    }
+    pub(crate) fn cached_record(&self) -> &[u8] {
+        &self.buffer[..self.buffer_len]
     }
 }
