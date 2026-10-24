@@ -16,6 +16,16 @@ pub enum PublicationChannel {
     GeometryRefusal,
 }
 impl PublicationChannel {
+    pub(crate) fn linked_type_bytes(self) -> &'static [u8] {
+        match self {
+            Self::Reading => include_bytes!(concat!(env!("OUT_DIR"), "/observation-result.type")),
+            Self::CaptureTimeout => include_bytes!(concat!(env!("OUT_DIR"), "/pulse-capture.type")),
+            Self::ProviderFailure | Self::GeometryRefusal => {
+                include_bytes!(concat!(env!("OUT_DIR"), "/empty.type"))
+            }
+        }
+    }
+
     /// Validate against independently linked checked channel Types without
     /// retaining a second heap schema. This grants no producer authority.
     pub fn validate_value(self, bytes: &[u8]) -> Result<(), c::StructuredInfoRefusal> {

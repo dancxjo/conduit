@@ -43,6 +43,7 @@ pub use generated::{
     SevenSegmentSelection, SevenSegmentShow, SevenSegmentTemperatureUnit,
 };
 mod format;
+mod prepared_show;
 mod projection;
 mod rounding;
 mod timed;
@@ -51,6 +52,7 @@ pub use format::{
     render, render_for_profile, Alternation, MaskDisposition, MaskUnavailable, RenderedShow,
     TimingRefusal,
 };
+pub use prepared_show::{PreparedAlternatingShow, ShowPreparationRefusal};
 pub use projection::{FaceProjectionRefusal, PreparedEnvironmentFace};
 pub use timed::TimedSevenSegmentMask;
 pub use wiring::{DigitWiring, Tm1637Profile, WireBit, WiringRefusal};
