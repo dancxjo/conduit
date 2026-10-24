@@ -14,6 +14,8 @@ mod hit_regions;
 use hit_regions::DiagramHits;
 #[path = "diagram_badges.rs"]
 mod badges;
+#[path = "diagram_port_badges.rs"]
+mod port_badges;
 const MAX_VISIBLE_LINKS: usize = 12;
 
 pub(super) fn pages(face: &Face, width: u16, height: u16) -> usize {
@@ -200,6 +202,13 @@ pub(super) fn append<'a>(
         height,
     );
     let title_inset = if badges { badges::INSET } else { 0 };
+    let port_badges = port_badges::admit(
+        face,
+        &gears,
+        height,
+        geometry.width,
+        card_commands(face, &gears, height) + visible_links + usize::from(badges) * gears.len(),
+    )?;
     for (index, gear) in gears.into_iter().enumerate() {
         let bounds = card(index);
         let (title, origin) = gear_labels(&gear.name);
@@ -275,6 +284,19 @@ pub(super) fn append<'a>(
                 },
                 port.identity.as_str(),
             ));
+            if port_badges {
+                port_badges::append(
+                    scene,
+                    LayoutRect {
+                        x: bounds.x + 12,
+                        y,
+                        width: bounds.width - 24,
+                        height: 23,
+                    },
+                    screen,
+                    paint,
+                )?;
+            }
             push(
                 scene,
                 GraphicsCommand::text(

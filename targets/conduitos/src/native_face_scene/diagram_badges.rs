@@ -60,12 +60,20 @@ mod tests {
             .iter()
             .filter(|c| c.kind == GraphicsCommandKind::Icon)
             .collect();
-        assert_eq!(icons.len(), 3);
-        assert!(
+        assert_eq!(
             icons
                 .iter()
-                .all(|c| c.payload() == FaceIconKey::GenericGear.as_str())
+                .filter(|c| c.payload() == FaceIconKey::GenericGear.as_str())
+                .count(),
+            3
         );
+        assert!(icons.iter().all(|c| {
+            [
+                FaceIconKey::GenericGear.as_str(),
+                FaceIconKey::Port.as_str(),
+            ]
+            .contains(&c.payload())
+        }));
         assert_eq!(
             commands
                 .iter()
