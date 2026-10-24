@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "base_owner_local_unpublished_source": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+  "test_only_negative_source": "952042c1e6e9d6621bb31d9bbfece541eadfe7c5",
+  "positive_source": "0d60f9a659c6a7a816df01ec7ad09e5aab614ee1",
+  "CSS_exact_existing0873_replacement": true,
+  "patch_sha256": "79a5792290c18682494b6e4e64eb2c288a4e6e6b5e9b1727863142b1572f200c",
+  "two_source_paths": [
+    "proof/browser/owner-face-component.spec.mjs",
+    "targets/browser/handbook/owner-face-look.css"
+  ],
+  "logs_verified": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-forced-negative.log",
+      "sha256": "bdfc8c481a740d9f8cb03d0fa53ff54bd805c1a40e25363625d881de4caead13",
+      "exit_code": 1,
+      "summary": "2 legacy controls failed on unchanged cb CSS"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-forced-unpatched-three-controls.log",
+      "sha256": "e6161b9b0937b94a3afd4f42b913e7621bec225b3f445f5856ab77a9f45e5534",
+      "exit_code": 1,
+      "summary": "2 legacy failed, canonical control passed; initial CSS apply failed from wrong working directory"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-forced-positive-fixed.log",
+      "sha256": "1a0ead7479e824604466b5e74e18b7ddea3ffeae0f9ddc6f4dab7de60f1ffa4c",
+      "exit_code": 0,
+      "summary": "3 controls passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-forced-complete.log",
+      "sha256": "7a1f09f7b8a9cf9e2e82ff0037991663624d37d9536799016bd9fec7fa441846",
+      "exit_code": 0,
+      "summary": "108 component fixtures passed"
+    }
+  ],
+  "results": "2legacyfail; wrongcwd/unpatchedrerun2legacyfail+1normalcanonicalpass; patched3pass; full108pass21.0s. Failedapplynotrelabeledpatchedexecution.",
+  "canonical_control_qualification": "Thirdcontrol complete selected Look tokens override palette hints without changing action meaning is NORMALcolor/action/clearing test; it doesNOTemulateforcedcolors.3controlPASS=2legacyforcedtokencontrols+1normalcanonicalLookcontrol, notnewcanonicalLookforced-colorsexecution. NewtypedLookforcedselectorcoherence remains source-reviewed.",
+  "scope": "LocalrendererfixtureChromium1.62oneworker0retry;8byteemptyWASMfixture,noactualWASM/Body/Show/ownerACK. OwnercbUNPUBLISHED, noabsorption/refpublication/PR/CI/native/physical/canonicalLookacceptance. Linuxrelease pinned separatelycb, not0d60.",
+  "hygiene": "Trackedcheckoutclean;borrowednode_moduleslinkremoved.",
+  "operations": "Read-onlysource/patch/logaudit; no reruns/build/network/refmutation."
+}

@@ -1,0 +1,48 @@
+{
+  "base_owner_local_unpublished_source": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+  "negative_test_only_source": "952042c1e6e9d6621bb31d9bbfece541eadfe7c5",
+  "positive_source": "0d60f9a659c6a7a816df01ec7ad09e5aab614ee1",
+  "checkout": "/tmp/conduit-6351-cb498-forced-fixture",
+  "CSS_patch_identical_to_existing_remote_repair": "0873cfd464a92223b90f5b4418db38126c5bd4df",
+  "new_Source_changes": [
+    "24 existing Root regression-test lines appended",
+    "one existing Root CSS specificity repair line"
+  ],
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-forced-negative.log",
+      "sha256": "bdfc8c481a740d9f8cb03d0fa53ff54bd805c1a40e25363625d881de4caead13",
+      "exit_code": 1,
+      "summary": "2 legacy controls failed on unchanged cb CSS"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-forced-unpatched-three-controls.log",
+      "sha256": "e6161b9b0937b94a3afd4f42b913e7621bec225b3f445f5856ab77a9f45e5534",
+      "exit_code": 1,
+      "summary": "2 legacy failed, canonical control passed; initial CSS apply failed from wrong working directory"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-forced-positive-fixed.log",
+      "sha256": "1a0ead7479e824604466b5e74e18b7ddea3ffeae0f9ddc6f4dab7de60f1ffa4c",
+      "exit_code": 0,
+      "summary": "3 controls passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-forced-complete.log",
+      "sha256": "7a1f09f7b8a9cf9e2e82ff0037991663624d37d9536799016bd9fec7fa441846",
+      "exit_code": 0,
+      "summary": "108 component fixtures passed"
+    }
+  ],
+  "browser": "Chromium, pinned Playwright1.62.0, one worker, zero retries",
+  "fixture_runtime_bytes": 8,
+  "fixture_runtime_sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+  "owner_source_modified": false,
+  "borrowed_node_modules_symlink_removed": true,
+  "publication_held": true,
+  "limits": [
+    "Renderer token/control fixture only; no Body/action/Show receipt or actual WASM execution",
+    "Original owner Source cb is unpublished; no remote branch absorption/publication",
+    "Linux release build independently remains pinned to cb, not this CSS repair Source"
+  ]
+}

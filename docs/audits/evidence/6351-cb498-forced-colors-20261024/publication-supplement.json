@@ -1,0 +1,82 @@
+{
+  "source": "e8be16ebad96ffa32db6e360a491a3d7dbaa0255",
+  "owner_published_base": "cb4983f58b3f785734c166243514cbb848ea2f9a",
+  "source_branch": "repair/6351-cb498-forced-colors-20261024",
+  "current_publication_boundary": "Live PR 6351 head equals cb498; draft remains unchanged. Earlier receipts accurately held publication before that base was published.",
+  "full_suite": {
+    "source": "0d60f9a659c6a7a816df01ec7ad09e5aab614ee1",
+    "passed": 108
+  },
+  "supplement": {
+    "source": "e8be16ebad96ffa32db6e360a491a3d7dbaa0255",
+    "passed": 1,
+    "production_css_same_as_full_suite": true
+  },
+  "limits": [
+    "Empty eight-byte WASM renderer fixture, not live Body/action/Show proof.",
+    "No full 109-test suite execution claimed.",
+    "No owner branch mutation or new PR."
+  ],
+  "files": [
+    {
+      "path": "outputs/6351-cb498-forced-repair-local-proof.json",
+      "bytes": 2423,
+      "sha256": "02b5a96ad0bf9e33a1a0d6b44e451df8ff9a2a4432150d9c2fc09f9f45e1e7b1"
+    },
+    {
+      "path": "outputs/6351-cb498-forced-repair-independent-review.json",
+      "bytes": 2772,
+      "sha256": "3d7efb16e6d9fd080143b66498816e8703a1047076fa13af79e4848dcb136417"
+    },
+    {
+      "path": "outputs/6351-cb498-canonical-forced-supplement.json",
+      "bytes": 831,
+      "sha256": "c90a6c9ce487c94cceaca05fec3e0363721d84d6c35e41e48f17a3b389e5ad97"
+    },
+    {
+      "path": "outputs/6351-cb498-canonical-forced-independent-supplement.json",
+      "bytes": 1541,
+      "sha256": "f39feda6f18508e85c0e197b0acaeb99ae18cdaea7e67cc13d858acf174e2141"
+    },
+    {
+      "path": "work/6351-cb498-forced-negative.log",
+      "bytes": 5555,
+      "sha256": "bdfc8c481a740d9f8cb03d0fa53ff54bd805c1a40e25363625d881de4caead13"
+    },
+    {
+      "path": "work/6351-cb498-forced-unpatched-three-controls.log",
+      "bytes": 5734,
+      "sha256": "e6161b9b0937b94a3afd4f42b913e7621bec225b3f445f5856ab77a9f45e5534"
+    },
+    {
+      "path": "work/6351-cb498-forced-positive-fixed.log",
+      "bytes": 832,
+      "sha256": "1a0ead7479e824604466b5e74e18b7ddea3ffeae0f9ddc6f4dab7de60f1ffa4c"
+    },
+    {
+      "path": "work/6351-cb498-forced-complete.log",
+      "bytes": 16657,
+      "sha256": "7a1f09f7b8a9cf9e2e82ff0037991663624d37d9536799016bd9fec7fa441846"
+    },
+    {
+      "path": "work/6351-cb498-canonical-forced.log",
+      "bytes": 549,
+      "sha256": "767634f6061500e7ae2b8dd6f82ebef8f1339721774868f7ab7ad7e3f174c0b3"
+    },
+    {
+      "path": "outputs/6351-cb498-existing-forced-repair-with-canonical-control.patch",
+      "bytes": 6509,
+      "sha256": "ddc076feb69c11daf90ea581565ad899bdf5da9df590399165ecd6f22b6ab4f4"
+    },
+    {
+      "path": "outputs/6351-cb498-forced-root-text.png",
+      "bytes": 55037,
+      "sha256": "220fc6ab2bee0dcf005b736cbadc681d7be477fd1ee2bf019e0193fb630aa5d5"
+    },
+    {
+      "path": "outputs/6351-cb498-forced-fixture-runtime.wasm",
+      "bytes": 8,
+      "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476"
+    }
+  ]
+}

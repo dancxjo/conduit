@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "source": "e8be16ebad96ffa32db6e360a491a3d7dbaa0255",
+  "parent_full108_source": "0d60f9a659c6a7a816df01ec7ad09e5aab614ee1",
+  "only_change": "27-linecanonicalforced-colorsregressioninowner-face-component.spec.mjs; allproductiontargetsidentical",
+  "shared_canonical_fixture": {
+    "path": "proof/conformance/face-look/phosphor-look-v2.hex",
+    "git_blob": "fa85b8eac4327fe0bfb8b70dcb9b09550a0467ea",
+    "sha256": "0703025781721a6b45f5694545e270852037f670c15e666663e3dfae6d1317ef",
+    "canonical_wire_sha256": "e952ac59ed7c381ca190232b5cd0792cd472b04da0bebc3fe74f65702948e24d"
+  },
+  "actual_control": "CanonicalphosphorLookwire+contradictoryeditorialhint; forcedColorsactive BEFOREshow; exactselectedLookidentity+all8computedhostsystemtokens+enablednamedactionasserted.",
+  "log_sha256": "767634f6061500e7ae2b8dd6f82ebef8f1339721774868f7ab7ad7e3f174c0b3",
+  "actual_passed": 1,
+  "elapsed": "1.5s",
+  "prior_full108": "Retainedseparateat0d60; no109suiteexecutionclaim. Newcontrolclosespreviouslynot-exercisedcanonicalforcedroutefixturegap.",
+  "limits": [
+    "8byteemptyWASMrendererfixture,noactualWASM/Body/Show/ownerACK/native/CI/physical/canonicalcrosscomponentacceptance.",
+    "Localunpublishedownerbasecb andrepairdescendantsheld; nopublication/absorption/ownerchanges.",
+    "Linuxrelease frozenatcbseparately, noCSSrepairsourceexecutionrelabel."
+  ],
+  "hygiene": "Trackedsourceclean;borrowednode_modulessymlinkremoved.",
+  "operations": "Read-onlysupplementaudit; norerun/build/network/refwrites."
+}

@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "source": "e8be16ebad96ffa32db6e360a491a3d7dbaa0255",
+  "production_CSS_unchanged_from_full108_source": "0d60f9a659c6a7a816df01ec7ad09e5aab614ee1",
+  "test": "canonical selected Look yields its colors to forced system colors",
+  "canonical_fixture": "proof/conformance/face-look/phosphor-look-v2.hex",
+  "actual_passed": 1,
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-cb498-canonical-forced.log",
+  "sha256": "767634f6061500e7ae2b8dd6f82ebef8f1339721774868f7ab7ad7e3f174c0b3",
+  "full_109_suite_claimed": false,
+  "prior_full108_receipt": "outputs/6351-cb498-forced-repair-local-proof.json",
+  "scope": "One added canonical selected-Look forced-colors renderer fixture; empty8byteWASM, no Body/Show/owner/native/CI claim",
+  "publication_held": true
+}

@@ -1,0 +1,14 @@
+[WebServer] (node:368633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 3 tests using 1 worker
+
+(node:368684) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/3] [chromium] › proof/browser/owner-face-component.spec.mjs:1488:1 › complete selected Look tokens override palette hints without changing action meaning
+[2/3] [chromium] › proof/browser/owner-face-component.spec.mjs:1528:3 › forced colors replace admitted editorial palette tokens
+[3/3] [chromium] › proof/browser/owner-face-component.spec.mjs:1528:3 › forced colors replace admitted phosphor palette tokens
+  3 passed (2.3s)
