@@ -11,21 +11,25 @@ const recipes = Object.freeze({
   'conduit.face/todo-grouped@1': 'grouped',
   'conduit.face/todo-required-item@1': 'required-item',
 });
+let controlsSequence = 0;
 
 export function createOwnerLookControls(onApply) {
+  const prefix = `owner-look-${++controlsSequence}-`;
   const element = document.createElement('fieldset');
   element.className = 'owner-look-controls';
   const legend = decorate(document.createElement('legend'), 'Face');
   legend.append('View appearance');
   const fields = document.createElement('div'); fields.className = 'owner-look-fields';
   const select = (caption, choices) => {
+    const field = document.createElement('div'); field.className = 'owner-look-field';
     const label = document.createElement('label'); label.append(caption);
     const input = document.createElement('select');
+    input.id = prefix + fields.children.length; label.htmlFor = input.id;
     for (const [value, name] of choices) {
       const option = document.createElement('option'); option.value = value;
       option.textContent = name; input.append(option);
     }
-    label.append(input); fields.append(label); return input;
+    field.append(label, input); fields.append(field); return input;
   };
   const density = select('Density', [['compact', 'Compact'], ['spacious', 'Spacious']]);
   const palette = select('Palette', [['phosphor', 'Phosphor · dark'], ['editorial', 'Editorial · light']]);

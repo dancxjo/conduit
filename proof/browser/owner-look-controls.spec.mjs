@@ -63,6 +63,8 @@ test('Look controls remain readable and reachable at narrow width and large forc
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   const palette = page.getByLabel('Palette', { exact: true });
-  await palette.focus(); await expect(palette).toBeFocused();
+  await page.getByLabel('Density', { exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await expect(palette).toBeFocused();
   expect(await palette.evaluate(node => getComputedStyle(node).outlineStyle)).toBe('solid');
 });

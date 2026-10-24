@@ -201,8 +201,15 @@ recipe guessing or second Face store is introduced. Minimum text size remains
 a hard user constraint. Typography is supplied by the selected preset and is
 reported in the Shown status; separate typography selection remains outstanding.
 
-Wire checks preserve exact Show integers across all four presets. The 137
-Chromium renderer, reachability, sealed-module and controls checks pass with
-one worker/zero retries, including narrow/forced-color controls. The Rust closed
+Wire checks preserve exact Show integers across all four presets. The 140
+registered Chromium renderer, reachability, sealed-module and controls checks
+pass with one worker/zero retries, including narrow/forced-color controls. The Rust closed
 transport mapping check passes. A fresh runtime/installed-owner encounter is
 recorded separately; fixture controls do not establish owner acknowledgement.
+
+The first focused browser invocation ran 137 existing checks but omitted the new
+controls file because the shared config uses an explicit test allowlist. The
+file is now registered. Live UI inspection also exposed select option text in
+wrapped-label names; explicit native label/for associations fix that. The new
+forced-color check exposed undefined-theme focus styling, now backed by native
+system colors. Negative setup/test results are retained beside final results.
