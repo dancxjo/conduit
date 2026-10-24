@@ -6,6 +6,9 @@ use alloc::string::String;
 #[path = "layout/mechanical.rs"]
 mod mechanical;
 pub(super) use mechanical::admit as admit_mechanical;
+#[path = "layout/surfaces.rs"]
+mod surfaces;
+pub(super) use surfaces::append_region_surfaces;
 
 #[path = "layout/configured.rs"]
 mod configured;
@@ -30,6 +33,7 @@ pub(super) struct Row {
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
     pub subject_index: Option<usize>,
+    pub region: Option<u8>,
     pub page: usize,
     pub bounds: LayoutRect,
     pub region_start: bool,
@@ -100,7 +104,7 @@ pub(super) fn append_row_chrome(
     showing_details: bool,
     focused: bool,
 ) -> Result<(), FaceSceneError> {
-    if !showing_details && row.region_start {
+    if !showing_details && row.region_start && row.region.is_none() {
         push(
             scene,
             GraphicsCommand::rect(
@@ -164,6 +168,7 @@ pub(super) fn append_row_chrome(
         )?;
     }
     if !showing_details
+        && (row.icon.is_none() || row.emphasized())
         && matches!(
             row.role,
             GraphicsTextRole::Title | GraphicsTextRole::Heading
@@ -348,6 +353,7 @@ pub(super) fn admit_with_expression_selected(
                 paint: item.paint,
                 control: item.control,
                 subject_index: item.subject_index,
+                region: item.region,
                 page,
                 region_start,
                 padding,
@@ -394,10 +400,13 @@ fn row_commands(item: &document::Item, region_start: bool) -> usize {
         + usize::from(item.checkbox.is_some())
         + usize::from(item.control.is_some() && item.checkbox.is_none())
         + usize::from(region_start)
-        + usize::from(matches!(
-            item.role,
-            GraphicsTextRole::Title | GraphicsTextRole::Heading
-        ))
+        + usize::from(
+            (item.icon.is_none() || item.control.is_some())
+                && matches!(
+                    item.role,
+                    GraphicsTextRole::Title | GraphicsTextRole::Heading
+                ),
+        )
 }
 
 fn measure_prefix(

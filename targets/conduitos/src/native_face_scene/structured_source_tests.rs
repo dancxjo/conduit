@@ -254,3 +254,54 @@ fn verify_reviewed_sources(require_first_page: bool) {
         }
     }
 }
+
+#[test]
+fn checked_creche_groups_have_cohesive_surfaces_within_the_original_frame_budget() {
+    let face = naming_acceptance_tests::actual_face();
+    let prepared = structure(CRECHE_LAYOUT_MASK_SOURCE, "creche-component-columns", &face);
+    let expression = admit_visual_expression(
+        Ok(VisualExpression::phosphor()),
+        VisualUserConstraints {
+            forced_colors: false,
+            reduced_motion: true,
+            minimum_text_scale_percent: 100,
+            maximum_supported_text_scale_percent: 200,
+        },
+    )
+    .unwrap();
+    let scene =
+        NativeFaceScene::prepare_structured(&prepared, 1280, 800, true, &expression).unwrap();
+    let frame = scene.frame().unwrap();
+    let surfaces: Vec<_> = frame
+        .scene
+        .commands()
+        .iter()
+        .filter(|command| {
+            command.kind == GraphicsCommandKind::Rect
+                && command.paint == GraphicsPaintRole::Surface
+                && command.style == GraphicsShapeStyle::RoundedFill
+        })
+        .collect();
+    assert_eq!(surfaces.len(), 2);
+    for surface in &surfaces {
+        assert!(surface.bounds.x >= 16);
+        assert!(i32::from(surface.bounds.x) + i32::from(surface.bounds.width) <= 1280 - 16);
+    }
+    for row in scene
+        .primary
+        .iter()
+        .filter(|row| row.page == 0 && row.region.is_some())
+    {
+        assert!(surfaces.iter().any(|surface| {
+            let outer = surface.bounds;
+            outer.x <= row.bounds.x
+                && outer.y <= row.bounds.y
+                && i32::from(outer.x) + i32::from(outer.width)
+                    >= i32::from(row.bounds.x) + i32::from(row.bounds.width)
+                && i32::from(outer.y) + i32::from(outer.height)
+                    >= i32::from(row.bounds.y) + i32::from(row.bounds.height)
+        }));
+    }
+    assert_eq!(scene.face(), &face);
+    assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+}

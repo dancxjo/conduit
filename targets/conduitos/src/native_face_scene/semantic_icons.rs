@@ -19,6 +19,23 @@ pub(super) fn for_role(role: &FaceRole) -> Option<FaceIconKey> {
     })
 }
 
+/// Explicit owner-offered intents choose decoration, never captions or opaque IDs.
+pub(super) fn for_intent(intent: &str) -> Option<FaceIconKey> {
+    Some(match intent {
+        "conduit.intent/birth@1" | "conduit.intent/creche.birth@1" | "conduit.intent/wake@1" => {
+            FaceIconKey::Wake
+        }
+        "conduit.intent/creche.name@1" | "patchbay/edit-subject@1" => FaceIconKey::Type,
+        "conduit.intent/creche.naming@1" => FaceIconKey::GenericGear,
+        "conduit.intent/creche.suggest@1" | "todo/reopen@1" => FaceIconKey::Repeat2,
+        "conduit.intent/open-inspection@1" | "conduit.intent/inspect@1" => FaceIconKey::Status,
+        "conduit.intent/fulfill@1" | "todo/complete@1" => FaceIconKey::Confirm,
+        "conduit.intent/open-body-overview@1" => FaceIconKey::Body,
+        "conduit.intent/open-resident-plot@1" | "patchbay/select-plot@1" => FaceIconKey::Face,
+        _ => return None,
+    })
+}
+
 pub(super) fn inset(icon: Option<FaceIconKey>) -> u16 {
     if icon.is_some() { 24 } else { 0 }
 }
@@ -70,6 +87,26 @@ mod tests {
             FaceRole::Semantic(conduit_core::kind_id("custom/warning")),
         ] {
             assert_eq!(for_role(&role), None);
+        }
+    }
+
+    #[test]
+    fn action_decoration_requires_an_exact_offered_intent() {
+        assert_eq!(
+            for_intent("conduit.intent/creche.birth@1"),
+            Some(FaceIconKey::Wake)
+        );
+        assert_eq!(
+            for_intent("conduit.intent/creche.name@1"),
+            Some(FaceIconKey::Type)
+        );
+        for intent in [
+            "Birth Body",
+            "creche.birth",
+            "custom/conduit.intent/creche.birth@1",
+            "conduit.intent/creche.birth@2",
+        ] {
+            assert_eq!(for_intent(intent), None);
         }
     }
 

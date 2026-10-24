@@ -143,3 +143,30 @@ The native reference remains unfinished: this capture exposes sparse native
 action icon coverage and a largely flat control treatment instead of the
 reference's cohesive panel surfaces and hierarchy. Dark navy remains available;
 warm Editorial is an additional expression, not a claim of reference completion.
+
+## Native grouped-surface refinement
+
+The checked Crèche Mask Source now supplies an outer two-em inset. Native action
+icons follow exact offered intents for Birth/Wake, name editing, naming settings,
+suggestion, inspection, completion and Plot opening. Unknown intents remain
+text-only. Row records retain the checked recipe group for painting only.
+
+A single bounded Surface fill replaces each authored group's separate region
+dividers, so naming and Plot-selection areas read as cohesive panels. Role icons
+replace redundant heading accent bars; primary action/focus outlines remain.
+The fill pass uses fixed storage for at most 20 page rows and no new allocation.
+This reuses the existing per-group cue budget instead of raising the 48-command
+limit. Exact text, action/control order, bindings and Face identity are retained.
+
+The first icon/inset attempt caused the existing four-selected-Plots-on-first-
+page check to fail. That requirement was preserved and repaired through group
+cue budgeting. The focused wide-first-page, complete-content and group-surface
+checks now pass. The properties-in-Details test still checks exact disclosure;
+its incidental three-pixel bar assertion now checks the explicit Document icon.
+Final broad scene replay and fresh native captures follow this checkpoint.
+
+The browser runtime has also been built from the preceding committed source and
+staged with all 90 current browser resources and regenerated reviewed Plot
+bundles. Actual Birth, all three Looks at two widths, and the three 390px axe
+scans pass (zero A/AA violations). Native structured-Mask changes in this
+checkpoint still need the corresponding incremental runtime rebuild.

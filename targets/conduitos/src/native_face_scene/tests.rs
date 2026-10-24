@@ -352,10 +352,11 @@ fn primary_view_leaves_properties_in_details() {
         assert!(scene.details.iter().any(|row| row.text == clause.text));
     }
     let frame = scene.frame().unwrap();
+    // The explicit Document icon is the heading cue; an additional accent
+    // bar would duplicate that cue and spend another bounded command.
     assert!(frame.scene.commands().iter().any(|command| {
-        command.kind == GraphicsCommandKind::Rect
-            && command.paint == GraphicsPaintRole::Accent
-            && command.bounds.width == 3
+        command.kind == GraphicsCommandKind::Icon
+            && command.payload() == FaceIconKey::Type.as_str()
     }));
 }
 

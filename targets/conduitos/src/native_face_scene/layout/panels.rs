@@ -343,6 +343,7 @@ pub(super) fn admit(
                 paint: item.paint,
                 control: item.control,
                 subject_index: item.subject_index,
+                region: item.region,
                 page: flow.page,
                 region_start,
                 padding,
