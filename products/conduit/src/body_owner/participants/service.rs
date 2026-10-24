@@ -1,6 +1,7 @@
 //! Service-owned browser authorization. The carrier worker never owns membership
 //! truth: every challenge and completion is applied on the serialized owner actor.
 mod admission;
+mod retained_plan;
 mod route;
 #[cfg(test)]
 mod tests;

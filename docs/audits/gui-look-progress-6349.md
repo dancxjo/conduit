@@ -584,3 +584,14 @@ the checkpoint, but its following Face refresh loses the Line with an expired
 isolated. Replacement success does not certify continuing interactive liveness.
 The negative receipt is preserved; native/current-source QEMU and Patchbay
 checked-component reuse remain open.
+
+## Retain the immutable owner Mask Plan across Face refresh
+
+A diagnostic trace at the preceding source shows a presence renewal queued for
+about 1.3 seconds behind a fresh action. A successful diagnostic retry does not
+clear the original lease-expiry failure. The owner now reuses only its intact
+Mask Plan on the same compiled source/root, current browser offer and exact
+carrier Lines; changed inputs replan normally. Fresh Face/route/Show admission
+and the two-second lease stay unchanged. The focused CLI owner test passes,
+including negative source/root/Host/Line/seal cases. Rebuilt live proof is pending.
+[Local contract and pre-change timing](evidence/gui-look-6349-retained-plan/README.md).
