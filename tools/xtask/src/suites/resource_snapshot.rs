@@ -31,6 +31,8 @@ pub const STEPS: &[Step] = &[
             "-p",
             "conduit-browser-runtime",
             "--no-default-features",
+            "--features",
+            "plot-runner",
             "--lib",
             "plot_runner::resource_effect_tests",
         ],
