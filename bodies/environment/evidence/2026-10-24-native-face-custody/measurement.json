@@ -1,0 +1,44 @@
+{
+  "proof_class": "attended actual native Face custody and signed-publication replay; finite run",
+  "source_commit": "cef00a3750279b6489813a91b0659462c2f87b02",
+  "public_command": "cargo xtask prove environment owner-face-run-esp32",
+  "observations": [
+    {
+      "source_sequence": 1,
+      "revision": 1,
+      "face_identity": "8e006c3014bb9b308ecb64abaa3d832faa908334f1feac2442307aca6b131532",
+      "publisher_retained": true,
+      "fresh": true,
+      "available": true,
+      "committed_ms": 90206
+    },
+    {
+      "source_sequence": 2,
+      "revision": 2,
+      "face_identity": "c0f1d87aed0e9b9489727ad7a43dcf19490d6033339a8a2bed38bf1ab435b9ca",
+      "publisher_retained": true,
+      "fresh": true,
+      "available": true,
+      "committed_ms": 150162
+    },
+    {
+      "source_sequence": 3,
+      "revision": 3,
+      "face_identity": "cf516b45999cd6fe281b6d6d9b34e2a6c3b364891130fe7a578731628b2c1953",
+      "publisher_retained": true,
+      "fresh": true,
+      "available": true,
+      "committed_ms": 210177
+    }
+  ],
+  "publisher_released_after_retirement": true,
+  "linked_stack_bytes": 36972,
+  "stack_floor_bytes": 36864,
+  "root_heap_bytes": 114688,
+  "sdk_heap_bytes": 73728,
+  "root_heap_peak_bytes": 105236,
+  "root_heap_after_retirement_bytes": 9756,
+  "mask_on_mcu": false,
+  "physical_mask_delivery": false,
+  "interrupt_latency_measured": false
+}
