@@ -1,6 +1,6 @@
 //! Root-private entry policy and immutable native observations, not Source fuel.
 use crate::{
-    protected_region::{DomainFault, DomainRefusal, DomainReturn},
+    protected_region::{DomainCost, DomainFault, DomainRefusal, DomainReturn},
     service_memory::ServiceProfile,
 };
 // Existing ordinary frame-sized bound; no grant change in this interface.
@@ -134,6 +134,15 @@ impl NativeEntryReceipt {
             (1, 0x10e) => DomainReturn::Fault(DomainFault::Memory),
             (1, _) => DomainReturn::Fault(DomainFault::InvalidInstruction),
             _ => DomainReturn::Fault(DomainFault::InvalidGate),
+        }
+    }
+    /// Preserve the existing shared service-entry outcome counters for every
+    /// profile; immutable receipt capture does not replace this accounting.
+    pub(in crate::arch::x86_64) fn account_outcome(self, cost: &mut DomainCost) {
+        match self.outcome() {
+            DomainReturn::Yielded | DomainReturn::Gate => cost.gate_transitions += 1,
+            DomainReturn::Fault(DomainFault::WorkExhausted) => cost.preemptions += 1,
+            DomainReturn::Fault(_) | DomainReturn::Preempted | DomainReturn::Completed => {}
         }
     }
 }

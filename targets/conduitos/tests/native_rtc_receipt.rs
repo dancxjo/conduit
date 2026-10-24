@@ -1,7 +1,7 @@
 //! Actual pure entry-policy source with real shared types. This does not execute
 //! Budget::arm, RTC IRQs, assembly entry or the ServiceDomain integration.
 mod protected_region {
-    pub use conduitos::protected_region::{DomainFault, DomainRefusal, DomainReturn};
+    pub use conduitos::protected_region::{DomainCost, DomainFault, DomainRefusal, DomainReturn};
 }
 mod service_memory {
     pub use conduitos::service_memory::ServiceProfile;

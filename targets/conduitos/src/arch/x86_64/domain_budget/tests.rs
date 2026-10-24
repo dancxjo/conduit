@@ -82,3 +82,49 @@ fn native_fault_classification_is_preserved() {
         );
     }
 }
+
+#[test]
+fn every_profile_preserves_gate_and_preemption_accounting_without_charging_other_faults() {
+    for budget in [
+        EntryBudget::Ordinary,
+        EntryBudget::Draft,
+        EntryBudget::Application(
+            ApplicationRemaining::new(ServiceProfile::Application, 1).unwrap(),
+        ),
+        EntryBudget::Application(
+            ApplicationRemaining::new(ServiceProfile::Application, 64).unwrap(),
+        ),
+    ] {
+        for (origin, value, gates, preemptions) in [
+            (0, 0, 1, 0),
+            (0, 0x200, 1, 0),
+            (2, 4, 0, 1),
+            (1, 0x10d, 0, 0),
+            (1, 0x10e, 0, 0),
+            (1, 4, 0, 0),
+            (9, 0, 0, 0),
+        ] {
+            let receipt = NativeEntryReceipt::capture(
+                EntryIdentity::new(7, 17).unwrap(),
+                budget,
+                (0, 0),
+                value,
+                origin,
+            )
+            .unwrap();
+            let mut actual = DomainCost {
+                entries: 17,
+                gate_transitions: 5,
+                preemptions: 2,
+                interrupt_entries: 21,
+                source_timer_interrupts: 9,
+                ..DomainCost::default()
+            };
+            let mut expected = actual;
+            expected.gate_transitions += gates;
+            expected.preemptions += preemptions;
+            receipt.account_outcome(&mut actual);
+            assert_eq!(actual, expected);
+        }
+    }
+}

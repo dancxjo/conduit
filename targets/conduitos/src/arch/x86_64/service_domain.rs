@@ -147,6 +147,7 @@ impl ServiceDomain {
         self.cost.privilege_transitions +=
             2 + 2 * interrupts.saturating_sub(u64::from(result.origin() == 2));
         let returned = result.outcome();
+        result.account_outcome(&mut self.cost);
         // A fault cannot leave an executable instance or readable stale response.
         if matches!(returned, DomainReturn::Fault(_)) {
             self.quarantine();
