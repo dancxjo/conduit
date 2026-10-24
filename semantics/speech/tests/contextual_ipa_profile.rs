@@ -140,7 +140,7 @@ fn declared_g1_selects_initial_aspiration_and_medial_plain_without_rewriting_com
             choice.selected_phone()
         );
         assert_eq!(
-            prepared.definition().notation(),
+            prepared.definition().ipa(),
             if n % 4 == 0 {
                 "tʰ"
             } else if n % 2 == 0 {
