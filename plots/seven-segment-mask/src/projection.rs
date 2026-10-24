@@ -28,7 +28,10 @@ impl<'a> PreparedEnvironmentFace<'a> {
     /// Call once per revision; a timed Mask can reuse this immutable view.
     pub fn prepare(face: &'a Face, subject: &str) -> Result<Self, FaceProjectionRefusal> {
         use FaceProjectionRefusal as R;
-        if face.subjects.len() > 4 || face.properties.len() > 16 {
+        // The input is the parent Body Face, not a replacement Face containing
+        // only sensor properties. Keep preparation finite while allowing the
+        // ordinary Body lifecycle/ownership subjects alongside the selection.
+        if face.subjects.len() > 16 || face.properties.len() > 64 {
             return Err(R::TooLarge);
         }
         face.validate().map_err(|_| R::InvalidFace)?;
