@@ -1,0 +1,7 @@
+# Four reviewed changes: actual proposed mixed-source proof
+
+Exact execution sourcee9f8787ccbf3a0fda086a5e4d568cb7f597d34e1/tree d35051b7b0b512ef82e76fd37902479a65c43a06 normally merges the four reviewed owner heads6380/6382/6384(90a)/6385. All heads remain ancestors, all32 original before/after file deltas are exact, and no manual source edits were introduced. Source and evidence recovery branches are create-only.
+
+Ten sequential existing focused Cargo commands passed102 actual tests: owning runtime35default+36source-capture and strictalltarget lint both; Mask13+strictalltarget lint; assigned-plan Fore9default+9allfeatures and strictalltarget lint both. Each command had at least7GiB available before launch. Complete raw logs are gzip compressed with raw/stored hashes, exactargv/environment/exit, clean source/tree and named results. Actual Cargo Running executable paths are joined to independently rehashed retained local executable inventories. Binaries are local, not hosted here.
+
+This is actual proposed-source CPU/component integration evidence, including changed Plot/Language/Mask/Fore dependencies. It is not currentdev delivery, a new Candidate run, accepted Integration, native scheduling/installation, physical capture/display, firmware, parent6378/6295 completion or issueclosure. Original proofs retain their original source identities. No PR or owner source branch is changed by this evidence publication.

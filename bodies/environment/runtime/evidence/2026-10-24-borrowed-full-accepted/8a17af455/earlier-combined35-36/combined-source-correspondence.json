@@ -1,0 +1,32 @@
+{
+  "source": "0872c37862e62d657fcd57a7740e4655008ebea1",
+  "parents": [
+    "40e63b6a7a79bb5691f98f0706396630bf168047",
+    "efc427b1926159c9d93a55f6591c76d024798b5e"
+  ],
+  "tree": "05986adf4c0ad6daf2fecd83a0b0452c1d29eba7",
+  "runtime_tree": "f21a561749a3bbacf15770fcaece51337e19d60e",
+  "bridge_files": [
+    {
+      "path": "bodies/environment/runtime/tests/observation_kernel.rs",
+      "blob": "c345f70777536d3127d06e6b40b07ab5c6d4af92",
+      "sha256": "acf9517aa1487f2d2f17156a199ab57414960cd2161e1dc49e37767dd7d9efe8"
+    },
+    {
+      "path": "bodies/environment/runtime/tests/support/assignment.rs",
+      "blob": "78e4efe6b7e43d2d1af098ad71a2c7fbffb33885",
+      "sha256": "3cd38be0cbe9106725183430141bd67e4172790a978de314d59f4f75be65c4d3"
+    }
+  ],
+  "runtime_delta_against_actual_prior_combined_5b97": [
+    "tests/observation_kernel.rs",
+    "tests/support/assignment.rs"
+  ],
+  "actual_proof": "35default and36capture full runtime suites, strictalltargetClippy both configurations, exact source/clean state/rawlogs/retainedlocalELFs.",
+  "qualification": [
+    "OriginalPR6380head40e63 stays unchanged; no combinedCandidate/Integration inferred.",
+    "Actual component/runtime proof may only qualify future tree when entire runtime subtree equals f21a.",
+    "Source/program/build/runtime/test helpers all included by whole-runtime tree identity.",
+    "Physical fixture origin unverified/no native/firmware/physical/parent6295 completion."
+  ]
+}

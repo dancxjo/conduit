@@ -1,0 +1,99 @@
+{
+  "status": "conditional_requirement_fidelity_yes",
+  "accepted_source": "8a17af455f08702bc3ef3124b69e7d8c624b3b8a",
+  "current_source": "e8797ffd23928391face70b5586ae37d9234c041",
+  "current_tree": "be722c7c85e0553256f1cb4c42ac6919081f3755",
+  "exact_feature_and_stable_inputs": {
+    "bodies/environment/runtime": {
+      "accepted": "f21a561749a3bbacf15770fcaece51337e19d60e",
+      "current": "f21a561749a3bbacf15770fcaece51337e19d60e"
+    },
+    "plots/seven-segment-mask": {
+      "accepted": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+      "current": "a3793a22d26e116e91340ee19604d8bcfd031d10"
+    },
+    "architecture/core": {
+      "accepted": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+      "current": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b"
+    },
+    "semantics/face": {
+      "accepted": "6addb0188d273f7c1beebcee20e2d6601619e452",
+      "current": "6addb0188d273f7c1beebcee20e2d6601619e452"
+    },
+    "bodies/environment/face": {
+      "accepted": "727a9b0781fdad19a43ccea9c77f6900395710f0",
+      "current": "727a9b0781fdad19a43ccea9c77f6900395710f0"
+    },
+    "architecture/assigned-plan": {
+      "accepted": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+      "current": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6"
+    },
+    "Cargo.toml": {
+      "accepted": "d2d5273953e62bc058c9942986d6b893d89adf9b",
+      "current": "d2d5273953e62bc058c9942986d6b893d89adf9b"
+    },
+    "Cargo.lock": {
+      "accepted": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+      "current": "285364ea28d2408d4c77288c81b3baa8c6ca0f72"
+    },
+    "rust-toolchain.toml": {
+      "accepted": "906b1d8542b6f94b5238046e198e9c2672b6c8e0",
+      "current": "906b1d8542b6f94b5238046e198e9c2672b6c8e0"
+    },
+    ".cargo/config.toml": {
+      "accepted": "f78c2a86adf680cfd4100b80183bd01677472aeb",
+      "current": "f78c2a86adf680cfd4100b80183bd01677472aeb"
+    }
+  },
+  "exact_known_delta_paths": [
+    "architecture/plot/src/rust_binding/generate_prepared_storage.rs",
+    "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs",
+    "architecture/plot/src/rust_binding/mod.rs",
+    "architecture/plot/src/rust_binding/prepared_decode.rs",
+    "architecture/plot/src/rust_binding/prepared_native.rs",
+    "architecture/plot/tests/prepared_native_decode.rs",
+    "docs/reuse-ledger.md",
+    "make/embedded-build/FORE.md",
+    "make/embedded-build/src/assigned_plan.rs",
+    "make/embedded-build/src/fore.rs",
+    "make/embedded-build/src/generate.rs",
+    "make/embedded-build/src/lib.rs",
+    "make/embedded-build/src/model.rs",
+    "make/embedded-build/src/validate.rs",
+    "make/embedded-build/tests/local_fore.rs",
+    "proof/language/6065-current-prepared-native/README.md",
+    "proof/language/6065-current-prepared-native/actual-beam.log.gz",
+    "proof/language/6065-current-prepared-native/beam-admission-regression.log.gz",
+    "proof/language/6065-current-prepared-native/plot-regressions.log.gz",
+    "proof/language/6065-current-prepared-native/results.json",
+    "proof/language/6065-current-prepared-native/strict-library-clippy.log.gz",
+    "semantics/language/build.rs",
+    "semantics/language/src/lib.rs",
+    "semantics/language/tests/actual_beam_prepared_decode.rs",
+    "tools/xtask/src/suites/native_source_laws.rs"
+  ],
+  "changed_dependency_packages": [
+    "architecture/plot",
+    "semantics/language",
+    "make/embedded-build"
+  ],
+  "original_issue_sources": [
+    "outputs/6313-current-requirements-0640.json",
+    "outputs/6381-current-requirements.json"
+  ],
+  "reason": "Original scopes demand actual owning current-dev tests and strict lint plus actual Candidate/delivery/applicable descendant Integration, not local whole accepted-tree execution or unrelated current global Native-image proof. Current owning proof is actual f7a/be72208dd126, distinct from any accepted8a17 CI execution.",
+  "required_guards": [
+    "Full actual successful applicable Integration at exact8a17; not observed or claimed by this audit",
+    "Reviewed actual Candidate and delivery identities for each issue",
+    "Exact original feature blobs at accepted8a17 and currentbe722",
+    "Known25pathNative17+Make8delta only; changed dependency packages explicitly retained",
+    "Current whole tree exactbe722 backed by independently validated08dd126 component closures/root inputs",
+    "Fresh full issue scope/current remote and immutable accepted evidence before closure"
+  ],
+  "nonclaims": [
+    "No local owning execution at8a17",
+    "No current globalIntegration or Nativeimage acceptance inferred",
+    "No unknown descendant waiver, physical proof or parent closure"
+  ],
+  "audit_mode": "Read-only Git/source/requirements; no CI queries, build, ref writes or helper changes"
+}

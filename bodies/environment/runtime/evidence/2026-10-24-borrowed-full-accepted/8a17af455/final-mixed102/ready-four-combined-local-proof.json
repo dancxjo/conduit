@@ -1,0 +1,1111 @@
+{
+  "source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "tree": "d35051b7b0b512ef82e76fd37902479a65c43a06",
+  "runtime_tree": "f21a561749a3bbacf15770fcaece51337e19d60e",
+  "mask_tree": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+  "fore_tree": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+  "composition_verified": true,
+  "all_32_paths_exact": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "runtime-default",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml"
+      ],
+      "log": "work/ready-four-combined-runtime-default.log",
+      "sha256": "e84a31e80ee6677f0eb25867d7e95a846c35b16b80c52be2b3c0273f186661fe",
+      "exit_code": 0,
+      "before_available_bytes": 12160376832,
+      "actual_test_counts": [
+        0,
+        1,
+        1,
+        4,
+        3,
+        2,
+        2,
+        6,
+        5,
+        8,
+        3,
+        0
+      ],
+      "actual_passed": 35,
+      "actual_named_successes": [
+        "test overnight_workload_preserves_typed_failures_and_finite_cadence ... ok",
+        "test borrowed_validation_matches_prepared_shape_checks_without_allocation ... ok",
+        "test a_replacement_native_provider_cannot_consume_the_existing_plan ... ok",
+        "test assigned_native_facts_cannot_substitute_the_local_grant_or_attachment ... ok",
+        "test a_fresh_boot_reuses_the_resident_layout_with_a_fresh_plan_identity ... ok",
+        "test checked_source_traverses_the_production_kernel_and_closes_after_each_outcome ... ok",
+        "test frame_keeps_invalid_brightness_for_the_authored_refusal_fore ... ok",
+        "test source_packets_preserve_registers_and_refuse_invalid_brightness_without_allocating ... ok",
+        "test canonical_packets_match_the_driver_type_and_preserve_all_six_registers ... ok",
+        "test compact_storage_refuses_inexact_overflowing_truncated_and_wrong_type_values ... ok",
+        "test authored_quantity_forms_round_trip_exact_observations_without_play_allocations ... ok",
+        "test coordinate_overflow_and_wrong_schemas_refuse_without_allocating ... ok",
+        "test source_and_forms_emit_quantities_and_preserve_all_sensor_outcomes ... ok",
+        "test empty_publication_channels_prepare_within_one_kib ... ok",
+        "test zero_event_admission_refuses_values_but_still_closes_normally ... ok",
+        "test publication_is_invisible_until_commit_and_uses_no_play_allocation ... ok",
+        "test malformed_wrong_typed_and_cancelled_publications_never_replace_current_state ... ok",
+        "test publication_storage_preserves_the_full_quantity_coordinate_width ... ok",
+        "test all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity ... ok",
+        "test context_is_finite_and_is_not_invented_by_the_encoder ... ok",
+        "test replay_conflict_order_gaps_clock_and_failure_absence_are_explicit ... ok",
+        "test every_authored_absence_and_sequence_exhaustion_remains_explicit ... ok",
+        "test selected_snapshot_extent_is_known_before_samples_and_never_changes_on_partial_flush ... ok",
+        "test sixty_four_samples_seal_as_bounded_json_without_allocating_or_claiming_commit ... ok",
+        "test history::empty_admission_refuses_and_standalone_reader_does_not_inherit_history ... ok",
+        "test wrong_identity_form_clock_and_noncanonical_json_cannot_be_reinterpreted ... ok",
+        "test history::boundary_replay_clock_foreign_context_and_corruption_refuse_atomically ... ok",
+        "test corrupted_records_refuse_atomically_without_replacing_prior_recovery ... ok",
+        "test recovered_quantities_failures_and_gaps_require_no_play_allocations ... ok",
+        "test history::ordered_chunks_preserve_quantities_failures_and_boundary_gaps_without_allocations ... ok",
+        "test history::admitted_sixty_four_chunk_history_has_no_hidden_eviction_or_growth ... ok",
+        "test full_chunk_recovers_but_truncation_or_sixty_fifth_record_refuses ... ok",
+        "test source_keeps_length_range_negative_and_recovery_semantics ... ok",
+        "test validated_capture_reaches_the_same_quantity_face_and_fahrenheit_mask ... ok",
+        "test captured_frames_become_quantities_only_after_source_validation_without_allocating ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/conduit_environment_runtime-2ecee2966c21ec87",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/cadence-d28e0303195f4d74",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/canonical_input-7463fb6b5e236831",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/capture_kernel-27f7e5114f7599d4",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/display_packets-4d46e78dcb40722d",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/observation_forms-bf6f5cf692615c09",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/observation_kernel-f87ba95de384c051",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/publication-91c6dd7e1e97e6d6",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/recording_chunks-32dc97821b2c491a",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/recording_recovery-521055a432873b98",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/source_frames-0e40c03f8fefe03d"
+      ]
+    },
+    {
+      "name": "runtime-default-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/ready-four-combined-runtime-default-strict.log",
+      "sha256": "de44f127b98487f43dcea0f46814755ef2f91b4bc6558dc47b4044d10bb1c03b",
+      "exit_code": 0,
+      "before_available_bytes": 10811232256,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": []
+    },
+    {
+      "name": "runtime-capture",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "source-capture"
+      ],
+      "log": "work/ready-four-combined-runtime-capture.log",
+      "sha256": "17e4be1423c0e50fad458e7da84ac39ef773b3ed2cd1c7c83dad97b292466de6",
+      "exit_code": 0,
+      "before_available_bytes": 10684682240,
+      "actual_test_counts": [
+        0,
+        1,
+        1,
+        4,
+        3,
+        2,
+        2,
+        6,
+        5,
+        8,
+        4,
+        0
+      ],
+      "actual_passed": 36,
+      "actual_named_successes": [
+        "test overnight_workload_preserves_typed_failures_and_finite_cadence ... ok",
+        "test borrowed_validation_matches_prepared_shape_checks_without_allocation ... ok",
+        "test a_replacement_native_provider_cannot_consume_the_existing_plan ... ok",
+        "test assigned_native_facts_cannot_substitute_the_local_grant_or_attachment ... ok",
+        "test a_fresh_boot_reuses_the_resident_layout_with_a_fresh_plan_identity ... ok",
+        "test checked_source_traverses_the_production_kernel_and_closes_after_each_outcome ... ok",
+        "test frame_keeps_invalid_brightness_for_the_authored_refusal_fore ... ok",
+        "test source_packets_preserve_registers_and_refuse_invalid_brightness_without_allocating ... ok",
+        "test canonical_packets_match_the_driver_type_and_preserve_all_six_registers ... ok",
+        "test compact_storage_refuses_inexact_overflowing_truncated_and_wrong_type_values ... ok",
+        "test authored_quantity_forms_round_trip_exact_observations_without_play_allocations ... ok",
+        "test coordinate_overflow_and_wrong_schemas_refuse_without_allocating ... ok",
+        "test source_and_forms_emit_quantities_and_preserve_all_sensor_outcomes ... ok",
+        "test empty_publication_channels_prepare_within_one_kib ... ok",
+        "test zero_event_admission_refuses_values_but_still_closes_normally ... ok",
+        "test malformed_wrong_typed_and_cancelled_publications_never_replace_current_state ... ok",
+        "test all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity ... ok",
+        "test publication_is_invisible_until_commit_and_uses_no_play_allocation ... ok",
+        "test publication_storage_preserves_the_full_quantity_coordinate_width ... ok",
+        "test context_is_finite_and_is_not_invented_by_the_encoder ... ok",
+        "test replay_conflict_order_gaps_clock_and_failure_absence_are_explicit ... ok",
+        "test every_authored_absence_and_sequence_exhaustion_remains_explicit ... ok",
+        "test selected_snapshot_extent_is_known_before_samples_and_never_changes_on_partial_flush ... ok",
+        "test sixty_four_samples_seal_as_bounded_json_without_allocating_or_claiming_commit ... ok",
+        "test history::empty_admission_refuses_and_standalone_reader_does_not_inherit_history ... ok",
+        "test wrong_identity_form_clock_and_noncanonical_json_cannot_be_reinterpreted ... ok",
+        "test history::boundary_replay_clock_foreign_context_and_corruption_refuse_atomically ... ok",
+        "test corrupted_records_refuse_atomically_without_replacing_prior_recovery ... ok",
+        "test recovered_quantities_failures_and_gaps_require_no_play_allocations ... ok",
+        "test history::ordered_chunks_preserve_quantities_failures_and_boundary_gaps_without_allocations ... ok",
+        "test history::admitted_sixty_four_chunk_history_has_no_hidden_eviction_or_growth ... ok",
+        "test full_chunk_recovers_but_truncation_or_sixty_fifth_record_refuses ... ok",
+        "test authored_capture_geometry_is_checked_against_the_selected_native_envelope ... ok",
+        "test source_keeps_length_range_negative_and_recovery_semantics ... ok",
+        "test validated_capture_reaches_the_same_quantity_face_and_fahrenheit_mask ... ok",
+        "test captured_frames_become_quantities_only_after_source_validation_without_allocating ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/conduit_environment_runtime-a814ba9f64667265",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/cadence-e2dc0a5d207e3dee",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/canonical_input-17b46b873443ad0c",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/capture_kernel-9fca6c2edf35bf97",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/display_packets-68141a00cec846d0",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/observation_forms-520b9b1d614f8475",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/observation_kernel-27f713195e6b0777",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/publication-036e0539fb9bdad2",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/recording_chunks-066c881fbde09994",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/recording_recovery-45742e68ed3b7776",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/source_frames-24fe575d0e58da01"
+      ]
+    },
+    {
+      "name": "runtime-capture-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "source-capture",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/ready-four-combined-runtime-capture-strict.log",
+      "sha256": "d1f09ace57cc7a3fac17fc216307d53b88cccf1f6ad866259133bb462bdcb532",
+      "exit_code": 0,
+      "before_available_bytes": 10554900480,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": []
+    },
+    {
+      "name": "mask-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml"
+      ],
+      "log": "work/ready-four-combined-mask-tests.log",
+      "sha256": "f938e987a77f7f19bb5eac4b68820411c364e3a6762f2d9d5980b7b134c43fa2",
+      "exit_code": 0,
+      "before_available_bytes": 10546466816,
+      "actual_test_counts": [
+        0,
+        1,
+        10,
+        1,
+        1,
+        0
+      ],
+      "actual_passed": 13,
+      "actual_named_successes": [
+        "test the_requested_fahrenheit_look_is_checked_source_data ... ok",
+        "test compact_pattern_form_round_trips_exactly_seven_bits ... ok",
+        "test wiring_exposes_unwired_and_shared_annunciators_and_digit_permutations ... ok",
+        "test explicit_colon_fraction_look_retains_tenths_on_colon_only_glass ... ok",
+        "test subject_selection_preserves_a_rich_parent_face_and_preparation_bounds ... ok",
+        "test fahrenheit_look_changes_expression_without_changing_face_quantity ... ok",
+        "test timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime ... ok",
+        "test mask_fits_decimal_and_colon_capabilities_before_show_publication ... ok",
+        "test unavailable_and_stale_never_manifest_old_measurements_as_current ... ok",
+        "test rendering_and_timed_selection_reuse_fixed_storage ... ok",
+        "test rounding_sign_precision_fitting_and_overflow_are_explicit ... ok",
+        "test authored_mask_uses_the_existing_face_interaction_show_role ... ok",
+        "test source_owns_command_order_display_control_and_brightness_refusal ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/conduit_seven_segment_mask-afba0f422567015d",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/look-7b3d6d853dbca491",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/mask-fff54486e31392dd",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/plot-1129cafc0a85bcfe",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/protocol-18583b2d0c57a0c4"
+      ]
+    },
+    {
+      "name": "mask-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "plots/seven-segment-mask/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/ready-four-combined-mask-strict.log",
+      "sha256": "1754009706a551717b8464485096214dc620ad53527cce7d63884c44b836868f",
+      "exit_code": 0,
+      "before_available_bytes": 10383273984,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": []
+    },
+    {
+      "name": "fore-default-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--lib"
+      ],
+      "log": "work/ready-four-combined-fore-default-tests.log",
+      "sha256": "efb9f4d51d311e5b5eda086c0d94bd0bdb1e8ecaa340fd3f3688effa2e7fcf48",
+      "exit_code": 0,
+      "before_available_bytes": 10276061184,
+      "actual_test_counts": [
+        9
+      ],
+      "actual_passed": 9,
+      "actual_named_successes": [
+        "test sha256::tests::matches_fips_vectors_across_padding_boundaries ... ok",
+        "test execution::tests::activation_and_one_terminal_receipt_round_trip_and_bind_every_identity ... ok",
+        "test single_source::tests::exact_single_source_profile_accepts_one_generic_plan_and_refuses_inventory_drift ... ok",
+        "test records::tests::field_extents_cannot_wrap_the_host_pointer_width ... ok",
+        "test fore_tests::exact_local_fore_is_opt_in_current_and_allocation_free ... ok",
+        "test record_view_tests::record_view_refuses_unrepresentable_lengths_and_inventory_before_growth ... ok",
+        "test fore_tests::altered_duplicate_missing_and_network_records_do_not_admit_fore ... ok",
+        "test record_view_tests::borrowed_records_preserve_all_schemas_and_single_mutation_refusals ... ok",
+        "test record_view_tests::incremental_hash_matches_legacy_at_every_split_and_padding_boundary ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/conduit_assigned_plan-326c3cdefb42efcd"
+      ]
+    },
+    {
+      "name": "fore-default-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/ready-four-combined-fore-default-strict.log",
+      "sha256": "380739c392aa6af8315911b52f608a07810d1e83a89f6cfe5a62dd6e68adf7cc",
+      "exit_code": 0,
+      "before_available_bytes": 10274488320,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": []
+    },
+    {
+      "name": "fore-all-features-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--lib",
+        "--all-features"
+      ],
+      "log": "work/ready-four-combined-fore-all-features-tests.log",
+      "sha256": "32ad729dab3fb2834dea86bb02df2c5fa661948836061ee867a6ca5f20f52283",
+      "exit_code": 0,
+      "before_available_bytes": 10274267136,
+      "actual_test_counts": [
+        9
+      ],
+      "actual_passed": 9,
+      "actual_named_successes": [
+        "test execution::tests::activation_and_one_terminal_receipt_round_trip_and_bind_every_identity ... ok",
+        "test records::tests::field_extents_cannot_wrap_the_host_pointer_width ... ok",
+        "test record_view_tests::record_view_refuses_unrepresentable_lengths_and_inventory_before_growth ... ok",
+        "test sha256::tests::matches_fips_vectors_across_padding_boundaries ... ok",
+        "test single_source::tests::exact_single_source_profile_accepts_one_generic_plan_and_refuses_inventory_drift ... ok",
+        "test fore_tests::exact_local_fore_is_opt_in_current_and_allocation_free ... ok",
+        "test fore_tests::altered_duplicate_missing_and_network_records_do_not_admit_fore ... ok",
+        "test record_view_tests::borrowed_records_preserve_all_schemas_and_single_mutation_refusals ... ok",
+        "test record_view_tests::incremental_hash_matches_legacy_at_every_split_and_padding_boundary ... ok"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-target/debug/deps/conduit_assigned_plan-045d726fd34c4643"
+      ]
+    },
+    {
+      "name": "fore-all-features-strict",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/ready-four-combined-fore-all-features-strict.log",
+      "sha256": "f62ec1b2b8c8f6498b16425a699500bc410b7960a251e64ed2cf8128b1592c14",
+      "exit_code": 0,
+      "before_available_bytes": 10248003584,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": []
+    }
+  ],
+  "started": 1792827644.167423,
+  "finished": 1792827979.7707121,
+  "clean_after": true,
+  "status": "passed",
+  "executables": [
+    {
+      "path": "work/ready-four-combined-target/debug/deps/conduit_assigned_plan-326c3cdefb42efcd",
+      "sha256": "284e41ac7a6e9e9f282d3e8ede4f6abbbdd98e94a070131f1fc01eb0ba3d31b1",
+      "bytes": 1543104
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/mask-fff54486e31392dd",
+      "sha256": "5423b618c415b1318700a67b413d7ce6ece02f771346c1079dc39ceb0605cebc",
+      "bytes": 5131544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/look-7b3d6d853dbca491",
+      "sha256": "95b9c8615faff8b321ca3734bb214c2fad9f5988ddd5670154a2335dfe4c939e",
+      "bytes": 19153928
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/libserde_derive-5cf603e79f9c2c5b.so",
+      "sha256": "dffa5afba863c7a2dd15f46d5da9863712d19d864937c4d907d4342bf43cf612",
+      "bytes": 2908672
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/plot-1129cafc0a85bcfe",
+      "sha256": "74d02ae4d3cf55e5915cadd63a63dc810ce82841bf53c564fa724a8f65a67fa4",
+      "bytes": 19402000
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/display_packets-68141a00cec846d0",
+      "sha256": "a4d830629f30d9cf4cbce24dfe9f4d43d920be0e12fa9c5b4a924541a00c85c3",
+      "bytes": 7332256
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/recording_chunks-32dc97821b2c491a",
+      "sha256": "815c3bf23c9978618787c4f9fd058c890d2ba94fab57269e6039e4ca2c24797b",
+      "bytes": 5784136
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/capture_kernel-27f7e5114f7599d4",
+      "sha256": "d3dda7695fbec6b0b7681bdb3df9c602af34c964bec24021aba470bbb6eec6bb",
+      "bytes": 27654560
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/conduit_environment_runtime-a814ba9f64667265",
+      "sha256": "b667ae5134962c080911487916d9bb0c55bb873875709f9cc747b59c76047d0e",
+      "bytes": 1079720
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/cadence-d28e0303195f4d74",
+      "sha256": "d526a86968eb6f05699068a6fcbca13711f58cc36b345ad8a24eadb5b62f2fc8",
+      "bytes": 24889080
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/publication-036e0539fb9bdad2",
+      "sha256": "070b740ae1020482420c4f234671418f39d2e5567c2d7b8c2f5973651d421f17",
+      "bytes": 5410408
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/libthiserror_impl-430271aef883cc7e.so",
+      "sha256": "c3c16392b59f189b7ec64fcdc16deeceedbb8ed59b3888beafaf3511e9b4cfab",
+      "bytes": 2389616
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/capture_kernel-9fca6c2edf35bf97",
+      "sha256": "434548268f3ced047d1823bac05963c175107990ed8978041644d6d196f5f8f2",
+      "bytes": 27655328
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/recording_recovery-45742e68ed3b7776",
+      "sha256": "157eba5c3155c520c15667708e69a22e129339c2f9ae30810c964a366b9512a3",
+      "bytes": 5598944
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/libserde_derive-cadc7eecacc3408d.so",
+      "sha256": "7c53824f38e68e5428e9b23e9c20c1def691f1d01dbeb4616096779e7ad51f79",
+      "bytes": 4101328
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/source_frames-0e40c03f8fefe03d",
+      "sha256": "6478ec0492813019e66816db62ff7a0493a31728b33bdbf3c1429571f34a04b6",
+      "bytes": 7746384
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/protocol-18583b2d0c57a0c4",
+      "sha256": "6560b36ad1c96c739d41e8665a2e7606ccafe59e2b463f449edc95e47c008009",
+      "bytes": 17828808
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/publication-91c6dd7e1e97e6d6",
+      "sha256": "f55ec878b721021d9ddcff7e70b3f32f88c357eb8beed891e3bacb8fb0331e25",
+      "bytes": 5352232
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/observation_kernel-f87ba95de384c051",
+      "sha256": "cb62b80efa65140530aaa7a5ed99d00b99ade97aa4801e69e8be1fdb1f546f16",
+      "bytes": 28001160
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/canonical_input-7463fb6b5e236831",
+      "sha256": "d428b3d5ae8f4510e81e19a961b52ebae54eb9d73b65793e9b8c93e52d8b0ffc",
+      "bytes": 1911104
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/recording_chunks-066c881fbde09994",
+      "sha256": "88aaa1dbccfaf3df6c729b02bb37c4cd5c2339a16d832759da45dcd8db9037f3",
+      "bytes": 5842328
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/source_frames-24fe575d0e58da01",
+      "sha256": "002db9946136caeb6861c28a319d92195b16815d788d851765dec9f3228db2a2",
+      "bytes": 7857336
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/canonical_input-17b46b873443ad0c",
+      "sha256": "fd40df3cf8eb0fb6c9f523ce55dbe77ffd03a175f63c77a542898c27cf4ac62f",
+      "bytes": 1911104
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/display_packets-4d46e78dcb40722d",
+      "sha256": "ee48ef2107cd1c157e4e348f94f74e62be5bbdc3f0602e9f89fb3f9a1ee7898d",
+      "bytes": 7273552
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/conduit_assigned_plan-045d726fd34c4643",
+      "sha256": "cbad3b0f4190be18a2cba985c2b13aab3ef7589e8dd66e1240397ddcf3868714",
+      "bytes": 1545984
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/observation_kernel-27f713195e6b0777",
+      "sha256": "0aa2ea93cbe81a4bb2a8612ccb744b0d67533a72d1dc77781034a26910c206d6",
+      "bytes": 27998704
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/observation_forms-520b9b1d614f8475",
+      "sha256": "26f7a90f0e9d27bf75f2dd2d2575f54778b7c750076c35e5c782811c44490c09",
+      "bytes": 5369768
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/cadence-e2dc0a5d207e3dee",
+      "sha256": "0fb01db0dbbaea5d03c83e15fd7432cebe27ce1aa85fafde5cf8d4a4219c815d",
+      "bytes": 24888600
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/conduit_seven_segment_mask-afba0f422567015d",
+      "sha256": "55fcd52305e6ec023a01989123fc0c87c0047db035b4468ad6bb5e10502031aa",
+      "bytes": 1079704
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/libthiserror_impl-d2f92c23f911256d.so",
+      "sha256": "1e9c14d5b21fa5d3a5472b2907c503826e6880bad63b3dc5bf7fd888bcdb87e4",
+      "bytes": 3087456
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/conduit_environment_runtime-2ecee2966c21ec87",
+      "sha256": "88561cb09e9a62bc47b1bc82cb593fc1d12533d99a8940a6b5ca0d5d44d16f60",
+      "bytes": 1079720
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/libserde_derive-20a31b7eae420ba0.so",
+      "sha256": "56bdf9f3f54699dc1e8e34334b8f5ca8473704e7a8d4e683900dd3968a8d27e4",
+      "bytes": 2908480
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/recording_recovery-521055a432873b98",
+      "sha256": "1457b43d08c1471caf43f8e4518f3ca92e76f78ecb25fec46483def03174ca13",
+      "bytes": 5540784
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/deps/observation_forms-bf6f5cf692615c09",
+      "sha256": "a9518a1469422d746332249a0d184eded6721e90385a4d64381acb8f737177b9",
+      "bytes": 5311592
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde-247d56cd5e7fa925/build_script_build-247d56cd5e7fa925",
+      "sha256": "69eff29ef542c974fe752543636852c996a20fdd89b7dc4d5db3a315bb3c7ec4",
+      "bytes": 603544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde-247d56cd5e7fa925/build-script-build",
+      "sha256": "69eff29ef542c974fe752543636852c996a20fdd89b7dc4d5db3a315bb3c7ec4",
+      "bytes": 603544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-data-3216f839d6d99a2a/build_script_build-3216f839d6d99a2a",
+      "sha256": "8fb7b3d4cd70c1bd0f6c6814817ed56490a40a1722e61d81fbdd57c338f1cae3",
+      "bytes": 6355224
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-data-3216f839d6d99a2a/build-script-build",
+      "sha256": "8fb7b3d4cd70c1bd0f6c6814817ed56490a40a1722e61d81fbdd57c338f1cae3",
+      "bytes": 6355224
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/quote-576bc7579314484c/build_script_build-576bc7579314484c",
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037",
+      "bytes": 529416
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/quote-576bc7579314484c/build-script-build",
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037",
+      "bytes": 529416
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-language-ddb0b2aafb1ac484/build_script_build-ddb0b2aafb1ac484",
+      "sha256": "675f1c9d6a7f9b7aae114e77d05baf5ca4ccdb7d7f3f4ded2f38890bd2c9cfce",
+      "bytes": 17453544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-language-ddb0b2aafb1ac484/build-script-build",
+      "sha256": "675f1c9d6a7f9b7aae114e77d05baf5ca4ccdb7d7f3f4ded2f38890bd2c9cfce",
+      "bytes": 17453544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-tm1637-wire-84fb7e4a176ac0e1/build_script_build-84fb7e4a176ac0e1",
+      "sha256": "65839fc93b9977ff045ffdda669124d7d03355650fdd60decedfb59bcfa107c8",
+      "bytes": 5975544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-tm1637-wire-84fb7e4a176ac0e1/build-script-build",
+      "sha256": "65839fc93b9977ff045ffdda669124d7d03355650fdd60decedfb59bcfa107c8",
+      "bytes": 5975544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-2c47402badf38aac/build_script_build-2c47402badf38aac",
+      "sha256": "f3f45cacbdc09a5c4d047857a4062342d457a16d9eba7623213804e008dd4129",
+      "bytes": 606376
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-2c47402badf38aac/build-script-build",
+      "sha256": "f3f45cacbdc09a5c4d047857a4062342d457a16d9eba7623213804e008dd4129",
+      "bytes": 606376
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-language-5210aafb34634f38/build_script_build-5210aafb34634f38",
+      "sha256": "55de51d91c8437771acb255ad155a85368c35049aac955d484207373312dc540",
+      "bytes": 7935144
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-language-5210aafb34634f38/build-script-build",
+      "sha256": "55de51d91c8437771acb255ad155a85368c35049aac955d484207373312dc540",
+      "bytes": 7935144
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-time-55e1792d9eadfcb4/build_script_build-55e1792d9eadfcb4",
+      "sha256": "13c73658ebcf6ca4981af0ae77c0afd981445b1160d382ce8719b81f73d19af4",
+      "bytes": 6215336
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-time-55e1792d9eadfcb4/build-script-build",
+      "sha256": "13c73658ebcf6ca4981af0ae77c0afd981445b1160d382ce8719b81f73d19af4",
+      "bytes": 6215336
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-1fce8a4deb10ac18/build-script-build",
+      "sha256": "4370d351221238f3314d0174a8dc3fea13f2a43f5bba9c8b41b9741997811f9d",
+      "bytes": 541560
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-1fce8a4deb10ac18/build_script_build-1fce8a4deb10ac18",
+      "sha256": "4370d351221238f3314d0174a8dc3fea13f2a43f5bba9c8b41b9741997811f9d",
+      "bytes": 541560
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/quote-6393071924e353ea/build_script_build-6393071924e353ea",
+      "sha256": "3bfabccb6e3fc500357274bfc53fac0b48b8481cda247dbada711d51fbaf1058",
+      "bytes": 529416
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/quote-6393071924e353ea/build-script-build",
+      "sha256": "3bfabccb6e3fc500357274bfc53fac0b48b8481cda247dbada711d51fbaf1058",
+      "bytes": 529416
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde-a9c1f89fbb7ca3bc/build_script_build-a9c1f89fbb7ca3bc",
+      "sha256": "08e155c73bb52d67b34b01298a3af74a3e326238ddd370afd75d4aa72b10f6ec",
+      "bytes": 540208
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde-a9c1f89fbb7ca3bc/build-script-build",
+      "sha256": "08e155c73bb52d67b34b01298a3af74a3e326238ddd370afd75d4aa72b10f6ec",
+      "bytes": 540208
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/zmij-fd4adfc7370c6fa8/build_script_build-fd4adfc7370c6fa8",
+      "sha256": "0d11fda5482091de9c3e842209975a954a8a0336d4992b6fb888804e584d3ddb",
+      "bytes": 575752
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/zmij-fd4adfc7370c6fa8/build-script-build",
+      "sha256": "0d11fda5482091de9c3e842209975a954a8a0336d4992b6fb888804e584d3ddb",
+      "bytes": 575752
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-robotics-8fc0a8c96f1e990a/build_script_build-8fc0a8c96f1e990a",
+      "sha256": "2161f73475452b6ba6f0cb5fea69a6d316ceeb84abf550ca9d5fd23ba34d8a30",
+      "bytes": 6180152
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-robotics-8fc0a8c96f1e990a/build-script-build",
+      "sha256": "2161f73475452b6ba6f0cb5fea69a6d316ceeb84abf550ca9d5fd23ba34d8a30",
+      "bytes": 6180152
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde-15822d110748cc9f/build_script_build-15822d110748cc9f",
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5",
+      "bytes": 540208
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde-15822d110748cc9f/build-script-build",
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5",
+      "bytes": 540208
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/thiserror-5d73eae44e8bef45/build_script_build-5d73eae44e8bef45",
+      "sha256": "3c0a71c52f7549cecab97788c78b87f58e79260e14f94d179d81218d5923a059",
+      "bytes": 653568
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/thiserror-5d73eae44e8bef45/build-script-build",
+      "sha256": "3c0a71c52f7549cecab97788c78b87f58e79260e14f94d179d81218d5923a059",
+      "bytes": 653568
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/proc-macro2-0c65f04c11310072/build_script_build-0c65f04c11310072",
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336",
+      "bytes": 564496
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/proc-macro2-0c65f04c11310072/build-script-build",
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336",
+      "bytes": 564496
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/quote-17a3ee179b4c2890/build_script_build-17a3ee179b4c2890",
+      "sha256": "59687911913c0e67d74a994e7948b778a5039a281184af90da6bacbbd785f687",
+      "bytes": 570672
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/quote-17a3ee179b4c2890/build-script-build",
+      "sha256": "59687911913c0e67d74a994e7948b778a5039a281184af90da6bacbbd785f687",
+      "bytes": 570672
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/proc-macro2-0ca1b77b693ce48f/build_script_build-0ca1b77b693ce48f",
+      "sha256": "1018bc643dcb358fc7a4b8fe7ac6adbd54987ea62262c6c5550070d20ac61d8f",
+      "bytes": 628728
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/proc-macro2-0ca1b77b693ce48f/build-script-build",
+      "sha256": "1018bc643dcb358fc7a4b8fe7ac6adbd54987ea62262c6c5550070d20ac61d8f",
+      "bytes": 628728
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/proc-macro2-92a782c175254c15/build_script_build-92a782c175254c15",
+      "sha256": "b932c0b53952c5eddd899a5091b3205e54a4710b0e284a7286178920d1721d3f",
+      "bytes": 564496
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/proc-macro2-92a782c175254c15/build-script-build",
+      "sha256": "b932c0b53952c5eddd899a5091b3205e54a4710b0e284a7286178920d1721d3f",
+      "bytes": 564496
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-environment-runtime-33cf6c0a1c2aefac/build_script_build-33cf6c0a1c2aefac",
+      "sha256": "5b0d0eff96057e4d36d8ef4cb4fc1d79fd8e51a56277cc11cda6777cec15e871",
+      "bytes": 7751920
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-environment-runtime-33cf6c0a1c2aefac/build-script-build",
+      "sha256": "5b0d0eff96057e4d36d8ef4cb4fc1d79fd8e51a56277cc11cda6777cec15e871",
+      "bytes": 7751920
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/libm-13320032431223a2/build_script_build-13320032431223a2",
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e",
+      "bytes": 494704
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/libm-13320032431223a2/build-script-build",
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e",
+      "bytes": 494704
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-b8ac279ad143839b/build_script_build-b8ac279ad143839b",
+      "sha256": "7af6d3f080848a07bc7e75fca68bfab4912293340da05ba276ed575361c7fa64",
+      "bytes": 606376
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-b8ac279ad143839b/build-script-build",
+      "sha256": "7af6d3f080848a07bc7e75fca68bfab4912293340da05ba276ed575361c7fa64",
+      "bytes": 606376
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-seven-segment-mask-000cf7441f9f34d5/build_script_build-000cf7441f9f34d5",
+      "sha256": "4da5acfc540616cd719031769a227752ecf3a5b9aa2f4e55db30afc94d251462",
+      "bytes": 6132944
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-seven-segment-mask-000cf7441f9f34d5/build-script-build",
+      "sha256": "4da5acfc540616cd719031769a227752ecf3a5b9aa2f4e55db30afc94d251462",
+      "bytes": 6132944
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-environment-runtime-fad1676f63e69860/build_script_build-fad1676f63e69860",
+      "sha256": "31eb5420930b304e01f0fe7b5681e1a6083f5d3e60fead270d4632774f05ec73",
+      "bytes": 7751936
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-environment-runtime-fad1676f63e69860/build-script-build",
+      "sha256": "31eb5420930b304e01f0fe7b5681e1a6083f5d3e60fead270d4632774f05ec73",
+      "bytes": 7751936
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-purpose-56024294e1eb6118/build_script_build-56024294e1eb6118",
+      "sha256": "c70a5e0380c930863499b48fe7c12ae3dad053e4189c24c5eb3a25e520dfc0d3",
+      "bytes": 6124736
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-purpose-56024294e1eb6118/build-script-build",
+      "sha256": "c70a5e0380c930863499b48fe7c12ae3dad053e4189c24c5eb3a25e520dfc0d3",
+      "bytes": 6124736
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/zmij-c9a87ed4792d5887/build_script_build-c9a87ed4792d5887",
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29",
+      "bytes": 533184
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/zmij-c9a87ed4792d5887/build-script-build",
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29",
+      "bytes": 533184
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-face-3dfd165651601ba1/build_script_build-3dfd165651601ba1",
+      "sha256": "fc1fb8f9137912ae6ff298ed3e8fec3b644cd4e1dcaafc4770044e344e3cead3",
+      "bytes": 6474080
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-face-3dfd165651601ba1/build-script-build",
+      "sha256": "fc1fb8f9137912ae6ff298ed3e8fec3b644cd4e1dcaafc4770044e344e3cead3",
+      "bytes": 6474080
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-face-13bb5a3e993cd6d8/build_script_build-13bb5a3e993cd6d8",
+      "sha256": "23588c2ffec75304de5b450c1900cda03af63cf471d6e83829a169cdd0cf2cb5",
+      "bytes": 13768440
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-face-13bb5a3e993cd6d8/build-script-build",
+      "sha256": "23588c2ffec75304de5b450c1900cda03af63cf471d6e83829a169cdd0cf2cb5",
+      "bytes": 13768440
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-bb9e7159c4c28b67/build_script_build-bb9e7159c4c28b67",
+      "sha256": "04fcfb8b69043a33aff838c1733202f091547b3fbf193f47fed889aefbb89bff",
+      "bytes": 541560
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-bb9e7159c4c28b67/build-script-build",
+      "sha256": "04fcfb8b69043a33aff838c1733202f091547b3fbf193f47fed889aefbb89bff",
+      "bytes": 541560
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-human-7a1abaef1dc51137/build_script_build-7a1abaef1dc51137",
+      "sha256": "3e67c1b9171c8798a4f17da5a8d9526b5f6284a00d3db598d2fe4be96a2e4091",
+      "bytes": 6375080
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-human-7a1abaef1dc51137/build-script-build",
+      "sha256": "3e67c1b9171c8798a4f17da5a8d9526b5f6284a00d3db598d2fe4be96a2e4091",
+      "bytes": 6375080
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-human-c858d2a661205d95/build-script-build",
+      "sha256": "72fb9613fa04a2f6a90cbc8895951c1ed63d55f14ee6d25a7b2f9598d10895c3",
+      "bytes": 13645072
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-human-c858d2a661205d95/build_script_build-c858d2a661205d95",
+      "sha256": "72fb9613fa04a2f6a90cbc8895951c1ed63d55f14ee6d25a7b2f9598d10895c3",
+      "bytes": 13645072
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-time-6120cf53282ff56e/build_script_build-6120cf53282ff56e",
+      "sha256": "cf849fb7ca3c439774434f2237f61c89c57c8947ea1e7c1c2d8338a459b525fe",
+      "bytes": 6215304
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-time-6120cf53282ff56e/build-script-build",
+      "sha256": "cf849fb7ca3c439774434f2237f61c89c57c8947ea1e7c1c2d8338a459b525fe",
+      "bytes": 6215304
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-seven-segment-mask-fe3fc89f9aba80de/build-script-build",
+      "sha256": "ff9a9dece3ed37fd58a596451e33e9c39022b162ecfca394bb429e5eb7cb87b6",
+      "bytes": 13285512
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-seven-segment-mask-fe3fc89f9aba80de/build_script_build-fe3fc89f9aba80de",
+      "sha256": "ff9a9dece3ed37fd58a596451e33e9c39022b162ecfca394bb429e5eb7cb87b6",
+      "bytes": 13285512
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-alife-cb0885493b3118b9/build_script_build-cb0885493b3118b9",
+      "sha256": "a90357576e1386ba1a3af496ac46ceba3eb7459a718e999417e44c6b4a5be8c3",
+      "bytes": 6181536
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-alife-cb0885493b3118b9/build-script-build",
+      "sha256": "a90357576e1386ba1a3af496ac46ceba3eb7459a718e999417e44c6b4a5be8c3",
+      "bytes": 6181536
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-time-8c12eaae23cb193a/build_script_build-8c12eaae23cb193a",
+      "sha256": "80b84d87bf9eb4f79529a3ba49b68e8c4d9f9844523c449ec1c106b8b472b49d",
+      "bytes": 13466680
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-time-8c12eaae23cb193a/build-script-build",
+      "sha256": "80b84d87bf9eb4f79529a3ba49b68e8c4d9f9844523c449ec1c106b8b472b49d",
+      "bytes": 13466680
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-net-06b18b1aaad53721/build_script_build-06b18b1aaad53721",
+      "sha256": "eb94c4b479586f717aae1d5f524ae1a1ae84f00097c039114ff18e41ed4adfaf",
+      "bytes": 6127472
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-net-06b18b1aaad53721/build-script-build",
+      "sha256": "eb94c4b479586f717aae1d5f524ae1a1ae84f00097c039114ff18e41ed4adfaf",
+      "bytes": 6127472
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/generic-array-ec043840ceaa47ee/build_script_build-ec043840ceaa47ee",
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782",
+      "bytes": 562400
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/generic-array-ec043840ceaa47ee/build-script-build",
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782",
+      "bytes": 562400
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_json-cf72693b923f548c/build_script_build-cf72693b923f548c",
+      "sha256": "43cf18ba9c3532a0d9d28eef8e391a5acb4c80d0604447cb0cd6aa22fcb4598f",
+      "bytes": 460240
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_json-cf72693b923f548c/build-script-build",
+      "sha256": "43cf18ba9c3532a0d9d28eef8e391a5acb4c80d0604447cb0cd6aa22fcb4598f",
+      "bytes": 460240
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-process-3891dbdbca17aa27/build_script_build-3891dbdbca17aa27",
+      "sha256": "412fb809fb30cc946466637ffb0f7f4b3dabe54ebd452be575d4cea5b21b6ea4",
+      "bytes": 6142248
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-process-3891dbdbca17aa27/build-script-build",
+      "sha256": "412fb809fb30cc946466637ffb0f7f4b3dabe54ebd452be575d4cea5b21b6ea4",
+      "bytes": 6142248
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-pulse-capture-13a64e8d586c9f90/build_script_build-13a64e8d586c9f90",
+      "sha256": "93fb31428d4fed682512da1b3258af5a477fb4d1d14fc1f67ec0e597e3aa16ca",
+      "bytes": 5977456
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-pulse-capture-13a64e8d586c9f90/build-script-build",
+      "sha256": "93fb31428d4fed682512da1b3258af5a477fb4d1d14fc1f67ec0e597e3aa16ca",
+      "bytes": 5977456
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-4502401426c6e232/build_script_build-4502401426c6e232",
+      "sha256": "97462b530c9aa50144cdfb2a493f6b86d74de5d65388ab3714507e5d0d52c76b",
+      "bytes": 541560
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_core-4502401426c6e232/build-script-build",
+      "sha256": "97462b530c9aa50144cdfb2a493f6b86d74de5d65388ab3714507e5d0d52c76b",
+      "bytes": 541560
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/libm-e50aa47372ad36b2/build_script_build-e50aa47372ad36b2",
+      "sha256": "220541cfa0ab88846cb041e2c777b78268380159f31f7c25f586b39b4ca93557",
+      "bytes": 557704
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/libm-e50aa47372ad36b2/build-script-build",
+      "sha256": "220541cfa0ab88846cb041e2c777b78268380159f31f7c25f586b39b4ca93557",
+      "bytes": 557704
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-education-1b34e90d8446b728/build_script_build-1b34e90d8446b728",
+      "sha256": "724539be8b7053a88a6d1a81b3c44c5bab089f872a04281fbe50e28a8684779b",
+      "bytes": 6721040
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-education-1b34e90d8446b728/build-script-build",
+      "sha256": "724539be8b7053a88a6d1a81b3c44c5bab089f872a04281fbe50e28a8684779b",
+      "bytes": 6721040
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-audio-78dd1c6a60127404/build_script_build-78dd1c6a60127404",
+      "sha256": "e548e41e31a08fc4603c546fe26c2a5fb0801f4f95219ad6b87d6ecb2a219988",
+      "bytes": 8139168
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-audio-78dd1c6a60127404/build-script-build",
+      "sha256": "e548e41e31a08fc4603c546fe26c2a5fb0801f4f95219ad6b87d6ecb2a219988",
+      "bytes": 8139168
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-environment-runtime-b7e165291483ee5d/build_script_build-b7e165291483ee5d",
+      "sha256": "49557cbd7f7ab6d4e06e7cf6ae253f42c8dadf0cc20d5397344bd3b68540de6c",
+      "bytes": 7751936
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-environment-runtime-b7e165291483ee5d/build-script-build",
+      "sha256": "49557cbd7f7ab6d4e06e7cf6ae253f42c8dadf0cc20d5397344bd3b68540de6c",
+      "bytes": 7751936
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_json-dae22f538323cf77/build_script_build-dae22f538323cf77",
+      "sha256": "5f787f2efccf86e9e1e249d663d5e917a2590ef3315d7abbd3e2174b362b8bd6",
+      "bytes": 463472
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/serde_json-dae22f538323cf77/build-script-build",
+      "sha256": "5f787f2efccf86e9e1e249d663d5e917a2590ef3315d7abbd3e2174b362b8bd6",
+      "bytes": 463472
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-seven-segment-mask-10d58f39f8da2d45/build_script_build-10d58f39f8da2d45",
+      "sha256": "dc0052b5add1d7d98a8fbc9582d4ac1d31f36ed83d1f18fdb195551cbde28f03",
+      "bytes": 13285544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-seven-segment-mask-10d58f39f8da2d45/build-script-build",
+      "sha256": "dc0052b5add1d7d98a8fbc9582d4ac1d31f36ed83d1f18fdb195551cbde28f03",
+      "bytes": 13285544
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-text-842e5e9ab4b3a1c0/build_script_build-842e5e9ab4b3a1c0",
+      "sha256": "9d66e7b3e520e468bf8023cca4850340ec1860de44654eab2c6cb852779ab308",
+      "bytes": 6140600
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-text-842e5e9ab4b3a1c0/build-script-build",
+      "sha256": "9d66e7b3e520e468bf8023cca4850340ec1860de44654eab2c6cb852779ab308",
+      "bytes": 6140600
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/generic-array-3e7865b8dbffc0be/build_script_build-3e7865b8dbffc0be",
+      "sha256": "6bdf8f006652090a086d675e2014d370009c2a0b2d765b24a50b20b4c54d3478",
+      "bytes": 638296
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/generic-array-3e7865b8dbffc0be/build-script-build",
+      "sha256": "6bdf8f006652090a086d675e2014d370009c2a0b2d765b24a50b20b4c54d3478",
+      "bytes": 638296
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-environment-runtime-fd6df2ba4703e1e6/build_script_build-fd6df2ba4703e1e6",
+      "sha256": "1e539da5cf48e3a835a577264ba205a96c417926d6e3454ab8443e6ddc7693ec",
+      "bytes": 7751936
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-environment-runtime-fd6df2ba4703e1e6/build-script-build",
+      "sha256": "1e539da5cf48e3a835a577264ba205a96c417926d6e3454ab8443e6ddc7693ec",
+      "bytes": 7751936
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/thiserror-b4be9a989d617a14/build_script_build-b4be9a989d617a14",
+      "sha256": "6f6e91848adb72a585fa1be4cbe2d4bf2080687eeeb3d784c704bb44c87fc156",
+      "bytes": 580448
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/thiserror-b4be9a989d617a14/build-script-build",
+      "sha256": "6f6e91848adb72a585fa1be4cbe2d4bf2080687eeeb3d784c704bb44c87fc156",
+      "bytes": 580448
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-web-0b10d85c836ca8ad/build_script_build-0b10d85c836ca8ad",
+      "sha256": "a1d4fbe1967097e18a1807fb34a68282313b80bd7f4a2c6e4e4e23aff0f07d50",
+      "bytes": 6144416
+    },
+    {
+      "path": "work/ready-four-combined-target/debug/build/conduit-web-0b10d85c836ca8ad/build-script-build",
+      "sha256": "a1d4fbe1967097e18a1807fb34a68282313b80bd7f4a2c6e4e4e23aff0f07d50",
+      "bytes": 6144416
+    }
+  ]
+}

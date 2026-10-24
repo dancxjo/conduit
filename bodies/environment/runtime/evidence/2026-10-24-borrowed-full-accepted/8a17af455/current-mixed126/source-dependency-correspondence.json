@@ -1,0 +1,286 @@
+{
+  "source": "f7a959cdc7304f74d6b058f69f139af94037bab5",
+  "tree": "be722c7c85e0553256f1cb4c42ac6919081f3755",
+  "all_five_owner_heads_ancestors": true,
+  "exact40pathblobs": [
+    {
+      "path": "architecture/assigned-plan/FORE.md",
+      "blob": "c67ed263972d0ebf8e9b8b5e0737db28adaaf0cb",
+      "sha256": "a7747f7ed54d760517657b6901066ca524bee60da22b73b95478030e484fcb93"
+    },
+    {
+      "path": "architecture/assigned-plan/src/fore.rs",
+      "blob": "320ca6a1b96add83535958fd67bc7ae8e2b4ccec",
+      "sha256": "4c16e70f20862672d52bb50318f966109c32f44795b7393e837f829ef43837ea"
+    },
+    {
+      "path": "architecture/assigned-plan/src/fore_tests.rs",
+      "blob": "ee1523cee9c4d8f800e4179410dcb456f747db10",
+      "sha256": "1ebb82b65c5c8466b3d9edc4269a87051bf0273998a25b2bdc8f5300c5776fcb"
+    },
+    {
+      "path": "architecture/assigned-plan/src/lib.rs",
+      "blob": "888d60ea85f89268f8ad76ec7b1b6aa3f72fecaf",
+      "sha256": "14ea622d32f910f5c6db7b98e4d1a4de471bc39094781343722c48725d72f866"
+    },
+    {
+      "path": "architecture/assigned-plan/src/record_view_tests.rs",
+      "blob": "cc2465bc406acedbfcbf776afd088e08ee2d8816",
+      "sha256": "1a1a0bc43797a9ab216ce7555c3e40e66f9bc08636ad1bdb5963cf6141557bb6"
+    },
+    {
+      "path": "architecture/assigned-plan/src/records.rs",
+      "blob": "17f532d5ae6e97ff4d601f0d4467edda7b5890d2",
+      "sha256": "2c9b844b45b912c12be6dea23ee3c669c09efbdebff9dc2a20d277e1e735a51c"
+    },
+    {
+      "path": "architecture/assigned-plan/src/validation.rs",
+      "blob": "d721999c17b7555a08f020a7e59501136f67497c",
+      "sha256": "a9ea7cb4b9223ac81a53719ea62b390dab9afeac476d9dd1d246eebe59dfc0e0"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/generate_prepared_storage.rs",
+      "blob": "5e601f9a6e5abbe326044e8c4efa405cff77998e",
+      "sha256": "521897586c6d2b6ebe68f9405610bbf0af27039a5a68886130104976b75c92ea"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs",
+      "blob": "4024bd7190da84bce26e5545b795ff9bebd1967e",
+      "sha256": "fc7388041506c85fae169f673aae24e105857eea8e967e6ca5bc25ffe117f159"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/mod.rs",
+      "blob": "e5a786583b310489475ba62f0ed573c415024fa8",
+      "sha256": "2f765c844e14c4710759e4354d3a1efeafa2f80fb177f049ba3513f52dbf881d"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/prepared_decode.rs",
+      "blob": "bb339d8ed56a476f8643b479ece10aa9ee88731c",
+      "sha256": "b69f604d61b0fa7cc868591dfc04a22129112a33db17949ab8af26919f5105f8"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/prepared_native.rs",
+      "blob": "6ee39c4566602399c9683ffb4b1595c5cc564f65",
+      "sha256": "07d216765b988873e7654ed3b8e419cbd2d993d47ab6a3bb1ca50ee0cdfaffe4"
+    },
+    {
+      "path": "architecture/plot/tests/prepared_native_decode.rs",
+      "blob": "f9f68d4746ea01e60b1f9f3cf9e2809024847a08",
+      "sha256": "07921433576ec3be465dc25fe56e870d48a4fa471adcbce0b34249fa0199769c"
+    },
+    {
+      "path": "bodies/environment/runtime/tests/observation_kernel.rs",
+      "blob": "c345f70777536d3127d06e6b40b07ab5c6d4af92",
+      "sha256": "acf9517aa1487f2d2f17156a199ab57414960cd2161e1dc49e37767dd7d9efe8"
+    },
+    {
+      "path": "bodies/environment/runtime/tests/support/assignment.rs",
+      "blob": "78e4efe6b7e43d2d1af098ad71a2c7fbffb33885",
+      "sha256": "3cd38be0cbe9106725183430141bd67e4172790a978de314d59f4f75be65c4d3"
+    },
+    {
+      "path": "docs/reuse-ledger.md",
+      "blob": "be3be59424961eae3a630e061d4764ff41131d26",
+      "sha256": "841420fc5194a56c700d266a55356cb2caa792cafd5f391e29b8f0e4b2f34139"
+    },
+    {
+      "path": "make/embedded-build/FORE.md",
+      "blob": "2fa8d515efaf3dee0220b519b3c32ef615098125",
+      "sha256": "edb3ccf73fadb09824b1a36ca23d3d6b574b2106fd3c3b3e0c5ee9acc998fd43"
+    },
+    {
+      "path": "make/embedded-build/src/assigned_plan.rs",
+      "blob": "b471ad0b5e732ca117a12ad43c95a635f68480f4",
+      "sha256": "fd8c3d76186cb9145fd8a5e7e11e2133e36eb9086c7fb2b902c3eb094474aad6"
+    },
+    {
+      "path": "make/embedded-build/src/fore.rs",
+      "blob": "b7486e94efd98c3252da62eb89cfb78e8c0adcf8",
+      "sha256": "0259b88d1ec84c45f2ea436db935f780e6fbe3fd30df8cbea1883eb323e0e1bc"
+    },
+    {
+      "path": "make/embedded-build/src/generate.rs",
+      "blob": "0d9adbe235145d90817f6f154bbabf3478040a3f",
+      "sha256": "7d8ea4df86915f250534d69641aa4a6432f3c3360f6c60b9e7e33f58dda5fe72"
+    },
+    {
+      "path": "make/embedded-build/src/lib.rs",
+      "blob": "f31e06cc08a59bb56362b48b7c9b309ff000be94",
+      "sha256": "dbe1f01b0568524683d5b927d032e2c273f599a3b62a281085b74b76c150cfc8"
+    },
+    {
+      "path": "make/embedded-build/src/model.rs",
+      "blob": "20e2b2185e66897cf05218815546fd44ecbe5e9e",
+      "sha256": "6eac6bb0e417cab95faf5602b35bf63af1e85c2279c7088ecb7fc47d64c26606"
+    },
+    {
+      "path": "make/embedded-build/src/validate.rs",
+      "blob": "1658f9747e07e5b8a8721e63582b964f3603bbe3",
+      "sha256": "c84ceaa501e4b05775f0be2dbeb5050c75bfcbcd436e9bedfdb9c9f4536a9bb4"
+    },
+    {
+      "path": "make/embedded-build/tests/local_fore.rs",
+      "blob": "a3840e819bc8a7a649c4ae2e6ed18b9ecfb90149",
+      "sha256": "73f43a4ad65e3cd746923b663ef491ed3e17d9ede926100c2c5f59da2f570577"
+    },
+    {
+      "path": "plots/seven-segment-mask/README.md",
+      "blob": "62ddb0d9765d8b7d3f1dd34c927421984bb75e3c",
+      "sha256": "6d0fd41321d34b9426d35b66fe7d8bc22d88c5193cdc67bd7e2e2269ec77951a"
+    },
+    {
+      "path": "plots/seven-segment-mask/src/format.rs",
+      "blob": "883c0c68db7c7377901e887b47c0e0fbd12919c6",
+      "sha256": "dc5d2a35a1b691b21f1875e523ae0c3e7a20bbddd82de0d4f65d2b984b564053"
+    },
+    {
+      "path": "plots/seven-segment-mask/src/lib.rs",
+      "blob": "e50c5913c9d661423a9252e91d0ef242fd6cf0c6",
+      "sha256": "b22c330b644716586a147cc2ad91006b7a2584d0085f4de18203553f9de8e335"
+    },
+    {
+      "path": "plots/seven-segment-mask/src/timed.rs",
+      "blob": "dc53eb3f589e7a358185c787fcf1bd3e62c78ce4",
+      "sha256": "9dc593dee32b361a6ecfdc8f4c19df010371ce0974f8c6955ec7c48d1ff1ce9f"
+    },
+    {
+      "path": "plots/seven-segment-mask/tests/mask.rs",
+      "blob": "1b6b415e4578a622ce57b9ea4e14775bb30c6daf",
+      "sha256": "06e900bb092cdf9c61d0e5e7ef8ea9c90d2b15df4f363d79a41ee4303d55c70a"
+    },
+    {
+      "path": "plots/seven-segment-mask/types.conduit",
+      "blob": "81e21fd8c4a30c0ed2a261da561be2bf685de17d",
+      "sha256": "8c74c07627ae7ba765e4a095bc8dd0c68db1cd851c6472f852acdb0b2c89776b"
+    },
+    {
+      "path": "proof/language/6065-current-prepared-native/README.md",
+      "blob": "be869e4f5c00b0d4a7032c926fac6b398e9b888d",
+      "sha256": "b5397dcda2c489142079c9f6df54a4399b70102a8700522fbcc004877255e877"
+    },
+    {
+      "path": "proof/language/6065-current-prepared-native/actual-beam.log.gz",
+      "blob": "e0590c26b363d05f3cf37287e6a4cb5a4a5e4905",
+      "sha256": "eea83977229c7f0cf40da50c16228863a9cfa7aa70531547eb071aa56e3260d0"
+    },
+    {
+      "path": "proof/language/6065-current-prepared-native/beam-admission-regression.log.gz",
+      "blob": "ac703e5f3c220caa2e824869ae0aaadf42f973c1",
+      "sha256": "1e417f555d49f341a632f4896fbe3825f0ba5209e82678c51de7c84e40d2d5e2"
+    },
+    {
+      "path": "proof/language/6065-current-prepared-native/plot-regressions.log.gz",
+      "blob": "6f7db6975804b23768c9a3eecb3b7644b68b5a23",
+      "sha256": "cff1dea9fa74742c03c5efe09adcffe7924af130e3c016ccc5cba98e1ff0b258"
+    },
+    {
+      "path": "proof/language/6065-current-prepared-native/results.json",
+      "blob": "a66b3aabec4271da8cdea299f706e52003ff8b11",
+      "sha256": "51505d3065ba7dd3b20283115a473af0346c4a9732baf26f0a6dc7d9a38b7758"
+    },
+    {
+      "path": "proof/language/6065-current-prepared-native/strict-library-clippy.log.gz",
+      "blob": "66be027346cbf1d4d16470a2c71c404e240672cf",
+      "sha256": "96a1c7668c48e8fff989f1dc4830c5b0c757bf11b03e127e50e39717d8ac31db"
+    },
+    {
+      "path": "semantics/language/build.rs",
+      "blob": "171a529d93a5800e27bfda7c538575feefba8e34",
+      "sha256": "1b17945e8c02ff74808f1798bcfba28ae95e73cd054e9ec84497511806ea3c7e"
+    },
+    {
+      "path": "semantics/language/src/lib.rs",
+      "blob": "9df887cde4b65f484edf88aedec264d8c6594433",
+      "sha256": "9106eb15e342e131d877b7223d9892c677db93a037fc1f4d4a22e554ccec6caf"
+    },
+    {
+      "path": "semantics/language/tests/actual_beam_prepared_decode.rs",
+      "blob": "e31b1a57d02a2d896433e02b0924caa1655c7c4e",
+      "sha256": "10a182e35cffa2799f527314807d6b6e964e018bcab42d56a51736eb3e32cd88"
+    },
+    {
+      "path": "tools/xtask/src/suites/native_source_laws.rs",
+      "blob": "85260e0231ea584d15280228044a74b8f8ea287c",
+      "sha256": "d0f6a398fc1ca94a36988ee1a262c7278c168cc696b0d316438ac3fe0fbedd15"
+    }
+  ],
+  "components": {
+    "make/embedded-build": "93ec1d68c00b2ea68f4ed9d9779ebb40e486c2a8",
+    "bodies/environment/runtime": "f21a561749a3bbacf15770fcaece51337e19d60e",
+    "plots/seven-segment-mask": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+    "architecture/assigned-plan": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/plot": "32d42fbdf9d43cf113d4f7fada9947125413a38d",
+    "semantics/language": "a7103f3654d299d2deb121f4fb6f655897dd5ae3",
+    "semantics/face": "6addb0188d273f7c1beebcee20e2d6601619e452",
+    "bodies/environment/face": "727a9b0781fdad19a43ccea9c77f6900395710f0"
+  },
+  "fresh_Native_proof_source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "fresh_Native_packet": "5514e2b950887dc70bdf5fa5d8c4b2df9b93311c",
+  "Native11_dependency_objects_unchanged": {
+    "architecture/assigned-plan": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+    "architecture/composite": "507cf7211ed6f9ae40d77ad601a089f6e28afc4b",
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/kernel": "a83e2c2c96b271dc1634cf112ac23b2d819c3469",
+    "architecture/plan-lowering": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+    "architecture/plot": "32d42fbdf9d43cf113d4f7fada9947125413a38d",
+    "semantics/ai": "7ffa3ae3938c69783aa21f42ab4002ac53987e88",
+    "semantics/data": "cd87e380f3289d5d8c03b10c933bee2909fa376c",
+    "semantics/language": "a7103f3654d299d2deb121f4fb6f655897dd5ae3",
+    "semantics/time": "9ca72f5352f34e3fa357bfa99522df8446b98a40",
+    "semantics/web": "f6aac001ddadf4a4b4a49dfbdf226ae9648c803f"
+  },
+  "owning_transitive_dependency_objects": {
+    "architecture/assigned-plan": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+    "architecture/body": "f4917304eca26732902a15cc75fc1eacbb486930",
+    "architecture/composite": "507cf7211ed6f9ae40d77ad601a089f6e28afc4b",
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/kernel": "a83e2c2c96b271dc1634cf112ac23b2d819c3469",
+    "architecture/plan-lowering": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+    "architecture/planner": "480725770dde4378ff739368f1cc4d7fc8859ae8",
+    "architecture/plot": "32d42fbdf9d43cf113d4f7fada9947125413a38d",
+    "architecture/wire": "a358dbea11a6aef9ed2042dc07c1df4593f800dd",
+    "bodies/environment/face": "727a9b0781fdad19a43ccea9c77f6900395710f0",
+    "bodies/environment/runtime": "f21a561749a3bbacf15770fcaece51337e19d60e",
+    "make/embedded-build": "93ec1d68c00b2ea68f4ed9d9779ebb40e486c2a8",
+    "make/host": "2bc059f79714960315a566ca7639d9b12b07762c",
+    "mechanisms/io/pulse-capture": "1987dbe127f2837b855126e627f0e511e8e4a691",
+    "mechanisms/io/tm1637": "470db792943a4e22916701567fdc3dc2c476504c",
+    "mechanisms/protocols/bluetooth": "a1384f90d4493481bf75943e518351f88533332e",
+    "mechanisms/protocols/midi": "b560ca213e8fb5a1e8ed684550b9a49da9b64d9c",
+    "plots/seven-segment-mask": "a3793a22d26e116e91340ee19604d8bcfd031d10",
+    "plots/thermostat/model": "60aa56bdb5d703d3959410b5a7de3eaeb0544a6e",
+    "plots/todo/model": "300bfa2f12cd681ed7ae1edcf5fdbe336341c8a6",
+    "proof/conformance/network-r1": "ec73b3a3c5d6658b3e42f5fc3ffa657b20cfbd40",
+    "proof/conformance/signal": "90684d091937267f3cf010536a7773008c1818a6",
+    "semantics/ai": "7ffa3ae3938c69783aa21f42ab4002ac53987e88",
+    "semantics/alife": "d33a30b5e9026a5fce6bfabd0f77ffe19c02b12c",
+    "semantics/audio": "02e93bdd3085f5e481c2bb9bd33de3e97186c62f",
+    "semantics/catalog": "7e865f830e0f8dc9b879278c1649609bced2cb8f",
+    "semantics/chat": "a88732429b8167a6a358ca5c55b9391ffa722dfb",
+    "semantics/data": "cd87e380f3289d5d8c03b10c933bee2909fa376c",
+    "semantics/education": "ec5add8bebc9538cf3a7fd2d01fd927c8e9bfe28",
+    "semantics/face": "6addb0188d273f7c1beebcee20e2d6601619e452",
+    "semantics/human": "1954f5a5a76309ccfcd9eb798b79351926920090",
+    "semantics/language": "a7103f3654d299d2deb121f4fb6f655897dd5ae3",
+    "semantics/net": "3f0fd19addb5d273283792c441fa1dc480106c4a",
+    "semantics/process": "3891007af5b8abdc8cc017863a7d4f55d68f9b40",
+    "semantics/purpose": "2f78393e63f23bb0db8d466b10c344db57c0e995",
+    "semantics/robotics": "ba2ed5814840ca02c73cf2b17521884fe53d2940",
+    "semantics/signal": "dcc6eb62c06685f52e2d54a4665194d06a0238be",
+    "semantics/text": "de52ae83efc9d07bbff3e7ceb08a75d3454fc50f",
+    "semantics/time": "9ca72f5352f34e3fa357bfa99522df8446b98a40",
+    "semantics/tongues": "a4f27cd7bbecf37e6a6623db94fafe731d81ee5f",
+    "semantics/web": "f6aac001ddadf4a4b4a49dfbdf226ae9648c803f",
+    "targets/browser/make": "ec96eadad59db4986cf4aeaad5efb46e23415325",
+    "targets/std/offers": "2934034cf1f30051e465520435894c6c9ae5c73d",
+    "tools/xtask-dispatch": "1df227e7b453a0d04efe3d9abe4bff561b302755"
+  },
+  "workspace_inputs": {
+    "Cargo.toml": "e61b1386af162f0443d7368d003f63956391a00f578346a6626fe8e54aab374a",
+    "Cargo.lock": "b66b2fec2c95bcb0fe686e776ff70e03861f9ffe976027ed7acbf6ad9236b505",
+    "rust-toolchain.toml": "48c202b05694e680218d81db870cf2a127ab4efec83abd91b1f05c5e636fa53b",
+    ".cargo/config.toml": "269b1a63fbc504801030a459c774513d26c921b8478d0e20778ab9aeb56699d5"
+  },
+  "qualification": "126actual owning/public-route test executions atf7a/be722. NativeBeam notrerun; existingfreshNativee9f proof has11exactnormal/build dependencies, explicit sourcequalified carryforward. No Candidate/Integration/physical or parentclosure inferred."
+}

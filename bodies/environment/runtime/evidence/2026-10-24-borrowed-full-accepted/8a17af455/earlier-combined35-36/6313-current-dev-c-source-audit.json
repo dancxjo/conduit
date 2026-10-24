@@ -1,0 +1,43 @@
+{
+  "source": "40e63b6a7a79bb5691f98f0706396630bf168047",
+  "base": "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+  "old_source": "c4914d0043cea604b66492ffada27d4d05d7533e",
+  "parents": [
+    "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+    "c4914d0043cea604b66492ffada27d4d05d7533e"
+  ],
+  "tree": "9beba9a26899daac1b03507b8086f43cbd7ed56e",
+  "delta": [
+    {
+      "path": "bodies/environment/runtime/tests/observation_kernel.rs",
+      "blob": "c345f70777536d3127d06e6b40b07ab5c6d4af92",
+      "sha256": "acf9517aa1487f2d2f17156a199ab57414960cd2161e1dc49e37767dd7d9efe8"
+    },
+    {
+      "path": "bodies/environment/runtime/tests/support/assignment.rs",
+      "blob": "78e4efe6b7e43d2d1af098ad71a2c7fbffb33885",
+      "sha256": "3cd38be0cbe9106725183430141bd67e4172790a978de314d59f4f75be65c4d3"
+    }
+  ],
+  "production_runtime_source_exact_base": true,
+  "whole_runtime_source_equality_not_claimed": "Currentdev display helper already accepted; bridge changes no production file.",
+  "prospective_efc_tree": "05986adf4c0ad6daf2fecd83a0b0452c1d29eba7",
+  "prospective_runtime_delta_against_actual_combined5b97": [
+    "tests/observation_kernel.rs",
+    "tests/support/assignment.rs"
+  ],
+  "current_issue_snapshot": "outputs/6313-current-requirements-0640.json",
+  "no_open_6313_PR_snapshot": "outputs/6313-open-pr-ownership-0640.json",
+  "scope": "Only existing held bridge refreshed; no new implementation or tests. Both production-kernel paths consume returned owned tables after image/descriptor drops. Seven observation scenarios, selected pulse admission,32slots38912bytes/signbounds preserved.",
+  "meaningful_proof": "Currentdev32 owning tests and strictalltargetClippy; no duplicate broad preflight since no tooling/production changes.",
+  "historical_proofs": [
+    "c6e08b231f413d16e9c8754220501d116c6f038c",
+    "6fb01304205a4ec71df375f8616841ec3b79c7c4",
+    "7a758d39cd77ecec879378fabd528e894075d857"
+  ],
+  "limits": [
+    "Prospectiveefc composition static only; not actual combined bridge execution",
+    "No additional PR until Root releases queue hold",
+    "No Candidate/dev delivery/Integration/closure/firmware/physical claim"
+  ]
+}

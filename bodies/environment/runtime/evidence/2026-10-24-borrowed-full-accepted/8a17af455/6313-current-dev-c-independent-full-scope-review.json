@@ -1,0 +1,133 @@
+{
+  "source": "40e63b6a7a79bb5691f98f0706396630bf168047",
+  "evidence": "acb8f975a9e7f79b5607c6efe38a7676bc44e0fd",
+  "source_tree": "9beba9a26899daac1b03507b8086f43cbd7ed56e",
+  "captured_dev": "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+  "two_test_file_bridge": [
+    "bodies/environment/runtime/tests/observation_kernel.rs",
+    "bodies/environment/runtime/tests/support/assignment.rs"
+  ],
+  "packet_files_verified": [
+    {
+      "path": "6313-current-dev-c-proof.json",
+      "sha256": "de832a8cf16c7ce7ef2b769891dba0c613d2ffa03d2b01c69f44485a26beeecf"
+    },
+    {
+      "path": "6313-current-dev-c-source-audit.json",
+      "sha256": "9d9879961e238c68315f71090a9faf012c7001fdbffcd020559e1931f52d580a"
+    },
+    {
+      "path": "6313-current-requirements-0640.json",
+      "sha256": "bf1a6950338659a424ae61d38b858b9ffeb76b83a075d0f43a1424555489b0b1"
+    },
+    {
+      "path": "6313-open-pr-ownership-0640.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "run-6313-current-dev-c-proof.py",
+      "sha256": "0ec62920d4950edd518255e777b8463e354a4a366ddd0a2756da1a2b2f2a0d69"
+    },
+    {
+      "path": "audit-6313-current-dev-c-source.py",
+      "sha256": "ea58e0164c6a8e2eb40a2348df3e92fe719095ed2b5e58eb7379beb0b731e66b"
+    },
+    {
+      "path": "publish-6313-current-dev-c-proof.py",
+      "sha256": "1177cd218d1a7fa49f3699d146f3323987abfe04e04d3fa3a9d80739bc199542"
+    },
+    {
+      "path": "6313-current-dev-c-runtime.log.gz",
+      "sha256": "a5ea34c86c97d45f858aa29bbb4119547d2a46bb664c88363bee293e3cbb7e7b"
+    },
+    {
+      "path": "6313-current-dev-c-strict-lint.log.gz",
+      "sha256": "8cc5f07c53eb877e7a54e8f71b838a65b3f3cab72c325a911805513ac406199d"
+    },
+    {
+      "path": "README.md",
+      "sha256": "f17b434b8a199ff054b801b8aeb8c1346e2f90f2bbf9b0275a2720c544a7eedc"
+    }
+  ],
+  "actual_tests": 32,
+  "failed": 0,
+  "ignored": 0,
+  "strict_all_target_clippy": true,
+  "actual_run_executables_rehashed": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/conduit_environment_runtime-45df02afcc069f83",
+      "sha256": "d638ce5bc442910ffbd908976da6ddbe64e88022144f28fb3a69fc05fd385805",
+      "bytes": 1079720
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/cadence-0739d4f9f35bde8f",
+      "sha256": "acccea7afea5dc7b9d15bc50e9e058edc4d3c1b9fdf5cbfa611b1d2a2550ab97",
+      "bytes": 24878864
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/canonical_input-240535ae31855fdf",
+      "sha256": "ac357494a9df56c77cde2284f6a18bfb23b720372387e2b15ca82451cd0c62f1",
+      "bytes": 1911912
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/capture_kernel-2851e1a067c26a5e",
+      "sha256": "21c986c588952f86ac6db463621f75cd599747f44f0c2245a4e2a367a0cca5df",
+      "bytes": 27642504
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/display_packets-daea3486eb83ccf7",
+      "sha256": "5a8d32249098b9c2fe426e52381d056a387ded882cd6f263010554173334e6ee",
+      "bytes": 7261232
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/observation_forms-3e69acc6b0a03e18",
+      "sha256": "6f153cc967e746888706e4ae37f2f6e575a999a0994f8f818d45495b1ceb51cc",
+      "bytes": 5300464
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/observation_kernel-a617462ca43bdea6",
+      "sha256": "d4f354cf2fcfdb7bbc405eed12b2756adfc0d68762351221988e514408fb6825",
+      "bytes": 27969424
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/publication-095fddd380ad6424",
+      "sha256": "43052b8297c64d5e699e19793656285e05ee670830d06cef41fac6cc53568545",
+      "bytes": 5341264
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/recording_chunks-e70a5d087c2d82da",
+      "sha256": "9021d5065b00cb843b3829a1430e75c0f6ae84f60484a47006a7387435f65099",
+      "bytes": 5773096
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-dev-c-target/debug/deps/recording_recovery-a44274495f2785a7",
+      "sha256": "74d59bf386ca1990a962533c5d6807c1d63d1fb64bd242bb5c67490093101dee",
+      "bytes": 5527272
+    }
+  ],
+  "source_scope_complete": true,
+  "new_actionable_findings": [],
+  "criterion_mapping": [
+    {
+      "criterion": "Equivalent owned contiguous/borrowed tables without allocations",
+      "source": "Existing support/borrowed_tables.rs calls sameprepare/prepare_records, zeroallocationprobes, identity/nodes/cords/startup/routes equality; HostCallsealed; existingvalidator unchanged. Bridge returns actualborrowedtables, notoriginaltables."
+    },
+    {
+      "criterion": "Productionkernel sensor/observation after payload drop",
+      "source": "Observation wraps image/assignment lifetime inblock, returns ownedtables; FixedScheduler consumes tables.nodes/cords/routes/calls. Existing sensor uses samehelper. Allseven scenario0..6 preserved, activepulseowner boundbeforekernel,32slots38912bytes/signboundsunchanged."
+    },
+    {
+      "criterion": "StaleBoot/integrity/resealedlayout/capacity parity without allocation",
+      "source": "Existingborrowed_tables check loops4alterations, compare exactrefusal bothentrances underallocationprobe0. Bridge callshelperallscenarios; existingcontiguousschema/inventory/HostCall/layoutrefusals remain unchanged."
+    },
+    {
+      "criterion": "Owningruntime/strictlint currentdev and smallPR",
+      "source": "Actual32suite+strictalltargetlint passes at40e63 childcaptureddev91430; exact2testfiles/no productionsourcechange. PR/admission/delivery gates remain pending; forthcomingefc-runtime combination notexecuted bythisproof."
+    }
+  ],
+  "proof_limits": [
+    "Rawsuccessfulcommands producer binds cleanexactsource but Git/sourceidentity is runner-receipt evidence, not cryptographic build attestation. Independentreview rehashes actual logged testELFs currentlyretainedprivate; publishedpacket retainsreceipt hashes, notallbinarybytes.",
+    "Prospectiveefc tree05986adf4c0ad6daf2fecd83a0b0452c1d29eba7 from originalsourceaudit is staticcomposition only. Actualcurrentcombinedowningruntime32suite/strictlint required after merge beforePR.",
+    "Sourcelevelscope fulfilled; issuecompletion stillrequires smallPR/currentcombinedtests/Candidate/actualnormaldevdelivery/applicableIntegration. No firmware/physical/stablerelease claim."
+  ]
+}

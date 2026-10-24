@@ -1,0 +1,10 @@
+{
+  "source": "40e63b6a7a79bb5691f98f0706396630bf168047",
+  "source_branch": "prep/6313-current-dev-20261024-c",
+  "branch": "evidence/6313-current-dev-c-20261024",
+  "commit": "acb8f975a9e7f79b5607c6efe38a7676bc44e0fd",
+  "prefix": "bodies/environment/runtime/evidence/2026-10-24-borrowed-observation-current-dev-c/40e63b6a7",
+  "files": 11,
+  "remote_verified": true,
+  "url": "https://github.com/dancxjo/conduit/tree/acb8f975a9e7f79b5607c6efe38a7676bc44e0fd/bodies/environment/runtime/evidence/2026-10-24-borrowed-observation-current-dev-c/40e63b6a7"
+}

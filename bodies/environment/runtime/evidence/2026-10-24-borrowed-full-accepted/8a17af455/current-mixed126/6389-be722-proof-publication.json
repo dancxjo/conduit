@@ -1,0 +1,12 @@
+{
+  "source": "f7a959cdc7304f74d6b058f69f139af94037bab5",
+  "tree": "be722c7c85e0553256f1cb4c42ac6919081f3755",
+  "source_branch": "prep/6389-be722-independent-proof-20261024",
+  "branch": "evidence/6389-be722-owning-20261024",
+  "commit": "fa84636d7446cd6724a5f5fac0f8688429edce0f",
+  "prefix": "make/embedded-build/evidence/2026-10-24-local-fore-combined/f7a959cdc",
+  "files": 10,
+  "actual_tests": 26,
+  "remote_verified": true,
+  "url": "https://github.com/dancxjo/conduit/tree/fa84636d7446cd6724a5f5fac0f8688429edce0f/make/embedded-build/evidence/2026-10-24-local-fore-combined/f7a959cdc"
+}

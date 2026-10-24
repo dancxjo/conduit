@@ -1,0 +1,26 @@
+{
+  "observed_utc": "2026-10-24T07:43:56.062116+00:00",
+  "pr": 6380,
+  "head": "40e63b6a7a79bb5691f98f0706396630bf168047",
+  "candidate": 40071554737,
+  "candidate_conclusion": "success",
+  "preflight_job": 120805886337,
+  "tested_preview": "a4cd786e58e26fd9ddf21847371579e225cc24f4",
+  "tested_tree": "9beba9a26899daac1b03507b8086f43cbd7ed56e",
+  "merge": "8654335335504a879e78b481d1c0cdb252c4735b",
+  "merge_tree": "05986adf4c0ad6daf2fecd83a0b0452c1d29eba7",
+  "merge_parents": [
+    "3a99fa7da517c99611f9082393c1a35376480b8f",
+    "40e63b6a7a79bb5691f98f0706396630bf168047"
+  ],
+  "current_dev": "8654335335504a879e78b481d1c0cdb252c4735b",
+  "source_head_in_dev": true,
+  "delivery_method": "merge",
+  "delivered_delta_exact_before_after_blobs": true,
+  "reviewed_base_overlap": null,
+  "accepted_tree_equals_tested_tree": false,
+  "preflight_log_sha256": "59421d2e22891f7dd189db4fe6cbc3b12cac96e62362bb5c67d56fa233c93d53",
+  "preflight_log": "work/6380-preflight-job-120805886337-59421d2e22891f7dd189db4fe6cbc3b12cac96e62362bb5c67d56fa233c93d53.log",
+  "preflight_job_run_head_link_verified": true,
+  "accepted_integration_still_required": true
+}
