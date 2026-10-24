@@ -25,6 +25,9 @@ mod record_pronunciation;
 #[path = "../../xtask/src/suites/resource_snapshot.rs"]
 mod resource_snapshot;
 
+#[path = "../../xtask/src/suites/linux_snapshot.rs"]
+mod linux_snapshot;
+
 struct Suite {
     steps: &'static [Step],
     path: &'static str,
@@ -33,6 +36,11 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "linux-snapshot" => Some(Suite {
+            steps: linux_snapshot::STEPS,
+            path: "tools/xtask/src/suites/linux_snapshot.rs",
+            source: include_bytes!("../../xtask/src/suites/linux_snapshot.rs"),
+        }),
         [check, suite] if check == "check" && suite == "resource-snapshot" => Some(Suite {
             steps: resource_snapshot::STEPS,
             path: "tools/xtask/src/suites/resource_snapshot.rs",
