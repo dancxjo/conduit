@@ -6,15 +6,16 @@ pub(crate) mod display_owner;
 mod frame_grant;
 pub(crate) use session_owner::lifecycle;
 pub(crate) mod raster_staging;
+mod request_owner;
 pub(crate) mod session_owner;
-use frame_grant::FrameGrant;
+use request_owner::{OwnerError, RequestOwner};
 
 use crate::{
     arch::ServiceDomain,
     protected_region::{DomainBackend, DomainRefusal, DomainReturn},
     service_memory::ServiceImage,
 };
-use conduitos_compositor_core::wire::{self, Envelope, FrameSpan, PixelBytes, Request, Response};
+use conduitos_compositor_core::wire::{self, FrameSpan, PixelBytes, Request, Response};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TransportError {
@@ -27,10 +28,8 @@ pub enum TransportError {
 
 pub struct CompositorService {
     domain: Option<ServiceDomain>,
-    instance: u64,
     final_cost: crate::protected_region::DomainCost,
-    next_request: u64,
-    frame_grant: FrameGrant,
+    owner: RequestOwner,
     observation: lifecycle::ServiceObservation,
 }
 
@@ -82,11 +81,9 @@ impl CompositorService {
         let installation_finished = lifecycle::start();
         let mut service = Self {
             observation: lifecycle::ServiceObservation::installed(domain.instance(), domain.cost()),
-            instance: domain.instance(),
+            owner: RequestOwner::new(domain.instance(), width, height),
             final_cost: domain.cost(),
             domain: Some(domain),
-            next_request: 1,
-            frame_grant: FrameGrant::new(width, height),
         };
         service.observation.installation_raw_ticks =
             lifecycle::elapsed(installation_started, installation_finished);
@@ -119,12 +116,12 @@ impl CompositorService {
     }
 
     pub fn instance(&self) -> u64 {
-        self.instance
+        self.owner.instance()
     }
 
     pub fn quarantine(&mut self) {
         let started = lifecycle::start();
-        self.frame_grant.invalidate();
+        self.owner.quarantine();
         // Taking the backend makes terminal release idempotent. Stale owners
         // retain identity/cost only, so their later Drop cannot free a new slot.
         if let Some(mut domain) = self.domain.take() {
@@ -169,62 +166,20 @@ impl CompositorService {
         if self.domain.is_none() {
             return Err(TransportError::Terminated);
         }
-        match request {
-            Request::AcknowledgeScanout { sequence } => self
-                .frame_grant
-                .ack(sequence)
-                .map_err(|_| TransportError::Protocol)?,
-            Request::FrameStep { .. }
-            | Request::Pointer { .. }
-            | Request::Keyboard
-            | Request::Focused
-            | Request::DamagePending => {}
-            // Frames are transactions. Other commands cancel a pending Root
-            // grant even when the renderer ultimately reports a no-op/refusal.
-            _ => self.frame_grant.invalidate(),
-        }
-        let envelope = Envelope {
-            instance: self.instance(),
-            request: self.next_request,
-        };
-        self.next_request = self
-            .next_request
-            .checked_add(1)
-            .ok_or(TransportError::Exhausted)?;
+        self.owner.begin(request).map_err(owner_error)?;
         let domain = self.domain.as_mut().ok_or(TransportError::Terminated)?;
         let exchange = domain.exchange().map_err(TransportError::Backend)?;
         exchange.fill(0);
-        wire::encode_request(envelope, request, exchange).map_err(|_| TransportError::Protocol)?;
+        let command = self.owner.command().map_err(owner_error)?;
+        exchange
+            .get_mut(..command.len())
+            .ok_or(TransportError::Protocol)?
+            .copy_from_slice(command);
         if domain.enter(1).map_err(TransportError::Backend)? != DomainReturn::Yielded {
             return Err(TransportError::Terminated);
         }
         let exchange = domain.exchange().map_err(TransportError::Backend)?;
-        let length = u32::from_le_bytes(
-            exchange
-                .get(8..12)
-                .ok_or(TransportError::Protocol)?
-                .try_into()
-                .map_err(|_| TransportError::Protocol)?,
-        ) as usize;
-        let bytes = exchange.get(..length).ok_or(TransportError::Protocol)?;
-        let (returned, response) =
-            wire::decode_response(bytes).map_err(|_| TransportError::Protocol)?;
-        if returned != envelope || !response_matches(request, response) {
-            return Err(TransportError::Protocol);
-        }
-        match (request, response) {
-            (Request::BeginFrame, Response::FrameStarted(plan)) => self
-                .frame_grant
-                .begin(plan)
-                .map_err(|_| TransportError::Protocol)?,
-            (Request::BeginFrame, Response::FrameIdle { .. }) => self.frame_grant.invalidate(),
-            (Request::FrameStep { sequence, pixels }, Response::Frame(span)) => self
-                .frame_grant
-                .admit(span, sequence, pixels)
-                .map_err(|_| TransportError::Protocol)?,
-            _ => {}
-        }
-        Ok(response)
+        self.owner.complete_exchange(exchange).map_err(owner_error)
     }
 
     pub fn upload_chunk(
@@ -275,36 +230,10 @@ impl CompositorService {
     }
 }
 
-fn response_matches(request: Request, response: Response) -> bool {
-    if matches!(response, Response::Refused(_)) {
-        return true;
+fn owner_error(error: OwnerError) -> TransportError {
+    match error {
+        OwnerError::Exhausted => TransportError::Exhausted,
+        OwnerError::Terminated => TransportError::Terminated,
+        OwnerError::Protocol | OwnerError::Busy => TransportError::Protocol,
     }
-    matches!(
-        (request, response),
-        (Request::Admit { .. }, Response::Surface(_))
-            | (Request::PrepareUpload { .. }, Response::Prepared(_))
-            | (Request::BeginFrame, Response::FrameStarted(_))
-            | (Request::BeginFrame, Response::FrameIdle { .. })
-            | (Request::FrameStep { .. }, Response::Frame(_))
-            | (Request::Pointer { .. }, Response::Pointer(_))
-            | (Request::Keyboard, Response::Keyboard(_))
-            | (Request::Focused, Response::Focused(_))
-            | (Request::DamagePending, Response::DamagePending(_))
-            | (
-                Request::Remove(_)
-                    | Request::Place { .. }
-                    | Request::Resize { .. }
-                    | Request::Visible { .. }
-                    | Request::Focus(_)
-                    | Request::Cursor { .. }
-                    | Request::BeginUpload { .. }
-                    | Request::UploadWindow { .. }
-                    | Request::CommitUpload
-                    | Request::AbortUpload
-                    | Request::AcknowledgeScanout { .. }
-                    | Request::FailFrame
-                    | Request::Initialize { .. },
-                Response::Unit
-            )
-    )
 }
