@@ -1,0 +1,56 @@
+[
+  {
+    "capture": "outputs/environment-native-face-probe/1792875179",
+    "scope": "Native sampler/Face lifecycle only; supplementary HTTP observer was absent.",
+    "result": {
+      "source": "95f17a70ff1f151ad686c804a17424b972854f8e",
+      "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+      "completed": true,
+      "native_exit": 0,
+      "captures": {
+        "environment-owner-images": [
+          "target/environment-owner-images/1792875350"
+        ],
+        "environment-software-ready": [
+          "target/environment-software-ready/1792875484"
+        ],
+        "environment-body-admission": [
+          "target/environment-body-admission/1792875479"
+        ]
+      },
+      "restore_required": true,
+      "restore_exit": 0,
+      "fresh_source_sequences": [
+        1,
+        2,
+        3
+      ],
+      "current_display_updates": 12,
+      "recovery_verified": true
+    }
+  },
+  {
+    "capture": "outputs/environment-native-face-probe/1792875862",
+    "scope": "Dispatcher compilation refused before any flash; corrected sibling module reference.",
+    "result": {
+      "source": "d6a9ac28e43d41d8eea14bc96f8960d3becfa40d",
+      "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+      "completed": false,
+      "native_exit": 101,
+      "captures": {
+        "environment-owner-images": [],
+        "environment-software-ready": [],
+        "environment-body-admission": []
+      },
+      "restore_required": false,
+      "restore_exit": 0,
+      "fresh_source_sequences": [
+        8,
+        9,
+        10
+      ],
+      "current_display_updates": 12,
+      "recovery_verified": true
+    }
+  }
+]

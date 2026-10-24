@@ -1,0 +1,136 @@
+{
+  "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/outputs/environment-native-face-probe/1792875914/environment-owner-images/1792875915/root.elf",
+  "sha256": "30eb3dc6dda96e0d1ffba306659daaa74ed35e83664bc48fbb9fe002cec0d6f2",
+  "flash_mapped_bytes": 2332289,
+  "ram_section_extent_sum_bytes": 366048,
+  "ram_resident_code_extent_bytes": 61664,
+  "sections": [
+    {
+      "name": ".rwtext",
+      "address": "0x40080400",
+      "bytes": 8840,
+      "writable": false,
+      "nobits": false,
+      "flash_mapped": false,
+      "executable": true
+    },
+    {
+      "name": ".rwtext.wifi",
+      "address": "0x40082688",
+      "bytes": 51800,
+      "writable": false,
+      "nobits": false,
+      "flash_mapped": false,
+      "executable": true
+    },
+    {
+      "name": ".data",
+      "address": "0x3ffb0000",
+      "bytes": 17204,
+      "writable": true,
+      "nobits": false,
+      "flash_mapped": false,
+      "executable": false
+    },
+    {
+      "name": ".data.wifi",
+      "address": "0x3ffb4334",
+      "bytes": 540,
+      "writable": true,
+      "nobits": false,
+      "flash_mapped": false,
+      "executable": false
+    },
+    {
+      "name": ".bss",
+      "address": "0x3ffb4550",
+      "bytes": 141940,
+      "writable": true,
+      "nobits": true,
+      "flash_mapped": false,
+      "executable": false
+    },
+    {
+      "name": ".flash.appdesc",
+      "address": "0x3f400020",
+      "bytes": 256,
+      "writable": false,
+      "nobits": false,
+      "flash_mapped": true,
+      "executable": false
+    },
+    {
+      "name": ".rodata",
+      "address": "0x3f400120",
+      "bytes": 445500,
+      "writable": false,
+      "nobits": false,
+      "flash_mapped": true,
+      "executable": false
+    },
+    {
+      "name": ".rodata.wifi",
+      "address": "0x3f46cd5c",
+      "bytes": 30368,
+      "writable": false,
+      "nobits": false,
+      "flash_mapped": true,
+      "executable": false
+    },
+    {
+      "name": ".text",
+      "address": "0x400d0020",
+      "bytes": 1856165,
+      "writable": false,
+      "nobits": false,
+      "flash_mapped": true,
+      "executable": true
+    },
+    {
+      "name": ".vectors",
+      "address": "0x40080000",
+      "bytes": 1024,
+      "writable": false,
+      "nobits": false,
+      "flash_mapped": false,
+      "executable": true
+    },
+    {
+      "name": ".rtc_fast.data",
+      "address": "0x3ff80000",
+      "bytes": 8192,
+      "writable": true,
+      "nobits": false,
+      "flash_mapped": false,
+      "executable": false
+    },
+    {
+      "name": ".rtc_slow.data",
+      "address": "0x50000000",
+      "bytes": 4096,
+      "writable": true,
+      "nobits": false,
+      "flash_mapped": false,
+      "executable": false
+    },
+    {
+      "name": ".stack",
+      "address": "0x3ffd6fc4",
+      "bytes": 36924,
+      "writable": true,
+      "nobits": true,
+      "flash_mapped": false,
+      "executable": false
+    },
+    {
+      "name": ".dram2_uninit",
+      "address": "0x3ffe7e30",
+      "bytes": 95488,
+      "writable": true,
+      "nobits": true,
+      "flash_mapped": false,
+      "executable": false
+    }
+  ],
+  "accounting": "RAM section extents include static heap arenas and .stack reservations; do not add heap capacities or linked stacks again. This is not a bank/alias/lifetime proof or allocator/stack high-water measurement."
+}

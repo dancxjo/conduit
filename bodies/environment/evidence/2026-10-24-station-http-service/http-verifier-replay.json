@@ -1,0 +1,33 @@
+{
+  "proof_class": "CPU verifier replay of retained physical HTTP capture; corrupted cases are fixtures",
+  "cases": [
+    {
+      "case": "valid",
+      "accepted": true
+    },
+    {
+      "case": "foreign_face",
+      "accepted": false
+    },
+    {
+      "case": "wrong_revision",
+      "accepted": false
+    },
+    {
+      "case": "invented_acquisition_time",
+      "accepted": false
+    },
+    {
+      "case": "stale",
+      "accepted": false
+    },
+    {
+      "case": "foreign_boot",
+      "accepted": false
+    },
+    {
+      "case": "transition_while_sampling",
+      "accepted": false
+    }
+  ]
+}

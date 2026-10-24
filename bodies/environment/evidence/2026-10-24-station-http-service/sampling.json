@@ -1,0 +1,227 @@
+{
+  "proof_class": "attended finite native Face/HTTP, queued private setup, same-Boot failed join/AP restoration",
+  "source_commit": "d5a2fa4575fd83c34feedba4d0ea1e4211230085",
+  "public_command": "cargo xtask prove environment owner-face-http-run-esp32",
+  "observations": [
+    {
+      "source_sequence": 1,
+      "revision": 1,
+      "native_face_identity": "ec565c1d9ff188899b3c5bd0fd31350732787f0d2b68575095f05e87aa933b43",
+      "face_identity": "89318d8c38eebe9a1bef977a67e06f307c8ca7336a60578a3765e91bbe93099f",
+      "identity_note": "Native producer Face and host Body replay Face have different provenance and are not equated."
+    },
+    {
+      "source_sequence": 2,
+      "revision": 2,
+      "native_face_identity": "2a724a0650230a6478e93b6b9e8ff0c819c4fd07af9e1f1b11e05bd9e5026189",
+      "face_identity": "7c1b3fd96ec9f815bc979c9f2c8d0bcb470d8be7807675a282c1e552458e5694",
+      "identity_note": "Native producer Face and host Body replay Face have different provenance and are not equated."
+    },
+    {
+      "source_sequence": 3,
+      "revision": 3,
+      "native_face_identity": "64421ad82db341bb358ed93cc68e3770dcd4dd1f33d009cee4f31ae00d68ec3c",
+      "face_identity": "8d66c66f6798b562fdf2d1927955066d733820cdc6ab70b98cbeba1a9b4d93a0",
+      "identity_note": "Native producer Face and host Body replay Face have different provenance and are not equated."
+    }
+  ],
+  "root_heap_bytes": 118768,
+  "sdk_heap_bytes": 73728,
+  "root_heap_peak_bytes": 79692,
+  "root_heap_after_retirement_bytes": 13988,
+  "post_network_root_heap_used_bytes": 19368,
+  "observed_sampling_root_used_bytes": [
+    79692,
+    79692,
+    79692
+  ],
+  "observed_sdk_peak_bytes": 40040,
+  "heap_checkpoints": {
+    "physical-observation-3.json": {
+      "observed_boot_ms": 222218,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "owner-retired.json": {
+      "observed_boot_ms": 223581,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 13988,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "owner-release.json": {
+      "observed_boot_ms": 40053,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 38172,
+      "sdk_used_bytes": 34504
+    },
+    "physical-observation-1.json": {
+      "observed_boot_ms": 100755,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "physical-observation-2.json": {
+      "observed_boot_ms": 164378,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 34504
+    },
+    "owner-native-preparation.json": {
+      "observed_boot_ms": 38970,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 38172,
+      "sdk_used_bytes": 34504
+    },
+    "owner-quiesced.json": {
+      "observed_boot_ms": 223017,
+      "root_capacity_bytes": 118768,
+      "root_peak_bytes": 79692,
+      "root_used_bytes": 79692,
+      "sdk_capacity_bytes": 73728,
+      "sdk_peak_bytes": 40040,
+      "sdk_used_bytes": 36204
+    }
+  },
+  "linked_stack_bytes": 36924,
+  "stack_floor_bytes": 36864,
+  "stack_high_water_claimed": false,
+  "mask_on_mcu": true,
+  "mask_scope": "finite native HTTP Show; this physical capture exercises AP sockets and rejected-join restoration; station sockets are linked but successful station HTTP is unproved",
+  "combined_sampling_output_claimed": false,
+  "combined_network_transition_claimed": false,
+  "telemetry_is_signed_attestation": false,
+  "image_receipt": {
+    "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792875915/root.elf",
+    "body_started": false,
+    "elf_sha256": "30eb3dc6dda96e0d1ffba306659daaa74ed35e83664bc48fbb9fe002cec0d6f2",
+    "owner_public_key_sha256": "e803269abafd033641cf34da85a65cbd70a8f667957903908d7b29a9d45d3a33",
+    "profile": "native-face-root",
+    "schema": "conduit.environment/owner-root-image@1",
+    "source_dirty": false,
+    "source_head": "d5a2fa4575fd83c34feedba4d0ea1e4211230085"
+  },
+  "recovery": {
+    "source": "d5a2fa4575fd83c34feedba4d0ea1e4211230085",
+    "recovery_sha256": "c8db95d0160e52eaaf1bbd5781b9c6cb9951d9ef435c3c14b34d28df7b7abdcc",
+    "completed": true,
+    "native_exit": 0,
+    "captures": {
+      "environment-owner-images": [
+        "target/environment-owner-images/1792875915"
+      ],
+      "environment-software-ready": [
+        "target/environment-software-ready/1792876049"
+      ],
+      "environment-body-admission": [
+        "target/environment-body-admission/1792876044"
+      ]
+    },
+    "restore_required": true,
+    "restore_exit": 0,
+    "fresh_source_sequences": [
+      1,
+      2,
+      3
+    ],
+    "current_display_updates": 12,
+    "recovery_verified": true
+  },
+  "capture_sha256": {
+    "result.json": "d2fa72951ed8bbacf5d6be479e5f603d18f294cbdc1edd507478d1598f664a28",
+    "native-root.map": "27c1067600c54801b59c885863b2e997edca13da5d9bf544d07127603a70976f",
+    "http-observations.jsonl": "81a9dee385d6dcadc4a39895553246459d688f053072462f2107a217a848fd0f",
+    "http-correlation.json": "60150d11e957f8e48b04e149adfd3b77fb8b21e6e09984129470d0591eaf4b64",
+    "environment-owner-images/1792875915/image-receipt.json": "2cc4e8bfb9750041f57bf36f81bf8f5576d255dafa95402f41b39997c962364b",
+    "environment-software-ready/1792876049/live-network-submission.json": "50f967343e16e4ff1a00b29d6441c20a3f8f48b06da32c7f36cb0da0db9707fa",
+    "environment-software-ready/1792876049/final-root-offer.json": "e27664d61a7a0f406d90d3902136a2adc289f58a6b767828d5ab11bdc1a09caa",
+    "environment-software-ready/1792876049/physical-observation-3.json": "1426dcecc23eaf1a9436da89d2e8f9f1f2d955ca1e3f68d6885dd0036acf67ca",
+    "environment-software-ready/1792876049/owner-retired.json": "da2c34ecccb7b7704ae3ade382a491574be6d758bc21ac989a49bcf1d0a8a8cc",
+    "environment-software-ready/1792876049/owner-release.json": "b093b90eb70e53c7180e2a128034e5504fa7fd357ba5a18a34fa436ceb6261d7",
+    "environment-software-ready/1792876049/physical-observation-1.json": "57b719b910ad025a4e309d3a1b50797de2d82c9bf04da48787acc16eb4982d54",
+    "environment-software-ready/1792876049/physical-observation-2.json": "a7626623266b1fcc7a1992748498debcc9cd97eaf490ed4428ac3ef05ebe4749",
+    "environment-software-ready/1792876049/owner-native-preparation.json": "3781210cdebb6ff210ee532ae844d2c92b8faabe52ca870093d00190e5372f9d",
+    "environment-software-ready/1792876049/owner-quiesced.json": "0bf8e46fe7baf758724ad398e0398763344d17b11ae968e2ec05b9de71e0f12f"
+  },
+  "value_slot_capacities": [
+    2274,
+    2274,
+    573,
+    573,
+    573,
+    573,
+    573,
+    573,
+    573
+  ],
+  "root_rebalance_bytes": 1280,
+  "root_heap_partition_total_preserved": true,
+  "whole_static_ram_and_stack_extents_preserved": false,
+  "http_response_backing_bytes": 4104,
+  "sampling_free_root_capacity_bytes": 39076,
+  "network_setup_fixture": {
+    "proof_class": "concurrent-private-network-submission",
+    "completed": true,
+    "real_network_credentials_used": false,
+    "submitted": true,
+    "setup_page_status": 200,
+    "post_status": 202,
+    "setup_page_sha256": "522309202f824b4faabac8a7402398cac67fcd5ea7fde9cf66895666c1378f41",
+    "fixture_sha256": "8c0533fa6f1ab3a4633e5d55ce35c5c43f95210c6d2845c671e3b0912a5243a8",
+    "reservation_offer_generation": 1,
+    "boot_id": "boot/b3779a609c1b34fcebb65511cc36ca32"
+  },
+  "final_network_configuration": "access-point-restored",
+  "network_control_dispatches": [
+    1,
+    1,
+    0
+  ],
+  "network_control_failure_phase": "associate",
+  "network_control_failure_reason": "rejected",
+  "successful_station_join_proven": false,
+  "http_correlation": {
+    "proof_class": "finite native Face HTTP correlation and rejected fixture fallback",
+    "completed": true,
+    "matched_native_face_identities": {
+      "1": "ec565c1d9ff188899b3c5bd0fd31350732787f0d2b68575095f05e87aa933b43",
+      "2": "2a724a0650230a6478e93b6b9e8ff0c819c4fd07af9e1f1b11e05bd9e5026189",
+      "3": "64421ad82db341bb358ed93cc68e3770dcd4dd1f33d009cee4f31ae00d68ec3c"
+    },
+    "http_successes": 59,
+    "unavailable_before_publication": true,
+    "successful_station_join_proven": false,
+    "browser_body_membership": false,
+    "source_commit": "d5a2fa4575fd83c34feedba4d0ea1e4211230085",
+    "recovery_verified": true,
+    "fresh_recovery_sequences": [
+      1,
+      2,
+      3
+    ],
+    "acknowledged_recovery_display_updates": 12,
+    "combined_network_transition_admitted": false,
+    "continuous_appliance_deployed": false
+  },
+  "preceding_linked_stack_bytes": 36988,
+  "linked_stack_delta_bytes": -64,
+  "station_http_physically_proven": false
+}

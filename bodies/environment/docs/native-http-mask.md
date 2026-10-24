@@ -83,3 +83,12 @@ fixture, and checks same-Boot rejection/AP restoration after sampler retirement.
 No real network password is requested or printed. The observer is bounded and
 retired on failure; it does not own UART, a Body, or a second observation store.
 The plain `owner-face-run-esp32` remains the sampler/Face lifecycle proof.
+
+The named HTTP proof completed on the keyed station-service image: three native
+Face revisions correlated across 59 HTTP responses, one private fixture was
+acknowledged during sampling, and rejected association restored AP services in
+the same Boot after retirement. Root sampling use remained 79,692 bytes; the
+linked stack is 36,924 bytes. The protected image was restored with three fresh
+sequences and twelve acknowledged display writes. See the
+[retained station-service evidence](../evidence/2026-10-24-station-http-service/README.md).
+Successful station HTTP and simultaneous sampler/network admission remain open.
