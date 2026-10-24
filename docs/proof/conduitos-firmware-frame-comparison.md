@@ -116,6 +116,24 @@ reclaiming inactive compiler caches, the journey and final artifact verification
 used the same immutable ISO. The earlier wrapper receipt is retained; there was
 no guest failure, image substitution or replacement build.
 
+## Refusal matrix
+
+These are actual negative controls, kept separate from successful frames. Each
+linked report retains the exact image, launch, transcript and source scope.
+
+| Host | Provider absent | Source/capture boundary |
+| --- | --- | --- |
+| x86_64 | [Historical normal product without VGA](../audits/native-missing-graphics-20261022.md): `display-absent`, exit 35, no Show; retained diagnostic source `bc3ff641a` | Current journey has its own immutable-image and Face/Show checks; the historical negative is not relabelled as that journey source |
+| AArch64 | [Same graphical image without ramfb](conduitos-aarch64-firmware-frame.md): `display-absent`, no graphical Show | Supported verifier refuses dirty source before guest launch |
+| IA-32 | [Same graphical image without VGA](conduitos-ia32-firmware-frame.md): `display-absent`, 4128 ms, no graphical Show | Supported verifier refuses dirty source before guest launch |
+| RISC-V64 | [Same graphical image without ramfb](conduitos-riscv64-firmware-frame.md): `display-absent`, 8535 ms, no graphical Show | Supported verifier refuses dirty source before normal guest launch |
+| LoongArch64 | [Same graphical image without ramfb](conduitos-loongarch64-firmware-frame.md): `display-absent`, 5018 ms, no graphical Show | Supported verifier refuses dirty source before normal guest launch |
+
+The four non-x86 negatives preserve their image and immutable firmware bytes.
+Placeholder QMP images from absent providers never count as graphical success.
+The prepared-tool capability probes can run paused empty machines before a
+source refusal; those probes execute no normal guest instructions.
+
 ## Reproduction and acceptance scope
 
 At the pinned x86 source, with the repository's normal x86 tool prerequisites:
