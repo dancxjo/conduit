@@ -1,0 +1,65 @@
+{
+  "observed_utc": "2026-10-24T01:59:09.334489+00:00",
+  "source": "5c2cb5c02c0ce8bfe1252c3a38985abf234b7247",
+  "source_branch": "integrate/reviewed-followups-20261024",
+  "remote_source_verified": true,
+  "preserved_heads": [
+    "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+    "455aaf0a33a5dddf739935003e77b5da2c3788ac",
+    "cc527bec2a935a601ea1cf327094d3e8ffa2d5f8",
+    "3b38e49f2fe09c9f4fcb4041e2ed1ae2686d1023",
+    "a971533d8b8bfb7b0f7740cffe31156bf59b4398"
+  ],
+  "resolution": "Only tools/xtask-dispatch/src/focused_check.rs conflicted; preserve exact monotonic-wait and resource-snapshot modules/selection arms",
+  "commands": [
+    "cargo +stable xtask ci pipeline preflight dd3cdb41f7a0320658e0c5c00d458db32e5adf56 (initial missing local actionlint)",
+    "cargo +stable xtask ci pipeline setup-ci",
+    "cargo +stable xtask ci pipeline preflight dd3cdb41f7a0320658e0c5c00d458db32e5adf56 (passed)"
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6339-refresh-preflight-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0"
+  },
+  "resolved_dispatcher_compiled": true,
+  "preflight_tests_passed": 345,
+  "files": [
+    {
+      "path": "reviewed-followups-preflight.log.gz",
+      "sha256": "831d579f312d4e8b84099dc00250ea709830e5cec3c37bdc186ebd4d64e79580",
+      "original_sha256": "582620148097984a7a76e123c1e6cfbf4bf62b78410c7fb324cb87f942fca2d0",
+      "encoding": "gzip"
+    },
+    {
+      "path": "reviewed-followups-preflight-missing-actionlint.log.gz",
+      "sha256": "778e3f4bfcca9581ae97476cafb7eef3753085efa685bf1ce053ce00f6c4b4e6",
+      "original_sha256": "b19bc10d5f69873bb760f931426e40a13e6c0bd84024a2f7eb7c607913837c3f",
+      "encoding": "gzip"
+    },
+    {
+      "path": "reviewed-followups-setup-ci.log.gz",
+      "sha256": "667f26c963d6269545d58a4e685e044046327de6796599f1e6121e27d419c047",
+      "original_sha256": "59ec552f022ad3fb1f5f285ece40a4aa7d34f7ece03b64dc1d7357a33c663836",
+      "encoding": "gzip"
+    },
+    {
+      "path": "reviewed-followups-independent-source-review.json",
+      "sha256": "48dd928b55f3c2a34f7038729334521515500fe529daf8015f615e452e181b47",
+      "original_sha256": "48dd928b55f3c2a34f7038729334521515500fe529daf8015f615e452e181b47",
+      "encoding": "identity"
+    },
+    {
+      "path": "reviewed-followups-prospective-composition.json",
+      "sha256": "9982b2d640cd48d091a87ff74cfcc3a583966d56022f62bda703cc09f9167a22",
+      "original_sha256": "9982b2d640cd48d091a87ff74cfcc3a583966d56022f62bda703cc09f9167a22",
+      "encoding": "identity"
+    }
+  ],
+  "limits": [
+    "Staging source only, no new PR or dev delivery",
+    "No full Candidate or Integration acceptance at combined head",
+    "No rerun of full runtime/browser/timer suites at this combined source",
+    "Owner branches and active native build untouched",
+    "Urgent6339 remains first for delivery; source frontier must be refreshed before admitting followups"
+  ]
+}

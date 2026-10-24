@@ -1,0 +1,360 @@
+{
+  "reviewed_at_utc": "2026-10-24T01:58:47.102941+00:00",
+  "reviewed_head": "5c2cb5c02c0ce8bfe1252c3a38985abf234b7247",
+  "reviewed_head_parents": [
+    "9b16effd8b32a30ce56968c421d07c37eec06395",
+    "a971533d8b8bfb7b0f7740cffe31156bf59b4398"
+  ],
+  "base": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "base_is_ancestor": true,
+  "source_correspondence": [
+    {
+      "source_head": "455aaf0a33a5dddf739935003e77b5da2c3788ac",
+      "source_parents": [
+        "3e115ac4dcf89fe36eb7fe94e4e2749c09840373"
+      ],
+      "merge_base_with_dev": "c375807a059d3a5cc5d8e866cb27861fe04d7087",
+      "source_is_ancestor": true,
+      "changed_paths": [
+        {
+          "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+          "source_mode_type_blob": "100644 blob 453ca95a6caf09d3258cf5a56f2cf00634043426",
+          "integrated_mode_type_blob": "100644 blob 453ca95a6caf09d3258cf5a56f2cf00634043426",
+          "correspondence": "exact"
+        },
+        {
+          "path": "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+          "source_mode_type_blob": "100644 blob c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+          "integrated_mode_type_blob": "100644 blob c38426d32e48fe7796ce54ab1a54d7c29a7d23d1",
+          "correspondence": "exact"
+        },
+        {
+          "path": "targets/raspberry-pi/deployment/linux/bootstrap.py",
+          "source_mode_type_blob": "100644 blob 095815d1f6d0e773df25c11acb5870e198c9e2cb",
+          "integrated_mode_type_blob": "100644 blob 095815d1f6d0e773df25c11acb5870e198c9e2cb",
+          "correspondence": "exact"
+        }
+      ]
+    },
+    {
+      "source_head": "cc527bec2a935a601ea1cf327094d3e8ffa2d5f8",
+      "source_parents": [
+        "94e0d520b11adb0c6636fc15cc464e7e6fe8c24d"
+      ],
+      "merge_base_with_dev": "c375807a059d3a5cc5d8e866cb27861fe04d7087",
+      "source_is_ancestor": true,
+      "changed_paths": [
+        {
+          "path": "architecture/plan-lowering/src/assigned_configuration.rs",
+          "source_mode_type_blob": "100644 blob 7674333bbde4011a6e0f203c0b1b996b1a462984",
+          "integrated_mode_type_blob": "100644 blob 7674333bbde4011a6e0f203c0b1b996b1a462984",
+          "correspondence": "exact"
+        },
+        {
+          "path": "architecture/plan-lowering/src/assigned_operation_input.rs",
+          "source_mode_type_blob": "100644 blob 0700e1c456c08a46532811a6d382cf27c924e027",
+          "integrated_mode_type_blob": "100644 blob 0700e1c456c08a46532811a6d382cf27c924e027",
+          "correspondence": "exact"
+        },
+        {
+          "path": "architecture/plan-lowering/src/selected_assigned_operation.rs",
+          "source_mode_type_blob": "100644 blob 0e58f450af54f4f5aa2e62f887d1aa74c88b77a7",
+          "integrated_mode_type_blob": "100644 blob 0e58f450af54f4f5aa2e62f887d1aa74c88b77a7",
+          "correspondence": "exact"
+        },
+        {
+          "path": "architecture/plan-lowering/src/selected_operation.rs",
+          "source_mode_type_blob": "100644 blob 4605cc280c30ec7458bf9ca7705b7b28af2549f7",
+          "integrated_mode_type_blob": "100644 blob 4605cc280c30ec7458bf9ca7705b7b28af2549f7",
+          "correspondence": "exact"
+        },
+        {
+          "path": "bodies/environment/runtime/tests/support/pulse.rs",
+          "source_mode_type_blob": "100644 blob 1649af261f278c7c0a970cf20480bc4591db4040",
+          "integrated_mode_type_blob": "100644 blob 1649af261f278c7c0a970cf20480bc4591db4040",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/Cargo.lock",
+          "source_mode_type_blob": "100644 blob 75a7354df7e81203e56f36bab2d4a7391b47c930",
+          "integrated_mode_type_blob": "100644 blob 75a7354df7e81203e56f36bab2d4a7391b47c930",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/Cargo.toml",
+          "source_mode_type_blob": "100644 blob 874933e8ff6bc0ca1909029e19931ee19531329e",
+          "integrated_mode_type_blob": "100644 blob 874933e8ff6bc0ca1909029e19931ee19531329e",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/README.md",
+          "source_mode_type_blob": "100644 blob 5a3c6fd100cb7e1fbce5565c1ae41189a211570e",
+          "integrated_mode_type_blob": "100644 blob 5a3c6fd100cb7e1fbce5565c1ae41189a211570e",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/src/assigned.rs",
+          "source_mode_type_blob": "100644 blob 5084beaf68ba36d762112bfbac3f3704fc91c42d",
+          "integrated_mode_type_blob": "100644 blob 5084beaf68ba36d762112bfbac3f3704fc91c42d",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/src/installation.rs",
+          "source_mode_type_blob": "100644 blob 3bdd402ba2d33914fd2c359e4f210599faea3eb5",
+          "integrated_mode_type_blob": "100644 blob 3bdd402ba2d33914fd2c359e4f210599faea3eb5",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/src/lib.rs",
+          "source_mode_type_blob": "100644 blob f3396c6a3e2570017c98845b30d459f4aae19ab9",
+          "integrated_mode_type_blob": "100644 blob f3396c6a3e2570017c98845b30d459f4aae19ab9",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/src/owner.rs",
+          "source_mode_type_blob": "100644 blob 3ac6fb8ef2ead8110c414519216d7e7adb9f1dd9",
+          "integrated_mode_type_blob": "100644 blob 3ac6fb8ef2ead8110c414519216d7e7adb9f1dd9",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/tests/support/assigned.rs",
+          "source_mode_type_blob": "100644 blob 453cf434fa2313ebe8070acf4dbac3bb3f2412e8",
+          "integrated_mode_type_blob": "100644 blob 453cf434fa2313ebe8070acf4dbac3bb3f2412e8",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/tests/support/fixture.rs",
+          "source_mode_type_blob": "100644 blob f713d7bacc163a439580b523110326cb726bb561",
+          "integrated_mode_type_blob": "100644 blob f713d7bacc163a439580b523110326cb726bb561",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/tests/support/installation.rs",
+          "source_mode_type_blob": "100644 blob 04d4cf6ad6834ae87481c0964ada9125512c2b33",
+          "integrated_mode_type_blob": "100644 blob 04d4cf6ad6834ae87481c0964ada9125512c2b33",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/monotonic-wait/tests/wait_owner.rs",
+          "source_mode_type_blob": "100644 blob cbde9bbabf2b9b280cd1de5972c692d530f72a13",
+          "integrated_mode_type_blob": "100644 blob cbde9bbabf2b9b280cd1de5972c692d530f72a13",
+          "correspondence": "exact"
+        },
+        {
+          "path": "tools/xtask-dispatch/src/focused_check.rs",
+          "source_mode_type_blob": "100644 blob ee8f942bc5a0a6fb3b081e27ab430a25c244b5b6",
+          "integrated_mode_type_blob": "100644 blob c444c4e8ca96647179322921ab594762ddeab365",
+          "correspondence": "independently verified registration union"
+        },
+        {
+          "path": "tools/xtask/src/suites/monotonic_wait.rs",
+          "source_mode_type_blob": "100644 blob b2111536fb17157196074793cba817c5e717430b",
+          "integrated_mode_type_blob": "100644 blob b2111536fb17157196074793cba817c5e717430b",
+          "correspondence": "exact"
+        }
+      ]
+    },
+    {
+      "source_head": "a971533d8b8bfb7b0f7740cffe31156bf59b4398",
+      "source_parents": [
+        "2492ad013d5543b01f6cef7023c067aac807c09d"
+      ],
+      "merge_base_with_dev": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+      "source_is_ancestor": true,
+      "changed_paths": [
+        {
+          "path": "Cargo.lock",
+          "source_mode_type_blob": "100644 blob 285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+          "integrated_mode_type_blob": "100644 blob 285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/Cargo.toml",
+          "source_mode_type_blob": "100644 blob a80eacdcc53905f59243fe5fe3889ba34c48d567",
+          "integrated_mode_type_blob": "100644 blob a80eacdcc53905f59243fe5fe3889ba34c48d567",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/README.md",
+          "source_mode_type_blob": "100644 blob 0147d1009d4209f4f15a18083241692b85593a42",
+          "integrated_mode_type_blob": "100644 blob 0147d1009d4209f4f15a18083241692b85593a42",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+          "source_mode_type_blob": "100644 blob 679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+          "integrated_mode_type_blob": "100644 blob 679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/record.rs",
+          "source_mode_type_blob": "100644 blob 01081e1ad83b3f4648d2baf98b849078378a4f95",
+          "integrated_mode_type_blob": "100644 blob 01081e1ad83b3f4648d2baf98b849078378a4f95",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+          "source_mode_type_blob": "100644 blob 6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+          "integrated_mode_type_blob": "100644 blob 6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+          "source_mode_type_blob": "100644 blob 56695afe99420befd10aa7b21ab56f60446edace",
+          "integrated_mode_type_blob": "100644 blob 56695afe99420befd10aa7b21ab56f60446edace",
+          "correspondence": "exact"
+        },
+        {
+          "path": "targets/browser/runtime/Cargo.toml",
+          "source_mode_type_blob": "100644 blob 64250fbaad3d8df6faa561609513f2bc111460b1",
+          "integrated_mode_type_blob": "100644 blob 64250fbaad3d8df6faa561609513f2bc111460b1",
+          "correspondence": "exact"
+        },
+        {
+          "path": "targets/browser/runtime/src/resource_snapshot.rs",
+          "source_mode_type_blob": "100644 blob ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+          "integrated_mode_type_blob": "100644 blob ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+          "correspondence": "exact"
+        },
+        {
+          "path": "tools/xtask-dispatch/src/focused_check.rs",
+          "source_mode_type_blob": "100644 blob fb0d2083655e52a6b14e08a8a7af822b1526452f",
+          "integrated_mode_type_blob": "100644 blob c444c4e8ca96647179322921ab594762ddeab365",
+          "correspondence": "independently verified registration union"
+        },
+        {
+          "path": "tools/xtask/src/suites/resource_snapshot.rs",
+          "source_mode_type_blob": "100644 blob d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+          "integrated_mode_type_blob": "100644 blob d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+          "correspondence": "exact"
+        }
+      ]
+    },
+    {
+      "source_head": "3b38e49f2fe09c9f4fcb4041e2ed1ae2686d1023",
+      "source_parents": [
+        "dd3cdb41f7a0320658e0c5c00d458db32e5adf56"
+      ],
+      "merge_base_with_dev": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+      "source_is_ancestor": true,
+      "changed_paths": [
+        {
+          "path": "Cargo.lock",
+          "source_mode_type_blob": "100644 blob 285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+          "integrated_mode_type_blob": "100644 blob 285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/Cargo.toml",
+          "source_mode_type_blob": "100644 blob a80eacdcc53905f59243fe5fe3889ba34c48d567",
+          "integrated_mode_type_blob": "100644 blob a80eacdcc53905f59243fe5fe3889ba34c48d567",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/README.md",
+          "source_mode_type_blob": "100644 blob 0147d1009d4209f4f15a18083241692b85593a42",
+          "integrated_mode_type_blob": "100644 blob 0147d1009d4209f4f15a18083241692b85593a42",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/lib.rs",
+          "source_mode_type_blob": "100644 blob 679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+          "integrated_mode_type_blob": "100644 blob 679cd703df239a95d8c9c1410f6b4a74a3d8dd7f",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/record.rs",
+          "source_mode_type_blob": "100644 blob 01081e1ad83b3f4648d2baf98b849078378a4f95",
+          "integrated_mode_type_blob": "100644 blob 01081e1ad83b3f4648d2baf98b849078378a4f95",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/src/tests.rs",
+          "source_mode_type_blob": "100644 blob 6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+          "integrated_mode_type_blob": "100644 blob 6b2cbea18a54e899c1081d5fd5990ff1ab0b0801",
+          "correspondence": "exact"
+        },
+        {
+          "path": "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+          "source_mode_type_blob": "100644 blob 56695afe99420befd10aa7b21ab56f60446edace",
+          "integrated_mode_type_blob": "100644 blob 56695afe99420befd10aa7b21ab56f60446edace",
+          "correspondence": "exact"
+        },
+        {
+          "path": "targets/browser/runtime/Cargo.toml",
+          "source_mode_type_blob": "100644 blob 64250fbaad3d8df6faa561609513f2bc111460b1",
+          "integrated_mode_type_blob": "100644 blob 64250fbaad3d8df6faa561609513f2bc111460b1",
+          "correspondence": "exact"
+        },
+        {
+          "path": "targets/browser/runtime/src/resource_snapshot.rs",
+          "source_mode_type_blob": "100644 blob ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+          "integrated_mode_type_blob": "100644 blob ce4453bcd9ad97e6a16f2e1b1d06fda50cfb407a",
+          "correspondence": "exact"
+        },
+        {
+          "path": "tools/xtask-dispatch/src/focused_check.rs",
+          "source_mode_type_blob": "100644 blob fb0d2083655e52a6b14e08a8a7af822b1526452f",
+          "integrated_mode_type_blob": "100644 blob c444c4e8ca96647179322921ab594762ddeab365",
+          "correspondence": "independently verified registration union"
+        },
+        {
+          "path": "tools/xtask/src/suites/resource_snapshot.rs",
+          "source_mode_type_blob": "100644 blob 78493d11114489a378b9d462a29936554311595a",
+          "integrated_mode_type_blob": "100644 blob d4d92513394bb0a2840d419a2e5cb1d39e7f01d1",
+          "correspondence": "intentional operation-proof repair; exact a971 repair blob"
+        }
+      ]
+    }
+  ],
+  "changed_path_union_exact": true,
+  "union_path_count": 31,
+  "union_paths": [
+    "Cargo.lock",
+    "architecture/plan-lowering/src/assigned_configuration.rs",
+    "architecture/plan-lowering/src/assigned_operation_input.rs",
+    "architecture/plan-lowering/src/selected_assigned_operation.rs",
+    "architecture/plan-lowering/src/selected_operation.rs",
+    "bodies/environment/runtime/tests/support/pulse.rs",
+    "mechanisms/io/monotonic-wait/Cargo.lock",
+    "mechanisms/io/monotonic-wait/Cargo.toml",
+    "mechanisms/io/monotonic-wait/README.md",
+    "mechanisms/io/monotonic-wait/src/assigned.rs",
+    "mechanisms/io/monotonic-wait/src/installation.rs",
+    "mechanisms/io/monotonic-wait/src/lib.rs",
+    "mechanisms/io/monotonic-wait/src/owner.rs",
+    "mechanisms/io/monotonic-wait/tests/support/assigned.rs",
+    "mechanisms/io/monotonic-wait/tests/support/fixture.rs",
+    "mechanisms/io/monotonic-wait/tests/support/installation.rs",
+    "mechanisms/io/monotonic-wait/tests/wait_owner.rs",
+    "mechanisms/io/resource-snapshot/Cargo.toml",
+    "mechanisms/io/resource-snapshot/README.md",
+    "mechanisms/io/resource-snapshot/src/lib.rs",
+    "mechanisms/io/resource-snapshot/src/record.rs",
+    "mechanisms/io/resource-snapshot/src/tests.rs",
+    "mechanisms/io/resource-snapshot/tests/support/fixture.rs",
+    "targets/browser/runtime/Cargo.toml",
+    "targets/browser/runtime/src/resource_snapshot.rs",
+    "targets/conduitos/make/xtask/compositor_lifecycle_collection.rs",
+    "targets/conduitos/make/xtask/compositor_lifecycle_collection/embedded.rs",
+    "targets/raspberry-pi/deployment/linux/bootstrap.py",
+    "tools/xtask-dispatch/src/focused_check.rs",
+    "tools/xtask/src/suites/monotonic_wait.rs",
+    "tools/xtask/src/suites/resource_snapshot.rs"
+  ],
+  "dispatcher_resolution": {
+    "path": "tools/xtask-dispatch/src/focused_check.rs",
+    "one_complete_module_declaration_per_suite": true,
+    "one_complete_selector_arm_per_suite": true,
+    "suite_steps_paths_and_include_bytes_preserved": true,
+    "prior_dispatcher_restored_after_removing_two_additions": "exact nonblank lines; only blank-line normalization needed",
+    "prior_selection_execution_and_failure_handling_unchanged": true
+  },
+  "findings": [],
+  "proof_limits": [
+    "Independent local Git-object static review only",
+    "No builds, tests, CI polling, network access or source changes performed during this integration review",
+    "Root-owned preflight and other execution proof are separate and not independently claimed here",
+    "No merge, Candidate or Integration acceptance, issue closure, physical execution or runtime deployment is proved by source correspondence alone"
+  ]
+}

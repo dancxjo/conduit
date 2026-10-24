@@ -1,0 +1,22 @@
+{
+  "observed_utc": "2026-10-24T01:56:22.775716+00:00",
+  "scope": "Read-only prospective Git composition, not source delivery, build or acceptance",
+  "pairs": [
+    {
+      "name": "timer-and-codec",
+      "left": "cc527bec2a935a601ea1cf327094d3e8ffa2d5f8",
+      "right": "3b38e49f2fe09c9f4fcb4041e2ed1ae2686d1023",
+      "exit_code": 1,
+      "output": "ed1f7813fb2c24481a7878feb299182f4266bbf7\n100644 3be099e08c1ebf6efe3c3351a778ac43f39b78d7 1\ttools/xtask-dispatch/src/focused_check.rs\n100644 ee8f942bc5a0a6fb3b081e27ab430a25c244b5b6 2\ttools/xtask-dispatch/src/focused_check.rs\n100644 fb0d2083655e52a6b14e08a8a7af822b1526452f 3\ttools/xtask-dispatch/src/focused_check.rs\n\nAuto-merging tools/xtask-dispatch/src/focused_check.rs\nCONFLICT (content): Merge conflict in tools/xtask-dispatch/src/focused_check.rs\n",
+      "stderr": ""
+    },
+    {
+      "name": "urgent-repair-and-codec-proof",
+      "left": "455aaf0a33a5dddf739935003e77b5da2c3788ac",
+      "right": "a971533d8b8bfb7b0f7740cffe31156bf59b4398",
+      "exit_code": 0,
+      "output": "064e610fe34541f5b01bcc60cef5f51f4c00f9b0\n",
+      "stderr": ""
+    }
+  ]
+}
