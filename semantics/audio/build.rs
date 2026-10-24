@@ -2,6 +2,8 @@
 mod clock_imports;
 #[path = "build_support/periodic.rs"]
 mod periodic;
+#[path = "build_support/type_source.rs"]
+mod type_source;
 use conduit_plot::rust_binding::{
     generate_rust_bindings_with_forms_and_external_bindings, RustBindingOptions,
 };
@@ -10,6 +12,7 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    println!("cargo:rerun-if-changed=build_support/type_source.rs");
     println!("cargo:rerun-if-changed=pcm_packing_types.conduit");
     println!("cargo:rerun-if-changed=dsp/periodic-types.conduit");
     println!("cargo:rerun-if-changed=build_support/periodic.rs");
@@ -35,22 +38,7 @@ fn main() {
         println!("cargo:rerun-if-changed={path}");
     }
     let imports = clock_imports::OwnerImports::new();
-    let type_source = [
-        include_str!("types.conduit"),
-        include_str!("trajectory_types.conduit"),
-        include_str!("trajectory_common_basis_types.conduit"),
-        include_str!("rate_types.conduit"),
-        include_str!("decibel_types.conduit"),
-        include_str!("exact_control_types.conduit"),
-        include_str!("time_analysis_types.conduit"),
-        include_str!("dsp/periodic-types.conduit"),
-        include_str!("spectral_analysis_types.conduit"),
-        include_str!("pitch_analysis_types.conduit"),
-        include_str!("pcm_packing_types.conduit"),
-        include_str!("clock_projection_types.conduit"),
-        include_str!("control_projection_types.conduit"),
-    ]
-    .join("\n");
+    let type_source = type_source::source();
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("periodic-validators.conduit"),
         periodic::validation_source(&type_source),

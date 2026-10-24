@@ -1,0 +1,19 @@
+{
+  "head": "185f401f98c4862342d36916de540e3f9547de6e",
+  "temporary_diagnostic_only": true,
+  "instrumented_source_sha256": "494f6296a3b8e8e85c4ddbbe4e88e125ac817fae8018c4068cc7ee1e3cd53b88",
+  "log_sha256": "9102ffc7dca6ecd160b02ba030382c8eaa68d84c6c78459d5d6714649eeb0bd9",
+  "test_executable": {
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/authoring_law_custody-b7d24eda55c8d09d",
+    "preserved_sha256": "4401b29e1b4f28919155d8bd8d24a4bf359e6f3b131cc72e8f73bfa680357f29"
+  },
+  "actual_test": {
+    "passed": 0,
+    "failed": 1,
+    "filtered": 2,
+    "seconds": 93.65,
+    "exit": 101
+  },
+  "actual_witnessed_runtime_observation": "aggregate break root=SpeechSyllableIntentBasis retained=146 prior_modules=216 prior_bytes=3848198 attempted_modules=217 attempted_bytes=4231460 refusal=Capacity",
+  "conclusion": "Default optional aggregate collection stops before late G2 roots; individual requested closure legality/capacity not yet measured. Legacy buildscript individual false is different unwitnessed-import context."
+}

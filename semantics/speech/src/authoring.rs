@@ -64,3 +64,9 @@ pub fn install(startup: &mut StartupCatalog) -> Result<(), String> {
     }
     Ok(())
 }
+
+#[path = "authoring_law_custody.rs"]
+mod law_custody;
+#[path = "../build_support/owner_catalog.rs"]
+mod owner_catalog;
+pub use law_custody::{checked_document_with_law_custody, install_law_custody_for};

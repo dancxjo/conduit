@@ -1,0 +1,26 @@
+{
+  "head": "185f401f98c4862342d36916de540e3f9547de6e",
+  "source": "uncommitted owned preparation, exact files in source-hashes.json",
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-audio",
+    "-p",
+    "conduit-speech",
+    "--features",
+    "conduit-speech/semantic-bindings",
+    "--test",
+    "authoring_law_custody",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-verified-law-realization",
+  "started": 1792861500.8563244,
+  "status": "failed",
+  "exit_code": 101,
+  "ended": 1792861977.8942847,
+  "source_unchanged": true
+}

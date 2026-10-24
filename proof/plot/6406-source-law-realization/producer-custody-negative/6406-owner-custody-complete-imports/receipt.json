@@ -1,0 +1,39 @@
+{
+  "head": "185f401f98c4862342d36916de540e3f9547de6e",
+  "source": "uncommitted owned preparation; exact source snapshots and hashes retained",
+  "started": 1792862042.1039877,
+  "env": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "tests",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-audio",
+        "-p",
+        "conduit-speech",
+        "--features",
+        "conduit-speech/semantic-bindings",
+        "--test",
+        "authoring_law_custody",
+        "--",
+        "--nocapture"
+      ],
+      "started": 1792862042.1039953,
+      "exit_code": 101,
+      "ended": 1792862152.925199
+    }
+  ],
+  "status": "failed",
+  "ended": 1792862153.0892372,
+  "source_unchanged": true
+}

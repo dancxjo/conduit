@@ -1,0 +1,11 @@
+{
+  "semantics/audio/build_support/type_source.rs": "f381f39c797c02d5c31657d62a435f5557a7681da627e3f4c15d93069e50115b",
+  "semantics/audio/src/authoring_law_custody.rs": "1fe0327852b17127570ebec4599e5dd594b3946ca39279ffa280fbb328ed8ba6",
+  "semantics/audio/tests/authoring_law_custody.rs": "d8b8996ee9a6c178140909dc828dfe3d317534fbf2beed9b91f69fc629737101",
+  "semantics/speech/build_support/owner_catalog.rs": "01b2339bb80df18736c62a5c2f59181f5e6f3dc8caa052b35dc4d42afca223ee",
+  "semantics/speech/src/authoring_law_custody.rs": "308cd5d8a775751a19221cbbe2cdcebc262a41c9b81604bc63f82506ec759185",
+  "semantics/speech/tests/authoring_law_custody.rs": "6fa416e24091b072d55d2345c1c7704de5b7748e6fb5a43134759065c269fabd",
+  "semantics/audio/build.rs": "7d2546bc7fdcc96c4ea776f7a53eeb362b38ef5645230f17b233c4960f1f81f5",
+  "semantics/audio/src/authoring.rs": "e9075ab33a14ced3b1bb2c4d056b347bb1c859dcb56da7e3deea95f2e22e3749",
+  "semantics/speech/src/authoring.rs": "9c0cd4ff181db560ae2aca96327203d7360c29890da2a036f9bfd36c64db243f"
+}
