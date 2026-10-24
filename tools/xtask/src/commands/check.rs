@@ -28,6 +28,8 @@ mod model_native_inference;
 mod native_source_laws;
 #[path = "../suites/parser_scorer.rs"]
 mod parser_scorer;
+#[path = "../suites/phone_gestures.rs"]
+mod phone_gestures;
 #[path = "../suites/physical_values.rs"]
 mod physical_values;
 #[path = "../suites/print_pool.rs"]
@@ -132,6 +134,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::CommittedVocative => run_suite(committed_vocative::STEPS, &root, opts),
         CheckSuite::RecordPronunciation => run_suite(record_pronunciation::STEPS, &root, opts),
         CheckSuite::ProsodyCommitment => run_suite(prosody_commitment::STEPS, &root, opts),
+        CheckSuite::PhoneGestures => run_suite(phone_gestures::STEPS, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
         CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),
         CheckSuite::PrintPool => run_suite(print_pool::STEPS, &root, opts),

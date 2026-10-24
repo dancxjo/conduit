@@ -67,7 +67,10 @@ impl RawDisplay {
     }
 
     /// Root-only observation for validating an architecture's firmware mapping.
-    #[cfg(all(target_arch = "aarch64", feature = "native-compositor-core"))]
+    #[cfg(all(
+        any(target_arch = "aarch64", target_arch = "riscv64"),
+        feature = "native-compositor-core"
+    ))]
     pub(crate) fn memory_range(&self) -> (u64, usize) {
         (self.address.as_ptr() as u64, self.byte_len)
     }

@@ -1,0 +1,28 @@
+{
+  "classification": "supported verification refuses dirty source before normal product guest spawn",
+  "collector_source": "22f9ee6fa0d02a5aa913e75e59e268fa1173c86e",
+  "image_source": "61084bb3ae35324bfb7dc2c280b37b6c60b7b00e",
+  "command": [
+    "cargo",
+    "xtask",
+    "make",
+    "host",
+    "verify",
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-riscv64-graphical-61084bb3a",
+    "--boot"
+  ],
+  "exit_code": 1,
+  "elapsed_ms": 32668,
+  "image_sha256": "616ed17feafe529d787c2b780b438d8ff8a05f92a464b0baff6c96e3677118c5",
+  "image_unchanged": true,
+  "marker_removed": true,
+  "source_clean_after": true,
+  "capture_directories": [
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/riscv64/riscv64-frame-1171281-1792850378697281719"
+  ],
+  "no_normal_launch_receipt": true,
+  "no_normal_guest_serial_bytes": true,
+  "private_vars_unchanged": true,
+  "qualification": "prepared-tool validation may run bounded empty-machine paused QMP probes; these execute no guest instructions and are not normal product boots",
+  "log_sha256": "11a8ef3381553818c1d912ef2d3c68d1bbc3fa0f2241e81ea682389033a06570"
+}

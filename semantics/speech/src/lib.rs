@@ -311,3 +311,6 @@ pub mod linguistic_rate;
 pub mod record_pronunciation;
 #[cfg(feature = "semantic-bindings")]
 pub mod record_pronunciation_commitment;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod phone_gestures;

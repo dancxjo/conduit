@@ -1,7 +1,7 @@
 {
   "schema": "conduit.speech/shared-carrier-evidence@1",
-  "producer_code_commit": "002b2b44a833b5670e38415ecce3f652687cb372",
-  "command": "cargo +stable xtask prove journey native-speech --output /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6398-carrier-refresh --shared-carrier-only",
+  "producer_code_commit": "cd048f74f94821c7767962192bf0cc5870c0b992",
+  "command": "cargo +stable xtask prove journey native-speech --output /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5680-g2-carrier-refresh-cd048f74f --shared-carrier-only",
   "files": {
     "you-would.native": {
       "bytes": 1773627,
@@ -13,7 +13,7 @@
     },
     "you-would.json": {
       "bytes": 35345,
-      "sha256": "184a882c6feb8d2214551df1f26ceea4c6ecc3617ddc4165a5a34b7e5f52e80f"
+      "sha256": "f05c46d053e9e792b4c8fbf7ab060135c7ef5a6fcffe1d397ecabbed6f4a9319"
     }
   },
   "proof": "installed factory and execution kernel; complete admitted carrier retained by formant and lexical model entrances; authored offline PCM and explicit acoustic-model refusal",
