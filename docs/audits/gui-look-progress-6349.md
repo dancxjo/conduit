@@ -383,3 +383,16 @@ This is documentary-fixture browser accessibility evidence. Checked graph Look
 selection and whole-GUI/native acceptance remain incomplete. An audited cleanup
 reclaimed 3,006,279,680 bytes of inactive task-owned incremental cache, preserving
 compiled libraries, source, active work and unique artifacts.
+
+## Realized canonical browser typography and graph clearance
+
+Source `e3afcff9b` fixes an admitted-but-unrealized typography choice in the
+shared browser host and exports all canonical Patchbay surface roles. Look
+scope clears correctly, action identity/name remains intact, and the graph
+viewport now reserves measured navigation height at desktop widths. Two scoped
+Look checks, eight wire checks, one server check and seven furniture checks pass;
+a focused stronger Fit check additionally proves all five nodes are in bounds.
+[Current screenshot and evidence](evidence/gui-look-6349-css-intent/README.md).
+Canonical Face remains equal across the actual presentation navigation. This
+is documentary-fixture browser proof; checked graph component selection,
+current native enactment and original parent acceptance remain open.
