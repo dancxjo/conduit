@@ -10,6 +10,7 @@ use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 mod byte_observation;
 mod equality;
 mod evaluate;
+mod fixed_projection;
 mod native_u64;
 mod quantity_profile;
 mod scalar_tape;
