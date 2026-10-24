@@ -30,7 +30,7 @@ pub(super) fn check(
     profile: &AssignedDisplayProfile<'_>,
     resident: &[c::AssignedRecord<'_>],
 ) {
-    for mode in 0..15 {
+    for mode in 0..16 {
         let nack = mode == 1;
         let source = DisplayOutputSource::compile().unwrap();
         let mut software = source

@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [features]
+display-mask = ["dep:conduit-face", "dep:conduit-seven-segment-mask"]
 display-output = ["construction", "dep:conduit-tm1637-wire", "dep:conduit-plan-lowering"]
 face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["dep:conduit-pulse-capture"]
@@ -15,6 +16,7 @@ construction = ["appliance", "dep:conduit-pulse-capture", "dep:conduit-planner"]
 recording-kernel = ["conduit-kernel/alloc", "dep:conduit-plan-lowering", "dep:conduit-composite"]
 
 [dependencies]
+conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", optional = true }
 conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"], optional = true }
 conduit-environment-face = { path = "../face", optional = true }
 conduit-face = { path = "../../../semantics/face", default-features = false, optional = true }

@@ -1604,3 +1604,22 @@ the release reserved 36,972 stack bytes against the 36 KiB profile floor. See
 Source/Face execution, not ongoing Body/Mask installation, native physical
 display output, successful station transition or durable recording. The wrapper
 restored the operational bench and verified twelve fresh display updates.
+
+The optional runtime `display-mask` feature supplies `PreparedDisplayMask` for
+retained producers, rather than keeping the Face/Look/Show-to-Frame composition
+inside the owner diagnostic. Formatting and timed-page policy stay in the
+seven-segment Mask; the independently supplied hardware profile maps its Show,
+and the finite Frame composer supplies the checked output Plot's input. The
+owner-side display helper delegates to this same component. It owns no clock,
+caller permission, Body membership, queue or electrical implementation.
+
+The native construction proof now replays a recorded actual MCU producer Face
+through Fahrenheit and RH pages, the owned local Fore, the ordinary checked
+output kernel and the production wire engine with explicit CPU pin/authority
+fixtures. Both Frames retain the Face content identity/revision, reach two
+acknowledged native writes, and render/execute without allocations. Existing
+pressure, refusal, cancellation and finite-work cases remain covered. This is
+CPU composition evidence, not live clock wakeups, Root producer admission,
+combined MCU memory admission or physical native Mask delivery. The runtime
+component also compiles for thumbv6m no_std. The supported owning proof remains
+`cargo xtask prove environment native-construction`.

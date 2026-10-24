@@ -81,6 +81,27 @@ pub(super) fn check(
     let invalid = Frame::copy(encoder.encode([0; 6], 255, true).unwrap()).unwrap();
     let second_invalid = Frame::copy(invalid.canonical()).unwrap();
     assert!(Frame::copy(&[0]).is_err());
+    // Recorded actual producer Face, interpreted under explicit CPU time and
+    // wiring fixtures. Its provenance is preserved, never used as permission.
+    let face: conduit_face::Face = serde_json::from_str(include_str!(
+        "../../../evidence/2026-10-24-native-face-execution/native-source-face-1.json"
+    ))
+    .unwrap();
+    let mut mask = conduit_environment_runtime::display_mask::PreparedDisplayMask::prepare(
+        conduit_seven_segment_mask::Tm1637Profile {
+            digits: core::array::from_fn(|index| conduit_seven_segment_mask::DigitWiring {
+                address: index as u8,
+                segment_bits: [0, 1, 2, 3, 4, 5, 6],
+            }),
+            decimal_points: [None; 4],
+            colon: Some(conduit_seven_segment_mask::WireBit { address: 1, bit: 7 }),
+        },
+        conduit_seven_segment_mask::SevenSegmentLook::fahrenheit().with_colon_fraction(),
+        3000,
+        6000,
+        3,
+    )
+    .unwrap();
     let input = Channel::new();
     let acknowledge = Signal::new();
     let stop = Signal::<NoopRawMutex, ()>::new();
@@ -154,6 +175,22 @@ pub(super) fn check(
                     input.try_send(Ok(None)).ok().unwrap();
                 }
             }
+            12 => {
+                for (page, elapsed) in [0, 3000].into_iter().enumerate() {
+                    let projected = mask.render(&face, elapsed).unwrap();
+                    assert_eq!(projected.rendered.face_content_id, face.identity.as_str());
+                    assert_eq!(projected.rendered.face_revision, face.revision);
+                    assert_eq!(*projected.rendered.show.colon(), page == 0);
+                    assert_eq!(projected.registers[3], if page == 0 { 0x71 } else { 0x76 });
+                    input
+                        .try_send(Ok(Some(Frame::copy(projected.canonical).unwrap())))
+                        .ok()
+                        .unwrap();
+                    until(&mut future, &mut cx, || next_calls.get() == page as u64 + 2);
+                    assert_eq!(accepted.get(), page as u64 + 1);
+                }
+                input.try_send(Ok(None)).ok().unwrap();
+            }
             2 => stop.signal(()),
             5 => {
                 for (index, frame) in [invalid, second_invalid].into_iter().enumerate() {
@@ -180,6 +217,12 @@ pub(super) fn check(
     });
     assert_eq!(outcome.cleanup, Ok(()));
     match mode {
+        12 => {
+            assert_eq!(outcome.exit, Exit::Drained);
+            assert_eq!((accepted.get(), refusals.get(), delivered.get()), (2, 0, 0));
+            assert_eq!(outcome.progress.native_calls, 2);
+            assert!(edges.get() > 0);
+        }
         0 | 1 => {
             assert_eq!(outcome.exit, Exit::Drained);
             assert_eq!((accepted.get(), refusals.get(), delivered.get()), (2, 1, 1));

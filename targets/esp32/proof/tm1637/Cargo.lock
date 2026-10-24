@@ -277,6 +277,7 @@ dependencies = [
  "conduit-plot",
  "conduit-pulse-capture",
  "conduit-semantic-catalog",
+ "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
 ]
