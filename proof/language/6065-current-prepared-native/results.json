@@ -1,0 +1,46 @@
+{
+  "base": "fdc2a582dd20c19d5f9479f66746e36e036a228d",
+  "owning_source_sha256": {
+    "architecture/plot/src/rust_binding/generate_prepared_storage.rs": "521897586c6d2b6ebe68f9405610bbf0af27039a5a68886130104976b75c92ea",
+    "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs": "fc7388041506c85fae169f673aae24e105857eea8e967e6ca5bc25ffe117f159",
+    "architecture/plot/src/rust_binding/mod.rs": "2f765c844e14c4710759e4354d3a1efeafa2f80fb177f049ba3513f52dbf881d",
+    "architecture/plot/src/rust_binding/prepared_decode.rs": "b69f604d61b0fa7cc868591dfc04a22129112a33db17949ab8af26919f5105f8",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "07d216765b988873e7654ed3b8e419cbd2d993d47ab6a3bb1ca50ee0cdfaffe4",
+    "architecture/plot/tests/prepared_native_decode.rs": "07921433576ec3be465dc25fe56e870d48a4fa471adcbce0b34249fa0199769c",
+    "semantics/language/build.rs": "1b17945e8c02ff74808f1798bcfba28ae95e73cd054e9ec84497511806ea3c7e",
+    "semantics/language/src/lib.rs": "9106eb15e342e131d877b7223d9892c677db93a037fc1f4d4a22e554ccec6caf",
+    "semantics/language/tests/actual_beam_prepared_decode.rs": "10a182e35cffa2799f527314807d6b6e964e018bcab42d56a51736eb3e32cd88",
+    "tools/xtask/src/suites/native_source_laws.rs": "d0f6a398fc1ca94a36988ee1a262c7278c168cc696b0d316438ac3fe0fbedd15"
+  },
+  "proof_boundary": "Source bytes identified by hashes; local focused checks, no Candidate/Integration or controller/Current claim",
+  "checks": [
+    {
+      "log": "actual-beam.log",
+      "sha256": "baef1d6e67d7530f5ff1fb473bb874db77f9c5d4d8cf14e3e957bb158bef9172",
+      "exit_code": 0
+    },
+    {
+      "log": "plot-regressions.log",
+      "sha256": "61bc3f6727730c924d19a36215835e32aa1721c2547afc69e17c2d013e6e7b0f",
+      "exit_code": 0
+    },
+    {
+      "log": "beam-admission-regression.log",
+      "sha256": "352e2487e5e3cb110767d2705229069a28c78b824f92b45fc378b56b00a0dbbc",
+      "exit_code": 0
+    },
+    {
+      "log": "strict-library-clippy.log",
+      "sha256": "0ae72a16f8e988789d40785f10b559f5d91e5fb21342b0ed0ea46ff5f44c784f",
+      "exit_code": 0
+    }
+  ],
+  "case_counts": {
+    "actual_four_slot_beam": 1,
+    "plot_outer_regressions": 15,
+    "generated_inner_consumer_cases": 4,
+    "existing_beam_admission": 1
+  },
+  "format_all": "passed",
+  "supported_suite": "Both new tests selected by native-source-laws; supported whole-suite invocation not claimed locally; direct owning tests passed."
+}

@@ -1,0 +1,9 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-current-native-materialization/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 0.66s
+     Running tests/prepared_beam_admission.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-build-target/debug/deps/prepared_beam_admission-6596912fa291bc2f)
+
+running 1 test
+test actual_initial_beam_field_composition_preserves_all_four_nested_native_law_scopes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 165.21s
+

@@ -94,6 +94,15 @@ impl AdmittedNativeCanonical<'_> {
         self.bytes
     }
 }
+// Keep all consumers on the same private syntax-checking Native catalogue.
+// Inspection metadata may detect a conflict but never creates a new owner.
+pub(super) fn checked_native_owner<'d>(
+    document: &'d CheckedSyntaxDocument,
+    identity: &KindId,
+) -> Result<&'d CheckedNativeType, PreparedNativeRefusal> {
+    traversal::lookup(document, identity)
+}
+
 pub const MAXIMUM_PREPARED_NATIVE_OCCURRENCES: usize = 4096;
 /// These are latest-occurrence observations, not historical outputs for every item.
 pub struct NativeOccurrence<'a> {

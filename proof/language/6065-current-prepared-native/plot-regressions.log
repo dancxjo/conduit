@@ -1,0 +1,41 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-current-native-materialization/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 5.89s
+     Running tests/prepared_native_admission.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-build-target/debug/deps/prepared_native_admission-1c28d0aee7f8ed53)
+
+running 6 tests
+test checked_nested_nominal_aliases_execute_inner_and_outer_laws_without_growth ... ok
+test exact_field_composition_requires_laws_and_never_relabels_raw_bytes ... ok
+test foreign_schema_cancel_and_pressure_never_mint_native_truth ... ok
+test nested_native_laws_and_contracts_are_required_without_runtime_allocation ... ok
+test preparation_reports_granted_limits_and_actual_storage_without_runtime_growth ... ok
+test public_inspection_metadata_cannot_supply_or_weaken_checked_authority ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+     Running tests/prepared_native_decode.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-build-target/debug/deps/prepared_native_decode-54e4d10e3f979ea8)
+
+running 2 tests
+test generated_closed_storage_materializes_only_actual_admitted_bytes_without_growth ... ok
+test unsupported_sequence_and_missing_root_refuse_generation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.97s
+
+     Running tests/prepared_native_occurrences.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-build-target/debug/deps/prepared_native_occurrences-17430676315b6405)
+
+running 5 tests
+test actual_occurrence_budget_exhaustion_never_truncates_or_relabels_previous_output ... ok
+test contract_work_is_cooperative_bounded_cancellable_and_reusable_without_heap_activity ... ok
+test huge_declared_cartesian_shape_prepares_once_and_visits_only_actual_some_payloads ... ok
+test later_nested_occurrence_failure_retains_exact_indices_and_latest_false_source_output ... ok
+test later_primitive_contract_failure_retains_exact_collection_occurrence ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests/prepared_native_optional.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6065-build-target/debug/deps/prepared_native_optional-d9c23082d71a1d07)
+
+running 2 tests
+test exact_core_optional_none_skips_and_some_executes_nested_native_law_without_growth ... ok
+test optional_label_wrong_empty_payload_and_unknown_schema_never_exempt_native_metadata ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+
