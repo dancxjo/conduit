@@ -1,4 +1,4 @@
-# LoongArch64 scanout preparation: source review only
+# LoongArch64 scanout preparation
 
 This held preparation supports the remaining LoongArch64 frame in #6057.
 It changes no Host offer, profile, renderer, boot collector or default firmware
@@ -73,3 +73,20 @@ The original inherited `template_vars_unchanged` field is explicitly qualified
 as ROM-hash stability: this launch uses `-bios` and selects no CODE/VARS pair.
 The running guest was not paused for observation. This evidence neither
 relabels the historical image as current source nor proves a graphical Frame.
+
+## Held machine adapter
+
+The unlinked `arch/loongarch64/framebuffer/mod.rs` prepares the future machine
+adapter without changing any shared entrance or Host offer. It reads CPUCFG
+and the actual CSR regime, validates all reserved framebuffer pages through the
+pure model, permits descriptor reads only from complete bootloader-reclaimable
+table pages, and rejects a changed paging regime. An atomic lease bounds the
+single scanout writer; volatile pixel stores complete with `dbar 0` under the
+reviewed QEMU TCG policy. Interrupt-enable changes alone are excluded from the
+translation comparison. No page-table or CSR mutation is introduced.
+
+This file has passed formatting and patch hygiene only. It remains unlinked
+and has not been cross-compiled, booted or used to acknowledge a Show. After
+the RISC-V merge's required combined Integration passes, its normal product
+wiring and cross-target checks must establish those separate claims. Existing
+pure-model tests and historical CSR observations do not validate this adapter.
