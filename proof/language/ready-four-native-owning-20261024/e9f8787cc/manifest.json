@@ -1,0 +1,142 @@
+{
+  "source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "tree": "d35051b7b0b512ef82e76fd37902479a65c43a06",
+  "raw_inputs": [
+    {
+      "file": "ready-four-native-local-proof.json",
+      "raw_sha256": "1cc40c785d17d1230703a3348854ccbd3f74409cb7da7c07059ede26208b4657",
+      "raw_bytes": 28461,
+      "stored_sha256": "1cc40c785d17d1230703a3348854ccbd3f74409cb7da7c07059ede26208b4657"
+    },
+    {
+      "file": "ready-four-combined-source.json",
+      "raw_sha256": "9742c86576dd1d29ed6c68083e6cc5a564273ee9037dbb3e5061e18359865212",
+      "raw_bytes": 4119,
+      "stored_sha256": "9742c86576dd1d29ed6c68083e6cc5a564273ee9037dbb3e5061e18359865212"
+    },
+    {
+      "file": "ready-four-combined-proof-publication.json",
+      "raw_sha256": "8298b58987a5c5245925337cd4b39201112b230c5f01533d62a12d59b4c27cd5",
+      "raw_bytes": 583,
+      "stored_sha256": "8298b58987a5c5245925337cd4b39201112b230c5f01533d62a12d59b4c27cd5"
+    },
+    {
+      "file": "ready-four-supported-supplement-publication.json",
+      "raw_sha256": "02572d78167d97af30e02205f77f1add09d8cf668799d216efb910e57df9bd94",
+      "raw_bytes": 583,
+      "stored_sha256": "02572d78167d97af30e02205f77f1add09d8cf668799d216efb910e57df9bd94"
+    },
+    {
+      "file": "run-ready-four-native-proof.py",
+      "raw_sha256": "b87d45ea09451295873e1bd7a45f5e03d3235ed10868fbd728b98e4e6fe1429a",
+      "raw_bytes": 4727,
+      "stored_sha256": "b87d45ea09451295873e1bd7a45f5e03d3235ed10868fbd728b98e4e6fe1429a"
+    },
+    {
+      "file": "publish-ready-four-native-proof.py",
+      "raw_sha256": "44833c5c36fae91b8ac5b0ca954b9b4b452551750ae0893ab2f18933d95bb8ee",
+      "raw_bytes": 6844,
+      "stored_sha256": "44833c5c36fae91b8ac5b0ca954b9b4b452551750ae0893ab2f18933d95bb8ee"
+    },
+    {
+      "file": "ready-four-native-plot-outer-regressions.log.gz",
+      "raw_sha256": "c481c8a7d628abbddf32fbfb0923f7852debd3a58f03671b62f99496f98d468e",
+      "raw_bytes": 3954,
+      "stored_sha256": "4a79cd10abdc8acb010c223a0fc2eaaa03b7f1a58775ec7071583e26000b657f"
+    },
+    {
+      "file": "ready-four-native-actual-beam.log.gz",
+      "raw_sha256": "df8ab904da6c63f474b92f01e7723267fd4dd74a1fb712b4976e4464b0c21d71",
+      "raw_bytes": 9146,
+      "stored_sha256": "4e53ad3ee24ae9ac348fa2978a7e63256ca3e5da24b8b4bb7c7e0778b02fcef1"
+    },
+    {
+      "file": "ready-four-native-beam-admission.log.gz",
+      "raw_sha256": "47c49a456fdc13d093730cadbdac49b34940e35976ffa74a8b4683f1990ca1af",
+      "raw_bytes": 642,
+      "stored_sha256": "5a465ff4882e19f282a37ed830f2c992eec8c43c0055e69ad2a3dbe6151882a2"
+    },
+    {
+      "file": "ready-four-native-strict-libraries.log.gz",
+      "raw_sha256": "f6278a004991b806657a9d29ee6cf4ac6562a36e0250de73545f8dd0b55d23d1",
+      "raw_bytes": 1061,
+      "stored_sha256": "b9990485dcf4ca5cd15d5f25d097438e5ef63536b29512770dd0d8b568253c3b"
+    }
+  ],
+  "actual_Beam_binary": {
+    "actual_Cargo_Running_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target/debug/deps/actual_beam_prepared_decode-26ddf78078dd5fef",
+    "raw_sha256": "63c81e6048400ecb59909cd0b90beece5fce35a0479f5a08488190b66a2be032",
+    "raw_bytes": 35773384,
+    "stored": true,
+    "file": "actual-beam-test.elf.gz",
+    "stored_sha256": "b94f8097304c454928f3fd4c8f0f7813b81464e42277cbb13ab247524ed53f36",
+    "stored_bytes": 7383882
+  },
+  "files": [
+    {
+      "path": "ready-four-native-local-proof.json",
+      "bytes": 28461,
+      "sha256": "1cc40c785d17d1230703a3348854ccbd3f74409cb7da7c07059ede26208b4657"
+    },
+    {
+      "path": "ready-four-combined-source.json",
+      "bytes": 4119,
+      "sha256": "9742c86576dd1d29ed6c68083e6cc5a564273ee9037dbb3e5061e18359865212"
+    },
+    {
+      "path": "ready-four-combined-proof-publication.json",
+      "bytes": 583,
+      "sha256": "8298b58987a5c5245925337cd4b39201112b230c5f01533d62a12d59b4c27cd5"
+    },
+    {
+      "path": "ready-four-supported-supplement-publication.json",
+      "bytes": 583,
+      "sha256": "02572d78167d97af30e02205f77f1add09d8cf668799d216efb910e57df9bd94"
+    },
+    {
+      "path": "run-ready-four-native-proof.py",
+      "bytes": 4727,
+      "sha256": "b87d45ea09451295873e1bd7a45f5e03d3235ed10868fbd728b98e4e6fe1429a"
+    },
+    {
+      "path": "publish-ready-four-native-proof.py",
+      "bytes": 6844,
+      "sha256": "44833c5c36fae91b8ac5b0ca954b9b4b452551750ae0893ab2f18933d95bb8ee"
+    },
+    {
+      "path": "ready-four-native-plot-outer-regressions.log.gz",
+      "bytes": 1228,
+      "sha256": "4a79cd10abdc8acb010c223a0fc2eaaa03b7f1a58775ec7071583e26000b657f"
+    },
+    {
+      "path": "ready-four-native-actual-beam.log.gz",
+      "bytes": 1407,
+      "sha256": "4e53ad3ee24ae9ac348fa2978a7e63256ca3e5da24b8b4bb7c7e0778b02fcef1"
+    },
+    {
+      "path": "ready-four-native-beam-admission.log.gz",
+      "bytes": 376,
+      "sha256": "5a465ff4882e19f282a37ed830f2c992eec8c43c0055e69ad2a3dbe6151882a2"
+    },
+    {
+      "path": "ready-four-native-strict-libraries.log.gz",
+      "bytes": 362,
+      "sha256": "b9990485dcf4ca5cd15d5f25d097438e5ef63536b29512770dd0d8b568253c3b"
+    },
+    {
+      "path": "actual-beam-test.elf.gz",
+      "bytes": 7383882,
+      "sha256": "b94f8097304c454928f3fd4c8f0f7813b81464e42277cbb13ab247524ed53f36"
+    },
+    {
+      "path": "actual-beam-custody.json",
+      "bytes": 478,
+      "sha256": "bef4596edbe2b6e94c5217d23718cd8d5e9925ce5f7a2f11a6e27987dcb3ffbd"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1774,
+      "sha256": "97116e7ff062124307f45b0452c6aa95744079b802786e6dfd7116bf07aea48f"
+    }
+  ]
+}

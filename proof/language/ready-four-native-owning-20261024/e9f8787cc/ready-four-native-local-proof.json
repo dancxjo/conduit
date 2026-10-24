@@ -1,0 +1,640 @@
+{
+  "source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "tree": "d35051b7b0b512ef82e76fd37902479a65c43a06",
+  "package_trees": {
+    "architecture/plot": "32d42fbdf9d43cf113d4f7fada9947125413a38d",
+    "semantics/language": "a7103f3654d299d2deb121f4fb6f655897dd5ae3",
+    "architecture/assigned-plan": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6"
+  },
+  "source_files": [
+    {
+      "path": "semantics/language/src/lib.rs",
+      "blob": "9df887cde4b65f484edf88aedec264d8c6594433",
+      "sha256": "9106eb15e342e131d877b7223d9892c677db93a037fc1f4d4a22e554ccec6caf"
+    },
+    {
+      "path": "semantics/language/build.rs",
+      "blob": "171a529d93a5800e27bfda7c538575feefba8e34",
+      "sha256": "1b17945e8c02ff74808f1798bcfba28ae95e73cd054e9ec84497511806ea3c7e"
+    },
+    {
+      "path": "semantics/language/tests/actual_beam_prepared_decode.rs",
+      "blob": "e31b1a57d02a2d896433e02b0924caa1655c7c4e",
+      "sha256": "10a182e35cffa2799f527314807d6b6e964e018bcab42d56a51736eb3e32cd88"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/prepared_native.rs",
+      "blob": "6ee39c4566602399c9683ffb4b1595c5cc564f65",
+      "sha256": "07d216765b988873e7654ed3b8e419cbd2d993d47ab6a3bb1ca50ee0cdfaffe4"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/mod.rs",
+      "blob": "e5a786583b310489475ba62f0ed573c415024fa8",
+      "sha256": "2f765c844e14c4710759e4354d3a1efeafa2f80fb177f049ba3513f52dbf881d"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/prepared_decode.rs",
+      "blob": "bb339d8ed56a476f8643b479ece10aa9ee88731c",
+      "sha256": "b69f604d61b0fa7cc868591dfc04a22129112a33db17949ab8af26919f5105f8"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/generate_prepared_storage.rs",
+      "blob": "5e601f9a6e5abbe326044e8c4efa405cff77998e",
+      "sha256": "521897586c6d2b6ebe68f9405610bbf0af27039a5a68886130104976b75c92ea"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs",
+      "blob": "4024bd7190da84bce26e5545b795ff9bebd1967e",
+      "sha256": "fc7388041506c85fae169f673aae24e105857eea8e967e6ca5bc25ffe117f159"
+    },
+    {
+      "path": "architecture/plot/tests/prepared_native_decode.rs",
+      "blob": "f9f68d4746ea01e60b1f9f3cf9e2809024847a08",
+      "sha256": "07921433576ec3be465dc25fe56e870d48a4fa471adcbce0b34249fa0199769c"
+    },
+    {
+      "path": "architecture/plot/tests/common/generated_rust.rs",
+      "blob": "109a5b95390c1fb7e794c4cbf4d39afc539cb514",
+      "sha256": "ccf03aaf60c2cb80c49648f998deb870307cc17d74f8c283a4babee7ddeb5eae"
+    },
+    {
+      "path": "architecture/plot/tests/common/allocation_probe.rs",
+      "blob": "90274ef35a7323f41ebb774cd8bdaeb97a26efe2",
+      "sha256": "0f3ca0dee5731f18509d7f8f25d8214dd71c0e6f8d544f37a4f894f56f7e425e"
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/prepared_native/traversal.rs",
+      "blob": "9014720c8ab9f8f5a568611375c9d54d3439b1a4",
+      "sha256": "4dfb4ad07b7e23c26d70493f46e0c8cd71ff4e9591b45b3fde9d73ac94c2a1e0"
+    }
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-tmp",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "started": 1792829160.6972065,
+  "old138_and104_verified_before": true,
+  "steps": [
+    {
+      "name": "plot-outer-regressions",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "prepared_native_admission",
+        "--test",
+        "prepared_native_occurrences",
+        "--test",
+        "prepared_native_optional",
+        "--test",
+        "prepared_native_decode",
+        "--",
+        "--test-threads=1"
+      ],
+      "log": "work/ready-four-native-plot-outer-regressions.log",
+      "sha256": "c481c8a7d628abbddf32fbfb0923f7852debd3a58f03671b62f99496f98d468e",
+      "exit_code": 0,
+      "before_available_bytes": 12524290048,
+      "actual_test_counts": [
+        6,
+        2,
+        5,
+        2
+      ],
+      "actual_passed": 15,
+      "actual_named_successes": [
+        "checked_nested_nominal_aliases_execute_inner_and_outer_laws_without_growth",
+        "exact_field_composition_requires_laws_and_never_relabels_raw_bytes",
+        "foreign_schema_cancel_and_pressure_never_mint_native_truth",
+        "nested_native_laws_and_contracts_are_required_without_runtime_allocation",
+        "preparation_reports_granted_limits_and_actual_storage_without_runtime_growth",
+        "public_inspection_metadata_cannot_supply_or_weaken_checked_authority",
+        "generated_closed_storage_materializes_only_actual_admitted_bytes_without_growth",
+        "unsupported_sequence_and_missing_root_refuse_generation",
+        "actual_occurrence_budget_exhaustion_never_truncates_or_relabels_previous_output",
+        "contract_work_is_cooperative_bounded_cancellable_and_reusable_without_heap_activity",
+        "huge_declared_cartesian_shape_prepares_once_and_visits_only_actual_some_payloads",
+        "later_nested_occurrence_failure_retains_exact_indices_and_latest_false_source_output",
+        "later_primitive_contract_failure_retains_exact_collection_occurrence",
+        "exact_core_optional_none_skips_and_some_executes_nested_native_law_without_growth",
+        "optional_label_wrong_empty_payload_and_unknown_schema_never_exempt_native_metadata"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target/debug/deps/prepared_native_admission-1c28d0aee7f8ed53",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target/debug/deps/prepared_native_decode-54e4d10e3f979ea8",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target/debug/deps/prepared_native_occurrences-17430676315b6405",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target/debug/deps/prepared_native_optional-d9c23082d71a1d07"
+      ]
+    },
+    {
+      "name": "actual-beam",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-language",
+        "--test",
+        "actual_beam_prepared_decode",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "log": "work/ready-four-native-actual-beam.log",
+      "sha256": "df8ab904da6c63f474b92f01e7723267fd4dd74a1fb712b4976e4464b0c21d71",
+      "exit_code": 0,
+      "before_available_bytes": 12292194304,
+      "actual_test_counts": [
+        1
+      ],
+      "actual_passed": 1,
+      "actual_named_successes": [
+        "actual_four_slot_native_beams_materialize_without_growth_and_refusals_preserve_custody"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target/debug/deps/actual_beam_prepared_decode-26ddf78078dd5fef"
+      ]
+    },
+    {
+      "name": "beam-admission",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-language",
+        "--test",
+        "prepared_beam_admission",
+        "--",
+        "--test-threads=1"
+      ],
+      "log": "work/ready-four-native-beam-admission.log",
+      "sha256": "47c49a456fdc13d093730cadbdac49b34940e35976ffa74a8b4683f1990ca1af",
+      "exit_code": 0,
+      "before_available_bytes": 9806270464,
+      "actual_test_counts": [
+        1
+      ],
+      "actual_passed": 1,
+      "actual_named_successes": [
+        "actual_initial_beam_field_composition_preserves_all_four_nested_native_law_scopes"
+      ],
+      "cargo_running_executables": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-native-target/debug/deps/prepared_beam_admission-6596912fa291bc2f"
+      ]
+    },
+    {
+      "name": "strict-libraries",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "-p",
+        "conduit-language",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/ready-four-native-strict-libraries.log",
+      "sha256": "f6278a004991b806657a9d29ee6cf4ac6562a36e0250de73545f8dd0b55d23d1",
+      "exit_code": 0,
+      "before_available_bytes": 8757870592,
+      "actual_test_counts": [],
+      "actual_passed": 0,
+      "actual_named_successes": [],
+      "cargo_running_executables": []
+    }
+  ],
+  "old138_and104_verified_after": true,
+  "finished": 1792829753.5001285,
+  "clean_after": true,
+  "status": "passed",
+  "executables": [
+    {
+      "path": "work/ready-four-native-target/debug/deps/libserde_derive-5cf603e79f9c2c5b.so",
+      "bytes": 2908672,
+      "sha256": "dffa5afba863c7a2dd15f46d5da9863712d19d864937c4d907d4342bf43cf612"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/prepared_native_optional-d9c23082d71a1d07",
+      "bytes": 14073712,
+      "sha256": "ecbb3cd99c0fc0dc8cc276a0abd07c76cb8c013e75759557a9d2fea36b0a1c74"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/prepared_native_admission-1c28d0aee7f8ed53",
+      "bytes": 14213544,
+      "sha256": "279467c344ea1ee6033377189c90ce80aa7b1fdeed4fa02268f6a6842ea9f170"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/libcurve25519_dalek_derive-d5e4e41f8c844893.so",
+      "bytes": 2778248,
+      "sha256": "6facc732eb74a7f797746f8545e45e8ac44bf420d157c14c0f583e4169649a76"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/prepared_native_occurrences-17430676315b6405",
+      "bytes": 14213728,
+      "sha256": "8bf9ef8d0b65aee80048288857c3644b4eb72b88185831ccfe519e5f61f3c9a6"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/libzeroize_derive-08a2386a4eb2272d.so",
+      "bytes": 3091720,
+      "sha256": "dbb7ab35070a665275d5499483b63be402a9b5832282ec185b8de5f0cedafc15"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/actual_beam_prepared_decode-26ddf78078dd5fef",
+      "bytes": 35773384,
+      "sha256": "63c81e6048400ecb59909cd0b90beece5fce35a0479f5a08488190b66a2be032"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/prepared_native_decode-54e4d10e3f979ea8",
+      "bytes": 14192128,
+      "sha256": "80601effea2201a8e0bcb565730a7fa08ec058e7afea1d5118318557c05d6ab8"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/libserde_derive-20a31b7eae420ba0.so",
+      "bytes": 2908480,
+      "sha256": "56bdf9f3f54699dc1e8e34334b8f5ca8473704e7a8d4e683900dd3968a8d27e4"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/libthiserror_impl-befefeacc1ca33fb.so",
+      "bytes": 2389200,
+      "sha256": "861ee8b1184e1cab9ec34d1449b6bc335cbe04b2a582a6df63c45eb2bc7cd785"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/deps/prepared_beam_admission-6596912fa291bc2f",
+      "bytes": 34243560,
+      "sha256": "f40f1cc7a11501a194ac2e0d0c55b37a431f9b65dc1b0414a4abc977e6c4f508"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/quote-576bc7579314484c/build_script_build-576bc7579314484c",
+      "bytes": 529416,
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/quote-576bc7579314484c/build-script-build",
+      "bytes": 529416,
+      "sha256": "971895250fcc34e2e1c8bc9014f46912c390250c370234272001d4c815ad4037"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde_json-e2755597ec98b722/build_script_build-e2755597ec98b722",
+      "bytes": 460240,
+      "sha256": "65ea08064d43be22c2ab7245e17810cc4307a075926bae917904b4035dd06585"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde_json-e2755597ec98b722/build-script-build",
+      "bytes": 460240,
+      "sha256": "65ea08064d43be22c2ab7245e17810cc4307a075926bae917904b4035dd06585"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-data-61e0117530e94384/build_script_build-61e0117530e94384",
+      "bytes": 6371696,
+      "sha256": "82823160faf4f363b407b5203c9226e832ebf78a90cfd77c69a9597fb1663254"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-data-61e0117530e94384/build-script-build",
+      "bytes": 6371696,
+      "sha256": "82823160faf4f363b407b5203c9226e832ebf78a90cfd77c69a9597fb1663254"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-home-model-c9bdd3346e25e156/build_script_build-c9bdd3346e25e156",
+      "bytes": 6140792,
+      "sha256": "df03a7a257100e813883b0aa1f4f250df95de760adc2e405a15c5ea4c0cfde20"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-home-model-c9bdd3346e25e156/build-script-build",
+      "bytes": 6140792,
+      "sha256": "df03a7a257100e813883b0aa1f4f250df95de760adc2e405a15c5ea4c0cfde20"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-education-4183305eeb8a0a29/build_script_build-4183305eeb8a0a29",
+      "bytes": 6734080,
+      "sha256": "473986db3404cc18754bb750d90072e8f0dc47f766635be1bc20100095c4db46"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-education-4183305eeb8a0a29/build-script-build",
+      "bytes": 6734080,
+      "sha256": "473986db3404cc18754bb750d90072e8f0dc47f766635be1bc20100095c4db46"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-ai-f7c1af931d065cec/build_script_build-f7c1af931d065cec",
+      "bytes": 6640624,
+      "sha256": "b340a7c4b3cd366ba86b17274c1bd7c94d09e95740a3193b07ef02c806d6b4f9"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-ai-f7c1af931d065cec/build-script-build",
+      "bytes": 6640624,
+      "sha256": "b340a7c4b3cd366ba86b17274c1bd7c94d09e95740a3193b07ef02c806d6b4f9"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-purpose-839d661ba14aeff2/build_script_build-839d661ba14aeff2",
+      "bytes": 6141688,
+      "sha256": "674c7f64369f3d284e28b03071ee992d9eaaa1ebfc0d58651849f6806600fe11"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-purpose-839d661ba14aeff2/build-script-build",
+      "bytes": 6141688,
+      "sha256": "674c7f64369f3d284e28b03071ee992d9eaaa1ebfc0d58651849f6806600fe11"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/quote-6393071924e353ea/build_script_build-6393071924e353ea",
+      "bytes": 529416,
+      "sha256": "3bfabccb6e3fc500357274bfc53fac0b48b8481cda247dbada711d51fbaf1058"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/quote-6393071924e353ea/build-script-build",
+      "bytes": 529416,
+      "sha256": "3bfabccb6e3fc500357274bfc53fac0b48b8481cda247dbada711d51fbaf1058"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-net-760f4cf07e96bf83/build_script_build-760f4cf07e96bf83",
+      "bytes": 6144424,
+      "sha256": "75958cea947d0738a842d312344dc2b969bc091ce0105efa15ba386bb07327d3"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-net-760f4cf07e96bf83/build-script-build",
+      "bytes": 6144424,
+      "sha256": "75958cea947d0738a842d312344dc2b969bc091ce0105efa15ba386bb07327d3"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-web-def79d578d1021bd/build_script_build-def79d578d1021bd",
+      "bytes": 6161320,
+      "sha256": "cd9a8d3c2248802fcac4c33fcb49900afa92ac03d36d74fefbcaf581356b666c"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-web-def79d578d1021bd/build-script-build",
+      "bytes": 6161320,
+      "sha256": "cd9a8d3c2248802fcac4c33fcb49900afa92ac03d36d74fefbcaf581356b666c"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde-15822d110748cc9f/build_script_build-15822d110748cc9f",
+      "bytes": 540208,
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde-15822d110748cc9f/build-script-build",
+      "bytes": 540208,
+      "sha256": "93f3e380fe69aacb074e369f3f745cd41aa4b642aab210af4b97373984cd79c5"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-face-e68751d4da7b1def/build_script_build-e68751d4da7b1def",
+      "bytes": 6490984,
+      "sha256": "935b6c5a4309c1f59ea4b6ea4f34c1fae5aa9c2c377521a04f75e5346841cfd0"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-face-e68751d4da7b1def/build-script-build",
+      "bytes": 6490984,
+      "sha256": "935b6c5a4309c1f59ea4b6ea4f34c1fae5aa9c2c377521a04f75e5346841cfd0"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/proc-macro2-0c65f04c11310072/build_script_build-0c65f04c11310072",
+      "bytes": 564496,
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/proc-macro2-0c65f04c11310072/build-script-build",
+      "bytes": 564496,
+      "sha256": "a60ff59de232785ed8c0942e0cd1adf13d61837553f7e5599b5a52126654a336"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-robotics-a1e23731ebba9621/build_script_build-a1e23731ebba9621",
+      "bytes": 6197728,
+      "sha256": "c785995a76212bcf6c24e842ac6fc446d1f4b2bd5966b0402d20de0debde3a86"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-robotics-a1e23731ebba9621/build-script-build",
+      "bytes": 6197728,
+      "sha256": "c785995a76212bcf6c24e842ac6fc446d1f4b2bd5966b0402d20de0debde3a86"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/proc-macro2-92a782c175254c15/build_script_build-92a782c175254c15",
+      "bytes": 564496,
+      "sha256": "b932c0b53952c5eddd899a5091b3205e54a4710b0e284a7286178920d1721d3f"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/proc-macro2-92a782c175254c15/build-script-build",
+      "bytes": 564496,
+      "sha256": "b932c0b53952c5eddd899a5091b3205e54a4710b0e284a7286178920d1721d3f"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-text-a5e4f5c1ec4f8a69/build_script_build-a5e4f5c1ec4f8a69",
+      "bytes": 6157536,
+      "sha256": "5c31373da1001a8b84886266a06592bb5bd07927ed3648b857a9f7e11988a2fb"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-text-a5e4f5c1ec4f8a69/build-script-build",
+      "bytes": 6157536,
+      "sha256": "5c31373da1001a8b84886266a06592bb5bd07927ed3648b857a9f7e11988a2fb"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/libm-13320032431223a2/build_script_build-13320032431223a2",
+      "bytes": 494704,
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/libm-13320032431223a2/build-script-build",
+      "bytes": 494704,
+      "sha256": "7aafd28894bbaf533f8ef272bd32dc59e146e837930cb9ac4bcb6a954ad9c13e"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/thiserror-4d98862ac1318947/build_script_build-4d98862ac1318947",
+      "bytes": 580448,
+      "sha256": "6396aa5d14cdd4d93263ba652079a4e3d83939b4c2278118dba8b3e3b6206fa6"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/thiserror-4d98862ac1318947/build-script-build",
+      "bytes": 580448,
+      "sha256": "6396aa5d14cdd4d93263ba652079a4e3d83939b4c2278118dba8b3e3b6206fa6"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-time-5072606b2df34d77/build_script_build-5072606b2df34d77",
+      "bytes": 6232256,
+      "sha256": "e593d981c31b2eea3199dc1c4882487ade3152c6830210e34b0efd63e0f14d90"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-time-5072606b2df34d77/build-script-build",
+      "bytes": 6232256,
+      "sha256": "e593d981c31b2eea3199dc1c4882487ade3152c6830210e34b0efd63e0f14d90"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-audio-cd728b809903287d/build_script_build-cd728b809903287d",
+      "bytes": 8172000,
+      "sha256": "6f38e8de5b2c01a25d83a618c136e805b61a0e3c7d396b5508e725a5c3e58c4e"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-audio-cd728b809903287d/build-script-build",
+      "bytes": 8172000,
+      "sha256": "6f38e8de5b2c01a25d83a618c136e805b61a0e3c7d396b5508e725a5c3e58c4e"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/zmij-c9a87ed4792d5887/build_script_build-c9a87ed4792d5887",
+      "bytes": 533184,
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/zmij-c9a87ed4792d5887/build-script-build",
+      "bytes": 533184,
+      "sha256": "67fd662e1a22a2d22f79545788ec880b2f7ec737cb1b03cad73d88f889dc3f29"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde_core-bb9e7159c4c28b67/build_script_build-bb9e7159c4c28b67",
+      "bytes": 541560,
+      "sha256": "04fcfb8b69043a33aff838c1733202f091547b3fbf193f47fed889aefbb89bff"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde_core-bb9e7159c4c28b67/build-script-build",
+      "bytes": 541560,
+      "sha256": "04fcfb8b69043a33aff838c1733202f091547b3fbf193f47fed889aefbb89bff"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-process-074c2968a2365a38/build_script_build-074c2968a2365a38",
+      "bytes": 6159184,
+      "sha256": "b54a3348e9628c270e98f90be9e313e03aabfa4201d3e529d2e512472e42ddb1"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-process-074c2968a2365a38/build-script-build",
+      "bytes": 6159184,
+      "sha256": "b54a3348e9628c270e98f90be9e313e03aabfa4201d3e529d2e512472e42ddb1"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-language-2bf2f6fb6a954d2a/build_script_build-2bf2f6fb6a954d2a",
+      "bytes": 7969464,
+      "sha256": "994a43f3446f6d22967e028cb3b8c41bbb34c4ea5c359f7ddedab3b6b553c969"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-language-2bf2f6fb6a954d2a/build-script-build",
+      "bytes": 7969464,
+      "sha256": "994a43f3446f6d22967e028cb3b8c41bbb34c4ea5c359f7ddedab3b6b553c969"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-tutorial-plot-f4c02879041539ed/build_script_build-f4c02879041539ed",
+      "bytes": 6140856,
+      "sha256": "8aef43525acd49823d8b7e3f88e723e2b797dea3233aaef78370e0d7ae4454ec"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-tutorial-plot-f4c02879041539ed/build-script-build",
+      "bytes": 6140856,
+      "sha256": "8aef43525acd49823d8b7e3f88e723e2b797dea3233aaef78370e0d7ae4454ec"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/generic-array-ec043840ceaa47ee/build_script_build-ec043840ceaa47ee",
+      "bytes": 562400,
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/generic-array-ec043840ceaa47ee/build-script-build",
+      "bytes": 562400,
+      "sha256": "b6403143f2b0e2a7489cbd8132406e3178d784925062deedd2ab6353039df782"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-time-d50d9ca422661ef4/build_script_build-d50d9ca422661ef4",
+      "bytes": 6232248,
+      "sha256": "1e97e55cf24258dbd07430445c73e05cba4c975efbadfdb4e59bf1165af7150f"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-time-d50d9ca422661ef4/build-script-build",
+      "bytes": 6232248,
+      "sha256": "1e97e55cf24258dbd07430445c73e05cba4c975efbadfdb4e59bf1165af7150f"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-language-605c78281a4085f4/build_script_build-605c78281a4085f4",
+      "bytes": 7961168,
+      "sha256": "d3a8ead0eab3aad0a3429ee1299dfbef35f7771c81a3dd60f353bfa3aecf469a"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-language-605c78281a4085f4/build-script-build",
+      "bytes": 7961168,
+      "sha256": "d3a8ead0eab3aad0a3429ee1299dfbef35f7771c81a3dd60f353bfa3aecf469a"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde_core-4502401426c6e232/build_script_build-4502401426c6e232",
+      "bytes": 541560,
+      "sha256": "97462b530c9aa50144cdfb2a493f6b86d74de5d65388ab3714507e5d0d52c76b"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde_core-4502401426c6e232/build-script-build",
+      "bytes": 541560,
+      "sha256": "97462b530c9aa50144cdfb2a493f6b86d74de5d65388ab3714507e5d0d52c76b"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-human-339e136158afc021/build_script_build-339e136158afc021",
+      "bytes": 6391720,
+      "sha256": "948473a26bb6865a316c75303b1a84f85a742fb4c9f556fe403bcee14b158630"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-human-339e136158afc021/build-script-build",
+      "bytes": 6391720,
+      "sha256": "948473a26bb6865a316c75303b1a84f85a742fb4c9f556fe403bcee14b158630"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-wire-2351405b2ed99992/build_script_build-2351405b2ed99992",
+      "bytes": 6141072,
+      "sha256": "9cb029514de461675bb06e8a6d63063552fca062ecfe6639c99eae8e0dca6cea"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-wire-2351405b2ed99992/build-script-build",
+      "bytes": 6141072,
+      "sha256": "9cb029514de461675bb06e8a6d63063552fca062ecfe6639c99eae8e0dca6cea"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-alife-d1152a6ff456c997/build_script_build-d1152a6ff456c997",
+      "bytes": 6200232,
+      "sha256": "01eb4716ee33732971fc490ccb0f11a5d88b78b9c5578b0023fc9f0ce26b22b9"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduit-alife-d1152a6ff456c997/build-script-build",
+      "bytes": 6200232,
+      "sha256": "01eb4716ee33732971fc490ccb0f11a5d88b78b9c5578b0023fc9f0ce26b22b9"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduitos-c91f8e6ee8c45efb/build_script_build-c91f8e6ee8c45efb",
+      "bytes": 684272,
+      "sha256": "37c2f754a916f4dcbeba8e8f79bbf6a48efab1016d18b3c4a3f5f7856c594dcb"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/conduitos-c91f8e6ee8c45efb/build-script-build",
+      "bytes": 684272,
+      "sha256": "37c2f754a916f4dcbeba8e8f79bbf6a48efab1016d18b3c4a3f5f7856c594dcb"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/curve25519-dalek-c2a8d824c0cbf54f/build_script_build-c2a8d824c0cbf54f",
+      "bytes": 594624,
+      "sha256": "651498a679284df42b9568bd1e3c3d166a8c77886cb4aba8a6ef42bd36052976"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/curve25519-dalek-c2a8d824c0cbf54f/build-script-build",
+      "bytes": 594624,
+      "sha256": "651498a679284df42b9568bd1e3c3d166a8c77886cb4aba8a6ef42bd36052976"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde_json-9fb5fefa451c55fe/build-script-build",
+      "bytes": 460240,
+      "sha256": "bf7739b168c589e479272bd447ef39e4be1130cd84d0b2da99ff54d9f4f9da20"
+    },
+    {
+      "path": "work/ready-four-native-target/debug/build/serde_json-9fb5fefa451c55fe/build_script_build-9fb5fefa451c55fe",
+      "bytes": 460240,
+      "sha256": "bf7739b168c589e479272bd447ef39e4be1130cd84d0b2da99ff54d9f4f9da20"
+    }
+  ],
+  "qualification": [
+    "ActualfreshowningNativeexecutionise9f/d350, NOT90a orhistoricalWIP relabeled.",
+    "15PlotouterPASS includes CURRENTgeneratedstd4inner/no_std via failclosedsourceboundhelper; temporaryinnerbinaries removedbyexistinghelper, noinnerELFhashclaim.",
+    "ActualBeam two-usepool throughretainedfinish/refusals checksalloc/realloc/dealloc allzero.",
+    "StrictPlot+LanguageLIBRARYonly; notalltargets.",
+    "NoCandidate/Integration/installedCurrent/controller/nativeUI/firmware/physical/parentcompletion."
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "created_unix": 1792827595.6171172,
+  "source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "tree": "d35051b7b0b512ef82e76fd37902479a65c43a06",
+  "base": "3a99fa7da517c99611f9082393c1a35376480b8f",
+  "branch": "prep/ready-four-combined-proof-20261024",
+  "checkout": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/ready-four-combined-proof",
+  "rows": [
+    {
+      "pr": 6380,
+      "head": "40e63b6a7a79bb5691f98f0706396630bf168047",
+      "actual_parent": "3a99fa7da517c99611f9082393c1a35376480b8f",
+      "original_base": "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+      "composed_tree": "05986adf4c0ad6daf2fecd83a0b0452c1d29eba7",
+      "local_merge": "de7252bf02c28821da5b37743a2a2aa5cdc9401f",
+      "exact_original_delta": true,
+      "paths": [
+        "bodies/environment/runtime/tests/observation_kernel.rs",
+        "bodies/environment/runtime/tests/support/assignment.rs"
+      ]
+    },
+    {
+      "pr": 6382,
+      "head": "6ab212c0016048791bcd014f3931f6658c1fe712",
+      "actual_parent": "de7252bf02c28821da5b37743a2a2aa5cdc9401f",
+      "original_base": "91430c2d2af0bb89525916f81efcf5f74bb4a2db",
+      "composed_tree": "f60e8348c57bbe76955ee9e1d4be371f0318e4d0",
+      "local_merge": "8d252972bd226dfaa172de089fc5892e76d54960",
+      "exact_original_delta": true,
+      "paths": [
+        "plots/seven-segment-mask/README.md",
+        "plots/seven-segment-mask/src/format.rs",
+        "plots/seven-segment-mask/src/lib.rs",
+        "plots/seven-segment-mask/src/timed.rs",
+        "plots/seven-segment-mask/tests/mask.rs",
+        "plots/seven-segment-mask/types.conduit"
+      ]
+    },
+    {
+      "pr": 6384,
+      "head": "90a373aa5b37b424755337fa0d5afa2101243764",
+      "actual_parent": "8d252972bd226dfaa172de089fc5892e76d54960",
+      "original_base": "fdc2a582dd20c19d5f9479f66746e36e036a228d",
+      "composed_tree": "0c5aa682da60d32b55b8097753fcfa90ae3e86f9",
+      "local_merge": "cd6231bf01515624f9e3b4d6b11c4198ecdea8c6",
+      "exact_original_delta": true,
+      "paths": [
+        "architecture/plot/src/rust_binding/generate_prepared_storage.rs",
+        "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs",
+        "architecture/plot/src/rust_binding/mod.rs",
+        "architecture/plot/src/rust_binding/prepared_decode.rs",
+        "architecture/plot/src/rust_binding/prepared_native.rs",
+        "architecture/plot/tests/prepared_native_decode.rs",
+        "docs/reuse-ledger.md",
+        "proof/language/6065-current-prepared-native/README.md",
+        "proof/language/6065-current-prepared-native/actual-beam.log.gz",
+        "proof/language/6065-current-prepared-native/beam-admission-regression.log.gz",
+        "proof/language/6065-current-prepared-native/plot-regressions.log.gz",
+        "proof/language/6065-current-prepared-native/results.json",
+        "proof/language/6065-current-prepared-native/strict-library-clippy.log.gz",
+        "semantics/language/build.rs",
+        "semantics/language/src/lib.rs",
+        "semantics/language/tests/actual_beam_prepared_decode.rs",
+        "tools/xtask/src/suites/native_source_laws.rs"
+      ]
+    },
+    {
+      "pr": 6385,
+      "head": "19e5233c44f12bfbd710015c226f8ef94020f057",
+      "actual_parent": "cd6231bf01515624f9e3b4d6b11c4198ecdea8c6",
+      "original_base": "3a99fa7da517c99611f9082393c1a35376480b8f",
+      "composed_tree": "d35051b7b0b512ef82e76fd37902479a65c43a06",
+      "local_merge": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+      "exact_original_delta": true,
+      "paths": [
+        "architecture/assigned-plan/FORE.md",
+        "architecture/assigned-plan/src/fore.rs",
+        "architecture/assigned-plan/src/fore_tests.rs",
+        "architecture/assigned-plan/src/lib.rs",
+        "architecture/assigned-plan/src/record_view_tests.rs",
+        "architecture/assigned-plan/src/records.rs",
+        "architecture/assigned-plan/src/validation.rs"
+      ]
+    }
+  ],
+  "path_count": 32,
+  "all_four_heads_ancestors": true,
+  "scope": "Actual isolated proposed combined checkout, not dev delivery, Candidate or Integration acceptance."
+}

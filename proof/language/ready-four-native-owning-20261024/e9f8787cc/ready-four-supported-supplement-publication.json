@@ -1,0 +1,12 @@
+{
+  "source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "tree": "d35051b7b0b512ef82e76fd37902479a65c43a06",
+  "branch": "evidence/ready-four-supported-supplement-20261024",
+  "commit": "294a3c03affbb4fd3c42c1d82430f4b042b265b7",
+  "prefix": "docs/audits/evidence/ready-four-supported-supplement-20261024/e9f8787cc",
+  "files": 10,
+  "actual_tests": 24,
+  "original138_unchanged": true,
+  "remote_verified": true,
+  "url": "https://github.com/dancxjo/conduit/tree/294a3c03affbb4fd3c42c1d82430f4b042b265b7/docs/audits/evidence/ready-four-supported-supplement-20261024/e9f8787cc"
+}
