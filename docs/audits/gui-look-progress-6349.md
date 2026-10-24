@@ -476,3 +476,14 @@ Body/Plan/Play across three chrome preferences. Narrow 390px/32px checks pass,
 including another authoritative edit; five editor contract tests and Look wire
 checks pass. [Screenshots and exact asset/runtime provenance](evidence/gui-look-6349-writing/README.md).
 This is not canonical cross-component Look selection or current native acceptance.
+
+## Dynamic graph Lucide geometry
+
+Patchbay node tokens now resolve through the shared pinned geometry and canonical
+wire-token map, with Port/status decoration and original text fallback for unknown
+tokens. Fourteen graph/HTML/furniture and eleven vocabulary/Look checks pass; the
+final two-check proof changes Gear selection by keyboard and Port selection by
+pointer, preserving exact server navigation and the Face through narrow reflow.
+[Source-bound captures, negative transition evidence and limits](evidence/gui-look-6349-dynamic-icons/README.md).
+The workbench capture is documentary-fixture browser evidence. Direct keyboard
+Port selection, canonical cross-component Looks and native acceptance remain open.
