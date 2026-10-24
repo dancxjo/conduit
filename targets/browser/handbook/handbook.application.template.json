@@ -31,6 +31,10 @@
         {
           "role": "patchbay-editor",
           "specifier": "./patchbay-editor.mjs"
+        },
+        {
+          "role": "owner-face-icons",
+          "specifier": "./owner-face-icons.mjs"
         }
       ]
     },
