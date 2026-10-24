@@ -1,0 +1,14 @@
+{
+  "source": "85520586a1d11f48abe68b602cf058c2f548a6b9",
+  "base": "c40764ccf645414dcd155ac5e2c8c48136005ab2",
+  "prior_source": "874a611f9b1bdb239c7b422a94aae3471df1dfbb",
+  "clean_merge_tree_verified": true,
+  "test_only_paths": [
+    "bodies/environment/runtime/tests/observation_kernel.rs",
+    "bodies/environment/runtime/tests/support/assignment.rs"
+  ],
+  "environment_runtime_tree_unchanged_from_prior_proof": true,
+  "remote_head_verified": true,
+  "candidate_and_integration": "not admitted; no PR opened",
+  "observed_utc": "2026-10-23T23:58:54.321539+00:00"
+}

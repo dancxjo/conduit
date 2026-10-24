@@ -1,0 +1,53 @@
+{
+  "source": "85520586a1d11f48abe68b602cf058c2f548a6b9",
+  "source_clean": true,
+  "started_utc": "2026-10-23T23:58:32.974744+00:00",
+  "status": "passed",
+  "steps": [
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "log": "work/6313-refreshed-85520586-tests.log",
+      "sha256": "b3ba9cc6ad03d2da9132bf86b4356727b61c45d809d8648840bd47f8cbc31bd3"
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "c40764ccf645414dcd155ac5e2c8c48136005ab2"
+      ],
+      "exit_code": 0,
+      "log": "work/6313-refreshed-85520586-preflight.log",
+      "sha256": "4e7fad47eaabf7c30c985ed093d8f2ea5a4aaef9c0abd14839a05c027a28e9c9"
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--all-targets",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "work/6313-refreshed-85520586-clippy.log",
+      "sha256": "5a1acdd7cd5feb6172d761697279fdd171310c3f2bc6ac2816918fb15c263eb3"
+    }
+  ],
+  "finished_utc": "2026-10-24T00:02:07.941650+00:00"
+}
