@@ -273,6 +273,11 @@ fn mask_local_pages_use_the_same_retained_quantity_face_without_clock_mutation()
     )
     .unwrap();
     let ((), memory) = allocation_probe::observe(|| {
+        // This owned material leaves the read scope; no borrowed Face escapes.
+        let prepared = reader
+            .with_retained(|face, _| mask.prepare_show(face))
+            .unwrap()
+            .unwrap();
         for (elapsed, expected) in [
             (0, MaskDisposition::Temperature { decimal_places: 1 }),
             (30, MaskDisposition::Humidity),
@@ -282,7 +287,7 @@ fn mask_local_pages_use_the_same_retained_quantity_face_without_clock_mutation()
                 .with_retained(|face, status| {
                     assert!(status.publisher_retained);
                     assert_eq!(face, &before);
-                    let frame = mask.render(face, elapsed).unwrap();
+                    let frame = mask.render_prepared(&prepared, elapsed).unwrap();
                     assert_eq!(frame.rendered.disposition, expected);
                     assert_eq!(frame.rendered.face_revision, 1);
                     assert_eq!(frame.rendered.face_content_id, before.identity.as_str());

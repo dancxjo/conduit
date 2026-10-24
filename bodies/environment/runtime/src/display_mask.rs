@@ -25,6 +25,7 @@ pub enum Refusal {
     Face(conduit_seven_segment_mask::FaceProjectionRefusal),
     Frame(conduit_core::StructuredInfoRefusal),
     Brightness,
+    Show(conduit_seven_segment_mask::ShowPreparationRefusal),
 }
 impl PreparedDisplayMask {
     pub fn prepare(
@@ -44,6 +45,35 @@ impl PreparedDisplayMask {
                 .map_err(Refusal::Timing)?,
             frame: PreparedDisplayFrame::prepare().map_err(Refusal::Frame)?,
             brightness,
+        })
+    }
+    /// Compile one immutable pair of pages while the caller holds its exact
+    /// Face borrow. The result owns correlation and can leave that read scope.
+    pub fn prepare_show(
+        &self,
+        face: &Face,
+    ) -> Result<conduit_seven_segment_mask::PreparedAlternatingShow, Refusal> {
+        let selected =
+            PreparedEnvironmentFace::prepare(face, "environment").map_err(Refusal::Face)?;
+        self.mask
+            .prepare_show(&selected, &self.profile)
+            .map_err(Refusal::Show)
+    }
+    pub fn render_prepared<'a>(
+        &'a mut self,
+        show: &'a conduit_seven_segment_mask::PreparedAlternatingShow,
+        elapsed_ms: u64,
+    ) -> Result<Frame<'a>, Refusal> {
+        let rendered = show.at(elapsed_ms);
+        let registers = self.profile.map(&rendered.show).map_err(Refusal::Wiring)?;
+        let canonical = self
+            .frame
+            .encode(registers, self.brightness, true)
+            .map_err(Refusal::Frame)?;
+        Ok(Frame {
+            rendered,
+            registers,
+            canonical,
         })
     }
     pub fn render<'a>(&'a mut self, face: &'a Face, elapsed_ms: u64) -> Result<Frame<'a>, Refusal> {
@@ -73,6 +103,7 @@ impl core::fmt::Display for Refusal {
             Self::Timing(reason) => write!(f, "timing: {reason:?}"),
             Self::Face(reason) => write!(f, "Face: {reason:?}"),
             Self::Frame(reason) => write!(f, "Frame: {reason:?}"),
+            Self::Show(reason) => write!(f, "Show: {reason:?}"),
             Self::Brightness => f.write_str("brightness outside 0..=7"),
         }
     }

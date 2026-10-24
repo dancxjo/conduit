@@ -1,0 +1,19 @@
+{
+  "proof_class": "CPU finite resolved page material and borrowed-Face integration; Cortex-M0 compilation",
+  "pointer_bits": 64,
+  "inline_bytes": 112,
+  "heap_allocation_bytes": 0,
+  "existing_mask_encoder_inline_bytes": 344,
+  "replaces_mask_encoder": false,
+  "focused_tests_passed": 23,
+  "native_role_initialized": false,
+  "clock_admitted": false,
+  "physical_effects": false,
+  "code_sha256": {
+    "plots/seven-segment-mask/src/prepared_show.rs": "d7e2cfb0848ed33b06e4db5b03b7cf7ea0e9820cf37d9ce7faaf5892615bb9d6",
+    "plots/seven-segment-mask/src/timed.rs": "0cf60c5412dbf9b349fce427c288972d2a176a62c72b1e1f0a60bccd7e87e5bf",
+    "plots/seven-segment-mask/src/format.rs": "0e6cfb4919197af1d004d635118376b1b41547a6bc28ba26e3077ad4e81b8ff3",
+    "plots/seven-segment-mask/types.conduit": "8c74c07627ae7ba765e4a095bc8dd0c68db1cd851c6472f852acdb0b2c89776b",
+    "bodies/environment/runtime/src/display_mask.rs": "6fd5f6f110202c483d6e90aa8e88cf80379d36e29bdfbeb38b2e3c7e436940f0"
+  }
+}
