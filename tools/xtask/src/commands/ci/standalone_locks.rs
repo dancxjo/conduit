@@ -9,6 +9,18 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "bodies/environment/browser/Cargo.toml",
+        lock: "bodies/environment/browser/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "bodies/environment/linux/Cargo.toml",
+        lock: "bodies/environment/linux/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "mechanisms/io/monotonic-wait/Cargo.toml",
+        lock: "mechanisms/io/monotonic-wait/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "targets/std/display/Cargo.toml",
         lock: "targets/std/display/Cargo.lock",
     },
