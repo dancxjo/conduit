@@ -139,6 +139,7 @@ pub use facades::{
     AdmittedOwnedNativeCanonical, OwnedPreparedNativeAdmission, PreparedNativeAdmission,
 };
 pub use registry::NativeLawRegistry;
+pub(crate) use registry::PreparedRegisteredValue;
 pub use shared_facade::{AdmittedRegisteredNativeCanonical, PreparedRegisteredNativeAdmission};
 struct AdmissionEngine<'d> {
     metadata: metadata::Metadata<'d>,

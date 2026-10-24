@@ -75,6 +75,33 @@ fn each_original_g2_program_fits_one_sealed_registry() {
             }
         };
         assert_eq!(registry.source_witnesses().len(), witnesses.len());
+        match PreparedPortableExpressionEvaluator::new_checked_native_laws(
+            &value,
+            &registry,
+            PreparedExpressionLawBounds {
+                guards: 4096,
+                native: PreparedNativeBounds {
+                    canonical_bytes: 4 * 1024 * 1024,
+                    scopes: 4096,
+                    invariants: 4096,
+                    contracts: 4096,
+                },
+                occurrences_per_guard: 4096,
+                steps: 16 * 1024 * 1024,
+            },
+        ) {
+            Ok(prepared) => eprintln!(
+                "G2_EXECUTED_NODE_GUARDS program={short} capacity={:?}",
+                prepared.checked_native_law_capacity().unwrap()
+            ),
+            Err(cause) => {
+                failures.push(format!(
+                    "{short}: actual executed-node guard preparation refused {cause:?}"
+                ));
+                eprintln!("G2_EXECUTED_NODE_GUARDS_REFUSAL program={short} cause={cause:?}");
+            }
+        }
+
         for witness in &witnesses {
             let prepared = match registry.prepare_native(
                 &witness.checked_type().identity,

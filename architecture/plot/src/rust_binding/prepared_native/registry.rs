@@ -64,7 +64,7 @@ impl NativeLawRegistry {
     }
     // Private future-envelope seam: structural roots have constructor-derived
     // identities and complete nested owner coverage, never a fabricated Native.
-    pub(super) fn prepare_type(
+    pub(crate) fn prepare_type(
         &self,
         value_type: &StructuredInfoType,
         bounds: PreparedNativeBounds,
@@ -80,7 +80,7 @@ impl NativeLawRegistry {
         })
     }
 }
-pub(super) struct PreparedRegisteredValue {
+pub(crate) struct PreparedRegisteredValue {
     pub(super) registry: NativeLawRegistry,
     pub(super) engine: AdmissionEngine<'static>,
 }
@@ -90,6 +90,15 @@ pub(super) struct AdmittedRegisteredValue<'a> {
     pub(super) registry: &'a NativeLawRegistry,
 }
 impl PreparedRegisteredValue {
+    pub(crate) fn capacity_report(&self) -> PreparedNativeCapacityReport {
+        self.engine.capacity_report()
+    }
+    pub(crate) fn check_value(&mut self, bytes: &[u8]) -> Result<(), PreparedNativeRefusal> {
+        self.engine.begin(bytes)?;
+        while self.engine.step()? == PreparedNativeProgress::Pending {}
+        self.engine.check_admitted()?;
+        self.engine.retire_admitted()
+    }
     pub(super) fn admitted(&self) -> Result<AdmittedRegisteredValue<'_>, PreparedNativeRefusal> {
         self.engine.check_admitted()?;
         Ok(AdmittedRegisteredValue {

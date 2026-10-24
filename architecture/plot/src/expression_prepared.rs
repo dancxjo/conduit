@@ -8,7 +8,10 @@ use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod arithmetic_policy;
+mod execution;
+mod law_guard;
 use arithmetic_policy::ArithmeticPolicy;
+pub use law_guard::{PreparedExpressionLawBounds, PreparedExpressionLawCapacityReport};
 mod byte_observation;
 mod equality;
 mod evaluate;
@@ -64,6 +67,8 @@ pub struct PreparedPortableExpressionEvaluator {
     input_value_contract: Option<conduit_core::CheckedValueContract>,
     output_value_contract: Option<conduit_core::CheckedValueContract>,
     output: Vec<u8>,
+    input_law: Option<Box<law_guard::NodeGuard>>,
+    output_law: Option<Box<law_guard::NodeGuard>>,
 }
 
 #[derive(Clone)]
@@ -75,8 +80,14 @@ enum PreparedInput {
         quantity_profile: conduit_core::QuantityValueProfile,
         maximum_bytes: Option<u32>,
         arithmetic_policy: ArithmeticPolicy,
+        laws: Option<law_guard::Context>,
     },
-    Structured(SharedBytes, Option<u32>, ArithmeticPolicy),
+    Structured(
+        SharedBytes,
+        Option<u32>,
+        ArithmeticPolicy,
+        Option<law_guard::Context>,
+    ),
 }
 
 impl PreparedInput {
@@ -93,12 +104,12 @@ impl PreparedInput {
             Self::Primitive {
                 arithmetic_policy, ..
             }
-            | Self::Structured(_, _, arithmetic_policy) => *arithmetic_policy,
+            | Self::Structured(_, _, arithmetic_policy, _) => *arithmetic_policy,
         }
     }
     fn maximum_bytes(&self) -> Option<u32> {
         match self {
-            Self::Primitive { maximum_bytes, .. } | Self::Structured(_, maximum_bytes, _) => {
+            Self::Primitive { maximum_bytes, .. } | Self::Structured(_, maximum_bytes, _, _) => {
                 *maximum_bytes
             }
         }
@@ -130,6 +141,7 @@ struct PreparedNode {
     kind: PrimitiveInfoKind,
     info_kind: Cow<'static, str>,
     operation: PreparedOperation,
+    law: Option<Box<law_guard::NodeGuard>>,
 }
 
 enum PreparedOperation {
@@ -229,6 +241,7 @@ impl PreparedPortableExpressionEvaluator {
             program,
             conduit_core::QuantityValueProfile::Decimal,
             ArithmeticPolicy::LegacyProven,
+            None,
         )
     }
 
@@ -251,6 +264,7 @@ impl PreparedPortableExpressionEvaluator {
             program,
             conduit_core::QuantityValueProfile::Exact,
             ArithmeticPolicy::LegacyProven,
+            None,
         )
     }
 
@@ -258,6 +272,7 @@ impl PreparedPortableExpressionEvaluator {
         program: &PortableExpressionProgram,
         quantity_profile: conduit_core::QuantityValueProfile,
         arithmetic_policy: ArithmeticPolicy,
+        laws: Option<law_guard::Context>,
     ) -> Result<Self, Refusal> {
         let input = match program.input_type.shape() {
             StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
@@ -267,6 +282,7 @@ impl PreparedPortableExpressionEvaluator {
                 quantity_profile,
                 maximum_bytes: program.input_maximum_bytes,
                 arithmetic_policy,
+                laws: laws.clone(),
             },
             StructuredInfoTypeShape::Nominal { representation, .. }
                 if matches!(representation.shape(), StructuredInfoTypeShape::Leaf(_)) =>
@@ -277,6 +293,7 @@ impl PreparedPortableExpressionEvaluator {
                     quantity_profile,
                     maximum_bytes: program.input_maximum_bytes,
                     arithmetic_policy,
+                    laws: laws.clone(),
                     nominal_type: Some(
                         program
                             .input_type
@@ -294,6 +311,7 @@ impl PreparedPortableExpressionEvaluator {
                     .into(),
                 program.input_maximum_bytes,
                 arithmetic_policy,
+                laws.clone(),
             ),
         };
         program
@@ -314,6 +332,7 @@ impl PreparedPortableExpressionEvaluator {
                 quantity_profile,
             )?,
         )?;
+        prepared.input_law = law_guard::input_guard(program, laws.as_ref())?;
         prepared.input_maximum_bytes = program.input_maximum_bytes;
         Ok(prepared)
     }
@@ -366,6 +385,7 @@ impl PreparedPortableExpressionEvaluator {
             }
             _ => PreparedRoot::Structured(PreparedStructuredExpression::new(program, &input)?),
         };
+        let output_law = law_guard::output_guard(program, &input, capacity)?;
         Ok(Self {
             root,
             input,
@@ -373,80 +393,9 @@ impl PreparedPortableExpressionEvaluator {
             input_value_contract,
             output_value_contract,
             output: Vec::with_capacity(capacity),
+            input_law: None,
+            output_law,
         })
-    }
-
-    pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
-        if let Some(contract) = &self.input_value_contract {
-            contract
-                .validate(input)
-                .map_err(Refusal::InputValueConstraint)?;
-        }
-        if self
-            .input_maximum_bytes
-            .is_some_and(|maximum| input.len() > maximum as usize)
-        {
-            return Err(Refusal::InvalidInput);
-        }
-        let mut primitive_bytes = input;
-        let primitive_input = match &self.input {
-            PreparedInput::Primitive {
-                kind,
-                info_kind,
-                nominal_type,
-                ..
-            } => {
-                if let Some(expected) = nominal_type {
-                    primitive_bytes = nominal::input_payload(input, expected)?;
-                }
-                quantity_profile::validate_input(
-                    info_kind,
-                    primitive_bytes,
-                    self.input.quantity_profile(),
-                )?;
-                Some(*kind)
-            }
-            PreparedInput::Structured(expected, _, _) => {
-                let validated = conduit_core::validate_canonical_structured_value(input)
-                    .map_err(|_| Refusal::InvalidInput)?;
-                if validated.type_bytes() != expected.as_ref() {
-                    return Err(Refusal::InvalidInput);
-                }
-                None
-            }
-        };
-        self.output.clear();
-        match &mut self.root {
-            PreparedRoot::Primitive { node, nominal_type } => {
-                let value = evaluate_node(node, primitive_bytes, primitive_input)?;
-                if let Some(value_type) = nominal_type {
-                    nominal::append_output(&mut self.output, value_type, &value)?;
-                } else {
-                    if value.length > self.output.capacity() {
-                        return Err(Refusal::InvalidProgram);
-                    }
-                    self.output.extend_from_slice(value.as_slice());
-                }
-            }
-            PreparedRoot::ScalarTape { tape, nominal_type } => {
-                let value = tape.evaluate(primitive_bytes, primitive_input)?;
-                if let Some(value_type) = nominal_type {
-                    nominal::append_output(&mut self.output, value_type, &value)?;
-                } else {
-                    if value.length > self.output.capacity() {
-                        return Err(Refusal::InvalidProgram);
-                    }
-                    self.output.extend_from_slice(value.as_slice());
-                }
-            }
-            PreparedRoot::Structured(root) => root.evaluate(input, &mut self.output)?,
-        }
-        if let Some(contract) = &self.output_value_contract {
-            contract
-                .validate(&self.output)
-                .map_err(Refusal::OutputValueConstraint)?;
-        }
-        Ok(&self.output)
     }
 
     // Immutable after preparation. Structured children compare against this

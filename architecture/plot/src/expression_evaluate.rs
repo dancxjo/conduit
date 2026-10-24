@@ -29,6 +29,7 @@ use core::cmp::Ordering;
 pub enum PortableExpressionEvaluationRefusal {
     InvalidInput,
     InvalidProgram,
+    NativeLaw(crate::rust_binding::PreparedNativeRefusal),
     InputValueConstraint(conduit_core::ValueConstraintRefusal),
     OutputValueConstraint(conduit_core::ValueConstraintRefusal),
     InvalidLiteral,

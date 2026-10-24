@@ -140,6 +140,9 @@ pub(super) fn evaluate_node<'a>(
     if value.kind == expected {
         quantity_profile::validate_input(&node.info_kind, value.as_slice(), node.quantity_profile)
             .map_err(|_| Refusal::InvalidProgram)?;
+        if let Some(guard) = &mut node.law {
+            guard.primitive(&value)?;
+        }
         Ok(value)
     } else {
         Err(Refusal::InvalidProgram)

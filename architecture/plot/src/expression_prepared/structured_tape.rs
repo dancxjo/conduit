@@ -182,7 +182,7 @@ impl StructuredTape {
             self.length(encoded.len())?;
             return self.bytes(&encoded);
         }
-        if let PreparedInput::Structured(prefix, _, _) = input {
+        if let PreparedInput::Structured(prefix, _, _, _) = input {
             if let Some((start, length)) =
                 fixed_projection::prepare(program.input_type, node, prefix.len())
             {

@@ -1,6 +1,6 @@
 //! Allocation-stable construction of anonymous structured expression results.
 
-use super::{PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal};
+use super::{law_guard, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
@@ -78,7 +78,11 @@ impl PreparedStructuredExpression {
         prepared_input: &PreparedInput,
     ) -> Result<Self, Refusal> {
         super::structured_contract::validate(program)?;
-        if let Some(tape) = tape::StructuredTape::prepare(program, prepared_input) {
+        if let Some(tape) = law_guard::context(prepared_input)
+            .is_none()
+            .then(|| tape::StructuredTape::prepare(program, prepared_input))
+            .flatten()
+        {
             return Ok(Self {
                 type_prefix: program
                     .output_type
@@ -313,7 +317,11 @@ fn child(
     } else {
         Some(type_prefix)
     };
-    let evaluator = match constant_child(node) {
+    let evaluator = match law_guard::context(prepared_input)
+        .is_none()
+        .then(|| constant_child(node))
+        .flatten()
+    {
         Some(constant) => constant,
         None => ChildEvaluator::Dynamic(Box::new(PreparedPortableExpressionEvaluator::prepare(
             child,

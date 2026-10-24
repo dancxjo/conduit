@@ -7,6 +7,7 @@ mod bounded;
 mod native_contracts;
 mod prepared_native;
 pub use native_contracts::{validate_native_contracts_borrowed, BorrowedNativeContractRefusal};
+pub(crate) use prepared_native::PreparedRegisteredValue;
 pub use prepared_native::{
     AdmittedNativeCanonical, AdmittedOwnedNativeCanonical, AdmittedRegisteredNativeCanonical,
     NativeContractOccurrence, NativeLawRegistry, NativeOccurrence, NativePathStep,

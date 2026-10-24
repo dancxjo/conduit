@@ -203,5 +203,6 @@ pub(super) fn prepare_node(
         kind,
         info_kind: prepare_info_kind(&node.value_type)?,
         operation,
+        law: law_guard::primitive_guard(node, input_type, prepared_input)?,
     })
 }

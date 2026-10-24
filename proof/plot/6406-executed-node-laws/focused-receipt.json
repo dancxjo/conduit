@@ -1,0 +1,61 @@
+{
+  "base": "2ade18b8c",
+  "source_hashes": {
+    "architecture/plot/src/expression_evaluate.rs": "c08f40d196b8ab14aaa015b6d16feb9788db0984701545a635dd4bee29b424e1",
+    "architecture/plot/src/expression_prepared.rs": "c175d6438c48bfb6797c807278665479df92198df78cb1f4ade7b5feb1c36004",
+    "architecture/plot/src/expression_prepared/arithmetic_policy.rs": "523c2ee70536c3b511f6696678e7cc76d9cb18a51c25b78c91a5be5cad9501f1",
+    "architecture/plot/src/expression_prepared/evaluate.rs": "660f23d2436da28cdf765df719011223b6f75d1c68b08b42770c4486b3257abb",
+    "architecture/plot/src/expression_prepared/execution.rs": "0c93b1208b658c765c753577d10b1e9a3d58de3b564f7d666d1e404287a67d0a",
+    "architecture/plot/src/expression_prepared/law_guard.rs": "6656aa91e100a342fcc42586abad5350be18cdff61cea571e90a78954c4b7d11",
+    "architecture/plot/src/expression_prepared/prepare.rs": "c217a6434d815ddc15a96d1bf826b09ac4c8161073751ba7532a1e8a31d24f98",
+    "architecture/plot/src/expression_prepared/structured.rs": "a2f07f68c600f51b6cf890556d34670aa3129a344a6f1e0a7e3c6e6fb305ee3b",
+    "architecture/plot/src/expression_prepared/structured_tape.rs": "b83a506ccb59652c32748645f1b5d0b2393af98c1b5ccb4a4d8d265c52e87675",
+    "architecture/plot/src/rust_binding/mod.rs": "bc39f1a8ff94004a9d97b871a4a851312beaf20e3684e9e516cf3f66f291e7b3",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "e3c9cf0881164d6e11196b84ee2d19be1df7fb832d1b892fe7d190744861e176",
+    "architecture/plot/src/rust_binding/prepared_native/registry.rs": "35fe29261263a11e3b85254f60ea34418b07ab86922b24fe400998a3945f6535",
+    "architecture/plot/tests/prepared_expression_laws.rs": "990681a67be092b36e81f070bd20667c6bf12662597e66c447372bc4224d90c9",
+    "semantics/speech/tests/native_law_registry_capacity.rs": "2c776ff88923a624e4182996a2ee24115f2a7916817905ba19c3b2bd0d9f67a0",
+    "tools/xtask/src/suites/native_law_custody.rs": "bf7695fc7aba5c35c5a2104b3962f0336895c5f29f39a8f69980db3de2a7d9c4"
+  },
+  "focused_passed": 26,
+  "focused_failed": 0,
+  "focused_ignored": 0,
+  "strict_plot_exit": 0,
+  "format_exit": 0,
+  "std_contract": "running",
+  "g2_preparation": "queued after actual Std contract check",
+  "boundary": "Source-law checked existing interpreter only; no verified expression envelope/Kind, automatic Std offer or ordinary G2 kernel claim",
+  "sealed": 1792872497.291826,
+  "executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_checked_arithmetic-5e026b532adbbcd1",
+      "sha256": "6eef666552a0d658908314e4b179818509110612ae819902d882e93d1e263cac",
+      "bytes": 5038688,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-runtime-law-proof/prepared_checked_arithmetic-5e026b532adbbcd1.elf.gz"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_expression_laws-66db01a35ace4485",
+      "sha256": "17bf463ee751869b489c823989e1bdb0b52974f4e3492db73277b033942c3e08",
+      "bytes": 15811968,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-runtime-law-proof/prepared_expression_laws-66db01a35ace4485.elf.gz"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_native_occurrences-17430676315b6405",
+      "sha256": "cd5eac8265da9c7696a3dc94dc3387e33f637ef3a3a2bdfa8df640b4385b5f0d",
+      "bytes": 15849928,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-runtime-law-proof/prepared_native_occurrences-17430676315b6405.elf.gz"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_native_optional-d9c23082d71a1d07",
+      "sha256": "ed06acde7ab6fa7ac30ed675e65cbcd1c5b6c14d36703e298144b243d9e77aa8",
+      "bytes": 15736424,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-runtime-law-proof/prepared_native_optional-d9c23082d71a1d07.elf.gz"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/prepared_structured_tape-39afeda27e03c85b",
+      "sha256": "dfe30d6e384c051b8470d1a2a5cdb06e51df16d93c78008c1fd77ffb80ff1aec",
+      "bytes": 19603520,
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6406-runtime-law-proof/prepared_structured_tape-39afeda27e03c85b.elf.gz"
+    }
+  ]
+}

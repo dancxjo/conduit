@@ -21,6 +21,7 @@ impl PreparedPortableExpressionEvaluator {
             program,
             conduit_core::QuantityValueProfile::Decimal,
             ArithmeticPolicy::Checked,
+            None,
         )
     }
 }
