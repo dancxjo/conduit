@@ -1368,7 +1368,11 @@ test('admitted typography changes title family independently of palette, density
       const button = element.shadowRoot.querySelector('button');
       result.push({ intent: element.dataset.componentTypography,
         palette: element.dataset.componentPalette, density: element.dataset.componentDensity,
-        family: getComputedStyle(title).fontFamily, text: title.textContent,
+        family: getComputedStyle(title).fontFamily,
+        paper: getComputedStyle(element.shadowRoot.querySelector('.owner-face-document')).backgroundColor,
+        ink: getComputedStyle(title).color,
+        radius: getComputedStyle(element.shadowRoot.querySelector('.owner-face-subject')).borderRadius,
+        text: title.textContent,
         action: button.textContent, disabled: button.disabled });
     }
     return { result, invocations };
@@ -1377,7 +1381,31 @@ test('admitted typography changes title family independently of palette, density
   expect(observations.result[0].intent).toBe('editorial');
   expect(observations.result[1].intent).toBe('engineering');
   expect(observations.result[0].family).not.toBe(observations.result[1].family);
-  for (const key of ['palette', 'density', 'text', 'action', 'disabled']) {
+  for (const key of ['palette', 'density', 'paper', 'ink', 'radius', 'text', 'action', 'disabled']) {
     expect(observations.result[0][key]).toEqual(observations.result[1][key]);
   }
 });
+
+for (const palette of ['editorial', 'phosphor']) {
+  test(`forced colors replace admitted ${palette} palette tokens`, async ({ page }) => {
+    await page.emulateMedia({ forcedColors: 'active' });
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const tokens = await page.evaluate(async ({ view, palette }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      const element = document.createElement('conduit-owner-face');
+      document.body.replaceChildren(element);
+      const current = structuredClone(view);
+      current.component = { maximum_columns: 1, reflow_width: 720, gutter: 12,
+        subject_regions: current.subjects.map(() => null), groups: [],
+        expression: { expression: { identity: 'fixture/forced-look', version: 2,
+          density: 'compact', palette, typography: 'engineering', text_scale_percent: 100 } } };
+      element.show(current, { invoke: async () => {} });
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const style = getComputedStyle(element);
+      return Object.fromEntries(['paper', 'card', 'ink', 'muted', 'line', 'accent', 'control', 'focus']
+        .map(key => [key, style.getPropertyValue(`--face-${key}`).trim()]));
+    }, { view, palette });
+    expect(tokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText',
+      muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
+  });
+}
