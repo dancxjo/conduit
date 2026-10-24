@@ -97,7 +97,8 @@ pub(super) fn arrange(
         let item_width = width
             .checked_sub(item_inset)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width = field_clusters::text_width(item, item_width, context.padding)?;
+        let text_width =
+            field_clusters::text_width(item, item_width, context.padding, context.scale)?;
         let mut remaining = item.text.as_str();
         let mut chunk = 0;
         while !remaining.is_empty() {
@@ -163,6 +164,7 @@ pub(super) fn arrange(
                     padding: context.padding,
                     checkbox: item.checkbox,
                     icon: item.icon,
+                    icon_size: super::super::super::semantic_icons::size(context.scale),
                     panel_bounds: None,
                 },
             });

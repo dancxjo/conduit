@@ -6,12 +6,21 @@ use conduit_face::FaceIconKey;
 mod mapping;
 pub(super) use mapping::{for_intent, for_role};
 
-pub(super) fn inset(icon: Option<FaceIconKey>) -> u16 {
-    if icon.is_some() { 24 } else { 0 }
+/// Match the admitted user text scale; no new asset or frame command is needed.
+pub(super) fn size(scale: u16) -> u16 {
+    (16 * u32::from(scale)).div_ceil(100) as u16
+}
+
+pub(super) fn inset(icon: Option<FaceIconKey>, size: u16) -> u16 {
+    if icon.is_some() {
+        size + size.div_ceil(2)
+    } else {
+        0
+    }
 }
 
 fn bounds(row: &layout::Row) -> LayoutRect {
-    let size = 16.min(row.bounds.height - row.padding * 2);
+    let size = row.icon_size.min(row.bounds.height - row.padding * 2);
     LayoutRect {
         x: row.bounds.x + row.padding as i16,
         y: row.bounds.y + ((row.bounds.height - size) / 2) as i16,
@@ -119,6 +128,11 @@ mod tests {
             assert!(rows.iter().any(|row| row.icon == Some(FaceIconKey::Host)));
             for row in rows.iter().filter(|row| row.icon.is_some()) {
                 let icon = bounds(row);
+                assert_eq!(
+                    icon.width,
+                    16 * scale / 100,
+                    "icon must follow admitted text scale"
+                );
                 assert!(
                     i32::from(icon.x) + i32::from(icon.width) <= i32::from(row.text_bounds().x)
                 );

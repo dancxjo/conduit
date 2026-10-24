@@ -80,7 +80,10 @@ pub(super) fn measure(
                 result.inline_grow = 1;
                 let extra = u32::from(context.padding) * 2
                     + u32::from(item.indent) * u32::from(INDENT_STEP)
-                    + u32::from(super::super::super::semantic_icons::inset(item.icon))
+                    + u32::from(super::super::super::semantic_icons::inset(
+                        item.icon,
+                        super::super::super::semantic_icons::size(context.scale),
+                    ))
                     + if item.checkbox.is_some() {
                         u32::from(super::super::super::boolean_choice::INSET)
                     } else {

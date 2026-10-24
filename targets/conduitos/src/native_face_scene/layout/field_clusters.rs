@@ -39,10 +39,16 @@ pub(super) fn text_width(
     item: &document::Item,
     width: u16,
     padding: u16,
+    scale: u16,
 ) -> Result<u16, FaceSceneError> {
     width
         .checked_sub(padding * 2)
-        .and_then(|width| width.checked_sub(super::super::semantic_icons::inset(item.icon)))
+        .and_then(|width| {
+            width.checked_sub(super::super::semantic_icons::inset(
+                item.icon,
+                super::super::semantic_icons::size(scale),
+            ))
+        })
         .and_then(|width| {
             width.checked_sub(if item.checkbox.is_some() {
                 super::super::boolean_choice::INSET
@@ -133,7 +139,7 @@ fn measure_cluster<'a>(
             .width
             .checked_sub(u16::from(item.indent) * INDENT_STEP)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let width = text_width(item, width, metrics.padding)?;
+        let width = text_width(item, width, metrics.padding, metrics.scale)?;
         let mut remaining = item.text.as_str();
         while !remaining.is_empty() {
             let (end, height) = measure_prefix(
