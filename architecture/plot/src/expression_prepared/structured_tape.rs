@@ -1,11 +1,10 @@
 //! Linear constructor encoding; scalar/effect-free leaf semantics stay shared.
 use super::{append, child, constant_child, ChildEvaluator, PreparedChild};
+use crate::expression_prepared::fixed_projection;
 use crate::expression_prepared::{PreparedInput, ProgramView, Refusal};
 use crate::{PortableExpressionNode as Node, PortableExpressionOperation as Expression};
 use alloc::vec::Vec;
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
-#[path = "fixed_projection.rs"]
-mod fixed_projection;
 
 const MAX_OPERATIONS: usize = 512;
 const MAX_VALUES: usize = 128;
