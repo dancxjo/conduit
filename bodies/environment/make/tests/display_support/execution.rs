@@ -12,11 +12,11 @@ mod output_owner;
 #[test]
 fn checked_output_services_real_requests_and_exposes_refusal_without_pin_effects() {
     for mode in 0..3 {
-        run_output_mode(mode, |prepared, software| {
+        run_output_mode(mode, false, |prepared, software| {
             PreparedDisplayKernel::prepare(prepared.plan(), prepared.lowered(), software, 2)
                 .unwrap()
         });
-        run_output_mode(mode, |prepared, software| {
+        run_output_mode(mode, false, |prepared, software| {
             PreparedDisplayKernel::prepare_with_storage(
                 prepared.plan(),
                 prepared.lowered(),
@@ -37,6 +37,7 @@ fn checked_output_services_real_requests_and_exposes_refusal_without_pin_effects
 }
 pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
     mode: u8,
+    assigned_owner: bool,
     prepare: impl FnOnce(
         &PreparedDisplayOutput,
         &mut conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
@@ -54,7 +55,11 @@ pub(super) fn run_output_mode<S: k::ValueStorage, L: k::SignSink>(
     .unwrap();
     let mut execution = prepare(&prepared, &mut software);
     let edges = Rc::new(Cell::new(0));
-    let mut owner = output_owner::bind(&prepared, output_owner::Pins(edges.clone()));
+    let mut owner = if assigned_owner {
+        output_owner::bind_fore(&prepared, output_owner::Pins(edges.clone()))
+    } else {
+        output_owner::bind(&prepared, output_owner::Pins(edges.clone()))
+    };
     let mut encoder = PreparedDisplayPackets::prepare().unwrap();
     let registers = [0x7d, 0xff, 0x66, 0x71, 0, 0];
     let frame = encoder

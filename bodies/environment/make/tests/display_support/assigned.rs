@@ -8,7 +8,7 @@ use conduit_kernel as k;
 #[test]
 fn checked_output_runs_from_compact_fore_tables_without_inventing_a_line() {
     for mode in 0..3 {
-        run_output_mode(mode, |prepared, software| {
+        run_output_mode(mode, true, |prepared, software| {
             let plan = prepared.plan();
             let fragment = &plan.fragments[0];
             let generated = build::generate_fore_native_plan(

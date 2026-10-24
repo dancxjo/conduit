@@ -32,3 +32,11 @@ compact Fore records and the ordinary fixed kernel, using explicit CPU Root,
 pin and authority fixtures. This is distinct from MCU installation, physical
 display delivery and continuing Body/Mask/recorder behavior. Those remain the
 acceptance work of #6378 and the appliance goal; a decoder test cannot close it.
+
+Native effects explicitly opt in through `SelectedAssignedForeOperationPlan`.
+The shared selected-operation binder retains all current Host/Boot/Plan/Play,
+implementation, configuration, resource, grant and opaque-possession checks.
+The legacy binder still accepts only schema 6. The TM1637 owner provides
+`check_assigned_fore` and `bind_assigned_fore_retained`; neither missing pins
+nor an unissued capability table can transfer the initialized output owner or
+produce pin effects. Local Fore metadata is never a substitute for possession.
