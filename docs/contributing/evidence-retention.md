@@ -84,3 +84,11 @@ relabelled as current execution evidence.
 
 This removes about 494 MiB from the current source tree. Git history and proof
 commit identities are unchanged; old full clones retain historical blobs.
+
+The open-PR consolidation also archives 1,064 incoming historical files
+(76,748,334 bytes) rather than restoring them to source. Its separate
+[manifest](../audits/archived-pr-captures-20261024.json) records the original PR
+heads, paths and member checksums. The same release carries
+`absorbed-pr-captures.tar.gz`, SHA-256
+`bea45aff7825b3e90d5babb7ac02d8144f73741aec345d69b24e34f7fc4109ed`.
+The downloaded remote bundle and every member were verified before removal.

@@ -1,7 +1,0 @@
-
-running 2 tests
-test native_compositor::paint::contrast_tests::both_native_palettes_keep_text_and_control_contrast_on_actual_surfaces ... ok
-test native_compositor::paint::contrast_tests::forced_colors_and_missing_look_fallback_keep_the_same_contrast_contract ... ok
-
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1310 filtered out; finished in 0.00s
-

@@ -1,7 +1,7 @@
 # Crèche reference comparison (#6174)
 
 Latest color follow-up: Source 235297c3f now supplies a restrained navy Look
-family with actual wide/narrow QEMU captures. [Same-Face Phosphor/navy comparison](evidence/gui-look-6349-native-navy/README.md)
+family with actual wide/narrow QEMU captures. [Same-Face Phosphor/navy comparison](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 moves the palette toward the reference while preserving source facts. This does
 not complete metric/radius/depth or full-journey acceptance.
 
@@ -9,12 +9,12 @@ not complete metric/radius/depth or full-journey acceptance.
 The user-supplied reference is pinned at `c8fdc8949a426873364665abd98bf8dc34edf98c`.
 The retained typography comparison captures below are from clean Source `e34b12788`,
 with exact image/Root/PNG bindings and the later journey failure retained in
-[the evidence record](evidence/gui-look-6349-native-engineering/README.md).
+[the evidence record](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 This is a visual comparison and gap audit, not completed reference acceptance.
 
 | Requested reference | Actual native Editorial, 1280×800 |
 | --- | --- |
-| ![Requested editorial direction](https://raw.githubusercontent.com/dancxjo/conduit/c8fdc8949a426873364665abd98bf8dc34edf98c/task-6038/outputs/visual-reference-20261021/creche-editorial-reference.png) | ![Actual native Crèche](evidence/gui-look-6349-native-engineering/journey-frames/creche-editorial-compact.png) |
+| ![Requested editorial direction](https://raw.githubusercontent.com/dancxjo/conduit/c8fdc8949a426873364665abd98bf8dc34edf98c/task-6038/outputs/visual-reference-20261021/creche-editorial-reference.png) | [Archived image: Actual native Crèche](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) |
 
 | Reference detail | Current native result and remaining work |
 | --- | --- |
@@ -43,7 +43,7 @@ proof; they are not silently promoted to this Source.
 
 | Editorial title, paper palette | Engineering title, same paper palette |
 | --- | --- |
-| ![Actual native serif title](evidence/gui-look-6349-native-engineering/journey-frames/creche-editorial-compact.png) | ![Actual native Sans title](evidence/gui-look-6349-native-engineering/journey-frames/creche-engineering-editorial-compact.png) |
+| [Archived image: Actual native serif title](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) | [Archived image: Actual native Sans title](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) |
 
 These two captures share the exact Face, checked structure and paint tokens;
 Engineering changes the selected pinned title profile. The same native type
@@ -65,9 +65,9 @@ keeps fitting action/argument pairs together when help must continue.
 
 | Actual 640×480, Engineering at 200%/forced colors | Actual 1280×800, same scenario |
 | --- | --- |
-| ![Narrow native field](evidence/gui-look-6349-local-a11y/narrow/journey-frames/creche-a11y-engineering-forced-pointer.png) | ![Wide native field](evidence/gui-look-6349-local-a11y/wide/journey-frames/creche-a11y-engineering-forced-pointer.png) |
+| [Archived image: Narrow native field](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) | [Archived image: Wide native field](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) |
 
-[The exact receipts and capture scope](evidence/gui-look-6349-local-a11y/README.md)
+[The exact receipts and capture scope](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 supersede the earlier pending local-primary 200%/forced-color/narrow checks for
 this Source. They do not complete Details, every unavailable-control/resource
 fallback case, the restrained navy expression or the full Body journey. No
@@ -79,13 +79,13 @@ Source 8b9f820f9 now proves wide Details keyboard and continuation at 200% in
 two forced-color Looks, with explicit scene-mode observations. All sixteen
 typed controls and nineteen/twenty-three pages pass. This supersedes the pending
 wide Details traversal only; narrow Details and unavailable/resource cases remain.
-[Source-bound captures and proof boundaries](evidence/gui-look-6349-native-details/README.md).
+[Source-bound captures and proof boundaries](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 ## Narrow Details with shared icons
 
 Source 18f653cf4 now passes every narrow Details page and both keyboard directions
 at 200%/forced colors in separate Editorial and Engineering runs (56/71 pages).
 Shared explicit role/intent icons decorate subjects/actions without changing
-wording or contracts. [Exact captures and bounded scope](evidence/gui-look-6349-native-details/README.md#narrow-details-and-shared-icons--source-18f653cf4)
+wording or contracts. [Exact captures and bounded scope](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 supersede the pending narrow Details navigation scope only. Unavailable/resource
 cases, closer navy reference and full Body journey remain open.

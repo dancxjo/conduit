@@ -36,7 +36,7 @@ success. All distributed applications must carry the Lucide notice.
 | Browser owner participation (`handbook/owner-participation.mjs`) | Embedded Face inherits the shared renderer; Host/Body/Face headings, join, refresh, wardrobe inspection/policy, reading playback/status/stop, leave and evidence disclosures use fixed shared icons. Controls have 44px minima, visible focus, wrapping and narrow identity stacking. | Copy-public-key remains labeled text without a misleading substitute icon. These local operation mappings remain separate from owner-offered Face intents. Separate density/palette controls retain the acknowledged checked layout; typography selection remains preset-bound. |
 | Browser Patchbay shell (`patchbay-workbench/assets/index.html`) | Library, Inspect, Body, canvas navigation/zoom/fit controls | Cancel placement, linear-view toggle, exact facts disclosures and Plan/Play/route/Host/linear evidence headings now carry pinned symbols. The shell keeps its existing HTML size ceiling; inline geometry and CSS do not require image loading or a CDN. Drawer stacking, bottom docking and enlarged control reachability are now checked at 390px with 32px root text and forced colors. Narrow masthead/navigation now follows source order with measured non-overlapping bands. Product links and actual Fit activation pass at 390px / 32px forced-color text, with 320px captures as supporting evidence. Status, observation, run and workspace tools now occupy a measured footer outside the graph; the exact omitted-Cord notice is retained there. Twelve current HTML/furniture checks cover semantic identity, delivery loss, focus return and enlarged forced-color reachability. Broader authoring checks still fail and remain unaccepted; full zoom and dynamic graph/list controls need broader coverage. |
 | Browser Patchbay diagram and Gear palette | Existing accepted finite Gear icons; shell additions use pinned inline SVG | Nodes now lower canonical icon wire tokens through the shared pinned SVG path; Port and status/fault symbols use that same vocabulary. Source-bound documentary workbench checks retain keyboard Gear selection, pointer Port selection, unchanged Face under 390px/32px forced colors, and unknown-token text fallback. Direct Port selection now uses native buttons with complete names, server-derived pressed state and shared pointer/Enter/Space binding. Tab entry and exactly one request per keyboard activation pass at `ed9c3db6a`; 44 CSS-pixel row minima scale with the canvas. These captures do not establish a newly born live Body or native acceptance. |
-| Browser Handbook local content | Fixed local Wake/Lull, Patchbay, return, source download/inspection, Try, Body inspection, release/reset/retry and heading icons reuse the shared pinned renderer. Labels and native controls remain. | [Actual module recovery captures](evidence/gui-look-6349-handbook-chrome/README.md) pass wide and 390px/32px forced-color editing/download/disclosure, icon/target and no-overflow checks with an explicit opening refusal. This does not prove a live Handbook Body or actual storage failure. Dynamic status/refusal text remains explicit; broader successful-lifecycle coverage remains. |
+| Browser Handbook local content | Fixed local Wake/Lull, Patchbay, return, source download/inspection, Try, Body inspection, release/reset/retry and heading icons reuse the shared pinned renderer. Labels and native controls remain. | [Actual module recovery captures](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) pass wide and 390px/32px forced-color editing/download/disclosure, icon/target and no-overflow checks with an explicit opening refusal. This does not prove a live Handbook Body or actual storage failure. Dynamic status/refusal text remains explicit; broader successful-lifecycle coverage remains. |
 | Native Crèche (`native_face_scene/document`, checked Crèche recipe) | Body/Plot/collection/status headings, name/naming/search/suggestion/Birth intents; cream/navy or dark surfaces | Latest search/collection changes captured in normal-product QEMU at Source `dd5349718`, with chained fresh local Shows and unchanged Face revision. Checked card insets are retained at `6034b2c17`; 640×480 pointer/keyboard proof passes. Further hierarchy and native large-text/forced-color enactment remain. |
 | Native ordinary Face reader and Details | Source 18f653cf4 adds existing explicit role/intent icons to Details subject/action clauses; contracts/properties and unknown mappings retain text. Exact wording/read-only checks pass. | Actual 640×480 / 200% / forced-color Details completes all 56/71 pages and sixteen typed controls in separate bounded Look runs. Representative non-Crèche Body with the same Look, Details pointer and unavailable/resource fallback still need their own acceptance. |
 | Native graph (`native_face_scene/diagram.rs`) | Exact Gear/Port/Cord geometry and labels; graph navigation preserves identities | Gear cards now use the shared Gear symbol within measured title boxes. Decoration consumes only residual commands after all prior cards/Port rows/notices/Cords, with a coherent text-only fallback for dense/small pages. Port rows now use measured spare width and residual commands for Plug symbols, with coherent text-only fallback. Cards use available viewport width, and shared hit/Cord geometry follows. Normal QEMU at `a161ac474` shows 4 Gear/7 Port symbols and all 3 Cords; native enlarged/forced-color/fallback and broader cross-component Look acceptance remain. The subsequent compositor custody collector refuses an ambiguous embedded ELF, so full graphical-profile acceptance remains open. |
@@ -63,7 +63,7 @@ success. All distributed applications must carry the Lucide notice.
 
 Exact `todo/add@1` and `todo/remove@1` now use the shared pinned plus and trash
 icons in browser and native mappings. Existing complete/reopen icons remain.
-[Local renderer preview and proof boundaries](evidence/gui-look-6349-todo-icons/README.md)
+[Local renderer preview and proof boundaries](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 cover accessible names, exact invocation payloads and unknown-intent fallback.
 The native asset generator reproduces all 30 masks while preserving the old 28
 byte-for-byte; current-source native runtime/QEMU proof remains open.
@@ -76,7 +76,7 @@ Source/CPU preparation preserves the Face and complete action controls.
 Canonical browser action/field text now uses the Look body token (16px for
 Phosphor), rather than a hard-coded 13px override; supporting text consumes the
 small token. Argumentless actions retain one button label without a repeated
-heading. [Before/after captures and exact proof boundaries](evidence/gui-look-6349-default-fallback/README.md)
+heading. [Before/after captures and exact proof boundaries](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 include 390px forced colors and actual 32px control text.
 
 An independent browser Source probe still fails before admission: the browser
@@ -89,7 +89,7 @@ QEMU remain unproved. Renderer fixtures must not be relabeled as those receipts.
 Browser preparation/recovery now recognizes a separate reviewed Patchbay
 component Source and its Gear/Port/Cord recipe. All four Look resources are
 byte-identical to Todo's; default absence also reaches the configured consumer.
-[Source/custody checks and local captures](evidence/gui-look-6349-registered-patchbay/README.md)
+[Source/custody checks and local captures](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 cover a synthetic node/port Face through actual CPU Mask preparation, simulated
 Show acknowledgement and the real renderer, including 390px forced colors and
 32px controls. This is region grouping, not full graph-node canvas acceptance.
@@ -100,7 +100,7 @@ outside this evidence.
 
 ## Fresh native Source 92598cefd
 
-[Actual current Crèche and diagram captures](evidence/gui-look-6349-current-native/README.md)
+[Actual current Crèche and diagram captures](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 now bind 22 QMP PNG hashes to a fresh normal product Root/ISO. Four local Look
 swaps preserve the complete Face, component, recipe and layout. All current
 presets are typographically Editorial; legacy engineering filenames describe
@@ -126,17 +126,17 @@ The focused actual Source/offer test covers both Crèche structures and all four
 density/palette combinations: component, recipe, layout, renderer and paint
 remain identical across typography choices, while the Look and plan differ.
 Actual native switching and retained-draft submission pass the focused CPU test
-([logs](evidence/gui-look-6349-handbook-chrome/README.md)); [actual QEMU evidence](evidence/gui-look-6349-native-engineering/README.md) now
+([logs](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)); [actual QEMU evidence](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) now
 passes the ten-transition Look matrix at Source e34b12788. The full journey
 still fails during Plan with Application WorkExhausted; no later diagram/editor
 receipts follow for this Source. The source-specific older evidence above remains
 unchanged. The failed speed-optimized decoder experiment is retained separately
-in [its negative record](evidence/gui-look-6349-native-decoder-experiment/README.md)
+in [its negative record](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 and was reverted; it did not fix Application WorkExhausted.
 
 ## Fresh native Engineering Source e34b12788
 
-[The actual 1280×800 captures and scoped receipt](evidence/gui-look-6349-native-engineering/README.md)
+[The actual 1280×800 captures and scoped receipt](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 prove independent Editorial/Engineering typography, paper/dark palette and
 compact/spacious density on the complete unchanged Crèche Face and checked
 component/recipe/layout. F8 selects the already pinned Sans title; F6/F7 retain
@@ -168,7 +168,7 @@ refusal. Its QEMU execution/captures are pending; it does not attempt Body start
 or claim complete Details, all unavailable controls, physical or human proof.
 
 The initial actual accessibility run reached both 200%/forced-color Looks, then
-[refused a split interactive field](evidence/gui-look-6349-local-a11y-field-split/README.md).
+[refused a split interactive field](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The reusable mechanical paginator now keeps a fitting action/argument pair
 atomic when the full help/field subject is oversized; help retains ordinary
 continuation. No text/control reordering, clipping or limit increase is used.
@@ -177,7 +177,7 @@ QEMU validation of this pagination correction is pending.
 
 ## Native local accessibility Source 7fb598899
 
-[Both actual normal-product QEMU runs pass](evidence/gui-look-6349-local-a11y/README.md)
+[Both actual normal-product QEMU runs pass](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 at 640×480 and 1280×800. The same Root/ISO realizes both viewports. Each run
 commits the exact long Unicode name, applies 200% text/forced colors in two
 Looks, checks twelve primary controls in complete forward/reverse cycles with
@@ -199,7 +199,7 @@ work refusal has not been claimed fixed. Original parent acceptance remains.
 Source cb1efa2f5 adds measured local Crèche shortcut guidance for density, palette,
 typography, user text minimum and forced colors. The actual 1280×800 accessibility
 scenario passes with the full footer visible; geometry/priority CPU checks pass
-without new layout space or commands. [Exact source, captures and limits](evidence/gui-look-6349-native-look-guidance/README.md).
+without new layout space or commands. [Exact source, captures and limits](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 ## Large-text native icon rhythm
 
@@ -207,7 +207,7 @@ Source dfeb14b59 scales existing semantic row icons and their reserved gap with
 admitted text size across flat/Details, panel and mechanical layouts. 147 native
 scene cases and the eighteen-replacement Look/draft case pass. Actual wide and
 narrow QEMU primary accessibility scenarios pass at 200%/forced colors.
-[Before state, current captures and precise boundaries](evidence/gui-look-6349-native-icon-scale/README.md).
+[Before state, current captures and precise boundaries](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 ## Wide native Details correspondence
 
@@ -215,7 +215,7 @@ Source 8b9f820f9 passes actual 1280×800 Details at 200%/forced colors in both
 typography/density/palette combinations: sixteen available typed controls in
 complete forward/reverse cycles, all nineteen/twenty-three pages, explicit F2
 entry/return and unchanged complete Face/Show during navigation.
-[Exact receipts, initial inventory refusal and remaining narrow/fallback scope](evidence/gui-look-6349-native-details/README.md).
+[Exact receipts, initial inventory refusal and remaining narrow/fallback scope](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 ## Narrow Details icon and continuation follow-up
 
@@ -223,14 +223,14 @@ Source 18f653cf4 closes the scoped narrow Details keyboard/page gap using explic
 one-Look bounded requests: all sixteen controls, fifty-six Editorial and
 seventy-one Engineering pages, with existing role/intent icons and no wording
 loss. Raw record/serial/command/capture bounds are unchanged.
-[Actual captures, source identity, initial profile refusal and precise remaining scope](evidence/gui-look-6349-native-details/README.md#narrow-details-and-shared-icons--source-18f653cf4).
+[Actual captures, source identity, initial profile refusal and precise remaining scope](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 ## Navy Look family
 
 Source 235297c3f adds a native F11 navy family with independent density/type,
 canonical complete resource hashes and existing Host user constraints. Actual
 wide/narrow QEMU both pass all four combinations, large text/forced colors and
-restoration over unchanged complete Face/structure. [Actual same-Face palette comparison and proof limits](evidence/gui-look-6349-native-navy/README.md).
+restoration over unchanged complete Face/structure. [Actual same-Face palette comparison and proof limits](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 Browser navy selection, complete metric enactment and cross-component reuse
 retain their own open scope.
 
@@ -241,5 +241,5 @@ retain complete Face/graph identity under keyboard selection, including 390px/32
 forced-color checks. Real captures exposed pale Cord text over inline white
 badges; selected Look paint now drives badges, and SVG honors platform system
 colors with restoration. Nine pinned Chromium cases and package resource checks
-pass within unchanged caps. [Actual before/after, failure and scope](evidence/gui-look-6349-browser-navy/README.md).
+pass within unchanged caps. [Actual before/after, failure and scope](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 Owner component Navy transport/catalog and broader graph/accessibility remain open.

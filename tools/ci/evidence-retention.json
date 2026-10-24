@@ -238,7 +238,7 @@
     },
     "site/evidence/shared-speech-carrier/you-would.native": {
       "bytes": 1773627,
-      "sha256": "f292560ee142b30ab3dab1ad6ff5356829ee74bcea08437e9422862cde0ad735",
+      "sha256": "d71c3cbc4da0a7fd20783aec5e60ffea143ceba679159008fe91cf244df43c50",
       "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
     },
     "site/evidence/shared-speech-carrier/you-would.wav": {

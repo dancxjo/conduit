@@ -1,5 +1,10 @@
 # Resource-backed consuming analysis owner (#6072)
 
+Historical logs and receipt files named below are retained in the
+[checksummed consolidation archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz),
+under their original repository paths. These are original-source results, not
+acceptance of the consolidated tree.
+
 The opaque owner admits the exact pinned TRAIN bytes/read grant, retains complete
 rows and revisions, and refuses foreign identity, missing rows, stale commitment,
 unsupported segmentation and actual capacity without advancing the owner.

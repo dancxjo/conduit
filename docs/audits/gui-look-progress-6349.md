@@ -11,18 +11,18 @@ Patchbay and the reusable Face renderer use the same pinned Lucide corpus.
 
 ## Current screenshots and source evidence
 
-![Actual compact Editorial native Crèche](evidence/gui-look-6349-refinement/native-polished-creche-editorial.png)
+[Archived image: Actual compact Editorial native Crèche](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 
-[Native dark navy](evidence/gui-look-6349-refinement/native-polished-creche-default.png) ·
-[Native spacious Editorial](evidence/gui-look-6349-refinement/native-polished-creche-editorial-spacious.png) ·
-[Browser Editorial](evidence/gui-look-6349-refinement/workspace-current-editorial.png) ·
-[Browser Engineering](evidence/gui-look-6349-refinement/workspace-current-engineering.png) ·
-[Browser Phosphor](evidence/gui-look-6349-refinement/workspace-current-phosphor.png)
+[Native dark navy](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) ·
+[Native spacious Editorial](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) ·
+[Browser Editorial](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) ·
+[Browser Engineering](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) ·
+[Browser Phosphor](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 
-The [refinement evidence directory](evidence/gui-look-6349-refinement/) retains
+The [refinement evidence directory](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) retains
 raw native serial records, exact image/source/Host receipts, Show correspondence,
 browser resource hashes, interaction results and accessibility scan results.
-The [earlier native capture](evidence/gui-look-6349-native/) preserves the flat
+The [earlier native capture](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) preserves the flat
 baseline at native Source `749491a3c`; its later branch changes were browser-only.
 
 Native capture boots the normal x86_64 product, enters Crèche from zero-Body
@@ -126,7 +126,7 @@ ordinary-GUI coverage gaps and explicit fallbacks. Full resident-Mask Look
 selection, native pointer/large-text enactment and original parent acceptance
 remain outstanding.
 
-The [packaged evidence](evidence/gui-look-6349-packaged/) now retains the wide
+The [packaged evidence](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz) now retains the wide
 QEMU captures, complete serial prefixes, source/Show receipts, final browser
 captures and checks, and the actual 640×480 control proof at `fefbc1402`. The
 narrow proof passes with 12 reachable controls, forward/reverse traversal, long
@@ -151,7 +151,7 @@ turn the root into an enclosing card. Existing unstructured/configured rows
 retain zero additional region inset. The surface check now requires the full
 checked inset around every first-page card row, alongside the unchanged
 four-selected-Plots and 48-command requirements. Fresh normal-product QEMU captures at `6034b2c17` are retained in
-[evidence](evidence/gui-look-6349-inset/). All 138 native scene checks pass
+[evidence](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz). All 138 native scene checks pass
 (one opt-in ignored); the current 640×480 control proof passes. All 13 stable
 long-name focus/hit/page samples equal the earlier `fefbc1402` proof. Compact
 retains all four Plots at 48/48 commands; spacious stays at 25/48. Face revision
@@ -173,7 +173,7 @@ its two original Cords, and a saturated six-card/24-Port graph that fills the
 fan-graph, ambiguity and large-graph checks pass. At Source `d2e7caeb2`, all 140 native scene checks pass (one opt-in ignored).
 The actual normal-product journey reaches Patchbay, Gear Details, diagram return
 and Stop on the same Body. Its four Gear symbols and original three Cords are
-visible in [27 source-bound captures and receipts](evidence/gui-look-6349-graph/).
+visible in [27 source-bound captures and receipts](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The 48-command bound is unchanged.
 
 The supported graphical-profile command also starts headless asset-closure
@@ -220,7 +220,7 @@ revision stay unchanged; grouped recipe and Body stay fixed; fresh Shows are
 acknowledged. Retired-Show interaction refuses with `StaleShow`. Forced colors
 with a 200% text constraint at 390px has no document horizontal overflow.
 The driver exits zero with no browser errors. See
-[evidence](evidence/gui-look-6349-owner-controls/README.md). This establishes
+[evidence](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz). This establishes
 local Linux-owner/browser selection only; native, physical, human and broad
 cross-component acceptance remain outstanding. Private disposable owner state
 is excluded from evidence.
@@ -237,7 +237,7 @@ than borrowing an unrelated glyph. The 140 registered browser checks and owner
 participation/collection unit checks pass; actual owner captures are separate.
 
 Real owner rerun at `589a38bcb` passes with all visible buttons at least 44px
-tall. [Owner chrome captures and receipts](evidence/gui-look-6349-owner-chrome/README.md)
+tall. [Owner chrome captures and receipts](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 include wide and narrow forced-color wardrobe/reading panels. Audio playback is
 not exercised. Reading's initial join instruction remains stale after joining;
 wardrobe text can describe the last inspected revision rather than current Show.
@@ -268,7 +268,7 @@ and reflows cards against their actual container width. Three furniture tests
 pass, including new right/bottom bounds and narrow forced-color containment;
 four authoring/render checks and nine owner checks pass. The documentary
 Patchbay typed linear action succeeds, with no browser errors or document
-overflow. [Captures and source-specific receipts](evidence/gui-look-6349-inspection/README.md)
+overflow. [Captures and source-specific receipts](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 retain the initial panel-closed capture failure and final positive results.
 This is not canonical owner Patchbay Look selection or native/CI acceptance.
 
@@ -288,7 +288,7 @@ avoiding sticky-header occlusion. Four furniture checks pass, including all
 three controls' viewport bounds, dimensions and pointer reachability at 390px,
 32px root text and forced colors; scrolling exposes an evidence heading, and
 closing restores the underlying tools. The documentary typed linear action
-continues to succeed. [Positive and negative evidence](evidence/gui-look-6349-inspector-accessibility/README.md).
+continues to succeed. [Positive and negative evidence](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 This focused drawer check is not full zoom or whole-shell accessibility proof.
 The enlarged capture shows masthead/navigation crowding outside the drawer;
@@ -304,7 +304,7 @@ exposed flex shrinking that clipped canvas controls; groups now retain content
 height. Five furniture checks pass, including Fit at 390px / 32px text / forced
 colors. Captures at 1440px, 390px ordinary text and 390/320px enlarged forced-color
 text retain initial and explicit Fit states, without document overflow, header
-band overlap or browser errors. [Evidence and failures](evidence/gui-look-6349-masthead/README.md).
+band overlap or browser errors. [Evidence and failures](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 Full browser zoom, cross-component Look and native acceptance remain separate.
 
 ## Ordinary Workspace activity strip
@@ -316,7 +316,7 @@ catalog and admits all 92 resources. A real browser Body is birthed and awakened
 Memory Lantern receives authoritative Unicode text. Three local chrome Looks,
 three keyboard inspection/focus-return round trips and 390px / 32px forced-color
 text retain the same Body/Plan/active Play and editor value. Both existing
-Birth/Wake/reload and narrow listening journey checks pass. [Captures and receipts](evidence/gui-look-6349-workspace-activity/README.md).
+Birth/Wake/reload and narrow listening journey checks pass. [Captures and receipts](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 These are chrome preferences, not canonical resident Mask Look selection. Editor
 font/surface integration and cross-renderer acceptance remain broader Look work.
 
@@ -338,7 +338,7 @@ scene checks pass: 144, with one opt-in ignored.
 
 The fresh normal QEMU journey completes at that Source with 27 verified PNGs.
 The visible graph has 4 Gear/7 Port symbols, 3/3 Cords shown and zero omitted.
-[Source-bound captures, canonical Face and raw archives](evidence/gui-look-6349-native-ports/README.md)
+[Source-bound captures, canonical Face and raw archives](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 retain the positive journey and a material negative result: the subsequent
 compositor-custody collector refuses `embedded compositor ELF: Ambiguous`, so
 the full graphical-profile command exits 1. No headless asset tail starts and
@@ -365,7 +365,7 @@ A fresh installed Linux owner/browser run adds three real Todo items, then
 acknowledges all four selections with Editorial policy and computed serif intent.
 The component reference, recipe, layout, full canonical Face/revision and Body
 stay fixed. Retired-Show refusal and 390px / 200% forced-color checks pass, without
-browser errors. [Screenshots, canonical reports and regression failure](evidence/gui-look-6349-shared-policy/README.md).
+browser errors. [Screenshots, canonical reports and regression failure](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 This is a correction atop accepted #5627/#5628/#5629, not closure of #5366:
 the owner selection API remains Todo-specific and checked Patchbay reuse is
 still missing. No new current-source native QEMU, full accessibility or CI
@@ -378,7 +378,7 @@ Source `4afc3a901` fixes dismissal when Body inspection coexists with Library:
 Escape now closes the focused surface and returns focus to its own launcher.
 The actual UI regression fails on the preceding executable; all six furniture
 checks pass after a fresh build (one Chromium worker, no retries). Enlarged,
-narrow and forced-color checks remain included. [Evidence and screenshot](evidence/gui-look-6349-escape-focus/README.md).
+narrow and forced-color checks remain included. [Evidence and screenshot](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 This is documentary-fixture browser accessibility evidence. Checked graph Look
 selection and whole-GUI/native acceptance remain incomplete. An audited cleanup
 reclaimed 3,006,279,680 bytes of inactive task-owned incremental cache, preserving
@@ -392,7 +392,7 @@ scope clears correctly, action identity/name remains intact, and the graph
 viewport now reserves measured navigation height at desktop widths. Two scoped
 Look checks, eight wire checks, one server check and seven furniture checks pass;
 a focused stronger Fit check additionally proves all five nodes are in bounds.
-[Current screenshot and evidence](evidence/gui-look-6349-css-intent/README.md).
+[Current screenshot and evidence](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 Canonical Face remains equal across the actual presentation navigation. This
 is documentary-fixture browser proof; checked graph component selection,
 current native enactment and original parent acceptance remain open.
@@ -405,7 +405,7 @@ The omitted-Cord notice uses the same React tree with an explicit footer target,
 retaining exact wording/status and a fallback for other Flow consumers. Desktop
 navigation uses available width. All 12 HTML/furniture checks pass on a fresh
 local executable; exact semantic identities and interactions remain checked.
-[Current wide/narrow screenshots and receipts](evidence/gui-look-6349-status-footer/README.md).
+[Current wide/narrow screenshots and receipts](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The broader authoring run with an explicit existing sealed runtime still fails
 both scenarios (zero initial Gear nodes; selection inside hidden inspector).
 Those failures are retained without attributing a cause or claiming acceptance.
@@ -420,7 +420,7 @@ named layout. Pending workspace actions now serialize with aria-busy and exact
 availability restoration. Thirteen focused browser checks, three contracts and
 the full simple author/save/Birth/Wake/Plan/Play scenario pass. The unbodied
 workspace variant preserves exact Face and Source through both layouts and
-reload. [Screenshot, root-cause evidence and proof boundaries](evidence/gui-look-6349-authoring/README.md).
+reload. [Screenshot, root-cause evidence and proof boundaries](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The complex nine-Gear lifecycle variant remains negative at Play delivery with
 ERR_EMPTY_RESPONSE; the full authoring suite is not accepted. Native and checked
 cross-component Look acceptance are still open. Draft checkpoints continue to
@@ -436,7 +436,7 @@ the shared stylesheet now respects the actual root/user minimum. The 390px
 forced-color capture verifies 32px input text, fitted controls and reachable Apply.
 The sticky inspector padding strip is covered. Startup fitting no longer races
 saved viewport restoration; that existing check passes three times in succession.
-[Captures, positive checks and retained failures](evidence/gui-look-6349-fields/README.md).
+[Captures, positive checks and retained failures](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The final 15-test GUI run has 14 passes and the still-open complex Play delivery
 failure. Two scoped Look checks, seven contracts/vocabulary checks and two exact
 package checks pass separately. Native, cross-component Look and full parent
@@ -450,7 +450,7 @@ Quantity Source. The server exits 101 on `ready math output: OutputBlocked`; Ope
 Birth, Wake and Plan succeed against actual current Face actions. Focused runtime
 prerequisite [#6387](https://github.com/dancxjo/conduit/issues/6387) retains both
 checked queue-bound and temporary completion-pressure acceptance.
-[Minimal Source, exact requests and negative receipts](evidence/gui-look-6349-quantity-play/README.md).
+[Minimal Source, exact requests and negative receipts](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The browser proof now attaches server stderr on failure. No production runtime
 fix, full-suite pass or parent completion is claimed.
 
@@ -461,7 +461,7 @@ while composing browser text preferences with admitted minimum text scaling.
 The regression first failed with an unchanged 13px button; final checks prove
 26px at a 200% browser root and 52px with the additional 200% admitted scale,
 without horizontal overflow at 390px. All 141 owner renderer/reachability/Look
-checks pass. [Source-bound receipt and 400% forced-color capture](evidence/gui-look-6349-owner-root-text/README.md).
+checks pass. [Source-bound receipt and 400% forced-color capture](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 This is browser renderer evidence; full native and cross-component acceptance
 remain open.
 
@@ -474,7 +474,7 @@ Workspace picker/review fonts and heading clamps now honor root text preference.
 Actual Birth/Wake and Unicode edits preserve editor/revision/selection and
 Body/Plan/Play across three chrome preferences. Narrow 390px/32px checks pass,
 including another authoritative edit; five editor contract tests and Look wire
-checks pass. [Screenshots and exact asset/runtime provenance](evidence/gui-look-6349-writing/README.md).
+checks pass. [Screenshots and exact asset/runtime provenance](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 This is not canonical cross-component Look selection or current native acceptance.
 
 ## Dynamic graph Lucide geometry
@@ -484,7 +484,7 @@ wire-token map, with Port/status decoration and original text fallback for unkno
 tokens. Fourteen graph/HTML/furniture and eleven vocabulary/Look checks pass; the
 final two-check proof changes Gear selection by keyboard and Port selection by
 pointer, preserving exact server navigation and the Face through narrow reflow.
-[Source-bound captures, negative transition evidence and limits](evidence/gui-look-6349-dynamic-icons/README.md).
+[Source-bound captures, negative transition evidence and limits](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The workbench capture is documentary-fixture browser evidence. Direct keyboard
 Port selection, canonical cross-component Looks and native acceptance remain open.
 
@@ -494,7 +494,7 @@ The direct keyboard Port gap is repaired: labeled native buttons share the exact
 selection handler with pointer input, retain separate connection handles and
 expose server-derived pressed state. Tab entry, Enter/Space and exactly one
 request per activation are verified. All fourteen graph/HTML/inspection checks
-pass. [Current captures, source and proof boundaries](evidence/gui-look-6349-port-keyboard/README.md).
+pass. [Current captures, source and proof boundaries](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 Canvas zoom scales target geometry; 44 CSS-pixel minima are not a claim of 44
 physical pixels at every Fit scale. Native, Quantity runtime and canonical
 cross-component Look acceptance remain open.
@@ -510,13 +510,13 @@ Both Sign properties and transcript lines now continue losslessly within the
 existing Face field bound; reviewed palette/offer Fore construction agrees.
 The Body overview header keeps its symbol and no longer claims No Body when the
 Face supplies an existing Body.
-[Actual live screenshot, exact Face receipt, hashes, positive and negative logs](evidence/gui-look-6349-live-quantity/README.md).
+[Actual live screenshot, exact Face receipt, hashes, positive and negative logs](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 This proves a combined local source, not either isolated PR head, CI/native/
 publication acceptance or canonical cross-component Look completion.
 
 ## Typed application Look options
 
-[Current screenshots and receipt](evidence/gui-look-6349-typed-options/README.md)
+[Current screenshots and receipt](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz)
 show actual Patchbay rendering of complete Editorial, Engineering and Phosphor
 `LookInfo` resources through the existing finite stylesheet/package path.
 A keyboard picker changes appearance while retaining the exact Face and graph.
@@ -563,7 +563,7 @@ codec. All eight actual Todo Look/recipe combinations round-trip with equal
 Plans and verified fingerprints at 13,367–13,803 bytes. Twenty Face/Mask checks
 pass, including malformed streams, forged lengths/identities, expanded capacity
 and negative legacy JSON. All original carrier and route limits remain.
-[Protocol details and local logs](evidence/gui-look-6349-plan-transport/README.md).
+[Protocol details and local logs](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The preceding installed-owner refusal remains the live evidence until rebuilt
 owner/browser execution proves this source; native execution is also outstanding.
 
@@ -576,7 +576,7 @@ and 390px forced-color/enlarged-text presentation. Exact owner Face, browser
 subjects/actions/relationships and grouped recipe are retained. Stale Show
 interaction refuses. The optimized runtime is 16,009,320 bytes; all carrier and
 delivery limits remain unchanged.
-[Viewport/element captures, artifact hashes, exact identities and boundaries](evidence/gui-look-6349-live-complete-look/README.md).
+[Viewport/element captures, artifact hashes, exact identities and boundaries](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 The added fresh-action check exposed another gap: the submitted item appears in
 the checkpoint, but its following Face refresh loses the Line with an expired
@@ -594,7 +594,7 @@ Mask Plan on the same compiled source/root, current browser offer and exact
 carrier Lines; changed inputs replan normally. Fresh Face/route/Show admission
 and the two-second lease stay unchanged. The focused CLI owner test passes,
 including negative source/root/Host/Line/seal cases. Rebuilt live proof is pending.
-[Local contract and pre-change timing](evidence/gui-look-6349-retained-plan/README.md).
+[Local contract and pre-change timing](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 
 ## Plan reuse does not resolve action/renewal blocking
@@ -607,7 +607,7 @@ removed from delivery code; its contract and timing evidence remain in history.
 The synchronous carrier call waits for the exact durable checkpoint/terminal
 receipt and stops reading renewals while it waits. One bounded pending owner
 operation with continued lease processing is the next requirement; acknowledgement
-must still wait for the actual receipt. [Comparison and retained evidence](evidence/gui-look-6349-retained-plan/README.md).
+must still wait for the actual receipt. [Comparison and retained evidence](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 
 
 ## Pending owner action preserves presence processing
@@ -617,7 +617,7 @@ credential renewals while waiting for its exact result. Global worker permits
 remain held through disconnect; one bounded follow-up frame may defer. The old
 lease, frame and IPC deadlines remain. Thirteen surrounding participant checks,
 five final focused concurrency/transport checks and strict CLI Clippy pass.
-[Bounds, exact-result checks and partial-frame test](evidence/gui-look-6349-pending-action/README.md).
+[Bounds, exact-result checks and partial-frame test](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 A rebuilt real encounter with four consecutive post-Look actions is pending;
 no successful live receipt is inferred from these unit checks.
 
@@ -632,7 +632,7 @@ and carries the complete selected Look once for rendering. Subject/action/
 relationship data and recipe/source provenance remain. A twenty-row/forty-action
 Unicode fixture fits all four Looks at 49,494–49,828 bytes; strict runtime Clippy,
 71 bridge and 19 SDK checks pass. The arena and carrier bounds are unchanged.
-[Contract, logs and retained prior failure](evidence/gui-look-6349-view-projection/README.md).
+[Contract, logs and retained prior failure](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 The rebuilt complete live sequence is pending.
 
 ## Live continuing actions after complete Look replacement
@@ -644,6 +644,6 @@ every pending durable action; there are no lease expirations or browser errors.
 The 1.43–1.48 second action requests no longer prevent those renewals. The earlier
 lease and ABI-output failures remain source-bound negative evidence. The new
 v2 view and 16,010,315-byte runtime stay within all existing output/delivery bounds.
-[Current viewport captures, immutable baseline, action/Show receipts, timings and hashes](evidence/gui-look-6349-live-pending-action/README.md).
+[Current viewport captures, immutable baseline, action/Show receipts, timings and hashes](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/absorbed-pr-captures.tar.gz).
 Native/current-source QEMU, checked Patchbay component reuse and the remaining
 surface/accessibility acceptance are still open.

@@ -1,7 +1,0 @@
-# Patchbay inspector accessibility
-
-Source `7dda0f703`: the real workbench server with an explicitly documentary fixture. Browser runtime bytes remain from `774b753b4`, with unchanged runtime source. The driver exits zero after actual pointer actions and wide/narrow forced-color screenshots. This is not an installed-owner, native, physical, human or CI proof.
-
-The initial hit-test fails because floating Workspace tools intercept pointer events over the bottom inspector. Drawers now sit above those tools; their close action restores the underlying controls. Furniture and status action buttons have a 44px minimum and larger text/padding. All three inspector buttons remain within the 390px viewport, at least 44px tall and pointer-reachable with root text set to 32px and forced colors active. Narrow wrapped furniture scrolls normally so it cannot cover evidence. The same test opens deep inspection, exposes an evidence heading by scrolling and checks its actual hit target before closing the drawer.
-
-Four furniture checks pass with one worker and zero retries. The original failing hit-test log and an intermediate sticky-header screenshot are retained as negative evidence. The final screenshot uses ordinary native scrolling and docking controls, without changing semantic content or action contracts. Root text enlargement here is a focused inspector check, not full browser zoom or whole-shell accessibility acceptance. The large-text screenshot also exposes remaining masthead/navigation crowding elsewhere in the shell; those remain concrete follow-up work.
