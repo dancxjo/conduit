@@ -1,0 +1,24 @@
+{
+  "source": "cf42934dcfeadd19d645c4317e9aa71092c4865c",
+  "tree": "bd8ba937854ff37f4a6ddeb17bb3fc2053f775dd",
+  "objects": {
+    "bodies/environment/make": "26451b38d9490b535c49191d86ff9ed76357a447",
+    "bodies/environment/runtime": "bd18ed0e910433bdf84e15cb826ed5bc43886e2b",
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/plot": "32d42fbdf9d43cf113d4f7fada9947125413a38d",
+    "architecture/kernel": "a83e2c2c96b271dc1634cf112ac23b2d819c3469",
+    "architecture/assigned-plan": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+    "architecture/plan-lowering": "f456be36830173f985e0186b31100b900cd00bb7",
+    "architecture/planner": "480725770dde4378ff739368f1cc4d7fc8859ae8",
+    "tools/xtask/src/commands/environment_output.rs": "68b5b4b436f735c1c0904a0ed463f3548362d5aa",
+    "tools/xtask/src/commands/dht11_probe.rs": "1cad430326e4fcf47c8acddaa2dda1aec89fa062"
+  },
+  "root_inputs": {
+    "Cargo.toml": "d2d5273953e62bc058c9942986d6b893d89adf9b",
+    "Cargo.lock": "285364ea28d2408d4c77288c81b3baa8c6ca0f72",
+    "rust-toolchain.toml": "906b1d8542b6f94b5238046e198e9c2672b6c8e0",
+    ".cargo/config.toml": "f78c2a86adf680cfd4100b80183bd01677472aeb"
+  },
+  "actual_tests": 8,
+  "actual_executable_hashes": 141
+}

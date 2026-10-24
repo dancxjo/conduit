@@ -1,0 +1,19 @@
+{
+  "at": 1792849974.261437,
+  "source": "cf42934dcfeadd19d645c4317e9aa71092c4865c",
+  "parent": "928ea9f6d2b2a822815932f7049776a434f5d1ee",
+  "changed_source": {
+    "bodies/environment/make/src/display_output.rs": {
+      "blob": "7f3fdf2ef0d206cef9b716407b1ba5a5e15d6d41",
+      "sha256": "88071efdf01325290394b0a4056d3aeec04f6dc6787c49e3a50c625c79b926a4"
+    },
+    "bodies/environment/make/tests/display_output.rs": {
+      "blob": "d170f8e6c93feb11b3512f288e454336b25f18ec",
+      "sha256": "57e7d6dd24301d38041ac5bc8c811df244f622ea0a679da7ffc22f06585da338"
+    }
+  },
+  "review": "No actionable source finding. Value bounds derive from checked Native Type canonical extents plus Empty, keyed by profile Kind. Every expanded gear input/output participates; unknown and abnormal kinds and native-profile excess refuse; source construction verifies derivation and prepared plan retains its own bound. Current651-byte ceiling is per canonical value, not aggregate simultaneous slots or firmware RAM admission. Public source graph mutations require fresh derivation on prepare.",
+  "ci_coverage": "Make is an external workspace. Earlier root-workspace route audit remains applicable: pipeline admission.mjs object unchanged from2f849; generic Candidate does not alone establish these owning tests. Exact supported display-output execution is running separately.",
+  "same_admission_object": true,
+  "proof_limits": "Source review is not execution, Candidate/Integration/physical output or full6295/6378 acceptance. Test receipt will retain actual command/exits/counts."
+}
