@@ -1859,6 +1859,7 @@ dependencies = [
  "conduit-plot",
  "conduit-plot-library",
  "conduit-protected-line",
+ "conduit-resource-snapshot",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -2411,6 +2412,13 @@ dependencies = [
  "conduit-wire",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]
