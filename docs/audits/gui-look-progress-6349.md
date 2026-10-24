@@ -213,3 +213,14 @@ file is now registered. Live UI inspection also exposed select option text in
 wrapped-label names; explicit native label/for associations fix that. The new
 forced-color check exposed undefined-theme focus styling, now backed by native
 system colors. Negative setup/test results are retained beside final results.
+
+Real installed-owner proof at `89c463ea2` now passes all four density/palette
+combinations after three real Todo adds. The canonical Face and exact decimal
+revision stay unchanged; grouped recipe and Body stay fixed; fresh Shows are
+acknowledged. Retired-Show interaction refuses with `StaleShow`. Forced colors
+with a 200% text constraint at 390px has no document horizontal overflow.
+The driver exits zero with no browser errors. See
+[evidence](evidence/gui-look-6349-owner-controls/README.md). This establishes
+local Linux-owner/browser selection only; native, physical, human and broad
+cross-component acceptance remain outstanding. Private disposable owner state
+is excluded from evidence.
