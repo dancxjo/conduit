@@ -1,29 +1,16 @@
 //! Execute the authored TM1637 packet expression; native GPIO sees only its
 //! finite packet bytes. No native command synthesis, I/O, admission or scheduler.
 use conduit_core::{
-    validate_canonical_structured_value as validate, InfoBool, PreparedStructuredComposer as C,
-    StructuredInfoRefusal as R, StructuredInfoType as T, StructuredInfoTypeShape as S,
+    validate_canonical_structured_value as validate, PreparedStructuredComposer as C,
+    StructuredInfoRefusal as R, StructuredInfoTypeShape as S,
 };
 use conduit_plot::{
     PortableExpressionEvaluationRefusal, PortableExpressionProgram,
     PortableExpressionProgramRefusal, PreparedPortableExpressionEvaluator,
 };
-/// Check a local Fore value against the independently linked Source type.
-/// This grants no caller authority, queues no input and performs no effect.
-/// Brightness above seven remains typed input for the Plot's refusal branch.
-/// Canonical validation checks primitive payloads as well as the envelope.
-pub fn validate_display_frame(
-    encoded: &[u8],
-) -> Result<conduit_core::ValidatedCanonicalStructuredValue<'_>, R> {
-    if encoded.len() > 1024 {
-        return Err(R::CanonicalEncodingTooLarge);
-    }
-    let value = validate(encoded)?;
-    if value.type_bytes() != include_bytes!(concat!(env!("OUT_DIR"), "/tm1637-frame.type")) {
-        return Err(R::WrongType);
-    }
-    Ok(value)
-}
+#[path = "display_frame.rs"]
+mod frame;
+pub use frame::{validate_display_frame, PreparedDisplayFrame};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DisplayPacketRefusal {
@@ -55,11 +42,7 @@ impl SourceDisplayPackets {
 }
 pub struct PreparedDisplayPackets {
     evaluator: PreparedPortableExpressionEvaluator,
-    octets: [C; 6],
-    registers: C,
-    brightness: C,
-    enabled: C,
-    frame: C,
+    frame: PreparedDisplayFrame,
     packet_output: C,
 }
 impl PreparedDisplayPackets {
@@ -77,19 +60,9 @@ impl PreparedDisplayPackets {
             .find(|case| case.tag() == "packets")
             .ok_or(R::WrongType)?
             .payload_type();
-        let input = &program.input_type;
-        let registers = field(input, "registers")?;
-        let S::Collection { element, length: 6 } = registers.shape() else {
-            return Err(R::WrongType.into());
-        };
-        let octet = || C::new(element, 64);
         Ok(Self {
             evaluator: PreparedPortableExpressionEvaluator::new(&program)?,
-            octets: [octet()?, octet()?, octet()?, octet()?, octet()?, octet()?],
-            registers: C::new(registers, 512)?,
-            brightness: C::new(field(input, "brightness")?, 64)?,
-            enabled: C::new(field(input, "enabled")?, 64)?,
-            frame: C::new(input, 1024)?,
+            frame: PreparedDisplayFrame::prepare()?,
             packet_output: C::new(packet_type, 1024)?,
         })
     }
@@ -101,8 +74,8 @@ impl PreparedDisplayPackets {
         brightness: u8,
         enabled: bool,
     ) -> Result<&[u8], DisplayPacketRefusal> {
-        self.encode_frame(registers, brightness, enabled)?;
-        let result = validate(self.evaluator.evaluate(self.frame.encoded())?)?;
+        let frame = self.frame.encode(registers, brightness, enabled)?;
+        let result = validate(self.evaluator.evaluate(frame)?)?;
         if result.variant_payload("invalid-brightness")?.is_some() {
             return Err(DisplayPacketRefusal::InvalidBrightness);
         }
@@ -114,34 +87,16 @@ impl PreparedDisplayPackets {
         self.packet_output.record(&[packets])?;
         Ok(self.packet_output.encoded())
     }
-    /// Canonical Frame Fore input for the ordinary checked output Plot.
-    /// Invalid brightness remains a representable input: the authored encoder
-    /// routes it to the refusal Fore instead of producing an electrical packet.
+    /// Compatibility entrance; Frame-only producers retain PreparedDisplayFrame.
     pub fn encode_frame(
         &mut self,
         registers: [u8; 6],
         brightness: u8,
         enabled: bool,
     ) -> Result<&[u8], DisplayPacketRefusal> {
-        for (encoder, value) in self.octets.iter_mut().zip(registers) {
-            encoder.leaf(&[value])?;
-        }
-        self.registers.collection(&[
-            validate(self.octets[0].encoded())?,
-            validate(self.octets[1].encoded())?,
-            validate(self.octets[2].encoded())?,
-            validate(self.octets[3].encoded())?,
-            validate(self.octets[4].encoded())?,
-            validate(self.octets[5].encoded())?,
-        ])?;
-        self.brightness.leaf(&[brightness])?;
-        self.enabled.leaf(&InfoBool::new(enabled).encode())?;
-        self.frame.record(&[
-            validate(self.brightness.encoded())?,
-            validate(self.enabled.encoded())?,
-            validate(self.registers.encoded())?,
-        ])?;
-        Ok(self.frame.encoded())
+        self.frame
+            .encode(registers, brightness, enabled)
+            .map_err(Into::into)
     }
     pub fn encode(
         &mut self,
@@ -188,14 +143,4 @@ impl PreparedDisplayPackets {
         }
         Ok(batch)
     }
-}
-fn field<'a>(ty: &'a T, name: &str) -> Result<&'a T, R> {
-    let S::Record { fields, .. } = ty.shape() else {
-        return Err(R::WrongType);
-    };
-    fields
-        .iter()
-        .find(|f| f.name() == name)
-        .map(|f| f.value_type())
-        .ok_or(R::WrongType)
 }
