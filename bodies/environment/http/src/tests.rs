@@ -60,6 +60,8 @@ fn http_mask_consumes_exact_face_revisions_without_allocating() {
     let current_json: serde_json::Value = serde_json::from_str(body(&current)).unwrap();
     assert_eq!(current_json["temperature_f"], 66.2);
     assert_eq!(current_json["relative_humidity_percent"], 55);
+    assert_eq!(current_json["age_basis"], "sampled");
+    assert!(current_json["observed_at_boot_ms"].is_null());
     assert_eq!(current_json["fresh"], true);
     assert_eq!(current_json["current"], true);
     assert_eq!(current_json["ap_ready"], true);
@@ -256,4 +258,67 @@ fn external_face_mask_keeps_environment_namespace_and_refuses_unsealed_input() {
         face_response(&face, true, 0, true),
         Err(conduit_seven_segment_mask::FaceProjectionRefusal::InvalidFace)
     ));
+}
+
+#[test]
+fn prepared_http_show_owns_only_finite_presentation_and_preserves_observed_time() {
+    let show = {
+        let mut owner = PreparedObservationFace::prepare_observed(basis(), 2, 30000).unwrap();
+        owner
+            .publish(
+                Some((
+                    Quantity::parse_plot_literal("19°C").unwrap(),
+                    Quantity::parse_plot_literal("55%").unwrap(),
+                )),
+                SensorStatus::Available,
+                1000,
+            )
+            .unwrap();
+        let before = owner.current().clone();
+        let (show, memory) = allocation_probe::observe(|| {
+            let show = PreparedHttpShow::prepare(owner.current()).unwrap();
+            assert_eq!(show.face_identity(), before.identity.as_str());
+            assert_eq!(show.face_revision(), before.revision);
+            assert_eq!(owner.current(), &before);
+            show
+        });
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+        show
+    }; // The immutable Show can leave this borrow; it grants no live route.
+    let ((first, second), memory) = allocation_probe::observe(|| {
+        (
+            show.response(true, 1200, true),
+            show.response(true, 1600, true),
+        )
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let first: serde_json::Value = serde_json::from_str(body(&first)).unwrap();
+    let second: serde_json::Value = serde_json::from_str(body(&second)).unwrap();
+    assert_eq!(first["face_identity"], second["face_identity"]);
+    assert_eq!(first["face_revision"], second["face_revision"]);
+    assert_eq!(first["temperature_f"], 66.2);
+    assert!(first["sampled_at_boot_ms"].is_null());
+    assert_eq!(first["observed_at_boot_ms"], 1000);
+    assert_eq!(first["age_basis"], "observed");
+    assert_eq!(first["age_ms"], 200);
+    assert_eq!(second["age_ms"], 600);
+    assert_eq!(show.time_coordinate(), HttpShowTime::ObservedAtBootMs(1000));
+    std::println!(
+        "prepared_http_show_cpu inline_bytes={} heap_bytes=0 pointer_bits={}",
+        core::mem::size_of::<PreparedHttpShow>(),
+        usize::BITS
+    );
+}
+
+#[test]
+fn warming_show_does_not_invent_a_zero_acquisition_or_observation_coordinate() {
+    let owner = PreparedObservationFace::prepare(basis(), 2, 30000).unwrap();
+    let show = PreparedHttpShow::prepare(owner.current()).unwrap();
+    assert_eq!(show.time_coordinate(), HttpShowTime::Unavailable);
+    let response = show.response(true, 1000, true);
+    let json: serde_json::Value = serde_json::from_str(body(&response)).unwrap();
+    assert!(json["sampled_at_boot_ms"].is_null());
+    assert!(json["observed_at_boot_ms"].is_null());
+    assert!(json["age_ms"].is_null());
+    assert_eq!(json["age_basis"], "unavailable");
 }

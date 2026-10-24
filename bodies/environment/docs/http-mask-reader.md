@@ -26,3 +26,17 @@ request parser/partial-I/O fixture, with zero recurring Rust allocations. They
 also check bootstrap refusal, missing reader custody, unrelated subject properties,
 unsealed input and immutable Face preservation. HTTP tests establish CPU behavior;
 network sockets, browser membership and physical deployment remain separate proofs.
+
+`PreparedHttpShow` resolves the Mask once into finite owned presentation material.
+It retains bounded text and Face correlation, without retaining a Face borrow,
+quantity decoder or semantic observation owner. Its caller must independently
+withdraw this material when the basis, reader custody or admitted lifetime ends;
+rendering age text does not refresh the Face or extend that lifetime. The CPU64
+owner occupies 248 inline bytes and requires no heap allocation during preparation
+or rendering. Native size and complete service backing remain separate proof.
+
+Time labels follow the Face. A sampled coordinate appears as
+`sampled_at_boot_ms`; an observed coordinate appears as `observed_at_boot_ms`
+and does not become acquisition time. The other coordinate is null, while
+`age_basis` names the selected reference. Without either coordinate, both times
+and age are null. This does not fill the native recorder's acquisition-time gap.

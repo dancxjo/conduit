@@ -9,7 +9,7 @@ use conduit_face::FaceBasis;
 use core::cell::RefCell;
 use critical_section::Mutex;
 mod mask;
-pub use mask::face_response;
+pub use mask::{face_response, HttpShowTime, PreparedHttpShow};
 pub mod network_setup;
 mod seven_segment;
 pub use seven_segment::{
