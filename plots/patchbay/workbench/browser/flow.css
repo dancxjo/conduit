@@ -166,3 +166,6 @@
 .faceplate-port{padding-block:0;min-height:44px}
 .faceplate-port-select{min-height:44px;width:100%;padding:0;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:inherit;cursor:pointer}
 .faceplate-port-select:focus-visible{outline:3px solid var(--conduit-focus);outline-offset:-3px;border-radius:3px}
+
+/* Platform colors outrank Look paint for SVG as well as native controls. */
+@media(forced-colors:active){#flow-root{--conduit-background:Canvas;--conduit-surface:Canvas;--conduit-text-primary:CanvasText;--conduit-text-secondary:CanvasText;--conduit-structure-primary:CanvasText;--conduit-structure-secondary:CanvasText;--conduit-emphasis:LinkText;--conduit-focus:Highlight;--conduit-success:CanvasText;--conduit-warning:CanvasText;--conduit-failure:CanvasText}}

@@ -96,10 +96,24 @@ test('four typed application Looks retain the exact Face and graph', async ({ pa
     }
     expect((await (await page.request.get(`${url}/api/snapshot`)).json()).face).toEqual(baseline.face);
     await page.screenshot({path:info.outputPath('look-narrow-forced.png'),fullPage:true,animations:'disabled'});
+    const forcedSystem=await page.evaluate(()=>{
+      const probe=document.createElement('span');probe.style.color='Canvas';document.body.append(probe);
+      const canvas=getComputedStyle(probe).color;probe.style.color='CanvasText';
+      const canvasText=getComputedStyle(probe).color;probe.remove();return {canvas,canvasText};
+    });
     const forcedLabels=await cordLabelContrasts(page);
+    expect(forcedLabels.length).toBeGreaterThan(0);
+    for(const label of forcedLabels){expect(label.ink).toBe(forcedSystem.canvasText);expect(label.paper).toBe(forcedSystem.canvas);}
     for(const label of forcedLabels)expect(label.ratio,'forced-color Cord badge').toBeGreaterThanOrEqual(4.5);
+    await page.emulateMedia({forcedColors:'none',reducedMotion:'reduce'});
+    await expect(page.locator('body')).toHaveAttribute('data-application-look','conduit.look/navy@1');
+    const restoredLabels=await cordLabelContrasts(page),navyLabels=cordLabels.find(value=>value.look==='navy').labels;
+    expect(restoredLabels.map(({ink,paper})=>({ink,paper}))).toEqual(navyLabels.map(({ink,paper})=>({ink,paper})));
+    expect((await (await page.request.get(`${url}/api/snapshot`)).json()).face).toEqual(baseline.face);
+    await page.screenshot({path:info.outputPath('look-narrow-restored.png'),fullPage:true,animations:'disabled'});
     await writeFile(info.outputPath('look-receipt.json'),JSON.stringify({
-      cord_labels:cordLabels,forced_color_cord_labels:forcedLabels,
+      forced_color_restore:true,
+      cord_labels:cordLabels,forced_color_cord_labels:forcedLabels,forced_system_colors:forcedSystem,
       scope:'documentary browser application Look switching; not live Body or native proof',
       face:baseline.face, nodes, looks:['conduit.look/phosphor@1','conduit.look/editorial@1','conduit.look/engineering@1','conduit.look/navy@1'],
       unchanged_face:true, keyboard_selection:true, narrow_forced_colors:true,
