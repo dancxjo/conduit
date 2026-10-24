@@ -250,6 +250,9 @@ impl NativeRoot {
         self.assignment_seal = None;
         Ok(())
     }
+    pub fn assignment_staged(&self) -> bool {
+        self.assignment.is_some() || self.display.assignment_staged()
+    }
     pub fn appliance_kernel_prepared(&self) -> bool {
         self.appliance_kernel.is_some()
             || self.display.kernel_prepared()

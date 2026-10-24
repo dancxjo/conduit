@@ -409,3 +409,16 @@ impl NativeDisplay {
         Ok(())
     }
 }
+
+impl NativeDisplay {
+    pub fn assignment_staged(&self) -> bool {
+        #[cfg(feature = "display-ready-root")]
+        {
+            self.staged.is_some()
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            false
+        }
+    }
+}
