@@ -161,6 +161,12 @@ fn select(
     let after = snapshot(&serial)?;
     let expression = &record["expression"];
     let structure = &records[0]["configuration"];
+    let outcome = if forced || scale == 200 {
+        json!({"AccessibilityOverride":{"forced_colors":forced,
+            "reduced_motion":false,"text_scale":scale==200}})
+    } else {
+        json!("Selected")
+    };
     if records.len() != count + 1
         || record["schema"] != "conduit.conduitos/component-realization@1"
         || record["selection_entrance"] != "local-creche"
@@ -179,6 +185,9 @@ fn select(
         || record["previous_show_id"] != before.record["show"]["show_id"]
         || record["local_scanout_acknowledged"] != true
         || record["owner_show_acknowledged"] != false
+        || expression["outcome"] != outcome
+        || expression["expression"]["motion"] != "none"
+        || expression["accessibility_overrides"]["text_scale"] != (scale == 200)
         || expression["expression"]["text_scale_percent"] != scale
         || expression["platform_forced_colors"] != forced
         || expression["accessibility_overrides"]["forced_colors"] != forced
