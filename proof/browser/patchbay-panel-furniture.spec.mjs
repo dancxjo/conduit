@@ -254,3 +254,44 @@ test("Patchbay graph consumes canonical typography and surface roles", async ({ 
     server.process.kill("SIGTERM");
   }
 });
+
+test("workspace status and tools reserve canvas space instead of covering nodes", async ({ page }, testInfo) => {
+  const server = startServer();
+  try {
+    await page.goto(await server.url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    const clearance = () => page.evaluate(() => {
+      const graph = document.querySelector('#flow-root').getBoundingClientRect();
+      return ['current-status', 'temporal-context', 'front-door-actions', 'workspace-controls', 'flow-notices'].every(id => {
+        const node = document.getElementById(id);
+        if (node.hidden) return true;
+        return node.getBoundingClientRect().top >= graph.bottom;
+      });
+    });
+    await expect.poll(clearance).toBe(true);
+    await page.locator('#workspace-controls > summary').click();
+    await expect(page.getByRole('textbox', { name: 'Workspace document', exact: true })).toBeAttached();
+    await expect.poll(clearance).toBe(true);
+    await page.getByRole('textbox', { name: 'Layout name', exact: true }).focus();
+    await expect(page.getByRole('textbox', { name: 'Layout name', exact: true })).toBeInViewport();
+    await page.locator('#workspace-controls > summary').click();
+    await page.getByRole('button', { name: 'Plot', exact: true }).click();
+    await expect(page.locator('.react-flow__node').filter({ hasText: 'text/upper' })).toBeVisible();
+    await page.getByRole('button', { name: 'Fit', exact: true }).click();
+    await expect(page.locator('#flow-notices')).toContainText('omitted from diagram. Exact Face facts remain available.');
+    await page.screenshot({ path: testInfo.outputPath('reserved-status-wide.png') });
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await page.addStyleTag({ content: 'html{font-size:32px!important}' });
+    await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
+    await expect.poll(clearance).toBe(true);
+    await expect(page.locator('#current-status')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.locator('#workspace-controls > summary').click();
+    await page.getByRole('textbox', { name: 'Layout name', exact: true }).focus();
+    await expect(page.getByRole('textbox', { name: 'Layout name', exact: true })).toBeInViewport();
+    await page.screenshot({ path: testInfo.outputPath('reserved-status-narrow.png') });
+  } finally {
+    server.lines.close();
+    server.process.kill('SIGTERM');
+  }
+});

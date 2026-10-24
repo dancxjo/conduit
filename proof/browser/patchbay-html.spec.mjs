@@ -59,7 +59,15 @@ async function expectFlowDominant(page,{inspector=false}={}) {
   const root=await page.locator("#patchbay-root").boundingBox();
   const flow=await page.locator("#flow-root").boundingBox();
   expect(flow.width).toBeGreaterThan(root.width*(inspector ? .55 : .65));
-  expect(flow.height).toBeGreaterThan(root.height*.75);
+  // The graph fills the space between measured chrome bands, rather than
+  // counting pixels underneath controls as usable canvas.
+  await expect.poll(() => page.evaluate(() => {
+    const graph=document.querySelector("#flow-root").getBoundingClientRect();
+    const heading=document.querySelector(".canvas-heading").getBoundingClientRect();
+    const footer=document.querySelector("#workspace-footer").getBoundingClientRect();
+    return graph.top>=heading.bottom && graph.bottom<=footer.top &&
+      graph.height>=footer.top-heading.bottom-24 && graph.height>0;
+  })).toBe(true);
   expect(await page.locator("body").getAttribute("data-palette-open")).not.toBe("true");
   if(inspector)await expect(page.locator("#inspector")).toBeVisible();
 }
@@ -229,7 +237,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(inspector.x).toBeGreaterThan(canvas.x);
     await expect(page.getByRole("navigation",{name:"Patchbay workspace"})).toContainText("Library");
 
-    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--conduit-theme-identity").trim())).toBe('"conduit.look/phosphor@1"');
+    expect(await page.evaluate(()=>getComputedStyle(document.body).getPropertyValue("--conduit-look-identity").trim())).toBe('"conduit.look/phosphor@1"');
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
     expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
     expect(await page.locator(".faceplate-title").first().evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
@@ -435,7 +443,8 @@ test("full-window Flow mechanics remain face-only", async ({page}) => {
     const root=await page.locator("#patchbay-root").boundingBox();
     const flow=await page.locator("#flow-root").boundingBox();
     expect(root).toEqual({x:0,y:0,width:1366,height:768});
-    expect(flow).toEqual(root);
+    expect(flow.width).toBe(root.width);
+    await expectFlowDominant(page);
     expect(await page.evaluate(()=>document.scrollingElement.scrollHeight)).toBe(768);
 
     const viewport=page.locator("#flow-root .react-flow__viewport");

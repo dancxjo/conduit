@@ -121,7 +121,8 @@ nav:not([data-application-key="product-navigation"]) { position:absolute; z-inde
 main { position:absolute; inset:0; width:100%; height:100%; max-width:none; padding:0; overflow:hidden; }
 .workspace { display:block; width:100%; height:100%; min-height:0; }
 .canvas-panel { position:absolute; inset:0; padding:0; border:0; border-radius:0; background:var(--conduit-background); }
-.canvas-heading { position:absolute; z-index:5; inset:5.1rem .75rem auto auto; max-width:min(48rem,calc(100% - 1.5rem)); padding:.35rem .45rem; border:1px solid var(--conduit-structure-secondary); border-radius:.45rem; background:color-mix(in srgb,var(--conduit-background) 90%,transparent); pointer-events:auto; }
+.canvas-heading { position:absolute; z-index:5; inset:5.1rem .75rem auto; max-width:none; padding:.35rem .45rem; border:1px solid var(--conduit-structure-secondary); border-radius:.45rem; background:color-mix(in srgb,var(--conduit-background) 90%,transparent); pointer-events:auto; }
+.canvas-heading > div { flex:1; min-width:0; }
 #flow-root { position:absolute; inset:calc(var(--patchbay-navigation-bottom,10rem) + .5rem) 0 0; width:100%; height:auto; }
 #workspace-controls { position:fixed; z-index:10; left:.75rem; bottom:3.5rem; width:min(18rem,calc(100% - 1.5rem)); max-height:max(0px,calc(100vh - var(--patchbay-navigation-bottom,10rem) - 4.25rem)); overflow:auto; padding:.55rem; border:1px solid var(--conduit-structure-secondary); border-radius:.55rem; background:var(--conduit-surface); }
 #workspace-controls[open] { display:grid; width:min(40rem,calc(100% - 1.5rem)); grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
@@ -154,7 +155,6 @@ body[data-lens="signs"] .flow-frontplate { border-style:double; }
   body[data-palette-open="true"] .canvas-heading { left:26.5rem; }
   body[data-inspector-open="true"]:has(#inspector[data-furniture-dock="right"][data-furniture-collapsed="false"]) #flow-root { right:26.5rem; width:auto; }
   body[data-inspector-open="true"]:has(#inspector[data-furniture-dock="right"][data-furniture-collapsed="false"]) .canvas-heading { right:26.5rem; }
-  body[data-inspector-open="true"]:has(#inspector[data-furniture-dock="right"][data-furniture-collapsed="false"]) .status-strip { right:26.5rem; max-width:min(39rem,calc(100% - 47rem)); }
 }
 
 @media (max-width:720px) {
@@ -200,3 +200,40 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 }
 
 @media(max-width:720px){.canvas-heading>*{flex-shrink:0;min-width:0}}
+
+/* Status and local tools occupy a measured tray, outside the graph viewport. */
+#workspace-footer {
+  position:fixed; z-index:10; inset:auto .75rem .75rem;
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.6rem;
+  max-height:26vh; overflow:auto; padding:.5rem;
+  border:1px solid var(--conduit-structure-secondary); border-radius:.55rem;
+  background:var(--conduit-surface); overflow-wrap:anywhere;
+}
+#workspace-footer:focus-visible { outline:3px solid var(--conduit-focus); outline-offset:2px; }
+#workspace-footer .status-strip {
+  position:static; display:grid; align-content:start; gap:.35rem;
+  min-width:0; max-width:none; margin:0; padding:.35rem .6rem;
+  border:0; border-inline-start:1px solid var(--conduit-structure-secondary);
+  background:transparent; font-size:.85rem;
+}
+#workspace-footer [hidden] { display:none; }
+#workspace-footer #workspace-controls {
+  position:static; width:auto; max-height:none; min-width:0; margin:0;
+  padding:.35rem; border:0; background:transparent; overflow:visible;
+}
+#workspace-footer #workspace-controls[open] { display:grid; grid-template-columns:minmax(0,1fr); }
+#workspace-footer #workspace-controls > summary { min-height:44px; }
+#flow-root { bottom:calc(var(--patchbay-footer-height,8rem) + .5rem); }
+@media(max-width:1000px) {
+  #workspace-footer { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:22vh; }
+}
+@media(max-width:720px) {
+  #workspace-footer { grid-template-columns:minmax(0,1fr); max-height:18vh; }
+}
+@media(forced-colors:active) {
+  #workspace-footer:focus-visible { outline-color:Highlight; }
+}
+
+@media(max-width:720px){.canvas-heading > div{flex:none}}
+
+#workspace-footer .flow-geometry-notice { position:static; max-width:none; margin:0; padding:.35rem; font-size:inherit; }
