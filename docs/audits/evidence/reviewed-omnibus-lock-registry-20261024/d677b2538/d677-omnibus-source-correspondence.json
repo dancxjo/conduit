@@ -1,0 +1,11 @@
+{
+  "observed_utc": "2026-10-24T02:25:06.937965+00:00",
+  "source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "parent": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "only_changed_path": "tools/xtask/src/commands/ci/standalone_locks.rs",
+  "test_and_negative_log_hashes_verified": true,
+  "all_production_files_and_prior_test_trees_unchanged": true,
+  "checked_face_tree": "6addb0188d273f7c1beebcee20e2d6601619e452",
+  "prior_face_execution_source": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "new_standalone_lock_coverage_test_count": 1
+}

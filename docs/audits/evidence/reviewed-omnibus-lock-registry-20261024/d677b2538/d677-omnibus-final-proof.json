@@ -1,0 +1,24 @@
+{
+  "observed_utc": "2026-10-24T02:26:05.387519+00:00",
+  "source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "status": "passed",
+  "preflight_command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "ci",
+    "pipeline",
+    "preflight",
+    "dd3cdb41f7a0320658e0c5c00d458db32e5adf56"
+  ],
+  "preflight_log": "work/d677-omnibus-preflight.log",
+  "preflight_log_sha256": "b4c3aa41b18d283faf5a9bf7e7e84664f74a23fc2185cf1e2364962468ebbbe1",
+  "preflight_tests_passed": 345,
+  "standalone_lock_repair_receipt": "outputs/6348-lock-registry-repair-receipt.json",
+  "source_correspondence": "outputs/d677-omnibus-source-correspondence.json",
+  "unchanged_production_proof": "dc6cdb60a0214d50c05b3396b0f862c02e0354d7",
+  "limits": [
+    "Only lock registry changes after EAC; prior319Face execution source remains EAC",
+    "No new native or full6318 acceptance claim"
+  ]
+}

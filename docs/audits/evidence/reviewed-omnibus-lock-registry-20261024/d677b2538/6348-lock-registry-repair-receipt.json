@@ -1,0 +1,27 @@
+{
+  "source_head": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "parent": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "delta": "Exactly four added registry lines in tools/xtask/src/commands/ci/standalone_locks.rs: monotonic-wait manifest/lock pair. No lock, production behavior, test weakening or other source change.",
+  "negative_evidence": {
+    "run": 40046845969,
+    "job": 120744978721,
+    "diagnosis": "6348-old-candidate-products-diagnosis.json"
+  },
+  "test_command": "cargo +stable test --locked -p conduit-xtask-dispatch registry_covers_every_separately_rooted_checked_in_lock -- --test-threads=1",
+  "named_test_observed": "standalone_locks::tests::registry_covers_every_separately_rooted_checked_in_lock ... ok",
+  "executed_test_count": 1,
+  "lock_validation_command": "cargo +stable update --locked --workspace --manifest-path mechanisms/io/monotonic-wait/Cargo.toml",
+  "lock_validation": "passed; Locking 0 packages; lock sha unchanged fe73f08dc19e345504e2cdbba37fc67ce4e18ef09fc1312fc25665334556dabc",
+  "canonical_validation_scope": "ci standalone-locks accepts only --locked and checks all locks, no per-manifest selector. Ran exact implementation Cargo check command scoped to timer manifest, without guessing CLI flags.",
+  "environment": {
+    "TMPDIR": "work/6318-proof-tmp",
+    "CARGO_TARGET_DIR": "work/6339-refresh-preflight-target",
+    "CARGO_BUILD_JOBS": 2
+  },
+  "logs_sha256": {
+    "6348-old-candidate-products-120744978721.log": "774c54b30d5003556440ee2d65f705e30b6b5c9a0df8f5fbbfa2220304ca6efd",
+    "6348-lock-registry-focused-pass.log": "4d089e17fcfbf227a1cdba7bda4122878e35410b31d1b0359e6a11abd4dc7f39",
+    "6348-timer-lock-locked-validation.log": "055f9faad53d7ce54928b7a140edad0ba95f2c997e6f21aa7d105d13700cf945"
+  },
+  "publication": "Committed on Root-authorized branch only; no push, PR, CI polling, issue update or CI success claim. Both checkout and cache released after handoff."
+}

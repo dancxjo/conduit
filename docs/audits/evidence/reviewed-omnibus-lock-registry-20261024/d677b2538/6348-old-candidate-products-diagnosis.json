@@ -1,0 +1,45 @@
+{
+  "run": 40046845969,
+  "failed_job": 120744978721,
+  "head": "cc527bec2a935a601ea1cf327094d3e8ffa2d5f8",
+  "current_candidate_head": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "raw_log": "6348-old-candidate-products-120744978721.log",
+  "raw_log_bytes": 807945,
+  "raw_log_sha256": "774c54b30d5003556440ee2d65f705e30b6b5c9a0df8f5fbbfa2220304ca6efd",
+  "retrieval": "gh run view --job --log returned zero bytes; direct completed jobs/120744978721/logs API returned actual nonempty raw log once. No generic CI polling.",
+  "failure": {
+    "test": "registry_covers_every_separately_rooted_checked_in_lock",
+    "targets": [
+      "conduit-xtask-dispatch binary",
+      "xtask binary"
+    ],
+    "reason": "Discovered mechanisms/io/monotonic-wait/Cargo.lock is absent from LOCKS registry. Registered and discovered sets differ by exactly that lock.",
+    "source_path": "tools/xtask/src/commands/ci/standalone_locks.rs",
+    "test_line": 205,
+    "log_lines": [
+      4400,
+      4445,
+      4447,
+      4449,
+      4450,
+      6707,
+      7314,
+      7316,
+      7318,
+      7319,
+      9714,
+      9717
+    ],
+    "repair_direction": "Add exact manifest mechanisms/io/monotonic-wait/Cargo.toml and lock mechanisms/io/monotonic-wait/Cargo.lock registry pair; preserve inventory coverage assertion. No timer behavior or acceptance weakening."
+  },
+  "source_correspondence": {
+    "old_registry_blob": "ee85f967b1b53bf1f3af877a73a24e61e532ec44",
+    "EAC_registry_blob": "ee85f967b1b53bf1f3af877a73a24e61e532ec44",
+    "unchanged": true,
+    "EAC_has_timer_lock": true
+  },
+  "assessment": "Not fixed by scoped local timer tests or final preflight. EAC preserves this exact products-test failure condition; coordinate minimal registry repair with Root before edits/builds.",
+  "builds_run": false,
+  "source_edited": false,
+  "limits": "Old products failure is established; current EAC Candidate products execution has not been observed by this reviewer. Foundation cancellation is not a passing proof."
+}

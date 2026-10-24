@@ -1,0 +1,72 @@
+{
+  "source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "parent": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "files": [
+    {
+      "file": "d677-omnibus-final-proof.json",
+      "stored_sha256": "bb5c998eec6278a7323d65733227c09bdf023a269493e37a46dff3e2c45b5c1c",
+      "raw_sha256": "bb5c998eec6278a7323d65733227c09bdf023a269493e37a46dff3e2c45b5c1c",
+      "raw_bytes": 872,
+      "encoding": "identity"
+    },
+    {
+      "file": "d677-omnibus-source-correspondence.json",
+      "stored_sha256": "4d9cdbde383326c605020f8fd8f0ce126196696c43d817ce229e2b04f66a4d51",
+      "raw_sha256": "4d9cdbde383326c605020f8fd8f0ce126196696c43d817ce229e2b04f66a4d51",
+      "raw_bytes": 547,
+      "encoding": "identity"
+    },
+    {
+      "file": "d677-omnibus-source-publication.json",
+      "stored_sha256": "e1e9d1fe7fc8e914efb84283b40a70637bc8ff4d85cf6f753221c4b30bb52fd2",
+      "raw_sha256": "e1e9d1fe7fc8e914efb84283b40a70637bc8ff4d85cf6f753221c4b30bb52fd2",
+      "raw_bytes": 401,
+      "encoding": "identity"
+    },
+    {
+      "file": "6348-lock-registry-repair-receipt.json",
+      "stored_sha256": "4a27f7fb11b1bf332a0b877148ef2d4c21ce89a44a5a54a9fbd9971da318a42c",
+      "raw_sha256": "4a27f7fb11b1bf332a0b877148ef2d4c21ce89a44a5a54a9fbd9971da318a42c",
+      "raw_bytes": 1935,
+      "encoding": "identity"
+    },
+    {
+      "file": "6348-old-candidate-products-diagnosis.json",
+      "stored_sha256": "bb0a843e3671982f03485a02a000062b5a4fa85ce2c9d5ae15f186df285571d9",
+      "raw_sha256": "bb0a843e3671982f03485a02a000062b5a4fa85ce2c9d5ae15f186df285571d9",
+      "raw_bytes": 2009,
+      "encoding": "identity"
+    },
+    {
+      "file": "6348-old-candidate-products-120744978721.log.gz",
+      "stored_sha256": "7cf3d56c6000725eb9c49d0d13d506555674418adb60b8004c75116218a27c21",
+      "raw_sha256": "774c54b30d5003556440ee2d65f705e30b6b5c9a0df8f5fbbfa2220304ca6efd",
+      "raw_bytes": 807945,
+      "encoding": "gzip"
+    },
+    {
+      "file": "6348-lock-registry-focused-pass.log.gz",
+      "stored_sha256": "cef4724cad8faf4aa87b6b1b014b10ba1790087d3f15cb7cbb5bbc267c04d640",
+      "raw_sha256": "4d089e17fcfbf227a1cdba7bda4122878e35410b31d1b0359e6a11abd4dc7f39",
+      "raw_bytes": 1927,
+      "encoding": "gzip"
+    },
+    {
+      "file": "6348-timer-lock-locked-validation.log.gz",
+      "stored_sha256": "2edb049366f5a378884223c84ad8dd7f630df072e99705c85b1b73c62dcaddf9",
+      "raw_sha256": "055f9faad53d7ce54928b7a140edad0ba95f2c997e6f21aa7d105d13700cf945",
+      "raw_bytes": 123,
+      "encoding": "gzip"
+    },
+    {
+      "file": "d677-omnibus-preflight.log.gz",
+      "stored_sha256": "0b3ab6e386ce3a28fe13e0c7a2acfb79c96b3356de6fae0c7847fdb0b93edabd",
+      "raw_sha256": "b4c3aa41b18d283faf5a9bf7e7e84664f74a23fc2185cf1e2364962468ebbbe1",
+      "raw_bytes": 35909,
+      "encoding": "gzip"
+    }
+  ],
+  "prior_eac_scoped_proof": "https://github.com/dancxjo/conduit/tree/dc6cdb60a0214d50c05b3396b0f862c02e0354d7/docs/audits/evidence/reviewed-omnibus-final-20261024/eacbd8350",
+  "prior_combined_owning_proof": "https://github.com/dancxjo/conduit/tree/4ce70418618fa0445826942aafbace17eae1e533/docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62",
+  "current_native_negative": "https://github.com/dancxjo/conduit/tree/a30d210e0cccf6caf7fa752556d83703b6fe2a31/docs/audits/evidence/native-application-current-refusal-20261024/6975a29c2"
+}

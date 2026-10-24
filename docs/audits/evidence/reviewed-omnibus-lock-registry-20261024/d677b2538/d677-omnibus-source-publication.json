@@ -1,0 +1,9 @@
+{
+  "observed_utc": "2026-10-24T02:26:12.161434+00:00",
+  "source": "d677b25383b22ca2911f1ec49936ca7b4a3c86ee",
+  "parent": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "branch": "integrate/reviewed-prs-20261023-2327",
+  "current_dev": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "remote_verified": true,
+  "method": "Fast-forward source repair to existing6339; noforce/admin/manualcancellation"
+}
