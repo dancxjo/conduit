@@ -22,7 +22,8 @@ Root heap use is 9,984 bytes, with a 105,464-byte Boot peak inside the unchanged
 114,688-byte reservation. Task exit does not claim to reclaim static RAM.
 
 The third canonical publication, its complete reply metadata apart from duplicate
-payload bytes, and its Body Face are retained here. Length/digest and actual task
+payload bytes, and its Body Face are retained here. Face JSON is compacted without changing
+semantic content; the original Face file digest is recorded. Length/digest and actual task
 state were checked; full original captures of all three observations remain in
 the local proof output. Admission retains the verified Boot key. This does not
 prove task-slot reinstallation, another Play, owner-loss recovery, a network

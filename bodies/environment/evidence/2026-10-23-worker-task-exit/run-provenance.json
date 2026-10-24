@@ -13,5 +13,6 @@
   "reflashed_for_resumption": false,
   "capture": "target/environment-software-ready/1792803183",
   "boot": "boot/ffec56f21cb25dc3339dfd112b9ea2fc",
-  "observed_offers_executable_sha256": "2a423878dfd820697e8758ba360f7545188c359ca6efe7b6a920c5595e726c24"
+  "observed_offers_executable_sha256": "2a423878dfd820697e8758ba360f7545188c359ca6efe7b6a920c5595e726c24",
+  "source_face_3_sha256": "d30bcda5281e6526ce15b1b608640fa925c569174306deb54f864edc318675df"
 }
