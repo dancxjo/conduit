@@ -1,0 +1,242 @@
+   Compiling typenum v1.20.1
+   Compiling thiserror v2.0.21
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling unicode-normalization v0.1.25
+   Compiling syn v1.0.109
+   Compiling proc-macro-error v1.0.4
+   Compiling syn v2.0.119
+   Compiling thiserror v1.0.69
+   Compiling cpufeatures v0.3.1
+   Compiling const-oid v0.10.2
+   Compiling siphasher v1.0.4
+   Compiling heapless v0.8.0
+   Compiling option-ext v0.2.0
+   Compiling getrandom v0.2.17
+   Compiling anyhow v1.0.104
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/data)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/text)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/ai)
+   Compiling dirs-sys v0.5.0
+   Compiling cc v1.6.0
+   Compiling phf_shared v0.11.3
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/chat)
+   Compiling crossbeam-utils v0.8.23
+   Compiling dirs v6.0.0
+   Compiling unicode-segmentation v1.13.3
+   Compiling cobs v0.3.0
+   Compiling phf v0.11.3
+   Compiling rand_core v0.6.4
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/wire)
+   Compiling crossbeam-epoch v0.9.21
+   Compiling postcard v1.1.3
+   Compiling zerocopy v0.8.59
+   Compiling isolang v2.4.0
+   Compiling crossbeam-deque v0.8.8
+   Compiling serde-json-core v0.6.0
+   Compiling httparse v1.10.1
+   Compiling opaque-debug v0.3.1
+   Compiling rand_core v0.10.1
+   Compiling adler2 v2.0.1
+   Compiling getrandom v0.4.3
+   Compiling autocfg v1.5.1
+   Compiling generic-array v0.14.7
+   Compiling hybrid-array v0.4.15
+   Compiling miniz_oxide v0.8.9
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+   Compiling untrusted v0.9.0
+   Compiling parking_lot_core v0.9.12
+   Compiling arrayvec v0.7.8
+   Compiling log v0.4.34
+   Compiling rayon-core v1.13.0
+   Compiling bytes v1.12.1
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/body-invitation)
+   Compiling noise-protocol v0.2.1
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/tutorial)
+   Compiling num-traits v0.2.19
+   Compiling rustls v0.23.45
+   Compiling smallvec v1.16.2
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling inout v0.1.4
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling universal-hash v0.5.1
+   Compiling digest v0.10.7
+   Compiling aead v0.5.2
+   Compiling scopeguard v1.2.0
+   Compiling once_cell v1.21.4
+   Compiling poly1305 v0.8.0
+   Compiling lock_api v0.4.14
+   Compiling sha2 v0.10.9
+   Compiling http v1.5.0
+   Compiling chacha20 v0.10.2
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/finance)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/runtime)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay)
+   Compiling base64 v0.23.1
+   Compiling getrandom v0.3.4
+   Compiling either v1.18.0
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+   Compiling rand v0.10.3
+   Compiling parking_lot v0.12.5
+   Compiling num_cpus v1.17.0
+   Compiling utf8-zero v0.8.1
+   Compiling rustix v1.1.5
+   Compiling rayon v1.12.0
+   Compiling percent-encoding v2.3.2
+   Compiling qrcode v0.14.1
+   Compiling ring v0.17.14
+   Compiling data-encoding v2.11.1
+   Compiling digest v0.11.3
+   Compiling ordered-float v3.9.2
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling linux-raw-sys v0.12.1
+   Compiling bitflags v2.13.2
+   Compiling fastrand v2.5.0
+   Compiling sha2 v0.11.1
+   Compiling sha1 v0.11.0
+   Compiling ureq-proto v0.6.4
+   Compiling tungstenite v0.30.0
+   Compiling tempfile v3.27.0
+   Compiling zeroize_derive v1.5.0
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling thiserror-impl v1.0.69
+   Compiling static-automata-macros v1.1.0
+   Compiling static-automata v1.1.0
+   Compiling zeroize v1.9.0
+   Compiling curve25519-dalek v4.1.3
+   Compiling cipher v0.4.4
+   Compiling rustls-pki-types v1.15.1
+   Compiling chacha20 v0.9.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling ppv-lite86 v0.2.21
+   Compiling str-newtype-derive v2.0.0
+   Compiling noise-rust-crypto v0.6.2
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling rand_chacha v0.3.1
+   Compiling ed25519-dalek v2.2.0
+   Compiling x25519-dalek v2.0.1
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/protected-line)
+   Compiling rand v0.8.8
+   Compiling str-newtype v2.0.0
+   Compiling langtag v1.1.0
+   Compiling instant-distance v0.6.1
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/speech)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/rp2040/network-realization)
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/tm1637)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/human)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/purpose)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/thermostat/model)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/composite)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/pulse-capture)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/bluetooth)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/todo/model)
+   Compiling conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/resource-snapshot)
+   Compiling conduit-linux-snapshot-store v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/resource-snapshot)
+   Compiling conduit-network-join-call v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/network-join)
+   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/monotonic-wait)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/audio)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/little-seismograph/fixture)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/face)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/observatory)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/midi)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/education)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/synth)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/robotics)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/seven-segment-mask)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/thermostat/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/birth)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/face)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/todo/face)
+   Compiling conduit-environment-http v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/http)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/catalog)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/alife-distributed)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/tour)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay/application)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/orange-pi/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/avr/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/raspberry-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/rp2040/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/conduitos/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/esp32/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/body)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/mask-offer)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/network-r1)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std)
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+   Compiling conduit-environment-linux v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/linux)
+warning: constant `MAXIMUM_ENVELOPE_BYTES` is never used
+  --> tests/root_control_support/../../../../../targets/esp32/proof/tm1637/src/native_admission.rs:11:11
+   |
+11 | pub const MAXIMUM_ENVELOPE_BYTES: usize = MAXIMUM_ADVERTISEMENT_BYTES + 320;
+   |           ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `cancel_held` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_execution.rs:130:12
+    |
+ 44 | impl<P: OpenDrain> Execution<P> {
+    | ------------------------------- method in this implementation
+...
+130 |     pub fn cancel_held(&mut self) -> Result<Outcome, &'static str> {
+    |            ^^^^^^^^^^^
+
+warning: field `request` is never read
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_service.rs:25:9
+   |
+24 | pub struct ServicedCall {
+   |            ------------ field in this struct
+25 |     pub request: HostCallRequest,
+   |         ^^^^^^^
+
+warning: `conduit-environment-make` (test "root_control") generated 3 warnings
+    Finished `test` profile [unoptimized] target(s) in 3m 09s
+     Running tests/root_control.rs (target/environment-lean-host/debug/deps/root_control-814ee5af0ddf2b50)
+
+running 1 test
+native_worker_cpu pointer_bits=64 context_bytes=5808 future_bytes=3728 samples=960 queue_capacities=1,1,2 play_allocations=0
+native_publication_sink_cpu behavior=15 samples=960 accepted=960 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=16 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=17 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=18 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_catalog_checkpoint_cpu chunk_generations=2 catalog_published=true body_seed_committed=true fresh_boot_discovery=true admission_fixture=true
+native_file_sink_cpu accepted=2 generations=2 play_allocations=0 kernel_commit_observed=true line_fixture=true
+native_worker_cpu pointer_bits=64 context_bytes=5808 future_bytes=3728 samples=960 queue_capacities=1,1,2 play_allocations=0
+native_publication_sink_cpu behavior=15 samples=960 accepted=960 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=16 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=17 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_publication_sink_cpu behavior=18 samples=960 accepted=0 future_bytes=3648 play_allocations=0 durable_ack=false
+native_catalog_checkpoint_cpu chunk_generations=2 catalog_published=true body_seed_committed=true fresh_boot_discovery=true admission_fixture=true
+native_file_sink_cpu accepted=2 generations=2 play_allocations=0 kernel_commit_observed=true line_fixture=true
+test pulse::pulse_and_wait_have_independent_finite_root_authority_for_the_same_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 14.52s
+

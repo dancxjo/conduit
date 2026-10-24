@@ -1,0 +1,31 @@
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/bodies/environment/runtime)
+warning: function `bind_budget` is never used
+   --> tests/support/pulse.rs:114:8
+    |
+114 | pub fn bind_budget(
+    |        ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduit-environment-runtime` (test "capture_kernel") generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 21.15s
+     Running tests/capture_kernel.rs (target/appliance-proof/debug/deps/capture_kernel-ca422d5a7df121be)
+
+running 4 tests
+test a_replacement_native_provider_cannot_consume_the_existing_plan ... ok
+test assigned_native_facts_cannot_substitute_the_local_grant_or_attachment ... ok
+test a_fresh_boot_reuses_the_resident_layout_with_a_fresh_plan_identity ... ok
+test checked_source_traverses_the_production_kernel_and_closes_after_each_outcome ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.09s
+
+     Running tests/source_frames.rs (target/appliance-proof/debug/deps/source_frames-dcd34918cedbae1d)
+
+running 4 tests
+test authored_capture_geometry_is_checked_against_the_selected_native_envelope ... ok
+test source_keeps_length_range_negative_and_recovery_semantics ... ok
+test validated_capture_reaches_the_same_quantity_face_and_fahrenheit_mask ... ok
+test captured_frames_become_quantities_only_after_source_validation_without_allocating ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

@@ -33,9 +33,13 @@ The joint CPU native-worker/file proof now carries two source publications into
 two prepared ordinary file kernels. Sink acceptance follows actual Host Call
 completion and Back commit, then the worker stops and retires. Independent read
 owners reopen exact first-class quantities and producer times after sink drop.
-This exercises the target worker code with inert providers; the cross-Host Line,
-time coordinates and store grants remain fixtures. It does not publish the
-catalog or establish an overnight rolling lifetime or physical deployment.
+With `installed-recording-proof`, the same native facts continue through the
+existing catalog publication and durable Body State Source. A fresh-Boot read
+view recovers the exact seed and ordered chunk references. This exercises target
+worker and installed Host code with inert providers; the cross-Host Line, time
+coordinates, actual Body admission and store grants remain fixtures. Only the
+native sample phase has a zero-allocation measurement. Complete checkpoint
+backing, an overnight rolling lifetime and physical deployment remain unproven.
 
 ## Meaning and readiness
 

@@ -1,0 +1,108 @@
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/tools/xtask-dispatch)
+    Finished `dev` profile [unoptimized] target(s) in 0.87s
+     Running `target/appliance-proof/debug/conduit-xtask-dispatch prove environment appliance`
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/architecture/plot)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/make/embedded-build)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/human)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/language)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/purpose)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/alife)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/mechanisms/io/pulse-capture)
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/mechanisms/io/tm1637)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/bodies/environment/runtime)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/plots/seven-segment-mask)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/face)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/audio)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/mechanisms/protocols/midi)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/architecture/planner)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/bodies/environment/face)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/catalog)
+    Finished `test` profile [unoptimized] target(s) in 1m 30s
+     Running unittests src/lib.rs (target/appliance-proof/debug/deps/conduit_environment_runtime-003deeac2b16c0b8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/appliance_kernel.rs (target/appliance-proof/debug/deps/appliance_kernel-8eff85a0c92d3f07)
+
+running 7 tests
+test software_tests::wrong_current_advertisement_and_duplicate_projection_leave_it_unchanged ... ok
+test a_ready_capability_does_not_replace_authority_or_missing_implementations ... ok
+test software_tests::forged_selected_facts_refuse_before_transfer_and_selected_objects_cannot_replay ... ok
+test software_tests::unchecked_configuration_and_contract_changes_cannot_initialize_an_available_back ... ok
+test software_tests::cached_cadence_and_changed_expansion_cannot_initialize_current_software ... ok
+test authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel ... ok
+test full_authored_overnight_workload_drains_with_a_small_value_store ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.62s
+
+     Running tests/construction.rs (target/appliance-proof/debug/deps/construction-95dbda9144f28f04)
+
+running 1 test
+test authored_appliance_uses_real_typed_publication_kinds_and_a_finite_clock ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.99s
+
+     Running tests/sampling_value_extents.rs (target/appliance-proof/debug/deps/sampling_value_extents-2e76f5a3d90d26a3)
+
+running 2 tests
+test changed_payload_and_abnormal_ports_do_not_reuse_the_source_bound ... ok
+test all_authored_payload_ports_have_independent_type_ceilings ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/architecture/plot)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/bodies/environment/runtime)
+    Checking conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/mechanisms/io/tm1637)
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/time)
+    Checking conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/language)
+    Checking conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/human)
+    Checking conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/text)
+    Checking conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/web)
+    Checking conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/net)
+    Checking conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/purpose)
+    Checking conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/process)
+    Checking conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/mechanisms/io/pulse-capture)
+    Checking conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/make/embedded-build)
+    Checking conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/data)
+    Checking conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/audio)
+    Checking conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/education)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/mechanisms/protocols/midi)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/architecture/planner)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/face)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/robotics)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/alife)
+    Checking conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/bodies/environment/face)
+    Checking conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/plots/seven-segment-mask)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/catalog)
+    Finished `dev` profile [unoptimized] target(s) in 12.88s
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/architecture/plot)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/mechanisms/io/pulse-capture)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/bodies/environment/runtime)
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/time)
+    Checking conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/language)
+    Checking conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/human)
+    Checking conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/web)
+    Checking conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/purpose)
+    Checking conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/net)
+    Checking conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/text)
+    Checking conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/process)
+    Checking conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/data)
+    Checking conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/audio)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/mechanisms/protocols/midi)
+    Checking conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/education)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/architecture/planner)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/face)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/alife)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/robotics)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-appliance-foundation-dev/semantics/catalog)
+    Finished `dev` profile [unoptimized] target(s) in 15.48s

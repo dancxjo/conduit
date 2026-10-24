@@ -65,7 +65,7 @@ def ledger(sampling_image=None, output_image=None):
         "linked_schema_cpu": EVIDENCE / "2026-10-24-publication-sink/schema-compatibility.json",
         "prepared_show_cpu": EVIDENCE / "2026-10-24-prepared-alternating-show/measurement.json",
         "publication_sink_cpu": EVIDENCE / "2026-10-24-publication-sink/measurement.json",
-        "native_file_sink_cpu": EVIDENCE / "2026-10-24-native-file-sink/measurement.json",
+        "native_file_sink_cpu": EVIDENCE / "2026-10-24-native-catalog-checkpoint/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
@@ -226,7 +226,7 @@ def markdown(value):
         f"| Stack | Linked reservations: sampling {sampling['linked_stack_bytes']:,} B, output {output['linked_stack_bytes']:,} B | Reservations are not measured high-water bounds |",
         f"| Resolved page material, CPU only | {value['inventory']['prepared_show_cpu']['inline_bytes']} inline bytes, no heap allocation | Additional to the existing Mask/encoder; no native timer, caller or effect admission credited |",
         f"| Publication sink, CPU only | Exact test invocation future {value['inventory']['publication_sink_cpu']['sink_future_bytes']:,} B | Excludes sink backing and task pool; updated native worker physical high water remains unmeasured |",
-        "| Native/file bridge, CPU only | Two original file Host Calls and committed observers; zero Rust play allocations | Line/clock/grants remain fixtures; complete recorder backing and rolling catalog are unmeasured |",
+        "| Native/file bridge, CPU only | Two chunk commits, catalog publication and fresh-Boot Body State discovery | Native sample phase allocates no Rust heap; Line/grants and complete checkpoint backing remain unproven |",
         f"| Network construction, CPU only | Fresh preparation peak {value['inventory']['network_preparation_cpu']['fresh_preparation_peak_bytes']:,} B; retained Plan/lowering {value['inventory']['network_preparation_cpu']['prepared_plan_and_lowering_retained_bytes']:,} B | Not an MCU bound; excludes concurrent sampling and radio effects |",
         f"| Wireless | Separate SDK arena {sampling['sdk_capacity_bytes']:,} B; captured sampling peak {sampling['observed_sdk_peak_bytes']:,} B | Concurrent AP/client/fallback peak remains unmeasured |", "",
         f"The current stores require {value['combined']['unshared_value_payload_bytes']:,} payload bytes together. That is only an unshared value-backing subtotal, not a combined appliance total or proof of simultaneous feasibility.", "",

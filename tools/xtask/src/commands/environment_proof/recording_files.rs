@@ -16,6 +16,30 @@ fn recording_checkpoint(root: &Path) -> Result<(), Box<dyn Error>> {
     if !cfg!(target_os = "linux") {
         return Err("recording-checkpoint requires Linux".into());
     }
+    // The target worker feeds the actual file kernels before the installed
+    // catalogue/Body-State path is exercised; authority/Line remain fixtures.
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", host_target(root))
+            .args([
+                operation,
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/make/Cargo.toml",
+                "--features",
+                "installed-recording-proof",
+                "--test",
+                "root_control",
+            ]);
+        if operation == "test" {
+            command.arg("pulse_and_wait_have_independent");
+        } else {
+            command.args(["--", "-D", "warnings", "-A", "dead_code"]);
+        }
+        execute(&mut command)?;
+    }
     for operation in ["test", "clippy"] {
         let mut command = Command::new("cargo");
         command

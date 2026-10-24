@@ -1,6 +1,9 @@
 //! Actual target worker and file publication kernels. The cross-Host Line,
 //! producer clock and store placement/grants remain explicit CPU fixtures.
 use super::*;
+#[cfg(feature = "installed-recording-proof")]
+#[path = "native_catalog_checkpoint.rs"]
+mod checkpoint;
 use conduit_environment_linux::PreparedFileRecordingPublication;
 use conduit_environment_runtime::{publication::PublicationSink, recording::*};
 use conduit_resource_snapshot::{PUBLISH_OPERATION, READ_OPERATION};
@@ -242,6 +245,8 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
             [198, 0, 48, 2]
         );
     }
+    #[cfg(feature = "installed-recording-proof")]
+    checkpoint::check(&reopened, &references, &observers);
     eprintln!("native_file_sink_cpu accepted=2 generations=2 play_allocations=0 kernel_commit_observed=true line_fixture=true");
     retirement(super::retire(execution));
 }

@@ -1,0 +1,249 @@
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/tools/xtask-dispatch)
+    Finished `dev` profile [unoptimized] target(s) in 1.41s
+     Running `target/environment-lean-host/debug/conduit-xtask-dispatch prove environment recording-checkpoint`
+   Compiling ring v0.17.14
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std)
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+   Compiling conduit-environment-linux v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/linux)
+warning: constant `MAXIMUM_ENVELOPE_BYTES` is never used
+  --> tests/root_control_support/../../../../../targets/esp32/proof/tm1637/src/native_admission.rs:11:11
+   |
+11 | pub const MAXIMUM_ENVELOPE_BYTES: usize = MAXIMUM_ADVERTISEMENT_BYTES + 320;
+   |           ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `cancel_held` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_execution.rs:130:12
+    |
+ 44 | impl<P: OpenDrain> Execution<P> {
+    | ------------------------------- method in this implementation
+...
+130 |     pub fn cancel_held(&mut self) -> Result<Outcome, &'static str> {
+    |            ^^^^^^^^^^^
+
+warning: field `request` is never read
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_display_service.rs:25:9
+   |
+24 | pub struct ServicedCall {
+   |            ------------ field in this struct
+25 |     pub request: HostCallRequest,
+   |         ^^^^^^^
+
+warning: `conduit-environment-make` (test "root_control") generated 3 warnings
+    Finished `test` profile [unoptimized] target(s) in 15.47s
+     Running tests/root_control.rs (target/environment-lean-host/debug/deps/root_control-814ee5af0ddf2b50)
+
+running 1 test
+test pulse::pulse_and_wait_have_independent_finite_root_authority_for_the_same_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 13.98s
+
+    Checking typenum v1.20.1
+    Checking unicode-normalization v0.1.25
+    Checking cpufeatures v0.3.1
+    Checking const-oid v0.10.2
+    Checking siphasher v1.0.4
+    Checking getrandom v0.2.17
+    Checking option-ext v0.2.0
+    Checking zeroize v1.9.0
+    Checking thiserror v2.0.21
+    Checking anyhow v1.0.104
+    Checking ryu v1.0.23
+    Checking heapless v0.8.0
+    Checking static-automata v1.1.0
+    Checking str-newtype v2.0.0
+    Checking unicode-segmentation v1.13.3
+    Checking crossbeam-utils v0.8.23
+    Checking opaque-debug v0.3.1
+    Checking rand_core v0.10.1
+    Checking dirs-sys v0.5.0
+    Checking zerocopy v0.8.59
+    Checking bytes v1.12.1
+    Checking log v0.4.34
+    Checking cobs v0.3.0
+    Checking arrayvec v0.7.8
+    Checking langtag v1.1.0
+    Checking untrusted v0.9.0
+    Checking httparse v1.10.1
+    Checking scopeguard v1.2.0
+    Checking dirs v6.0.0
+    Checking rustls-pki-types v1.15.1
+    Checking rand_core v0.6.4
+    Checking phf_shared v0.11.3
+    Checking ring v0.17.14
+    Checking getrandom v0.4.3
+    Checking smallvec v1.16.2
+    Checking postcard v1.1.3
+    Checking once_cell v1.21.4
+    Checking adler2 v2.0.1
+    Checking lock_api v0.4.14
+    Checking noise-protocol v0.2.1
+    Checking phf v0.11.3
+    Checking miniz_oxide v0.8.9
+    Checking chacha20 v0.10.2
+    Checking num-traits v0.2.19
+    Checking patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay)
+    Checking base64 v0.23.1
+    Checking parking_lot_core v0.9.12
+    Checking either v1.18.0
+    Checking crossbeam-epoch v0.9.21
+    Checking num_cpus v1.17.0
+    Checking isolang v2.4.0
+    Checking utf8-zero v0.8.1
+    Checking percent-encoding v2.3.2
+    Checking qrcode v0.14.1
+    Checking rand v0.10.3
+    Checking data-encoding v2.11.1
+    Checking getrandom v0.3.4
+    Checking webpki-roots v1.0.9
+    Checking parking_lot v0.12.5
+    Checking rustls-pemfile v2.2.0
+    Checking linux-raw-sys v0.12.1
+    Checking conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/emergency-keyword-spotter)
+    Checking http v1.5.0
+    Checking bitflags v2.13.2
+    Checking crossbeam-deque v0.8.8
+    Checking fastrand v2.5.0
+    Checking serde-json-core v0.6.0
+    Checking rayon-core v1.13.0
+    Checking ordered-float v3.9.2
+    Checking rustix v1.1.5
+    Checking rayon v1.12.0
+    Checking generic-array v0.14.7
+    Checking hybrid-array v0.4.15
+    Checking ureq-proto v0.6.4
+    Checking rustls-webpki v0.103.15
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking inout v0.1.4
+    Checking universal-hash v0.5.1
+    Checking cipher v0.4.4
+    Checking aead v0.5.2
+    Checking digest v0.10.7
+    Checking poly1305 v0.8.0
+    Checking rustls v0.23.45
+    Checking chacha20 v0.9.1
+    Checking sha2 v0.10.9
+    Checking curve25519-dalek v4.1.3
+    Checking digest v0.11.3
+    Checking chacha20poly1305 v0.10.1
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+    Checking noise-rust-crypto v0.6.2
+    Checking tempfile v3.27.0
+    Checking sha2 v0.11.1
+    Checking sha1 v0.11.0
+    Checking tungstenite v0.30.0
+    Checking ed25519-dalek v2.2.0
+    Checking x25519-dalek v2.0.1
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/protected-line)
+    Checking speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+    Checking ppv-lite86 v0.2.21
+    Checking rand_chacha v0.3.1
+    Checking rand v0.8.8
+    Checking instant-distance v0.6.1
+    Checking ureq v3.4.2
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
+    Checking conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/rp2040/network-realization)
+    Checking conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/tm1637)
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/time)
+    Checking conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+    Checking conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/human)
+    Checking conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/web)
+    Checking conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+    Checking conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/process)
+    Checking conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/text)
+    Checking conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/purpose)
+    Checking conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/thermostat/model)
+    Checking conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/wire)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/composite)
+    Checking conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/finance)
+    Checking conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/pulse-capture)
+    Checking conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/bluetooth)
+    Checking conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/todo/model)
+    Checking conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/resource-snapshot)
+    Checking conduit-linux-snapshot-store v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/resource-snapshot)
+    Checking conduit-network-join-call v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/network-join)
+    Checking conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/data)
+    Checking conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/monotonic-wait)
+    Checking conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/audio)
+    Checking conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/ai)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/little-seismograph/fixture)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/face)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/observatory)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/midi)
+    Checking conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/education)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/synth)
+    Checking conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/speech)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/alife)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/robotics)
+    Checking conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/chat)
+    Checking conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/plot-library)
+    Checking conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/seven-segment-mask)
+    Checking conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/face)
+    Checking conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/body-invitation)
+    Checking conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/thermostat/face)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/birth)
+    Checking conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/tutorial)
+    Checking conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/todo/face)
+    Checking conduit-environment-http v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/http)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/catalog)
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/alife-distributed)
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/host)
+    Checking conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/signal)
+    Checking conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/tongues)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay/graph)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/tour)
+    Checking conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay/application)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/signal)
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/network-r1)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/avr/make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/conduitos/make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/rp2040/make)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/body)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/esp32/make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/orange-pi/make)
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/make)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/raspberry-pi/make)
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/mask-offer)
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/runtime)
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std)
+    Checking conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Checking conduit-environment-linux v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/linux)
+    Finished `dev` profile [unoptimized] target(s) in 58.25s
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 1.27s
+     Running tests/recording_recovery.rs (target/environment-lean-host/debug/deps/recording_recovery-ba781b129869d7f0)
+
+running 1 test
+test linux_files_checkpoint::linux_files_checkpoint_restarts_the_night_from_its_actual_durable_seed ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 3.79s
+
+    Checking conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `dev` profile [unoptimized] target(s) in 0.60s
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 0.81s
+     Running tests/catalog_restart.rs (target/environment-lean-host/debug/deps/catalog_restart-e51facc57e79d06c)
+
+running 2 tests
+test installed_seed_recovery_rejects_a_write_view_before_file_effects ... ok
+test installed_seed_restart_recovers_the_actual_current_reference_and_refuses_corruption ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+
+    Checking conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `dev` profile [unoptimized] target(s) in 0.21s
