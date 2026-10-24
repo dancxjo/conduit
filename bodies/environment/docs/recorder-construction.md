@@ -426,3 +426,14 @@ issuance and timer fixtures. The [native wait receipt](../evidence/2026-10-23-na
 records allocation-free invocation/cancellation, shared pulse regressions and
 the RP2040 no-std cross-check. Native ready advertisement, the actual ESP32
 provider, assigned installation and full climate admission remain to connect.
+
+`PreparedRecordingCatalogCheckpoint` pairs the existing validated finite
+`PreparedRecordingCatalog` with the exact checked checkpoint Source. Preparation
+refuses a selected reference whose extent differs from the retained JSON bytes;
+profile validation remains the existing Source preparation's responsibility.
+The owner exposes immutable content, reference and required record/byte ceilings,
+so Root can prepare the publication input without reconstructing generic JSON.
+The focused seed proof covers all 16 catalogue entries and extent/profile
+refusals. These ceilings remain constraints, not reservations or evidence that
+any listed chunk has committed. Root still needs actual prior publication
+receipts and full capacity/authority admission before supplying this input.

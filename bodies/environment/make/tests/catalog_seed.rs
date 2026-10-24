@@ -169,3 +169,65 @@ fn checkpoint_connects_the_publication_reference_to_the_existing_body_seed() {
     invalid.extent.items = Some(2);
     assert!(RecordingCatalogSeedSource::compile_checkpoint(&invalid).is_err());
 }
+
+#[test]
+fn prepared_checkpoint_retains_valid_catalog_and_refuses_mismatched_extent() {
+    use conduit_environment_make::PreparedRecordingCatalogCheckpoint;
+    use conduit_environment_runtime::recording::{
+        PreparedRecordingCatalog, PreparedRecordingCatalogReader,
+    };
+    let chunk = c::BoundedResourceRef {
+        identity: c::ResourceSemanticIdentity::from_digest([21; 32]),
+        content_profile: "text/json-utf8@1".into(),
+        access_class: "resource/snapshot@1".into(),
+        extent: c::ResourceExtent {
+            bytes: 1024,
+            items: Some(1),
+        },
+        lifetime: c::ResourceLifetime {
+            version: c::ResourceVersionIdentity::from_digest([22; 32]),
+            expires_at: None,
+        },
+    };
+    // Exercise the full overnight catalogue boundary, not just a singleton.
+    let chunks: Vec<_> = (0..16)
+        .map(|version| {
+            let mut reference = chunk.clone();
+            reference.lifetime.version = c::ResourceVersionIdentity::from_digest([version + 1; 32]);
+            reference
+        })
+        .collect();
+    let catalog = || PreparedRecordingCatalog::prepare(&chunks, 17, 32 * 1024).unwrap();
+    let content = catalog().content().to_owned();
+    let mut reference = chunk.clone();
+    reference.identity = c::ResourceSemanticIdentity::from_digest([23; 32]);
+    reference.extent.bytes = content.len() as u64;
+    let prepared =
+        PreparedRecordingCatalogCheckpoint::prepare(reference.clone(), catalog()).unwrap();
+    assert_eq!(prepared.content(), content);
+    assert_eq!(prepared.reference(), &reference);
+    assert_eq!(prepared.required_records(), 17);
+    assert_eq!(
+        prepared.required_content_bytes(),
+        16 * 1024 + content.len() as u64
+    );
+    let mut reader = PreparedRecordingCatalogReader::default();
+    reader.read(prepared.content()).unwrap();
+    assert_eq!(reader.len(), 16);
+    for (index, chunk) in chunks.iter().enumerate() {
+        assert_eq!(
+            reader.encoded_reference(index).unwrap(),
+            chunk.encode().unwrap()
+        );
+    }
+    let expected = RecordingCatalogSeedSource::compile_checkpoint(&reference).unwrap();
+    assert_eq!(prepared.source().plot.expanded, expected.plot.expanded);
+    for bytes in [0, reference.extent.bytes - 1, reference.extent.bytes + 1] {
+        let mut invalid = reference.clone();
+        invalid.extent.bytes = bytes;
+        assert!(PreparedRecordingCatalogCheckpoint::prepare(invalid, catalog()).is_err());
+    }
+    let mut invalid = reference;
+    invalid.content_profile = "value/text".into();
+    assert!(PreparedRecordingCatalogCheckpoint::prepare(invalid, catalog()).is_err());
+}
