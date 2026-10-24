@@ -28,9 +28,16 @@ pub(crate) fn fixture_with_boot(
     source: &DisplayOutputSource,
     boot: &str,
 ) -> (c::HostAdvertisement, c::AuthorityGrant, ReadySoftwareBacks) {
+    fixture_with_scope(source, "fixture/display", boot)
+}
+pub(crate) fn fixture_with_scope(
+    source: &DisplayOutputSource,
+    host_id: &str,
+    boot: &str,
+) -> (c::HostAdvertisement, c::AuthorityGrant, ReadySoftwareBacks) {
     let mut host = c::HostAdvertisement {
         protocol_version: c::PROTOCOL_VERSION,
-        host_id: "fixture/display".into(),
+        host_id: host_id.into(),
         boot_id: boot.into(),
         offer_generation: c::OfferGeneration(1),
         profile: "fixture/display".into(),

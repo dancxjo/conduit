@@ -1,4 +1,4 @@
-"""Inventory existing profiles; never infer combined admission from their sums."""
+"""Inventory physical profiles and scoped joint CPU proof; no inferred MCU admission."""
 import argparse
 import hashlib
 import json
@@ -65,8 +65,13 @@ def ledger(sampling_image=None, output_image=None):
         "linked_schema_cpu": EVIDENCE / "2026-10-24-publication-sink/schema-compatibility.json",
         "prepared_show_cpu": EVIDENCE / "2026-10-24-prepared-alternating-show/measurement.json",
         "publication_sink_cpu": EVIDENCE / "2026-10-24-publication-sink/measurement.json",
-        "native_file_sink_cpu": EVIDENCE / "2026-10-24-primitive-projection-locations/measurement.json",
+        "native_file_sink_cpu": EVIDENCE / "2026-10-24-joint-native-display-cpu/recorder-measurement.json",
     }
+    inputs["joint_native_display_cpu"] = EVIDENCE / "2026-10-24-joint-native-display-cpu/measurement.json"
+    joint_display_cpu = read_json(inputs["joint_native_display_cpu"])
+    for relative, digest in joint_display_cpu["code_sha256"].items():
+        if hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() != digest:
+            raise ValueError("joint native display changed; renew execution and overlap proof")
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
     sign_budget = read_json(inputs["sign_budget"])
@@ -166,6 +171,7 @@ def ledger(sampling_image=None, output_image=None):
             "prepared_show_cpu": prepared_show_cpu,
             "publication_sink_cpu": publication_sink_cpu,
             "native_file_sink_cpu": native_file_sink_cpu,
+            "joint_native_display_cpu": joint_display_cpu,
             "historical_composer_software_cpu": composer_cpu,
             "sampling_value_payload": {"bytes": sum(capacities), "slot_capacities": capacities, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "extent_basis": "Make ceiling from all independently checked payload Types; slot count unchanged", "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
@@ -182,7 +188,7 @@ def ledger(sampling_image=None, output_image=None):
             "unshared_value_payload_bytes": sum(capacities) + items * extent,
             "sharing_proven": False,
             "missing_proofs": [
-                "One combined realization with exact initialized Mask/clock/output custody",
+                "One combined MCU realization with exact initialized Mask/clock/output custody",
                 "Type-derived value extents and overlap including fan-out, pending calls, refusals and cancellation",
                 "Preparation liveness and last-use release for descriptions and temporary schemas",
                 "Continuing Mask mandatory-record retention or explicit handoff over its admitted lifetime",
@@ -212,7 +218,7 @@ def markdown(value):
     sampling, output = profiles["sampling_face"], profiles["output_held"]
     lines = [
         "# Combined appliance memory ledger", "",
-        "Status: combined admission is unproven. These profiles were captured separately; their peaks must not be added or subtracted to claim a fit.", "",
+        "Status: combined MCU admission is unproven. The MCU profiles were captured separately; their peaks must not be added or subtracted to claim a fit. The joint CPU observation has its own explicit scope.", "",
         "| Category | Current evidence | Combined obligation |", "|---|---|---|",
         f"| Immutable material | ELF section inventories in JSON when images are supplied | Link one combined image; separate flash material from RAM-resident code/data |",
         f"| Persistent mutable values | Sampling payload {value['inventory']['sampling_value_payload']['bytes']:,} B; output payload {value['inventory']['output_value_payload']['bytes']:,} B, plus metadata/allocator costs | Exact Types and simultaneous lifetimes; no reuse credited |",
@@ -221,6 +227,7 @@ def markdown(value):
         f"| Packet expression | CPU retained model {value['inventory']['packet_expression_cpu']['before_bytes']:,} → {value['inventory']['packet_expression_cpu']['after_bytes']:,} B with constructor tape and fixed input locations | Dynamic leaf evaluators remain; flash material, lifetime allocation and MCU measurement still required |",
         f"| Local representations | Existing quantity-pair Forms total {value['inventory']['quantity_pair_form']['bytes']} B; semantic Types remain Temperature and Ratio | Admit compact local cord representations; separately retain status, clocks and provenance |",
         f"| HTTP Show backing | {sampling['http_response_backing_bytes']:,} B prepared response backing, included in the sampling/Face/HTTP Root capture | Finite native Face correlation only; no browser membership or concurrent station admission |",
+        f"| Joint sampler/Face/output, CPU64 | Source-first retained {value['inventory']['joint_native_display_cpu']['source_first_execution_retained_bytes']:,} B; preparation peak {value['inventory']['joint_native_display_cpu']['source_first_execution_preparation_peak_bytes']:,} B; zero Play allocations | Two pages from first observation only; excludes network, Root owners, stack and Make descriptions; no MCU fit claimed |",
         "| Scratch | No combined lifetime allocation exists | Include fan-out, pending calls, refusal and cancellation |",
         "| Construction | Output descriptors retire after transfer; schemas and expression trees remain in other paths | Bound transient peaks and every last-use release |",
         f"| Execution records | Derived for {value['inventory']['output_sign_records']['native_construction_diagnostic_maximum_frames']} inputs: {value['inventory']['output_sign_records']['remote_items']} remote records; ordinary count follows target record size and Plan minima ({value['inventory']['output_sign_records']['cpu_observed_ordinary_items']} in CPU64) | Admit continuing retention or explicit handoff; never discard required evidence |",

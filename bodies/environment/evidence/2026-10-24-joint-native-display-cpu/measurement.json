@@ -1,0 +1,32 @@
+{
+  "schema": "conduit.environment/joint-native-display-cpu@1",
+  "pointer_bits": 64,
+  "samples": 960,
+  "output_frames": 2,
+  "source_preparation_peak_bytes": 256175,
+  "source_retained_bytes": 65988,
+  "additional_preparation_peak_bytes": 132045,
+  "additional_retained_bytes": 30954,
+  "source_first_execution_preparation_peak_bytes": 256175,
+  "source_first_execution_retained_bytes": 96942,
+  "play_allocations": 0,
+  "play_reallocations": 0,
+  "normal_acknowledged_writes": 2,
+  "cancelled_acknowledged_writes": 0,
+  "cancelled_failure": {
+    "code": "Cancelled",
+    "detail": 13
+  },
+  "mcu_admitted": false,
+  "code_sha256": {
+    "bodies/environment/make/tests/root_control_support/native_joint_display.rs": "4776b21157ef2c00526817b02f0effc811d891820bb7e8f95449732a48527c09",
+    "bodies/environment/make/tests/root_control_support/native_dispatch.rs": "ca62080923a01ca18c8e47906e3a3b2216ae67833ec60509e72905a418453435",
+    "bodies/environment/make/tests/root_control_support/native_pair.rs": "8348bdce31f298de5e4ef6c262e731004a0667e41edb20655be61d26ecc89507",
+    "bodies/environment/make/tests/display_support/fixture.rs": "1fe4ee28dfeffec2319b1a51e7e7482f0eceb445c3ec49b2c906cada991d7239",
+    "targets/esp32/proof/tm1637/src/native_worker.rs": "575819dd8d8552897f5bbe29f6fe845be949503fb2c608fe127b03172af371a5",
+    "targets/esp32/proof/tm1637/src/native_display_service.rs": "6b0fb76bd0ca48100b90b4ed37448268fa6588d860c4a415782209510acf9ae3",
+    "mechanisms/io/tm1637/src/back.rs": "2234ff6cbebc0b9b539fe023a450dd20bcbe9e5dfd2edee7cc2db69cf90da80e",
+    "bodies/environment/runtime/src/display_output_assigned.rs": "3337827f6df54a115f7277ced720fe418604d36ca427177e5120a8228b3c1f8f",
+    "bodies/environment/runtime/src/display_mask.rs": "6fd5f6f110202c483d6e90aa8e88cf80379d36e29bdfbeb38b2e3c7e436940f0"
+  }
+}

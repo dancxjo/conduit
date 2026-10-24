@@ -1,5 +1,7 @@
 //! Execute the target's exact dispatcher/assembly over inert CPU providers.
 use super::*;
+#[path = "native_joint_display.rs"]
+mod joint_display;
 #[path = "native_worker.rs"]
 mod worker;
 use conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware;
@@ -20,36 +22,51 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     behavior: u8,
     retirement: impl FnOnce(crate::native_worker::RetiredProviders<P, W>),
 ) {
-    let recipe = prepared.software_recipe().unwrap();
-    let programs: Vec<_> = recipe.resident_computations().collect();
-    let mut software = Some(Box::new(
-        PreparedResidentSoftware::prepare(
-            resident,
-            &programs,
-            &resident.cadence,
-            conduit_environment_runtime::appliance::prepare_value_storage().unwrap(),
+    let (mut storage, preparation) = allocation_probe::observe(|| {
+        let recipe = prepared.software_recipe().unwrap();
+        let programs: Vec<_> = recipe.resident_computations().collect();
+        let mut software = Some(Box::new(
+            PreparedResidentSoftware::prepare(
+                resident,
+                &programs,
+                &resident.cadence,
+                conduit_environment_runtime::appliance::prepare_value_storage().unwrap(),
+            )
+            .unwrap(),
+        ));
+        let mut assignment = Some(Box::new(
+            ValidatedAssignedAppliance::admit(
+                prepared.assignment(),
+                conduit_environment_make::NativeApplianceLimits::resident_local().assignment,
+                required,
+                resident,
+            )
+            .unwrap(),
+        ));
+        let transferred =
+            PreparedResidentSoftware::bind_boxed_retained(&mut software, &mut assignment).unwrap();
+        let lowered = prepared.lowered();
+        let sign_slots = usize::from(lowered.sign_items)
+            .max((lowered.sign_bytes as usize).div_ceil(core::mem::size_of::<k::KernelEvent>()));
+        native_kernel_storage::assemble(
+            transferred,
+            k::HostedSignLog::new(sign_slots.try_into().unwrap(), lowered.sign_bytes).unwrap(),
         )
-        .unwrap(),
-    ));
-    let mut assignment = Some(Box::new(
-        ValidatedAssignedAppliance::admit(
-            prepared.assignment(),
-            conduit_environment_make::NativeApplianceLimits::resident_local().assignment,
-            required,
-            resident,
-        )
-        .unwrap(),
-    ));
-    let transferred =
-        PreparedResidentSoftware::bind_boxed_retained(&mut software, &mut assignment).unwrap();
-    let lowered = prepared.lowered();
-    let sign_slots = usize::from(lowered.sign_items)
-        .max((lowered.sign_bytes as usize).div_ceil(core::mem::size_of::<k::KernelEvent>()));
-    let mut storage = native_kernel_storage::assemble(
-        transferred,
-        k::HostedSignLog::new(sign_slots.try_into().unwrap(), lowered.sign_bytes).unwrap(),
-    )
-    .unwrap();
+        .unwrap()
+    });
+    if behavior >= 22 {
+        joint_display::check(
+            storage,
+            native,
+            prepared,
+            resident.cadence.count,
+            resident.cadence.period_ms,
+            behavior == 23,
+            preparation,
+            retirement,
+        );
+        return;
+    }
     if behavior == 4 {
         native
             .pulse
