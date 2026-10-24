@@ -16,6 +16,26 @@ pub enum PublicationChannel {
     GeometryRefusal,
 }
 impl PublicationChannel {
+    /// Validate against independently linked checked channel Types without
+    /// retaining a second heap schema. This grants no producer authority.
+    pub fn validate_value(self, bytes: &[u8]) -> Result<(), c::StructuredInfoRefusal> {
+        use c::StructuredInfoRefusal as R;
+        if bytes.len() > self.maximum_bytes() {
+            return Err(R::CanonicalEncodingTooLarge);
+        }
+        let value = c::validate_canonical_structured_value(bytes)?;
+        let expected: &[u8] = match self {
+            Self::Reading => include_bytes!(concat!(env!("OUT_DIR"), "/observation-result.type")),
+            Self::CaptureTimeout => include_bytes!(concat!(env!("OUT_DIR"), "/pulse-capture.type")),
+            Self::ProviderFailure | Self::GeometryRefusal => {
+                return value.primitive_bytes(c::EMPTY_INFO_ID).map(|_| ());
+            }
+        };
+        if value.type_bytes() != expected {
+            return Err(R::WrongType);
+        }
+        Ok(())
+    }
     pub const ALL: [Self; 4] = [
         Self::Reading,
         Self::CaptureTimeout,

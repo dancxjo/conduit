@@ -19,5 +19,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         "publication_face",
         "--test",
         "retained_publication_face",
+        "--test",
+        "publication_validation",
     ]))
 }
