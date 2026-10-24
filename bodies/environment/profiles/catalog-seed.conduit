@@ -1,0 +1,10 @@
+# The acknowledged catalog reference is Body-lived data. It grants no access
+# to that catalog or its generations and carries no current Host/Boot authority.
+plot recorder-catalog (
+    >> committed: ResourceRef? <= 1KiB
+    current: $ResourceRef? <= 1KiB >>
+) {
+    seed: keep ResourceRef? <= 1KiB for life
+    committed >> seed
+    seed >> current
+}

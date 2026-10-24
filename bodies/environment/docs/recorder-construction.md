@@ -3,6 +3,8 @@
 This describes the prepared software contracts. The real browser recorder,
 its durable catalog seed custody, Line and Body installation remain incomplete.
 The public conformance entrance is `cargo xtask prove environment recording`.
+The catalog seed's checked meaning has a separate focused entrance,
+`cargo xtask prove environment catalog-seed`.
 The browser publication boundary is checked separately with
 `cargo xtask prove environment recording-storage`.
 The actual IndexedDB boundary has a separate focused entrance:
@@ -11,6 +13,21 @@ It produces artifacts under `target/environment-recording-browser` and retains
 browser failure traces under `proof/browser/test-results/environment-recording`.
 
 ## Meaning and readiness
+
+`RecordingCatalogSeedSource` checks the authored
+[`catalog-seed.conduit`](../profiles/catalog-seed.conduit). Its one ordinary
+State retains an optional first-class `ResourceRef` for the Body's life, with
+a 1 KiB canonical value ceiling and an explicit empty initial value. The optional
+reference's admitted envelope uses Core's 512-byte reference codec ceiling plus
+canonical optional framing, rather than the global structured-value ceiling.
+
+The input names an acknowledged catalog; Root must connect it only after all
+required chunk publications and that catalog publication have committed. Source
+checking cannot prove those external facts. The existing std Body-durable State
+residence is the intended implementation, with actual storage offers, independent
+authority, Body identity, installation and restart evidence still required. The
+reference carries no residence, grants, current Host/Boot or authenticity proof.
+This Source preparation does not yet install or persist the recorder seed.
 
 `install_recovery_kind` and `install_generation_source_kind` register meaning
 with the ordinary Source checker and expansion catalogs. They initialize no

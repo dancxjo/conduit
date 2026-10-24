@@ -39,6 +39,9 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
     if arguments == ["recording-files"] {
         return recording_files::prove(&root);
     }
+    if arguments == ["catalog-seed"] {
+        return recording_files::catalog_seed(&root);
+    }
     if arguments == ["face-publication"] {
         return publication_face::prove(&root);
     }
