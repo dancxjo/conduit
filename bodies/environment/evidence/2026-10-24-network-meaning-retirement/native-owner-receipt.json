@@ -1,0 +1,33 @@
+{
+  "body_id": "231b2d7855ea6ed8a988fd4b9e0af7a9f2b3027881f34967fc6fb92baf0f8b23",
+  "body_started": false,
+  "climate_sampling_claimed": false,
+  "completed": true,
+  "device_start_attributed": false,
+  "event": "owner-preparation-complete",
+  "fragment_play": {
+    "active_play_id": "4bbac5fb8d17f045efdb2227262e1fd13d010f713c2a06bd0e4e645d04e73b81",
+    "boot_id": "boot/2664b38d7105884abb8aed30293a0fb1",
+    "host_id": "esp32/b0a732286178",
+    "plan_id": "3a1d080c5e6a5eb862b458bb59a4f5320b1277a5f0b94b8b3edc2886e2f9555f",
+    "play_sequence": 1
+  },
+  "owner_retained_through_preparation": true,
+  "plot_plan": "3a1d080c5e6a5eb862b458bb59a4f5320b1277a5f0b94b8b3edc2886e2f9555f",
+  "worker_context_bytes": 4640,
+  "worker_held_future_bytes": 3472,
+  "worker_task_held": true,
+  "final_offer_generation": 2,
+  "final_network_configuration": "uninstalled",
+  "proof_class": "physical-owner-prepare",
+  "root_heap_used_bytes": 101640,
+  "root_heap_peak_bytes": 107548,
+  "native_root_heap_bytes": 114688,
+  "body_start_attributed": false,
+  "body_lulled_after_quiescence": false,
+  "worker_retirement_acknowledged": false,
+  "worker_release_acknowledged": false,
+  "carrier_sha256": "8cab3bc36c92dd3dffce718fcde928bc8b0e6313aa22a4a05e25731b8e854a1c",
+  "owner_executable_sha256": "2e82d0b3c4c540f27ba6783c1c61f1c9735a572572e081cfe2b90cfee03e5fa2",
+  "retained_uart_bytes": 24433
+}

@@ -1,0 +1,23 @@
+{
+  "source_head": "d7fdc5fdb4bf0402690c8084d93702e13a408fe4",
+  "proof_class": "physical-dormant-native-preparation",
+  "root_heap_used_bytes": 101640,
+  "root_heap_peak_bytes": 107548,
+  "root_heap_total_bytes": 114688,
+  "root_retained_free_bytes": 13048,
+  "historical_retained_bytes": 105164,
+  "historical_checkpoint_reduction_bytes": 3524,
+  "control_preparation_reserve_bytes": 8192,
+  "face_installed": false,
+  "sampling_started": false,
+  "network_transition_tested": false,
+  "comparison_isolated_to_one_change": false,
+  "cpu_face_preparation": {
+    "pointer_bits": 64,
+    "owner_bytes": 1400,
+    "peak_bytes": 5714,
+    "requested_bytes": 19896,
+    "allocations": 265,
+    "mcu_admission_claimed": false
+  }
+}

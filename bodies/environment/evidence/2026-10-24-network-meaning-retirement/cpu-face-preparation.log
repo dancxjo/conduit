@@ -1,0 +1,11 @@
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/face)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+    Finished `test` profile [unoptimized] target(s) in 0.74s
+     Running tests/retained_publication_face.rs (target/environment-lean-host/debug/deps/retained_publication_face-2f23c95386e0ecc5)
+
+running 1 test
+cpu-retained-face-preparation pointer_bits=64 owner_bytes=1400 peak_bytes=5714 requested_bytes=19896 allocations=265
+test measure_retained_face_preparation_separately_from_mcu_admission ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+

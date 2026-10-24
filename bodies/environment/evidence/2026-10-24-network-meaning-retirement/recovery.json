@@ -1,0 +1,18 @@
+{
+  "source": "d7fdc5fdb4bf0402690c8084d93702e13a408fe4",
+  "recovery_sha256": "8105212d3f64168dd935bb8cb160c137c90df11b6ead1a13649f176c6ddca54b",
+  "completed": true,
+  "preparation_exit": 0,
+  "captures": [
+    "target/environment-owner-images/1792837230"
+  ],
+  "restore_performed": true,
+  "restore_exit": 0,
+  "restored_current_updates": 12,
+  "restored_source_sequences": [
+    1,
+    2,
+    3
+  ],
+  "recovery_verified": true
+}

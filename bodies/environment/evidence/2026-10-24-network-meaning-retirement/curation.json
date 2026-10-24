@@ -1,0 +1,160 @@
+{
+  "large_artifacts_retained_in_ignored_targets": true,
+  "artifacts": [
+    {
+      "path": "target/environment-software-ready/1792837360/body-construction.json",
+      "bytes": 588,
+      "sha256": "bbca8a6acfb46e74e87339cf63837eefde12fd662c37b7a22ab0389c88fb1141"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/body-evidence.json",
+      "bytes": 6224,
+      "sha256": "49a775d2c3c8828701799806fbb9c83222fd89ea11cb8ed0ba95bede5fa0a10d"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/body-proposal.json",
+      "bytes": 163001,
+      "sha256": "4276c0ff7ceb65c97d85a9ba2167add451530b4fa490da2973dbe667ff785b8b"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/composition.json",
+      "bytes": 1087,
+      "sha256": "c4bb65bcc3fbd0abc12321fc6cc8f219f80989c4cb03a1bab4d3eba2c628ebfa"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/final-root-offer.json",
+      "bytes": 7664,
+      "sha256": "eac63c2555ee8c456f1ab83c4157fac03b8fd235d60a3ba841b30ace66922cdb"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/ingress-receipt.json",
+      "bytes": 454,
+      "sha256": "c5b554878f97b3330b4de86426cd7877854a63aff1f6e260b166273e7cc2893a"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/ingress-replies.json",
+      "bytes": 32312,
+      "sha256": "e7fd051cad5754b5e10e85033c7c60b88708f17799a5730525939147de2af365"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/ingress-uart.raw",
+      "bytes": 19903,
+      "sha256": "2685ce23131628f446a4d8292266a575557ab6d8bbc158d20093e255957deb56"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/native-owner-receipt.json",
+      "bytes": 1385,
+      "sha256": "33f7dc30a1cf4e70d05957294dfe121117e63202bcad30a14a01364994d1f3a0"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/native-owner-replies.json",
+      "bytes": 34241,
+      "sha256": "69de9d44058a2dacac6a40527a64b5960b36fc8af7d62393c3ff5dc098d886d8"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/native-owner-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/native-owner-uart.bin",
+      "bytes": 24433,
+      "sha256": "ffe3fde1b5a18bc81e05d7a1a578f631326ac1e14a971b164d804b56cc05e1b0"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/owner-native-preparation.json",
+      "bytes": 2450,
+      "sha256": "f3658d769a1179640cf4728c566ed53bd3c6a3769e80536a08f4f7a1454a05ba"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/owner-root-image.json",
+      "bytes": 510,
+      "sha256": "e756f3dccb6d23448e5cb1920bea5608befc7b8c807dcfbaacaeec78c7f373a7"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/planning-advertisement.json",
+      "bytes": 75895,
+      "sha256": "984cbf111901b46e97067ee7a0dab212def22977fa8eaa866feca1fa50264b25"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/replies.json",
+      "bytes": 97299,
+      "sha256": "8eedc087e0a3afdf3414257017147b894e62b1503d912b896d65c2b363fae5fb"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/result.json",
+      "bytes": 335,
+      "sha256": "4aadd6b7ac1e25cd2dce1c6a0d1667c0734281c36686c2a33abfe354a225475d"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/serial.log",
+      "bytes": 75027,
+      "sha256": "f31846c2eb86da75cdb7df8040cd7d9e34456b226dcf48b80698912550c948d4"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/uninstalled-assignment-transfer.bin",
+      "bytes": 7111,
+      "sha256": "36db38c24571b490c7883e08cb22e5286de4ab231cc0420375d858e2d8dbdc05"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/uninstalled-assignment.bin",
+      "bytes": 46411,
+      "sha256": "2cd28f5392ebbaa056aa1545dcc2fedbcb7867e9e76f3f237e18c64873eb06c0"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/uninstalled-layout.rs",
+      "bytes": 27366,
+      "sha256": "a58e4645764942cf26f17042b225dd7028b84931abab019205a8734176c4eaa0"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/uninstalled-plan.json",
+      "bytes": 146764,
+      "sha256": "273124cbdceb24ee3e8ca5afb8f574aa1fe29f90e297e068f0a51b7d3841f0c5"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/uninstalled-resident.rs",
+      "bytes": 383336,
+      "sha256": "c36da327d3d414ab0c5fac72dc4abad8ea535f9ec9251c05eb6fc78835e2c3fd"
+    },
+    {
+      "path": "target/environment-software-ready/1792837360/uninstalled-source.rs",
+      "bytes": 517305,
+      "sha256": "113e80546d02449121c08f081c07849a8b373f2f525ae4473f8dc988fd0f9e8d"
+    },
+    {
+      "path": "target/environment-owner-images/1792837230/image-receipt.json",
+      "bytes": 510,
+      "sha256": "e756f3dccb6d23448e5cb1920bea5608befc7b8c807dcfbaacaeec78c7f373a7"
+    },
+    {
+      "path": "target/environment-owner-images/1792837230/root.elf",
+      "bytes": 2779708,
+      "sha256": "86996531b125e3aee1efaa79a6054e35f77ce107259d95703d2d6efb2a8bf1b3"
+    },
+    {
+      "path": "target/environment-network-meaning-probe/1792837029/prepare.log",
+      "bytes": 21421,
+      "sha256": "a36592f8b69b88747ba29e6bd3367fc4b45711418608459e70a7c331379c41f8"
+    },
+    {
+      "path": "target/environment-network-meaning-probe/1792837029/restore.log",
+      "bytes": 599,
+      "sha256": "4d6e1a2c6e1e6be7f70c8cceaa239785b651d16d76844287874df9bcf7d6ced2"
+    },
+    {
+      "path": "target/environment-network-meaning-probe/1792837029/restored-readings.json",
+      "bytes": 6747,
+      "sha256": "bb1ff5f7e83ce28e23be699fa979cd1a8eedf21f95e899f0ae38f94aed4c8f3a"
+    },
+    {
+      "path": "target/environment-network-meaning-probe/1792837029/restored-uart.bin",
+      "bytes": 5633,
+      "sha256": "893bae0fd892155b5744028e6bea2b8dc88e921e5a48560598ae666087f98e38"
+    },
+    {
+      "path": "target/environment-network-meaning-probe/1792837029/result.json",
+      "bytes": 435,
+      "sha256": "8a5fb0f59d0e63524af9205d49e51933ca9a69083b3f3609114000271eb2d374"
+    }
+  ]
+}
