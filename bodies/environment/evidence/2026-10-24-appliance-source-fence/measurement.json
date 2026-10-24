@@ -1,0 +1,16 @@
+{
+  "proof_class": "Checked Source consistency at allocating software preparation; CPU tests and ESP32 link only",
+  "fresh_dev_candidate_commit": "4d3dc5116",
+  "fresh_dev_appliance_tests": 10,
+  "construction_appliance_and_source_tests": 12,
+  "root_tests": 17,
+  "cached_count_and_period_fenced": true,
+  "changed_expansion_fenced": true,
+  "source_refusal_before_back_initialization": true,
+  "new_physical_capture": false,
+  "combined_mcu_admission": false,
+  "code_sha256": {
+    "bodies/environment/runtime/src/appliance/software.rs": "0805354f045d70a50f80a915e422bb92c7bfdfe1cd3692b33b4460c6754a9032",
+    "bodies/environment/runtime/tests/appliance_support/software.rs": "fc72810acdc3d1972feb61ad2715a9bb7b3e3421fd16403f5d6cdd106848cecd"
+  }
+}

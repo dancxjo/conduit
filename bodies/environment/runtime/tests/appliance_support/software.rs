@@ -106,7 +106,7 @@ fn unchecked_configuration_and_contract_changes_cannot_initialize_an_available_b
             pulse::identity().host_id,
             pulse::identity().boot_id
         ),
-        Err(E::Initialization)
+        Err(E::Source)
     ));
     let mut source = compile(1, 0).unwrap();
     source
@@ -123,6 +123,46 @@ fn unchecked_configuration_and_contract_changes_cannot_initialize_an_available_b
             pulse::identity().host_id,
             pulse::identity().boot_id
         ),
-        Err(E::Contract)
+        Err(E::Source)
+    ));
+}
+
+#[test]
+fn cached_cadence_and_changed_expansion_cannot_initialize_current_software() {
+    use conduit_environment_runtime::appliance::software::ReadySoftwareBacks;
+    for change in 0..3 {
+        let mut source = compile(4, 3000).unwrap();
+        match change {
+            0 => source.count = 0,
+            1 => source.period_ms = 1,
+            _ => source.expanded.gears[0].gear_id = "changed/gear".into(),
+        }
+        assert!(matches!(
+            ReadySoftwareBacks::prepare(
+                &source,
+                pulse::identity().host_id,
+                pulse::identity().boot_id,
+            ),
+            Err(E::Source)
+        ));
+    }
+    let mut source = compile(1, 0).unwrap();
+    let gear = source
+        .expanded
+        .gears
+        .iter()
+        .find(|g| g.configuration.iter().any(|c| c.key == "program"))
+        .unwrap()
+        .gear_id
+        .clone();
+    source.expanded.gears[0].gear_id = "changed/gear".into();
+    assert!(matches!(
+        ReadySoftwareBacks::prepare_portable(
+            &source.expanded,
+            &[gear],
+            pulse::identity().host_id,
+            pulse::identity().boot_id,
+        ),
+        Err(E::Source)
     ));
 }
