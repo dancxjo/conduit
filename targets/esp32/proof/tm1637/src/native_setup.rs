@@ -21,6 +21,11 @@ impl NativeRoot {
             // one-submission diagnostic never overwrites or silently retries it.
             return b"refused";
         }
+        // Reserve both availability transitions before staging private input or
+        // transferring an owner. Never wrap into a previously advertised epoch.
+        let Some(selected_generation) = self.offer_generation.checked_add(2) else {
+            return b"offer-generation-exhausted";
+        };
         let configuration = {
             let Ok(mailbox) = self.credential_writer.try_lock() else {
                 return b"busy";
@@ -34,7 +39,7 @@ impl NativeRoot {
                 if self.network.prepare(&self.host, &self.boot).is_err() {
                     return b"refused";
                 }
-                self.offer_generation += 1;
+                self.offer_generation = selected_generation - 1;
                 // The retained provider changes the truthful offer generation.
                 // Preparation is fresh; old refusal/Plan material is discarded.
                 if self.prepare_network_plan().is_err() {
@@ -57,7 +62,7 @@ impl NativeRoot {
                     &mut self.issuer,
                 );
                 self.network.mark_selected();
-                self.offer_generation += 1;
+                self.offer_generation = selected_generation;
                 if result.is_err() {
                     return b"installation-refused";
                 }
