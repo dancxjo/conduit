@@ -16,6 +16,8 @@ pub mod publication;
 #[cfg(feature = "face-projection")]
 pub mod publication_face;
 pub mod recording;
+#[cfg(feature = "face-projection")]
+pub mod retained_publication_face;
 use alloc::{boxed::Box, string::String};
 use conduit_core::PortTemporal;
 use conduit_kernel::{
