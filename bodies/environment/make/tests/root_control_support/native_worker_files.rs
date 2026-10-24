@@ -155,89 +155,98 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     let generations = limit.div_ceil(per_generation);
     assert!(generations <= MAXIMUM_CATALOG_GENERATIONS);
     let period_ms = if overnight { 60_000 } else { 100 };
-    let mut sink = Sink {
-        input: PreparedRecordingInput::prepare(&contract).unwrap(),
-        owners: Vec::with_capacity(generations),
-        active: Vec::with_capacity(generations),
-        ready: &ready,
-        stop: &stop,
-        accepted: 0,
-        committed: 0,
-        limit,
-        per_generation,
-        period_ms,
-        cancel_after: !overnight,
-        failure: None,
-        refusal: None,
-        held: None,
-        wake: &wake,
-    };
-    let mut references = Vec::with_capacity(generations);
-    for index in 0..generations {
-        let chunk_samples = per_generation.min(limit - index * per_generation);
-        let mut reference = fixture::reference();
-        reference.extent.bytes =
-            PreparedRecordingSnapshot::content_bytes(context, &contract, chunk_samples).unwrap()
-                as u64;
-        reference.lifetime.version =
-            c::ResourceVersionIdentity::from_digest([(index + 1) as u8; 32]);
-        let mut generation = PreparedRecordingBatch::prepare(
-            context,
-            &contract,
-            chunk_samples as u64,
-            core::slice::from_ref(&reference),
-            1,
-            4096,
-        )
-        .unwrap()
-        .into_generations()
-        .pop();
-        let (plan, lowered) = fixture::plan(&reference);
-        let fragment = &plan.fragments[0];
-        let active =
-            c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
-        if refuse && index == 1 {
-            // A real pre-existing immutable generation, not an injected failure.
-            let mut occupied =
-                PreparedRecordingSnapshot::prepare(context, &contract, 1, &reference).unwrap();
-            occupied
-                .append(2, 200, RecordingDisposition::CaptureTimeout, None)
-                .unwrap();
-            conduit_linux_snapshot_store::PreparedFileSnapshot::prepare(
-                &directory,
-                &fragment.placements[0],
-                &reference,
-            )
-            .unwrap()
-            .publish(
-                &fragment.placements[0].authority[0],
-                occupied.seal().unwrap().as_bytes(),
-            )
-            .unwrap();
-        }
-        sink.owners.push(
-            PreparedFileRecordingPublication::prepare_streaming(
-                &directory,
-                fragment,
-                &lowered,
-                &active,
-                &mut generation,
-            )
-            .unwrap(),
-        );
-        assert!(generation.is_none());
-        sink.active.push(active);
-        references.push(reference);
-    }
-    let (outcome, memory) = allocation_probe::observe(|| {
-        let stopping = core::future::poll_fn(|_| {
+    let ((mut sink, references), preparation) =
+        allocation_probe::observe(|| {
+            let mut sink = Sink {
+                input: PreparedRecordingInput::prepare(&contract).unwrap(),
+                owners: Vec::with_capacity(generations),
+                active: Vec::with_capacity(generations),
+                ready: &ready,
+                stop: &stop,
+                accepted: 0,
+                committed: 0,
+                limit,
+                per_generation,
+                period_ms,
+                cancel_after: !overnight,
+                failure: None,
+                refusal: None,
+                held: None,
+                wake: &wake,
+            };
+            let mut references = Vec::with_capacity(generations);
+            for index in 0..generations {
+                let chunk_samples = per_generation.min(limit - index * per_generation);
+                let mut reference = fixture::reference();
+                reference.extent.bytes =
+                    PreparedRecordingSnapshot::content_bytes(context, &contract, chunk_samples)
+                        .unwrap() as u64;
+                reference.lifetime.version =
+                    c::ResourceVersionIdentity::from_digest([(index + 1) as u8; 32]);
+                let mut generation = PreparedRecordingBatch::prepare(
+                    context,
+                    &contract,
+                    chunk_samples as u64,
+                    core::slice::from_ref(&reference),
+                    1,
+                    4096,
+                )
+                .unwrap()
+                .into_generations()
+                .pop();
+                let (plan, lowered) = fixture::plan(&reference);
+                let fragment = &plan.fragments[0];
+                let active =
+                    c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
+                if refuse && index == 1 {
+                    // A real pre-existing immutable generation, not an injected failure.
+                    let mut occupied =
+                        PreparedRecordingSnapshot::prepare(context, &contract, 1, &reference)
+                            .unwrap();
+                    occupied
+                        .append(2, 200, RecordingDisposition::CaptureTimeout, None)
+                        .unwrap();
+                    conduit_linux_snapshot_store::PreparedFileSnapshot::prepare(
+                        &directory,
+                        &fragment.placements[0],
+                        &reference,
+                    )
+                    .unwrap()
+                    .publish(
+                        &fragment.placements[0].authority[0],
+                        occupied.seal().unwrap().as_bytes(),
+                    )
+                    .unwrap();
+                }
+                sink.owners.push(
+                    PreparedFileRecordingPublication::prepare_streaming(
+                        &directory,
+                        fragment,
+                        &lowered,
+                        &active,
+                        &mut generation,
+                    )
+                    .unwrap(),
+                );
+                assert!(generation.is_none());
+                sink.active.push(active);
+                references.push(reference);
+            }
+            (sink, references)
+        });
+    let stopping = || {
+        core::future::poll_fn(|_| {
             if stop.get() {
                 Poll::Ready(())
             } else {
                 Poll::Pending
             }
-        });
-        let mut future = core::pin::pin!(execution.run_with_sink(stopping, &mut sink));
+        })
+    };
+    let future_bytes = execution.sink_future_bytes(stopping(), &mut sink);
+    eprintln!("native_recorder_preparation_cpu samples={limit} generations={generations} refusal={refuse} peak_bytes={} retained_bytes={} sink_inline_bytes={} reference_table_inline_bytes={} worker_future_bytes={future_bytes}", preparation.peak_bytes, preparation.retained_bytes(), core::mem::size_of_val(&sink), core::mem::size_of_val(&references));
+    let (outcome, memory) = allocation_probe::observe(|| {
+        let mut future = core::pin::pin!(execution.run_with_sink(stopping(), &mut sink));
         for _ in 0..500 {
             assert!(future
                 .as_mut()
