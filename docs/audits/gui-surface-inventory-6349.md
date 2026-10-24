@@ -36,7 +36,7 @@ success. All distributed applications must carry the Lucide notice.
 | Browser owner participation (`handbook/owner-participation.mjs`) | Embedded Face inherits the shared renderer; Host/Body/Face headings, join, refresh, wardrobe inspection/policy, reading playback/status/stop, leave and evidence disclosures use fixed shared icons. Controls have 44px minima, visible focus, wrapping and narrow identity stacking. | Copy-public-key remains labeled text without a misleading substitute icon. These local operation mappings remain separate from owner-offered Face intents. Separate density/palette controls retain the acknowledged checked layout; typography selection remains preset-bound. |
 | Browser Patchbay shell (`patchbay-workbench/assets/index.html`) | Library, Inspect, Body, canvas navigation/zoom/fit controls | Cancel placement, linear-view toggle, exact facts disclosures and Plan/Play/route/Host/linear evidence headings now carry pinned symbols. The shell keeps its existing HTML size ceiling; inline geometry and CSS do not require image loading or a CDN. Drawer stacking, bottom docking and enlarged control reachability are now checked at 390px with 32px root text and forced colors. Narrow masthead/navigation now follows source order with measured non-overlapping bands. Product links and actual Fit activation pass at 390px / 32px forced-color text, with 320px captures as supporting evidence. Status, observation, run and workspace tools now occupy a measured footer outside the graph; the exact omitted-Cord notice is retained there. Twelve current HTML/furniture checks cover semantic identity, delivery loss, focus return and enlarged forced-color reachability. Broader authoring checks still fail and remain unaccepted; full zoom and dynamic graph/list controls need broader coverage. |
 | Browser Patchbay diagram and Gear palette | Existing accepted finite Gear icons; shell additions use pinned inline SVG | Nodes now lower canonical icon wire tokens through the shared pinned SVG path; Port and status/fault symbols use that same vocabulary. Source-bound documentary workbench checks retain keyboard Gear selection, pointer Port selection, unchanged Face under 390px/32px forced colors, and unknown-token text fallback. Direct Port selection now uses native buttons with complete names, server-derived pressed state and shared pointer/Enter/Space binding. Tab entry and exactly one request per keyboard activation pass at `ed9c3db6a`; 44 CSS-pixel row minima scale with the canvas. These captures do not establish a newly born live Body or native acceptance. |
-| Browser Handbook local content | Embedded Face uses the shared component | Audit local navigation/status/refusal controls before declaring ordinary-GUI coverage complete. |
+| Browser Handbook local content | Fixed local Wake/Lull, Patchbay, return, source download/inspection, Try, Body inspection, release/reset/retry and heading icons reuse the shared pinned renderer. Labels and native controls remain. | [Actual module recovery captures](evidence/gui-look-6349-handbook-chrome/README.md) pass wide and 390px/32px forced-color editing/download/disclosure, icon/target and no-overflow checks with an explicit opening refusal. This does not prove a live Handbook Body or actual storage failure. Dynamic status/refusal text remains explicit; broader successful-lifecycle coverage remains. |
 | Native Crèche (`native_face_scene/document`, checked Crèche recipe) | Body/Plot/collection/status headings, name/naming/search/suggestion/Birth intents; cream/navy or dark surfaces | Latest search/collection changes captured in normal-product QEMU at Source `dd5349718`, with chained fresh local Shows and unchanged Face revision. Checked card insets are retained at `6034b2c17`; 640×480 pointer/keyboard proof passes. Further hierarchy and native large-text/forced-color enactment remain. |
 | Native ordinary Face reader and Details | Shared role/intent icons, finite measured text, explicit facts and refusal text | Verify representative non-Crèche Body with same Look; do not count Crèche reuse alone as Todo/Patchbay acceptance. |
 | Native graph (`native_face_scene/diagram.rs`) | Exact Gear/Port/Cord geometry and labels; graph navigation preserves identities | Gear cards now use the shared Gear symbol within measured title boxes. Decoration consumes only residual commands after all prior cards/Port rows/notices/Cords, with a coherent text-only fallback for dense/small pages. Port rows now use measured spare width and residual commands for Plug symbols, with coherent text-only fallback. Cards use available viewport width, and shared hit/Cord geometry follows. Normal QEMU at `a161ac474` shows 4 Gear/7 Port symbols and all 3 Cords; native enlarged/forced-color/fallback and broader cross-component Look acceptance remain. The subsequent compositor custody collector refuses an ambiguous embedded ELF, so full graphical-profile acceptance remains open. |
@@ -97,3 +97,72 @@ Owner controls remain Todo-specific. The complete 66-subject domain fixture
 still refuses at the carrier bound; it is not trimmed for positive proof.
 Arbitrary external Source, live owner-selected Patchbay and native QEMU remain
 outside this evidence.
+
+## Fresh native Source 92598cefd
+
+[Actual current Crèche and diagram captures](evidence/gui-look-6349-current-native/README.md)
+now bind 22 QMP PNG hashes to a fresh normal product Root/ISO. Four local Look
+swaps preserve the complete Face, component, recipe and layout. All current
+presets are typographically Editorial; legacy engineering filenames describe
+Phosphor palette captures. [The reference comparison](creche-reference-comparison-6174.md)
+now uses this actual Source and records remaining visual differences.
+
+The image builds after narrowly updating standalone guest locks and fitting the
+Application executable inside its unchanged image window. The journey then
+fails at a later Patchbay prepare-target operation with Application WorkExhausted.
+No full journey or compositor-lifecycle receipt follows; current narrow/forced/
+200% native proof and actual Engineering selection remain open. This supersedes
+neither the older Source receipts nor the original parent acceptance scope.
+
+## Native typography selection follow-up
+
+Crèche now has an independent local Engineering typography choice (F8), beside
+F6 density and F7 palette. Each combination selects another complete canonical
+Look through a reviewed Source root; it does not patch a prepared expression.
+The same admitted Host fonts measure and paint the replacement before the old
+Show retires. Other product states retain their existing F8 action binding.
+
+The focused actual Source/offer test covers both Crèche structures and all four
+density/palette combinations: component, recipe, layout, renderer and paint
+remain identical across typography choices, while the Look and plan differ.
+Actual native switching and retained-draft submission pass the focused CPU test
+([logs](evidence/gui-look-6349-handbook-chrome/README.md)); [actual QEMU evidence](evidence/gui-look-6349-native-engineering/README.md) now
+passes the ten-transition Look matrix at Source e34b12788. The full journey
+still fails during Plan with Application WorkExhausted; no later diagram/editor
+receipts follow for this Source. The source-specific older evidence above remains
+unchanged. The failed speed-optimized decoder experiment is retained separately
+in [its negative record](evidence/gui-look-6349-native-decoder-experiment/README.md)
+and was reverted; it did not fix Application WorkExhausted.
+
+## Fresh native Engineering Source e34b12788
+
+[The actual 1280×800 captures and scoped receipt](evidence/gui-look-6349-native-engineering/README.md)
+prove independent Editorial/Engineering typography, paper/dark palette and
+compact/spacious density on the complete unchanged Crèche Face and checked
+component/recipe/layout. F8 selects the already pinned Sans title; F6/F7 retain
+that typography choice while changing the other axes. All ten transitions use
+fresh chained locally acknowledged Shows, no Body action and no fallback.
+The browser's cool Engineering preset is separate paint; these native captures
+show Engineering typography over the existing paper and Phosphor palettes.
+
+The full native journey again fails Application PrepareTarget during Plan,
+before editor/Patchbay/Stop. Narrow/200%/forced-color local Crèche, complete
+continuation reachability, the closer navy reference, and original parent
+acceptance remain open. The earlier source-specific records above are retained.
+
+## Local Crèche user constraints follow-up
+
+The local Crèche now accepts F9 for a 100%/200% user minimum and F10 for forced
+colors, independently of F6 density, F7 palette and F8 typography. User constraints
+are applied through the existing Host admission path. Clearing the 200% minimum
+reveals the requested Look scale (125% for spacious), rather than mutating the
+Look to 100%. Each replacement retains Face/actions and uses a fresh local Show;
+F9/F10 retain the same selected Mask Plan and admitted resources.
+
+The focused 640×480 CPU interaction case passes eighteen replacements, including
+200%, forced colors, palette/type/density changes, override clearing and current-
+Show draft submission, without layout fallback. The supported native controls
+proof adds an accessibility scenario for long Unicode input and two actual
+Looks, full primary control cycles/pages, pointer focus and incomplete-input
+refusal. Its QEMU execution/captures are pending; it does not attempt Body startup
+or claim complete Details, all unavailable controls, physical or human proof.

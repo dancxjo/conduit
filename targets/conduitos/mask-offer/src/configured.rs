@@ -108,10 +108,25 @@ pub fn prepare_selected_creche_stage_from_offer(
     recipe: CrecheComponentRecipe,
     selection: ComponentVisualSelection,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    prepare_typographic_creche_stage_from_offer(
+        host,
+        recipe,
+        selection,
+        VisualTypography::Editorial,
+    )
+}
+
+/// Admit a complete canonical Look before publishing new typography/hit regions.
+pub fn prepare_typographic_creche_stage_from_offer(
+    host: &HostAdvertisement,
+    recipe: CrecheComponentRecipe,
+    selection: ComponentVisualSelection,
+    typography: VisualTypography,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
     layout_configured::prepare_offered_component_document(
         host,
         (CRECHE_COMPONENT_MASK_SOURCE, CRECHE_LAYOUT_MASK_SOURCE),
-        selection.creche_root(recipe),
+        selection.creche_root_with_typography(recipe, typography),
         NativeMaskStorageProfile::Standard,
     )
 }
@@ -302,6 +317,7 @@ pub(super) fn prepare_renderer_document(
 
 #[cfg(test)]
 mod tests {
+    mod typography;
     use super::*;
     use conduit_plot::rust_binding::NativeRustBinding;
     fn host() -> HostAdvertisement {

@@ -5,11 +5,11 @@
 .handbook-application button:disabled { opacity: .5; cursor: default; }
 .handbook-application [data-try] { background: var(--conduit-emphasis); color: var(--conduit-background); font-weight: 700; }
 .handbook-application label { display: block; margin: 1rem 0 .4rem; }
-.handbook-application textarea { width: 100%; min-height: 18rem; resize: vertical; }
+.handbook-application textarea { width: 100%; min-height: 18rem; resize: vertical; font: 1rem/1.5 var(--conduit-font-mono,monospace); }
 .handbook-application .syntax-editor { max-height: 32rem; }
 .handbook-show { min-height: 10rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; padding: 1rem; margin: 1.5rem 0; background: var(--conduit-background); overflow: auto; }
 .handbook-show:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 3px; }
-.handbook-application pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.handbook-application pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 1rem/1.5 var(--conduit-font-mono,monospace); }
 .handbook-application [data-refused] { color: var(--conduit-text-primary); border-left: 3px solid var(--conduit-emphasis); padding-left: 1rem; }
 .handbook-application [data-lesson] { max-width: 70ch; }
 .handbook-application [hidden] { display: none !important; }
@@ -115,3 +115,12 @@
 .owner-participation .owner-wardrobe{padding:clamp(1rem,2vw,1.5rem)}
 @media(max-width:600px){.owner-participation .owner-identity{grid-template-columns:minmax(0,1fr);gap:.35rem}.owner-participation .owner-identity dd{margin-bottom:1rem}}
 @media(forced-colors:active){.owner-participation button,.owner-participation input{background:Canvas;color:CanvasText;border-color:CanvasText}.owner-participation button:disabled{color:GrayText;opacity:1}}
+
+/* Local Handbook chrome shares the pinned vocabulary and keeps complete labels. */
+.handbook-application,.handbook-application *{box-sizing:border-box}
+.handbook-application{min-width:0;overflow-wrap:anywhere}
+.handbook-application>.handbook-controls button,.handbook-application>button,.handbook-application>details button{min-width:44px;min-height:44px;max-width:100%;text-align:start;white-space:normal;line-height:1.4}
+.handbook-application>label select{min-width:0;max-width:100%;min-height:44px;width:100%;white-space:normal}
+.handbook-application>details>summary{min-height:44px;padding-block:10px;cursor:pointer}
+.handbook-application .owner-face-icon{width:1em;height:1em;vertical-align:-.15em;margin-inline-end:.5em;pointer-events:none}
+.handbook-application :is(button,select,textarea,summary):focus-visible{outline:3px solid var(--conduit-focus,Highlight);outline-offset:3px}

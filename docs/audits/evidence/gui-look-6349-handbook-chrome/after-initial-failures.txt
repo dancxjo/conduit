@@ -1,0 +1,2 @@
+Initial target-height assertion included buttons in a closed native details disclosure, which correctly had zero rendered height. No after PNG/receipt was accepted. The corrected test opens that disclosure with native keyboard input before measuring all controls, then closes it to retain matching screenshot state.
+The next assertion caught an implementation omission: Retry requested unknown key Repeat and remained correctly text-only. Replaced it with the existing pinned Repeat2 key before the accepted run.

@@ -1,0 +1,362 @@
+{
+  "source": "92598cefd9a14ff50371b63df41273b4b28294ac",
+  "image_sha256": "f69a8dd558a8f54774e63df820ce8f75bd2c7d18d821a0b6b7ed290d3892e5b0",
+  "kernel_sha256": "7550b46b2512f4886dbfbe9f5b93bbcc0e346c5698cb2ec42c5dfd53b6dc64af",
+  "guest_elf_bytes": 29232,
+  "guest_elf_sha256": "cf5d3f33f1b061d7e3bc47b512edd1e5f89248962a29e42b3513b5c44baaa0bf",
+  "structural_embedded_image_extraction": true,
+  "qmp_png_hashes_verified": 22,
+  "full_journey_completed": false,
+  "compositor_lifecycle_collected": false,
+  "headless_asset_tail_started": false,
+  "failure": "patchbay-action-timeout with application Commit/prepare-target WorkExhausted",
+  "physical_evidence": false,
+  "human_enactment": false,
+  "archives": {
+    "journey-serial.log": {
+      "bytes": 2441069,
+      "sha256": "86350d80a61ad8304052c7961ad3e661fbba106402bf07ce24ae09270552d505",
+      "archive": "journey-serial.log.gz",
+      "archive_sha256": "07aefcba2edb53c1d0135c1e0530ce5ea35f293fae9e1bfc5406e187818bd614"
+    },
+    "journey-qmp.log": {
+      "bytes": 187606,
+      "sha256": "c780c5f91e243361a88eec334f1304f11ba7d0184604915f2666175a08b7e920",
+      "archive": "journey-qmp.log.gz",
+      "archive_sha256": "a475c2a49f5fff022993208a3b06a38fd61ce47d5a554da9545ab560955e8dee"
+    },
+    "initial-stale-lock-build.log": {
+      "bytes": 39627,
+      "sha256": "1cf27e5d49aed729f686cc6c4d1aca52548c65062aa1faffeff09ca01f783785",
+      "archive": "initial-stale-lock-build.log.gz",
+      "archive_sha256": "b9147691cfb3c42c097f633bd3b85f0a8fe301a3c3e4a7a9a3a5df5dd97f35c7"
+    },
+    "initial-application-window-build.log": {
+      "bytes": 28923,
+      "sha256": "7839e857182be78bdd78f8c6cedd27074a7f85558077f7416b0b924750bc4940",
+      "archive": "initial-application-window-build.log.gz",
+      "archive_sha256": "2d8e59403647cb22271e036cda86f46ebc4d24e227f5a3338239cdcf955b6672"
+    },
+    "native-profile.log": {
+      "bytes": 25417,
+      "sha256": "7d86561fa1adddd14a9d7e204fbfcf07d24283d5dbe466fe1c12df5867f64767",
+      "archive": "native-profile.log.gz",
+      "archive_sha256": "d0266fb0ef84ba1bd02038eb12e2ed7f0c5d7e74ed14117ac51301dc21070bef"
+    },
+    "journey-frames/manifest.json": {
+      "bytes": 357589,
+      "sha256": "34a47ac5450bc3d949226e4adc09a9f7372b79962bffa1eb1a09dd19024e4840",
+      "archive": "journey-frames/manifest.json.gz",
+      "archive_sha256": "b02a9ffd0a5fe2c8217b5d2a1a7222685f73b006284ed88fbd593ca49eaf45ec"
+    }
+  },
+  "captures": [
+    {
+      "checkpoint": "front-door-ready",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+      "png": "front-door-ready.png",
+      "png_bytes": 49977,
+      "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-ready",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "cb7cdd58e708bfc6aa16c7311fc9af651405a2756ddf9a00281fcdbbd0cb3404",
+      "png": "creche-ready.png",
+      "png_bytes": 160074,
+      "png_sha256": "5141c6aae4fdc50debe21269c896de385f5b78d849d083c7c1ee57297be4c5d4",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-editorial-compact",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "37a9057abd1832f4bdf41d1250e69f570cd641d5db483b86beebe9f206e6b595",
+      "png": "creche-editorial-compact.png",
+      "png_bytes": 171464,
+      "png_sha256": "247b197ef0b419c07d67e3da791288c6ae2529d0692fd05be12073dc18db53e9",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-editorial-spacious",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "351e3e9fef0b2c91c88495568aa70f5dc0a9632070e5f2215ece969626fb8344",
+      "png": "creche-editorial-spacious.png",
+      "png_bytes": 148217,
+      "png_sha256": "0a46f9936c3fe0db7efeb1c1322fd7bb957556e4955696eab4e8593fa2f1e3d9",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-engineering-spacious",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "56da917633f1a3efec8ca388aab1cbf73efcf47b01ee39c0375ec94ff2aeb368",
+      "png": "creche-engineering-spacious.png",
+      "png_bytes": 140372,
+      "png_sha256": "18a7eea6196e7c7c96c03ad8287cc9c72eb5f0780f42025b9275cd45db6e404b",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-engineering-compact",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "cb7cdd58e708bfc6aa16c7311fc9af651405a2756ddf9a00281fcdbbd0cb3404",
+      "png": "creche-engineering-compact.png",
+      "png_bytes": 160074,
+      "png_sha256": "5141c6aae4fdc50debe21269c896de385f5b78d849d083c7c1ee57297be4c5d4",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-three-selected",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "03a4c0b509b43e0013ed809de1c266ca31489c36ef67066e258757b2a61e4010",
+      "png": "creche-three-selected.png",
+      "png_bytes": 160157,
+      "png_sha256": "984967fdfef5dce72744b6aa0d825cc409277fe3bce0efb8385a62d96ef14846",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-four-restored",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "276f1df937b3f48f336eba282d3099a69531502844363b22a1e8743b177b78ad",
+      "png": "creche-four-restored.png",
+      "png_bytes": 160062,
+      "png_sha256": "ef9ec5a6cefc6d6eee2ad3211ae839abe516a23fb0b194df553a5f08dcf7c1e0",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-fourth-checked",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "9c2e2d02e7f2b718312abb9da9aac0ea47e53dca90de7a6090f4459431f0bab2",
+      "png": "creche-fourth-checked.png",
+      "png_bytes": 160060,
+      "png_sha256": "9a371720d5413895588c4ffc6a238ba5c5efab932507fabfa4657cf976642dc0",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-pointer-three-selected",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "b12c6f88d5007f57d354766f11c0634c7647a84e99bf82ca071c55c42b0cf380",
+      "png": "creche-pointer-three-selected.png",
+      "png_bytes": 160175,
+      "png_sha256": "cb32f2030bc6026d33e7a16fecac34cbf6e45c2e096e3032a8afb04d3bf1c41e",
+      "width": 1280
+    },
+    {
+      "checkpoint": "creche-pointer-four-restored",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "98a9d540d38bc6aa8d2e48219becfcc23786cc701f90e34f3055a537ff92338b",
+      "png": "creche-pointer-four-restored.png",
+      "png_bytes": 160081,
+      "png_sha256": "a2b7d5f1b97c8682eb1d50a05f2bfdd135ba3fbc573c45ea929dfbd76de6e598",
+      "width": 1280
+    },
+    {
+      "checkpoint": "body-playing",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "833688ecaf7df62c2a69c5f3537fece637b8fb20cf8ae8a7f02a08886fd99ba2",
+      "png": "body-playing.png",
+      "png_bytes": 69830,
+      "png_sha256": "85785150e03a04f8d26626b25424fb216ae8af00b54a98cd3942f93ab16f7d13",
+      "width": 1280
+    },
+    {
+      "checkpoint": "wake-refused",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "88956308f48e8dee1d195da75cea96c33fae3e3383b567aaca5dc93b03469af6",
+      "png": "wake-refused.png",
+      "png_bytes": 129107,
+      "png_sha256": "85c7b5c914efffef530a6648c1423cef4d256f6495bbb72d3c38fa70cee753a6",
+      "width": 1280
+    },
+    {
+      "checkpoint": "protected-keyboard-canvas",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "fd3cd6a825a95ae7207a63955d0bbf0de5f3e75ee9ec9443879de5ea247d4087",
+      "png": "protected-keyboard-canvas.png",
+      "png_bytes": 71411,
+      "png_sha256": "6d64779a85178c93b2c5afd9be3916fb5d32ab7bf14267d622b26c8f10ae9db1",
+      "width": 1280
+    },
+    {
+      "checkpoint": "protected-memory-lantern",
+      "height": 800,
+      "non_background_pixels": 1016002,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "762265f5291c80fc7ff8525ed1018c3c7742b661bcd084e8d6b979df834eac09",
+      "png": "protected-memory-lantern.png",
+      "png_bytes": 64162,
+      "png_sha256": "38d6578925f7c6113de976467a10d6b60dbd9ab2086a3fc346f404b1545d410d",
+      "width": 1280
+    },
+    {
+      "checkpoint": "home",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "833688ecaf7df62c2a69c5f3537fece637b8fb20cf8ae8a7f02a08886fd99ba2",
+      "png": "home.png",
+      "png_bytes": 69830,
+      "png_sha256": "85785150e03a04f8d26626b25424fb216ae8af00b54a98cd3942f93ab16f7d13",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-workspace",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "a2fd7da31168ebbe57a618918442f9187eb28024eb70bd719c4b17aa74126dff",
+      "png": "patchbay-workspace.png",
+      "png_bytes": 159477,
+      "png_sha256": "3bffcf99fd22c101bceddbf730eda47d63bfae57252697ab352bef36cb6133f5",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-face",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "a2fd7da31168ebbe57a618918442f9187eb28024eb70bd719c4b17aa74126dff",
+      "png": "patchbay-face.png",
+      "png_bytes": 159477,
+      "png_sha256": "3bffcf99fd22c101bceddbf730eda47d63bfae57252697ab352bef36cb6133f5",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-diagram",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "7ae2ae22062d1b06368bd2e166dd355116dcdcd91e64ceb5af611195c1b53bd3",
+      "png": "patchbay-diagram.png",
+      "png_bytes": 163310,
+      "png_sha256": "ebf03476d449126c363c788c083e7583f7f1d580a323091ff16a8f10929d4b27",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-gear-details",
+      "height": 800,
+      "non_background_pixels": 1017362,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "0312062e894abe9203c4a61d397301498f417caad2a015c86a215e5866e47ff0",
+      "png": "patchbay-gear-details.png",
+      "png_bytes": 244399,
+      "png_sha256": "1d5e416b4aef9d2b220e544858e8eae164a29a0c13998ebf785247fd08adb5a2",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-diagram-returned",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "b3cf0da224bc66578bfd185d74ca8f9d8b0901913aaf3a6c0be9c2a18e7c58a3",
+      "png": "patchbay-diagram-returned.png",
+      "png_bytes": 162975,
+      "png_sha256": "6e0970436169662b72cb4afa50d61735bd752182f98f4fa40f12a3696770effd",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-inspected-other-and-returned",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "a2fd7da31168ebbe57a618918442f9187eb28024eb70bd719c4b17aa74126dff",
+      "png": "patchbay-inspected-other-and-returned.png",
+      "png_bytes": 159477,
+      "png_sha256": "3bffcf99fd22c101bceddbf730eda47d63bfae57252697ab352bef36cb6133f5",
+      "width": 1280
+    }
+  ],
+  "capture_status": "failed",
+  "capture_failure": {
+    "detail": "no complete guest record for patchbay-action",
+    "reason": "patchbay-action-timeout"
+  },
+  "capture_context": {
+    "capture_contract": {
+      "maximum_checkpoints": 30
+    },
+    "graphical_profile": {
+      "code": "DejaVu Sans Mono",
+      "fallback": "pinned Unifont",
+      "primary": "DejaVu Sans",
+      "primitive": false,
+      "profile": "conduitos/graphical/dejavu-v1"
+    },
+    "image_sha256": "f69a8dd558a8f54774e63df820ce8f75bd2c7d18d821a0b6b7ed290d3892e5b0",
+    "process_stop": {
+      "cause": "harness-stop-after-failure",
+      "code": null,
+      "status": "signal: 9 (SIGKILL)"
+    },
+    "qemu_argv": [
+      "-M",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "512M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-vga",
+      "std",
+      "-monitor",
+      "none",
+      "-qmp",
+      "unix:/tmp/cj-867588.sock,server=on,wait=off",
+      "-serial",
+      "file:/tmp/c6349-gui/native-current-sized/x86_64/journey-serial.log",
+      "-no-reboot",
+      "-net",
+      "none",
+      "-device",
+      "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+      "-device",
+      "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+      "-device",
+      "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+      "-cdrom",
+      "/home/dancxjo/Documents/Codex/2026-10-23/are-there-any-conduit-gh-issues/work/gui-pr-update/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "-boot",
+      "d"
+    ],
+    "source_commit": "92598cefd9a14ff50371b63df41273b4b28294ac",
+    "visual_contract": {
+      "display": "std-vga",
+      "dynamic_identity_pixels": "allowed",
+      "height": 800,
+      "minimum_non_background_pixels": 64,
+      "mode": "invariant",
+      "width": 1280
+    }
+  }
+}
