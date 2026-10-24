@@ -24,7 +24,11 @@ pub(super) fn validate_input(
     bytes: &[u8],
     profile: QuantityValueProfile,
 ) -> Result<(), Refusal> {
-    if crate::expression_quantity::is_quantity(kind) {
+    if kind == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+        conduit_core::BoundedResourceRef::validate_encoded(bytes)
+            .map(|_| ())
+            .map_err(|_| Refusal::InvalidInput)
+    } else if crate::expression_quantity::is_quantity(kind) {
         validate_quantity(kind, bytes, profile)
     } else {
         conduit_core::validate_primitive_info(kind, bytes).map_err(|_| Refusal::InvalidInput)

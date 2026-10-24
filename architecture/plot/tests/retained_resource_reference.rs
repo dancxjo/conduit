@@ -92,3 +92,53 @@ fn optional_resource_reference_bound_uses_canonical_framing_and_the_reference_co
     let refused = expand(Some(*maximum - 1)).unwrap_err();
     assert!(refused.message.contains("admitted value envelope"));
 }
+
+#[path = "common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
+#[test]
+fn prepared_optional_reference_preserves_type_validates_encoding_and_allocates_nothing() {
+    let source = "plot wrap (\n >> reference: ResourceRef\n selected: ResourceRef? >>\n) {\n reference >> (some(.)) >> selected\n}\n";
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert_value_kind_alias("ResourceRef", c::kind_id(c::RESOURCE_REFERENCE_INFO_ID))
+        .unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let plot =
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "wrap", &ProfileCatalog::new())
+            .unwrap();
+    let c::ConfigurationValue::Text(program) = &plot.expanded.gears[0].configuration[0].value
+    else {
+        panic!("program")
+    };
+    let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(program).unwrap();
+    let reference = c::BoundedResourceRef {
+        identity: c::ResourceSemanticIdentity::from_digest([1; 32]),
+        content_profile: "text/json-utf8@1".into(),
+        access_class: "resource/snapshot@1".into(),
+        extent: c::ResourceExtent {
+            bytes: 4096,
+            items: Some(1),
+        },
+        lifetime: c::ResourceLifetime {
+            version: c::ResourceVersionIdentity::from_digest([2; 32]),
+            expires_at: None,
+        },
+    };
+    let encoded = reference.encode().unwrap();
+    let expected = program.evaluate(&encoded).unwrap();
+    let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    assert!(prepared.output_capacity() < 1024);
+    let mut invalid = encoded.clone();
+    invalid[0] = 0;
+    let (_, memory) = allocation_probe::observe(|| {
+        for _ in 0..64 {
+            assert_eq!(prepared.evaluate(&encoded).unwrap(), expected);
+        }
+        assert!(prepared.evaluate(&invalid).is_err());
+        assert!(prepared.evaluate(&encoded[..encoded.len() - 1]).is_err());
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}
