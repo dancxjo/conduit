@@ -64,9 +64,11 @@ fn actual_owner_receipts_replay_all_four_gesture_source_programs_through_std_ker
             .iter()
             .filter(|e| e.program_hex() == hex)
             .collect::<Vec<_>>();
-        assert!(
-            !matching.is_empty(),
-            "{operation}: exact owner program identity must match, not merely shape"
+        let expected = gestures.phones().len() * if operation == "curve" { 4 } else { 1 };
+        assert_eq!(
+            matching.len(),
+            expected,
+            "{operation}: replay every exact owner request, not merely a matching shape"
         );
         let mut host = StdHost::new_with_composition(
             StdHostConfig {
@@ -93,6 +95,7 @@ fn actual_owner_receipts_replay_all_four_gesture_source_programs_through_std_ker
                 .unwrap();
         assert!(gear.accepts_realization(&offer));
         let mut advertisement = host.advertisement().clone();
+        let selected_offer = offer.capability_id.clone();
         advertisement.capabilities.push(offer);
         advertisement
             .capabilities
@@ -144,6 +147,13 @@ fn actual_owner_receipts_replay_all_four_gesture_source_programs_through_std_ker
         )
         .unwrap();
         assert!(verify_plan(&plan));
+        eprintln!(
+            "G2-kernel operation={operation} requests={} program-kind={} offer={} plan={:?}",
+            matching.len(),
+            gear.kind_id.as_str(),
+            selected_offer.as_str(),
+            plan.plan_id
+        );
         // Every exact retained input is replayed, including all three distinct
         // formants and energy via the one curve program. No detached caller tape.
         for retained in matching {
