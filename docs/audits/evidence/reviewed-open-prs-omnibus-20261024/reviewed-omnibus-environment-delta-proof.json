@@ -1,0 +1,346 @@
+{
+  "source": "1cf7f4e7de59240a5d84fd736557d06664811dda",
+  "tree": "b644542f9749f8b592c1cb345a151e8a16689e8f",
+  "steps": [
+    {
+      "name": "format",
+      "argv": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "start": 1792863142.9037573,
+      "end": 1792863155.0298207,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-environment-delta-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_running_executables": [],
+      "nonfile_running_mentions": [],
+      "test_summaries": [],
+      "clean_after": true
+    },
+    {
+      "name": "external-format",
+      "argv": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--check"
+      ],
+      "start": 1792863155.0581682,
+      "end": 1792863155.210415,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-environment-delta-external-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_running_executables": [],
+      "nonfile_running_mentions": [],
+      "test_summaries": [],
+      "clean_after": true
+    },
+    {
+      "name": "core",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-core",
+        "--lib"
+      ],
+      "start": 1792863155.2425566,
+      "end": 1792863161.6828158,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-environment-delta-core.log",
+      "log_sha256": "6caacf440538c89738bb345701fe1ebfad58169183947db13cfb2694eaf99968",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_core-2d963ea395a1d2ff",
+          "bytes": 12316808,
+          "sha256": "2fe384c2475e7934e95bd43af0d725f7aec60422d081875f73233078b81c2037"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 116 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "constructor-projection",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "prepared_fixed_projection",
+        "--test",
+        "prepared_structured_tape",
+        "--test",
+        "prepared_literal_children",
+        "--test",
+        "prepared_structured_payload",
+        "--test",
+        "prepared_expression_scratch_bounds",
+        "--test",
+        "bme280_lifecycle",
+        "--test",
+        "device_frames",
+        "--",
+        "--nocapture"
+      ],
+      "start": 1792863161.705119,
+      "end": 1792863199.860958,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-environment-delta-constructor-projection.log",
+      "log_sha256": "e885e61c19c7af8cc7cc982d1d633075003a99454ffc9c38c1088c561907226d",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/bme280_lifecycle-9071bbdecd795acf",
+          "bytes": 19565632,
+          "sha256": "8d7f0a3afd7b16ef3a6d0c2bd03dbafb46ee36be193e6c0d5bde037f1d8fe0de"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/device_frames-c1614bcac15843bf",
+          "bytes": 19363672,
+          "sha256": "29678f6d0669575da1c2addeb9232203d6fb33afc899c4926db59a9b1e02dc63"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_expression_scratch_bounds-e9784b97ef2b41da",
+          "bytes": 4597848,
+          "sha256": "f2cb7c95085ba561d74e567cfe40a9dd17e3c7237b2b8ba4e6f08517dab45ba2"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_fixed_projection-b3b7ed7ad44c8f2b",
+          "bytes": 4635640,
+          "sha256": "cf47a96cd968bef9e91e08a07a619f30247a1ff287b3e561e1c2911710901536"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_literal_children-9efe672c99d4b72a",
+          "bytes": 19380736,
+          "sha256": "ba611c850f09e5cf3676d0aa8098a01149cc186792a09aaed48302fc5e7f5d84"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_structured_payload-cee82e2f27ab4172",
+          "bytes": 19340304,
+          "sha256": "881390a9b95df3cd99ef509b4f116e75823138222904866176bd69ff0c512760"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_structured_tape-39afeda27e03c85b",
+          "bytes": 19360696,
+          "sha256": "bd7876b21f82bc323aa33628f8b67c65e3fef929d943b2b38a0ea46a9545d15c"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.17s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.07s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.65s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "environment-retained-face",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "prove",
+        "environment",
+        "face-publication"
+      ],
+      "start": 1792863199.8832343,
+      "end": 1792863512.644401,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-environment-delta-environment-retained-face.log",
+      "log_sha256": "6df6ab51cf3dca402458795cf3c172a270aeee36a70233f6ce044c9f5bc2c11e",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/canonical_input-6b093038c68738b5",
+          "bytes": 1942648,
+          "sha256": "ab4ff5d42c48c5fd20e51dab29f3e7df4807a5eaeb12e444ca7501b50446f0fb"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/publication-2e54729d45ef04de",
+          "bytes": 5467616,
+          "sha256": "f3fef18103f82235d6a969ab8c04d222f62abd29f3a210bc78af7e957c575a22"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/publication_face_custody-20681efa5f2eca50",
+          "bytes": 8361152,
+          "sha256": "70de4b729616636d1ddadb14828a46d19e22b7018a86002d875080872de0d134"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/publication_validation-ada20dd0b013cc2c",
+          "bytes": 7506624,
+          "sha256": "40e9229543aa5d2371c0b0cab3bd957602ff1fa2019830500cf9741a9602b996"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/retained_publication_face-3e7f70323a8fe37a",
+          "bytes": 8307248,
+          "sha256": "877c268d61e22bf44500870e88bf39a8cd1fd021c69b2b1a9d159e372d8602ef"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_seven_segment_mask-50034a1f32278f3b",
+          "bytes": 1079712,
+          "sha256": "2115d9741b1fc096000bb942b4be2f220342320a8c8b6cb59f301c5d34eeb42d"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/look-cd707e35014a70c7",
+          "bytes": 20724592,
+          "sha256": "ab17667832c8b7f90177b6cc61e08f07a4fbe8381338d846658f68258dadef92"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/mask-b3751f5d9f81d9ba",
+          "bytes": 5197704,
+          "sha256": "7a3466b1206bc8e450f6bcc73e3b56fb7facb5f3f2bcdcd72a6764482adff5c3"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/plot-b00aa7c3f4b4149b",
+          "bytes": 21127776,
+          "sha256": "fae89bc06eb069c54202fd8a9664bd72b722e20ef807d08c20964733d6a20294"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_show-a07be314413891ad",
+          "bytes": 4965512,
+          "sha256": "4ebb54d51f4a713df165f45e52097361d245d58aa5061679b1a54ee16619d68b"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/protocol-574f7fddba43657f",
+          "bytes": 19366480,
+          "sha256": "9fbeeffadf3183bb22ffee5f45eda747f313be360890e6111d76151e68410d77"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s",
+        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "owning-strict",
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-core",
+        "-p",
+        "conduit-plot",
+        "-p",
+        "conduit-planner",
+        "-p",
+        "conduit-semantic-catalog",
+        "-p",
+        "conduit-std-host",
+        "-p",
+        "conduit-face",
+        "-p",
+        "conduit-browser-mask-offer",
+        "-p",
+        "conduit-browser-runtime",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "start": 1792863512.6684515,
+      "end": 1792863697.832333,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-environment-delta-owning-strict.log",
+      "log_sha256": "8dbc48f0cd1a194ce7524f9a18f1a927067659841bcb73034cbfbf84b2f50b25",
+      "actual_running_executables": [],
+      "nonfile_running_mentions": [],
+      "test_summaries": [],
+      "clean_after": true
+    },
+    {
+      "name": "cli-compile",
+      "argv": [
+        "cargo",
+        "+stable",
+        "check",
+        "--locked",
+        "-p",
+        "conduit",
+        "--bin",
+        "conduit"
+      ],
+      "start": 1792863697.8594003,
+      "end": 1792863906.668438,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-environment-delta-cli-compile.log",
+      "log_sha256": "8b204ca2c35c739fb80f6e9805be6de6637d4798cd4592a3740f0d7165bcab88",
+      "actual_running_executables": [],
+      "nonfile_running_mentions": [],
+      "test_summaries": [],
+      "clean_after": true
+    },
+    {
+      "name": "sdk-node",
+      "argv": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "targets/browser/sdk/browser-sdk-body-face.test.mjs",
+        "targets/browser/sdk/browser-sdk-continuity.test.mjs",
+        "targets/browser/sdk/browser-sdk-errors.test.mjs",
+        "targets/browser/sdk/browser-sdk-events.test.mjs",
+        "targets/browser/sdk/browser-sdk-face-actions.test.mjs",
+        "targets/browser/sdk/browser-sdk-face.test.mjs",
+        "targets/browser/sdk/browser-sdk-owner-show-state.test.mjs",
+        "targets/browser/sdk/browser-sdk-owner-show.test.mjs",
+        "targets/browser/sdk/browser-sdk-patchbay.test.mjs",
+        "targets/browser/sdk/browser-sdk-plots.test.mjs",
+        "targets/browser/sdk/browser-sdk-syntax.test.mjs",
+        "targets/browser/sdk/browser-sdk-wardrobe.test.mjs",
+        "targets/browser/sdk/package-browser-bundle.test.mjs"
+      ],
+      "start": 1792863906.701911,
+      "end": 1792863911.4066293,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-environment-delta-sdk-node.log",
+      "log_sha256": "365f32c5b41470647fba085b38a4d2479e3afb009b6e79bcb31b12349fa39c1f",
+      "node": {
+        "path": "/home/linuxbrew/.linuxbrew/bin/node",
+        "version": "v25.9.0",
+        "sha256": "446ae94fa7a47882d568a4923d1b3a42c40e0cfaadec7f7873d514f18408ce83"
+      },
+      "tap_summary": [
+        "# tests 113",
+        "# pass 113",
+        "# fail 0",
+        "# skipped 0",
+        "# todo 0",
+        "# duration_ms 4626.06325"
+      ]
+    }
+  ],
+  "status": "passed",
+  "scope": "Current combined-source delta lane executes Core, constructor/projection, full supported external environment plus standalone Mask and custody docs, owning library strict checks, CLI compile and SDK Node. Prior6eb actual native/Quantity/planner/Source-law proofs retain6eb Source labels; they are not relabeled as current combined-source execution. No browser/QEMU/physical or accepted Integration claim.",
+  "clean_after": true
+}

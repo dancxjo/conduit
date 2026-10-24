@@ -1,0 +1,604 @@
+{
+  "source": "6eb36f67d3057346061e69b70ed20fa3f801d965",
+  "tree": "3a0af5dbe63857a72a9f4ab9b529589fa054da5d",
+  "steps": [
+    {
+      "name": "format",
+      "argv": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "start": 1792860026.9113142,
+      "end": 1792860039.4615464,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_running_executables": [],
+      "nonfile_running_mentions": [],
+      "test_summaries": [],
+      "clean_after": true
+    },
+    {
+      "name": "external-format",
+      "argv": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--check"
+      ],
+      "start": 1792860039.5044782,
+      "end": 1792860039.6703906,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-external-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_running_executables": [],
+      "nonfile_running_mentions": [],
+      "test_summaries": [],
+      "clean_after": true
+    },
+    {
+      "name": "core",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-core",
+        "--lib"
+      ],
+      "start": 1792860039.6952956,
+      "end": 1792860039.9452438,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-core.log",
+      "log_sha256": "125f8a5ffe6f109611bb8f4e595f63df83d36a265a89da752566ac308f4bbbde",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_core-2d963ea395a1d2ff",
+          "bytes": 12197392,
+          "sha256": "eedc799fdf6a4f25692aa3b2653884ec55ade0179afb8fdcaa3201922aedf762"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 115 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "constructor-projection",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "prepared_fixed_projection",
+        "--test",
+        "prepared_structured_tape",
+        "--test",
+        "prepared_literal_children",
+        "--test",
+        "prepared_structured_payload",
+        "--test",
+        "prepared_expression_scratch_bounds",
+        "--test",
+        "bme280_lifecycle",
+        "--test",
+        "device_frames",
+        "--",
+        "--nocapture"
+      ],
+      "start": 1792860039.9735467,
+      "end": 1792860075.2769547,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-constructor-projection.log",
+      "log_sha256": "83ed7cc1108349ded0fea99754ea527b125283bc5e01508c90126dd7dfaa107e",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/bme280_lifecycle-9071bbdecd795acf",
+          "bytes": 19565408,
+          "sha256": "ce1d62bb57a2429a2e04dd0ec71dedcdd226374246d13ed70788ae3dc6e56a6b"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/device_frames-c1614bcac15843bf",
+          "bytes": 19363448,
+          "sha256": "6c9a3f127c733769b0285a727630f8e884d7ad2b6b3cad51e3acaf85f77d46cb"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_expression_scratch_bounds-e9784b97ef2b41da",
+          "bytes": 4597880,
+          "sha256": "2322f7802e30afbd929ea00990b27bd57e4fb7e78f9bff0d21e397d837c828a5"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_fixed_projection-b3b7ed7ad44c8f2b",
+          "bytes": 4635672,
+          "sha256": "f5e59dcf5867d8bafa7adb6823b82b7b4265e169e5d7d09033af458f80d7b194"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_literal_children-9efe672c99d4b72a",
+          "bytes": 19380528,
+          "sha256": "3c9bbdc5fbcf6374a7ad98b0e92a9dca78a4bec2bd2b73ee67fe6f6ad09bf45e"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_structured_payload-cee82e2f27ab4172",
+          "bytes": 19340096,
+          "sha256": "df710043b4217162102288d36e364f7dd933d67457f1688f72497acf4beeab0b"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/prepared_structured_tape-39afeda27e03c85b",
+          "bytes": 19360472,
+          "sha256": "c04f270b9984fa884d33a709af93b3284d1e31792f6bedec00e35d2f5304f6d3"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.69s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.10s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.94s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "quantity-kernel",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "installed_std_tests::math_conformance",
+        "--",
+        "--nocapture"
+      ],
+      "start": 1792860075.3031762,
+      "end": 1792860297.8441112,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-quantity-kernel.log",
+      "log_sha256": "4504f45bbc50ad7725a828c84178e1f79a2dd1dc656921e7cac959e149f5acb7",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_std_host-e618dba6d4bb9c83",
+          "bytes": 181296624,
+          "sha256": "b1683dd425aa768933b4f0cef3cd8d6ef707b9c062707ef3c06378d917311674"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 879 filtered out; finished in 1.81s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "completion-pressure",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "installed_std::math_backs::tests",
+        "--",
+        "--nocapture"
+      ],
+      "start": 1792860297.8692799,
+      "end": 1792860298.3062484,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-completion-pressure.log",
+      "log_sha256": "9b6ecf6313ebb7242f6a3be01d2bbc85ad4f523d52c65b4868c1308f254b17ab",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_std_host-e618dba6d4bb9c83",
+          "bytes": 181296624,
+          "sha256": "b1683dd425aa768933b4f0cef3cd8d6ef707b9c062707ef3c06378d917311674"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 884 filtered out; finished in 0.00s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "planner",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-planner",
+        "--lib"
+      ],
+      "start": 1792860298.3327649,
+      "end": 1792860328.6961048,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-planner.log",
+      "log_sha256": "b333a9c4da34b97dc2d0cb6e9de43c73c9b3d3826dad8fe909f301469bbbfda4",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_planner-0ec798e68d869fa7",
+          "bytes": 31936216,
+          "sha256": "3a12afae437cd62eb40e617fda3c4b18544a3cb1cea9f4c7a2c6b85de8594217"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 86 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.45s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "catalog",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-semantic-catalog",
+        "--all-features",
+        "quantity_"
+      ],
+      "start": 1792860328.7325175,
+      "end": 1792860359.6595376,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-catalog.log",
+      "log_sha256": "3ce086074c899acadd1cf904c86434482f15d12ebaf014a13f92d243ce8b08d3",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/conduit_semantic_catalog-c3dfa6c913cc192a",
+          "bytes": 32876240,
+          "sha256": "99b2060a4089043ef31d5d44be4bb890cf3eafe9468c4b3f38f3a66df38f2162"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/acoustic_control_catalog-c315bca5576a8362",
+          "bytes": 27852168,
+          "sha256": "587a06d2244010c09911a0e074c55fe3c23952ad12e778705fba71a9a064a2c3"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/audio_pitch_analysis-312cad6993ea55bf",
+          "bytes": 21637480,
+          "sha256": "ffe69b7634f898edd993db1de87556083610be9771380a519a0ea100d671b901"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/audio_spectral_analysis-9b3ad1f71a5915f1",
+          "bytes": 21639544,
+          "sha256": "c26e035450782d454c5c1feb810b22760cd400e3bd1466b63fa664afd1dee919"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/audio_time_analysis-e297198177c3d3cd",
+          "bytes": 21626936,
+          "sha256": "de8eb19704475a2a39c22244d096423d7a73a92f573dfb14d72a9aeeadbf9619"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/authoring_catalog-c2f0c6a28e1896d3",
+          "bytes": 23265176,
+          "sha256": "746e405c9b0ce9c8680792a36d05bdab88d0106a0a37ce919f3771da308c2856"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/button_across_room-dbd8cb6072fec41b",
+          "bytes": 21569808,
+          "sha256": "3b0ddc0ecddf4b9bf9e95ee2b4aa1999ad7dc9044bb9804cf6f747677544c57b"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/button_indicator_admission-73bc1a1c0dd091fe",
+          "bytes": 5499312,
+          "sha256": "3816a00dec0828f84e5e0fb9e4c208ea4422e680d9d6e53595e59c12b6045e36"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/data_label_admission-363eeae42c0aa4f4",
+          "bytes": 4994072,
+          "sha256": "2f8160f4fc2e9de04ebeb818215d8c1c3769bbcb8263eedc1f2572a2d73d9311"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/diverse_structured_plots-cb9f1e7e61b08a29",
+          "bytes": 25585048,
+          "sha256": "60b1a4e8e96a95972dba0856ff61daf3c76dad4cdb6969d6f43b3f5172f890b9"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/dsp_package-a3348ca9b4047cfe",
+          "bytes": 22263416,
+          "sha256": "4133ce336697e69bdb2ceec15dbccf5d96c3892d8b543cfe2abcde146afd20a0"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/dsp_public_catalog-4aa7fd14b0139ed8",
+          "bytes": 22529544,
+          "sha256": "8c03341d22f930e8b7c2f1e0b0c7978e2802c365fd464a2b570c329fb1b3bcdb"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/education_plots-d903ec2f23ca32bd",
+          "bytes": 25603160,
+          "sha256": "34a3a205eefc9db8a577ddfdeec8e7691b87bc0e26d493b93581e9b17610ebc1"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/experience_plots-98786c7a0648122c",
+          "bytes": 25282496,
+          "sha256": "cf8e6f7099646ba04d0761669c1ad994d9f1f0aaf16363763228ca37fb634588"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/generalized_input_plots-00bd0c14a9e0c6ac",
+          "bytes": 25513416,
+          "sha256": "279f360cfd52ff248f8ba91ad2097ff394c45bfe4f4be73555c6a1bcdca5a767"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/ieee_binary64_contract-2f77d5c4ae95e4bd",
+          "bytes": 21718512,
+          "sha256": "149027c103428813521d1a76e925f4d04aa0b1f75b460e72ba0421a313251967"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/image_text_plot-10b08510170b8b0d",
+          "bytes": 21838048,
+          "sha256": "8fb1c781257395e5237a3561e4ffbbfd793a599e2b4c85ec57330c77b494dae9"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/job_plots-7aa902ef7109ba36",
+          "bytes": 25016656,
+          "sha256": "09438751a5c1384488825b9ff266a839eb0caae3bf6505b17efbdf5271cdf567"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/lenia_plots-1cf6ab73fcbd8b5c",
+          "bytes": 25226280,
+          "sha256": "2c6bac20f5c3ffe696489517f362d3b3acd8c736b9527476d7bbfa5cd28cd943"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/numerical_realization-d439339721d916d3",
+          "bytes": 28228144,
+          "sha256": "6a1a2ffa3bfca6d7c993ab10967daba8d12880bb0d7e4b65ed2398c176ced85b"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/pattern_comparison_codec-2dc143d768dc2ed6",
+          "bytes": 6846464,
+          "sha256": "fa6138533d32b021442f15e18711948df39b52bdd1629bbe8aedb11a7f3aa421"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/pattern_comparison_operation-1952fe71402c5137",
+          "bytes": 4709160,
+          "sha256": "d52bb8c436833f8f3f9e6b169cdadfc086b74fda745613b6fc5cea189446c4f9"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/pcm_packing-4e035e8c2ac7a4f9",
+          "bytes": 21576608,
+          "sha256": "c752a67e48198e3d291b0af68f7b711913dd97fd92b9493772175ac6debf4a3b"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/portable_navigation_plots-b8e1765eefcb9d59",
+          "bytes": 26029496,
+          "sha256": "895f7cf78721424087539d2670521791e664322c0ffdb5f985ff7b56e9d82c18"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/printing-a975a33c915c58ba",
+          "bytes": 26133784,
+          "sha256": "b6807ebef41d032b7cb30341a1e8042b2624e0a0114fbf5990929ca17961112c"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/purpose_plots-73af64851c4e7d5d",
+          "bytes": 21481104,
+          "sha256": "5e446318057f728e312e12e3942e459eedbbfb5f308776ab8fbb416b5ef60caa"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/quantity_mapping_plot-68487a03dbd3090f",
+          "bytes": 21967056,
+          "sha256": "c535d49461879eb64edc97d3743ff84f26e1296875d7da40cb765a77c61c950c"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/recurrence_plot-cd123e274aad3436",
+          "bytes": 25111664,
+          "sha256": "588a3ca40b409ced908d3dfc507883debabe84b7166f896b90ccbdd89675532a"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/reminder_plots-c2586b8707801f5e",
+          "bytes": 24966272,
+          "sha256": "4354323414be728ca016fdd6ca73c258703838d290191592256f2f32b3a60af0"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/resonator_projection_report-1e48e89c696655e9",
+          "bytes": 22271088,
+          "sha256": "00a16e1b6d8b19951fe20f103e50f9589f4fa5091a2c3924d0c49c19ec938c81"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/robotics_diversity_plots-0f3af0fad30db9c5",
+          "bytes": 25327280,
+          "sha256": "7a8c2e23d12139351b35511928b90d2b382319556b250946e45322a52e38d513"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/scheduling_plots-7ed1e28f9a4d3b5f",
+          "bytes": 25313432,
+          "sha256": "2919a461dcc9b33c43fc944ff9f90aff9445cf9999af0b285fa96b9ea1edae06"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/secret_knock_plot-6173ef478c961d66",
+          "bytes": 21707488,
+          "sha256": "86e49e61a77d47b34c9d2bb52a604541e818627476fb8d437125ff06fffa3560"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/signal_garden_plots-3a8c9732e2312c4e",
+          "bytes": 21730288,
+          "sha256": "0494e19338f8621138885a3c59cb25029795f716d17530e3187fcf0b6aa48758"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/structured_music_plot-1aeb7b7750997f5f",
+          "bytes": 25538976,
+          "sha256": "bd7307b4edd352c465bb6f6d45fad73b5c9441af7632eb8e0caea024c82ef132"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/structured_selector_operation-e6aae018a8d066cd",
+          "bytes": 4687336,
+          "sha256": "22af033178b6a6f91343fa06a13c6abc6adb0a52c267d74533404e6e1d5ee576"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/template_storage_operation-7a34c093c785fdbd",
+          "bytes": 4694984,
+          "sha256": "d5c050b849267fa6e844f03cbbc685311087ff96533638f32a6f14d5fcceaa82"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/vision_experience_codec-726ef04b85b5878f",
+          "bytes": 8251712,
+          "sha256": "d3f122b47bc3c0d5d2b8b03f70db694451b0d50a0684f44a7f6e9d411335d4d3"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/vision_plots-22e658ceaae5702a",
+          "bytes": 25732048,
+          "sha256": "8ed32df66666e4dff1cd6d3577554b3804523aaab1c81582bc169c97da7b3d10"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 190 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.01s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "native-actual-scene",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--features",
+        "native-compositor",
+        "--test",
+        "native_face_scene",
+        "--test",
+        "compact_gear_cards"
+      ],
+      "start": 1792860359.6897547,
+      "end": 1792860651.608,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-native-actual-scene.log",
+      "log_sha256": "f0492f6063553cc85a38fa3815f153e9060fdc473d42e2a9f2189121e2c43377",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/compact_gear_cards-bb309f772a550341",
+          "bytes": 32978296,
+          "sha256": "e509be87dd6b5324599c8fd81fb8ce82a87af34156a7a982eee4b06b38297926"
+        },
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/native_face_scene-d99c2f76a3b2954f",
+          "bytes": 52978704,
+          "sha256": "edb2493e5e5a12db526af63d87763350727cdc613afd084d846aebb12f62c1ed"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.41s",
+        "test result: ok. 144 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 76.08s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "native-cross-mask-opt-in",
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--features",
+        "native-compositor",
+        "--test",
+        "native_face_scene",
+        "native_browser_and_linear_reconstruct_one_exact_graph_with_explicit_gaps",
+        "--",
+        "--ignored",
+        "--nocapture"
+      ],
+      "start": 1792860651.6335385,
+      "end": 1792860652.6153822,
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-native-cross-mask-opt-in.log",
+      "log_sha256": "3f35342dff192944378e27221f69725cd24f4c167e344d574fe28efc568c0763",
+      "actual_running_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6393-permanent-cord-target/debug/deps/native_face_scene-d99c2f76a3b2954f",
+          "bytes": 52978704,
+          "sha256": "edb2493e5e5a12db526af63d87763350727cdc613afd084d846aebb12f62c1ed"
+        }
+      ],
+      "nonfile_running_mentions": [],
+      "test_summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 144 filtered out; finished in 0.60s"
+      ],
+      "clean_after": true
+    },
+    {
+      "name": "environment-retained-face",
+      "argv": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "prove",
+        "environment",
+        "face-publication"
+      ],
+      "start": 1792860652.6404626,
+      "end": 1792860653.064348,
+      "exit_code": 1,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/reviewed-omnibus-final-environment-retained-face.log",
+      "log_sha256": "5e079f8e60c5e8dea4e8de20440248dc0493b736167829aa3a2aae3a9c296471",
+      "actual_running_executables": [],
+      "nonfile_running_mentions": [],
+      "test_summaries": [],
+      "clean_after": true
+    }
+  ],
+  "status": "failed",
+  "scope": "Final reviewed omnibus composition contains original6351/6393/6418heads plusCordminimumrepair andoptionalNativecustodypressurefix, andalreadymerged6415/6416heads. Priorfirstnegativegoldens andauthenticbadge/pressurefailuresremainretained; no relabeling. Current combined reviewed source; focused actual native scene/Core/composer/environment/GUI owner tests and compilation. No fresh browser/WASM/QEMU/physical/accepted Integration claim. Prior8cf noncompiler cache archived before source/cache reuse; actual Running executables bind each executed test to source.",
+  "clean_after": true
+}

@@ -1,0 +1,39 @@
+{
+  "source": "1cf7f4e7de59240a5d84fd736557d06664811dda",
+  "at": "2026-10-24T17:33:31.048550+00:00",
+  "required_ancestors": {
+    "6351": "42324d5944ecf43179d7d52f6fd898422c4f0821",
+    "6393": "60f39853d1d81756a77c66b18b3630560faa0b04",
+    "6418": "ae5e9acd9b7ee439363fb28985ef911f6d17d8d8",
+    "6419": "e33f5348d6f0d37ae509e8b27d7c5d52eda83b29",
+    "6420": "3b6682e8aaf91207624571bb007842566f582fb4",
+    "cord_repair": "9485b9e3d2a2ddec797ff4054b8c68066245d865",
+    "pressure_repair": "effbe0eb636a34c213e3205872120c58a4e987df",
+    "current_dev": "5b266161926f920bbf266288fe0f1f757d419632"
+  },
+  "all_ancestors_verified": true,
+  "coverage_source": "20b34eca6763c2afbd4d742b2a408fbe32ea6c15",
+  "all_owning_changed_source_bytes_match_coverage": {
+    "architecture/core/src/structured_info/prepared_composition.rs": "e4322e9cd5cbd4af8589bdd225e2d1f3f9d7a0cc13e58d06a5e94b627f0bb76d",
+    "architecture/core/src/structured_info/prepared_composition/tests.rs": "7623c5f7f379c5e8d0ff877729f589ebd3b6a52e7e5981d7bbb07f5a95eb12a8",
+    "bodies/environment/docs/display-mask.md": "1f0d7bfd119e0c19bf46b0b747b056afb826cb0cbee17318da234a8032a0a9eb",
+    "bodies/environment/runtime/Cargo.toml": "e224aa9ccc9b189c9e57eb8cc9159aff9026eee34a25b46ff74d633fe4cf4e1a",
+    "bodies/environment/runtime/build.rs": "b572ae39ee30d6904c1ca3429c260558d1cf3f6769036ed7685f059dc1708f4e",
+    "bodies/environment/runtime/src/canonical_input.rs": "2cdbc7d6953eaaf04dbe034fc9ec8ce6a0e33c01c235424277f697d14689bb5e",
+    "bodies/environment/runtime/src/display_mask.rs": "6fd5f6f110202c483d6e90aa8e88cf80379d36e29bdfbeb38b2e3c7e436940f0",
+    "bodies/environment/runtime/src/lib.rs": "bb7c00624e2fd12d123b7c6f39e92e041710c42f386e4e9242f2fe2507135311",
+    "bodies/environment/runtime/src/observation.rs": "48e84b0174c66c21300ce21f0b7388f7105715f1fc9a27f12ac568ae24b28fa4",
+    "bodies/environment/runtime/src/publication.rs": "fe3c51f8d9c916e9c749bb6d96aa731b21652a24a3230b50f80777dc8ec66820",
+    "bodies/environment/runtime/src/publication/back.rs": "1e0960e030dcdb36d468c5f2f72b6c783e1e01f9182700d223cc4036f9d1a46d",
+    "bodies/environment/runtime/tests/canonical_input.rs": "e4bffbb55cfdcf2731b232afc559b7d8a118a218fdbf2da4e620be2e9efefa12",
+    "bodies/environment/runtime/tests/publication_face_custody.rs": "231af8461898ca10b5f412b6f6e38104a7854980a7c1e2d51e9d1b3ee2b867f4",
+    "plots/seven-segment-mask/src/format.rs": "0e6cfb4919197af1d004d635118376b1b41547a6bc28ba26e3077ad4e81b8ff3",
+    "plots/seven-segment-mask/src/lib.rs": "3f10ce18ed3529a1702955f6e4ccf500a6e0647531aae501f340def84bd11b38",
+    "plots/seven-segment-mask/src/prepared_show.rs": "d7e2cfb0848ed33b06e4db5b03b7cf7ea0e9820cf37d9ce7faaf5892615bb9d6",
+    "plots/seven-segment-mask/src/timed.rs": "0cf60c5412dbf9b349fce427c288972d2a176a62c72b1e1f0a60bccd7e87e5bf",
+    "plots/seven-segment-mask/tests/prepared_show.rs": "2f6a6672c7892817f08acc8be022c204a07b370896c794309960d4a08547953f",
+    "tools/xtask/src/commands/environment_face_publication.rs": "f86696721463ee243375f28243b949e19e7b84b20a3d38b2914806cf0271e9f8"
+  },
+  "only_difference_from_e57": ".gitattributes",
+  "scope": "Source equivalence and ancestry, not relabeled execution proof. Current exact-source runtime CLI proof remains separately recorded."
+}
