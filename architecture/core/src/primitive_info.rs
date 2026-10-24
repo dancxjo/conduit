@@ -57,6 +57,7 @@ pub enum PrimitiveInfoKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrimitiveInfoRefusal {
+    ResourceReference(crate::ResourceReferenceRefusal),
     EmptyNotEmpty,
     WrongQuantityFamily,
     WrongQuantityRole,
@@ -139,6 +140,13 @@ pub fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
 }
 
 pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), PrimitiveInfoRefusal> {
+    // This Core-owned leaf has an exact bounded codec, but is not a scalar
+    // primitive kind. Validate it even when a later operation short-circuits.
+    if identity == crate::RESOURCE_REFERENCE_INFO_ID {
+        return crate::BoundedResourceRef::validate_encoded(encoded)
+            .map(|_| ())
+            .map_err(PrimitiveInfoRefusal::ResourceReference);
+    }
     if let Some((family, role)) = crate::parse_quantity_role_info_id(identity) {
         let quantity = Quantity::decode(encoded).map_err(PrimitiveInfoRefusal::Quantity)?;
         if quantity.family().identity() != family {

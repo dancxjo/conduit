@@ -38,6 +38,8 @@ mod privilege_inventory;
 mod prosody_commitment;
 #[path = "../suites/record_pronunciation.rs"]
 mod record_pronunciation;
+#[path = "../suites/resource_reference_equality.rs"]
+mod resource_reference_equality;
 #[path = "../suites/speech_ipa.rs"]
 mod speech_ipa;
 #[path = "../suites/todo.rs"]
@@ -104,6 +106,9 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),
         CheckSuite::NativeSourceLaws => run_suite(native_source_laws::STEPS, &root, opts),
+        CheckSuite::ResourceReferenceEquality => {
+            run_suite(resource_reference_equality::STEPS, &root, opts)
+        }
         CheckSuite::PlotS3 => run_suite(PLOT_S3_STEPS, &root, opts),
         CheckSuite::ExpressionBaseline => run_suite(expression_baseline::STEPS, &root, opts),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
