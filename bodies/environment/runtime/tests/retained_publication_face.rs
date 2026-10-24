@@ -149,13 +149,8 @@ fn a_live_publication_owner_requires_complete_execution_provenance() {
         Err(Refusal::MissingExecutionBasis)
     ));
     let mut missing = basis();
-    // Reuse an existing ID only to test refusal of incoherent provenance.
-    missing.body_id = serde_json::from_str::<Face>(include_str!(
-        "../../evidence/2026-10-23-owner-shared-face/physical-face-1.json"
-    ))
-    .unwrap()
-    .basis
-    .body_id;
+    // Untrusted metadata cannot substitute for coherent execution provenance.
+    missing.body_id = Some(serde_json::from_str(r#""untrusted/body""#).unwrap());
     missing.wake_id = None;
     assert!(matches!(
         RetainedPublicationFace::prepare(missing, 1, 30000),
