@@ -8,13 +8,14 @@
   "headless_asset_closure": "Deferred during local GUI iteration; no cross-architecture artifact/asset acceptance claim",
   "look_limits": "Journey capture names containing engineering are inherited names for Phosphor palette transitions; they do not establish Engineering typography selection",
   "files": {
+    "journey-summary.json": "a22cf7e6d072677313c3099419bfb3455dac15095fa2d3c8fa9109ea2e3073fb",
     "native-graph-cleanup.json": "eb5629060dbb8723726c3a94a21618b70d7424c35fb064c7669877f1a97582ce",
+    "native-shell-paired-linear.json.gz": "912e6453dc820559b5d0a8b5685aa17cb6665b647fb60eecb6e0e4b1227ff015",
+    "journey-proof.json.gz": "181f4ff2131a7138034919bff14abaf9440af019d7bd6f497cfcbe8b725bdae6",
     "journey-serial.log.gz": "82a5afdae59b50c5780d2b1ff7f3211b7389eb06f0a179872cc1d6474024c0b6",
-    "native-shell-paired-linear.json": "670db3c03b24423586c018af3dd07b1c6c1deed3d4f6b4e03c16d6f21eacd9ec",
     "compositor-lifecycle-proof.json": "0b90b542383becaec9d6680a67753746970254a128e450b055787fd5136dadd8",
     "native-graph-icons-ports.log": "1c2dd18564a6b4e43e0b2feb90406507ee511dbbae304a5d247b88cfb58dcb51",
     "native-graph-optional-tail-stop.json": "25279dfe7204feb0eef47359f3f8fc8b7afb6252caddcc5aa927bdeafa3a6a33",
-    "journey-proof.json": "ceace5c7c42f13f0ae9925cefb8534c966368eb865061597b560b945428188a2",
     "native-graph-icons-scene-tests.log": "a76c4c5c76b1363b26fdfabb8c0a4ae73d0978c892cfae3f41671566380351de",
     "native-graph-icons-focused-run.log": "97535799eb349884c5135621b03dd41135f84cb759de4374335762c3204eb110",
     "build-manifest.json": "40377ef23884048c2f96b8a1946fd0f3400a0e4f42eb914357785812520722dc",
@@ -54,6 +55,16 @@
       "artifact": "journey-serial.log.gz",
       "uncompressed_sha256": "f31a66ce2866dc18eda47fc1051e58a65f71b4e0159171c471efa7cbbdf9ca75",
       "uncompressed_bytes": 3318524
+    },
+    "native-shell-paired-linear.json": {
+      "artifact": "native-shell-paired-linear.json.gz",
+      "uncompressed_sha256": "670db3c03b24423586c018af3dd07b1c6c1deed3d4f6b4e03c16d6f21eacd9ec",
+      "uncompressed_bytes": 4533983
+    },
+    "journey-proof.json": {
+      "artifact": "journey-proof.json.gz",
+      "uncompressed_sha256": "ceace5c7c42f13f0ae9925cefb8534c966368eb865061597b560b945428188a2",
+      "uncompressed_bytes": 1494373
     }
   },
   "archive_note": "Lossless gzip; decompress to the original filenames before validating raw serial-prefix custody and compositor receipts."
