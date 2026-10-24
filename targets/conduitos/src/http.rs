@@ -1,7 +1,11 @@
 //! Fixed-storage, literal-address HTTP/1.1 client boundary for selected Images.
 
+mod codec;
+use codec::{Cursor, Writer};
 mod offer;
+mod request;
 pub use offer::*;
+pub use request::HttpRequestGuard;
 
 const TYPE_BYTES: usize = 4_096;
 
@@ -35,12 +39,6 @@ pub trait HttpNetworkBase {
     fn exchange(&mut self, request: &[u8], response: &mut [u8]) -> Result<usize, NetworkFailure>;
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HttpTicket {
-    generation: u32,
-    transaction: u64,
-}
-
 pub struct FixedHttpOutput {
     bytes: [u8; RESPONSE_BYTES],
     len: usize,
@@ -69,8 +67,7 @@ pub struct NativeHttpClient {
     request: [u8; REQUEST_BYTES],
     request_len: usize,
     response: [u8; RESPONSE_BYTES],
-    pending: Option<HttpTicket>,
-    generation: u32,
+    pending: bool,
     signs: u16,
     request_type: [u8; TYPE_BYTES],
     request_type_len: usize,
@@ -87,8 +84,7 @@ impl NativeHttpClient {
             request: [0; REQUEST_BYTES],
             request_len: 0,
             response: [0; RESPONSE_BYTES],
-            pending: None,
-            generation: 1,
+            pending: false,
             signs: 0,
             request_type: [0; TYPE_BYTES],
             request_type_len: request.len(),
@@ -104,11 +100,11 @@ impl NativeHttpClient {
         &mut self,
         input: &[u8],
         authorized: bool,
-    ) -> Result<HttpTicket, HttpClientFailure> {
+    ) -> Result<HttpRequestGuard<'_>, HttpClientFailure> {
         if !authorized {
             return Err(HttpClientFailure::AuthorityDenied);
         }
-        if self.pending.is_some() {
+        if self.pending {
             return Err(HttpClientFailure::Pressure);
         }
         let (transaction, len) = encode_wire_request(
@@ -117,44 +113,9 @@ impl NativeHttpClient {
             &mut self.request,
         )?;
         self.request_len = len;
-        let ticket = HttpTicket {
-            generation: self.generation,
-            transaction,
-        };
-        self.pending = Some(ticket);
+        self.pending = true;
         self.signs = self.signs.saturating_add(1);
-        Ok(ticket)
-    }
-
-    pub fn request_bytes(&self, ticket: HttpTicket) -> Result<&[u8], HttpClientFailure> {
-        if self.pending != Some(ticket) {
-            return Err(HttpClientFailure::StaleCompletion);
-        }
-        Ok(&self.request[..self.request_len])
-    }
-
-    pub fn complete(
-        &mut self,
-        ticket: HttpTicket,
-        response_len: usize,
-        output: &mut FixedHttpOutput,
-    ) -> Result<(), HttpClientFailure> {
-        if self.pending != Some(ticket) || ticket.generation != self.generation {
-            return Err(HttpClientFailure::StaleCompletion);
-        }
-        if response_len > self.response.len() {
-            return Err(HttpClientFailure::ResponseBodyOverflow);
-        }
-        let len = encode_info_response(
-            ticket.transaction,
-            &self.response[..response_len],
-            &self.response_type[..self.response_type_len],
-            &mut output.bytes,
-        )?;
-        output.len = len;
-        self.pending = None;
-        self.signs = self.signs.saturating_add(2);
-        Ok(())
+        Ok(HttpRequestGuard::new(self, transaction))
     }
 
     pub fn exchange<B: HttpNetworkBase>(
@@ -164,21 +125,7 @@ impl NativeHttpClient {
         base: &mut B,
         output: &mut FixedHttpOutput,
     ) -> Result<(), HttpClientFailure> {
-        let ticket = self.begin(input, authorized)?;
-        let request = &self.request[..self.request_len];
-        let response_len = base
-            .exchange(request, &mut self.response)
-            .map_err(map_network)?;
-        self.complete(ticket, response_len, output)
-    }
-
-    pub fn cancel(&mut self) -> Result<(), HttpClientFailure> {
-        if self.pending.take().is_none() {
-            return Err(HttpClientFailure::Cancelled);
-        }
-        self.generation = self.generation.wrapping_add(1).max(1);
-        self.signs = self.signs.saturating_add(1);
-        Ok(())
+        self.begin(input, authorized)?.exchange(base, output)
     }
 
     pub const fn sign_count(&self) -> u16 {
@@ -364,6 +311,21 @@ fn encode_info_response(
     response_type: &[u8],
     output: &mut [u8],
 ) -> Result<usize, HttpClientFailure> {
+    write_info_response(
+        transaction,
+        wire,
+        response_type,
+        Writer::measure(output.len()),
+    )?;
+    write_info_response(transaction, wire, response_type, Writer::new(output))
+}
+
+fn write_info_response(
+    transaction: u64,
+    wire: &[u8],
+    response_type: &[u8],
+    mut writer: Writer<'_>,
+) -> Result<usize, HttpClientFailure> {
     let split = find(wire, b"\r\n\r\n").ok_or(HttpClientFailure::MalformedResponse)?;
     let head = &wire[..split];
     let body = &wire[split + 4..];
@@ -420,7 +382,6 @@ fn encode_info_response(
     if content_length != Some(body.len()) {
         return Err(HttpClientFailure::ProviderLost);
     }
-    let mut writer = Writer::new(output);
     writer.put(response_type)?;
     writer.record(4)?;
     writer.field("body")?;
@@ -455,147 +416,7 @@ fn decimal(input: &[u8]) -> Option<u16> {
     })
 }
 
-struct Cursor<'a> {
-    input: &'a [u8],
-    offset: usize,
-}
-
-impl<'a> Cursor<'a> {
-    const fn new(input: &'a [u8]) -> Self {
-        Self { input, offset: 0 }
-    }
-    fn take(&mut self, count: usize) -> Result<&'a [u8], HttpClientFailure> {
-        let end = self
-            .offset
-            .checked_add(count)
-            .ok_or(HttpClientFailure::MalformedRequest)?;
-        let value = self
-            .input
-            .get(self.offset..end)
-            .ok_or(HttpClientFailure::MalformedRequest)?;
-        self.offset = end;
-        Ok(value)
-    }
-    fn byte(&mut self) -> Result<u8, HttpClientFailure> {
-        Ok(self.take(1)?[0])
-    }
-    fn u32(&mut self) -> Result<u32, HttpClientFailure> {
-        Ok(u32::from_le_bytes(
-            self.take(4)?
-                .try_into()
-                .map_err(|_| HttpClientFailure::MalformedRequest)?,
-        ))
-    }
-    fn bytes(&mut self) -> Result<&'a [u8], HttpClientFailure> {
-        let len = usize::try_from(self.u32()?).map_err(|_| HttpClientFailure::MalformedRequest)?;
-        self.take(len)
-    }
-    fn finished(&self) -> bool {
-        self.offset == self.input.len()
-    }
-    fn tag(&mut self, expected: u8) -> Result<(), HttpClientFailure> {
-        if self.byte()? == expected {
-            Ok(())
-        } else {
-            Err(HttpClientFailure::MalformedRequest)
-        }
-    }
-    fn record(&mut self, fields: usize) -> Result<(), HttpClientFailure> {
-        self.tag(2)?;
-        if self.u32()? as usize == fields {
-            Ok(())
-        } else {
-            Err(HttpClientFailure::MalformedRequest)
-        }
-    }
-    fn collection_len(&mut self) -> Result<usize, HttpClientFailure> {
-        self.tag(1)?;
-        Ok(self.u32()? as usize)
-    }
-    fn field(&mut self, expected: &str) -> Result<(), HttpClientFailure> {
-        if self.bytes()? == expected.as_bytes() {
-            Ok(())
-        } else {
-            Err(HttpClientFailure::MalformedRequest)
-        }
-    }
-    fn variant(&mut self, expected: &str) -> Result<(), HttpClientFailure> {
-        self.tag(3)?;
-        self.field(expected)
-    }
-    fn leaf(&mut self) -> Result<&'a [u8], HttpClientFailure> {
-        self.tag(0)?;
-        self.bytes()
-    }
-}
-
-struct Writer<'a> {
-    output: &'a mut [u8],
-    len: usize,
-}
-
 #[cfg(test)]
 mod kernel_tests;
 #[cfg(test)]
 mod tests;
-
-impl<'a> Writer<'a> {
-    fn new(output: &'a mut [u8]) -> Self {
-        Self { output, len: 0 }
-    }
-    fn put(&mut self, value: &[u8]) -> Result<(), HttpClientFailure> {
-        let end = self
-            .len
-            .checked_add(value.len())
-            .ok_or(HttpClientFailure::RequestOverflow)?;
-        self.output
-            .get_mut(self.len..end)
-            .ok_or(HttpClientFailure::RequestOverflow)?
-            .copy_from_slice(value);
-        self.len = end;
-        Ok(())
-    }
-    fn byte(&mut self, value: u8) -> Result<(), HttpClientFailure> {
-        self.put(&[value])
-    }
-    fn sized(&mut self, value: &[u8]) -> Result<(), HttpClientFailure> {
-        let len =
-            u32::try_from(value.len()).map_err(|_| HttpClientFailure::ResponseBodyOverflow)?;
-        self.put(&len.to_le_bytes())
-            .map_err(|_| HttpClientFailure::ResponseBodyOverflow)?;
-        self.put(value)
-            .map_err(|_| HttpClientFailure::ResponseBodyOverflow)
-    }
-    fn record(&mut self, fields: usize) -> Result<(), HttpClientFailure> {
-        self.byte(2)?;
-        self.put(&(fields as u32).to_le_bytes())
-    }
-    fn collection(&mut self, items: usize) -> Result<(), HttpClientFailure> {
-        self.byte(1)?;
-        self.put(&(items as u32).to_le_bytes())
-    }
-    fn field(&mut self, name: &str) -> Result<(), HttpClientFailure> {
-        self.sized(name.as_bytes())
-    }
-    fn variant(&mut self, tag: &str) -> Result<(), HttpClientFailure> {
-        self.byte(3)?;
-        self.sized(tag.as_bytes())
-    }
-    fn leaf(&mut self, value: &[u8]) -> Result<(), HttpClientFailure> {
-        self.byte(0)?;
-        self.sized(value)
-    }
-    fn decimal(&mut self, mut value: usize) -> Result<(), HttpClientFailure> {
-        let mut digits = [0_u8; 20];
-        let mut index = digits.len();
-        loop {
-            index -= 1;
-            digits[index] = b'0' + (value % 10) as u8;
-            value /= 10;
-            if value == 0 {
-                break;
-            }
-        }
-        self.put(&digits[index..])
-    }
-}

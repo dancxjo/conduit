@@ -1,0 +1,53 @@
+{
+  "base_head": "85f71830d51adff343ae9aa3b6149e90956fb543",
+  "source_state": "uncommitted owned HTTP delta",
+  "source_sha256": {
+    "targets/conduitos/src/http.rs": "b7b284a519d7cf2c531f920c9a26c6a44ce85e7ce4724ffaf9c0c8f9bdd86efc",
+    "targets/conduitos/src/http/request.rs": "d20a7e253de9787135a3c35588b8fd53db0277ccf44562894153bc6ca6dcc0df",
+    "targets/conduitos/src/http/codec.rs": "8730451aa838712882a43d89ecdc845c35b741c344fa1652da58eed657123df5",
+    "targets/conduitos/src/http/tests.rs": "c7d58930301410143fa383f793f542b5328bccd3e0206424f9da248f86b4e152",
+    "targets/conduitos/tests/http_ticket_lifetime.rs": "78938d70c5d89085bf2cd8717b23a52b3ad6ee6778067525663f4c2787ff7d3c"
+  },
+  "results": {
+    "public_lifecycle_noalloc": {
+      "exit": 0,
+      "passed": 1
+    },
+    "owning_http_including_kernel": {
+      "exit": 0,
+      "passed": 8
+    },
+    "compile_fail_ownership": {
+      "exit": 0,
+      "passed": 2,
+      "actual_codes": [
+        "E0499",
+        "E0382"
+      ]
+    },
+    "owning_strict_clippy": {
+      "exit": 0,
+      "command": "cargo +stable clippy --locked -p conduitos --features native-http-client --lib --test http_ticket_lifetime -- -D warnings"
+    },
+    "format_and_diff": {
+      "exit": 0
+    }
+  },
+  "artifacts": {
+    "6409-http-affine-public.log": "f5de1d0b38bb4a86a40dad8591e384a4ca3a6f22686e941a4d026fcfd3bb4b17",
+    "http_ticket_lifetime-3ba10463e40b7f57": {
+      "actual_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/http_ticket_lifetime-3ba10463e40b7f57",
+      "sha256": "5cf71f53563103acc2d891b3444dbd040fb8a9531f71bd60256f7d666278c61b",
+      "gzip": "http_ticket_lifetime-3ba10463e40b7f57.elf.gz"
+    },
+    "6409-http-owning-tests.log": "25e5966efefac356dbe7293a72f176aedc444df2d32899f8a369fba00a848bc1",
+    "conduitos-b767be400eb772d4": {
+      "actual_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6407-native-law-custody-target/debug/deps/conduitos-b767be400eb772d4",
+      "sha256": "bcd872a6004b2c6007ff36aa5e0f79368aaa8d298bf26f12cc498623d84f322e",
+      "gzip": "conduitos-b767be400eb772d4.elf.gz"
+    },
+    "6409-http-ownership-doctests.log": "bfb2295177f465264222c1e61e143bc38a58b5a82914feb0a54d939ca939e34c",
+    "6409-http-strict.log": "f3b84220dac0051253f976e6701222e16071a24ab632562fbd4ebdbb295093d6"
+  },
+  "boundary": "HTTP helper and actual normal kernel fixture only; not full6409 persistentHost/fault matrix or native confinement"
+}
