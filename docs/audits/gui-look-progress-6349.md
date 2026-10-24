@@ -425,3 +425,20 @@ The complex nine-Gear lifecycle variant remains negative at Play delivery with
 ERR_EMPTY_RESPONSE; the full authoring suite is not accepted. Native and checked
 cross-component Look acceptance are still open. Draft checkpoints continue to
 skip CI.
+
+## Readable configuration and real minimum text size
+
+Source `c1e9fe399` corrects the plot-field styling mismatch, adds readable exact
+requirements/native rule disclosures and input help/refusal associations, and
+reuses pinned Confirm glyphs on Apply/Place with the complete license embedded
+in the generated module. A computed check caught 16px inputs under a 32px root;
+the shared stylesheet now respects the actual root/user minimum. The 390px
+forced-color capture verifies 32px input text, fitted controls and reachable Apply.
+The sticky inspector padding strip is covered. Startup fitting no longer races
+saved viewport restoration; that existing check passes three times in succession.
+[Captures, positive checks and retained failures](evidence/gui-look-6349-fields/README.md).
+The final 15-test GUI run has 14 passes and the still-open complex Play delivery
+failure. Two scoped Look checks, seven contracts/vocabulary checks and two exact
+package checks pass separately. Native, cross-component Look and full parent
+acceptance remain open; no CI campaign was started. Audited inactive incremental
+caches recovered 2,404,630,528 bytes while preserving source and unique evidence.
