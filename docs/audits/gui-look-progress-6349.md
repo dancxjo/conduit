@@ -371,3 +371,15 @@ the owner selection API remains Todo-specific and checked Patchbay reuse is
 still missing. No new current-source native QEMU, full accessibility or CI
 acceptance is claimed. Roughly 2.3GiB of verified inactive incremental cache
 was reclaimed before the fresh builds; active artifacts and evidence remain.
+
+## Focus-owned Patchbay Escape
+
+Source `4afc3a901` fixes dismissal when Body inspection coexists with Library:
+Escape now closes the focused surface and returns focus to its own launcher.
+The actual UI regression fails on the preceding executable; all six furniture
+checks pass after a fresh build (one Chromium worker, no retries). Enlarged,
+narrow and forced-color checks remain included. [Evidence and screenshot](evidence/gui-look-6349-escape-focus/README.md).
+This is documentary-fixture browser accessibility evidence. Checked graph Look
+selection and whole-GUI/native acceptance remain incomplete. An audited cleanup
+reclaimed 3,006,279,680 bytes of inactive task-owned incremental cache, preserving
+compiled libraries, source, active work and unique artifacts.
