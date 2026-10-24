@@ -1,0 +1,193 @@
+{
+  "status": "passed",
+  "actual_execution_source": "82ba15541e8b2f1684a85b138f031904dcba72d9",
+  "packet_delivery": "a3117127a9d4eb3e6946d63c5534e9720fb92e66",
+  "custody_manifest_head_is_documentary": "ea4deb875fcf5c247eaa7588d4d1d230806db4b4",
+  "supported_tests": 105,
+  "positive_test_binaries": 27,
+  "test_running_bindings": 27,
+  "actual_ELFs_losslessly_rehashed": 30,
+  "executables": [
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/acoustic_clock_control-94081584af0ed9a6",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/acoustic_clock_control-94081584af0ed9a6.gz",
+      "decoded_sha256": "fb42249873325dd335b7bb4be76c60199da216d7cf2a7c70216f7dc21c5ffc1c",
+      "decoded_bytes": 75272384
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/acoustic_common_basis_linear-06c748038ec8e805",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/acoustic_common_basis_linear-06c748038ec8e805.gz",
+      "decoded_sha256": "566ae4b6c7341c1380bcf2b2b6641e23f93793895604364e418d38560d1a1eab",
+      "decoded_bytes": 70502592
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/acoustic_control_catalog-0cab6c2eb27244f7",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/acoustic_control_catalog-0cab6c2eb27244f7.gz",
+      "decoded_sha256": "53bcaf369c428e89e8a729adce1d6c9f4a5182869f900abe7a288f76f334d175",
+      "decoded_bytes": 26749056
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/acoustic_control_installed-000a5b810e32b9dd",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/acoustic_control_installed-000a5b810e32b9dd.gz",
+      "decoded_sha256": "19300aa72208556c1a895c478e11024fc65e921f9d37b8cea5b8a51fdb41f77d",
+      "decoded_bytes": 69448712
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/acoustic_quantities-d137ea7933577a5b",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/acoustic_quantities-d137ea7933577a5b.gz",
+      "decoded_sha256": "9a545585d5d32f5b128ac61087e7504f3004e23192ccdf72d1d4a7f467ef8ded",
+      "decoded_bytes": 18396888
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/acoustic_reference_transport-3460cc92bfa3561e",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/acoustic_reference_transport-3460cc92bfa3561e.gz",
+      "decoded_sha256": "28d661d1b8c23d29d8a9241d7bf8cc5ec5fdfb4352a3e3eb98d16bf066b353b6",
+      "decoded_bytes": 38955744
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/acoustic_trajectory_flow-c3bdd2b9f848d93e",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/acoustic_trajectory_flow-c3bdd2b9f848d93e.gz",
+      "decoded_sha256": "ae411a026a4ffa8617ab739bde444fb38cfba19b0f50f5fd425cf7d905bb5622",
+      "decoded_bytes": 41642104
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/acoustic_trajectory_value-5a2130cdc099e015",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/acoustic_trajectory_value-5a2130cdc099e015.gz",
+      "decoded_sha256": "7cd52d5851a78fd0f30c9ffc4e07d8466adad3c1c32e1f65f282482c3d409954",
+      "decoded_bytes": 40137080
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/amplitude_power-6ed0939faf9f6131",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/amplitude_power-6ed0939faf9f6131.gz",
+      "decoded_sha256": "444fde474935c4c88c136c9f35113fb82ec4ad6847387c71fd941f87c647ba2a",
+      "decoded_bytes": 5205688
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/authoring_types-b97458d406588ce5",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/authoring_types-b97458d406588ce5.gz",
+      "decoded_sha256": "d2e79988f3dc5abccffb6dd57967dc16332997004fb515ea1682e34a6ee9e033",
+      "decoded_bytes": 24433344
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/clock_authoring-e6c84c0b20abe305",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/clock_authoring-e6c84c0b20abe305.gz",
+      "decoded_sha256": "e0e60cec5c5e05e1ff4410dc99eddaa606bc41e64c99b2658f0121c51e7682af",
+      "decoded_bytes": 13703496
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/clock_projection-9ea5e0811e6f8a0b",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/clock_projection-9ea5e0811e6f8a0b.gz",
+      "decoded_sha256": "005cc2586ad23e2b34d7d45500c8b2393df0e8fa9827770820fdfa64494fa295",
+      "decoded_bytes": 6052008
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/control_projection-a6680a5aa960a674",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/control_projection-a6680a5aa960a674.gz",
+      "decoded_sha256": "1dfb9235f7cc2533ee17a989967a049fa684d95a4038c3036203bf065ac391f6",
+      "decoded_bytes": 9087432
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/control_projection_report-69822bc944866fd3",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/control_projection_report-69822bc944866fd3.gz",
+      "decoded_sha256": "ef4a125d6a508c34e3583f9d97d1b5eccd2234ccc0bf48b24f5a410fd8146d58",
+      "decoded_bytes": 8448192
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/control_trajectories-f0f6d7326f5f9641",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/control_trajectories-f0f6d7326f5f9641.gz",
+      "decoded_sha256": "bc5b65c745ac9b99d8a3ca1ac89dc69dc677120cd7d5b7a306e5f64c616c193c",
+      "decoded_bytes": 7275520
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/decibel_projection-df9701c1c5c72c0f",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/decibel_projection-df9701c1c5c72c0f.gz",
+      "decoded_sha256": "b7c21ca311d4766c8f09c0a493cb973686c021964c3a421b08448e63793f97ca",
+      "decoded_bytes": 6074072
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/exact_controls-a51f000cd983dbe9",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/exact_controls-a51f000cd983dbe9.gz",
+      "decoded_sha256": "8685cf2c60f078028e54e5c7e51afd0d5324f863b4d9ab8ff801155b5de86d2a",
+      "decoded_bytes": 14844680
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/exact_quantity_projection-512f57a47c048ca3",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/exact_quantity_projection-512f57a47c048ca3.gz",
+      "decoded_sha256": "65aa18678b1aa9abac946e49f5069266d437d267eb7ea743bb851fbb9a3a678e",
+      "decoded_bytes": 3885920
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/periodic_oscillator-72f8cb3ef334e265",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/periodic_oscillator-72f8cb3ef334e265.gz",
+      "decoded_sha256": "db6701a5d7c16485ddc028b6e41cf1a28bd74e55b4ebed8cd1a75262d03a7a1d",
+      "decoded_bytes": 20165504
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/periodic_oscillator-b9a44dc31d6102a1",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/periodic_oscillator-b9a44dc31d6102a1.gz",
+      "decoded_sha256": "2dc97c3107e32a289c4c3f52b28d5acfba1f85958e34e5916cb95fc880987b10",
+      "decoded_bytes": 69335952
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/periodic_projection_report-c4f35626e0a5d9fa",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/periodic_projection_report-c4f35626e0a5d9fa.gz",
+      "decoded_sha256": "a87788672274e9869350749ff2bc2c5dcd585413fa2f0266fba196cc54b98854",
+      "decoded_bytes": 20152768
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/periodic_validation_guards-dbc8dfb57016181a",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/periodic_validation_guards-dbc8dfb57016181a.gz",
+      "decoded_sha256": "844976ee07bf63acfa97d78456bee08a931f525269e4f2531a24316513fe6509",
+      "decoded_bytes": 19515568
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/quantity_trajectory-ac74ed9e194c8242",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/quantity_trajectory-ac74ed9e194c8242.gz",
+      "decoded_sha256": "543ce02e853862ed0fe28f880ae36c88a7b22d232ccf1ebd24f2865936c8f521",
+      "decoded_bytes": 7044800
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/quantity_trajectory-bf467e3506e29ba2",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/quantity_trajectory-bf467e3506e29ba2.gz",
+      "decoded_sha256": "8ca2c0a93140eeb9d3d6e2ec2568651868c658c53166a8eeecd24f262e837c34",
+      "decoded_bytes": 7007928
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/rate_projection-83e68b9da5b060c7",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/rate_projection-83e68b9da5b060c7.gz",
+      "decoded_sha256": "a9ae3f08ad3078d7f4071f8d80e1b921c9318e38b181a89b141dda0b284c1f95",
+      "decoded_bytes": 6840776
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/resonator-ede90d459c4ab050",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/resonator-ede90d459c4ab050.gz",
+      "decoded_sha256": "ece2ddbd3622ca7721c09da845c3fadcda3415bea32c2b864d991630e4fd854a",
+      "decoded_bytes": 68768952
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/resonator_projection_report-903f40117696e967",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/resonator_projection_report-903f40117696e967.gz",
+      "decoded_sha256": "404bdf59c1a82b860daddb349106f2ea07ff96df5d904d1f7e57fbc496faff24",
+      "decoded_bytes": 21498656
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/trajectory_common_basis-5ca67f1ffc91166b",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/trajectory_common_basis-5ca67f1ffc91166b.gz",
+      "decoded_sha256": "0a18be351dce65dfe73fcae4da7873693d11cb177b8642c3fe39aca8f91520c2",
+      "decoded_bytes": 7583600
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/deps/trajectory_common_basis-8218c512fb48eba6",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/trajectory_common_basis-8218c512fb48eba6.gz",
+      "decoded_sha256": "35ea6f6f5d8994901590bbb880fe3a47d2eb2f279215bbab30816f5754564214",
+      "decoded_bytes": 6894200
+    },
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-build-target/debug/xtask",
+      "compressed": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6386-completed-cache-proof-custody/xtask.gz",
+      "decoded_sha256": "2256ced3e72ec4da1a0ed833ee40e6a778770fb3b3a23c601baf96e7f520299b",
+      "decoded_bytes": 191125976
+    }
+  ],
+  "scope": "Independent byte custody of original owning-suite executables and source-bound raw log. No new execution, moving dev/Candidate identity or full Integration acceptance. Owner compressed artifacts remain untouched."
+}
