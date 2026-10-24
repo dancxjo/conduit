@@ -1593,3 +1593,14 @@ captures and ELF/map files previously described above as retained there.
 Committed curated evidence and hashes remain; they do not imply those full
 local artifacts are still available. The operational MCU stayed running, and
 its replacement recovery backup is kept privately outside Cargo output trees.
+
+The attended native Face repeat passed on source `1acf000f9`: three real
+one-minute DHT observations, signed publication attribution and independent
+producer Face replay with matching content/revision/freshness, then verified
+quiescence, provider retirement and owner-side Body Lull. The retained Face
+reports no publisher after retirement. Root peaked at 105,212 of 114,688 bytes;
+the release reserved 36,972 stack bytes against the 36 KiB profile floor. See
+`evidence/2026-10-24-native-face-execution/`. This is finite actual native
+Source/Face execution, not ongoing Body/Mask installation, native physical
+display output, successful station transition or durable recording. The wrapper
+restored the operational bench and verified twelve fresh display updates.

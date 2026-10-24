@@ -1,0 +1,60 @@
+{
+  "proof_class": "attended physical native Source publication and retained producer Face replay; finite run only",
+  "source_commit": "1acf000f906c6be0bae6b19f4b3a1b47691845f3",
+  "public_command": "cargo xtask prove environment owner-face-run-esp32",
+  "boot": "boot/fa0caf7cde2b049fffb04d0e0484c88d",
+  "source_faces_compared": [
+    {
+      "source_sequence": 1,
+      "revision": 1,
+      "face_identity": "01ac4df210d231a3e6112d178c74cc7a471e97c0afdd658d3b09554cdbe0630a",
+      "signed_committed_millis": 89548,
+      "signed_observed_millis": 89943,
+      "channel": 0,
+      "fresh": true,
+      "available": true
+    },
+    {
+      "source_sequence": 2,
+      "revision": 2,
+      "face_identity": "d128d3b110a3c5410fadbca7a6e1b3678fdc69b0532fd5400539ba6323be22a2",
+      "signed_committed_millis": 149554,
+      "signed_observed_millis": 153652,
+      "channel": 0,
+      "fresh": true,
+      "available": true
+    },
+    {
+      "source_sequence": 3,
+      "revision": 3,
+      "face_identity": "a8014b5d518ad5e8275a6ed372649c384cf3c1b71e73eadf970a6b8a88e9040e",
+      "signed_committed_millis": 209568,
+      "signed_observed_millis": 211547,
+      "channel": 0,
+      "fresh": true,
+      "available": true
+    }
+  ],
+  "publisher_released_after_retirement": true,
+  "linked_stack_bytes": 36972,
+  "stack_floor_bytes": 36864,
+  "root_heap_bytes": 114688,
+  "sdk_heap_bytes": 73728,
+  "root_internal_bytes": 52608,
+  "root_reclaimed_bytes": 53888,
+  "root_rtc_fast_bytes": 8192,
+  "publication_rtc_slow_bytes": 4096,
+  "root_heap_peak_bytes": 105212,
+  "root_heap_after_retirement_bytes": 9732,
+  "aggregate_body_face_on_mcu": false,
+  "native_mask_physical_delivery": false,
+  "overnight_recording": false,
+  "original_pretty_json_sha256": {
+    "native-source-face-1.json": "73be6a5ec8e767455f82e117d09431c730e6e93f3e953d92d2a9fac4b250a816",
+    "physical-observation-1.json": "348408ec8013a7c31651ab95f120352412655fa55d55e8a1a1be0f6613bebefd",
+    "native-source-face-2.json": "551ec12008c2e51a1b1aa87da1570cc436070f83e9a7846b4696dbd1aec8f0f5",
+    "physical-observation-2.json": "6ea6bcd3f92523222e56a6b67cfb0f90dba6231022b58612d3c8299d9c784cff",
+    "native-source-face-3.json": "d9419bb17eb56a4cb3c96866fbdea922a84f8ab8a59f2597dbef874ba58d6c12",
+    "physical-observation-3.json": "83408577231672469bb26b5263b464a020e1d737f474a598c8098ee24f224fff"
+  }
+}
