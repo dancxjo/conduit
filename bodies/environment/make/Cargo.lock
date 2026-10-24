@@ -207,6 +207,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-plot-library",
+ "conduit-resource-snapshot",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -622,6 +623,13 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]

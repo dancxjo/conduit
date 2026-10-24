@@ -1,6 +1,7 @@
 //! One prepared snapshot Host Call, independent of any particular kernel driver
 //! set. This validates and correlates bytes; it does not execute storage.
 use super::*;
+use conduit_core::{AuthorityBinding, PlannedGear};
 use conduit_kernel::{
     scheduler::HostCallRequest, Failure, FailureCode, HostCallId, NodeId, RequestId,
 };
