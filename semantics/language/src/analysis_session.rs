@@ -51,6 +51,26 @@ impl<'a> AnalysisSession<'a> {
             publication_dispute: None,
         })
     }
+    /// Fresh journal with a protected retained prefix; old history stays archived.
+    pub(crate) fn from_retained_prefix(
+        domain: &'a DependencyRevisions<'a>,
+        context: RevisionContext<'a>,
+        limits: RevisionLimits,
+        initial: TokenFrontier,
+    ) -> Result<Self, RevisionRefusal> {
+        Ok(Self {
+            journal: RevisionJournal::new(domain, context, initial, limits)?,
+            source: domain.source_text,
+            committed: Vec::with_capacity(limits.history_events),
+            publication_dispute: None,
+        })
+    }
+    pub(crate) fn context(&self) -> RevisionContext<'a> {
+        self.journal.context()
+    }
+    pub(crate) fn is_closed(&self) -> bool {
+        self.journal.is_closed()
+    }
     fn current_arc(
         &self,
         reference: RevisionReference<'a>,
