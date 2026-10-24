@@ -64,3 +64,7 @@ It does not prove live owner acceptance, a new Body journey, component-picker Na
 every graph/accessibility case, native Todo/Patchbay reuse, arbitrary Source
 admission or exact-tree integration/publication. Earlier native evidence remains
 bound to its own Source. Original parent issues remain open; no CI campaign ran.
+
+Complete Look/Face receipts are lossless gzip archives. Artifact indices retain
+both raw/archive hashes and sizes; full Face evidence is preserved without a
+30,000-line JSON review diff.

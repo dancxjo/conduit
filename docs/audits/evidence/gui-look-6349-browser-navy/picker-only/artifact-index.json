@@ -47,9 +47,12 @@
   },
   {
     "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/look-receipt.json",
-    "retained_file": "look-receipt.json",
-    "sha256": "8a6e4e1de88302ae94917eae518cbc1da917553bf5ac9321d2dc75fc97a88ac0",
-    "bytes": 362945
+    "retained_file": "look-receipt.json.gz",
+    "sha256": "32ad4a9d163c0cded9a3a96c3c640e4d04e1237ea04e06fbc10b7809ce046c2c",
+    "bytes": 20672,
+    "raw_sha256": "8a6e4e1de88302ae94917eae518cbc1da917553bf5ac9321d2dc75fc97a88ac0",
+    "raw_bytes": 362945,
+    "archive_encoding": "gzip"
   },
   {
     "original_relative_path": "patchbay-look-options-four-417be-in-the-exact-Face-and-graph-chromium/theme.css",
