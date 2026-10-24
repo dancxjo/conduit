@@ -281,17 +281,16 @@ fn missing_domain_and_overbound_authored_controls_refuse_without_changing_source
 fn foreign_exact_time_basis_refuses_before_any_g2_owner_is_returned() {
     // Equal elapsed duration, supported by G1's existing frame-grid admission.
     // G2 nevertheless refuses a foreign exact denominator without normalizing.
-    for (denominator, numerator) in [(60, 2)] {
-        let mut f = Fixture::new(false);
-        f.replace_duration(2, denominator, numerator);
-        let owner = f.owner();
-        let controls = controls(&owner);
-        let profile = PhoneGestureProfile::prepare(&owner, "G2/bad-time@1", &controls).unwrap();
-        assert!(matches!(
-            prepare_phone_gestures(&owner, &profile, &anchor(), &provenance(), capacity()),
-            Err(PhoneGestureRefusal::InvalidDuration { .. })
-        ));
-    }
+    let (denominator, numerator) = (60, 2);
+    let mut f = Fixture::new(false);
+    f.replace_duration(2, denominator, numerator);
+    let owner = f.owner();
+    let controls = controls(&owner);
+    let profile = PhoneGestureProfile::prepare(&owner, "G2/bad-time@1", &controls).unwrap();
+    assert!(matches!(
+        prepare_phone_gestures(&owner, &profile, &anchor(), &provenance(), capacity()),
+        Err(PhoneGestureRefusal::InvalidDuration { .. })
+    ));
 }
 
 #[test]
