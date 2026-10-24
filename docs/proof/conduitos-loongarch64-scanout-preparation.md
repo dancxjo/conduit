@@ -106,3 +106,14 @@ refusal and acknowledge no graphical Show. The queries neither pause the guest
 nor change registers or memory. Full transcripts, selected memory reads, inputs,
 collector scripts, compile/check output and original failures remain retained.
 This is stronger mapping preparation, not a current graphical product frame.
+
+## Held shared-Face composition
+
+The unlinked `bin/loongarch64_product/graphical.rs` composes the same
+`FirmwareFace` used by AArch64, IA-32 and RISC-V with the LoongArch machine
+adapter. It consumes a fresh 32-byte key through the existing bounded fw_cfg
+entropy provider and emits the shared Face plus a bounded mapping record.
+There is no new Face authoring, input route or entropy source. The record
+names actual MAT observation and the QEMU-only `dbar 0` completion policy.
+This is formatted preparation only; no normal product wiring, cross-build or
+Show claim follows from this unlinked file.
