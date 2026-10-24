@@ -1,0 +1,59 @@
+{
+  "head": "105e7339ca119974bde2899480321d1a3ad9531c",
+  "production_code_commit": "8e54c36181066771870045470c25bd11f7dc4945",
+  "working_change": "One hosted test assertion: (first.instance(),first.origin())==(7,2); production code unchanged.",
+  "source_sha256": {
+    "targets/conduitos/src/arch/x86_64/domain_budget.rs": "62e303fe777d9d547abe0ee2465aea0cd61621517b782e01f17b78ba020734ac",
+    "targets/conduitos/src/arch/x86_64/domain_budget/entry.rs": "7f0d8fd7ada7e7f9b31f04d1478ea5707f07a8e0fc9368d7f502d37b167e75da",
+    "targets/conduitos/src/arch/x86_64/domain_budget/tests.rs": "f4f31324d757da6a5f88fe03a3e34c197cd2863cbee13ea1f5baefb1831ecd78",
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "fc4bf40678b37e014967010eefb3e4b03133e58f343aaa545ba9fa3b4bc0f53f",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "ff6dfad3e565b55a6069b2bd14013a6da5de184698ec039e409910f2934625f3",
+    "targets/conduitos/tests/native_rtc_receipt.rs": "ac2d81f9a96101e04aa4c876f5536c8d1fb03c41dcecf5ae23152aedcf241b50"
+  },
+  "checks": [
+    {
+      "name": "host-rerun",
+      "command": "cargo +stable test --locked -p conduitos --test native_rtc_receipt",
+      "exit_code": 0,
+      "elapsed": "0.35s command;3passed",
+      "raw_log": "6318-native-rtc-host-rerun.log",
+      "log_sha256": "331ae6baf2b69d439f4721110089b7e23b03d4864cee7e3c97f4de34b1f9f17e"
+    },
+    {
+      "name": "clippy",
+      "command": "cargo +stable clippy --locked -p conduitos --test native_rtc_receipt --no-deps -- -D warnings",
+      "exit_code": 0,
+      "elapsed": "3m33s",
+      "raw_log": "6318-native-rtc-clippy.log",
+      "log_sha256": "00d0f40e44ebbd663828848fac74be5bb1771eef5d9ef0bbc39c3dfcd9d64f7f"
+    },
+    {
+      "name": "normal-target-check",
+      "command": "cargo +stable check --locked -p conduitos --bin conduitos --target x86_64-unknown-none --release --features native-compositor",
+      "exit_code": 0,
+      "elapsed": "18m21s",
+      "raw_log": "6318-native-rtc-normal-target-check.log",
+      "log_sha256": "31157030af74962e9eca53b816c7b38d0af6df4b2b56de0cd840b962430cd3e4"
+    }
+  ],
+  "native_execution": false,
+  "proof_feature_check": "NOT STARTED: predicted additional 3.6\u20134.2GiB coldguestcache exceeds current 10GiBtotal authorization.",
+  "remaining": [
+    "proof-feature freestanding compile",
+    "actualRTC cap/capture nativeexecution",
+    "Applicationowner cumulative64logicaloperation ledger",
+    "canonicalstagedpublication and exactnormalPROFILEjourney/Candidate/Integration"
+  ],
+  "current_host_test_executables": [
+    {
+      "original": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6318-native-rtc-build-target/debug/deps/native_rtc_receipt-0b772a3214cee7c9",
+      "retained_gzip": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6318-native-rtc-focused-artifacts/native_rtc_receipt-0b772a3214cee7c9.gz",
+      "bytes": 5636560,
+      "sha256": "396fb80e3ba809294ece63adf462e8ae9bf0c634cf4d47b449be3d990611bad7"
+    }
+  ],
+  "limits": [
+    "Hosted pure policy/receipt execution and normal freestanding compile only.",
+    "No proof-feature compile/native cap enforcement/cumulative operation/native normal journey or issue closure claim."
+  ]
+}

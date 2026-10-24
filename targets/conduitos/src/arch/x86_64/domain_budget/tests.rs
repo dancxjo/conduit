@@ -42,6 +42,7 @@ fn immutable_counts_are_bound_to_instance_sequence_cap_and_actual_return() {
     );
     let first =
         NativeEntryReceipt::capture(EntryIdentity::new(7, 1).unwrap(), cap, (1, 9), 4, 2).unwrap();
+    assert_eq!((first.instance(), first.origin()), (7, 2));
     assert_eq!(
         first.outcome(),
         DomainReturn::Fault(DomainFault::WorkExhausted)
