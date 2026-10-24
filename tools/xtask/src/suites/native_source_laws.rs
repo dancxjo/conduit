@@ -1,4 +1,4 @@
-//! Exact checked Native law admission, distinct from Rust materialization/currentness.
+//! Exact checked Native law admission and prepared materialization, without Current authority.
 use crate::process::Step;
 pub const STEPS: &[Step] = &[
     Step::new(
@@ -19,7 +19,7 @@ pub const STEPS: &[Step] = &[
     ),
     Step::new(
         "native-source-laws.occurrences",
-        "Check opaque ownership, nested actual laws and finite no-growth admission",
+        "Check opaque ownership, nested actual laws and no-growth admission/materialization",
         "cargo",
         &[
             "test",
@@ -32,6 +32,8 @@ pub const STEPS: &[Step] = &[
             "prepared_native_occurrences",
             "--test",
             "prepared_native_optional",
+            "--test",
+            "prepared_native_decode",
             "--",
             "--nocapture",
             "--test-threads=1",
@@ -39,7 +41,7 @@ pub const STEPS: &[Step] = &[
     ),
     Step::new(
         "native-source-laws.beam",
-        "Check all four real parser Beam law scopes, refusal, pressure and cancellation",
+        "Check all four real parser Beam law scopes and retained no-growth materialization",
         "cargo",
         &[
             "test",
@@ -48,6 +50,8 @@ pub const STEPS: &[Step] = &[
             "conduit-language",
             "--test",
             "prepared_beam_admission",
+            "--test",
+            "actual_beam_prepared_decode",
             "--",
             "--nocapture",
             "--test-threads=1",

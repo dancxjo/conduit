@@ -16,7 +16,8 @@ pub(crate) fn validate_shape(
     }
     if lowered.cords.len() != lowered.identity.connections.len()
         || lowered.resource_cords.len() != lowered.identity.resource_connections.len()
-        || lowered.cords.len() + lowered.resource_cords.len() != fragment.connections.len()
+        || lowered.cords.len() + lowered.resource_cords.len()
+            != fragment.connections.len() + fragment.fore_ports.len()
     {
         return Err(GenerationError::InconsistentLowering("cord tables"));
     }
