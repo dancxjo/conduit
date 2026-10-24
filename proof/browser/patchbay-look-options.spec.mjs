@@ -51,8 +51,10 @@ test('three typed application Looks retain the exact Face and graph', async ({ p
     await page.locator('#arrange').focus();
     await page.keyboard.press('Tab');
     await expect(picker).toBeFocused();
+    await page.keyboard.press('Home');
     for(const name of ['phosphor','editorial','engineering']) {
-      await picker.selectOption(`conduit.look/${name}@1`);
+      if(name!=='phosphor')await page.keyboard.press('ArrowDown');
+      await expect(picker).toHaveValue(`conduit.look/${name}@1`);
       await picker.focus();
       await expect(picker).toBeFocused();
       expect(await picker.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
