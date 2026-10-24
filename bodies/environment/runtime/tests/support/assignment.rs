@@ -31,9 +31,24 @@ pub fn prepare_from_resident<
     resident: &GeneratedEmbeddedPlan,
     check_refusals: bool,
 ) -> conduit_environment_runtime::assigned::AssignedKernelTables<N, C, P, R, T, H> {
+    prepare_with_runtime_bound(image, resident, check_refusals, 16 * 1024)
+}
+pub fn prepare_with_runtime_bound<
+    const N: usize,
+    const C: usize,
+    const P: usize,
+    const R: usize,
+    const T: usize,
+    const H: usize,
+>(
+    image: &GeneratedEmbeddedPlan,
+    resident: &GeneratedEmbeddedPlan,
+    check_refusals: bool,
+    runtime_state_bytes: u16,
+) -> conduit_environment_runtime::assigned::AssignedKernelTables<N, C, P, R, T, H> {
     let maxima = AssignedPlanMaxima {
         encoded_bytes: 48 * 1024,
-        runtime_state_bytes: 16 * 1024,
+        runtime_state_bytes,
         counts: [16, 32, 8, 16, 16, 16, 8, 1, 128, 0, 32, 32, 0],
     };
     let encoded = conduit_embedded_build::encode_assigned_native_plan(image, maxima).unwrap();
@@ -109,7 +124,12 @@ pub fn prepare_from_resident<
     alternate.cords[0].maximum_value_bytes = alternate.cords[0].byte_capacity.saturating_sub(1);
     alternate.cords[0].pressure_policy =
         conduit_kernel::scheduler::AssignedPressurePolicy::CoalesceLatest;
-    let alternate_tables = prepare_from_resident::<N, C, P, R, T, H>(&alternate, &alternate, false);
+    let alternate_tables = prepare_with_runtime_bound::<N, C, P, R, T, H>(
+        &alternate,
+        &alternate,
+        false,
+        runtime_state_bytes,
+    );
     assert_eq!(
         alternate_tables.cords[0].maximum_value_bytes,
         alternate.cords[0].maximum_value_bytes
