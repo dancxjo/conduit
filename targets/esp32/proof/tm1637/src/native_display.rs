@@ -14,6 +14,11 @@ mod software {
 }
 pub struct NativeDisplay {
     ready: ReadyWriteBase<DisplayPins<'static>>,
+    #[cfg(feature = "display-ready-root")]
+    software: Result<
+        Box<conduit_environment_runtime::appliance::software::ReadySoftwareBacks>,
+        &'static str,
+    >,
 }
 impl NativeDisplay {
     /// Consume the two actual initialized MCU peripherals before offering them.
@@ -57,23 +62,46 @@ impl NativeDisplay {
             )
         }
         .map_err(|_| "display-provider")?;
-        Ok(Box::new(Self { ready }))
+        #[cfg(feature = "display-ready-root")]
+        let software = {
+            // Exact trusted artifact, separate diagnostic Boot profile. Keep
+            // 8 KiB control reserve beyond the conservative 96 KiB preparation
+            // allowance; refuse without initialization when it is unavailable.
+            let stats = esp_alloc::HEAP.stats();
+            if stats.size.saturating_sub(stats.current_usage) < (96 + 8) * 1024 {
+                Err("display-preparation-capacity")
+            } else {
+                let id = ready.native_identity();
+                software::prepare(id.host_id.clone(), id.boot_id.clone())
+                    .map(Box::new)
+                    .map_err(|_| "display-software-initialization")
+            }
+        };
+        Ok(Box::new(Self {
+            ready,
+            #[cfg(feature = "display-ready-root")]
+            software,
+        }))
     }
-    /// Preparation only, for a later independently admitted output selection.
-    /// Do not call this at bootstrap beside the sampling closure without
-    /// admitting the combined peak. No Back is advertised or Play started here.
-    #[allow(
-        dead_code,
-        reason = "output installation awaits the authenticated Root selection path"
-    )]
-    pub fn prepare_output_software(
-        &self,
-    ) -> Result<
-        Box<conduit_environment_runtime::appliance::software::ReadySoftwareBacks>,
-        conduit_environment_runtime::appliance::software::SoftwareRefusal,
-    > {
-        let identity = self.ready.native_identity();
-        software::prepare(identity.host_id.clone(), identity.boot_id.clone()).map(Box::new)
+    pub fn software_ready(&self) -> bool {
+        #[cfg(feature = "display-ready-root")]
+        {
+            self.software.is_ok()
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            false
+        }
+    }
+    pub fn software_refusal(&self) -> Option<&'static str> {
+        #[cfg(feature = "display-ready-root")]
+        {
+            self.software.as_ref().err().copied()
+        }
+        #[cfg(not(feature = "display-ready-root"))]
+        {
+            None
+        }
     }
     pub fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
         let contract = WriteContract::prepare().map_err(|_| ())?;

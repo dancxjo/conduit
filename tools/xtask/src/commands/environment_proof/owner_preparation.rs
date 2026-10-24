@@ -5,6 +5,9 @@ use super::{execute, host_target, software_ready};
 mod flash_tool;
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path, process::Command};
+pub(super) fn provision_flash_tool(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
+    flash_tool::provision_espflash(root)
+}
 pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
     let data = std::env::var_os("XDG_DATA_HOME")
         .map(std::path::PathBuf::from)

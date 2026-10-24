@@ -139,9 +139,12 @@ impl NativeRoot {
             issuer,
             play: crate::native_play::NativePlay::new(),
             offer_generation: 1,
+            #[cfg(not(feature = "display-ready-root"))]
             software: Some(
                 crate::native_software::prepare().expect("initialized resident software"),
             ),
+            #[cfg(feature = "display-ready-root")]
+            software: None,
             credential_writer,
             assignment: None,
             network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
@@ -269,6 +272,12 @@ impl NativeRoot {
             &self.host,
             &self.boot,
             c::OfferGeneration(self.offer_generation),
+        )
+    }
+    pub fn display_software_status(&self) -> (bool, &'static str) {
+        (
+            self.display.software_ready(),
+            self.display.software_refusal().unwrap_or("none"),
         )
     }
     pub fn software(&self) -> Option<&crate::native_software::Software> {

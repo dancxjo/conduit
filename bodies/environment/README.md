@@ -1507,3 +1507,19 @@ build embeds and type-checks the generated constructor, and the supported
 entry is not called at bootstrap. Authenticated output selection, combined
 memory/work admission, actual preparation on the MCU and physical output remain
 unfinished; this build was not flashed.
+
+The separate `display-ready-root` firmware profile initializes and retains the
+trusted output software under a conservative 96 KiB preparation allowance plus
+8 KiB control reserve. It omits the sampling software closure in this Boot and
+starts no Body/Play or electrical transaction. Readiness and refusal appear in
+Root's bounded status envelope; hardware pins stay independently retained.
+This profile measures native initialization before combined sampler/output
+admission and is not an appliance deployment.
+
+Build it with `cargo xtask prove environment display-output esp32-readiness`.
+Adding `--flash` explicitly flashes the attached known ESP32, saves its ELF and
+source/SHA receipt and runs bounded read-only UART readiness capture. The proof
+requires the expected MCU, output software ready, sampling software absent, no
+installed Body/Play and valid Root heap counters. It records a refusal before
+failing; it neither retries a mutation nor claims physical display delivery.
+The ordinary `root-esp32` and `owner-run-esp32` paths keep their sampling profile.

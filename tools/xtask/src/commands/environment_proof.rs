@@ -155,8 +155,8 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         }
         return Ok(());
     }
-    if arguments == ["display-output"] {
-        return display_output::prove(&root);
+    if arguments.first().map(String::as_str) == Some("display-output") {
+        return display_output::prove(&root, &arguments[1..]);
     }
     if arguments == ["native-construction"] {
         return native_construction::prove(&root);
