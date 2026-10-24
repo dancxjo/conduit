@@ -1,0 +1,46 @@
+{
+  "build": {
+    "architecture": "x86_64",
+    "artifact_role": "architecture-proof-appliance",
+    "base_commit": "45e86d2ed42dec65faaf8eb76b6496beffc67594",
+    "elf_sha256": "e9fde809fd9d7eb1a50168c897c04ad1ebf9c2050aa9cb161ba776bb0cb3fad5",
+    "limine_crate": "0.5.0",
+    "rust_target": "x86_64-unknown-none",
+    "schema": "conduit.conduitos.build/v2"
+  },
+  "fixture": true,
+  "machine": {
+    "cpu": "max",
+    "emulator": "qemu-system-x86_64",
+    "memory_mib": 256,
+    "model": "q35",
+    "vcpus": 1
+  },
+  "observations": {
+    "architecture": "x86_64",
+    "dma_isolation": false,
+    "driver_isolation": false,
+    "fixture": true,
+    "fixture_acknowledgements": 2,
+    "frame_steps": 136,
+    "fresh_instance_empty": true,
+    "image_sha256": "363c61fe41ad0cd3676a7b184d5af2d135bacc0302e81a05b643c58aec508dcc",
+    "initial_pixels": 768,
+    "old_handle_rejected": true,
+    "old_instance_quarantined": true,
+    "physical_scanout": false,
+    "pixel_comparisons": 832,
+    "privilege": "ring3",
+    "production_compositor": false,
+    "proof_class": "freestanding-emulator",
+    "removed_rectangle_pixels": 64,
+    "replacement_while_old_alive": true,
+    "schema": "conduit.conduitos/compositor-guest-fixture@2",
+    "semantic_show_acknowledged": false,
+    "stale_drop_preserves_replacement": true,
+    "status": "completed"
+  },
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/compositor-guest-evidence@2",
+  "transcript_sha256": "a7a36c9ee3705672930f462f1a78fc5f5f74f0860def90d07983e568abdcdb5c"
+}

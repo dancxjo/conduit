@@ -1,0 +1,69 @@
+{
+  "build": {
+    "architecture": "x86_64",
+    "artifact_role": "architecture-proof-appliance",
+    "base_commit": "45e86d2ed42dec65faaf8eb76b6496beffc67594",
+    "elf_sha256": "e9fde809fd9d7eb1a50168c897c04ad1ebf9c2050aa9cb161ba776bb0cb3fad5",
+    "limine_crate": "0.5.0",
+    "rust_target": "x86_64-unknown-none",
+    "schema": "conduit.conduitos.build/v2"
+  },
+  "fixture": true,
+  "machine": {
+    "cpu": "max",
+    "emulator": "qemu-system-x86_64",
+    "memory_mib": 256,
+    "model": "q35",
+    "vcpus": 1
+  },
+  "observations": {
+    "application_rtc": {
+      "fault": {
+        "admitted_rtc": 1,
+        "consumed_rtc": 1,
+        "instance": 42,
+        "result": "work-exhausted",
+        "sequence": 2,
+        "source_interrupts": 0
+      },
+      "faults_terminal": true,
+      "invalid_caps_refused_without_entry": true,
+      "prior_immutable": true,
+      "schema": "conduit.conduitos/application-rtc-receipt-fixture@1",
+      "source": {
+        "admitted_rtc": 64,
+        "consumed_rtc": 64,
+        "instance": 43,
+        "result": "work-exhausted",
+        "sequence": 1,
+        "source_interrupts": 1
+      },
+      "source_wake_once": true,
+      "yield": {
+        "admitted_rtc": 1,
+        "consumed_rtc": 0,
+        "instance": 42,
+        "result": "yielded",
+        "sequence": 1,
+        "source_interrupts": 0
+      }
+    },
+    "architecture": "x86_64",
+    "dma_isolation": false,
+    "driver_isolation": false,
+    "fixture": true,
+    "foreign_application_profile_refused_without_entry": true,
+    "hostile_entries": 26,
+    "privilege": "ring3",
+    "production_compositor": false,
+    "proof_class": "freestanding-emulator",
+    "restart_boundary_samples_zero": true,
+    "retained_bytes": 8388608,
+    "schema": "conduit.conduitos/service-memory-fixture@1",
+    "scratch_bytes": 8388608,
+    "status": "completed"
+  },
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/service-memory-evidence@1",
+  "transcript_sha256": "a7a36c9ee3705672930f462f1a78fc5f5f74f0860def90d07983e568abdcdb5c"
+}

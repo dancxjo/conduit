@@ -1,0 +1,71 @@
+{
+  "source_commit": "45e86d2ed42dec65faaf8eb76b6496beffc67594",
+  "source_clean_during_run": true,
+  "command": "cargo +stable xtask make conduitos ordinary-domain-proof --locked",
+  "session": 3473,
+  "exit_code": 0,
+  "machine": {
+    "emulator": "qemu-system-x86_64",
+    "model": "q35",
+    "cpu": "max",
+    "vcpus": 1,
+    "memory_mib": 256
+  },
+  "proof_class": "freestanding-emulator CPL3 architecture-proof-appliance fixtures",
+  "raw_transcript_sha256": "a7a36c9ee3705672930f462f1a78fc5f5f74f0860def90d07983e568abdcdb5c",
+  "command_log_sha256": "5607927f4d94eb26e2feef8cbc9ec1bc140808c27852c6e783718e2294107b34",
+  "artifacts": {
+    "conduitos": {
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6318-native-rtc-actual-proof/conduitos",
+      "sha256": "e9fde809fd9d7eb1a50168c897c04ad1ebf9c2050aa9cb161ba776bb0cb3fad5",
+      "bytes": 61503112
+    },
+    "conduitos.iso": {
+      "retained": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6318-native-rtc-actual-proof/conduitos.iso",
+      "sha256": "99a2f746c512b879d650bfe213e843928fb596560c5f97edf24d980819fdef96",
+      "bytes": 65769472
+    }
+  },
+  "observations": {
+    "fault": {
+      "admitted_rtc": 1,
+      "consumed_rtc": 1,
+      "instance": 42,
+      "result": "work-exhausted",
+      "sequence": 2,
+      "source_interrupts": 0
+    },
+    "faults_terminal": true,
+    "invalid_caps_refused_without_entry": true,
+    "prior_immutable": true,
+    "schema": "conduit.conduitos/application-rtc-receipt-fixture@1",
+    "source": {
+      "admitted_rtc": 64,
+      "consumed_rtc": 64,
+      "instance": 43,
+      "result": "work-exhausted",
+      "sequence": 1,
+      "source_interrupts": 1
+    },
+    "source_wake_once": true,
+    "yield": {
+      "admitted_rtc": 1,
+      "consumed_rtc": 0,
+      "instance": 42,
+      "result": "yielded",
+      "sequence": 1,
+      "source_interrupts": 0
+    }
+  },
+  "host_tests": "4PASS0ignored; strictPASS",
+  "remaining_parent6318": [
+    "Application logical operation nonrenewing cumulative64RTC ledger and finite zeroIRQ phase progression",
+    "prepare-target and Patchbay publication complete semantic custody, normal PROFILE PatchbayAction/Stop journey",
+    "Candidate and merged-source Integration"
+  ],
+  "not_claimed": [
+    "production protected Application operation fit",
+    "physical execution or DMA/driver isolation",
+    "parent issue closure"
+  ]
+}
