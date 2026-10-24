@@ -22,6 +22,11 @@ mod prosody_commitment;
 #[path = "../../xtask/src/suites/record_pronunciation.rs"]
 mod record_pronunciation;
 
+#[path = "../../xtask/src/suites/monotonic_wait.rs"]
+mod monotonic_wait;
+#[path = "../../xtask/src/suites/resource_snapshot.rs"]
+mod resource_snapshot;
+
 struct Suite {
     steps: &'static [Step],
     path: &'static str,
@@ -30,6 +35,16 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "resource-snapshot" => Some(Suite {
+            steps: resource_snapshot::STEPS,
+            path: "tools/xtask/src/suites/resource_snapshot.rs",
+            source: include_bytes!("../../xtask/src/suites/resource_snapshot.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "monotonic-wait" => Some(Suite {
+            steps: monotonic_wait::STEPS,
+            path: "tools/xtask/src/suites/monotonic_wait.rs",
+            source: include_bytes!("../../xtask/src/suites/monotonic_wait.rs"),
+        }),
         [check, suite] if check == "check" && suite == "acoustic-flow" => Some(Suite {
             steps: acoustic_flow::STEPS,
             path: "tools/xtask/src/suites/acoustic_flow.rs",
@@ -142,6 +157,8 @@ mod tests {
     #[test]
     fn exact_entrance_selects_the_shared_complete_suite() {
         for (name, expected) in [
+            ("monotonic-wait", monotonic_wait::STEPS),
+            ("resource-snapshot", resource_snapshot::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
             ("acoustic-control", acoustic_control::STEPS),
             ("angle-reference", angle_reference::STEPS),
@@ -158,6 +175,8 @@ mod tests {
     #[test]
     fn options_and_other_commands_retain_full_parser() {
         for values in [
+            vec!["--json", "check", "monotonic-wait"],
+            vec!["check", "resource-snapshot", "--dry-run"],
             vec!["--json", "check", "acoustic-flow"],
             vec!["check", "acoustic-flow", "--quiet"],
             vec!["check", "acoustic-flow", "--dry-run"],

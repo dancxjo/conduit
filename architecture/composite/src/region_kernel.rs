@@ -43,7 +43,8 @@ impl PreparedRegionKernel {
             .get(region_index)
             .ok_or("unknown execution region")?
             .admitted();
-        if region.scheduling.worker_storage().is_none()
+        if !region.scheduling.is_partitioned()
+            || region.scheduling.worker_storage().is_none()
             || region.preemption_required
             || region.isolation_required
         {

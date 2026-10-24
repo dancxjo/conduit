@@ -1,0 +1,96 @@
+//! Linux scanout adapter below the ordinary Face graphics Show. This module
+//! owns no Body, observation, Mask policy, scheduler, or recording authority.
+mod surface;
+use conduit_face::GraphicsScene;
+use conduitos::display::DisplayReceipt;
+use sdl2::{
+    pixels::PixelFormatEnum,
+    render::{Canvas, Texture, TextureCreator},
+    video::{Window, WindowContext},
+};
+pub use surface::Surface;
+
+/// Prepared texture and finite CPU surface. The caller owns renderer lifetime
+/// and must call `lose` when its admitted display custody is withdrawn.
+pub struct Scanout<'a> {
+    canvas: &'a mut Canvas<Window>,
+    texture: Texture<'a>,
+    surface: Surface,
+    live: bool,
+}
+impl<'a> Scanout<'a> {
+    pub fn prepare(
+        canvas: &'a mut Canvas<Window>,
+        textures: &'a TextureCreator<WindowContext>,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, String> {
+        let surface = Surface::prepare(width, height).map_err(str::to_owned)?;
+        let mut texture = textures
+            .create_texture_streaming(PixelFormatEnum::ARGB8888, width, height)
+            .map_err(|e| e.to_string())?;
+        texture.set_blend_mode(sdl2::render::BlendMode::None);
+        Ok(Self {
+            canvas,
+            texture,
+            surface,
+            live: true,
+        })
+    }
+    pub fn present(&mut self, scene: &GraphicsScene) -> Result<DisplayReceipt, String> {
+        if !self.live {
+            return Err("display-custody-lost".into());
+        }
+        let result = self.present_inner(scene);
+        if result.is_err() {
+            self.lose();
+        }
+        result
+    }
+    fn present_inner(&mut self, scene: &GraphicsScene) -> Result<DisplayReceipt, String> {
+        let receipt = self.surface.render(scene).map_err(str::to_owned)?;
+        self.texture
+            .update(None, self.surface.bytes(), self.surface.pitch())
+            .map_err(|e| e.to_string())?;
+        self.canvas.copy(&self.texture, None, None)?;
+        self.canvas.present();
+        Ok(receipt)
+    }
+    /// Revocation is terminal for this prepared scanout. Reacquisition requires
+    /// a new preparation; device availability alone cannot restore authority.
+    pub fn lose(&mut self) {
+        self.live = false;
+        self.surface.lose();
+    }
+}
+
+/// Preparation entrance for an actual direct Linux display. Refuse any other
+/// SDL backend, including implicit desktop fallbacks. This is not a Host offer:
+/// the enclosing Host must admit the actual display resource and present call.
+pub fn with_kmsdrm<T>(
+    width: u32,
+    height: u32,
+    run: impl FnOnce(&mut Scanout<'_>, &mut sdl2::EventPump) -> Result<T, String>,
+) -> Result<T, String> {
+    if !sdl2::hint::set("SDL_VIDEODRIVER", "kmsdrm") {
+        return Err("kmsdrm-driver-selection-refused".into());
+    }
+    let sdl = sdl2::init()?;
+    let video = sdl.video()?;
+    if video.current_video_driver() != "kmsdrm" {
+        return Err("kmsdrm-driver-unavailable".into());
+    }
+    let window = video
+        .window("Conduit", width, height)
+        .fullscreen_desktop()
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    let textures = canvas.texture_creator();
+    let mut scanout = Scanout::prepare(&mut canvas, &textures, width, height)?;
+    let mut events = sdl.event_pump()?;
+    run(&mut scanout, &mut events)
+}
+
+#[cfg(test)]
+mod tests;

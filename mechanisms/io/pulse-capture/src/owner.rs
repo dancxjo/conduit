@@ -67,6 +67,14 @@ pub enum PulseCallRefusal {
     Canonical(StructuredInfoRefusal),
 }
 
+/// Retirement refuses without consuming the retained native owner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PulseRetirementRefusal {
+    Unavailable,
+    InFlight,
+    NotRevoked,
+}
+
 pub struct PulseHostCall<P> {
     table: BaseCapabilityTable,
     handle: BaseCapabilityHandle,
@@ -219,6 +227,26 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
         self.table
             .revoke(&self.handle)
             .map_err(PulseCallRefusal::Capability)
+    }
+
+    /// Consume only revoked, idle possession and return the exact provider and
+    /// attachment. Refusal leaves `owner` intact. No capability, claim or Play
+    /// authority survives this transfer; a later binding needs fresh admission.
+    /// A pending invocation borrows the owner, so its provider future must be
+    /// dropped/quiesced before this exclusive retirement entrance is available.
+    pub fn retire_retained(
+        owner: &mut Option<Self>,
+    ) -> Result<(P, PulseAttachment), PulseRetirementRefusal> {
+        let current = owner.as_ref().ok_or(PulseRetirementRefusal::Unavailable)?;
+        let inspection = current.inspection();
+        if inspection.in_flight_operations != 0 {
+            return Err(PulseRetirementRefusal::InFlight);
+        }
+        if inspection.lifecycle != conduit_core::CapabilityLifecycle::Revoked {
+            return Err(PulseRetirementRefusal::NotRevoked);
+        }
+        let current = owner.take().expect("preflighted retained owner");
+        Ok((current.provider, current.attachment))
     }
 
     pub fn inspection(&self) -> &CapabilityInspection {

@@ -11,6 +11,7 @@ fn pool(name: &str) -> PoolUsage {
         capacity_units: 4,
         content: None,
         compute: Some(ComputePoolContract {
+            protected_preemption: None,
             service_guarantee: ComputeServiceGuarantee::Shared,
             architecture_base_id: ArchitectureBaseId::from("base"),
             architecture_base_kind: ArchitectureBaseKind::HostedOs,

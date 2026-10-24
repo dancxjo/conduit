@@ -9,6 +9,10 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "targets/std/display/Cargo.toml",
+        lock: "targets/std/display/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "targets/esp32/proof/tm1637/Cargo.toml",
         lock: "targets/esp32/proof/tm1637/Cargo.lock",
     },
@@ -27,6 +31,10 @@ const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
         manifest: "bodies/environment/runtime/Cargo.toml",
         lock: "bodies/environment/runtime/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "mechanisms/io/monotonic-wait/Cargo.toml",
+        lock: "mechanisms/io/monotonic-wait/Cargo.lock",
     },
     StandaloneLock {
         manifest: "mechanisms/io/pulse-capture/Cargo.toml",

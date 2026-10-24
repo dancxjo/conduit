@@ -221,6 +221,7 @@ fn base(
                     class,
                     *units,
                     ComputePoolContract {
+                        protected_preemption: None,
                         service_guarantee: ComputeServiceGuarantee::Shared,
                         architecture_base_id: ArchitectureBaseId::from(alloc::format!(
                             "fixture/{host}/hosted-os-cpu"

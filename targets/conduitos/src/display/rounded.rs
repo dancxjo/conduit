@@ -47,7 +47,7 @@ pub(super) fn render(
     Ok(())
 }
 
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 pub(super) fn render_smooth(
     target: &mut impl super::RetainedPixelTarget,
     bounds: LayoutRect,

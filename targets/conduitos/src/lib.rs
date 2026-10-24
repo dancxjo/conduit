@@ -107,19 +107,19 @@ pub mod monotonic_clock;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod native_boot_join;
 mod native_components;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 pub mod native_compositor;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 pub mod native_face_mask;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 pub mod native_face_scene;
 pub mod native_face_snapshot;
 pub mod native_guest_face;
 pub mod native_network_bounds;
 pub mod native_observation;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod native_owner_admission;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 mod native_owner_document;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod native_owner_return;
@@ -179,7 +179,7 @@ pub mod protected_line_support;
 ))]
 pub(crate) mod protected_network;
 pub mod protected_region;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod protected_relay_support;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub(crate) mod protected_runtime;
@@ -225,7 +225,7 @@ pub mod protocol_source;
 #[cfg(test)]
 mod protocol_test_support;
 pub mod rendezvous_descriptor;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod secure_rendezvous_support;
 pub mod seeded_state;
 pub mod storage_base;
@@ -248,7 +248,7 @@ pub mod virtio_tls;
     any(feature = "virtio-net-proof", feature = "hosted-tools")
 ))]
 pub mod virtio_tls_fixture;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 mod wss_candidate_support;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
@@ -308,7 +308,7 @@ mod native_surface_possession;
 mod native_surface_provider;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 mod pointer_coordinates;
-#[cfg(any(test, target_arch = "x86_64"))]
+#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod product_bases;
 #[cfg(any(
     test,
@@ -432,6 +432,9 @@ compile_error!(
     feature = "compositor-semantic-recovery-proof"
 ))]
 pub mod compositor_semantic_recovery_proof;
+
+#[cfg(feature = "native-compositor-core")]
+pub mod firmware_face;
 
 // Own the proof scanner's hosted poison/count controls without native mappings.
 #[cfg(test)]

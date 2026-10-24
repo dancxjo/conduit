@@ -10,13 +10,13 @@ fn rect(x: i16, y: i16, width: u16, height: u16) -> LayoutRect {
     }
 }
 fn draw(buffer: &mut SurfaceBuffer, scene: &GraphicsScene) -> Result<DisplayReceipt, DisplayError> {
-    #[cfg(feature = "native-compositor")]
+    #[cfg(feature = "native-compositor-core")]
     {
         crate::display::typography::render_scene(buffer, scene, |_, command| {
             command.text_role().into()
         })
     }
-    #[cfg(not(feature = "native-compositor"))]
+    #[cfg(not(feature = "native-compositor-core"))]
     {
         crate::display::render_scene(buffer, scene)
     }
@@ -344,7 +344,7 @@ fn failed_scene_invalidates_old_pixels_and_cannot_advance_revision() {
     );
 }
 
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 #[test]
 fn palette_and_scale_change_force_full_raster_under_new_exact_receipt() {
     use conduit_core::HostBaseId;
@@ -400,7 +400,7 @@ fn palette_and_scale_change_force_full_raster_under_new_exact_receipt() {
     assert_ne!(compositor.surfaces[0].buffer.pixels, original);
 }
 
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 #[test]
 fn typography_alone_invalidates_retained_raster_without_changing_paint_or_scale() {
     use conduit_core::HostBaseId;
