@@ -118,38 +118,162 @@ fn checked_output_runs_from_compact_fore_tables_without_inventing_a_line() {
             for (actual, expected) in tables.cords.iter().zip(&prepared.lowered().cords) {
                 assert_eq!(actual, &expected.spec);
             }
-            let mut selectors = core::array::from_fn(|_| None);
-            let mut write = None;
-            let drivers = core::array::from_fn(|i| {
-                let placement = &fragment.placements[i];
-                if placement.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND {
-                    write = Some(k::NodeId(i as u16));
-                    DisplayBack::Write(conduit_tm1637_wire::WriteBack::new(2))
-                } else {
-                    let operation = software
-                        .take_selected(fragment, &placement.placement_id)
-                        .unwrap();
-                    selectors[i] = operation.selector;
-                    DisplayBack::Software(operation.driver)
-                }
-            });
-            let kernel = DisplayKernel::new_boxed_with_active_counts_and_host_calls(
-                4,
-                5,
-                tables.nodes,
-                tables.cords,
-                tables.routes,
-                tables.calls,
-                drivers,
-                k::FixedValueStore::<12, 1024>::new(12 * 1024).unwrap(),
-                k::FixedSignLog::<256>::new_with_remote_storage(
+            let source = c::PlotIdentity {
+                source_document_id: fragment.source_document_id.clone(),
+                checked_plot_id: fragment.checked_plot_id.clone(),
+                expanded_plot_id: fragment.expanded_plot_id.clone(),
+            };
+            let canonical = c::AssignedPlanRecords::new(&bytes)
+                .unwrap()
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            let write = k::NodeId(
+                fragment
+                    .placements
+                    .iter()
+                    .position(|p| p.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND)
+                    .unwrap() as u16,
+            );
+            let mut resident = AssignedDisplayProfile {
+                source: &source,
+                layout,
+                computations: profile,
+                fore: generated.fore(),
+                host_calls: &calls,
+                resources: &resources,
+                write,
+                sign_items: prepared.lowered().sign_items,
+                sign_bytes: prepared.lowered().sign_bytes,
+            };
+            let make_input = || AssignedDisplayInput {
+                header: &bytes[..125],
+                records: &canonical,
+                maxima,
+            };
+            let scope = |generation| AssignedDisplayScope {
+                host: &fragment.host_id,
+                boot: &fragment.boot_id,
+                generation,
+            };
+            let values = || k::HostedValueStore::new(12, 1024, 12 * 1024).unwrap();
+            let signs = || {
+                k::HostedSignLog::new_with_remote_storage(
+                    256,
                     256 * core::mem::size_of::<k::KernelEvent>() as u32,
                     256,
                     k::remote_sign_storage_bytes(256).unwrap(),
                 )
-                .unwrap(),
+                .unwrap()
+            };
+            assert!(matches!(
+                PreparedAssignedDisplayKernel::prepare(
+                    make_input(),
+                    &resident,
+                    scope(c::OfferGeneration(fragment.offer_generation.0 + 1)),
+                    software,
+                    2,
+                    values(),
+                    signs()
+                ),
+                Err(AssignedDisplayRefusal::Software(_))
+            ));
+            let mut foreign = source.clone();
+            foreign.checked_plot_id = "fixture/foreign-source".into();
+            resident.source = &foreign;
+            assert!(matches!(
+                PreparedAssignedDisplayKernel::prepare(
+                    make_input(),
+                    &resident,
+                    scope(fragment.offer_generation),
+                    software,
+                    2,
+                    values(),
+                    signs()
+                ),
+                Err(AssignedDisplayRefusal::Software(_))
+            ));
+            resident.source = &source;
+            assert!(matches!(
+                PreparedAssignedDisplayKernel::prepare(
+                    make_input(),
+                    &resident,
+                    scope(fragment.offer_generation),
+                    software,
+                    0,
+                    values(),
+                    signs()
+                ),
+                Err(AssignedDisplayRefusal::Bounds)
+            ));
+            let mut occupied = values();
+            k::ValueStorage::store(&mut occupied, &[1]).unwrap();
+            assert!(matches!(
+                PreparedAssignedDisplayKernel::prepare(
+                    make_input(),
+                    &resident,
+                    scope(fragment.offer_generation),
+                    software,
+                    2,
+                    occupied,
+                    signs()
+                ),
+                Err(AssignedDisplayRefusal::Bounds)
+            ));
+            let foreign_boot: c::BootId = "fixture/foreign-boot".into();
+            assert!(matches!(
+                PreparedAssignedDisplayKernel::prepare(
+                    make_input(),
+                    &resident,
+                    AssignedDisplayScope {
+                        host: &fragment.host_id,
+                        boot: &foreign_boot,
+                        generation: fragment.offer_generation
+                    },
+                    software,
+                    2,
+                    values(),
+                    signs()
+                ),
+                Err(AssignedDisplayRefusal::Assignment(_))
+            ));
+            let execution = PreparedAssignedDisplayKernel::prepare(
+                make_input(),
+                &resident,
+                scope(fragment.offer_generation),
+                software,
+                2,
+                values(),
+                signs(),
             )
             .unwrap();
+            assert!(matches!(
+                PreparedAssignedDisplayKernel::prepare(
+                    make_input(),
+                    &resident,
+                    scope(fragment.offer_generation),
+                    software,
+                    2,
+                    values(),
+                    signs()
+                ),
+                Err(AssignedDisplayRefusal::Software(conduit_environment_runtime::appliance::software::SoftwareRefusal::AlreadySelected))
+            ));
+            assert_eq!(
+                execution.input,
+                *generated
+                    .fore()
+                    .iter()
+                    .find(|f| f.direction() == c::AssignedForeDirection::Input)
+                    .unwrap()
+            );
+            assert_eq!(
+                execution.refusal,
+                *generated
+                    .fore()
+                    .iter()
+                    .find(|f| f.direction() == c::AssignedForeDirection::Output)
+                    .unwrap()
+            );
             let fore = |name: &str| {
                 prepared
                     .lowered()
@@ -160,9 +284,9 @@ fn checked_output_runs_from_compact_fore_tables_without_inventing_a_line() {
                     .clone()
             };
             PreparedDisplayKernel {
-                kernel,
-                selectors,
-                write: write.unwrap(),
+                kernel: execution.kernel,
+                selectors: execution.selectors,
+                write: execution.write,
                 input: fore("frame"),
                 refusal: fore("invalid_brightness"),
             }

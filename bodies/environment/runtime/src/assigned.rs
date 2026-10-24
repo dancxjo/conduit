@@ -134,6 +134,30 @@ impl<
         // SAFETY: the shared builder initializes every field before Ok.
         Ok(unsafe { output.assume_init() })
     }
+    /// Same explicit Fore admission over borrowed records, without assembling
+    /// a contiguous projection in MCU memory.
+    pub fn prepare_records_with_fore(
+        header: &[u8],
+        records: &[c::AssignedRecord<'_>],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        fore: &[c::AssignedForeRequirement],
+    ) -> Result<Self, AssignedKernelRefusal> {
+        let mut output = MaybeUninit::uninit();
+        Self::prepare_input_with_fore_into(
+            RecordInput::Records { header, records },
+            maxima,
+            required,
+            computations,
+            layout,
+            Some(fore),
+            &mut output,
+        )?;
+        // SAFETY: the shared builder initializes every field before Ok.
+        Ok(unsafe { output.assume_init() })
+    }
     /// Writes every field only after all checks succeed; Err leaves output alone.
     #[inline(never)]
     pub(crate) fn prepare_input_into(

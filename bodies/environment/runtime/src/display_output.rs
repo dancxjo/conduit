@@ -15,6 +15,12 @@ use conduit_plan_lowering::lowering::{
 };
 use conduit_tm1637_wire::WriteBack;
 
+#[path = "display_output_assigned.rs"]
+mod assigned;
+pub use assigned::{
+    AssignedDisplayInput, AssignedDisplayProfile, AssignedDisplayRefusal, AssignedDisplayScope,
+    PreparedAssignedDisplayKernel,
+};
 pub enum DisplayBack {
     Software(ApplianceBack),
     Write(WriteBack),

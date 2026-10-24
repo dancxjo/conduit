@@ -27,3 +27,27 @@ output graph on the MCU, authenticate a Fore caller, issue a native capability,
 start a Body, or replace the live bench's coordination loop. Compact assignment
 of this graph's external Fore, combined sensor/Mask/output admission and physical
 execution remain required for the continuing native appliance.
+
+## Compact native preparation
+
+`PreparedAssignedDisplayKernel::prepare` accepts the canonical header and
+borrowed records, a trusted linked Make profile, the current Root scope, retained
+software and independently admitted finite stores. It does not deserialize a
+rich Plan or reconstruct software from advertised descriptors. The shared
+assigned-table builder and original kernel constructor preflight the complete
+numeric topology before exclusive software transfer.
+
+The retained-owner check matches current Host/Boot/offer epoch, Source family,
+exact kind/implementation/artifact identities, actual program/selector text and
+pure Host Call ABI. All three initialized portable owners are checked before
+any is transferred. A dropped preflight keeps them available; a successful
+transfer withdraws them from future offers and replay refuses as already
+selected. There is no automatic epoch increment: Root owns that transition.
+
+The compact result retains numeric Fore pins. Root must independently retain
+and enforce their typed value contracts, bind the actual GPIO owner and native
+authority, admit complete memory/work and issue Body start before stepping.
+Preparation creates no native provider, capability possession, Line or Body.
+The checked display CPU proof now uses this production preparation entrance,
+including stale epoch, foreign Source/Boot, occupied storage and zero-frame
+refusals followed by successful execution of the original owners.
