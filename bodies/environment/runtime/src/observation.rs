@@ -148,15 +148,29 @@ impl PreparedObservationCodec {
             Ok(bytes)
         };
         Ok(Self {
-            input: crate::canonical_input::PreparedCanonicalInput::new(&contract.input, 1024)?,
-            temperature: Composer::new(temperature_type, leaf_bytes(temperature_type)?)?,
-            humidity: Composer::new(humidity_type, leaf_bytes(humidity_type)?)?,
-            observation: Composer::new(
+            input: crate::canonical_input::PreparedCanonicalInput::with_static_schema(
+                &contract.input,
+                include_bytes!(concat!(env!("OUT_DIR"), "/decoded.type")),
+                1024,
+            )?,
+            temperature: Composer::with_static_schema(
+                temperature_type,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-temperature.type")),
+                leaf_bytes(temperature_type)?,
+            )?,
+            humidity: Composer::with_static_schema(
+                humidity_type,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-humidity.type")),
+                leaf_bytes(humidity_type)?,
+            )?,
+            observation: Composer::with_static_schema(
                 &contract.observation,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation.type")),
                 crate::canonical_storage::bytes(&contract.observation, MAXIMUM_BYTES as usize)?,
             )?,
-            result: Composer::new(
+            result: Composer::with_static_schema(
                 &contract.output,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-result.type")),
                 crate::canonical_storage::bytes(&contract.output, MAXIMUM_BYTES as usize)?,
             )?,
         })

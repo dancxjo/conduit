@@ -62,15 +62,17 @@ def ledger(sampling_image=None, output_image=None):
         "sign_budget": EVIDENCE / "2026-10-24-derived-output-signs/measurement.json",
         "network_cpu": EVIDENCE / "2026-10-24-network-preparation-overlap/measurement.json",
         "composer_cpu": EVIDENCE / "2026-10-24-composer-schema-sharing/measurement.json",
+        "linked_schema_cpu": EVIDENCE / "2026-10-24-linked-observation-schemas/measurement.json",
     }
     sampling, output, mask = (read_json(inputs[k]) for k in ["sampling", "output", "mask_cpu"])
     expression_cpu = read_json(inputs["expression_cpu"])
     sign_budget = read_json(inputs["sign_budget"])
     network_cpu = read_json(inputs["network_cpu"])
     composer_cpu = read_json(inputs["composer_cpu"])
-    for relative, digest in composer_cpu["code_sha256"].items():
+    linked_schema_cpu = read_json(inputs["linked_schema_cpu"])
+    for relative, digest in linked_schema_cpu["code_sha256"].items():
         if hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() != digest:
-            raise ValueError("composer schema sharing changed; renew resource measurement")
+            raise ValueError("linked schema preparation changed; renew resource measurement")
     for relative, digest in network_cpu["code_sha256"].items():
         if hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() != digest:
             raise ValueError("network preparation code changed; renew overlap measurement")
@@ -143,7 +145,8 @@ def ledger(sampling_image=None, output_image=None):
         },
         "inventory": {
             "network_preparation_cpu": network_cpu,
-            "sampler_software_cpu": composer_cpu,
+            "sampler_software_cpu": linked_schema_cpu,
+            "historical_composer_software_cpu": composer_cpu,
             "sampling_value_payload": {"bytes": sum(capacities), "slot_capacities": capacities, "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_value_payload": {"bytes": items * extent, "slots": items, "per_slot_bytes": extent, "extent_basis": "Make ceiling from all independently checked payload Types; slot count unchanged", "class": "persistent mutable", "metadata_and_allocator_overhead_included": False},
             "output_sign_records": {"ordinary_items": None, "remote_items": sign_budget["remote_items"], "cpu_observed_ordinary_items": sign_budget["cpu_ordinary_items"], "cpu_observed_storage_bytes": sign_budget["cpu_storage_bytes"], "mcu_storage_bytes": None, "ordinary_items_formula": sign_budget["ordinary_items_formula"], "native_construction_diagnostic_maximum_frames": int(frame_limit[1]), "class": "persistent mutable", "derived_minimum": None, "derived_upper_bound_proven_for_finite_profile": True, "continuing_retention_or_handoff_proven": False},
@@ -192,7 +195,7 @@ def markdown(value):
         "| Category | Current evidence | Combined obligation |", "|---|---|---|",
         f"| Immutable material | ELF section inventories in JSON when images are supplied | Link one combined image; separate flash material from RAM-resident code/data |",
         f"| Persistent mutable values | Sampling payload {value['inventory']['sampling_value_payload']['bytes']:,} B; output payload {value['inventory']['output_value_payload']['bytes']:,} B, plus metadata/allocator costs | Exact Types and simultaneous lifetimes; no reuse credited |",
-        f"| Sampler software, CPU only | Retained {value['inventory']['sampler_software_cpu']['after_resident_software_bytes']:,} B after sharing immutable composer schema bytes | Whole CPU software-owner measurement; not additive to the MCU Root heap or value-backing subtotal |",
+        f"| Sampler software, CPU only | Retained {value['inventory']['sampler_software_cpu']['after_resident_software_bytes']:,} B after sharing and borrowing immutable schema bytes | Whole CPU software-owner measurement; not additive to the MCU Root heap or value-backing subtotal |",
         f"| Mask | {value['inventory']['mask_cpu']['bytes']} inline bytes, {value['inventory']['mask_cpu']['heap_bytes']} heap bytes in the captured {value['inventory']['mask_cpu']['pointer_bits']}-bit CPU measurement | Obtain MCU representation and admitted runtime custody |",
         f"| Packet expression | CPU retained model {value['inventory']['packet_expression_cpu']['before_bytes']:,} → {value['inventory']['packet_expression_cpu']['after_bytes']:,} B with constructor tape and fixed input locations | Dynamic leaf evaluators remain; flash material, lifetime allocation and MCU measurement still required |",
         f"| Local representations | Existing quantity-pair Forms total {value['inventory']['quantity_pair_form']['bytes']} B; semantic Types remain Temperature and Ratio | Admit compact local cord representations; separately retain status, clocks and provenance |",

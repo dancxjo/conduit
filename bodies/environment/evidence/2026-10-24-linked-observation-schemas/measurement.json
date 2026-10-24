@@ -1,0 +1,22 @@
+{
+  "proof_class": "CPU retained sampler software after borrowing independently checked linked schemas",
+  "pointer_bits": 64,
+  "before_resident_software_bytes": 50914,
+  "after_resident_software_bytes": 48483,
+  "before_preparation_peak_bytes": 86750,
+  "after_preparation_peak_bytes": 86750,
+  "before_evidence": "bodies/environment/evidence/2026-10-24-composer-schema-sharing/appliance-tests.log",
+  "core_tests_passed": 513,
+  "appliance_tests_passed": 23,
+  "recurring_allocation_bytes": 0,
+  "mcu_size_bytes": null,
+  "physical_capture_updated": false,
+  "code_sha256": {
+    "architecture/core/src/structured_info/prepared_composition.rs": "e4322e9cd5cbd4af8589bdd225e2d1f3f9d7a0cc13e58d06a5e94b627f0bb76d",
+    "bodies/environment/runtime/src/canonical_input.rs": "2cdbc7d6953eaaf04dbe034fc9ec8ce6a0e33c01c235424277f697d14689bb5e",
+    "bodies/environment/runtime/src/observation.rs": "ba533b1149bdd6f00babffc9a93a69d509475c5a438d1bdc47a4dd2c9eb56f3d",
+    "bodies/environment/runtime/src/publication.rs": "fe3c51f8d9c916e9c749bb6d96aa731b21652a24a3230b50f80777dc8ec66820",
+    "bodies/environment/runtime/src/publication/back.rs": "1e0960e030dcdb36d468c5f2f72b6c783e1e01f9182700d223cc4036f9d1a46d",
+    "bodies/environment/runtime/build.rs": "e27322f000106db20705b4f2ef9c1df51f9f5228a4d3d0bcdd86365f8584bae9"
+  }
+}
