@@ -1,5 +1,3 @@
-> Preparation: exact-sequence transport passes the local fixed-grant regression and the preceding parent normal native journey. A later restacked journey exposed single-entry graph-projection work exhaustion; the prepare/finish follow-up needs fresh source/image-bound acceptance. Preserve the earlier [failed checkpoint](../../../docs/audits/evidence/application-entry-budget-20261021/README.md) as negative evidence.
-
 # Canonical native application owner
 
 One Models owner contains at most four canonical resident Tutorial, Tour and
