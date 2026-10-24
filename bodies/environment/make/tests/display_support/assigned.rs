@@ -155,6 +155,18 @@ fn checked_output_runs_from_compact_fore_tables_without_inventing_a_line() {
                 boot: &fragment.boot_id,
                 generation,
             };
+            // Staging retains checked tables without consuming software or
+            // borrowing ingress storage. It cannot start Play or issue authority.
+            let (admitted, usage) = crate::allocation_probe::observe(|| {
+                ValidatedAssignedDisplay::admit(
+                    make_input(),
+                    &resident,
+                    scope(fragment.offer_generation),
+                )
+                .unwrap()
+            });
+            assert_eq!((usage.allocations, usage.reallocations), (0, 0));
+            assert_eq!(admitted.identity(), tables.identity);
             let values = || k::HostedValueStore::new(12, 1024, 12 * 1024).unwrap();
             let signs = || {
                 k::HostedSignLog::new_with_remote_storage(

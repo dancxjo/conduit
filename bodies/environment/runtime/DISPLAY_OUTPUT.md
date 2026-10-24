@@ -66,3 +66,10 @@ production compact runtime types. This is preparation only: the module grants
 no Fore access, issues no native possession and starts no output Play. The
 existing live bench remains the deployed image until authenticated assignment,
 complete admission and continuing Body execution are connected.
+
+`ValidatedAssignedDisplay::admit` separates topology staging from software
+transfer and kernel construction. The private token owns checked finite tables
+and Fore pins without borrowing ingress bytes. Admission checks the linked
+layout, current Host/Boot, local Fore, native call shape and ordinary scheduler
+geometry without allocating. It issues no authority and does not verify current
+software availability; retained-owner selection still occurs during preparation.

@@ -21,6 +21,9 @@ pub use assigned::{
     AssignedDisplayInput, AssignedDisplayProfile, AssignedDisplayRefusal, AssignedDisplayScope,
     PreparedAssignedDisplayKernel,
 };
+#[path = "display_output_validation.rs"]
+mod validation;
+pub use validation::ValidatedAssignedDisplay;
 pub enum DisplayBack {
     Software(ApplianceBack),
     Write(WriteBack),
