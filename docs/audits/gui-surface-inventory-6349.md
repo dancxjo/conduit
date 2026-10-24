@@ -1,7 +1,7 @@
 # GUI surface inventory for #6349
 
-Audited against `75eeb19bf` (production code), with evidence checkpoint
-`dd5349718`. This is a coverage checklist, not an acceptance receipt. A label is
+Initial audit against `75eeb19bf`; owner chrome coverage refreshed at
+`589a38bcb`. Source-specific evidence is recorded below and in the progress audit. This is a coverage checklist, not an acceptance receipt. A label is
 always retained; icons are decoration and do not select actions or grant authority.
 
 ## Shared vocabulary and fallbacks
@@ -33,7 +33,7 @@ success. All distributed applications must carry the Lucide notice.
 | --- | --- | --- |
 | Browser Workspace shell (`workspace.html`, `workspace.css`) | Body lifecycle, membership/Host shortcuts, panel close controls; Crèche name/search/Plot/Birth masks | Invitation receiver now uses shared Body/Inspect symbols and 44px controls; min-content reflow is constrained without clipping. Bottom Plot/flow/lifecycle inspection buttons still mix text, Unicode arrows and a status dot. Audit their consistent icon treatment. |
 | Browser owner Face (`handbook/owner-face-component.mjs`) | Shared role headings, offered action intents, collection/choice legends, completed/empty states, relationship/inspection/facts disclosures | Arbitrary domain roles/intents intentionally stay text-only. Real owner action receipts remain distinct from renderer fixtures. |
-| Browser owner participation (`handbook/owner-participation.mjs`) | Embedded Face inherits the shared renderer | Join/copy-key/refresh/wardrobe/speech/leave chrome remains text-only. Add truthful local-operation icons without pretending those are owner-offered Face actions. |
+| Browser owner participation (`handbook/owner-participation.mjs`) | Embedded Face inherits the shared renderer; Host/Body/Face headings, join, refresh, wardrobe inspection/policy, reading playback/status/stop, leave and evidence disclosures use fixed shared icons. Controls have 44px minima, visible focus, wrapping and narrow identity stacking. | Copy-public-key remains labeled text without a misleading substitute icon. These local operation mappings remain separate from owner-offered Face intents. Separate density/palette controls retain the acknowledged checked layout; typography selection remains preset-bound. |
 | Browser Patchbay shell (`patchbay-workbench/assets/index.html`) | Library, Inspect, Body, canvas navigation/zoom/fit controls | Cancel placement, linear-view toggle and facts/route/Host sections remain text-only; dynamic graph/list controls need an inventory of their generating sources. |
 | Browser Patchbay diagram and Gear palette | Existing accepted finite Gear icons; shell additions use pinned inline SVG | Verify dynamic node/port/status/selection coverage with current runtime, not the retained mixed-source preview. |
 | Browser Handbook local content | Embedded Face uses the shared component | Audit local navigation/status/refusal controls before declaring ordinary-GUI coverage complete. |

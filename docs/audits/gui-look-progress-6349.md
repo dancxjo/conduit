@@ -224,3 +224,21 @@ The driver exits zero with no browser errors. See
 local Linux-owner/browser selection only; native, physical, human and broad
 cross-component acceptance remain outstanding. Private disposable owner state
 is excluded from evidence.
+
+## Owner chrome coverage
+
+At `589a38bcb`, owner participation headings, join/refresh/inspection, wardrobe
+policy, playback/status/stop and leave controls consume the existing shared
+Lucide helper. Fixed local operation mappings stay separate from offered Face
+intents. Labels, disabled policy and callbacks remain unchanged. Native button
+and input targets have 44px minima, visible focus and narrow wrapping; identity
+facts stack at narrow widths. Public-key copy retains its explicit text rather
+than borrowing an unrelated glyph. The 140 registered browser checks and owner
+participation/collection unit checks pass; actual owner captures are separate.
+
+Real owner rerun at `589a38bcb` passes with all visible buttons at least 44px
+tall. [Owner chrome captures and receipts](evidence/gui-look-6349-owner-chrome/README.md)
+include wide and narrow forced-color wardrobe/reading panels. Audio playback is
+not exercised. Reading's initial join instruction remains stale after joining;
+wardrobe text can describe the last inspected revision rather than current Show.
+These observed wording gaps remain explicit.
