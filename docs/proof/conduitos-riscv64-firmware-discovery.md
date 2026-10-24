@@ -1,0 +1,13 @@
+# RISC-V firmware display discovery and negative control
+
+This #6057 G0 [packet](../../targets/conduitos/proof/firmware-frame/riscv64-g0-79a04199e/index.json) uses a retained normal PROFILE-built product ISO at historical source `79a04199eeaea4721bb2405c7bbb699a72cea25c`. It does not claim a current-source graphical product or accepted release. The manifest and actual image/kernel hashes are checked before execution.
+
+The firmware candidate follows the user's ThingOS work at `2f3330a60efc908f2d90e2b17bd41862d96c9440`: hash-verified rust-osdev `ovmf-prebuilt` release `edk2-stable202508-r1`, RISC-V CODE/VARS pair, OpenSBI, QEMU 10.2.1 Ubuntu3.3 with matching modules. This is a separately classified candidate beside the existing serial OpenSBI/U-Boot route. It does not change supported firmware discovery or install host packages. Firmware templates remain immutable; each run uses a private VARS copy. All exact inputs, machine/CPU arguments and digests are retained.
+
+With explicit `ramfb`, the candidate boots Limine and reports `observatory-framebuffer-unrepresented`; QMP captures 800×600. That refusal is evidence of the historical product's missing framebuffer representation, not native Face rendering. No acknowledged graphical Show exists.
+
+Removing only explicit `ramfb` reaches an actual `conduit.conduitos/riscv64-product@1` ready receipt through the serial presenter. The retained record audit joins Profile, Build and logical Image with the historical manifest. The observer originally searched for a later stage-marker spelling and missed this ready record; its original false flag and complete transcript remain unchanged, with the subsequent parsing audit retained separately.
+
+A successful screenshot also occurs without `ramfb`: a 640×384 console image. A separate initial-device audit runs the same selected machine and image with CPU paused before any guest instruction. QMP PCI and complete device-tree inventories show no display device. Its screenshot is byte-for-byte identical to the one captured after serial readiness, SHA-256 `0febc060e4d667cae5354a4b65e1cbad7ffb0df86eb00fd445e7cd4e2f77e9b6`. This establishes the captured image as the unchanged emulator console placeholder, rather than guest graphics. QMP screenshot success and nonuniform pixels alone cannot establish a guest framebuffer.
+
+The packet retains raw serial, QMP, device/machine help, complete launch arguments, original lossless PPMs and their exact comparison. These are internal machine probes, not public product launch commands. Actual checked graphical PROFILE/BUILD admission, bounded RISC-V mapping/cache/ownership, Face/Mask/Show and a source-bound product PNG remain required. No local input, physical scanout or GPU acceleration is proved.
