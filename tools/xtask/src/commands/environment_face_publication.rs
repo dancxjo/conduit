@@ -14,6 +14,8 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
             "retained_publication_face",
             "--test",
             "publication_validation",
+            "--test",
+            "publication_face_custody",
         ]);
         if operation == "clippy" {
             command.args(["--", "-D", "warnings"]);
@@ -26,5 +28,15 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         );
         super::execute(&mut command)?;
     }
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--features",
+        "face-projection",
+        "--doc",
+        "publication_face_custody",
+    ]))?;
     Ok(())
 }
