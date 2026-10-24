@@ -5,6 +5,16 @@ use crate::source_programs::*;
 use alloc::vec::Vec;
 use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 use conduit_plot::PortableExpressionEvaluationRefusal;
+#[path = "trajectory_common_basis.rs"]
+mod common_basis;
+
+/// Explicit arithmetic eligibility for linear segments. Step segments retain
+/// their existing U32 profile. Original fractions are never silently rebased.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AudioLinearTrajectoryProfile {
+    U8,
+    CommonBasisU32,
+}
 
 #[derive(Debug)]
 pub enum AudioTrajectoryRefusal {
@@ -38,6 +48,8 @@ struct SegmentProjection {
 }
 
 pub struct PreparedAudioQuantityTrajectory {
+    linear_profile: AudioLinearTrajectoryProfile,
+    common_basis: Option<common_basis::CommonBasisLinear>,
     original: AudioQuantityTrajectory,
     original_canonical: Vec<u8>,
     projections: Vec<SegmentProjection>,
@@ -52,6 +64,7 @@ pub struct PreparedAudioQuantityTrajectory {
 
 /// Original trajectory/query, selected segment and all exact Source executions.
 pub struct AudioTrajectoryEvaluation {
+    linear_profile: AudioLinearTrajectoryProfile,
     original: AudioQuantityTrajectory,
     original_canonical: Vec<u8>,
     query: AudioTrajectoryQuery,
@@ -63,6 +76,9 @@ pub struct AudioTrajectoryEvaluation {
     admitted_result_canonical: Vec<u8>,
 }
 impl AudioTrajectoryEvaluation {
+    pub fn linear_profile(&self) -> AudioLinearTrajectoryProfile {
+        self.linear_profile
+    }
     pub fn original(&self) -> &AudioQuantityTrajectory {
         &self.original
     }
@@ -94,8 +110,28 @@ impl AudioTrajectoryEvaluation {
 
 impl PreparedAudioQuantityTrajectory {
     pub fn new(canonical: &[u8]) -> Result<Self, AudioTrajectoryRefusal> {
+        Self::new_with_linear_profile(canonical, AudioLinearTrajectoryProfile::U8)
+    }
+
+    /// Allocating preparation/conformance, not a Play Back. At most sixteen
+    /// segments are traversed. CommonBasisU32 requires one exact time basis for
+    /// all linear segments and their queries, with equal endpoint quantity
+    /// denominators per segment. Unsupported representations refuse unchanged.
+    /// Its returned trace has at most 94 preparation and 18 evaluation Source
+    /// records; existing checked Native admission also validates finite laws.
+    pub fn new_with_linear_profile(
+        canonical: &[u8],
+        linear_profile: AudioLinearTrajectoryProfile,
+    ) -> Result<Self, AudioTrajectoryRefusal> {
         let original = AudioQuantityTrajectory::decode(canonical)
             .map_err(AudioTrajectoryRefusal::Admission)?;
+        let common_basis = match linear_profile {
+            AudioLinearTrajectoryProfile::U8 => None,
+            AudioLinearTrajectoryProfile::CommonBasisU32 => {
+                Some(common_basis::CommonBasisLinear::new()?)
+            }
+        };
+        let mut shared_time_basis = None;
         let ratio = Program::new(TRAJECTORY_RATIO)?;
         let valid = Program::new(TRAJECTORY_VALID)?;
         let order = Program::new(TRAJECTORY_ORDER_U32)?;
@@ -114,6 +150,13 @@ impl PreparedAudioQuantityTrajectory {
             let valid_segment = if step {
                 step_valid.boolean(
                     step_eligibility(segment, &projection, segment.start(), false)?,
+                    &mut preparation,
+                )?
+            } else if let Some(common) = &common_basis {
+                common.valid(
+                    segment,
+                    &projection,
+                    &mut shared_time_basis,
                     &mut preparation,
                 )?
             } else {
@@ -149,6 +192,8 @@ impl PreparedAudioQuantityTrajectory {
             projections.push(projection);
         }
         Ok(Self {
+            linear_profile,
+            common_basis,
             original,
             original_canonical: canonical.into(),
             projections,
@@ -160,6 +205,10 @@ impl PreparedAudioQuantityTrajectory {
             step_covers: Program::new(TRAJECTORY_STEP_COVERS)?,
             step_select: Program::new(TRAJECTORY_STEP_SELECT)?,
         })
+    }
+
+    pub fn linear_profile(&self) -> AudioLinearTrajectoryProfile {
+        self.linear_profile
     }
 
     pub fn evaluate(
@@ -193,6 +242,18 @@ impl PreparedAudioQuantityTrajectory {
                     continue;
                 }
                 self.step_select.native(eligible, &mut executions)?
+            } else if let Some(common) = &self.common_basis {
+                let Some(raw) = common.evaluate(
+                    segment,
+                    &self.projections[index],
+                    query.time(),
+                    index + 1 == self.projections.len(),
+                    &mut executions,
+                )?
+                else {
+                    continue;
+                };
+                raw
             } else {
                 let eligible = eligibility(
                     segment,
@@ -215,6 +276,7 @@ impl PreparedAudioQuantityTrajectory {
                 .encode()
                 .map_err(AudioTrajectoryRefusal::Admission)?;
             return Ok(AudioTrajectoryEvaluation {
+                linear_profile: self.linear_profile,
                 original: self.original.clone(),
                 original_canonical: self.original_canonical.clone(),
                 query,

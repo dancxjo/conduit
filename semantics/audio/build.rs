@@ -18,6 +18,8 @@ fn main() {
     println!("cargo:rerun-if-changed=pitch_analysis_types.conduit");
     println!("cargo:rerun-if-changed=exact_control_types.conduit");
     println!("cargo:rerun-if-changed=trajectory_types.conduit");
+    println!("cargo:rerun-if-changed=trajectory_common_basis_types.conduit");
+    println!("cargo:rerun-if-changed=trajectory_common_basis.conduit");
     println!("cargo:rerun-if-changed=rate_types.conduit");
     println!("cargo:rerun-if-changed=decibel_types.conduit");
     println!("cargo:rerun-if-changed=decibel_projection.conduit");
@@ -36,6 +38,7 @@ fn main() {
     let type_source = [
         include_str!("types.conduit"),
         include_str!("trajectory_types.conduit"),
+        include_str!("trajectory_common_basis_types.conduit"),
         include_str!("rate_types.conduit"),
         include_str!("decibel_types.conduit"),
         include_str!("exact_control_types.conduit"),
@@ -60,6 +63,7 @@ fn main() {
         type_source.as_str(),
         include_str!("acoustic_quantities.conduit"),
         include_str!("trajectory.conduit"),
+        include_str!("trajectory_common_basis.conduit"),
         include_str!("rate_projection.conduit"),
         include_str!("decibel_projection.conduit"),
         include_str!("clock_projection.conduit"),
@@ -86,6 +90,18 @@ fn main() {
         ("audio/trajectory-covers", "TRAJECTORY_COVERS"),
         ("audio/trajectory-weight", "TRAJECTORY_WEIGHT"),
         ("audio/trajectory-blend", "TRAJECTORY_BLEND"),
+        (
+            "audio/trajectory-common-basis-valid",
+            "TRAJECTORY_COMMON_BASIS_VALID",
+        ),
+        (
+            "audio/trajectory-common-basis-covers",
+            "TRAJECTORY_COMMON_BASIS_COVERS",
+        ),
+        (
+            "audio/trajectory-common-basis-interpolate",
+            "TRAJECTORY_COMMON_BASIS_INTERPOLATE",
+        ),
         ("audio/trajectory-is-step", "TRAJECTORY_IS_STEP"),
         ("audio/trajectory-step-valid", "TRAJECTORY_STEP_VALID"),
         ("audio/trajectory-order-u32", "TRAJECTORY_ORDER_U32"),
