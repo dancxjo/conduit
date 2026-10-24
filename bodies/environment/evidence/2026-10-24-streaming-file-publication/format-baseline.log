@@ -1,0 +1,63 @@
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make/src/lib.rs:3:
+ //! The result is construction material; Root must still authenticate it, admit
+ //! current possession and storage, and advance the real Body/Wake before Play.
+ extern crate alloc;
+-mod display_material;
+ mod display_layout;
++mod display_material;
+ pub use display_layout::DisplayLayoutMaterial;
+-mod display_output;
+ mod display_mask_source;
++mod display_output;
+ pub use display_mask_source::{DisplayMaskSource, MaskPlanningRefusal};
+ mod display_observation;
+ pub use display_material::DisplaySourceMaterial;
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make/tests/../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs:1:
+ //! Shared exact-selection fixture for cooperative Host Call contract tests.
+ use alloc::{format, vec};
+ use conduit_core::*;
+-use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
++use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+ 
+ pub(crate) fn selected(
+     scope: &BaseCapabilityScope,
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make/tests/../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs:1:
+ //! Shared exact-selection fixture for cooperative Host Call contract tests.
+ use alloc::{format, vec};
+ use conduit_core::*;
+-use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
++use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+ 
+ pub(crate) fn selected(
+     scope: &BaseCapabilityScope,
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make/tests/root_control_support/../../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs:1:
+ //! Shared exact-selection fixture for cooperative Host Call contract tests.
+ use alloc::{format, vec};
+ use conduit_core::*;
+-use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
++use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+ 
+ pub(crate) fn selected(
+     scope: &BaseCapabilityScope,
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make/tests/root_control_support/assignment.rs:3:
+ use super::*;
+ #[path = "assigned_pulse.rs"]
+ mod assigned_pulse;
+-#[path = "native_pair.rs"]
+-mod native_pair;
+ #[path = "assigned_wait.rs"]
+ mod assigned_wait;
++#[path = "native_pair.rs"]
++mod native_pair;
+ #[path = "assignment_reservation.rs"]
+ mod reservation;
+ use conduit_environment_make::{NativeApplianceLimits, PreparedNativeAppliance};
+Diff in /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make/tests/../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs:1:
+ //! Shared exact-selection fixture for cooperative Host Call contract tests.
+ use alloc::{format, vec};
+ use conduit_core::*;
+-use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
++use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+ 
+ pub(crate) fn selected(
+     scope: &BaseCapabilityScope,

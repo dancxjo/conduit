@@ -47,6 +47,8 @@ pub struct PreparedFileRecordingPublication<'a> {
     input: LoweredForePort,
     output: LoweredForePort,
     admitted: bool,
+    accepting: bool,
+    cancelled: bool,
     delivered: [u8; 512],
 }
 impl<'a> PreparedFileRecordingPublication<'a> {
@@ -59,6 +61,28 @@ impl<'a> PreparedFileRecordingPublication<'a> {
         lowered: &LoweredPlanFragment,
         active: &c::ActivePlayIdentity,
         generation: &mut Option<PreparedRecordingGeneration>,
+    ) -> Result<Self, FilePublicationRefusal> {
+        Self::prepare_generation(directory, fragment, lowered, active, generation, false)
+    }
+    /// Prepare all kernel/file backing before producer publications arrive.
+    /// The generation must be empty. This creates no producer authentication,
+    /// Body start, storage effect or durable acknowledgement.
+    pub fn prepare_streaming(
+        directory: &'a SnapshotDirectory,
+        fragment: &c::PlanFragment,
+        lowered: &LoweredPlanFragment,
+        active: &c::ActivePlayIdentity,
+        generation: &mut Option<PreparedRecordingGeneration>,
+    ) -> Result<Self, FilePublicationRefusal> {
+        Self::prepare_generation(directory, fragment, lowered, active, generation, true)
+    }
+    fn prepare_generation(
+        directory: &'a SnapshotDirectory,
+        fragment: &c::PlanFragment,
+        lowered: &LoweredPlanFragment,
+        active: &c::ActivePlayIdentity,
+        generation: &mut Option<PreparedRecordingGeneration>,
+        streaming: bool,
     ) -> Result<Self, FilePublicationRefusal> {
         use FilePublicationRefusal as E;
         if !c::verify_plan_fragment(fragment)
@@ -155,10 +179,16 @@ impl<'a> PreparedFileRecordingPublication<'a> {
         {
             return Err(E::Shape);
         }
-        let content = ready.encoder.seal().map_err(E::Content)?;
-        input
-            .validate_value(content.as_bytes())
-            .map_err(|_| E::Shape)?;
+        if streaming {
+            if !ready.encoder.is_empty() {
+                return Err(E::Shape);
+            }
+        } else {
+            let content = ready.encoder.seal().map_err(E::Content)?;
+            input
+                .validate_value(content.as_bytes())
+                .map_err(|_| E::Shape)?;
+        }
         let files = PreparedFileSnapshotOperation::prepare(directory, placement, k::NodeId(0))
             .map_err(E::File)?;
         let mut routes = k::FixedRoutes::<1, 1>::new(1);
@@ -208,6 +238,8 @@ impl<'a> PreparedFileRecordingPublication<'a> {
             input,
             output,
             admitted: false,
+            accepting: streaming,
+            cancelled: false,
             delivered: [0; 512],
         })
     }
@@ -218,6 +250,26 @@ impl<'a> PreparedFileRecordingPublication<'a> {
             Err(FilePublicationRefusal::Scope)
         }
     }
+    /// Append a committed source fact to the preallocated generation. Root
+    /// supplies its authenticated producer context at preparation and the actual
+    /// sample time in that producer Boot domain, never recorder receipt time.
+    /// Acceptance here is staging only; inspect the ordinary commit observer
+    /// after admission and storage completion for durable publication evidence.
+    pub fn append_publication(
+        &mut self,
+        active: &c::ActivePlayIdentity,
+        input: &mut conduit_environment_runtime::recording::PreparedRecordingInput,
+        snapshot: conduit_environment_runtime::publication::PublicationSnapshot<'_>,
+        sampled_at_boot_ms: u64,
+    ) -> Result<conduit_environment_runtime::recording::ChunkAppend, FilePublicationRefusal> {
+        self.current(active)?;
+        if !self.accepting {
+            return Err(FilePublicationRefusal::Shape);
+        }
+        self.encoder
+            .append_publication(input, snapshot, sampled_at_boot_ms)
+            .map_err(FilePublicationRefusal::Content)
+    }
     /// Admit exactly the retained, sealed chunk once through the checked Fore.
     /// A Full result advances neither ingress sequence nor this custody marker.
     pub fn admit(
@@ -225,7 +277,7 @@ impl<'a> PreparedFileRecordingPublication<'a> {
         active: &c::ActivePlayIdentity,
     ) -> Result<RemoteIngressOutcome, FilePublicationRefusal> {
         self.current(active)?;
-        if self.admitted {
+        if self.admitted || self.cancelled {
             return Err(FilePublicationRefusal::Shape);
         }
         let bytes = self
@@ -233,6 +285,10 @@ impl<'a> PreparedFileRecordingPublication<'a> {
             .seal()
             .map_err(FilePublicationRefusal::Content)?
             .as_bytes();
+        self.input
+            .validate_value(bytes)
+            .map_err(|_| FilePublicationRefusal::Shape)?;
+        self.accepting = false;
         let outcome = self
             .kernel
             .admit_remote_input(self.input.endpoint, self.input.cord, 0, bytes)
@@ -359,6 +415,8 @@ impl<'a> PreparedFileRecordingPublication<'a> {
         reserved: &c::ActivePlayIdentity,
     ) -> Result<(), FilePublicationRefusal> {
         self.current(reserved)?;
+        self.accepting = false;
+        self.cancelled = true;
         self.kernel.cancel().map_err(FilePublicationRefusal::Kernel)
     }
 }

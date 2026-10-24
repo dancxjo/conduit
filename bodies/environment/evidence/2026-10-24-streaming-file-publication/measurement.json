@@ -1,0 +1,17 @@
+{
+  "class": "CPU Linux file/kernel conformance, fixture producer authentication/clock and placement/grants",
+  "recorder_recovery_tests_passed": 28,
+  "samples_per_generation": 2,
+  "preparation_before_samples": true,
+  "play_rust_allocations": 0,
+  "play_rust_reallocations": 0,
+  "independent_file_read_equals_source_content": true,
+  "native_worker_line_proven": false,
+  "rolling_catalog_proven": false,
+  "combined_mcu_admitted": false,
+  "code_sha256": {
+    "bodies/environment/linux/src/publication.rs": "e7e51a6e65b190fc985bd790db852c66f0779e103f55c556a79d2ccfeadad67e",
+    "bodies/environment/make/tests/recording_recovery.rs": "c20ec7997546822f29c510d038c1ec565fc5a87af187e9c0f18512f7b2a2be29",
+    "bodies/environment/make/tests/recording_recovery/linux_files_streaming_publication.rs": "1913221e28d5fcfe07edc216323c165b250b35930bae9ed04f9f6b86eea77499"
+  }
+}

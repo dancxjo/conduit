@@ -12,6 +12,23 @@ The actual IndexedDB boundary has a separate focused entrance:
 It produces artifacts under `target/environment-recording-browser` and retains
 browser failure traces under `proof/browser/test-results/environment-recording`.
 
+## Preparation before sampling
+
+The Linux publication owner can prepare an empty selected generation with
+`prepare_streaming`. Kernel tables, value/Sign backing and the selected file
+operation then exist before any producer facts arrive. Scoped
+`append_publication` stages committed source values with their actual producer
+Boot time. Partial chunks refuse admission without losing their contents;
+duplicates remain idempotent, and cancellation closes further append/admission.
+The complete fixed-cardinality chunk enters the same checked publication Fore.
+Only the ordinary storage completion and Back commit advance its observer.
+
+CPU conformance exercises this path with real immutable files, zero Rust allocator
+calls during append/publication, and an independent read owner reopening exact
+source content. Producer authentication, clock coordinates, resource placement
+and grants are explicit fixtures. The native worker/Line, real Body admission,
+and rolling generations/catalog checkpoint are not established by this proof.
+
 ## Meaning and readiness
 
 `RecordingCatalogSeedSource` checks the authored
