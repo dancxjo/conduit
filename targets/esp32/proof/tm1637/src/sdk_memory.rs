@@ -14,7 +14,15 @@ pub const SDK_BYTES: usize = 72 * 1024;
 // Keep the same total Root heap while leaving the fixed CPU stack floor intact
 // as the admitted management envelope and retained providers grow.
 #[cfg(feature = "native-root")]
-pub const ROOT_INTERNAL_BYTES: usize = 60 * 1024 - ROOT_REBALANCE_BYTES;
+pub const ROOT_INTERNAL_BYTES: usize = 60 * 1024 - ROOT_REBALANCE_BYTES - ROOT_RTC_BYTES;
+// CPU0-only awake native Face profile. RTC-fast backing is never offered to
+// SDK/DMA callers and is not retained lifecycle state across reset or sleep.
+#[cfg(feature = "native-root")]
+const ROOT_RTC_BYTES: usize = if cfg!(feature = "native-face-root") {
+    8 * 1024
+} else {
+    0
+};
 #[cfg(feature = "native-root")]
 const ROOT_REBALANCE_BYTES: usize = if cfg!(feature = "native-face-root") {
     640
@@ -53,7 +61,8 @@ impl NativeSdkReservation {
 }
 
 /// Called once before RTOS/radio startup. The total backing remains 184 KiB:
-/// 60+52 KiB for Root Rust allocations and 32+40 KiB for the SDK C boundary.
+/// 112 KiB for Root Rust allocations and 32+40 KiB for the SDK C boundary.
+/// The awake CPU0 Face profile moves 8 KiB of Root backing to RTC-fast RAM.
 /// This is a fixed partition before radio startup, not borrowing or fallback.
 /// Complete appliance and SDK work admission remains a separate requirement.
 #[cfg(feature = "native-root")]
@@ -69,6 +78,10 @@ pub fn initialize() -> NativeSdkReservation {
     #[esp_hal::ram(reclaimed)]
     static mut ROOT: [MaybeUninit<u32>; ROOT_RECLAIMED_BYTES / 4] =
         [MaybeUninit::uninit(); ROOT_RECLAIMED_BYTES / 4];
+    #[cfg(feature = "native-face-root")]
+    #[esp_hal::ram(unstable(rtc_fast))]
+    static mut RTC: [MaybeUninit<u32>; ROOT_RTC_BYTES / 4] =
+        [MaybeUninit::uninit(); ROOT_RTC_BYTES / 4];
     static mut FIRST: [MaybeUninit<u32>; 32 * 1024 / 4] = [MaybeUninit::uninit(); 32 * 1024 / 4];
     #[esp_hal::ram(reclaimed)]
     static mut SECOND: [MaybeUninit<u32>; 40 * 1024 / 4] = [MaybeUninit::uninit(); 40 * 1024 / 4];
@@ -80,6 +93,24 @@ pub fn initialize() -> NativeSdkReservation {
             ROOT_RECLAIMED_BYTES,
             esp_alloc::MemoryCapability::Internal.into(),
         ));
+        #[cfg(feature = "native-face-root")]
+        {
+            // Only CPU0 Rust ownership uses this region; C SDK allocations
+            // remain in their disjoint ordinary-RAM arena. Check byte access
+            // before admitting the separately linked, aligned full region.
+            let bytes = ptr::addr_of_mut!(RTC).cast::<u8>();
+            for offset in 0..ROOT_RTC_BYTES {
+                bytes.add(offset).write_volatile((offset as u8) ^ 0xa5);
+            }
+            for offset in 0..ROOT_RTC_BYTES {
+                assert_eq!(bytes.add(offset).read_volatile(), (offset as u8) ^ 0xa5);
+            }
+            esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+                bytes,
+                ROOT_RTC_BYTES,
+                esp_alloc::MemoryCapability::Internal.into(),
+            ));
+        }
         SDK_HEAP.add_region(esp_alloc::HeapRegion::new(
             ptr::addr_of_mut!(FIRST).cast(),
             32 * 1024,

@@ -13,10 +13,14 @@ fn main() {
         // Preserve the hardware guard as well; this floor is not a worst-case
         // stack proof for every future program or provider.
         let stack = out.join("native-stack.x");
-        std::fs::write(
-            &stack,
-            "ASSERT(_stack_start_cpu0 - _stack_end_cpu0 >= 28672, \"native Root requires at least 28 KiB CPU stack\");\n",
-        )
+        let floor = if std::env::var_os("CARGO_FEATURE_NATIVE_FACE_ROOT").is_some() {
+            36 * 1024
+        } else {
+            28 * 1024
+        };
+        std::fs::write(&stack, format!(
+            "ASSERT(_stack_start_cpu0 - _stack_end_cpu0 >= {floor}, \"native Root CPU stack below admitted profile floor\");\n"
+        ))
         .unwrap();
         println!("cargo:rustc-link-arg=-T{}", stack.display());
         println!(

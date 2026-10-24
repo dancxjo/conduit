@@ -1,0 +1,23 @@
+====================== PANIC ======================
+panicked at /home/dancxjo/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/esp-hal-1.1.2/src/exception_handler/mod.rs:30:9:
+
+
+Detected a write to the stack guard value on ProCpu
+Context { PC: 1073791720, PS: 395040, A0: 2148731465, A1: 1073581792, A2: 1073581834, A3: 1073584724, A4: 263, A5: 1073582028, A6: 0, A7: 0, A8: 0, A9: 3029153177, A10: 1073583232, A11: 3743178752, A12: 2630971264, A13: 655966515, A14: 2612097953, A15: 3504060678, SAR: 23, EXCCAUSE: 19529952, EXCVADDR: 19529948, LBEG: 1073791712, LEND: 1073791734, LCOUNT: 3, THREADPTR: 1073426584, SCOMPARE1: 256, BR: 0, ACCLO: 0, ACCHI: 0, M0: 0, M1: 0, M2: 0, M3: 0, F64R_LO_CPENABLE: 0, F64R_HI: 0, F64S: 0, FCR: 0, FSR: 0, F0: 0, F1: 0, F2: 0, F3: 0, F4: 0, F5: 0, F6: 0, F7: 0, F8: 0, F9: 0, F10: 0, F11: 0, F12: 0, F13: 0, F14: 0, F15: 0 }
+[0m
+
+Backtrace:
+
+0x40223af2
+0x4023244d
+0x400817ec
+0x40080b5c
+0x40040003
+0x4000c2e5
+0x40130744
+0x401306f5
+0x401305f3
+0x4012ba20
+
+
+

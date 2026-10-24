@@ -54,9 +54,9 @@ struct State {
 const PROJECTION_BYTES: usize = 4096;
 // Reclaimed backing is initialized only by committed publication copies. Access
 // is serialized by STATE; publication_bytes records the initialized prefix.
-// ESP32 RTC-fast data RAM is CPU0-accessible and unused by this awake profile.
+// ESP32 RTC-slow data RAM is unused by this awake profile.
 // This is volatile scratch, never retained state across reset or DMA backing.
-#[cfg_attr(feature = "native-face-root", esp_hal::ram(unstable(rtc_fast)))]
+#[cfg_attr(feature = "native-face-root", esp_hal::ram(unstable(rtc_slow)))]
 #[cfg_attr(not(feature = "native-face-root"), esp_hal::ram(reclaimed))]
 static mut CANONICAL: core::mem::MaybeUninit<[u8; PROJECTION_BYTES]> =
     core::mem::MaybeUninit::uninit();
