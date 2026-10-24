@@ -1,0 +1,40 @@
+{
+  "phase": "strict-core",
+  "head": "20b34eca6763c2afbd4d742b2a408fbe32ea6c15",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-core",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "pid": 896913,
+      "exit": 0
+    }
+  ],
+  "exit": 0,
+  "seconds": 7.669403314590454,
+  "root_free_before": 20518232064,
+  "source_clean_after": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-tmp"
+  },
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-strict-core.log",
+  "log_bytes": 665,
+  "log_sha256": "714f64d51d899ecfa2c6e4adeda107021b39ece17f63951419590c5a3dfd333a",
+  "actual_executables": [],
+  "test_results": []
+}

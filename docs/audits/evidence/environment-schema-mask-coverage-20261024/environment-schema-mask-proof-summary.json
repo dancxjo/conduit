@@ -1,0 +1,128 @@
+{
+  "at_utc": "2026-10-24T17:02:34.250848+00:00",
+  "source": "20b34eca6763c2afbd4d742b2a408fbe32ea6c15",
+  "base": "79469ccd40486921a215b6f73dde967d874c0bbc",
+  "preserved_pr_heads": {
+    "6419": "e33f5348d6f0d37ae509e8b27d7c5d52eda83b29",
+    "6420": "3b6682e8aaf91207624571bb007842566f582fb4"
+  },
+  "changed_by_this_lane": [
+    "tools/xtask/src/commands/environment_face_publication.rs"
+  ],
+  "behavior": "Supported face-publication helper now enablesface-projection,display-mask; canonical_input/fullpublication+retained/custody+validationtargets and independentMaskalltests/strictalltargets execute. Filteredcustodydoctestsretainbothfeatures.",
+  "results": {
+    "core": [
+      "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 103 filtered out; finished in 0.02s"
+    ],
+    "core-full": [
+      "test result: ok. 116 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s"
+    ],
+    "helper": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s",
+      "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s",
+      "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s",
+      "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s"
+    ],
+    "strict-core": [],
+    "strict-helper": []
+  },
+  "proof_boundary": "Actual helperimplementation executed through tinyRustshim including exactSource, withsamechildCargocommands; cargo xtask CLI was NOT executed. No duplicatewholextask/workspacebuild. Core116libtests additionallyexecuted.",
+  "new_fifth_custody_guard": "Actualpublication_face_custodyblockshows5passed0failed0ignored,includingone_retained_face_resolves_pages_and_typed_frames_without_new_source_events. Not a4testfeature-skippedpass.",
+  "actual_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_core-2d963ea395a1d2ff",
+      "bytes": 12316808,
+      "sha256": "2fe384c2475e7934e95bd43af0d725f7aec60422d081875f73233078b81c2037",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/conduit_core-2d963ea395a1d2ff"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/canonical_input-02cff6d6e1fdcf80",
+      "bytes": 1943480,
+      "sha256": "7475a17c158b52e182ad266ef50c55a19e4060117c891067f94bf6adc3cd8f4d",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/canonical_input-02cff6d6e1fdcf80"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication-a5509a1e4e9bf0de",
+      "bytes": 5423064,
+      "sha256": "6f5f37712ef3e19a47c993a8acefe5e298cd08d92b08614b27c9a7af189d1814",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/publication-a5509a1e4e9bf0de"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication_face_custody-b4b367052544aaa5",
+      "bytes": 8316976,
+      "sha256": "9da11514f727fe17c127ae9e3b2372f69cf215b6b530f8090e3973140230c779",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/publication_face_custody-b4b367052544aaa5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication_validation-ceb5c857a2df56a9",
+      "bytes": 7465344,
+      "sha256": "201fb361338d49508879bb9fa83c67df0ca778fe2028a0c0f507f17e47cd23f8",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/publication_validation-ceb5c857a2df56a9"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/retained_publication_face-7a4eea953e4f1856",
+      "bytes": 8269728,
+      "sha256": "10a09f58393357edeab01db38388a69646a18cc50e494be7c2a8cdb9b26e0031",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/retained_publication_face-7a4eea953e4f1856"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_seven_segment_mask-1c88faac9a98bb60",
+      "bytes": 1079712,
+      "sha256": "3e7f07f3c1cfab46e2e51c04006fce1ca1974e234e8c6ed37e36e17adfd41c7b",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/conduit_seven_segment_mask-1c88faac9a98bb60"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/look-fcbc0ab3c7442be5",
+      "bytes": 19299032,
+      "sha256": "0915845f7d6c0aea7f9498d20fdf69a20e1ddde412f5b25dc3ef3fd920e18696",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/look-fcbc0ab3c7442be5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/mask-8ee4ecc450cb265b",
+      "bytes": 5155256,
+      "sha256": "d42afa4ea4a3afe22104e51989691c061c341d46ba75c0ac5685919ea39d5666",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/mask-8ee4ecc450cb265b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/plot-9f4df3dbc72c254d",
+      "bytes": 19454880,
+      "sha256": "7345843be305fb45eef98d524e3312a8e5011b81787e857f03b685de1f939d99",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/plot-9f4df3dbc72c254d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/prepared_show-1e250556ac85b2a1",
+      "bytes": 4923600,
+      "sha256": "c38d3541ef1093bc90521c79813c3fb402b705e24233e2d22ebb165d263dcc53",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/prepared_show-1e250556ac85b2a1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/protocol-320c6236dd52240c",
+      "bytes": 17954952,
+      "sha256": "773929dcbfc10722d2fc9d705f155948233a565c57354407b65b55fdccbf06b3",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/protocol-320c6236dd52240c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-helper",
+      "retained_copy": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-actual-artifacts/environment-schema-mask-helper",
+      "bytes": 4674240,
+      "sha256": "f187eed1fcb68331db6b348be6ae724e804e87b2ff875560fecff3bee249bcc4",
+      "role": "minimal execution shim including exact helper Source; not xtaskCLI"
+    }
+  ],
+  "old_6418_actual_proof_ELFs": "All5sealedcopiesrehashunchangedafterowncacheReuse; oldrepair/evidencerefs retained.",
+  "limits": [
+    "LocalfocusedCPU/componentproof only; no initializedMaskrolePlay,timer/device/hardware/physicaldelivery,combinedMCUmemoryadmission or6295/6378closure.",
+    "GenericrootworkspaceCandidategreenisnotexternalruntime/Maskcoverage; helpernowprovidesexplicitowningentrance.",
+    "FreshCandidate/accepteddevelopmentIntegrationremainrequired.",
+    "InitialCorestructured_info13testsubsetretainedbutnotcountedagain; finalfullCorelib116suppliesrequiredscope."
+  ]
+}

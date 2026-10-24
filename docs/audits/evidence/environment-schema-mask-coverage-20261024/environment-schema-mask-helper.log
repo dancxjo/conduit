@@ -1,0 +1,262 @@
+ACTUAL_ENVIRONMENT_HELPER_COMMAND cd "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure" && CARGO_TARGET_DIR="/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target" "cargo" "test" "--locked" "--manifest-path" "bodies/environment/runtime/Cargo.toml" "--features" "face-projection,display-mask" "--test" "canonical_input" "--test" "publication" "--test" "retained_publication_face" "--test" "publication_validation" "--test" "publication_face_custody"
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling serde v1.0.229
+   Compiling digest v0.10.7
+   Compiling libm v0.2.16
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling sha2 v0.10.9
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plot)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/kernel)
+   Compiling thiserror v2.0.21
+   Compiling thiserror-impl v2.0.21
+   Compiling tinyvec v1.13.3
+   Compiling unicode-normalization v0.1.25
+   Compiling serde_json v1.0.151
+   Compiling cobs v0.3.0
+   Compiling postcard v1.1.3
+   Compiling minicbor v2.3.0
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plan-lowering)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/make/embedded-build)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/data)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/language)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/audio)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/face)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/planner)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/net)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/text)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/robotics)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/purpose)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/plots/seven-segment-mask)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/mechanisms/protocols/midi)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/mechanisms/io/pulse-capture)
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/mechanisms/io/tm1637)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/bodies/environment/runtime)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/bodies/environment/face)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/catalog)
+    Finished `test` profile [unoptimized] target(s) in 2m 34s
+     Running tests/canonical_input.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/canonical_input-02cff6d6e1fdcf80)
+
+running 1 test
+test borrowed_validation_matches_prepared_shape_checks_without_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/publication.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication-a5509a1e4e9bf0de)
+
+running 6 tests
+test zero_event_admission_refuses_values_but_still_closes_normally ... ok
+test empty_publication_channels_prepare_within_one_kib ... ok
+test publication_is_invisible_until_commit_and_uses_no_play_allocation ... ok
+test publication_storage_preserves_the_full_quantity_coordinate_width ... ok
+test all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity ... ok
+test malformed_wrong_typed_and_cancelled_publications_never_replace_current_state ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/publication_face_custody.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication_face_custody-b4b367052544aaa5)
+
+running 5 tests
+test dropping_a_publisher_while_reading_never_leaves_false_retained_custody ... ok
+test retained_reads_share_one_revision_until_the_owner_explicitly_advances_age ... ok
+test reentrant_pressure_and_rejected_clock_or_publication_preserve_committed_values ... ok
+test one_producer_and_reader_preserve_quantity_revisions_freshness_and_terminal_custody ... ok
+test one_retained_face_resolves_pages_and_typed_frames_without_new_source_events ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/publication_validation.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication_validation-ceb5c857a2df56a9)
+
+running 1 test
+test linked_validation_preserves_all_channel_contracts_and_refuses_truncation_without_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/retained_publication_face.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/retained_publication_face-7a4eea953e4f1856)
+
+running 3 tests
+test a_live_publication_owner_requires_complete_execution_provenance ... ok
+test refused_sequences_types_and_clock_preserve_the_exact_previous_face ... ok
+test source_publications_become_retained_quantity_faces_without_play_allocations ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+ACTUAL_ENVIRONMENT_HELPER_COMMAND cd "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure" && CARGO_TARGET_DIR="/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target" "cargo" "test" "--locked" "--manifest-path" "plots/seven-segment-mask/Cargo.toml"
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling serde v1.0.229
+   Compiling syn v3.0.6
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling libm v0.2.16
+   Compiling digest v0.10.7
+   Compiling serde_core v1.0.229
+   Compiling sha2 v0.10.9
+   Compiling serde_derive v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plot)
+   Compiling thiserror v2.0.21
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/human)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/time)
+   Compiling thiserror-impl v2.0.21
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/language)
+   Compiling zmij v1.0.23
+   Compiling cobs v0.3.0
+   Compiling serde_json v1.0.151
+   Compiling postcard v1.1.3
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/face)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/body)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/planner)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/plots/seven-segment-mask)
+    Finished `test` profile [unoptimized] target(s) in 2m 44s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_seven_segment_mask-1c88faac9a98bb60)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/look.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/look-fcbc0ab3c7442be5)
+
+running 1 test
+test the_requested_fahrenheit_look_is_checked_source_data ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests/mask.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/mask-8ee4ecc450cb265b)
+
+running 10 tests
+test compact_pattern_form_round_trips_exactly_seven_bits ... ok
+test wiring_exposes_unwired_and_shared_annunciators_and_digit_permutations ... ok
+test explicit_colon_fraction_look_retains_tenths_on_colon_only_glass ... ok
+test subject_selection_preserves_a_rich_parent_face_and_preparation_bounds ... ok
+test fahrenheit_look_changes_expression_without_changing_face_quantity ... ok
+test timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime ... ok
+test mask_fits_decimal_and_colon_capabilities_before_show_publication ... ok
+test unavailable_and_stale_never_manifest_old_measurements_as_current ... ok
+test rendering_and_timed_selection_reuse_fixed_storage ... ok
+test rounding_sign_precision_fitting_and_overflow_are_explicit ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/plot.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/plot-9f4df3dbc72c254d)
+
+running 1 test
+test authored_mask_uses_the_existing_face_interaction_show_role ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/prepared_show.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/prepared_show-1e250556ac85b2a1)
+
+running 3 tests
+test prepared_material_owns_correlation_after_the_face_read_ends ... ok
+test unavailable_pages_and_invalid_wiring_keep_the_existing_refusals ... ok
+test resolved_pages_match_reference_looks_and_expiry_without_allocating ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/protocol.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/protocol-320c6236dd52240c)
+
+running 1 test
+test source_owns_command_order_display_control_and_brightness_refusal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+   Doc-tests conduit_seven_segment_mask
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+ACTUAL_ENVIRONMENT_HELPER_COMMAND cd "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure" && CARGO_TARGET_DIR="/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target" "cargo" "clippy" "--locked" "--manifest-path" "bodies/environment/runtime/Cargo.toml" "--features" "face-projection,display-mask" "--test" "canonical_input" "--test" "publication" "--test" "retained_publication_face" "--test" "publication_validation" "--test" "publication_face_custody" "--" "-D" "warnings"
+    Checking serde v1.0.229
+    Checking thiserror v2.0.21
+    Checking cobs v0.3.0
+    Checking tinyvec v1.13.3
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/assigned-plan)
+    Checking serde_json v1.0.151
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/kernel)
+    Checking unicode-normalization v0.1.25
+    Checking postcard v1.1.3
+    Checking minicbor v2.3.0
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/bodies/environment/runtime)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plan-lowering)
+    Checking conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/mechanisms/io/tm1637)
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/time)
+    Checking conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/language)
+    Checking conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/human)
+    Checking conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/data)
+    Checking conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/audio)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/mechanisms/protocols/midi)
+    Checking conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/education)
+    Checking conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/purpose)
+    Checking conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/text)
+    Checking conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/net)
+    Checking conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/web)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/planner)
+    Checking conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/process)
+    Checking conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/mechanisms/io/pulse-capture)
+    Checking conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/make/embedded-build)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/face)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/robotics)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/alife)
+    Checking conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/bodies/environment/face)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/catalog)
+    Checking conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/plots/seven-segment-mask)
+    Finished `dev` profile [unoptimized] target(s) in 18.24s
+ACTUAL_ENVIRONMENT_HELPER_COMMAND cd "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure" && CARGO_TARGET_DIR="/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target" "cargo" "clippy" "--locked" "--manifest-path" "plots/seven-segment-mask/Cargo.toml" "--all-targets" "--" "-D" "warnings"
+    Checking serde_core v1.0.229
+    Checking generic-array v0.14.7
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking digest v0.10.7
+    Checking sha2 v0.10.9
+    Checking libm v0.2.16
+    Checking serde v1.0.229
+    Checking thiserror v2.0.21
+    Checking cobs v0.3.0
+    Checking zmij v1.0.23
+    Checking serde_json v1.0.151
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/core)
+    Checking postcard v1.1.3
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/plots/seven-segment-mask)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/body)
+    Checking conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/language)
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/time)
+    Checking conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/human)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/planner)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/semantics/face)
+    Finished `dev` profile [unoptimized] target(s) in 17.77s
+ACTUAL_ENVIRONMENT_HELPER_COMMAND cd "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure" && CARGO_TARGET_DIR="/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target" "cargo" "test" "--locked" "--manifest-path" "bodies/environment/runtime/Cargo.toml" "--features" "face-projection,display-mask" "--doc" "publication_face_custody"
+    Finished `test` profile [unoptimized] target(s) in 0.08s
+   Doc-tests conduit_environment_runtime
+
+running 4 tests
+test src/publication_face_custody.rs - publication_face_custody::Reader (line 51) - compile fail ... ok
+test src/publication_face_custody.rs - publication_face_custody::Publisher (line 42) - compile fail ... ok
+test src/publication_face_custody.rs - publication_face_custody::Reader<'_>::with_retained (line 111) - compile fail ... ok
+test src/publication_face_custody.rs - publication_face_custody::Reader<'_>::with_current (line 139) - compile fail ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

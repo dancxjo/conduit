@@ -1,0 +1,47 @@
+{
+  "phase": "core-full",
+  "head": "20b34eca6763c2afbd4d742b2a408fbe32ea6c15",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-core",
+        "--lib",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "pid": 885770,
+      "exit": 0
+    }
+  ],
+  "exit": 0,
+  "seconds": 0.22485780715942383,
+  "root_free_before": 21734703104,
+  "source_clean_after": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-tmp"
+  },
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-core-full.log",
+  "log_bytes": 11691,
+  "log_sha256": "da6d0d4ac535eb85a517924ca1133d123f77ea4c2f2c05efaec8b91718f692c7",
+  "actual_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_core-2d963ea395a1d2ff",
+      "bytes": 12316808,
+      "sha256": "2fe384c2475e7934e95bd43af0d725f7aec60422d081875f73233078b81c2037"
+    }
+  ],
+  "test_results": [
+    "test result: ok. 116 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s"
+  ]
+}

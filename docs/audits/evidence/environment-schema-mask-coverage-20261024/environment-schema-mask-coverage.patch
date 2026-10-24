@@ -1,0 +1,77 @@
+diff --git a/tools/xtask/src/commands/environment_face_publication.rs b/tools/xtask/src/commands/environment_face_publication.rs
+index a0b370780..420183e2c 100644
+--- a/tools/xtask/src/commands/environment_face_publication.rs
++++ b/tools/xtask/src/commands/environment_face_publication.rs
+@@ -1,4 +1,4 @@
+-//! Retained producer Face state; no hardware, membership or recording claim.
++//! Retained producer Face state and its finite Mask; no hardware or membership claim.
+ use std::{error::Error, path::Path, process::Command};
+ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
+     for operation in ["test", "clippy"] {
+@@ -9,7 +9,11 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
+             "--manifest-path",
+             "bodies/environment/runtime/Cargo.toml",
+             "--features",
+-            "face-projection",
++            "face-projection,display-mask",
++            "--test",
++            "canonical_input",
++            "--test",
++            "publication",
+             "--test",
+             "retained_publication_face",
+             "--test",
+@@ -20,23 +24,44 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
+         if operation == "clippy" {
+             command.args(["--", "-D", "warnings"]);
+         }
+-        command.env(
+-            "CARGO_TARGET_DIR",
+-            std::env::var_os("CARGO_TARGET_DIR")
+-                .map(std::path::PathBuf::from)
+-                .unwrap_or_else(|| root.join("target")),
+-        );
++        target_directory(root, &mut command);
+         super::execute(&mut command)?;
++
++        // This Mask is an independent workspace: root workspace checks and
++        // enabling its runtime dependency do not execute its own conformance.
++        let mut mask = Command::new("cargo");
++        mask.current_dir(root).args([
++            operation,
++            "--locked",
++            "--manifest-path",
++            "plots/seven-segment-mask/Cargo.toml",
++        ]);
++        if operation == "clippy" {
++            mask.args(["--all-targets", "--", "-D", "warnings"]);
++        }
++        target_directory(root, &mut mask);
++        super::execute(&mut mask)?;
+     }
+-    super::execute(Command::new("cargo").current_dir(root).args([
++    let mut docs = Command::new("cargo");
++    docs.current_dir(root).args([
+         "test",
+         "--locked",
+         "--manifest-path",
+         "bodies/environment/runtime/Cargo.toml",
+         "--features",
+-        "face-projection",
++        "face-projection,display-mask",
+         "--doc",
+         "publication_face_custody",
+-    ]))?;
++    ]);
++    target_directory(root, &mut docs);
++    super::execute(&mut docs)?;
+     Ok(())
+ }
++fn target_directory(root: &Path, command: &mut Command) {
++    command.env(
++        "CARGO_TARGET_DIR",
++        std::env::var_os("CARGO_TARGET_DIR")
++            .map(std::path::PathBuf::from)
++            .unwrap_or_else(|| root.join("target")),
++    );
++}

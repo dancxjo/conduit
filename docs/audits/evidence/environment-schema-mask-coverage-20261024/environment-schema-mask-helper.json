@@ -1,0 +1,123 @@
+{
+  "phase": "helper",
+  "head": "20b34eca6763c2afbd4d742b2a408fbe32ea6c15",
+  "commands": [
+    {
+      "argv": [
+        "rustc",
+        "+stable",
+        "--edition=2021",
+        "-D",
+        "warnings",
+        "--crate-name",
+        "environment_schema_mask_helper",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-helper.rs",
+        "-o",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-helper"
+      ],
+      "pid": 886171,
+      "exit": 0
+    },
+    {
+      "argv": [
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-helper",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure"
+      ],
+      "pid": 886197,
+      "exit": 0
+    }
+  ],
+  "exit": 0,
+  "seconds": 355.87179803848267,
+  "root_free_before": 21734645760,
+  "source_clean_after": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-tmp"
+  },
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-helper.log",
+  "log_bytes": 24537,
+  "log_sha256": "1dc8644d0f36a8a8f3b2eb76a6a14f7e05d668289cbce9d73bcd24eca6137a3f",
+  "actual_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/canonical_input-02cff6d6e1fdcf80",
+      "bytes": 1943480,
+      "sha256": "7475a17c158b52e182ad266ef50c55a19e4060117c891067f94bf6adc3cd8f4d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication-a5509a1e4e9bf0de",
+      "bytes": 5423064,
+      "sha256": "6f5f37712ef3e19a47c993a8acefe5e298cd08d92b08614b27c9a7af189d1814"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication_face_custody-b4b367052544aaa5",
+      "bytes": 8316976,
+      "sha256": "9da11514f727fe17c127ae9e3b2372f69cf215b6b530f8090e3973140230c779"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/publication_validation-ceb5c857a2df56a9",
+      "bytes": 7465344,
+      "sha256": "201fb361338d49508879bb9fa83c67df0ca778fe2028a0c0f507f17e47cd23f8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/retained_publication_face-7a4eea953e4f1856",
+      "bytes": 8269728,
+      "sha256": "10a09f58393357edeab01db38388a69646a18cc50e494be7c2a8cdb9b26e0031"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_seven_segment_mask-1c88faac9a98bb60",
+      "bytes": 1079712,
+      "sha256": "3e7f07f3c1cfab46e2e51c04006fce1ca1974e234e8c6ed37e36e17adfd41c7b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/look-fcbc0ab3c7442be5",
+      "bytes": 19299032,
+      "sha256": "0915845f7d6c0aea7f9498d20fdf69a20e1ddde412f5b25dc3ef3fd920e18696"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/mask-8ee4ecc450cb265b",
+      "bytes": 5155256,
+      "sha256": "d42afa4ea4a3afe22104e51989691c061c341d46ba75c0ac5685919ea39d5666"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/plot-9f4df3dbc72c254d",
+      "bytes": 19454880,
+      "sha256": "7345843be305fb45eef98d524e3312a8e5011b81787e857f03b685de1f939d99"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/prepared_show-1e250556ac85b2a1",
+      "bytes": 4923600,
+      "sha256": "c38d3541ef1093bc90521c79813c3fb402b705e24233e2d22ebb165d263dcc53"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/protocol-320c6236dd52240c",
+      "bytes": 17954952,
+      "sha256": "773929dcbfc10722d2fc9d705f155948233a565c57354407b65b55fdccbf06b3"
+    }
+  ],
+  "test_results": [
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s",
+    "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s",
+    "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s",
+    "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s"
+  ],
+  "meaningful_feature_guard": {
+    "new_fifth_custody_case_passed": true,
+    "exactly_five_custody_tests": true,
+    "both_features_enabled": true,
+    "standalone_mask_invoked": true
+  }
+}

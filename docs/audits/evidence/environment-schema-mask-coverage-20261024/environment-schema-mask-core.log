@@ -1,0 +1,32 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling thiserror v2.0.20
+   Compiling syn v3.0.6
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling cobs v0.3.0
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/assigned-plan)
+   Compiling postcard v1.1.3
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/kernel)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-pressure/architecture/core)
+    Finished `test` profile [unoptimized] target(s) in 15.43s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target/debug/deps/conduit_core-2d963ea395a1d2ff)
+
+running 13 tests
+test structured_info::borrowed::leaf_sequence::tests::borrowed_copy_preserves_destination_on_capacity_identity_and_width_refusal ... ok
+test structured_info::canonical_length::tests::oversized_type_refuses_before_serialization ... ok
+test structured_info::canonical_length::tests::size_matches_existing_encoding_for_every_type_node ... ok
+test structured_info::owned::tests::consuming_parts_move_admitted_bytes_and_keep_the_exact_type ... ok
+test structured_info::prepared_composition::tests::borrowed_depth_exhaustion_remains_distinct_from_malformed_encoding ... ok
+test structured_info::prepared_composition::tests::composed_envelope_identity_and_aggregate_node_limits_are_enforced ... ok
+test structured_info::prepared_composition::tests::linked_schema_composition_keeps_exact_identity_and_owned_output_parity ... ok
+test structured_info::prepared_composition::tests::prepared_composition_matches_owned_canonical_values_without_growth ... ok
+test structured_info::prepared_composition::tests::shared_schema_text_does_not_confuse_names_with_exact_child_types ... ok
+test structured_info::sequence::tests::prepared_sequence_matches_the_canonical_bounded_sequence_type ... ok
+test structured_info::sequence::tests::prepared_sequence_refuses_excess_items_and_bytes ... ok
+test structured_info::tuple::tests::prepared_pair_is_the_same_canonical_tuple_used_by_expression_types ... ok
+test structured_info::tuple::tests::prepared_triple_uses_the_canonical_three_member_tuple_without_growth ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 103 filtered out; finished in 0.02s
+

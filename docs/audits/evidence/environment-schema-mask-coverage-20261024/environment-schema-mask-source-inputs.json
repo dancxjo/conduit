@@ -1,0 +1,100 @@
+{
+  "head": "20b34eca6763c2afbd4d742b2a408fbe32ea6c15",
+  "changed_source_inputs": {
+    "architecture/core/src/structured_info/prepared_composition.rs": {
+      "bytes": 11704,
+      "sha256": "e4322e9cd5cbd4af8589bdd225e2d1f3f9d7a0cc13e58d06a5e94b627f0bb76d",
+      "git_blob": "daab4be50e7f42f16555e02e8272302996043c82"
+    },
+    "architecture/core/src/structured_info/prepared_composition/tests.rs": {
+      "bytes": 8290,
+      "sha256": "7623c5f7f379c5e8d0ff877729f589ebd3b6a52e7e5981d7bbb07f5a95eb12a8",
+      "git_blob": "31a85376711cc05d80b9ac0b6dd5f886013450d6"
+    },
+    "bodies/environment/docs/display-mask.md": {
+      "bytes": 1543,
+      "sha256": "1f0d7bfd119e0c19bf46b0b747b056afb826cb0cbee17318da234a8032a0a9eb",
+      "git_blob": "48d65f25d648aa9ba6c466240849ca409f50a512"
+    },
+    "bodies/environment/runtime/Cargo.toml": {
+      "bytes": 2069,
+      "sha256": "e224aa9ccc9b189c9e57eb8cc9159aff9026eee34a25b46ff74d633fe4cf4e1a",
+      "git_blob": "7207737b51c7393335c19ae4eb25b0f7406718e6"
+    },
+    "bodies/environment/runtime/build.rs": {
+      "bytes": 3100,
+      "sha256": "b572ae39ee30d6904c1ca3429c260558d1cf3f6769036ed7685f059dc1708f4e",
+      "git_blob": "b9412713d820de47c2196f8f3b2f423c9093e7ed"
+    },
+    "bodies/environment/runtime/src/canonical_input.rs": {
+      "bytes": 1798,
+      "sha256": "2cdbc7d6953eaaf04dbe034fc9ec8ce6a0e33c01c235424277f697d14689bb5e",
+      "git_blob": "c23f54752db2dbfe669e391b443fd7d63f7c7600"
+    },
+    "bodies/environment/runtime/src/display_mask.rs": {
+      "bytes": 4019,
+      "sha256": "6fd5f6f110202c483d6e90aa8e88cf80379d36e29bdfbeb38b2e3c7e436940f0",
+      "git_blob": "55b47acb1c955419f791fc5b5304ed5b127244fb"
+    },
+    "bodies/environment/runtime/src/lib.rs": {
+      "bytes": 5412,
+      "sha256": "bb7c00624e2fd12d123b7c6f39e92e041710c42f386e4e9242f2fe2507135311",
+      "git_blob": "e8208f094bc044c984163d26ec09790c590d5aae"
+    },
+    "bodies/environment/runtime/src/observation.rs": {
+      "bytes": 8203,
+      "sha256": "48e84b0174c66c21300ce21f0b7388f7105715f1fc9a27f12ac568ae24b28fa4",
+      "git_blob": "dd31216b5041b9fc364010a1e0b342209885b130"
+    },
+    "bodies/environment/runtime/src/publication.rs": {
+      "bytes": 5713,
+      "sha256": "fe3c51f8d9c916e9c749bb6d96aa731b21652a24a3230b50f80777dc8ec66820",
+      "git_blob": "1ffd192e5912805d951eb121db6722faa3f30cc3"
+    },
+    "bodies/environment/runtime/src/publication/back.rs": {
+      "bytes": 4725,
+      "sha256": "1e0960e030dcdb36d468c5f2f72b6c783e1e01f9182700d223cc4036f9d1a46d",
+      "git_blob": "9df1f4353286c5b3e602136fc77790fd53a1b133"
+    },
+    "bodies/environment/runtime/tests/canonical_input.rs": {
+      "bytes": 2979,
+      "sha256": "e4bffbb55cfdcf2731b232afc559b7d8a118a218fdbf2da4e620be2e9efefa12",
+      "git_blob": "b2daf332d4e903e4fe6b59635b427c51d9e86978"
+    },
+    "bodies/environment/runtime/tests/publication_face_custody.rs": {
+      "bytes": 10508,
+      "sha256": "231af8461898ca10b5f412b6f6e38104a7854980a7c1e2d51e9d1b3ee2b867f4",
+      "git_blob": "6e3f06b9ffc3a70ab06830b70eaf1ee92129b99c"
+    },
+    "plots/seven-segment-mask/src/format.rs": {
+      "bytes": 6890,
+      "sha256": "0e6cfb4919197af1d004d635118376b1b41547a6bc28ba26e3077ad4e81b8ff3",
+      "git_blob": "a8359ffc36360384a3f13a292a28852fdd5b46d7"
+    },
+    "plots/seven-segment-mask/src/lib.rs": {
+      "bytes": 2249,
+      "sha256": "3f10ce18ed3529a1702955f6e4ccf500a6e0647531aae501f340def84bd11b38",
+      "git_blob": "39a660844d84a681d1b61a87da871766f53b662b"
+    },
+    "plots/seven-segment-mask/src/prepared_show.rs": {
+      "bytes": 4046,
+      "sha256": "d7e2cfb0848ed33b06e4db5b03b7cf7ea0e9820cf37d9ce7faaf5892615bb9d6",
+      "git_blob": "3100a830215aca896cca07162ce077d94d02f58e"
+    },
+    "plots/seven-segment-mask/src/timed.rs": {
+      "bytes": 1605,
+      "sha256": "0cf60c5412dbf9b349fce427c288972d2a176a62c72b1e1f0a60bccd7e87e5bf",
+      "git_blob": "d7d4623c3cf0450bf3cd1ab9b6c8f3d21f24c5c5"
+    },
+    "plots/seven-segment-mask/tests/prepared_show.rs": {
+      "bytes": 6673,
+      "sha256": "2f6a6672c7892817f08acc8be022c204a07b370896c794309960d4a08547953f",
+      "git_blob": "43b734b6c2d27d6efc66ec9b0d09744c1109beaf"
+    },
+    "tools/xtask/src/commands/environment_face_publication.rs": {
+      "bytes": 2246,
+      "sha256": "f86696721463ee243375f28243b949e19e7b84b20a3d38b2914806cf0271e9f8",
+      "git_blob": "420183e2c669cf3dbfa3a2a3d86be0c22bd8a9a8"
+    }
+  }
+}

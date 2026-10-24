@@ -1,0 +1,42 @@
+{
+  "phase": "strict-helper",
+  "head": "20b34eca6763c2afbd4d742b2a408fbe32ea6c15",
+  "commands": [
+    {
+      "argv": [
+        "rustup",
+        "run",
+        "stable",
+        "clippy-driver",
+        "--edition=2021",
+        "--emit=metadata",
+        "--crate-name",
+        "environment_schema_mask_helper",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-helper.rs",
+        "-o",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-tmp/environment-schema-mask-helper.rmeta",
+        "-D",
+        "warnings"
+      ],
+      "pid": 888185,
+      "exit": 0
+    }
+  ],
+  "exit": 0,
+  "seconds": 0.03609514236450195,
+  "root_free_before": 21337022464,
+  "source_clean_after": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6418-optional-custody-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/environment-schema-mask-tmp"
+  },
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/environment-schema-mask-strict-helper.log",
+  "log_bytes": 0,
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "actual_executables": [],
+  "test_results": []
+}
