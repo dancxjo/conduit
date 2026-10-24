@@ -1,0 +1,311 @@
+{
+  "status": "substance_and_cached_release_gates_verified_concurrent_closed_issue",
+  "issue": 6065,
+  "closed_at": "2026-10-24T10:14:06Z",
+  "body_sha256": "6a0e59ca85ba061ff15afbee52b97d36d56ece985078baa425d65b70c2bdf587",
+  "exact_delivery_method": "owner squash b96 parent8a17; no90aancestry/normalmerge claim",
+  "exact17paths_six_stage_correspondence": {
+    "architecture/plot/src/rust_binding/generate_prepared_storage.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "5e601f9a6e5abbe326044e8c4efa405cff77998e",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "5e601f9a6e5abbe326044e8c4efa405cff77998e",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "5e601f9a6e5abbe326044e8c4efa405cff77998e",
+      "e8797ffd23928391face70b5586ae37d9234c041": "5e601f9a6e5abbe326044e8c4efa405cff77998e",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "5e601f9a6e5abbe326044e8c4efa405cff77998e",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "5e601f9a6e5abbe326044e8c4efa405cff77998e"
+    },
+    "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "4024bd7190da84bce26e5545b795ff9bebd1967e",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "4024bd7190da84bce26e5545b795ff9bebd1967e",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "4024bd7190da84bce26e5545b795ff9bebd1967e",
+      "e8797ffd23928391face70b5586ae37d9234c041": "4024bd7190da84bce26e5545b795ff9bebd1967e",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "4024bd7190da84bce26e5545b795ff9bebd1967e",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "4024bd7190da84bce26e5545b795ff9bebd1967e"
+    },
+    "architecture/plot/src/rust_binding/mod.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "e5a786583b310489475ba62f0ed573c415024fa8",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "e5a786583b310489475ba62f0ed573c415024fa8",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "e5a786583b310489475ba62f0ed573c415024fa8",
+      "e8797ffd23928391face70b5586ae37d9234c041": "e5a786583b310489475ba62f0ed573c415024fa8",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "e5a786583b310489475ba62f0ed573c415024fa8",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "e5a786583b310489475ba62f0ed573c415024fa8"
+    },
+    "architecture/plot/src/rust_binding/prepared_decode.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "bb339d8ed56a476f8643b479ece10aa9ee88731c",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "bb339d8ed56a476f8643b479ece10aa9ee88731c",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "bb339d8ed56a476f8643b479ece10aa9ee88731c",
+      "e8797ffd23928391face70b5586ae37d9234c041": "bb339d8ed56a476f8643b479ece10aa9ee88731c",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "bb339d8ed56a476f8643b479ece10aa9ee88731c",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "bb339d8ed56a476f8643b479ece10aa9ee88731c"
+    },
+    "architecture/plot/src/rust_binding/prepared_native.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "6ee39c4566602399c9683ffb4b1595c5cc564f65",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "6ee39c4566602399c9683ffb4b1595c5cc564f65",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "6ee39c4566602399c9683ffb4b1595c5cc564f65",
+      "e8797ffd23928391face70b5586ae37d9234c041": "6ee39c4566602399c9683ffb4b1595c5cc564f65",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "6ee39c4566602399c9683ffb4b1595c5cc564f65",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "6ee39c4566602399c9683ffb4b1595c5cc564f65"
+    },
+    "architecture/plot/tests/prepared_native_decode.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "f9f68d4746ea01e60b1f9f3cf9e2809024847a08",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "f9f68d4746ea01e60b1f9f3cf9e2809024847a08",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "f9f68d4746ea01e60b1f9f3cf9e2809024847a08",
+      "e8797ffd23928391face70b5586ae37d9234c041": "f9f68d4746ea01e60b1f9f3cf9e2809024847a08",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "f9f68d4746ea01e60b1f9f3cf9e2809024847a08",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "f9f68d4746ea01e60b1f9f3cf9e2809024847a08"
+    },
+    "docs/reuse-ledger.md": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "be3be59424961eae3a630e061d4764ff41131d26",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "be3be59424961eae3a630e061d4764ff41131d26",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "be3be59424961eae3a630e061d4764ff41131d26",
+      "e8797ffd23928391face70b5586ae37d9234c041": "be3be59424961eae3a630e061d4764ff41131d26",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "be3be59424961eae3a630e061d4764ff41131d26",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "be3be59424961eae3a630e061d4764ff41131d26"
+    },
+    "proof/language/6065-current-prepared-native/README.md": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "be869e4f5c00b0d4a7032c926fac6b398e9b888d",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "be869e4f5c00b0d4a7032c926fac6b398e9b888d",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "be869e4f5c00b0d4a7032c926fac6b398e9b888d",
+      "e8797ffd23928391face70b5586ae37d9234c041": "be869e4f5c00b0d4a7032c926fac6b398e9b888d",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "be869e4f5c00b0d4a7032c926fac6b398e9b888d",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "be869e4f5c00b0d4a7032c926fac6b398e9b888d"
+    },
+    "proof/language/6065-current-prepared-native/actual-beam.log.gz": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "e0590c26b363d05f3cf37287e6a4cb5a4a5e4905",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "e0590c26b363d05f3cf37287e6a4cb5a4a5e4905",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "e0590c26b363d05f3cf37287e6a4cb5a4a5e4905",
+      "e8797ffd23928391face70b5586ae37d9234c041": "e0590c26b363d05f3cf37287e6a4cb5a4a5e4905",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "e0590c26b363d05f3cf37287e6a4cb5a4a5e4905",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "e0590c26b363d05f3cf37287e6a4cb5a4a5e4905"
+    },
+    "proof/language/6065-current-prepared-native/beam-admission-regression.log.gz": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "ac703e5f3c220caa2e824869ae0aaadf42f973c1",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "ac703e5f3c220caa2e824869ae0aaadf42f973c1",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "ac703e5f3c220caa2e824869ae0aaadf42f973c1",
+      "e8797ffd23928391face70b5586ae37d9234c041": "ac703e5f3c220caa2e824869ae0aaadf42f973c1",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "ac703e5f3c220caa2e824869ae0aaadf42f973c1",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "ac703e5f3c220caa2e824869ae0aaadf42f973c1"
+    },
+    "proof/language/6065-current-prepared-native/plot-regressions.log.gz": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "6f7db6975804b23768c9a3eecb3b7644b68b5a23",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "6f7db6975804b23768c9a3eecb3b7644b68b5a23",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "6f7db6975804b23768c9a3eecb3b7644b68b5a23",
+      "e8797ffd23928391face70b5586ae37d9234c041": "6f7db6975804b23768c9a3eecb3b7644b68b5a23",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "6f7db6975804b23768c9a3eecb3b7644b68b5a23",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "6f7db6975804b23768c9a3eecb3b7644b68b5a23"
+    },
+    "proof/language/6065-current-prepared-native/results.json": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "a66b3aabec4271da8cdea299f706e52003ff8b11",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "a66b3aabec4271da8cdea299f706e52003ff8b11",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "a66b3aabec4271da8cdea299f706e52003ff8b11",
+      "e8797ffd23928391face70b5586ae37d9234c041": "a66b3aabec4271da8cdea299f706e52003ff8b11",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "a66b3aabec4271da8cdea299f706e52003ff8b11",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "a66b3aabec4271da8cdea299f706e52003ff8b11"
+    },
+    "proof/language/6065-current-prepared-native/strict-library-clippy.log.gz": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "66be027346cbf1d4d16470a2c71c404e240672cf",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "66be027346cbf1d4d16470a2c71c404e240672cf",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "66be027346cbf1d4d16470a2c71c404e240672cf",
+      "e8797ffd23928391face70b5586ae37d9234c041": "66be027346cbf1d4d16470a2c71c404e240672cf",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "66be027346cbf1d4d16470a2c71c404e240672cf",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "66be027346cbf1d4d16470a2c71c404e240672cf"
+    },
+    "semantics/language/build.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "171a529d93a5800e27bfda7c538575feefba8e34",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "171a529d93a5800e27bfda7c538575feefba8e34",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "171a529d93a5800e27bfda7c538575feefba8e34",
+      "e8797ffd23928391face70b5586ae37d9234c041": "171a529d93a5800e27bfda7c538575feefba8e34",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "171a529d93a5800e27bfda7c538575feefba8e34",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "171a529d93a5800e27bfda7c538575feefba8e34"
+    },
+    "semantics/language/src/lib.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "9df887cde4b65f484edf88aedec264d8c6594433",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "9df887cde4b65f484edf88aedec264d8c6594433",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "9df887cde4b65f484edf88aedec264d8c6594433",
+      "e8797ffd23928391face70b5586ae37d9234c041": "9df887cde4b65f484edf88aedec264d8c6594433",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "9df887cde4b65f484edf88aedec264d8c6594433",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "9df887cde4b65f484edf88aedec264d8c6594433"
+    },
+    "semantics/language/tests/actual_beam_prepared_decode.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "e31b1a57d02a2d896433e02b0924caa1655c7c4e",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "e31b1a57d02a2d896433e02b0924caa1655c7c4e",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "e31b1a57d02a2d896433e02b0924caa1655c7c4e",
+      "e8797ffd23928391face70b5586ae37d9234c041": "e31b1a57d02a2d896433e02b0924caa1655c7c4e",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "e31b1a57d02a2d896433e02b0924caa1655c7c4e",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "e31b1a57d02a2d896433e02b0924caa1655c7c4e"
+    },
+    "tools/xtask/src/suites/native_source_laws.rs": {
+      "90a373aa5b37b424755337fa0d5afa2101243764": "85260e0231ea584d15280228044a74b8f8ea287c",
+      "b96eeb2596008e5a3cbbab2b906cab1fda23a505": "85260e0231ea584d15280228044a74b8f8ea287c",
+      "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1": "85260e0231ea584d15280228044a74b8f8ea287c",
+      "e8797ffd23928391face70b5586ae37d9234c041": "85260e0231ea584d15280228044a74b8f8ea287c",
+      "48fc7f31dc766b42f2360f02aa647b110bf6cbde": "85260e0231ea584d15280228044a74b8f8ea287c",
+      "b3a0e637cb4ebf449ebc0cb6c73a34755f327889": "85260e0231ea584d15280228044a74b8f8ea287c"
+    }
+  },
+  "actual_fresh_execution_source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "accepted_source": "e8797ffd23928391face70b5586ae37d9234c041",
+  "accepted_main": "48fc7f31dc766b42f2360f02aa647b110bf6cbde",
+  "accepted_tree": "be722c7c85e0553256f1cb4c42ac6919081f3755",
+  "full_local_closure_package_count": 46,
+  "full_local_closure": {
+    "architecture/assigned-plan": "2ce9e8eaac7416f2048cf37ee81296da0c02f7f6",
+    "architecture/body": "f4917304eca26732902a15cc75fc1eacbb486930",
+    "architecture/composite": "507cf7211ed6f9ae40d77ad601a089f6e28afc4b",
+    "architecture/core": "23e53072a936a0f00221d1ea5e6ed9de45a59b2b",
+    "architecture/kernel": "a83e2c2c96b271dc1634cf112ac23b2d819c3469",
+    "architecture/observatory": "8fbd99a533af38b73b5f5db057fea0284d37e0b2",
+    "architecture/plan-lowering": "0ca3d705a8f3970ce0ded9ff5e9d508681191854",
+    "architecture/planner": "480725770dde4378ff739368f1cc4d7fc8859ae8",
+    "architecture/plot": "32d42fbdf9d43cf113d4f7fada9947125413a38d",
+    "architecture/protected-line": "6ad5927535b800fee9fed61819556ea71cf6e59a",
+    "architecture/wire": "a358dbea11a6aef9ed2042dc07c1df4593f800dd",
+    "mechanisms/implementations/synth": "782742bad1f136594ac801d3ee9d6228d23a54fa",
+    "mechanisms/protocols/midi": "b560ca213e8fb5a1e8ed684550b9a49da9b64d9c",
+    "plots/birth": "b5df3fb7e3d7b9b5762e27e106d0790855aabdd7",
+    "plots/commons": "04c3626e4a718f58fd2bee042a2669b40bc17136",
+    "plots/patchbay": "217202bc2447f3b8204a20bff2913ad5c6fc205f",
+    "plots/patchbay/application": "e262b95d2fcb6accde6ff14f0ed700a5477e53e8",
+    "plots/patchbay/graph": "0813502b7945c0d5b2053b5cb332e049f07374bb",
+    "plots/tour": "062ac599451e4642cf1efe38fd5a238be8f3f0c3",
+    "semantics/ai": "7ffa3ae3938c69783aa21f42ab4002ac53987e88",
+    "semantics/alife": "d33a30b5e9026a5fce6bfabd0f77ffe19c02b12c",
+    "semantics/audio": "02e93bdd3085f5e481c2bb9bd33de3e97186c62f",
+    "semantics/catalog": "7e865f830e0f8dc9b879278c1649609bced2cb8f",
+    "semantics/data": "cd87e380f3289d5d8c03b10c933bee2909fa376c",
+    "semantics/education": "ec5add8bebc9538cf3a7fd2d01fd927c8e9bfe28",
+    "semantics/face": "6addb0188d273f7c1beebcee20e2d6601619e452",
+    "semantics/home": "61c03b6bbd7ebc10952efe77331803b4a4f3ddda",
+    "semantics/human": "1954f5a5a76309ccfcd9eb798b79351926920090",
+    "semantics/language": "a7103f3654d299d2deb121f4fb6f655897dd5ae3",
+    "semantics/net": "3f0fd19addb5d273283792c441fa1dc480106c4a",
+    "semantics/process": "3891007af5b8abdc8cc017863a7d4f55d68f9b40",
+    "semantics/purpose": "2f78393e63f23bb0db8d466b10c344db57c0e995",
+    "semantics/robotics": "ba2ed5814840ca02c73cf2b17521884fe53d2940",
+    "semantics/text": "de52ae83efc9d07bbff3e7ceb08a75d3454fc50f",
+    "semantics/time": "9ca72f5352f34e3fa357bfa99522df8446b98a40",
+    "semantics/tutorial": "3eeb91172ee0dd13cb4c91f335cd68e1f97f1cce",
+    "semantics/web": "f6aac001ddadf4a4b4a49dfbdf226ae9648c803f",
+    "targets/conduitos": "d4ff8139fccfc1459724a0f24abeafb49c9775f9",
+    "targets/conduitos/application-core": "b51d0a19356f12af6609b9bbd9e3fb494764d93f",
+    "targets/conduitos/compositor-core": "cbc8037b5f0f0711644b365fb252ab746bf7f3b8",
+    "targets/conduitos/creche-core": "23b8886c921592585985ba6ac1a04ff433aa6d9f",
+    "targets/conduitos/mask-core": "d09b8ac86ea76b62cc70a16193fe54ea219f4a8a",
+    "targets/conduitos/mask-offer": "47db4bf130cf30c632fb363f9a35cda2fe3f5dbc",
+    "targets/conduitos/network-core": "8c94a022a6fe0a1995bccad744e802da193ae21b",
+    "targets/conduitos/runtime-core": "085eb05ae14af7bc4c372d1f516ec406e428ee69",
+    "targets/conduitos/tls-core": "1bbba05d149c047d2835d3aacbf6d34aba81f5b9"
+  },
+  "root4inputs": {
+    "Cargo.toml": "e61b1386af162f0443d7368d003f63956391a00f578346a6626fe8e54aab374a",
+    "Cargo.lock": "b66b2fec2c95bcb0fe686e776ff70e03861f9ffe976027ed7acbf6ad9236b505",
+    "rust-toolchain.toml": "48c202b05694e680218d81db870cf2a127ab4efec83abd91b1f05c5e636fa53b",
+    ".cargo/config.toml": "269b1a63fbc504801030a459c774513d26c921b8478d0e20778ab9aeb56699d5"
+  },
+  "full_gates": [
+    {
+      "run": 40073799242,
+      "source": "90a373aa5b37b424755337fa0d5afa2101243764",
+      "success": 11,
+      "skip": 1
+    },
+    {
+      "run": 40078016276,
+      "source": "e8797ffd23928391face70b5586ae37d9234c041",
+      "success": 25,
+      "skip": 1
+    }
+  ],
+  "publisher": {
+    "run": 40084492886,
+    "actual_input_source": "e8797ffd23928391face70b5586ae37d9234c041",
+    "actual_input_integration": 40078016276,
+    "workflow_context_head": "b3a0e637cb4ebf449ebc0cb6c73a34755f327889",
+    "raw_sha256": "25b60b9f2acefdeae8e9dc262849aa126c38e056c1cba46a734cfa410a71051f"
+  },
+  "pages_release_file_correspondence": [
+    {
+      "kind": "current",
+      "bytes": 473671,
+      "sha256": "429cd63f57e6ba13d3abd1c24d71ef8f9216640da7f462c28323cbbdfeb50109"
+    },
+    {
+      "kind": "retained",
+      "bytes": 473671,
+      "sha256": "429cd63f57e6ba13d3abd1c24d71ef8f9216640da7f462c28323cbbdfeb50109"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion": "Prepare checks full generated semantic shape plus complete dependency Native contracts/invariants against the exact checked document; step/finish require the exact same admitted Native owner and bytes, not digest-only or shape-only equality.",
+      "status": "proven source/local with actualfresh e9f proof and explicit46dependency+root4 correspondence toacceptede879",
+      "mechanism": [
+        "prepared_native.rs retains private checked catalogue authority; check_prepared_decode_native checks exact complete checked-document Native schema/contracts/invariants.",
+        "PreparedDecodeGate::check uses Native pointer identity and exact retained canonical byte equality, not digest or shape alone."
+      ],
+      "proof": [
+        "Generic changed_checked_law_cannot_prepare_and_incomplete_staging_cannot_finish; actual_invalid_nested_law_never_supplies_decode_witness.",
+        "Actual Beam weakened invariant and weakened nested value-contract preparation refuse; foreign witness and changed bytes refuse while retaining private storage.",
+        "Existing Native admission/occurrence/optional controls plus actual prepared_beam_admission pass."
+      ]
+    },
+    {
+      "criterion": "Compile CURRENT emitted Rust and no_std consumer; exact value equality covers bounded strings, nested records, signed/bool primitives, fixed arrays and nullary variants, including real four-slot LanguageParserScorerBeam.",
+      "status": "proven source/local with actualfresh e9f proof and explicit46dependency+root4 correspondence toacceptede879",
+      "mechanism": [
+        "generate_prepared_storage emits opt-in private staging over ordinary generated types; Language build opts in real four-slot Beam."
+      ],
+      "proof": [
+        "prepared_native_decode: generated_closed_storage_materializes_only_actual_admitted_bytes_without_growth calls checked generated_rust::exercise: compile CURRENT output, execute four inner cases, compile no_std consumer; outer PASS is indirect checked-helper proof, inner executable hashes were not retained.",
+        "Inner positive compares nested Interval, bounded Label Text, signed i64, bool, fixed primitive array and nullary Relation variant exactly.",
+        "Actual Beam compares entire decoded value to two distinct actual Source-initialized states; additionally checks all four slots heads/choices/selected, inactive slot, bool and signed score. Retained actual Beam ELF SHA256 0e3f3bc1d5616a46af105644c093233c44552c768462e61704cf8c80ee0f974d."
+      ]
+    },
+    {
+      "criterion": "Incremental steps and retained finish allocate/reallocate/deallocate zero while all result/retained storage stays alive; pressure, cancel, foreign witness, changed bytes and incomplete staging cannot publish T and retain original private evidence.",
+      "status": "proven source/local with actualfresh e9f proof and explicit46dependency+root4 correspondence toacceptede879",
+      "mechanism": [
+        "Preallocated one-shot storage owns canonical backing; finish_retained moves result and gate, retaining canonical custody. Error finish returns original staging instead of T."
+      ],
+      "proof": [
+        "Actual Beam reserves TWO storage objects before either ordinary Source Play; materializes both and retains values/gates alive. No replacement allocation per round is presented as completion.",
+        "Incremental steps plus retained finish measure allocations=0,reallocations=0,deallocations=0. Whole-process allocator freedom is not claimed.",
+        "Pressure, cancellation, foreign Native witness, changed bytes and incomplete staging fail without T; tests retain/recheck capacities and original witness bytes."
+      ]
+    },
+    {
+      "criterion": "One-shot capacity/work bounds and retained-finish ownership are explicit; unsupported shapes refuse generation/preparation. Ordinary generated prefix/semantic bytes and existing non-opt-in APIs stay unchanged; required exact-head checks pass on reviewed recovery.",
+      "status": "proven source/local with actualfresh e9f proof and explicit46dependency+root4 correspondence toacceptede879",
+      "mechanism": [
+        "PreparedDecodeBounds exposes canonical_bytes,leaf_steps,text_bytes; finite maxima canonical/text65536, leaf4096; generation depth64 and primitive fixed array256.",
+        "Supported closed record/bounded nominal Text/primitive fixed arrays/nullary variants only; sequence/missing root and unsupported shapes refuse.",
+        "Explicit leaf step count and repeated bounded full canonical validation/projection scan per leaf: no constant-time or proportional-byte-step claim.",
+        "Opt-in emitted source starts with ordinary output and semantic_type_bytes equal ordinary; existing non-opt-in API preserved."
+      ],
+      "proof": [
+        "Generic unsupported_sequence_and_missing_root_refuse_generation, fixed steps10, canonical retained capacity, tiny leaf bound refusal.",
+        "Actual Beam steps equal PREPARED_STORAGE_LEAF_STEPS; explicit retained ownership and finite text/canonical preparation bounds.",
+        "15 Plot outer cases + actual Beam + original Beam admission; strict Plot/Language LIBRARY Clippy only; supported suite routes two new tests but local whole supported suite execution is not claimed."
+      ]
+    }
+  ],
+  "required_qualifications": [
+    "Allhistoricala161/WIP/30adrecords remain historical; actualclean e9f5514 supplies fresh17outer+4inner/no_std strictLIB proof",
+    "No installedCurrent/controller/epoch/physical or4907/6066/6067completion",
+    "Currentb3 is only exact17featurecorrespondence, not wholecurrentexecution or full46closureclaim"
+  ],
+  "findings": [
+    {
+      "severity": "wording",
+      "finding": "Closed body says merged normally; exact audited delivery is owner squash with singleparent8a17. Narrow clarification recommended."
+    },
+    {
+      "severity": "custody_link",
+      "finding": "No new finalaccepted6065packet linked in closedbody or currentlocalrefs; originala161packet remainslinked, fresh5514 packet public but notlinked there. Add freshqualified5514+thisscopeaudit ifdesired, rather than invent oldpacket finalexecution."
+    },
+    {
+      "severity": "metadata_limit",
+      "finding": "Cached release ghview omits isDraft/isPrerelease fields; publishedAt/tag/assets/livePages verified, but non-draft/non-prerelease flags not independently established from these cachedfields."
+    }
+  ],
+  "operations": "No source/refs/build/network queries beyond oneessentialfresh6065GET; no issuewrites/publisher/closer activation."
+}

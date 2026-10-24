@@ -1,0 +1,19 @@
+{
+  "kind": "Independent verification AFTER concurrent owner closure, not a second closure or a before-closure packet claim",
+  "issue": 6065,
+  "owner_closed_at": "2026-10-24T10:14:06Z",
+  "source": "e8797ffd23928391face70b5586ae37d9234c041",
+  "accepted_main": "48fc7f31dc766b42f2360f02aa647b110bf6cbde",
+  "tree": "be722c7c85e0553256f1cb4c42ac6919081f3755",
+  "actual_publisher": 40084492886,
+  "actual_upstream_integration": 40078016276,
+  "actual_publisher_raw_sha256": "25b60b9f2acefdeae8e9dc262849aa126c38e056c1cba46a734cfa410a71051f",
+  "publisher_workflow_context_is_not_tested_source": true,
+  "fresh_actual_owning_proof": "https://github.com/dancxjo/conduit/tree/5514e2b950887dc70bdf5fa5d8c4b2df9b93311c/proof/language/ready-four-native-owning-20261024/e9f8787cc",
+  "actual_owning_execution_source": "e9f8787ccbf3a0fda086a5e4d568cb7f597d34e1",
+  "owning_normal_build_and_root_dev_closure_equal_packages": 46,
+  "workspace_inputs_equal": 4,
+  "stable_release_flags_verified": true,
+  "current_and_retained_Pages_manifest_identical_sha256": "429cd63f57e6ba13d3abd1c24d71ef8f9216640da7f462c28323cbbdfeb50109",
+  "qualification": "Fresh17outer+4currentgenerated/no_std evidence keeps e9f execution identity; accepted e879 equals owning46package/root4 inputs but not original whole e9f tree. No installedCurrent/controller/epoch/parent completion."
+}
