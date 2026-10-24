@@ -119,8 +119,8 @@ fn resonance_and_energy_overlap_are_evaluated_by_the_shared_audio_source() {
     let second = phases(&phase_source, timing(300, 300, Some(200), None));
     for (earlier, later) in [
         (
-            AudioTrajectoryQuantity::frequency(1, 100).unwrap(),
-            AudioTrajectoryQuantity::frequency(1, 200).unwrap(),
+            AudioTrajectoryQuantity::frequency(1, 270).unwrap(),
+            AudioTrajectoryQuantity::frequency(1, 2290).unwrap(),
         ),
         (
             AudioTrajectoryQuantity::amplitude(4, 1).unwrap(),
@@ -152,17 +152,24 @@ fn resonance_and_energy_overlap_are_evaluated_by_the_shared_audio_source() {
             )
             .unwrap();
             let output = curve_source.evaluate(&request.encode().unwrap()).unwrap();
-            let prepared = PreparedAudioQuantityTrajectory::new(&output).unwrap();
-            let query =
-                AudioTrajectoryQuery::new(anchor(), AudioExactTimeOffset::new(100, 35).unwrap())
-                    .unwrap();
+            let prepared = PreparedAudioQuantityTrajectory::new_with_linear_profile(
+                &output,
+                AudioLinearTrajectoryProfile::CommonBasisU32,
+            )
+            .unwrap();
+            // Exact midpoint of the shared 250..375 ms overlap, in its retained basis.
+            let query = AudioTrajectoryQuery::new(
+                anchor(),
+                AudioExactTimeOffset::new(20000, 6250).unwrap(),
+            )
+            .unwrap();
             let evaluated = prepared.evaluate(&query.encode().unwrap()).unwrap();
             results.push(evaluated.result().clone());
         }
         assert_eq!(results[0], results[1]);
         match &results[0] {
             AudioTrajectoryQuantity::Frequency(value) => {
-                assert_eq!(*value.numerator_hz(), *value.denominator() * 150);
+                assert_eq!(*value.numerator_hz(), *value.denominator() * 1280);
             }
             AudioTrajectoryQuantity::Amplitude(value) => {
                 assert_eq!(*value.numerator() * 2, *value.denominator());
