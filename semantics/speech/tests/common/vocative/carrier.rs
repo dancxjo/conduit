@@ -24,6 +24,30 @@ pub fn build(
     rich: Option<&conduit_speech::linguistic_prosody::PreparedLinguisticProsody<'_>>,
     record: &conduit_speech::record_pronunciation::SuppliedRecordPronunciation<'_, '_>,
 ) -> base::Fixture {
+    build_with_record_cycle(source, lexical_profile, vocative, rich, record, false)
+}
+
+/// Explicit acoustic experiment: retain the accepted verb phones, stress and
+/// duration, but let only record use the existing authored stress-cycle profile.
+/// The baseline build and every Ed/we/vocative control remain unchanged.
+pub fn build_with_record_profile_cycle(
+    source: &LanguageTextRevision,
+    lexical_profile: &LanguageLexicalProfile,
+    vocative: usize,
+    rich: Option<&conduit_speech::linguistic_prosody::PreparedLinguisticProsody<'_>>,
+    record: &conduit_speech::record_pronunciation::SuppliedRecordPronunciation<'_, '_>,
+) -> base::Fixture {
+    build_with_record_cycle(source, lexical_profile, vocative, rich, record, true)
+}
+
+fn build_with_record_cycle(
+    source: &LanguageTextRevision,
+    lexical_profile: &LanguageLexicalProfile,
+    vocative: usize,
+    rich: Option<&conduit_speech::linguistic_prosody::PreparedLinguisticProsody<'_>>,
+    record: &conduit_speech::record_pronunciation::SuppliedRecordPronunciation<'_, '_>,
+    record_profile_cycle: bool,
+) -> base::Fixture {
     let words: Vec<_> = source.material().text().split(' ').collect();
     let mut spans = Vec::new();
     let mut cursor = 0;
@@ -198,7 +222,11 @@ pub fn build(
                             } else {
                                 SpeechDurationSpecification::known(100, 10).unwrap()
                             },
-                            SpeechCycleSpecification::known(120, 1).unwrap(),
+                            if record_profile_cycle && words[w] == "record" {
+                                SpeechCycleSpecification::unspecified()
+                            } else {
+                                SpeechCycleSpecification::known(120, 1).unwrap()
+                            },
                             SpeechIntensitySpecification::known(1, 1).unwrap(),
                         )
                         .unwrap()
