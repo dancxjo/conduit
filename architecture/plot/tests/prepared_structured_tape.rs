@@ -142,8 +142,8 @@ fn conditional_record_field_keeps_following_constant_field_on_both_branches() {
     for value in [1, 0, 1] {
         let expected = program.evaluate(&[value]).unwrap();
         assert_eq!(
-            prepared.evaluate(&[value]).unwrap(),
-            expected,
+            allocation::allocations(|| assert_eq!(prepared.evaluate(&[value]).unwrap(), expected)),
+            0,
             "branch {value}"
         );
     }
