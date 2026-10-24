@@ -5,6 +5,7 @@ mod kernel;
 #[path = "common/resource_lexicon.rs"]
 mod resource;
 use conduit_core::revision::*;
+use conduit_language::analysis_epoch_owner::fallback_round::PreparedFallbackRoundPrograms;
 use conduit_language::{
     analysis_epoch_initialization::*, analysis_epoch_owner::*,
     dependency_commitment::PreparedCommittedDependency, resource_lexicon_snapshot::*,

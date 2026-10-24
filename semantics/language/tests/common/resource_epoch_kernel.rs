@@ -20,7 +20,7 @@ struct Output(Vec<Vec<u8>>);
 impl ExternalForeOutputAdapter for Output {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         assert_eq!(value.track, ConnectionTrack::Payload);
-        self.0.push(value.bytes);
+        self.0.push(value.bytes.to_vec());
         Ok(())
     }
 }
