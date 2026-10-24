@@ -1,0 +1,24 @@
+{
+  "observed_utc": "2026-10-24T02:11:55.722997+00:00",
+  "source": "fa7bbbdc7570cb3ed510de208fe2ab48c71dbf6a",
+  "status": "failed",
+  "steps": [
+    {
+      "name": "tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-face"
+      ],
+      "exit_code": 1,
+      "log": "work/6318-fa7-checked-face-tests.log",
+      "sha256": "f82a6910e9e1876f1d25af676891278e101249ef8010552e0852aa3633374957"
+    }
+  ],
+  "limits": [
+    "Checked Face prerequisite only; no complete stagedpublication/cumulativegrant or newnative execution claim"
+  ]
+}

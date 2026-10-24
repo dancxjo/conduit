@@ -1,0 +1,102 @@
+{
+  "source": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "files": [
+    {
+      "file": "eac-omnibus-final-proof.json",
+      "input_path": "outputs/eac-omnibus-final-proof.json",
+      "stored_sha256": "174056ba52657908f40d86fab1516d51a26c73d5c2d67d91d63b507d2d3cb477",
+      "original_sha256": "174056ba52657908f40d86fab1516d51a26c73d5c2d67d91d63b507d2d3cb477",
+      "original_bytes": 2224,
+      "encoding": "identity"
+    },
+    {
+      "file": "eac-omnibus-independent-source-review.json",
+      "input_path": "outputs/eac-omnibus-independent-source-review.json",
+      "stored_sha256": "179e7be813f8c3a82a04075168573d2ef70f4b7bc1b808cd33c0278d78abec2d",
+      "original_sha256": "179e7be813f8c3a82a04075168573d2ef70f4b7bc1b808cd33c0278d78abec2d",
+      "original_bytes": 11345,
+      "encoding": "identity"
+    },
+    {
+      "file": "eac-omnibus-source-publication.json",
+      "input_path": "outputs/eac-omnibus-source-publication.json",
+      "stored_sha256": "ec010d6aa037d601be12cc2d98dd3092f4ec2b4dc1de58335ae10a6130bf590b",
+      "original_sha256": "ec010d6aa037d601be12cc2d98dd3092f4ec2b4dc1de58335ae10a6130bf590b",
+      "original_bytes": 968,
+      "encoding": "identity"
+    },
+    {
+      "file": "run-eac-omnibus-final-proof.py",
+      "input_path": "work/run-eac-omnibus-final-proof.py",
+      "stored_sha256": "8c8a593b9973c9e8f2e50441ef44e29ff1a60ed0a3f86e627ee9ad96b22625e9",
+      "original_sha256": "8c8a593b9973c9e8f2e50441ef44e29ff1a60ed0a3f86e627ee9ad96b22625e9",
+      "original_bytes": 2680,
+      "encoding": "identity"
+    },
+    {
+      "file": "6318-fa7-checked-face-tmpquota-negative.json",
+      "input_path": "outputs/6318-fa7-checked-face-tmpquota-negative.json",
+      "stored_sha256": "46a115312511b95d86a20ffdae409e32a1001bcc4bd02de76c17a573c4d0c6a5",
+      "original_sha256": "46a115312511b95d86a20ffdae409e32a1001bcc4bd02de76c17a573c4d0c6a5",
+      "original_bytes": 615,
+      "encoding": "identity"
+    },
+    {
+      "file": "6318-fa7-checked-face-tests-tmpquota-negative.log.gz",
+      "input_path": "work/6318-fa7-checked-face-tests-tmpquota-negative.log",
+      "stored_sha256": "8d2373085509a399891c63fcbdac7efbdf304f7176c9de241760954f1cf45389",
+      "original_sha256": "f82a6910e9e1876f1d25af676891278e101249ef8010552e0852aa3633374957",
+      "original_bytes": 53631,
+      "encoding": "gzip"
+    },
+    {
+      "file": "eac-omnibus-face-tests.log.gz",
+      "input_path": "work/eac-omnibus-face-tests.log",
+      "stored_sha256": "4e13da0e2e0b4fd34194a628cf4e73411a96c475be1a9ac3f32c532c345a689e",
+      "original_sha256": "4a7ad9e239a916f1ed28950cf817a94a02f6b019785afbdf85351daf26f793a7",
+      "original_bytes": 45947,
+      "encoding": "gzip"
+    },
+    {
+      "file": "eac-omnibus-face-clippy.log.gz",
+      "input_path": "work/eac-omnibus-face-clippy.log",
+      "stored_sha256": "6db8c6bd169cd26eea1f943ed8886444c71431d6c9b2acb6d7f1e3e6cede27b6",
+      "original_sha256": "bd78efc584786aedeff4a2938ba22269233ac68fe183a1ecbdd47ccc783b7a43",
+      "original_bytes": 60,
+      "encoding": "gzip"
+    },
+    {
+      "file": "eac-omnibus-exact-workspace-coverage.log.gz",
+      "input_path": "work/eac-omnibus-exact-workspace-coverage.log",
+      "stored_sha256": "43b924e73743f6679bfe7172301f048c2f85dd1d6ea525ef15008ca932b00250",
+      "original_sha256": "f0ec5db5258989964f86844231a4ef978b957624b34575db6759a7400b21448f",
+      "original_bytes": 1928,
+      "encoding": "gzip"
+    },
+    {
+      "file": "eac-omnibus-preflight.log.gz",
+      "input_path": "work/eac-omnibus-preflight.log",
+      "stored_sha256": "01ca72d5addc992e0ce73b7f66f3828a0e3d071b68cb75911bb253b26e36f333",
+      "original_sha256": "ed3951b3f98f7a49b218a3e4042dd5ecb1ea022c1399e7a31b6b9ea2638e2c30",
+      "original_bytes": 35779,
+      "encoding": "gzip"
+    }
+  ],
+  "negative_log_mapping": {
+    "receipt": "6318-fa7-checked-face-tmpquota-negative.json",
+    "receipt_original_log_path": "work/6318-fa7-checked-face-tests.log",
+    "actual_retained_local_path": "work/6318-fa7-checked-face-tests-tmpquota-negative.log",
+    "packet_file": "6318-fa7-checked-face-tests-tmpquota-negative.log.gz",
+    "raw_sha256": "f82a6910e9e1876f1d25af676891278e101249ef8010552e0852aa3633374957",
+    "reason": "Original negative receipt was written before the failure log was renamed. Preserve receipt and raw bytes unchanged; this mapping identifies the actual retained negative file rather than the later ordinary test log."
+  },
+  "prior_source_proof": {
+    "source": "5ace49b62516b1dca0ddcca9bdf7eeab716963e4",
+    "commit": "4ce70418618fa0445826942aafbace17eae1e533",
+    "url": "https://github.com/dancxjo/conduit/tree/4ce70418618fa0445826942aafbace17eae1e533/docs/audits/evidence/reviewed-followups-owning-20261024/5ace49b62"
+  },
+  "current_native_negative": {
+    "commit": "a30d210e0cccf6caf7fa752556d83703b6fe2a31",
+    "url": "https://github.com/dancxjo/conduit/tree/a30d210e0cccf6caf7fa752556d83703b6fe2a31/docs/audits/evidence/native-application-current-refusal-20261024/6975a29c2"
+  }
+}

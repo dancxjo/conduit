@@ -1,0 +1,78 @@
+{
+  "observed_utc": "2026-10-24T02:18:09.105118+00:00",
+  "source": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "status": "passed",
+  "steps": [
+    {
+      "name": "face-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-face"
+      ],
+      "exit_code": 0,
+      "log": "work/eac-omnibus-face-tests.log",
+      "sha256": "4a7ad9e239a916f1ed28950cf817a94a02f6b019785afbdf85351daf26f793a7"
+    },
+    {
+      "name": "face-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-face",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "work/eac-omnibus-face-clippy.log",
+      "sha256": "bd78efc584786aedeff4a2938ba22269233ac68fe183a1ecbdd47ccc783b7a43"
+    },
+    {
+      "name": "exact-workspace-coverage",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-xtask-dispatch",
+        "package_test_shards_cover_the_exact_workspace_once",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "log": "work/eac-omnibus-exact-workspace-coverage.log",
+      "sha256": "f0ec5db5258989964f86844231a4ef978b957624b34575db6759a7400b21448f"
+    },
+    {
+      "name": "preflight",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "dd3cdb41f7a0320658e0c5c00d458db32e5adf56"
+      ],
+      "exit_code": 0,
+      "log": "work/eac-omnibus-preflight.log",
+      "sha256": "ed3951b3f98f7a49b218a3e4042dd5ecb1ea022c1399e7a31b6b9ea2638e2c30"
+    }
+  ],
+  "TMPDIR": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6318-proof-tmp",
+  "prior_combined_owning_proof": "4ce70418618fa0445826942aafbace17eae1e533",
+  "limits": [
+    "Checked Face prerequisite is not complete stagedpublication/cumulativegrant acceptance",
+    "No new native execution or currentCandidate/Integration claim",
+    "Prior5ace snapshot/timer/Pulse execution is retained as prior-source proof, not relabeled eac execution"
+  ]
+}

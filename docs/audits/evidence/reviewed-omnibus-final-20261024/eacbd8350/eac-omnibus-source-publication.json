@@ -1,0 +1,27 @@
+{
+  "observed_utc": "2026-10-24T02:19:16.189327+00:00",
+  "head": "eacbd8350ecb01504a37cf24a6c7f7f993fa1e1d",
+  "previous_head": "455aaf0a33a5dddf739935003e77b5da2c3788ac",
+  "branch": "integrate/reviewed-prs-20261023-2327",
+  "current_dev": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+  "prs": {
+    "6339": {
+      "head": "455aaf0a33a5dddf739935003e77b5da2c3788ac",
+      "draft": false,
+      "url": "https://github.com/dancxjo/conduit/pull/6339"
+    },
+    "6348": {
+      "head": "cc527bec2a935a601ea1cf327094d3e8ffa2d5f8",
+      "draft": false,
+      "url": "https://github.com/dancxjo/conduit/pull/6348"
+    },
+    "6356": {
+      "head": "941275f31cb92f9cf246cf440e6efed8facd5bb6",
+      "draft": false,
+      "url": "https://github.com/dancxjo/conduit/pull/6356"
+    }
+  },
+  "remote_verified": true,
+  "method": "fast-forward source push to existing6339; noforce,admin,manualCIcancellationornewPR",
+  "local_proof": "outputs/eac-omnibus-final-proof.json"
+}
