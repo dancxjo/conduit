@@ -70,3 +70,26 @@ fn exact_source_frame_validation_is_bounded_and_allocation_free() {
     });
     assert_eq!((measured.allocations, measured.reallocations), (0, 0));
 }
+
+#[test]
+fn frame_only_composer_matches_packet_input_without_recurring_allocations() {
+    use conduit_environment_runtime::display_packets::PreparedDisplayFrame;
+    let mut frame = PreparedDisplayFrame::prepare().unwrap();
+    let mut packets = PreparedDisplayPackets::prepare().unwrap();
+    let ((), memory) = allocation_probe::observe(|| {
+        for enabled in [false, true] {
+            for brightness in [0, 3, 7, 8, 255] {
+                let registers = [0x80, 0xff, 0x76, 0x71, 0x40, 0x7f];
+                let canonical = frame.encode(registers, brightness, enabled).unwrap();
+                validate_display_frame(canonical).unwrap();
+                assert_eq!(
+                    canonical,
+                    packets
+                        .encode_frame(registers, brightness, enabled)
+                        .unwrap()
+                );
+            }
+        }
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}
