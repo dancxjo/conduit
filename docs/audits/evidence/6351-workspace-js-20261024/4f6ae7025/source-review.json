@@ -1,0 +1,25 @@
+{
+  "observed_utc": "2026-10-24T08:56:17.971095+00:00",
+  "head": "4f6ae70255a0631c0327144862aa812fe5e99ef8",
+  "prior": "b9a0060f9515fc9a5818bbb2fa0a98f277765f8d",
+  "exact5paths": {
+    "plots/patchbay/workbench/browser/flow-scene.js": "7f53551ec2bdbce9c26b8a3b1d419ff3da26b72b",
+    "plots/patchbay/workbench/model/src/portable_graph_projection.rs": "b7937e43dfbfdbea16f9d55074499fea1493b4ac",
+    "plots/patchbay/workbench/model/src/portable_graph_projection/signs.rs": "53369cb3054e0b8a356b4b0c9402cb33366cac45",
+    "proof/browser/patchbay-workspace.test.mjs": "0165e514b689d98b6436d15a6fbca2da0e34a5a8",
+    "targets/browser/patchbay-workbench/assets/app.js": "eb1895248d9100e2c8744a766532331948d28824"
+  },
+  "no_actionable_source_findings": true,
+  "review": [
+    "OversizedSignfacts split onUTF8scalar boundaries atportableFace1024bytefieldlimit",
+    "Shortfacts preserveoriginalwirekey; continuedexactbytes retainedwithpartsmetadata, nottruncated",
+    "BrowserSigncountstrictoriginalsign-Nkeys avoids countingcontinuationmetadata",
+    "MeaningfulRustroundtripcoversshort/exact1024/multibyteboundary; JSregressioncoverscausalcount",
+    "No nativeConduitOSdelta; previoussharedtesthandoff unchanged"
+  ],
+  "limits": [
+    "Sourceonly; noRootcompile/browserrun/afterHTTPreceiptseen",
+    "ThisaddressesnextTextTooLongrefusal sourcepath butdoesnotproveoriginalnineGeardelivery orfullGUIgreen",
+    "Faceoverallcapacity/admission remainsfinite; continuationdoesnotgrantunboundedpropertycount"
+  ]
+}

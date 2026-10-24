@@ -1,0 +1,35 @@
+{
+  "head": "4f6ae70255a0631c0327144862aa812fe5e99ef8",
+  "method": "IsolatedexactGitarchiveofbrowsermodules/test/fixture; noownerworktreewrites",
+  "command": [
+    "node",
+    "--test",
+    "proof/browser/patchbay-workspace.test.mjs"
+  ],
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6351-4f6-js-source",
+  "node_version": "v25.9.0",
+  "exit_code": 0,
+  "elapsed_seconds": 0.16409635543823242,
+  "source_files_sha256": {
+    "plots/patchbay/workbench/browser/README.md": "ef030ce8b5d6bcff75607cbdb2efc386537b53c379d46f4cc6e660212d558a47",
+    "plots/patchbay/workbench/browser/body-plan-inspection.js": "d99d983e5807cec4aadb773307a608341651d5644a10f9fdec489c8bb3a66e93",
+    "plots/patchbay/workbench/browser/browser-sdk.js": "ac6930c061e9eac3bf07f2fa1294a7d35cace44f5c4a5f4a36f4779e466c8b78",
+    "plots/patchbay/workbench/browser/flow-frontplate.js": "39a8a0ae8edb25cf0af0510963288cf9a771156fa4f7e08664d17f697f2fc4d1",
+    "plots/patchbay/workbench/browser/flow-layout.js": "cbcdd492925a7f668e0bb388894611e1517d54a428d75e7d2581250738b0b703",
+    "plots/patchbay/workbench/browser/flow-scene.js": "ca758a0f22db386e1c4fb28e9e332083f1cfe13d96cd63d9b46b5357277740d7",
+    "plots/patchbay/workbench/browser/flow-workspace-view.js": "fb618b251730a1ff0f7477c310116afc5ef7d24fdf8165f77665475c55b20aaf",
+    "plots/patchbay/workbench/browser/flow-workspace.js": "c51feb14156939344300812011893c182ec3e492a5198cabb7dedf5e0030c76d",
+    "plots/patchbay/workbench/browser/flow.css": "fcd19d2bfcc6d1d721c7f91fabb87ef4c386f5178eb4546243290bdfdc004f50",
+    "plots/patchbay/workbench/browser/flow.js": "d1ca7828a4bd7d9c484a6404c39cbec25803c2528987999707578a8f9b9576f7",
+    "plots/patchbay/workbench/browser/portable-navigation.js": "73a26e34011e115685fb62474d46b3ca7bef85a5e059ddc5f7ff395b1c0d0a73",
+    "plots/patchbay/workbench/browser/shared-face.js": "44900ee7606f0fbdd3083fd781e6a8663ee5c911d5c67d1cf78857fea8feafcc",
+    "plots/patchbay/workbench/browser/svg-viewport.css": "5a21fb0bd26e094f5ccd6e84574967d5060df70d2a69f895271e4ed5243ff099",
+    "plots/patchbay/workbench/browser/svg-viewport.js": "bc21d069f455f0692fdcfd2ea77e66220a1e9f4072beeb723ab4022063b3589a",
+    "plots/patchbay/workbench/browser/svg-viewport.test.mjs": "7637dcbb22e6d4966a93f1f364bdac27549dfe276c5b77c9be3c3ab91d72b6c8",
+    "proof/browser/fixtures/patchbay-workspace.json": "07857b2d2de440102357a8cafcd983fa9cc70c5e774bd05dc0e51714ae107cda",
+    "proof/browser/patchbay-workspace.test.mjs": "4fcd454fe06870026cca6dd75cd754cf8156900b1b10d07abd67eb4310f8785a"
+  },
+  "log": "work/6351-4f6-workspace-js-test.log",
+  "sha256": "506b7f22e194c3c2e52ad53009e43579f067e3375732256fc6e50b17af46a475",
+  "limits": "FocusedJSunitregressiononly; noRustcompile/browser/HTTP/productproof"
+}

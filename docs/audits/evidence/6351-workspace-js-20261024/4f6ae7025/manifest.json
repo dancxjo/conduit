@@ -1,0 +1,26 @@
+{
+  "source": "4f6ae70255a0631c0327144862aa812fe5e99ef8",
+  "tree": "003d76cfbe60605ffd461bf79443195e7db566cb",
+  "files": [
+    {
+      "path": "workspace-js-test.log",
+      "bytes": 1077,
+      "sha256": "506b7f22e194c3c2e52ad53009e43579f067e3375732256fc6e50b17af46a475"
+    },
+    {
+      "path": "local-proof.json",
+      "bytes": 2794,
+      "sha256": "fdffd697d67e5943c24a7881b0ea525f19a62947f085a601f7cb9e59aa350b50"
+    },
+    {
+      "path": "source-review.json",
+      "bytes": 1511,
+      "sha256": "b575fd58004fd5a5cf4c84bf93bcf76d0b2014908e050f082dd09378565dbadd"
+    },
+    {
+      "path": "README.md",
+      "bytes": 376,
+      "sha256": "a4011cb799721b1f5bed328caf27bfdd545f13651c07595b03215abac52499d4"
+    }
+  ]
+}

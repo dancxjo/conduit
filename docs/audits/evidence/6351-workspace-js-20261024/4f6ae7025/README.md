@@ -1,0 +1,1 @@
+Actual ten JavaScript workspace unit tests at exact4f6 source passed, including causal Sign counts with continuation fields. Isolated Git archive uses exact browser modules/test/fixture; raw output, source hashes, argv and Node version retained. No Rust test execution, browser/HTTP replay, image, original nine-Gear delivery, native proof or GUI issue completion is claimed.
