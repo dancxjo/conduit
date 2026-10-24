@@ -1381,3 +1381,32 @@ test('admitted typography changes title family independently of palette, density
     expect(observations.result[0][key]).toEqual(observations.result[1][key]);
   }
 });
+
+// Decoration follows explicit intent, never the human caption or opaque ID.
+// This remains renderer evidence; the callback is not an owner receipt.
+test('action icons retain labels and do not infer intent from captions', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async original => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    document.body.append(element);
+    const action = { ...original.actions[0], name: 'A source-owned caption', intent: 'conduit.intent/birth@1' };
+    globalThis.iconFixture = { ...original, actions: [action] };
+    globalThis.iconCalls = [];
+    element.show(globalThis.iconFixture, { invoke: async call => globalThis.iconCalls.push(call) });
+  }, view);
+  const element = page.locator('conduit-owner-face');
+  const button = element.getByRole('button', { name: 'A source-owned caption', exact: true });
+  await expect(button.locator('svg[aria-hidden=true][focusable=false]')).toHaveCount(1);
+  await button.focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.iconCalls[0].action.intent)).toBe('conduit.intent/birth@1');
+  await element.evaluate(element => {
+    const original = globalThis.iconFixture;
+    element.show({ ...original, actions: [{ ...original.actions[0], name: 'Birth Body', intent: 'unknown/custom@1' }] });
+  });
+  const unknown = element.getByRole('button', { name: 'Birth Body', exact: true });
+  await expect(unknown).toBeVisible();
+  await expect(unknown.locator('svg')).toHaveCount(0);
+});

@@ -99,3 +99,21 @@ Environment: inactive regenerable native-origin Cargo build-script outputs were
 removed after process/fd inspection, recovering about 22 GB in this continuation.
 Source, compiled retained runtime/server, proof captures and active builds were
 preserved. This allowed the isolated native build to continue with headroom.
+
+## Shared Face action and disclosure coverage
+
+The reusable browser Face renderer now decorates known owner-offered action
+intents (Birth, Wake/Lull, Inspect, completion/reopening and selected edit/open
+operations), plus exact-fact, completed-item and relationship disclosures and
+completed empty states. Unknown action intents retain text with no guessed
+icon; captions and opaque IDs never select artwork. Checklist buttons show the
+owner's action caption while keeping the item's name in the accessible label.
+All 103 renderer checks pass locally, including the new caption/intent guard.
+The Todo Look comparison uses this actual renderer with sample content, not
+an owner state or action receipt. Current component size stays below its
+existing 32768-byte package bound; local application packaging succeeds.
+
+Fresh x86_64 normal-media build remains active. The capture script is prepared
+to enter Crèche from the actual zero-Body Commons Hub, observe complete serial
+receipts, and capture the default, palette-switched and density-switched Shows
+without replacing the guest or inventing owner effects.
