@@ -189,6 +189,18 @@
       "sha256": "b0cd5e43d498f435fd01850e2728b9fad8881d8ca6e2322307b48527b0f748d3",
       "original_sha256": "2c1c14599f90f0947ce0fe889849fb79911d62d09c73790b8f88d3774f60d50b",
       "original_bytes": 3167
+    },
+    {
+      "path": "preflight.log.gz",
+      "sha256": "a970acecb6addbe32b6c7113bef21ce80786400c5d08940a70d192e6e7f503fa",
+      "original_sha256": "25605901e4db9155b1a04e8814da0ef971d734909f1ff8831c3b6c39eb568531",
+      "original_bytes": 172823
     }
-  ]
+  ],
+  "packaging_preflight": {
+    "source": "a97636dee6861e223138103fd77e3c2b9e3f3733",
+    "base": "dd3cdb41f7a0320658e0c5c00d458db32e5adf56",
+    "status": "passed",
+    "tests": 345
+  }
 }
