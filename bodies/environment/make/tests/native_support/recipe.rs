@@ -230,6 +230,14 @@ fn source_bootstrap_initializes_before_planning_then_accepts_exact_realization()
         .collect();
     let mut rust = String::new();
     bootstrap.write_source_rust(&mut rust).unwrap();
+    for identity in [
+        source.expanded.source_document_id.as_str(),
+        source.expanded.checked_plot_id.as_str(),
+        source.expanded.expanded_plot_id.as_str(),
+    ] {
+        assert!(rust.contains(&format!("{identity:?}.into()")));
+    }
+    assert!(rust.contains("pub fn source_identity() -> c::PlotIdentity"));
     if let Some(path) = std::env::var_os("CONDUIT_SOURCE_RECIPE_PROOF_OUTPUT") {
         std::fs::write(path, &rust).unwrap();
     }

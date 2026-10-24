@@ -14,9 +14,15 @@ pub const SDK_BYTES: usize = 72 * 1024;
 // Keep the same total Root heap while leaving the fixed CPU stack floor intact
 // as the admitted management envelope and retained providers grow.
 #[cfg(feature = "native-root")]
-pub const ROOT_INTERNAL_BYTES: usize = 60 * 1024 - 384;
+pub const ROOT_INTERNAL_BYTES: usize = 60 * 1024 - ROOT_REBALANCE_BYTES;
 #[cfg(feature = "native-root")]
-const ROOT_RECLAIMED_BYTES: usize = 52 * 1024 + 384;
+const ROOT_REBALANCE_BYTES: usize = if cfg!(feature = "native-face-root") {
+    640
+} else {
+    384
+};
+#[cfg(feature = "native-root")]
+const ROOT_RECLAIMED_BYTES: usize = 52 * 1024 + ROOT_REBALANCE_BYTES;
 #[cfg(feature = "native-root")]
 pub const ROOT_BYTES: usize = 112 * 1024;
 #[cfg(feature = "native-root")]

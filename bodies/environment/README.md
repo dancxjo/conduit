@@ -1549,3 +1549,23 @@ The caller still owns channel authentication/currentness and Body membership.
 The attended readiness proof now captures before/software/after replies and
 uses ordinary host-side planning/lowering to save an explicitly uninstalled
 output Plan. Native installation and physical delivery remain separate.
+
+The optional `native-face-root` profile attaches one retained producer Face to
+native task custody. Make embeds the exact Source/checked/expanded identities;
+Root combines them with its authenticated Body/Wake and active Plan/Play
+reservation. The task publishes each committed canonical observation with the
+same commit timestamp as the raw publication. Dropping task publication custody
+marks the retained Face as having no publisher; it creates no new membership,
+Mask route or recording authority. The ordinary sampling profile is unchanged.
+
+Build this profile with `cargo xtask prove environment root-face-esp32`. The
+profile reserves 4.5 KiB for Face preparation and preserves 8 KiB control
+headroom. Its owner is heap-backed; CPU fixtures measure the complete seven-ID
+shape separately from MCU admission. The raw publication scratch uses otherwise
+unused ESP32 RTC-fast data RAM, accessed only by the CPU0 task/control path;
+it is volatile scratch and is never read across reset or offered for DMA.
+A 256-byte shift between the existing Root heap regions preserves both heap
+totals and the linked 28 KiB stack floor. The release link emits a memory map.
+This profile still requires actual preparation and publication verification on
+the MCU, plus Source Face replay comparison; it is not a deployed continuous
+Body, physical Mask connection or web/recorder integration.

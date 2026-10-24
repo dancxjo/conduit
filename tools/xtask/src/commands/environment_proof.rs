@@ -212,6 +212,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         || arguments == ["live-esp32"]
         || arguments == ["ap-esp32"]
         || arguments == ["root-esp32"]
+        || arguments == ["root-face-esp32"]
         || arguments == ["network-esp32"]
     {
         let pulse = arguments == ["pulse-esp32"];
@@ -245,6 +246,8 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
             command.args(["--features", "host-call"]);
         } else if arguments == ["capture-esp32"] {
             command.args(["--features", "capture"]);
+        } else if arguments == ["root-face-esp32"] {
+            command.args(["--features", "native-face-root"]);
         } else if arguments == ["root-esp32"] {
             command.args(["--features", "native-root"]);
         } else if arguments == ["ap-esp32"] {
@@ -480,7 +483,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment wait, specifications, face, http, publication, publication-32, recording, recording-files, recording-checkpoint, catalog-seed, catalog-residence, catalog-checkpoint, catalog-restart, recording-storage, recording-browser, network-fallback, software-ready-esp32, body-admission-esp32, body-construction-esp32, assignment-ingress-esp32, kernel-prepare-esp32, owner-prepare-esp32, native-construction, network, network-owner, mask, display-output, display-wire, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment wait, specifications, face, http, publication, publication-32, recording, recording-files, recording-checkpoint, catalog-seed, catalog-residence, catalog-checkpoint, catalog-restart, recording-storage, recording-browser, network-fallback, software-ready-esp32, body-admission-esp32, body-construction-esp32, assignment-ingress-esp32, kernel-prepare-esp32, owner-prepare-esp32, native-construction, network, network-owner, mask, display-output, display-wire, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, root-face-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

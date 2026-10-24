@@ -12,6 +12,8 @@ use static_cell::StaticCell;
 
 struct Slot {
     execution: RefCell<Option<Box<DeviceExecution>>>,
+    #[cfg(feature = "native-face-root")]
+    publisher: RefCell<Option<crate::native_face::Publisher>>,
 }
 static SLOT: StaticCell<Slot> = StaticCell::new();
 #[derive(Clone, Copy)]
@@ -52,7 +54,10 @@ struct State {
 const PROJECTION_BYTES: usize = 4096;
 // Reclaimed backing is initialized only by committed publication copies. Access
 // is serialized by STATE; publication_bytes records the initialized prefix.
-#[esp_hal::ram(reclaimed)]
+// ESP32 RTC-fast data RAM is CPU0-accessible and unused by this awake profile.
+// This is volatile scratch, never retained state across reset or DMA backing.
+#[cfg_attr(feature = "native-face-root", esp_hal::ram(unstable(rtc_fast)))]
+#[cfg_attr(not(feature = "native-face-root"), esp_hal::ram(reclaimed))]
 static mut CANONICAL: core::mem::MaybeUninit<[u8; PROJECTION_BYTES]> =
     core::mem::MaybeUninit::uninit();
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
@@ -186,6 +191,7 @@ impl Handle {
 pub fn prepare(
     execution: &mut Option<Box<DeviceExecution>>,
     spawner: Spawner,
+    #[cfg(feature = "native-face-root")] publisher: crate::native_face::Publisher,
 ) -> Result<Handle, &'static str> {
     if execution.is_none() {
         return Err("execution-context-unavailable");
@@ -193,9 +199,13 @@ pub fn prepare(
     let slot = SLOT
         .try_init_with(|| Slot {
             execution: RefCell::new(None),
+            #[cfg(feature = "native-face-root")]
+            publisher: RefCell::new(None),
         })
         .ok_or("worker-slot-already-used")?;
     slot.execution.replace(execution.take());
+    #[cfg(feature = "native-face-root")]
+    slot.publisher.replace(Some(publisher));
     update(|state| {
         state.status.phase = "registering";
         state.status.task_active = true;
@@ -209,6 +219,8 @@ pub fn prepare(
         }
         Err(_) => {
             *execution = slot.execution.borrow_mut().take();
+            #[cfg(feature = "native-face-root")]
+            drop(slot.publisher.borrow_mut().take());
             update(|state| {
                 state.status.phase = "registration-refused";
                 state.status.task_active = false;
@@ -229,6 +241,12 @@ async fn held(slot: &'static Slot) {
         });
         return;
     };
+    #[cfg(feature = "native-face-root")]
+    let mut publisher = slot
+        .publisher
+        .borrow_mut()
+        .take()
+        .expect("prepared Face publisher");
     update(|state| {
         state.status.phase = if state.cancel_requested {
             "cancellation-requested"
@@ -252,6 +270,9 @@ async fn held(slot: &'static Slot) {
                         let _ = COMMAND.wait().await;
                     },
                     |snapshot| {
+                        let committed_ms = embassy_time::Instant::now().as_millis();
+                        #[cfg(feature = "native-face-root")]
+                        publisher.publish(&snapshot, committed_ms);
                         update(|state| {
                             state.status.source_sequence = snapshot.sequence;
                             if snapshot.canonical.len() > PROJECTION_BYTES {
@@ -270,8 +291,7 @@ async fn held(slot: &'static Slot) {
                             state.status.publication_bytes = snapshot.canonical.len();
                             state.status.publication_sequence = snapshot.sequence;
                             state.status.publication_channel = Some(snapshot.channel.index() as u8);
-                            state.status.committed_millis =
-                                Some(embassy_time::Instant::now().as_millis());
+                            state.status.committed_millis = Some(committed_ms);
                             state.status.projection_refused = false;
                         });
                     },

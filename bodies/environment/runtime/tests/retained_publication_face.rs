@@ -175,6 +175,12 @@ fn a_live_publication_owner_requires_complete_execution_provenance() {
 fn measure_retained_face_preparation_separately_from_mcu_admission() {
     let (owner, memory) = allocation_probe::observe(|| {
         let mut provenance = basis();
+        // Explicit CPU fixtures measure the full seven-ID shape; these do not
+        // establish Body membership, a native allocation bound or MCU admission.
+        provenance.body_id =
+            Some(serde_json::from_value(serde_json::Value::String("b".repeat(64))).unwrap());
+        provenance.wake_id =
+            Some(serde_json::from_value(serde_json::Value::String("d".repeat(64))).unwrap());
         provenance.source_document_id = Some("s".repeat(64).into());
         provenance.checked_plot_id = Some("c".repeat(64).into());
         provenance.expanded_plot_id = Some("e".repeat(64).into());

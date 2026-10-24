@@ -44,3 +44,8 @@ pub fn resident(
 pub fn computation_records() -> &'static [conduit_core::AssignedRecord<'static>] {
     material::computation_records()
 }
+
+#[cfg(feature = "native-face-root")]
+pub fn source_identity() -> conduit_core::PlotIdentity {
+    material::source_identity()
+}

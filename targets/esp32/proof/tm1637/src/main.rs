@@ -52,6 +52,8 @@ mod native_service;
 mod native_worker;
 #[cfg(feature = "native-root")]
 mod native_task;
+#[cfg(feature = "native-face-root")]
+mod native_face;
 #[cfg(feature = "native-root")]
 mod native_execution_gate;
 #[cfg(feature = "native-root")]

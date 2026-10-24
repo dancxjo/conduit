@@ -31,6 +31,8 @@ struct Reply<'a> {
     execution_context_prepared: bool,
     execution_context_bytes: Option<usize>,
     worker: Option<crate::native_task::Status>,
+    #[cfg(feature = "native-face-root")]
+    face: Option<crate::native_face::Inspection>,
     retired_native_attachments: Option<[u64; 2]>,
     kernel_additional_preparation_bound: Option<usize>,
     #[cfg(feature = "display-ready-root")]
@@ -99,6 +101,8 @@ pub(super) fn encode(
         execution_context_prepared: root.execution_context_prepared(),
         execution_context_bytes: root.execution_context_bytes(),
         worker: snapshot.or_else(|| root.worker_status()),
+        #[cfg(feature = "native-face-root")]
+        face: crate::native_face::inspect(embassy_time::Instant::now().as_millis()),
         retired_native_attachments: root.retired_native_attachments(),
         kernel_additional_preparation_bound: root.kernel_preparation_bound(),
         #[cfg(feature = "display-ready-root")]

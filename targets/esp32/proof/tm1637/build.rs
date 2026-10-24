@@ -19,6 +19,10 @@ fn main() {
         )
         .unwrap();
         println!("cargo:rustc-link-arg=-T{}", stack.display());
+        println!(
+            "cargo:rustc-link-arg=-Wl,-Map={}",
+            out.join("native-root.map").display()
+        );
         build_owner_key::emit(&out);
         println!(
             "cargo:rerun-if-changed=../../../../bodies/environment/profiles/display-output.conduit"

@@ -170,7 +170,19 @@ impl NativeRoot {
             &mut self.native_bindings,
         )?);
         let spawner = self.worker_spawner.ok_or("worker-executor-unavailable")?;
-        self.worker = Some(crate::native_task::prepare(&mut self.execution, spawner)?);
+        #[cfg(feature = "native-face-root")]
+        {
+            let publisher = crate::native_face::prepare(reservation)?;
+            self.worker = Some(crate::native_task::prepare(
+                &mut self.execution,
+                spawner,
+                publisher,
+            )?);
+        }
+        #[cfg(not(feature = "native-face-root"))]
+        {
+            self.worker = Some(crate::native_task::prepare(&mut self.execution, spawner)?);
+        }
         let worker = self.worker.as_ref().expect("registered worker handle");
         if embassy_time::with_timeout(embassy_time::Duration::from_secs(2), worker.wait_ready())
             .await

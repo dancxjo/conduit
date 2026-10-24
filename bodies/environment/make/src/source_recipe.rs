@@ -16,6 +16,7 @@ use std::fmt::{self, Write};
 mod records;
 
 pub struct NativeSoftwareSourceRecipe {
+    identity: c::PlotIdentity,
     source: ResidentSourceIdentity,
     roles: ResidentRoles,
     cadence: conduit_time::TickConfiguration,
@@ -98,6 +99,11 @@ impl NativeSoftwareSourceRecipe {
             .collect::<Result<Vec<_>, E>>()?;
         let configuration_records = records::configuration_payloads(&texts);
         Ok(Self {
+            identity: c::PlotIdentity {
+                source_document_id: source.expanded.source_document_id.clone(),
+                checked_plot_id: source.expanded.checked_plot_id.clone(),
+                expanded_plot_id: source.expanded.expanded_plot_id.clone(),
+            },
             source: ResidentSourceIdentity::from_expanded(&source.expanded.expanded_plot_id),
             roles,
             cadence,
@@ -154,6 +160,7 @@ impl NativeSoftwareSourceRecipe {
             "// Make-checked Source construction; no current Host, Boot, Plan or authority."
         )?;
         writeln!(out, "use conduit_core as c;")?;
+        writeln!(out, "pub fn source_identity() -> c::PlotIdentity {{ c::PlotIdentity {{ source_document_id: {:?}.into(), checked_plot_id: {:?}.into(), expanded_plot_id: {:?}.into() }} }}", self.identity.source_document_id.as_str(), self.identity.checked_plot_id.as_str(), self.identity.expanded_plot_id.as_str())?;
         writeln!(out,"use conduit_environment_runtime::appliance::assigned::{{ResidentComputation, ResidentRoles, ResidentSoftwareOffer, ResidentSoftwareSpec, ResidentSourceIdentity}};")?;
         crate::software_recipe::write_material(out, &self.computations, &self.texts, &self.offers)?;
         self.write_computation_records(out)?;
