@@ -126,8 +126,26 @@ The focused actual Source/offer test covers both Crèche structures and all four
 density/palette combinations: component, recipe, layout, renderer and paint
 remain identical across typography choices, while the Look and plan differ.
 Actual native switching and retained-draft submission pass the focused CPU test
-([logs](evidence/gui-look-6349-handbook-chrome/README.md)); fresh QEMU evidence is
-still pending for this follow-up. The source-specific older evidence above remains
+([logs](evidence/gui-look-6349-handbook-chrome/README.md)); [actual QEMU evidence](evidence/gui-look-6349-native-engineering/README.md) now
+passes the ten-transition Look matrix at Source e34b12788. The full journey
+still fails during Plan with Application WorkExhausted; no later diagram/editor
+receipts follow for this Source. The source-specific older evidence above remains
 unchanged. The failed speed-optimized decoder experiment is retained separately
 in [its negative record](evidence/gui-look-6349-native-decoder-experiment/README.md)
 and was reverted; it did not fix Application WorkExhausted.
+
+## Fresh native Engineering Source e34b12788
+
+[The actual 1280×800 captures and scoped receipt](evidence/gui-look-6349-native-engineering/README.md)
+prove independent Editorial/Engineering typography, paper/dark palette and
+compact/spacious density on the complete unchanged Crèche Face and checked
+component/recipe/layout. F8 selects the already pinned Sans title; F6/F7 retain
+that typography choice while changing the other axes. All ten transitions use
+fresh chained locally acknowledged Shows, no Body action and no fallback.
+The browser's cool Engineering preset is separate paint; these native captures
+show Engineering typography over the existing paper and Phosphor palettes.
+
+The full native journey again fails Application PrepareTarget during Plan,
+before editor/Patchbay/Stop. Narrow/200%/forced-color local Crèche, complete
+continuation reachability, the closer navy reference, and original parent
+acceptance remain open. The earlier source-specific records above are retained.
