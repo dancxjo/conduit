@@ -7,6 +7,10 @@ export function openedPlot(snapshot) {
   return snapshot.face.subjects.find(subject => subject.role === "Plot"
     && fact(snapshot.face, subject.identity, "opened") === true) ?? null;
 }
+export function selectionTitle(snapshot, subject) {
+  return subject.role === "Play" && fact(snapshot.face, subject.identity, "play-state")
+    ? "Execution result" : subject.name;
+}
 export function selectionFacts(snapshot, subject) {
   const face = snapshot.face;
   if (subject.role === "Play" && fact(face, subject.identity, "play-state")) return [["State", fact(face, subject.identity, "play-state")], ["Execution Signs", fact(face, subject.identity, "sign-count")]];
