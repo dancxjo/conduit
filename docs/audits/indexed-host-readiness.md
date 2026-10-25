@@ -22,7 +22,7 @@ a foreign request and out-of-order completion. Alloc/reference-ready suites each
 pass 181 tests; 19 fixed-only Host tests and strict kernel all-target Clippy pass.
 
 The [receipt](evidence/indexed-host-replay.json),
-[raw evidence](evidence/indexed-host-replay-raw.tar.gz) and
+[raw evidence](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) and
 [verifier](../../proof/performance/verify-indexed-host-replay.py) retain 64 paired
 native debug/test replays against the preceding empty-table implementation.
 Outputs, Signs, readiness, non-timing work and zero Play-allocation observations

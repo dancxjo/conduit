@@ -9,7 +9,7 @@ upstream pin, public preparation API, private parameter boundary and separate
 speech-product work.
 
 The [retained baseline receipt](evidence/fargan-graph-20261017.json) and
-[raw archive](evidence/fargan-graph-20261017-raw.tar.gz) contain five repeated
+[raw archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) contain five repeated
 24-frame trajectories in one process on CPU 1 through the production kernel, with explicit
 warm initial state and each trajectory's own accumulated history/state, reset between repetitions. Every
 frame reaches structural drain with no outstanding Host Call completion and

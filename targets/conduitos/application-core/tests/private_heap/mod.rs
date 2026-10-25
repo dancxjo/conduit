@@ -1,6 +1,7 @@
 mod canonical;
 mod graph_abort;
 mod initialize;
+mod packed_refusal;
 mod source_inventory;
 mod source_publication;
 use conduitos_application_core::{
@@ -154,7 +155,9 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
     }
     if matches!(
         command,
-        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+        Command::PrepareTarget { .. }
+            | Command::PrepareGraphProjection { .. }
+            | Command::PatchbayPublish { .. }
     ) {
         assert_eq!(
             state.execute(Request::Preflight, transfer),
@@ -275,6 +278,7 @@ pub fn run() {
     // service this measures incoming, typed decode, controllers and outgoing.
     ACTIVE.store(true, Ordering::SeqCst);
     let mut transfer = [0u8; memory::TRANSFER_BYTES];
+    packed_refusal::run(&mut transfer);
     graph_abort::run(&applications, &mut transfer);
     let mut state = State::default();
     STAGE.store(1, Ordering::Relaxed);

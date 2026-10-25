@@ -151,14 +151,30 @@ impl Socket {
         &mut self,
         timeout: Duration,
     ) -> Result<(BrowserAdmissionIngress, u32), String> {
+        self.receive_polled(timeout)?
+            .ok_or_else(|| "browser admission receive timed out".into())
+    }
+
+    /// Tungstenite retains partial frames across read timeouts. A pending owner
+    /// operation uses this poll without consuming a frame or renewing a lease.
+    pub(super) fn receive_polled(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Option<(BrowserAdmissionIngress, u32)>, String> {
         self.line
             .set_read_timeout(Some(timeout.max(Duration::from_millis(1))))
             .map_err(debug)?;
-        let bytes = self.line.receive_binary(&mut self.input).map_err(debug)?;
-        Ok((
+        let bytes = match self.line.receive_binary(&mut self.input) {
+            Ok(bytes) => bytes,
+            Err(NativeWebSocketError::Transport(
+                std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut,
+            )) => return Ok(None),
+            Err(error) => return Err(debug(error)),
+        };
+        Ok(Some((
             decode_browser_admission_frame(&self.input[..bytes]).map_err(debug)?,
             bytes as u32,
-        ))
+        )))
     }
     pub(super) fn send(&mut self, frame: &BrowserAdmissionEgress) -> Result<(), String> {
         let length = encode_browser_admission_frame(frame, &mut self.output).map_err(debug)?;
@@ -174,4 +190,66 @@ fn hex(bytes: &[u8]) -> String {
 }
 fn debug(error: impl std::fmt::Debug) -> String {
     format!("browser admission carrier: {error:?}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        io::{Read, Write},
+        net::TcpStream,
+        sync::mpsc,
+    };
+
+    #[test]
+    fn partial_frame_survives_pending_operation_poll_timeout() {
+        let listener = Listener::bind().unwrap();
+        let url = listener.url().unwrap();
+        let expected: BrowserAdmissionIngress = serde_json::from_str(r#"{"kind":"presence-leave","protocol":1,"credential_id":"credential/test","body_id":"body/test","part_id":"part/test","host_id":"host/test","boot_id":"boot/test","sequence":2}"#).unwrap();
+        let data = serde_json::to_vec(&expected).unwrap();
+        let (partial, ready) = mpsc::sync_channel(1);
+        let (finish, continue_frame) = mpsc::sync_channel(1);
+        let client = std::thread::spawn(move || {
+            let (authority, path) = url.strip_prefix("ws://").unwrap().split_once('/').unwrap();
+            let mut tcp = TcpStream::connect(authority).unwrap();
+            tcp.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+            write!(tcp, "GET /{path} HTTP/1.1\r\nHost: {authority}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n").unwrap();
+            let mut header = Vec::new();
+            while !header.ends_with(b"\r\n\r\n") {
+                assert!(header.len() < 2048);
+                let mut byte = [0];
+                tcp.read_exact(&mut byte).unwrap();
+                header.push(byte[0]);
+            }
+            assert!(header.starts_with(b"HTTP/1.1 101"));
+            let mask = [3, 1, 4, 1];
+            let mut encoded = vec![0x82];
+            if data.len() < 126 {
+                encoded.push(0x80 | data.len() as u8);
+            } else {
+                encoded.push(0x80 | 126);
+                encoded.extend_from_slice(&(data.len() as u16).to_be_bytes());
+            }
+            encoded.extend_from_slice(&mask);
+            encoded.extend(data.iter().enumerate().map(|(i, b)| b ^ mask[i % 4]));
+            let split = encoded.len() / 2;
+            tcp.write_all(&encoded[..split]).unwrap();
+            partial.send(()).unwrap();
+            continue_frame.recv().unwrap();
+            tcp.write_all(&encoded[split..]).unwrap();
+        });
+        let mut socket = listener
+            .accept(Duration::from_secs(2), "poll-test")
+            .unwrap()
+            .unwrap();
+        ready.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(socket
+            .receive_polled(Duration::from_millis(20))
+            .unwrap()
+            .is_none());
+        finish.send(()).unwrap();
+        let (actual, _) = socket.receive(Duration::from_secs(2)).unwrap();
+        assert_eq!(actual, expected);
+        client.join().unwrap();
+    }
 }

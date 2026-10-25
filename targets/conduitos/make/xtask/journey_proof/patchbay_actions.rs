@@ -7,6 +7,7 @@ use serde_json::{json, Value};
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
 mod checked_source;
+mod observation;
 mod selection;
 mod source_editor;
 
@@ -260,7 +261,7 @@ fn submit(
                 child,
                 "patchbay-action-timeout",
                 "patchbay-action",
-                |text| Ok(face_correspondence::records(text, ACTION)?.len() > count),
+                |text| observation::action_observed(text, count),
             )
         },
     )?;

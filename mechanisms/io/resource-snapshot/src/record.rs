@@ -211,6 +211,12 @@ impl PreparedSnapshotRecord {
         Ok(content)
     }
 
+    /// Preflight a read before the Host performs external storage work. This
+    /// checks retained binding data, not live capability revocation or admission.
+    pub fn check_read_binding(&self, authority: &AuthorityBinding) -> Result<(), SnapshotRefusal> {
+        self.authorize(authority, ResourceAccessMode::ReadPublished)
+    }
+
     fn authorize(
         &self,
         authority: &AuthorityBinding,

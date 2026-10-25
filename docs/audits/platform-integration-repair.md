@@ -115,7 +115,7 @@ changes unsupported nested-contract handling; the actual Thermostat capture
 retains its original source identity. Native projection regression, strict browser
 library Clippy and formatting also pass. See the
 [receipt and scope record](evidence/browser-choice-projection-20261017.json) and
-[raw evidence archive](evidence/browser-choice-projection-20261017-raw.tar.gz).
+[raw evidence archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 Full combined Candidate, integration and exact stable publication remain required.
 
 ## Refreshed accepted foundation
@@ -139,7 +139,7 @@ limit. The linked application uses 27,316 of 27,648 flash bytes and 1,387 of
 The supported release adapter seals the actual Intel HEX and its source/hash.
 
 The [receipt](evidence/avr-platform-repair-20261017.json) and
-[raw archive](evidence/avr-platform-repair-20261017-raw.tar.gz) retain setup and
+[raw archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) retain setup and
 build logs, complete pinned-core verification, compiler identity, build receipt,
 release manifest and exact HEX. This is machine-only compile/link/admission
 proof, not flashing, hardware execution or a measured stack peak. Full combined

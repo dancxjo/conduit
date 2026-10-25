@@ -1201,3 +1201,33 @@ for (const mode of ['claimed-enter', 'claimed-space-release']) {
       .toEqual({ calls: ['gear'], queued: 1 });
   });
 }
+
+test('canonical Look typography reaches computed font intent and clears with the Look', async ({ page }) => {
+  await page.goto('/targets/browser/host/assets/conduit.css');
+  await page.setContent('<link rel="stylesheet" href="/targets/browser/host/assets/conduit.css"><section data-application-slot="type-proof"></section><p id="outside">Outside Look scope</p>');
+  await page.evaluate(async () => {
+    const { createApplicationFaceHost } = await import('/targets/browser/host/assets/application-face.mjs');
+    const hex = await (await fetch('/proof/conformance/face-look/phosphor-look-v2.hex')).text();
+    const bytes = Uint8Array.from(hex.replace(/\s/gu, '').match(/../gu), pair => parseInt(pair, 16));
+    const host = createApplicationFaceHost(document);
+    const view = revision => ({ revision, actions: [{ id: 'type.safe', event: 'activate' }], nodes: [
+      { parent: null, component: 'button', key: 'type-safe', text: 'Keep this action', action: 0 },
+    ] });
+    globalThis.typeProof = { host, view, calls: [], bytes };
+    host.present('type-proof', view(1), { look: bytes, onEvent: event => globalThis.typeProof.calls.push(event.action) });
+  });
+  const root = page.locator('[data-application-slot="type-proof"]');
+  await expect(root).toHaveAttribute('data-application-typography', 'editorial');
+  await expect(root.getByRole('button')).toHaveCSS('font-family', /Georgia/);
+  await expect(page.locator('#outside')).toHaveCSS('font-family', /sans-serif/);
+  await root.getByRole('button').focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => typeProof.calls)).toEqual(['type.safe']);
+  await page.addStyleTag({ content: 'html{font-size:32px!important}' });
+  await expect(root.getByRole('button')).toHaveCSS('font-size', '32px');
+  await page.evaluate(() => typeProof.host.present('type-proof', typeProof.view(2)));
+  await expect(root).not.toHaveAttribute('data-application-typography');
+  await expect(root.getByRole('button')).toHaveCSS('font-family', /sans-serif/);
+  await expect(root.getByRole('button')).toHaveAccessibleName('Keep this action');
+  await expect(root.getByRole('button')).toHaveCSS('font-size', '32px');
+});

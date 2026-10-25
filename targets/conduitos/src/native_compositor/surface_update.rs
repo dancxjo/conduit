@@ -64,6 +64,42 @@ impl NativeCompositor {
         scene: &GraphicsScene,
         expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        self.update_pending_component_surface(face, show, display_base_id, scene, expression, None)
+    }
+    pub fn update_pending_look_mask_surface(
+        &mut self,
+        face: &Face,
+        show: &conduit_face::MaskShow,
+        display: &HostBaseId,
+        scene: &GraphicsScene,
+        look: &conduit_face::AdmittedVisualLook,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        if look.selected.identity().as_str() != look.visual.expression.identity.as_str()
+            || !matches!(
+                look.selected.visual(),
+                conduit_face::LookVisualFacetOption::Some(_)
+            )
+        {
+            return Err(NativeCompositorError::ManifestationInvalid);
+        }
+        self.update_pending_component_surface(
+            face,
+            show,
+            display,
+            scene,
+            &look.visual,
+            Some(&look.selected),
+        )
+    }
+    fn update_pending_component_surface(
+        &mut self,
+        face: &Face,
+        show: &conduit_face::MaskShow,
+        display_base_id: &HostBaseId,
+        scene: &GraphicsScene,
+        expression: &conduit_face::AdmittedVisualExpression,
+        look: Option<&conduit_face::LookInfo>,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
         if !(100..=200).contains(&expression.expression.text_scale_percent) {
             return Err(NativeCompositorError::Display(DisplayError::InvalidExtent));
         }
@@ -90,6 +126,7 @@ impl NativeCompositor {
             }
         }
         surface.visual_expression = Some(expression.clone());
+        surface.visual_look = look.cloned();
         self.raster_surface(
             face,
             &show.show,
@@ -156,10 +193,10 @@ impl NativeCompositor {
         }
         // A failed raster update must not leave the old revision routable.
         let previous = surface.raster_scene.take().filter(|_| {
-            surface
-                .receipt
-                .as_ref()
-                .is_some_and(|receipt| receipt.visual_expression == surface.visual_expression)
+            surface.receipt.as_ref().is_some_and(|receipt| {
+                receipt.visual_expression == surface.visual_expression
+                    && receipt.visual_look == surface.visual_look
+            })
         });
         let cacheable = super::raster_reuse::canonical(scene);
         let previous = previous.as_ref().filter(|_| cacheable);
@@ -170,6 +207,7 @@ impl NativeCompositor {
         let display = {
             let format = surface.buffer.format();
             let expression = surface.visual_expression.as_ref();
+            let look = surface.visual_look.as_ref();
             super::raster_reuse::raster(&mut surface.buffer, scene, previous, |buffer, replay| {
                 crate::display::typography::render_scene_selected(
                     buffer,
@@ -181,7 +219,7 @@ impl NativeCompositor {
                             value.expression.typography
                         }),
                     ),
-                    |role| visual_paint(format, role, expression),
+                    |role| super::paint::visual_look_paint(format, role, expression, look),
                 )
             })?
         };
@@ -214,6 +252,7 @@ impl NativeCompositor {
             display_base_id: display_base_id.clone(),
             surface_id: surface_id.into(),
             visual_expression: surface.visual_expression.clone(),
+            visual_look: surface.visual_look.clone(),
             display,
         });
         if surface.visible {
@@ -269,7 +308,7 @@ impl NativeCompositor {
     }
 }
 
-#[cfg(feature = "native-compositor-core")]
+#[cfg(all(test, feature = "native-compositor-core"))]
 use super::paint::visual_paint;
 
 #[cfg(all(test, feature = "native-compositor-core"))]

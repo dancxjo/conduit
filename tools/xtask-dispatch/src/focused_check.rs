@@ -22,6 +22,8 @@ mod prosody_commitment;
 #[path = "../../xtask/src/suites/record_pronunciation.rs"]
 mod record_pronunciation;
 
+#[path = "../../xtask/src/suites/linux_snapshot.rs"]
+mod linux_snapshot;
 #[path = "../../xtask/src/suites/monotonic_wait.rs"]
 mod monotonic_wait;
 #[path = "../../xtask/src/suites/resource_snapshot.rs"]
@@ -42,6 +44,11 @@ fn selected(arguments: &[String]) -> Option<Suite> {
             steps: tm1637_output::STEPS,
             path: "tools/xtask/src/suites/tm1637_output.rs",
             source: include_bytes!("../../xtask/src/suites/tm1637_output.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "linux-snapshot" => Some(Suite {
+            steps: linux_snapshot::STEPS,
+            path: "tools/xtask/src/suites/linux_snapshot.rs",
+            source: include_bytes!("../../xtask/src/suites/linux_snapshot.rs"),
         }),
         [check, suite] if check == "check" && suite == "resource-snapshot" => Some(Suite {
             steps: resource_snapshot::STEPS,
@@ -168,6 +175,7 @@ mod tests {
             ("tm1637-output", tm1637_output::STEPS),
             ("monotonic-wait", monotonic_wait::STEPS),
             ("resource-snapshot", resource_snapshot::STEPS),
+            ("linux-snapshot", linux_snapshot::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
             ("acoustic-control", acoustic_control::STEPS),
             ("angle-reference", angle_reference::STEPS),

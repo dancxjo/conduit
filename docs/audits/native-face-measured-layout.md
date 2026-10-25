@@ -208,8 +208,8 @@ product is verified separately. The 320×240 guest mode mismatch remains
 a diagnostic only.
 
 The source-pinned summary and raw inventory are retained in
-[evidence/native-face-measured-layout-development-20261018.json](evidence/native-face-measured-layout-development-20261018.json)
-and the [raw archive](evidence/native-face-measured-layout-development-20261018.raw.tar.gz). Source hashes, exact command text/bounds,
+[evidence/native-face-measured-layout-development-20261018.json](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
+and the [raw archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz). Source hashes, exact command text/bounds,
 Face/control mapping tests, producer Source/checked/expanded/Plan/Play/Show and
 Host/Boot receipts, guest serial/QMP/screenshots and original diagnostics remain
 separately classified. Earlier full-workspace execution failed two screen-free

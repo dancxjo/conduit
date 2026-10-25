@@ -28,7 +28,7 @@ harness after success, rather than exiting naturally.
 A separate current-source 640×480 QEMU control proof passed with 17 original
 captures and all 12 controls, including navigation before/after Unicode editing,
 checked naming selection, incomplete-input recovery and pointer restoration.
-[Control receipt](evidence/native-combined-product-20261022/narrow/creche-controls-proof.json).
+[Control receipt](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 Unsampled pages retain focus receipts, not pixel claims. The primary/Details
 and finite frame budgets remain explicit; no capacity was widened.
 

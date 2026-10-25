@@ -1,5 +1,5 @@
-//! Original fixed 24×24 native drawings for the semantic icon vocabulary.
-//! Geometry is rasterized directly from bounded compile-time shape rules.
+//! Pinned Lucide silhouettes for the finite native icon vocabulary.
+//! Prepared eighth-pixel masks share the existing fixed-coverage raster path.
 use super::{DisplayError, DisplayReceipt, PixelTarget, put};
 use conduit_face::{FaceIconKey as Icon, GraphicsCommand, LayoutRect};
 

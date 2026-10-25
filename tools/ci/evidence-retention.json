@@ -1,0 +1,2000 @@
+{
+  "schema": "conduit.evidence/retention@1",
+  "budgets": {
+    "docs/audits/evidence/": 8388608,
+    "site/evidence/": 152043520,
+    "targets/conduitos/proof/firmware-frame/": 34603008
+  },
+  "retained": {
+    "docs/audits/evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/details-cord.png": {
+      "bytes": 351213,
+      "sha256": "911560b033d9fd698bae0056ae3356a20414cc169d8243d9c690b88f7f53580e",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/details-gear.png": {
+      "bytes": 321548,
+      "sha256": "64acf3747fdc99118a97215fd57630e7eef67cd3a9cf8fac651fb5b3afc3d879",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/details-port.png": {
+      "bytes": 321564,
+      "sha256": "765c23dcb06048bf66fc5e32e75802c13ac91bdda5e4c8e97be1ecca5b15cbad",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/diagram-backward-000.png": {
+      "bytes": 210836,
+      "sha256": "5372223c39dedee78c9fd541658e4a31544c1f7609fad7360c481692494a94f2",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/diagram-forward-000.png": {
+      "bytes": 210836,
+      "sha256": "5372223c39dedee78c9fd541658e4a31544c1f7609fad7360c481692494a94f2",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/diagram-forward-001.png": {
+      "bytes": 127974,
+      "sha256": "c256757c4ae185909090e1e92f847743f3aee71e13947428a35b4ece857778da",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/manifest.json": {
+      "bytes": 534297,
+      "sha256": "60b37f1fa1b7d03b8a838f9e4a277d17b5fc02f5476ec214cf633dcbe4ed31e5",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/source-selected.png": {
+      "bytes": 154551,
+      "sha256": "7e6f6ebdeecdc1cd62767125aa5711f262e279c3b0ec60a11e18c527f9e415e4",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/native-face-runtime-snapshots-20261018.json": {
+      "bytes": 401812,
+      "sha256": "4859dd5d95e359473cbf6dca24f15aeb1b9fbc92280fce38ad1d4bfd49c72d9a",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "docs/audits/evidence/scalar-tape-mixed-cpu-samples.json": {
+      "bytes": 465246,
+      "sha256": "c62186d73999b81bdc8aec55b840671498ea967e6528587db68ad3c19428e034",
+      "consumer": "Explicit historical regression fixture; native Source custody, runtime Face or scalar tape proof"
+    },
+    "site/evidence/direct-spoken-development/play-16153e4f7edfc8502f3ae4edfd496cd52ae1e6bae3e9ec1413b951e846acb6d6.wav": {
+      "bytes": 1822304,
+      "sha256": "41e8d7f57b630dcacee09f0d8e2dc0f73866ed1f3e79ba7f56f4f10e9c7ed8c8",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-1be7ea7e24b64aa80e2bd56520e7e3f9b33bb567a1ecc596c399c522bc0c6282.wav": {
+      "bytes": 2276704,
+      "sha256": "6566e927bbc04fe77798fe49484d4b3cf7f2b0f517b7c5ed2524f26eb1b72d21",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-288573b96f578c0417f7a8a1c10136814835c3227c3b454c7b29d32f6c75bf73.wav": {
+      "bytes": 5137460,
+      "sha256": "3c824f540cdb062480cb939672ea0fb6f6cd448b19a86f67b4a627258db351d1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-3d4982a4494c18c800a8dd5d529be9c6474d95d619e573e2a1f1fff892ab20fe.wav": {
+      "bytes": 634744,
+      "sha256": "0573a83f553c0b0842c19ecde8eca11233ea43c4268a4d6c6c8122870de0e1d1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-5ed1ab9fe17f8ecdd40874f002bd85aa8436dd10720e4efb1d7b8295a1f30311.wav": {
+      "bytes": 2881648,
+      "sha256": "1dafdfa8e00a67112f266752fa24676a7f908fcfb9f05533dcab33e6629f693c",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-64bd74e87333f213521e63793c0f5fa8afc40fc8928cb5770c1c6717c2f091af.wav": {
+      "bytes": 5274944,
+      "sha256": "cb671ddaaa902668326b4d68bbb32703765524d7e335d6528b3507003faece2a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-690d74a70cf8dcc29b9d22f0b41d0fc14cbae0a9fd1b64d8f7cc22b67b14d3e2.wav": {
+      "bytes": 1188408,
+      "sha256": "4c551f51b4f72fcd26feaf5891adfda087ec830e313bcf8480ec84b593050c11",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-bcbaaf28ea145960b7095f15ba03493daa4255451b0a97e05df4db465275697a.wav": {
+      "bytes": 4467096,
+      "sha256": "9fefb7d86da20e9d422c2f464e96f9c7da42097fe9d1feffee2389b0c427a91c",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-c4397d9ed8ec9836f332f2cf9173f7121370bf07d0cc5df2d3058e5aa909e960.wav": {
+      "bytes": 2667228,
+      "sha256": "f52ca8c18da51166f9f18dfd305cb640543341a87df13d84e862553cdab25f2a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-ec6a99edbb06671fbaecdfd39556d7311131d246ea533df18bca4ead58425cd7.wav": {
+      "bytes": 3307348,
+      "sha256": "a59b0777e9e8d28d91093cb9e00b70f51472b867a0588000ad4c955187b38815",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-f683429bbc4a471f233928261215b0fec52dd9b688b398279106c6e85c08459d.wav": {
+      "bytes": 2671616,
+      "sha256": "5e06941e21ceb518c27f39193d4b64f056a46bf1067dc73ec4ca4b70b455f847",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/direct-spoken-development/play-f8ec86e4126168e37a643a434be6d32117589e250a338d210f361caacaf2b510.wav": {
+      "bytes": 2991164,
+      "sha256": "c8affa283907f663cfd0b7d76aa8529f280b62a71ee2bf0e21efff64a0aa42b9",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/birth-transcript.txt": {
+      "bytes": 423666,
+      "sha256": "1cafbdb311c4764930f2dbb6c34b34ba2cde917354827ce1360ac7a4b8d4d5d5",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/browser-after-browser.png": {
+      "bytes": 164187,
+      "sha256": "25f66a5d24a24d5245f00581a7d5a7ce761c504068dd5698c22cba5652b3034b",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/browser-after-recovery.png": {
+      "bytes": 162302,
+      "sha256": "ce37bbd2771ff405241dcabbfe7fea153255ef3a9bde31c6f172fa5044c87cdd",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/browser-before.png": {
+      "bytes": 160478,
+      "sha256": "50a6c5e4ff6bca6de6f77d385016ce3ff136edf8203c05e325f04b5604b8b22b",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/browser-wardrobe.png": {
+      "bytes": 83650,
+      "sha256": "25c890a2368fae183add297ba6d09923c92e22123f4287016cc21d765eacaffd",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/clock-finish-transcript.txt": {
+      "bytes": 111634,
+      "sha256": "20f526c1537439fefc34cc0622fdf3961784c0bd6556aa447c5165b6ec7091aa",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/native/owner-after.png": {
+      "bytes": 167665,
+      "sha256": "d8c8178dddc57e556e79cec9103dd3cbe5ec0d89bcaeac17d40a0e56731defe4",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/native/owner-standby.png": {
+      "bytes": 185242,
+      "sha256": "aa4dc03172e1c42df6c09bce3d13ad81bd69a44af9255c9dbc7347b3ed959c3d",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-0d12d53cf0ed33f6cd5aaed84d7d2e67801db4c0ce9169729d45a69d40338c7a.wav": {
+      "bytes": 2832380,
+      "sha256": "9ed135218af02cd2e1035d45f431bb68d2812553ac4684ee966649240a6be373",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-1712d24d8f01be5ba4d1e8dc3dd2ae6290b41aef3fa0f13959caeb260b1ac10f.wav": {
+      "bytes": 3232160,
+      "sha256": "0465e3fe40f307183ee413a4d3727fab8514661cfc5bbca026aa12f7009918b1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-324aacf14c33e0592efb65521be43b4f0908b67647898b97ccf8b7730a53a7fa.wav": {
+      "bytes": 2667228,
+      "sha256": "f52ca8c18da51166f9f18dfd305cb640543341a87df13d84e862553cdab25f2a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-4651f183e3265088f1f1d088e34dee5f7f563b9a8a9650ecda75b1cc73c64fd8.wav": {
+      "bytes": 2991164,
+      "sha256": "c8affa283907f663cfd0b7d76aa8529f280b62a71ee2bf0e21efff64a0aa42b9",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-70b392d0de5a6cb4b7bebdb0bfaaac0dcb62019abdf3143509490922e371a6b2.wav": {
+      "bytes": 1754480,
+      "sha256": "6377a0e559fdd6ac74db98348c2d9896ac713f91008017cc208afd5e7f1b35a6",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-82ba1adfbc23b6591287b1f88741ffb72322e79d9a053877412229c4395fa625.wav": {
+      "bytes": 5231808,
+      "sha256": "1fc54de37fd23badde082a42324d96f88d74bb488459e7f384cdab4c5875d85a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-aadb6a814b0f40ef07b7da22f3b3f3ec3b52b23d1200ab3d8f256dc61244eec3.wav": {
+      "bytes": 5310724,
+      "sha256": "357f1d5d3bf10ae3053e5e77b1ad593600563d998fca1c9b198e5b41005adf89",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-b99238989d6c97cba504605dde4d015081f184ffdf7490f305b20f8cd5fff6b3.wav": {
+      "bytes": 4595900,
+      "sha256": "94e868557f2ff32a879d1e217ffc0c92f6f7969edcb2532930f5374465b1109a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-bf49d212d03dfc6554710a592a83598f06012f3284b325275c7f764392c8d91b.wav": {
+      "bytes": 634744,
+      "sha256": "0573a83f553c0b0842c19ecde8eca11233ea43c4268a4d6c6c8122870de0e1d1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-d4d4995fe6877cfe2fd6878993558ab4c54e251199d734fe24c2b4264e7f16d6.wav": {
+      "bytes": 2219016,
+      "sha256": "0f3481b05541b5a69a497fe66deb72a0c062b9e42344e2b3e564239b2e1bc8e2",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-direct-spoken/play-dd69f095132cf125d28e3d16ce872c03ed84536965e815f063a1329e30ca89dc.wav": {
+      "bytes": 2607468,
+      "sha256": "5a6c710a096ea9331061f354189d9b86ff133b7e0c04ccdee4c8fd1083dd07e9",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-llm-restored/play-1c69699d793613b7e77f341afca43c352892eca72b303a0993f45098957feb4d.wav": {
+      "bytes": 574660,
+      "sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/owner-llm-selected/play-1a7497545077a73393f2fb4a76d45dbe58978a49f2a48a03571defa37fa933f4.wav": {
+      "bytes": 574660,
+      "sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/report.json": {
+      "bytes": 232295,
+      "sha256": "4ecc338d8bcac0058413af6573936619fc66f2947164d64f626d1fe5eb0cc387",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/screen-free-checkpoint-browser-presentation-unavailable-transcript.txt": {
+      "bytes": 101157,
+      "sha256": "44ea74c7b5ea114fdb3c608c240729d902da5b9daa9b23ba38833b24f1c71016",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/one-body-five-masks/screen-free-checkpoint-model-provider-unavailable-transcript.txt": {
+      "bytes": 147774,
+      "sha256": "5d365abb32d01afd58502395aaf6e26ecc2cf085692b501dbc2a8f5595c3d14a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/shared-speech-carrier/you-would.native": {
+      "bytes": 1773627,
+      "sha256": "d71c3cbc4da0a7fd20783aec5e60ffea143ceba679159008fe91cf244df43c50",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/shared-speech-carrier/you-would.wav": {
+      "bytes": 8044,
+      "sha256": "ef4d192fa9e12133953f5dfcdf057c868a9d37c09c8bef912ca3db5a837b283f",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/receipt.json": {
+      "bytes": 2235517,
+      "sha256": "2a18c3f2117f54d94157a009801876ae510f7192e2051de5feaef559c4e841bb",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-00.wav": {
+      "bytes": 1242560,
+      "sha256": "28d13e3b62aa9ce4d864aac0c4aaa55f86a21204d5cb404ce2cc18b107c6abc3",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-01.wav": {
+      "bytes": 1386136,
+      "sha256": "dd5f99aadcfe27aa1528ef29f47e126870af0e38051d9ba01ef0f4168f341096",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-02.wav": {
+      "bytes": 1326220,
+      "sha256": "cb1a16ad0e3e4d873ec9d58f23802f6d0f7b397f6a97285b5c5ba5e5dd700e66",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-03.wav": {
+      "bytes": 1263816,
+      "sha256": "24f6ef7eb9317a4c1c91f6a37c33dce9791a3e5fbd324bf2405358432bd106c6",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-04.wav": {
+      "bytes": 1488312,
+      "sha256": "f1dede0cf839e9d74bf719475b0098583d53b020f639d96c9047e30274a65402",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-05.wav": {
+      "bytes": 1510288,
+      "sha256": "7118865d61657a5b11b7cefe66c1fa4cc74788465247abeca0daa0624f43c489",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-06.wav": {
+      "bytes": 1476572,
+      "sha256": "01291ddd7d8952415681e0d3a27d313cdc45f10615bf3aef8d6e5abca792cba8",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-07.wav": {
+      "bytes": 1603572,
+      "sha256": "5967c1e7d10c2cd60cdece69326a1e4d07f704f740caffede2c6bac38a1165a7",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-08.wav": {
+      "bytes": 960724,
+      "sha256": "cc3872300eec2f3fcd0426fb2adb1ec3f7e7104c2ee1aadfcadb742d529296dd",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/spoken-reading.wav": {
+      "bytes": 12257848,
+      "sha256": "d07f645aae137044cf5cbf1d405f7921443d225e8e891c57f123460db3aa120c",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/terminal.txt": {
+      "bytes": 117559,
+      "sha256": "2a69a162b0c1ac8a01d7af97cc232c6e48edb76f1640b8899daed6cdf403e7a1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/thermostat-after-terminal.png": {
+      "bytes": 76777,
+      "sha256": "686f9928021f01c9362dbfff28179c2dca4d207d3ee5c433230cbfa6575c1665",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/thermostat-body-menu.png": {
+      "bytes": 58963,
+      "sha256": "49592056efa6c04754cbdd3fd1ef027c8211b0af02a8bcbbe7d0eb7d80b9dd48",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/thermostat-desktop.png": {
+      "bytes": 75359,
+      "sha256": "c2508a9146795cca5027a410e9d7afa62fb5064451f8497a13395deb453acd4c",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/thermostat-lulled.png": {
+      "bytes": 60331,
+      "sha256": "808f516a85218fb063168339a5cc700e6e533d4473a710f9dce1d1a9dbcee1ba",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/thermostat-mobile.png": {
+      "bytes": 43546,
+      "sha256": "c21ad77f00d62f7cf9f7e30e85e4b357b4bc46359054abde05e09aee002a33c2",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/thermostat-raised.png": {
+      "bytes": 75852,
+      "sha256": "00f1136b02de47be8902a6121f33771afa09408e61d2be637730b4f855b45253",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/thermostat-journey/capture/thermostat-restarted.png": {
+      "bytes": 75359,
+      "sha256": "c2508a9146795cca5027a410e9d7afa62fb5064451f8497a13395deb453acd4c",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/birth-transcript.txt": {
+      "bytes": 394585,
+      "sha256": "4c5cbf622d07dea261bcd80d6891068634ea8b2e5c84943f9ad17b2f6f001162",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/browser-after-browser.png": {
+      "bytes": 164187,
+      "sha256": "25f66a5d24a24d5245f00581a7d5a7ce761c504068dd5698c22cba5652b3034b",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/browser-after-native.png": {
+      "bytes": 160541,
+      "sha256": "0610ff542195f2f42da55e0748bb3c0a51e2fa4be30c6d040b922ebdc9a386e9",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/browser-after-recovery.png": {
+      "bytes": 162302,
+      "sha256": "ce37bbd2771ff405241dcabbfe7fea153255ef3a9bde31c6f172fa5044c87cdd",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/browser-after-terminal.png": {
+      "bytes": 164080,
+      "sha256": "829ce3d8a98d388c489f2748e7c855c0986552323d864cc9c0342fb0c82863f2",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/browser-before.png": {
+      "bytes": 160478,
+      "sha256": "50a6c5e4ff6bca6de6f77d385016ce3ff136edf8203c05e325f04b5604b8b22b",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/browser-wardrobe.json": {
+      "bytes": 84625,
+      "sha256": "ef08dee76a489794466aef18b215af897b8c94a5f5abc85674215fee215cfd03",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/browser-wardrobe.png": {
+      "bytes": 83331,
+      "sha256": "e22b75d87e6a35aca0672383056b7e7c0fb266a6d82baedcce24735ff9140141",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/clock-lull-transcript.txt": {
+      "bytes": 69806,
+      "sha256": "d9f09dc2496a1c8b7b45c8bf29dc66be5d23f8bf651fe8faafaafddc498f64d2",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/index.html": {
+      "bytes": 94823,
+      "sha256": "3b0d7578a98dffc986367b355eddea5b35207b6dc1d659713eb2a89a4a6a0e60",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/native/guest.serial.log": {
+      "bytes": 15333,
+      "sha256": "1291ddc9c85c8c4ff09489282e5002f1a4aea496f0924f9555010480a1c0e283",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/native/owner-after.png": {
+      "bytes": 167665,
+      "sha256": "d8c8178dddc57e556e79cec9103dd3cbe5ec0d89bcaeac17d40a0e56731defe4",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/native/owner-before.png": {
+      "bytes": 168479,
+      "sha256": "929fd3cebd2ccb0e35738598851ef27a93dd08e52b762a7fb52b7f8a2a1646b4",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/native/owner-standby.png": {
+      "bytes": 185242,
+      "sha256": "aa4dc03172e1c42df6c09bce3d13ad81bd69a44af9255c9dbc7347b3ed959c3d",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-llm-selected/play-eb54d232662bac0b809b9bcbd01059ce71aca96eda4cdd18f69d8cd3c3478fce.wav": {
+      "bytes": 574660,
+      "sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech.json": {
+      "bytes": 103133,
+      "sha256": "bbb1a64bf381db83c55b16a7c0f156dc3d9e51a1e486163fa4f88584240319a0",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-0697e67e4544b984ad0f05ee202f5b9aebb224ccc4f114b5d5e85dacbeb4447d.wav": {
+      "bytes": 3620764,
+      "sha256": "a0843b2b6c242fce1b57d231a88222a125e3e015570b69d187ffe983f162757f",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-0afa25d3ea094d6ef5b196a6292c36ee0f978ccb5cecd7c10db37e416271500a.wav": {
+      "bytes": 833028,
+      "sha256": "74a58492b00c025af1475b4a0c52371fbd2e5e4b927d395ed373d88ef513f109",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-15577da24d2564d611e31cbc3bf101b29c4a19ae87ce6ba11bffc229180d3ec6.wav": {
+      "bytes": 458496,
+      "sha256": "814ed833e66c1f4a2ee33586ec6bf9b01316e4c5daec359b4f360cbe6ddd4c7e",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-1bfe9796430d476e28aa4c83d55d5623d092a17540a1f950933504154bb51a09.wav": {
+      "bytes": 3996912,
+      "sha256": "6c081d92822fab343c7924ac8ef54e7af22747564acba20d0d2d88f5897c742a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-1d414258dc49acfb417e79d9222222c0029bc6c04404a4a61aeae090ebb8662e.wav": {
+      "bytes": 592844,
+      "sha256": "92b8969d041cf1fe02f97401e22a0a75b6b3a8b3559ca9109aabe2cba8c64dd1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-1dba0a6cf546f6656301250f08eb62344d5522c5957ae217fa17cbc6ad5a4242.wav": {
+      "bytes": 361476,
+      "sha256": "2995fbca9edd5ddda399704b18ee1be02259c84d68a03d1441a86a48ba63e4a2",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-280c47b8154cef87bb4d4f4c80a730037bfe8939cbb429df41d92f29f206c651.wav": {
+      "bytes": 1294100,
+      "sha256": "fe4e702f55a7f496eea84c6ac9f819f8837b1da92484f33da224c6869651b84b",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-2ea7454667f939a30104e850305c216c7a1497f3914b3091db0a434ea16516e6.wav": {
+      "bytes": 588532,
+      "sha256": "0f9b528ec1c4214452cbb45a88f4b13fd90c59bd2c509f1654f6cd7596b7a70f",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-33cc12817245dd2bb3f45a5c1b07603d8a60d4d9f1a0feab12aac20c7e43c693.wav": {
+      "bytes": 242000,
+      "sha256": "014f8f1cc0b1fde8f444ea9030b8322665a78412eabf856d9e4444d93e7c7e43",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-340174fcae2363c9a20272c2dd376d7929d3bb11bf5cc9a575fbd94706f9a1f3.wav": {
+      "bytes": 574660,
+      "sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-446dd3270d72c78c82d0220d27b0d9ab382f7ee1a93489b7ff70737a69ec0a8b.wav": {
+      "bytes": 417212,
+      "sha256": "8bc712da41b57c8dc23c8f3693d9f0e54bdd8db8786301c8aa4025c7cc8008f3",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-4a6e3ef4d5010bd2978e499e036b7066690297c4f908342177ad3ade3b7ebab8.wav": {
+      "bytes": 587244,
+      "sha256": "de94c042c7abcba90ddfa12894850250bb691e6d39b16380c1d251611934acde",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-4c6368964bcf223d1919e934600908fc39fdbe1c6e76f677d7320b13e0b073e2.wav": {
+      "bytes": 636092,
+      "sha256": "50c7d958db33d0fd2bcc8c03a332795b6a6fb196c1e88d4a9253e20ff7c2b843",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-5d822b303fbb3dd7f47d79d097b4fe6df4e36806b53ffcdb1476f9b54f14edfa.wav": {
+      "bytes": 928916,
+      "sha256": "ea185d6982951c231495caf463453fffda2dcbbab4b7108c7cf404a4f6d119ee",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-5f36735631f1a630f99b5b8c753b1db291ba4fd206147d9dc32fd249a88bfca3.wav": {
+      "bytes": 709260,
+      "sha256": "e0c6951306e456bea4a1b80ef63937e2033ad7a49a2f3f087fb95231200d4b0a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-6b6b5a0e36612a0984aea2a14a1ed42423c2f245b87d9a0b89f7d556c41fc64e.wav": {
+      "bytes": 713640,
+      "sha256": "af7b0a8a184fbaa975711c8a3f793c5b0a0d23c389efd5b87ad612b06df1a5d6",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-6fe412d96793e307e6b5f56190608fecbf5161fbd2f4ffdf0baf8a6acc7a7cd3.wav": {
+      "bytes": 880764,
+      "sha256": "7921a8e42c6a7c30c254241613e6785747e9d4d000b166d2de6e590007658444",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-73edb352a072f8d59d4373121830003b2923ff86279afd54df8081df5822074a.wav": {
+      "bytes": 353780,
+      "sha256": "f3fa35dcebc394bccce8ef6d8b836e931f30616a04359f39fc09d7218a882611",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-7b092ab25d25ad5cdae6508d6c861d6d0c7869143ac6f483c466a051217ba9c8.wav": {
+      "bytes": 521004,
+      "sha256": "0798be119e989e1aa57ec3c40d9f2fd1c9013cd1f2f2520de0b6d22ce7739370",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-7bceabb40ec2e6cea4095fb66c2a9c6163bbbb578181bc169a861a4e30197372.wav": {
+      "bytes": 300924,
+      "sha256": "e8e2f58da78372b516b369543123f685efb516c8852fd1b79d36bd35a5176e56",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-7f901c127faee998ee13167c6fe0e05f7c4277b1d1e66695158603e4a369bad5.wav": {
+      "bytes": 463388,
+      "sha256": "e584153dc783c0dfd12e8bcd88609b5bdc10e5ec7bd703b6f4ffa57fe61ceb22",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-81f9546abd46352fe599616c2a76ba69359c68e44e646be83b5d67fd6abd59a4.wav": {
+      "bytes": 1419564,
+      "sha256": "09372b8868b8148bca6d4b8a25102a128897fe609ce4a7449482bce4e897abef",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-8d835220924292c089e17530a86e89fceac1bd6e5a1309f7c090c25d78bbaded.wav": {
+      "bytes": 536356,
+      "sha256": "0fe6e6cc828e4a05a61d498027249d69092f21af1188ea1c9e50fffe52296efe",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-aca4bc96aa28ad30424b832fc9352ba8604c17686951558f231fb08d2b29d615.wav": {
+      "bytes": 492132,
+      "sha256": "d11f013a1c9bc688b489fe89e1ca5644aac4a3760ca8f653832f73f3285bc5ba",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-ae8ec33b023100c09953abcc244126ba6a0b5f474130e339aa198e2257a5cb28.wav": {
+      "bytes": 664164,
+      "sha256": "bc8d8ec7a2d5a4961fb1bd115c4e98558806655c334214efe838d287dd63ec90",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-b569e56dfb5cbd359671076946a5c50ec8f59852a98f897e8c22828bb80c124a.wav": {
+      "bytes": 631356,
+      "sha256": "cad513e289d22181f2a6687884f012b990655adbaadc806b840908e6dee4be7d",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-c01294b56e55bbf27126318b5da0a1c25df82bbc430d19d94fc127545c8b50ab.wav": {
+      "bytes": 906032,
+      "sha256": "176215c7fd82652b49e145c80001bd8c12ecdcdd4ae5c3eaa95c7ab3d08dfd44",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-c2144061f1d74d41d579de683071f52b511e5a6132a62e5f6259206ad8c804bc.wav": {
+      "bytes": 586764,
+      "sha256": "5a1f7c2351ebb92893b1f1fc70dda39476831dcc6a3fd9f1ca6eb3fb1b5f06a1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-c7dda52eea699e1dd589e8108b8f3df0939dca25f3b0f773cc3bab502614695d.wav": {
+      "bytes": 598920,
+      "sha256": "3657e4cd85e2fabecf8b5e3d4bfd81a4dbfa997992ff5793770fe5c24cbadefc",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-c821116f3a89b9b0518a0fdcfdaefe423f158573e557d5f4c6e83c1e943a387a.wav": {
+      "bytes": 634744,
+      "sha256": "0573a83f553c0b0842c19ecde8eca11233ea43c4268a4d6c6c8122870de0e1d1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-c87429fa6937a4c2214f4b2aa6616897a98a703fdad4c894cba94c663944b2a7.wav": {
+      "bytes": 686204,
+      "sha256": "17d5ee580dac303711ea93773b200056b3437fb92dcd808364044d7fa92f89f0",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-ca4db3106ec628d1dbf9f6c3ce96a48ef8e216bedc3e2f4369fc23a153597385.wav": {
+      "bytes": 481380,
+      "sha256": "31a94762a43d30506fca1f22a0c57a8d0d8624000d6ae3c3909c2efd0cb0d767",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-cd0e361659bdf30345f3ceee870b4809fead4e3b049bb38adb54b9bd08602e40.wav": {
+      "bytes": 636092,
+      "sha256": "50c7d958db33d0fd2bcc8c03a332795b6a6fb196c1e88d4a9253e20ff7c2b843",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-cd1d2f8b312fe56ab7ea5f1a79fd6951e6e865bc85df22e55249e86ecdd40e97.wav": {
+      "bytes": 669084,
+      "sha256": "627b05ce255af7051aff9bb8d5d2b9de5c14571ad9388097086cf790cf9632d3",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-ce8757dd8dfd5cd921f9af70a43891823f3942635ff83f9785c6e2ddb49a3c2e.wav": {
+      "bytes": 3338320,
+      "sha256": "981ea58c0411303527b967a52bc215b541604f0a46bd9d063d9ec6c39b08fb98",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-d81f31cc852112723c70d4e62dacec2cefcada260bc9294d9fd17392eda71c6a.wav": {
+      "bytes": 641420,
+      "sha256": "e6bda2fbe6e1f754a4dda4944021cb4f6d6922136e5fc7fd5419739f5945b763",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-ea8372d9949494889922ccb7217f4e093cddbb03bcf821123b9a7865978e9fe4.wav": {
+      "bytes": 746104,
+      "sha256": "c8c57cb522e9f57a6f6a5f1c2d59a11abf86c920e26575d6961dd50cc73e0bb4",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/owner-selected-speech/play-f96bafd6c9dab789dc7bc9bdd709106c624868e8df9ea119b33c8278668a2896.wav": {
+      "bytes": 866344,
+      "sha256": "dbcb9b6913a4f348f4ac1a5479503817cf761db0dd3611d611116c231419be11",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/report.json": {
+      "bytes": 128149,
+      "sha256": "aacb3fd37b6278292dfd98d5d4882675ecdebd8db04d83266a4dd3da152aebe3",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/three-host-development/speech-llm-restored/speech-receipt.json": {
+      "bytes": 364506,
+      "sha256": "ad92fb2ecdb56321f3d3c3c5b38a43966248bdd046251b96c0b191f7affb5b0d",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/browser-after.png": {
+      "bytes": 67386,
+      "sha256": "c84bac6bfbf041589b75524f8dc9399414813c76a4623c7a9dc97e6645154228",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/browser-before.png": {
+      "bytes": 97669,
+      "sha256": "39931f21b0cb817d6339918d419d9c6f6edc9e853133071098ff5a37257d8d4b",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/browser-card-after.png": {
+      "bytes": 9862,
+      "sha256": "583fd720e4a15ab53968582aa8f7cc1c24003954c82c3d8e1417579e654734b5",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/browser-full-after.png": {
+      "bytes": 418334,
+      "sha256": "065ecef721f3351bef1fa8387a7206acd6c61781b3449f0b21d295e8e2136040",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/continuous-browser-after.png": {
+      "bytes": 66106,
+      "sha256": "06ec39dceccc8537b13d05f85fce6e57ed34183a300ed2c9db35b5171c25992a",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/continuous-browser-before.png": {
+      "bytes": 99063,
+      "sha256": "e48ec7aef8582224dfce9cdb32885d0907a7f2768fe335bb2a05a4a97aa38334",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/continuous-detail.wav": {
+      "bytes": 276988,
+      "sha256": "4433f3ab0f2b530be0deccd0f87a38d7eccd6520ccdf04b827d610ec9a7b754f",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/continuous-speech-owner-face.json": {
+      "bytes": 230206,
+      "sha256": "cb7f75f2d8f01635c15a4f8dbd647d83f58f85ae57ed8a4b24cf0c01ac537228",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/continuous-summary.wav": {
+      "bytes": 676904,
+      "sha256": "829a761ed3e7c502da579f332ed0d6b5fb3250eecd456a76ef7aed194aae511e",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/fresh-browser-after.png": {
+      "bytes": 64584,
+      "sha256": "b4749b7bdaae5d64a9b355bf00fae16ff55e0ac4a3e4cfb88dc2052edbcad7e9",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/fresh-browser-before.png": {
+      "bytes": 97288,
+      "sha256": "793675980c1a4d2e8a878737c7b50780d3dd81ba0d328a596dcbc8f74e56eb71",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/fresh-requested-detail.wav": {
+      "bytes": 276988,
+      "sha256": "4433f3ab0f2b530be0deccd0f87a38d7eccd6520ccdf04b827d610ec9a7b754f",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/fresh-screen-free-summary.wav": {
+      "bytes": 676904,
+      "sha256": "829a761ed3e7c502da579f332ed0d6b5fb3250eecd456a76ef7aed194aae511e",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/long-list-requested-detail-same-play.wav": {
+      "bytes": 1218372,
+      "sha256": "8acebee4bca50b7feb6e5185bb86a311453c296cee8e268251efe81b53d4fc10",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/long-list-spoken-same-play.wav": {
+      "bytes": 1472872,
+      "sha256": "92bd04c42459f4beec8f1c7eae377996ccb06ec9716ad7f9379dfe2a65981506",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/todo-20-card.png": {
+      "bytes": 20281,
+      "sha256": "2a3d884567b3c5e2cd6fe6b8012f038a79d798e4eb544305dc8e7c3ad8e85232",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/todo-20-full.png": {
+      "bytes": 430270,
+      "sha256": "fe6bfa15e404e7feb64405966ddaa79e3269708457705bf690cc1a910ff37693",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/todo-browser-after-native.png": {
+      "bytes": 32357,
+      "sha256": "be16da5de7268e8dbc076294efe065c61a685aa1ed7df0f0c2f21b99c52bec2b",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/todo-native-acknowledged.png": {
+      "bytes": 100695,
+      "sha256": "e8d15395f2f3f2a194ab86e62c63db7358dd7b2ac3abbcbbb8261f2efc30cefe",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/todo-native-action-after.png": {
+      "bytes": 97033,
+      "sha256": "c7ed22d1d6a9e47d54880e7e0a5f496228aac7b59cabf1bab4538b05577ced39",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/todo-native-action-before.png": {
+      "bytes": 108027,
+      "sha256": "5e3669bacc4e5ec89ac0f270070a43cdb18169a3641c26d60763f9f0ca5973bb",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/todo-native-read-only.png": {
+      "bytes": 113018,
+      "sha256": "fd30d836ee2644c9a0038233bd4b745f5518ea2f323834d6967008a93dcd9d03",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-browser-development/todo-spoken-after-native-same-play.wav": {
+      "bytes": 1138708,
+      "sha256": "a2b4eed0f176412e5bf8d2fb5df3a0ec5561529f2ab92d2d4ec97eefed0f93e8",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/add-media-0.png": {
+      "bytes": 114637,
+      "sha256": "b26ec03e193313f82fc5171e7d2d3ee1338d4326f75556dfcdb800aaf149db5e",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/browser-run.json": {
+      "bytes": 215824,
+      "sha256": "adfa9158efedb8f9583d5eb4f9fecddf7d13a898454b6a277ab4457379bdf211",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/hear-media-0.wav": {
+      "bytes": 1194948,
+      "sha256": "6a28c2659db2da339bfd292834446b20753efc9ab03ac7f34e5da63bbff256f1",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/initial-spoken-recording.wav": {
+      "bytes": 1390012,
+      "sha256": "40b33e2d6fb6155bc2ef4ca90162607d427a9322b534f1ccaee5cfa8a234d48b",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/inspect-media-0.png": {
+      "bytes": 116925,
+      "sha256": "fc9fb9d18066906dff4497a331089e7c45ac7c15f12bebfe79a8cfd5f1e0d957",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/live-run.json": {
+      "bytes": 111047,
+      "sha256": "c5948c1182607f10007333c9b5987a88df894b9352d5454e3a5f8cd95276960d",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/read-media-0.wav": {
+      "bytes": 322876,
+      "sha256": "c0cf5495beb71f56a66da0b4efc98ef2a8d1cd80974fb5103df1dd093da5bde2",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/read-media-1.wav": {
+      "bytes": 331228,
+      "sha256": "d478e215abcc93b5dd9a79e3723ddc087e98218f4ed48190299a33dd1c8ccfde",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/recover-media-0.png": {
+      "bytes": 114435,
+      "sha256": "80dacd06d4a03238ed4b1c2b89292781c41772604d945a2bbbbe5cac57ae75e5",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "site/evidence/todo-journey/stale-action-visible.png": {
+      "bytes": 116925,
+      "sha256": "fc9fb9d18066906dff4497a331089e7c45ac7c15f12bebfe79a8cfd5f1e0d957",
+      "consumer": "Publication verifiers and retained journey rendering in tools/ci/pipeline; migrate with byte/ancestry checks intact"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/dirty-source/output.log": {
+      "bytes": 469,
+      "sha256": "d319f34bd9d382f49b62c4605f242bef7b04c6d3d8ef3a608dd82e31c37e2b16",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/capture.json.gz": {
+      "bytes": 11528,
+      "sha256": "f4096fb2f7e598734164fd989ca39f797c06e5c67f02c0395e11c1172fcee1a2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/creche-read-only.png": {
+      "bytes": 125264,
+      "sha256": "6f76d6d7ec226e47d79aa093a8a64f4e246ae0f741c960dc9ba97d95a1c356c2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/first/serial.log.gz": {
+      "bytes": 16423,
+      "sha256": "88a965620d1910c43e11c9617a948044a9e04b087abf9987601e185262c1ec06",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/serial.log.gz": {
+      "bytes": 1559,
+      "sha256": "2d3f6cf29c45e458110506ce6b1ed7ab206b5ca5da13e33e04d8e5d7ad60bf58",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/stderr.log": {
+      "bytes": 72,
+      "sha256": "a46a2e46e5e54a031dab0ce3dcd27aa98efc467106c9ecb8bdadc8925b97ca27",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/product-proof.json.gz": {
+      "bytes": 41171,
+      "sha256": "fd42f7f3e21f4503fc9f766a822d157b4fd35ce14e47e62f20382190211f22c2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/second/capture.json.gz": {
+      "bytes": 11558,
+      "sha256": "66f73928532500d7c8a282943a14bb2046b07815469fd64db44232f4e7a033fd",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/second/creche-read-only.png": {
+      "bytes": 126115,
+      "sha256": "65a8b056884c40a880a9d81d5ad0608e7c3ff6fe7583ffa96f21b76d77f3eadb",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/second/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/second/serial.log.gz": {
+      "bytes": 16454,
+      "sha256": "e2e78b5a2ab6b670ed96678700a2b72bb3f5dd9589d47236d3fce06fae229899",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/boot.log.gz": {
+      "bytes": 544,
+      "sha256": "a6c01fc99e8d7b34c320ec9082ad3a74fc12786049b2858efdab8a642d855cf7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/build.log.gz": {
+      "bytes": 8568,
+      "sha256": "a00cc503550ffdca81a4d9aa351f599f4107c998c7625630e244fadfa7042ab8",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/current-host-make.log.gz": {
+      "bytes": 2504,
+      "sha256": "f2cf900e6c2d3658eaa35b340b16d8289f00d88114542bb742ca22c0be415764",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/current-strict-clippy.log.gz": {
+      "bytes": 1602,
+      "sha256": "0723a797f1b512e502959b6d9ab42246c11dec227ffb2094e759a37bf8ea346d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/current-target-lowering.log.gz": {
+      "bytes": 1416,
+      "sha256": "4739049313f9682871ce08476adb2c541e9837ea030034d6bd4835a67db8895e",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/graphics-focused/archaarch64_framebuffer.log.gz": {
+      "bytes": 670,
+      "sha256": "a5ab32e385b5be6f112152f94b614b1117953651de1a1390406e43ad155bee20",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/graphics-focused/boot.log.gz": {
+      "bytes": 1927,
+      "sha256": "01374186898dc5a0fc4d79e62fd927857e09dd8690b98dd64a746349ecdc7ec3",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/graphics-focused/display.log.gz": {
+      "bytes": 1595,
+      "sha256": "25cf6a861dc75e199c6f7caad48dd474ebfab8ff29623fe4c85e8676c6292d69",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/graphics-focused/make.log.gz": {
+      "bytes": 612,
+      "sha256": "22e6c7238cb9f05479b2b2f41d21a3d60e07734dd396fe4068f1297e9c8f66a0",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/graphics-focused/native_compositor.log.gz": {
+      "bytes": 1083,
+      "sha256": "dd93eff514290374cee371fe5330477d852370d4cbb2973c73ce3287d6d55c71",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/graphics-focused/native_face_.log.gz": {
+      "bytes": 6443,
+      "sha256": "9b3b3d7730350fcdee559ebf6caca1660591e5cc4e0cf1d29793aa2dc49b49fe",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/graphics-focused/native_mask_play.log.gz": {
+      "bytes": 762,
+      "sha256": "6800d68d65d6ca1c3c5fe7bc74cde06a54f5b6e0a3fb6b3b787de83df1ac185c",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/graphics-focused/product_bases.log.gz": {
+      "bytes": 554,
+      "sha256": "2b69ae4face5a2732009848e9fabc15cd19672f53a43813bbe575b9a0c5a54f6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/validation/prior-unsealed-broader-native-library-incomplete.log.gz": {
+      "bytes": 29149,
+      "sha256": "ada3e4e7c0c448621947af7a1204070ff9faa5ffcc91e1a87881e10e5e7de95e",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/artifacts/conduitos-ia32.iso.gz": {
+      "bytes": 4955387,
+      "sha256": "bbd8ab01f8fbaeb8a04b5d5ee38368cf198db933cf1d8542eb13163a8005a18f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/artifacts/conduitos-kernel.elf.gz": {
+      "bytes": 3791766,
+      "sha256": "14655ab5d180feab461adefc055bd61f2e3c54d201e5834d6c29cebc3936dbb2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/dirty-source/verify.log.gz": {
+      "bytes": 320,
+      "sha256": "8aa97ed67ab915cf8fea79aa19392a013719365c2ccadab724c3fbb1c2acf99b",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/first/capture.json.gz": {
+      "bytes": 11611,
+      "sha256": "04c6b0ddf423659e1210bcf5597c846209c43c6bd5dc90c2b168a768f0f4eba6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/first/creche-read-only.png": {
+      "bytes": 251750,
+      "sha256": "fd2623f8a997a06096f564aa782db7e04c1c9f76c1933561090493e69cc0bb9f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/first/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/first/serial.log.gz": {
+      "bytes": 16295,
+      "sha256": "01f4dd137587b9fc84695b6ce3d91b9840b8b991fead66d3fdec3be3eae23686",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/graphical-product-proof.json.gz": {
+      "bytes": 41779,
+      "sha256": "e9c5ed01a42e155c68b5e6b598110f9068d6d45edfebb25b16be13e7772aed1b",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/no-display/display.ppm.gz": {
+      "bytes": 1002,
+      "sha256": "14beb68c410ecb9087fea1d50fe14e8dfc17e50f8fd8578651d2b9142ee689a7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/no-display/serial.log.gz": {
+      "bytes": 1374,
+      "sha256": "7379d769f70bf3291f6cad50241e190385aec25da2339c28c1866862ef8c5bf4",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/no-display/stderr.log.gz": {
+      "bytes": 89,
+      "sha256": "81c434913a80cce880163db4443ad4a9331468731c875b890a8d2481eec3bf91",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/ia32-graphical-product-50828a122/preflight.log.gz": {
+      "bytes": 1356,
+      "sha256": "e9d82e4d8e5571bef836fd8e3e796a1e4a461087b11cd1a9969c7e6530cf8de8",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/ia32-graphical-product-50828a122/receipt.json.gz": {
+      "bytes": 305,
+      "sha256": "cf363f81a4d284364a6ad69a6c96aa696362a7f714dee94f3670cce07bde6db7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/ia32-graphical-product-dea3571c9-tools-ready/graphical-build.log.gz": {
+      "bytes": 4249,
+      "sha256": "4eae4cf86089b08b6242433b2be6558eccf603a83faa75d1de3e34c1d7f11620",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/ia32-graphical-product-dea3571c9-tools-ready/preflight.log.gz": {
+      "bytes": 10374,
+      "sha256": "6c9080129c9f7c6efddd7d6e36f7bf1d751ffab9b71fb59ad190fa0fe041a705",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/ia32-graphical-product-dea3571c9-tools-ready/receipt.json.gz": {
+      "bytes": 460,
+      "sha256": "57c082d5192bdc8ad5adf6d044852a35a2f0071e2a58b0f1331816cf6ae88adf",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/ia32-graphical-product-dea3571c9/preflight.log.gz": {
+      "bytes": 10544,
+      "sha256": "a2ebbb15b739784ff7655c6b681a9eb6331f50dc3fedf181e9d4e8a8c84f159d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/ia32-graphical-product-dea3571c9/receipt.json.gz": {
+      "bytes": 306,
+      "sha256": "124ae60e3dc619ee3428b839fa303aa8ac2fa4e05ac549bd8e34b617805927d0",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/initial-validation-library-flag/conduitos-tooling.log.gz": {
+      "bytes": 71,
+      "sha256": "b227f20ce9668be0f85fd5261742951e7ca00bc6aea136b17d89a42d988736d0",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/prior-attempts/initial-validation-library-flag/receipt.json.gz": {
+      "bytes": 1005,
+      "sha256": "2a42bef57f850d488e7cdd812f388cdaf6933631dcb34a75357f10b399919627",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/second/capture.json.gz": {
+      "bytes": 11622,
+      "sha256": "639abafe2f3e6dcfe25f6bd76b325fcdef412028c845a702cb2e94cf431e2875",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/second/creche-read-only.png": {
+      "bytes": 251734,
+      "sha256": "5a89302d7c425d91ead1d6948935c556ff46f70808dfae8608d1b01838781ac2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/second/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/second/serial.log.gz": {
+      "bytes": 16295,
+      "sha256": "df253b564b549e7602b06f0b40b1cfcb930415f82030bdcb530d8ff9598f57ca",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/serial-baseline-dea3571c9/receipt.json.gz": {
+      "bytes": 460,
+      "sha256": "57c082d5192bdc8ad5adf6d044852a35a2f0071e2a58b0f1331816cf6ae88adf",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/serial-baseline-dea3571c9/serial-boot.log.gz": {
+      "bytes": 355,
+      "sha256": "c3f146496892edcae9c22f586bcea14237b293de21108a1ea0527b8c863124ef",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/serial-baseline-dea3571c9/serial-build.log.gz": {
+      "bytes": 6784,
+      "sha256": "0c8664b0ac617e2ebc002d4183c98ab1c3a7b02b1f85ca612245364d8067339d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/serial-baseline-dea3571c9/serial-ia32-product-first.log.gz": {
+      "bytes": 7937,
+      "sha256": "2abc5980851342bdaf22edd7c07c39fcb2dc362f26220184c4f473bdaee4c602",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/serial-baseline-dea3571c9/serial-ia32-product-legacy-bios.log.gz": {
+      "bytes": 7714,
+      "sha256": "2e6a2cb00b8ecc317675e1e5f4d4a0153ca7ad717ce1761b77e0ea1461ba5c99",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/serial-baseline-dea3571c9/serial-ia32-product-second.log.gz": {
+      "bytes": 7922,
+      "sha256": "4976d21a224d5181fba459ce9afcd77ececc9c1c71cf1e53bfe6cc18d76ad493",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/serial-baseline-dea3571c9/serial-product-proof.json.gz": {
+      "bytes": 24686,
+      "sha256": "d4be9ea4b58bb69eb6df9a71163fbeea7ce7af519223b5a6c843fcbb6cbfd260",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/tools/audit-ia32-graphical-product-prefix-selector-original.py.gz": {
+      "bytes": 2414,
+      "sha256": "1c850cb140728e33fa38a3e72e1151fa2a6e5b17509d7c23ac4ff713cb899e5f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/tools/audit-ia32-graphical-product.py.gz": {
+      "bytes": 2414,
+      "sha256": "622c5b6e3bffd12d4372d4bc60f2359bbee78640b529e0bb8b46e71d70283ed4",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/tools/probe-ia32-graphical-dirty-source.py.gz": {
+      "bytes": 1270,
+      "sha256": "49dfbe8230a1ae328d10b0165c7ec9aeaf76b368c364a04ae91562313620e761",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/tools/probe-ia32-graphical-no-display.py.gz": {
+      "bytes": 1676,
+      "sha256": "7fa210176be15c6823c1041e10e8ee6f4106cc3bca1ce876649cd0e2f45ace52",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/tools/run-ia32-graphical-product-portable-bases.py.gz": {
+      "bytes": 1418,
+      "sha256": "b7975996d1443cebed8d7ac9042eec7bd5618bff46c4df57cd5c0f22419c0fbd",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/tools/run-ia32-graphical-product-tools-ready.py.gz": {
+      "bytes": 1181,
+      "sha256": "e0cee9f5131cf34e14684b0cf8221756689a442b32d19353bc5a85a3ed0b4f00",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/tools/run-ia32-graphical-product.py.gz": {
+      "bytes": 1170,
+      "sha256": "3a315ab55be5dbfc706e9a71c343f70c570e2b43192729b07c40d9589435801e",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/tools/validate-ia32-graphical-corrected.py.gz": {
+      "bytes": 906,
+      "sha256": "91efb1b7f7e87cac3d0947d30dc6061f1c939bc428b704e0ebb935f49dc96a93",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/audit-ia32-graphical-product.log.gz": {
+      "bytes": 147,
+      "sha256": "6c395f934ae48b303d6c12c7e9ae7a890d08e37729215afb80ded290e076d2dd",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/focused/conduitos-tooling.log.gz": {
+      "bytes": 9928,
+      "sha256": "172d1d946cfdc0beffc6ae745df7ec6cb5a6a3ea49cce0c11ce31bb24028a283",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/focused/make.log.gz": {
+      "bytes": 515,
+      "sha256": "71cd3aee16e7ec11d555d7123d4546f94afcd7913ead1eb50022ba3bfa692283",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/focused/multiboot.log.gz": {
+      "bytes": 2489,
+      "sha256": "a9208b4a73a5abe1f179bc8bbaffb5cbc18cf72d333355dcf071001f247f42e2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/focused/receipt.json.gz": {
+      "bytes": 1142,
+      "sha256": "ad2e931bd6caed4642e8ee227748091f3004921791a29cb68dea49b783cefb49",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/focused/scanout-policy.log.gz": {
+      "bytes": 399,
+      "sha256": "45f2d92b7d0f8627fa23dcf15d32fa2d9a11cb448e7488df63f1c71dc43195b6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/graphical-boot.log.gz": {
+      "bytes": 355,
+      "sha256": "c40a2d77516daeebc5b929a0058f23879fc6289647bdaab9785e8b002fa86800",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/graphical-build.log.gz": {
+      "bytes": 5355,
+      "sha256": "a28af2c9a3817d10b9360e5f2e0559548b78f8d0b3b0e6e1c09e15a687596a3a",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/ia32-graphical-ci-setup.log.gz": {
+      "bytes": 253,
+      "sha256": "4c0bcfbee8c9dd9d12b0a43c857c37c71569b28bd19b63aa65d74fc66a6877bb",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/ia32-graphical-lowering-tests.log.gz": {
+      "bytes": 2607,
+      "sha256": "74a7ddf01a5def19efaf7369172eb9a554ebd441735bee1d1aae402fa3da85a3",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/packet-preflight.log.gz": {
+      "bytes": 10365,
+      "sha256": "c3879462a8cb967fd918301de4c9ce57e699883fc4f60c279e0faf3fac484795",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/preflight.log.gz": {
+      "bytes": 10415,
+      "sha256": "470d50ad88dbe76c404eb95bd0189731efc1491628573403f2be773a44dc21ca",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/ia32-64d513075/validation/strict-clippy.log.gz": {
+      "bytes": 267,
+      "sha256": "fc34cadb49a7c810292eaec8200c04c2be6c770a346e38505f9fa84af3ae8125",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/artifacts/conduitos-kernel.elf.gz": {
+      "bytes": 3947817,
+      "sha256": "656a4b37f714e13bf1f9349b581129db16d31b4dc0bee3887aa7025f7ca9352f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/artifacts/conduitos-loongarch64.iso.gz": {
+      "bytes": 5085620,
+      "sha256": "d9269e39a312aa884973cf95fad540c1c936ddb0d6d33b588b09c62b36970791",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/dirty-source/receipt.json.gz": {
+      "bytes": 669,
+      "sha256": "aee89b59b0818e5fcafdff160883e28a5781e86bf8e34d503d58351facd36fd6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/dirty-source/verify.log.gz": {
+      "bytes": 329,
+      "sha256": "8b4c7e7e1512284f37283d198649d70d4253f3b7e12dbd3794a3c0f9289106d8",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/capture.json.gz": {
+      "bytes": 11810,
+      "sha256": "73e621fb8e8bd5fac4ff07b082fe44c528db80c13b8ef65b0aa89a60f52e3bd5",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/creche-read-only.png": {
+      "bytes": 124886,
+      "sha256": "768d292584c692e0ccd5b58b41a3393623e9eb222d8e02316e892c6642639d68",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/qemu-stderr.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/qmp.jsonl.gz": {
+      "bytes": 457,
+      "sha256": "8373a5565d32c8bafd297672d527d1ffae78f5729a7745f8a31145ec21162b3b",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/first/serial.log.gz": {
+      "bytes": 16153,
+      "sha256": "5c27a1b40ed23c730aa094857c5593db38b233337fe41c067f0fe22307b5c029",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/initial-attempts/loongarch64-graphical-product-22ad5f518/preflight.log.gz": {
+      "bytes": 294,
+      "sha256": "5d749a572edab81724704111290c03a1c463c6f051558079c04488ca27950990",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/initial-attempts/loongarch64-graphical-product-22ad5f518/receipt.json.gz": {
+      "bytes": 337,
+      "sha256": "32e0829946e45bd2bc4d2f2ac6fcedb108ee5198b7042bd9ed080f9b90f55112",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/initial-attempts/loongarch64-graphical-product-a1e77944b/preflight.log.gz": {
+      "bytes": 421,
+      "sha256": "2dfad0487b6fc5c06a1bbda00d8ccd02c578b6a741c1a0e997211be3bf5e3f1f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/initial-attempts/loongarch64-graphical-product-a1e77944b/receipt.json.gz": {
+      "bytes": 337,
+      "sha256": "66cc213813ce28bae71d7e468e185c38a5874e5eba11762513ed705ac25ac827",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/no-display/display.ppm.gz": {
+      "bytes": 1002,
+      "sha256": "14beb68c410ecb9087fea1d50fe14e8dfc17e50f8fd8578651d2b9142ee689a7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/no-display/launch.json.gz": {
+      "bytes": 902,
+      "sha256": "c36bf44d9916c37bdffb7cd394ddc390a075fa63aa2e16480a7229c3e037cbad",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/no-display/qmp.json.gz": {
+      "bytes": 175,
+      "sha256": "95a1d63dd830e55d175d3e3babc44286ea6d3c4ed1d9bfdd8527a53015bda701",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/no-display/receipt.json.gz": {
+      "bytes": 1332,
+      "sha256": "89b82e7cf8aa6afa21c051e62dbb62321f47aabfc07b9d41562944733996b7e6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/no-display/serial.log.gz": {
+      "bytes": 306,
+      "sha256": "c66ffe7e9147c34935d3e64789ceff284d6de1385eb95b066793b22b302a2600",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/no-display/stderr.log.gz": {
+      "bytes": 94,
+      "sha256": "49db9954a503081370f1f1d794f7a18ba52cab103edf9d84eee4659f5104ce99",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/product-proof.json.gz": {
+      "bytes": 27126,
+      "sha256": "380a4aed9cf47b6da54cebac6fa0c5252db427b1022f238beeda1b279c501175",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/second/capture.json.gz": {
+      "bytes": 11776,
+      "sha256": "f4dda586c8a471de103279d0c5362fb9d65e4de2e956713fa1c9bcb7b1dc0bea",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/second/creche-read-only.png": {
+      "bytes": 123786,
+      "sha256": "5615e1a712f279e3dff24f892e11f642e7a7beefccbbd323165ab43303f19704",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/second/qemu-stderr.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/second/qmp.jsonl.gz": {
+      "bytes": 458,
+      "sha256": "658917c2a375a317cd2c9944f3c9e514b2fedf938d87a761ae8f6f53ed041880",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/second/serial.log.gz": {
+      "bytes": 16139,
+      "sha256": "73187c8f725d9e88305dee1159c782ee005243620e9d35e0013c5a50e8ebe3b8",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/tools/audit-five-firmware-frames.py.gz": {
+      "bytes": 1763,
+      "sha256": "92b3c0498362b3d07853de503d61fb9df598e150606e9638049493da23b5ea01",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/tools/audit-loongarch64-graphical-product.py.gz": {
+      "bytes": 2981,
+      "sha256": "73c1719c0acc3ccdb21b561461455f66534c0ba957ed5b1c574b91856451095f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/tools/probe-loongarch64-graphical-dirty-source.py.gz": {
+      "bytes": 1463,
+      "sha256": "901f9e8f4fef49f3ca6b5b7214f86d2c494a9cf83bd0e44f0dda9ce1009e4503",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/tools/probe-loongarch64-graphical-no-display.py.gz": {
+      "bytes": 2006,
+      "sha256": "6704f1ff119af513626e38f80deecc0f58ea81aa133911980009dd2763f6c5f7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/tools/riscv64-png-audit-helper.py.gz": {
+      "bytes": 690,
+      "sha256": "e0fa5b37b2d5850e2e4adda6cf18a910c7d4611da51855d57afbb721325959e4",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/tools/run-loongarch64-graphical-product.py.gz": {
+      "bytes": 1440,
+      "sha256": "cff9c130ce060107042ec801b06bb8945b771b42f51d633336eb314b46155321",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/boot.log.gz": {
+      "bytes": 256,
+      "sha256": "19e8c2bc324de99b3e114a389db9fd3b5a3726bc595499d8ae6bd0ce86beeb50",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/build.log.gz": {
+      "bytes": 6617,
+      "sha256": "39ee68c4a7ffa1afe451ad134a69e97fcc1f938fa9ea6b1569f7f2a2ffff14a4",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-clippy.log.gz": {
+      "bytes": 3518,
+      "sha256": "86bfd6e3b20cace2e67947534685740a0031b96166fc4b8144965dd7549a0807",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-collector-firmware-tests.log.gz": {
+      "bytes": 1458,
+      "sha256": "f5645216dca65bbb258096130b68a3f89be7eae3144b6aa04b95065a07f33864",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-cross-library.log.gz": {
+      "bytes": 4524,
+      "sha256": "6bbcbef3f5b979f29d687360fd3d945ca73a39f1ec684ec26ec3157618ebbe2a",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-dirty-source-initial-relative-image-failure.log.gz": {
+      "bytes": 1049,
+      "sha256": "6fa5a8f52339a3958dc86505f5579a829a5cc68c70eb7c97b96c755e76b900e7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-focused-initial-failure.json.gz": {
+      "bytes": 314,
+      "sha256": "8035147c599d1fded33c9d5754d18c3cd1a5e14e8f72d50a7998a5e287eef598",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-focused-receipt.json.gz": {
+      "bytes": 380,
+      "sha256": "b32ef3458490956b3de013f47d17a8448dc6dba582377b4dfe1d918fe604a202",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-lowering-tests.log.gz": {
+      "bytes": 1938,
+      "sha256": "09e3e9fc44a6abb77890617f67841e78a0c3479d758cd20d1e965ef2ef4baf40",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-mapping-diagnostic-tests.log.gz": {
+      "bytes": 710,
+      "sha256": "dba490df2e901c79d38cb8b755ec9dc4240bbfb3c6517b85b4cfd5f412b9d984",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-mapping-tests-initial-no-std-import-failure.log.gz": {
+      "bytes": 1922,
+      "sha256": "a12559f3b76689285e7a81ea45d7d3e341c966b02b5d7238719c7466f6b629ad",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-mapping-tests.log.gz": {
+      "bytes": 814,
+      "sha256": "77af1c0fe1231b16d33e5db4bd79a2bbacf707c9f70c8e17612d57215920d0a7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/loongarch64-graphical-whole-format.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/preflight.log.gz": {
+      "bytes": 10330,
+      "sha256": "4decaf00be3109faaf56f61dccc5adc9114740fde91b7354f9cfec93069bb0c1",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/loongarch64-11fd0027e/validation/prepare-tools-and-firmware.log.gz": {
+      "bytes": 475,
+      "sha256": "63b983261889c6739b166094adc128eddf04353d4d6dbcdd92c99f36f2959813",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/artifacts/conduitos-kernel.elf.gz": {
+      "bytes": 3831901,
+      "sha256": "a08c0e9a396ea38c8955eb3238c4af8a46bf3ce8ddc5a02f05206eca482487e0",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/artifacts/conduitos-riscv64.iso.gz": {
+      "bytes": 4968714,
+      "sha256": "210bd007c1fc402c8a11158f3b105563889e0a132eb1750ceed36f8ffde4fa26",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/dirty-source/verify.log.gz": {
+      "bytes": 417,
+      "sha256": "ae413e50e7918587a91e1b609426cae8a1002f3b94d6e872535094bf1c956a3c",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/capture.json.gz": {
+      "bytes": 11681,
+      "sha256": "3eef1f2c68ba878e61da9145248582057bd05dd6a7f744ea3d7592b178fda92a",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/creche-read-only.png": {
+      "bytes": 123714,
+      "sha256": "95f854f8ccee636e611db82401a313bebfe23e1de4fb40b0f1e9ff1e0d13352d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/first/serial.log.gz": {
+      "bytes": 16931,
+      "sha256": "af38d9aa1fd252f92af62fc51f274f3b2851507f2bd89e738d480dc4d50fd610",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1153592-1792849291248199088/capture.json.gz": {
+      "bytes": 11623,
+      "sha256": "0ceb3222ba569b72b6f6f6c36faa29b07c69f31a2639033fe489da625f2d1872",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1153592-1792849291248199088/creche-read-only.png.gz": {
+      "bytes": 68241,
+      "sha256": "bf43d5eec18f562434c4c344bbff3a65c17c722cd8eba97476ff2b3d8fb0472a",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1153592-1792849291248199088/launch.json.gz": {
+      "bytes": 1122,
+      "sha256": "f77a8751d37344636b9d93409c95394c1b12ac59bc59b2f8a3bcf466b1073d3d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1153592-1792849291248199088/qemu-stderr.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1153592-1792849291248199088/qmp.jsonl.gz": {
+      "bytes": 607,
+      "sha256": "c54596adf97d77a221a178ee1b6b63e2135cbe2001b67740f97d8fd0b55a0fb2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1153592-1792849291248199088/serial.log.gz": {
+      "bytes": 16942,
+      "sha256": "26b7f47a8bf7860286727952d29108d1e53a616437194b79cb732bb4b030ab01",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849482580055317/capture.json.gz": {
+      "bytes": 11623,
+      "sha256": "1b037fc8b42cd3076188dcc1298918fc4a405da6491dee3d37ce3cdd554437a2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849482580055317/creche-read-only.png.gz": {
+      "bytes": 68533,
+      "sha256": "fa8894eff6d34b9a07d49c90fb0a996df968e7ac788e48dd592e3be5e320d2af",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849482580055317/launch.json.gz": {
+      "bytes": 1148,
+      "sha256": "b7a9d32c824a08fe7b9369fa3e963cb89ac0ed659c02adfacd66f5c7bc74e43a",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849482580055317/qemu-stderr.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849482580055317/qmp.jsonl.gz": {
+      "bytes": 601,
+      "sha256": "8922d809327ec2b37bc16052d9ad943ce192ebd64a12d0bc7a9606d599c11eb3",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849482580055317/serial.log.gz": {
+      "bytes": 16934,
+      "sha256": "1301be80a20e1859f25dd46812ca387807708b83821bd20ebc5ae0176fb9a3be",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849498732835578/launch.json.gz": {
+      "bytes": 1148,
+      "sha256": "677c4397ada9b0b1f6e8f41350d20fb861b236f326358147d72470f348d27046",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849498732835578/qemu-stderr.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849498732835578/qmp.jsonl.gz": {
+      "bytes": 363,
+      "sha256": "5a06f84c4a7b962765b0d88e32a6c97fe6b3649b937330cf6bc23a5ddc687890",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1158407-1792849498732835578/serial.log.gz": {
+      "bytes": 16948,
+      "sha256": "e03030bd9d5edfa3256ae2b5d0770c67d5092daf05023b4dfbac5ee12e640d2b",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849715675496404/capture.json.gz": {
+      "bytes": 11692,
+      "sha256": "596770a68be13ea6c6dc0c9d371855faf8596daecfbab51d592ffa31072baa7b",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849715675496404/creche-read-only.png.gz": {
+      "bytes": 69140,
+      "sha256": "576dcbb149db3d0df18ae1007ebc9431c636c7ac3beb0b1c371332a16b6ebdf9",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849715675496404/launch.json.gz": {
+      "bytes": 1149,
+      "sha256": "f23c3b9f4dbd7bdbba95519672528238c09c8c0a7c506efae61f5687c5afdd1a",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849715675496404/qemu-stderr.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849715675496404/qmp.jsonl.gz": {
+      "bytes": 451,
+      "sha256": "24dde766b47d127405cfb2aefd7f4cc8cd4b356f6128955d2833304c4dfab963",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849715675496404/serial.log.gz": {
+      "bytes": 16939,
+      "sha256": "406e69df13bb64b7d95a976bd73dfcf54433628389727d59e32291214199cf66",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849730471716234/capture.json.gz": {
+      "bytes": 11678,
+      "sha256": "91d20d94c8771ebfd1b174e745a952bf72f7efec232416c388e90f3852cee379",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849730471716234/creche-read-only.png.gz": {
+      "bytes": 69019,
+      "sha256": "ded4825bf5af0d19db985680705473fbf82f5fa2eeae42723ff3e6d755e48eea",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849730471716234/launch.json.gz": {
+      "bytes": 1149,
+      "sha256": "a526ddd7b22a568fd91334dd4c24b9a6418b55ea16c8dde836236d4e1a4383e9",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849730471716234/qemu-stderr.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849730471716234/qmp.jsonl.gz": {
+      "bytes": 452,
+      "sha256": "e15af36472f8eaf8e64c0f544cf570d40462cbdf35a198d28f4fecbe9063050c",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/captures/riscv64-frame-1161849-1792849730471716234/serial.log.gz": {
+      "bytes": 16948,
+      "sha256": "210cfe088613027770ef64845e634f337d74362447b45ca492424439cf3eca14",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/riscv64-graphical-product-61084bb3a/boot.log.gz": {
+      "bytes": 243,
+      "sha256": "3f239346cdfb144163b288df59a1ba8cb73f158172d6c7613470f85cf3906103",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/riscv64-graphical-product-61084bb3a/build.log.gz": {
+      "bytes": 6256,
+      "sha256": "1f2e4055909c61ec46637691556d20b341a2092087126929745efbfda6afdebb",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/riscv64-graphical-product-61084bb3a/preflight.log.gz": {
+      "bytes": 10450,
+      "sha256": "479d049e22dca02324962d0f6b6730ced4c46e165af861dc74d3a5f41c0ef2ec",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/riscv64-graphical-product-61084bb3a/receipt.json.gz": {
+      "bytes": 363,
+      "sha256": "3c39440af107b83685609fc76ccc8122dcdac620153259d7f1cdfc4626f5fe3a",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/riscv64-graphical-verify-01c5e2af4/receipt.json.gz": {
+      "bytes": 385,
+      "sha256": "a3ff7ec666ee3787122d005857e767722339c0e8a4e73b979a1e45fafe713a2d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/riscv64-graphical-verify-01c5e2af4/verify.log.gz": {
+      "bytes": 344,
+      "sha256": "1800ea7c38c2dad6130c8f9779cd59ae920ccceb337f201a006ba5e352e7eeda",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/riscv64-graphical-verify-4ae571b82/receipt.json.gz": {
+      "bytes": 386,
+      "sha256": "3c64940eed20a91865c6af31b885dd3c00892eefffdcf679e1b63af294bc9d69",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/initial-attempts/riscv64-graphical-verify-4ae571b82/verify.log.gz": {
+      "bytes": 403,
+      "sha256": "82da61c6c043e5a79cf4aa667d2f75f7a2bdab14f5c89350fc2c6af7a6d00fdb",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/no-display/display.ppm.gz": {
+      "bytes": 1002,
+      "sha256": "14beb68c410ecb9087fea1d50fe14e8dfc17e50f8fd8578651d2b9142ee689a7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/no-display/serial.log.gz": {
+      "bytes": 1107,
+      "sha256": "d162fa8ef32c803f7fd660728d863a88b260c7de5619e1f325e2970a065e7ee4",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/no-display/stderr.log.gz": {
+      "bytes": 92,
+      "sha256": "68d3676dc13c2837b304dcb4e7fd9099f91f56dc1b327a88fa221a59f2d04aec",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/product-proof.json.gz": {
+      "bytes": 26946,
+      "sha256": "fdc384b4c7cd8e1b990e34c5b9282767cc273dd90eb11a8579425c065aba0730",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/second/capture.json.gz": {
+      "bytes": 11693,
+      "sha256": "c06cdd659114480334b793eab12683538ce995d6c42edd5e221f2b9aad1894ea",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/second/creche-read-only.png": {
+      "bytes": 124552,
+      "sha256": "d86b5869d238bcb30f36003aaeb8c7a6bfd5c02b48d78a799b9f9633264fd240",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/second/qemu-stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/second/serial.log.gz": {
+      "bytes": 16931,
+      "sha256": "a8b8a28d3194dba0856daa69870033d6c385ff87a7f8c94193931b5772e4bc43",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/tools/audit-riscv64-graphical-product.py.gz": {
+      "bytes": 2308,
+      "sha256": "04a9b03fdbc5d93aa89b3cf73381652922ca93566ef1eb0ac0f19c77bdb38f58",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/tools/probe-riscv64-graphical-dirty-source.py.gz": {
+      "bytes": 1385,
+      "sha256": "f27619f745d10bc8ab477a4f6e1b9de6255431150f18f56ee4d6dbaadd6fda6c",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/tools/probe-riscv64-graphical-no-display.py.gz": {
+      "bytes": 1804,
+      "sha256": "98c87254c11a6716d7260c0c7aee1748c35b6a3251a6e21ae15ed0187ae1a549",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/tools/riscv64-png-audit-helper.py.gz": {
+      "bytes": 690,
+      "sha256": "e0fa5b37b2d5850e2e4adda6cf18a910c7d4611da51855d57afbb721325959e4",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/tools/run-riscv64-graphical-product.py.gz": {
+      "bytes": 1031,
+      "sha256": "eda1b72f37fbaa5c3894bc34120969874dd912e1e8f46770c7d22ad68c183641",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/tools/verify-riscv64-graphical-product-pitch.py.gz": {
+      "bytes": 972,
+      "sha256": "bf64892b2779433f7f1fe5a0fc34d43dace8f4746fdd181885fb315edb8b94ef",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/packet-preflight.log.gz": {
+      "bytes": 10404,
+      "sha256": "3123873845864540011b830f6d28718e800a209f98b1b771461d68433eb6e9b8",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/riscv64-framebuffer-cross-check-extent.log.gz": {
+      "bytes": 3512,
+      "sha256": "80ea59cfc0608cc022ffc8feb49cb4026fc097f39cdf6538916cacf8a7aefd4b",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/riscv64-framebuffer-cross-check.log.gz": {
+      "bytes": 1952,
+      "sha256": "7fe24434cc20a6f901582ec941eb9cadef8ef22b3b788aef55e213251bf467f6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/riscv64-framebuffer-mapping-tests.log.gz": {
+      "bytes": 1719,
+      "sha256": "55831c60fea04b8954e76a22087a48da4b959e7a60f7a233cce9a542e470b81d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/riscv64-graphical-collector-pitch-tests.log.gz": {
+      "bytes": 900,
+      "sha256": "5c3d4b2ea39e51dbc8a2490d9bbe2e590b9af7603def7a26539cda602f62d68b",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/riscv64-graphical-collector-tests.log.gz": {
+      "bytes": 837,
+      "sha256": "51390085499ac22391105e9aadda5b20cb76489e019c54a8886f5a49a3538126",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/riscv64-graphical-lowering-tests.log.gz": {
+      "bytes": 2474,
+      "sha256": "adc4ba74b81bcaf9a868349c10ba8ade485b7f1236b7f845322c2dc2c7d2b12a",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/riscv64-graphical-product-cross-check.log.gz": {
+      "bytes": 3920,
+      "sha256": "88b570d6c9b6ccf403c42fc238aed4ef35fe0f0dcf8f5a166d5b7425a6a92219",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/riscv64-graphical-strict-clippy.log.gz": {
+      "bytes": 1224,
+      "sha256": "2cc407693e2b299e97620236eedc770bd6a5ce8bcd0f0315f63b3c5fc6e717de",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/strict-clippy.log.gz": {
+      "bytes": 255,
+      "sha256": "caef6c1e42e161dd5a37234db26e5f2af2f49446620017d39a3fda7e62b8ef7f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/riscv64-61084bb3a/validation/verify.log.gz": {
+      "bytes": 343,
+      "sha256": "2d1c7800ce6764b2b60b81d9203caadadd2052c2b7b6ead17475de3e92366a57",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/commands/build.log.gz": {
+      "bytes": 6448,
+      "sha256": "431d5a82c812ee91c553bebe265c9193751f8709c0ae52db05c19b8025c082fd",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/commands/journey.log.gz": {
+      "bytes": 348,
+      "sha256": "3e129012ee59f18524a6a0137cd6d04a5dba04ab4fb50b52045a85a990d34c17",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/commands/receipt-before-capture-resume.json.gz": {
+      "bytes": 485,
+      "sha256": "87b7c09944c336ce429f8474659e84c11d7389a6a2d979a3475c30423b07e791",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/commands/receipt.json.gz": {
+      "bytes": 913,
+      "sha256": "632ec9aa0f2de6548f79f0275f7402fed5812a5c684f5323aa2b6ab8c67fbacb",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/commands/seal.log.gz": {
+      "bytes": 245,
+      "sha256": "6bcb8f16385d5851e7720b384824fc0e6e1d88986cfb1b04ed6fb5666fb8531d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/firmware/x86-firmware-default-selection-without-qmp/file-access.log.gz": {
+      "bytes": 1411,
+      "sha256": "b12faa967c10c9951b3488ba85410f40cfd43b954d07539e75b65ece980b97b1",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/firmware/x86-firmware-default-selection-without-qmp/receipt.json.gz": {
+      "bytes": 1173,
+      "sha256": "1c2768eef882c5ade1fb18245e5777c8f5ee174dd671686a5acf06ab7cfbfdff",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/firmware/x86-firmware-default-selection-without-qmp/stderr.log.gz": {
+      "bytes": 91,
+      "sha256": "1376911b8e9724dfcf1675f5a0c937b2c0ede4d12d0cb8b3709b8a5fa94807dc",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/firmware/x86-firmware-default-selection/file-access.log.gz": {
+      "bytes": 711,
+      "sha256": "2691dadc0cf5fca809bb39d786f6f0f68f85963881f76f871161db1551fbee6e",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/firmware/x86-firmware-default-selection/receipt.json.gz": {
+      "bytes": 1005,
+      "sha256": "7edc24f85e58a16d9b47d57a8e920d68673fa3a39ad31a14377d9f5cbe96626d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/firmware/x86-firmware-default-selection/stderr.log.gz": {
+      "bytes": 99,
+      "sha256": "2084e6b45dfa2afe49496d05ab585359c49dc1903b6268bc4a4026e848f0d75e",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/body-playing.png": {
+      "bytes": 69629,
+      "sha256": "fb004fc92948a5f26ae10f07b449380eb3ceeb32382cf9dc24229675892c9c84",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/body-stopped.png": {
+      "bytes": 201149,
+      "sha256": "eccbefbea103a04d91591e89b5ebc9d79709108d887afa65b301166604b2c806",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-editorial-compact.png": {
+      "bytes": 160304,
+      "sha256": "e4fc45f1487eccf5fa98bb9b2c3baa247e1d6566a00c808213e2258c009242d5",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-editorial-spacious.png": {
+      "bytes": 142510,
+      "sha256": "70500f5d11b5e9cb64674f4221ac41773a02423f6650b8b33b608f27db04504c",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-engineering-compact.png": {
+      "bytes": 159549,
+      "sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-engineering-spacious.png": {
+      "bytes": 141792,
+      "sha256": "7219b0a21cb81707eeda00db91c1ebae1af6f5675b244de5e1ecf53214a39e0f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-four-restored.png": {
+      "bytes": 159682,
+      "sha256": "1f609a451791dd1700c577746a81710b8533da05eab98f96b36ba3c6e1c29c5c",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-fourth-checked.png": {
+      "bytes": 159701,
+      "sha256": "e17391956ebf148bc1c7655e82869e49ef56d13db808f60a51ccc06380c6a92d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-pointer-four-restored.png": {
+      "bytes": 159753,
+      "sha256": "23468944a9898a58edb7dc942b6b0ecd4be74c249ba2e4af03790c33361fdd08",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-pointer-three-selected.png": {
+      "bytes": 159823,
+      "sha256": "38683af47db8a20fd47263f91b7f8992a7f96b70c595514dfed54c430a6cf8c7",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-ready.png": {
+      "bytes": 159549,
+      "sha256": "faf3c73b7d0188df6dbe58de251541409f9acd440d1556860e163faeb71038a6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/creche-three-selected.png": {
+      "bytes": 159754,
+      "sha256": "d8056a5dfaa081eba37a7eb241c3d95412d95fa78ee6e2d644abb680db92f5d9",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/front-door-ready.png": {
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/home-returned.png": {
+      "bytes": 57894,
+      "sha256": "9ae7dfe10704d68a67508670f5a413b4197cc30a63b139f3cf67050bf6ba07e6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/home.png": {
+      "bytes": 69629,
+      "sha256": "fb004fc92948a5f26ae10f07b449380eb3ceeb32382cf9dc24229675892c9c84",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/manifest.json.gz": {
+      "bytes": 22151,
+      "sha256": "8314719f9bad6e6be1e1c0ed3bc59211e13c28b25f49416fdad900a69a136738",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-diagram-returned.png": {
+      "bytes": 153231,
+      "sha256": "bd8e3dcd2e67beeaa076c4cd6ff2aa03cdf1a35979cbb2bbe21403db63066044",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-diagram.png": {
+      "bytes": 153567,
+      "sha256": "8317450081291ec96fdf112693e61121c5cc0101770dfaa8d33752294ecaa17b",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-face.png": {
+      "bytes": 157408,
+      "sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-gear-details.png": {
+      "bytes": 244399,
+      "sha256": "c9909ce6dc3ffdf79cd75f0a3f26b5fd1dd4cd42779c464ac0526b4b75f4a1f3",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-inspected-other-and-returned.png": {
+      "bytes": 157408,
+      "sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-mask-replanned.png": {
+      "bytes": 146202,
+      "sha256": "e3702ab85485d777ee2a882d38640dcde9a1650ac00cf70302596c8a8085aa11",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-reentered.png": {
+      "bytes": 57151,
+      "sha256": "67e33ec7b0de1e58d0d04a33e98fb8f493816afe8c1c037770e0296acdadc96f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-source-editor-loaded.png": {
+      "bytes": 102497,
+      "sha256": "b25012d83b2c928cf6ab89bb3d2e533283a57a526ce68670a56c0427961f63de",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/patchbay-workspace.png": {
+      "bytes": 157408,
+      "sha256": "da7ba1d1c4bd10b2bb7676f7d471e8c2d21459e2b330f6401c399ef89cd673c6",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/protected-keyboard-canvas.png": {
+      "bytes": 70870,
+      "sha256": "b36c46c395dfadee711dc81b94a297efdbf3ef71d2565be5b5f5c9cc88f41a25",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/protected-memory-lantern.png": {
+      "bytes": 64177,
+      "sha256": "93292a113dd32d1e80901692aa89768cd86f9e6b17d7f0f326a0ec7f307dbd86",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/frames/wake-refused.png": {
+      "bytes": 128566,
+      "sha256": "1036db0419c7e5a85266a7446f4c6a1342c45649246cbd922a675da80e79a4b0",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/build.json.gz": {
+      "bytes": 238,
+      "sha256": "f9aa3583440132c1242bf0ab5d7de2f9b5bde44ca643c592945a16b99f606674",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/compositor-lifecycle-proof.json.gz": {
+      "bytes": 3054,
+      "sha256": "dc1b8d8017e30668ff3e6c609ac82e323bf67e0f1b5a818cb9653e576d98340d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/image.json.gz": {
+      "bytes": 241,
+      "sha256": "e8b756ba5152ce375d32f84d0c03763278cdf23ba0ace30390f3b7ee524ff990",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/journey-proof.json.gz": {
+      "bytes": 108900,
+      "sha256": "096fc380380f51d4fabdfa3b822775f43099b4073a74b1e26553835601535813",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/journey-qemu-stderr.log.gz": {
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/journey-qmp.log.gz": {
+      "bytes": 12154,
+      "sha256": "20e2de1dca99808141560590d56fa3fdf27e9337e4b008b8d38ec93276f2c58d",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/journey-serial.log.gz": {
+      "bytes": 215178,
+      "sha256": "f0ffdfa3d7f30adae905c26b8d5c86fd5fc0a8e7654fee40348742b153a5e908",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/memory-lantern-native-edit.json.gz": {
+      "bytes": 2311,
+      "sha256": "e4f4974cdfb516d955011e72320043ea98caf15ac9474ca11b91fb575293c011",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/native-shell-paired-linear.json.gz": {
+      "bytes": 346978,
+      "sha256": "05bb8ddcc37b6751a3c11406c9d0a114cd6220197f6c44198a6a31baa42a462c",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/privilege-inventory-22a3ae3a4745581034c378ecac8ad3472e519f072f16f798933b2f022ba268ab-product-host.json.gz": {
+      "bytes": 8385,
+      "sha256": "535241d038eb930e0a8ec6685cf73d6e360801ee15686ec2b21f82fe59ebe113",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    },
+    "targets/conduitos/proof/firmware-frame/x86_64-abd896d14/proof/x86_64-product-journey-proof.json.gz": {
+      "bytes": 111740,
+      "sha256": "5f001e256384a0882c8ee2b83918d43f7c336c0e32e197bedb1939a2bc38721f",
+      "consumer": "Firmware frame comparison documented in docs/proof/conduitos-firmware-frame-comparison.md"
+    }
+  }
+}

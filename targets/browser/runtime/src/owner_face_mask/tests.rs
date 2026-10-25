@@ -348,3 +348,72 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
         }
     }
 }
+
+#[test]
+fn complete_configured_looks_round_trip_within_existing_route_budget() {
+    use conduit_face::{ComponentMaskLook, TodoComponentRecipe};
+    let mut owner = crate::installed_browser::membership_advertisement(
+        HostId::from("owner"),
+        BootId::from("owner/boot"),
+    );
+    owner.capabilities.clear();
+    let mut browser = crate::installed_browser::membership_advertisement(
+        HostId::from("browser"),
+        BootId::from("browser/boot"),
+    );
+    browser.capabilities = vec![conduit_browser_mask_offer::configured_offer()];
+    let line = |name: &str,
+                source: &conduit_core::HostAdvertisement,
+                sink: &conduit_core::HostAdvertisement| {
+        let mut line = process_owned_line_offer_with_limits(
+            name,
+            &format!("binding/{name}"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            "websocket/test",
+            source,
+            sink,
+            conduit_core::LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: 64 * 1024,
+                maximum_frame_bytes: 64 * 1024,
+                maximum_buffered_bytes: 256 * 1024,
+            },
+        );
+        line.contract = conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0].contract;
+        line
+    };
+    let face = line("face", &owner, &browser);
+    let returning = line("show", &browser, &owner);
+    let interaction = line("interaction", &browser, &owner);
+    for look in [
+        ComponentMaskLook::Compact,
+        ComponentMaskLook::Spacious,
+        ComponentMaskLook::CompactEditorial,
+        ComponentMaskLook::SpaciousPhosphor,
+    ] {
+        for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
+            let planned = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
+                &browser,
+                &owner,
+                &face,
+                &returning,
+                &interaction,
+                conduit_face::TODO_COMPONENT_MASK_SOURCE,
+                conduit_face::todo_component_mask_root(look, recipe),
+            )
+            .unwrap();
+            let bytes = serde_json::to_vec(&planned).unwrap();
+            eprintln!("configured {look:?}/{recipe:?}: {} bytes", bytes.len());
+            assert!(
+                bytes.len() < 32 * 1024,
+                "reserve space for route witnesses within 40 KiB"
+            );
+            let restored: conduit_face::PlannedMaskPlot = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(restored, planned);
+            assert!(conduit_core::verify_plan(&restored.plan));
+        }
+    }
+}
+
+#[path = "view_budget_tests.rs"]
+mod view_budget_tests;

@@ -16,7 +16,7 @@ checks complete clearing. Alloc and linear-ready reference suites each pass
 Clippy pass. Live pending-table lookup behavior and request ordering are unchanged.
 
 The [receipt](evidence/empty-host-table-replay.json),
-[raw capture](evidence/empty-host-table-replay-raw.tar.gz) and
+[raw capture](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) and
 [verifier](../../proof/performance/verify-empty-host-replay.py) retain 64 paired
 instrumented native replays: 1/8/32/256 nodes, sparse and loaded, eight trials.
 Exact outputs, Signs, remote evidence, readiness, value accounting and other

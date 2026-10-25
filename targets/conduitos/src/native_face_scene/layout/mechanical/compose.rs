@@ -62,6 +62,20 @@ pub(super) fn arrange(
     {
         return Err(FaceSceneError::DocumentBound);
     }
+    // Only an ancestor containing one explicit recipe group contributes to
+    // that group's surface. Inspect every fragment, not just the current page:
+    // a mixed root must not become a card merely because pagination splits it.
+    let surface_group = result
+        .iter()
+        .flat_map(|fragment| &fragment.entries)
+        .next()
+        .and_then(|entry| entry.row.region)
+        .filter(|region| {
+            result
+                .iter()
+                .flat_map(|fragment| &fragment.entries)
+                .all(|entry| entry.row.region == Some(*region))
+        });
     for fragment in &mut result {
         if matches!(group.breaks, Break::Keep) {
             for (index, entry) in fragment.entries.iter_mut().enumerate() {
@@ -69,6 +83,9 @@ pub(super) fn arrange(
             }
         }
         for entry in &mut fragment.entries {
+            if surface_group.is_some() {
+                entry.row.region_inset = add(entry.row.region_inset, group.padding)?;
+            }
             entry.outer_padding = add(entry.outer_padding, group.padding)?;
             if let Some(extent) = &mut entry.extent {
                 extent.inset = add(extent.inset, group.padding)?;

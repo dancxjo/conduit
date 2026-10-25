@@ -168,3 +168,7 @@ mod grid_tests;
 #[cfg(test)]
 #[path = "mechanical/minimum_tests.rs"]
 mod minimum_tests;
+
+#[cfg(test)]
+#[path = "mechanical/control_cluster_tests.rs"]
+mod control_cluster_tests;

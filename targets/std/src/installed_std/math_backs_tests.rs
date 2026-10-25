@@ -187,3 +187,59 @@ fn cancellation_clears_pending_transform_without_inventing_output() {
     );
     assert!(!io.test_host_completion_consumed());
 }
+
+#[test]
+fn completion_waits_for_the_entire_value_without_consuming_or_poisoning_the_step() {
+    let size = conduit_core::QUANTITY_ENCODED_LEN as u32;
+    let output = ValueRef {
+        byte_len: size,
+        ..value(2)
+    };
+    let outcome = HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
+        output: Some(BoundedValueRef::new(output, size).unwrap()),
+        failure: None,
+    };
+    let mut active = MathScalarBack {
+        pending: Some(RequestId(0)),
+        completed: false,
+        input_bytes: SCALAR_ENCODED_LEN as u32,
+        output_bytes: size,
+    };
+    for capacity in [None, Some(0), Some(1), Some(size - 1)] {
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [capacity],
+            Some((RequestId(0), outcome)),
+            8,
+        );
+        assert_eq!(
+            active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Await
+        );
+        assert!(!io.test_host_completion_consumed());
+        assert_eq!(io.test_output(PortId(0)), None);
+        assert_eq!(io.test_fault(), None);
+        assert_eq!(active.pending, Some(RequestId(0)));
+    }
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(size)],
+        Some((RequestId(0), outcome)),
+        8,
+    );
+    assert_eq!(
+        active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert!(io.test_host_completion_consumed());
+    assert_eq!(io.test_output(PortId(0)), Some(output));
+    let mut io = StepIo::test_frame([None], [false], [Some(size)], None, 8);
+    assert_eq!(
+        active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
+    );
+    assert_eq!(io.test_output(PortId(0)), None);
+}

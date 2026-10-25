@@ -6,7 +6,7 @@ use conduit_face::*;
 use conduit_plot::{CanonicalBackCatalog, expand_canonical_plot_for_authoring_with_backs};
 
 pub const NATIVE_COMPONENT_RENDERER_KIND: &str = "face/native-component-resource-mask";
-const BACK_SOURCE: &str = "plot native-component-back (\n label: Text\n recipe: ComponentRecipeInfo\n expression: VisualExpressionInfo\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: face/tee(\"Shared Face\")\n surface: face/show-resource-source(\"Output resource\")\n render: face/native-component-resource-mask(label = label, recipe = recipe, expression = expression)\n human: face/interaction(\"User actions\")\n face >> spread.source\n spread.face >> render.face\n surface.show-resource >> render.show-resource\n spread.face >> human.face\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
+const BACK_SOURCE: &str = "plot native-component-back (\n label: Text\n recipe: ComponentRecipeInfo\n look: LookInfo\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: face/tee(\"Shared Face\")\n surface: face/show-resource-source(\"Output resource\")\n render: face/native-component-resource-mask(label = label, recipe = recipe, look = look)\n human: face/interaction(\"User actions\")\n face >> spread.source\n spread.face >> render.face\n surface.show-resource >> render.show-resource\n spread.face >> human.face\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
 
 pub fn configured_resource_renderer_kind() -> Kind {
     configured_resource_renderer_kind_for_profile(NativeMaskStorageProfile::Standard)
@@ -17,7 +17,7 @@ fn configured_resource_renderer_kind_for_profile(profile: NativeMaskStorageProfi
     let mut kind = resource_renderer_kind();
     kind.kind_id = kind_id(NATIVE_COMPONENT_RENDERER_KIND);
     kind.kind_contract_revision =
-        KindIdentity::from("conduit.face/native-component-resource-mask@1");
+        KindIdentity::from("conduit.face/native-component-resource-mask@2");
     kind.startup_parameters = component.startup_parameters;
     kind.configuration = component.configuration;
     kind
@@ -108,10 +108,40 @@ pub fn prepare_selected_creche_stage_from_offer(
     recipe: CrecheComponentRecipe,
     selection: ComponentVisualSelection,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    prepare_typographic_creche_stage_from_offer(
+        host,
+        recipe,
+        selection,
+        VisualTypography::Editorial,
+    )
+}
+
+/// Admit a complete canonical Look before publishing new typography/hit regions.
+pub fn prepare_typographic_creche_stage_from_offer(
+    host: &HostAdvertisement,
+    recipe: CrecheComponentRecipe,
+    selection: ComponentVisualSelection,
+    typography: VisualTypography,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
     layout_configured::prepare_offered_component_document(
         host,
         (CRECHE_COMPONENT_MASK_SOURCE, CRECHE_LAYOUT_MASK_SOURCE),
-        selection.creche_root(recipe),
+        selection.creche_root_with_typography(recipe, typography),
+        NativeMaskStorageProfile::Standard,
+    )
+}
+
+/// Select an exact complete navy Look through the ordinary reviewed Source path.
+pub fn prepare_navy_creche_stage_from_offer(
+    host: &HostAdvertisement,
+    recipe: CrecheComponentRecipe,
+    selection: ComponentVisualSelection,
+    typography: VisualTypography,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    layout_configured::prepare_offered_component_document(
+        host,
+        (CRECHE_COMPONENT_MASK_SOURCE, CRECHE_LAYOUT_MASK_SOURCE),
+        selection.creche_navy_root(recipe, typography),
         NativeMaskStorageProfile::Standard,
     )
 }
@@ -179,7 +209,7 @@ pub(super) fn prepare_renderer_document(
     install_mask_plot_value_aliases(&mut startup).map_err(|_| MaskOfferError::InvalidPlan)?;
     for (alias, schema) in [
         ("ComponentRecipeInfo", component_recipe_type()),
-        ("VisualExpressionInfo", visual_expression_type()),
+        ("LookInfo", look_type()),
     ] {
         let profile = schema.profile().map_err(|_| MaskOfferError::InvalidPlan)?;
         startup
@@ -302,7 +332,9 @@ pub(super) fn prepare_renderer_document(
 
 #[cfg(test)]
 mod tests {
+    mod typography;
     use super::*;
+    use conduit_plot::rust_binding::NativeRustBinding;
     fn host() -> HostAdvertisement {
         let provider = BaseProviderEntry {
             base_id: "native/component/framebuffer".into(),
@@ -340,7 +372,7 @@ mod tests {
                     .unwrap();
             assert_eq!(a.component, b.component);
             assert_eq!(a.recipe, b.recipe);
-            assert_ne!(a.expression, b.expression);
+            assert_ne!(a.look, b.look);
             assert_ne!(
                 compact.planned_mask.plan.plan_id,
                 spacious.planned_mask.plan.plan_id
@@ -376,7 +408,7 @@ mod tests {
             assert_eq!(stage.planned_mask.mask.plot_name, recipe.root());
             configurations.push(configuration);
         }
-        assert_eq!(configurations[0].expression, configurations[1].expression);
+        assert_eq!(configurations[0].look, configurations[1].look);
         assert_ne!(configurations[0].recipe, configurations[1].recipe);
         let mut foreign = host;
         foreign
@@ -419,11 +451,12 @@ mod tests {
                             )
                         }
                         .unwrap();
+                        let resource = configuration.requested_look().unwrap();
+                        let LookVisualFacetOption::Some(visual) = resource.visual() else {
+                            panic!("visual facet")
+                        };
                         let expression = visual_expression_from_info(
-                            StructuredInfoValue::from_canonical_bytes(
-                                configuration.expression.canonical_value(),
-                            )
-                            .unwrap(),
+                            visual.expression().clone().into_structured().unwrap(),
                         )
                         .unwrap();
                         assert_eq!((expression.density, expression.palette), (density, palette));

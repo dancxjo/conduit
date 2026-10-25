@@ -279,7 +279,7 @@ microseconds. These include loop/black-box costs, are native scoped batches,
 and establish neither whole-scheduler CPU share nor a removable Sign tax.
 Normal Plan/Play Signs remain mandatory. Hardware cycles/instructions/branch
 misses are unavailable: local `perf` refused under `perf_event_paranoid=4`;
-[evidence/std-host-call-index-20261017-perf-counter-refusal.log](evidence/std-host-call-index-20261017-perf-counter-refusal.log)
+[evidence/std-host-call-index-20261017-perf-counter-refusal.log](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
 retains the refusal. Unavailable counters are not zero or estimated from wall.
 
 ## Reproduce, inspect and browser boundary

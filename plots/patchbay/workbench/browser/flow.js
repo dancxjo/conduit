@@ -127,10 +127,14 @@ function presentEdges(edges) {
     ...edge,
     className: `flow-cord ${edge.className || ""}`.trim(),
     markerEnd: { type: Flow.MarkerType.ArrowClosed },
+    // React Flow supplies inline white badge paint. Bind its presentation props
+    // to the selected Look so dark and forced-color labels retain contrast.
+    labelBgStyle: { fill: "var(--conduit-surface)" },
+    labelStyle: { fill: "var(--conduit-text-primary)" },
   }));
 }
 
-function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onOpenBack, onWorkspaceChange, lens, selectionGroup }) {
+function Workspace({ surface, snapshot, onSelect, onConnect, onConnectStart, onClear, onOpenBack, onWorkspaceChange, lens, selectionGroup, noticeTarget }) {
   const [openedBacks, setOpenedBacks] = React.useState(() => new Set());
   React.useEffect(() => setOpenedBacks(new Set()), [
     snapshot.face.basis.checked_plot_id,
@@ -149,12 +153,19 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
   const mounted = React.useRef(false);
   React.useEffect(() => {
     let active = true;
+    const fitUnretained = () => requestAnimationFrame(() => {
+      if (!active || currentScene?.workspaceIdentity !== projected.workspaceIdentity) return;
+      const viewport = instance?.getViewport();
+      if (viewport && ["x", "y", "zoom"].every(key => viewport[key] === initial.viewport[key]))
+        instance.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 });
+    });
     if (projected.basis && admittedStorage && !retainedScenes.has(storageKey(projected.workspaceIdentity))) {
       admittedStorage.readJson(storageKey(projected.workspaceIdentity)).then(async (document) => {
         if (!active) return;
         if (typeof document !== "string") {
           loadedWorkspaces.add(projected.workspaceIdentity);
           if (currentScene?.workspaceIdentity === projected.workspaceIdentity) persist(currentScene);
+          fitUnretained();
           return;
         }
         const decoded = decodeWorkspace(document, projected);
@@ -173,6 +184,7 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
         if (!active) return;
         workspaceRefusals.set(projected.workspaceIdentity, error.code || error.message);
         currentScene = { ...currentScene, storageRefusal: error.code || error.message };
+        fitUnretained();
         onWorkspaceChange?.(flowWorkspaceStatus());
       });
     }
@@ -205,7 +217,23 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
     setEdges(presentEdges(document ? applyWorkspace(document, projected).edges : projected.edges));
   }, [projected.workspaceIdentity, projected.lens, openedBacks, snapshot.face.identity, snapshot.face.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision, snapshot.authoring?.connection_candidates]);
   arrangeCurrent = () => {
-    const next = reconcileFlowScene(projected);
+    // Measure this renderer's actual cards at the current text size. Arrangement
+    // is explicit: a font or viewport change cannot discard saved positions.
+    const measurements = new Map(), ids = new Set(projected.nodes.map(node => node.id));
+    const zoom = instance?.getViewport().zoom || 1;
+    for (const element of surface.querySelectorAll('.react-flow__node')) {
+      if (!ids.has(element.dataset.id)) continue;
+      const bounds = element.getBoundingClientRect();
+      if (bounds.width > 0 && bounds.height > 0)
+        measurements.set(element.dataset.id, { width: bounds.width / zoom, height: bounds.height / zoom });
+    }
+    let next;
+    try { next = reconcileFlowScene(projected, null, measurements); }
+    catch (error) {
+      if (currentScene) currentScene = { ...currentScene, storageRefusal: error.message };
+      onWorkspaceChange?.(flowWorkspaceStatus());
+      return;
+    }
     setNodes(next.nodes);
     persist(next);
     requestAnimationFrame(() => instance?.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 }));
@@ -241,6 +269,8 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
     .slice(-8)
     .map((activity) => `${activity.subject}: ${activity.latest_kind}${activity.latest_value ? ` ${activity.latest_value.summary}` : ""}`)
     .join("; ");
+  const geometryNotice = omittedCords > 0 && e("p", { className: "flow-geometry-notice", role: "status" },
+    `${drawnCords}/${projected.cordCount} projected Cords drawn · ${omittedCords} omitted from diagram. Exact Face facts remain available.`);
   return e(
     React.Fragment,
     null,
@@ -299,15 +329,16 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
       minZoom: 0.2,
       maxZoom: 3,
       defaultViewport: initial.viewport,
-      fitView: restore(projected) === null,
+      // Storage may restore a user viewport after mount; never race it with
+      // React Flow's deferred initial fit. Fit fresh workspaces after the read.
+      fitView: (!admittedStorage || !projected.basis) && restore(projected) === null,
       fitViewOptions: { maxZoom: 1.1, padding: 0.18 },
       proOptions: { hideAttribution: false },
     },
     e(Flow.Background, { gap: 24, size: 1 }),
     e(Flow.Controls, { position: "bottom-right", showInteractive: false }),
     ),
-    omittedCords > 0 && e("p", { className: "flow-geometry-notice", role: "status" },
-      `${drawnCords}/${projected.cordCount} projected Cords drawn · ${omittedCords} omitted from diagram. Exact Face facts remain available.`),
+    noticeTarget ? ReactDOM.createPortal(geometryNotice, noticeTarget) : geometryNotice,
     e("p", { className: "debugger-live-region", "aria-live": "polite", "aria-atomic": "true" }, liveSummary),
   );
 }
@@ -318,6 +349,7 @@ export function renderFlow(snapshot, handlers) {
   root = rootFor(target);
   const { target: _target, ...workspaceHandlers } = handlers;
   root.render(e(Workspace, {
+    surface: target,
     snapshot,
     ...workspaceHandlers,
     selectionGroup: `patchbay-flow-${target.id || snapshot.face.identity}`,

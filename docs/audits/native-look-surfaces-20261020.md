@@ -33,7 +33,7 @@ The actual one-CPU QEMU product journey completed **22 checkpoints and 22 screen
 
 Inspected real Crèche, Home, Body playing and Patchbay diagram PNGs. The Crèche shows antialiased rounded inset cards, a filled primary Birth action with dark high-contrast text, quiet secondary outlines, serif title, measured Sans controls, gold field focus and a half-width 1/2 page bar. Backgrounds precede text and do not erase it. The default Crèche's checked Source expression remains compact Phosphor at 100%; this capture does **not** assert actual editorial selection, two-Look swap or forced-color product acceptance. Editorial palette/density combinations remain covered by CPU tests only.
 
-![Actual default Crèche on 7d5aacbab](evidence/native-look-surfaces-20261020/product-capture/x86_64/journey-frames/front-door-ready.png)
+[Archived image: Actual default Crèche on 7d5aacbab](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
 
 Deliberate differences from the #6174 illustration: exact source-owned names/order/values and available actions remain authoritative; the primary action remains in its existing full-width checked placement and uses dark label ink; no new shadow/gradient operation, italic resource or icon binding is invented. Card field arrangement/continuation is not redesigned here (#6159, and explicitly skipped #6158). The product Home/Body use their existing renderer paths, not a falsely unified scene implementation.
 

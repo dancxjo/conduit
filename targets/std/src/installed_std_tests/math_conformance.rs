@@ -1,3 +1,6 @@
+mod cord_capacity;
+mod quantity_fixture;
+
 use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions, RecordingTimer};
 use conduit_core::{ArtifactId, ObservationKind, TerminalDisposition, SCALAR_ENCODED_LEN};
 use conduit_planner::{default_placements, plan_with_options};
@@ -182,89 +185,16 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
 }
 
 fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, crate::StdRunReport) {
-    let mut catalog = installed_std::test_catalog();
-    catalog
-        .insert_kind(
-            conduit_semantic_catalog::scalar_literal_contract().into_semantic_contract(
-                conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION,
-            ),
-        )
-        .unwrap();
-    let value_type = conduit_semantic_catalog::wrapped_quantity_type();
-    catalog
-        .insert_kind(conduit_semantic_catalog::structured_face_semantic_contract(
-            "Quantity",
-            &value_type,
-        ))
-        .unwrap();
-    let syntax = conduit_plot::parse_syntax_document(source);
-    let mut startup = catalog.startup_catalog().unwrap();
-    startup
-        .insert_value_kind_alias(
-            "Scalar",
-            conduit_core::kind_id(conduit_core::SCALAR_INFO_ID),
-        )
-        .unwrap();
-    startup
-        .insert_value_kind_alias(
-            "Quantity",
-            conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
-        )
-        .unwrap();
-    let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
-    let plot = conduit_plot::expand_canonical_plot(&checked, entry, &catalog).unwrap();
-    let limits = plot
-        .connections
-        .iter()
-        .map(|cord| {
-            let bytes = if cord.value_kind.as_str() == conduit_core::SCALAR_INFO_ID {
-                8
-            } else if cord.value_kind.as_str() == conduit_core::QUANTITY_INFO_ID {
-                conduit_core::QUANTITY_ENCODED_LEN as u32
-            } else {
-                conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32
-            };
-            (
-                (
-                    cord.source_gear_id.clone(),
-                    cord.source_port_id.clone(),
-                    cord.sink_gear_id.clone(),
-                    cord.sink_port_id.clone(),
-                ),
-                conduit_planner::ConnectionQueueLimits {
-                    item_capacity: 1,
-                    byte_capacity: bytes,
-                },
-            )
-        })
-        .collect();
-    let mut advertisement = host("quantity-output-host").advertisement().clone();
-    advertisement
-        .capabilities
-        .push(conduit_std_offers::structured_face_std_offer(
-            "Quantity",
-            &value_type,
-        ));
-    advertisement
-        .capabilities
-        .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    let (plot, advertisement) = quantity_fixture::prepare(source, entry);
     let hosts = [advertisement.clone()];
     let placements = conduit_planner::default_expanded_placements(&plot, &hosts).unwrap();
-    let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
+    // Exercise ordinary queue inference: hand-written capacities hid the
+    // missing canonical Quantity/envelope bounds in the product path.
+    let plan = conduit_planner::plan_expanded_canonical(
         &plot,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
-        PlanningOptions {
-            connection_bases: &BTreeMap::new(),
-            line_candidates: &BTreeMap::new(),
-            connection_item_capacity: 1,
-            connection_byte_capacity: SCALAR_ENCODED_LEN as u32,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
-        &limits,
     )
     .unwrap();
     let mut output = Vec::new();
@@ -295,7 +225,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
 }
 
 #[test]
-fn canonical_quantity_face_completes_through_the_installed_back() {
+fn canonical_quantity_face_completes_with_default_queues_through_the_installed_back() {
     let source = r#"plot quantity_face {
  source: scalar/literal(value = -1)
  map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = %)

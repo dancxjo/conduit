@@ -105,6 +105,11 @@ Avoid adding new checklists or repeating architecture rules across guides.
 
 ## Verify the change
 
+Keep raw proof captures outside Git; retain only small receipts and named test or
+publication consumers. Do not restore archived captures when bringing forward
+older branches; use their existing archive links. See the
+[keep/archive/discard rules](docs/contributing/evidence-retention.md).
+
 Start with the ordinary local integration loop:
 
 ```sh

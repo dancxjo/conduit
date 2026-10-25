@@ -1,7 +1,7 @@
 //! Bounded pinned TLS exchanges for the existing finite owner return protocol.
 use conduit_body::{
     PortableAdmissionReceipt, PortableInvitation, RendezvousCandidate, RoutedAdmissionRequest,
-    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
+    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_face::{
     Face, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
@@ -79,7 +79,7 @@ impl OwnerRoute {
         let receipt: PortableAdmissionReceipt =
             match receive::<RoutedAdmissionResponse>(&mut line, ADMISSION)? {
                 RoutedAdmissionResponse::Admitted { schema, receipt }
-                    if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA =>
+                    if conduit_body::supported_routed_admission_response_schema(&schema) =>
                 {
                     *receipt
                 }

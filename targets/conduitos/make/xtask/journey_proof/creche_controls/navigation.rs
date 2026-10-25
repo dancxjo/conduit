@@ -71,14 +71,47 @@ impl Run<'_> {
         initial: &Snapshot,
         label: &str,
     ) -> Result<Vec<Value>, ConduitosError> {
+        self.page_walk(initial, label, false)
+    }
+    /// One Look per run retains every page within the same raw-record ceiling.
+    pub(super) fn details_pages(
+        &mut self,
+        initial: &Snapshot,
+        label: &str,
+    ) -> Result<Vec<Value>, ConduitosError> {
+        self.page_walk(initial, label, true)
+    }
+    fn page_walk(
+        &mut self,
+        initial: &Snapshot,
+        label: &str,
+        budgeted: bool,
+    ) -> Result<Vec<Value>, ConduitosError> {
         let start = snapshot(&text(self.serial)?)?;
         unchanged(initial, &start)?;
+        let limit = super::super::super::proof_viewport::MAX_RECORDS;
         let count = start.focus["pages"]
             .as_u64()
-            .filter(|n| *n > 0 && *n <= 24)
+            .filter(|n| *n > 0 && *n <= if budgeted { limit as u64 } else { 24 })
             .ok_or_else(|| refusal("page count outside finite capture profile"))?;
-        // PageUp is clamped; each real report is observed even at an endpoint.
-        for _ in 0..count {
+        let reset = if budgeted {
+            start.focus["page"]
+                .as_u64()
+                .filter(|page| *page > 0 && *page <= count)
+                .ok_or_else(|| refusal("current Details page outside declared count"))?
+        } else {
+            count
+        };
+        if budgeted
+            && rows(&text(self.serial)?, FOCUS)?.len() as u64 + reset + count + 8 > limit as u64
+        {
+            return Err(refusal(
+                "complete Details walk exceeds remaining raw focus budget",
+            ));
+        }
+        // One extra PageUp observes the clamped first endpoint, even when
+        // starting near the end; no unobserved reset or synthetic page exists.
+        for _ in 0..reset {
             self.press(&["pgup"])?;
         }
         let mut pages = Vec::new();

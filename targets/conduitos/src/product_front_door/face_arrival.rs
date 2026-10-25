@@ -393,6 +393,7 @@ impl FaceArrival {
                     .find(|hit| Some(hit.control) == scene.focused())
                     .map(|hit| hit.bounds),
                 display_bounds: scene.bounds(),
+                showing_details: scene.showing_details(),
             },
         )
     }

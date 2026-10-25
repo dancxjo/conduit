@@ -112,3 +112,19 @@ fn layout_fingerprint_is_required_and_same_structure_looks_cannot_substitute_it(
         assert!(unchanged_structure(&original, &structure_identity(&changed)).is_err());
     }
 }
+
+#[test]
+fn canonical_look_identity_rejects_retired_selection_ids() {
+    assert_eq!(CHOICES[0].identity, "conduit.look/phosphor-spacious@1");
+    assert_eq!(CHOICES[1].identity, conduit_face::PHOSPHOR_LOOK_ID);
+    let (record, before, fresh, boot) = fixture();
+    for identity in [
+        "conduit.face/spacious-phosphor@1",
+        "conduit.face/compact@1",
+        "conduit.presentation/phosphor@1",
+    ] {
+        let mut retired = record.clone();
+        retired["expression"]["expression"]["identity"] = json!(identity);
+        assert!(fields(&retired, &before, &fresh, &boot, CHOICES[0]).is_err());
+    }
+}

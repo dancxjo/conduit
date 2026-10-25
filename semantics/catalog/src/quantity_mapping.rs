@@ -78,7 +78,7 @@ impl QuantityMapping {
         let remainder = numerator.rem_euclid(denominator);
         let steps = match mapping.quantization {
             QuantizationPolicy::Exact if remainder != 0 => {
-                return Err(QuantityMappingRefusal::Inexact)
+                return Err(QuantityMappingRefusal::Inexact);
             }
             QuantizationPolicy::Exact => lower_steps,
             QuantizationPolicy::Nearest if remainder * 2 >= denominator => lower_steps + 1,
@@ -165,20 +165,7 @@ pub fn normalized_distance_map_contract() -> StandardKindContract {
 }
 
 pub fn quantity_map_semantic_contract() -> Kind {
-    let contract = quantity_map_contract();
-    Kind {
-        startup_parameters: crate::startup_front(&contract.configuration),
-        shorthand: None,
-        kind_id: contract.kind_id,
-        kind_contract_revision: QUANTITY_MAP_REVISION.into(),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        configuration: contract.configuration,
-        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
-            contract.terminal_behavior
-        )],
-        limits: contract.limits,
-    }
+    quantity_map_contract().into_semantic_contract(QUANTITY_MAP_REVISION)
 }
 
 #[cfg(feature = "plot-catalog")]

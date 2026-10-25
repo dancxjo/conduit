@@ -1,7 +1,7 @@
 //! Finite checked Source-root selection; this is not a Look wire format.
-//! The selected root still supplies canonical VisualExpressionInfo for admission.
+//! The selected root supplies complete canonical LookInfo for admission.
 use super::{ComponentMaskLook, CrecheComponentRecipe, TodoComponentRecipe};
-use crate::{VisualDensity, VisualPalette};
+use crate::{VisualDensity, VisualPalette, VisualTypography};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ComponentVisualSelection {
@@ -84,6 +84,57 @@ impl ComponentVisualSelection {
             (Grouped, Spacious, Editorial) => "todo-mask-grouped-spacious",
         }
     }
+    /// Typography selects another complete checked Look resource, never a
+    /// mutation of the prepared Mask or its authoritative Face.
+    pub const fn creche_root_with_typography(
+        self,
+        recipe: CrecheComponentRecipe,
+        typography: VisualTypography,
+    ) -> &'static str {
+        if matches!(typography, VisualTypography::Editorial) {
+            return self.creche_root(recipe);
+        }
+        use {CrecheComponentRecipe::*, VisualDensity::*, VisualPalette::*};
+        match (recipe, self.density, self.palette) {
+            (SingleColumn, Compact, Phosphor) => "creche-mask-single-engineering",
+            (SingleColumn, Compact, Editorial) => {
+                "creche-mask-single-compact-editorial-engineering"
+            }
+            (SingleColumn, Spacious, Phosphor) => {
+                "creche-mask-single-spacious-phosphor-engineering"
+            }
+            (SingleColumn, Spacious, Editorial) => "creche-mask-single-spacious-engineering",
+            (ResponsiveColumns, Compact, Phosphor) => "creche-mask-columns-engineering",
+            (ResponsiveColumns, Compact, Editorial) => {
+                "creche-mask-columns-compact-editorial-engineering"
+            }
+            (ResponsiveColumns, Spacious, Phosphor) => {
+                "creche-mask-columns-spacious-phosphor-engineering"
+            }
+            (ResponsiveColumns, Spacious, Editorial) => "creche-mask-columns-spacious-engineering",
+        }
+    }
+    /// Reviewed navy roots reuse the exact same checked component structures.
+    pub const fn creche_navy_root(
+        self,
+        recipe: CrecheComponentRecipe,
+        typography: VisualTypography,
+    ) -> &'static str {
+        use {CrecheComponentRecipe::*, VisualDensity::*, VisualTypography::*};
+        match (recipe, self.density, typography) {
+            (SingleColumn, Compact, Editorial) => "creche-mask-single-navy",
+            (SingleColumn, Spacious, Editorial) => "creche-mask-single-navy-spacious",
+            (SingleColumn, Compact, Engineering) => "creche-mask-single-navy-engineering",
+            (SingleColumn, Spacious, Engineering) => "creche-mask-single-navy-spacious-engineering",
+            (ResponsiveColumns, Compact, Editorial) => "creche-mask-columns-navy",
+            (ResponsiveColumns, Spacious, Editorial) => "creche-mask-columns-navy-spacious",
+            (ResponsiveColumns, Compact, Engineering) => "creche-mask-columns-navy-engineering",
+            (ResponsiveColumns, Spacious, Engineering) => {
+                "creche-mask-columns-navy-spacious-engineering"
+            }
+        }
+    }
+
     pub const fn creche_root(self, recipe: CrecheComponentRecipe) -> &'static str {
         use {CrecheComponentRecipe::*, VisualDensity::*, VisualPalette::*};
         match (recipe, self.density, self.palette) {

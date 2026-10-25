@@ -66,7 +66,7 @@ contracts are unchanged. Intermediate canonical values remain materialized.
 
 The [comparison](evidence/immutable-preparation-20261019/combined-evidence.json)
 binds the source and executable identities and the digest of the
-[raw captures](evidence/immutable-preparation-20261019/combined-raw-captures.tar.gz).
+[raw captures](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 The adjacent internal verification script checks the archive and per-artifact
 digests, source custody, frame identities, exact evidence and zero Play
 allocation. It also rejects twelve deliberate comparison mutations across the

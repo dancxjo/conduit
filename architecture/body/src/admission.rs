@@ -18,10 +18,13 @@ mod invitation;
 use continuity::{ContinuityKeyRecord, PendingReturn};
 pub use continuity::{PartReturnChallenge, PartReturnProof};
 pub use documents::{
-    AdmissionDocumentRefusal, PortableAdmissionReceipt, PortableInvitation,
-    PortableSpawnAdmissionRequest, RoutedAdmissionRequest, RoutedAdmissionResponse,
-    INVITATION_SCHEMA, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
-    ROUTED_INVITATION_SCHEMA, SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
+    supported_routed_admission_response_schema, AdmissionDocumentRefusal, PortableAdmissionReceipt,
+    PortableInvitation, PortableSpawnAdmissionRequest, RoutedAdmissionRequest,
+    RoutedAdmissionResponse, COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA,
+    COMPACT_ROUTED_ADMISSION_RESPONSE_SCHEMA, INVITATION_SCHEMA,
+    LEGACY_ROUTED_ADMISSION_REQUEST_SCHEMA, LEGACY_ROUTED_ADMISSION_RESPONSE_SCHEMA,
+    ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA, ROUTED_INVITATION_SCHEMA,
+    SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
 };
 use invitation::InvitationRecord;
 pub use invitation::{

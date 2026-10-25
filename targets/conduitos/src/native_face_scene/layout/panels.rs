@@ -296,7 +296,7 @@ pub(super) fn admit(
                         .width(lane)
                         .checked_sub(inset)
                         .ok_or(FaceSceneError::InvalidExtent)?;
-                    let text_width = field_clusters::text_width(&item, width, padding)?;
+                    let text_width = field_clusters::text_width(&item, width, padding, scale)?;
                     let (end, height) = measure_prefix(
                         remaining,
                         item.role,
@@ -343,11 +343,14 @@ pub(super) fn admit(
                 paint: item.paint,
                 control: item.control,
                 subject_index: item.subject_index,
+                region: item.region,
+                region_inset: 0,
                 page: flow.page,
                 region_start,
                 padding,
                 checkbox: item.checkbox,
                 icon: item.icon,
+                icon_size: super::super::semantic_icons::size(scale),
                 panel_bounds: None,
                 bounds,
             });

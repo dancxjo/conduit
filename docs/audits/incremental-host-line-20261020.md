@@ -44,7 +44,7 @@ cargo test -p conduit-planner --test incremental_real_plan --test incremental_li
 ```
 
 The [summary](evidence/incremental-host-line-20261020/summary.json) hashes the
-[full test log](evidence/incremental-host-line-20261020/tests.log.gz).
+[full test log](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 This is modeled admission conformance, not physical provider execution or a
 performance benefit. The test costs select deterministic winners; they are not
 fresh measured replacement savings or a hysteresis policy.

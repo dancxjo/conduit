@@ -43,3 +43,25 @@ historical Tutorial biography aggregate above remains a separate scenario.
 - Before bounded comparison, whole-graph duplicate validation exhausted the same
   grant; reservation alone also failed. These negative diagnostic logs are
   retained with the owning implementation work, not represented as success.
+
+
+### Retained Mask Plan wire migration
+
+The original Source-publication packet used an inline public Mask Plan before
+`PlannedMaskPlot` adopted its bounded `mask-plan-deflate-json@1` JSON envelope.
+The fixture now wraps the **unchanged original 14,459 Plan JSON bytes** in that
+current envelope. `source-publication-original-mask-plan.json` retains those
+bytes; the codec regression compares both the complete typed Plan and the exact
+inflated bytes. No Plan field, identity, Face, Show or graph fact was removed.
+
+- Original packet: 32,350 bytes, SHA-256
+  `05f99b82674829e75d7ba87dbcd73c4c16912ccd7639604df9d0d063a11dd7fd`.
+- Current packet: 33,065 bytes, SHA-256
+  `250d8ff72f2e2889b84a5e20c2d53f6959464d4d8d9319737cb9f143e6cca82b`.
+- Current decoded JSON: 566,462 bytes.
+- Unchanged raw Plan SHA-256:
+  `9e4769f704be926ad31fff284773ecb0462fb47b0e16c6668e72d3ff946b48b7`.
+
+This is historical fixture compatibility with the current public wire schema,
+separate from CAPSEQ2's private canonical-byte transport optimization. The
+original packet remains in Git history and the local migration custody packet.

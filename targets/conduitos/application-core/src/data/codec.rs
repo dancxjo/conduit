@@ -111,7 +111,7 @@ impl Workspace {
     pub fn decode_command(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {
         transport_codec::decode(decoded_json(bytes, &mut self.json)?)
     }
-    /// For large target/projection commands, do decompression and complete framing
+    /// For large target, projection and publication commands, do decompression and framing
     /// preflight in their own protected entry. State freezes incoming bytes
     /// until the following Commit, so verified allocation hints stay trusted.
     pub(crate) fn preflight_command(&mut self, bytes: &[u8]) -> Result<usize, Refusal> {
