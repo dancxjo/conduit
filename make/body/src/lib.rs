@@ -4,6 +4,8 @@
 //! artifacts. It does not create a current host, Boot, membership, Plan, or Play.
 
 mod biography_projection;
+#[cfg(test)]
+extern crate self as conduit_body_make;
 mod body_description;
 mod body_source;
 mod construction_source;
@@ -15,6 +17,7 @@ pub mod deployment_runtime_catalog;
 mod evidence_attachment;
 mod planning;
 mod prepared_birth;
+mod prepared_birth_artifact;
 mod readable_history;
 mod spore;
 mod workbench_face;
@@ -31,6 +34,7 @@ pub use deployment_encounter::*;
 pub use evidence_attachment::*;
 pub use planning::*;
 pub use prepared_birth::*;
+pub use prepared_birth_artifact::*;
 pub use readable_history::*;
 pub use spore::*;
 pub use workbench_face::*;
