@@ -17,6 +17,7 @@ static SOURCE_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 static USER_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 
 mod entry;
+mod fault_pc;
 pub(super) use entry::{ApplicationRemaining, EntryBudget, EntryIdentity, NativeEntryReceipt};
 
 pub(super) struct Budget {
@@ -43,6 +44,7 @@ impl Budget {
             returned.value,
             returned.origin,
         )
+        .map(|receipt| receipt.with_fault_pc(fault_pc::read()))
     }
     pub fn arm(profile: EntryBudget) -> Result<Self, DomainRefusal> {
         let flags: u64;
@@ -73,6 +75,7 @@ impl Budget {
             lint: interrupt_controller::route_budget(),
         };
         REMAINING.store(0, Ordering::Release);
+        fault_pc::reset();
         write(0x0a, (rtc_a & 0x70) | 6); // 32768 / 32 = 1024 Hz.
         let _ = read(0x0c);
         unsafe {
@@ -178,4 +181,9 @@ fn write(register: u8, value: u8) {
         outb(0x70, register);
         outb(0x71, value);
     }
+}
+
+/// Called only for the actual terminal budget IRQ while its frame is live.
+pub(super) unsafe fn observe_fault_pc(saved: *const u64) {
+    unsafe { fault_pc::observe(saved) };
 }
