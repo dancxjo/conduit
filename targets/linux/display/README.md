@@ -30,7 +30,12 @@ bindings; after loss and ordinary effect drain, `refresh_native_display` retract
 only that display’s offers. A new preparation is required to attach again.
 The public attachment refuses dummy/software tokens; the private test policy
 exercises those exact transitions with an actual diagnostic SDL window.
-This readiness does not issue NativeSurfaceProvider possession or a Mask Play.
+Readiness alone does not issue NativeSurfaceProvider possession or a Mask Play.
+The product’s `prepare_linux_creche_output` checks that the actual mutable
+scanout has the exact same live instance as this Host attachment before bridging
+it to the ordinary native Mask. The bridge performs no presentation or Show
+acknowledgement. Scanout loss and Host-claim loss refuse further provider
+construction; metadata equality cannot substitute for the same live instance.
 
 The Linux Host still must bind actual display
 custody and an admitted present operation before offering this Back.

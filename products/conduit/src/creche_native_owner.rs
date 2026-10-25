@@ -19,10 +19,15 @@ use custody::{NativeCustody, Shared};
 /// is not a production scanout. Buffered targets must commit actual presentation
 /// in PixelTarget::commit_frame before the Mask can acknowledge its Show.
 pub trait LocalCrecheScanout: PixelTarget {
+    /// Check the actual retained output lifetime before publication or input.
+    fn require_output_live(&self) -> Result<(), String>;
     /// Revoke publication/input and drain this exact selected output. Idempotent.
     fn revoke_and_drain(&mut self) -> Result<(), String>;
 }
 impl<T: LocalCrecheScanout + ?Sized> LocalCrecheScanout for &mut T {
+    fn require_output_live(&self) -> Result<(), String> {
+        (**self).require_output_live()
+    }
     fn revoke_and_drain(&mut self) -> Result<(), String> {
         (**self).revoke_and_drain()
     }
@@ -78,6 +83,7 @@ impl<D: LocalCrecheScanout> LocalCrecheNativeOwner<D> {
             display.revoke_and_drain()?;
             return Err("native Creche requires unused selected Mask and finite limits".into());
         }
+        display.require_output_live()?;
         if let Err(error) = display.format().validate() {
             display.revoke_and_drain()?;
             return Err(error.as_str().to_owned());
@@ -282,7 +288,8 @@ impl<D: LocalCrecheScanout> LocalCrecheNativeOwner<D> {
         result
     }
     fn require_live(&self) -> Result<(), String> {
-        self.shared.require_live()
+        self.shared.require_live()?;
+        self.display.require_output_live()
     }
     fn sequence(&mut self) -> Result<u64, String> {
         let sequence = self.next_sequence;
@@ -329,8 +336,17 @@ mod tests;
 /// scanout prevents further publication; no independent firmware provider exists.
 #[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
 impl LocalCrecheScanout for conduit_linux_display::Scanout<'_> {
+    fn require_output_live(&self) -> Result<(), String> {
+        conduitos::product_bases::InitializedNativeOutput::require_live(self)
+            .map_err(|error| error.as_str().to_owned())
+    }
     fn revoke_and_drain(&mut self) -> Result<(), String> {
         self.lose();
         Ok(())
     }
 }
+
+#[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+mod linux;
+#[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+pub use linux::prepare_linux_creche_output;

@@ -39,6 +39,13 @@ impl PixelTarget for CpuOutput {
     }
 }
 impl LocalCrecheScanout for CpuOutput {
+    fn require_output_live(&self) -> Result<(), String> {
+        if self.revoked {
+            Err("diagnostic output lost".into())
+        } else {
+            Ok(())
+        }
+    }
     fn revoke_and_drain(&mut self) -> Result<(), String> {
         self.revoked = true;
         Ok(())
@@ -114,6 +121,14 @@ fn real_native_owner_redraws_acknowledges_and_returns_exact_input_to_encounter()
     let commits = native.display.commits;
     let tab = KeyEvent::new(43, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
     let enter = KeyEvent::new(40, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
+    // A previously acknowledged Show cannot authorize input after output loss.
+    native.display.revoked = true;
+    let prior_inputs = native.inputs;
+    assert!(native.key(&controller, enter).is_err());
+    assert_eq!(native.inputs, prior_inputs);
+    assert!(!native.shared.has_returned().unwrap());
+    // Only this CPU fixture can reset its diagnostic flag; SDL loss is terminal.
+    native.display.revoked = false;
     let mut reached = false;
     for _ in 0..64 {
         assert!(!native.key(&controller, tab).unwrap());

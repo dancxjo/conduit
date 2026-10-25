@@ -82,9 +82,15 @@ optional dependency without duplicating the renderer.
 
 The standard Host now has optional initialized Linux display readiness
 attachment, with private lifetime observation, a finite Show resource and
-transactional loss retraction after drain. The full native application entrance
-still needs the trusted bridge from that admission to NativeSurfaceProvider
-possession, actual input acquisition and the event loop. The Images model, save machinery
+transactional loss retraction after drain. `prepare_linux_creche_output` now bridges
+that exact live Host attachment to the same initialized KMSDRM scanout and the
+ordinary native Mask. It retains exclusive scanout custody, uses a fresh private
+issuer key, and refuses a different or lost display instance. Preparation neither
+issues Body Play nor presents or acknowledges a Show. This is a trusted
+cooperative Host-driver boundary, not isolation from hostile Rust code.
+
+The full native application entrance still needs actual input acquisition and
+the event loop. The Images model, save machinery
 and owner APIs do not themselves acquire display custody, choose a file for the
 user, deploy a carrier, or supply a complete launched application.
 
