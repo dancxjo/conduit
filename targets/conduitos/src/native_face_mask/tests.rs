@@ -440,3 +440,28 @@ mod canonical_publication;
 
 #[path = "structured_configuration_tests.rs"]
 mod structured_configuration;
+
+#[test]
+fn ordinary_mask_acknowledges_current_host_offer_generation() {
+    let provider = crate::product_bases::fixture_surface_provider();
+    let mut service = NativeFaceMask::prepare(
+        "host/native".into(),
+        "boot/native".into(),
+        OfferGeneration(7),
+        "build",
+        provider.entry.base_id.clone(),
+        "surface/native-face",
+        &provider,
+    )
+    .unwrap();
+    let draft = draft();
+    let face = draft
+        .face(&service.birth_basis("arrival/current-offer"))
+        .unwrap();
+    let mut display = CountingDisplay::default();
+    service.present(face, 1, 1, &mut display).unwrap();
+    let show = service.show().unwrap();
+    assert_eq!(show.show.offer_generation, OfferGeneration(7));
+    assert_eq!(show.show.lifecycle, ManifestationLifecycle::Available);
+    assert!(display.writes > 0);
+}

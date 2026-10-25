@@ -295,7 +295,7 @@ impl NativeFaceMask {
                 Adapter::Native,
                 &host_id,
                 &boot_id,
-                1,
+                offer_generation.0,
                 Some(&provider.entry),
             )
             .map_err(|_| NativeFaceMaskError::Plan)?,
