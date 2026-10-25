@@ -1405,7 +1405,7 @@ fn hash_bytes(bytes: &[u8]) -> String {
 fn hex_digest(digest: &[u8]) -> String {
     const DIGITS: &[u8; 16] = b"0123456789abcdef";
     let mut encoded = alloc::vec![0; digest.len() * 2];
-    for (byte, pair) in digest.iter().zip(encoded.chunks_exact_mut(2)) {
+    for (byte, pair) in digest.iter().zip(encoded.as_chunks_mut::<2>().0) {
         pair[0] = DIGITS[(byte >> 4) as usize];
         pair[1] = DIGITS[(byte & 15) as usize];
     }
