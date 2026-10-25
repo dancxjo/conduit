@@ -141,3 +141,39 @@ minimal effective host environment, duration and success/failure. In-sandbox
 commands/environment remain explicit in the bwrap arguments; the observer does
 not relabel the external supervisor as a host Cargo invocation. Custody callback
 failures refuse acceptance even if compilation itself succeeded.
+
+## Audited dependency sharing: incomplete acceptance
+
+`prepareHostedSnapshot` accepts explicit `cacheMode: 'audited-dependencies'`
+and an optional absolute `acquisitionFile` outside the source, snapshot,
+toolchain and Cargo home. Its default remains `exact-snapshot`.
+`hostedCachePolicy(snapshot, { maxCacheBytes, cacheMode })` validates the full
+frozen snapshot and admission policy before returning opaque `{ policy,
+namespace }` for restore. The build uses that same derivation; changing the
+frozen mode refuses. Clear understands both exact schema 2 and shared schema 3.
+
+The shared namespace binds all vendor, compiler/sysroot, engine, native/runtime,
+source `.cargo` configuration, admission and sandbox/wrapper policy bytes. Each
+task still binds its complete source commit/tree and snapshot. The same stable
+namespace enters Cargo's compiler-cache environment. Unrelated source changes
+can therefore retain dependency compatibility without replacing source custody.
+
+The finite profile pins `syn` 2.0.119/3.0.6, `clap_builder` 4.6.7 and `winnow`
+0.7.15 by authenticated archive and complete source-inventory hashes. These
+library sources have no own build script, procedural macro target or assembly
+input mechanism. Their builtin documentation includes remain inside immutable
+vendor bytes; Cargo env macros and extern artifacts use pinned sccache keys.
+All transitive resolved dependencies must be authenticated registry sources;
+workspace/Git patches refuse this admission. Macro consumers still bypass.
+The wrapper requires the exact vendor library source, manifest/name/version
+and compiler, and refuses response files, test/compiler-extension/native-CPU
+flags and unclassified dynamic macros. All other crates build without sccache.
+A changed source, including injected assembler file reads, cannot inherit the
+reviewed byte identity; this is not a Rust parser or generic safety claim.
+
+This contract assumes equally trusted build producers. Read-only snapshots and
+leases do not make arbitrary malicious writers to shared cache objects safe.
+Cross-trust restoration needs its own producer policy and artifact custody.
+Real two-revision dependency reuse, changed-revision cold-output equivalence and
+actual hosted persistence/transfer cost remain acceptance work. The earlier 3%
+exact-snapshot comparison must not be relabelled as this profile's speed result.
