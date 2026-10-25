@@ -8,9 +8,9 @@ use std::collections::BTreeMap;
 mod builder;
 #[cfg(target_os = "linux")]
 mod linux_builder;
+pub use builder::*;
 #[cfg(target_os = "linux")]
 pub use linux_builder::*;
-pub use builder::*;
 
 pub struct HostedMakePackage;
 

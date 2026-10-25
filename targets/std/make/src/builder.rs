@@ -14,6 +14,19 @@ use std::{
 /// Package-owned build machinery. Implementations expose reviewed operations,
 /// not an ambient command or shell string.
 pub trait ReviewedBuilderBackend {
+    /// Optional controlled acquisition by a backend with operation-wide drain.
+    /// Receives the exact adapter grants; returning None preserves other backends.
+    fn seal_exact_source(
+        &mut self,
+        _source: &BuilderSource,
+        _workspace: &Path,
+        _bounds: &BuilderBounds,
+        _local_roots: &[PathBuf],
+        _network_origins: &[String],
+    ) -> Option<Result<SealedBuilderSource, BuilderRefusal>> {
+        None
+    }
+
     fn prepare_exact_toolchain(
         &mut self,
         identity: &str,
@@ -124,6 +137,15 @@ impl<B: ReviewedBuilderBackend> BuilderHostAdapter for StdBuilderAdapter<B> {
         workspace: &Path,
         bounds: &BuilderBounds,
     ) -> Result<SealedBuilderSource, BuilderRefusal> {
+        if let Some(result) = self.backend.seal_exact_source(
+            source,
+            workspace,
+            bounds,
+            &self.permitted_local_roots,
+            &self.permitted_network_origins,
+        ) {
+            return result;
+        }
         self.acquire_source(source, workspace, bounds)
     }
 

@@ -71,10 +71,19 @@ Limine identity, kernel/media digests, filenames, roles and ISO signature must
 agree. Artifact paths cannot traverse parents or follow symlinks. A successful
 receipt identifies inert verified bytes; it does not establish boot or join.
 
-Cancellation kills and reaps the command process group. Deadline and evidence
-accounting span toolchain preparation and build; source reads and media hashing
-check cancellation/deadline between 64 KiB chunks. The backend monitors process
-count, workspace/output size and captured output, and limits Cargo job count.
+The existing Std adapter delegates Linux source acquisition to this backend.
+Cancellation kills and reaps Git and build command process groups. One deadline,
+evidence budget and numbered diagnostic sequence span source acquisition,
+toolchain preparation and build. Source hashing checks regular file types and
+byte bounds before reading, rejects symlinks and special files, and checks
+cancellation/deadline between 64 KiB chunks. Media hashing uses the same cadence.
+The backend monitors process count, workspace/output size and captured output,
+and reserves process capacity around a maximum of four Cargo jobs.
+
+Bounded raw stdout/stderr files remain in the admitted workspace, including on
+failure or cancellation. They refuse existing paths and count toward workspace
+and evidence bounds. Disappearing Cargo temporary descendants do not turn a
+size observation into a false workspace refusal; other I/O failures still refuse.
 
 These are cooperative bounds for trusted tooling, not hard disk/process quotas,
 network isolation or hostile-code confinement. Monitoring can observe an

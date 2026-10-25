@@ -26,6 +26,8 @@ mod assets;
 pub use assets::ReviewedConduitosBootAssets;
 #[path = "linux_builder_process.rs"]
 mod process;
+#[path = "linux_builder_source.rs"]
+mod source;
 #[path = "linux_builder_verification.rs"]
 mod verification;
 use process::Execution;
@@ -98,6 +100,41 @@ impl Selection {
 }
 
 impl ReviewedBuilderBackend for LinuxSourceBuilder {
+    fn seal_exact_source(
+        &mut self,
+        selected: &conduit_host_make::BuilderSource,
+        workspace: &Path,
+        bounds: &BuilderBounds,
+        local_roots: &[PathBuf],
+        network_origins: &[String],
+    ) -> Option<Result<conduit_host_make::SealedBuilderSource, BuilderRefusal>> {
+        Some((|| {
+            if !bounds.valid() {
+                return Err(BuilderRefusal::InvalidRequest);
+            }
+            if self.cancelled.load(Ordering::Acquire) {
+                return Err(BuilderRefusal::Interrupted);
+            }
+            let started = *self.started.get_or_insert_with(Instant::now);
+            fs::create_dir_all(workspace).map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
+            let mut execution =
+                Execution::new(workspace, None, bounds, &self.cancelled).started_at(started);
+            if let Some(evidence) = &self.prepared_evidence {
+                execution = execution.inherit_evidence(evidence);
+            }
+            let result = source::acquire(
+                selected,
+                workspace,
+                bounds,
+                local_roots,
+                network_origins,
+                &mut execution,
+            );
+            self.prepared_evidence = Some(execution.saved_evidence());
+            result
+        })())
+    }
+
     fn prepare_exact_toolchain(
         &mut self,
         identity: &str,
@@ -107,8 +144,7 @@ impl ReviewedBuilderBackend for LinuxSourceBuilder {
         bounds: &BuilderBounds,
     ) -> Result<(), BuilderRefusal> {
         self.prepared = None;
-        self.prepared_evidence = None;
-        self.started = Some(Instant::now());
+        let started = *self.started.get_or_insert_with(Instant::now);
         if identity != self.selection()?.toolchain() {
             return Err(BuilderRefusal::ToolchainUnauthorized);
         }
@@ -119,7 +155,11 @@ impl ReviewedBuilderBackend for LinuxSourceBuilder {
         let workspace = workspace
             .canonicalize()
             .map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
-        let mut execution = Execution::new(&workspace, None, bounds, &self.cancelled);
+        let mut execution =
+            Execution::new(&workspace, None, bounds, &self.cancelled).started_at(started);
+        if let Some(evidence) = &self.prepared_evidence {
+            execution = execution.inherit_evidence(evidence);
+        }
         let mut probe = Command::new("rustup");
         probe.args(["run", "stable", "rustc", "--version"]);
         execution.run(&mut probe).map_err(toolchain_error)?;

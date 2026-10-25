@@ -244,20 +244,41 @@ fn read_pipe(
     })
 }
 fn directory_bytes(root: &Path, limit: u64) -> Result<u64, BuilderRefusal> {
+    directory_bytes_observing(root, limit, &mut |_| {})
+}
+fn directory_bytes_observing(
+    root: &Path,
+    limit: u64,
+    observed: &mut impl FnMut(&Path),
+) -> Result<u64, BuilderRefusal> {
     let mut pending = vec![root.to_owned()];
     let mut bytes = 0_u64;
     let mut entries = 0_u64;
     while let Some(directory) = pending.pop() {
-        for entry in fs::read_dir(directory).map_err(|_| BuilderRefusal::WorkspaceUnavailable)? {
-            let entry = entry.map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
+        let children = match fs::read_dir(&directory) {
+            Ok(children) => children,
+            // Cargo atomically renames/removes temporary descendants while compiling.
+            // A disappeared descendant contributes zero at this observation; losing
+            // the admitted root or any other I/O failure still refuses accounting.
+            Err(e) if directory != root && e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(_) => return Err(BuilderRefusal::WorkspaceUnavailable),
+        };
+        for entry in children {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(_) => return Err(BuilderRefusal::WorkspaceUnavailable),
+            };
             entries += 1;
             if entries > 2_000_000 {
                 return Err(BuilderRefusal::BoundExhausted);
             }
-            let metadata = entry
-                .path()
-                .symlink_metadata()
-                .map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
+            observed(&entry.path());
+            let metadata = match entry.path().symlink_metadata() {
+                Ok(metadata) => metadata,
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(_) => return Err(BuilderRefusal::WorkspaceUnavailable),
+            };
             // Do not follow symlinks out of the admitted workspace during accounting.
             if metadata.is_dir() {
                 pending.push(entry.path());
@@ -391,6 +412,33 @@ mod tests {
         ));
         assert_eq!(fs::read(diagnostic).unwrap(), b"reviewed-build-error");
         fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn accounting_tolerates_disappearing_children_but_preserves_real_errors() {
+        let root =
+            std::env::temp_dir().join(format!("conduit-linux-accounting-{}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        fs::write(root.join("cargo-temporary"), b"temporary").unwrap();
+        let mut removed = false;
+        let bytes = directory_bytes_observing(&root, 1024, &mut |path| {
+            // Deterministic actual disappearance between readdir and metadata.
+            fs::remove_file(path).unwrap();
+            removed = true;
+        })
+        .unwrap();
+        assert!(removed);
+        assert_eq!(bytes, 0);
+        let file = root.join("not-a-directory");
+        fs::write(&file, b"retained").unwrap();
+        assert_eq!(
+            directory_bytes(&file, 1024),
+            Err(BuilderRefusal::WorkspaceUnavailable)
+        );
+        fs::remove_dir_all(&root).unwrap();
+        assert_eq!(
+            directory_bytes(&root, 1024),
+            Err(BuilderRefusal::WorkspaceUnavailable)
+        );
     }
     #[test]
     fn process_group_stat_parser_counts_this_process() {
