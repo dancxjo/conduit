@@ -12,6 +12,8 @@ mod arch {
         pub mod domain_budget {
             #[path = "entry.rs"]
             mod entry;
+            #[path = "fault_pc.rs"]
+            mod fault_pc;
         }
     }
 }

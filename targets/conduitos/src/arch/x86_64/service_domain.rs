@@ -151,6 +151,25 @@ impl ServiceDomain {
         // A fault cannot leave an executable instance or readable stale response.
         if matches!(returned, DomainReturn::Fault(_)) {
             self.quarantine();
+            if let Some(pc) = result.fault_pc() {
+                // Revocation and zeroing have completed. Fixed serial fields only;
+                // no IRQ output, allocation, guest response or admission decision.
+                super::serial::early_write(b"CONDUIT_SERVICE_BUDGET_PC instance=");
+                super::serial::write_decimal(result.instance());
+                super::serial::early_write(b" sequence=");
+                super::serial::write_decimal(result.sequence());
+                super::serial::early_write(b" admitted=");
+                super::serial::write_decimal(u64::from(result.admitted()));
+                super::serial::early_write(b" rtc=");
+                super::serial::write_decimal(u64::from(result.rtc()));
+                super::serial::early_write(b" source=");
+                super::serial::write_decimal(u64::from(result.source()));
+                super::serial::early_write(b" rip=");
+                super::serial::write_decimal(pc.rip);
+                super::serial::early_write(b" rsp=");
+                super::serial::write_decimal(pc.rsp);
+                super::serial::early_write(b"\n");
+            }
         }
         Ok(result)
     }

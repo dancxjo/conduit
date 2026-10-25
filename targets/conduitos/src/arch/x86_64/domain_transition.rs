@@ -223,11 +223,7 @@ fn run_context(
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn conduitos_ordinary_timer_handler(
-    user: u64,
-    budget: u64,
-    #[cfg(feature = "ordinary-domain-proof")] saved: *const u64,
-) -> u64 {
+extern "C" fn conduitos_ordinary_timer_handler(user: u64, budget: u64, saved: *const u64) -> u64 {
     #[cfg(feature = "ordinary-domain-proof")]
     let sampled = unsafe { super::irq_envelope::before_handler(saved, user, budget) };
     #[cfg(feature = "ordinary-domain-proof")]
@@ -244,6 +240,9 @@ extern "C" fn conduitos_ordinary_timer_handler(
         super::irq::conduitos_timer_irq_handler();
         0
     };
+    if disposition != 0 && budget != 0 && user & 3 == 3 && ACTIVE.load(Ordering::Acquire) {
+        unsafe { domain_budget::observe_fault_pc(saved) };
+    }
     #[cfg(feature = "ordinary-domain-proof")]
     if sampled {
         unsafe {

@@ -128,3 +128,29 @@ fn every_profile_preserves_gate_and_preemption_accounting_without_charging_other
         }
     }
 }
+#[test]
+fn fault_pc_is_optional_terminal_only_and_never_changes_outcome() {
+    let identity = EntryIdentity::new(7, 1).unwrap();
+    let pc = super::super::fault_pc::FaultPc {
+        rip: 0x401234,
+        rsp: 0x7ff000,
+    };
+    for (value, origin) in [(0, 0), (0x200, 0), (0x10d, 1), (4, 2), (4, 0)] {
+        let plain =
+            NativeEntryReceipt::capture(identity, EntryBudget::Draft, (64, 0), value, origin)
+                .unwrap();
+        let observed = plain.with_fault_pc(Some(pc));
+        assert_eq!(plain.outcome(), observed.outcome());
+        assert_eq!(plain.fault_pc(), None);
+        assert_eq!(
+            observed.fault_pc(),
+            if (value, origin) == (4, 2) {
+                Some(pc)
+            } else {
+                None
+            }
+        );
+        assert!(observed.validate(7, 1).is_ok());
+        assert!(observed.validate(8, 1).is_err());
+    }
+}

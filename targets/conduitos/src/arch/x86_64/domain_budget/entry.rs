@@ -76,6 +76,7 @@ pub(in crate::arch::x86_64) struct NativeEntryReceipt {
     source: u32,
     value: u64,
     origin: u64,
+    fault_pc: Option<super::fault_pc::FaultPc>,
 }
 impl NativeEntryReceipt {
     pub(super) fn capture(
@@ -95,7 +96,18 @@ impl NativeEntryReceipt {
             source: counts.1,
             value,
             origin,
+            fault_pc: None,
         })
+    }
+    pub(super) fn with_fault_pc(mut self, pc: Option<super::fault_pc::FaultPc>) -> Self {
+        // Optional diagnostics cannot alter or rescue any return disposition.
+        if self.origin == 2 && self.value == 4 {
+            self.fault_pc = pc;
+        }
+        self
+    }
+    pub(in crate::arch::x86_64) const fn fault_pc(self) -> Option<super::fault_pc::FaultPc> {
+        self.fault_pc
     }
     pub(in crate::arch::x86_64) fn validate(
         &self,
