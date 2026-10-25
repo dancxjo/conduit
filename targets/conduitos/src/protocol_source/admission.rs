@@ -125,7 +125,7 @@ impl PreparedProtocolArtifact {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_storage_usb_duplex<P: crate::i2c_base::I2cProvider>(
         self,
@@ -140,7 +140,7 @@ impl PreparedProtocolArtifact {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_storage_usb_duplex_two_pairs<P: crate::i2c_base::I2cProvider>(
         self,
@@ -188,7 +188,7 @@ impl PreparedProtocolArtifact {
     /// Consume the same admitted artifact with independently issued USB possession.
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub fn prepare_usb<P: crate::i2c_base::I2cProvider>(
         self,
@@ -207,7 +207,7 @@ impl PreparedProtocolArtifact {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_endpoint_only<P: crate::i2c_base::I2cProvider>(
         self,
@@ -222,7 +222,7 @@ impl PreparedProtocolArtifact {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_protocol<P: crate::i2c_base::I2cProvider>(
         self,
@@ -237,7 +237,7 @@ impl PreparedProtocolArtifact {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_isochronous<P: crate::i2c_base::I2cProvider>(
         self,
@@ -252,7 +252,7 @@ impl PreparedProtocolArtifact {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_duplex<P: crate::i2c_base::I2cProvider>(
         self,
