@@ -18,6 +18,8 @@ pub(super) struct Policy {
     pub construction: PathBuf,
     pub first_host: String,
     #[serde(default)]
+    pub offered_profiles: Vec<PathBuf>,
+    #[serde(default)]
     pub starting_sources: Vec<PathBuf>,
     pub reviewed_images: BTreeMap<String, ReviewedImage>,
     pub source_builds: BTreeMap<String, SourceBuild>,
@@ -52,6 +54,7 @@ impl Policy {
         let policy: Self = serde_json::from_slice(&small_file(path)?)
             .map_err(|e| format!("native Crèche grant document: {e}"))?;
         if policy.schema != "conduit.install/native-creche-grants@1"
+            || policy.offered_profiles.len() > conduit_body_make::MAX_DEPLOYMENT_PROFILES
             || policy.starting_sources.len() > 16
             || policy.reviewed_images.len() > conduit_body_make::MAXIMUM_BODY_HOSTS
             || policy.source_builds.len() > conduit_body_make::MAXIMUM_BODY_HOSTS
@@ -72,6 +75,42 @@ impl Policy {
             }
         }
         Ok(policy)
+    }
+    /// Only explicitly granted canonical recipes enter the finite chooser.
+    pub fn profiles(
+        &self,
+        draft: &DeploymentDraft,
+    ) -> Result<Vec<conduit_host_make::CheckedHostConfiguration>, String> {
+        let mut profiles = draft
+            .construction()
+            .hosts()
+            .iter()
+            .map(|host| host.configuration.clone())
+            .collect::<Vec<_>>();
+        for path in &self.offered_profiles {
+            if !path.is_absolute() || !path.to_string_lossy().ends_with(".host.conduit") {
+                return Err(
+                    "offered profile requires an absolute canonical Host Source path".into(),
+                );
+            }
+            let bytes = small_file(path)?;
+            let source = std::str::from_utf8(&bytes).map_err(|e| e.to_string())?;
+            let configuration = conduit_host_make::parse_host_configuration_conduit(source)
+                .map_err(|e| format!("offered Host Source: {e:?}"))?;
+            let checked = conduit_host_make::check_host_configuration(
+                configuration,
+                &conduit_workspace_make::catalog(),
+                &conduit_workspace_make::package_set(),
+            )
+            .map_err(|e| format!("offered Host profile: {e:?}"))?;
+            profiles.push(checked);
+        }
+        profiles.sort_by(|a, b| a.configuration_id().cmp(b.configuration_id()));
+        profiles.dedup_by(|a, b| a.configuration_id() == b.configuration_id());
+        if profiles.len() > conduit_body_make::MAX_DEPLOYMENT_PROFILES {
+            return Err("native Crèche profile catalogue exceeds its finite bound".into());
+        }
+        Ok(profiles)
     }
     pub fn draft(&self) -> Result<DeploymentDraft, String> {
         let construction = crate::body_product::load(&self.construction)?;

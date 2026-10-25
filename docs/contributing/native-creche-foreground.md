@@ -67,6 +67,11 @@ custody. It is administration, not authored Plot meaning or UI-supplied paths:
 }
 ```
 
+Optional `offered_profiles` is a bounded list of absolute `.host.conduit` paths.
+The launcher canonically checks these recipes and offers them alongside the
+construction's existing profiles. They grant no image, toolchain, or deployment
+authority; unsupported manufacture still refuses.
+
 The directories must already exist and be explicitly selected. The example is
 not an artifact download or a catalog trust decision. Supply reviewed artifacts
 through the existing obtain/review workflow; binding independently validates the

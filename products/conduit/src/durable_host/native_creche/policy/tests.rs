@@ -89,3 +89,51 @@ fn default_catalogue_keeps_native_eligibility_distinct_from_checked_source_visib
     assert!(draft.birth().choices().iter().any(|c| c.refusal.is_some()));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn offered_profiles_are_checked_deduplicated_and_do_not_birth() {
+    let (root, path, mut value) = fixture();
+    let profile =
+        fs::canonicalize("../../targets/conduitos/profiles/conduitos-native.host.conduit").unwrap();
+    value["offered_profiles"] = json!([profile, profile]);
+    fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+    let policy = Policy::load(&path).unwrap();
+    let draft = policy.draft().unwrap();
+    let profiles = policy.profiles(&draft).unwrap();
+    assert!(
+        profiles
+            .iter()
+            .any(|p| p.configuration().target.machine == "pc"
+                && p.configuration().target.os.is_none())
+    );
+    let unique = profiles
+        .iter()
+        .map(|p| p.configuration_id())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(unique.len(), profiles.len());
+    assert!(!root.join("birth.json").exists());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn ungranted_or_invalid_profile_source_refuses_before_effects() {
+    let (root, path, mut value) = fixture();
+    value["offered_profiles"] = json!(["relative.host.conduit"]);
+    fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+    let policy = Policy::load(&path).unwrap();
+    let draft = policy.draft().unwrap();
+    assert!(policy.profiles(&draft).is_err());
+    let invalid = root.join("invalid.host.conduit");
+    fs::write(&invalid, "not a canonical Host configuration").unwrap();
+    value["offered_profiles"] = json!([invalid]);
+    fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+    assert!(Policy::load(&path).unwrap().profiles(&draft).is_err());
+    value["offered_profiles"] = json!(vec![
+        "absent.host.conduit";
+        conduit_body_make::MAX_DEPLOYMENT_PROFILES + 1
+    ]);
+    fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+    assert!(Policy::load(&path).is_err());
+    assert!(!root.join("birth.json").exists());
+    fs::remove_dir_all(root).unwrap();
+}

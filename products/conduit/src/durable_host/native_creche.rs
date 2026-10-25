@@ -33,12 +33,7 @@ pub(crate) fn run(owner: &mut Owner, root: &Path, grants: &Path) -> Result<(), S
     let identity = super::owner::verified_native_image(root)?;
     let policy = policy::Policy::load(grants)?;
     let draft = policy.draft()?;
-    let profiles = draft
-        .construction()
-        .hosts()
-        .iter()
-        .map(|h| h.configuration.clone())
-        .collect();
+    let profiles = policy.profiles(&draft)?;
     let encounter = crate::birth_identity::fresh_uuid()?;
     let directory = policy.staging_directory.join(&encounter);
     std::fs::create_dir(&directory)
