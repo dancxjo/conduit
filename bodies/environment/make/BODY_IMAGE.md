@@ -122,6 +122,15 @@ from 254,456 to **188,068 bytes** of additional peak planning heap. The sensor
 outcome proof enforces a 192 KiB CPU preparation ceiling for this checked
 workload; this remains separate from Xtensa and combined-memory admission.
 
+Structured expression preparation now caches intrinsic fixed-integer literal
+children through the existing canonical codec, extending its Boolean/octet
+path. A checked wide-integer padding fixture retains 1,344 rounded bytes versus
+8,000 before, while retaining dynamic input validation and exact reference
+outputs without recurring allocations. The appliance CPU software-preparation
+peak falls from 168,606 to **167,531 bytes**. Nominal Types, quantities, predicates,
+and dynamic expressions retain their normal preparation. This small saving
+is not a complete MCU preparation bound.
+
 The rich Plan is still needed during construction and execution preparation.
 These host measurements do not establish that Root, biography, sampling, timed
 display, network SDK, planning scratch, and required lifecycle evidence coexist

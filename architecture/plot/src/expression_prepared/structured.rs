@@ -335,14 +335,24 @@ fn child(
     })
 }
 
-/// Cache only ordinary Boolean/octet leaves using the existing literal codec.
+/// Cache intrinsic fixed-integer/Boolean leaves using the existing literal codec.
 /// Other Types, predicates and expression operations retain normal preparation.
 /// Codec refusal falls back without changing its original refusal phase.
 fn constant_child(node: &PortableExpressionNode) -> Option<ChildEvaluator> {
     if !matches!(node.value_type.shape(), StructuredInfoTypeShape::Leaf(_))
         || !matches!(
             super::leaf_kind(&node.value_type).ok()?,
-            conduit_core::PrimitiveInfoKind::Bool | conduit_core::PrimitiveInfoKind::U8
+            conduit_core::PrimitiveInfoKind::Bool
+                | conduit_core::PrimitiveInfoKind::U8
+                | conduit_core::PrimitiveInfoKind::U16
+                | conduit_core::PrimitiveInfoKind::U32
+                | conduit_core::PrimitiveInfoKind::U64
+                | conduit_core::PrimitiveInfoKind::U128
+                | conduit_core::PrimitiveInfoKind::I8
+                | conduit_core::PrimitiveInfoKind::I16
+                | conduit_core::PrimitiveInfoKind::I32
+                | conduit_core::PrimitiveInfoKind::I64
+                | conduit_core::PrimitiveInfoKind::I128
         )
     {
         return None;

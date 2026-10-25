@@ -79,6 +79,12 @@ fn run(scenario: usize, overnight: bool) {
     let (ready, effects) = pulse::ready(scenario);
     let (mut software, software_memory) = allocation_probe::observe(|| software(&source));
     if scenario == 0 {
+        if cfg!(target_pointer_width = "64") {
+            assert!(
+                software_memory.peak_bytes <= 164 * 1024,
+                "software preparation exceeds its CPU profile: {software_memory:?}"
+            );
+        }
         eprintln!(
             "environment_software_ready_peak={}",
             software_memory.peak_bytes
