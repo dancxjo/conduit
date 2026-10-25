@@ -123,7 +123,7 @@ impl Owner {
         })
     }
 
-    fn retain_started(
+    pub(super) fn retain_started(
         &mut self,
         root: &Path,
         play: BodyPlayIdentity,
@@ -145,7 +145,7 @@ impl Owner {
         Ok(())
     }
 
-    fn retain_finished(
+    pub(super) fn retain_finished(
         &mut self,
         root: &Path,
         result: Result<BodyRunReport, String>,

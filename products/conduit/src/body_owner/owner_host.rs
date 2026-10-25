@@ -74,6 +74,17 @@ impl OwnerHost {
             .expect("Host effects require an idle owner")
     }
 
+    pub(super) fn attach_idle_creche(
+        &mut self,
+        slot: conduit_core::ResourceOffer,
+    ) -> Result<(), conduit_std_host::CrecheAttachmentRefusal> {
+        use conduit_std_host::CrecheAttachmentRefusal as E;
+        let host = self.current.as_mut().ok_or(E::HostActive)?;
+        host.attach_creche_encounter(slot)?;
+        self.advertised = host.advertisement().clone();
+        Ok(())
+    }
+
     pub(crate) fn is_playing(&self) -> bool {
         self.current.is_none()
     }

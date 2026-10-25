@@ -3,6 +3,12 @@ use super::state;
 #[path = "owner_host.rs"]
 mod owner_host;
 pub(crate) use owner_host::OwnerHost;
+#[path = "creche_attachment.rs"]
+mod creche_attachment;
+#[path = "creche_planning.rs"]
+mod creche_planning;
+#[path = "creche_worker.rs"]
+mod creche_worker;
 #[path = "participants/invited.rs"]
 mod invited;
 #[path = "participants/mod.rs"]
@@ -375,6 +381,9 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
+        if let Some(partition) = self.shipped_creche_partition(plot, resident)? {
+            return Ok(partition);
+        }
         let hosts = [self.host.advertisement().clone()];
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
