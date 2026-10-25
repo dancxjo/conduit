@@ -2,6 +2,7 @@ use super::{
     dtb::{Dtb, Error, Token},
     memory::{Region, Regions, admit},
 };
+use alloc::vec::Vec;
 
 fn put(bytes: &mut [u8], offset: usize, value: u32) {
     bytes[offset..offset + 4].copy_from_slice(&value.to_be_bytes());

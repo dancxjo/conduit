@@ -3,6 +3,7 @@ use super::{
     handoff,
     memory::{Refusal, Region, admit},
 };
+use alloc::vec::Vec;
 
 struct Fixture {
     tree: Vec<u8>,
