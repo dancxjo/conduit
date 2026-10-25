@@ -2113,7 +2113,9 @@ dependencies = [
 name = "conduit-host-raspberry-pi"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-host-make",
+ "sha2 0.10.9",
 ]
 
 [[package]]

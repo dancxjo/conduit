@@ -38,3 +38,24 @@ C and C++ cross compilers, the cross libc development files, and the headless X
 runner used by packaged native journey checks. host-device audio support inside
 Tongues is not a prerequisite for this cross build; Conduit consumes Tongues'
 device-free DSP/TTS path for this release.
+
+## Retained-birth transport prerequisite
+
+The package's `prepared_birth` library binds an already recorded pristine
+`PreparedBirthMedia` into a unique 32 KiB raw-kernel reservation and verifies
+that exact kernel through the actual `KERNEL.IMG` FAT32 directory entry and
+cluster chain in the existing 64 MiB MBR image format. It checks the B+ target,
+caller-supplied exact compiled profile/build and original kernel digest, refuses
+occupied/ambiguous reservations, and independently decodes retained evidence.
+
+`linker/prepared_birth.ld` defines the reservation for inclusion inside a future
+normal product linker script before `.bss`. It is deliberately **not** wired into
+the diagnostic A3 image. The receipt always reports consumer verification, boot
+and membership as false. Synthetic sparse FAT fixtures test byte custody; they
+are not firmware execution evidence.
+
+Still required: normal ARM product entry and make record, checked supported
+workset, initialized Host/Boot identity and entropy, ordinary first-Host admission,
+selected Plot Plan/Play, later-Host invitation/join, and real product image and
+physical proof. A retained section cannot turn the current A3 diagnostic into
+that product.

@@ -1,3 +1,5 @@
+pub mod prepared_birth;
+
 use conduit_host_make::{
     HostBounds, HostMakePackage, ImplementationOffer, MakeAnchor, MakeContribution,
     PostBuildAction, SporeOutputKind, TargetDescriptor,
