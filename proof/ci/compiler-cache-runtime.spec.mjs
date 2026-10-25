@@ -49,7 +49,7 @@ test('canonical root comparison refuses symlink aliases and dot-segment containm
   await fs.symlink(root,path.join(root,'alias'));
   const options={engine:'/unused-pinned-engine',cacheRoot:path.join(root,'cache'),maxCacheBytes:1024,maxTaskBytes:1024,reserveBytes:1024};
   await rejected(()=>withCompilerCache({...options,taskRoot:path.join(root,'alias','cache','proof')},()=>{}),'invalid-runtime-policy');
-  await rejected(()=>withCompilerCache({...options,taskRoot:path.join(root,'other','..','cache','proof')},()=>{}),'invalid-runtime-policy');
+  await rejected(()=>withCompilerCache({...options,taskRoot:`${root}/other/../cache/proof`},()=>{}),'invalid-runtime-policy');
   assert.deepEqual(await fs.readdir(root),['alias']);
 });
 
