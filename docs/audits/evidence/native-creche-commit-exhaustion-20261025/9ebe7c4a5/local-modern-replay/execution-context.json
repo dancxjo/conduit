@@ -1,0 +1,124 @@
+{
+  "schema": "conduit.local-ci-root-execution-context-addendum/v1",
+  "mode": "Read-only retained evidence/source audit, no new emulator execution",
+  "parent_sealed_receipt_sha256": "59de269a73098fc1b9f086643717c5a26713917ab16ffcf2ceac506f03c316eb",
+  "observed": {
+    "qemu_versions": {
+      "ci": {
+        "qemu": {
+          "micro": 2,
+          "minor": 2,
+          "major": 8
+        },
+        "package": "Debian 1:8.2.2+ds-0ubuntu1.18"
+      },
+      "local": {
+        "qemu": {
+          "micro": 1,
+          "minor": 2,
+          "major": 10
+        },
+        "package": "Debian 1:10.2.1+ds-1ubuntu3.2"
+      }
+    },
+    "same_explicit_options": {
+      "machine": "q35",
+      "cpu": "max",
+      "memory": "512M",
+      "smp": "1",
+      "display": "none",
+      "vga": "std",
+      "monitor": "none",
+      "network": "none",
+      "boot": "d",
+      "devices": [
+        "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+        "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+        "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2"
+      ]
+    },
+    "argv_differences": [
+      {
+        "index": 15,
+        "ci": "unix:/tmp/cj-27511.sock,server=on,wait=off",
+        "local": "unix:/tmp/cj-119689.sock,server=on,wait=off"
+      },
+      {
+        "index": 17,
+        "ci": "file:/home/runner/work/conduit/conduit/target/conduitos/x86_64/journey-serial.log",
+        "local": "file:/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/p0-ci-root-modern-replay-proof/x86_64/journey-serial.log"
+      },
+      {
+        "index": 28,
+        "ci": "/home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64/conduitos-x86_64.iso",
+        "local": "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/p0-ci-root-modern-replay/conduitos-x86_64.iso"
+      }
+    ],
+    "no_explicit_flags_both": [
+      "-accel",
+      "-enable-kvm",
+      "-icount",
+      "-rtc",
+      "-bios",
+      "-pflash",
+      "-readconfig",
+      "-nodefconfig"
+    ],
+    "stderr_bytes": {
+      "ci": 0,
+      "local": 0
+    },
+    "process_stop": {
+      "ci": {
+        "cause": "harness-stop-after-failure",
+        "code": null,
+        "status": "signal: 9 (SIGKILL)"
+      },
+      "local": {
+        "cause": "harness-stop-after-success",
+        "code": null,
+        "status": "signal: 9 (SIGKILL)"
+      }
+    },
+    "host_OS": {
+      "ci": "Ubuntu24.04.5 LTS hosted Azure westus2; image ubuntu24/20261012.334.1; raw log lines1-20",
+      "local": "forebrain Ubuntu26.04.1 LTS from current /etc/os-release; not a retained per-run full environment capture"
+    },
+    "driver": {
+      "ci": "Source9ebe compiled on runner according to CI command log; binary hash not retained as separate tool artifact",
+      "local_sha256": "ced825701b73949ab5b59aa5ca0a9e2c85c79698baa825769da1e92da62bf64f",
+      "local_compiled_source": "not independently proven; same six checkpoint prefix observed"
+    },
+    "root_elf_identical": "adcd948b1f30a444c3b975a59879b4be09fecd9931732d90e8a82aaa0396cf61",
+    "iso_distinct": {
+      "ci_claimed_unavailable": "e18d462bec9fa40a7eece695034145a5f1df52d03d93d6a3eee614af1ec2976f",
+      "local_actual": "e9569abb4ea1272f67f7466dda60726432ab77d32fd9332b806bc9f9aee8a8bc"
+    }
+  },
+  "source_context": {
+    "path": "targets/conduitos/make/xtask/journey_proof.rs:139-180 at9ebe",
+    "finding": "Constructs recorded qemu-system-x86_64 args; uses process inherited environment, null stdin/stdout, captured stderr, workspace cwd; no explicit accelerator/RTC/icount env overrides in this block",
+    "note": "This is CI exact source context, not proof local archived driver binary equals that source."
+  },
+  "default_interpretation": {
+    "reference": "installed primary QEMU manual /usr/share/doc/qemu-system-common/system/invocation.html:160-165,3426-3442",
+    "reference_sha256": "f2255fb3a8919ec2aebbe562f24975a6db88df08c902b97c2ce15812474ff173",
+    "text": "Installed manual states default TCG and RTC driven by host system time, UTC base. These are documented defaults, not direct query-kvm/backend measurements of either retained run.",
+    "inference": "Both invocations rely on default accelerator/RTC/instruction scheduling. No evidence either explicitly enabled KVM. Different QEMU versions plus unversioned q35 and cpu=max need not instantiate identical machine/CPU details.",
+    "not_observed": [
+      "No query-kvm or equivalent accelerator-state response retained",
+      "No full environment snapshots for either QEMU process; local old-driver attempt2 strace abbreviated environment count, does not establish modern-run env",
+      "No per-run resolved q35 version/CPU feature expansion, TCG thread mode, host load/scheduler/frequency or exact firmware binary hash retained",
+      "No successful Creche entry RTC cost telemetry retained"
+    ]
+  },
+  "causal_boundary": "Concrete QEMU version and host platform differences are established, with identical explicit machine/CPU/memory/smp/device flags. Exact binary local pass does not isolate version, scheduling, firmware, image packing, driver behavior or any environment factor as cause. Host-time RTC budget allows scheduling sensitivity in principle; unmeasured here.",
+  "sources": {
+    "work/p0-refreshed-x86-diagnostics/target/conduitos/x86_64/journey-frames/manifest.json": "a596d9751bb6e125cd55d145eaf41067f1f4652467105a39276f9334806f2fa6",
+    "work/p0-refreshed-x86-diagnostics/target/conduitos/x86_64/journey-qmp.log": "26ed2e5b994843d7f7d7b9b8f693eb9aff288300d542fea824e33bdf77487d0b",
+    "work/p0-ci-root-modern-replay-proof/x86_64/journey-frames/manifest.json": "d2cab3a03aa2ff28990dddbfdebdc6c302157a9cf3d6e69110a875930e2f8948",
+    "work/p0-ci-root-modern-replay-proof/x86_64/journey-qmp.log": "73af668603e5ae269be1144779c9d8737b3c4f748c94ec251afac252b6455d76",
+    "work/p0-refreshed-x86-raw.log": "34527afdfe02dcc2ac25bb78e7817460d95035b78e8495cbabb1ab753522f7d4",
+    "work/p0-ci-root-local-replay/verify-attempt2.strace": "d3567a05dd44680fe382ef1ca6ccdc5ccc955bf76a168fae0af4ad3eecf9c659"
+  }
+}

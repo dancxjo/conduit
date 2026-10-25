@@ -1,0 +1,9 @@
+# Local diagnostic replay of the actual failed CI executable
+
+The uploaded CI Root ELF `adcd948b1f30a444c3b975a59879b4be09fecd9931732d90e8a82aaa0396cf61`, including its actual embedded Crèche, passed supported boot and the full local journey without recompilation. Independent audit verifies all26 CI input-event arguments match the local prefix and the six checkpoint prefix matches before local execution continues to completion. No successful per-entry Crèche RTC receipt was logged.
+
+This is a newly packaged local diagnostic ISO `e9569abb4ea1272f67f7466dda60726432ab77d32fd9332b806bc9f9aee8a8bc`, not the absent original CI ISO `e18d462bec9fa40a7eece695034145a5f1df52d03d93d6a3eee614af1ec2976f`. Original CI manifests remain unchanged; the derivative manifest changes only its final ISO digest/identity and retains the embedded resolved-build IDs.
+
+The local driver bytes are hashed, but their compiled source is not independently certified and the driver binary is not included in this packet. CI QMP reports QEMU8.2.2; local reports10.2.1. Machine/CPU/device arguments match apart from output/image/socket paths, but resolved machine features, actual acceleration, firmware, timing, host load and full environments are not equated. This establishes neither an environment-only cause, a runtime improvement, hosted acceptance nor issue closure. Preserve the failed hosted packet independently.
+
+`packet.tar.zst` retains the actual derivative ISO, Root, original/derivative manifests, Boot/Show/serial/QMP/actions/screenshots, experiment receipt and audit. All76 file members were independently rehashed against retained originals; archive SHA-256 `76cfd65ef113a7571fa6577b55dd981d93152f5c45c255f1a8ebf6206009d402`,19,514,325bytes. Custody JSON lists every member. Earlier startup failures and the older driver's different-sequence replay remain separate local evidence.

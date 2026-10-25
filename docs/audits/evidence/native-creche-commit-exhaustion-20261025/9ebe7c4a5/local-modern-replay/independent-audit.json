@@ -1,0 +1,990 @@
+{
+  "schema": "conduit.independent-ci-root-derivative-replay@1",
+  "errors": [],
+  "custody_consistent": true,
+  "kernel_sha256": "adcd948b1f30a444c3b975a59879b4be09fecd9931732d90e8a82aaa0396cf61",
+  "actual_CI_kernel_identical": true,
+  "actual_derivative_iso_sha256": "e9569abb4ea1272f67f7466dda60726432ab77d32fd9332b806bc9f9aee8a8bc",
+  "original_CI_iso_manifest_sha256": "e18d462bec9fa40a7eece695034145a5f1df52d03d93d6a3eee614af1ec2976f",
+  "derivative_not_original_iso": true,
+  "original_manifest_untouched": true,
+  "only_derivative_final_image_fields_changed": true,
+  "resolved_closure_unchanged": true,
+  "sealed_member_count": 73,
+  "frame_manifest_status": "complete",
+  "main_frames": [
+    {
+      "checkpoint": "front-door-ready",
+      "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+      "qmp_ack": true,
+      "serial_byte_end": 42716
+    },
+    {
+      "checkpoint": "creche-ready",
+      "png_sha256": "96367ec5e3d7bf2a68b35ef1ea05bf7ceff04de70abb82a530204d712399d38e",
+      "pixel_sha256": "afaf45b877131353ff3950c510663710c16f865d66bf6b33cc2ee943d71f9fd1",
+      "qmp_ack": true,
+      "serial_byte_end": 84018
+    },
+    {
+      "checkpoint": "creche-editorial-compact",
+      "png_sha256": "c664fff260160e823fd72aad27f664652245aedcba63cf9fd29389352ad575c4",
+      "pixel_sha256": "53e963d6d7d9b2b43d3ea95464b75c7a1a6cbdaa9ae8c78b7d8a1fb996dea293",
+      "qmp_ack": true,
+      "serial_byte_end": 114310
+    },
+    {
+      "checkpoint": "creche-engineering-phosphor-compact",
+      "png_sha256": "572af64470526e6aa2f0feab3e43623e289ed178331db6aaeecb0a370c125057",
+      "pixel_sha256": "e55f6efac213471df30e3f47bd97d463b8b36a1c7d94e6197145ca327f625b98",
+      "qmp_ack": true,
+      "serial_byte_end": 236176
+    },
+    {
+      "checkpoint": "creche-engineering-editorial-compact",
+      "png_sha256": "94bafd6608cd9754ef67d5cd94f7f3b7d198085aef05f574429c2ade83367d41",
+      "pixel_sha256": "9339b5aec5230e410eb9f8b95f0b7b1ff8ce62e42a0ae89fdc059fdb317f9a01",
+      "qmp_ack": true,
+      "serial_byte_end": 266515
+    },
+    {
+      "checkpoint": "creche-engineering-phosphor-spacious",
+      "png_sha256": "3e2578678ce786aeeefb3693e17e18713dabf286845b840f0fd11cd4ee35c4f0",
+      "pixel_sha256": "1f53068522e30d3a2df0acd9822157fd779c55b6692d6f0603129d0896c19000",
+      "qmp_ack": true,
+      "serial_byte_end": 327192
+    },
+    {
+      "checkpoint": "creche-three-selected",
+      "png_sha256": "6a0441cbfbe0e267d0a3a9fe57c0f7522257a52de546c27c9df139a3efac53e5",
+      "pixel_sha256": "b831c95df94784004c53a9be61415a9bb4fd10c016e192dfdfa974215938e4d2",
+      "qmp_ack": true,
+      "serial_byte_end": 417602
+    },
+    {
+      "checkpoint": "creche-four-restored",
+      "png_sha256": "14b9be2b3525a048298984dd1aae9fea92c596ba695e190c32ff33e76fce6725",
+      "pixel_sha256": "3913714466db606a25552644a164d643f682d9d39d5ace9f2473601c6714c166",
+      "qmp_ack": true,
+      "serial_byte_end": 446405
+    },
+    {
+      "checkpoint": "creche-fourth-checked",
+      "png_sha256": "ccaf6c413774aa04baaf6762e67209f06b64a5b1044d2a08fcd5d6b63383f952",
+      "pixel_sha256": "3d0eafe5a1cd686f1a9d1added5ea8e5c621ef980ef3ce72384711b38746f491",
+      "qmp_ack": true,
+      "serial_byte_end": 450749
+    },
+    {
+      "checkpoint": "creche-pointer-three-selected",
+      "png_sha256": "af590ddb370c6cc432bfe5675f4a50ac9eee0521eb83785f8bde326f3b9a563f",
+      "pixel_sha256": "e7afe20628f3300b415511c92e8626de03528690a96e3471383eeb6682eec6c6",
+      "qmp_ack": true,
+      "serial_byte_end": 484708
+    },
+    {
+      "checkpoint": "creche-pointer-four-restored",
+      "png_sha256": "a67a45223a416db3fb8f6e4497602a6ff027be443fa498255de6ec0ecacf7108",
+      "pixel_sha256": "b36ba88342e5184d52c619af47a953694e054e4b91c65231b54288b54a34e459",
+      "qmp_ack": true,
+      "serial_byte_end": 514519
+    },
+    {
+      "checkpoint": "body-playing",
+      "png_sha256": "e7e33759cccf97df00aa423fb6c5e926358aef18ac6fc51d000f70df694bb27a",
+      "pixel_sha256": "ec19818d548d2037c3284bd3dab8a6b50602863cd7154b8809a4c2f4ab823a44",
+      "qmp_ack": true,
+      "serial_byte_end": 769670
+    },
+    {
+      "checkpoint": "wake-refused",
+      "png_sha256": "102bb01bd003fe3507e428495a02068e4be06186a3bcb483fa357a7af67fb8ae",
+      "pixel_sha256": "e80862be8a54fd3f3972ced78c85daf5bab623c7cb1226cb8c14b749355507b5",
+      "qmp_ack": true,
+      "serial_byte_end": 832336
+    },
+    {
+      "checkpoint": "protected-keyboard-canvas",
+      "png_sha256": "2836968fd87854430b60bb9a8812e047c0045c7e2fba2622ccfbb20d9afbfab9",
+      "pixel_sha256": "4257ceb380bf039c770ac031b334b18165d88b5cb4231db1f5a5838a57c27a88",
+      "qmp_ack": true,
+      "serial_byte_end": 876597
+    },
+    {
+      "checkpoint": "protected-memory-lantern",
+      "png_sha256": "1932d55f87e31841170aa4e256f0390dffb6192a0b2ee2b2eb3135cb1c5e08b2",
+      "pixel_sha256": "f8b30edcb6464dfdf7948ffeae9e10f70eaa7e8ccef8065666686037526c3922",
+      "qmp_ack": true,
+      "serial_byte_end": 1223505
+    },
+    {
+      "checkpoint": "home",
+      "png_sha256": "e7e33759cccf97df00aa423fb6c5e926358aef18ac6fc51d000f70df694bb27a",
+      "pixel_sha256": "ec19818d548d2037c3284bd3dab8a6b50602863cd7154b8809a4c2f4ab823a44",
+      "qmp_ack": true,
+      "serial_byte_end": 1312626
+    },
+    {
+      "checkpoint": "patchbay-workspace",
+      "png_sha256": "d5aa6c753c315f2a218ebe3115c3d163c9f26e39c2b0c16d207de10ba453e44e",
+      "pixel_sha256": "52c0d6e6399881d61b3b6e1aaf7a03e2eb91097e7e0c5f849f5d48ca5477e59a",
+      "qmp_ack": true,
+      "serial_byte_end": 1389376
+    },
+    {
+      "checkpoint": "patchbay-face",
+      "png_sha256": "d5aa6c753c315f2a218ebe3115c3d163c9f26e39c2b0c16d207de10ba453e44e",
+      "pixel_sha256": "52c0d6e6399881d61b3b6e1aaf7a03e2eb91097e7e0c5f849f5d48ca5477e59a",
+      "qmp_ack": true,
+      "serial_byte_end": 1389376
+    },
+    {
+      "checkpoint": "patchbay-diagram",
+      "png_sha256": "55d7346c7ae82a6af988ddf4885dcbfd36c504ae90471a7e7d87d6ab1deccc4c",
+      "pixel_sha256": "8c6b5c6cc641ff2160cba4a96b8d37b8794e3e91672bec098537f1f07dba013c",
+      "qmp_ack": true,
+      "serial_byte_end": 1390814
+    },
+    {
+      "checkpoint": "patchbay-gear-details",
+      "png_sha256": "95cd7f1ae5560c6880e51230b491dc87e2e560fdda870043b43344efe0771dd2",
+      "pixel_sha256": "9082ccddfb86c3afca54f7c481e9f95a959bc4a3b6406a0991e4c2628776dd07",
+      "qmp_ack": true,
+      "serial_byte_end": 1397694
+    },
+    {
+      "checkpoint": "patchbay-diagram-returned",
+      "png_sha256": "9746dedb9a6910ad5028e007ac21b0e937fa2c717328473e755f2507289f5ea4",
+      "pixel_sha256": "32e3fd00ea8875d2fbe0816a3e146764f8bb7a0273748cda65511425c5d40b7f",
+      "qmp_ack": true,
+      "serial_byte_end": 1408722
+    },
+    {
+      "checkpoint": "patchbay-inspected-other-and-returned",
+      "png_sha256": "d5aa6c753c315f2a218ebe3115c3d163c9f26e39c2b0c16d207de10ba453e44e",
+      "pixel_sha256": "52c0d6e6399881d61b3b6e1aaf7a03e2eb91097e7e0c5f849f5d48ca5477e59a",
+      "qmp_ack": true,
+      "serial_byte_end": 2308017
+    },
+    {
+      "checkpoint": "patchbay-mask-replanned",
+      "png_sha256": "1c625c0e5bd60c39da330726878f14023e13a9f04901cb781dbb3059b403af97",
+      "pixel_sha256": "24fe566502bac7fee69cedd5f28860acedfef793a8048c862d1f591fda518c8a",
+      "qmp_ack": true,
+      "serial_byte_end": 2719396
+    },
+    {
+      "checkpoint": "body-stopped",
+      "png_sha256": "0cc6b6aed2f2caac50a6963741768e58de1d20132dc2a48a89ad5ef8fc9d5078",
+      "pixel_sha256": "485fb1779d501f52303bb25c2eec84eabbf823be4cd80e9ef41107963eb32cef",
+      "qmp_ack": true,
+      "serial_byte_end": 2747172
+    },
+    {
+      "checkpoint": "home-returned",
+      "png_sha256": "cb80518a0e71df47f7d14b1d489dd53d139ccf3bdebef560a7221ef4af5db8f7",
+      "pixel_sha256": "f63d3875af0ba6ce3f37f4a9b1fd56bf2ecdfa560535c76eb89f979770d86a8b",
+      "qmp_ack": true,
+      "serial_byte_end": 2753343
+    },
+    {
+      "checkpoint": "patchbay-reentered",
+      "png_sha256": "1a3c937e03d6a0de9c31a9a617115dfadeb192ff66b69820ff78a8886186b0e3",
+      "pixel_sha256": "a52c27c31a1b0bc827a97021369f53dae7f67cdd5718613c49128745fb5bf556",
+      "qmp_ack": true,
+      "serial_byte_end": 2756046
+    },
+    {
+      "checkpoint": "patchbay-source-editor-loaded",
+      "png_sha256": "d0582f4a59554584c37e4240f97f36a1dbc489f807317ad7460eb661c71bd87a",
+      "pixel_sha256": "79e6a975473c78a8a79d7b2b563083ddb07f9eb8291c6cb2ac3e4c1f777e0e20",
+      "qmp_ack": true,
+      "serial_byte_end": 3505186
+    }
+  ],
+  "all_pngs": [
+    {
+      "file": "journey-frames/creche-editorial-compact.png",
+      "sha256": "c664fff260160e823fd72aad27f664652245aedcba63cf9fd29389352ad575c4"
+    },
+    {
+      "file": "journey-frames/patchbay-diagram.png",
+      "sha256": "55d7346c7ae82a6af988ddf4885dcbfd36c504ae90471a7e7d87d6ab1deccc4c"
+    },
+    {
+      "file": "journey-frames/creche-pointer-four-restored.png",
+      "sha256": "a67a45223a416db3fb8f6e4497602a6ff027be443fa498255de6ec0ecacf7108"
+    },
+    {
+      "file": "journey-frames/patchbay-gear-details.png",
+      "sha256": "95cd7f1ae5560c6880e51230b491dc87e2e560fdda870043b43344efe0771dd2"
+    },
+    {
+      "file": "journey-frames/patchbay-diagram-returned.png",
+      "sha256": "9746dedb9a6910ad5028e007ac21b0e937fa2c717328473e755f2507289f5ea4"
+    },
+    {
+      "file": "journey-frames/protected-keyboard-canvas.png",
+      "sha256": "2836968fd87854430b60bb9a8812e047c0045c7e2fba2622ccfbb20d9afbfab9"
+    },
+    {
+      "file": "journey-frames/creche-pointer-three-selected.png",
+      "sha256": "af590ddb370c6cc432bfe5675f4a50ac9eee0521eb83785f8bde326f3b9a563f"
+    },
+    {
+      "file": "journey-frames/patchbay-mask-replanned.png",
+      "sha256": "1c625c0e5bd60c39da330726878f14023e13a9f04901cb781dbb3059b403af97"
+    },
+    {
+      "file": "journey-frames/wake-refused.png",
+      "sha256": "102bb01bd003fe3507e428495a02068e4be06186a3bcb483fa357a7af67fb8ae"
+    },
+    {
+      "file": "journey-frames/creche-four-restored.png",
+      "sha256": "14b9be2b3525a048298984dd1aae9fea92c596ba695e190c32ff33e76fce6725"
+    },
+    {
+      "file": "journey-frames/patchbay-inspected-other-and-returned.png",
+      "sha256": "d5aa6c753c315f2a218ebe3115c3d163c9f26e39c2b0c16d207de10ba453e44e"
+    },
+    {
+      "file": "journey-frames/body-stopped.png",
+      "sha256": "0cc6b6aed2f2caac50a6963741768e58de1d20132dc2a48a89ad5ef8fc9d5078"
+    },
+    {
+      "file": "journey-frames/creche-fourth-checked.png",
+      "sha256": "ccaf6c413774aa04baaf6762e67209f06b64a5b1044d2a08fcd5d6b63383f952"
+    },
+    {
+      "file": "journey-frames/front-door-ready.png",
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    {
+      "file": "journey-frames/creche-engineering-phosphor-compact.png",
+      "sha256": "572af64470526e6aa2f0feab3e43623e289ed178331db6aaeecb0a370c125057"
+    },
+    {
+      "file": "journey-frames/creche-ready.png",
+      "sha256": "96367ec5e3d7bf2a68b35ef1ea05bf7ceff04de70abb82a530204d712399d38e"
+    },
+    {
+      "file": "journey-frames/body-playing.png",
+      "sha256": "e7e33759cccf97df00aa423fb6c5e926358aef18ac6fc51d000f70df694bb27a"
+    },
+    {
+      "file": "journey-frames/creche-three-selected.png",
+      "sha256": "6a0441cbfbe0e267d0a3a9fe57c0f7522257a52de546c27c9df139a3efac53e5"
+    },
+    {
+      "file": "journey-frames/creche-engineering-phosphor-spacious.png",
+      "sha256": "3e2578678ce786aeeefb3693e17e18713dabf286845b840f0fd11cd4ee35c4f0"
+    },
+    {
+      "file": "journey-frames/home-returned.png",
+      "sha256": "cb80518a0e71df47f7d14b1d489dd53d139ccf3bdebef560a7221ef4af5db8f7"
+    },
+    {
+      "file": "journey-frames/patchbay-face.png",
+      "sha256": "d5aa6c753c315f2a218ebe3115c3d163c9f26e39c2b0c16d207de10ba453e44e"
+    },
+    {
+      "file": "journey-frames/creche-engineering-editorial-compact.png",
+      "sha256": "94bafd6608cd9754ef67d5cd94f7f3b7d198085aef05f574429c2ade83367d41"
+    },
+    {
+      "file": "journey-frames/home.png",
+      "sha256": "e7e33759cccf97df00aa423fb6c5e926358aef18ac6fc51d000f70df694bb27a"
+    },
+    {
+      "file": "journey-frames/protected-memory-lantern.png",
+      "sha256": "1932d55f87e31841170aa4e256f0390dffb6192a0b2ee2b2eb3135cb1c5e08b2"
+    },
+    {
+      "file": "journey-frames/patchbay-reentered.png",
+      "sha256": "1a3c937e03d6a0de9c31a9a617115dfadeb192ff66b69820ff78a8886186b0e3"
+    },
+    {
+      "file": "journey-frames/patchbay-source-editor-loaded.png",
+      "sha256": "d0582f4a59554584c37e4240f97f36a1dbc489f807317ad7460eb661c71bd87a"
+    },
+    {
+      "file": "journey-frames/patchbay-workspace.png",
+      "sha256": "d5aa6c753c315f2a218ebe3115c3d163c9f26e39c2b0c16d207de10ba453e44e"
+    },
+    {
+      "file": "patchbay-checked-source/source-selected.png",
+      "sha256": "1bf5924d844cf195a027663b58d4cb787c4ab175c45833efa01b6e1f54e65a0a"
+    },
+    {
+      "file": "patchbay-checked-source/details-port.png",
+      "sha256": "8cc10aec331cbe450358b14379994e926b9dee807923e9fb7762d7dc1ede37be"
+    },
+    {
+      "file": "patchbay-checked-source/details-gear.png",
+      "sha256": "f42a493080ae31475bb7b1909e047e55448e6e74567c6f7707d023dfe8a59791"
+    },
+    {
+      "file": "patchbay-checked-source/diagram-backward-000.png",
+      "sha256": "6ba5984cbe75832b81559ed7273812c0c2d369735831e6ae128eb32d30014f41"
+    },
+    {
+      "file": "patchbay-checked-source/details-cord.png",
+      "sha256": "cc48b2b1d9fc20c9a8caadb336a20a431db3e92f846b9d9ecdf2dd3d284f95a5"
+    },
+    {
+      "file": "patchbay-checked-source/diagram-forward-000.png",
+      "sha256": "6ba5984cbe75832b81559ed7273812c0c2d369735831e6ae128eb32d30014f41"
+    },
+    {
+      "file": "patchbay-checked-source/diagram-forward-001.png",
+      "sha256": "3d530a14ad94e31f8e68f9eedf497167054be57e3bc15618481b4a1a13a1367a"
+    },
+    {
+      "file": "patchbay-refusal-details/details-016.png",
+      "sha256": "e81e4a156b6e9ce5d5f48c3bcf3eb54e836c8ede2835f6f0dd5fc42d664e4165"
+    },
+    {
+      "file": "patchbay-refusal-details/details-014.png",
+      "sha256": "58f482ea0725f20a78168a06ded51e87dfa390b05ed89da6ced8b3e44485383c"
+    },
+    {
+      "file": "patchbay-refusal-details/details-013.png",
+      "sha256": "7d7bf4900108db2b5c74e2716813df8ef510f817150872f841c4d570a97a261f"
+    },
+    {
+      "file": "patchbay-refusal-details/details-018.png",
+      "sha256": "bcbdd05a15b4b71a656d7675ca6e16876b4edb4b2f2bb37b838dda3aee29d2af"
+    },
+    {
+      "file": "patchbay-refusal-details/details-001.png",
+      "sha256": "f015c0b150de69950eeb5781e2396da9efdf339435852d29d93ffbee251f9ef7"
+    },
+    {
+      "file": "patchbay-refusal-details/details-011.png",
+      "sha256": "93d98a6d65a932307a0646cb5c8654376d79b19eb1893bd81991f507ec6e6a5f"
+    },
+    {
+      "file": "patchbay-refusal-details/details-017.png",
+      "sha256": "6c3970a77d2436b7e2da07bdf5f4824a55b9efc9a17bf60c8b6db8f74d6e0fd6"
+    },
+    {
+      "file": "patchbay-refusal-details/details-009.png",
+      "sha256": "37940ed8c9c2b39b6b92eda3f43c0b031e8b96f571fbe66b56841d26f894e104"
+    },
+    {
+      "file": "patchbay-refusal-details/details-015.png",
+      "sha256": "5457983b19cffbfd36d9c6a0efaec1f3fdacbb6fea8b03d5411a27eb700a04c1"
+    },
+    {
+      "file": "patchbay-refusal-details/details-012.png",
+      "sha256": "349958a382ccbb122d7da9e582399ecf98985c0f349ec771fb460e58e90738cf"
+    },
+    {
+      "file": "patchbay-refusal-details/details-019.png",
+      "sha256": "25a8be0dbb364db5caf54edb72716261c6978b37f9471edfe67360136a522054"
+    },
+    {
+      "file": "patchbay-refusal-details/details-020.png",
+      "sha256": "9efe2a0d7f3e14846cb260d88bcc5c79bdf829d86908947a398039eec0a76cdb"
+    },
+    {
+      "file": "patchbay-refusal-details/details-003.png",
+      "sha256": "8c0da77536ed542a20b75639bdc340b74ee31a3619ebe3da51eba2655fea1bd6"
+    },
+    {
+      "file": "patchbay-refusal-details/details-008.png",
+      "sha256": "4904a98d5d486d91c38a038849eacc45d937000aec302818641799e3060c2f5a"
+    },
+    {
+      "file": "patchbay-refusal-details/details-005.png",
+      "sha256": "3114cb6f5350dddb4239ac1a69cf9f572ddddd13880b6907606712386d22332c"
+    },
+    {
+      "file": "patchbay-refusal-details/details-007.png",
+      "sha256": "8039dd9c98fbe78a636c1bb2b95570ab376df3364c526b4a0d4a82eeae748ae3"
+    },
+    {
+      "file": "patchbay-refusal-details/details-006.png",
+      "sha256": "26815b433df5e0341eb3d600fd6d2adf1953a09c9d530d5f2b5b1d22c9721908"
+    },
+    {
+      "file": "patchbay-refusal-details/details-004.png",
+      "sha256": "bf818c356864554401d06b8c477947161e79fe282c1e7194ab964e5ef18c15a6"
+    },
+    {
+      "file": "patchbay-refusal-details/details-002.png",
+      "sha256": "fad76789d157748840b109129ece169e8b6bedf967397dc701f7dbf736a85f80"
+    },
+    {
+      "file": "patchbay-refusal-details/details-010.png",
+      "sha256": "3c61b8e7c5e69b34975e2d937155bae88f3205d7d61540427969ce47f0667329"
+    }
+  ],
+  "action_count": 18,
+  "actions": [
+    {
+      "intent": "conduit.intent/wake@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/wake/0"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/plan@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/plan/1"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/play@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/2"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/wake@1",
+      "disposition": {
+        "Refused": {
+          "reason": "UnavailableAction"
+        }
+      },
+      "effects": 0
+    },
+    {
+      "intent": "patchbay/select-plot@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/2"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "patchbay/select-plot@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/2"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "patchbay/select-plot@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/2"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "patchbay/select-plot@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/2"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "patchbay/edit-subject@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/2"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "patchbay/change-masks@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/2"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/stop@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/stop/3"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/lull@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/lull/4"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/wake@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/wake/5"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/plan@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/plan/6"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/play@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/7"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "patchbay/select-plot@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/7"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "patchbay/edit-subject@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/play/7"
+        }
+      },
+      "effects": 1
+    },
+    {
+      "intent": "conduit.intent/stop@1",
+      "disposition": {
+        "Accepted": {
+          "operation_request_id": "conduitos/product-interaction/stop/8"
+        }
+      },
+      "effects": 1
+    }
+  ],
+  "steps": [
+    "arrive",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "birth",
+    "wake",
+    "plan",
+    "play",
+    "commons-hub",
+    "commons-workshop",
+    "unavailable-wake-refused",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "gear-details",
+    "diagram-return",
+    "stop",
+    "home-returned",
+    "patchbay-reentered"
+  ],
+  "qmp_screendumps": 54,
+  "qmp_inputs": 416,
+  "serial_sha256": "3383ed9ccae11a762f802a4382587361098ac2991339f337fe4c6dd98932b4b7",
+  "qmp_sha256": "73af668603e5ae269be1144779c9d8737b3c4f748c94ec251afac252b6455d76",
+  "driver_actual_sha256": "ced825701b73949ab5b59aa5ca0a9e2c85c79698baa825769da1e92da62bf64f",
+  "driver_archive_decoding_verified": false,
+  "compiled_driver_source": "not independently established; actual warm driver hash verified",
+  "CI_checkpoint_sequence": [
+    "front-door-ready",
+    "creche-ready",
+    "creche-editorial-compact",
+    "creche-engineering-phosphor-compact",
+    "creche-engineering-editorial-compact",
+    "creche-engineering-phosphor-spacious"
+  ],
+  "local_checkpoint_sequence": [
+    "front-door-ready",
+    "creche-ready",
+    "creche-editorial-compact",
+    "creche-engineering-phosphor-compact",
+    "creche-engineering-editorial-compact",
+    "creche-engineering-phosphor-spacious",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "body-playing",
+    "wake-refused",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay-workspace",
+    "patchbay-face",
+    "patchbay-diagram",
+    "patchbay-gear-details",
+    "patchbay-diagram-returned",
+    "patchbay-inspected-other-and-returned",
+    "patchbay-mask-replanned",
+    "body-stopped",
+    "home-returned",
+    "patchbay-reentered",
+    "patchbay-source-editor-loaded"
+  ],
+  "matching_checkpoint_prefix": true,
+  "critical_limit": [
+    "Locally repackaged ISO differs from unavailable original CI ISO",
+    "Driver compiled source identity not independently established",
+    "Matching checkpoint prefix does not alone certify identical every QMP action; retained QMP logs permit independent comparison",
+    "No successful Creche per-entry or aggregate DomainCost log found; Application entry costs are excluded",
+    "No sole-environment/causal-speedup/CI acceptance claim"
+  ],
+  "no_causal_conclusion": "Passing derivative ISO and current warm driver does not isolate host environment or explain failed CI. Same actual Root bytes and six matching checkpoint prefix establish this successful derivative path, not general CI equivalence.",
+  "limits": [
+    "Not original CI ISO; no general CI equivalence or CI acceptance.",
+    "No successful Cr\u00e8che per-entry DomainCost receipt; Application sequence70 is unrelated.",
+    "QMP acknowledgements are not independent guest effect acceptance.",
+    "Initial startup refusals and immutable CI negative remain retained."
+  ],
+  "CI_input_prefix_comparison": {
+    "CI_input_command_count": 26,
+    "modern_input_command_count": 416,
+    "exact_ordered_argument_prefix_equal": true,
+    "mismatch_indices": [],
+    "comparison": "Exact input-send-event arguments in command order; QMP ids/observer timing excluded, captured separately. This does not make guest timings or environment identical.",
+    "last_CI_commands": [
+      {
+        "arguments": {
+          "events": [
+            {
+              "data": {
+                "down": true,
+                "key": {
+                  "data": "spc",
+                  "type": "qcode"
+                }
+              },
+              "type": "key"
+            }
+          ]
+        },
+        "execute": "input-send-event",
+        "id": "31:creche-reversible-choice"
+      },
+      {
+        "arguments": {
+          "events": [
+            {
+              "data": {
+                "down": false,
+                "key": {
+                  "data": "spc",
+                  "type": "qcode"
+                }
+              },
+              "type": "key"
+            }
+          ]
+        },
+        "execute": "input-send-event",
+        "id": "32:creche-reversible-choice"
+      }
+    ],
+    "corresponding_modern_commands": [
+      {
+        "arguments": {
+          "events": [
+            {
+              "data": {
+                "down": true,
+                "key": {
+                  "data": "spc",
+                  "type": "qcode"
+                }
+              },
+              "type": "key"
+            }
+          ]
+        },
+        "execute": "input-send-event",
+        "id": "31:creche-reversible-choice"
+      },
+      {
+        "arguments": {
+          "events": [
+            {
+              "data": {
+                "down": false,
+                "key": {
+                  "data": "spc",
+                  "type": "qcode"
+                }
+              },
+              "type": "key"
+            }
+          ]
+        },
+        "execute": "input-send-event",
+        "id": "32:creche-reversible-choice"
+      }
+    ]
+  },
+  "all_54_PNG_QMP_capture_acknowledgements": [
+    {
+      "file": "journey-frames/creche-editorial-compact.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-diagram.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-pointer-four-restored.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-gear-details.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-diagram-returned.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/protected-keyboard-canvas.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-pointer-three-selected.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-mask-replanned.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/wake-refused.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-four-restored.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-inspected-other-and-returned.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/body-stopped.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-fourth-checked.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/front-door-ready.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-engineering-phosphor-compact.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-ready.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/body-playing.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-three-selected.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-engineering-phosphor-spacious.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/home-returned.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-face.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/creche-engineering-editorial-compact.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/home.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/protected-memory-lantern.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-reentered.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-source-editor-loaded.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "journey-frames/patchbay-workspace.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-checked-source/source-selected.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-checked-source/details-port.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-checked-source/details-gear.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-checked-source/diagram-backward-000.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-checked-source/details-cord.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-checked-source/diagram-forward-000.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-checked-source/diagram-forward-001.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-016.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-014.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-013.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-018.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-001.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-011.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-017.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-009.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-015.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-012.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-019.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-020.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-003.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-008.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-005.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-007.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-006.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-004.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-002.png",
+      "qmp_ack": true
+    },
+    {
+      "file": "patchbay-refusal-details/details-010.png",
+      "qmp_ack": true
+    }
+  ],
+  "embedded_creche_matches_actual_CI": [
+    {
+      "offset": 15552040,
+      "bytes": 1669592,
+      "sha256": "a8da3a4babf9cb0f0d90ee7ab3106104f8d16f2d65b74942b03631166bdfed64"
+    },
+    {
+      "offset": 17437431,
+      "bytes": 1669592,
+      "sha256": "a8da3a4babf9cb0f0d90ee7ab3106104f8d16f2d65b74942b03631166bdfed64"
+    }
+  ],
+  "actual_ISO_payload_custody": "Modern ISO hash exactly equals older derivative ISO; independently extracted kernel from that byte-identical ISO hashed adcd948b... and matched CI Root. No original CI ISO available.",
+  "repackage_experiment_sha256": "59de269a73098fc1b9f086643717c5a26713917ab16ffcf2ceac506f03c316eb",
+  "all_PNG_dimensions_and_byte_lengths_verified": 54
+}
