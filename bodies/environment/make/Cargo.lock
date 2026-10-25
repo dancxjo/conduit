@@ -151,7 +151,9 @@ dependencies = [
  "conduit-host-browser-make",
  "conduit-host-make",
  "conduit-host-rp2040",
+ "conduit-monotonic-wait",
  "conduit-net",
+ "conduit-network-join-call",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
@@ -159,6 +161,7 @@ dependencies = [
  "conduit-time",
  "conduit-tm1637-wire",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -167,11 +170,13 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
  "conduit-semantic-catalog",
  "conduit-time",
+ "conduit-tm1637-wire",
 ]
 
 [[package]]
@@ -254,12 +259,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-monotonic-wait"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-time",
+]
+
+[[package]]
 name = "conduit-net"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-network-join-call"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-net",
+ "conduit-plan-lowering",
 ]
 
 [[package]]

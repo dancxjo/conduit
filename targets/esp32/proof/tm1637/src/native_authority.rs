@@ -4,14 +4,20 @@
 mod bindings;
 #[path = "native_display_authority.rs"]
 mod display;
+#[cfg(test)]
+#[path = "../tests/authority_fixture.rs"]
+mod fixture;
 #[path = "native_pulse_authority.rs"]
 mod pulse;
+#[path = "native_verified_bindings.rs"]
+mod verified_bindings;
 #[path = "native_wait_authority.rs"]
 mod wait;
 pub use bindings::{AssignedNativeInput, NativeBindings};
 use conduit_core as c;
 use conduit_network_join_call::installation::NetworkNativeIdentity;
 use sha2::{Digest, Sha256};
+pub use verified_bindings::VerifiedNativeInput;
 #[derive(Clone, Copy)]
 pub enum Operation {
     Credentials,
@@ -73,6 +79,7 @@ pub struct RootIssuer {
     native_issued_play: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
 }
 impl RootIssuer {
+    #[cfg(target_arch = "xtensa")]
     pub fn observe(boot: &crate::boot::ObservedBoot) -> Result<Self, ()> {
         let mut key = [0; 32];
         esp_hal::rng::Trng::try_new()

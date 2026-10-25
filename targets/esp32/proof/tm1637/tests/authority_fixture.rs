@@ -1,0 +1,21 @@
+//! CPU-only identity/secret fixture; never compiled into device provisioning.
+use super::*;
+impl RootIssuer {
+    pub fn fixture(host: c::HostId, boot: c::BootId) -> Self {
+        Self {
+            host,
+            boot,
+            key: [7; 32],
+            issued: [false; 2],
+            wait_issued: false,
+            pulse_issued: false,
+            display_issued: false,
+            display_generation: 0,
+            pulse_generation: 0,
+            wait_generation: 0,
+            last_play_sequence: 0,
+            reserved_play: None,
+            native_issued_play: None,
+        }
+    }
+}

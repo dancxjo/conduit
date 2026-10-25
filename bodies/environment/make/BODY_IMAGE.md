@@ -223,8 +223,14 @@ stale Play and tampered lowering before any operation completes. Retained timer
 and pulse owners now expose this verified preflight and transfer path. Both keep
 Root's initialized slot on refusal; pulse codec preparation finishes before GPIO
 custody moves. CPU providers prove successful transfer and one admitted wait or
-capture, with no effects during preflight. Local Root startup still needs to
-consume these APIs jointly under its Body lifecycle and memory admission.
+capture, with no effects during preflight. Root now reserves a current Play from
+the verified scope and offers a joint pulse/timer binding path: both native
+preflights pass before issuance state is spent or either owner transfers. A CPU
+test compiles the actual Root policy, plans the checked sampler against retained
+native offers, and proves stale Boot/missing fragment refusal, retry after a
+cadence mismatch, exact finite operation budgets and spent-issuance refusal.
+This starts no Body. Startup still needs to connect this path to ordinary Body
+lifecycle and complete memory admission before scheduling the kernel.
 
 The single-window resident-owner/offer/selection/preparation/lowering/Body-seal
 CPU ledger compares both paths: **346,241 bytes** for compact verified material
