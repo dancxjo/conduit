@@ -1,0 +1,5 @@
+{
+  "schema": 1,
+  "source": "git+https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9",
+  "provenance": "Cargo vendor normalized manifests from this exact pinned public Git tree; all other regular Git bytes remain exact. Updating the Git revision requires regenerating and reviewing these two manifests."
+}
