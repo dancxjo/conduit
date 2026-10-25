@@ -15,12 +15,12 @@ mod registry;
 mod timed;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod usb;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) use usb::{StorageScopePossession, StorageUsbAdmission};
 pub(crate) mod preparation_diagnostic;
@@ -35,7 +35,7 @@ pub struct I2cAdmission<P> {
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub struct UsbControlAdmission {
     pub additional_remote_sign_items: u16,
@@ -47,7 +47,7 @@ pub struct UsbControlAdmission {
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) struct UsbProtocolAdmission {
     pub additional_remote_sign_items: u16,
@@ -62,7 +62,7 @@ pub(crate) struct UsbProtocolAdmission {
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) struct UsbEndpointAdmission {
     pub additional_remote_sign_items: u16,
@@ -74,7 +74,7 @@ pub(crate) struct UsbEndpointAdmission {
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) struct UsbIsochronousAdmission {
     pub additional_remote_sign_items: u16,
@@ -89,7 +89,7 @@ pub(crate) struct UsbIsochronousAdmission {
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) struct UsbDuplexAdmission {
     pub additional_remote_sign_items: u16,
@@ -112,27 +112,27 @@ enum PhysicalMode {
     UsbEthernet,
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     UsbControl,
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     UsbProtocol,
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     UsbDuplex,
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     StorageUsbDuplex,
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     UsbIsochronous,
 }
@@ -344,7 +344,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn bind_storage_body(
         &mut self,

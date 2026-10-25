@@ -6,14 +6,14 @@
 // Native controller mechanism compilation does not advertise a USB Host offer.
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 #[cfg_attr(target_arch = "aarch64", allow(dead_code))]
 mod xhci_mechanism;
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 #[cfg_attr(target_arch = "aarch64", allow(dead_code))]
 pub(crate) mod usb_xhci;
@@ -92,12 +92,12 @@ pub use ia32::{
 };
 #[cfg(target_arch = "x86")]
 pub const ARCHITECTURE: &str = "ia32";
-#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-board")))]
 mod aarch64;
 
 #[cfg(all(
     target_arch = "aarch64",
-    not(feature = "aarch64-orange-pi-5"),
+    not(feature = "aarch64-board"),
     feature = "native-compositor-core"
 ))]
 pub use aarch64::FirmwareScanout;
@@ -105,7 +105,7 @@ pub use aarch64::FirmwareScanout;
 #[path = "aarch64/framebuffer/conformance.rs"]
 mod aarch64_framebuffer_conformance;
 
-#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-board")))]
 pub use aarch64::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, VirtXhciRefusal, append_boot_diagnostic,
     disable_interrupts, emergency_halt, emergency_machine_profile, enable_fp_simd,
@@ -114,21 +114,21 @@ pub use aarch64::{
     space_protocol_clock_poll, timer_arm,
 };
 
-#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-board")))]
 pub use usb_xhci::{
     AttachmentBaseline, EndpointNativeRefusal, EndpointWriteNativeRefusal, NativeUsbControlCall,
     ReadyUsbControlBase, UsbConfigurationSnapshot, UsbControlCallRefusal, UsbControlHostCall,
     UsbControlSelection, UsbDevice, UsbNativeHostRefusal, UsbNativeProtocolRefusal,
     address_selected_root_port_at_epoch, discover_configuration,
 };
-#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-board")))]
 pub(crate) use usb_xhci::{
     NativeUsbDuplexHost, NativeUsbProtocolHost, ReadyUsbDuplexHost, ReadyUsbProtocolHost,
     UsbConfiguredInboundEndpoint, UsbConfiguredOutboundEndpoint, UsbEndpointReceiveDma,
     UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
     configure_usb_inbound, configure_usb_outbound,
 };
-#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-board")))]
 pub use xhci_mechanism::XhciReady;
 
 #[cfg(all(target_arch = "aarch64", feature = "aarch64-orange-pi-5"))]
@@ -214,12 +214,12 @@ mod domain_context_probe;
     feature = "ordinary-domain-proof"
 ))]
 pub use aarch64::start_pending_source_timer;
-#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-board")))]
 pub use aarch64::{RndrEntropy as DomainEntropy, early_write};
 #[cfg(all(
     target_arch = "aarch64",
     target_os = "none",
-    not(feature = "aarch64-orange-pi-5")
+    not(feature = "aarch64-board")
 ))]
 pub use aarch64::{TextDomain, initialize_domains};
 #[cfg(target_arch = "x86")]
@@ -258,7 +258,7 @@ pub(crate) use x86_64::{
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 #[allow(unused_imports)] // ISO admission adapter is owned by the integration branch.
 pub(crate) use usb_xhci::{
@@ -268,7 +268,7 @@ pub(crate) use usb_xhci::{
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub use usb_xhci::UsbIsochronousCallRefusal;
 
@@ -304,3 +304,28 @@ pub use riscv64::framebuffer;
 mod loongarch64_framebuffer_mapping;
 #[cfg(all(target_arch = "loongarch64", feature = "native-compositor-core"))]
 pub use loongarch64::framebuffer;
+
+// Nano handoff conformance is host-testable before a board image exists.
+#[cfg(any(test, all(target_arch = "aarch64", feature = "aarch64-jetson-nano")))]
+#[path = "jetson_nano/mod.rs"]
+pub mod jetson_nano;
+
+#[cfg(all(target_arch = "aarch64", feature = "aarch64-jetson-nano"))]
+pub use jetson_nano::machine::{
+    Clock, Idle, Interrupts, Serial, Timer, disable_interrupts, enable_fp_simd, enable_interrupts,
+    initialize_machine, present, read_counter,
+};
+
+#[cfg(all(
+    target_arch = "aarch64",
+    feature = "aarch64-orange-pi-5",
+    feature = "aarch64-jetson-nano"
+))]
+compile_error!("select exactly one AArch64 board feature");
+
+#[cfg(all(
+    target_arch = "aarch64",
+    feature = "aarch64-board",
+    not(any(feature = "aarch64-orange-pi-5", feature = "aarch64-jetson-nano"))
+))]
+compile_error!("aarch64-board is an internal feature; select an exact board");

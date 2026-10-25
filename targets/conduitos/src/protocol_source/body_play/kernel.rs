@@ -24,7 +24,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> ProtocolKernel<P, C> {
     }
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(super) fn bind_storage_body(
         &mut self,

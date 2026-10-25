@@ -137,6 +137,8 @@ pub(super) enum ConduitosCommand {
     LiveMatrix,
     /// Build one exact bare-metal ConduitOS Orange Pi 5 RK3588S SD image.
     OrangePi5Image,
+    /// Build a native P3450 Nano microSD image retaining NVIDIA firmware.
+    JetsonNanoImage(jetson_nano::ImageArgs),
     /// Erase, write, and byte-verify one explicitly confirmed removable device.
     Flash(FlashArgs),
     /// Capture and validate one exact physical BCM2835 Raspberry Pi UART boot.
