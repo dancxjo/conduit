@@ -1,3 +1,4 @@
+use crate::planning_input::PlanningGears;
 use crate::prelude::*;
 use crate::{PlacementChoice, PlacementChoices, PlannerError};
 use alloc::collections::BTreeMap;
@@ -10,7 +11,15 @@ pub(crate) fn default_placements_unvalidated(
     connections: &[CheckedConnection],
     hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
-    if quantity_selection::needed(gears, hosts) {
+    default_planning_placements(&PlanningGears::borrowed(gears), connections, hosts)
+}
+
+pub(crate) fn default_planning_placements(
+    gears: &PlanningGears<'_>,
+    connections: &[CheckedConnection],
+    hosts: &[HostAdvertisement],
+) -> Result<PlacementChoices, PlannerError> {
+    if quantity_selection::needed(gears, hosts)? {
         return quantity_selection::select(gears, connections, hosts);
     }
     if hosts.is_empty() {
@@ -18,7 +27,8 @@ pub(crate) fn default_placements_unvalidated(
     }
     let mut by_gear = BTreeMap::new();
     let mut selected_counts = BTreeMap::new();
-    for gear in gears {
+    for gear in gears.iter() {
+        let gear = gear?;
         let candidates = hosts
             .iter()
             .enumerate()
@@ -30,7 +40,7 @@ pub(crate) fn default_placements_unvalidated(
             .filter(|(_, _, offer)| gear.accepts_realization(offer))
             .collect::<Vec<_>>();
         let mut candidates =
-            crate::language_coverage::filter_candidates(gear, candidates, |candidate| {
+            crate::language_coverage::filter_candidates(&gear, candidates, |candidate| {
                 (candidate.1, candidate.2)
             })?;
         candidates.retain(|(_, host, offer)| {

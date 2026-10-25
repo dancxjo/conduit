@@ -71,6 +71,24 @@ fn indexed_appliance_preserves_the_complete_plan_and_refusals_without_loading_th
             }
             _ => {}
         }
+        if scenario != 4 {
+            let expected = conduit_planner::default_expanded_placements(
+                &source.expanded,
+                core::slice::from_ref(&host),
+            );
+            let (selected, memory) = allocation_probe::observe(|| {
+                conduit_planner::indexed_source::default_placements(
+                    &image,
+                    core::slice::from_ref(&host),
+                )
+            });
+            assert_eq!(selected, expected, "selection scenario {scenario}");
+            if scenario == 0 {
+                assert_eq!(selected.as_ref().unwrap(), &placements);
+                assert!(memory.peak_bytes <= 128 * 1024, "{memory:?}");
+                eprintln!("indexed_selection_peak={}", memory.peak_bytes);
+            }
+        }
         let options = PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
@@ -131,4 +149,91 @@ fn indexed_appliance_preserves_the_complete_plan_and_refusals_without_loading_th
         }
     }
     assert_eq!(effects.get(), 0);
+}
+
+#[test]
+fn source_resident_owner_survives_selection_planning_and_lowering_in_one_memory_window() {
+    use conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware;
+    let source = compile(1, 0).unwrap();
+    let recipe = NativeSoftwareSourceRecipe::prepare(&source).unwrap();
+    // Trusted Make material stands in for linked flash, outside dynamic RAM.
+    let computations = recipe.resident_computations().collect::<Vec<_>>();
+    let offer_material = recipe.resident_offers();
+    // SAFETY: independently checked and encoded by this same Make recipe.
+    let image = unsafe {
+        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(
+            recipe.planning_image(),
+        )
+    }
+    .unwrap();
+    let (ready, effects) = pulse::ready(0);
+    let ((software, host, placements, plan, lowered), memory) = allocation_probe::observe(|| {
+        let connections = limits(&source);
+        let values = conduit_environment_runtime::appliance::prepare_value_storage().unwrap();
+        let software = Box::new(
+            PreparedResidentSoftware::prepare_source(&recipe.spec(), &computations, values)
+                .unwrap(),
+        );
+        let mut host = appliance_support::native_advertisement(&ready);
+        {
+            let offers = software
+                .source_offers(&recipe.spec(), &offer_material)
+                .unwrap();
+            for bytes in offers.iter() {
+                host.capabilities
+                    .push(serde_json::from_slice(bytes).unwrap());
+            }
+        }
+        let placements = conduit_planner::indexed_source::default_placements(
+            &image,
+            core::slice::from_ref(&host),
+        )
+        .unwrap();
+        let connection_bases = BTreeMap::new();
+        let line_candidates = BTreeMap::new();
+        let grants = [pulse::grant()];
+        let options = PlanningOptions {
+            connection_bases: &connection_bases,
+            line_candidates: &line_candidates,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 1024,
+            authority_grants: &grants,
+            protected_resource_grants: &[],
+            line_offers: &[],
+        };
+        let plan = conduit_planner::indexed_source::plan_with_connection_limits(
+            &image,
+            core::slice::from_ref(&host),
+            &placements,
+            &["conduit.base/local@1".into()],
+            options,
+            &connections,
+        )
+        .unwrap();
+        let lowered = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+            &plan,
+            &plan.fragments[0].fragment_id,
+        )
+        .unwrap();
+        (software, host, placements, plan, lowered)
+    });
+    assert!(c::verify_plan(&plan));
+    assert_eq!(placements.by_gear.len(), source.expanded.gears.len());
+    assert_eq!(
+        software
+            .source_offers(&recipe.spec(), &offer_material)
+            .unwrap()
+            .iter()
+            .len(),
+        host.capabilities.len() - 2
+    );
+    assert_eq!(effects.get(), 0);
+    eprintln!(
+        "resident_owner_offers_selection_plan_lowering_peak={}",
+        memory.peak_bytes
+    );
+    assert!(memory.peak_bytes <= 400 * 1024, "{memory:?}");
+    // This excludes Root/biography, display, radio/SDK and target stack. It is a
+    // single-window CPU ledger entry, never complete Xtensa memory admission.
+    drop((software, host, placements, plan, lowered));
 }

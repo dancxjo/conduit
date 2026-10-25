@@ -1,5 +1,5 @@
 //! Ordinary planning from an independently authenticated checked Make image.
-//! Caller supplies exact placement choices/current offers; this creates no
+//! Caller supplies current offers and may select or supply exact placements; this creates no
 //! readiness, membership, grant, native provider or execution authority.
 use crate::{
     planning_input::{PlanningGears, PlanningInput},
@@ -8,6 +8,23 @@ use crate::{
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{BaseImplementationId, HostAdvertisement, Plan};
 use conduit_plot::flat_image::indexed::IndexedSourceImage;
+
+/// Select from current offers with the same ordering, instance admission,
+/// language and optional Quantity-wire search as ordinary checked Source.
+/// This establishes choices only, never a Plan or execution authority.
+pub fn default_placements(
+    image: &IndexedSourceImage<'_>,
+    hosts: &[HostAdvertisement],
+) -> Result<PlacementChoices, PlannerError> {
+    let metadata = image.metadata().map_err(|e| {
+        PlannerError::InvalidPlotIdentity(alloc::format!("indexed Source metadata: {e:?}"))
+    })?;
+    crate::functional_compatibility::default_planning_placements(
+        &PlanningGears::indexed(image),
+        metadata.connections(),
+        hosts,
+    )
+}
 
 pub fn plan_with_connection_limits(
     image: &IndexedSourceImage<'_>,

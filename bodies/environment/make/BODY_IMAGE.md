@@ -170,6 +170,21 @@ The CPU peak is **214,958 bytes**, versus **259,587** when the measurement windo
 includes a decoded graph clone and consuming planning. The indexed proof enforces
 a 224 KiB CPU ceiling. Caller-owned offers/software and immutable image storage
 are outside both windows; these are not complete Xtensa admission bounds.
+Indexed default placement selection now uses the same ordinary offer ranking,
+language checks, instance limits and bounded Quantity-wire backtracking. Only
+one checked Gear is decoded at a time; the search retains identities and
+candidate rows. The actual appliance selects identical placements and refusals,
+with a **93,898-byte** CPU peak and a 128 KiB guard. Exact-quantity selection also
+checks backtracking, incompatibility and empty-host parity.
+
+One additional CPU observation window now initializes and retains the resident
+software/value store, composes current fixture offers, selects placements,
+plans, and performs whole-Plan-aware lowering. All those owners coexist at the
+end. It peaks at **378,925 bytes**, with a 400 KiB guard. Linked Make descriptors
+stand in for immutable flash; dynamic connection policy is included. Native
+provider internals, Root/biography, display, radio/SDK and target stack remain
+outside this window. It is a partial memory ledger, not complete MCU admission.
+
 The result is still a rich Plan. Further compact preparation and integration
 with the local Body owner are required before autonomous native startup.
 

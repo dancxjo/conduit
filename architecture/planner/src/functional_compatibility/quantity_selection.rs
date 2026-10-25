@@ -8,20 +8,46 @@ const MAXIMUM_CONNECTIONS: usize = 4096;
 const MAXIMUM_CANDIDATES: usize = 4096;
 const MAXIMUM_ATTEMPTS: usize = 65536;
 
-pub(super) fn needed(gears: &[CheckedGear], hosts: &[HostAdvertisement]) -> bool {
+pub(super) fn needed(
+    gears: &PlanningGears<'_>,
+    hosts: &[HostAdvertisement],
+) -> Result<bool, PlannerError> {
     let profile = QuantityWireContract::property_kind();
-    hosts.iter().flat_map(|h| &h.capabilities).any(|offer| {
+    let relevant = |offer: &CapabilityOffer| {
         offer
             .realization_properties
             .iter()
             .any(|p| p.profile() == &profile)
-            && gears.iter().any(|gear| gear.accepts_realization(offer))
-    })
+    };
+    if !hosts.iter().flat_map(|h| &h.capabilities).any(relevant) {
+        return Ok(false);
+    }
+    for gear in gears.iter() {
+        let gear = gear?;
+        if hosts
+            .iter()
+            .flat_map(|h| &h.capabilities)
+            .any(|offer| relevant(offer) && gear.accepts_realization(offer))
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
+
+struct SelectionGear {
+    gear_id: conduit_core::GearId,
+    kind_id: conduit_core::KindId,
+}
+
 struct Candidate<'a> {
     host: &'a HostAdvertisement,
     offer: &'a CapabilityOffer,
     wire: QuantityWireContract,
+}
+struct SelectionRows<'a> {
+    gears: Vec<SelectionGear>,
+    candidates: Vec<Vec<Candidate<'a>>>,
 }
 struct Edge<'a> {
     source: usize,
@@ -58,12 +84,14 @@ fn contract(offer: &CapabilityOffer) -> Result<QuantityWireContract, PlannerErro
     Ok(wire)
 }
 fn rows<'a>(
-    gears: &[CheckedGear],
+    gears: &PlanningGears<'_>,
     hosts: &'a [HostAdvertisement],
-) -> Result<Vec<Vec<Candidate<'a>>>, PlannerError> {
+) -> Result<SelectionRows<'a>, PlannerError> {
     let mut rows = Vec::with_capacity(gears.len());
+    let mut identities = Vec::with_capacity(gears.len());
     let mut count = 0usize;
-    for gear in gears {
+    for gear in gears.iter() {
+        let gear = gear?;
         let mut candidates = Vec::new();
         for (host_index, host) in hosts.iter().enumerate() {
             for offer in &host.capabilities {
@@ -77,7 +105,7 @@ fn rows<'a>(
             }
         }
         let mut candidates =
-            crate::language_coverage::filter_candidates(gear, candidates, |c| (c.1, c.2))?;
+            crate::language_coverage::filter_candidates(&gear, candidates, |c| (c.1, c.2))?;
         candidates.sort_by_key(|(host_index, _, offer)| {
             (
                 *host_index,
@@ -100,12 +128,19 @@ fn rows<'a>(
                 gear.kind_id.as_str().into(),
             ));
         }
+        identities.push(SelectionGear {
+            gear_id: gear.gear_id.clone(),
+            kind_id: gear.kind_id.clone(),
+        });
         rows.push(row);
     }
-    Ok(rows)
+    Ok(SelectionRows {
+        gears: identities,
+        candidates: rows,
+    })
 }
 fn edges<'a>(
-    gears: &[CheckedGear],
+    gears: &[SelectionGear],
     connections: &'a [CheckedConnection],
 ) -> Result<Vec<Edge<'a>>, PlannerError> {
     let mut edges = Vec::new();
@@ -138,7 +173,7 @@ fn mismatch(edge: &Edge<'_>) -> PlannerError {
 }
 
 pub(super) fn select(
-    gears: &[CheckedGear],
+    gears: &PlanningGears<'_>,
     connections: &[CheckedConnection],
     hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
@@ -148,15 +183,18 @@ pub(super) fn select(
     if connections.len() > MAXIMUM_CONNECTIONS {
         return Err(limit("connections"));
     }
-    let rows = rows(gears, hosts)?;
-    let edges = edges(gears, connections)?;
-    search(gears, &rows, &edges, MAXIMUM_ATTEMPTS)
+    let SelectionRows {
+        gears: identities,
+        candidates: rows,
+    } = rows(gears, hosts)?;
+    let edges = edges(&identities, connections)?;
+    search(&identities, &rows, &edges, MAXIMUM_ATTEMPTS)
 }
 // Iterative backtracking avoids a preparation stack proportional to Plot size.
 // Ranking remains deterministic; only incompatible/instance-exhausted tuples
 // are skipped. Search exhaustion refuses instead of installing a weaker codec.
 fn search(
-    gears: &[CheckedGear],
+    gears: &[SelectionGear],
     rows: &[Vec<Candidate<'_>>],
     edges: &[Edge<'_>],
     maximum_attempts: usize,
