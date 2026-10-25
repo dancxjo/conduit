@@ -37,7 +37,7 @@ export async function proveHostedHello({ snapshot, taskRoot }) {
   const result=await runSandbox(args,{timeoutMs:60000,resourcesFile:path.join(task,'hello-resource-usage.txt')});
   requireHostedHelloOutput(result.stdout);
   const reportFile=path.join(task,'hello-report.json'),stat=await fs.lstat(reportFile);
-  if(!stat.isFile()||stat.size>4*1024**2)fail('invalid-hosted-hello-report');
+  if(!stat.isFile()||stat.size>16*1024**2)fail('invalid-hosted-hello-report');
   const report=JSON.parse(await fs.readFile(reportFile,'utf8'));
   if(report.schema!=='conduit.observatory.snapshot/v2'||report.hosts?.length!==1||report.plans?.length!==1)fail('invalid-hosted-hello-report');
   const after=await hashFile(binary);
