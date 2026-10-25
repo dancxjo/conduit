@@ -670,6 +670,7 @@ pub const PLANNING_S2_STEPS: &[Step] = &[
 ];
 
 pub const PLOT_S3_STEPS: &[Step] = &[
+    Step::new("check.plot.source-check-info", "test bounded descriptive Source/check projection", "cargo", &["test", "-p", "conduit-plot", "--test", "source_check_info"]),
     Step::new("check.plot.lossless-doc", "test lossless_document_", "cargo", &["test", "-p", "conduit-plot", "lossless_document_"]),
     Step::new("check.plot.missing-close", "test missing_close_is_diagnosed_at_eof_without_losing_source", "cargo", &["test", "-p", "conduit-plot", "missing_close_is_diagnosed_at_eof_without_losing_source"]),
     Step::new("check.plot.source-checked-expanded", "test source_checked_and_expanded_plot_identities_stay_distinct", "cargo", &["test", "-p", "conduit-plot", "source_checked_and_expanded_plot_identities_stay_distinct"]),
