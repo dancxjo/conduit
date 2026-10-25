@@ -264,6 +264,15 @@ Continuous output, freshness withdrawal and sign retention over that full
 lifetime remain open. Telemetry reports unknown write progress while the worker
 owns unreturned counters, and confirmed native completions after custody returns.
 
+The next bounded reuse component is now CPU-proved: the TM1637 Back can opt
+into the existing `PreparedKernelSession` without rebuilding its kernel or
+resetting its Host Call request generation or total write ceiling. A 960-Value
+test transfers each complete invocation log to its explicit CPU consumer with
+zero execution allocations/reallocations and no retention gaps. Cancellation,
+failure and exhaustion prevent rearm. `cargo xtask check tm1637-output` includes
+this proof. It does not implement the MCU's evidence transfer/acknowledgement
+path or admit the full Mask Plot, and does not change the flashed image above.
+
 First physical run:
 `~/.local/share/conduit/environment-host-20261025/runs/3d09cef6-3987-4525-9de0-dfcf1c724b3f/`.
 Body `04ee5ca7beed2563f08265545e8f7674d4cfa64bc3692592e7664b341c1374e8`;

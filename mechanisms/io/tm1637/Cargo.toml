@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [features]
+prepared-write-session = ["host-call", "conduit-kernel/alloc"]
 host-call = ["dep:conduit-core", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:conduit-plot"]
 
 [dependencies]

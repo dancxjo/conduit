@@ -82,3 +82,14 @@ same request. It checks NACK, cancellation, operation exhaustion, late completio
 after kernel cancellation and zero heap allocations across execution. Numeric
 routing/admission, native pin ownership and authority remain explicit fixtures;
 this is not an installed MCU Mask Play or physical-display proof.
+
+The opt-in `prepared-write-session` feature allows the ordinary kernel's
+`PreparedKernelSession` to retain this sink across normally drained Value
+invocations. Rearming preserves the original total operation ceiling and the
+next Host Call request identity. Pending, cancelled, failed and exhausted sinks
+cannot rearm. Each invocation transfers its exact evidence to its caller;
+the session never silently clears lifecycle records. The focused output check
+includes 960 CPU invocations with fixed backing, no execution allocations and
+no sign retention gaps. Host completions in that proof are fixtures. Continuous
+MCU output still requires admission of the complete Mask path and an evidence
+consumer with bounded transfer, acknowledgement and pressure behavior.
