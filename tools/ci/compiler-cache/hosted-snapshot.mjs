@@ -6,6 +6,7 @@ import { CacheRefusal } from './refusal.mjs';
 import { copyCompilerClosure, copyRegular, snapshotInventory, hashFile } from './cargo-snapshot.mjs';
 import { SCCACHE_ENGINE } from './engine.mjs';
 import { canonicalHostedMetadata } from './hosted-metadata.mjs';
+import { captureHostedNativeClosure } from './hosted-native.mjs';
 
 export const HOSTED_SNAPSHOT_LIMITS = Object.freeze({ maxBytes: 6 * 1024 ** 3, maxFiles: 150000 });
 const fail = code => { throw new CacheRefusal(code); };
@@ -137,29 +138,14 @@ export async function prepareHostedSnapshot({ repositoryRoot, toolchainRoot, eng
     if(copiedBytes>3*1024**3||copiedFiles>50000)fail('hosted-runtime-bound');
     await copyRegular(input,output,executable);
   };
-  await copyCompilerClosure({toolchainRoot,engine,destination,copy});
+  await copyCompilerClosure({toolchainRoot,engine,destination,copy,portableRuntime:true});
   for(const name of ['rust-lld','gcc-ld/ld.lld'])await copy(path.join(toolchainRoot,'lib/rustlib/x86_64-unknown-linux-gnu/bin',name),path.join(destination,'toolchain/lib/rustlib/x86_64-unknown-linux-gnu/bin',name),true);
-  // A concrete Debian x86_64 GCC 15 C/link closure, not a host /usr mount.
-  // Resolved symlink payloads are copied into their named lookup locations.
-  const runtime=path.join(destination,'runtime');
-  async function tree(input,output) {
-    for(const name of(await fs.readdir(input)).sort()) {
-      const src=path.join(input,name), dst=path.join(output,name);const stat=await fs.stat(src);
-      if(stat.isDirectory())await tree(src,dst);else if(stat.isFile())await copy(src,dst,Boolean(stat.mode&0o111));else fail('unsupported-hosted-runtime-file');
-    }
-  }
-  for(const [input,output] of [['/usr/bin/cc','usr/bin/cc'],['/usr/bin/gcc-15','usr/bin/gcc'],['/usr/bin/gcc-15','usr/bin/gcc-15'],['/usr/bin/as','usr/bin/as'],['/usr/bin/ld','usr/bin/ld'],['/usr/bin/ar','usr/bin/ar'],['/usr/bin/ranlib','usr/bin/ranlib']])await copy(input,path.join(runtime,output),true);
-  for(const directory of ['lib/gcc/x86_64-linux-gnu/15','libexec/gcc/x86_64-linux-gnu/15'])await tree('/usr/'+directory,path.join(runtime,'usr',directory));
-  for(const name of ['libbfd-2.46-system.so','libctf.so.0','libjansson.so.4','libzstd.so.1','libsframe.so.3','libisl.so.23','libmpc.so.3','libmpfr.so.6','libgmp.so.10','libstdc++.so.6','libmvec.so.1','crt1.o','Scrt1.o','crti.o','crtn.o','libc.so','libc_nonshared.a','libm.so','libpthread.a','libdl.a','librt.a','libutil.a','libutil.so.1','libresolv.so.2'])await copy('/usr/lib/x86_64-linux-gnu/'+name,path.join(runtime,'usr/lib/x86_64-linux-gnu',name));
-  for(const name of await fs.readdir('/usr/include')) {
-    const input=path.join('/usr/include',name),output=path.join(runtime,'usr/include',name);const stat=await fs.stat(input);
-    if(stat.isFile())await copy(input,output);else if(['x86_64-linux-gnu','linux','asm-generic'].includes(name))await tree(input,output);
-  }
+  const native=await captureHostedNativeClosure({destination,toolchainRoot,engine,copy});
   await fs.writeFile(path.join(destination,'cargo-config.toml'),vendorConfig,{mode:0o444,flag:'wx'});
   if(await hashFile(path.join(destination,'toolchain/bin/cargo'))!==acquisitionCargoSha256)fail('hosted-acquisition-cargo-mutated');
   await verifyHostedSource({repositoryRoot,sourceRoot:source,sourceCommit,sourceTree});
   const snapshot=await snapshotInventory(destination,HOSTED_SNAPSHOT_LIMITS);
-  return {schema:'hosted-linux-cargo-snapshot-v1',root:destination,host:'x86_64-unknown-linux-gnu',sourceCommit,sourceTree,...snapshot,acquisitionReceipt,vendor:vendorReceipt,procMacroBypass:bypassNames,package:{name:'conduit',command:['build','--locked','--release','-p','conduit','--bin','conduit'],proceduralMacroPolicy:'Bypass all transitive procedural-macro dependencies, including reexports; response files refuse'},acquisitionPolicySha256:digest(VENDOR)};
+  return {schema:'hosted-linux-cargo-snapshot-v1',root:destination,host:'x86_64-unknown-linux-gnu',sourceCommit,sourceTree,...snapshot,acquisitionReceipt,native,vendor:vendorReceipt,procMacroBypass:bypassNames,package:{name:'conduit',command:['build','--locked','--release','-p','conduit','--bin','conduit'],proceduralMacroPolicy:'Bypass all transitive procedural-macro dependencies, including reexports; response files refuse'},acquisitionPolicySha256:digest(VENDOR)};
 }
 
 // Resolver features intentionally overapproximate the fixed package build.
