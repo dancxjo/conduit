@@ -85,3 +85,21 @@ A verified build receipt and deployment procedure will be recorded here once
 the complete entrance and boot behavior have been exercised. A separate
 agent owns the Crèche plot; this draft consumes its existing library contract
 and does not implement or replace that plot.
+
+## Remaining plan ownership cost
+
+Body-plan validation now borrows its nested Plot Plans and sorts only bounded
+references. It keeps the existing seal identity and refusal behavior, including
+canonicalizing an unsorted candidate. It no longer clones the rich graph merely
+to revalidate it.
+
+The actual environmental sampling Plan's CPU measurement records 33,163 bytes
+of additional peak heap for Body-plan validation, compared with 142,584 bytes
+for a rich Plan clone alone. These are 64-bit host measurements, not Xtensa
+admission figures. The existing sensor-outcome kernel proof checks the measured
+validation path and still passes all seven transcript scenarios.
+
+The rich Plan itself remains owned and large. This change does not establish
+that Root, biography, sampling, timed display, network SDK, planning scratch,
+and required lifecycle evidence coexist within the MCU budget. Compact Plan
+ownership and complete preparation/steady-state accounting remain required.

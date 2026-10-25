@@ -28,6 +28,8 @@ pub struct BodyPlan {
     pub body_time_requirement: Option<BodyTimeRequirement>,
 }
 
+mod validation;
+
 pub const MAX_BODY_MASK_TOPOLOGIES: usize = 16;
 pub const MAX_BODY_MASK_CHAINS: usize = 8;
 pub const MAX_BODY_MASK_STAGES: usize = 8;
@@ -151,8 +153,8 @@ impl BodyPlan {
             &wake.body_id,
             &wake.wake_id,
             wake.workload_revision,
-            &plots,
-            &mask_topologies,
+            plots.iter(),
+            mask_topologies.iter(),
             body_time_requirement.as_ref(),
         );
         Ok(Self {
@@ -165,28 +167,6 @@ impl BodyPlan {
             mask_topologies,
             body_time_requirement,
         })
-    }
-
-    pub fn validate_for(&self, wake: &Wake) -> Result<(), BodyPlanError> {
-        if self.body_id != wake.body_id {
-            return Err(BodyPlanError::WrongBody);
-        }
-        if self.wake_id != wake.wake_id {
-            return Err(BodyPlanError::WrongWake);
-        }
-        if self.workload_revision != wake.workload_revision || self.workset != wake.workset {
-            return Err(BodyPlanError::StaleWorkload);
-        }
-        let resealed = Self::seal_with_requirements(
-            wake,
-            self.plots.clone(),
-            self.mask_topologies.clone(),
-            self.body_time_requirement.clone(),
-        )?;
-        if resealed.plan_id != self.plan_id {
-            return Err(BodyPlanError::InvalidIdentity);
-        }
-        Ok(())
     }
 
     /// Revalidate the immutable body-wide seal without relying on ambient Wake
@@ -235,8 +215,8 @@ impl BodyPlan {
                     &self.body_id,
                     &self.wake_id,
                     self.workload_revision,
-                    &self.plots,
-                    &self.mask_topologies,
+                    self.plots.iter(),
+                    self.mask_topologies.iter(),
                     self.body_time_requirement.as_ref(),
                 )
         {
@@ -276,12 +256,12 @@ impl BodyPlayIdentity {
     }
 }
 
-fn bind_body_plan(
+fn bind_body_plan<'a>(
     body_id: &BodyId,
     wake_id: &WakeId,
     workload_revision: u64,
-    plots: &[BodyPlotPlan],
-    mask_topologies: &[BodyMaskTopology],
+    plots: impl ExactSizeIterator<Item = &'a BodyPlotPlan>,
+    mask_topologies: impl ExactSizeIterator<Item = &'a BodyMaskTopology>,
     body_time_requirement: Option<&BodyTimeRequirement>,
 ) -> PlanId {
     let mut bytes = Vec::new();

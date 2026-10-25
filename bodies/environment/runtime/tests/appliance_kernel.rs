@@ -100,6 +100,38 @@ fn run(scenario: usize, overnight: bool) {
         let (graph_copy, graph_memory) = allocation_probe::observe(|| source.expanded.clone());
         let (host_copy, host_memory) = allocation_probe::observe(|| host.clone());
         let (plan_copy, plan_memory) = allocation_probe::observe(|| plan.clone());
+        #[cfg(feature = "body-image")]
+        {
+            let body = conduit_body::Body::born(
+                plan.source_document_id.clone(),
+                plan.checked_plot_id.clone(),
+                1,
+                "sign/memory/born".into(),
+            )
+            .unwrap();
+            let wake = body.wake(2, "sign/memory/wake".into()).unwrap().1;
+            let body_plan = conduit_body::BodyPlan::seal(
+                &wake,
+                vec![conduit_body::BodyPlotPlan {
+                    plot: wake.workset.plots()[0].clone(),
+                    plan: plan.clone(),
+                }],
+            )
+            .unwrap();
+            let (result, validation_memory) =
+                allocation_probe::observe(|| body_plan.validate_for(&wake));
+            result.unwrap();
+            // Revalidation may hash semantic chunks and sort bounded references;
+            // it must not duplicate the appliance's rich nested Plan.
+            assert!(
+                validation_memory.peak_bytes < plan_memory.peak_bytes / 2,
+                "Body validation copied rich Plan backing: {validation_memory:?}"
+            );
+            eprintln!(
+                "environment_body_plan_validation_peak={} plan_copy_peak={}",
+                validation_memory.peak_bytes, plan_memory.peak_bytes
+            );
+        }
         drop((graph_copy, host_copy, plan_copy));
         eprintln!(
             "environment_appliance_host_heap graph_copy_peak={} host_copy_peak={} plan_copy_peak={} ordinary_planning_peak={} lowering_peak={}",
