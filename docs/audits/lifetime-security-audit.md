@@ -67,6 +67,41 @@ relabel them as current dev, Candidate or Integration acceptance.
   This is page-owned WASM/BodyHost proof, not execution WebWorker termination,
   debugger Watch, independent Host isolation or physical authority.
 
+- Ordinary StdHost Host Call retirement: `work/6409-std-hostcall-retirement-20261025`
+  at `63d60583ba3c4759a1c593192e2a486cf192ac35`. The actual owning-package
+  [Vision conformance fixture](https://github.com/dancxjo/conduit/blob/63d60583ba3c4759a1c593192e2a486cf192ac35/targets/std/src/installed_std_tests/remote_vision_conformance.rs)
+  passed both focused tests and strict library/test Clippy. It starts a real
+  pending request with admitted input and staged value, cancels owner A, and
+  observes `HostCallCompletionRejected` on that retired owner. The same
+  persistent StdHost then admits B with the same Host/Boot/Plan and a fresh
+  Play sequence (0 to 1); B's own request completes exactly once and drains.
+  An independent source-owner sibling remains live. Mutable admitted-owner
+  custody is trusted Root authority; request/value numbers are owner-local
+  descriptors. This does **not** prove arbitrary cross-owner numeric-tuple
+  refusal, asynchronous callback/Watch revocation, hostile confinement or
+  physical authority. The exact passing executable and logs are retained
+  losslessly in the task's `work/std-hostcall-retirement-proof/` custody.
+- Browser input sequence exhaustion: `work/6409-browser-input-exhaustion-20261025`
+  at `d227f2a3d8f85b7bcaffb06f87dc73b67ed5fffd`. The existing
+  [input adapter](https://github.com/dancxjo/conduit/blob/d227f2a3d8f85b7bcaffb06f87dc73b67ed5fffd/targets/browser/host/assets/browser-human-input.mjs)
+  now retires pointer sequences at their u32 boundary and button sequences at
+  the safe-Number boundary before their u64 encoder. The final representable
+  value is emitted once; further input refuses rather than truncating or
+  reusing an imprecise Number. Two pure-policy boundary tests and all thirteen
+  existing Chromium DOM input cases passed (one worker, zero retries).
+  Boundary tests execute the actual advancement policy, not billions of DOM
+  events or a forced full WASM roundtrip. This preparation is not in the
+  audited baseline; it grants no new owner/input authority and does not
+  re-execute or relabel the earlier WASM lifetime proof.
+
+A separate source review found unchecked u32 Tour timer/manifestation completion
+**reporting** counts. Pending effect correlation uses Play, placement and request,
+not those counts. No authority bypass or universal lifetime bound was established.
+A future checked-arithmetic refusal could precede kernel completion/storage, but
+cannot precede a platform timer or DOM effect already performed before its
+completion arrives. Retain that boundary instead of claiming rollback or a
+pre-platform-effect guarantee from a reporting-counter correction.
+
 ## Remaining #6409 acceptance
 
 A complete current owner/counter table and joined negative matrix remain
