@@ -4,6 +4,7 @@
 #[path = "../../../semantics/face/tests/common/mod.rs"]
 mod mask_test_common;
 
+pub mod creche_encounter;
 mod hosted_two_std;
 mod plot_source;
 mod product_execution;
