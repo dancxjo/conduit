@@ -63,6 +63,39 @@ impl ProductJourney {
         name: String,
         sequence: u64,
     ) -> Result<(), JourneyError> {
+        if self.body().is_some() {
+            return Err(JourneyError::AlreadyBorn);
+        }
+        if workset.is_empty() || workset.len() > native_workset::profile().capacity {
+            return Err(JourneyError::WrongTarget);
+        }
+        let born_sign = SignId::from(format!(
+            "conduitos/product/born/{}/{}",
+            self.boot_id.as_str(),
+            self.revision
+        ));
+        let body = Body::born_with_plots(workset, sequence, born_sign.clone())
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        let membership =
+            BodyMembership::new(body.body_id.clone()).map_err(|_| JourneyError::Membership)?;
+        let biography = conduit_body::BodyBiographyEvidence::born(
+            body.clone(),
+            membership.clone(),
+            name.clone(),
+        )
+        .map_err(|_| JourneyError::InvalidTransition)?;
+        self.admit_initial_birth(biography)
+    }
+
+    /// Shared first local admission for new and externally prepared ordinary
+    /// birth evidence. All native Source checks and fallible state preparation
+    /// complete before the ProductJourney publishes any changed state.
+    pub(super) fn admit_initial_birth(
+        &mut self,
+        mut biography: conduit_body::BodyBiographyEvidence,
+    ) -> Result<(), JourneyError> {
+        let workset = biography.body.workset.clone();
+        let name = biography.friendly_name.clone();
         let profile = native_workset::profile();
         if workset.is_empty() || workset.len() > profile.capacity {
             return Err(JourneyError::WrongTarget);
@@ -92,25 +125,13 @@ impl ProductJourney {
         if self.body().is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
-        let born_sign = SignId::from(format!(
-            "conduitos/product/born/{}/{}",
-            self.boot_id.as_str(),
-            self.revision
-        ));
-        let body = Body::born_with_plots(workset, sequence, born_sign.clone())
-            .map_err(|_| JourneyError::InvalidTransition)?;
+        let body = biography.body.clone();
+        let sequence = body.birth_sequence;
         let part = PartId::bind(&body.body_id, self.host_id.as_str(), 0)
             .map_err(|_| JourneyError::Membership)?;
         let proof = MembershipProofId::bind("conduitos/product/local-birth")
             .map_err(|_| JourneyError::Membership)?;
-        let mut membership =
-            BodyMembership::new(body.body_id.clone()).map_err(|_| JourneyError::Membership)?;
-        let mut biography = conduit_body::BodyBiographyEvidence::born(
-            body.clone(),
-            membership.clone(),
-            name.clone(),
-        )
-        .map_err(|_| JourneyError::InvalidTransition)?;
+        let mut membership = biography.membership.clone();
         membership
             .admit(
                 &body.body_id,
@@ -139,8 +160,16 @@ impl ProductJourney {
             .events
             .iter()
             .enumerate()
-            .map(|(index, event)| (event.change_id.clone(), sequence + index as u64 + 1))
-            .collect::<Vec<_>>();
+            .map(|(index, event)| {
+                sequence
+                    .checked_add(index as u64)
+                    .and_then(|value| value.checked_add(1))
+                    .map(|sequence| (event.change_id.clone(), sequence))
+                    .ok_or(JourneyError::Biography(
+                        conduit_body::BodyBiographyError::InvalidSequence,
+                    ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         biography
             .append_membership_events(membership, &events)
             .map_err(JourneyError::Biography)?;

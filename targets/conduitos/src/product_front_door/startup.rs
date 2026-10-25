@@ -23,6 +23,24 @@ pub(super) fn after_birth(
     )
 }
 
+/// A prepared medium resumes the retained lulled birth through the same
+/// current Face/Mask/Show lifecycle admission as an interactive birth.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn after_prepared_boot(
+    door: &mut FrontDoor,
+    journey: &mut ProductJourney,
+    presenter: &mut FrontDoorPresenter,
+    workspace: &mut FaceWorkspace,
+    display: &mut impl crate::display::PixelTarget,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    make: &MakeRecord,
+) -> Result<(), &'static str> {
+    start(
+        door, journey, presenter, workspace, display, identities, offer, make,
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 fn start(
     door: &mut FrontDoor,

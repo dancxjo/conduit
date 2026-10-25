@@ -194,6 +194,18 @@ fn inspect_spore_provision(
     let Some(region) = boot::spore_module() else {
         emit_refusal("spore-boot-module-missing");
     };
+    // Retained birth media is imported by the ordinary product Journey after
+    // current resources are initialized. It is not an invitation to redeem.
+    match conduitos::prepared_body_boot::inspect(region, &conduitos::make::EMBEDDED_MAKE) {
+        Ok(Some(_)) => {
+            #[cfg(feature = "native-compositor")]
+            return None;
+            #[cfg(not(feature = "native-compositor"))]
+            emit_refusal("prepared-birth-requires-native-product");
+        }
+        Ok(None) => {}
+        Err(reason) => emit_refusal(reason),
+    }
     let provision = match spore_provision::decode(region) {
         Ok(provision) => provision,
         Err(error) => emit_refusal(error.as_str()),

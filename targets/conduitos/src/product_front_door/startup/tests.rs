@@ -291,3 +291,107 @@ fn automatic_remaining_plan_refusal_retains_the_awake_body_and_visible_stage() {
     assert_eq!(active.plan_id, awake.plan_id);
     assert!(active.active_play_id.is_some());
 }
+
+#[test]
+fn prepared_birth_starts_through_acknowledged_face_without_rebirth() {
+    use conduit_body::{
+        Body, BodyBiographyEvidence, BodyMembership, PreparedBirthMedia, PreparedBirthMediaBinding,
+    };
+    let mut encounter = Encounter::born();
+    let workset = encounter.journey.biography().unwrap().body.workset.clone();
+    let body = Body::born_with_plots(workset, 41, "sign/media-birth".into()).unwrap();
+    let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+    let evidence = BodyBiographyEvidence::born(body, membership, "Retained Cedar".into()).unwrap();
+    let media = PreparedBirthMedia::from_evidence(
+        &evidence,
+        PreparedBirthMediaBinding {
+            host_entry: "first".into(),
+            first_host_entry: "first".into(),
+            construction_id: "construction/reviewed".into(),
+            configuration_id: "configuration/reviewed".into(),
+            profile_id: encounter.make.profile_id.into(),
+            build_id: encounter.make.build_id.into(),
+            target: encounter.make.target.into(),
+        },
+    )
+    .unwrap();
+    encounter.journey = fixture().2;
+    encounter
+        .journey
+        .import_prepared_birth(
+            &media,
+            encounter.make.target,
+            encounter.make.profile_id,
+            encounter.make.build_id,
+        )
+        .unwrap();
+    // A boot owns a fresh front door. Reusing the previous encounter's Body
+    // would correctly trigger its cross-Body continuity refusal.
+    let projection = encounter.journey.projection();
+    encounter.door = FrontDoor::new(
+        projection.host_id.clone(),
+        projection.boot_id.clone(),
+        projection.offer_generation,
+        "profile",
+        "build",
+        "image",
+        projection.source_document_id.clone().unwrap(),
+        projection.checked_plot_id.clone().unwrap(),
+        7,
+        true,
+    );
+    let provider = crate::product_bases::fixture_surface_provider();
+    encounter.workspace = FaceWorkspace::prepare(
+        projection.host_id.clone(),
+        projection.boot_id.clone(),
+        projection.offer_generation,
+        "build",
+        provider.entry.base_id.clone(),
+        &provider,
+        conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
+    )
+    .unwrap();
+    encounter.presenter = FrontDoorPresenter::prepare(
+        projection.host_id,
+        projection.boot_id,
+        projection.offer_generation,
+        "profile",
+        "image",
+        provider.entry.base_id.clone(),
+        2,
+    )
+    .unwrap();
+    encounter.display = CountingDisplay::default();
+    let imported = encounter.journey.biography().unwrap().clone();
+    assert_eq!(encounter.journey.status(), JourneyStatus::BornLulled);
+    encounter.door.observe_product(&encounter.journey).unwrap();
+    encounter
+        .presenter
+        .present(&encounter.door, &mut encounter.display)
+        .unwrap();
+    after_prepared_boot(
+        &mut encounter.door,
+        &mut encounter.journey,
+        &mut encounter.presenter,
+        &mut encounter.workspace,
+        &mut encounter.display,
+        &encounter.ids,
+        &encounter.offer,
+        &encounter.make,
+    )
+    .unwrap();
+    let active = encounter.journey.projection();
+    assert_eq!(active.status, JourneyStatus::QuiescentAwaitingInput);
+    assert_eq!(active.body_id.as_ref(), Some(&evidence.body_id));
+    let retained = encounter.journey.biography().unwrap();
+    assert_eq!(retained.friendly_name, evidence.friendly_name);
+    assert_eq!(retained.records[0], evidence.records[0]);
+    assert_eq!(retained.membership.parts.len(), 1);
+    assert_eq!(retained.membership.parts, imported.membership.parts);
+    assert!(
+        active.wake_id.is_some() && active.plan_id.is_some() && active.active_play_id.is_some()
+    );
+    let before = encounter.journey.projection();
+    assert_eq!(encounter.start(), Err("post-birth-startup-wrong-state"));
+    assert_eq!(encounter.journey.projection(), before);
+}

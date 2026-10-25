@@ -348,6 +348,7 @@ pub mod sign_format;
 // only the boot-specific serial emission is target-gated inside the module.
 pub mod bytes_literal;
 pub mod native_guest_part;
+pub mod prepared_body_boot;
 pub mod spore_join;
 pub mod spore_provision;
 #[cfg(any(test, target_arch = "x86_64"))]

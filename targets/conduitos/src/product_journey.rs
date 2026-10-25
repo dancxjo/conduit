@@ -21,6 +21,7 @@ mod birth;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 mod graph_facts;
 mod patchbay;
+mod prepared_birth;
 mod projection;
 mod source_edit;
 pub use source_edit::{SourceEditError, SourceEditReceipt, SourceEditRefusal};
