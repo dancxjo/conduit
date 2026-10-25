@@ -18,6 +18,9 @@ use std::{
     },
 };
 
+mod save;
+pub use save::{CrecheSavedReceipt, CrecheSaveRefusal};
+
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "linux")]
@@ -351,4 +354,4 @@ impl CrecheImageProduction {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

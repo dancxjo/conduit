@@ -10,9 +10,10 @@ use std::{
 #[derive(Default)]
 pub(super) struct WorkerSlot {
     started: bool,
-    drain_failed: bool,
-    cancelled: Option<Arc<AtomicBool>>,
-    handle: Option<JoinHandle<()>>,
+    pub(super) drain_failed: bool,
+    pub(super) image_reserved: bool,
+    pub(super) cancelled: Option<Arc<AtomicBool>>,
+    pub(super) handle: Option<JoinHandle<()>>,
     rejected: Option<CrecheRejectedProducts>,
 }
 /// Opaque verified products refused by the active completion boundary. File and

@@ -22,6 +22,12 @@ pub trait LocalCrecheScanout: PixelTarget {
     /// Revoke publication/input and drain this exact selected output. Idempotent.
     fn revoke_and_drain(&mut self) -> Result<(), String>;
 }
+impl<T: LocalCrecheScanout + ?Sized> LocalCrecheScanout for &mut T {
+    fn revoke_and_drain(&mut self) -> Result<(), String> {
+        (**self).revoke_and_drain()
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct LocalCrecheNativeLimits {
     pub maximum_presentations: u32,
@@ -123,7 +129,18 @@ impl<D: LocalCrecheScanout> LocalCrecheNativeOwner<D> {
         &mut self,
         controller: &CrecheEncounterController,
     ) -> Result<bool, String> {
-        self.require_live()?;
+        // Retirement may arrive between the event loop's service pass and
+        // publication. Complete its actual Mask/scanout drain rather than
+        // treating an expected terminal transition as a renderer failure.
+        if self.service_retirement()? {
+            return Ok(false);
+        }
+        if let Err(error) = self.require_live() {
+            if self.service_retirement()? {
+                return Ok(false);
+            }
+            return Err(error);
+        }
         let Some(face) = controller.face()? else {
             return Ok(false);
         };
@@ -152,7 +169,10 @@ impl<D: LocalCrecheScanout> LocalCrecheNativeOwner<D> {
             Err(error) => return self.fail(error.as_str()),
         };
         self.presentations += 1;
-        if let Err(error) = self.record_presented(face, composition) {
+        if let Err(error) = self.record_presented(face.clone(), composition) {
+            if self.service_retirement()? {
+                return Ok(false);
+            }
             return self.fail(&error);
         }
         let show = self
@@ -160,7 +180,26 @@ impl<D: LocalCrecheScanout> LocalCrecheNativeOwner<D> {
             .show()
             .ok_or("native Creche completed Show absent")?
             .clone();
+        self.acknowledge_presented(controller, &face, show)
+    }
+
+    fn acknowledge_presented(
+        &mut self,
+        controller: &CrecheEncounterController,
+        rendered: &Face,
+        show: MaskShow,
+    ) -> Result<bool, String> {
         if let Err(error) = controller.acknowledge_show(show) {
+            // A make/save worker may publish a replacement while this thread
+            // renders. The old Show remains stale and is never acknowledged.
+            // Withdraw its input custody and lease before the next UI pump
+            // realizes the actual current Face. Same-Face custody errors still
+            // revoke the owner rather than disguising a failed acknowledgement.
+            if controller.face()?.as_deref() != Some(rendered) {
+                self.shared.withdraw()?;
+                self.mask.suspend().map_err(|e| e.as_str().to_owned())?;
+                return Ok(false);
+            }
             return self.fail(&error);
         }
         Ok(true)
@@ -285,3 +324,13 @@ impl<D: LocalCrecheScanout> Drop for LocalCrecheNativeOwner<D> {
 
 #[cfg(test)]
 mod tests;
+
+/// SDL commit is synchronous on the owning thread. Revoking this prepared
+/// scanout prevents further publication; no independent firmware provider exists.
+#[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+impl LocalCrecheScanout for conduit_linux_display::Scanout<'_> {
+    fn revoke_and_drain(&mut self) -> Result<(), String> {
+        self.lose();
+        Ok(())
+    }
+}

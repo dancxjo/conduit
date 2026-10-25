@@ -76,7 +76,7 @@ fn real_native_owner_redraws_acknowledges_and_returns_exact_input_to_encounter()
             revoked: false,
         },
         LocalCrecheNativeLimits {
-            maximum_presentations: 16,
+            maximum_presentations: 64,
             maximum_input_events: 1024,
             retirement_timeout: Duration::from_millis(100),
         },
@@ -134,6 +134,7 @@ fn real_native_owner_redraws_acknowledges_and_returns_exact_input_to_encounter()
         native.display.commits > commits,
         "focus reading crossed actual commit hook"
     );
+    let rendered_show = native.mask.show().unwrap().clone();
     assert!(
         native.key(&controller, enter).unwrap(),
         "Mask typed return must match controller acknowledged Show after redraw"
@@ -149,13 +150,91 @@ fn real_native_owner_redraws_acknowledges_and_returns_exact_input_to_encounter()
         controller.face().unwrap().unwrap().identity,
         original.identity
     );
+    // Deterministic rendering/owner race: the committed old Show reaches the
+    // acknowledgement boundary after the semantic owner publishes a new Face.
+    // It must remain rejected, release stale input/Mask custody, and allow the
+    // next actual presentation instead of revoking the entire local owner.
+    assert!(!native
+        .acknowledge_presented(&controller, &original, rendered_show)
+        .unwrap());
+    assert!(native.mask.show().is_none());
+    assert!(!native.shared.has_returned().unwrap());
     assert!(native.present_current(&controller).unwrap());
     assert!(
         !native.shared.has_returned().unwrap(),
         "replacement Face retires the consumed occurrence"
     );
-    native.retire().unwrap();
+    // Reach canonical Review using actual native typed returns, then publish
+    // the fresh read-only waiting Face while make remains externally owned.
+    for action in [
+        "creche.deploy.next",
+        "creche.deploy.next",
+        "creche.deploy.review",
+    ] {
+        let face = controller.face().unwrap().unwrap();
+        let mut reached = false;
+        for _ in 0..64 {
+            if native
+                .mask
+                .scene()
+                .unwrap()
+                .focused()
+                .is_some_and(|control| face.actions[control.action].identity == action)
+            {
+                reached = true;
+                break;
+            }
+            assert!(!native.key(&controller, tab).unwrap());
+        }
+        assert!(reached, "native navigation reaches {action}");
+        assert!(native.key(&controller, enter).unwrap());
+        std::thread::sleep(owner.poll_wait());
+        assert_eq!(
+            owner.poll().unwrap(),
+            conduit_std_host::hosted_creche::CrechePoll::Pending
+        );
+        assert!(native.present_current(&controller).unwrap());
+    }
+    let waiting = controller.face().unwrap().unwrap();
+    assert!(controller.reviewed().unwrap());
+    assert!(waiting
+        .actions
+        .iter()
+        .all(|action| action.availability != conduit_face::FaceActionAvailability::Available));
+    assert!(
+        !native.shared.has_returned().unwrap(),
+        "waiting Face retires consumed Review input"
+    );
+    assert!(
+        !native.key(&controller, tab).unwrap(),
+        "read-only waiting navigation is harmless"
+    );
+    assert!(
+        !native.key(&controller, enter).unwrap(),
+        "read-only waiting cannot repeat make"
+    );
+    assert!(
+        native.mask.show().is_some(),
+        "waiting retains an actual acknowledged Show"
+    );
+    // A real worker-visible custody retirement may arrive just after the UI
+    // service pass. Publication must perform the requested drain and report no
+    // new frame, not turn this expected lifecycle transition into a failure.
+    let shared = native.shared.clone();
+    let retirement = std::thread::spawn(move || {
+        let mut custody = NativeCustody(shared);
+        custody.retire_and_drain()
+    });
+    let deadline = std::time::Instant::now() + Duration::from_secs(1);
+    while !native.shared.retirement_requested().unwrap() {
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    assert!(!native.present_current(&controller).unwrap());
+    retirement.join().unwrap().unwrap();
     owner.retire().unwrap();
     assert!(native.display.revoked);
     assert!(native.mask.show().is_none() && native.mask.render_receipt().is_none());
 }
+
+mod installed;

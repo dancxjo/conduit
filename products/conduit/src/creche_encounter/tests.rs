@@ -84,10 +84,38 @@ pub(crate) fn plan(
 }
 pub(crate) fn plan_on_host(
     adapter: &CrecheEncounterAdapter,
-    mut host: conduit_core::HostAdvertisement,
+    host: conduit_core::HostAdvertisement,
 ) -> (conduit_core::HostAdvertisement, BodyPlan, BodyPlayIdentity) {
-    host.capabilities = vec![conduit_body_make::deployment_runtime_catalog::creche_std_offer()];
-    host.resources = vec![adapter.resource_offer()];
+    let (host, _, plan, play) = plan_and_wake_on_host(adapter, host);
+    (host, plan, play)
+}
+pub(crate) fn plan_and_wake_on_host(
+    adapter: &CrecheEncounterAdapter,
+    mut host: conduit_core::HostAdvertisement,
+) -> (
+    conduit_core::HostAdvertisement,
+    conduit_body::Wake,
+    BodyPlan,
+    BodyPlayIdentity,
+) {
+    let capability = conduit_body_make::deployment_runtime_catalog::creche_std_offer();
+    if !host
+        .capabilities
+        .iter()
+        .any(|offer| offer.capability_id == capability.capability_id)
+    {
+        host.capabilities.push(capability);
+    }
+    let resource = adapter.resource_offer();
+    if !host
+        .resources
+        .iter()
+        .any(|offer| offer.pool_id == resource.pool_id)
+    {
+        host.resources.push(resource);
+    }
+    host.resources.sort();
+    host.capabilities.sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_body_make::deployment_runtime_catalog::install_creche_catalogs(
@@ -162,7 +190,7 @@ pub(crate) fn plan_on_host(
     )
     .unwrap();
     let play = BodyPlayIdentity::bind(&plan, 0);
-    (host, plan, play)
+    (host, wake, plan, play)
 }
 fn interaction(
     face: &Face,

@@ -29,9 +29,32 @@ returns the retained job. `withdraw_product` permits a fresh verified replacemen
 without rebirth and restores its byte allowance. Product files are private;
 there is no public mutable-capable file getter. `complete_images` revalidates
 bytes before accepting the opaque completion for the exact reviewed request.
-Only after the installed operation publishes the canonical `Prepared` digest
-may `take_products` transfer that result once. These receipts prove prepared
-bytes; they do not prove carrier writing, destination boot or membership.
+Successful `complete_images` enters the active **Images** Face. It does not
+finish the installed operation or transfer the products. The same acknowledged
+Show and returned typed interaction checks continue to protect Save and Done.
+Each selected Host has a Save action; Done is a separate canonical action.
+
+Save requests an owner grant, rather than granting a pathname or device effect.
+`pending_save` exposes the exact selected artifact receipt. The Host supplies an
+already admitted empty read/write regular file and a finite byte bound to
+`start_save`; file work runs outside kernel polling. `save_host` verifies the
+source, copies in bounded cancellable chunks, flushes and synchronizes the file,
+independently reads its bytes back, then verifies the source again. A failure
+preserves the prepared batch and caller-owned partial file. Success retains a
+private-construction `conduit.creche/saved-image-receipt@1` containing the exact
+request, Body, Host entry, target, digest and byte count. It records saved bytes;
+carrier realization, boot and join remain false. Saving again replaces that
+Host's retained save receipt only after a new successful save.
+
+Done can finish without saving every image. The Host explicitly services its
+pending canonical Done through `start_finish_images`. Its worker revalidates the
+whole batch and constructs bounded
+`conduit.creche/images-completion-evidence@1`: the canonical prepared evidence,
+its SHA-256, and actual retained save receipts. Only that completion lets poll
+publish the exact `Prepared` evidence digest and permits `take_products` to
+transfer the batch once. Done does not invent a save receipt or infer deployment.
+After completed retirement, `take_retired_products` instead recovers retained
+products without claiming successful Prepared completion.
 
 Production and completion revalidation perform blocking I/O.
 `start_make_worker` consumes the exact review internally and attaches one owned
@@ -48,18 +71,24 @@ and one caller-owned initialized scanout, bound to the actual issued Body Play.
 It retains actual render/Show/input receipts and acknowledges focus redraws
 before accepting further input. The UI loop must service its bounded retirement
 handshake while the Body worker drains. Controller ACK/input checks report
-custody pressure rather than blocking that loop. A generic scanout interface
-keeps the SDL package's standalone Cargo build intact; a launcher needs its
-local wrapper around the actual SDL adapter.
+custody pressure rather than blocking that loop.
+
+The `native-creche-sdl` feature implements `LocalCrecheScanout` for the same actual
+SDL `Scanout` from the standalone `conduit-linux-display` package at
+[`targets/linux/display`](../../targets/linux/display/README.md). Retirement
+revokes that initialized scanout synchronously on its owning thread. The package
+is excluded from root workspace membership; the feature adds a Linux-only
+optional dependency without duplicating the renderer.
 
 The full native application entrance still needs an admitted Linux Show Base,
-actual input acquisition and that event loop. This library does not yet supply
-the save/deploy encounter.
+actual input acquisition and the event loop. The Images model, save machinery
+and owner APIs do not themselves acquire display custody, choose a file for the
+user, deploy a carrier, or supply a complete launched application.
 
 The focused software tests use canonical review, actual admitted fixture files,
 streaming image binding, retained receipt custody and the installed Host owner.
 They cover changed bytes, cancellation, source/build mismatches, one-birth retry,
-multiple Hosts, one-time completion, real native Mask rendering on an explicit
+multiple Hosts, active Images Save/Done, exact saved-byte readback, partial-save
+cancellation, one-time completion, real native Mask rendering on an explicit
 CPU output, redraw ACKs, typed input and worker cancellation/retirement. They do
-not establish a positive source
-image build, native device output, SD boot or ordinary later-Host join.
+not establish a positive source image build, native device output, SD boot or ordinary later-Host join.

@@ -21,10 +21,8 @@ impl CrecheEncounterController {
     }
     pub fn acknowledge_show(&self, show: MaskShow) -> Result<(), String> {
         let mut state = self.channel.lock()?;
-        if !state.active || state.reviewed || state.command.is_some() {
-            return Err(
-                "Crèche cannot acknowledge an inactive, reviewed or occupied encounter".into(),
-            );
+        if !state.active || state.command.is_some() {
+            return Err("Crèche cannot acknowledge an inactive or occupied encounter".into());
         }
         let face = state.face.as_ref().ok_or("Crèche current Face absent")?;
         show.validate(face)
@@ -42,7 +40,7 @@ impl CrecheEncounterController {
     }
     pub fn submit(&self, interaction: FaceInteraction) -> Result<(), String> {
         let mut state = self.channel.lock()?;
-        if !state.active || state.reviewed || state.command.is_some() {
+        if !state.active || (state.reviewed && state.images.is_none()) || state.command.is_some() {
             return Err("Crèche interaction mailbox is inactive, reviewed or full".into());
         }
         let face = state.face.as_ref().ok_or("Crèche current Face absent")?;
@@ -87,6 +85,7 @@ impl CrecheEncounterController {
             || !state.handoff_taken
             || state.make_refusal.is_some()
             || state.products.is_some()
+            || state.images.is_some()
         {
             return Err("Crèche make refusal has no single admitted reviewed operation".into());
         }
@@ -117,12 +116,16 @@ impl CrecheEncounterController {
             || !state.handoff_taken
             || state.handoff_request != Some(products.request())
             || state.products.is_some()
+            || state.images.is_some()
             || state.make_refusal.is_some()
         {
             return Err((
                 "Crèche images do not belong to this active single review".into(),
                 Box::new(products),
             ));
+        }
+        if let Err(error) = images_runtime::install(&mut state, &products) {
+            return Err((error, Box::new(products)));
         }
         state.products = Some(products);
         Ok(())

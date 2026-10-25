@@ -19,6 +19,7 @@ use std::sync::Mutex;
 struct FixtureReturnedInput {
     show: Option<MaskShow>,
     returned: Option<FaceInteraction>,
+    drain_failures: u8,
 }
 struct Custody(Arc<Mutex<FixtureReturnedInput>>);
 impl CrecheMaskShowCustody for Custody {
@@ -42,7 +43,12 @@ impl CrecheMaskShowCustody for Custody {
         }
     }
     fn retire_and_drain(&mut self) -> Result<(), String> {
-        *self.0.lock().unwrap() = FixtureReturnedInput::default();
+        let mut state = self.0.lock().unwrap();
+        if state.drain_failures > 0 {
+            state.drain_failures -= 1;
+            return Err("fixture Mask drain still pending".into());
+        }
+        *state = FixtureReturnedInput::default();
         Ok(())
     }
 }
@@ -253,7 +259,7 @@ fn handoff(source: &str) -> CrecheReviewedHandoff {
     owner.retire().unwrap();
     handoff
 }
-fn job(source: &str, cancelled: Arc<AtomicBool>) -> CrecheImageProduction {
+pub(super) fn job(source: &str, cancelled: Arc<AtomicBool>) -> CrecheImageProduction {
     CrecheImageProduction::prepare(
         handoff(source),
         1,
@@ -290,11 +296,11 @@ fn manifest(image: &HostImage, bytes: &[u8]) -> Value {
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
-struct Files {
-    root: PathBuf,
+pub(crate) struct Files {
+    pub(super) root: PathBuf,
 }
 impl Files {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let root = std::env::temp_dir().join(format!(
             "conduit-production-{}-{}",
             std::process::id(),
@@ -303,7 +309,7 @@ impl Files {
         fs::create_dir(&root).unwrap();
         Self { root }
     }
-    fn output(&self, name: &str) -> File {
+    pub(crate) fn output(&self, name: &str) -> File {
         OpenOptions::new()
             .create_new(true)
             .read(true)
@@ -311,7 +317,12 @@ impl Files {
             .open(self.root.join(name))
             .unwrap()
     }
-    fn input(&self, job: &CrecheImageProduction, host: &str, corrupt: bool) -> CrecheImageInput {
+    pub(crate) fn input(
+        &self,
+        job: &CrecheImageProduction,
+        host: &str,
+        corrupt: bool,
+    ) -> CrecheImageInput {
         let selected = job
             .prepared
             .construction()
@@ -489,3 +500,5 @@ fn finish_requires_complete_unchanged_batch_and_retains_birth_on_refusal() {
 mod completion;
 
 mod custody;
+
+mod images;

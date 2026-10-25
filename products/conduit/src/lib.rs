@@ -14,6 +14,7 @@ pub mod creche_encounter;
 #[cfg(feature = "native-creche")]
 pub mod creche_native_owner;
 pub mod creche_production;
+pub mod creche_images_face;
 mod hosted_two_std;
 mod plot_source;
 mod product_execution;
