@@ -7,6 +7,7 @@ const presets = Object.freeze({
   'spacious/phosphor': 'spacious-phosphor', 'spacious/editorial': 'spacious',
 });
 const recipes = Object.freeze({
+  'conduit.face/patchbay-nodes@1': 'patchbay-nodes',
   'conduit.face/todo-flat@1': 'flat',
   'conduit.face/todo-grouped@1': 'grouped',
   'conduit.face/todo-required-item@1': 'required-item',
@@ -34,7 +35,7 @@ export function createOwnerLookControls(onApply) {
   const density = select('Density', [['compact', 'Compact'], ['spacious', 'Spacious']]);
   const palette = select('Palette', [['phosphor', 'Phosphor · dark'], ['editorial', 'Editorial · light']]);
   const recipe = select('Layout', [['', 'Choose layout'], ['flat', 'Single section'],
-    ['grouped', 'Grouped sections'], ['required-item', 'Bound item']]);
+    ['grouped', 'Grouped sections'], ['required-item', 'Bound item'], ['patchbay-nodes', 'Patchbay nodes']]);
   const minimum = select('Minimum text size', [[100, '100%'], [150, '150%'], [200, '200%']]);
   const apply = decorate(document.createElement('button'), 'Confirm');
   apply.type = 'button'; apply.append('Apply face');
@@ -47,7 +48,7 @@ export function createOwnerLookControls(onApply) {
   apply.addEventListener('click', () => {
     if (element.disabled || apply.disabled) return;
     const look = presets[`${density.value}/${palette.value}`];
-    if (!look || !['flat', 'grouped', 'required-item'].includes(recipe.value)
+    if (!look || !Object.values(recipes).includes(recipe.value)
         || !['100', '150', '200'].includes(minimum.value)) {
       feedback.textContent = 'Choose a supported appearance and layout.';
       return;
