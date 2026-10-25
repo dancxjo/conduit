@@ -77,7 +77,7 @@ try {
   assert.match(bodyFaceRenderer, /import\s+["']\.\/owner-face-component\.mjs["']/);
   for (const name of ["owner-face-component.mjs", "owner-face-history.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
     const source = await readFile(path.join(root, "../handbook", name));
-    const expected = name === "owner-face-component.mjs"
+    const expected = ["owner-face-component.mjs", "owner-face-history.mjs"].includes(name)
       ? Buffer.from(source.toString().replaceAll('"../host/assets/application-look.mjs"', '"./host/assets/application-look.mjs"'))
       : source;
     assert.deepEqual(await readFile(path.join(output, name)), expected);
