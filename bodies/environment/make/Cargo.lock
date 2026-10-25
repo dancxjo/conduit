@@ -74,11 +74,9 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-face",
- "conduit-planner",
- "conduit-plot",
  "serde",
  "serde_json",
- "sha2 0.10.9",
+ "sha2",
 ]
 
 [[package]]
