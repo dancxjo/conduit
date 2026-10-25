@@ -5,10 +5,11 @@ use crate::{
 };
 use conduit_birth_plot::BirthPlotChoice;
 use conduit_body::ResidentPlot;
-use conduit_core::{ExpandedPlotId, SignId};
+use conduit_core::{ExpandedPlotId, SignId, SignIdentity};
 
 #[derive(Debug)]
 pub enum EnvironmentBodyImageRefusal {
+    BirthSign,
     Sampling(String),
     Display(String),
     Birth(BodyImageRefusal),
@@ -25,6 +26,33 @@ pub struct EnvironmentBodyImage {
 }
 
 impl EnvironmentBodyImage {
+    /// Use the construction host's actual Sign as the catalogue seed and body
+    /// birth attribution. No name or UUID is supplied by firmware or regenerated
+    /// at MCU boot. This checks canonical identity, not remote authentication.
+    pub fn prepare_from_sign(sign: &SignIdentity) -> Result<Self, EnvironmentBodyImageRefusal> {
+        let canonical = conduit_core::bind_sign(
+            &sign.host_id,
+            &sign.boot_id,
+            sign.active_play_id.as_ref(),
+            sign.sequence,
+        );
+        if canonical != *sign {
+            return Err(EnvironmentBodyImageRefusal::BirthSign);
+        }
+        // A UUID-shaped catalogue encounter seed derived from the exact birth
+        // identity. It is metadata, never an admission credential or entropy.
+        let text = sign.sign_id.as_str();
+        let uuid = format!(
+            "{}-{}-{}-{}-{}",
+            &text[..8],
+            &text[8..12],
+            &text[12..16],
+            &text[16..20],
+            &text[20..32],
+        );
+        Self::prepare(uuid, sign.sequence, sign.sign_id.clone())
+    }
+
     pub fn prepare(
         construction_uuid: String,
         birth_sequence: u64,

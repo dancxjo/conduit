@@ -14,6 +14,9 @@ use conduit_core as c;
 #[path = "software_offers.rs"]
 mod offers;
 pub use offers::ReadySoftwareOffers;
+#[cfg(feature = "display-output")]
+#[path = "software_assigned.rs"]
+mod assigned_output;
 pub const PROFILE: &str = "conduit.environment/prepared-software@1";
 pub const ARTIFACT: &str = "conduit-environment-runtime/appliance-software@1";
 const BYTES: u32 = 1024;

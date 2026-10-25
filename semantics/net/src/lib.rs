@@ -78,6 +78,7 @@ pub use application_catalog::*;
 
 pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-station@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
+pub const NETWORK_JOIN_EXECUTION_PROFILE: &str = "conduit.network/join-base@1";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
 pub const NETWORK_ATTACHMENT_SIGN_OPERATION: &str = "network/attachment-sign";
 pub const NETWORK_JOIN_CONTRACT_REVISION: &str = "conduit.network/join@1";
@@ -111,7 +112,7 @@ pub fn network_join_offer(
         network_join_contract(),
         Back {
             capability_id,
-            execution_profile_id: ExecutionProfileId::from("conduit.network/join-base@1"),
+            execution_profile_id: ExecutionProfileId::from(NETWORK_JOIN_EXECUTION_PROFILE),
             implementation_id,
             artifact_id,
             host_calls: vec![HostCallRequirement {
@@ -132,7 +133,8 @@ pub fn network_join_offer(
     .build()
 }
 
-fn network_join_contract() -> Kind {
+/// The semantic join Kind, independent of any initialized radio or authority.
+pub fn network_join_contract() -> Kind {
     Kind {
         startup_parameters: vec![],
         shorthand: Some((PortId::from("request"), PortId::from("attachment"))),
@@ -195,7 +197,7 @@ pub fn network_credentials_offer(
     .build()
 }
 
-fn network_credentials_contract() -> Kind {
+pub fn network_credentials_contract() -> Kind {
     Kind {
         startup_parameters: vec![],
         shorthand: None,
@@ -224,11 +226,40 @@ pub fn network_attachment_sign_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
+    attachment_sign_offer(
+        capability_id,
+        implementation_id,
+        artifact_id,
+        "conduit.network/attachment-sign-usb@1",
+    )
+}
+
+pub const NETWORK_ATTACHMENT_LOCAL_PROFILE: &str = "conduit.network/attachment-sign-local@1";
+/// The caller retains an actual bounded local receipt sink. This describes its
+/// implementation; it does not create a sink, an attachment or authority.
+pub fn network_attachment_sign_local_offer(
+    capability_id: CapabilityId,
+    implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
+) -> CapabilityOffer {
+    attachment_sign_offer(
+        capability_id,
+        implementation_id,
+        artifact_id,
+        NETWORK_ATTACHMENT_LOCAL_PROFILE,
+    )
+}
+fn attachment_sign_offer(
+    capability_id: CapabilityId,
+    implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
+    profile: &str,
+) -> CapabilityOffer {
     BackOfferBuilder::new(
         network_attachment_sign_contract(),
         Back {
             capability_id,
-            execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-sign-usb@1"),
+            execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id,
             artifact_id,
             host_calls: vec![HostCallRequirement {
@@ -406,3 +437,6 @@ pub fn execute_fixture_join(
         generation,
     })
 }
+
+mod station_attempt;
+pub use station_attempt::*;

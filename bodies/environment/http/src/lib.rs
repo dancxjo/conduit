@@ -9,6 +9,14 @@ use critical_section::Mutex;
 mod mask;
 pub use mask::{face_response, HttpShowTime, PreparedHttpShow};
 pub mod show_mailbox;
+pub mod exchange;
+pub mod service_control;
+pub mod network_setup;
+mod seven_segment;
+pub use seven_segment::{
+    seven_segment_snapshot, seven_segment_snapshot_with_look, seven_segment_snapshot_with_mask,
+    SevenSegmentSnapshot, SevenSegmentSnapshotRefusal,
+};
 struct Publication {
     face: PreparedObservationFace,
     ap_ready: bool,
@@ -28,13 +36,19 @@ pub fn initialize(basis: FaceBasis) {
     });
 }
 pub fn set_ap_ready() {
+    set_ap_state(true);
+}
+pub fn set_ap_unavailable() {
+    set_ap_state(false);
+}
+fn set_ap_state(ready: bool) {
     critical_section::with(|cs| {
         PUBLICATION
             .borrow(cs)
             .borrow_mut()
             .as_deref_mut()
             .unwrap()
-            .ap_ready = true
+            .ap_ready = ready
     });
 }
 pub fn ap_ready() -> bool {
@@ -77,3 +91,6 @@ pub fn publish(index: usize, bytes: &[u8], now: u64) {
 extern crate std;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod network_setup_tests;

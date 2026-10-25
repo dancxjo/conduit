@@ -150,6 +150,7 @@ dependencies = [
  "conduit-host-browser-make",
  "conduit-host-make",
  "conduit-host-rp2040",
+ "conduit-net",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
@@ -284,6 +285,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "serde",
+ "serde_json",
  "sha2",
 ]
 

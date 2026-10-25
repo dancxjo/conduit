@@ -9,6 +9,7 @@ use conduit_kernel::{
     Failure, FailureCode, PortId,
 };
 
+#[derive(Clone, Copy)]
 pub struct PublicationSnapshot<'a> {
     pub channel: PublicationChannel,
     pub sequence: u64,

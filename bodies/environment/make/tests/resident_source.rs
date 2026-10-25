@@ -56,3 +56,16 @@ fn corrupted_compact_program_refuses_before_software_initialization() {
         Err(NativePreparationRefusal::Configuration)
     ));
 }
+
+// Independently linked trusted pins must match the Source produced by this
+// build. A successful compiler invocation alone does not prove this relation.
+#[allow(dead_code, reason = "the hardware consumer also uses sign and native-call pins")]
+#[path = "../../../../targets/esp32/proof/tm1637/src/appliance_layout.rs"]
+mod firmware_layout;
+
+#[test]
+fn firmware_sampler_layout_matches_the_current_checked_source() {
+    let source = conduit_environment_runtime::construction::compile_default().unwrap();
+    let recipe = NativeSoftwareSourceRecipe::prepare(&source).unwrap();
+    assert!(firmware_layout::layout(recipe.spec().source).is_ok());
+}

@@ -5,6 +5,8 @@ use conduit_core as c;
 use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
 mod back;
 mod sequence;
+mod sink;
+pub use sink::PublicationSink;
 pub use back::{PublicationBack, PublicationSnapshot};
 pub use sequence::PublicationSequence;
 

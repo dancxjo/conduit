@@ -11,6 +11,7 @@ use conduit_kernel::{
 };
 
 pub mod assigned;
+pub mod assignment_transfer;
 
 pub enum ApplianceBack {
     Native(CaptureBack),

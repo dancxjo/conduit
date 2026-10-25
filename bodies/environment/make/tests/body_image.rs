@@ -102,3 +102,33 @@ fn environment_image_selects_the_actual_checked_sources() {
     assert_eq!(image.display, display.plot.expanded.expanded_plot_id);
     assert!(image.body.evidence().membership.parts.is_empty());
 }
+
+#[test]
+fn build_sign_generates_and_retains_the_body_without_a_manual_name_or_uuid() {
+    // Explicit CPU host/Boot fixtures, not a device-observation claim.
+    let sign = conduit_core::bind_sign(
+        &"fixture/build-host".into(),
+        &"fixture/build-boot/1".into(),
+        None,
+        1,
+    );
+    let first = conduit_environment_make::EnvironmentBodyImage::prepare_from_sign(&sign).unwrap();
+    let repeated =
+        conduit_environment_make::EnvironmentBodyImage::prepare_from_sign(&sign).unwrap();
+    assert_eq!(first.body.evidence(), repeated.body.evidence());
+    assert_eq!(first.body.evidence().body.sign_ids[0], sign.sign_id);
+    let bytes = serde_json::to_vec(first.body.evidence()).unwrap();
+    let restored: BodyBiographyEvidence = serde_json::from_slice(&bytes).unwrap();
+    let owner = BodyLifecycleSession::open(restored).unwrap();
+    assert_eq!(
+        owner.evidence().friendly_name,
+        first.body.evidence().friendly_name
+    );
+    assert!(owner.realization().is_none());
+    let mut forged = sign;
+    forged.sign_id = "fixture/noncanonical-sign".into();
+    assert!(matches!(
+        conduit_environment_make::EnvironmentBodyImage::prepare_from_sign(&forged),
+        Err(conduit_environment_make::EnvironmentBodyImageRefusal::BirthSign)
+    ));
+}
