@@ -149,3 +149,40 @@ fn pointer_selection_survives_keyboard_details_and_return() {
     }
     assert_eq!(scene.face(), &face);
 }
+
+#[test]
+fn enter_on_acknowledged_disabled_status_returns_no_semantic_occurrence() {
+    let original = tests::face(41);
+    let mut actions = original.actions.clone();
+    for action in &mut actions {
+        action.availability = FaceActionAvailability::Unavailable {
+            reason_code: "preparing".into(),
+            explanation: "Waiting for the admitted owner".into(),
+        };
+    }
+    let face = Face::new_with_semantics(
+        original.revision,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let show = tests::fixture::show(&face);
+    let mut scene = NativeFaceScene::prepare(face, 640, 480).unwrap();
+    assert!(scene.focused().is_none());
+    assert!(matches!(
+        scene.key(key(43, false), &show, 1).unwrap(),
+        FaceSceneInput::Changed
+    ));
+    assert!(scene.focused().is_none());
+    assert!(matches!(
+        scene.key(key(40, false), &show, 2).unwrap(),
+        FaceSceneInput::Unchanged
+    ));
+    assert!(scene.focused().is_none());
+    assert!(!scene.input.submitted);
+}

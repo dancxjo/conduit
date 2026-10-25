@@ -236,6 +236,18 @@ impl NativeFaceScene {
                 {
                     return self.toggle_boolean(self.focus.unwrap(), show, sequence);
                 }
+                // An acknowledged read-only status Face may retain disabled
+                // actions for explanation, while offering no focusable control.
+                // Enter then has no semantic occurrence to return.
+                40 if self.focus.is_none()
+                    && self
+                        .face
+                        .actions
+                        .iter()
+                        .all(|action| !action.availability.is_available()) =>
+                {
+                    return Ok(FaceSceneInput::Unchanged);
+                }
                 40 => return self.commit(show, sequence, None),
                 79 | 80 => {
                     if let Some(control) = self.focus

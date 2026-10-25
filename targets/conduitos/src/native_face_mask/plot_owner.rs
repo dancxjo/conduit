@@ -22,6 +22,17 @@ impl NativeFaceMask {
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, NativeFaceMaskError> {
         let subject = validate_owner(self, &face, body_plan, issued_play, plot)?;
+        // A different semantic root needs a fresh surface lease. Validation
+        // above proves the same exact producing execution first; it does not
+        // relax the compositor's front/Plan/placement binding. Close the prior
+        // Mask Play and remove its surface before preparing and committing the
+        // new checked Mask Play through the ordinary acknowledgement path.
+        if self
+            .show()
+            .is_some_and(|show| show.show.front_subject != subject)
+        {
+            self.suspend()?;
+        }
         self.present_with_input(
             face,
             observation_sequence,

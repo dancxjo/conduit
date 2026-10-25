@@ -94,12 +94,10 @@ fn face(plan: &BodyPlan, play: &BodyPlayIdentity, plot: &ResidentPlot, revision:
 fn plot_owned_face_preserves_exact_basis_through_ack_and_typed_interaction() {
     let (mut mask, plan, play, plot, _live) = fixture();
     let original = face(&plan, &play, &plot, 1);
-    assert!(
-        original
-            .subjects
-            .iter()
-            .all(|s| s.role != FaceRole::Host && s.role != FaceRole::Body)
-    );
+    assert!(original
+        .subjects
+        .iter()
+        .all(|s| s.role != FaceRole::Host && s.role != FaceRole::Body));
     let mut display = crate::native_face_mask::tests::CountingDisplay::default();
     let composition = mask
         .present_plot_owner(original.clone(), &plan, &play, &plot, 1, 1, &mut display)
@@ -160,14 +158,13 @@ fn forged_producer_or_stale_execution_never_replaces_current_show() {
     invalid.push(basis);
     for basis in invalid {
         let forged = original.clone().with_basis(basis).unwrap();
-        assert!(
-            mask.present_plot_owner(forged, &plan, &play, &plot, 2, 2, &mut display)
-                .is_err()
-        );
+        assert!(mask
+            .present_plot_owner(forged, &plan, &play, &plot, 2, 2, &mut display)
+            .is_err());
         assert_eq!(mask.show().unwrap().show_id, show);
     }
-    assert!(
-        mask.present_plot_owner(
+    assert!(mask
+        .present_plot_owner(
             original.clone(),
             &plan,
             &BodyPlayIdentity::bind(&plan, 2),
@@ -176,8 +173,7 @@ fn forged_producer_or_stale_execution_never_replaces_current_show() {
             2,
             &mut display
         )
-        .is_err()
-    );
+        .is_err());
     let action = &original.actions[0];
     let old = FaceInteraction::new(
         &original,
@@ -202,10 +198,97 @@ fn plot_role_alone_and_an_unrelated_mask_host_are_insufficient() {
     let mut display = crate::native_face_mask::tests::CountingDisplay::default();
     assert!(mask.present(original.clone(), 1, 1, &mut display).is_err());
     let (mut unrelated, _) = crate::native_face_mask::tests::fixture();
-    assert!(
-        unrelated
-            .present_plot_owner(original, &plan, &play, &plot, 1, 1, &mut display)
-            .is_err()
-    );
+    assert!(unrelated
+        .present_plot_owner(original, &plan, &play, &plot, 1, 1, &mut display)
+        .is_err());
     assert!(unrelated.show().is_none());
+}
+
+#[test]
+fn validated_root_transition_retires_old_surface_and_requires_new_committed_show() {
+    let (mut mask, plan, play, plot, _live) = fixture();
+    let original = face(&plan, &play, &plot, 1);
+    struct CommitDisplay {
+        inner: crate::native_face_mask::tests::CountingDisplay,
+        commits: u32,
+    }
+    impl crate::display::PixelTarget for CommitDisplay {
+        fn format(&self) -> crate::display::DisplayFormat {
+            self.inner.format()
+        }
+        fn write_pixel(
+            &mut self,
+            x: u32,
+            y: u32,
+            color: u32,
+        ) -> Result<(), crate::display::DisplayError> {
+            self.inner.write_pixel(x, y, color)
+        }
+        fn commit_frame(&mut self) -> Result<(), crate::display::DisplayError> {
+            self.commits += 1;
+            Ok(())
+        }
+    }
+    let mut display = CommitDisplay {
+        inner: Default::default(),
+        commits: 0,
+    };
+    mask.present_plot_owner(original.clone(), &plan, &play, &plot, 1, 1, &mut display)
+        .unwrap();
+    let prior = mask.show().unwrap().clone();
+    let previous_commits = display.commits;
+    let action = &original.actions[0];
+    let stale = FaceInteraction::new(
+        &original,
+        &prior,
+        &action.identity,
+        &action.target,
+        vec![],
+        1,
+    )
+    .unwrap();
+    let mut next = face(&plan, &play, &plot, 2);
+    next.subjects[0].identity = "encounter/images".into();
+    next.relationships[0].source = "encounter/images".into();
+    next.actions[0].target = "encounter/images".into();
+    next.disclosures[0].subject = "encounter/images".into();
+    let next = Face::new_with_semantics(
+        next.revision,
+        next.basis,
+        next.subjects,
+        next.relationships,
+        next.properties,
+        next.text,
+        next.actions,
+        next.disclosures,
+    )
+    .unwrap();
+    // Forging the producing execution must not retire the existing Show even
+    // when the requested root differs.
+    let mut forged = next.basis.clone();
+    forged.active_play_id = Some("play/foreign".into());
+    assert!(mask
+        .present_plot_owner(
+            next.clone().with_basis(forged).unwrap(),
+            &plan,
+            &play,
+            &plot,
+            2,
+            2,
+            &mut display
+        )
+        .is_err());
+    assert_eq!(mask.show().unwrap(), &prior);
+    mask.present_plot_owner(next.clone(), &plan, &play, &plot, 2, 2, &mut display)
+        .unwrap();
+    let current = mask.show().unwrap().clone();
+    assert!(display.commits > previous_commits);
+    assert_ne!(current.show_id, prior.show_id);
+    assert_eq!(current.show.front_subject, "encounter/images");
+    assert_eq!(current.show.lifecycle, ManifestationLifecycle::Available);
+    assert!(mask.submit(stale).is_err());
+    let action = &next.actions[0];
+    let returned =
+        FaceInteraction::new(&next, &current, &action.identity, &action.target, vec![], 2).unwrap();
+    assert_eq!(mask.submit(returned.clone()).unwrap().interaction, returned);
 }
