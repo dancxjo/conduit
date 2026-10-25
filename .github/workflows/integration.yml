@@ -3,13 +3,31 @@ on:
   push:
     branches: [dev]
   workflow_dispatch:
+    inputs:
+      train-source:
+        description: Exact source required for a train dispatch
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: read
 concurrency:
   group: integration
   cancel-in-progress: false
 jobs:
+  train-source:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'train/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require the captured train source before expensive proof
+        env:
+          EXPECTED_SOURCE: ${{ inputs.train-source }}
+          ACTUAL_SOURCE: ${{ github.sha }}
+        run: test "$EXPECTED_SOURCE" = "$ACTUAL_SOURCE"
   proof:
+    needs: train-source
+    if: ${{ !cancelled() && (needs.train-source.result == 'success' || needs.train-source.result == 'skipped') }}
     uses: ./.github/workflows/ci.yml
     with:
       sha: ${{ github.sha }}

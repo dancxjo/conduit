@@ -3,7 +3,7 @@
 import { spawnSync } from 'node:child_process';
 import { lstat, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { captureTrain, selectTrainInputs, verifyTrainProducts } from './train.mjs';
+import { captureTrain, selectTrainInputs, verifyTrainManifest, verifyTrainProducts } from './train.mjs';
 import { assertSourceCheckout } from './source.mjs';
 
 const fail = message => { throw new Error(message); };
@@ -42,7 +42,24 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
       return { pr, candidateRun: latest };
     });
   };
+  const loadManifest = async filename => {
+    const stat = await lstat(filename);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 65536) fail('Invalid train manifest file');
+    const manifest = JSON.parse(await readFile(filename, 'utf8'));
+    verifyTrainManifest(manifest);
+    return manifest;
+  };
   return {
+    async prepareDispatch(filename) {
+      const manifest = await loadManifest(filename);
+      assertSourceCheckout(manifest.source, directory);
+      const base = basePath(manifest.repository);
+      const captured = captureTrain({ repository: manifest.repository, source: manifest.source,
+        base: api(`${base}/git/ref/heads/dev`).object?.sha,
+        selections: selection(manifest.repository, manifest.inputs.map(input => input.number)), directory });
+      if (captured.digest !== manifest.digest) fail('Train source or live selection changed before dispatch');
+      return captured;
+    },
     async assemble(repository, numbers, worktree, output) {
       const base = api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha;
       const selected = selectTrainInputs({ repository, base, selections: selection(repository, numbers) });
@@ -91,9 +108,7 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
       return manifest;
     },
     async verify(filename, runId, products) {
-      const stat = await lstat(filename);
-      if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 65536) fail('Invalid train manifest file');
-      const manifest = JSON.parse(await readFile(filename, 'utf8'));
+      const manifest = await loadManifest(filename);
       const base = basePath(manifest.repository);
       // Reproduce tree identity locally; a rewritten JSON digest is not proof
       // that a claimed tree belongs to the workflow's actual source commit.
