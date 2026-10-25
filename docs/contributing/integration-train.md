@@ -215,3 +215,13 @@ Historical v1 train manifests are refused explicitly and must be recaptured as
 v2 rather than relabelled. Global cheap PR admission still requires a separate
 enforced machine-only landing policy; this bounded train-input tier does not
 activate it.
+
+CI-only changes to the exact standard-library Rust workflow contract and Python
+train restorer use preflight proof instead of compiling the full xtask dependency
+graph twice. Preflight directly compiles and executes that real Rust test with
+a private bounded output and explicit manifest directory. It also retains the
+independent canonical Node corpus, so editing the Rust wrapper cannot remove
+that proof. Other Rust/Python paths keep normal conservative package admission.
+The prior hosted run recorded230seconds of lint compilation and564seconds of
+test compilation for these two tooling entrances; future hosted timings must
+measure the improvement rather than assume those costs disappear.

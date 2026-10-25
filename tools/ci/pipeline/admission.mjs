@@ -8,7 +8,9 @@ export function isMeasurementReceipt(name) {
 }
 
 function preflightOnly(name) {
-  return isMeasurementReceipt(name) || name.endsWith('.md') || name === 'LICENSE'
+  return name === 'tools/xtask/tests/ci_workflow_contract.rs'
+    || name === 'tools/ci/pipeline/train-restore.py'
+    || isMeasurementReceipt(name) || name.endsWith('.md') || name === 'LICENSE'
     || /^(?:tools\/ci\/|proof\/ci\/).+\.(?:mjs|js)$/.test(name)
     || /^\.github\/workflows\/[^/]+\.ya?ml$/.test(name);
 }
