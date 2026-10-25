@@ -1,8 +1,9 @@
 # Integration train preparation
 
 This is the development assembly/admission/evidence layer for the integration
-train redesign. Workflow dispatch, landing and publication reuse are still
-pending. These commands do not change GitHub refs or merge GitHub PRs.
+train redesign. Landing and publication reuse are still pending. Assembly and
+capture change no GitHub refs; dispatch creates a guarded train ref and requests
+proof. None of these commands merges GitHub PRs or updates development/stable.
 
 Assemble explicitly selected ready PRs in a new local worktree:
 
@@ -18,6 +19,22 @@ names are never overwritten. A conflict or late stale-state refusal preserves
 the new branch/worktree for diagnosis and does not emit a success manifest. No
 retry, cleanup or merge-abort is performed implicitly. Keep the manifest outside
 the candidate source worktree so it does not become an untracked source input.
+
+From the clean candidate checkout, dispatch its exhaustive proof:
+
+```sh
+cargo xtask ci pipeline train-dispatch /absolute/train.json
+```
+
+Dispatch refreshes live readiness and reproduces local commit/tree custody. It
+creates the exact remote train ref and passes the expected source to Integration,
+whose guard refuses a mismatching source before expensive proof starts. Existing
+queued, running or successful exact-source runs are reused. Failed runs and
+changed refs refuse. An existing ref with no visible run is an ambiguous intent;
+inspect that ref/run before operator recovery rather than automatically sending
+another workflow request. A transport error preserves the ref as evidence.
+The command reports a known reused run ID or an acknowledged dispatch with no
+run ID yet; neither result claims that proof completed.
 
 From a clean checkout of the proposed combined source, capture explicitly
 selected PRs through the supported pipeline entrance:

@@ -1,37 +1,13 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from 'node:fs/promises';
-import os from 'node:os';
+import { mkdir, readFile, writeFile, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { fixture } from './helpers/train-fixture.mjs';
+import { commands } from './helpers/train-command-fixture.mjs';
 import { createTrainCommands } from '../../tools/ci/pipeline/train-command.mjs';
 import { sealTarget } from '../../tools/ci/pipeline/receipts.mjs';
 import { TARGETS } from '../../tools/ci/pipeline/targets.mjs';
-
-async function commands(t) {
-  const f = await fixture(t);
-  const output = await mkdtemp(path.join(os.tmpdir(), 'conduit-train-output-'));
-  t.after(() => rm(output, { recursive: true, force: true }));
-  const calls = [];
-  const runs = f.selections.map((selection, i) => [{ ...selection.candidateRun, id: i + 10 }]);
-  const command = (program, args, options) => {
-    if (program === 'git') return spawnSync(program, args, options);
-    assert.equal(program, 'gh'); assert.equal(args[0], 'api'); assert.equal(args.length, 2);
-    calls.push(args[1]);
-    let value;
-    if (args[1].endsWith('/git/ref/heads/dev')) value = { object: { sha: f.base } };
-    else if (args[1].endsWith('/actions/runs/123')) value = f.observation.run;
-    else if (args[1].includes('/pulls/')) value = f.selections.find(s => args[1].endsWith(`/pulls/${s.pr.number}`))?.pr;
-    else if (args[1].includes('/actions/workflows/candidate.yml/runs?')) {
-      const index = f.selections.findIndex(s => args[1].includes(`head_sha=${s.pr.head.sha}`));
-      value = { workflow_runs: runs[index] };
-    } else assert.fail(`Unexpected API ${args[1]}`);
-    return { status: 0, stdout: JSON.stringify(value) };
-  };
-  const api = createTrainCommands({ command, directory: f.directory });
-  return { ...f, output, calls, runs, api, command, filename: path.join(output, 'train.json') };
-}
 
 test('live adapter captures exact Git source and only performs API reads', async t => {
   const f = await commands(t);
@@ -71,6 +47,8 @@ test('live verification rechecks exact source tree and existing full product rec
   }
   assert.equal((await f.api.verify(f.filename, 123, bundle)).source, f.source);
   const changed = { ...f.manifest, tree: f.base };
+  const payload = { ...changed }; delete payload.digest;
+  changed.digest = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
   await writeFile(f.filename, JSON.stringify(changed));
   await assert.rejects(f.api.verify(f.filename, 123, bundle), /tree mismatch/);
 });
@@ -85,7 +63,7 @@ test('symlink and oversized manifest files refuse before network observation', a
 });
 
 test('supported pipeline CLI exposes train entrances and refuses missing arguments', () => {
-  for (const name of ['train-assemble', 'train-capture', 'train-verify']) {
+  for (const name of ['train-assemble', 'train-capture', 'train-dispatch', 'train-verify']) {
     const result = spawnSync('node', ['tools/ci/pipeline/cli.mjs', name], { encoding: 'utf8' });
     assert.equal(result.status, 1);
     assert.match(result.stderr, new RegExp(`usage: ${name}`));

@@ -38,6 +38,13 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'train-dispatch': {
+      if (args.length !== 1) throw new Error('usage: train-dispatch <manifest-file>');
+      const { createTrainDispatcher } = await import('./train-dispatch.mjs');
+      const result = await createTrainDispatcher()(resolve(args[0]));
+      output('train-dispatch', result);
+      break;
+    }
     case 'train-assemble': {
       if (args.length < 4 || args.length > 35) throw new Error('usage: train-assemble <owner/repository> <new-worktree> <new-manifest-file> <pr-number>...');
       const { createTrainCommands } = await import('./train-command.mjs');
@@ -195,7 +202,7 @@ try {
       await publish(args[0], resolve(args[1]));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-verify>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-dispatch|train-verify>');
   }
 } catch (error) {
   console.error(`FAILED: pipeline/${command}: ${error.message}`);

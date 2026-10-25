@@ -55,7 +55,7 @@ function payload(manifest) {
   return { schema: SCHEMA, ...selection, branch, source: manifest.source, tree: manifest.tree };
 }
 
-function verifiedManifest(manifest) {
+export function verifyTrainManifest(manifest) {
   const value = payload(manifest);
   require(manifest.digest === digest(value), 'Train manifest digest mismatch');
   // Reject fields that could be mistaken for additional authorization or policy.
@@ -82,7 +82,7 @@ export function captureTrain({ repository, base, selections, source, directory =
 // Recheck live inputs immediately before any landing adapter acts. A candidate
 // can be valid evidence but no longer eligible to land after dev or a PR moves.
 export function verifyTrainRun(manifest, { development, selections, run }) {
-  const value = verifiedManifest(manifest);
+  const value = verifyTrainManifest(manifest);
   require(development === value.base, 'Development advanced; train must be rebuilt');
   require(Array.isArray(selections) && selections.length === value.inputs.length, 'Train input set changed');
   const current = identities(value.repository, development,
