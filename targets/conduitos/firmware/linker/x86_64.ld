@@ -32,6 +32,12 @@ SECTIONS
         *(.data .data.*)
     } :data
 
+    /* Keep file-backed GOT data before the zero-fill tail. An orphan GOT after
+       .bss materializes the whole tail in the ELF and escapes image_end. */
+    .got : ALIGN(8) {
+        *(.got .got.*)
+    } :data
+
     .requests ALIGN(CONSTANT(MAXPAGESIZE)) : {
         KEEP(*(.requests_start_marker))
         KEEP(*(.requests))
