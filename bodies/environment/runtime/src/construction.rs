@@ -132,8 +132,8 @@ impl ApplianceSource {
         authority: &[conduit_core::AuthorityGrant],
     ) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
         use alloc::collections::BTreeMap;
-        let hosts = [host.clone()];
-        let placements = conduit_planner::default_expanded_placements(&self.expanded, &hosts)?;
+        let hosts = core::slice::from_ref(host);
+        let placements = conduit_planner::default_expanded_placements(&self.expanded, hosts)?;
         let connection_limits = self
             .expanded
             .connections
@@ -188,7 +188,7 @@ impl ApplianceSource {
             .collect::<Result<_, conduit_planner::PlannerError>>()?;
         conduit_planner::plan_expanded_canonical_with_connection_limits(
             &self.expanded,
-            &hosts,
+            hosts,
             &placements,
             bases,
             conduit_planner::PlanningOptions {

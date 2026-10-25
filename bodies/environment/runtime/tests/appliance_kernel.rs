@@ -91,6 +91,15 @@ fn run(scenario: usize, overnight: bool) {
             .unwrap()
     });
     assert!(c::verify_plan(&plan));
+    if !overnight {
+        // CPU regression bound for this exact checked workload. Planning must
+        // borrow the initialized advertisement rather than retain another copy.
+        // This is not the combined appliance's Xtensa admission bound.
+        assert!(
+            planning_memory.peak_bytes <= 192 * 1024,
+            "local planning exceeds its CPU preparation budget: {planning_memory:?}"
+        );
+    }
     let (lowered, lowering_memory) = allocation_probe::observe(|| {
         conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap()
     });

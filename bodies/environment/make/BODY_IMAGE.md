@@ -116,6 +116,12 @@ execution material or Play authority. Capacity and unsupported nested execution
 are explicit refusals. Tests compare rich/sealed proposal, startup, Play and
 lull behavior, and reject forged or deserialized seals.
 
+Local planning now borrows the actual initialized Host advertisement rather
+than cloning its complete offer catalogue. The sampling CPU measurement falls
+from 254,456 to **188,068 bytes** of additional peak planning heap. The sensor
+outcome proof enforces a 192 KiB CPU preparation ceiling for this checked
+workload; this remains separate from Xtensa and combined-memory admission.
+
 The rich Plan is still needed during construction and execution preparation.
 These host measurements do not establish that Root, biography, sampling, timed
 display, network SDK, planning scratch, and required lifecycle evidence coexist
