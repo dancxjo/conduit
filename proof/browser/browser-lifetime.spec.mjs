@@ -18,8 +18,15 @@ test('actual browser Host retires A and refuses its exact effects while B remain
   // Establish B's independent input-driven sibling before testing no-effect.
   await page.locator('#surface').click({ position: { x: 10, y: 10 } });
   await expect.poll(async () => (await page.evaluate(() => __browserLifetime.snapshot())).outputs.filter(output => output.kind !== 'face/count').length).toBeGreaterThan(0);
+  await expect(page.locator('[data-face-kind="face/indicator-state"]')).toHaveText('Button state: false');
+  const baseline = await page.evaluate(() => __browserLifetime.settledSnapshot());
   const replay = await page.evaluate(() => __browserLifetime.replay());
-  expect(replay.after).toEqual(replay.before);
+  expect(replay.before).toEqual(baseline);
+  expect(replay.after).toEqual(baseline);
+  // A separate CDP invocation plus an actual MessageChannel task fence drains
+  // the old promises before comparing against the original settled baseline.
+  const afterCallbacks = await page.evaluate(() => __browserLifetime.settledSnapshot());
+  expect(afterCallbacks).toEqual(baseline);
   expect(replay.callbacks).toBeGreaterThan(0);
   expect(replay.inputCallbacks).toBeGreaterThan(0);
   for (const result of replay.results) {
@@ -43,7 +50,7 @@ test('actual browser Host retires A and refuses its exact effects while B remain
   expect(state.errors).toEqual([]);
   expect(errors).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('browser-lifetime.png'), fullPage: true });
-  const receipt = JSON.stringify({ replaced, replay, beforeTimer, afterTimer, state }, null, 2);
+  const receipt = JSON.stringify({ replaced, baseline, replay, afterCallbacks, beforeTimer, afterTimer, state }, null, 2);
   await writeFile(testInfo.outputPath('lifetime-receipt.json'), receipt);
   await testInfo.attach('lifetime-receipt', { body: receipt, contentType: 'application/json' });
   expect((await page.evaluate(() => __browserLifetime.close())).receipt.disposition).toBe('cancelled');

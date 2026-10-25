@@ -10,7 +10,11 @@ and timer callbacks, closes A, and admits fresh B on the same WASM instance and
 bridge. It replays A's exact active Play, placement, and request sequence through
 completion, cancellation acknowledgement, and refusal exports. It checks refusal,
 input staging retirement, unchanged B evidence and outputs, then invokes retained
-A callbacks and checks unchanged B state. Positive controls advance B's timer and
+A callbacks and checks unchanged B state. A settled B baseline follows its
+actual pointer-up manifestation. After invoking A callbacks, a separate browser
+evaluation and MessageChannel task fence drain promise continuations before
+comparing B with that original baseline; the receipt retains `afterCallbacks`.
+The immediate ABI snapshot alone cannot establish delayed callback isolation. Positive controls advance B's timer and
 observe its count output, with its button indicator sibling unchanged, then
 exercise B's actual pointer input and require the indicator to change.
 
@@ -34,3 +38,8 @@ The proof packet binds the actual loaded WASM hash to the source, lockfiles,
 build environment, and pinned Chromium binary; the passing case retains a JSON
 receipt and screenshot. This is local Chromium evidence, not Candidate or
 Integration acceptance.
+
+Review correction: the initial passing fixture compared synchronously after
+callback invocation. That snapshot did not cover later promise continuations.
+The strengthened case retains both immediate and post-settlement comparisons;
+the earlier packet remains evidence of its narrower assertions only.
