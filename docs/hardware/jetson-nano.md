@@ -1,14 +1,23 @@
 # Jetson Nano ConduitOS port
 
+Native ConduitOS execution is preferred. Linux middleware is an authorized
+fallback if hardware support requires it, with any such image explicitly
+identified as Linux-hosted rather than native ConduitOS. USB recovery flashing
+is a deployment mechanism; a persistent USB connection after native boot
+requires a separate device-mode driver.
+
 Development work tracked by [#6478](https://github.com/dancxjo/conduit/issues/6478).
 The requested deliverable is a flashable microSD image for P3450, with
 on-screen boot/status output and no required UART adapter. UART is an optional
 diagnostic path. There is currently no supported Nano image or physical boot receipt. The
 `src/arch/jetson_nano/memory.rs` prerequisite has host conformance for finite
 RAM/reservation sets and aligned placement admission. It is not yet connected
-to semantic DTB memory-node extraction or a board entry point. The bounded DTB
+to a board entry point. Strict semantic extraction now reads root memory banks
+and static reserved-memory children with two address and two size cells,
+requires the original Nano/Tegra210 identity, and refuses unsupported layouts. The bounded DTB
 envelope/token validator checks block layout, tree grammar and the reservation
-map, and protects the DTB itself; RAM and reserved-memory extraction remain open. This
+map, and protects the DTB itself. Twelve focused host handoff tests pass;
+real firmware DTB compatibility and physical boot remain unverified. This
 contract describes the original 4 GB Jetson Nano developer kit, not Orin Nano.
 
 ## Hardware and provenance
