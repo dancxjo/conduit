@@ -39,6 +39,55 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'compiler-cache-hosted-restore': {
+      if (args.length !== 3) throw new Error('usage: compiler-cache-hosted-restore <config> <new-acquisition-directory> <new-config>');
+      const { loadHostedProductCacheConfig, writeHostedProductCacheConfig } = await import('./hosted-cache-command.mjs');
+      const { hostedCachePolicy } = await import('../compiler-cache/cargo-sandbox.mjs');
+      const { discoverAcceptedHostedSeeds, createHostedSeedObserver } = await import('./hosted-cache-discovery.mjs');
+      const { acquireHostedCacheSeed } = await import('./hosted-cache-seed.mjs');
+      const configuration = await loadHostedProductCacheConfig(resolve(args[0]));
+      const { policy, namespace } = await hostedCachePolicy(configuration.snapshot, { maxCacheBytes: configuration.maxCacheBytes });
+      const repository = process.env.GITHUB_REPOSITORY;
+      const candidates = await discoverAcceptedHostedSeeds({ repository, namespace, firstOnly: true });
+      let selectedConfig = resolve(args[0]);
+      if (candidates.length) {
+        const acquired = await acquireHostedCacheSeed({ ...candidates[0], policy, namespace, directory: resolve(args[1]) });
+        createHostedSeedObserver({ repository }).accepted(candidates[0].accepted.source);
+        selectedConfig = await writeHostedProductCacheConfig({ schema: 'conduit.hosted-cache-target/v1',
+          snapshotManifest: configuration.snapshotManifest, cacheRoot: acquired.cacheRoot,
+          taskRoot: configuration.taskRoot, cacheMode: configuration.cacheMode,
+          maxCacheBytes: configuration.maxCacheBytes }, resolve(args[2]));
+      }
+      output('hosted-cache-config', selectedConfig);
+      output('hosted-cache-restored', String(candidates.length !== 0));
+      break;
+    }
+    case 'compiler-cache-hosted-seal': {
+      if (args.length !== 2) throw new Error('usage: compiler-cache-hosted-seal <config> <new-seed-directory>');
+      if (process.env.GITHUB_JOB !== 'target' || !/^[1-9][0-9]*$/.test(process.env.GITHUB_RUN_ID ?? '')) throw new Error('Compiler seed requires its actual target job');
+      const { loadHostedProductCacheConfig } = await import('./hosted-cache-command.mjs');
+      const { hostedCachePolicy } = await import('../compiler-cache/cargo-sandbox.mjs');
+      const { createHostedSeedObserver } = await import('./hosted-cache-discovery.mjs');
+      const { sealHostedCacheSeed } = await import('./hosted-cache-seed.mjs');
+      const configuration = await loadHostedProductCacheConfig(resolve(args[0]), { completedTask: true });
+      const { policy, namespace } = await hostedCachePolicy(configuration.snapshot, { maxCacheBytes: configuration.maxCacheBytes });
+      const observed = createHostedSeedObserver({ repository: process.env.GITHUB_REPOSITORY }).api(`actions/runs/${process.env.GITHUB_RUN_ID}`);
+      if (observed.run_attempt !== Number(process.env.GITHUB_RUN_ATTEMPT) || observed.head_sha !== process.env.GITHUB_SHA) throw new Error('Compiler seed run attempt differs from its job');
+      const sealed = await sealHostedCacheSeed({ cacheRoot: configuration.cacheRoot, policy, namespace,
+        source: configuration.snapshot.sourceCommit, tree: configuration.snapshot.sourceTree,
+        run: observed, directory: resolve(args[1]) });
+      output('hosted-seed-name', sealed.name);
+      output('hosted-seed-archive', sealed.archive);
+      break;
+    }
+    case 'compiler-cache-hosted-retire': {
+      if (args.length < 4 || args.length > 103 || args.slice(3).some(value => !/^[1-9][0-9]*$/.test(value))) throw new Error('usage: compiler-cache-hosted-retire <repository> <namespace> <new-receipt-directory> <artifact-id>...');
+      const { retireHostedCacheSeeds } = await import('./hosted-cache-seed.mjs');
+      const retired = await retireHostedCacheSeeds({ repository: args[0], namespace: args[1],
+        directory: resolve(args[2]), artifactIds: args.slice(3).map(Number) });
+      output('hosted-seed-retired-ids', retired.artifacts.map(artifact => artifact.id));
+      break;
+    }
     case 'compiler-cache-hosted-prepare': {
       if (args.length !== 7) throw new Error('usage: compiler-cache-hosted-prepare <engine> <toolchain-root> <new-snapshot> <new-manifest> <cache-root> <new-task-root> <new-config>');
       const [engine, toolchainRoot, destination, manifestFile, cacheRoot, taskRoot, configFile] = args.map(value => resolve(value));

@@ -166,7 +166,7 @@ test('Integration guards manual train source before proof while retaining normal
   assert.match(workflow, /train-source:[\s\S]*EXPECTED_SOURCE: \$\{\{ inputs\.train-source \}\}/);
   assert.match(workflow, /ACTUAL_SOURCE: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /run: test "\$EXPECTED_SOURCE" = "\$ACTUAL_SOURCE"/);
-  assert.match(workflow, /proof:\n\s+needs: \[train-source, adoption\]/);
+  assert.match(workflow, /proof:\n\s+permissions:\n\s+contents: read\n\s+actions: read\n\s+needs: \[train-source, adoption\]/);
   assert.match(workflow, /needs\.train-source\.result == 'skipped'/);
   assert.match(workflow, /base: all/);
   assert.match(workflow, /cancel-in-progress: false/);

@@ -226,3 +226,29 @@ that proof. Other Rust/Python paths keep normal conservative package admission.
 The prior hosted run recorded230seconds of lint compilation and564seconds of
 test compilation for these two tooling entrances; future hosted timings must
 measure the improvement rather than assume those costs disappear.
+
+Linux hosted compiler objects travel in separate, bounded seed artifacts. They
+never replace a product archive, task target directory, or current-source Hello
+proof. Preparation writes a fresh external configuration and snapshot. Seed
+selection examines at most eight successful dev Integration acceptances, verifies
+current dev ancestry, and delegates adopted train custody to the same exact-tree
+adoption verifier used for products. The selected original producer's exact run
+attempt, artifact API digest, namespace policy, inventory and object hashes must
+all match. Missing or expired compatible seeds give an explicit cold build;
+invalid selected custody refuses instead of silently choosing another producer.
+
+The Linux target uses private build/proof outputs and seals only compiler objects
+after successful current-source proof. A producer may upload its seed before its
+whole Integration finishes; discovery admits it only after exhaustive successful
+dev acceptance. Candidate and unaccepted manual train artifacts are ineligible.
+The workflow requests only read access for acquisition and uploads a separate
+`compiler-cache-hosted-linux-*` artifact with fourteen-day retention. There is no
+shared Cargo target restore for this lane.
+
+`compiler-cache-hosted-retire` requires explicit artifact IDs and verifies each
+managed namespace and producer before deletion, records durable intent, and
+requires absent readback. It does not claim to clear the whole namespace or all
+GitHub artifacts. Local audited cache clearing remains separate and preserves
+private task outputs. Remote transfer, snapshot preparation and full-history
+checkout costs must be included in hosted performance measurements; local cache
+hits alone do not prove a net pipeline speed improvement.

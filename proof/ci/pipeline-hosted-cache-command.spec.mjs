@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, truncate } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { prepareHostedProductCache, loadHostedProductCacheConfig } from '../../tools/ci/pipeline/hosted-cache-command.mjs';
+import { prepareHostedProductCache, loadHostedProductCacheConfig, writeHostedProductCacheConfig } from '../../tools/ci/pipeline/hosted-cache-command.mjs';
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'hosted-command-'));
@@ -121,3 +121,39 @@ for (const variant of ['wrong-source', 'dirty', 'inside', 'symlink', 'oversized'
     if (variant === 'task-exists') assert.equal(await readFile(path.join(f.options.taskRoot, 'preserved'), 'utf8'), 'proof');
   });
 }
+
+test('completed phase reads an owned private task without treating it as a new build', async t => {
+  const f = await fixture(t); await f.configure();
+  await mkdir(f.options.taskRoot);
+  await writeFile(path.join(f.options.taskRoot, 'proof'), 'retained proof');
+  await assert.rejects(f.load(), /output exists/);
+  const result = await loadHostedProductCacheConfig(f.configFile, { repositoryRoot: f.options.repositoryRoot, completedTask: true });
+  assert.equal(result.taskRoot, f.options.taskRoot);
+  assert.equal(await readFile(path.join(result.taskRoot, 'proof'), 'utf8'), 'retained proof');
+});
+for (const variant of ['missing', 'file', 'symlink', 'invalid-phase']) test(`completed task refuses ${variant}`, async t => {
+  const f = await fixture(t); await f.configure();
+  if (variant === 'file') await writeFile(f.options.taskRoot, 'not a directory');
+  if (variant === 'symlink') await symlink(f.options.destination, f.options.taskRoot);
+  await assert.rejects(loadHostedProductCacheConfig(f.configFile, {
+    repositoryRoot: f.options.repositoryRoot, completedTask: variant === 'invalid-phase' ? 'true' : true,
+  }));
+});
+test('acquired cache writes new configuration and preserves original intent', async t => {
+  const f = await fixture(t), prepared = await f.configure();
+  const original = await readFile(f.configFile, 'utf8');
+  const restored = { ...prepared.config, cacheRoot: path.join(f.root, 'restored-cache') };
+  const destination = path.join(f.root, 'restored.json');
+  await writeHostedProductCacheConfig(restored, destination, { repositoryRoot: f.options.repositoryRoot });
+  assert.equal((await loadHostedProductCacheConfig(destination, { repositoryRoot: f.options.repositoryRoot })).cacheRoot, restored.cacheRoot);
+  assert.equal(await readFile(f.configFile, 'utf8'), original);
+  await assert.rejects(writeHostedProductCacheConfig(prepared.config, destination, { repositoryRoot: f.options.repositoryRoot }), /output exists/);
+  assert.deepEqual(JSON.parse(await readFile(destination)), restored);
+});
+test('acquired cache cannot redirect task outputs into shared cache', async t => {
+  const f = await fixture(t), prepared = await f.configure();
+  const destination = path.join(f.root, 'refused.json');
+  await assert.rejects(writeHostedProductCacheConfig({ ...prepared.config, taskRoot: prepared.config.cacheRoot }, destination,
+    { repositoryRoot: f.options.repositoryRoot }), /Overlapping/);
+  await assert.rejects(readFile(destination), { code: 'ENOENT' });
+});

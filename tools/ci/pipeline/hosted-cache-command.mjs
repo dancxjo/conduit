@@ -96,11 +96,8 @@ export async function prepareHostedProductCache({ engine, toolchainRoot, destina
     config };
 }
 
-export async function loadHostedProductCacheConfig(configFile, { repositoryRoot = process.cwd(), sourceSha } = {}) {
-  const checkout = await realpath(repositoryRoot);
-  const identity = source(checkout, sourceSha);
-  await external(configFile, checkout);
-  const config = await readJson(configFile);
+async function checkedConfiguration(config, configFile, checkout, identity, completedTask) {
+  if (typeof completedTask !== 'boolean') fail('Invalid hosted task phase');
   const fields = ['schema', 'snapshotManifest', 'cacheRoot', 'taskRoot', 'cacheMode', 'maxCacheBytes'];
   if (!config || Object.keys(config).sort().join() !== fields.sort().join() || config.schema !== SCHEMA) fail('Invalid hosted cache target config');
   policyOptions(config.cacheMode, config.maxCacheBytes);
@@ -111,8 +108,30 @@ export async function loadHostedProductCacheConfig(configFile, { repositoryRoot 
   await external(snapshot.root, checkout);
   if (await realpath(snapshot.root) !== snapshot.root) fail('Hosted cache snapshot root differs');
   disjoint([configFile, config.snapshotManifest, config.cacheRoot, config.taskRoot, snapshot.root]);
-  await fresh(config.taskRoot);
+  if (completedTask) {
+    const task = await lstat(config.taskRoot);
+    if (!task.isDirectory() || task.isSymbolicLink() || task.uid !== process.getuid()) fail('Invalid completed hosted task');
+  } else await fresh(config.taskRoot);
   source(checkout, identity.sourceCommit);
-  return { snapshot, cacheRoot: config.cacheRoot, taskRoot: config.taskRoot,
+  return { snapshot, snapshotManifest: config.snapshotManifest, cacheRoot: config.cacheRoot, taskRoot: config.taskRoot,
     cacheMode: config.cacheMode, maxCacheBytes: config.maxCacheBytes };
+}
+
+export async function loadHostedProductCacheConfig(configFile, { repositoryRoot = process.cwd(), sourceSha, completedTask = false } = {}) {
+  const checkout = await realpath(repositoryRoot);
+  const identity = source(checkout, sourceSha);
+  await external(configFile, checkout);
+  return checkedConfiguration(await readJson(configFile), configFile, checkout, identity, completedTask);
+}
+
+// Seed acquisition creates a new configuration, retaining the original intent.
+// It cannot overwrite one or redirect the private task into shared storage.
+export async function writeHostedProductCacheConfig(config, configFile, { repositoryRoot = process.cwd(), sourceSha } = {}) {
+  const checkout = await realpath(repositoryRoot);
+  const identity = source(checkout, sourceSha);
+  await external(configFile, checkout);
+  await fresh(configFile);
+  await checkedConfiguration(config, configFile, checkout, identity, false);
+  await writeFile(configFile, `${JSON.stringify(config)}\n`, { flag: 'wx', mode: 0o600 });
+  return configFile;
 }

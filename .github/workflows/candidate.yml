@@ -10,6 +10,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   proof:
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/ci.yml
     with:
       exhaustive: false
