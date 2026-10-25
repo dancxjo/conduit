@@ -28,7 +28,7 @@ pub(crate) fn plan_validated_plot_with_connection_limits(
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
-    plan_borrowed_plot_with_connection_limits(
+    plan_input_with_connection_limits(
         PlanningInput::from(plot),
         hosts,
         placements,
@@ -38,8 +38,8 @@ pub(crate) fn plan_validated_plot_with_connection_limits(
     )
 }
 
-pub(crate) fn plan_borrowed_plot_with_connection_limits(
-    plot: PlanningInput<'_>,
+pub(crate) fn plan_input_with_connection_limits(
+    mut plot: PlanningInput<'_>,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
@@ -82,7 +82,7 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
         .map(|host| (host.host_id.clone(), host))
         .collect::<BTreeMap<_, _>>();
 
-    crate::language_coverage::validate_placements(plot.gears, hosts, placements)?;
+    crate::language_coverage::validate_placements(&plot.gears, hosts, placements)?;
     for host in hosts {
         validate_host_resources(host)?;
     }
@@ -93,13 +93,14 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
     let mut remaining_compute_minimum =
-        compute_admission::admit_minima(plot.gears, &host_index, placements)?;
+        compute_admission::admit_minima(&plot.gears, &host_index, placements)?;
     let mut consumed_protected_handles = BTreeSet::new();
     let mut resource_writers = BTreeSet::new();
     let mut planned_gears = Vec::<PlannedGear>::new();
     let mut placement_lookup = BTreeMap::<GearId, PlacementId>::new();
 
-    for gear in plot.gears {
+    for gear_index in 0..plot.gears.len() {
+        let gear = &plot.gears[gear_index];
         let choice = placements
             .by_gear
             .get(&gear.gear_id)
@@ -190,14 +191,14 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
             capability.capability_id.as_str()
         )));
         placement_lookup.insert(gear.gear_id.clone(), placement_id.clone());
-        planned_gears.push(conduit_core::planned_gear_from_parts! {
+        let mut planned = conduit_core::planned_gear_from_parts! {
             realization_properties: capability.realization_properties.clone(),
             placement_id,
             gear_id: gear.gear_id.clone(),
             kind_id: capability.kind_id.clone(),
             kind_contract_revision: capability.kind_contract_revision.clone(),
             execution_profile_id: capability.implementation.execution_profile_id.clone(),
-            configuration: gear.configuration.clone(),
+            configuration: Vec::new(),
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),
             offer_generation: host.offer_generation,
@@ -215,7 +216,9 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
             resources: resource_bindings,
             authority: authority_bindings,
             pool_references: gear.pool_references.clone(),
-        });
+        };
+        planned.configuration = plot.take_configuration(gear_index);
+        planned_gears.push(planned);
     }
 
     if consumed_protected_handles.len() != protected_resource_grants.len() {

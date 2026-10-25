@@ -171,7 +171,7 @@ pub fn plan_expanded_canonical_with_connection_limits(
 ) -> Result<Plan, PlannerError> {
     plot.validate_expansion()
         .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
-    let mut plan = crate::validated_planning::plan_borrowed_plot_with_connection_limits(
+    let mut plan = crate::validated_planning::plan_input_with_connection_limits(
         crate::planning_input::PlanningInput::from(plot),
         hosts,
         placements,
@@ -189,6 +189,43 @@ pub fn plan_expanded_canonical_with_connection_limits(
             },
             crate::plan_completion_policy(plot.completion),
             plot.realization_backs.clone(),
+            plan.fragments,
+        ),
+    )
+}
+
+/// The same ordinary planning and validation, retiring the supplied checked
+/// expansion after transferring its configuration/program buffers into the Plan.
+/// Refusal consumes the expansion too; it publishes no partial Plan.
+pub fn plan_expanded_canonical_consuming_with_connection_limits(
+    mut plot: ExpandedCanonicalPlot,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+) -> Result<Plan, PlannerError> {
+    plot.validate_expansion()
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+    let gears = core::mem::take(&mut plot.gears);
+    let mut plan = crate::validated_planning::plan_input_with_connection_limits(
+        crate::planning_input::PlanningInput::consuming(&plot, gears),
+        hosts,
+        placements,
+        bases,
+        options,
+        connection_limits,
+    )?;
+    attach_source_spans(&plot, &mut plan)?;
+    Ok(
+        conduit_core::seal_plan_with_realization_backs_and_completion(
+            PlotIdentity {
+                source_document_id: plot.source_document_id,
+                checked_plot_id: plot.checked_plot_id,
+                expanded_plot_id: plot.expanded_plot_id,
+            },
+            crate::plan_completion_policy(plot.completion),
+            plot.realization_backs,
             plan.fragments,
         ),
     )

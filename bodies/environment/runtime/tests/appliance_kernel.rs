@@ -45,14 +45,25 @@ fn a_ready_capability_does_not_replace_authority_or_missing_implementations() {
     let mut software = software(&source);
     let mut host = appliance_support::advertisement(&source, &mut software, &ready);
     let bases = ["conduit.base/local@1".into()];
-    assert!(source.plan_local(&host, &bases, &[]).is_err());
+    let compare = |host: &c::HostAdvertisement, authority: &[c::AuthorityGrant]| {
+        let borrowed = source.plan_local(host, &bases, authority);
+        let owned = conduit_environment_runtime::construction::ApplianceSource {
+            expanded: source.expanded.clone(),
+            count: source.count,
+            period_ms: source.period_ms,
+        }
+        .into_plan_local(host, &bases, authority);
+        assert_eq!(borrowed, owned);
+        borrowed
+    };
+    assert!(compare(&host, &[]).is_err());
     let mut wrong = pulse::grant();
     wrong.boot_id = "wrong/boot".into();
-    assert!(source.plan_local(&host, &bases, &[wrong]).is_err());
-    source.plan_local(&host, &bases, &[pulse::grant()]).unwrap();
+    assert!(compare(&host, &[wrong]).is_err());
+    compare(&host, &[pulse::grant()]).unwrap();
     host.capabilities
         .retain(|offer| offer.kind_id.as_str() != Channel::Reading.kind_id());
-    assert!(source.plan_local(&host, &bases, &[pulse::grant()]).is_err());
+    assert!(compare(&host, &[pulse::grant()]).is_err());
     assert_eq!(effects.get(), 0);
 }
 #[test]
@@ -113,6 +124,61 @@ fn run(scenario: usize, overnight: bool) {
         // Isolate copies from Source checking's large transient catalogue. These
         // are host heap observations, not an MCU memory-admission claim.
         let (graph_copy, graph_memory) = allocation_probe::observe(|| source.expanded.clone());
+        let owned_source = conduit_environment_runtime::construction::ApplianceSource {
+            expanded: graph_copy,
+            count,
+            period_ms,
+        };
+        let program_buffers: Vec<_> = owned_source
+            .expanded
+            .gears
+            .iter()
+            .flat_map(|gear| {
+                gear.configuration.iter().filter_map(|entry| {
+                    let c::ConfigurationValue::Text(text) = &entry.value else {
+                        return None;
+                    };
+                    Some((
+                        gear.gear_id.clone(),
+                        entry.key.clone(),
+                        text.as_ptr() as usize,
+                    ))
+                })
+            })
+            .collect();
+        let (consumed_plan, consumed_memory) = allocation_probe::observe(|| {
+            owned_source
+                .into_plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
+                .unwrap()
+        });
+        assert_eq!(consumed_plan, plan);
+        assert!(
+            consumed_memory.peak_bytes <= 152 * 1024,
+            "{consumed_memory:?}"
+        );
+        for (gear, key, pointer) in program_buffers {
+            let placed = consumed_plan
+                .fragments
+                .iter()
+                .flat_map(|f| &f.placements)
+                .find(|p| p.gear_id == gear)
+                .unwrap();
+            let entry = placed
+                .configuration
+                .iter()
+                .find(|entry| entry.key == key)
+                .unwrap();
+            let c::ConfigurationValue::Text(text) = &entry.value else {
+                panic!("program Type changed");
+            };
+            assert_eq!(text.as_ptr() as usize, pointer, "program buffer was copied");
+        }
+
+        eprintln!(
+            "environment_consuming_planning_peak={}",
+            consumed_memory.peak_bytes
+        );
+        drop(consumed_plan);
         let (host_copy, host_memory) = allocation_probe::observe(|| host.clone());
         let (plan_copy, plan_memory) = allocation_probe::observe(|| plan.clone());
         #[cfg(feature = "body-image")]
@@ -173,7 +239,7 @@ fn run(scenario: usize, overnight: bool) {
                 validation_memory.peak_bytes, plan_memory.peak_bytes
             );
         }
-        drop((graph_copy, host_copy, plan_copy));
+        drop((host_copy, plan_copy));
         eprintln!(
             "environment_appliance_host_heap graph_copy_peak={} host_copy_peak={} plan_copy_peak={} ordinary_planning_peak={} lowering_peak={}",
             graph_memory.peak_bytes, host_memory.peak_bytes, plan_memory.peak_bytes,

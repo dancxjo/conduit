@@ -55,6 +55,15 @@ fn borrowed_default_preserves_plan_spans_completion_and_refusals() {
         });
         let current =
             plan_expanded_canonical_with_options(&expanded, &hosts, &placements, &bases, options);
+        let consumed = plan_expanded_canonical_consuming_with_connection_limits(
+            expanded.clone(),
+            &hosts,
+            &placements,
+            &bases,
+            options,
+            &BTreeMap::new(),
+        );
+        assert_eq!(current, consumed);
         assert_eq!(current, legacy);
         if queue_items == 1 {
             let plan = current.unwrap();

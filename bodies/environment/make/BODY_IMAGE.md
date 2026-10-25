@@ -131,6 +131,16 @@ peak falls from 168,606 to **167,531 bytes**. Nominal Types, quantities, predica
 and dynamic expressions retain their normal preparation. This small saving
 is not a complete MCU preparation bound.
 
+A consuming ordinary planning entrance now transfers configuration/program
+buffers from a retiring checked expansion into the Plan. The borrowed entrance
+still preserves reusable Source. Both use the same validation and assembly
+algorithm. For the appliance, complete Plan equality and authority/stale-Boot/
+missing-implementation refusals match; tests also verify original program buffer
+addresses survive the transfer. Peak additional CPU planning heap falls from
+188,068 to **147,883 bytes**, with a 152 KiB regression ceiling. This requires
+ownership of the expansion and consumes it on refusal too. It does not eliminate
+the rich Source's initial construction or establish combined MCU admission.
+
 The rich Plan is still needed during construction and execution preparation.
 These host measurements do not establish that Root, biography, sampling, timed
 display, network SDK, planning scratch, and required lifecycle evidence coexist
