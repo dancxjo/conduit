@@ -1595,6 +1595,7 @@ dependencies = [
  "conduit-face",
  "conduit-finance",
  "conduit-host-browser-make",
+ "conduit-host-hosted",
  "conduit-host-make",
  "conduit-kernel",
  "conduit-language",

@@ -1,34 +1,49 @@
 //! Canonical interaction/custody regression with explicit software Mask ACK.
 //! The selected-show slot simulates the trusted renderer; no native output claim.
 use super::*;
+use crate::creche_draft_fixture as draft_fixture;
+use crate::creche_mask_fixture as mask_fixture;
 use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
 use conduit_core::{ConnectionTrack, PortDirection};
 use conduit_face::FaceInteractionArgument;
 use conduit_std_host::hosted_creche::CrecheHost;
 use std::collections::BTreeMap;
-#[path = "../../../../make/body/tests/common/deployment.rs"]
-mod draft_fixture;
-#[path = "../../../../make/body/tests/common/face_mask.rs"]
-mod mask_fixture;
 
-struct Custody(Arc<Mutex<Option<MaskShow>>>);
+#[derive(Default)]
+struct FixtureReturnedInput {
+    show: Option<MaskShow>,
+    returned: Option<FaceInteraction>,
+}
+struct Custody(Arc<Mutex<FixtureReturnedInput>>);
 impl CrecheMaskShowCustody for Custody {
     fn validate_acknowledged(&mut self, _: &Face, show: &MaskShow) -> Result<(), String> {
-        if self.0.lock().unwrap().as_ref() == Some(show) {
+        if self.0.lock().unwrap().show.as_ref() == Some(show) {
             Ok(())
         } else {
             Err("fixture selected renderer has not acknowledged this Show".into())
         }
     }
+    fn validate_returned_interaction(
+        &mut self,
+        _: &Face,
+        _: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<(), String> {
+        if self.0.lock().unwrap().returned.as_ref() == Some(interaction) {
+            Ok(())
+        } else {
+            Err("fixture Mask did not return this exact input occurrence".into())
+        }
+    }
     fn retire_and_drain(&mut self) -> Result<(), String> {
-        *self.0.lock().unwrap() = None;
+        *self.0.lock().unwrap() = FixtureReturnedInput::default();
         Ok(())
     }
 }
 fn adapter() -> (
     CrecheEncounterAdapter,
     CrecheEncounterController,
-    Arc<Mutex<Option<MaskShow>>>,
+    Arc<Mutex<FixtureReturnedInput>>,
 ) {
     let draft = draft_fixture::encounter("Garden");
     let profiles = draft
@@ -37,7 +52,7 @@ fn adapter() -> (
         .iter()
         .map(|h| h.configuration.clone())
         .collect();
-    let acknowledged = Arc::new(Mutex::new(None));
+    let acknowledged = Arc::new(Mutex::new(FixtureReturnedInput::default()));
     let (adapter, controller) = CrecheEncounterAdapter::new(
         draft,
         profiles,
@@ -166,17 +181,17 @@ fn interaction(
 fn act(
     owner: &mut CrecheHost<'_>,
     controller: &CrecheEncounterController,
-    acknowledged: &Arc<Mutex<Option<MaskShow>>>,
+    acknowledged: &Arc<Mutex<FixtureReturnedInput>>,
     action: &str,
     value: Option<&[u8]>,
 ) {
     let face = controller.face().unwrap().unwrap();
     let show = mask_fixture::acknowledged_fixture_show(&face);
-    *acknowledged.lock().unwrap() = Some(show.clone());
+    acknowledged.lock().unwrap().show = Some(show.clone());
     controller.acknowledge_show(show.clone()).unwrap();
-    controller
-        .submit(interaction(&face, &show, action, value))
-        .unwrap();
+    let returned = interaction(&face, &show, action, value);
+    acknowledged.lock().unwrap().returned = Some(returned.clone());
+    controller.submit(returned).unwrap();
     std::thread::sleep(owner.poll_wait());
     assert_eq!(owner.poll().unwrap(), CrechePoll::Pending);
 }
@@ -255,12 +270,12 @@ fn mailbox_pressure_stale_show_and_revoked_renderer_custody_cannot_edit_the_mode
     owner.begin(owner.request()).unwrap();
     let original = controller.face().unwrap().unwrap();
     let show = mask_fixture::acknowledged_fixture_show(&original);
-    *acknowledged.lock().unwrap() = Some(show.clone());
+    acknowledged.lock().unwrap().show = Some(show.clone());
     controller.acknowledge_show(show.clone()).unwrap();
     let old = interaction(&original, &show, "creche.deploy.next", None);
-    controller
-        .submit(interaction(&original, &show, "creche.name", Some(b"Maple")))
-        .unwrap();
+    let returned = interaction(&original, &show, "creche.name", Some(b"Maple"));
+    acknowledged.lock().unwrap().returned = Some(returned.clone());
+    controller.submit(returned).unwrap();
     assert!(controller.submit(old.clone()).is_err());
     std::thread::sleep(owner.poll_wait());
     owner.poll().unwrap();
@@ -272,17 +287,17 @@ fn mailbox_pressure_stale_show_and_revoked_renderer_custody_cannot_edit_the_mode
     assert!(controller.submit(old).is_err());
     let face = controller.face().unwrap().unwrap();
     let show = mask_fixture::acknowledged_fixture_show(&face);
-    *acknowledged.lock().unwrap() = Some(show.clone());
+    acknowledged.lock().unwrap().show = Some(show.clone());
     controller.acknowledge_show(show.clone()).unwrap();
-    *acknowledged.lock().unwrap() = None;
+    acknowledged.lock().unwrap().show = None;
     assert!(controller
         .submit(interaction(&face, &show, "creche.deploy.next", None))
         .is_err());
-    *acknowledged.lock().unwrap() = Some(show.clone());
-    controller
-        .submit(interaction(&face, &show, "creche.deploy.next", None))
-        .unwrap();
-    *acknowledged.lock().unwrap() = None;
+    acknowledged.lock().unwrap().show = Some(show.clone());
+    let returned = interaction(&face, &show, "creche.deploy.next", None);
+    acknowledged.lock().unwrap().returned = Some(returned.clone());
+    controller.submit(returned).unwrap();
+    acknowledged.lock().unwrap().show = None;
     std::thread::sleep(owner.poll_wait());
     let CrechePoll::Outcome(refused) = owner.poll().unwrap() else {
         panic!("revoked selected renderer refuses queued input")
@@ -301,4 +316,48 @@ fn mailbox_pressure_stale_show_and_revoked_renderer_custody_cannot_edit_the_mode
     );
     owner.retire().unwrap();
     assert!(controller.face().unwrap().is_none());
+}
+
+#[test]
+fn acknowledged_show_does_not_admit_fabricated_or_revoked_returned_input() {
+    let (mut adapter, controller, custody) = adapter();
+    let (host, plan, play) = plan(&adapter);
+    let mut owner = CrecheHost::prepare(&mut adapter, &host, &plan, &play).unwrap();
+    owner.confirm_started(&host, &play).unwrap();
+    owner.begin(owner.request()).unwrap();
+    let face = controller.face().unwrap().unwrap();
+    let show = mask_fixture::acknowledged_fixture_show(&face);
+    custody.lock().unwrap().show = Some(show.clone());
+    controller.acknowledge_show(show.clone()).unwrap();
+    let fabricated = interaction(&face, &show, "creche.name", Some(b"Fabricated"));
+    assert!(
+        controller.submit(fabricated.clone()).is_err(),
+        "Show custody is not returned input custody"
+    );
+    let returned = interaction(&face, &show, "creche.name", Some(b"Returned"));
+    // Explicitly simulate the fixture Mask's typed return, independently of ACK.
+    custody.lock().unwrap().returned = Some(returned.clone());
+    assert!(
+        controller.submit(fabricated).is_err(),
+        "another same-Show occurrence was never returned"
+    );
+    controller.submit(returned).unwrap();
+    custody.lock().unwrap().returned = None;
+    std::thread::sleep(owner.poll_wait());
+    let CrechePoll::Outcome(outcome) = owner.poll().unwrap() else {
+        panic!("queued input lost its returned-fore custody")
+    };
+    assert_eq!(outcome.disposition, CrecheDisposition::Refused);
+    assert_eq!(
+        controller
+            .channel
+            .lock()
+            .unwrap()
+            .face
+            .as_ref()
+            .unwrap()
+            .identity,
+        face.identity
+    );
+    owner.retire().unwrap();
 }

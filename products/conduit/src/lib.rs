@@ -1,10 +1,17 @@
 //! Reusable public product entrances shared by packaged Conduit applications.
 
 #[cfg(test)]
+#[path = "../../../make/body/tests/common/deployment.rs"]
+mod creche_draft_fixture;
+#[cfg(test)]
+#[path = "../../../make/body/tests/common/face_mask.rs"]
+mod creche_mask_fixture;
+#[cfg(test)]
 #[path = "../../../semantics/face/tests/common/mod.rs"]
 mod mask_test_common;
 
 pub mod creche_encounter;
+pub mod creche_production;
 mod hosted_two_std;
 mod plot_source;
 mod product_execution;

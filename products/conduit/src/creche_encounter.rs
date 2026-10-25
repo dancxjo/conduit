@@ -27,6 +27,17 @@ pub use controller::CrecheEncounterController;
 /// encounter's controller. Only retirement may wait for effects to drain.
 pub trait CrecheMaskShowCustody: Send {
     fn validate_acknowledged(&mut self, face: &Face, show: &MaskShow) -> Result<(), String>;
+    /// Require this exact occurrence returned by the selected Mask's typed
+    /// interaction Fore. A previously acknowledged Show alone grants no input.
+    /// Retain the one completed correlation until queued semantic consumption;
+    /// validation is repeated and must not consume that receipt on first check.
+    fn validate_returned_interaction(
+        &mut self,
+        face: &Face,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<(), String>;
+
     /// Stop/drain the selected presentation/input effects. Must be idempotent;
     /// success is required before the installed operation can retire.
     fn retire_and_drain(&mut self) -> Result<(), String>;
@@ -34,11 +45,28 @@ pub trait CrecheMaskShowCustody: Send {
 
 /// Exact one-time canonical make handoff. Consuming the draft and review through
 /// DeploymentDraft::prepare births once; merely taking this value births nothing.
+/// The reviewed state and its executing request cannot be substituted externally.
+/// ```compile_fail
+/// fn substitute(handoff: &mut conduit::creche_encounter::CrecheReviewedHandoff) {
+///     handoff.request.0 = [0; 32];
+/// }
+/// ```
 pub struct CrecheReviewedHandoff {
-    pub request: CrecheRequest,
-    pub context: CrecheExecutionContext,
-    pub draft: DeploymentDraft,
-    pub review: ReviewedDeployment,
+    pub(crate) request: CrecheRequest,
+    pub(crate) context: CrecheExecutionContext,
+    pub(crate) draft: DeploymentDraft,
+    pub(crate) review: ReviewedDeployment,
+}
+impl CrecheReviewedHandoff {
+    pub fn request(&self) -> CrecheRequest {
+        self.request
+    }
+    pub fn context(&self) -> &CrecheExecutionContext {
+        &self.context
+    }
+    pub fn draft(&self) -> &DeploymentDraft {
+        &self.draft
+    }
 }
 
 /// Classified failure from the actual make owner. There is no public raw-byte
@@ -73,6 +101,9 @@ struct Shared {
     reviewed: bool,
     handoff: Option<CrecheReviewedHandoff>,
     handoff_taken: bool,
+    handoff_request: Option<CrecheRequest>,
+    products: Option<crate::creche_production::CrecheProducedImages>,
+    products_completed: bool,
     make_refusal: Option<CrecheMakeRefusal>,
 }
 struct Channel {
@@ -163,6 +194,9 @@ impl CrecheEncounterAdapter {
                 reviewed: false,
                 handoff: None,
                 handoff_taken: false,
+                handoff_request: None,
+                products: None,
+                products_completed: false,
                 make_refusal: None,
             }),
             custody: Mutex::new(custody),
@@ -314,6 +348,23 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter {
             drop(state);
             return self.terminal(TerminalReason::Make(reason));
         }
+        if let Some(products) = &state.products {
+            self.evidence = products
+                .evidence(self.limits.maximum_evidence_bytes)
+                .map_err(|e| format!("Crèche prepared image evidence: {e:?}"))?;
+            let outcome = CrecheOutcome {
+                request: self
+                    .request
+                    .ok_or("Crèche image completion lacks request")?,
+                disposition: CrecheDisposition::Prepared,
+                evidence_digest: Sha256::digest(&self.evidence).into(),
+            };
+            state.products_completed = true;
+            state.active = false;
+            state.acknowledged = None;
+            self.outcome = Some(outcome);
+            return Ok(CrechePoll::Outcome(outcome));
+        }
         let Some(command) = state.command.take() else {
             return Ok(CrechePoll::Pending);
         };
@@ -335,7 +386,11 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter {
         };
         let mut custody = custody;
         let current = state.face.as_ref().ok_or("Crèche current Face absent")?;
-        let admitted = custody.validate_acknowledged(current, &command.show);
+        let admitted = custody
+            .validate_acknowledged(current, &command.show)
+            .and_then(|()| {
+                custody.validate_returned_interaction(current, &command.show, &command.interaction)
+            });
         drop(custody);
         if admitted.is_err() {
             state.active = false;

@@ -55,11 +55,14 @@ impl CrecheEncounterController {
             .map_err(|e| format!("Crèche interaction: {e:?}"))?;
         // Recheck actual selected renderer custody at acceptance, not only when
         // its Show was initially acknowledged. No cloned Show conveys authority.
-        self.channel
+        let mut custody = self
+            .channel
             .custody
             .lock()
-            .map_err(|_| "Crèche Mask custody poisoned")?
-            .validate_acknowledged(face, show)?;
+            .map_err(|_| "Crèche Mask custody poisoned")?;
+        custody.validate_acknowledged(face, show)?;
+        custody.validate_returned_interaction(face, show, &interaction)?;
+        drop(custody);
         state.command = Some(Command {
             show: show.clone(),
             interaction,
@@ -76,6 +79,7 @@ impl CrecheEncounterController {
         let handoff = state.handoff.take();
         if handoff.is_some() {
             state.handoff_taken = true;
+            state.handoff_request = handoff.as_ref().map(|handoff| handoff.request);
         }
         Ok(handoff)
     }
@@ -83,10 +87,61 @@ impl CrecheEncounterController {
     /// canonical review. There is intentionally no successful-artifact setter.
     pub fn classify_make_refusal(&self, reason: CrecheMakeRefusal) -> Result<(), String> {
         let mut state = self.channel.lock()?;
-        if !state.active || !state.handoff_taken || state.make_refusal.is_some() {
+        if !state.active
+            || !state.handoff_taken
+            || state.make_refusal.is_some()
+            || state.products.is_some()
+        {
             return Err("Crèche make refusal has no single admitted reviewed operation".into());
         }
         state.make_refusal = Some(reason);
         Ok(())
+    }
+
+    /// Accept only the opaque result of actual image production and final byte
+    /// revalidation for this one reviewed request. No raw successful outcome or
+    /// externally populated receipt can pass this boundary.
+    pub fn complete_images(
+        &self,
+        mut products: crate::creche_production::CrecheProducedImages,
+    ) -> Result<(), (String, Box<crate::creche_production::CrecheProducedImages>)> {
+        // This make-worker entrance may read files; unlike poll it must not be
+        // called on the kernel thread. Recheck bytes after external custody.
+        if let Err(error) = products.revalidate() {
+            return Err((
+                format!("Crèche image custody: {error:?}"),
+                Box::new(products),
+            ));
+        }
+        let mut state = match self.channel.lock() {
+            Ok(state) => state,
+            Err(error) => return Err((error, Box::new(products))),
+        };
+        if !state.active
+            || !state.handoff_taken
+            || state.handoff_request != Some(products.request())
+            || state.products.is_some()
+            || state.make_refusal.is_some()
+        {
+            return Err((
+                "Crèche images do not belong to this active single review".into(),
+                Box::new(products),
+            ));
+        }
+        state.products = Some(products);
+        Ok(())
+    }
+
+    /// Move prepared files to the owning save/deploy encounter only after the
+    /// installed operation has published its exact Prepared receipt digest.
+    pub fn take_products(
+        &self,
+    ) -> Result<Option<crate::creche_production::CrecheProducedImages>, String> {
+        let mut state = self.channel.lock()?;
+        Ok(if state.products_completed {
+            state.products.take()
+        } else {
+            None
+        })
     }
 }
