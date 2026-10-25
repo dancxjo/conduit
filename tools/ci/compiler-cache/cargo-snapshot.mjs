@@ -87,7 +87,7 @@ export async function prepareCompositorSnapshot({ packageRoot, toolchainRoot, en
 }
 
 // Shared exact copied Rust/Cargo/runtime closure; no host directories are mounted.
-export async function copyCompilerClosure({ toolchainRoot, engine, destination, copy }) {
+export async function copyCompilerClosure({ toolchainRoot, engine, destination, copy, portableRuntime = false }) {
   for (const binary of ['cargo', 'rustc']) await copy(path.join(toolchainRoot, 'bin', binary), path.join(destination, 'toolchain/bin', binary), true);
   for (const name of await fs.readdir(path.join(toolchainRoot, 'lib'))) {
     if (name.startsWith('librustc_driver-') || name.startsWith('libLLVM')) await copy(path.join(toolchainRoot, 'lib', name), path.join(destination, 'toolchain/lib', name));
@@ -97,8 +97,10 @@ export async function copyCompilerClosure({ toolchainRoot, engine, destination, 
   for (const name of await fs.readdir(path.join(toolchainRoot, sysroot))) await copy(path.join(toolchainRoot, sysroot, name), path.join(destination, 'toolchain', sysroot, name));
   // Complete dynamic dependencies of the selected official Rust/Cargo binaries
   // on this Linux x86_64 host; no host library directory is mounted wholesale.
-  for (const name of ['libdl.so.2', 'librt.so.1', 'libpthread.so.0', 'libc.so.6', 'libgcc_s.so.1', 'libm.so.6', 'libz.so.1', 'libsystemd.so.0', 'libselinux.so.1', 'libpcre2-8.so.0']) await copy(`/usr/lib/x86_64-linux-gnu/${name}`, path.join(destination, 'runtime/usr/lib/x86_64-linux-gnu', name));
-  await copy('/lib64/ld-linux-x86-64.so.2', path.join(destination, 'runtime/usr/lib64/ld-linux-x86-64.so.2'), true);
+  if (!portableRuntime) {
+    for (const name of ['libdl.so.2', 'librt.so.1', 'libpthread.so.0', 'libc.so.6', 'libgcc_s.so.1', 'libm.so.6', 'libz.so.1', 'libsystemd.so.0', 'libselinux.so.1', 'libpcre2-8.so.0']) await copy(`/usr/lib/x86_64-linux-gnu/${name}`, path.join(destination, 'runtime/usr/lib/x86_64-linux-gnu', name));
+    await copy('/lib64/ld-linux-x86-64.so.2', path.join(destination, 'runtime/usr/lib64/ld-linux-x86-64.so.2'), true);
+  }
   for (const [input, output] of [['/usr/bin/dash','bin/sh'],['/usr/bin/sleep','usr/bin/sleep']]) await copy(input, path.join(destination, 'runtime', output), true);
   await copy(engine, path.join(destination, 'engine/sccache'), true);
 }

@@ -67,7 +67,11 @@ verifies that executable is unchanged. These are internal composition APIs;
 the supported pipeline CLI still selects the compositor profile until the
 integration owner wires and accepts the hosted profile.
 
-Preparation runs Cargo metadata offline. Acquire the locked public dependencies
+Preparation runs Cargo metadata offline. Frozen metadata canonicalizes Cargo
+package IDs and source/target paths to their actual sandbox identities; raw
+acquisition paths and bytes remain in a private sibling `.acquisition.json`
+receipt outside the hashed snapshot. Unsupported external acquisition paths
+refuse. Acquire the locked public dependencies
 before freezing; missing cached archives or Git source refuse. Registry source
 bytes come from freshly extracted `.crate` archives authenticated against every
 registry entry in the exact Cargo.lock, including optional entries omitted by
@@ -81,12 +85,18 @@ mounted. Pinned Cargo-normalized manifests for the two selected Git packages
 have explicit generated-input custody; updating that Git revision requires
 regenerating and reviewing those manifests. Other public Git bytes remain exact.
 
-The current native closure is concrete Debian x86_64: GCC 15, binutils 2.46,
-selected libc/kernel headers and explicit ELF dependencies, alongside the exact
-Rust compiler/Cargo/sysroot and Rust linker. Missing platform files refuse;
-there is no fallback mount of host `/usr`, `/home` or `/etc`. Other hosted runner
-images need their own reviewed native closure before CI adoption. Preparation
-requires 19 GiB free and caps the retained snapshot at 6 GiB / 150,000 files.
+The native closure selects the installed x86_64 GNU GCC 12–15 private
+compiler layout, concrete linker/startup/header files and their resolved ELF
+dependencies, alongside exact Rust compiler/Cargo/sysroot/linker bytes. This
+handles GCC 13 under Ubuntu `/usr/lib/gcc` and GCC 15 under Debian
+`/usr/libexec/gcc` without hardcoding a binutils soname. Missing platform files
+and unknown loader output refuse; there is no fallback mount of host `/usr`,
+`/home` or `/etc`. Two independently prepared local GCC 15 snapshots at distinct
+paths were byte-identical (56,270 files / 2,226,552,902 bytes); the copied C
+compiler, assembler, linker and runtime passed a contained native execution and
+refused an existing host-only include. Actual Ubuntu execution still requires
+CI acceptance; layout fixtures alone do not establish it. Preparation requires
+19 GiB free and caps the retained snapshot at 6 GiB / 150,000 files.
 
 Before compilation, Cargo resolves the frozen inputs offline inside bwrap and
 checks that their procedural-macro closure is covered by the captured bypass
