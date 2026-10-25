@@ -18,7 +18,8 @@ SECTIONS {
     } :data
     .boot_stack (NOLOAD) : ALIGN(4096) {
         __conduitos_boot_stack_start = .;
-        . += 16384;
+        // Match the ordinary AArch64 product preparation-stack contract.
+        . += 1048576;
         __conduitos_boot_stack_top = .;
     } :data
     __conduitos_image_end = .;
