@@ -121,7 +121,7 @@ impl InitializedDisplay {
     }
     /// Reports only the observed SDL driver, never independently proved DRM output.
     pub fn is_kmsdrm(&self) -> bool {
-        self.lease.backend == "kmsdrm"
+        super::is_kmsdrm_backend(self.lease.backend)
     }
     pub(super) fn revoke(&self) {
         self.lease.live.store(false, Ordering::Release);

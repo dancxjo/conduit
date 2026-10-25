@@ -218,3 +218,19 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
         "Drop revokes all outstanding clones"
     );
 }
+
+#[test]
+fn actual_sdl_kmsdrm_name_is_accepted_without_accepting_desktop_fallbacks() {
+    // Catalogue inspection initializes no SDL subsystem or display and creates
+    // no initialized-display token. This is an SDK identity boundary test.
+    let reported = sdl2::video::drivers()
+        .find(|name| name.eq_ignore_ascii_case("kmsdrm"))
+        .expect("the native Linux test SDK must include its KMSDRM backend");
+    assert!(is_kmsdrm_backend(reported));
+    for name in sdl2::video::drivers().filter(|name| *name != reported) {
+        assert!(
+            !is_kmsdrm_backend(name),
+            "fallback {name} is not direct scanout"
+        );
+    }
+}

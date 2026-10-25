@@ -15,6 +15,12 @@ use sdl2::{
 };
 pub use surface::Surface;
 
+// SDL reports the direct backend with this exact case-sensitive identity.
+const KMSDRM_DRIVER: &str = "KMSDRM";
+fn is_kmsdrm_backend(driver: &str) -> bool {
+    driver == KMSDRM_DRIVER
+}
+
 /// Prepared texture and finite CPU surface. The caller owns renderer lifetime
 /// and must call `lose` when its admitted display custody is withdrawn.
 pub struct Scanout<'a> {
@@ -146,12 +152,12 @@ pub fn with_kmsdrm<T>(
     height: u32,
     run: impl FnOnce(&mut Scanout<'_>, &mut sdl2::EventPump) -> Result<T, String>,
 ) -> Result<T, String> {
-    if !sdl2::hint::set("SDL_VIDEODRIVER", "kmsdrm") {
+    if !sdl2::hint::set("SDL_VIDEODRIVER", KMSDRM_DRIVER) {
         return Err("kmsdrm-driver-selection-refused".into());
     }
     let sdl = sdl2::init()?;
     let video = sdl.video()?;
-    if video.current_video_driver() != "kmsdrm" {
+    if !is_kmsdrm_backend(video.current_video_driver()) {
         return Err("kmsdrm-driver-unavailable".into());
     }
     let window = video
