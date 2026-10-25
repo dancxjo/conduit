@@ -2110,7 +2110,6 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => {
             let look = look.into();
-            let recipe = recipe.into();
             runtime
                 .select_browser_component_mask(&window_id, &binding, &request, &show, look, recipe)
                 .map(|_| Response::BodyBrowserComponentMaskAccepted { protocol: PROTOCOL })
@@ -2257,6 +2256,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 }
                 conduit_std_host::browser_admission::BrowserComponentRecipe::RequiredItem => {
                     conduit_face::TodoComponentRecipe::RequiredItem
+                }
+                conduit_std_host::browser_admission::BrowserComponentRecipe::PatchbayNodes => {
+                    return refused("native-component-recipe-unsupported");
                 }
             };
             runtime
