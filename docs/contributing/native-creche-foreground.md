@@ -72,6 +72,11 @@ The launcher canonically checks these recipes and offers them alongside the
 construction's existing profiles. They grant no image, toolchain, or deployment
 authority; unsupported manufacture still refuses.
 
+Image and source-build grant keys refer to original declared Host entry names.
+The canonical draft retains entry correspondence through Host renames and
+profile edits; an edited display name does not acquire another entry's grants.
+Selected artifacts still undergo exact target/profile validation.
+
 The directories must already exist and be explicitly selected. The example is
 not an artifact download or a catalog trust decision. Supply reviewed artifacts
 through the existing obtain/review workflow; binding independently validates the

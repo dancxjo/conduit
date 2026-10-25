@@ -45,6 +45,7 @@ pub enum DeploymentDraftRefusal {
 pub struct DeploymentDraft {
     birth: BirthDraft,
     construction: CheckedBodyDescription,
+    original_host_names: BTreeMap<String, String>,
     first_host: String,
     scope: DeploymentScope,
     source: DeploymentImageSource,
@@ -104,9 +105,15 @@ impl DeploymentDraft {
         {
             return Err(DeploymentDraftRefusal::UnknownHost);
         }
+        let original_host_names = construction
+            .hosts()
+            .iter()
+            .map(|host| (host.description.name.clone(), host.description.name.clone()))
+            .collect();
         Ok(Self {
             birth,
             construction,
+            original_host_names,
             first_host,
             scope: DeploymentScope::FirstHost,
             source: DeploymentImageSource::ReviewedRelease,
@@ -123,6 +130,30 @@ impl DeploymentDraft {
     pub fn construction(&self) -> &CheckedBodyDescription {
         &self.construction
     }
+    /// Original declared entry for Host-owned grants; display renames grant no authority.
+    pub fn original_host_name(&self, current: &str) -> Option<&str> {
+        self.original_host_names.get(current).map(String::as_str)
+    }
+
+    pub(crate) fn replace_renamed_host(
+        &mut self,
+        revision: u64,
+        construction: CheckedBodyDescription,
+        first_host: &str,
+        old_name: &str,
+        new_name: &str,
+    ) -> Result<(), DeploymentDraftRefusal> {
+        let original = self
+            .original_host_names
+            .get(old_name)
+            .cloned()
+            .ok_or(DeploymentDraftRefusal::UnknownHost)?;
+        self.replace_construction(revision, construction, first_host)?;
+        self.original_host_names.remove(old_name);
+        self.original_host_names.insert(new_name.into(), original);
+        Ok(())
+    }
+
     pub fn first_host(&self) -> &str {
         &self.first_host
     }
@@ -207,6 +238,20 @@ impl DeploymentDraft {
         {
             return Err(DeploymentDraftRefusal::UnknownHost);
         }
+        self.original_host_names = construction
+            .hosts()
+            .iter()
+            .map(|host| {
+                let name = &host.description.name;
+                (
+                    name.clone(),
+                    self.original_host_names
+                        .get(name)
+                        .cloned()
+                        .unwrap_or_else(|| name.clone()),
+                )
+            })
+            .collect();
         self.construction = construction;
         self.first_host = first_host.into();
         self.revision = next;

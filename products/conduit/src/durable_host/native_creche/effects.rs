@@ -39,10 +39,32 @@ pub(super) fn produce(
             .map(|h| h.description.name.clone())
             .collect(),
     };
+    let grant_names = hosts
+        .iter()
+        .map(|host| {
+            handoff
+                .draft()
+                .original_host_name(host)
+                .map(|original| (host.clone(), original.to_owned()))
+                .ok_or(CrecheMakeRefusal::Unauthorized)
+        })
+        .collect::<Result<std::collections::BTreeMap<_, _>, _>>()?;
+    if grant_names
+        .values()
+        .collect::<std::collections::BTreeSet<_>>()
+        .len()
+        != grant_names.len()
+    {
+        return Err(CrecheMakeRefusal::Unauthorized);
+    }
     // Missing acquisition authority is a classified refusal before birth.
     let missing = hosts.iter().any(|host| match source {
-        DeploymentImageSource::ReviewedRelease => !policy.reviewed_images.contains_key(host),
-        DeploymentImageSource::SourceBuild => !policy.source_builds.contains_key(host),
+        DeploymentImageSource::ReviewedRelease => {
+            !policy.reviewed_images.contains_key(&grant_names[host])
+        }
+        DeploymentImageSource::SourceBuild => {
+            !policy.source_builds.contains_key(&grant_names[host])
+        }
     });
     if missing {
         let reason = match source {
@@ -83,17 +105,18 @@ pub(super) fn produce(
         let parent: serde_json::Value =
             serde_json::from_slice(&occurrence).map_err(|e| e.to_string())?;
         super::super::write_json_atomic(&directory.join("parent-operation.json"), &parent)?;
+        super::super::write_json_atomic(&directory.join("host-grant-bindings.json"), &grant_names)?;
         let hosts = job.selected_hosts().to_vec();
         for host in hosts {
             let input = match source {
                 DeploymentImageSource::ReviewedRelease => policy
                     .reviewed_images
-                    .remove(&host)
+                    .remove(&grant_names[&host])
                     .ok_or("no admitted reviewed image for selected Host")?
                     .open()?,
                 DeploymentImageSource::SourceBuild => policy
                     .source_builds
-                    .remove(&host)
+                    .remove(&grant_names[&host])
                     .ok_or("no admitted source build for selected Host")?
                     .grant(),
             };

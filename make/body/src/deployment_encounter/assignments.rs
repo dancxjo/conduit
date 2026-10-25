@@ -63,7 +63,7 @@ impl DeploymentEncounter {
             crate::check_body_description(description, &self.configurations(), catalog, packages)
                 .map_err(|e| E::Draft(DeploymentDraftRefusal::Construction(e)))?;
         self.draft
-            .replace_construction(self.draft.revision(), checked, &first)
+            .replace_renamed_host(self.draft.revision(), checked, &first, &old, name)
             .map_err(E::Draft)
     }
 

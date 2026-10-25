@@ -189,6 +189,7 @@ fn acknowledged_host_name_and_profile_edits_are_checked_and_isolated() {
     );
     let hosts = e.draft().construction().hosts();
     assert_eq!(hosts[0].description.name, "garden-pi");
+    assert_eq!(e.draft().original_host_name("garden-pi"), Some("first"));
     assert_eq!(
         hosts[0]
             .configuration
@@ -272,4 +273,115 @@ fn catalogue_must_include_the_current_exact_profiles_and_stay_finite() {
         DeploymentEncounter::with_profiles(draft, vec![profile; MAX_DEPLOYMENT_PROFILES + 1]),
         Err(DeploymentEncounterRefusal::InvalidCatalogue)
     ));
+}
+
+#[test]
+fn host_rename_reorders_canonical_entries_and_preserves_declared_part() {
+    let b = basis();
+    let mut encounter = DeploymentEncounter::new(fixture::encounter("Garden"));
+    act(&mut encounter, &b, "creche.deploy.next", None);
+    act(
+        &mut encounter,
+        &b,
+        "creche.deploy.host-name.0",
+        Some(b"z-first"),
+    );
+    let hosts = encounter.draft().construction().hosts();
+    assert_eq!(hosts[0].description.name, "second");
+    assert_eq!(hosts[1].description.name, "z-first");
+    assert_eq!(hosts[1].description.part.as_deref(), Some("part:first"));
+    assert_eq!(encounter.draft().first_host(), "z-first");
+    assert_eq!(
+        encounter.draft().original_host_name("z-first"),
+        Some("first")
+    );
+    assert_eq!(
+        encounter.draft().original_host_name("second"),
+        Some("second")
+    );
+    act(
+        &mut encounter,
+        &b,
+        "creche.deploy.host-name.1",
+        Some(b"a-first"),
+    );
+    assert_eq!(
+        encounter.draft().original_host_name("a-first"),
+        Some("first")
+    );
+    assert_eq!(encounter.draft().original_host_name("z-first"), None);
+    act(
+        &mut encounter,
+        &b,
+        "creche.deploy.host-name.1",
+        Some(b"first"),
+    );
+    act(
+        &mut encounter,
+        &b,
+        "creche.deploy.host-name.0",
+        Some(b"second"),
+    );
+    assert_eq!(
+        encounter.draft().original_host_name("first"),
+        Some("second")
+    );
+    assert_eq!(
+        encounter.draft().original_host_name("second"),
+        Some("first")
+    );
+
+    // Neither a display name nor a sorted index identifies grant ownership.
+    // Declared Part correspondence, when present, survives this edit.
+}
+
+#[test]
+fn host_grant_correspondence_does_not_require_a_declared_part() {
+    let b = basis();
+    let mut draft = fixture::encounter("Garden");
+    let mut description = draft.construction().description().clone();
+    for host in &mut description.hosts {
+        host.part = None;
+        host.spore.join_mode = SporeJoinMode::SelfJoining;
+        host.spore.invitation = Some("invitation/fixture/pending".into());
+    }
+    let configurations = draft
+        .construction()
+        .hosts()
+        .iter()
+        .map(|host| {
+            (
+                host.description.configuration.clone(),
+                host.configuration.configuration().clone(),
+            )
+        })
+        .collect();
+    let checked = check_body_description(
+        description,
+        &configurations,
+        &conduit_workspace_make::catalog(),
+        &package_set(),
+    )
+    .unwrap();
+    draft
+        .replace_construction(draft.revision(), checked, "first")
+        .unwrap();
+    let mut encounter = DeploymentEncounter::new(draft);
+    act(&mut encounter, &b, "creche.deploy.next", None);
+    act(
+        &mut encounter,
+        &b,
+        "creche.deploy.host-name.0",
+        Some(b"z-first"),
+    );
+    assert_eq!(
+        encounter.draft().original_host_name("z-first"),
+        Some("first")
+    );
+    assert!(encounter
+        .draft()
+        .construction()
+        .hosts()
+        .iter()
+        .all(|host| host.description.part.is_none()));
 }
