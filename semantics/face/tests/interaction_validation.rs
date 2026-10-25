@@ -381,3 +381,51 @@ fn constructor_and_borrowed_validation_share_exact_wire_size_boundary() {
         Err(FaceInteractionRefusal::OversizeValue)
     );
 }
+
+#[test]
+fn borrowed_show_basis_keeps_partial_provenance_and_public_refusal_order() {
+    let (original, _) = basis();
+    for variant in 0..4 {
+        let mut provenance = original.basis.clone();
+        if variant != 0 {
+            provenance.plan_id = None;
+            provenance.active_play_id = None;
+        }
+        if variant == 1 || variant == 3 {
+            provenance.expanded_plot_id = None;
+        }
+        if variant == 2 || variant == 3 {
+            provenance.source_document_id = None;
+            provenance.checked_plot_id = None;
+        }
+        let face = original.clone().with_basis(provenance).unwrap();
+        let show = available_mask_show(&face);
+        assert_eq!(show.face_plot.is_some(), variant == 0);
+        show.validate(&face).unwrap();
+        interaction(&face, &show).unwrap();
+        let mut wrong = show.clone();
+        wrong.face_plot = if wrong.face_plot.is_some() {
+            None
+        } else {
+            Some(wrong.mask_plot.clone())
+        };
+        assert_eq!(wrong.validate(&face), Err(MaskShowError::StalePlan));
+        let mut wrong = show.clone();
+        wrong.face_plan_id = if wrong.face_plan_id.is_some() {
+            None
+        } else {
+            Some("unexpected-plan".into())
+        };
+        assert_eq!(wrong.validate(&face), Err(MaskShowError::StalePlan));
+        let mut wrong = show;
+        wrong.show_id = serde_json::from_str("\"show/not-canonical\"").unwrap();
+        assert_eq!(wrong.validate(&face), Err(MaskShowError::StaleShowIdentity));
+        wrong.planned_mask.plan.plan_id = "wrong-plan".into();
+        assert_eq!(
+            wrong.validate(&face),
+            Err(MaskShowError::InvalidManifestation(
+                ManifestationError::InvalidPlan
+            ))
+        );
+    }
+}
