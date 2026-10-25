@@ -87,14 +87,38 @@ try {
   assert.match(componentModule, /from\s+["']\.\/owner-face-history\.mjs["']/);
   // Validate the produced component's actual static imports, rather than only
   // the source list: an omitted dependency breaks every SDK Face at import time.
-  const imports = [...componentModule.matchAll(/^import\s+.*?\sfrom\s+["']([^"']+)["'];?$/gm)];
-  assert(imports.length >= 3);
-  for (const [, specifier] of imports) {
-    assert(specifier.startsWith("./"));
-    const dependency = path.resolve(output, specifier);
-    const bytes = await readFile(dependency);
-    assert(bytes.length > 0, `component dependency missing: ${specifier}`);
-    assert(listing.includes(path.relative(output, dependency).split(path.sep).join("/")));
+  for (const name of ["owner-face-component.mjs", "owner-face-history.mjs"]) {
+    const material = await readFile(path.join(output, name), "utf8");
+    const imports = [...material.matchAll(/^import\s+.*?\sfrom\s+["']([^"']+)["'];?$/gm)];
+    assert(imports.length >= (name === "owner-face-component.mjs" ? 3 : 1));
+    for (const [, specifier] of imports) {
+      assert(specifier.startsWith("./"));
+      const dependency = path.resolve(output, specifier);
+      const bytes = await readFile(dependency);
+      assert(bytes.length > 0, `${name} dependency missing: ${specifier}`);
+      assert(listing.includes(path.relative(output, dependency).split(path.sep).join("/")));
+    }
+  }
+  // The production loader rewrites only declared module edges into admitted
+  // blob URLs. Both application manifests must declare the actual history
+  // module imports, even though the same files also exist on the static site.
+  const historySource = await readFile(path.join(root, "../handbook/owner-face-history.mjs"), "utf8");
+  const historyImports = [...historySource.matchAll(/^import\s+.*?\sfrom\s+["']([^"']+)["'];?$/gm)]
+    .map(([, specifier]) => specifier);
+  assert.deepEqual(historyImports, ["../host/assets/application-look.mjs"]);
+  for (const application of ["handbook/handbook", "workspace/workspace"]) {
+    const manifest = JSON.parse(await readFile(path.join(root, `../${application}.application.template.json`), "utf8"));
+    const history = manifest.resources.find(resource => resource.role === "owner-face-history");
+    assert.equal(history.kind, "module");
+    assert(Buffer.byteLength(historySource) <= history.maximum_bytes);
+    assert.deepEqual(history.dependencies.map(({ specifier }) => specifier).sort(), [...historyImports].sort());
+    const look = history.dependencies.find(dependency => dependency.specifier === historyImports[0]);
+    assert.equal(look.role, "application-look");
+    const target = manifest.resources.find(resource => resource.role === look.role);
+    assert.equal(target.kind, "module");
+    assert.equal(target.path, "application-look.mjs");
+    const lookSource = await readFile(path.join(root, "../host/assets/application-look.mjs"));
+    assert(lookSource.length <= target.maximum_bytes);
   }
   const renderer = await readFile(path.join(output, "browser-sdk-patchbay.mjs"), "utf8");
   assert.match(renderer, /import\s+["']\.\/owner-face-component\.mjs["']/);

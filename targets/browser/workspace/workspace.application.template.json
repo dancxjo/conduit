@@ -440,7 +440,12 @@
       "kind": "module",
       "path": "owner-face-history.mjs",
       "maximum_bytes": 8192,
-      "dependencies": []
+      "dependencies": [
+        {
+          "role": "application-look",
+          "specifier": "../host/assets/application-look.mjs"
+        }
+      ]
     },
     {
       "role": "owner-face-icons",
