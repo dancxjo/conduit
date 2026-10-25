@@ -44,8 +44,10 @@ this lane. The document does not substitute the external harness for those gates
 The model run used the internal command `cargo +stable test --locked -p
 conduit-std-host --features native-model-backing --test
 model_infer_native_lifecycle -- --ignored --test-threads=1 --nocapture`, with
-explicit `CONDUIT_ORT_LIBRARY`; it is not a registered public xtask proof
-entrance. ORT SHA-256 was
+explicit `CONDUIT_ORT_LIBRARY`. The existing `ModelNativeInference` xtask suite
+registers this test as `model.native-lifecycle`, including `--ignored` and a
+single test thread. This receipt covers the direct Cargo step, not execution of
+the complete supported suite. ORT SHA-256 was
 `9c8f6112e9dcf09ed4e621a1d0a7b6ba49575c7d09f27a652d24a22c8564b13c`.
 The exact passing test ELF, worker ELF, runtime and raw log are sealed outside
 Git in this task's ignored
