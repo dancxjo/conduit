@@ -40,6 +40,8 @@ pub(super) struct Execution<'a> {
     evidence: Sha256,
     process_sequence: u64,
     minimum_free_bytes: u64,
+    #[cfg(test)]
+    whole_workspace_checks: std::cell::Cell<usize>,
 }
 impl<'a> Execution<'a> {
     pub fn new(
@@ -59,6 +61,8 @@ impl<'a> Execution<'a> {
             evidence: Sha256::new(),
             process_sequence: 0,
             minimum_free_bytes: 0,
+            #[cfg(test)]
+            whole_workspace_checks: std::cell::Cell::new(0),
         }
     }
     pub fn minimum_free_bytes(mut self, bytes: u64) -> Self {
@@ -78,7 +82,7 @@ impl<'a> Execution<'a> {
         }
         Ok(())
     }
-    pub fn check_bounds(&self) -> Result<(), BuilderRefusal> {
+    pub fn check_reserve(&self) -> Result<(), BuilderRefusal> {
         self.check_progress()?;
         if self.minimum_free_bytes > 0 {
             for path in std::iter::once(self.workspace).chain(self.output) {
@@ -87,6 +91,17 @@ impl<'a> Execution<'a> {
                 }
             }
         }
+        Ok(())
+    }
+    #[cfg(test)]
+    pub(super) fn whole_workspace_checks(&self) -> usize {
+        self.whole_workspace_checks.get()
+    }
+    pub fn check_bounds(&self) -> Result<(), BuilderRefusal> {
+        #[cfg(test)]
+        self.whole_workspace_checks
+            .set(self.whole_workspace_checks.get() + 1);
+        self.check_reserve()?;
         if directory_bytes(self.workspace, self.bounds.maximum_workspace_bytes)?
             > self.bounds.maximum_workspace_bytes
             || self.output.is_some_and(|path| {

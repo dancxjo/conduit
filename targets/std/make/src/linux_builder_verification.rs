@@ -46,6 +46,23 @@ pub(super) fn verify_source(
         "-z",
     ]);
     let names = execution.run(&mut names)?.stdout;
+    let content = hash_source_files(root, &names, bounds, execution)?;
+    if format!("git:{revision}+sha256:{content}") != expected {
+        return Err(BuilderRefusal::StaleRevision);
+    }
+    Ok(revision)
+}
+
+// No build subprocess remains live here: Execution::run reaps its process group.
+// Bound every Source read and periodically check cancellation/deadline/reserve.
+// Account the entire workspace before returning, rather than rewalking the same
+// immutable snapshot after each small batch of files.
+fn hash_source_files(
+    root: &Path,
+    names: &[u8],
+    bounds: &BuilderBounds,
+    execution: &Execution<'_>,
+) -> Result<String, BuilderRefusal> {
     let mut hash = Sha256::new();
     let mut files = 0_u32;
     let mut bytes = 0_u64;
@@ -67,7 +84,7 @@ pub(super) fn verify_source(
         )?;
         bytes += content.len() as u64;
         if files.is_multiple_of(256) {
-            execution.check_bounds()?;
+            execution.check_reserve()?;
         }
         hash.update((name.len() as u64).to_le_bytes());
         hash.update(name);
@@ -77,10 +94,8 @@ pub(super) fn verify_source(
             hash.update(chunk);
         }
     }
-    if format!("git:{revision}+sha256:{:x}", hash.finalize()) != expected {
-        return Err(BuilderRefusal::StaleRevision);
-    }
-    Ok(revision)
+    execution.check_bounds()?;
+    Ok(format!("{:x}", hash.finalize()))
 }
 
 pub(super) fn verify_output(
@@ -390,3 +405,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[cfg(test)]
+#[path = "linux_builder_source_verification_tests.rs"]
+mod source_verification_tests;
