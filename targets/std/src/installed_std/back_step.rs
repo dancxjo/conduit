@@ -225,6 +225,7 @@ macro_rules! installed_step_dispatch {
 }
 
 installed_step_dispatch!(
+    Creche,
     DistanceFrequency,
     AudioTimeAnalysis,
     AudioSpectralAnalysis,

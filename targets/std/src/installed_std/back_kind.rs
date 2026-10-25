@@ -154,6 +154,7 @@ pub(super) enum InstalledBack {
     CombineLatest(CombineLatestBack),
     TodoCombine(Box<TodoCombineBack>),
     ThermostatCombine(Box<conduit_thermostat_plot::ThermostatBack>),
+    Creche(conduit_body_make::deployment_runtime::CrecheBack),
     TodoCheckpoint(crate::todo_checkpoint_call::TodoCheckpointBack),
     TodoCheckpointRead(crate::todo_checkpoint_read_call::TodoCheckpointReadBack),
     FlowZip(FlowZipBack),

@@ -26,6 +26,7 @@ conduit-audio = { path = "../../semantics/audio" }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }
 conduit-body = { path = "../../architecture/body" }
+conduit-body-make = { path = "../../make/body" }
 conduit-bluetooth = { path = "../../mechanisms/protocols/bluetooth" }
 conduit-browser-runtime = { path = "../browser/runtime" }
 conduit-core = { path = "../../architecture/core" }
