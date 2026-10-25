@@ -24,6 +24,27 @@ class Response(io.BytesIO):
 
 
 class DonorTests(unittest.TestCase):
+    def test_existing_receipt_refuses_before_download_or_donor_publication(self):
+        for symlink in (False, True):
+            with self.subTest(symlink=symlink), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                output = root / "donor.img"
+                receipt = root / "donor.img.json"
+                if symlink:
+                    receipt.symlink_to(root / "absent-receipt")
+                else:
+                    receipt.write_bytes(b"preserved receipt")
+                with patch.object(donor.urllib.request, "urlopen") as download:
+                    with self.assertRaisesRegex(ValueError, "must not exist"):
+                        donor.acquire(output)
+                    download.assert_not_called()
+                self.assertFalse(output.exists())
+                if symlink:
+                    self.assertTrue(receipt.is_symlink())
+                    self.assertFalse((root / "absent-receipt").exists())
+                else:
+                    self.assertEqual(receipt.read_bytes(), b"preserved receipt")
+
     def test_scrub_preserves_both_boundaries(self):
         for offset, size in ((0, 32), (8, 20), (12, 12), (16, 24), (24, 8)):
             with self.subTest(offset=offset, size=size):

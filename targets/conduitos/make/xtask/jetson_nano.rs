@@ -93,11 +93,16 @@ pub fn execute(args: ImageArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         .env("CONDUITOS_BUILD_ID", format!("build:jetson-nano:{source}"))
         .env("CONDUITOS_IMAGE_ID", format!("image:jetson-nano:{source}"))
         .current_dir(&paths.root))?;
-    let license = stage.join("NVIDIA-LICENSE.txt");
-    if !license.is_file() {
-        run(Command::new("curl").args(["--fail", "--location", "--max-filesize", "2097152", "--output"])
-            .arg(&license).arg("https://developer.download.nvidia.com/embedded/L4T/r32_Release_v7.1/T186/Tegra_Software_License_Agreement-Tegra-Linux.txt"))?;
-    }
+    // Never reuse the historical cache: a failed curl could have left a prefix.
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| ConduitosError::refusal("jetson-license-clock", error.to_string()))?
+        .as_nanos();
+    let license = stage.join(format!("NVIDIA-LICENSE-{}-{nonce}.txt", std::process::id()));
+    run(Command::new("python3")
+        .arg(tooling.join("license.py"))
+        .arg("--output")
+        .arg(&license))?;
     let elf = paths
         .cargo_target
         .join("aarch64-unknown-none/release/conduitos-aarch64-jetson-nano");

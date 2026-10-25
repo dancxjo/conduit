@@ -7,7 +7,9 @@ The development entrance is `cargo +stable xtask make conduitos jetson-nano-imag
 --output /absolute/path/image.img.gz`. The Python entry points are internal
 helpers, not the user flashing interface. The command builds the exact native
 board binary from clean committed source, acquires/reuses the official donor
-and includes NVIDIA license text.
+and includes NVIDIA license text. License acquisition always performs a fresh complete
+transfer into a temporary file before no-clobber publication under a unique name;
+the historical `NVIDIA-LICENSE.txt` cache is preserved but never certified or reused.
 
 ## Firmware source and layout
 
@@ -84,9 +86,10 @@ The xtask owner should add a Nano build/image entrance that:
    machine, requiring no UART. Successful HDMI and ordinary native execution
    still require physical verification.
 
-Host dependencies are Python 3, `mkfs.ext4`, `e2fsck` and `debugfs`. Five focused
-conformance tests in `make/media_tests.py` and `make/donor_tests.py` exercise
+Host dependencies are Python 3, curl, `mkfs.ext4`, `e2fsck` and `debugfs`. Eight focused
+conformance tests in `make/media_tests.py`, `make/donor_tests.py` and `make/license_tests.py` exercise
 corrupt GPT refusal, native Image header refusal, real ext4 payload readback,
 outside-APP firmware preservation, scrub boundaries, and complete-stream CRC
-refusal before output publication. They do not execute NVIDIA firmware or the
+refusal before output publication, preserved receipt/symlink refusal, and failed
+license-transfer cleanup followed by fresh acquisition. They do not execute NVIDIA firmware or the
 native Image.

@@ -85,7 +85,8 @@ def acquire(output, url=URL, progress=None):
     # URL substitution is intentionally not exposed through the CLI. The
     # optional argument lets deterministic tests supply an HTTP fixture.
     output = Path(output).absolute()
-    if output.exists() or output.is_symlink():
+    receipt_path = output.with_name(output.name + ".json")
+    if any(path.exists() or path.is_symlink() for path in (output, receipt_path)):
         refuse("donor output must not exist")
     output.parent.mkdir(parents=True, exist_ok=True)
     archive_hash, original_hash = hashlib.sha256(), hashlib.sha256()
@@ -164,7 +165,12 @@ def acquire(output, url=URL, progress=None):
             }
             # Atomic no-clobber publication after full validation.
             os.link(temporary, output)
-            output.with_name(output.name + ".json").write_text(json.dumps(receipt, indent=2) + "\n")
+            try:
+                with receipt_path.open("x") as receipt_stream:
+                    receipt_stream.write(json.dumps(receipt, indent=2) + "\n")
+            except BaseException:
+                output.unlink()
+                raise
             return receipt
         finally:
             temporary.unlink(missing_ok=True)
