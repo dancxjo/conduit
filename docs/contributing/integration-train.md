@@ -140,7 +140,8 @@ cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /abso
 Landing restores and validates all products, refreshes source/PR admission,
 requires the latest exact-source Integration attempt and its successful required
 Candidate aggregate, and checks live protection and rules. Unknown required
-checks/rules or human-review requirements refuse. It writes an exclusive intent
+checks/rules, any pull-request requirement (including zero required reviews),
+or checks that exempt administrators refuse. It writes an exclusive intent
 before a single non-forced ref update to the exact proven commit, then checks
 the acknowledged source/tree and writes a separate landing receipt. A concurrent
 development update outside that source cannot be fast-forwarded over. This is
@@ -148,9 +149,12 @@ a graph guard, not a strict compare-and-swap to the captured base.
 
 There is no forced update, protection override, PR-merge fallback or automatic
 mutation retry. Existing evidence and ambiguous outcomes require inspection.
-GitHub may reject a direct update under a pull-request requirement, including a
-zero-review requirement. Such a rejection is terminal; this command does not
-change branch policy. A returned landing receipt is not stable publication.
+The existing dev policy requires a PR and exempts administrators; that policy
+cannot authorize this direct landing path. Before live train landing, an
+explicit machine-owned branch-policy migration must retain the Actions-owned
+`candidate` check, require its enforcement for administrators, and replace the
+PR requirement with exact train admission. This command refuses the old policy
+and does not change it itself. A server rejection remains terminal. A returned landing receipt is not stable publication.
 
 Integration now earns the protected `candidate` context from its exhaustive
 proof. The aggregate runs even after a guard refusal or cancelled dependency and

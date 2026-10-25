@@ -16,12 +16,10 @@ export function validateLandingProtection(protection, rules) {
       || !Array.isArray(status.contexts) || status.contexts.length !== 1
       || status.contexts[0] !== 'candidate' || !Array.isArray(status.checks) || status.checks.length !== 1
       || status.checks[0].context !== 'candidate' || status.checks[0].app_id !== 15368) fail('Unrecognized required checks');
-  const review = protection.required_pull_request_reviews;
-  if (review != null && (review.required_approving_review_count !== 0
-      || review.require_code_owner_reviews !== false || review.require_last_push_approval !== false
-      || review.dismiss_stale_reviews !== false
-      || Object.keys(review).some(key => !['url', 'required_approving_review_count', 'require_code_owner_reviews',
-        'require_last_push_approval', 'dismiss_stale_reviews'].includes(key)))) fail('Pull request review policy requires separate admission');
+  // Even a zero-review PR rule still requires a pull request. An admin token
+  // must not silently turn a direct update into a policy bypass.
+  if (protection.required_pull_request_reviews != null) fail('Pull request requirement prevents exact-source ref landing');
+  if (protection.enforce_admins?.enabled !== true) fail('Required checks must apply to administrators before train landing');
   const harmless = new Set(['url', 'required_status_checks', 'required_pull_request_reviews', 'enforce_admins',
     'allow_force_pushes', 'allow_deletions', 'allow_fork_syncing', 'block_creations']);
   for (const [key, value] of Object.entries(protection)) {
