@@ -94,3 +94,23 @@ change that image's source provenance.
 Remaining proof includes a native UI source-build journey, Pi 3 B+ SD/BSP and
 physical deployment, actual later-Host join, and shared integration/release
 acceptance. The reviewed-artifact journey does not substitute for those gates.
+
+## Shared integration observation
+
+Candidate run [40209048119](https://github.com/dancxjo/conduit/actions/runs/40209048119),
+for PR #6474 head `50790b05844ad4c71edee846f20bdf5eab9f16d1`, failed its
+x86_64 product journey on 25 October. The job recorded checkout
+`c10ffc39a491757f290e23bce474303dcb2282ab`; this is not this feature branch's
+local product proof. The verifier reported `creche-choice-timeout` waiting for
+`creche-three-selected`. Retained guest serial gives the earlier cause:
+`CONDUIT_CRECHE_ENTRY_REFUSAL instance=3 sequence=70 request=commit
+result=Fault(WorkExhausted)`, with `admitted=64 rtc=64`, followed by interaction
+termination and `front-door-action-refused`. Increasing the observation timeout
+would not repair that refusal.
+
+The exact [diagnostic artifact](https://github.com/dancxjo/conduit/actions/runs/40209048119/artifacts/12605459815)
+was downloaded and inspected, including serial, registers and stack. It remains
+negative integration evidence, separate from the successful local installed
+Linux journey. Shared admission/provider changes require coordination with their
+current owner. PR #6457 remained open at
+`aa9a79edefbd0e191bc2212d3877a3d8c84ae56a` when this observation was made.
