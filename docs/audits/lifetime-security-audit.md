@@ -91,32 +91,47 @@ relabel them as current dev, Candidate or Integration acceptance.
   This is page-owned WASM/BodyHost proof, not execution WebWorker termination,
   debugger Watch, independent Host isolation or physical authority.
 
-- Ordinary StdHost Host Call retirement: `work/6409-std-hostcall-retirement-20261025`
-  at `63d60583ba3c4759a1c593192e2a486cf192ac35`. The actual owning-package
-  [Vision conformance fixture](https://github.com/dancxjo/conduit/blob/63d60583ba3c4759a1c593192e2a486cf192ac35/targets/std/src/installed_std_tests/remote_vision_conformance.rs)
-  passed both focused tests and strict library/test Clippy. It starts a real
-  pending request with admitted input and staged value, cancels owner A, and
-  observes `HostCallCompletionRejected` on that retired owner. The same
-  persistent StdHost then admits B with the same Host/Boot/Plan and a fresh
-  Play sequence (0 to 1); B's own request completes exactly once and drains.
-  An independent source-owner sibling remains live. Mutable admitted-owner
-  custody is trusted Root authority; request/value numbers are owner-local
-  descriptors. This does **not** prove arbitrary cross-owner numeric-tuple
-  refusal, asynchronous callback/Watch revocation, hostile confinement or
-  physical authority. The exact passing executable and logs are retained
-  losslessly in the task's `work/std-hostcall-retirement-proof/` custody.
-- Browser input sequence exhaustion: `work/6409-browser-input-exhaustion-20261025`
-  at `d227f2a3d8f85b7bcaffb06f87dc73b67ed5fffd`. The existing
-  [input adapter](https://github.com/dancxjo/conduit/blob/d227f2a3d8f85b7bcaffb06f87dc73b67ed5fffd/targets/browser/host/assets/browser-human-input.mjs)
-  now retires pointer sequences at their u32 boundary and button sequences at
-  the safe-Number boundary before their u64 encoder. The final representable
-  value is emitted once; further input refuses rather than truncating or
-  reusing an imprecise Number. Two pure-policy boundary tests and all thirteen
-  existing Chromium DOM input cases passed (one worker, zero retries).
-  Boundary tests execute the actual advancement policy, not billions of DOM
-  events or a forced full WASM roundtrip. This preparation is not in the
-  audited baseline; it grants no new owner/input authority and does not
-  re-execute or relabel the earlier WASM lifetime proof.
+- Ordinary StdHost receiver retirement and retained Body replan:
+  [PR #6491](https://github.com/dancxjo/conduit/pull/6491), currently unmerged at
+  `3f4864c18f2978e57fd9dcb08309f841c17d1a3a`. Actual local validation at
+  `3daddea9ca346d7499540a4f08b44b83a8fe868c` passed all ten Todo integration
+  cases, two Vision cases, two receiver-ownership doctests and strict
+  library/Todo Clippy. The subsequent conflict-free merge of dev `100ae115`
+  has not been relabeled as that execution. The
+  [scoped audit](https://github.com/dancxjo/conduit/blob/3daddea9ca346d7499540a4f08b44b83a8fe868c/docs/audits/std-hostcall-retirement.md)
+  records exact executable/log custody outside Git.
+  Vision cancels A with pending input and staged output, rejects completion on
+  A, consumes its receiver, then admits B on the same Host/Boot. B reaches the
+  identical receiver-local descriptor and input, remains pending without output
+  or sibling changes, then completes once through the real synchronous provider.
+  No detached A completion is delivered after B; local numbers are descriptors,
+  not bearer authority. The source sibling is released and re-admitted, not
+  continuously admitted across replacement. Ownership doctests prove consuming
+  receiver use, not runtime isolation.
+  The Todo case retains one actual Body and Wake across a checked Host-offer
+  transition: old Plan refuses before start/output/storage changes, old grant
+  refuses `AuthorityGrantMissing`, and a fresh checked Plan selects new
+  placement/capability while retaining semantic workset. Each real start runs
+  once. Typed Fore bytes explicitly carry Todo state between episodes; no
+  worker-global state continuity is inferred. This profile exposes no external
+  bearer lease or separate physical Base handle. Async callback/Watch revocation,
+  hostile confinement and physical authority remain outside these cases.
+- Browser finite input and terminal owner correction:
+  [PR #6492](https://github.com/dancxjo/conduit/pull/6492), currently unmerged at
+  `53b0fd621efeff8b22f2757ba8fc0df2821ad092`. Pointer sequences retire at the
+  u32 boundary and buttons at the exact safe-Number boundary before u64 encoding;
+  the last representable value emits once, then issuance refuses. Capacity is
+  checked before routing/pointer capture, failed button streams cannot route,
+  and terminal handlers refuse. Terminal causes except recoverable FocusLost
+  are absorbing: blur/focus cannot downgrade PageLost and revive an owner.
+  At that exact source, two actual advancement-policy boundary cases and all
+  thirteen pinned Chromium DOM cases passed with one worker and zero retries.
+  The real DOM PageLost regression checks no further routing/pointer delivery
+  and refusal after blur/focus; its pre-fix negative is retained outside Git.
+  The supported browser check suite registers the policy cases. These tests do
+  not inject a maximum into a live owner, run billions of events or prove the
+  counter boundary through WASM. They neither grant new authority nor rerun the
+  earlier WASM lifetime proof; current-head CI acceptance remains separate.
 
 A separate source review found unchecked u32 Tour timer/manifestation completion
 **reporting** counts. Pending effect correlation uses Play, placement and request,
@@ -126,23 +141,67 @@ cannot precede a platform timer or DOM effect already performed before its
 completion arrives. Retain that boundary instead of claiming rollback or a
 pre-platform-effect guarantee from a reporting-counter correction.
 
+## Scoped native protected-fault execution
+
+The existing supported `cargo +stable xtask make conduitos ordinary-domain-proof`
+completed successfully at source `b0bc723e2348b62befbfd2259b2c123e4338916c`.
+This is a freestanding x86_64 ring-3 QEMU architecture proof appliance, not the
+normal product or physical execution. Its actual Root ELF SHA-256 is
+`bebf7d26c256dc2bbe1eebc4d4d9850d0d01dd35f1f74207887aa83613aedc9d`.
+The matching build record, complete newline records and sealed executable custody
+remain outside Git under this task's `work/p0-publication/target/`, in
+`fault-pc-proof/` and
+`fault-pc-executable-custody/native-proof-receipt.json`.
+
+- `compositor-hostile-broker-fixture@1` exercises actual protected CPU fault
+  and loop termination through production CompositorService: quarantine retires
+  A, fresh production guest B has a greater instance while A is still alive,
+  A request/upload refuses Terminated without added cost, and dropping A does
+  not retire B. B remains usable; Root and unrelated TextDomain sentinels remain
+  unchanged. Envelope/shape refusals also pass. Sentinel checks are not an
+  independent direct-memory-attack or general isolation proof.
+- `compositor-copy-recovery-fixture@4` separately exercises Root copy failure,
+  released staging and activation/remove storage, explicit fresh ownership,
+  stale-client refusal and stale-drop non-effect while old clients remain alive.
+  It retains an explicit current display grant. This is not a guest CPU fault;
+  the two cases do not establish one joined CPU-fault-plus-staged-display witness.
+- Service-memory cases refuse enter/exchange/output/transfer-window after fault,
+  charge teardown, sample zero restart boundaries, and retain sibling sentinel
+  and positive-entry controls. Serial capability gates exercise exact scope,
+  replay/exhaustion, revocation and provider replacement. One invalid-next-gate
+  case deliberately permits an earlier valid serial effect; there is no blanket
+  rollback claim.
+
+The inspected protected-runtime and compositor hostile/recovery owning files are
+unchanged from this execution source through P0 source `195b512c01494fbc17c4423b2e377c3e7f8af9b1`;
+this comparison is not a whole-head rerun. Service-memory/native entry code
+changed between dev `100ae115` and that P0 source, so the receipt is not dev100
+execution. The records explicitly deny semantic Show acknowledgement, physical
+scanout, driver isolation and DMA isolation where applicable.
+
 ## Remaining #6409 acceptance
 
-A complete current owner/counter table and joined negative matrix remain
-required. Prioritize actual external owner fences over speculative counter
-rewrites: no new domain-table or model Atomic defect was demonstrated here.
-The timer baseline defect has its separate unmerged correction above.
+Reconcile the finite audited-owner table and applicable negative matrix with
+merged code and exact-source receipts. No new domain-table or model Atomic
+defect was demonstrated here. Timer ABA and browser finite-input/terminal-owner
+corrections remain separate unmerged preparations; the Std receiver/Body cases
+are positive scoped proof, not newly demonstrated production defects.
 
-Still required: actual native protected broker/Root owner A→fault/cancel/retire→B;
-all exposed old completion/callback/Host Call lease/Watch/input/staged-output
-classes; poisoned and failed cleanup, provider loss, worker exit and late-response
-races; exactly-once disposal where promised; sibling non-effect; and surviving
-semantic Body with freshly checked physical placement/lease/Base authority.
-Where an API does not expose a class, retain unsupported/unverified truth rather
-than inventing a callback or treating a numeric tuple as possession.
+Generic protected CPU fault→quarantine→fresh B is not wholly unproved: the
+native cases above cover that class within their stated owner/profile. A joined
+canonical Runtime Broker case with a real pending Host Call, staged Root ValueRef,
+controlled native fault and old completion while B is pending remains unverified
+**if that specific join is claimed**. Ledger tests alone do not execute it, and
+local node/request/value tuples do not authorize cross-owner delivery. This is
+not evidence of a new defect or a requirement to repeat every fault on every
+owner. No detached callback/Watch, DMA or network-grant obligation is invented
+for profiles that expose none.
 
-Permanent existing security/lifecycle entrance registration, exact-source
-negative receipts and relevant Candidate/Integration remain gates. This audit
-proves no full #6409 completion, physical/DMA authority continuity, general
-hostile-code containment or native preemption/continuation repair. Keep
-#6311/#6317/#6184 mechanism ownership separate.
+Retain explicit limits for applicable poison/failed cleanup, late-response races,
+exactly-once disposal and sibling effects. The Std retained-Body case supplies a
+checked replan witness at its stated source, not physical authority continuity.
+Permanent existing security/lifecycle entrances, exact-source negative receipts
+and relevant merged-source validation remain acceptance work. This audit marks
+no #6409 checkbox complete and proves no full issue completion, physical/DMA
+authority continuity, general hostile-code containment or native
+preemption/continuation repair. Keep #6311/#6317/#6184 mechanism ownership separate.
