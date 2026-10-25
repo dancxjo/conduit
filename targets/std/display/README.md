@@ -4,8 +4,12 @@ This held implementation for [#6325](https://github.com/dancxjo/conduit/issues/6
 uses SDL2 KMSDRM beneath an ordinary `GraphicsScene` Show. It reuses ConduitOS's
 existing raster implementation without copying it. No Body, observation state,
 formatting policy, recorder, scheduler or desktop session is introduced here.
-A prepared scanout owns one texture and an at-most-8-MiB CPU surface. Loss is
-terminal for that preparation. The Linux Host still must bind actual display
+A prepared scanout owns one texture and an at-most-8-MiB CPU surface. Compositor
+`PixelTarget` writes reuse that surface; `commit_frame` performs SDL texture
+upload, copy and present before a caller may acknowledge a Mask Show. The
+`present(GraphicsScene)` entrance uses the same commit boundary. SDL's present
+call has no success return, so this proves completion of the selected SDL calls,
+not independently observed physical scanout. Loss is terminal for that preparation. The Linux Host still must bind actual display
 custody and an admitted present operation before offering this Back.
 
 Run the CPU proof and strict lint through:

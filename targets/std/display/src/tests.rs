@@ -60,6 +60,44 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
         .read_pixels(None, PixelFormatEnum::ARGB8888)
         .unwrap();
     assert_eq!(pixels, scanout.surface.bytes());
+    let backing = scanout.surface.bytes().as_ptr();
+    let format = scanout.format();
+    // Write a marker distinct from the already-presented frame through the
+    // compositor's PixelTarget entrance. No SDL presentation happens yet.
+    let prior = u32::from_ne_bytes(scanout.surface.bytes()[..4].try_into().unwrap());
+    let marker = prior ^ 0x00ff_ffff;
+    scanout.write_pixel(0, 0, marker).unwrap();
+    let before_commit = scanout
+        .canvas
+        .read_pixels(None, PixelFormatEnum::ARGB8888)
+        .unwrap();
+    assert_eq!(
+        u32::from_ne_bytes(before_commit[..4].try_into().unwrap()),
+        prior
+    );
+    assert_ne!(before_commit, scanout.surface.bytes());
+    PixelTarget::commit_frame(&mut scanout).unwrap();
+    let after_commit = scanout
+        .canvas
+        .read_pixels(None, PixelFormatEnum::ARGB8888)
+        .unwrap();
+    assert_eq!(after_commit, scanout.surface.bytes());
+    assert_eq!(
+        scanout.surface.bytes().as_ptr(),
+        backing,
+        "commits retain the admitted single raster"
+    );
+    // Invalid output is terminal; later commit cannot publish partial pixels.
+    assert_eq!(
+        scanout.write_pixel(format.width, 0, 0),
+        Err(DisplayError::InvalidExtent)
+    );
+    assert!(!scanout.live);
+    assert_eq!(
+        PixelTarget::commit_frame(&mut scanout),
+        Err(DisplayError::Lost)
+    );
+    assert!(scanout.surface.bytes().iter().all(|byte| *byte == 0));
     scanout.lose();
     assert_eq!(
         scanout.present(&scene()),

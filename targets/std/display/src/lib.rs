@@ -2,7 +2,7 @@
 //! owns no Body, observation, Mask policy, scheduler, or recording authority.
 mod surface;
 use conduit_face::GraphicsScene;
-use conduitos::display::DisplayReceipt;
+use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
 use sdl2::{
     pixels::PixelFormatEnum,
     render::{Canvas, Texture, TextureCreator},
@@ -49,18 +49,53 @@ impl<'a> Scanout<'a> {
     }
     fn present_inner(&mut self, scene: &GraphicsScene) -> Result<DisplayReceipt, String> {
         let receipt = self.surface.render(scene).map_err(str::to_owned)?;
+        self.commit_pixels()?;
+        Ok(receipt)
+    }
+    fn commit_pixels(&mut self) -> Result<(), String> {
+        if !self.live {
+            return Err("display-custody-lost".into());
+        }
+        let result = self.commit_pixels_inner();
+        if result.is_err() {
+            self.lose();
+        }
+        result
+    }
+    fn commit_pixels_inner(&mut self) -> Result<(), String> {
         self.texture
             .update(None, self.surface.bytes(), self.surface.pitch())
             .map_err(|e| e.to_string())?;
         self.canvas.copy(&self.texture, None, None)?;
         self.canvas.present();
-        Ok(receipt)
+        Ok(())
     }
     /// Revocation is terminal for this prepared scanout. Reacquisition requires
     /// a new preparation; device availability alone cannot restore authority.
     pub fn lose(&mut self) {
         self.live = false;
         self.surface.lose();
+    }
+}
+
+/// Compositor writes reuse the one prepared Surface. Only commit performs SDL
+/// upload/copy/present; successful CPU writes cannot acknowledge a Mask Show.
+impl PixelTarget for Scanout<'_> {
+    fn format(&self) -> DisplayFormat {
+        self.surface.format()
+    }
+    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
+        if !self.live {
+            return Err(DisplayError::Lost);
+        }
+        let result = self.surface.write_pixel(x, y, pixel);
+        if result.is_err() {
+            self.lose();
+        }
+        result
+    }
+    fn commit_frame(&mut self) -> Result<(), DisplayError> {
+        self.commit_pixels().map_err(|_| DisplayError::Lost)
     }
 }
 
