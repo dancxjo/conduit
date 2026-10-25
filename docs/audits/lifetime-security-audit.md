@@ -3,9 +3,10 @@
 Audited development baseline: `31f2e04c3cf964e248dd72a15cc1a246fd004570`.
 The public capability-limit tests were added and executed at
 `1f6d33ca1f6bbe582a774fb2316c996926272cce`; this document is a
-source-only follow-up. It is a bounded audit of the issue's named owners,
-not an exhaustive counter inventory or full #6409 acceptance. No new build,
-physical experiment or native execution was performed for this document.
+bounded follow-up, with separate actual native model execution at
+`465af45add0195e4481e56fe90ed46cf74872d91` recorded below. It is not an
+exhaustive counter inventory or full #6409 acceptance. No physical experiment
+was performed for this document.
 
 ## Owner, counter and retirement table
 
@@ -30,7 +31,8 @@ physical experiment or native execution was performed for this document.
 | Exact new cases | Full eight-slot table refuses a ninth issue; revocation never recycles slots and rejects old handles/leases. Two-operation admission refuses excess/in-flight work; replaying the first completion cannot settle the second lease; the second completes exactly once and sibling authority remains usable. | It proves admitted finite limits, not billions of operations, global issuer uniqueness or newly constructed tables using repeated secrets/scopes. |
 | HTTP guard | Public cases exist in [http_ticket_lifetime.rs](../../targets/conduitos/tests/http_ticket_lifetime.rs); compile-fail borrow/consumption cases exist in request.rs. Source includes repeated transaction/bytes, provider/refusal, sibling and forgotten-guard controls. | Not rerun by this audit. Do not reuse the historical detached-ticket ABA diagnosis against this guard implementation or infer asynchronous/network rollback proof. |
 | Root loans and authority route | Actual numeric-kernel/Root-ledger cases exist in [ledger_tests.rs](../../targets/conduitos/src/protected_runtime/ledger_tests.rs); current public owner checks exist in native_workset/play and [product journey workset tests](../../targets/conduitos/src/product_journey/workset_tests.rs). | Test presence is not a new passing result. Hosted loan checks do not instantiate a protected Broker fault, and local numbers are not owner routing capabilities. |
-| Composite reuse and model process | Existing controller/rearm tests and [model lifecycle tests](../../targets/std/tests/model_infer_native_lifecycle.rs) were inspected. The latter explicitly tests one prepared worker serving **two ordinary Plays**. | Not rerun here. All three actual-process model lifecycle cases are ignored by default and require installed ORT; ordinary suite success is not their execution. No new Atomic exhaustion, rearm-fault or kill/wait-failure proof. |
+| Composite reuse | Existing controller/rearm tests were inspected. | Not rerun here. No new rearm-fault, panic or disposal proof. |
+| Native model process | At `465af45ad`, all three ignored [owning lifecycle cases](https://github.com/dancxjo/conduit/blob/465af45add0195e4481e56fe90ed46cf74872d91/targets/std/tests/model_infer_native_lifecycle.rs) passed against explicitly pinned installed ORT on Linux x86_64 GNU. Actual Source/Plan/Play selects the native worker. Two ordinary Plays retain the same worker PID/starttime, mappings and admission; host drop reaps it. Ordinary Stop cancels with nine request bytes queued, emits no output and reaps the child. SIGKILL provider loss returns the existing String `BackFailed`/`HostCallFailed` detail 71, emits no output and spawns no retry child. | SIGSTOP establishes pending cancellation, not interruption during native CPU computation. These cases do not force panic, kill/wait failure, late-completion races, fresh-owner A→B replay, Atomic exhaustion or cross-artifact/profile reuse. They establish no hostile confinement, physical authority, native performance or CI/release acceptance. |
 
 The CPU harness/source/log hashes are retained in this task's
 `work/domain-capability-limits-handoff.json`; execution Source is `1f6d33ca1`.
@@ -38,6 +40,26 @@ Its supported owning-package entrance remains
 `cargo +stable test --locked -p conduitos --test protection_domain_lifecycle`.
 That package entrance, Candidate and merged-source Integration were not run by
 this lane. The document does not substitute the external harness for those gates.
+
+The model run used the internal command `cargo +stable test --locked -p
+conduit-std-host --features native-model-backing --test
+model_infer_native_lifecycle -- --ignored --test-threads=1 --nocapture`, with
+explicit `CONDUIT_ORT_LIBRARY`; it is not a registered public xtask proof
+entrance. ORT SHA-256 was
+`9c8f6112e9dcf09ed4e621a1d0a7b6ba49575c7d09f27a652d24a22c8564b13c`.
+The exact passing test ELF, worker ELF, runtime and raw log are sealed outside
+Git in this task's ignored
+`work/constructed-face-reuse/target/model-lifecycle-proof/465af45ad/`, with
+`receipt.json` and verified `SHA256SUMS`. Test ELF SHA-256 is
+`1a4df7513480340ef8cf69c6ad6d4f08d3503679b16b2937a514b8f76d34588c`;
+worker ELF SHA-256 is
+`de3edfc79f0adaaca75927d4051bee8281f792eb020db677415a5472b07c5c5c`.
+The initial temporary-target attempt exhausted the user's temporary quota
+before execution; its negative log remains retained separately. The subsequent
+disk-target run passed three cases in 21.02 seconds. Its inactive compiler cache
+was cleaned only after sealing the passing executables and checking process
+ownership. These are local receipts at their stated source, not merged-baseline
+or stable-release claims.
 
 ## Separate preparations, not merged baseline behavior
 
