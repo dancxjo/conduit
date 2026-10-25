@@ -9,10 +9,23 @@ pub struct StructuredSelectorBack {
     maximum_input_bytes: u32,
     pending: Option<RequestId>,
     next_request: u32,
+    complete: bool,
+    cancelled: bool,
+    staged_complete: bool,
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for StructuredSelectorBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        self.staged_complete = false;
+        if self.cancelled {
+            return StepOutcome::Fail(Failure {
+                code: FailureCode::Cancelled,
+                detail: 0,
+            });
+        }
+        if self.complete {
+            return StepOutcome::Complete;
+        }
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
                 return step_fail(143);
@@ -69,6 +82,7 @@ impl<const PORTS: usize> StepBack<PORTS> for StructuredSelectorBack {
         if io.input_closed(PortId(0)) && self.pending.is_none() {
             io.consume_closed(PortId(0))
                 .expect("observed structured selector closure");
+            self.staged_complete = true;
             return StepOutcome::Complete;
         }
         StepOutcome::Await
@@ -76,6 +90,12 @@ impl<const PORTS: usize> StepBack<PORTS> for StructuredSelectorBack {
 
     fn cancel(&mut self) {
         self.pending = None;
+        self.cancelled = true;
+        self.staged_complete = false;
+    }
+    fn step_committed(&mut self) {
+        self.complete |= self.staged_complete;
+        self.staged_complete = false;
     }
 }
 
@@ -92,6 +112,25 @@ impl StructuredSelectorBack {
             maximum_input_bytes,
             pending: None,
             next_request: 0,
+            complete: false,
+            cancelled: false,
+            staged_complete: false,
         }
+    }
+}
+#[cfg(feature = "prepared-expression-session")]
+impl<const P: usize> conduit_kernel::scheduler::prepared_session::ReusableStepBack<P>
+    for StructuredSelectorBack
+{
+    type Next = ();
+    fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
+        self.complete
+            && !self.cancelled
+            && !self.staged_complete
+            && self.pending.is_none()
+            && self.next_request < u32::MAX
+    }
+    fn begin_next(&mut self, _: ()) {
+        self.complete = false;
     }
 }

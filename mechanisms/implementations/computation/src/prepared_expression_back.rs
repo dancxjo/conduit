@@ -29,6 +29,7 @@ pub struct PreparedExpressionBack {
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
     staged: bool,
+    staged_complete: bool,
     complete: bool,
     flow: bool,
     cancelled: bool,
@@ -43,6 +44,7 @@ impl PreparedExpressionBack {
             maximum_input_bytes,
             maximum_output_bytes,
             staged: false,
+            staged_complete: false,
             complete: false,
             flow: false,
             cancelled: false,
@@ -71,6 +73,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         // Discard only uncommitted intent on a retried transaction.
         self.staged = false;
+        self.staged_complete = false;
         if self.complete {
             return StepOutcome::Complete;
         }
@@ -83,6 +86,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
                     if io.consume_closed(PortId(0)).is_err() {
                         return fail(1641);
                     }
+                    self.staged_complete = true;
                     StepOutcome::Complete
                 } else {
                     fail(1641)
@@ -123,13 +127,15 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
         if self.staged && !self.flow {
             self.committed_values += 1;
         }
-        self.complete |= self.staged && !self.flow;
+        self.complete |= self.staged_complete || (self.staged && !self.flow);
         self.staged = false;
+        self.staged_complete = false;
     }
     fn cancel(&mut self) {
         self.cancelled = true;
         self.complete = true;
         self.staged = false;
+        self.staged_complete = false;
     }
 }
 fn fail(detail: u16) -> StepOutcome {
@@ -147,7 +153,7 @@ impl<const P: usize> conduit_kernel::scheduler::prepared_session::ReusableStepBa
     fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
         self.complete
             && !self.staged
-            && !self.flow
+            && !self.staged_complete
             && !self.cancelled
             && self.committed_values < u64::MAX
     }

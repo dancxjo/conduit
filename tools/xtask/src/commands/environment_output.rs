@@ -6,6 +6,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         ("bodies/environment/make/Cargo.toml", "display_output"),
         ("bodies/environment/make/Cargo.toml", "native_root_policy"),
         ("bodies/environment/make/Cargo.toml", "display_compact"),
+        ("bodies/environment/make/Cargo.toml", "display_session"),
         (
             "bodies/environment/make/Cargo.toml",
             "display_compact_kernel",

@@ -273,6 +273,21 @@ failure and exhaustion prevent rearm. `cargo xtask check tm1637-output` includes
 this proof. It does not implement the MCU's evidence transfer/acknowledgement
 path or admit the full Mask Plot, and does not change the flashed image above.
 
+The subsequent CPU proof covers the entire checked four-node output graph,
+not only its electrical sink. Preparation can admit storage for one invocation
+while retaining the original total write ceiling. Pure expression closure and
+selector closure now commit before their explicit reuse opt-in can succeed;
+sampler, clock and publication Backs refuse this profile. The existing kernel
+session has an explicit zero-or-one owned-output profile, so successful display
+frames need not manufacture a brightness refusal. Actual output sequences
+survive empty invocations; stale acknowledgements still fault the session.
+Both 960-valid-frame and 960-alternating-success/refusal runs use zero execution
+allocations/reallocations and have no evidence gaps. The largest observed log
+is 36 records, using a conservative 128-record CPU reservation; this is not a
+worst-case target admission bound. Failure/cancellation and original exact-one
+boundary refusals remain covered. Firmware still needs bounded evidence
+custody transfer/acknowledgement and the ordinary admitted Mask path.
+
 First physical run:
 `~/.local/share/conduit/environment-host-20261025/runs/3d09cef6-3987-4525-9de0-dfcf1c724b3f/`.
 Body `04ee5ca7beed2563f08265545e8f7674d4cfa64bc3692592e7664b341c1374e8`;

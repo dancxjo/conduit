@@ -6,7 +6,7 @@ struct Echo {
     staged: bool,
 }
 impl StepBack<1> for Echo {
-    fn step(&mut self, io: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
+    fn step(&mut self, io: &mut StepIo<1>, input: &StepInputBytes<'_, 1>) -> StepOutcome {
         self.staged = false;
         if self.finished {
             return StepOutcome::Complete;
@@ -17,7 +17,10 @@ impl StepBack<1> for Echo {
         if !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
         }
-        io.send(PortId(0), value).unwrap();
+        // Explicit fixture drop branch for zero-or-one output admission.
+        if input.input(PortId(0)) != Some(&[0][..]) {
+            io.send(PortId(0), value).unwrap();
+        }
         io.consume(PortId(0)).unwrap();
         self.staged = true;
         StepOutcome::Progress
@@ -247,4 +250,104 @@ fn empty_value_closure_and_sequence_exhaustion_are_explicit_refusals() {
         s.kernel().signs().events().collect::<alloc::vec::Vec<_>>(),
         before
     );
+}
+
+#[test]
+fn optional_output_counts_actual_values_across_empty_invocations() {
+    let mut s = Session::new_with_owned_optional_value_outputs(kernel(), &[IN, OUT], &[OUT], 16)
+        .unwrap_or_else(|_| panic!("declared optional output"));
+    let mut next_output = 0;
+    for (invocation, value) in [0, 0, 7, 0, 8, 9].into_iter().enumerate() {
+        s.admit_owned_input(IN.endpoint, IN.cord, invocation as u64, &[value])
+            .unwrap();
+        s.close_owned_input(IN.endpoint, IN.cord).unwrap();
+        let mut seen = false;
+        let mut drained = false;
+        for _ in 0..16 {
+            let status = s.step().unwrap();
+            if status == SchedulerStatus::Drained {
+                drained = true;
+                break;
+            }
+            if let Some(offer) = s.owned_output(OUT.endpoint, OUT.cord).unwrap() {
+                assert_ne!(value, 0);
+                assert!(!seen);
+                assert_eq!(offer.sequence, next_output);
+                s.accept_owned_output(OUT.endpoint, OUT.cord, next_output)
+                    .unwrap();
+                next_output += 1;
+                seen = true;
+            }
+        }
+        assert!(drained);
+        assert_eq!(seen, value != 0);
+        let old = s
+            .begin_next([()], log(32))
+            .unwrap_or_else(|_| panic!("acknowledged bounded drain"));
+        assert!(old.signs.events().count() > 0);
+        assert!(old.signs.retention_gap().is_none());
+    }
+    assert_eq!(next_output, 3);
+}
+#[test]
+fn optional_outputs_cannot_relax_input_or_foreign_endpoint_contracts() {
+    for optional in [
+        alloc::vec![IN],
+        alloc::vec![OUT, OUT],
+        alloc::vec![OwnedValueBoundary {
+            endpoint: RemoteEndpointId(7),
+            ..OUT
+        }],
+    ] {
+        assert!(matches!(
+            Session::new_with_owned_optional_value_outputs(kernel(), &[IN, OUT], &optional, 16),
+            Err((SessionRefusal::InvalidOwnedBoundary, _))
+        ));
+    }
+    // The original exact-one constructor retains its refusal on a dropped output.
+    let mut s = session();
+    s.admit_owned_input(IN.endpoint, IN.cord, 0, &[0]).unwrap();
+    s.close_owned_input(IN.endpoint, IN.cord).unwrap();
+    for _ in 0..8 {
+        if s.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(
+        s.begin_next([()], log(32)).err().unwrap().reason,
+        SessionRefusal::OutstandingOwnership
+    );
+}
+
+#[test]
+fn optional_output_acknowledges_actual_sequence_and_faults_on_invocation_number() {
+    let mut s = Session::new_with_owned_optional_value_outputs(kernel(), &[IN, OUT], &[OUT], 16)
+        .unwrap_or_else(|_| panic!("declared optional output"));
+    s.admit_owned_input(IN.endpoint, IN.cord, 0, &[0]).unwrap();
+    s.close_owned_input(IN.endpoint, IN.cord).unwrap();
+    for _ in 0..8 {
+        if s.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    s.begin_next([()], log(32))
+        .unwrap_or_else(|_| panic!("empty acknowledged output"));
+    s.admit_owned_input(IN.endpoint, IN.cord, 1, &[7]).unwrap();
+    s.close_owned_input(IN.endpoint, IN.cord).unwrap();
+    for _ in 0..8 {
+        s.step().unwrap();
+        if let Some(offer) = s.owned_output(OUT.endpoint, OUT.cord).unwrap() {
+            assert_eq!(offer.sequence, 0);
+            assert_eq!(
+                s.accept_owned_output(OUT.endpoint, OUT.cord, 1),
+                Err(SchedulerError::RemoteSequenceRejected)
+            );
+            assert_eq!(
+                s.begin_next([()], log(32)).err().unwrap().reason,
+                SessionRefusal::NotNormallyDrained
+            );
+            return;
+        }
+    }
+    panic!("missing output")
 }

@@ -58,13 +58,63 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
         values: S,
         signs: L,
     ) -> Result<Self, AssignedDisplayRefusal> {
+        Self::prepare_bounded(
+            input,
+            profile,
+            scope,
+            software,
+            maximum_frames,
+            maximum_frames,
+            values,
+            signs,
+        )
+    }
+    /// Prepare one bounded Value invocation at a time while retaining the total
+    /// electrical work ceiling. The session owner must transfer complete evidence
+    /// before rearm; this does not authorize a caller, output provider or Play.
+    /// Reserve the full per-invocation trace, not just the ordinary retained-sign
+    /// minimum: any retention gap explicitly prevents session rearm.
+    #[cfg(feature = "display-session")]
+    pub fn prepare_for_session<'a, 'm: 'a>(
+        input: AssignedDisplayInput<'_>,
+        profile: &AssignedDisplayProfile<'_>,
+        scope: AssignedDisplayScope<'_>,
+        software: impl Into<OutputSoftware<'a, 'm>>,
+        maximum_frames: u32,
+        values: S,
+        signs: L,
+    ) -> Result<Self, AssignedDisplayRefusal> {
+        Self::prepare_bounded(
+            input,
+            profile,
+            scope,
+            software,
+            maximum_frames,
+            1,
+            values,
+            signs,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_bounded<'a, 'm: 'a>(
+        input: AssignedDisplayInput<'_>,
+        profile: &AssignedDisplayProfile<'_>,
+        scope: AssignedDisplayScope<'_>,
+        software: impl Into<OutputSoftware<'a, 'm>>,
+        maximum_frames: u32,
+        invocation_frames: u32,
+        values: S,
+        signs: L,
+    ) -> Result<Self, AssignedDisplayRefusal> {
         use AssignedDisplayRefusal as E;
         let sign_budget =
-            DisplaySignBudget::derive(maximum_frames, profile.sign_items, profile.sign_bytes)
+            DisplaySignBudget::derive(invocation_frames, profile.sign_items, profile.sign_bytes)
                 .map_err(|_| E::Bounds)?;
-        let value_budget = DisplayValueBudget::derive(maximum_frames, profile.maximum_value_bytes)
-            .map_err(|_| E::Bounds)?;
+        let value_budget =
+            DisplayValueBudget::derive(invocation_frames, profile.maximum_value_bytes)
+                .map_err(|_| E::Bounds)?;
         if maximum_frames == 0
+            || invocation_frames > maximum_frames
             || values.item_capacity() < value_budget.items()
             || profile.maximum_value_bytes == 0
             || profile.maximum_value_bytes > 1024

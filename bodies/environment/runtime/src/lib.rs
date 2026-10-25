@@ -15,6 +15,8 @@ pub mod display_mask;
 #[cfg(feature = "display-output")]
 pub mod display_output;
 pub mod display_packets;
+#[cfg(feature = "display-session")]
+pub mod display_session;
 pub mod observation;
 pub mod publication;
 #[cfg(feature = "face-projection")]
@@ -89,6 +91,9 @@ impl<const P: usize> StepBack<P> for CaptureBack {
         }
         if let Self::Observation(back) = self {
             <observation::ObservationBack as StepBack<P>>::step_committed(back);
+        }
+        if let Self::Selector(back) = self {
+            <StructuredSelectorBack as StepBack<P>>::step_committed(back);
         }
     }
     fn cancel(&mut self) {

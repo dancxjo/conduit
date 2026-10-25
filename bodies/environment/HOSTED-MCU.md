@@ -94,6 +94,17 @@ preserve both owners and report unresolved cleanup separately.
 This is an attended physical checkpoint. It applies the existing pure timed
 Mask/Look helper, **without claiming an admitted ordinary Mask Plot/route**.
 It does not continuously refresh or clear the display after those two writes.
+
+The checked four-node output graph now has a CPU-proved reuse path: the existing
+kernel retains prepared expressions, selectors, routes and the electrical sink
+across bounded invocations. It preserves request generations and the original
+write ceiling. Its optional refusal output counts actual emitted values across
+empty invocations. `cargo xtask prove environment display-output` includes 960
+valid frames and a separate 960-frame alternating success/refusal run, with no
+execution allocations or evidence gaps. The largest observed complete invocation
+log is 36 records; that observation is not a worst-case admission bound. These
+tests use fixture native completions. Continuous firmware output still needs
+bounded evidence transfer/acknowledgement and complete Mask admission.
 Increasing the sampler count does not increase the output allowance. Continuous
 Mask admission, freshness/withdrawal and acknowledged sign retention over the
 whole output lifetime remain separate delivery work. With this diagnostic,

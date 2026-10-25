@@ -75,6 +75,9 @@ pub struct PreparedKernelSession<
     phase: Phase,
     remote_sign_reservation: u16,
     owned_value_index: u64,
+    // Allocated only by the explicit zero-or-one output profile. Each entry
+    // records that cord's sequence at the start of the current invocation.
+    optional_output_starts: Option<Box<[Option<u64>; C]>>,
 }
 impl<
         D,
@@ -160,6 +163,7 @@ where
             phase: Phase::Prepared,
             remote_sign_reservation,
             owned_value_index: 0,
+            optional_output_starts: None,
         })
     }
     pub fn kernel(&self) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A> {
@@ -272,6 +276,13 @@ where
             *cord = CordState::EMPTY;
             cord.next_remote_sequence = sequence;
         }
+        if let Some(starts) = self.optional_output_starts.as_mut() {
+            for (start, cord) in starts.iter_mut().zip(&self.kernel.cords) {
+                if start.is_some() {
+                    *start = Some(cord.next_remote_sequence);
+                }
+            }
+        }
         self.kernel.armed_quiescence_count = 0;
         self.kernel.cursor = 0;
         self.kernel.host_request_cursor = 0;
@@ -327,7 +338,8 @@ where
                                 ) || !matches!(
                                     kernel.cord_specs[index].sink,
                                     CordEndpoint::Local { .. }
-                                )) && cord.next_remote_sequence != self.owned_value_index + 1)))
+                                )) && !self
+                                    .completed_owned_sequence(index, cord.next_remote_sequence))))
                 })
         {
             return Err(SessionRefusal::OutstandingOwnership);
