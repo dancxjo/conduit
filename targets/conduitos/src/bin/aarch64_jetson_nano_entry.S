@@ -39,7 +39,9 @@ conduitos_jetson_nano_el2:
     msr daifset, #0xf
     mov x4, #0x80000000
     msr hcr_el2, x4
-    msr cptr_el2, xzr
+    // Cortex-A57 CPTR_EL2 bits [13:12] and [9:0] are RES1.
+    mov x4, #0x33ff
+    msr cptr_el2, x4
     mov x4, #3
     msr cnthctl_el2, x4
     msr cntvoff_el2, xzr

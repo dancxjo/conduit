@@ -316,7 +316,11 @@ pub use jetson_nano::machine::{
     initialize_machine, present, read_counter,
 };
 
-#[cfg(all(feature = "aarch64-orange-pi-5", feature = "aarch64-jetson-nano"))]
+#[cfg(all(
+    target_arch = "aarch64",
+    feature = "aarch64-orange-pi-5",
+    feature = "aarch64-jetson-nano"
+))]
 compile_error!("select exactly one AArch64 board feature");
 
 #[cfg(all(
