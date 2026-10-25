@@ -108,12 +108,14 @@ pub(super) fn build_linux_x86_64(
             "conduit",
             "--features",
             "native-creche-sdl",
+            "--target",
+            "x86_64-unknown-linux-gnu",
         ]),
         "compile hosted Linux release",
     )?;
     fs::create_dir_all(output)?;
     copy(
-        cargo_release_artifact(None, "conduit"),
+        cargo_release_artifact(Some("x86_64-unknown-linux-gnu"), "conduit"),
         &output.join("conduit-linux-x86_64"),
     )?;
     copy(
