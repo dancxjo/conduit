@@ -1,3 +1,4 @@
+import { setupHostedSandbox } from './hosted-sandbox.mjs';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
@@ -20,7 +21,7 @@ export function targetPackages(target) {
     if (!required) throw new Error(`Unknown ConduitOS architecture: ${target.id}`);
     packages.push('curl', 'tar', 'xorriso', ...required);
   } else if (target.family === 'browser') packages.push('binaryen');
-  else if (target.id === 'hosted-linux') packages.push('bubblewrap');
+  else if (target.id === 'hosted-linux') packages.push('bubblewrap', 'apparmor-profiles');
   else if (target.id === 'raspberry-pi') packages.push('dosfstools', 'mtools');
   else if (target.id === 'orange-pi') packages.push('dosfstools');
   return packages;
@@ -66,6 +67,7 @@ export function setup(target) {
   // Resolve the pinned browser package before deriving its platform libraries.
   if (target.family === 'browser') acquire('npm', ['ci', '--prefix', 'proof/browser']);
   if (process.platform === 'linux') apt(...targetPackages(target), ...(target.family === 'browser' ? playwrightDependencies() : []));
+  if (target.id === 'hosted-linux') setupHostedSandbox();
   if (target.family === 'browser') {
     rustTargets('wasm32-unknown-unknown');
     acquire('node', ['proof/browser/node_modules/@playwright/test/cli.js', 'install', 'chromium']);
