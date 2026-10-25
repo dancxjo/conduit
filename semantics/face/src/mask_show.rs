@@ -129,7 +129,17 @@ impl MaskShow {
 
     pub fn validate(&self, face: &Face) -> Result<(), MaskShowError> {
         let checked = ValidatedFace::new(face).map_err(|_| MaskShowError::StaleFace)?;
-        let (face_plot, face_plan_id) = validated_basis(&checked);
+        self.validate_validated(&checked)
+    }
+
+    /// Reuse validation only through an immutable, borrow-bound private proof.
+    /// Public callers always enter through `validate` above.
+    pub(crate) fn validate_validated(
+        &self,
+        checked: &ValidatedFace<'_>,
+    ) -> Result<(), MaskShowError> {
+        let face = checked.face();
+        let (face_plot, face_plan_id) = validated_basis(checked);
         if self.mask_plot != self.planned_mask.mask.plot_identity
             || self.face_plot != face_plot
             || self.face_plan_id != face_plan_id
@@ -140,7 +150,7 @@ impl MaskShow {
             return Err(MaskShowError::StalePlan);
         }
         self.show
-            .validate_against_validated_mask_plot(&checked, &self.planned_mask.plan)
+            .validate_against_validated_mask_plot(checked, &self.planned_mask.plan)
             .map_err(MaskShowError::InvalidManifestation)?;
         if self.show_id != bind_show(&self.planned_mask, face, &self.show) {
             return Err(MaskShowError::StaleShowIdentity);
