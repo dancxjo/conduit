@@ -38,6 +38,25 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'train-capture': {
+      if (args.length < 4 || args.length > 35) throw new Error('usage: train-capture <owner/repository> <source-sha> <new-manifest-file> <pr-number>...');
+      const { createTrainCommands } = await import('./train-command.mjs');
+      const [repository, source, outputFile, ...numbers] = args;
+      const manifest = await createTrainCommands().capture(repository, exactSha(source), numbers, resolve(outputFile));
+      output('train-branch', manifest.branch);
+      output('train-source', manifest.source);
+      output('train-manifest-digest', manifest.digest);
+      break;
+    }
+    case 'train-verify': {
+      if (args.length !== 3) throw new Error('usage: train-verify <manifest-file> <integration-run-id> <bundle-directory>');
+      const { createTrainCommands } = await import('./train-command.mjs');
+      const verified = await createTrainCommands().verify(resolve(args[0]), args[1], resolve(args[2]));
+      output('train-source', verified.source);
+      output('train-tree', verified.tree);
+      output('train-integration-run', String(verified.integrationRun));
+      break;
+    }
     case 'status':
       if (args.length !== 1) throw new Error('usage: status <owner/repository>');
       console.log(JSON.stringify(await readDeliveryStatus(args[0]), null, 2));
@@ -166,7 +185,7 @@ try {
       await publish(args[0], resolve(args[1]));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-capture|train-verify>');
   }
 } catch (error) {
   console.error(`FAILED: pipeline/${command}: ${error.message}`);
