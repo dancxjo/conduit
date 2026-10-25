@@ -14,10 +14,12 @@ pub enum PlanMetadataRefusal<E> {
 #[derive(Debug)]
 pub struct VerifiedPlanMetadata {
     plan: Plan,
+    configurations: Vec<Vec<[u8; 32]>>,
 }
 /// Read-only metadata borrowed from a verified complete-plan scope.
 pub struct VerifiedFragmentMetadata<'a> {
     fragment: &'a PlanFragment,
+    configurations: &'a [[u8; 32]],
 }
 impl VerifiedPlanMetadata {
     /// Read-only configuration-free preparation projection within this verified
@@ -36,11 +38,38 @@ impl VerifiedPlanMetadata {
         self.plan
             .fragments
             .iter()
-            .find(|f| &f.fragment_id == id)
-            .map(|fragment| VerifiedFragmentMetadata { fragment })
+            .enumerate()
+            .find(|(_, f)| &f.fragment_id == id)
+            .map(|(index, fragment)| VerifiedFragmentMetadata {
+                fragment,
+                configurations: &self.configurations[index],
+            })
     }
 }
 impl VerifiedFragmentMetadata<'_> {
+    /// Compare independently retained native expectations with the exact
+    /// configuration committed during whole-Plan verification. Ordering and
+    /// semantic value tags remain significant. This grants no possession.
+    pub fn configuration_matches(
+        &self,
+        placement: &PlacementId,
+        expected: &[ConfigurationEntry],
+    ) -> bool {
+        let mut matches = self
+            .fragment
+            .placements
+            .iter()
+            .enumerate()
+            .filter(|(_, gear)| &gear.placement_id == placement);
+        let Some((index, _)) = matches.next() else {
+            return false;
+        };
+        matches.next().is_none()
+            && self.configurations.get(index)
+                == Some(&crate::plan_fingerprint::configuration_fingerprint(
+                    expected,
+                ))
+    }
     /// Configuration-free metadata for preparation consumers only. The IDs bind
     /// the complete canonical records verified by the owning token; this view
     /// is not a substitute for a complete, self-verifying serialized PlanFragment.
@@ -71,8 +100,10 @@ pub fn verify_plan_metadata_with_configurations<E>(
         return Err(PlanMetadataRefusal::RetainedConfiguration);
     }
     let mut refusal = None;
+    let mut configurations = Vec::with_capacity(plan.fragments.len());
     let valid = crate::plan_verification::verify_at_depth(&plan, 0, &mut |fragment| {
         let mut hash = FragmentFingerprintBuilder::new(fragment.into(), fragment.placements.len());
+        let mut commitments = Vec::with_capacity(fragment.placements.len());
         for gear in &fragment.placements {
             let entries = match configuration(gear) {
                 Ok(entries) => entries,
@@ -81,10 +112,13 @@ pub fn verify_plan_metadata_with_configurations<E>(
                     return None;
                 }
             };
+            commitments.push(crate::plan_fingerprint::configuration_fingerprint(&entries));
             hash.push_placement_with_configuration(gear, &entries)
                 .ok()?;
         }
-        hash.finish(fragment.into()).ok()
+        let id = hash.finish(fragment.into()).ok()?;
+        configurations.push(commitments);
+        Some(id)
     });
     if let Some(error) = refusal {
         return Err(PlanMetadataRefusal::Configuration(error));
@@ -92,5 +126,8 @@ pub fn verify_plan_metadata_with_configurations<E>(
     if !valid {
         return Err(PlanMetadataRefusal::InvalidPlan);
     }
-    Ok(VerifiedPlanMetadata { plan })
+    Ok(VerifiedPlanMetadata {
+        plan,
+        configurations,
+    })
 }

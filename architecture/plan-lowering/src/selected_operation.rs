@@ -4,6 +4,12 @@ use conduit_core::{
     ActivePlayIdentity, BaseCapabilityTable, BaseOperationClaim, Kind, PlacementId, PlanFragment,
 };
 use conduit_kernel::{HostCallId, NodeId, PortId};
+mod binding;
+mod verified;
+pub use verified::{
+    bind_selected_verified_configured_operation, bind_selected_verified_operation,
+    bind_selected_verified_operation_for_subject, SelectedVerifiedOperationPlan,
+};
 
 pub struct SelectedOperationContract<'a> {
     pub kind: &'a Kind,
@@ -65,15 +71,29 @@ fn bind_configured_for_subject(
     configuration: &[conduit_core::ConfigurationEntry],
     selection: SelectedOperationPlan<'_>,
 ) -> Result<NodeId, SelectedCallRefusal> {
-    let SelectedOperationPlan {
-        fragment,
-        lowered,
-        active,
-        placement_id,
-    } = selection;
-    let expected = definition.kind;
-    if !conduit_core::verify_plan_fragment(fragment)
-        || fragment.plan_id != claim.plan_id
+    if !conduit_core::verify_plan_fragment(selection.fragment) {
+        return Err(SelectedCallRefusal::WrongBinding);
+    }
+    check_scope(claim, &selection)?;
+    // Matching IDs cannot replace exact ordinary numeric lowering.
+    if crate::lowering::lower_plan_fragment(selection.fragment)
+        .map_err(|_| SelectedCallRefusal::WrongBinding)?
+        != *selection.lowered
+    {
+        return Err(SelectedCallRefusal::WrongBinding);
+    }
+    binding::bind_fields(table, claim, definition, subject, selection, |gear| {
+        gear.configuration == configuration
+    })
+}
+fn check_scope(
+    claim: &BaseOperationClaim,
+    selection: &SelectedOperationPlan<'_>,
+) -> Result<(), SelectedCallRefusal> {
+    let fragment = selection.fragment;
+    let lowered = selection.lowered;
+    let active = selection.active;
+    if fragment.plan_id != claim.plan_id
         || fragment.host_id != claim.host_id
         || fragment.boot_id != claim.boot_id
         || active.plan_id != claim.plan_id
@@ -91,124 +111,7 @@ fn bind_configured_for_subject(
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }
-    // Matching IDs alone do not prove that numeric routing/storage/terminal
-    // tables came from this fragment. Preparation may allocate; Play may
-    // only use the exact ordinary lowering, with no substituted tables.
-    if crate::lowering::lower_plan_fragment(fragment)
-        .map_err(|_| SelectedCallRefusal::WrongBinding)?
-        != *lowered
-    {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    let mut matches = fragment
-        .placements
-        .iter()
-        .filter(|gear| &gear.placement_id == placement_id);
-    let gear = matches.next().ok_or(SelectedCallRefusal::WrongBinding)?;
-    if matches.next().is_some() {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    let base = gear
-        .base
-        .as_ref()
-        .ok_or(SelectedCallRefusal::WrongBinding)?;
-    if gear.kind_id != expected.kind_id
-        || gear.kind_contract_revision != expected.kind_contract_revision
-        || gear.inputs != expected.inputs
-        || gear.outputs != expected.outputs
-        || gear.semantic_contract != expected.semantic_contract()
-        || gear.configuration != configuration
-        || gear.host_id != claim.host_id
-        || gear.boot_id != claim.boot_id
-        || gear.implementation_id != claim.implementation_id
-        || base.provider_instance_id != claim.base_instance_id
-        || base.provider_generation != claim.base_provider_generation
-        || &claim.subject_kind != subject
-        || claim.operation_contract_id.as_str() != definition.call
-    {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    let scope = matching_scope(table, claim)?;
-    if gear.capability_id != scope.capability_id
-        || !gear.authority.iter().any(|authority| {
-            authority.grant_id == scope.authority_grant_id
-                && authority.contract_id == scope.authority_contract_id
-                && authority.host_call_contract_id == scope.operation_contract_id
-                && authority.subject_kind == scope.subject_kind
-                && authority.host_id == scope.host_id
-                && authority.boot_id == scope.boot_id
-                && authority.capability_id == scope.capability_id
-        })
-        || !gear.resources.iter().any(|resource| {
-            resource.pool_id == scope.resource_pool_id
-                && resource.units > 0
-                && resource
-                    .protected
-                    .as_ref()
-                    .is_none_or(|protected| protected.maximum_bytes >= definition.resource_bytes)
-        })
-    {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    let [required] = gear.host_calls.as_slice() else {
-        return Err(SelectedCallRefusal::WrongBinding);
-    };
-    if required.contract_id.as_str() != definition.call
-        || required.target_kind.as_ref() != Some(subject)
-        || required.maximum_in_flight != 1
-        || required.maximum_input_bytes != definition.input_bytes
-        || required.maximum_output_bytes != definition.output_bytes
-    {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    let mut nodes = lowered
-        .nodes
-        .iter()
-        .filter(|node| &node.placement_id == placement_id);
-    let node = nodes.next().ok_or(SelectedCallRefusal::WrongBinding)?;
-    if nodes.next().is_some()
-        || !lowered
-            .identity
-            .placements
-            .contains(&(node.node, placement_id.clone()))
-        || expected.inputs.len() > 1
-        || expected.outputs.len() > 1
-        || node.inputs.len() != expected.inputs.len()
-        || node.outputs.len() != expected.outputs.len()
-        || node
-            .inputs
-            .iter()
-            .zip(&expected.inputs)
-            .any(|(port, expected)| {
-                port.port != PortId(0) || port.value_kind != expected.value_kind
-            })
-        || node
-            .outputs
-            .iter()
-            .zip(&expected.outputs)
-            .any(|(port, expected)| {
-                port.port != PortId(0) || port.value_kind != expected.value_kind
-            })
-    {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    let mut calls = lowered
-        .host_calls
-        .iter()
-        .filter(|call| call.node == node.node);
-    let call = calls.next().ok_or(SelectedCallRefusal::WrongBinding)?;
-    if calls.next().is_some()
-        || call.call != HostCallId(0)
-        || call.binding.call != call.call
-        || call.contract_id != required.contract_id
-        || call.target_kind != required.target_kind
-        || call.maximum_in_flight != 1
-        || call.binding.maximum_input_bytes != definition.input_bytes
-        || call.binding.maximum_output_bytes != definition.output_bytes
-    {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    Ok(node.node)
+    Ok(())
 }
 
 /// Shared current possession check for rich and constrained assigned projections.

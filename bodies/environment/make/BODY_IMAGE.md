@@ -212,6 +212,17 @@ Mask/time requirements and tested refusals. Both use the same sealed lifecycle
 implementation and ordinary Ready/Play transitions. This issues no membership,
 physical possession or effect authority.
 
+Core also retains a 32-byte canonical configuration commitment per placement,
+computed from the same entries used for whole-Plan verification. Native selection
+can compare independently retained Source expectations without restoring program
+payloads. The verified-metadata binding uses the same contract, current
+Host/Boot/Play, actual capability possession, resource and port checks as rich
+selection, and independently reproduces the complete lowered fragment. Tests
+reject changed configuration values/types/order, changed native generations,
+stale Play and tampered lowering before any operation completes. This currently
+returns a checked node identity; retained provider transfer and local Root
+startup still need integration.
+
 The single-window resident-owner/offer/selection/preparation/lowering/Body-seal
 CPU ledger compares both paths: **346,241 bytes** for compact verified material
 versus **378,925** retaining the rich Body Plan. Complete lowered output and Body

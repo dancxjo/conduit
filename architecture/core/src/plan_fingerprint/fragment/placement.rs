@@ -10,11 +10,7 @@ pub(super) fn push_placement(
     push_string(canonical, gear.kind_id.as_str());
     push_string(canonical, gear.kind_contract_revision.as_str());
     push_string(canonical, gear.execution_profile_id.as_str());
-    push_u32(canonical, configuration.len() as u32);
-    for entry in configuration {
-        push_string(canonical, &entry.key);
-        push_configuration_value(canonical, &entry.value);
-    }
+    crate::plan_fingerprint::push_configuration(canonical, configuration);
     push_string(canonical, gear.host_id.as_str());
     push_string(canonical, gear.boot_id.as_str());
     push_u64(canonical, gear.offer_generation.0);

@@ -443,3 +443,6 @@ fn push_ports(
         }
     }
 }
+
+mod configuration;
+pub(crate) use configuration::{configuration_fingerprint, push_configuration};
