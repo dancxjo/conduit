@@ -40,19 +40,18 @@ const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
     case 'compiler-cache-proof': {
-      if (args.length !== 3) throw new Error('usage: compiler-cache-proof <snapshot-manifest> <pinned-engine> <rustc>');
+      if (args.length !== 1) throw new Error('usage: compiler-cache-proof <snapshot-manifest>');
       const specs = readdirSync('proof/ci').filter(name => name.startsWith('compiler-cache') && name.endsWith('.spec.mjs'));
       const result = spawnSync('node', ['--test', ...specs.map(name => `proof/ci/${name}`)], {
         stdio: 'inherit', env: { ...process.env,
-          CONDUIT_CARGO_CACHE_SNAPSHOT: resolve(args[0]), CONDUIT_CACHE_PROOF_ENGINE: resolve(args[1]),
-          CONDUIT_CACHE_PROOF_RUSTC: resolve(args[2]) },
+          CONDUIT_CARGO_CACHE_SNAPSHOT: resolve(args[0]) },
       });
       if (result.error || result.status !== 0) throw new Error('Compiler cache proof failed');
       break;
     }
     case 'compiler-cache-engine': {
       if (args.length !== 1) throw new Error('usage: compiler-cache-engine <new-engine-directory>');
-      const { acquirePinnedEngine } = await import('../compiler-cache/runtime.mjs');
+      const { acquirePinnedEngine } = await import('../compiler-cache/engine.mjs');
       output('compiler-cache-engine', await acquirePinnedEngine(resolve(args[0])));
       break;
     }
