@@ -301,7 +301,11 @@ fn quantity_looks_change_both_graphical_labels_without_changing_the_face_or_dot_
         })
         .collect::<Vec<_>>();
     let base = conduit_face::editorial_look().unwrap();
-    for (unit, label) in [(T::Celsius, "°C"), (T::Kelvin, "K"), (T::Fahrenheit, "°F")] {
+    for (unit, label, first, top) in [
+        (T::Celsius, "°C", "0.000", "2.000"),
+        (T::Kelvin, "K", "273.150", "275.150"),
+        (T::Fahrenheit, "°F", "32.000", "35.600"),
+    ] {
         let look = LookInfo::new(
             base.generative().clone(),
             base.identity().into(),
@@ -313,6 +317,9 @@ fn quantity_looks_change_both_graphical_labels_without_changing_the_face_or_dot_
         .unwrap();
         let shown = HistoryTemperaturePresentation::prepare(&graph, &look).unwrap();
         assert_eq!(shown.unit_label(), label);
+        assert_eq!(shown.samples[0].as_ref().unwrap().number(), first);
+        assert_eq!(shown.top.number(), top);
+        assert_eq!(shown.bottom.number(), first);
         for (sample, displayed) in graph.samples().iter().zip(&shown.samples) {
             assert_eq!(
                 displayed.as_ref().map(|value| value.source()),
@@ -322,11 +329,11 @@ fn quantity_looks_change_both_graphical_labels_without_changing_the_face_or_dot_
         let html = graph.browser_html_with_look(&look).unwrap();
         assert!(html.contains(&format!("Temperature ({label})")));
         assert!(html.contains(&format!("Temperature {label}</th>")));
+        assert!(html.contains(&format!("<td>{first}</td>")));
         let scene = graph.native_scene_with_look(&look).unwrap();
-        assert!(scene
-            .commands()
-            .iter()
-            .any(|command| command.payload().contains(&format!("Temperature {label}:"))));
+        assert!(scene.commands().iter().any(|command| command
+            .payload()
+            .contains(&format!("Temperature {label}: top {top}; bottom {first}"))));
         assert_eq!(
             graph
                 .samples()
