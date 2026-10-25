@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 
 // Inert archive fixture, never evidence of actual target execution.
-export function producerFixture({ source, tree, target, run }) {
+export function producerFixture({ source, tree, target, run, manifestDigest }) {
   const report = { target, sourceSha: source, outcome: 'success', tools: [{ name: 'fixture', version: 'inert' }] };
   const digest = value => createHash('sha256').update(value).digest('hex');
   return {
-    schema: 'conduit.pipeline-producer/v1', source, tree, target,
+    schema: 'conduit.pipeline-producer/v1', source, tree, target, manifestDigest,
     run: { repository: run.repository.full_name, repositoryId: run.repository.id,
       id: run.id, attempt: run.run_attempt, workflowSource: source, source, job: 'target',
       workflow: `${run.repository.full_name}/.github/workflows/integration.yml@refs/heads/${run.head_branch}` },

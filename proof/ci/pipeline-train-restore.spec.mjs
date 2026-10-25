@@ -15,7 +15,7 @@ async function setup(t, variation = '') {
   const acquisition = path.join(f.directory, 'acquired'); await mkdir(acquisition);
   const archive = path.join(acquisition, 'product-hosted-linux.zip');
   const data = Buffer.from('verified product');
-  const producer = producerFixture({ source: f.source, tree: f.manifest.tree, target: 'hosted-linux', run });
+  const producer = producerFixture({ source: f.source, tree: f.manifest.tree, target: 'hosted-linux', run, manifestDigest: f.manifest.digest });
   if (variation === 'old-producer-attempt') producer.run.attempt++;
   const producerBytes = JSON.stringify(producer);
   const productReceipt = { schema: 'conduit.pipeline-target/v1', target: 'hosted-linux', sha: f.source,

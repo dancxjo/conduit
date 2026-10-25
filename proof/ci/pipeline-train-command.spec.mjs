@@ -63,7 +63,8 @@ test('symlink and oversized manifest files refuse before network observation', a
 });
 
 test('supported pipeline CLI exposes train entrances and refuses missing arguments', () => {
-  for (const name of ['train-assemble', 'train-capture', 'train-dispatch', 'train-acquire', 'train-restore', 'train-land', 'train-verify']) {
+  for (const name of ['train-assemble', 'train-capture', 'train-dispatch', 'train-admit', 'train-adoption', 'train-acquire', 'train-restore', 'train-land', 'train-verify',
+    'compiler-cache-engine', 'compiler-cache-prepare', 'compiler-cache-build', 'compiler-cache-clear', 'compiler-cache-proof']) {
     const result = spawnSync('node', ['tools/ci/pipeline/cli.mjs', name], { encoding: 'utf8' });
     assert.equal(result.status, 1);
     assert.match(result.stderr, new RegExp(`usage: ${name}`));

@@ -45,12 +45,14 @@ export function beginProductCustody({ source, target, directory = process.cwd(),
     acquisition = { sha256: hash(bytes), report };
   }
   if (run && !acquisition) fail('Actions product lacks verified tool acquisition');
+  const manifestDigest = env.CONDUIT_TRAIN_MANIFEST_DIGEST || null;
+  if (manifestDigest !== null && !/^[a-f0-9]{64}$/.test(manifestDigest)) fail('Invalid producer train manifest digest');
   // A complete source tree binds Cargo feature definitions, lockfiles, target
   // recipes and test source. Commands below bind the selected recipe/flags.
   // This is a command contract, not a claim that individual test names or every
   // nested rustc invocation were separately observed.
   active = {
-    schema: 'conduit.pipeline-producer/v1', source, tree, target, run,
+    schema: 'conduit.pipeline-producer/v1', source, tree, target, run, manifestDigest,
     toolchain: { rustc: identity('rustc', ['--version', '--verbose']),
       cargo: identity('cargo', ['--version', '--verbose']), node: process.version, acquisition },
     environment: { sha256: hash(JSON.stringify(Object.keys(env).sort().map(key => [key, env[key]]))),
@@ -84,9 +86,13 @@ export function finishProductCustody(directory) {
 
 export function abandonProductCustody() { active = undefined; }
 
-export function verifyProductCustody(receipt, { source, tree, target, run }) {
+export function verifyProductCustody(receipt, { source, tree, target, run, manifestDigest }) {
+  const manual = /^[a-f0-9]{64}$/.test(manifestDigest ?? '') &&
+    run.event === 'workflow_dispatch' && /^train\/[a-f0-9]{64}$/.test(run.head_branch ?? '');
+  const development = manifestDigest === null && run.event === 'push' && run.head_branch === 'dev';
   if (receipt?.schema !== 'conduit.pipeline-producer/v1' || receipt.source !== source ||
-      receipt.tree !== tree || receipt.target !== target || !receipt.run ||
+      receipt.tree !== tree || receipt.target !== target || receipt.manifestDigest !== manifestDigest ||
+      (!manual && !development) || !receipt.run ||
       receipt.run.repository !== run.repository.full_name || receipt.run.repositoryId !== run.repository.id ||
       receipt.run.id !== run.id || receipt.run.attempt !== run.run_attempt || receipt.run.source !== source ||
       receipt.run.workflowSource !== source ||

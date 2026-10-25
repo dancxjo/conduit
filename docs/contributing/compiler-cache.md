@@ -1,7 +1,8 @@
 # Compiler cache implementation status
 
-The cache has two development layers. Neither is installed as a global Cargo
-wrapper or used to authorize release proof reuse.
+The cache has an immutable store, an owned engine controller, and an initial real
+Conduit Cargo integration. It is not installed as a global Cargo wrapper or used
+to authorize behavioral/release proof reuse.
 
 `tools/ci/compiler-cache/store.mjs` is an immutable, content-addressed object
 store. Its key requires source, toolchain, features, test and environment
@@ -24,18 +25,50 @@ sysroot or filesystem closure completeness. A reviewed string is not a sandbox.
 `probe.mjs` demonstrates one actual cold compiler miss and one warm hit across
 two separately owned server sessions, with identical rlib bytes. The small probe
 does not demonstrate a material speedup or an integrated Conduit build benefit.
-Run the meaningful engine lifecycle tests with explicitly acquired paths:
+The supported proof entrance below supplies explicitly acquired paths to the
+engine lifecycle and actual Cargo tests.
 
-```sh
-CONDUIT_CACHE_PROOF_ENGINE=/absolute/pinned/sccache \
-CONDUIT_CACHE_PROOF_RUSTC=/absolute/toolchain/bin/rustc \
-node --test proof/ci/compiler-cache.spec.mjs proof/ci/compiler-cache-runtime.spec.mjs
-```
-
-Actual Cargo integration requires immutable source/vendor/toolchain/sysroot
+Broader Cargo integration requires immutable source/vendor/toolchain/sysroot
 snapshots, explicit features/profile/environment policy, private generated
 outputs, and compiler execution inside that boundary. A host-side daemon may
 execute the compiler outside a Cargo sandbox, so an outer sandbox alone is
 insufficient. Procedural-macro consumers must bypass caching until their full
 input boundary is established. Behavioral tests and product proofs continue to
 execute independently of compiler object hits.
+
+The first supported Cargo slice builds the actual dependency-free
+`conduitos-compositor-core` package with its original manifest. It snapshots exact
+tracked Git bytes, the host compiler/Cargo/sysroot, selected dynamic runtime and
+pinned engine; a generated standalone lockfile is included in the snapshot
+identity. Cargo runs offline/frozen inside bwrap. The compiler server and rustc
+children run inside that same read-only snapshot boundary. Only a private task
+directory and managed compiler objects are writable; host-only file reads refuse.
+The namespace includes snapshot, runner/mount/environment policy and bwrap binary
+identities. New dependencies/build scripts/procedural macros refuse instead of
+being admitted under this package's contract.
+
+Use scratch paths outside the source checkout:
+
+```sh
+cargo xtask ci pipeline compiler-cache-engine /scratch/new-engine
+cargo xtask ci pipeline compiler-cache-prepare /scratch/new-engine/sccache /absolute/rust-toolchain /scratch/new-snapshot /scratch/new-snapshot.json
+cargo xtask ci pipeline compiler-cache-build /scratch/new-snapshot.json /scratch/compiler-cache /scratch/cold-task
+cargo xtask ci pipeline compiler-cache-build /scratch/new-snapshot.json /scratch/compiler-cache /scratch/warm-task
+cargo xtask ci pipeline compiler-cache-clear /scratch/compiler-cache EXACT_NAMESPACE /scratch/new-eviction.json
+cargo xtask ci pipeline compiler-cache-proof /scratch/new-snapshot.json /scratch/new-engine/sccache /absolute/rust-toolchain/bin/rustc
+```
+
+Prepare requires a clean exact-source checkout and rechecks copied bytes against
+Git. Build verifies the retained source/closure and keeps Cargo targets private.
+The initial engine cache is 16 MiB, with explicit task/reserve limits. Clear
+requires the exact namespace, an exclusive lease and audited managed engine
+objects. It refuses active engines/visible object descriptors, unknown files,
+symlinks and interrupted retirement. Task outputs and proof receipts are outside
+the cleared store. It does not break stale leases or guess how to resume an
+interrupted transaction.
+
+Actual tests demonstrate miss → hit → clear → miss with identical rlib/rmeta
+bytes. The measured two-build example was approximately 1.55 s cold and 1.24 s
+warm including closure hashing; snapshot acquisition is additional. This proves
+the selected Cargo path, not whole-workspace acceleration. General dependency
+graphs, procedural macros, linking and automatic CI cache wiring remain work.

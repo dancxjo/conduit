@@ -16,9 +16,10 @@ async function setup(t) {
   const env = { GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: 'example/conduit', GITHUB_REPOSITORY_ID: '11',
     GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '2', GITHUB_SHA: source, GITHUB_WORKFLOW_SHA: source,
     GITHUB_JOB: 'target', GITHUB_WORKFLOW_REF: 'example/conduit/.github/workflows/integration.yml@refs/heads/train/fixture',
-    ImageOS: 'ubuntu24', ImageVersion: 'fixture', PRIVATE_VALUE: 'must never be serialized' };
-  const expected = { source, tree, target, run: { id: 123, run_attempt: 2,
-    repository: { full_name: 'example/conduit', id: 11 }, head_branch: 'train/fixture' } };
+    ImageOS: 'ubuntu24', ImageVersion: 'fixture', PRIVATE_VALUE: 'must never be serialized', CONDUIT_TRAIN_MANIFEST_DIGEST: 'c'.repeat(64) };
+  const expected = { source, tree, target, manifestDigest: 'c'.repeat(64), run: { id: 123, run_attempt: 2,
+    repository: { full_name: 'example/conduit', id: 11 }, event: 'workflow_dispatch', head_branch: 'train/' + 'f'.repeat(64) } };
+  env.GITHUB_WORKFLOW_REF = `example/conduit/.github/workflows/integration.yml@refs/heads/${expected.run.head_branch}`;
   const begin = (overrides = {}) => beginProductCustody({ source, target, directory, env,
     identity: program => program === 'git' ? tree : 'fixture tool version', ...overrides });
   return { directory, env, expected, begin };

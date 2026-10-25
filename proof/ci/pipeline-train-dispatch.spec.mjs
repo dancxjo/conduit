@@ -23,7 +23,8 @@ async function fixture(t) {
         return { status: 0, stdout: JSON.stringify(state.ref) };
       }
       assert.ok(endpoint.endsWith('/integration.yml/dispatches'));
-      assert.deepEqual(body, { ref: f.manifest.branch, inputs: { 'train-source': f.source } });
+      assert.deepEqual(body, { ref: f.manifest.branch,
+        inputs: { 'train-source': f.source, 'train-manifest': JSON.stringify(f.manifest) } });
       return state.failDispatch ? { status: 1, stderr: 'transport outcome unknown' } : { status: 0, stdout: '' };
     }
     if (endpoint.includes('/git/matching-refs/')) return { status: 0, stdout: JSON.stringify(state.ref ? [state.ref] : []) };
@@ -94,7 +95,7 @@ test('Integration guards manual train source before proof while retaining normal
   assert.match(workflow, /train-source:[\s\S]*EXPECTED_SOURCE: \$\{\{ inputs\.train-source \}\}/);
   assert.match(workflow, /ACTUAL_SOURCE: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /run: test "\$EXPECTED_SOURCE" = "\$ACTUAL_SOURCE"/);
-  assert.match(workflow, /proof:\n\s+needs: train-source/);
+  assert.match(workflow, /proof:\n\s+needs: \[train-source, adoption\]/);
   assert.match(workflow, /needs\.train-source\.result == 'skipped'/);
   assert.match(workflow, /base: all/);
   assert.match(workflow, /cancel-in-progress: false/);
