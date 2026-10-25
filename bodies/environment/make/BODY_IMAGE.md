@@ -219,9 +219,12 @@ payloads. The verified-metadata binding uses the same contract, current
 Host/Boot/Play, actual capability possession, resource and port checks as rich
 selection, and independently reproduces the complete lowered fragment. Tests
 reject changed configuration values/types/order, changed native generations,
-stale Play and tampered lowering before any operation completes. This currently
-returns a checked node identity; retained provider transfer and local Root
-startup still need integration.
+stale Play and tampered lowering before any operation completes. Retained timer
+and pulse owners now expose this verified preflight and transfer path. Both keep
+Root's initialized slot on refusal; pulse codec preparation finishes before GPIO
+custody moves. CPU providers prove successful transfer and one admitted wait or
+capture, with no effects during preflight. Local Root startup still needs to
+consume these APIs jointly under its Body lifecycle and memory admission.
 
 The single-window resident-owner/offer/selection/preparation/lowering/Body-seal
 CPU ledger compares both paths: **346,241 bytes** for compact verified material

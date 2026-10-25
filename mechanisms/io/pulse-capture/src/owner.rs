@@ -1,8 +1,10 @@
 //! Exact planned possession for an asynchronous electrical pulse Host Call.
+mod verified;
 use crate::*;
 use conduit_plan_lowering::selected_assigned_operation::{
     bind_selected_assigned_operation, AssignedNativeIdentity, SelectedAssignedOperationPlan,
 };
+pub(crate) use verified::prepare_verified;
 pub struct AssignedPulseSelection<'a> {
     pub contract: &'a PulseReadContract,
     pub native: AssignedNativeIdentity<'a>,

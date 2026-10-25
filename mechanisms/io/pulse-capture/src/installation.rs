@@ -1,5 +1,7 @@
 //! Ready native ownership advertised before planning, consumed by exact Play.
 //! Follows the retained I2C installation lifecycle; no peripheral protocol lives here.
+#[path = "verified.rs"]
+mod verified;
 use crate::{owner::*, *};
 use alloc::vec;
 use conduit_core::*;
@@ -180,6 +182,27 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             .iter()
             .find(|g| &g.placement_id == selection.placement_id)
             .ok_or(PulseCallRefusal::WrongBinding)?;
+        self.check_native(&claim, contract, gear)?;
+        // SAFETY: new retained actual native ownership; the exact claim preserves
+        // its Host/Boot, provider, resource generation and attachment envelope.
+        unsafe {
+            PulseHostCall::bind_selected(
+                table,
+                handle,
+                claim,
+                self.attachment,
+                self.provider,
+                contract,
+                selection,
+            )
+        }
+    }
+    fn check_native(
+        &self,
+        claim: &BaseOperationClaim,
+        contract: &PulseReadContract,
+        gear: &PlannedGear,
+    ) -> Result<(), PulseCallRefusal> {
         let base = gear.base.as_ref().ok_or(PulseCallRefusal::WrongBinding)?;
         let identity = &self.identity;
         if claim.host_id != identity.host_id
@@ -206,19 +229,7 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
         {
             return Err(PulseCallRefusal::WrongBinding);
         }
-        // SAFETY: new retained actual native ownership; the exact claim preserves
-        // its Host/Boot, provider, resource generation and attachment envelope.
-        unsafe {
-            PulseHostCall::bind_selected(
-                table,
-                handle,
-                claim,
-                self.attachment,
-                self.provider,
-                contract,
-                selection,
-            )
-        }
+        Ok(())
     }
     /// Check exact assigned selection without transferring the retained GPIO,
     /// invoking capture, or consuming an operation lease.

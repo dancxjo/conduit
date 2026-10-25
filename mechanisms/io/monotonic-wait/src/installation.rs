@@ -1,6 +1,8 @@
 //! Retained initialized timer slot, offered before planning and transferred once.
 #[path = "assigned.rs"]
 mod assigned;
+#[path = "verified.rs"]
+mod verified;
 use crate::*;
 use alloc::vec;
 use conduit_core::*;
@@ -177,8 +179,31 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .iter()
             .find(|gear| &gear.placement_id == selection.placement_id)
             .ok_or(WaitCallRefusal::WrongBinding)?;
+        owner.check_native(&claim, gear)?;
+        let node = crate::owner::checked_binding(
+            &table,
+            &claim,
+            owner.attachment,
+            configuration,
+            selection,
+        )?;
+        let owner = slot.take().expect("preflighted retained timer");
+        Ok(MonotonicWaitHostCall::from_bound(
+            table,
+            handle,
+            claim,
+            owner.attachment,
+            owner.provider,
+            node,
+        ))
+    }
+    fn check_native(
+        &self,
+        claim: &BaseOperationClaim,
+        gear: &PlannedGear,
+    ) -> Result<(), WaitCallRefusal> {
         let base = gear.base.as_ref().ok_or(WaitCallRefusal::WrongBinding)?;
-        let identity = &owner.identity;
+        let identity = &self.identity;
         if claim.host_id != identity.host_id
             || claim.boot_id != identity.boot_id
             || claim.base_instance_id != identity.provider_instance_id
@@ -202,22 +227,7 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
         {
             return Err(WaitCallRefusal::WrongBinding);
         }
-        let node = crate::owner::checked_binding(
-            &table,
-            &claim,
-            owner.attachment,
-            configuration,
-            selection,
-        )?;
-        let owner = slot.take().expect("preflighted retained timer");
-        Ok(MonotonicWaitHostCall::from_bound(
-            table,
-            handle,
-            claim,
-            owner.attachment,
-            owner.provider,
-            node,
-        ))
+        Ok(())
     }
     pub fn native_identity(&self) -> &WaitNativeIdentity {
         &self.identity
