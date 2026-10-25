@@ -141,6 +141,22 @@ addresses survive the transfer. Peak additional CPU planning heap falls from
 ownership of the expansion and consumes it on refusal too. It does not eliminate
 the rich Source's initial construction or establish combined MCU admission.
 
+The Make recipe now links an indexed checked-Source image into read-only
+firmware material. Its directory is borrowed without allocation; a caller can
+read one Gear without decoding its neighbours. The appliance representation is
+111,637 bytes in flash. Exact full reconstruction, provenance, truncation,
+directory bounds and lazy decode refusals are covered by CPU tests. The trusted
+installed-image boundary remains explicit; the reader is not an ingress for
+arbitrary documents and grants no Plan, membership or effect authority.
+
+Native Body installation reads only the image identity and requires the linked
+sampling Source to belong to the Body workset. Identity-only reading peaks at
+200 additional heap bytes in the CPU proof. Full metadata decoding peaks at
+25,420 bytes and the largest Gear at 63,851, versus 121,391 for a complete graph
+clone. These phases are not interchangeable or additive admission evidence.
+Ordinary planning still needs to consume this indexed material without retaining
+the full header/graph; that integration and combined Xtensa proof remain open.
+
 The rich Plan is still needed during construction and execution preparation.
 These host measurements do not establish that Root, biography, sampling, timed
 display, network SDK, planning scratch, and required lifecycle evidence coexist

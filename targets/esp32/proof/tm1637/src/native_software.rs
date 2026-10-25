@@ -49,3 +49,17 @@ pub fn computation_records() -> &'static [conduit_core::AssignedRecord<'static>]
 pub fn source_identity() -> conduit_core::PlotIdentity {
     material::source_identity()
 }
+
+#[cfg(feature = "body-image-root")]
+pub fn planning_source(
+) -> Result<conduit_plot::flat_image::indexed::IndexedSourceImage<'static>, &'static str> {
+    let bytes = material::planning_source_image();
+    if conduit_core::assigned_plan_payload_digest(bytes) != material::planning_source_sha256() {
+        return Err("body-source-image-digest");
+    }
+    // SAFETY: these exact bytes and the independent expected digest are linked
+    // from this trusted Make build, which checked the complete expansion. No
+    // network/UART input or claimed Source identity enters this installation.
+    unsafe { conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(bytes) }
+        .map_err(|_| "body-source-image-representation")
+}

@@ -143,3 +143,6 @@ pub unsafe fn decode_trusted(bytes: &[u8]) -> Result<ExpandedCanonicalPlot, Imag
         .map_err(|_| ImageRefusal::Provenance)?;
     Ok(source)
 }
+
+/// Indexed checked Make representation for graphs decoded one Gear at a time.
+pub mod indexed;

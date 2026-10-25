@@ -11,6 +11,22 @@ pub fn load(
     }
     let evidence: BodyBiographyEvidence =
         serde_json::from_slice(bytes).map_err(|_| "body-image-representation")?;
+    let source = crate::native_software::planning_source()?;
+    if source.gear_count() != conduit_environment_runtime::appliance::assigned::NODES {
+        return Err("body-image-source-shape");
+    }
+    let source_identity = source
+        .identity()
+        .map_err(|_| "body-image-source-metadata")?;
+    if source_identity != crate::native_software::source_identity()
+        || !evidence.body.workset.plots().iter().any(|plot| {
+            plot.source_document_id == source_identity.source_document_id
+                && plot.checked_plot_id == source_identity.checked_plot_id
+        })
+    {
+        return Err("body-image-source-workset");
+    }
+    drop(source_identity);
     let initialized = root.advertisement().map_err(|_| "body-image-root-scope")?;
     let owner = Box::new(
         conduit_environment_runtime::body_image::open_installed_image_sealed(
@@ -38,6 +54,7 @@ pub fn load(
         "offer_generation":current.offer_generation.0,
         "membership_revision":owner.evidence().membership.revision.0,
         "member_admitted":true,
+        "linked_source_gears":source.gear_count(),
         "root_heap_size_bytes":memory.size,
         "root_heap_used_bytes":memory.current_usage,
         "root_heap_peak_bytes":memory.max_usage,

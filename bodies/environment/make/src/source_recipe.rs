@@ -26,6 +26,7 @@ mod records;
 
 pub struct NativeSoftwareSourceRecipe {
     identity: c::PlotIdentity,
+    planning_image: Vec<u8>,
     source: ResidentSourceIdentity,
     roles: ResidentRoles,
     cadence: conduit_time::TickConfiguration,
@@ -41,6 +42,8 @@ impl NativeSoftwareSourceRecipe {
     /// Actual native providers and all realization/Body authority remain absent.
     pub fn prepare(source: &ApplianceSource) -> Result<Self, E> {
         let cadence = source.checked_cadence().map_err(|_| E::Source)?;
+        let planning_image =
+            conduit_plot::flat_image::indexed::encode(&source.expanded).map_err(|_| E::Source)?;
         let gears = &source.expanded.gears;
         if gears.len() != conduit_environment_runtime::appliance::assigned::NODES {
             return Err(E::Roles);
@@ -108,6 +111,7 @@ impl NativeSoftwareSourceRecipe {
             .collect::<Result<Vec<_>, E>>()?;
         let configuration_records = records::configuration_payloads(&texts);
         Ok(Self {
+            planning_image,
             identity: c::PlotIdentity {
                 source_document_id: source.expanded.source_document_id.clone(),
                 checked_plot_id: source.expanded.checked_plot_id.clone(),
@@ -123,6 +127,9 @@ impl NativeSoftwareSourceRecipe {
             largest,
             total,
         })
+    }
+    pub fn planning_image(&self) -> &[u8] {
+        &self.planning_image
     }
     pub fn spec(&self) -> ResidentSoftwareSpec<'_> {
         ResidentSoftwareSpec {
@@ -166,6 +173,16 @@ impl NativeSoftwareSourceRecipe {
             "// Make-checked Source construction; no current Host, Boot, Plan or authority."
         )?;
         writeln!(out, "use conduit_core as c;")?;
+        writeln!(
+            out,
+            "pub fn planning_source_image() -> &'static [u8] {{ &{:?} }}",
+            self.planning_image
+        )?;
+        writeln!(
+            out,
+            "pub fn planning_source_sha256() -> [u8; 32] {{ {:?} }}",
+            c::assigned_plan_payload_digest(&self.planning_image)
+        )?;
         writeln!(out, "pub fn source_identity() -> c::PlotIdentity {{ c::PlotIdentity {{ source_document_id: {:?}.into(), checked_plot_id: {:?}.into(), expanded_plot_id: {:?}.into() }} }}", self.identity.source_document_id.as_str(), self.identity.checked_plot_id.as_str(), self.identity.expanded_plot_id.as_str())?;
         writeln!(out,"use conduit_environment_runtime::appliance::assigned::{{ResidentComputation, ResidentRoles, ResidentSoftwareOffer, ResidentSoftwareSpec, ResidentSourceIdentity}};")?;
         material::write_material(out, &self.computations, &self.texts, &self.offers)?;
