@@ -68,6 +68,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-birth-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+ "conduit-planner",
+ "conduit-plot",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-body"
 version = "0.1.0"
 dependencies = [
@@ -85,6 +99,7 @@ dependencies = [
 name = "conduit-body-make"
 version = "0.1.0"
 dependencies = [
+ "conduit-birth-plot",
  "conduit-body",
  "conduit-core",
  "conduit-face",
