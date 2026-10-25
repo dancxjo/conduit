@@ -20,6 +20,21 @@ test('a claimed source that omits a selected head is refused by actual Git ances
   assert.throws(() => f.capture({ source: 'f'.repeat(40) }));
 });
 
+test('source ancestry cannot smuggle an extra change or omission into the selected tree', async t => {
+  const f = await fixture(t);
+  for (const mutate of [
+    () => writeFile(path.join(f.directory, 'extra'), 'unselected change'),
+    () => writeFile(path.join(f.directory, 'first'), 'silently altered selected change'),
+  ]) {
+    await mutate();
+    f.git('add', '-A'); f.git('commit', '-m', 'unselected tree');
+    const source = f.git('rev-parse', 'HEAD');
+    for (const selected of f.selections) f.git('merge-base', '--is-ancestor', selected.pr.head.sha, source);
+    assert.throws(() => f.capture({ source }), /differs from the selected PR merge tree/);
+    f.git('reset', '--hard', f.source);
+  }
+});
+
 test('draft, failed, forked, stale-base and duplicate PRs cannot enter a train', async t => {
   const f = await fixture(t);
   for (const mutate of [

@@ -119,6 +119,9 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
         selections: selection(manifest.repository, manifest.inputs?.map(p => p.number)),
         run: api(`${base}/actions/runs/${number(runId)}`),
       };
+      const captured = captureTrain({ repository: manifest.repository, source: manifest.source,
+        base: observation.development, selections: observation.selections, directory });
+      if (captured.digest !== manifest.digest) fail('Train selection or reconstructed tree changed');
       return verifyTrainProducts(manifest, observation, products);
     },
   };
