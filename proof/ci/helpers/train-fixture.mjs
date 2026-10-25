@@ -38,4 +38,3 @@ export async function fixture(t) {
     head_branch: manifest.branch, head_sha: source, status: 'completed', conclusion: 'success' } };
   return { directory, git, base, source, selections, capture, manifest, observation };
 }
-

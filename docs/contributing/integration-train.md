@@ -65,6 +65,11 @@ and successful completed Candidate evidence. A newer failed or running attempt
 cannot be replaced with an older green attempt. Missing or ambiguous evidence
 refuses. The bounded manifest is created exclusively; an existing file is
 preserved. Its deterministic train branch name binds the base and selected heads.
+The live development ref is authoritative: GitHub PR metadata can retain an older
+`base.sha` even when its current merge preview contains the new development tip.
+An old metadata value does not replace or invalidate the captured live base.
+Target branch/repository, actual Git ancestry/tree and fresh dev-ref checks still
+must agree.
 
 Once the exact source on that train branch has completed an exhaustive manual
 Integration run, acquire its immutable archives into a new directory:

@@ -23,11 +23,11 @@ function identities(repository, base, inputs) {
   return { repository, base, inputs: result };
 }
 
-function requireReady(identity, pr, run, repository, base) {
+function requireReady(identity, pr, run, repository) {
   require(pr?.number === identity.number && pr.state === 'open' && pr.draft === false && pr.mergeable === true,
     'Train input is not an open, non-draft, mergeable pull request');
   require(pr.head?.sha === identity.head && pr.head?.repo?.full_name === repository &&
-    pr.base?.ref === 'dev' && pr.base?.sha === base && pr.base?.repo?.full_name === repository,
+    pr.base?.ref === 'dev' && sha(pr.base?.sha) && pr.base?.repo?.full_name === repository,
   'Train input head, repository or base changed');
   require(run?.repository?.full_name === repository && run.head_repository?.full_name === repository &&
     run.path === '.github/workflows/candidate.yml' && run.event === 'pull_request' &&
@@ -41,7 +41,7 @@ export function selectTrainInputs({ repository, base, selections }) {
   const selection = identities(repository, base, selections.map(s => ({ number: s.pr?.number, head: s.pr?.head?.sha })));
   for (const input of selection.inputs) {
     const snapshot = selections.find(s => s.pr.number === input.number);
-    requireReady(input, snapshot.pr, snapshot.candidateRun, repository, base);
+    requireReady(input, snapshot.pr, snapshot.candidateRun, repository);
   }
   return { ...selection, branch: `train/${digest(selection)}` };
 }
@@ -120,7 +120,7 @@ export function verifyTrainRun(manifest, { development, selections, run }) {
   require(JSON.stringify(current.inputs) === JSON.stringify(value.inputs), 'Train input set changed');
   for (const input of value.inputs) {
     const snapshot = selections.find(s => s.pr.number === input.number);
-    requireReady(input, snapshot.pr, snapshot.candidateRun, value.repository, value.base);
+    requireReady(input, snapshot.pr, snapshot.candidateRun, value.repository);
   }
   requireManualProof(value, run);
   return { ...value, integrationRun: run.id };
