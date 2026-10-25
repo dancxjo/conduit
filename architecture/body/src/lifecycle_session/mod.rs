@@ -2,8 +2,9 @@
 use crate::AdmissionRefusal;
 use crate::{
     BodyBiographyArchiveSegment, BodyBiographyError, BodyBiographyEvidence, BodyFulfillment,
-    BodyLifecycleError, BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
-    FulfillmentObligation, MembershipRefusal, MembershipState, ResidentPlot, Wake,
+    BodyLifecycleError, BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlanEvidence,
+    BodyPlanSeal, BodyPlanSealRefusal, BodyPlayIdentity, BodyState, FulfillmentObligation,
+    MembershipRefusal, MembershipState, ResidentPlot, Wake,
 };
 use alloc::{vec, vec::Vec};
 use conduit_core::{bind_sign, AuthorityGrantId, BootId, HostId, SignId};
@@ -19,16 +20,16 @@ mod workload;
 
 /// An exact current proposal and its optional admitted play, never a scheduler.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BodyLifecycleRealization {
+pub struct BodyLifecycleRealization<P: BodyPlanEvidence = BodyPlan> {
     pub wake: Wake,
-    pub plan: BodyPlan,
+    pub plan: P,
     pub play: Option<BodyPlayIdentity>,
 }
 
 #[derive(Clone, Debug)]
-pub struct BodyLifecycleSession {
+pub struct BodyLifecycleOwner<P: BodyPlanEvidence> {
     evidence: BodyBiographyEvidence,
-    realization: Option<BodyLifecycleRealization>,
+    realization: Option<BodyLifecycleRealization<P>>,
     foreground: Option<ResidentPlot>,
     pub(crate) pending_archives: Vec<BodyBiographyArchiveSegment>,
 }
@@ -40,6 +41,7 @@ pub enum BodyLifecycleSessionError {
     Admission(AdmissionRefusal),
     Lifecycle(BodyLifecycleError),
     Plan(BodyPlanError),
+    PlanSeal(BodyPlanSealRefusal),
     Membership(MembershipRefusal),
     NotLulled,
     NoProposal,
@@ -53,7 +55,13 @@ pub enum BodyLifecycleSessionError {
     ArchivePersistenceRequired,
 }
 
-impl BodyLifecycleSession {
+/// Ordinary hosted owner retaining inspectable rich Plot Plans.
+pub type BodyLifecycleSession = BodyLifecycleOwner<BodyPlan>;
+/// The same lifecycle owner retaining local immutable validation evidence.
+/// Execution admission remains separate; this cannot deserialize a Plan seal.
+pub type SealedBodyLifecycleSession = BodyLifecycleOwner<BodyPlanSeal>;
+
+impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
     /// A Crèche handoff or retained body may be opened for inspection. Only a
     /// Lulled Body can subsequently mutate; Fulfilled remains terminal.
     /// An Awake snapshot alone never proves its previous Play has ended.
@@ -91,7 +99,7 @@ impl BodyLifecycleSession {
     pub fn evidence(&self) -> &BodyBiographyEvidence {
         &self.evidence
     }
-    pub fn realization(&self) -> Option<&BodyLifecycleRealization> {
+    pub fn realization(&self) -> Option<&BodyLifecycleRealization<P>> {
         self.realization.as_ref()
     }
 
@@ -228,14 +236,15 @@ impl BodyLifecycleSession {
             || rejections.iter().any(|rejection| {
                 rejection.host_id != *host
                     || rejection.boot_id != *boot
-                    || rejection.plan_id.as_ref() != Some(&current.plan.plan_id)
+                    || rejection.plan_id.as_ref() != Some(current.plan.plan_id())
                     || rejection.checked_plot_ids.is_empty()
                     || rejection.checked_plot_ids.iter().any(|checked| {
                         !current
                             .plan
-                            .plots
+                            .workset()
+                            .plots()
                             .iter()
-                            .any(|plot| &plot.plot.checked_plot_id == checked)
+                            .any(|plot| &plot.checked_plot_id == checked)
                     })
             })
         {

@@ -107,10 +107,20 @@ with 142,584 bytes for a rich Plan clone alone. The CPU profile now enforces a
 admission figures. The existing sensor-outcome kernel proof checks the measured
 validation path and still passes all seven transcript scenarios.
 
-The rich Plan itself remains owned and large. This change does not establish
-that Root, biography, sampling, timed display, network SDK, planning scratch,
-and required lifecycle evidence coexist within the MCU budget. Compact Plan
-ownership and complete preparation/steady-state accounting remain required.
+The native Body owner now retains a private immutable `BodyPlanSeal` after
+ordinary Plan validation, using the same lifecycle implementation as the rich
+Plan owner. On the actual sampling-plan CPU measurement, seal capture and a
+retained clone each peak at **948 bytes**. The seal preserves identity and
+current Host/Boot/offer scope; it is local validation evidence, not serialized
+execution material or Play authority. Capacity and unsupported nested execution
+are explicit refusals. Tests compare rich/sealed proposal, startup, Play and
+lull behavior, and reject forged or deserialized seals.
+
+The rich Plan is still needed during construction and execution preparation.
+These host measurements do not establish that Root, biography, sampling, timed
+display, network SDK, planning scratch, and required lifecycle evidence coexist
+within the MCU budget. Compact construction and complete preparation/steady-state
+accounting remain required.
 
 ## Physical local-installation check
 

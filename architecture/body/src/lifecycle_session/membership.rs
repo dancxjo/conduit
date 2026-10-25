@@ -1,4 +1,4 @@
-use super::{sign, BodyLifecycleSession, BodyLifecycleSessionError};
+use super::{sign, BodyLifecycleSessionError};
 #[cfg(feature = "authenticated-admission")]
 use crate::{
     AdmissionManager, AdmissionSigns, MembershipCredential, SpawnAdmissionProof,
@@ -11,7 +11,7 @@ use alloc::vec::Vec;
 use conduit_core::HostAdvertisement;
 use conduit_core::{BootId, HostId};
 
-impl BodyLifecycleSession {
+impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
     #[cfg(feature = "authenticated-admission")]
     #[allow(clippy::too_many_arguments)]
     pub fn issue_invitation(

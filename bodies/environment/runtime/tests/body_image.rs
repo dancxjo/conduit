@@ -114,3 +114,17 @@ fn invalid_image_scope_and_sequence_exhaustion_refuse_installation() {
         E::HostScope
     );
 }
+
+#[test]
+fn sealed_image_owner_uses_the_same_membership_evidence_as_the_hosted_owner() {
+    let evidence = image(7);
+    let initialized = root("boot/current");
+    let hosted = open_installed_image(evidence.clone(), &initialized).unwrap();
+    let retained = conduit_environment_runtime::body_image::open_installed_image_sealed(
+        evidence,
+        &initialized,
+    )
+    .unwrap();
+    assert_eq!(hosted.evidence(), retained.evidence());
+    assert!(retained.realization().is_none());
+}

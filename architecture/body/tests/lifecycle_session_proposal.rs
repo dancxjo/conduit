@@ -128,3 +128,53 @@ fn stale_authority_boot_cannot_publish_a_proposal() {
     );
     assert_eq!(session.evidence(), &before);
 }
+
+#[test]
+fn sealed_owner_shares_proposal_start_and_lull_history_with_the_rich_owner() {
+    use conduit_body::{BodyPlanEvidence, SealedBodyLifecycleSession};
+    let (mut rich, partition, host, boot) = fixture();
+    let mut compact =
+        SealedBodyLifecycleSession::open_admitted(rich.evidence().clone(), &host, &boot).unwrap();
+    rich.propose(vec![partition.clone()], &host, &boot).unwrap();
+    compact.propose(vec![partition], &host, &boot).unwrap();
+    assert_eq!(rich.evidence(), compact.evidence());
+    let expected = rich.realization().unwrap();
+    let retained = compact.realization().unwrap();
+    assert_eq!(expected.plan.plan_id, *retained.plan.plan_id());
+    assert_eq!(expected.wake, retained.wake);
+    let play = conduit_body::BodyPlayIdentity::bind(&expected.plan, 1);
+    let started = expected
+        .wake
+        .body_plan_ready(
+            &expected.plan,
+            conduit_core::bind_sign(&host, &boot, Some(&play.active_play_id), 0).sign_id,
+        )
+        .unwrap()
+        .body_play_started(
+            &expected.plan,
+            &play,
+            conduit_core::bind_sign(&host, &boot, Some(&play.active_play_id), 1).sign_id,
+        )
+        .unwrap();
+    rich.started(&host, &boot, play.clone(), started.clone())
+        .unwrap();
+    compact
+        .started(&host, &boot, play.clone(), started)
+        .unwrap();
+    assert_eq!(rich.evidence(), compact.evidence());
+    let startup = rich
+        .evidence()
+        .startup_for_play(&rich.realization().unwrap().plan, &play)
+        .unwrap();
+    assert_eq!(
+        compact
+            .evidence()
+            .startup_for_play(&compact.realization().unwrap().plan, &play)
+            .unwrap(),
+        startup
+    );
+    rich.lull(&host, &boot, Some(&play)).unwrap();
+    compact.lull(&host, &boot, Some(&play)).unwrap();
+    assert_eq!(rich.evidence(), compact.evidence());
+    assert!(compact.realization().is_none());
+}

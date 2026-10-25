@@ -28,7 +28,9 @@ pub struct BodyPlan {
     pub body_time_requirement: Option<BodyTimeRequirement>,
 }
 
+mod seal;
 mod validation;
+pub use seal::*;
 
 pub const MAX_BODY_MASK_TOPOLOGIES: usize = 16;
 pub const MAX_BODY_MASK_CHAINS: usize = 8;
@@ -227,25 +229,25 @@ impl BodyPlan {
 }
 
 impl BodyPlayIdentity {
-    pub fn bind(plan: &BodyPlan, play_sequence: u64) -> Self {
+    pub fn bind(plan: &impl BodyPlanEvidence, play_sequence: u64) -> Self {
         Self {
             active_play_id: bind_body_play(
-                &plan.body_id,
-                &plan.wake_id,
-                &plan.plan_id,
+                plan.body_id(),
+                plan.wake_id(),
+                plan.plan_id(),
                 play_sequence,
             ),
-            body_id: plan.body_id.clone(),
-            wake_id: plan.wake_id.clone(),
-            plan_id: plan.plan_id.clone(),
+            body_id: plan.body_id().clone(),
+            wake_id: plan.wake_id().clone(),
+            plan_id: plan.plan_id().clone(),
             play_sequence,
         }
     }
 
-    pub fn validate_for(&self, plan: &BodyPlan) -> bool {
-        self.body_id == plan.body_id
-            && self.wake_id == plan.wake_id
-            && self.plan_id == plan.plan_id
+    pub fn validate_for(&self, plan: &impl BodyPlanEvidence) -> bool {
+        &self.body_id == plan.body_id()
+            && &self.wake_id == plan.wake_id()
+            && &self.plan_id == plan.plan_id()
             && self.active_play_id
                 == bind_body_play(
                     &self.body_id,

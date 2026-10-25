@@ -1,10 +1,10 @@
 //! Trusted installed-image boundary. Membership is separate from Play.
 use alloc::boxed::Box;
-use conduit_body::{BodyBiographyEvidence, BodyLifecycleSession};
+use conduit_body::{BodyBiographyEvidence, SealedBodyLifecycleSession};
 
 pub fn load(
     root: &crate::native_root::NativeRoot,
-) -> Result<Box<BodyLifecycleSession>, &'static str> {
+) -> Result<Box<SealedBodyLifecycleSession>, &'static str> {
     let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/body-biography.json"));
     if bytes.len() > 8192 {
         return Err("body-image-bound");
@@ -13,8 +13,11 @@ pub fn load(
         serde_json::from_slice(bytes).map_err(|_| "body-image-representation")?;
     let initialized = root.advertisement().map_err(|_| "body-image-root-scope")?;
     let owner = Box::new(
-        conduit_environment_runtime::body_image::open_installed_image(evidence, &initialized)
-            .map_err(|_| "body-image-installation")?,
+        conduit_environment_runtime::body_image::open_installed_image_sealed(
+            evidence,
+            &initialized,
+        )
+        .map_err(|_| "body-image-installation")?,
     );
     drop(initialized);
     let memory = esp_alloc::HEAP.stats();

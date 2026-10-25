@@ -1,8 +1,8 @@
-use super::{sign, BodyLifecycleSession, BodyLifecycleSessionError};
+use super::{sign, BodyLifecycleSessionError};
 use crate::{BodyState, ResidentPlot};
 use conduit_core::{BootId, HostId};
 
-impl BodyLifecycleSession {
+impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
     /// Add checked meaning while Lulled. Current play replacement is a separate
     /// Host-orchestrated lifecycle; this cannot mutate an admitted plan.
     pub fn admit_plot(

@@ -21,7 +21,7 @@ type DeviceProviders =
     crate::native_worker::RetiredProviders<Esp32PulseCapture<'static>, crate::native_wait::EspWait>;
 pub struct NativeRoot {
     #[cfg(feature = "body-image-root")]
-    body: Option<alloc::boxed::Box<conduit_body::BodyLifecycleSession>>,
+    body: Option<alloc::boxed::Box<conduit_body::SealedBodyLifecycleSession>>,
     retired_native: Option<DeviceProviders>,
     worker: Option<crate::native_task::Handle>,
     #[cfg(feature = "native-face-root")]

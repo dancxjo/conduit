@@ -54,7 +54,12 @@ fn start(
         .unwrap()
         .body_play_started(&plan, &play, sign("play", sequence))
         .unwrap();
+    let seal = BodyPlanSeal::capture(&plan).unwrap();
     history.append_wake(body, started, next(history)).unwrap();
+    assert_eq!(
+        history.startup_for_play(&plan, &play),
+        history.startup_for_play(&seal, &play)
+    );
     (plan, play)
 }
 fn wake(history: &mut BodyBiographyEvidence, sequence: u64) -> (BodyPlan, BodyPlayIdentity) {

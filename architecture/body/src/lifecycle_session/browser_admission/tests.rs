@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership,
-    CandidateObservation, DiscoveryProofId, MembershipProofId, PartId,
+    AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
+    BodyMembership, CandidateObservation, DiscoveryProofId, MembershipProofId, PartId,
 };
 use alloc::vec;
 use conduit_core::{HostProfileId, OfferGeneration, PROTOCOL_VERSION};

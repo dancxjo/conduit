@@ -121,6 +121,32 @@ fn run(scenario: usize, overnight: bool) {
             let (result, validation_memory) =
                 allocation_probe::observe(|| body_plan.validate_for(&wake));
             result.unwrap();
+            let (retained, seal_memory) = allocation_probe::observe(|| {
+                conduit_body::BodyPlanSeal::capture(&body_plan).unwrap()
+            });
+            let (copy, retained_memory) = allocation_probe::observe(|| retained.clone());
+            drop(copy);
+            assert!(seal_memory.peak_bytes <= 8192);
+            assert!(retained_memory.peak_bytes <= 8192);
+            let expected_play = conduit_body::BodyPlayIdentity::bind(&body_plan, 1);
+            let expected = wake
+                .body_plan_ready(&body_plan, "ready/seal".into())
+                .unwrap()
+                .body_play_started(&body_plan, &expected_play, "started/seal".into())
+                .unwrap();
+            drop(body_plan);
+            let play = conduit_body::BodyPlayIdentity::bind(&retained, 1);
+            assert_eq!(play, expected_play);
+            let compact = wake
+                .body_plan_ready(&retained, "ready/seal".into())
+                .unwrap()
+                .body_play_started(&retained, &play, "started/seal".into())
+                .unwrap();
+            assert_eq!(compact, expected);
+            eprintln!(
+                "environment_body_plan_seal_capture_peak={} retained_clone_peak={}",
+                seal_memory.peak_bytes, retained_memory.peak_bytes
+            );
             // Revalidation may hash semantic chunks and sort bounded references;
             // it must not duplicate the appliance's rich nested Plan.
             assert!(

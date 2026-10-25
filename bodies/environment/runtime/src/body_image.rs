@@ -2,7 +2,8 @@
 //! This is a trusted local installation boundary, never remote admission.
 use conduit_body::{
     AuthenticatedHostObservation, BodyBiographyEvidence, BodyBiographyRecordKind,
-    BodyLifecycleSession, BodyState, MembershipProofId, PartId,
+    BodyLifecycleOwner, BodyLifecycleSession, BodyPlanEvidence, BodyState, MembershipProofId,
+    PartId, SealedBodyLifecycleSession,
 };
 use conduit_core::{bind_sign, HostAdvertisement};
 
@@ -21,9 +22,25 @@ pub enum ImageInstallationRefusal {
 /// is granted here. Existing or resumed membership uses ordinary continuity,
 /// not this first-install entrance.
 pub fn open_installed_image(
-    mut evidence: BodyBiographyEvidence,
+    evidence: BodyBiographyEvidence,
     initialized: &HostAdvertisement,
 ) -> Result<BodyLifecycleSession, ImageInstallationRefusal> {
+    open_installed::<conduit_body::BodyPlan>(evidence, initialized)
+}
+
+/// The same installed-image admission, retaining bounded immutable Plan seals
+/// when later proposals are prepared. It does not plan or start the image.
+pub fn open_installed_image_sealed(
+    evidence: BodyBiographyEvidence,
+    initialized: &HostAdvertisement,
+) -> Result<SealedBodyLifecycleSession, ImageInstallationRefusal> {
+    open_installed::<conduit_body::BodyPlanSeal>(evidence, initialized)
+}
+
+fn open_installed<P: BodyPlanEvidence>(
+    mut evidence: BodyBiographyEvidence,
+    initialized: &HostAdvertisement,
+) -> Result<BodyLifecycleOwner<P>, ImageInstallationRefusal> {
     use ImageInstallationRefusal as E;
     evidence.validate().map_err(|_| E::Biography)?;
     if evidence.body.state != BodyState::Lulled
@@ -90,6 +107,6 @@ pub fn open_installed_image(
             &[(admitted, admitted_sequence), (present, present_sequence)],
         )
         .map_err(|_| E::Biography)?;
-    BodyLifecycleSession::open_admitted(evidence, &initialized.host_id, &initialized.boot_id)
+    BodyLifecycleOwner::<P>::open_admitted(evidence, &initialized.host_id, &initialized.boot_id)
         .map_err(|_| E::Biography)
 }
