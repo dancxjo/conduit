@@ -9,10 +9,14 @@ mod creche_attachment;
 mod creche_planning;
 #[path = "creche_worker.rs"]
 mod creche_worker;
+#[path = "creche_workset.rs"]
+mod creche_workset;
 #[path = "participants/invited.rs"]
 mod invited;
 #[path = "participants/mod.rs"]
 mod participants;
+#[path = "retained_sources.rs"]
+mod retained_sources;
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
@@ -271,7 +275,9 @@ impl Owner {
             None,
             None,
         );
-        self.execution_persistence_pending = result.is_err() && self.last_execution.is_some();
+        // Any unretained biography transition blocks another execution, including
+        // workload admission before the first Play.
+        self.execution_persistence_pending = result.is_err();
         result
     }
     /// A readable name may enter only with the checked source for the exact

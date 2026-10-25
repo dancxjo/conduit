@@ -46,6 +46,21 @@ fn fixture(
     CrecheEncounterController,
     Arc<AtomicUsize>,
 ) {
+    fixture_with_source(
+        include_str!("../../../../../plots/creche/main.conduit"),
+        fail_retirement,
+    )
+}
+pub(in crate::durable_host::owner::controller) fn fixture_with_source(
+    source: &str,
+    fail_retirement: bool,
+) -> (
+    Owner,
+    std::path::PathBuf,
+    CrecheEncounterAdapter,
+    CrecheEncounterController,
+    Arc<AtomicUsize>,
+) {
     let draft = draft_fixture::encounter("Child Body");
     let profiles = draft
         .construction()
@@ -68,11 +83,10 @@ fn fixture(
         Box::new(Custody(retired.clone(), fail_retirement)),
     )
     .unwrap();
-    let checked =
-        crate::plot_source::parse(include_str!("../../../../../plots/creche/main.conduit"))
-            .unwrap()
-            .expand_entry_for_authoring()
-            .unwrap();
+    let checked = crate::plot_source::parse(source)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
     let resident = ResidentPlot::new(
         checked.expanded.source_document_id.clone(),
         checked.expanded.checked_plot_id.clone(),

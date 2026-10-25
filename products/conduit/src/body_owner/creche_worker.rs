@@ -354,4 +354,4 @@ impl BodyForeOutputAdapter for OneOutcome {
 
 #[cfg(test)]
 #[path = "creche_worker/tests.rs"]
-mod tests;
+pub(super) mod tests;

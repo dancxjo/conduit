@@ -103,16 +103,47 @@ impl CanonicalSource {
     ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
         let checked = self.check()?;
         let entry = self.authored_entry_name()?;
-        let Some(backs) = dsp_source_backs_for(&checked)? else {
+        self.expand_checked_for_authoring(&checked, entry)
+    }
+
+    // The library does not own a durable Body; the binary resolves exact
+    // checked identities retained in its complete workset through this entrance.
+    #[allow(dead_code)]
+    pub(crate) fn expand_identity_for_authoring(
+        &self,
+        source: &conduit_core::SourceDocumentId,
+        plot: &conduit_core::CheckedPlotId,
+    ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
+        let checked = self.check()?;
+        if &checked.source_document_id != source {
+            return Err("retained Source document identity differs".into());
+        }
+        let mut selected = checked.plots.iter().filter(|p| &p.checked_plot_id == plot);
+        let entry = &selected
+            .next()
+            .ok_or("retained checked Plot absent from Source")?
+            .name;
+        if selected.next().is_some() {
+            return Err("retained checked Plot identity is ambiguous".into());
+        }
+        self.expand_checked_for_authoring(&checked, entry)
+    }
+
+    fn expand_checked_for_authoring(
+        &self,
+        checked: &conduit_plot::CheckedSyntaxDocument,
+        entry: &str,
+    ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
+        let Some(backs) = dsp_source_backs_for(checked)? else {
             return conduit_plot::expand_canonical_plot_for_authoring(
-                &checked,
+                checked,
                 entry,
                 &self.profiles,
             )
             .map_err(|diagnostic| diagnostic.to_string());
         };
         conduit_plot::expand_canonical_plot_for_authoring_with_backs(
-            &checked,
+            checked,
             entry,
             &self.profiles,
             backs,
