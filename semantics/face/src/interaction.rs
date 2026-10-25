@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    face::validate_id, identity::hash_string, Face, FaceActionRefusal, ManifestationLifecycle,
-    MaskShow,
+    face::validate_id, identity::hash_string, mask_show::ValidatedFace, Face, FaceActionRefusal,
+    ManifestationLifecycle, MaskShow,
 };
 
 pub const FACE_INTERACTION_VALUE_KIND: &str = "face/interaction@2";
@@ -111,9 +111,8 @@ impl FaceInteraction {
         arguments: Vec<FaceInteractionArgument>,
         sequence: u64,
     ) -> Result<Self, FaceInteractionRefusal> {
-        face.validate()
-            .map_err(|_| FaceInteractionRefusal::InvalidFace)?;
-        validate_show(face, show)?;
+        let checked = ValidatedFace::new(face).map_err(|_| FaceInteractionRefusal::InvalidFace)?;
+        validate_show(&checked, show)?;
         let action = face
             .resolve_action(face.revision, action_id)
             .map_err(map_action_refusal)?;
@@ -288,8 +287,8 @@ fn map_value_refusal(refusal: ValueConstraintRefusal) -> FaceInteractionRefusal 
     }
 }
 
-fn validate_show(face: &Face, show: &MaskShow) -> Result<(), FaceInteractionRefusal> {
-    show.validate(face)
+fn validate_show(face: &ValidatedFace<'_>, show: &MaskShow) -> Result<(), FaceInteractionRefusal> {
+    show.validate_validated(face)
         .map_err(|_| FaceInteractionRefusal::StaleShow)?;
     match show.show.lifecycle {
         ManifestationLifecycle::Available => Ok(()),
