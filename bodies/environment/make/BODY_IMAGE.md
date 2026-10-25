@@ -21,3 +21,35 @@ Check the construction contract with:
 ```sh
 cargo xtask prove environment body-image
 ```
+
+## Running this draft
+
+From a checkout of this branch, run:
+
+```sh
+cargo xtask prove environment body-image
+```
+
+This runs the build-side birth/biography contract tests and strict Clippy.
+It does **not** generate a flashable appliance image. There is no complete
+appliance image-generation command on this branch yet; the existing
+`prove environment display-esp32` builds a display diagnostic only and must
+not be presented as the body appliance.
+
+The image-generation entrance must eventually perform these steps together:
+
+1. Check the actual environmental sampling and display Plots and Masks.
+2. Create and retain the construction UUID and attributable birth Sign;
+   call `PreparedBodyImage::prepare` to reuse Crèche selection and naming.
+3. Link the biography and checked construction material into the ESP32 image,
+   keeping future Boot identities, resource possession and effect authority out
+   of the build artifact.
+4. On the physical MCU, initialize actual resources, admit the local host,
+   bind its fresh Boot, plan and start the body through the ordinary kernel.
+5. Serve current measurements and ordinary body invitations over the AP while
+   sampling and displaying temperature/humidity without another host.
+
+The final build command, output image path and deployment procedure will be
+recorded here when that entrance exists and has been exercised. A separate
+agent owns the Crèche plot; this draft consumes its existing library contract
+and does not implement or replace that plot.
