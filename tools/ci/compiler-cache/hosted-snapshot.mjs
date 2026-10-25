@@ -32,16 +32,23 @@ for p in lock['package']:
  if p['source']!='registry+https://github.com/rust-lang/crates.io-index': raise RuntimeError('unsupported registry or git dependency')
  name=p['name']+'-'+p['version']; expected=checks[(p['name'],p['version'])]
  candidates=list(cache.glob('*/'+name+'.crate'))
- valid=[f for f in candidates if f.stat().st_size<=256*1024*1024 and hashlib.sha256(f.read_bytes()).hexdigest()==expected]
- if not valid: raise RuntimeError('missing authenticated crate archive: '+name)
- data=valid[0].read_bytes(); destination=root/name; destination.mkdir(); hashes={}
- with tarfile.open(fileobj=io.BytesIO(data),mode='r:gz') as archive:
-  members=archive.getmembers()
-  for item in members:
+ data=None
+ for candidate in candidates:
+  if candidate.stat().st_size>256*1024*1024: continue
+  with candidate.open('rb') as source: candidate_bytes=source.read(256*1024*1024+1)
+  if len(candidate_bytes)<=256*1024*1024 and hashlib.sha256(candidate_bytes).hexdigest()==expected:
+   data=candidate_bytes; break
+ if data is None: raise RuntimeError('missing authenticated crate archive: '+name)
+ destination=root/name; destination.mkdir(); hashes={}
+ with tarfile.open(fileobj=io.BytesIO(data),mode='r|gz') as archive:
+  member_count=0
+  for item in archive:
+   member_count+=1
+   if member_count>100000: raise RuntimeError('vendor member bound')
    rel=pathlib.PurePosixPath(item.name)
    if not rel.parts or rel.parts[0]!=name or '..' in rel.parts or rel.is_absolute(): raise RuntimeError('unsafe crate path')
    if item.isdir(): continue
-   if not item.isfile() or item.size>128*1024*1024: raise RuntimeError('unsupported crate member')
+   if not item.isfile() or item.issparse() or item.size>128*1024*1024: raise RuntimeError('unsupported crate member')
    rel=pathlib.Path(*rel.parts[1:]); total+=item.size; count+=1
    if total>3*1024**3 or count>100000 or not rel.parts: raise RuntimeError('vendor bound')
    target=destination/rel; target.parent.mkdir(parents=True,exist_ok=True)
