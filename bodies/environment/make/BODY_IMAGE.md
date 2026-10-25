@@ -100,6 +100,14 @@ semantic-contract payloads instead of duplicating them into hash scratch.
 Frozen historical vectors cover UTF-8, embedded zeroes, structured payloads,
 boundary lengths, and equal-length content changes.
 
+The fragment encoder also accepts a counted sequence of individually borrowed
+placements. Extra, missing, or unrepresentable counts refuse finalization;
+records retain their supplied canonical order. A 24-placement CPU storage proof
+peaks at **16,774 bytes** while materializing and retiring one placement at a
+time, versus **232,165 bytes** retaining all placements. This is an encoding
+seam, not planner admission: ordinary planning still returns a rich Plan and
+has not yet integrated this retirement path.
+
 The actual environmental sampling Plan's CPU measurement records **593 bytes**
 of additional peak heap for Body-plan validation (previously 33,163), compared
 with 142,584 bytes for a rich Plan clone alone. The CPU profile now enforces a

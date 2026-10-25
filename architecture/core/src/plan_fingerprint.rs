@@ -34,7 +34,10 @@ fn push_optional_string(
 }
 
 mod fragment;
-pub use fragment::compute_fragment_id;
+pub use fragment::{
+    compute_fragment_id, FragmentFingerprintBuilder, FragmentFingerprintHeader,
+    FragmentFingerprintRefusal, FragmentFingerprintTail,
+};
 
 pub(crate) fn push_configuration_value(
     canonical: &mut impl crate::canonical_bytes::CanonicalSink,

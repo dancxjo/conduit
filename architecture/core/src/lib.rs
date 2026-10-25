@@ -71,7 +71,10 @@ mod shared_pool;
 mod state_delay;
 mod stream_sampling;
 use plan_fingerprint::compute_plan_id;
-pub use plan_fingerprint::{compute_checked_front_fingerprint, compute_fragment_id};
+pub use plan_fingerprint::{
+    compute_checked_front_fingerprint, compute_fragment_id, FragmentFingerprintBuilder,
+    FragmentFingerprintHeader, FragmentFingerprintRefusal, FragmentFingerprintTail,
+};
 mod structured_info;
 mod temporal;
 mod temporal_civil_conversion;
