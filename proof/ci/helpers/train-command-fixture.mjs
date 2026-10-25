@@ -29,4 +29,3 @@ export async function commands(t) {
   const api = createTrainCommands({ command, directory: f.directory });
   return { ...f, output, calls, runs, api, command, filename: path.join(output, 'train.json') };
 }
-

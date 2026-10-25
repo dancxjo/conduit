@@ -35,7 +35,7 @@ test('source ancestry cannot smuggle an extra change or omission into the select
   }
 });
 
-test('draft, failed, forked, stale-base and duplicate PRs cannot enter a train', async t => {
+test('draft, failed, forked, wrong-target and duplicate PRs cannot enter a train', async t => {
   const f = await fixture(t);
   for (const mutate of [
     s => { s[0].pr.draft = true; },
@@ -45,12 +45,21 @@ test('draft, failed, forked, stale-base and duplicate PRs cannot enter a train',
     s => { s[0].candidateRun.head_sha = f.base; },
     s => { s[0].candidateRun.pull_requests = []; },
     s => { s[0].pr.head.repo = { full_name: 'fork/conduit' }; },
-    s => { s[0].pr.base.sha = f.source; },
+    s => { s[0].pr.base.ref = 'main'; },
     s => { s[1] = s[0]; },
   ]) {
     const selections = structuredClone(f.selections); mutate(selections);
     assert.throws(() => f.capture({ selections }));
   }
+});
+
+test('stale PR base metadata cannot override the captured live development ref', async t => {
+  const f = await fixture(t);
+  const selections = structuredClone(f.selections);
+  selections[0].pr.base.sha = 'c'.repeat(40);
+  assert.deepEqual(f.capture({ selections }), f.manifest);
+  assert.equal(verifyTrainRun(f.manifest, { ...f.observation, selections }).base, f.base);
+  assert.throws(() => verifyTrainRun(f.manifest, { ...f.observation, development: f.source }), /Development advanced/);
 });
 
 test('changed development or selected PR invalidates landing evidence', async t => {
