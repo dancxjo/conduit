@@ -273,6 +273,9 @@ conduitos-compositor-core = { path = "compositor-core" }
 conduitos-creche-core = { path = "creche-core" }
 
 [dev-dependencies]
+# Synthetic recorded-history Face through the existing native Mask/scanout path.
+conduit-environment-history = { path = "../../bodies/environment/history" }
+conduit-environment-runtime = { path = "../../bodies/environment/runtime" }
 conduitos-creche-core = { path = "creche-core" }
 conduitos-compositor-core = { path = "compositor-core" }
 conduit-std-host = { path = "../std" }

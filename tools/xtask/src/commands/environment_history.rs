@@ -4,11 +4,24 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
     match args {
         [name] if name == "history" => Some(prove(root)),
         [name] if name == "history-commit" => Some(committed(root)),
+        [name] if name == "history-native" => Some(native(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn native(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor-core",
+        "native_mask_play::history_tests",
+    ]))
 }
 fn command(root: &Path, operation: &str) -> Command {
     let mut command = Command::new("cargo");

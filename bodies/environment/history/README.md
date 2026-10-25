@@ -53,6 +53,19 @@ absence, explicit gaps, source inspection and mobile fit. Its screenshots prove
 that fixture's HTML rendering, not a joined browser Host or physical readings.
 Native scene bytes are not native rendered pixels or Pi scanout evidence.
 
+The native CPU integration proof uses the existing checked native graphical
+Mask Plan, production kernel and compositor rather than another Mask runner:
+
+```sh
+cargo +stable xtask prove environment history-native
+```
+
+It supplies a synthetic recording Face to the pending renderer, rasterizes the
+history scene into retained CPU pixels and completes the original renderer only
+with compositor-owned scanout acknowledgement. Its Host offers and display are
+fixtures. It does not install a native Host, join the MCU Body or establish
+physical Pi/HDMI scanout.
+
 This is hosted preparation and deterministic content/Mask proof. Fragment
 construction allocates; complete memory/work admission remains the integrating
 Host's responsibility. Neither decoding nor Face construction establishes an

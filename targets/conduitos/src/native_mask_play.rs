@@ -8,6 +8,8 @@ mod interaction;
 mod prepared;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod history_tests;
 #[cfg(any(test, feature = "native-compositor-core"))]
 use backs::MaskBack;
 #[cfg(any(test, feature = "native-compositor-core"))]

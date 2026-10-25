@@ -119,6 +119,15 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	# Standalone environmental packages remain separate workspaces when used
+	# by the hosted native Mask integration proof.
+	"bodies/environment/history",
+	"bodies/environment/face",
+	"bodies/environment/runtime",
+	"plots/seven-segment-mask",
+	"mechanisms/io/pulse-capture",
+	"mechanisms/io/tm1637",
+	"targets/std/resource-snapshot",
 	"targets/conduitos/mask-service",
 	"targets/conduitos/tls-service",
 	"targets/conduitos/network-service",
