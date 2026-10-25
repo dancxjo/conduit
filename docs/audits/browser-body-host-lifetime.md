@@ -43,3 +43,12 @@ Review correction: the initial passing fixture compared synchronously after
 callback invocation. That snapshot did not cover later promise continuations.
 The strengthened case retains both immediate and post-settlement comparisons;
 the earlier packet remains evidence of its narrower assertions only.
+
+Current-dev validation: after merging dev `d3356f28a` into this focused proof,
+source `ad37ef411ebe3b06a3e2c078675b142ee7c761e4` built the production release
+WASM with the repository browser settings and passed the same pinned Chromium
+case with one worker and zero retries. The fixture confirms the loaded WASM
+digest `5108d6c53b35f1a739f3d91c01321e4ecb998a59858f7056e3ab8a0b5019aaf8`;
+the exact tested bytes, receipt and logs are retained outside Git. The case is
+registered in the regular Playwright configuration used by the existing browser
+proof entrance. This remains local execution, not Candidate or Integration.
