@@ -269,7 +269,14 @@ impl ReviewedBuilderBackend for LinuxSourceBuilder {
                 "CONDUIT_CONDUITOS_TARGET_ROOT",
                 workspace.join("conduitos-target"),
             )
-            .env("CARGO_BUILD_JOBS", bounds.maximum_processes.to_string())
+            // The monitored process budget includes Cargo, xtask, linkers and
+            // build scripts. Giving every slot to rustc jobs exhausts it before
+            // ordinary driver overhead can run. Keep finite headroom and avoid
+            // multiplying this Host's compiler memory demand on large machines.
+            .env(
+                "CARGO_BUILD_JOBS",
+                (bounds.maximum_processes / 4).clamp(1, 4).to_string(),
+            )
             .env_remove("RUSTC")
             .env_remove("RUSTC_WRAPPER")
             .env_remove("RUSTC_WORKSPACE_WRAPPER")
