@@ -299,3 +299,6 @@ pub use parsec_instruction_frame::{
 };
 mod parsec_input_instruction_producer;
 pub use parsec_input_instruction_producer::*;
+
+mod collection_facts;
+pub use collection_facts::CollectionFactsRefusal;
