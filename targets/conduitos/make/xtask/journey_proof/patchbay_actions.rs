@@ -1,12 +1,13 @@
 //! Real offered Patchbay actions, correlated with the guest's current Face/Show.
 use super::super::{qemu_artifacts::Artifacts, qmp};
 use super::live_serial;
-use super::{face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError};
+use super::{ConduitosError, face_correspondence, hid_qmp, io_error, journey_input, refusal};
 use conduit_face::Face;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
 mod checked_source;
+mod observation;
 mod selection;
 mod source_editor;
 
@@ -260,7 +261,7 @@ fn submit(
                 child,
                 "patchbay-action-timeout",
                 "patchbay-action",
-                |text| Ok(face_correspondence::records(text, ACTION)?.len() > count),
+                |text| observation::action_observed(text, count),
             )
         },
     )?;
