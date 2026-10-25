@@ -119,6 +119,46 @@ fn indexed_appliance_preserves_the_complete_plan_and_refusals_without_loading_th
             )
         });
         assert_eq!(indexed, borrowed, "scenario {scenario}");
+        let (compact, compact_memory) = allocation_probe::observe(|| {
+            conduit_planner::indexed_source::plan_compact_with_connection_limits(
+                &image,
+                core::slice::from_ref(&host),
+                &placements,
+                &bases,
+                options,
+                &connections,
+            )
+        });
+        match (&borrowed, compact) {
+            (Ok(expected), Ok(compact)) => {
+                assert_eq!(compact.plan_id(), &expected.plan_id);
+                assert_eq!(compact.materialize().unwrap(), *expected);
+                for (fi, fragment) in expected.fragments.iter().enumerate() {
+                    assert_eq!(compact.fragment_id(fi), Some(&fragment.fragment_id));
+                    for (pi, gear) in fragment.placements.iter().enumerate() {
+                        compact
+                            .with_placement(fi, pi, |complete| assert_eq!(complete, gear))
+                            .unwrap();
+                    }
+                }
+                assert!(compact.with_placement(usize::MAX, 0, |_| ()).is_err());
+                assert!(
+                    compact_memory.peak_bytes <= 192 * 1024,
+                    "{compact_memory:?}"
+                );
+                assert!(
+                    compact_memory.peak_bytes < indexed_memory.peak_bytes,
+                    "compact={compact_memory:?} indexed={indexed_memory:?}"
+                );
+                eprintln!(
+                    "compact_indexed_planning_peak={}",
+                    compact_memory.peak_bytes
+                );
+            }
+            (Err(expected), Err(actual)) => assert_eq!(&actual, expected),
+            _ => panic!("compact result differs in scenario {scenario}"),
+        }
+
         if scenario == 0 {
             assert!(c::verify_plan(indexed.as_ref().unwrap()));
             // Include a decoded graph's backing in the comparison window. The

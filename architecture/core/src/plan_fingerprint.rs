@@ -264,7 +264,8 @@ fn push_admitted_line(
     canonical.push(line.contract.security as u8);
 }
 
-pub(crate) fn compute_plan_id(
+/// Canonical identity encoding only; does not validate commitments or grant authority.
+pub fn compute_plan_id(
     plot_identity: &PlotIdentity,
     realization_backs: &[PlotBack],
     activations: &[PlannedActivationEntry],

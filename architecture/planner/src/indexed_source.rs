@@ -66,3 +66,6 @@ pub fn plan_with_connection_limits(
         ),
     )
 }
+
+mod compact;
+pub use compact::{plan_compact_with_connection_limits, CompactIndexedPlan};

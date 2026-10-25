@@ -1,13 +1,17 @@
 //! Historical canonical placement fields, shared by complete and incremental hashing.
 use super::*;
-pub(super) fn push_placement(canonical: &mut impl CanonicalSink, gear: &crate::PlannedGear) {
+pub(super) fn push_placement(
+    canonical: &mut impl CanonicalSink,
+    gear: &crate::PlannedGear,
+    configuration: &[crate::ConfigurationEntry],
+) {
     push_string(canonical, gear.placement_id.as_str());
     push_string(canonical, gear.gear_id.as_str());
     push_string(canonical, gear.kind_id.as_str());
     push_string(canonical, gear.kind_contract_revision.as_str());
     push_string(canonical, gear.execution_profile_id.as_str());
-    push_u32(canonical, gear.configuration.len() as u32);
-    for entry in &gear.configuration {
+    push_u32(canonical, configuration.len() as u32);
+    for entry in configuration {
         push_string(canonical, &entry.key);
         push_configuration_value(canonical, &entry.value);
     }

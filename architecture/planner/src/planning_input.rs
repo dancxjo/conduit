@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 mod connection_gear;
 mod gears;
-use conduit_core::{CheckedPlotId, ExpandedPlotId, PlotIdentity, SourceDocumentId};
+use conduit_core::{CheckedPlotId, ExpandedPlotId, SourceDocumentId};
 use conduit_plot::{
     CheckedConnection, CheckedGear, CheckedPlot, ExpandedCanonicalPlot, PlotCompletionPolicy,
 };
@@ -24,13 +24,6 @@ impl PlanningInput<'_> {
         let mut input = PlanningInput::from(plot);
         input.gears = PlanningGears::owned(gears);
         input
-    }
-    pub fn identity(&self) -> PlotIdentity {
-        PlotIdentity {
-            source_document_id: self.source_document_id.clone(),
-            checked_plot_id: self.checked_plot_id.clone(),
-            expanded_plot_id: self.expanded_plot_id.clone(),
-        }
     }
 }
 

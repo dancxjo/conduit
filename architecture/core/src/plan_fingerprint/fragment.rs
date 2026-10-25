@@ -42,6 +42,16 @@ impl FragmentFingerprintBuilder {
         &mut self,
         gear: &crate::PlannedGear,
     ) -> Result<(), FragmentFingerprintRefusal> {
+        self.push_placement_with_configuration(gear, &gear.configuration)
+    }
+    /// Canonical representation seam for immutable configuration held separately
+    /// from placement metadata. Encodes these entries instead of `gear.configuration`.
+    /// This performs no validation, selection or authority admission.
+    pub fn push_placement_with_configuration(
+        &mut self,
+        gear: &crate::PlannedGear,
+        configuration: &[crate::ConfigurationEntry],
+    ) -> Result<(), FragmentFingerprintRefusal> {
         if let Some(refusal) = self.refusal {
             return Err(refusal);
         }
@@ -49,7 +59,7 @@ impl FragmentFingerprintBuilder {
             self.refusal = Some(FragmentFingerprintRefusal::UnexpectedPlacement);
             return Err(FragmentFingerprintRefusal::UnexpectedPlacement);
         }
-        placement::push_placement(&mut self.canonical, gear);
+        placement::push_placement(&mut self.canonical, gear, configuration);
         self.remaining -= 1;
         Ok(())
     }

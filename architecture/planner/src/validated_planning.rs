@@ -3,6 +3,7 @@ use super::*;
 use crate::planning_input::PlanningInput;
 mod connections;
 mod quantity_wire;
+pub(crate) mod retention;
 
 pub(crate) fn plan_validated_plot(
     plot: &CheckedPlot,
@@ -40,13 +41,46 @@ pub(crate) fn plan_validated_plot_with_connection_limits(
 }
 
 pub(crate) fn plan_input_with_connection_limits(
-    mut plot: PlanningInput<'_>,
+    plot: PlanningInput<'_>,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
+    let identity = (
+        plot.source_document_id,
+        plot.checked_plot_id,
+        plot.expanded_plot_id,
+    );
+    let completion = plan_completion_policy(plot.completion);
+    let fragments = plan_fragments_with_connection_limits(
+        plot,
+        hosts,
+        placements,
+        bases,
+        options,
+        connection_limits,
+        &mut retention::ConfigurationRetention::new(false),
+    )?;
+    let identity = conduit_core::PlotIdentity {
+        source_document_id: identity.0.clone(),
+        checked_plot_id: identity.1.clone(),
+        expanded_plot_id: identity.2.clone(),
+    };
+    Ok(seal_plan_with_completion(identity, completion, fragments))
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn plan_fragments_with_connection_limits(
+    mut plot: PlanningInput<'_>,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+    retention: &mut retention::ConfigurationRetention,
+) -> Result<Vec<PlanFragment>, PlannerError> {
     let PlanningOptions {
         connection_item_capacity,
         connection_byte_capacity,
@@ -223,6 +257,7 @@ pub(crate) fn plan_input_with_connection_limits(
             }
             alloc::borrow::Cow::Borrowed(_) => plot.gears.take_memory_configuration(gear_index),
         };
+        retention.placement(gear_index, &mut planned);
         planned_gears.push(planned);
     }
 
@@ -302,7 +337,7 @@ pub(crate) fn plan_input_with_connection_limits(
                 .collect();
             let states = placements
                 .iter()
-                .map(planned_keep_state)
+                .map(|placement| retention.state(placement))
                 .collect::<Result<Vec<_>, _>>()?
                 .into_iter()
                 .flatten()
@@ -374,9 +409,5 @@ pub(crate) fn plan_input_with_connection_limits(
         .flatten()
         .collect::<Vec<_>>();
 
-    Ok(seal_plan_with_completion(
-        plot.identity(),
-        plan_completion_policy(plot.completion),
-        fragments,
-    ))
+    Ok(fragments)
 }

@@ -185,10 +185,25 @@ stand in for immutable flash; dynamic connection policy is included. Native
 provider internals, Root/biography, display, radio/SDK and target stack remain
 outside this window. It is a partial memory ledger, not complete MCU admission.
 
-The result is still a rich Plan. Further compact preparation and integration
-with the local Body owner are required before autonomous native startup.
+The ordinary indexed entrance still returns a rich Plan. An additional compact
+preparation entrance now retires each decoded configuration after retaining its
+state-admission result and Source index. The same ordinary Cord, resource,
+authority and startup checks run over placement metadata; state failures remain
+at their original admission phase. Canonical fragment fingerprints read exact
+configuration one Gear at a time through Core's shared field encoder.
 
-The rich Plan is still needed during construction and execution preparation.
+The compact result keeps stripped metadata private and has no deserialization
+or execution-authority constructor. Its public placement callback reconstructs
+one complete record; its hosted inspection entrance reconstructs a complete
+rich Plan and checks the same identities. The appliance proof compares every
+placement and the entire Plan, plus the same five refusal scenarios. Compact
+preparation peaks at **182,274 CPU heap bytes**, guarded at 192 KiB, versus
+214,958 for the rich indexed entrance. Typed State initializer and delayed
+state-refusal tests also pass. Compact lowering, local Body lifecycle evidence,
+and Root startup still need integration; reconstructing the whole rich Plan on
+the MCU would forfeit this reduction.
+
+Existing execution preparation still consumes a rich Plan.
 These host measurements do not establish that Root, biography, sampling, timed
 display, network SDK, planning scratch, and required lifecycle evidence coexist
 within the MCU budget. Compact construction and complete preparation/steady-state

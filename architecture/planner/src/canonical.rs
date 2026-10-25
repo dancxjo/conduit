@@ -235,8 +235,14 @@ pub(crate) fn attach_source_spans(
     provenance: &[conduit_plot::ExpandedGearProvenance],
     plan: &mut Plan,
 ) -> Result<(), PlannerError> {
-    for placement in plan
-        .fragments
+    attach_fragment_source_spans(provenance, &mut plan.fragments)
+}
+
+pub(crate) fn attach_fragment_source_spans(
+    provenance: &[conduit_plot::ExpandedGearProvenance],
+    fragments: &mut [conduit_core::PlanFragment],
+) -> Result<(), PlannerError> {
+    for placement in fragments
         .iter_mut()
         .flat_map(|fragment| &mut fragment.placements)
     {
