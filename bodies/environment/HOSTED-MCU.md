@@ -49,7 +49,7 @@ The quantities remain first-class Temperature and Ratio values. Linux applies
 the existing Fahrenheit Look and temperature/humidity Masks to that Face,
 reporting four segment patterns and annunciators as previews. **These previews
 do not write the physical display.** This native run currently admits only the
-sampler workset. Combined display execution, ordinary joining invitations,
+sampler workset. Continuous display execution, ordinary joining invitations,
 external Fore recording and durable reboot continuation remain delivery work.
 
 ## Combined display preparation measurement
@@ -66,12 +66,39 @@ native sampler. Authenticated control replies include `display_fit` telemetry
 with explicit `physical_write: false` and `mask_play_installed: false`.
 This is a fit checkpoint, not an enabled physical display. After selector and
 Source compaction, measured free Root memory exceeds the existing
-output-kernel preparation gate; combined admission and physical output remain
-unproved. See [the target measurements](make/TARGET_CHECKPOINT.md#compiled-scalar-and-observation-lowering).
+output-kernel preparation gate. The separate bounded physical check below
+exercises actual output; continuous Mask execution remains open. See [the target measurements](make/TARGET_CHECKPOINT.md#compiled-scalar-and-observation-lowering).
 
 The focused CPU construction/output proof, including exact offer equivalence,
 stale-scope refusal, packet equivalence and allocation-free execution, enters
 through `cargo xtask prove environment display-output`.
+
+## Bounded physical display check
+
+Build the combined native diagnostic and, after flashing and a fresh Boot, run:
+
+```sh
+cargo xtask prove environment member-image /absolute/private/environment-owner/owner-public.bin --display-check
+cargo xtask prove environment host-owned /dev/ttyUSB0 /absolute/private/environment-owner 2 --display-check
+```
+
+The Body workset contains the sampler and ordinary output Plot. Both are planned
+against actual current offers, held under separate exact reservations, and
+released after the same Body start. The output's exclusive local Fore borrows
+the actual MCU publication Face; no register commands or invented measurements
+arrive over UART. It renders Fahrenheit, waits three seconds, renders RH, then
+closes after exactly two Frames. The ordinary shared kernel performs selectors,
+packet computation and admitted native GPIO writes. Cancellation/retirement
+preserve both owners and report unresolved cleanup separately.
+
+This is an attended physical checkpoint. It applies the existing pure timed
+Mask/Look helper, **without claiming an admitted ordinary Mask Plot/route**.
+It does not continuously refresh or clear the display after those two writes.
+Increasing the sampler count does not increase the output allowance. Continuous
+Mask admission, freshness/withdrawal and acknowledged sign retention over the
+whole output lifetime remain separate delivery work. With this diagnostic,
+`display_fit.physical_write` is null while counters are unavailable, then reports
+confirmed native-write completion; it is instrumentation, not an LED observation.
 
 ## Pico comparative gate
 

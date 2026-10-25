@@ -36,6 +36,22 @@ pub async fn receive(
     uart: &mut Uart<'_, Async>,
     buffer: &mut [u8],
 ) -> Result<(), ()> {
+    receive_kind(root, uart, buffer, false).await
+}
+#[cfg(feature = "display-physical-check")]
+pub async fn receive_display(
+    root: &mut NativeRoot,
+    uart: &mut Uart<'_, Async>,
+    buffer: &mut [u8],
+) -> Result<(), ()> {
+    receive_kind(root, uart, buffer, true).await
+}
+async fn receive_kind(
+    root: &mut NativeRoot,
+    uart: &mut Uart<'_, Async>,
+    buffer: &mut [u8],
+    display: bool,
+) -> Result<(), ()> {
     with_timeout(
         Duration::from_secs(2),
         crate::native_control::write_all(uart, READY),
@@ -56,9 +72,30 @@ pub async fn receive(
     })
     .await;
     let result = match received {
-        Ok(Ok((length, signature))) => authenticate(root, &buffer[..length], &signature),
+        Ok(Ok((length, signature))) => authenticate(root, &buffer[..length], &signature, display),
         _ => Err(owner::Refusal::Malformed),
     };
+    #[cfg(feature = "display-physical-check")]
+    if display {
+        let authenticated = result.is_ok();
+        let applied = match result {
+            Ok(token) => root.apply_display_check(token).await,
+            Err(_) => Err("display-authentication"),
+        };
+        let size = root.encode_display_check_reply(
+            buffer,
+            authenticated,
+            applied.as_ref().err().copied(),
+            applied.as_ref().ok().and_then(Option::as_ref),
+        )?;
+        return with_timeout(Duration::from_secs(2), async {
+            crate::native_control::write_all(uart, b"\n").await?;
+            crate::native_control::write_all(uart, &buffer[..size]).await?;
+            crate::native_control::write_all(uart, b"\n").await
+        })
+        .await
+        .map_err(|_| ())?;
+    }
     let authenticated = result.is_ok();
     let mut inspect_command = None;
     let mut acknowledgement = None;
@@ -148,9 +185,15 @@ fn authenticate<'a>(
     root: &mut NativeRoot,
     input: &'a [u8],
     signature: &[u8; 64],
+    display: bool,
 ) -> Result<owner::AuthenticatedRequest<'a>, owner::Refusal> {
     match serde_json_core::from_slice::<owner::Request<'_>>(input) {
         Ok((request, consumed)) if input[consumed..].iter().all(u8::is_ascii_whitespace) => {
+            #[cfg(feature = "display-physical-check")]
+            if display {
+                return root.authenticate_display_owner(request, signature);
+            }
+            let _ = display;
             root.authenticate_owner(request, signature)
         }
         _ => Err(owner::Refusal::Malformed),

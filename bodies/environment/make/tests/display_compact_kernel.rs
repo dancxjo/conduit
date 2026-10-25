@@ -170,6 +170,8 @@ fn run(brightness: u8, frames: u32, cancel_at: Option<usize>, native_failure: bo
         signs,
     )
     .unwrap();
+    assert!(!software.is_ready());
+
     assert_eq!(
         software
             .current_offers(&host.host_id, &host.boot_id, host.offer_generation)

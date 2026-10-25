@@ -2,6 +2,7 @@
 //! Current offers and signed Root custody remain separate from Body lifecycle.
 extern crate alloc;
 mod admission;
+mod display_check;
 mod execution;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_owner_control.rs"]
 #[allow(dead_code)]
@@ -18,13 +19,17 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
     result.map_err(|error| format!("{error:?}").into())
 }
 fn main() -> Result<()> {
-    let args: Vec<_> = std::env::args().collect();
+    let mut args: Vec<_> = std::env::args().collect();
+    let display_check = args.last().is_some_and(|a| a == "--display-check");
+    if display_check {
+        args.pop();
+    }
     if args.len() == 3 && args[1] == "--provision" {
         return admission::provision(std::path::Path::new(&args[2]));
     }
     if !(3..=4).contains(&args.len()) {
         return Err(
-            "expected SERIAL_PORT PRIVATE_STATE_DIRECTORY [PUBLICATIONS=1, maximum 960]".into(),
+            "expected SERIAL_PORT PRIVATE_STATE_DIRECTORY [PUBLICATIONS=1, maximum 960] [--display-check]".into(),
         );
     }
     let limit: u32 = args.get(3).map_or(Ok(1), |s| s.parse())?;
@@ -45,7 +50,14 @@ fn main() -> Result<()> {
     }
     let authority = admission::Authority::new(&state)?;
     let source = checked(conduit_environment_runtime::construction::compile_default())?;
-    let mut body = authority.birth(&source)?;
+    let display_source = if display_check {
+        Some(checked(
+            conduit_environment_make::DisplayOutputSource::compile(),
+        )?)
+    } else {
+        None
+    };
+    let mut body = authority.birth(&source, display_source.as_ref())?;
     let (mut advertisement, device_key) = authority.admit(&mut body, &mut line, &args[1])?;
     let software = line.command("software-offer", "native-software-offer")?;
     if software["host_id"] != serde_json::to_value(&advertisement.host_id)?
@@ -60,7 +72,28 @@ fn main() -> Result<()> {
         )?,
     );
     let policy = line.command("appliance-policy", "native-appliance-policy")?;
-    let prepared = planning::prepare(&mut body, &authority, source, advertisement, policy)?;
+    let display_policy = if display_check {
+        let value = line.command("display-software-offer", "native-display-software-offer")?;
+        advertisement.capabilities.extend(serde_json::from_value::<
+            Vec<conduit_core::CapabilityOffer>,
+        >(value["capabilities"].clone())?);
+        Some(value)
+    } else {
+        None
+    };
+    let display = display_source
+        .as_ref()
+        .zip(display_policy.as_ref())
+        .map(|(source, policy)| crate::display_check::prepare(source, &advertisement, policy))
+        .transpose()?;
+    let prepared = planning::prepare(
+        &mut body,
+        &authority,
+        source,
+        advertisement,
+        policy,
+        display,
+    )?;
     authority.save(&body, "body-prepared.json")?;
     execution::run(
         &mut line, &authority, &mut body, prepared, device_key, limit,

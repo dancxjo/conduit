@@ -4,11 +4,20 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
     let words = args.iter().map(String::as_str).collect::<Vec<_>>();
     match words.as_slice() {
         ["owner-key", state] => Some(host(root, &["--provision", state])),
+        ["host-owned", port, state, "--display-check"] => {
+            Some(host(root, &[port, state, "--display-check"]))
+        }
+        ["host-owned", port, state, limit, "--display-check"] => {
+            Some(host(root, &[port, state, limit, "--display-check"]))
+        }
         ["host-owned", port, state] => Some(host(root, &[port, state])),
         ["host-owned", port, state, limit] => Some(host(root, &[port, state, limit])),
         ["member-image", key] => Some(super::environment_esp32::build_member(root, Path::new(key))),
         ["member-image", key, "--display-fit"] => Some(
             super::environment_esp32::build_display_fit(root, Path::new(key)),
+        ),
+        ["member-image", key, "--display-check"] => Some(
+            super::environment_esp32::build_display_check(root, Path::new(key)),
         ),
         ["pico-maximal", birth] => Some(pico(root, birth)),
         _ => None,

@@ -17,6 +17,9 @@ pub(super) fn build_member(root: &Path, key: &Path) -> Result<(), Box<dyn Error>
 pub(super) fn build_display_fit(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
     build_with_owner(root, true, false, Some(key), Some("display-fit-root"))
 }
+pub(super) fn build_display_check(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, false, Some(key), Some("display-physical-check"))
+}
 fn build_with_owner(
     root: &Path,
     native: bool,

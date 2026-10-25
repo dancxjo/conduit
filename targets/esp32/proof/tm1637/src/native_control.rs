@@ -35,6 +35,14 @@ pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Res
         })
         .await;
         match command {
+            #[cfg(feature = "display-physical-check")]
+            Ok(Ok(Command::DisplayCheckControl)) => {
+                crate::native_owner_wire::receive_display(root, &mut uart, &mut output).await?
+            }
+            #[cfg(feature = "display-physical-check")]
+            Ok(Ok(Command::DisplayCheckAssignment)) => {
+                crate::native_assignment::receive_display(root, &mut uart, &mut output).await?
+            }
             Ok(Ok(Command::OwnerControl)) => {
                 crate::native_owner_wire::receive(root, &mut uart, &mut output).await?
             }

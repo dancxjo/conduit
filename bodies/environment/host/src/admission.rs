@@ -101,21 +101,32 @@ impl Authority {
     pub fn birth(
         &self,
         source: &conduit_environment_runtime::construction::ApplianceSource,
+        display: Option<&conduit_environment_make::DisplayOutputSource>,
     ) -> Result<b::BodyLifecycleSession> {
         let uuid = std::fs::read_to_string("/proc/sys/kernel/random/uuid")?;
         let plot = b::ResidentPlot::new(
             source.expanded.source_document_id.clone(),
             source.expanded.checked_plot_id.clone(),
         );
-        let image = checked(conduit_environment_make::PreparedBodyImage::prepare(
-            uuid.trim().into(),
-            vec![conduit_birth_plot::BirthPlotChoice {
-                title: "Environmental sampling".into(),
-                search_text: "temperature humidity".into(),
-                plot,
+        let mut choices = vec![conduit_birth_plot::BirthPlotChoice {
+            title: "Environmental sampling".into(),
+            search_text: "temperature humidity".into(),
+            plot,
+            selected: true,
+            refusal: None,
+        }];
+        if let Some(source) = display {
+            choices.push(conduit_birth_plot::BirthPlotChoice {
+                title: "Finite native display checkpoint".into(),
+                search_text: "TM1637 output".into(),
+                plot: crate::display_check::resident(source),
                 selected: true,
                 refusal: None,
-            }],
+            });
+        }
+        let image = checked(conduit_environment_make::PreparedBodyImage::prepare(
+            uuid.trim().into(),
+            choices,
             1,
             self.sign(1),
         ))?;

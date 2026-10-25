@@ -69,6 +69,8 @@ pub struct RootIssuer {
     wait_issued: bool,
     pulse_issued: bool,
     display_issued: bool,
+    reserved_display_play: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
+    issued_display_play: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
     display_generation: u64,
     pulse_generation: u64,
     wait_generation: u64,
@@ -97,6 +99,8 @@ impl RootIssuer {
             wait_issued: false,
             pulse_issued: false,
             display_issued: false,
+            reserved_display_play: None,
+            issued_display_play: None,
             display_generation: 0,
             pulse_generation: 0,
             wait_generation: 0,
@@ -178,11 +182,9 @@ impl RootIssuer {
         }
         self.pulse_issued = false;
         self.wait_issued = false;
-        if !self.display_issued {
-            self.native_issued_play = None;
-            if self.reserved_play.as_deref() == Some(active) {
-                self.reserved_play = None;
-            }
+        self.native_issued_play = None;
+        if self.reserved_play.as_deref() == Some(active) {
+            self.reserved_play = None;
         }
         Ok(())
     }

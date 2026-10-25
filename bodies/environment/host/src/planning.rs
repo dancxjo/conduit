@@ -3,6 +3,7 @@ use crate::{admission::Authority, checked, Result};
 use conduit_body as b;
 use conduit_core as c;
 pub struct Prepared {
+    pub display: Option<crate::display_check::Output>,
     pub body_plan: b::BodyPlan,
     pub wake: b::Wake,
     pub play: b::BodyPlayIdentity,
@@ -17,6 +18,7 @@ pub fn prepare(
     source: conduit_environment_runtime::construction::ApplianceSource,
     advertisement: c::HostAdvertisement,
     policy: serde_json::Value,
+    display: Option<crate::display_check::Output>,
 ) -> Result<Prepared> {
     let recipe = checked(conduit_environment_make::NativeSoftwareSourceRecipe::prepare(&source))?;
     if policy["host_id"] != serde_json::to_value(&advertisement.host_id)?
@@ -93,26 +95,36 @@ pub fn prepare(
         ),
     )?;
     wire.truncate(size);
-    let realization = checked(body.propose(
-        vec![b::BodyPlotPlan {
-            plot: resident,
-            plan,
-        }],
-        &authority.host.host_id,
-        &authority.host.boot_id,
-    ))?;
+    let sampler_plan = plan.plan_id.clone();
+    let mut plans = vec![b::BodyPlotPlan {
+        plot: resident,
+        plan,
+    }];
+    if let Some(display) = &display {
+        plans.push(b::BodyPlotPlan {
+            plot: b::ResidentPlot::new(
+                display.plan.source_document_id.clone(),
+                display.plan.checked_plot_id.clone(),
+            ),
+            plan: display.plan.clone(),
+        });
+    }
+    let realization =
+        checked(body.propose(plans, &authority.host.host_id, &authority.host.boot_id))?;
     let body_plan = realization.plan.clone();
     let wake = realization.wake.clone();
-    let fragment = &body_plan.plots[0].plan.fragments[0];
-    let active = c::bind_active_play(
-        &body_plan.plots[0].plan.plan_id,
-        &fragment.host_id,
-        &fragment.boot_id,
-        1,
-    );
+    let sampler = &body_plan
+        .plots
+        .iter()
+        .find(|p| p.plan.plan_id == sampler_plan)
+        .ok_or("sampler partition")?
+        .plan;
+    let fragment = &sampler.fragments[0];
+    let active = c::bind_active_play(&sampler.plan_id, &fragment.host_id, &fragment.boot_id, 1);
     let fragment = fragment.fragment_id.clone();
     let play = b::BodyPlayIdentity::bind(&body_plan, 1);
     Ok(Prepared {
+        display,
         body_plan,
         wake,
         play,

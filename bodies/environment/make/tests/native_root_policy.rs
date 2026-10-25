@@ -11,6 +11,8 @@ use conduit_environment_runtime::{appliance::software::ReadySoftwareBacks, const
 use conduit_monotonic_wait::*;
 use conduit_pulse_capture::PulseReadContract;
 use std::{cell::Cell, collections::BTreeMap, rc::Rc};
+#[path = "display_support/concurrent_root.rs"]
+mod concurrent_display;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_authority.rs"]
 mod native_authority;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_retirement.rs"]
@@ -282,5 +284,14 @@ fn root_checks_both_owners_before_spending_issuance_or_moving_either() {
         Err("pulse-possession")
     ));
     assert!(pulse.is_some() && wait.is_some());
+    concurrent_display::check(&mut issuer, &active);
+    assert_eq!(
+        bound.pulse.inspection().scope.active_play_id,
+        active.active_play_id
+    );
+    assert_eq!(
+        bound.wait.inspection().scope.active_play_id,
+        active.active_play_id
+    );
     assert_eq!((effects.get(), calls.get()), (0, 0));
 }

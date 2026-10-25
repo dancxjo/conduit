@@ -14,6 +14,22 @@ pub async fn receive(
     uart: &mut Uart<'_, Async>,
     buffer: &mut [u8],
 ) -> Result<(), ()> {
+    receive_kind(root, uart, buffer, false).await
+}
+#[cfg(feature = "display-physical-check")]
+pub async fn receive_display(
+    root: &mut crate::native_root::NativeRoot,
+    uart: &mut Uart<'_, Async>,
+    buffer: &mut [u8],
+) -> Result<(), ()> {
+    receive_kind(root, uart, buffer, true).await
+}
+async fn receive_kind(
+    root: &mut crate::native_root::NativeRoot,
+    uart: &mut Uart<'_, Async>,
+    buffer: &mut [u8],
+    display: bool,
+) -> Result<(), ()> {
     with_timeout(
         Duration::from_secs(2),
         crate::native_control::write_all(
@@ -34,7 +50,19 @@ pub async fn receive(
     })
     .await;
     let result = match input {
-        Ok(Ok(size)) => stage(root, &buffer[..size]),
+        Ok(Ok(size)) => {
+            #[cfg(feature = "display-physical-check")]
+            if display {
+                root.stage_check_display_assignment(&buffer[..size])
+            } else {
+                stage(root, &buffer[..size])
+            }
+            #[cfg(not(feature = "display-physical-check"))]
+            {
+                let _ = display;
+                stage(root, &buffer[..size])
+            }
+        }
         _ => Err("ingress"),
     };
     let stats = esp_alloc::HEAP.stats();
@@ -55,7 +83,18 @@ pub async fn receive(
     let reply = Reply {
         event: "native-assignment-stage",
         staged: result.is_ok(),
-        assignment_seal: root.assignment_seal,
+        assignment_seal: if display {
+            #[cfg(feature = "display-physical-check")]
+            {
+                root.display_check_seal()
+            }
+            #[cfg(not(feature = "display-physical-check"))]
+            {
+                None
+            }
+        } else {
+            root.assignment_seal
+        },
         refusal: result.as_ref().err().copied(),
         plan: result.as_ref().ok().map(|view| view.plan.0),
         fragment: result.as_ref().ok().map(|view| view.fragment.0),

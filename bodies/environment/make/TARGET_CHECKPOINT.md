@@ -3,7 +3,8 @@
 **The ESP32 sampler now runs natively as a member of a Linux-owned Body.**
 The earlier self-contained ESP32 preparation failed; the current native sampler
 uses the Linux owner. Pico comparative preparation remains separately measured below.
-The physical seven-segment display is not yet part of this native Body run.
+A separate bounded check now writes two physical display pages alongside the
+sampler. Continuous ordinary Mask execution remains open.
 
 ## Linux first host, native ESP32 member
 
@@ -208,8 +209,8 @@ current-Boot signature, Type, sequence and freshness verification at stable Root
 usage. The local indexed task planner and the reviewed package/symbol guards
 remain present. The 5,680-byte flash increase buys 13,696 bytes of Root savings;
 the image is still smaller than the earlier 2,491,008-byte combined checkpoint.
-**Combined physical display execution and solo Body/sampler planning remain
-unproved.** Cross-Plot arena sharing and compact representation on kernel cords
+**At this measurement, combined physical output and solo Body/sampler planning
+were unproved.** The next checkpoint exercises bounded physical output. Cross-Plot arena sharing and compact representation on kernel cords
 are not implemented by this pass.
 
 External final artifacts under `~/.cache/conduit/`:
@@ -229,6 +230,65 @@ three-sample table is not a worst-case network allocation bound. This prefix is
 `f64c66b94faae8d5434e1afc4e76d4b797319d0ebd5e682a89de63ce456d8048`.
 These are focused compiler/runtime and physical-sampling results, not
 an overnight soak or a full workspace/integration claim.
+
+## Bounded physical output alongside the native sampler
+
+The `display-physical-check` profile and attended `--display-check` owner admit
+two ordinary Plans in the same Body: sampler and output. Separate display
+reservation/issuance custody preserves the sampler's exact active scope and the
+single monotonic Root Play sequence. Both actual workers start held; Linux
+records their shared Body start before either Release. The output Fore retains
+the real MCU Face reader, checks Body/Wake, waits for a publication, and applies
+the existing Fahrenheit/RH Mask helper. It owns no received Frame or register
+command. It supplies two typed Frames three seconds apart and closes.
+
+The first physical run verified two signed DHT11 publications. The ordinary
+output kernel completed **two native TM1637 transactions**, four selector calls
+and 33 Steps, then drained without failure. Its native owner was revoked with
+zero operations in flight. Signed display retirement, sampler cancellation and
+retirement all verified, followed by retained ordinary Body lull. These counters
+and ACK completions are instrumented physical execution; LED appearance remains
+human observation. The display's colon Look is retained; no nonexistent decimal
+point wiring is invented.
+
+Root used/peaked at 98,200 of 118,768 bytes with both kernels live. It used
+97,856 after the checkpoint's 344-byte Mask was dropped. SDK used 33,408 with
+34,036 observed peak. The ELF leaves 40,988 stack bytes above the unchanged
+36,864-byte floor. Its application occupies 2,565,024 flash bytes. Neither heap
+partition nor the stack guard was weakened.
+
+**This is a bounded physical checkpoint, not continuous admitted Mask execution.**
+The timed pure Mask helper is not an ordinary admitted Mask Plot/route. Output
+stops after two Frames; longer sampler runs do not authorize more writes.
+Continuous output, freshness withdrawal and sign retention over that full
+lifetime remain open. Telemetry reports unknown write progress while the worker
+owns unreturned counters, and confirmed native completions after custody returns.
+
+First physical run:
+`~/.local/share/conduit/environment-host-20261025/runs/3d09cef6-3987-4525-9de0-dfcf1c724b3f/`.
+Body `04ee5ca7beed2563f08265545e8f7674d4cfa64bc3692592e7664b341c1374e8`;
+MCU Boot `boot/e294768a24190fe954f32e81ca033fce`.
+External SHA-256 references:
+
+- `~/.cache/conduit/esp32-display-physical-check-20261025.elf`: `9bcac7c80eb6bbb3a0bb50e40cdc1b5208814f95f491ecb8c1e7f7a7ecd89003`.
+- `display-control.ndjson`: `f1151cade6f80ddfa9d0723d0f8e7a158f83dbd14658a9d9b4ec7f3eab7c35b0`.
+- `native-control.ndjson`: `3c3d475d41072cb12ae696e65251aca55d91783c88e92454e761c46e57031932`.
+- `native-observations.ndjson`: `708575a21a94252ad4fc3e3e0d80bb467a395b2873dee71a1d00228268e4c1b3`.
+- `body-lulled.json`: `5b0fcae9fd09d854ea03e47295d645ceed825294561dd28093cfe7b7b9a2d6ff`.
+
+The final flashed diagnostic also passed two native writes, four selector calls
+and 33 Steps without failure. Its readiness/progress telemetry distinguishes
+transferred software and unreturned counters. Application size is 2,565,488
+bytes; the reviewed package/symbol guards still pass. It is left sampling in
+private run `~/.local/share/conduit/environment-host-20261025/runs/379840e8-2f3e-41eb-ba63-07214e66ca2f/`.
+The two-write output is drained; longer sampling remains active.
+Final ELF `~/.cache/conduit/esp32-display-physical-final-20261025.elf`: SHA-256
+`1983bc033ef30b80090818fe714afa0ee6ae62859b5e66cf33d05e40cc0f30a0`.
+Immutable prefixes under `~/.cache/conduit/`:
+
+- `display-physical-final-display-control.ndjson`: SHA-256 `f1532444b89620be56df71e9efda3a4f0db469f9814639cdda25d6e1f3ac717b`.
+- `display-physical-final-native-control.ndjson`: SHA-256 `b7ad7de3a54c0742ed9af4aea229bb3659388dec3d5e620c8a2f2c5b5f269632`.
+- `display-physical-final-native-observations.ndjson`: SHA-256 `7846ec441e5c21829ce1266f5ee32373ceee2c40faff423ee47a9be3f44e9a6a`.
 
 ## Pico W comparative owned-preparation gate
 

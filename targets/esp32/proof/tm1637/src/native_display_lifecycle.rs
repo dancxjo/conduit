@@ -1,6 +1,6 @@
 //! Display lifecycle below authenticated Root reservation.
 use super::*;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 impl NativeDisplay {
     /// This acknowledges held custody only. No Step or electrical call runs.
     pub fn accept_start(&mut self) -> Result<(), &'static str> {
@@ -18,7 +18,7 @@ impl NativeDisplay {
     }
 }
 
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 impl NativeDisplay {
     pub async fn cancel_held(&mut self) -> Result<(), &'static str> {
         if let Some(worker) = self.worker.as_ref() {
@@ -106,7 +106,7 @@ impl NativeDisplay {
     }
 }
 
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 impl NativeDisplay {
     pub fn release(&self) -> Result<(), &'static str> {
         self.worker

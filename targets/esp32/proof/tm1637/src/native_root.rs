@@ -3,6 +3,9 @@
 //! No simulated provider, descriptor-derived availability or execution is used.
 #[path = "native_body_root.rs"]
 mod body;
+#[cfg(feature = "display-physical-check")]
+#[path = "native_display_check.rs"]
+mod display_check;
 #[path = "native_install.rs"]
 mod install;
 #[path = "native_lifecycle.rs"]
@@ -38,6 +41,8 @@ pub struct NativeRoot {
         >,
     >,
     owner_control: crate::native_owner_control::OwnerControl,
+    #[cfg(feature = "display-physical-check")]
+    display_reservation: Option<crate::native_owner_reservation::OwnerReservation>,
     owner_reservation: Option<crate::native_owner_reservation::OwnerReservation>,
     pub(crate) assignment_seal: Option<[u8; 32]>,
     appliance_kernel: Option<crate::native_kernel::PreparedKernel>,
@@ -146,6 +151,8 @@ impl NativeRoot {
             execution: None,
             native_bindings: None,
             owner_control,
+            #[cfg(feature = "display-physical-check")]
+            display_reservation: None,
             owner_reservation: None,
             assignment_seal: None,
             appliance_kernel: None,

@@ -18,7 +18,10 @@ impl RootIssuer {
     }
 }
 
-#[cfg(any(test, feature = "display-ready-root"))]
+#[cfg(any(
+    test,
+    any(feature = "display-ready-root", feature = "display-physical-check")
+))]
 impl RootIssuer {
     /// Reserve identity only for independently admitted output tables. Owner
     /// authentication, native possession and Body start remain separate gates.
@@ -43,11 +46,19 @@ impl RootIssuer {
         if candidate.active_play_id.as_str() != expected {
             return Err(());
         }
-        self.reserve_plan(plan)
+        if self.reserved_display_play.is_some() || self.display_issued {
+            return Err(());
+        }
+        self.last_play_sequence = next;
+        self.reserved_display_play = Some(alloc::boxed::Box::new(candidate.clone()));
+        Ok(candidate)
     }
 }
 
-#[cfg(any(test, feature = "display-ready-root"))]
+#[cfg(any(
+    test,
+    any(feature = "display-ready-root", feature = "display-physical-check")
+))]
 impl RootIssuer {
     /// Finite Root-selected operation budget. This issues no Body start and
     /// performs no electrical operation; the actual owner is checked first.
@@ -74,11 +85,7 @@ impl RootIssuer {
         if maximum_frames == 0
             || self.display_issued
             || native.provider_generation <= self.display_generation
-            || self.reserved_play.as_deref() != Some(active)
-            || self
-                .native_issued_play
-                .as_deref()
-                .is_some_and(|issued| issued != active)
+            || self.reserved_display_play.as_deref() != Some(active)
             || *active
                 != c::bind_active_play(
                     &active.plan_id,
@@ -169,12 +176,15 @@ impl RootIssuer {
             .map_err(|_| ())?;
         self.display_issued = true;
         self.display_generation = native.provider_generation;
-        self.native_issued_play = Some(alloc::boxed::Box::new(active.clone()));
+        self.issued_display_play = Some(alloc::boxed::Box::new(active.clone()));
         Ok((table, handle, claim))
     }
 }
 
-#[cfg(any(test, feature = "display-ready-root"))]
+#[cfg(any(
+    test,
+    any(feature = "display-ready-root", feature = "display-physical-check")
+))]
 impl RootIssuer {
     /// End issuance only with exact returned provider custody. Provider
     /// generation and the global Play sequence remain monotonic.
@@ -184,18 +194,16 @@ impl RootIssuer {
         retired: &crate::native_retirement::RetiredDisplay<P>,
     ) -> Result<(), ()> {
         if !self.display_issued
-            || self.native_issued_play.as_deref() != Some(active)
+            || self.issued_display_play.as_deref() != Some(active)
             || !retired.matches_active(active)
             || retired.provider_generation() != self.display_generation
         {
             return Err(());
         }
         self.display_issued = false;
-        if !self.pulse_issued && !self.wait_issued {
-            self.native_issued_play = None;
-            if self.reserved_play.as_deref() == Some(active) {
-                self.reserved_play = None;
-            }
+        self.issued_display_play = None;
+        if self.reserved_display_play.as_deref() == Some(active) {
+            self.reserved_display_play = None;
         }
         Ok(())
     }

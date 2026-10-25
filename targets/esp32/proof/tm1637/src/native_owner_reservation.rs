@@ -148,7 +148,10 @@ impl OwnerReservation {
             assignment_seal: *actual_seal,
         })
     }
-    #[cfg(any(test, feature = "display-ready-root"))]
+    #[cfg(any(
+        test,
+        any(feature = "display-ready-root", feature = "display-physical-check")
+    ))]
     pub fn reserve_display(
         authenticated: AuthenticatedRequest<'_>,
         assignment: &conduit_environment_runtime::display_output::ValidatedAssignedDisplay,

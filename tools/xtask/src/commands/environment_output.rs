@@ -4,6 +4,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     for (manifest, test) in [
         ("architecture/plot/Cargo.toml", "compact_scalar_children"),
         ("bodies/environment/make/Cargo.toml", "display_output"),
+        ("bodies/environment/make/Cargo.toml", "native_root_policy"),
         ("bodies/environment/make/Cargo.toml", "display_compact"),
         (
             "bodies/environment/make/Cargo.toml",

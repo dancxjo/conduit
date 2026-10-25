@@ -92,6 +92,9 @@ impl<'a> CompactOutputSoftware<'a> {
             operations,
         })
     }
+    pub fn is_ready(&self) -> bool {
+        self.operations.iter().all(|op| op.prepared.is_some())
+    }
     pub fn current_offers(
         &mut self,
         host: &c::HostId,

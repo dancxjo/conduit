@@ -10,6 +10,8 @@ pub enum Command {
     AssignmentTransfer,
     KernelPrepare,
     OwnerControl,
+    DisplayCheckControl,
+    DisplayCheckAssignment,
     Unsupported,
     TooLarge,
 }
@@ -44,6 +46,10 @@ impl CommandBuffer {
                     Command::SoftwareOffer
                 } else if bytes == b"appliance-policy" {
                     Command::AppliancePolicy
+                } else if bytes == b"display-check-control" {
+                    Command::DisplayCheckControl
+                } else if bytes == b"display-check-assignment" {
+                    Command::DisplayCheckAssignment
                 } else if bytes == b"owner-control" {
                     Command::OwnerControl
                 } else if bytes == b"kernel-prepare" {

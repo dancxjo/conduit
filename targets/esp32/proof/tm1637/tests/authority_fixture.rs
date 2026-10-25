@@ -10,6 +10,8 @@ impl RootIssuer {
             wait_issued: false,
             pulse_issued: false,
             display_issued: false,
+            reserved_display_play: None,
+            issued_display_play: None,
             display_generation: 0,
             pulse_generation: 0,
             wait_generation: 0,

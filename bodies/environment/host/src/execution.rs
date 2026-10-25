@@ -153,8 +153,13 @@ pub fn run(
     if staged["staged"] != true {
         return Err(format!("assignment refused: {staged}").into());
     }
+    if let Some(display) = &prepared.display {
+        crate::display_check::stage(line, display)?;
+    }
     let mut sequence = 1;
     let mut preparation_attempted = false;
+    let mut display_preparation_attempted = false;
+    let mut display_retired = false;
     let mut body_started = false;
     let result = (|| -> Result<()> {
         for operation in [
@@ -172,6 +177,36 @@ pub fn run(
                 "{}",
                 serde_json::json!({"event":"native-host-control","operation":format!("{operation:?}"),"reply":exchange.reply})
             );
+            if prepared.display.is_some() {
+                if operation == owner::Operation::Reserve {
+                    crate::display_check::command(
+                        line,
+                        authority,
+                        &prepared,
+                        &device_key,
+                        owner::Operation::Reserve,
+                        &mut sequence,
+                    )?;
+                    display_preparation_attempted = true;
+                    crate::display_check::command(
+                        line,
+                        authority,
+                        &prepared,
+                        &device_key,
+                        owner::Operation::Prepare,
+                        &mut sequence,
+                    )?;
+                } else if operation == owner::Operation::Start {
+                    crate::display_check::command(
+                        line,
+                        authority,
+                        &prepared,
+                        &device_key,
+                        owner::Operation::Start,
+                        &mut sequence,
+                    )?;
+                }
+            }
         }
         let wake = checked(
             prepared.wake.body_plan_ready(
@@ -216,6 +251,16 @@ pub fn run(
             owner::Operation::Release,
             current,
         )?;
+        if prepared.display.is_some() {
+            crate::display_check::command(
+                line,
+                authority,
+                &prepared,
+                &device_key,
+                owner::Operation::Release,
+                &mut sequence,
+            )?;
+        }
         println!(
             "{}",
             serde_json::json!({"event":"host-owned-body-playing","body":body.evidence().body_id,"host":prepared.active.host_id,"boot":prepared.active.boot_id,"plan":prepared.active.plan_id,"play":prepared.play.active_play_id})
@@ -287,11 +332,25 @@ pub fn run(
                     &authority.state,
                 )?;
                 publications += 1;
+                if prepared.display.is_some() {
+                    crate::display_check::command(
+                        line,
+                        authority,
+                        &prepared,
+                        &device_key,
+                        owner::Operation::Inspect,
+                        &mut sequence,
+                    )?;
+                }
                 if publications == limit {
                     break;
                 }
             }
             std::thread::sleep(Duration::from_millis(250));
+        }
+        if prepared.display.is_some() {
+            crate::display_check::finish(line, authority, &prepared, &device_key, &mut sequence)?;
+            display_retired = true;
         }
         if !observed {
             return Err("no verified physical measurement in this acceptance run".into());
@@ -303,35 +362,47 @@ pub fn run(
     })();
     // Errors after preparation still require actual quiescence and retirement.
     // A missing receipt leaves the retained Body evidence unresolved.
-    let cleanup = (|| -> Result<()> {
-        if preparation_attempted {
-            command(
-                line,
-                authority,
-                &prepared,
-                &device_key,
-                owner::Operation::Cancel,
-                sequence,
-            )?;
-            command(
-                line,
-                authority,
-                &prepared,
-                &device_key,
-                owner::Operation::Retire,
-                sequence + 1,
-            )?;
-            if body_started {
-                checked(body.lull(
-                    &authority.host.host_id,
-                    &authority.host.boot_id,
-                    Some(&prepared.play),
-                ))?;
-                authority.save(body, "body-lulled.json")?;
+    let cleanup: Result<()> = {
+        let display_cleanup = if display_preparation_attempted && !display_retired {
+            crate::display_check::cleanup(line, authority, &prepared, &device_key, &mut sequence)
+        } else {
+            Ok(())
+        };
+        let sampler_cleanup = (|| -> Result<()> {
+            if preparation_attempted {
+                command(
+                    line,
+                    authority,
+                    &prepared,
+                    &device_key,
+                    owner::Operation::Cancel,
+                    sequence,
+                )?;
+                command(
+                    line,
+                    authority,
+                    &prepared,
+                    &device_key,
+                    owner::Operation::Retire,
+                    sequence + 1,
+                )?;
+                if body_started && display_cleanup.is_ok() {
+                    checked(body.lull(
+                        &authority.host.host_id,
+                        &authority.host.boot_id,
+                        Some(&prepared.play),
+                    ))?;
+                    authority.save(body, "body-lulled.json")?;
+                }
             }
+            Ok(())
+        })();
+        match (display_cleanup, sampler_cleanup) {
+            (Err(a), Err(b)) => Err(format!("display cleanup: {a}; sampler cleanup: {b}").into()),
+            (Err(a), _) | (_, Err(a)) => Err(a),
+            _ => Ok(()),
         }
-        Ok(())
-    })();
+    };
     authority.save(body, "body-final.json")?;
     match (result, cleanup) {
         (Err(error), Err(cleanup)) => Err(format!("{error}; cleanup unresolved: {cleanup}").into()),

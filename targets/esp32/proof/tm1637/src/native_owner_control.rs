@@ -93,6 +93,9 @@ impl<'a> AuthenticatedRequest<'a> {
     pub fn operation(&self) -> Operation {
         self.request.operation
     }
+    pub fn request(&self) -> &Request<'_> {
+        &self.request
+    }
     pub fn into_request(self) -> Request<'a> {
         self.request
     }

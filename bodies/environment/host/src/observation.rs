@@ -17,7 +17,13 @@ pub fn age(face: &mut RetainedPublicationFace, now: u64, state: &std::path::Path
     Ok(())
 }
 pub fn prepare(prepared: &Prepared) -> Result<RetainedPublicationFace> {
-    let plan = &prepared.body_plan.plots[0].plan;
+    let plan = &prepared
+        .body_plan
+        .plots
+        .iter()
+        .find(|p| p.plan.plan_id == prepared.active.plan_id)
+        .ok_or("sampler partition")?
+        .plan;
     checked(RetainedPublicationFace::prepare(
         FaceBasis {
             body_id: Some(prepared.body_plan.body_id.clone()),

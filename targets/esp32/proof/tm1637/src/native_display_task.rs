@@ -14,6 +14,8 @@ use static_cell::StaticCell;
 type Device = Execution<DisplayPins<'static>>;
 struct Slot {
     execution: RefCell<Option<Box<Device>>>,
+    #[cfg(feature = "display-physical-check")]
+    fore: RefCell<Option<super::check_task::FaceFore>>,
 }
 static SLOT: StaticCell<Slot> = StaticCell::new();
 #[derive(Clone, Copy)]
@@ -134,6 +136,7 @@ impl Handle {
 pub fn prepare(
     execution: &mut Option<Box<Device>>,
     spawner: embassy_executor::Spawner,
+    #[cfg(feature = "display-physical-check")] fore: Option<super::check_task::FaceFore>,
 ) -> Result<Handle, &'static str> {
     if execution.is_none() {
         return Err("display-context-unavailable");
@@ -141,6 +144,8 @@ pub fn prepare(
     let slot = SLOT
         .try_init_with(|| Slot {
             execution: RefCell::new(None),
+            #[cfg(feature = "display-physical-check")]
+            fore: RefCell::new(fore),
         })
         .ok_or("display-task-slot-used")?;
     slot.execution.replace(execution.take());
@@ -203,6 +208,30 @@ async fn held(slot: &'static Slot) {
                 s.status.phase = "running";
                 s.status.progress_current = false;
             });
+            #[cfg(feature = "display-physical-check")]
+            let fore = slot.fore.borrow_mut().take();
+            #[cfg(feature = "display-physical-check")]
+            if let Some(mut fore) = fore {
+                execution
+                    .run_with_fore(
+                        async {
+                            let _ = COMMAND.wait().await;
+                        },
+                        &mut fore,
+                        super::CONSTRUCTION_FRAMES,
+                    )
+                    .await
+            } else {
+                execution
+                    .run_with_idle(
+                        async {
+                            let _ = COMMAND.wait().await;
+                        },
+                        core::future::pending::<()>,
+                    )
+                    .await
+            }
+            #[cfg(not(feature = "display-physical-check"))]
             execution
                 .run_with_idle(
                     async {

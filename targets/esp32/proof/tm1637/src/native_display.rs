@@ -9,61 +9,78 @@ use conduit_tm1637_wire::{
     WriteContract,
 };
 use esp_hal::gpio::Pin;
-#[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+#[cfg(any(
+    any(feature = "display-ready-root", feature = "display-physical-check"),
+    feature = "display-fit-root"
+))]
 pub const CONSTRUCTION_FRAMES: u32 = 2;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 #[path = "native_display_assignment.rs"]
 mod assignment;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 #[path = "native_display_binding.rs"]
 mod binding;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 #[path = "native_display_execution.rs"]
 mod execution;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 #[path = "native_display_lifecycle.rs"]
 mod lifecycle;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 #[path = "native_display_task.rs"]
 mod task;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 pub(crate) use task::Status as DisplayTaskStatus;
-#[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+#[cfg(any(
+    any(feature = "display-ready-root", feature = "display-physical-check"),
+    feature = "display-fit-root"
+))]
 #[path = "native_display_kernel.rs"]
 mod kernel;
-#[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+#[cfg(any(
+    any(feature = "display-ready-root", feature = "display-physical-check"),
+    feature = "display-fit-root"
+))]
 #[path = "display_layout.rs"]
 mod layout;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 #[path = "native_display_service.rs"]
 mod service;
 mod software {
     include!(concat!(env!("OUT_DIR"), "/display-software.rs"));
 }
+#[cfg(feature = "display-physical-check")]
+#[path = "native_display_check_task.rs"]
+mod check_task;
+#[path = "native_display_context.rs"]
+mod context;
 #[cfg(feature = "display-fit-root")]
 #[path = "native_display_fit.rs"]
 pub(crate) mod fit;
 pub struct NativeDisplay {
     #[cfg(feature = "display-fit-root")]
-    fit: Box<conduit_environment_runtime::display_mask::PreparedDisplayMask>,
-    #[cfg(feature = "display-ready-root")]
+    fit: Option<Box<conduit_environment_runtime::display_mask::PreparedDisplayMask>>,
+    #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
     staged: Option<assignment::StagedDisplayAssignment>,
-    #[cfg(feature = "display-ready-root")]
+    #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
     kernel: Option<kernel::Prepared>,
-    #[cfg(feature = "display-ready-root")]
+    #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
     phase: &'static str,
-    #[cfg(feature = "display-ready-root")]
+    #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
     worker: Option<task::Handle>,
-    #[cfg(feature = "display-ready-root")]
+    #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
     execution: Option<Box<execution::Execution<DisplayPins<'static>>>>,
-    #[cfg(feature = "display-ready-root")]
+    #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
     retired: Option<crate::native_retirement::RetiredDisplay<DisplayPins<'static>>>,
     ready: Option<ReadyWriteBase<DisplayPins<'static>>>,
-    #[cfg(feature = "display-ready-root")]
+    #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
     bound: Option<Box<conduit_tm1637_wire::owner::WriteHostCall<DisplayPins<'static>>>>,
-    #[cfg(feature = "display-ready-root")]
+    #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
     bound_write: Option<conduit_kernel::NodeId>,
-    #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+    #[cfg(any(
+        any(feature = "display-ready-root", feature = "display-physical-check"),
+        feature = "display-fit-root"
+    ))]
     software: Result<
         Box<
             conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware<
@@ -115,7 +132,10 @@ impl NativeDisplay {
             )
         }
         .map_err(|_| "display-provider")?;
-        #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+        #[cfg(any(
+            any(feature = "display-ready-root", feature = "display-physical-check"),
+            feature = "display-fit-root"
+        ))]
         let software = {
             // Decode trusted Make material sequentially before sampler/kernel
             // preparation. Keep the conservative 96 KiB construction allowance
@@ -134,25 +154,28 @@ impl NativeDisplay {
         let fit = fit::prepare()?;
         Ok(Box::new(Self {
             #[cfg(feature = "display-fit-root")]
-            fit,
-            #[cfg(feature = "display-ready-root")]
+            fit: Some(fit),
+            #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
             staged: None,
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
             kernel: None,
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
             phase: "unprepared",
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
             worker: None,
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
             execution: None,
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
             retired: None,
             ready: Some(ready),
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
             bound: None,
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
             bound_write: None,
-            #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+            #[cfg(any(
+                any(feature = "display-ready-root", feature = "display-physical-check"),
+                feature = "display-fit-root"
+            ))]
             software,
         }))
     }
@@ -160,21 +183,33 @@ impl NativeDisplay {
         self.ready.as_ref().map(|owner| owner.native_identity())
     }
     pub fn software_ready(&self) -> bool {
-        #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+        #[cfg(any(
+            any(feature = "display-ready-root", feature = "display-physical-check"),
+            feature = "display-fit-root"
+        ))]
         {
-            self.software.is_ok()
+            self.software.as_ref().is_ok_and(|s| s.is_ready())
         }
-        #[cfg(not(any(feature = "display-ready-root", feature = "display-fit-root")))]
+        #[cfg(not(any(
+            any(feature = "display-ready-root", feature = "display-physical-check"),
+            feature = "display-fit-root"
+        )))]
         {
             false
         }
     }
     pub fn software_refusal(&self) -> Option<&'static str> {
-        #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+        #[cfg(any(
+            any(feature = "display-ready-root", feature = "display-physical-check"),
+            feature = "display-fit-root"
+        ))]
         {
             self.software.as_ref().err().copied()
         }
-        #[cfg(not(any(feature = "display-ready-root", feature = "display-fit-root")))]
+        #[cfg(not(any(
+            any(feature = "display-ready-root", feature = "display-physical-check"),
+            feature = "display-fit-root"
+        )))]
         {
             None
         }
@@ -188,7 +223,10 @@ impl NativeDisplay {
         conduit_environment_runtime::appliance::software_compact::CompactOutputOffers<'_, 'static>,
         (),
     > {
-        #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+        #[cfg(any(
+            any(feature = "display-ready-root", feature = "display-physical-check"),
+            feature = "display-fit-root"
+        ))]
         {
             self.software
                 .as_mut()
@@ -196,7 +234,10 @@ impl NativeDisplay {
                 .current_offers(host, boot, generation)
                 .map_err(|_| ())
         }
-        #[cfg(not(any(feature = "display-ready-root", feature = "display-fit-root")))]
+        #[cfg(not(any(
+            any(feature = "display-ready-root", feature = "display-physical-check"),
+            feature = "display-fit-root"
+        )))]
         {
             let _ = (host, boot, generation);
             Err(())
@@ -213,7 +254,7 @@ impl NativeDisplay {
     }
 }
 
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 impl NativeDisplay {
     pub fn stage_assignment(
         &mut self,
@@ -248,17 +289,17 @@ impl NativeDisplay {
 
 impl NativeDisplay {
     pub fn kernel_prepared(&self) -> bool {
-        #[cfg(feature = "display-ready-root")]
+        #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
         {
             self.kernel.is_some() || self.context_bytes().is_some()
         }
-        #[cfg(not(feature = "display-ready-root"))]
+        #[cfg(not(any(feature = "display-ready-root", feature = "display-physical-check")))]
         {
             false
         }
     }
 }
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 impl NativeDisplay {
     pub fn prepare_kernel(
         &mut self,
@@ -291,7 +332,10 @@ impl NativeDisplay {
     }
 }
 
-#[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
+#[cfg(any(
+    any(feature = "display-ready-root", feature = "display-physical-check"),
+    feature = "display-fit-root"
+))]
 pub fn kernel_preparation_bound() -> Result<usize, &'static str> {
     let signs = conduit_environment_runtime::display_output::DisplaySignBudget::derive(
         CONSTRUCTION_FRAMES,
@@ -304,7 +348,7 @@ pub fn kernel_preparation_bound() -> Result<usize, &'static str> {
 
 impl NativeDisplay {
     pub fn native_bound(&self) -> bool {
-        #[cfg(feature = "display-ready-root")]
+        #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
         {
             self.bound.is_some()
                 || self.execution.is_some()
@@ -313,13 +357,13 @@ impl NativeDisplay {
                     .as_ref()
                     .is_some_and(|w| w.status().native_custody)
         }
-        #[cfg(not(feature = "display-ready-root"))]
+        #[cfg(not(any(feature = "display-ready-root", feature = "display-physical-check")))]
         {
             false
         }
     }
 }
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 impl NativeDisplay {
     pub fn bind_native(
         &mut self,
@@ -362,91 +406,12 @@ impl NativeDisplay {
 }
 
 impl NativeDisplay {
-    pub fn context_bytes(&self) -> Option<usize> {
-        #[cfg(feature = "display-ready-root")]
-        {
-            self.execution
-                .as_ref()
-                .map(|_| core::mem::size_of::<execution::Execution<DisplayPins<'static>>>())
-                .or_else(|| {
-                    self.worker
-                        .as_ref()
-                        .filter(|w| w.status().native_custody)
-                        .map(|w| w.status().context_bytes)
-                })
-        }
-        #[cfg(not(feature = "display-ready-root"))]
-        {
-            None
-        }
-    }
-}
-#[cfg(feature = "display-ready-root")]
-impl NativeDisplay {
-    pub fn prepare_context(&mut self, available: usize) -> Result<(), &'static str> {
-        if self.execution.is_some() {
-            return Err("display-context-already-prepared");
-        }
-        if available < core::mem::size_of::<execution::Execution<DisplayPins<'static>>>() + 8192 {
-            return Err("display-context-capacity");
-        }
-        self.execution = Some(execution::Execution::boxed_retained(
-            &mut self.kernel,
-            &mut self.bound,
-        )?);
-        self.bound_write = None;
-        Ok(())
-    }
-}
-
-impl NativeDisplay {
-    pub fn task_registered(&self) -> bool {
-        #[cfg(feature = "display-ready-root")]
-        {
-            self.worker.is_some()
-        }
-        #[cfg(not(feature = "display-ready-root"))]
-        {
-            false
-        }
-    }
-}
-#[cfg(feature = "display-ready-root")]
-impl NativeDisplay {
-    pub fn task_status(&self) -> Option<DisplayTaskStatus> {
-        self.worker.as_ref().map(|w| w.status())
-    }
-    pub async fn register_task(
-        &mut self,
-        spawner: embassy_executor::Spawner,
-    ) -> Result<(), &'static str> {
-        if self.worker.is_some() {
-            return Err("display-task-already-registered");
-        }
-        self.worker = Some(task::prepare(&mut self.execution, spawner)?);
-        let worker = self.worker.as_ref().expect("registered display task");
-        if embassy_time::with_timeout(embassy_time::Duration::from_secs(2), worker.wait_ready())
-            .await
-            .is_err()
-        {
-            let _ = worker.cancel();
-            return Err("display-task-ready-timeout");
-        }
-        if worker.status().phase != "ready-held" {
-            return Err("display-task-not-ready");
-        }
-        self.phase = "task-owned";
-        Ok(())
-    }
-}
-
-impl NativeDisplay {
     pub fn assignment_staged(&self) -> bool {
-        #[cfg(feature = "display-ready-root")]
+        #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
         {
             self.staged.is_some()
         }
-        #[cfg(not(feature = "display-ready-root"))]
+        #[cfg(not(any(feature = "display-ready-root", feature = "display-physical-check")))]
         {
             false
         }
@@ -456,6 +421,6 @@ impl NativeDisplay {
 #[cfg(feature = "display-fit-root")]
 impl NativeDisplay {
     pub fn fit_telemetry(&self) -> fit::Telemetry {
-        fit::telemetry(&self.fit, self.software_ready())
+        fit::telemetry(self)
     }
 }
