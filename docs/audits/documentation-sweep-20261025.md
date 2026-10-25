@@ -35,6 +35,9 @@ and physical hardware were not run for this documentation-only review.
   retirement have different owners. Readiness itself carries no lifecycle
   authority; the new [Body purpose and fulfillment](../architecture/body-purpose-and-fulfillment.md)
   page identifies the actual finite source and derivation.
+- Handbook links leaving `wiki/` for repository-only documents use stable GitHub
+  `dev` URLs; relative cross-directory Markdown links can become broken
+  generated-site routes after publication.
 - The [documentation index](../README.md) now routes by reader intent.
   [Documentation policy](../documentation-policy.md) separates present
   contract, development capability, roadmap, and historical proof.

@@ -17,7 +17,7 @@ covers exact conversions, temperature points and differences, and SI prefixes.
 
 For continuity without compulsory endless work, see
 [[Bodies, hosts, plans, and plays|Bodies-hosts-plans-and-plays]] and the
-[Body purpose and fulfillment contract](../docs/architecture/body-purpose-and-fulfillment.md).
+[Body purpose and fulfillment contract](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/body-purpose-and-fulfillment.md).
 
 The website build renders this repository-owned Markdown and its diagrams as the
 [handbook](https://dancxjo.github.io/conduit/handbook/). The separate GitHub

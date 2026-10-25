@@ -104,7 +104,7 @@ carry an optional, finite purpose whose obligations can be fulfilled. These
 facts do not silently retire or destroy it. A thermometer need not accumulate
 new purposes simply because more machinery becomes available. See
 [[Bodies, hosts, plans, and plays|Bodies-hosts-plans-and-plays]] and the
-[body fulfillment contract](../docs/architecture/body-purpose-and-fulfillment.md).
+[body fulfillment contract](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/body-purpose-and-fulfillment.md).
 
 ## State is a promise, not a variable
 
