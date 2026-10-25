@@ -17,7 +17,10 @@ export function nativeRisk(paths) {
   // The native kernel owns isolation, device ownership and preemption. Its
   // standalone sources, protected service crates and product build/proof collectors cannot be covered
   // by workspace package tests alone.
-  return paths.some(name => /^targets\/conduitos\/(?:(?:src|domain|build|proof|make\/xtask|[^/]+-(?:core|service))\/|(?:Cargo\.(?:toml|lock)|build\.rs)$)/.test(name));
+  return paths.some(name => /^targets\/conduitos\/(?:(?:src|domain|build|proof|make\/xtask|[^/]+-(?:core|service))\/|(?:Cargo\.(?:toml|lock)|build\.rs)$)/.test(name)
+    // Crèche embeds these shared crates. Their protected Commit can exhaust its
+    // native allowance even when the same canonical package tests pass on host.
+    || /^(?:semantics\/face|plots\/birth)\/(?:.*\.rs|Cargo\.(?:toml|lock))$/.test(name));
 }
 
 export function admissionPlan(paths, metadata, root) {
