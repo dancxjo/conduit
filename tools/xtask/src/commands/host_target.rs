@@ -2,14 +2,14 @@
 
 use std::{fs, path::Path};
 
-use conduit_host_make::{BuildManifest, HostImage, verify_image_binding};
+use conduit_host_make::{verify_image_binding, BuildManifest, HostImage};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     cli::GlobalOpts,
     commands::conduitos::{
-        ArtifactRole, ProfileBuiltImage, build_profile_image, target_backend,
-        target_build::boot_profile_image, target_build::verify_artifact_digest,
+        build_profile_image, target_backend, target_build::boot_profile_image,
+        target_build::verify_artifact_digest, ArtifactRole, ProfileBuiltImage,
     },
 };
 
