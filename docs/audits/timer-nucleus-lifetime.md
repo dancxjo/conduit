@@ -39,6 +39,16 @@ rustc +stable --edition 2024 --test targets/conduitos/src/timer_nucleus.rs -D wa
 Both modes passed six tests in the focused preparation. A separate scratch
 public-method replay against the unchanged baseline module failed as expected
 with two identical `{ play_generation:7, request_generation:1 }` tokens.
+The owning package was also checked at clean source
+`4a31575e1c94ae8705cc748c166806c507bf0ada`, with the existing
+`hosted-tools,native-compositor,native-http-client` feature set: all six
+`timer_nucleus::tests` and the focused owning doctest passed. An explicit
+positive control compiled and ran against the actual built `conduitos` crate;
+the moved-owner negative control failed solely with E0382 in the compiler's
+structured diagnostics. Actual executed programs, the built crate artifact,
+logs and diagnostics have hash-verified compressed custody outside Git.
+Refresh onto accepted `dev` and reverify before landing this preparation.
+
 This is CPU helper proof; no native runtime, physical cancellation, DMA
 quiescence, panic cleanup or complete #6409 security acceptance follows.
 
