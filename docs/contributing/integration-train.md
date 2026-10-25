@@ -177,4 +177,8 @@ those archives. Producer source/tree/workflow/run/attempt/digest, tool acquisiti
 environment and command custody are checked again. No build/test is run in this
 handoff. Release manifests keep original proof and development acceptance
 identities distinct; the accepted main tree must still equal the proven tree.
-Pages composition uses the authenticated bundle returned by publication.
+Before any release branch, status, main merge, tag or release mutation, the
+publisher composes the authenticated browser site and exact-source ConduitOS
+journey in a fresh directory and checks all local links. A composition or link
+failure retains the output for diagnosis and refuses promotion. Only the
+verified directory is exposed as `pages-site` for the subsequent Pages upload.

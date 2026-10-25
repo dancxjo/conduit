@@ -15,7 +15,7 @@ const tree = 'd'.repeat(40);
 const repository = 'example/conduit';
 const targets = [{ id: 'hosted-linux', proofClass: 'executable' }];
 
-async function fixture(t, repositoryName = null, adoptionStager = null) {
+async function fixture(t, repositoryName = null, adoptionStager = null, sitePreparer = null) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'pipeline-publish-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const directory = path.join(root, 'bundle');
@@ -118,7 +118,7 @@ async function fixture(t, repositoryName = null, adoptionStager = null) {
     return response(args.includes('--slurp') ? [result] : result);
   };
   const output = path.join(root, 'output');
-  const publish = createPublisher({ command, targets, output, repositoryName, adoptionStager });
+  const publish = createPublisher({ command, targets, output, repositoryName, adoptionStager, sitePreparer });
   return { state, directory, product, output, storage, publish: () => publish('123', directory) };
 }
 
@@ -330,4 +330,27 @@ test('publisher uses the authenticated bundle and retains original train/accepta
     acceptanceRunId: 123, acceptanceRunAttempt: 1, manifestDigest: 'e'.repeat(64) });
   assert.match(await readFile(f.output, 'utf8'), new RegExp('bundle='));
   assert.ok(!f.state.calls.some(call => call.includes('cargo')));
+});
+
+
+test('site composition failure refuses promotion before any GitHub mutation', async t => {
+  const f = await fixture(t, null, null, async ({ source: actual }) => {
+    assert.equal(actual, source);
+    throw new Error('composed site contains broken links');
+  });
+  await assert.rejects(f.publish(), /composed site contains broken links/);
+  assert.equal(mutations(f.state).length, 0);
+});
+
+test('publisher prepares the authenticated bundle before promotion and exposes its fresh site', async t => {
+  let f;
+  const site = path.join(os.tmpdir(), 'prepared-pages-site');
+  f = await fixture(t, null, async () => ({ bundle: f.directory }), async ({ directory, source: actual }) => {
+    assert.equal(directory, f.directory);
+    assert.equal(actual, source);
+    assert.equal(mutations(f.state).length, 0);
+    return site;
+  });
+  await f.publish();
+  assert.ok((await readFile(f.output, 'utf8')).includes(`pages-site=${site}\n`));
 });
