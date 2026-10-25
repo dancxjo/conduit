@@ -13,7 +13,7 @@ import { patchbayFixture } from './conduitos-patchbay-fixture.mjs';
 
 const names = [
   'front-door-ready', 'creche-ready',
-  'creche-editorial-compact', 'creche-editorial-spacious', 'creche-engineering-spacious', 'creche-engineering-compact',
+  'creche-editorial-compact', 'creche-engineering-phosphor-compact', 'creche-engineering-editorial-compact', 'creche-engineering-phosphor-spacious',
   'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected', 'creche-pointer-four-restored', 'body-playing', 'wake-refused',
   'protected-keyboard-canvas', 'protected-memory-lantern',
   'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
@@ -113,7 +113,7 @@ test('Pages composition refuses a transcript from another Body before writing pa
   }
 });
 
-for (const checkpoint of ['creche-editorial-compact', 'creche-editorial-spacious', 'creche-engineering-spacious', 'creche-engineering-compact', 'creche-three-selected', 'creche-four-restored', 'wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
+for (const checkpoint of ['creche-editorial-compact', 'creche-engineering-phosphor-compact', 'creche-engineering-editorial-compact', 'creche-engineering-phosphor-spacious', 'creche-three-selected', 'creche-four-restored', 'wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
   'patchbay-gear-details', 'patchbay-diagram-returned', 'patchbay-inspected-other-and-returned',
   'patchbay-mask-replanned', 'patchbay-source-editor-loaded']) {
   test(`Pages composition refuses a journey missing ${checkpoint}`, () => {

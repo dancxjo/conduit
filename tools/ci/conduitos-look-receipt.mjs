@@ -1,12 +1,8 @@
 import { isDeepStrictEqual as same } from 'node:util';
 
+import { NATIVE_LOOK_MATRIX as MATRIX } from './conduitos-look-matrix.mjs';
+
 const PREFIX = 'CONDUIT_NATIVE_COMPONENT_REALIZATION ';
-const MATRIX = [
-  ['creche-editorial-compact', 'compact', 'editorial', 100],
-  ['creche-editorial-spacious', 'spacious', 'editorial', 125],
-  ['creche-engineering-spacious', 'spacious', 'phosphor', 125],
-  ['creche-engineering-compact', 'compact', 'phosphor', 100],
-];
 const nonempty = value => typeof value === 'string' && value.length > 0;
 const hash = value => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 
@@ -30,14 +26,26 @@ export function validateNativeLookReceipt(proof, manifest, serialBytes) {
     || manifest?.context?.source_commit !== proof.source_commit
     || manifest.context.image_sha256 !== proof.image_sha256
     || look?.schema !== 'conduit.conduitos/local-look-proof@1' || look.status !== 'passed'
+    || look.source_commit !== proof.source_commit || look.image_sha256 !== proof.image_sha256
     || look.input !== 'real-qmp-keyboard' || look.body_actions !== 0
     || look.physical_evidence !== false || look.human_enactment !== false
-    || !Array.isArray(look.transitions) || look.transitions.length !== 4
-    || !hash(look.same_recipe_canonical_sha256)
+    || !Array.isArray(look.transitions) || look.transitions.length !== MATRIX.length
+    || !hash(look.same_recipe_canonical_sha256) || !hash(look.same_layout_canonical_sha256)
     || !Array.isArray(manifest.checkpoints)) fail();
-  const actual = records(bytes.length, PREFIX);
-  if (!same(actual, look.transitions)) fail();
-  const selected = ['creche-ready', ...MATRIX.map(row => row[0])];
+  const located = prefix => {
+    const found = [];
+    let start = 0;
+    for (;;) {
+      const newline = bytes.indexOf(10, start);
+      if (newline < 0) return found;
+      const line = bytes.subarray(start, newline).toString('utf8');
+      if (line.startsWith(prefix)) found.push({ record: JSON.parse(line.slice(prefix.length)), end: newline + 1 });
+      start = newline + 1;
+    }
+  };
+  const actual = located(PREFIX);
+  if (!same(actual.map(value => value.record), look.transitions.map(({ screenshot_checkpoint, ...record }) => record))) fail();
+  const selected = ['creche-ready', ...MATRIX.filter(row => row[6]).map(row => row[5])];
   const checkpoints = selected.map(name => {
     const matches = manifest.checkpoints.filter(entry => entry.checkpoint === name);
     if (matches.length !== 1) fail();
@@ -87,12 +95,18 @@ export function validateNativeLookReceipt(proof, manifest, serialBytes) {
     || look.face_id !== origin.face.identity || look.face_revision !== origin.face.revision) fail();
   const actionCount = records(origin.end, 'CONDUIT_NATIVE_ACTION ').length;
   let previous = origin;
+  let captured = 0;
+  let captureEnd = origin.end;
+  const faces = located('CONDUIT_NATIVE_FACE ');
   const seen = new Set([origin.receipt.show_id]);
-  for (const [index, [name, density, palette, scale]] of MATRIX.entries()) {
-    const entry = checkpoints[index + 1];
-    if (entry.expected_change !== true || entry.frame?.checkpoint !== name) fail();
-    const fresh = checkpointRecords(entry, previous.end);
-    const transition = actual[index];
+  for (const [index, [, density, palette, scale, typography, name, capture]] of MATRIX.entries()) {
+    const transition = actual[index]?.record;
+    if (!transition || look.transitions[index].screenshot_checkpoint !== (capture ? name : null)) fail();
+    const nextEnd = actual[index + 1]?.end ?? bytes.length;
+    const publication = faces.find(value => value.end > previous.end && value.end < nextEnd
+      && value.record?.show?.show_id === transition.show_id);
+    if (!publication || actual[index].end <= previous.end) fail();
+    const fresh = { ...decode(publication.record), end: Math.max(publication.end, actual[index].end) };
     const expression = transition.expression?.expression;
     const configuration = transition.configuration;
     if (records(fresh.end, 'CONDUIT_NATIVE_BIRTH ').length !== 0
@@ -112,13 +126,25 @@ export function validateNativeLookReceipt(proof, manifest, serialBytes) {
       || transition.offer_generation !== origin.show.offer_generation
       || transition.mask_plan_id !== fresh.show.plan_id || transition.active_play_id !== fresh.show.active_play_id
       || transition.manifestation_id !== fresh.show.manifestation_id
-      || expression?.density !== density || expression.palette !== palette || expression.text_scale_percent !== scale
+      || expression?.density !== density || expression.palette !== palette || expression.text_scale_percent !== scale || expression.typography !== typography
       || transition.fallback !== null || !nonempty(configuration?.root)
       || !same(configuration.component, look.same_checked_component)
       || !configuration.component || !['source_document_id', 'checked_plot_id', 'fore_id'].every(key => hash(configuration.component[key]))
       || configuration.recipe_canonical_sha256 !== look.same_recipe_canonical_sha256
+      || configuration.layout_canonical_sha256 !== look.same_layout_canonical_sha256
       || !Number.isSafeInteger(transition.render?.commands) || transition.render.commands < 1
       || transition.render.commands > 48) fail();
+    if (capture) {
+      const entry = checkpoints[++captured];
+      if (entry.expected_change !== true || entry.frame?.checkpoint !== name) fail();
+      const capturedFace = checkpointRecords(entry, captureEnd);
+      if (capturedFace.end < fresh.end || !same(capturedFace.receipt, fresh.receipt)
+        || !same(capturedFace.face, origin.face)
+        || records(capturedFace.end, PREFIX).length !== index + 1
+        || records(capturedFace.end, 'CONDUIT_NATIVE_BIRTH ').length !== 0
+        || records(capturedFace.end, 'CONDUIT_NATIVE_ACTION ').length !== actionCount) fail();
+      captureEnd = capturedFace.end;
+    }
     seen.add(fresh.receipt.show_id);
     previous = fresh;
   }
