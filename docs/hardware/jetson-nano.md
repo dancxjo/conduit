@@ -1,7 +1,10 @@
 # Jetson Nano ConduitOS port
 
 Development work tracked by [#6478](https://github.com/dancxjo/conduit/issues/6478).
-There is currently no supported Nano image or physical boot receipt. This
+There is currently no supported Nano image or physical boot receipt. The
+`src/arch/jetson_nano/memory.rs` prerequisite has host conformance for finite
+RAM/reservation sets and aligned placement admission. It is not yet connected
+to a DTB parser or board entry point. This
 contract describes the original 4 GB Jetson Nano developer kit, not Orin Nano.
 
 ## Hardware and provenance

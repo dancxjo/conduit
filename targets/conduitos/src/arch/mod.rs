@@ -304,3 +304,8 @@ pub use riscv64::framebuffer;
 mod loongarch64_framebuffer_mapping;
 #[cfg(all(target_arch = "loongarch64", feature = "native-compositor-core"))]
 pub use loongarch64::framebuffer;
+
+// Nano handoff conformance is host-testable before a board image exists.
+#[cfg(test)]
+#[path = "jetson_nano/memory.rs"]
+mod jetson_nano_memory;
