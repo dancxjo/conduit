@@ -28,7 +28,7 @@ mod x86_64;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub(crate) use x86_64::domain_ticks;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-pub use x86_64::{ServiceDomain, TextDomain};
+pub use x86_64::{ApplicationEntryReceipt, ServiceDomain, TextDomain};
 
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub use x86_64::CandidateDeadline;

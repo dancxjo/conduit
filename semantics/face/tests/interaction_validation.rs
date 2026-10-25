@@ -198,3 +198,234 @@ fn exact_target_argument_contract_and_interaction_identity_remain_mandatory() {
         Err(FaceInteractionRefusal::StaleShow)
     );
 }
+
+fn constructed(face: Face) -> Result<CheckedFace, FaceError> {
+    CheckedFace::new_with_semantics(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+}
+
+#[test]
+fn constructor_proof_matches_public_validation_for_exact_and_adversarial_inputs() {
+    let (face, show) = basis();
+    let checked = constructed(face.clone()).unwrap();
+    assert_eq!(checked.as_face(), &face);
+    assert_eq!(
+        serde_json::to_vec(checked.as_face()).unwrap(),
+        serde_json::to_vec(&face).unwrap()
+    );
+    let valid = interaction(&face, &show).unwrap();
+    let roundtrip = FaceInteraction::decode(&valid.encode()).unwrap();
+    assert_eq!(checked.validate_interaction(&roundtrip, &show), Ok(()));
+    for mutation in 0..10 {
+        let mut input = valid.clone();
+        match mutation {
+            0 => input.face_revision += 1,
+            1 => input.show_id = "stale".into(),
+            2 => input.action_id = "unknown".into(),
+            3 => input.target = "wrong".into(),
+            4 => input.arguments.clear(),
+            5 => input.arguments[0].value_kind = "value/bool".into(),
+            6 => input.arguments[0].value = vec![b'x'; 17],
+            7 => input.arguments.push(input.arguments[0].clone()),
+            8 => input.arguments[0].value = b"changed".to_vec(),
+            _ => input.identity = serde_json::from_str("\"forged\"").unwrap(),
+        }
+        let expected = input.validate_against(&face, &show);
+        assert!(expected.is_err());
+        assert_eq!(checked.validate_interaction(&input, &show), expected);
+    }
+    for mutation in 0..5 {
+        let mut wrong = show.clone();
+        match mutation {
+            0 => wrong.planned_mask.plan.plan_id = "wrong".into(),
+            1 => wrong.planned_mask.plan.fragments[0].placements[0].artifact_id = "wrong".into(),
+            2 => wrong.show.boot_id = "wrong".into(),
+            3 => {
+                wrong = show
+                    .fail(ManifestationFailure::DeliveryFailed, "sign/failed".into())
+                    .unwrap()
+            }
+            _ => {
+                wrong = show
+                    .transition(ManifestationLifecycle::Closed, "sign/closed".into())
+                    .unwrap()
+            }
+        }
+        let expected = valid.validate_against(&face, &wrong);
+        assert!(expected.is_err());
+        assert_eq!(checked.validate_interaction(&valid, &wrong), expected);
+    }
+    let mut unwrapped = checked.into_face();
+    unwrapped.text[0].text.push('x');
+    assert_eq!(
+        valid.validate_against(&unwrapped, &show),
+        Err(FaceInteractionRefusal::InvalidFace)
+    );
+}
+
+#[test]
+fn checked_constructor_retains_content_refusals() {
+    let (mut face, _) = basis();
+    face.subjects.push(face.subjects[0].clone());
+    assert_eq!(constructed(face).unwrap_err(), FaceError::DuplicateSubject);
+    let (mut face, _) = basis();
+    face.actions[0].arguments[0].contract.maximum_bytes = u32::MAX;
+    assert_eq!(
+        constructed(face).unwrap_err(),
+        FaceError::InvalidInputContract
+    );
+}
+
+#[test]
+fn borrowed_validation_retains_conflicting_refusal_precedence() {
+    let (face, show) = basis();
+    let accepted = interaction(&face, &show).unwrap();
+    let checked = constructed(face.clone()).unwrap();
+    let check = |value: &FaceInteraction, expected| {
+        assert_eq!(value.validate_against(&face, &show), Err(expected));
+        assert_eq!(checked.validate_interaction(value, &show), Err(expected));
+    };
+    let mut value = accepted.clone();
+    value.identity = serde_json::from_str("\"forged\"").unwrap();
+    value.target = "wrong".into();
+    value.arguments.clear();
+    check(&value, FaceInteractionRefusal::WrongTarget);
+    value = accepted.clone();
+    value.arguments[0].value_kind = "wrong".into();
+    value.arguments[0].value.resize(17, b'x');
+    value.arguments.push(value.arguments[0].clone());
+    check(&value, FaceInteractionRefusal::DuplicateArgument);
+    value.arguments.pop();
+    check(&value, FaceInteractionRefusal::WrongValueKind);
+    value.arguments[0].value_kind = UTF8_TEXT_VALUE_KIND.into();
+    value.identity = serde_json::from_str("\"forged\"").unwrap();
+    check(&value, FaceInteractionRefusal::OversizeValue);
+    value = accepted;
+    for identity in [
+        "".to_string(),
+        "a".repeat(63),
+        "a".repeat(65),
+        "a".repeat(8193),
+    ] {
+        value.identity = serde_json::from_value(serde_json::Value::String(identity)).unwrap();
+        check(&value, FaceInteractionRefusal::MalformedEncoding);
+    }
+}
+
+#[test]
+fn constructor_and_borrowed_validation_share_exact_wire_size_boundary() {
+    let (base, _) = basis();
+    let mut actions = base.actions.clone();
+    actions[0].arguments = ["first", "second"]
+        .into_iter()
+        .map(|name| FaceActionArgument::text(name.into(), name.into(), 1, 4096).unwrap())
+        .collect();
+    let face = Face::new_with_semantics(
+        base.revision,
+        base.basis,
+        base.subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        actions,
+        base.disclosures,
+    )
+    .unwrap();
+    let show = available_mask_show(&face);
+    let checked = constructed(face.clone()).unwrap();
+    let mut args: Vec<_> = ["first", "second"]
+        .into_iter()
+        .map(|name| FaceInteractionArgument {
+            name: name.into(),
+            value_kind: UTF8_TEXT_VALUE_KIND.into(),
+            value: vec![b'x'],
+        })
+        .collect();
+    let small =
+        FaceInteraction::new(&face, &show, "send", "patchbay/plot", args.clone(), 7).unwrap();
+    let remaining = MAX_FACE_INTERACTION_BYTES - small.encode().len();
+    args[0].value.resize(4096, b'x');
+    args[1].value.resize(1 + remaining - 4095, b'x');
+    let exact =
+        FaceInteraction::new(&face, &show, "send", "patchbay/plot", args.clone(), 7).unwrap();
+    assert_eq!(exact.encode().len(), MAX_FACE_INTERACTION_BYTES);
+    assert_eq!(exact.validate_against(&face, &show), Ok(()));
+    assert_eq!(checked.validate_interaction(&exact, &show), Ok(()));
+    let mut forged = exact.clone();
+    forged.identity = serde_json::from_value(serde_json::Value::String("a".repeat(8193))).unwrap();
+    // Size validation uses a derived 64-byte identity, not the submitted ID length.
+    assert_eq!(
+        forged.validate_against(&face, &show),
+        Err(FaceInteractionRefusal::MalformedEncoding)
+    );
+    forged.arguments[1].value.push(b'x');
+    assert_eq!(
+        forged.validate_against(&face, &show),
+        Err(FaceInteractionRefusal::OversizeValue)
+    );
+    assert_eq!(
+        checked.validate_interaction(&forged, &show),
+        Err(FaceInteractionRefusal::OversizeValue)
+    );
+    args[1].value.push(b'x');
+    assert_eq!(
+        FaceInteraction::new(&face, &show, "send", "patchbay/plot", args, 7),
+        Err(FaceInteractionRefusal::OversizeValue)
+    );
+}
+
+#[test]
+fn borrowed_show_basis_keeps_partial_provenance_and_public_refusal_order() {
+    let (original, _) = basis();
+    for variant in 0..4 {
+        let mut provenance = original.basis.clone();
+        if variant != 0 {
+            provenance.plan_id = None;
+            provenance.active_play_id = None;
+        }
+        if variant == 1 || variant == 3 {
+            provenance.expanded_plot_id = None;
+        }
+        if variant == 2 || variant == 3 {
+            provenance.source_document_id = None;
+            provenance.checked_plot_id = None;
+        }
+        let face = original.clone().with_basis(provenance).unwrap();
+        let show = available_mask_show(&face);
+        assert_eq!(show.face_plot.is_some(), variant == 0);
+        show.validate(&face).unwrap();
+        interaction(&face, &show).unwrap();
+        let mut wrong = show.clone();
+        wrong.face_plot = if wrong.face_plot.is_some() {
+            None
+        } else {
+            Some(wrong.mask_plot.clone())
+        };
+        assert_eq!(wrong.validate(&face), Err(MaskShowError::StalePlan));
+        let mut wrong = show.clone();
+        wrong.face_plan_id = if wrong.face_plan_id.is_some() {
+            None
+        } else {
+            Some("unexpected-plan".into())
+        };
+        assert_eq!(wrong.validate(&face), Err(MaskShowError::StalePlan));
+        let mut wrong = show;
+        wrong.show_id = serde_json::from_str("\"show/not-canonical\"").unwrap();
+        assert_eq!(wrong.validate(&face), Err(MaskShowError::StaleShowIdentity));
+        wrong.planned_mask.plan.plan_id = "wrong-plan".into();
+        assert_eq!(
+            wrong.validate(&face),
+            Err(MaskShowError::InvalidManifestation(
+                ManifestationError::InvalidPlan
+            ))
+        );
+    }
+}

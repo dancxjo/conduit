@@ -304,9 +304,8 @@ conduitos_irq_start_unobserved:
     mov r15, rsp
     mov rdi, [rsp + 136]
     mov rsi, [rsp + 120]
-    .if {proof_envelope}
+    // Always pass the Root-owned saved IRQ frame; diagnostics never change return ABI.
     mov rdx, rsp
-    .endif
     and rsp, -16
     call conduitos_ordinary_timer_handler
     mov rsp, r15
