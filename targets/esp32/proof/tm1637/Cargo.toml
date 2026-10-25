@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [features]
+target-memory-check = ["body-image-root", "conduit-planner/indexed-source"]
 body-image-root = ["native-face-root", "conduit-environment-runtime/body-image"]
 native-face-root = ["native-root", "conduit-environment-runtime/face-projection"]
 display-ready-root = ["native-root", "conduit-environment-runtime/display-output"]

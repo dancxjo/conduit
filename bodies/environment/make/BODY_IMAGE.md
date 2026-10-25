@@ -1,5 +1,9 @@
 # Body construction for the MCU image
 
+**Delivery checkpoint:** the owned-offer path failed on the actual ESP32 before
+planning; see [the measured allocation and next gate](TARGET_CHECKPOINT.md).
+The image below is not a delivered native appliance.
+
 The appliance is intended to arrive with its body built into the MCU image.
 Its AP must report the running body's measurements and offers invitations for
 other hosts to join later. Local sampling and seven-segment display do not

@@ -3,6 +3,9 @@
 //! No simulated provider, descriptor-derived availability or execution is used.
 #[path = "native_body_root.rs"]
 mod body;
+#[cfg(feature = "target-memory-check")]
+#[path = "native_memory_check.rs"]
+mod memory_check;
 #[path = "native_install.rs"]
 mod install;
 #[path = "native_lifecycle.rs"]
