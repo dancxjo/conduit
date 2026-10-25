@@ -1,7 +1,8 @@
 //! Birth the image's body on the construction host, using the ordinary Crèche
 //! draft. The image carries intent and biography, never a future Boot or grant.
 use conduit_birth_plot::{BirthDraft, BirthDraftRefusal, BirthPlotChoice};
-use conduit_body::{Body, BodyBiographyEvidence, BodyMembership};
+use conduit_body::BodyBiographyEvidence;
+use conduit_body_make::{PreparedBirthRefusal, PreparedBodyBirth};
 use conduit_core::SignId;
 
 pub struct PreparedBodyImage {
@@ -28,12 +29,19 @@ impl PreparedBodyImage {
     ) -> Result<Self, BodyImageRefusal> {
         use BodyImageRefusal as E;
         let draft = BirthDraft::new(construction_uuid, choices).map_err(E::Draft)?;
-        let selected = draft.selection(draft.revision()).map_err(E::Draft)?;
-        let body = Body::born_with_plots(selected.workset, birth_sequence, birth_sign)
-            .map_err(E::Birth)?;
-        let membership = BodyMembership::new(body.body_id.clone()).map_err(E::Membership)?;
-        let evidence = BodyBiographyEvidence::born(body, membership, selected.friendly_name)
-            .map_err(E::Biography)?;
+        let evidence = PreparedBodyBirth::from_reviewed_draft(
+            &draft,
+            draft.revision(),
+            birth_sequence,
+            birth_sign,
+        )
+        .map_err(|error| match error {
+            PreparedBirthRefusal::Draft(error) => E::Draft(error),
+            PreparedBirthRefusal::Birth(error) => E::Birth(error),
+            PreparedBirthRefusal::Membership(error) => E::Membership(error),
+            PreparedBirthRefusal::Biography(error) => E::Biography(error),
+        })?
+        .into_evidence();
         Ok(Self { evidence })
     }
 
