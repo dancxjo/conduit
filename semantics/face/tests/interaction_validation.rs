@@ -283,3 +283,101 @@ fn checked_constructor_retains_content_refusals() {
         FaceError::InvalidInputContract
     );
 }
+
+#[test]
+fn borrowed_validation_retains_conflicting_refusal_precedence() {
+    let (face, show) = basis();
+    let accepted = interaction(&face, &show).unwrap();
+    let checked = constructed(face.clone()).unwrap();
+    let check = |value: &FaceInteraction, expected| {
+        assert_eq!(value.validate_against(&face, &show), Err(expected));
+        assert_eq!(checked.validate_interaction(value, &show), Err(expected));
+    };
+    let mut value = accepted.clone();
+    value.identity = serde_json::from_str("\"forged\"").unwrap();
+    value.target = "wrong".into();
+    value.arguments.clear();
+    check(&value, FaceInteractionRefusal::WrongTarget);
+    value = accepted.clone();
+    value.arguments[0].value_kind = "wrong".into();
+    value.arguments[0].value.resize(17, b'x');
+    value.arguments.push(value.arguments[0].clone());
+    check(&value, FaceInteractionRefusal::DuplicateArgument);
+    value.arguments.pop();
+    check(&value, FaceInteractionRefusal::WrongValueKind);
+    value.arguments[0].value_kind = UTF8_TEXT_VALUE_KIND.into();
+    value.identity = serde_json::from_str("\"forged\"").unwrap();
+    check(&value, FaceInteractionRefusal::OversizeValue);
+    value = accepted;
+    for identity in [
+        "".to_string(),
+        "a".repeat(63),
+        "a".repeat(65),
+        "a".repeat(8193),
+    ] {
+        value.identity = serde_json::from_value(serde_json::Value::String(identity)).unwrap();
+        check(&value, FaceInteractionRefusal::MalformedEncoding);
+    }
+}
+
+#[test]
+fn constructor_and_borrowed_validation_share_exact_wire_size_boundary() {
+    let (base, _) = basis();
+    let mut actions = base.actions.clone();
+    actions[0].arguments = ["first", "second"]
+        .into_iter()
+        .map(|name| FaceActionArgument::text(name.into(), name.into(), 1, 4096).unwrap())
+        .collect();
+    let face = Face::new_with_semantics(
+        base.revision,
+        base.basis,
+        base.subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        actions,
+        base.disclosures,
+    )
+    .unwrap();
+    let show = available_mask_show(&face);
+    let checked = constructed(face.clone()).unwrap();
+    let mut args: Vec<_> = ["first", "second"]
+        .into_iter()
+        .map(|name| FaceInteractionArgument {
+            name: name.into(),
+            value_kind: UTF8_TEXT_VALUE_KIND.into(),
+            value: vec![b'x'],
+        })
+        .collect();
+    let small =
+        FaceInteraction::new(&face, &show, "send", "patchbay/plot", args.clone(), 7).unwrap();
+    let remaining = MAX_FACE_INTERACTION_BYTES - small.encode().len();
+    args[0].value.resize(4096, b'x');
+    args[1].value.resize(1 + remaining - 4095, b'x');
+    let exact =
+        FaceInteraction::new(&face, &show, "send", "patchbay/plot", args.clone(), 7).unwrap();
+    assert_eq!(exact.encode().len(), MAX_FACE_INTERACTION_BYTES);
+    assert_eq!(exact.validate_against(&face, &show), Ok(()));
+    assert_eq!(checked.validate_interaction(&exact, &show), Ok(()));
+    let mut forged = exact.clone();
+    forged.identity = serde_json::from_value(serde_json::Value::String("a".repeat(8193))).unwrap();
+    // Size validation uses a derived 64-byte identity, not the submitted ID length.
+    assert_eq!(
+        forged.validate_against(&face, &show),
+        Err(FaceInteractionRefusal::MalformedEncoding)
+    );
+    forged.arguments[1].value.push(b'x');
+    assert_eq!(
+        forged.validate_against(&face, &show),
+        Err(FaceInteractionRefusal::OversizeValue)
+    );
+    assert_eq!(
+        checked.validate_interaction(&forged, &show),
+        Err(FaceInteractionRefusal::OversizeValue)
+    );
+    args[1].value.push(b'x');
+    assert_eq!(
+        FaceInteraction::new(&face, &show, "send", "patchbay/plot", args, 7),
+        Err(FaceInteractionRefusal::OversizeValue)
+    );
+}
