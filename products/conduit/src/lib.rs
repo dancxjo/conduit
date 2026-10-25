@@ -11,6 +11,8 @@ mod creche_mask_fixture;
 mod mask_test_common;
 
 pub mod creche_encounter;
+#[cfg(feature = "native-creche")]
+pub mod creche_native_owner;
 pub mod creche_production;
 mod hosted_two_std;
 mod plot_source;

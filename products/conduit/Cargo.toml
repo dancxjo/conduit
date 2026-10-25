@@ -4,7 +4,13 @@ version = "0.1.0"
 edition = "2021"
 default-run = "conduit"
 
+[features]
+native-creche = ["dep:conduitos", "conduitos/native-compositor", "dep:conduit-human"]
+
 [dependencies]
+conduitos = { path = "../../targets/conduitos", optional = true, default-features = false }
+conduit-human = { path = "../../semantics/human", optional = true }
+
 conduit-commons-plot = { path = "../../plots/commons" }
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }

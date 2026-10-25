@@ -4,6 +4,8 @@
 //! The Mask's renderer Host Call remains pending until this compositor writes
 //! pixels. Only then does its Show Fore become available for typed input.
 
+pub use crate::native_mask_play::NativeMaskPlayReceipt;
+
 use alloc::string::{String, ToString};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{

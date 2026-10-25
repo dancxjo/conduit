@@ -91,3 +91,60 @@ fn altered_review_request_cannot_transfer_otherwise_verified_products() {
     assert_eq!(owner.poll().unwrap(), CrechePoll::Pending);
     owner.retire().unwrap();
 }
+
+#[test]
+fn worker_completion_refusal_classifies_and_retains_exact_products_after_retirement() {
+    let (mut adapter, controller, custody) = adapter();
+    let (host, plan, play) = plan(&adapter);
+    let mut owner = CrecheHost::prepare(&mut adapter, &host, &plan, &play).unwrap();
+    owner.confirm_started(&host, &play).unwrap();
+    owner.begin(owner.request()).unwrap();
+    for (action, value) in [
+        ("creche.deploy.next", None),
+        ("creche.deploy.scope", Some(b"all".as_slice())),
+        ("creche.deploy.next", None),
+        ("creche.deploy.source", Some(b"release".as_slice())),
+        ("creche.deploy.review", None),
+    ] {
+        act(&mut owner, &controller, &custody, action, value);
+    }
+    let files = Arc::new(Files::new());
+    let retained_files = files.clone();
+    let (produced, observed) = std::sync::mpsc::sync_channel(1);
+    controller
+        .start_make_worker(move |mut handoff, _| {
+            handoff.request.0[0] ^= 1;
+            let products = products(handoff, &retained_files);
+            produced
+                .send((
+                    products.biography().clone(),
+                    products.evidence(4096).unwrap(),
+                ))
+                .unwrap();
+            Ok(products)
+        })
+        .unwrap();
+    let (birth, evidence) = observed
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        std::thread::sleep(owner.poll_wait());
+        if let CrechePoll::Outcome(outcome) = owner.poll().unwrap() {
+            assert_eq!(outcome.disposition, CrecheDisposition::Refused);
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "worker rejection must terminate the encounter"
+        );
+    }
+    owner.retire().unwrap();
+    let retained = controller.take_rejected_products().unwrap().unwrap();
+    assert!(!retained.reason().is_empty() && retained.reason().len() <= 256);
+    assert_eq!(retained.products().biography(), &birth);
+    assert_eq!(retained.products().evidence(4096).unwrap(), evidence);
+    assert_eq!(retained.products().artifacts().len(), 2);
+    assert!(controller.take_rejected_products().unwrap().is_none());
+    assert!(files.root.join("first.iso").is_file());
+}

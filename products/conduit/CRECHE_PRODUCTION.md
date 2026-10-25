@@ -33,14 +33,33 @@ Only after the installed operation publishes the canonical `Prepared` digest
 may `take_products` transfer that result once. These receipts prove prepared
 bytes; they do not prove carrier writing, destination boot or membership.
 
-Production and completion revalidation perform blocking I/O. Their eventual
-native owner must run them outside kernel polling, share the operation's
-cancellation flag, and drain the worker before retirement. The encounter adapter
-does not currently spawn that worker. This library does not yet supply the full
-native application entrance or save/deploy encounter.
+Production and completion revalidation perform blocking I/O.
+`start_make_worker` consumes the exact review internally and attaches one owned
+worker outside kernel polling. Its closure must pass the supplied cancellation
+flag into production grants and retain one job across retries. Retirement revokes
+interaction, cancels and joins that worker without holding mailbox or renderer
+locks, then drains presentation. Rejected completion retains opaque products and
+a bounded reason for one-time retrieval, including after retirement. A worker
+panic classifies failure and persistently refuses successful effect drain; the
+Mask is still cleaned up. Blocked OS reads remain a cooperative limit.
+
+The `native-creche` feature supplies `LocalCrecheNativeOwner`: one prepared Mask
+and one caller-owned initialized scanout, bound to the actual issued Body Play.
+It retains actual render/Show/input receipts and acknowledges focus redraws
+before accepting further input. The UI loop must service its bounded retirement
+handshake while the Body worker drains. Controller ACK/input checks report
+custody pressure rather than blocking that loop. A generic scanout interface
+keeps the SDL package's standalone Cargo build intact; a launcher needs its
+local wrapper around the actual SDL adapter.
+
+The full native application entrance still needs an admitted Linux Show Base,
+actual input acquisition and that event loop. This library does not yet supply
+the save/deploy encounter.
 
 The focused software tests use canonical review, actual admitted fixture files,
 streaming image binding, retained receipt custody and the installed Host owner.
 They cover changed bytes, cancellation, source/build mismatches, one-birth retry,
-multiple Hosts and one-time completion. They do not establish a positive source
+multiple Hosts, one-time completion, real native Mask rendering on an explicit
+CPU output, redraw ACKs, typed input and worker cancellation/retirement. They do
+not establish a positive source
 image build, native device output, SD boot or ordinary later-Host join.

@@ -10,9 +10,14 @@ use conduit_std_host::hosted_creche::CrecheHost;
 use std::collections::BTreeMap;
 
 #[derive(Default)]
-struct FixtureReturnedInput {
+pub(super) struct FixtureReturnedInput {
     show: Option<MaskShow>,
     returned: Option<FaceInteraction>,
+}
+impl FixtureReturnedInput {
+    pub(super) fn has_show(&self) -> bool {
+        self.show.is_some()
+    }
 }
 struct Custody(Arc<Mutex<FixtureReturnedInput>>);
 impl CrecheMaskShowCustody for Custody {
@@ -40,7 +45,7 @@ impl CrecheMaskShowCustody for Custody {
         Ok(())
     }
 }
-fn adapter() -> (
+pub(super) fn adapter() -> (
     CrecheEncounterAdapter,
     CrecheEncounterController,
     Arc<Mutex<FixtureReturnedInput>>,
@@ -69,10 +74,18 @@ fn adapter() -> (
     .unwrap();
     (adapter, controller, acknowledged)
 }
-fn plan(
+pub(crate) fn plan(
     adapter: &CrecheEncounterAdapter,
 ) -> (conduit_core::HostAdvertisement, BodyPlan, BodyPlayIdentity) {
-    let mut host = conduit_std_host::StdHost::new().advertisement().clone();
+    plan_on_host(
+        adapter,
+        conduit_std_host::StdHost::new().advertisement().clone(),
+    )
+}
+pub(crate) fn plan_on_host(
+    adapter: &CrecheEncounterAdapter,
+    mut host: conduit_core::HostAdvertisement,
+) -> (conduit_core::HostAdvertisement, BodyPlan, BodyPlayIdentity) {
     host.capabilities = vec![conduit_body_make::deployment_runtime_catalog::creche_std_offer()];
     host.resources = vec![adapter.resource_offer()];
     let mut startup = conduit_plot::StartupCatalog::new();
@@ -178,7 +191,7 @@ fn interaction(
         .unwrap_or_default();
     FaceInteraction::new(face, show, &action.identity, &action.target, arguments, 1).unwrap()
 }
-fn act(
+pub(super) fn act(
     owner: &mut CrecheHost<'_>,
     controller: &CrecheEncounterController,
     acknowledged: &Arc<Mutex<FixtureReturnedInput>>,
@@ -359,5 +372,45 @@ fn acknowledged_show_does_not_admit_fabricated_or_revoked_returned_input() {
             .identity,
         face.identity
     );
+    owner.retire().unwrap();
+}
+
+#[test]
+fn ui_ack_and_submit_report_custody_pressure_without_blocking_renderer_retirement() {
+    let (mut adapter, controller, selected) = adapter();
+    let (host, plan, play) = plan(&adapter);
+    let mut owner = CrecheHost::prepare(&mut adapter, &host, &plan, &play).unwrap();
+    owner.confirm_started(&host, &play).unwrap();
+    owner.begin(owner.request()).unwrap();
+    let face = controller.face().unwrap().unwrap();
+    let show = mask_fixture::acknowledged_fixture_show(&face);
+    selected.lock().unwrap().show = Some(show.clone());
+    controller.acknowledge_show(show.clone()).unwrap();
+    let returned = interaction(&face, &show, "creche.name", Some(b"Returned"));
+    selected.lock().unwrap().returned = Some(returned.clone());
+    for submit in [false, true] {
+        // Simulate the worker holding custody while it awaits main-thread drain.
+        let guard = controller.channel.custody.lock().unwrap();
+        let ui = controller.clone();
+        let (sent, received) = std::sync::mpsc::sync_channel(1);
+        let show = show.clone();
+        let returned = returned.clone();
+        let worker = std::thread::spawn(move || {
+            let result = if submit {
+                ui.submit(returned)
+            } else {
+                ui.acknowledge_show(show)
+            };
+            sent.send(result).unwrap();
+        });
+        let result = received.recv_timeout(std::time::Duration::from_millis(250));
+        // Always release before assertions so a regression cannot strand a worker.
+        drop(guard);
+        worker.join().unwrap();
+        assert!(
+            matches!(result, Ok(Err(ref message)) if message.contains("busy")),
+            "UI blocked instead of observing selected renderer pressure: {result:?}"
+        );
+    }
     owner.retire().unwrap();
 }

@@ -34,8 +34,8 @@ impl CrecheEncounterController {
         }
         self.channel
             .custody
-            .lock()
-            .map_err(|_| "Crèche Mask custody poisoned")?
+            .try_lock()
+            .map_err(custody_pressure)?
             .validate_acknowledged(face, &show)?;
         state.acknowledged = Some(Arc::new(show));
         Ok(())
@@ -55,11 +55,7 @@ impl CrecheEncounterController {
             .map_err(|e| format!("Crèche interaction: {e:?}"))?;
         // Recheck actual selected renderer custody at acceptance, not only when
         // its Show was initially acknowledged. No cloned Show conveys authority.
-        let mut custody = self
-            .channel
-            .custody
-            .lock()
-            .map_err(|_| "Crèche Mask custody poisoned")?;
+        let mut custody = self.channel.custody.try_lock().map_err(custody_pressure)?;
         custody.validate_acknowledged(face, show)?;
         custody.validate_returned_interaction(face, show, &interaction)?;
         drop(custody);
@@ -143,5 +139,14 @@ impl CrecheEncounterController {
         } else {
             None
         })
+    }
+}
+
+// Native retirement may hold this guard while the UI thread drains its actual
+// output. The UI must observe pressure rather than block that drain handshake.
+fn custody_pressure<T>(error: TryLockError<T>) -> &'static str {
+    match error {
+        TryLockError::WouldBlock => "Crèche selected Mask custody is busy",
+        TryLockError::Poisoned(_) => "Crèche Mask custody poisoned",
     }
 }

@@ -17,7 +17,9 @@ use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 
 mod admission;
 mod controller;
+mod make_worker;
 pub use controller::CrecheEncounterController;
+pub use make_worker::CrecheRejectedProducts;
 
 /// Trusted selected renderer custody, supplied explicitly by the native owner.
 /// Structural MaskShow validity is insufficient: implementations must compare
@@ -109,6 +111,7 @@ struct Shared {
 struct Channel {
     state: Mutex<Shared>,
     custody: Mutex<Box<dyn CrecheMaskShowCustody>>,
+    worker: Mutex<make_worker::WorkerSlot>,
 }
 impl Channel {
     fn lock(&self) -> Result<MutexGuard<'_, Shared>, String> {
@@ -200,6 +203,7 @@ impl CrecheEncounterAdapter {
                 make_refusal: None,
             }),
             custody: Mutex::new(custody),
+            worker: Mutex::new(make_worker::WorkerSlot::default()),
         });
         let controller = CrecheEncounterController {
             channel: channel.clone(),
@@ -454,17 +458,14 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter {
         if self.retired {
             return Ok(());
         }
-        {
-            let mut state = self.channel.lock()?;
-            state.active = false;
-            state.command = None;
-            state.acknowledged = None;
-        }
-        self.channel
+        let worker = self.channel.revoke_and_drain_worker();
+        let presentation = self
+            .channel
             .custody
             .lock()
-            .map_err(|_| "Crèche Mask custody poisoned")?
-            .retire_and_drain()?;
+            .map_err(|_| "Crèche Mask custody poisoned".to_owned())
+            .and_then(|mut custody| custody.retire_and_drain());
+        worker.and(presentation)?;
         if self.request.is_some() && self.outcome.is_none() {
             self.terminal(TerminalReason::Cancelled)?;
         }
@@ -474,4 +475,4 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
