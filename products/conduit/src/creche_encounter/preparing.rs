@@ -15,13 +15,19 @@ pub(super) fn publish(state: &mut Shared) -> Result<(), String> {
     for action in &mut actions {
         action.availability = FaceActionAvailability::Unavailable {
             reason_code: "creche-image-preparation-pending".into(),
-            explanation: "Canonical review accepted; awaiting admitted image preparation".into(),
+            explanation: "Preparing and verifying images".into(),
         };
     }
     let mut text = prior.text.clone();
     text.push(FaceText {
-        subject: prior.subjects.first().ok_or("Crèche Make subject absent")?.identity.clone(),
-        text: "Review accepted. Waiting for the admitted image owner to prepare and verify the selected images. No prepared image, boot or membership result is claimed yet.".into(),
+        subject: prior
+            .subjects
+            .first()
+            .ok_or("Crèche Make subject absent")?
+            .identity
+            .clone(),
+        text: "Preparing and verifying your images. Saving becomes available when they are ready."
+            .into(),
     });
     let face = Face::new_with_semantics(
         revision,
