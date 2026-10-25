@@ -85,9 +85,13 @@ export async function measureCargoOutputBytes(root) {
   }
   await walk(root,true);return total;
 }
-export function runSandbox(args,{onTick,timeoutMs=120000,monitorMs=100,resourcesFile}={}) {
+export function runSandbox(args,{onTick,timeoutMs=120000,monitorMs=100,resourcesFile,observeCommand}={}) {
+  if(observeCommand!==undefined&&typeof observeCommand!=='function')fail('invalid-command-observer');
   return new Promise((resolve,reject)=>{
-    const child=spawn(resourcesFile?'/usr/bin/time':'/usr/bin/bwrap',resourcesFile?['-v','-o',resourcesFile,'/usr/bin/bwrap',...args]:args,{detached:true,stdio:['ignore','pipe','pipe'],env:{PATH:'/usr/bin:/bin',LANG:'C'}});
+    const program=resourcesFile?'/usr/bin/time':'/usr/bin/bwrap';
+    const actualArgs=resourcesFile?['-v','-o',resourcesFile,'/usr/bin/bwrap',...args]:[...args];
+    const environment={PATH:'/usr/bin:/bin',LANG:'C'},cwd=process.cwd();
+    const child=spawn(program,actualArgs,{detached:true,stdio:['ignore','pipe','pipe'],env:environment,cwd});
     const started=performance.now(); let failure; let logBytes=0;const stdout=[],stderr=[];let checking=false;
     const kill=()=>{if(child.exitCode===null&&child.signalCode===null){try{process.kill(-child.pid,'SIGKILL');}catch{}}};
     const timer=setTimeout(()=>{failure=new CacheRefusal('cargo-timeout');kill();},timeoutMs);
@@ -98,6 +102,10 @@ export function runSandbox(args,{onTick,timeoutMs=120000,monitorMs=100,resources
       clearInterval(monitor);clearTimeout(timer);
       while(checking)await new Promise(resolve=>setTimeout(resolve,10));
       const result={code,signal,wallMs:performance.now()-started,stdout:Buffer.concat(stdout).toString(),stderr:Buffer.concat(stderr).toString()};
+      if(observeCommand)try{
+        const observation=observeCommand({program,args:actualArgs,cwd,environment,durationMs:result.wallMs,outcome:!failure&&code===0?'success':'failed',code,signal,...(failure?{failureCode:failure.code??'command-failed'}:{})});
+        if(observation&&typeof observation.then==='function')throw new CacheRefusal('async-command-observer');
+      }catch(error){failure=error;}
       if(failure)reject(Object.assign(failure,{result}));
       else if(code!==0)reject(Object.assign(new CacheRefusal('cargo-sandbox-failed'),{result}));
       else resolve(result);
@@ -134,7 +142,7 @@ export function cargoSandboxArgs({snapshotRoot,taskRoot,cacheObjects,namespace,m
 // Supported vertical slice: actual dependency-free compositor-core Cargo build.
 // The entire compiler server and its children are inside the same bwrap root;
 // no host daemon can silently perform compilation outside the snapshot.
-export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCacheBytes=16*1024*1024,maxTaskBytes=64*1024*1024,reserveBytes=1024*1024*1024}) {
+export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCacheBytes=16*1024*1024,maxTaskBytes=64*1024*1024,reserveBytes=1024*1024*1024,observeCommand}) {
   const started=performance.now();
   const hosted=snapshot?.schema==='hosted-linux-cargo-snapshot-v1';
   const inventoryOptions=hosted?HOSTED_SNAPSHOT_LIMITS:undefined;
@@ -178,7 +186,7 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
     };
     await check();
     if(hosted){
-      try{await runSandbox(cargoSandboxArgs({snapshotRoot:sourceRoot,taskRoot:task,cacheObjects:objects,namespace,maxCacheBytes,hosted,mode:'hosted-metadata'}),{onTick:check});
+      try{await runSandbox(cargoSandboxArgs({snapshotRoot:sourceRoot,taskRoot:task,cacheObjects:objects,namespace,maxCacheBytes,hosted,mode:'hosted-metadata'}),{onTick:check,observeCommand});
       const metadataFile=path.join(task,'resolved-metadata.json');if((await fs.stat(metadataFile)).size>32*1024**2)fail('hosted-metadata-bound');
       const actualNames=proceduralMacroBypassNames(JSON.parse(await fs.readFile(metadataFile,'utf8')));
       const allowed=new Set((await fs.readFile(path.join(sourceRoot,'proc-macro-bypass.txt'),'utf8')).trimEnd().split('\n'));
@@ -187,7 +195,7 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
     }
     const args=cargoSandboxArgs({snapshotRoot:sourceRoot,taskRoot:task,cacheObjects:objects,namespace,maxCacheBytes,hosted});
     let result;
-    try{result=await runSandbox(args,{onTick:check,timeoutMs:hosted?3600000:120000,monitorMs:hosted?1000:100,resourcesFile:hosted?path.join(task,'resource-usage.txt'):undefined});}
+    try{result=await runSandbox(args,{onTick:check,timeoutMs:hosted?3600000:120000,monitorMs:hosted?1000:100,resourcesFile:hosted?path.join(task,'resource-usage.txt'):undefined,observeCommand});}
     catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({code:error.code,message:error.message,path:error.path,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
     await check();if((await snapshotInventory(sourceRoot,inventoryOptions)).sha256!==input.sha256)fail('cargo-snapshot-mutated');
     const before=JSON.parse(await fs.readFile(path.join(task,'before.json'),'utf8'));

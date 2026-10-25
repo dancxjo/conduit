@@ -13,7 +13,7 @@ const sha = value => createHash('sha256').update(value).digest('hex');
 
 // Execute the existing canonical runtime proof independently of compilation.
 // No engine, cache objects, network or mutable shared target enters this root.
-export async function proveHostedHello({ snapshot, taskRoot }) {
+export async function proveHostedHello({ snapshot, taskRoot, observeCommand }) {
   const started=performance.now();
   if(snapshot?.schema!=='hosted-linux-cargo-snapshot-v1'||!path.isAbsolute(taskRoot??''))fail('invalid-hosted-hello-policy');
   const root=await fs.realpath(snapshot.root),task=await fs.realpath(taskRoot);
@@ -34,7 +34,7 @@ export async function proveHostedHello({ snapshot, taskRoot }) {
     '--setenv','PATH','/usr/bin:/bin','--setenv','HOME','/task/hello-home','--setenv','TMPDIR','/task/tmp','--setenv','LANG','C',
     '/task/target/release/conduit','run','/source/plots/hello/main.conduit','--await-terminal',
     '--report','/task/hello-report.json','--artifacts','/task/hello-artifacts'];
-  const result=await runSandbox(args,{timeoutMs:60000,resourcesFile:path.join(task,'hello-resource-usage.txt')});
+  const result=await runSandbox(args,{timeoutMs:60000,resourcesFile:path.join(task,'hello-resource-usage.txt'),observeCommand});
   requireHostedHelloOutput(result.stdout);
   const reportFile=path.join(task,'hello-report.json'),stat=await fs.lstat(reportFile);
   if(!stat.isFile()||stat.size>16*1024**2)fail('invalid-hosted-hello-report');
