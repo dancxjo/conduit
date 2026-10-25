@@ -1,0 +1,709 @@
+{
+  "failed-product-df2f26846.tar.zst": {
+    "sha256": "e869a18dd8d0311bf881533fdfd7e54c5bbdffb862d99552b1090c26e7d8185b",
+    "bytes": 44709245,
+    "files": [
+      {
+        "path": "native-attempt-df2f26846/native-product-journey.log",
+        "bytes": 984,
+        "sha256": "28cffc639a5261320bb97be998a591c26fe5de49e98f7c4737223a68d9073b27"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-verification.json",
+        "bytes": 1220,
+        "sha256": "528f192172f25c5d9a9f2f676e4d8e8f320be09bf42ec3ab636ffb3f1d41bb89"
+      },
+      {
+        "path": "native-attempt-df2f26846/sha256.json",
+        "bytes": 5140,
+        "sha256": "0b3d929f9be0d6123d9ec2f8b8195dbd019e6e043934e4477a818e236aeb5447"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product/conduitos-x86_64.iso",
+        "bytes": 84899840,
+        "sha256": "366a3bac6002c93fa7c6439995d9deb6a58c94b00b00064a58fed24e8ed7ee00"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product/resolved-image.json",
+        "bytes": 4453,
+        "sha256": "3ea76c565f08f91aa11d57195cb26c03a7be0bdbe366a0631e0eb07fc088b10c"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product/conduitos-kernel.elf",
+        "bytes": 80623192,
+        "sha256": "80f18d5442db0f5005c01edd6c41351b044e2d47fc147ea597a5d20cbda02892"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product/build-manifest.json",
+        "bytes": 4269,
+        "sha256": "16f25b780489f2271e6c3adcf0c409464034e0a57098bf2d3ce17f1b36abcd62"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-build.log",
+        "bytes": 43304,
+        "sha256": "efe174ffc47f6debc278878721df98b8f5f542b7257a8b22c4a003bd64bf5d91"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-boot.log",
+        "bytes": 1391,
+        "sha256": "e2d4a12a6c011daa32c1cad47e2acb95d03eddf208e647921a51f739aa61cbea"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-serial.log",
+        "bytes": 389608,
+        "sha256": "407c75942e69717b592d5efdfe9b58a4ea24da6415bc5c4c36d3fa3136dd09a3"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/conduitos.iso",
+        "bytes": 84899840,
+        "sha256": "366a3bac6002c93fa7c6439995d9deb6a58c94b00b00064a58fed24e8ed7ee00"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-frames/creche-editorial-compact.png",
+        "bytes": 177795,
+        "sha256": "eef6d5234906e9cbfa76b0ce4f55772a905ceae1425d26fb3679dd5210b72777"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-frames/manifest.json",
+        "bytes": 63421,
+        "sha256": "cdf95b3b6ccc01c292ef8266ed2b0514d574ccbac482a3ab40024788dcf36856"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-frames/front-door-ready.png",
+        "bytes": 49977,
+        "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-frames/creche-engineering-phosphor-compact.png",
+        "bytes": 166384,
+        "sha256": "b8c94b27bcfd695c63b2577c674f05ce6e3b49c78cce78e667cfe801f42941e8"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-frames/creche-ready.png",
+        "bytes": 166340,
+        "sha256": "db13a0a9407cd78dd09c15fe51b2d4a8a13877a0910f38e1be6393b50185663f"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-frames/creche-engineering-phosphor-spacious.png",
+        "bytes": 151366,
+        "sha256": "e79f9effd2b4bcdfa914894d75e178445d95609f26dab3872895f499e7808fbe"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-frames/creche-engineering-editorial-compact.png",
+        "bytes": 177841,
+        "sha256": "67c06a81a6156815955ef482c66d87c3f5a5d1f957a73c99ae1519209eed4045"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-frames/failure.png",
+        "bytes": 166332,
+        "sha256": "aabed85549b42ed2415a4e9cd7abcfda31bda116185d64fed0f556cf5e7a4e62"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/privilege-inventory-80f18d5442db0f5005c01edd6c41351b044e2d47fc147ea597a5d20cbda02892-product-host.json",
+        "bytes": 64071,
+        "sha256": "66b38ae185eafdf4e499acf7ae64624db7167a2457b9d6c68d8d50721b5e594a"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/make-record.rs",
+        "bytes": 684,
+        "sha256": "ae4650bbf2cd1ccd4aba95c4af77321a9c0af59e046b2620a7e3700e9c364ee3"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-qemu-stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-failure-registers.json",
+        "bytes": 2190,
+        "sha256": "ba6d636802a0553c2ce1c226f84967447f9c5b3c5293b8f2efd5ca890b5e29ed"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/local-look-proof.json",
+        "bytes": 29424,
+        "sha256": "1c76c76b6ead9b79d07761c29200d932c35a87eea3a88fa149dbe8759db0ef65"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-failure-stack.json",
+        "bytes": 2071,
+        "sha256": "7973efa33e733a25dbc6ab025b3c22377217005667e70418e64f63c9d61f6580"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/profile-built-boot.log",
+        "bytes": 41766,
+        "sha256": "287933a416803fdc717d5033fbf58a077e11be60f0f348beaff8f02187672a2a"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/conduitos",
+        "bytes": 80623192,
+        "sha256": "80f18d5442db0f5005c01edd6c41351b044e2d47fc147ea597a5d20cbda02892"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/build.json",
+        "bytes": 319,
+        "sha256": "fdae307034e81d2baa9cd3d99f08e9156808f9e07d30b5dac3312e242e61bde2"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/x86_64-product-proof.json",
+        "bytes": 1725,
+        "sha256": "34c81aa007c94409cf37656c01d11f1f62b1b4ac082900edd50d0eb44acee057"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/privilege-inventory-80f18d5442db0f5005c01edd6c41351b044e2d47fc147ea597a5d20cbda02892-product-host.map",
+        "bytes": 23638876,
+        "sha256": "2ee30d782cb46bc2bad060d2913e04992e2ae202827575265600002e17032386"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/journey-qmp.log",
+        "bytes": 15906,
+        "sha256": "e4418d655a8f101df68c7c059e011d723607858701ddded24e0a31ae1ef5493e"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/image.json",
+        "bytes": 335,
+        "sha256": "754e21eb33fa5e2068b0738273d0c3154767e97f792b7f063ec8a2fac76ce094"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+        "bytes": 348160,
+        "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/LUCIDE-LICENSE",
+        "bytes": 3208,
+        "sha256": "a595faee0e3dd03811c49c191d63ef99f24134ceb31a07f26e8a5ef9c7fbca12"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/limine.conf",
+        "bytes": 247,
+        "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/boot/conduit-spore.bin",
+        "bytes": 32768,
+        "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+        "bytes": 24576,
+        "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+        "bytes": 3145728,
+        "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/boot/limine/limine-bios.sys",
+        "bytes": 302836,
+        "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/boot/conduit-build.json",
+        "bytes": 4453,
+        "sha256": "3ea76c565f08f91aa11d57195cb26c03a7be0bdbe366a0631e0eb07fc088b10c"
+      },
+      {
+        "path": "native-attempt-df2f26846/native-product-proof/x86_64/iso-root/boot/conduitos",
+        "bytes": 80623192,
+        "sha256": "80f18d5442db0f5005c01edd6c41351b044e2d47fc147ea597a5d20cbda02892"
+      }
+    ]
+  },
+  "normal-product-621711b68.tar.zst": {
+    "sha256": "aac4a7922034baa32546f8afe422e198b2e0e46fa7132bd6843b34c29dfafdfb",
+    "bytes": 46365449,
+    "files": [
+      {
+        "path": "native-product/conduitos-x86_64.iso",
+        "bytes": 84899840,
+        "sha256": "0c05b86e23bbced07056019ed268f584b6a58eac7cafe54ad488832ff389f2e0"
+      },
+      {
+        "path": "native-product/resolved-image.json",
+        "bytes": 4453,
+        "sha256": "6337716deb64bfc2291dcd20a627061eeda4eec1c3d7f7ec638c0b1b9324253b"
+      },
+      {
+        "path": "native-product/conduitos-kernel.elf",
+        "bytes": 80623208,
+        "sha256": "228dfb3e16a32bee2a2184d38deb822786c73741afe9cd60f7837ead161f78e6"
+      },
+      {
+        "path": "native-product/build-manifest.json",
+        "bytes": 4269,
+        "sha256": "4a68d71c44e8af687ed550bc9c4b40eaf6583f37fe15ab349df17cd14906616a"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-serial.log",
+        "bytes": 3564990,
+        "sha256": "6185b8f2fd9db94966ae2822054bd40b8656f85e3afca8ff8a3c6cfd00ebd239"
+      },
+      {
+        "path": "native-product-proof/x86_64/conduitos.iso",
+        "bytes": 84899840,
+        "sha256": "0c05b86e23bbced07056019ed268f584b6a58eac7cafe54ad488832ff389f2e0"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-editorial-compact.png",
+        "bytes": 176156,
+        "sha256": "9d345dfb17fe69a102cd63de827017c3b623540cc7f8163f48c0ffe2185b30eb"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-diagram.png",
+        "bytes": 163311,
+        "sha256": "55d7346c7ae82a6af988ddf4885dcbfd36c504ae90471a7e7d87d6ab1deccc4c"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-pointer-four-restored.png",
+        "bytes": 165075,
+        "sha256": "f828e1bf562a576383043cd041bbb7fb5e18d8f48851c122ec775fc6a55d2b87"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-gear-details.png",
+        "bytes": 244400,
+        "sha256": "95cd7f1ae5560c6880e51230b491dc87e2e560fdda870043b43344efe0771dd2"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-diagram-returned.png",
+        "bytes": 162976,
+        "sha256": "9746dedb9a6910ad5028e007ac21b0e937fa2c717328473e755f2507289f5ea4"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/protected-keyboard-canvas.png",
+        "bytes": 66859,
+        "sha256": "25898dd8748eb3be51c6e4d52be28ae26eaf4c014cfbb048823619e6bdb855db"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-pointer-three-selected.png",
+        "bytes": 165169,
+        "sha256": "15d0ead6249fcb0518748aea5ab1e525c7a1fe7bb84366b32d585ee3ad7c0b6d"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-mask-replanned.png",
+        "bytes": 142599,
+        "sha256": "809184c4453b3fb366f74e20aa7c7dbe8bff3fe93f56d35bb1ab655743602c28"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/wake-refused.png",
+        "bytes": 124556,
+        "sha256": "dbb1b08c46bbbc24fc779cee9048f296ebcf644817470847ee0135c6f0cb2e1e"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-four-restored.png",
+        "bytes": 164903,
+        "sha256": "f6ec3d2ea56810713cd0bb4be7e8681d79f11ee4cff3fa03fd74e1cc0c824939"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-inspected-other-and-returned.png",
+        "bytes": 154703,
+        "sha256": "4f31abe2efc31202a92b3ef964d4bd59b3b579c987d53f460aff419c21d138db"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/body-stopped.png",
+        "bytes": 198699,
+        "sha256": "b2d54936dea8d0d6a73557262000a19a35a19bde160503664e8e34b8484c6e11"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/manifest.json",
+        "bytes": 473673,
+        "sha256": "51dba789c6f2b6a680a198935d3998a6f1a729edbf7d42d23c3edcd9e5dad2bb"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-fourth-checked.png",
+        "bytes": 164905,
+        "sha256": "025982d382eb0d09e3182c2108ac0340e61e32fffb0d2a33dbf10704f34cf7e7"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/front-door-ready.png",
+        "bytes": 49977,
+        "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-engineering-phosphor-compact.png",
+        "bytes": 164970,
+        "sha256": "9e7cb106c5352fe21580b0dcb4b1c6751a394e01294a7ababe20470360d34d64"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-ready.png",
+        "bytes": 164888,
+        "sha256": "3623bbeb7ddd14eef92859d44088783100a41ce6e9b225d1b59dbbe0940dcad7"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/body-playing.png",
+        "bytes": 67237,
+        "sha256": "9c01b04d649579d6142668ecec9cdbac579b458a024921dc879e1b118474a4f7"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-three-selected.png",
+        "bytes": 164999,
+        "sha256": "e40741d59af8c097e42be53f233ba8d04487fe3f1aac4bf04bf7a7e64fdd70a3"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-engineering-phosphor-spacious.png",
+        "bytes": 147957,
+        "sha256": "84fc37e1e4d2e4676533d11b0e1dee8f7cda241c36e5a73b894a956037044e11"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/home-returned.png",
+        "bytes": 55502,
+        "sha256": "cbfe14250bd4f51fa710551090e07d6bc4ccd0fe1edb9c061a98feffa4d24771"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-face.png",
+        "bytes": 154703,
+        "sha256": "4f31abe2efc31202a92b3ef964d4bd59b3b579c987d53f460aff419c21d138db"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/creche-engineering-editorial-compact.png",
+        "bytes": 176202,
+        "sha256": "997cc876be919371f246e4bc2a00c9d6d9153bbe31d9711d48b04834caadf7d5"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/home.png",
+        "bytes": 67237,
+        "sha256": "9c01b04d649579d6142668ecec9cdbac579b458a024921dc879e1b118474a4f7"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/protected-memory-lantern.png",
+        "bytes": 64163,
+        "sha256": "1932d55f87e31841170aa4e256f0390dffb6192a0b2ee2b2eb3135cb1c5e08b2"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-reentered.png",
+        "bytes": 53141,
+        "sha256": "93ef1a8c69c51e895f0b82d2053da8b6bc4121a1668f80b498d849a8d174d6d0"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-source-editor-loaded.png",
+        "bytes": 101804,
+        "sha256": "4a6e477bb44c801688c3fd30b6229c423b491e38b098058a84e0082e0e06f6b0"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-frames/patchbay-workspace.png",
+        "bytes": 154703,
+        "sha256": "4f31abe2efc31202a92b3ef964d4bd59b3b579c987d53f460aff419c21d138db"
+      },
+      {
+        "path": "native-product-proof/x86_64/privilege-inventory-228dfb3e16a32bee2a2184d38deb822786c73741afe9cd60f7837ead161f78e6-product-host.json",
+        "bytes": 64072,
+        "sha256": "6317f510de58d73aa9d18c97cfe214fc17250964f99b3950452ca770fb761f19"
+      },
+      {
+        "path": "native-product-proof/x86_64/native-shell-paired-linear.json",
+        "bytes": 5096710,
+        "sha256": "06cd9e72bd9c93c1e66e34ce5714fbb6c905935c21eba0e0222b6180255ab954"
+      },
+      {
+        "path": "native-product-proof/x86_64/compositor-lifecycle-proof.json",
+        "bytes": 69138,
+        "sha256": "bc4e44f456c16e2161fe761259792f3a9f3e50ab2a6b13ee24183d483fde849c"
+      },
+      {
+        "path": "native-product-proof/x86_64/privilege-inventory-228dfb3e16a32bee2a2184d38deb822786c73741afe9cd60f7837ead161f78e6-product-host.map",
+        "bytes": 23633750,
+        "sha256": "133a083ad391a747788547ced81dcdcec6b6b7cd078f7f9feaceca77ec600cb2"
+      },
+      {
+        "path": "native-product-proof/x86_64/memory-lantern-native-edit.json",
+        "bytes": 5048,
+        "sha256": "f9ae801aafb9c9290babf6f1fbef749410750476d874ce845f8eee14f35c1fb8"
+      },
+      {
+        "path": "native-product-proof/x86_64/make-record.rs",
+        "bytes": 684,
+        "sha256": "46420ac698cefcf2873f3c214892d8d0bb2dd8b8369b8f3b0eeb03dbaa5a8383"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-checked-source/source-selected.png",
+        "bytes": 154776,
+        "sha256": "327efc9d577f7e46eaf481597429dd68fb9717dc9116ec70142e1d5484b0f39f"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-checked-source/manifest.json",
+        "bytes": 534215,
+        "sha256": "875f54579c34cbccc973f354ca484477a2d8e87e31fe27aa78839db3fa8c6a06"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-checked-source/details-port.png",
+        "bytes": 321552,
+        "sha256": "8cc10aec331cbe450358b14379994e926b9dee807923e9fb7762d7dc1ede37be"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-checked-source/details-gear.png",
+        "bytes": 321536,
+        "sha256": "f42a493080ae31475bb7b1909e047e55448e6e74567c6f7707d023dfe8a59791"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-checked-source/diagram-backward-000.png",
+        "bytes": 319686,
+        "sha256": "6ba5984cbe75832b81559ed7273812c0c2d369735831e6ae128eb32d30014f41"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-checked-source/details-cord.png",
+        "bytes": 351214,
+        "sha256": "cc48b2b1d9fc20c9a8caadb336a20a431db3e92f846b9d9ecdf2dd3d284f95a5"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-checked-source/diagram-forward-000.png",
+        "bytes": 319686,
+        "sha256": "6ba5984cbe75832b81559ed7273812c0c2d369735831e6ae128eb32d30014f41"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-checked-source/diagram-forward-001.png",
+        "bytes": 183097,
+        "sha256": "3d530a14ad94e31f8e68f9eedf497167054be57e3bc15618481b4a1a13a1367a"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-qemu-stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-016.png",
+        "bytes": 306335,
+        "sha256": "e81e4a156b6e9ce5d5f48c3bcf3eb54e836c8ede2835f6f0dd5fc42d664e4165"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-014.png",
+        "bytes": 350433,
+        "sha256": "58f482ea0725f20a78168a06ded51e87dfa390b05ed89da6ced8b3e44485383c"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-013.png",
+        "bytes": 307030,
+        "sha256": "7d7bf4900108db2b5c74e2716813df8ef510f817150872f841c4d570a97a261f"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-018.png",
+        "bytes": 235959,
+        "sha256": "bcbdd05a15b4b71a656d7675ca6e16876b4edb4b2f2bb37b838dda3aee29d2af"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-001.png",
+        "bytes": 240374,
+        "sha256": "f015c0b150de69950eeb5781e2396da9efdf339435852d29d93ffbee251f9ef7"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-011.png",
+        "bytes": 351206,
+        "sha256": "8ded7f3337661e24b99deab6ff2314db94ab55afdfb250d9b6a1b67cffdd4e59"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-017.png",
+        "bytes": 317266,
+        "sha256": "6c3970a77d2436b7e2da07bdf5f4824a55b9efc9a17bf60c8b6db8f74d6e0fd6"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/manifest.json",
+        "bytes": 26926,
+        "sha256": "1916ea49bddc47510e2dc2c0cb8ba3fc0b1ec295cb633742b81887ae587dd90f"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-009.png",
+        "bytes": 378862,
+        "sha256": "38a4d093d9ad90c731af6d0937ea67482ea8000b9b1f480db3e6621e55eab5ce"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-015.png",
+        "bytes": 387149,
+        "sha256": "5457983b19cffbfd36d9c6a0efaec1f3fdacbb6fea8b03d5411a27eb700a04c1"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-012.png",
+        "bytes": 316139,
+        "sha256": "349958a382ccbb122d7da9e582399ecf98985c0f349ec771fb460e58e90738cf"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-019.png",
+        "bytes": 305922,
+        "sha256": "69cd45be3105a2f9559edd1191c4de716b273446ec06171732c6fc6b1cc1fd71"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-020.png",
+        "bytes": 351861,
+        "sha256": "9efe2a0d7f3e14846cb260d88bcc5c79bdf829d86908947a398039eec0a76cdb"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-003.png",
+        "bytes": 414849,
+        "sha256": "8c0da77536ed542a20b75639bdc340b74ee31a3619ebe3da51eba2655fea1bd6"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-008.png",
+        "bytes": 352741,
+        "sha256": "c5c232d07e7e3a43b6256889221f4c427a12b7d5874690f43c1edc2d89ddf307"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-005.png",
+        "bytes": 150033,
+        "sha256": "da6f0d9e406105d818773ba4c7ced24ecac8b4041ac3d6418ed8a11c5b6ff4b3"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-007.png",
+        "bytes": 340909,
+        "sha256": "f3fb58fc49beb05792793c2b48c63c6b2786b02f53d6bbf9ba174493113be8ff"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-006.png",
+        "bytes": 220155,
+        "sha256": "ba3007da047c1b9772f6ae9014077d348f3ad758cf4f35c8d2b03b9842b596ca"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-004.png",
+        "bytes": 159592,
+        "sha256": "8defabfefeab18333107a865eedf57f6811fbe786df29f71fb8d3629951eb9fa"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-002.png",
+        "bytes": 329227,
+        "sha256": "fad76789d157748840b109129ece169e8b6bedf967397dc701f7dbf736a85f80"
+      },
+      {
+        "path": "native-product-proof/x86_64/patchbay-refusal-details/details-010.png",
+        "bytes": 355380,
+        "sha256": "a998d10242b27d7953e66081b77019812d2c99246dd8f81ac933f2d52f0b50f5"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-proof.json",
+        "bytes": 1513227,
+        "sha256": "05043b60c6f3b36d14673eac13847ce5648c3a50d38c44028364319e7259fe78"
+      },
+      {
+        "path": "native-product-proof/x86_64/local-look-proof.json",
+        "bytes": 29424,
+        "sha256": "4fd9f90c1b4ee4d28bb038f7cefda5255f02accac5a7fd5ff058ef09686143b2"
+      },
+      {
+        "path": "native-product-proof/x86_64/profile-built-boot.log",
+        "bytes": 41807,
+        "sha256": "1e4a1037277f67f0faf7eece80c54deee6c1dccc8d0803d39a5bee3e9a2a43ac"
+      },
+      {
+        "path": "native-product-proof/x86_64/conduitos",
+        "bytes": 80623208,
+        "sha256": "228dfb3e16a32bee2a2184d38deb822786c73741afe9cd60f7837ead161f78e6"
+      },
+      {
+        "path": "native-product-proof/x86_64/build.json",
+        "bytes": 319,
+        "sha256": "e2bd1860efd22712c6fe195b52ac0b8c0cce2d689df52647544caace7de4b54c"
+      },
+      {
+        "path": "native-product-proof/x86_64/x86_64-product-proof.json",
+        "bytes": 1725,
+        "sha256": "b4facd99658b926dd04df98c7c58aee4e3bc15354c770bfa303525ccdbb0e45b"
+      },
+      {
+        "path": "native-product-proof/x86_64/journey-qmp.log",
+        "bytes": 226764,
+        "sha256": "ca6c7bcb11596fabe51f4d912a8b62b23502252bf4f8d30542c3b1c82cd67e4c"
+      },
+      {
+        "path": "native-product-proof/x86_64/image.json",
+        "bytes": 335,
+        "sha256": "b5b643f332cacd34bbff12dd6ba75f0e14d5f22887564cb5d3f4ef7a767684c5"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+        "bytes": 348160,
+        "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/LUCIDE-LICENSE",
+        "bytes": 3208,
+        "sha256": "a595faee0e3dd03811c49c191d63ef99f24134ceb31a07f26e8a5ef9c7fbca12"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/limine.conf",
+        "bytes": 247,
+        "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/boot/conduit-spore.bin",
+        "bytes": 32768,
+        "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+        "bytes": 24576,
+        "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+        "bytes": 3145728,
+        "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/boot/limine/limine-bios.sys",
+        "bytes": 302836,
+        "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/boot/conduit-build.json",
+        "bytes": 4453,
+        "sha256": "6337716deb64bfc2291dcd20a627061eeda4eec1c3d7f7ec638c0b1b9324253b"
+      },
+      {
+        "path": "native-product-proof/x86_64/iso-root/boot/conduitos",
+        "bytes": 80623208,
+        "sha256": "228dfb3e16a32bee2a2184d38deb822786c73741afe9cd60f7837ead161f78e6"
+      },
+      {
+        "path": "native-product-proof/x86_64/x86_64-product-journey-proof.json",
+        "bytes": 1587205,
+        "sha256": "c423fd1a457f168b2eb95baa933980a95d5e6738474561747d5529b2903c6c2b"
+      },
+      {
+        "path": "native-product-build.log",
+        "bytes": 36072,
+        "sha256": "a9cc83a7353929a59b6fb82926180257057137c8fe5c835577c232a245560aa1"
+      },
+      {
+        "path": "native-product-boot.log",
+        "bytes": 1391,
+        "sha256": "2f0c54468f23522ffcb2b52c875ad17d5d863b7c5167c5d5f59c065667e73aed"
+      },
+      {
+        "path": "native-product-journey.log",
+        "bytes": 1116,
+        "sha256": "655da595ed52146ee08eec362d54b504ab7103169b00caccabcefbc30faad510"
+      },
+      {
+        "path": "native-product-integrity.log",
+        "bytes": 925,
+        "sha256": "db4be81c8aac0398b109cc38f7c2782cebbebdcde831587e266b183bd94963c4"
+      },
+      {
+        "path": "native-product-verification.json",
+        "bytes": 1818,
+        "sha256": "f9c82fbab26aa43e5c499d41746fab77dd6231dc56c3a405d79768297a5288e5"
+      },
+      {
+        "path": "native-independent-audit-621711b68.json",
+        "bytes": 130585,
+        "sha256": "c43f97bd4580878e62513890b426610fe507fcc836d4dcfd49af2092c5dfcf85"
+      },
+      {
+        "path": "native-operation-cost-audit.json",
+        "bytes": 23074,
+        "sha256": "d14eaa712399c2ebec4b4b46c85ab952a416ac00bd4bcbf079acef63e4794ac8"
+      },
+      {
+        "path": "private-heap.log",
+        "bytes": 5553,
+        "sha256": "80a8abff0aebf2f157d8095d8d65fdc524887db2222457f36afcbc59a8946e88"
+      },
+      {
+        "path": "operation-tests.log",
+        "bytes": 18993,
+        "sha256": "2c0e1cd40468842bd070f624e0e0a8db4f74d6f2eb251652a1553e581eec8ee8"
+      },
+      {
+        "path": "operation-clippy.log",
+        "bytes": 16512,
+        "sha256": "07d4a1442daa5abcac9d69d61edf2c962291de30cfd8ae5d4f5dc60b807bf893"
+      }
+    ]
+  }
+}
