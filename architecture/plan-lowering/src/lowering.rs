@@ -17,6 +17,10 @@ use conduit_kernel::{
 };
 
 mod admission;
+mod metadata;
+pub use metadata::{
+    lower_verified_plan_metadata_fragment, lower_verified_plan_metadata_fragment_for_profile,
+};
 mod fore_value;
 pub use fore_value::{ForeValueRefusal, LoweredForePort};
 mod fusion;

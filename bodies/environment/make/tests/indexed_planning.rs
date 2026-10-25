@@ -133,6 +133,56 @@ fn indexed_appliance_preserves_the_complete_plan_and_refusals_without_loading_th
             (Ok(expected), Ok(compact)) => {
                 assert_eq!(compact.plan_id(), &expected.plan_id);
                 assert_eq!(compact.materialize().unwrap(), *expected);
+                // Fingerprint verification must not replace lowering's exact
+                // mandatory sign-storage admission, even for a resealed Plan.
+                let mut unfit = expected.clone();
+                assert!(unfit.fragments[0].states.is_empty());
+                unfit.fragments[0].sign_storage_budget.byte_capacity += 1;
+                let mut unfit = c::seal_plan_with_realization_backs_and_completion(
+                    c::PlotIdentity {
+                        source_document_id: unfit.source_document_id,
+                        checked_plot_id: unfit.checked_plot_id,
+                        expanded_plot_id: unfit.expanded_plot_id,
+                    },
+                    unfit.completion_policy,
+                    unfit.realization_backs,
+                    unfit.fragments,
+                );
+                assert!(c::verify_plan(&unfit));
+                let fragment_id = unfit.fragments[0].fragment_id.clone();
+                let refusal = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+                    &unfit,
+                    &fragment_id,
+                )
+                .unwrap_err();
+                assert_eq!(
+                    refusal,
+                    conduit_plan_lowering::lowering::LoweringError::SignBudgetInvalid
+                );
+                let configurations = unfit
+                    .fragments
+                    .iter_mut()
+                    .flat_map(|f| &mut f.placements)
+                    .map(|g| {
+                        (
+                            g.placement_id.clone(),
+                            core::mem::take(&mut g.configuration),
+                        )
+                    })
+                    .collect::<BTreeMap<_, _>>();
+                let verified = c::verify_plan_metadata_with_configurations(unfit, |g| {
+                    Ok::<_, ()>(configurations[&g.placement_id].clone())
+                })
+                .unwrap();
+                assert_eq!(
+                    conduit_plan_lowering::lowering::lower_verified_plan_metadata_fragment(
+                        &verified,
+                        &fragment_id,
+                    )
+                    .unwrap_err(),
+                    refusal
+                );
+
                 for (fi, fragment) in expected.fragments.iter().enumerate() {
                     assert_eq!(compact.fragment_id(fi), Some(&fragment.fragment_id));
                     for (pi, gear) in fragment.placements.iter().enumerate() {
@@ -207,73 +257,118 @@ fn source_resident_owner_survives_selection_planning_and_lowering_in_one_memory_
     }
     .unwrap();
     let (ready, effects) = pulse::ready(0);
-    let ((software, host, placements, plan, lowered), memory) = allocation_probe::observe(|| {
-        let connections = limits(&source);
-        let values = conduit_environment_runtime::appliance::prepare_value_storage().unwrap();
-        let software = Box::new(
-            PreparedResidentSoftware::prepare_source(&recipe.spec(), &computations, values)
-                .unwrap(),
-        );
-        let mut host = appliance_support::native_advertisement(&ready);
-        {
-            let offers = software
-                .source_offers(&recipe.spec(), &offer_material)
+    enum KeptPlan {
+        Rich(c::Plan),
+        Compact(c::VerifiedPlanMetadata),
+    }
+    let mut reference_lowering = None;
+    let mut rich_peak = 0;
+    for compact_mode in [false, true] {
+        let ((software, host, placements, plan, lowered), memory) =
+            allocation_probe::observe(|| {
+                let connections = limits(&source);
+                let values =
+                    conduit_environment_runtime::appliance::prepare_value_storage().unwrap();
+                let software = Box::new(
+                    PreparedResidentSoftware::prepare_source(&recipe.spec(), &computations, values)
+                        .unwrap(),
+                );
+                let mut host = appliance_support::native_advertisement(&ready);
+                {
+                    let offers = software
+                        .source_offers(&recipe.spec(), &offer_material)
+                        .unwrap();
+                    for bytes in offers.iter() {
+                        host.capabilities
+                            .push(serde_json::from_slice(bytes).unwrap());
+                    }
+                }
+                let placements = conduit_planner::indexed_source::default_placements(
+                    &image,
+                    core::slice::from_ref(&host),
+                )
                 .unwrap();
-            for bytes in offers.iter() {
-                host.capabilities
-                    .push(serde_json::from_slice(bytes).unwrap());
-            }
+                let connection_bases = BTreeMap::new();
+                let line_candidates = BTreeMap::new();
+                let grants = [pulse::grant()];
+                let options = PlanningOptions {
+                    connection_bases: &connection_bases,
+                    line_candidates: &line_candidates,
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: 1024,
+                    authority_grants: &grants,
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                };
+                let bases = ["conduit.base/local@1".into()];
+                let (plan, lowered) = if compact_mode {
+                    let compact =
+                        conduit_planner::indexed_source::plan_compact_with_connection_limits(
+                            &image,
+                            core::slice::from_ref(&host),
+                            &placements,
+                            &bases,
+                            options,
+                            &connections,
+                        )
+                        .unwrap();
+                    let fragment = compact.fragment_id(0).unwrap().clone();
+                    let verified = compact.into_verified_metadata().unwrap();
+                    let lowered =
+                        conduit_plan_lowering::lowering::lower_verified_plan_metadata_fragment(
+                            &verified, &fragment,
+                        )
+                        .unwrap();
+                    (KeptPlan::Compact(verified), lowered)
+                } else {
+                    let plan = conduit_planner::indexed_source::plan_with_connection_limits(
+                        &image,
+                        core::slice::from_ref(&host),
+                        &placements,
+                        &bases,
+                        options,
+                        &connections,
+                    )
+                    .unwrap();
+                    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+                        &plan,
+                        &plan.fragments[0].fragment_id,
+                    )
+                    .unwrap()
+                    .0;
+                    (KeptPlan::Rich(plan), lowered)
+                };
+                (software, host, placements, plan, lowered)
+            });
+        match &plan {
+            KeptPlan::Rich(plan) => assert!(c::verify_plan(plan)),
+            KeptPlan::Compact(plan) => assert_eq!(plan.plan_id(), &lowered.identity.plan_id),
         }
-        let placements = conduit_planner::indexed_source::default_placements(
-            &image,
-            core::slice::from_ref(&host),
-        )
-        .unwrap();
-        let connection_bases = BTreeMap::new();
-        let line_candidates = BTreeMap::new();
-        let grants = [pulse::grant()];
-        let options = PlanningOptions {
-            connection_bases: &connection_bases,
-            line_candidates: &line_candidates,
-            connection_item_capacity: 1,
-            connection_byte_capacity: 1024,
-            authority_grants: &grants,
-            protected_resource_grants: &[],
-            line_offers: &[],
-        };
-        let plan = conduit_planner::indexed_source::plan_with_connection_limits(
-            &image,
-            core::slice::from_ref(&host),
-            &placements,
-            &["conduit.base/local@1".into()],
-            options,
-            &connections,
-        )
-        .unwrap();
-        let lowered = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
-            &plan,
-            &plan.fragments[0].fragment_id,
-        )
-        .unwrap();
-        (software, host, placements, plan, lowered)
-    });
-    assert!(c::verify_plan(&plan));
-    assert_eq!(placements.by_gear.len(), source.expanded.gears.len());
-    assert_eq!(
-        software
-            .source_offers(&recipe.spec(), &offer_material)
-            .unwrap()
-            .iter()
-            .len(),
-        host.capabilities.len() - 2
-    );
-    assert_eq!(effects.get(), 0);
-    eprintln!(
-        "resident_owner_offers_selection_plan_lowering_peak={}",
-        memory.peak_bytes
-    );
-    assert!(memory.peak_bytes <= 400 * 1024, "{memory:?}");
-    // This excludes Root/biography, display, radio/SDK and target stack. It is a
-    // single-window CPU ledger entry, never complete Xtensa memory admission.
-    drop((software, host, placements, plan, lowered));
+        assert_eq!(placements.by_gear.len(), source.expanded.gears.len());
+        assert_eq!(
+            software
+                .source_offers(&recipe.spec(), &offer_material)
+                .unwrap()
+                .iter()
+                .len(),
+            host.capabilities.len() - 2
+        );
+        assert_eq!(effects.get(), 0);
+        eprintln!(
+            "resident_owner_offers_selection_plan_lowering_compact={compact_mode} peak={}",
+            memory.peak_bytes
+        );
+        assert!(memory.peak_bytes <= 400 * 1024, "{memory:?}");
+        if compact_mode {
+            assert_eq!(Some(&lowered), reference_lowering.as_ref());
+            assert!(memory.peak_bytes < rich_peak, "{memory:?}");
+        } else {
+            reference_lowering = Some(lowered.clone());
+            rich_peak = memory.peak_bytes;
+        }
+
+        // This excludes Root/biography, display, radio/SDK and target stack. It is a
+        // single-window CPU ledger entry, never complete Xtensa memory admission.
+        drop((software, host, placements, plan, lowered));
+    }
 }

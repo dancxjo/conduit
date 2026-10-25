@@ -177,14 +177,6 @@ candidate rows. The actual appliance selects identical placements and refusals,
 with a **93,898-byte** CPU peak and a 128 KiB guard. Exact-quantity selection also
 checks backtracking, incompatibility and empty-host parity.
 
-One additional CPU observation window now initializes and retains the resident
-software/value store, composes current fixture offers, selects placements,
-plans, and performs whole-Plan-aware lowering. All those owners coexist at the
-end. It peaks at **378,925 bytes**, with a 400 KiB guard. Linked Make descriptors
-stand in for immutable flash; dynamic connection policy is included. Native
-provider internals, Root/biography, display, radio/SDK and target stack remain
-outside this window. It is a partial memory ledger, not complete MCU admission.
-
 The ordinary indexed entrance still returns a rich Plan. An additional compact
 preparation entrance now retires each decoded configuration after retaining its
 state-admission result and Source index. The same ordinary Cord, resource,
@@ -199,11 +191,28 @@ rich Plan and checks the same identities. The appliance proof compares every
 placement and the entire Plan, plus the same five refusal scenarios. Compact
 preparation peaks at **182,274 CPU heap bytes**, guarded at 192 KiB, versus
 214,958 for the rich indexed entrance. Typed State initializer and delayed
-state-refusal tests also pass. Compact lowering, local Body lifecycle evidence,
-and Root startup still need integration; reconstructing the whole rich Plan on
-the MCU would forfeit this reduction.
+state-refusal tests also pass.
 
-Existing execution preparation still consumes a rich Plan.
+Compact preparation can now be consumed into opaque Core-verified lowering
+metadata. Core streams full configuration into canonical fingerprints and runs
+the same whole-Plan structural verifier; mixed retained configuration, missing
+payloads, provider failures and malformed State refuse. This flat representation
+explicitly refuses activation ownership. Its read-only configuration-free
+lowering view is preparation material, not a complete serialized Plan or effect
+authority. The ordinary numeric lowerer consumes that verified scope and keeps
+its exact storage/profile/State/sign admission. An otherwise correctly sealed
+Plan with an unfit sign budget receives the same refusal on both entrances.
+
+The single-window resident-owner/offer/selection/preparation/lowering CPU ledger
+now compares both paths: **346,241 bytes** for compact verified material versus
+**378,925** retaining the rich Plan. Complete lowered output is identical; both
+retain their owners and outputs through the end of the measurement. The existing
+400 KiB guard is unchanged. Linked Make descriptors stand in for immutable flash;
+dynamic connection policy is included. This still excludes Root/biography,
+native provider internals, display, radio/SDK and target stack. Local Body lifecycle evidence and
+Root startup need integration without reconstructing the rich Plan.
+
+Existing native Root installation still needs local compact-plan integration.
 These host measurements do not establish that Root, biography, sampling, timed
 display, network SDK, planning scratch, and required lifecycle evidence coexist
 within the MCU budget. Compact construction and complete preparation/steady-state

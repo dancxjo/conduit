@@ -33,19 +33,9 @@ impl CompactIndexedPlan<'_> {
         self.fragments.get(fragment).map(|f| f.placements.len())
     }
     fn configuration(&self, gear: &PlannedGear) -> Result<Vec<ConfigurationEntry>, PlannerError> {
-        let index = self.indices.get(&gear.placement_id).ok_or_else(|| {
-            PlannerError::InvalidPlotIdentity("compact placement has no Source index".into())
-        })?;
-        let source = self.image.gear(*index).map_err(|e| {
-            PlannerError::InvalidPlotIdentity(alloc::format!("indexed configuration: {e:?}"))
-        })?;
-        if source.gear_id != gear.gear_id {
-            return Err(PlannerError::InvalidPlotIdentity(
-                "compact Source Gear mismatch".into(),
-            ));
-        }
-        Ok(source.configuration)
+        source_configuration(self.image, &self.indices, gear)
     }
+
     fn fragment_fingerprint(&self, fragment: &PlanFragment) -> Result<FragmentId, PlannerError> {
         let mut hash = FragmentFingerprintBuilder::new(fragment.into(), fragment.placements.len());
         for gear in &fragment.placements {
@@ -72,6 +62,39 @@ impl CompactIndexedPlan<'_> {
         let mut complete = metadata.clone();
         complete.configuration = self.configuration(metadata)?;
         Ok(read(&complete))
+    }
+    /// Consume compact preparation into Core-verified immutable lowering
+    /// material. Rechecks streamed fingerprints and every shared structural
+    /// invariant without constructing a complete rich Plan or issuing effects.
+    pub fn into_verified_metadata(
+        self,
+    ) -> Result<conduit_core::VerifiedPlanMetadata, PlannerError> {
+        let Self {
+            image,
+            identity,
+            completion,
+            fragments,
+            indices,
+            plan_id,
+        } = self;
+        let plan = Plan {
+            plan_id,
+            source_document_id: identity.source_document_id,
+            checked_plot_id: identity.checked_plot_id,
+            expanded_plot_id: identity.expanded_plot_id,
+            completion_policy: completion,
+            realization_backs: Vec::new(),
+            activations: Vec::new(),
+            activation_preparations: Vec::new(),
+            fragments,
+        };
+        conduit_core::verify_plan_metadata_with_configurations(plan, |gear| {
+            source_configuration(image, &indices, gear)
+        })
+        .map_err(|refusal| match refusal {
+            conduit_core::PlanMetadataRefusal::Configuration(error) => error,
+            _ => PlannerError::InvalidPlotIdentity("compact whole-Plan verification".into()),
+        })
     }
     /// Hosted inspection/conformance entrance. Deliberately allocates a complete
     /// rich Plan; a constrained target must not use this for startup.
@@ -169,4 +192,23 @@ pub fn plan_compact_with_connection_limits<'a>(
         fragment.plan_fragments = commitments.clone();
     }
     Ok(compact)
+}
+
+fn source_configuration(
+    image: &IndexedSourceImage<'_>,
+    indices: &BTreeMap<PlacementId, usize>,
+    gear: &PlannedGear,
+) -> Result<Vec<ConfigurationEntry>, PlannerError> {
+    let index = indices.get(&gear.placement_id).ok_or_else(|| {
+        PlannerError::InvalidPlotIdentity("compact placement has no Source index".into())
+    })?;
+    let source = image.gear(*index).map_err(|e| {
+        PlannerError::InvalidPlotIdentity(alloc::format!("indexed configuration: {e:?}"))
+    })?;
+    if source.gear_id != gear.gear_id {
+        return Err(PlannerError::InvalidPlotIdentity(
+            "compact Source Gear mismatch".into(),
+        ));
+    }
+    Ok(source.configuration)
 }
