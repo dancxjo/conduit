@@ -9,6 +9,10 @@ on:
         type: boolean
         default: true
         description: Run exhaustive integration proof instead of PR admission
+      train-manifest-digest:
+        type: string
+        required: false
+        default: ''
       base:
         type: string
         required: true
@@ -21,6 +25,7 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
   RUSTUP_TOOLCHAIN: 1.98.1
   CONDUIT_CHECKOUT_SHA: ${{ inputs.sha }}
+  CONDUIT_TRAIN_MANIFEST_DIGEST: ${{ inputs.train-manifest-digest }}
 jobs:
   preflight:
     name: candidate/quick

@@ -7,7 +7,8 @@ fn pipeline_preserves_target_and_artifact_identity() {
         .map(|entry| entry.expect("proof entry").path())
         .filter(|path| {
             let name = path.file_name().unwrap().to_string_lossy();
-            name.starts_with("pipeline-") && name.ends_with(".spec.mjs")
+            (name.starts_with("pipeline-") || name.starts_with("compiler-cache"))
+                && name.ends_with(".spec.mjs")
         })
         .collect::<Vec<_>>();
     assert!(!files.is_empty(), "pipeline invariant tests must exist");
