@@ -177,3 +177,10 @@ Cross-trust restoration needs its own producer policy and artifact custody.
 Real two-revision dependency reuse, changed-revision cold-output equivalence and
 actual hosted persistence/transfer cost remain acceptance work. The earlier 3%
 exact-snapshot comparison must not be relabelled as this profile's speed result.
+
+On a builder with less spare disk, callers may explicitly lower
+`maxCacheBytes` and `maxTaskBytes` while retaining the 10 GiB free-space reserve.
+For example, a 512 MiB object cap and 8 GiB private task cap require about
+18.5 GiB free at build admission, in addition to snapshot preparation/storage.
+Every build receipt records all three bounds. A reduced cap changes capacity;
+it does not permit sharing mutable Cargo targets or bypassing reserve checks.
