@@ -34,7 +34,7 @@ fn frame(host: &str) -> alloc::vec::Vec<u8> {
 }
 
 #[test]
-fn boot_inspection_requires_valid_frame_exact_image_and_first_host() {
+fn boot_inspection_requires_valid_frame_exact_image_and_retained_host_role() {
     let bytes = frame("first");
     let make = MakeRecord::legacy();
     let retained = inspect(&bytes, &make).unwrap().unwrap();
@@ -59,10 +59,9 @@ fn boot_inspection_requires_valid_frame_exact_image_and_first_host() {
             Err("prepared-birth-image-binding-mismatch")
         );
     }
-    assert_eq!(
-        inspect(&frame("later"), &make),
-        Err("prepared-birth-awaiting-first-host-and-ordinary-join")
-    );
+    let later = inspect(&frame("later"), &make).unwrap().unwrap();
+    assert_eq!(later.role(), conduit_body::PreparedBirthHostRole::LaterHost);
+    assert!(later.evidence().membership.parts.is_empty());
     let mut corrupt = bytes;
     corrupt[48] ^= 1;
     assert_eq!(

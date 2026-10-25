@@ -1,7 +1,7 @@
 //! Interpret the existing bounded native media module without inventing birth
 //! or join. Invitation media retains its existing decoder and authority path.
 use crate::make::MakeRecord;
-use conduit_body::{PREPARED_BIRTH_MEDIA_MAGIC, PreparedBirthHostRole, PreparedBirthMedia};
+use conduit_body::{PREPARED_BIRTH_MEDIA_MAGIC, PreparedBirthMedia};
 
 /// This is only a discriminator. A matching prefix never proves validity.
 pub fn is_prepared_birth(region: &[u8]) -> bool {
@@ -24,9 +24,6 @@ pub fn inspect(
         || binding.build_id != make.build_id
     {
         return Err("prepared-birth-image-binding-mismatch");
-    }
-    if media.role() != PreparedBirthHostRole::FirstHost {
-        return Err("prepared-birth-awaiting-first-host-and-ordinary-join");
     }
     Ok(Some(media))
 }

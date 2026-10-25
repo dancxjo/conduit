@@ -24,6 +24,7 @@ mod home;
 mod home_projection;
 mod joining;
 mod patchbay_face;
+mod prepared_join;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
 mod projection;
@@ -67,6 +68,7 @@ pub struct FrontDoor {
     connectivity: Option<ConnectivityProjection>,
     arrival: Option<arrival::Arrival>,
     joining: Option<PendingJoinView>,
+    prepared_join: Option<conduit_body::PreparedBirthMedia>,
     home: Option<home::Home>,
     retained_home: Option<home::Home>,
     refusal: Option<workspace::WorkspaceRefusal>,
@@ -170,6 +172,7 @@ impl FrontDoor {
             connectivity: None,
             arrival: None,
             joining: None,
+            prepared_join: None,
             home: None,
             retained_home: None,
             refusal: None,

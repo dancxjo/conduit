@@ -195,6 +195,9 @@ fn run_controller(
         arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
         None
     };
+    // Both invitation guests and retained later-Host candidates have no local
+    // lifecycle authority. Only invitation guests may carry an owner route.
+    let provisioned_guest = provisioned_guest || front_door.prepared_join_pending();
     let owner_route = owner_face
         .as_ref()
         .filter(|face| face.interactions_admitted())

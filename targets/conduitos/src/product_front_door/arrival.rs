@@ -21,11 +21,21 @@ pub(super) fn open(
     make: &MakeRecord,
 ) -> Result<(), &'static str> {
     if let Some(media) = crate::prepared_body_boot::read_current(make)? {
-        journey
-            .import_prepared_birth(&media, make.target, make.profile_id, make.build_id)
-            .map_err(|error| error.as_str())?;
-        door.observe_product(journey)
-            .map_err(|error| error.as_str())?;
+        match media.role() {
+            conduit_body::PreparedBirthHostRole::FirstHost => {
+                journey
+                    .import_prepared_birth(&media, make.target, make.profile_id, make.build_id)
+                    .map_err(|error| error.as_str())?;
+                door.observe_product(journey)
+                    .map_err(|error| error.as_str())?;
+            }
+            conduit_body::PreparedBirthHostRole::LaterHost => {
+                door.observe_journey(journey.projection())
+                    .map_err(|error| error.as_str())?;
+                door.await_prepared_join(media)
+                    .map_err(|error| error.as_str())?;
+            }
+        }
         return Ok(());
     }
     // Crèche is the zero-body entrance. Do not open a plot merely to make the

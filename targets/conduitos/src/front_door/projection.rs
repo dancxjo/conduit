@@ -4,6 +4,9 @@ use super::*;
 impl FrontDoor {
     pub fn face(&self) -> Result<Face, Error> {
         let reading = self.reading()?;
+        if self.prepared_join.is_some() {
+            return self.prepared_join_face(None);
+        }
         if let Some(joining) = &self.joining {
             return joining.face(self, None);
         }

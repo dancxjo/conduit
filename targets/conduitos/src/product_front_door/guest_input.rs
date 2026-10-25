@@ -148,5 +148,5 @@ pub(super) fn dispatch(
         }
         _ => {}
     }
-    return Ok(ControllerControl::Continue);
+    Ok(ControllerControl::Continue)
 }

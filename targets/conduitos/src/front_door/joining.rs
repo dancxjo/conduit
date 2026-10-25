@@ -22,6 +22,9 @@ impl FrontDoor {
     // builds do not link that binary and cannot see its call site.
     #[allow(dead_code)]
     pub(crate) fn joining_face(&self, producer: &BirthFaceBasis) -> Result<Face, Error> {
+        if self.prepared_join.is_some() {
+            return self.prepared_join_face(Some(producer));
+        }
         self.joining
             .as_ref()
             .ok_or(Error::ActionUnavailable)?
@@ -31,6 +34,7 @@ impl FrontDoor {
     pub fn await_join(&mut self, pending: PendingNativeJoin) -> Result<(), Error> {
         if self.arrival.is_some()
             || self.joining.is_some()
+            || self.prepared_join.is_some()
             || self
                 .journey
                 .as_ref()
@@ -66,7 +70,8 @@ impl FrontDoor {
     }
 
     pub const fn joining_pending(&self) -> bool {
-        matches!(&self.joining, Some(joining) if joining.1.is_none())
+        self.prepared_join.is_some()
+            || matches!(&self.joining, Some(joining) if joining.1.is_none())
     }
 }
 

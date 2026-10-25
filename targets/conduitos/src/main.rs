@@ -194,8 +194,9 @@ fn inspect_spore_provision(
     let Some(region) = boot::spore_module() else {
         emit_refusal("spore-boot-module-missing");
     };
-    // Retained birth media is imported by the ordinary product Journey after
-    // current resources are initialized. It is not an invitation to redeem.
+    // The product imports first-Host retained birth after initialization;
+    // later-Host media remains an inert candidate awaiting an ordinary owner
+    // invitation. Neither retained variant is an invitation to redeem.
     match conduitos::prepared_body_boot::inspect(region, &conduitos::make::EMBEDDED_MAKE) {
         Ok(Some(_)) => {
             #[cfg(feature = "native-compositor")]
