@@ -2,7 +2,7 @@
 
 use std::{
     fs::{self, File, OpenOptions},
-    io::{Cursor, Write},
+    io::{Cursor, Read, Write},
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -233,13 +233,33 @@ fn certificates_for_route(
 }
 
 fn read_regular(path: &Path, maximum: u64) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let metadata = fs::symlink_metadata(path)?;
-    if !metadata.file_type().is_file() || metadata.len() > maximum {
+    use std::os::unix::fs::OpenOptionsExt;
+    // No-follow protects the final path component; nonblocking open lets the
+    // descriptor metadata reject a FIFO/device without waiting for a writer.
+    let mut file = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(path)?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file() || metadata.len() > maximum {
         return Err(format!("expected bounded regular file: {}", path.display()).into());
     }
-    let bytes = fs::read(path)?;
-    if bytes.len() as u64 != metadata.len() {
-        return Err(format!("file changed while reading: {}", path.display()).into());
+    read_exact_bounded(&mut file, metadata.len(), maximum)
+}
+
+fn read_exact_bounded(
+    reader: &mut impl Read,
+    expected: u64,
+    maximum: u64,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    if expected > maximum {
+        return Err("file exceeds admitted read bound".into());
+    }
+    let sentinel = maximum.checked_add(1).ok_or("invalid read bound")?;
+    let mut bytes = Vec::new();
+    reader.take(sentinel).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 != expected || bytes.len() as u64 > maximum {
+        return Err("file changed while reading or exceeded admitted bound".into());
     }
     Ok(bytes)
 }
@@ -435,3 +455,6 @@ mod tests {
         std::fs::remove_dir(root).unwrap();
     }
 }
+
+#[cfg(test)]
+mod reader_tests;
