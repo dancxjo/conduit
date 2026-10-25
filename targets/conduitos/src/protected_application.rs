@@ -8,6 +8,8 @@ mod graph_facts;
 #[path = "protected_application/source_authority.rs"]
 mod source_authority;
 pub(crate) use graph_facts::project_graph;
+#[path = "protected_application/operation_budget.rs"]
+mod operation_budget;
 #[path = "protected_application/projection.rs"]
 mod projection;
 #[cfg(test)]

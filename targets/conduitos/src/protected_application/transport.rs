@@ -1,4 +1,5 @@
 //! Exclusive Application-profile lease and checked bounded blob exchange.
+use super::operation_budget::OperationBudget;
 use crate::{
     arch::ServiceDomain,
     protected_region::{DomainBackend, DomainCost, DomainReturn},
@@ -15,6 +16,7 @@ pub(super) struct Service {
     domain: Option<ServiceDomain>,
     instance: u64,
     sequence: u64,
+    operation: Option<OperationBudget>,
 }
 impl Service {
     pub fn install() -> Result<Self, Refusal> {
@@ -35,9 +37,11 @@ impl Service {
             instance: domain.instance(),
             domain: Some(domain),
             sequence: 1,
+            operation: None,
         })
     }
     pub fn quarantine(&mut self) {
+        self.operation = None;
         if let Some(mut domain) = self.domain.take() {
             domain.quarantine();
             drop(domain);
@@ -49,6 +53,11 @@ impl Service {
             sequence: self.sequence,
         };
         self.sequence = self.sequence.checked_add(1).ok_or(Refusal::Capacity)?;
+        let remaining = self
+            .operation
+            .as_mut()
+            .map(|operation| operation.before(envelope, request))
+            .transpose()?;
         let domain = self.domain.as_mut().ok_or(Refusal::Order)?;
         let exchange = domain.exchange().map_err(|_| Refusal::Application)?;
         exchange.fill(0);
@@ -57,7 +66,41 @@ impl Service {
         if diagnostic {
             record_entry_cost("before", envelope.sequence, request, domain.cost());
         }
-        let entered = domain.enter(1);
+        let entered = if let Some(remaining) = remaining {
+            let receipt = domain
+                .enter_application_remaining(remaining)
+                .map_err(|_| Refusal::Application)?;
+            let observed = Envelope {
+                instance: receipt.instance(),
+                sequence: receipt.sequence(),
+            };
+            let result = receipt.result();
+            record_operation_cost(envelope.sequence, request, &receipt);
+            if self
+                .operation
+                .as_mut()
+                .ok_or(Refusal::Order)?
+                .observe(
+                    observed,
+                    receipt.admitted_rtc(),
+                    receipt.consumed_rtc(),
+                    result == DomainReturn::Yielded,
+                )
+                .is_err()
+            {
+                record_refusal(
+                    "entry-budget",
+                    envelope.sequence,
+                    Some(request),
+                    result,
+                    Some(domain.cost()),
+                );
+                return Err(Refusal::Application);
+            }
+            Ok(result)
+        } else {
+            domain.enter(1)
+        };
         if diagnostic {
             record_entry_cost("after", envelope.sequence, request, domain.cost());
         }
@@ -79,6 +122,11 @@ impl Service {
             wire::decode_response(exchange.get(..wire::BYTES).ok_or(Refusal::Malformed)?)?;
         if returned != envelope {
             return Err(Refusal::Malformed);
+        }
+        if !matches!(response, Response::Refused(_)) {
+            if let Some(operation) = self.operation.as_mut() {
+                operation.respond(response)?;
+            }
         }
         match (request, response) {
             (_, Response::Refused(error)) => {
@@ -106,7 +154,17 @@ impl Service {
         }
     }
     pub fn command(&mut self, command: &Command) -> Result<Reply, Refusal> {
-        let result = self.exchange_command(command);
+        let result = self.exchange_command(command).and_then(|reply| {
+            if self
+                .operation
+                .as_ref()
+                .is_some_and(|operation| !operation.complete())
+            {
+                return Err(Refusal::Order);
+            }
+            self.operation = None;
+            Ok(reply)
+        });
         if let Err(error) = &result {
             record_command_refusal(command, *error);
             self.quarantine();
@@ -160,6 +218,25 @@ impl Service {
     fn exchange_command(&mut self, command: &Command) -> Result<Reply, Refusal> {
         let input = data::encode_command(command)?;
         record_target_input(command, &input);
+        if self.operation.is_some() {
+            return Err(Refusal::Order);
+        }
+        if matches!(
+            command,
+            Command::PrepareTarget { .. } | Command::PatchbayPublish { .. }
+        ) {
+            use sha2::{Digest, Sha256};
+            let operation = OperationBudget::new(
+                Envelope {
+                    instance: self.instance,
+                    sequence: self.sequence,
+                },
+                input.len(),
+                Sha256::digest(&input).into(),
+            )?;
+            record_operation_begin(command, &operation);
+            self.operation = Some(operation);
+        }
         self.request(Request::Begin {
             bytes: input.len() as u32,
         })?;
@@ -372,4 +449,41 @@ fn write_observation(bytes: &[u8]) {
     crate::arch::early_write(bytes);
     #[cfg(test)]
     std::print!("{}", alloc::string::String::from_utf8_lossy(bytes));
+}
+
+/// Closed Root observations, separate RTC and Source counters, no extra entry.
+fn record_operation_cost(
+    sequence: u64,
+    request: Request,
+    receipt: &crate::arch::ApplicationEntryReceipt,
+) {
+    use core::fmt::Write;
+    let mut line = crate::sign_format::FixedText::new();
+    if writeln!(line, "CONDUIT_APPLICATION_OPERATION_COST sequence={sequence} native_sequence={} request={request:?} instance={} cap={} rtc={} source={} result={:?}",
+        receipt.sequence(), receipt.instance(), receipt.admitted_rtc(), receipt.consumed_rtc(),
+        receipt.source_interrupts(), receipt.result()).is_ok() {
+        write_observation(line.as_bytes());
+    }
+}
+fn record_operation_begin(command: &Command, operation: &OperationBudget) {
+    use core::fmt::Write;
+    let (name, slot, target) = match command {
+        Command::PrepareTarget { slot, target, .. } => ("prepare-target", *slot, Some(*target)),
+        Command::PatchbayPublish { slot, .. } => ("patchbay-publish", *slot, None),
+        _ => return,
+    };
+    let mut line = crate::sign_format::FixedText::new();
+    let result = (|| -> core::fmt::Result {
+        write!(
+            line,
+            "CONDUIT_APPLICATION_OPERATION_BEGIN operation={name} slot={slot} target={target:?} rtc=64 sha256="
+        )?;
+        for byte in operation.digest() {
+            write!(line, "{byte:02x}")?;
+        }
+        writeln!(line)
+    })();
+    if result.is_ok() {
+        write_observation(line.as_bytes());
+    }
 }

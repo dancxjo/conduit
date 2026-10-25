@@ -10,34 +10,18 @@ use core::{
 };
 
 pub(super) const VECTOR: u8 = 0x28;
-// An ordinary first Memory edit exhausted the former three-tick quantum
-// in a normal host-time QEMU product run. Admit one finite frame-sized turn.
-// Sixteen RTC ticks give roughly one 60 Hz frame of execution at 1024 Hz,
-// while retaining a finite, independent return even for a non-yielding entry.
-const ENTRY_BUDGET_TICKS: u32 = 16;
 static READY: AtomicBool = AtomicBool::new(false);
 static SEEN: AtomicU32 = AtomicU32::new(0);
 static REMAINING: AtomicU32 = AtomicU32::new(0);
 static SOURCE_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 static USER_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 
-/// Closed mechanism profiles. Draft's larger bound is an unmeasured local
-/// preparation ceiling, not evidence that any canonical command fits it.
-#[derive(Clone, Copy)]
-pub(super) enum EntryBudget {
-    Ordinary,
-    Draft,
-}
-impl EntryBudget {
-    const fn ticks(self) -> u32 {
-        match self {
-            Self::Ordinary => ENTRY_BUDGET_TICKS,
-            Self::Draft => 64,
-        }
-    }
-}
+mod entry;
+mod fault_pc;
+pub(super) use entry::{ApplicationRemaining, EntryBudget, EntryIdentity, NativeEntryReceipt};
 
 pub(super) struct Budget {
+    profile: EntryBudget,
     rtc_a: u8,
     rtc_b: u8,
     master: u8,
@@ -46,6 +30,22 @@ pub(super) struct Budget {
 }
 
 impl Budget {
+    /// Capture only through the live armed guard; no caller supplies counts or
+    /// a replacement cap. The native owner supplies its actual assembly return.
+    pub(super) fn capture_receipt(
+        &self,
+        identity: EntryIdentity,
+        returned: &super::domain_transition::TransitionReturn,
+    ) -> Result<NativeEntryReceipt, DomainRefusal> {
+        NativeEntryReceipt::capture(
+            identity,
+            self.profile,
+            user_interrupts(),
+            returned.value,
+            returned.origin,
+        )
+        .map(|receipt| receipt.with_fault_pc(fault_pc::read()))
+    }
     pub fn arm(profile: EntryBudget) -> Result<Self, DomainRefusal> {
         let flags: u64;
         unsafe {
@@ -67,6 +67,7 @@ impl Budget {
             return Err(DomainRefusal::Unsupported);
         }
         let guard = Self {
+            profile,
             rtc_a,
             rtc_b,
             master: unsafe { inb(0x21) },
@@ -74,6 +75,7 @@ impl Budget {
             lint: interrupt_controller::route_budget(),
         };
         REMAINING.store(0, Ordering::Release);
+        fault_pc::reset();
         write(0x0a, (rtc_a & 0x70) | 6); // 32768 / 32 = 1024 Hz.
         let _ = read(0x0c);
         unsafe {
@@ -179,4 +181,9 @@ fn write(register: u8, value: u8) {
         outb(0x70, register);
         outb(0x71, value);
     }
+}
+
+/// Called only for the actual terminal budget IRQ while its frame is live.
+pub(super) unsafe fn observe_fault_pc(saved: *const u64) {
+    unsafe { fault_pc::observe(saved) };
 }

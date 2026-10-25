@@ -38,6 +38,15 @@ test('native ownership and isolation require native proof, including either rena
 test('unknown, deleted-package and empty changes retain all workspace tests', () => {
   for (const paths of [[], ['Cargo.lock'], ['deleted/package/src/lib.rs'], ['site/index.html']]) assert.deepEqual(plan(paths).packages, [...names].sort());
 });
+test('shared Face and Birth changes retain embedded Creche native proof', () => {
+  for (const name of ['semantics/face/src/construction.rs', 'semantics/face/src/interaction.rs', 'plots/birth/src/face.rs', 'plots/birth/src/face/projection.rs', 'semantics/face/Cargo.toml', 'plots/birth/Cargo.lock']) {
+    assert.equal(nativeRisk([name]), true, name);
+  }
+  assert.equal(nativeRisk(['semantics/face/src/deleted.rs', 'products/new.rs']), true);
+  for (const name of ['semantics/face/README.md', 'plots/birth/README.md', 'semantics/calendar/src/lib.rs']) {
+    assert.equal(nativeRisk([name]), false, name);
+  }
+});
 test('recognized documentation needs preflight alone; runtime needs smoke', () => {
   assert.deepEqual(plan(['docs/contributing/ci.md']).packages, []);
   assert.equal(plan(['architecture/kernel/src/lib.rs']).smoke, true);

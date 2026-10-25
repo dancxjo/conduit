@@ -92,6 +92,8 @@ impl<'de, E: Error> Deserializer<'de> for Only<'de, E> {
             encoded: &self.value.as_bytes()[PREFIX.len()..],
             length: self.length,
             index: 0,
+            triplet: [0; 3],
+            triplet_index: 3,
             error: core::marker::PhantomData,
         };
         let result = visitor.visit_seq(&mut sequence)?;
@@ -109,6 +111,8 @@ struct Bytes<'a, E> {
     encoded: &'a [u8],
     length: usize,
     index: usize,
+    triplet: [u8; 3],
+    triplet_index: usize,
     error: core::marker::PhantomData<E>,
 }
 impl<'de, E: Error> SeqAccess<'de> for &mut Bytes<'_, E> {
@@ -120,17 +124,30 @@ impl<'de, E: Error> SeqAccess<'de> for &mut Bytes<'_, E> {
         if self.index == self.length {
             return Ok(None);
         }
-        let offset = self.index / 3 * 4;
-        let shift = self.index % 3;
-        let a =
-            sextet(self.encoded[offset + shift]).map_err(|_| E::custom("invalid packed byte"))?;
-        let b = sextet(self.encoded[offset + shift + 1])
-            .map_err(|_| E::custom("invalid packed byte"))?;
-        let byte = match shift {
-            0 => (a << 2) | (b >> 4),
-            1 => (a << 4) | (b >> 2),
-            _ => (a << 6) | b,
-        };
+        if self.triplet_index == 3 {
+            // extent() already validated the entire canonical input, including
+            // padding. Decode each quartet once; retain only its three bytes,
+            // not another allocation or a second decoded document.
+            let offset = self.index / 3 * 4;
+            let remaining = self.length - self.index;
+            let a = sextet(self.encoded[offset]).map_err(|_| E::custom("invalid packed byte"))?;
+            let b =
+                sextet(self.encoded[offset + 1]).map_err(|_| E::custom("invalid packed byte"))?;
+            self.triplet[0] = (a << 2) | (b >> 4);
+            if remaining > 1 {
+                let c = sextet(self.encoded[offset + 2])
+                    .map_err(|_| E::custom("invalid packed byte"))?;
+                self.triplet[1] = (b << 4) | (c >> 2);
+                if remaining > 2 {
+                    let d = sextet(self.encoded[offset + 3])
+                        .map_err(|_| E::custom("invalid packed byte"))?;
+                    self.triplet[2] = (c << 6) | d;
+                }
+            }
+            self.triplet_index = 0;
+        }
+        let byte = self.triplet[self.triplet_index];
+        self.triplet_index += 1;
         self.index += 1;
         seed.deserialize(Byte::<E>(byte, core::marker::PhantomData))
             .map(Some)
