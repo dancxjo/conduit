@@ -1,5 +1,5 @@
 //! Exact local publication commit -> historical Face. This does not run storage.
-use crate::{HistoryFaceRefusal, PreparedHistoryFace, HISTORY_SUBJECT};
+use crate::{HistoryFaceRefusal, HistoryFaceWindow, PreparedHistoryFace, HISTORY_SUBJECT};
 use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
 use conduit_environment_runtime::{
     observation::ObservationContract,
@@ -102,9 +102,17 @@ impl<'a> PreparedCommittedHistoryFace<'a> {
         &mut self,
         basis: FaceContributionBasis,
     ) -> Result<FaceFragment, CommittedHistoryRefusal> {
+        self.contribution_window(basis, HistoryFaceWindow::complete_chunk())
+    }
+    /// A bounded presentation window retains the same exact publication custody.
+    pub fn contribution_window(
+        &mut self,
+        basis: FaceContributionBasis,
+        window: HistoryFaceWindow,
+    ) -> Result<FaceFragment, CommittedHistoryRefusal> {
         let mut fragment = self
             .history
-            .contribution(basis)
+            .contribution_window(basis, window)
             .map_err(CommittedHistoryRefusal::History)?;
         fragment.properties.push(FaceProperty {
             subject: HISTORY_SUBJECT.into(),

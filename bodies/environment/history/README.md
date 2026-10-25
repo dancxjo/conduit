@@ -9,7 +9,12 @@ The MCU image and local sensing/display remain owned by
 `PreparedHistoryFace` wraps the existing `PreparedRecordingHistory` workspace.
 It validates ordered chunks for one independently supplied producer
 Host/Boot/Plan/Play and projects the latest loaded chunk into an ordinary Face
-fragment. At most 64 samples are visible. Earlier recovered samples are counted
+fragment. At most 64 samples are visible. `HistoryFaceWindow::prepare` explicitly
+selects a smaller tail before constructing the Face when required by a Host
+profile. This does not discard recorded samples or advance the reader: recovered
+counts still include the full chunk, and omitted samples are reported. The
+sample budget is not a substitute for checking the composed Face against the
+selected Host's actual byte limits. Earlier recovered samples are counted
 as outside the view; history before the first recovered sample remains unknown.
 The history schema requires paired temperature/humidity for available samples.
 Sequence gaps and acquisition coordinates in the producer's Boot clock remain
@@ -148,3 +153,7 @@ placement, offer and independent authority inputs remain explicit CPU fixtures.
 This establishes actual Linux file effects and kernel correlation, not an
 installed native Host, live disk-capacity admission, fresh-process recovery,
 Body membership, MCU transport, native pixels or physical scanout.
+
+The cross-Mask proof also recovers a full 64-sample chunk, projects an explicit
+eight-sample tail and admits its exact exported Face through both configured
+Masks. All 56 samples outside that view remain counted; the recording is intact.

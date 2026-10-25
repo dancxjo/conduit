@@ -80,3 +80,17 @@ test('history remains readable with large text, forced colors and keyboard table
   await expect(history).toHaveAttribute('data-face-id', fixture.face_id);
   await page.screenshot({ path: `${directory}/owner-history-accessible.png`, fullPage: true });
 });
+
+test('full recording chunk window reports omitted history and renders all selected points', async ({ page }) => {
+  const window = JSON.parse(await readFile(`${directory}/history-window-view.json`, 'utf8'));
+  const face = await show(page, window);
+  const history = face.locator('[part=history]');
+  await expect(history).toHaveAttribute('data-face-id', window.face_id);
+  await expect(history.locator('circle')).toHaveCount(16);
+  await expect(history).toContainText('56');
+  await history.getByText('Exact recorded values and gaps', { exact: true }).click();
+  const rows = history.getByRole('row');
+  await expect(rows).toHaveCount(9);
+  await expect(rows.nth(1)).toContainText('57');
+  await expect(rows.nth(8)).toContainText('64');
+});

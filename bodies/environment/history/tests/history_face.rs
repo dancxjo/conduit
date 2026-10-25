@@ -159,3 +159,94 @@ fn empty_and_maximum_views_are_bounded_and_repeated_inspection_does_not_advance(
     assert_eq!(history.contribution(basis()).unwrap(), full);
     assert_eq!(history.recovered().samples, 64);
 }
+
+#[test]
+fn explicit_tail_window_retains_full_recovery_and_boundary_failure_and_gap() {
+    assert_eq!(
+        HistoryFaceWindow::prepare(0),
+        Err(HistoryFaceRefusal::Window)
+    );
+    assert_eq!(
+        HistoryFaceWindow::prepare(65),
+        Err(HistoryFaceRefusal::Window)
+    );
+    let window = HistoryFaceWindow::prepare(8).unwrap();
+    let mut history = prepared(2);
+    assert_eq!(
+        history
+            .contribution_window(basis(), window)
+            .unwrap()
+            .subjects
+            .len(),
+        1
+    );
+    let events = (1..=64)
+        .map(|n| (if n >= 57 { n + 2 } else { n }, n * 1000, n != 57))
+        .collect::<Vec<_>>();
+    history.read_next(&chunk(&events)).unwrap();
+    let complete = history.contribution(basis()).unwrap();
+    let tail = history.contribution_window(basis(), window).unwrap();
+    assert_eq!(tail.subjects.len(), 9);
+    for (name, value) in [
+        ("recovered-samples", 64),
+        ("visible-samples", 8),
+        ("samples-outside-view", 56),
+    ] {
+        assert_eq!(
+            property(&tail, HISTORY_SUBJECT, name),
+            Some(&V::Count(value))
+        );
+    }
+    let first = "environment-history/sample/59";
+    assert_eq!(
+        property(&tail, first, "missing-sequence-first"),
+        Some(&V::Count(57))
+    );
+    assert_eq!(
+        property(&tail, first, "missing-sequence-last"),
+        Some(&V::Count(58))
+    );
+    assert_eq!(
+        property(&tail, first, "sensor-failure"),
+        Some(&V::Text("checksum".into()))
+    );
+    assert!(property(&tail, first, "temperature").is_none());
+    let sealed = conduit_face::Face::new_with_semantics(
+        1,
+        conduit_face::FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: Some("source/history".into()),
+            checked_plot_id: Some(basis().checked_plot_id),
+            expanded_plot_id: Some("expanded/history".into()),
+            plan_id: Some(basis().plan_id),
+            active_play_id: Some(basis().active_play_id),
+            sign_ids: vec![],
+        },
+        tail.subjects.clone(),
+        tail.relationships.clone(),
+        tail.properties.clone(),
+        vec![],
+        vec![],
+        vec![],
+    )
+    .unwrap();
+    let graph = HistoryGraph::prepare(&sealed, HISTORY_SUBJECT).unwrap();
+    assert_eq!(graph.omitted(), 56);
+    assert_eq!(graph.samples().len(), 8);
+    assert_eq!(graph.samples()[0].gap_before(), Some((57, 58)));
+    assert!(graph.samples()[0].failure());
+    assert_eq!(history.contribution_window(basis(), window).unwrap(), tail);
+    assert_eq!(history.contribution(basis()).unwrap(), complete);
+    assert_eq!(history.recovered().samples, 64);
+    history.read_next(&chunk(&[(67, 65000, true)])).unwrap();
+    let next = history.contribution_window(basis(), window).unwrap();
+    assert_eq!(
+        property(&next, HISTORY_SUBJECT, "samples-outside-view"),
+        Some(&V::Count(64))
+    );
+    assert_eq!(
+        property(&next, HISTORY_SUBJECT, "recovered-samples"),
+        Some(&V::Count(65))
+    );
+}

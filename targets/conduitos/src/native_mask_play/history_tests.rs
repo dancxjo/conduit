@@ -8,14 +8,14 @@ use crate::{
 };
 use alloc::vec::Vec;
 use conduit_conduitos_mask_offer::{
-    NativeMaskStorageProfile, native_host_advertisement, prepare_history_component_stage_from_offer,
+    native_host_advertisement, prepare_history_component_stage_from_offer, NativeMaskStorageProfile,
 };
 use conduit_core::{HostBaseId, HostId};
-use conduit_environment_history::{HISTORY_SUBJECT, HistoryGraph};
+use conduit_environment_history::{HistoryGraph, HISTORY_SUBJECT};
 use conduit_face::{
-    AdmittedVisualLook, Face, FaceBasis, HISTORY_COMPONENT_MASK_ROOT, HISTORY_COMPONENT_RECIPE_ID,
-    LayoutRect, ManifestationLifecycle, VisualUserConstraints, admit_visual_look,
-    prepare_component_recipe,
+    admit_visual_look, prepare_component_recipe, AdmittedVisualLook, Face, FaceBasis, LayoutRect,
+    ManifestationLifecycle, VisualUserConstraints, HISTORY_COMPONENT_MASK_ROOT,
+    HISTORY_COMPONENT_RECIPE_ID,
 };
 
 mod common {
@@ -124,6 +124,9 @@ fn history_face(revision: u64) -> Face {
         ]))
         .unwrap();
     let fragment = history.contribution(common::basis()).unwrap();
+    face_from_fragment(revision, fragment)
+}
+fn face_from_fragment(revision: u64, fragment: conduit_face::FaceFragment) -> Face {
     Face::new_with_semantics(
         revision,
         FaceBasis {
@@ -147,6 +150,16 @@ fn history_face(revision: u64) -> Face {
 }
 fn fixture(
     revision: u64,
+) -> (
+    Face,
+    PreparedNativeMaskPlay,
+    NativeCompositor,
+    AdmittedVisualLook,
+) {
+    fixture_face(history_face(revision))
+}
+fn fixture_face(
+    face: Face,
 ) -> (
     Face,
     PreparedNativeMaskPlay,
@@ -181,7 +194,6 @@ fn fixture(
         stage.planned_mask.mask.plot_name,
         HISTORY_COMPONENT_MASK_ROOT
     );
-    let face = history_face(revision);
     let prepared = prepare_component_recipe(
         conduit_core::StructuredInfoValue::from_canonical_bytes(
             configuration.recipe.canonical_value(),
@@ -274,16 +286,12 @@ fn history_dots_reach_retained_pixels_before_exact_native_show_kernel_completion
         staged.visual_look.as_ref().unwrap().identity(),
         look.selected.identity()
     );
-    assert!(
-        compositor
-            .scanout_acknowledgement(&staged, face.revision)
-            .is_none()
-    );
-    assert!(
-        compositor
-            .focus_surface("surface/native-history-cpu-fixture")
-            .is_err()
-    );
+    assert!(compositor
+        .scanout_acknowledgement(&staged, face.revision)
+        .is_none());
+    assert!(compositor
+        .focus_surface("surface/native-history-cpu-fixture")
+        .is_err());
     let graph = HistoryGraph::prepare(&face, HISTORY_SUBJECT).unwrap();
     let mut pixels = OwnedPixels::prepare(false);
     let frame = compositor.compose_frame(&mut pixels).unwrap();
@@ -325,11 +333,9 @@ fn history_dots_reach_retained_pixels_before_exact_native_show_kernel_completion
     assert_eq!(pixels.at(graph.x(first) + 1, humidity_y), point);
     assert_eq!(pixels.at(graph.x(failed) + 1, humidity_y), blank);
     assert_eq!(last.gap_before(), Some((3, 3)));
-    assert!(
-        compositor
-            .scanout_acknowledgement(&staged, face.revision + 1)
-            .is_none()
-    );
+    assert!(compositor
+        .scanout_acknowledgement(&staged, face.revision + 1)
+        .is_none());
     let ack = compositor
         .scanout_acknowledgement(&staged, face.revision)
         .unwrap();
@@ -360,16 +366,12 @@ fn display_loss_has_no_ack_or_available_show_and_cancels_pending_execution() {
     let mut pixels = OwnedPixels::prepare(true);
     assert!(compositor.compose_frame(&mut pixels).is_err());
     assert_eq!(pixels.writes, 0);
-    assert!(
-        compositor
-            .scanout_acknowledgement(&staged, face.revision)
-            .is_none()
-    );
-    assert!(
-        compositor
-            .focus_surface("surface/native-history-cpu-fixture")
-            .is_err()
-    );
+    assert!(compositor
+        .scanout_acknowledgement(&staged, face.revision)
+        .is_none());
+    assert!(compositor
+        .focus_surface("surface/native-history-cpu-fixture")
+        .is_err());
     assert_eq!(
         pending.renderer_request().prepared_show().show.lifecycle,
         ManifestationLifecycle::Prepared
@@ -396,4 +398,56 @@ fn scanout_of_another_face_revision_cannot_complete_the_pending_history_show() {
         .unwrap()
         .close_without_input()
         .unwrap();
+}
+
+#[test]
+fn full_recording_window_fits_native_admission_and_completes_only_after_scanout() {
+    let face: Face = if let Some(path) = std::env::var_os("CONDUIT_HISTORY_NATIVE_WINDOW_FACE") {
+        use std::io::Read;
+        let mut bytes = Vec::new();
+        std::fs::File::open(path)
+            .unwrap()
+            .take(64 * 1024 + 1)
+            .read_to_end(&mut bytes)
+            .unwrap();
+        assert!(bytes.len() <= 64 * 1024);
+        serde_json::from_slice(&bytes).unwrap()
+    } else {
+        let mut history = common::prepared(1);
+        history
+            .read_next(&common::chunk(
+                &(1..=64).map(|n| (n, n * 1000, true)).collect::<Vec<_>>(),
+            ))
+            .unwrap();
+        let window = conduit_environment_history::HistoryFaceWindow::prepare(8).unwrap();
+        let fragment = history
+            .contribution_window(common::basis(), window)
+            .unwrap();
+        assert_eq!(history.recovered().samples, 64);
+        face_from_fragment(1, fragment)
+    };
+    face.validate().unwrap();
+    let graph = HistoryGraph::prepare(&face, HISTORY_SUBJECT).unwrap();
+    assert_eq!(graph.omitted(), 56);
+    assert_eq!(graph.samples().len(), 8);
+    let (original, pending, mut compositor, look) = fixture_face(face.clone());
+    let staged = stage(&pending, &mut compositor, &look);
+    assert!(compositor
+        .scanout_acknowledgement(&staged, face.revision)
+        .is_none());
+    let frame = compositor
+        .compose_frame(&mut OwnedPixels::prepare(false))
+        .unwrap();
+    let ack = compositor
+        .scanout_acknowledgement(&staged, face.revision)
+        .unwrap();
+    assert_eq!(ack.frame_sequence(), frame.frame_sequence);
+    let session = pending.complete_render(&ack).unwrap();
+    assert_eq!(
+        session.show().show.lifecycle,
+        ManifestationLifecycle::Available
+    );
+    assert_eq!(session.render_receipt().face_id, face.identity.as_str());
+    session.close_without_input().unwrap();
+    assert_eq!(original, face);
 }

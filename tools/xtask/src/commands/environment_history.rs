@@ -46,6 +46,10 @@ fn native_with_face(
     ]);
     if let Some(face) = face {
         command.env("CONDUIT_HISTORY_NATIVE_PROOF_FACE", face);
+        command.env(
+            "CONDUIT_HISTORY_NATIVE_WINDOW_FACE",
+            face.with_file_name("history-window-face.json"),
+        );
     }
     if let Some(output) = output {
         command.env("CONDUIT_HISTORY_NATIVE_PROOF_OUTPUT", output);

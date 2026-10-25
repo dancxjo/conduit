@@ -20,6 +20,9 @@ fn history_face() -> Face {
         ]))
         .unwrap();
     let fragment = history.contribution(common::basis()).unwrap();
+    face_from_fragment(fragment)
+}
+fn face_from_fragment(fragment: conduit_face::FaceFragment) -> Face {
     let body = conduit_body::Body::born(
         "source/browser-history-cpu-fixture".into(),
         common::basis().checked_plot_id,
@@ -125,7 +128,13 @@ fn export<T: serde::Serialize>(name: &str, value: &T) {
     std::fs::create_dir_all(&directory).unwrap();
     std::fs::write(
         directory.join(name),
-        serde_json::to_vec_pretty(value).unwrap(),
+        if name == "history-window-face.json" {
+            // Keep the bounded cross-Mask input compact; pretty-print whitespace
+            // is not part of the Face or the admitted transport payload.
+            serde_json::to_vec(value).unwrap()
+        } else {
+            serde_json::to_vec_pretty(value).unwrap()
+        },
     )
     .unwrap();
 }
@@ -251,4 +260,36 @@ fn malformed_history_retains_generic_face_instead_of_drawing_partial_graph() {
     assert_eq!(view.actions.len(), original.actions.len());
     assert_eq!(mask.face, original);
     export("history-fallback-view.json", &view);
+}
+
+#[test]
+fn full_recording_chunk_has_an_explicit_window_that_fits_the_checked_browser_mask() {
+    let mut history = common::prepared(1);
+    history
+        .read_next(&common::chunk(
+            &(1..=64).map(|n| (n, n * 1000, true)).collect::<Vec<_>>(),
+        ))
+        .unwrap();
+    let window = conduit_environment_history::HistoryFaceWindow::prepare(8).unwrap();
+    let face = face_from_fragment(
+        history
+            .contribution_window(common::basis(), window)
+            .unwrap(),
+    );
+    assert_eq!(history.recovered().samples, 64);
+    let mut mask = prepare(face.clone());
+    assert_pending(&mut mask);
+    let view = mask.view();
+    let bytes = serde_json::to_vec(&view).unwrap();
+    assert!(bytes.len() <= abi::conduit_browser_owner_face_output_capacity());
+    let json = serde_json::to_value(&view).unwrap();
+    let graph = &json["component"]["history"];
+    assert!(json["component"]["fallback"].is_null());
+    assert_eq!(graph["omitted"], "56");
+    assert_eq!(graph["samples"].as_array().unwrap().len(), 8);
+    assert_eq!(graph["samples"][0]["sequence"], "57");
+    assert_eq!(graph["samples"][7]["sequence"], "64");
+    assert_eq!(mask.face, face);
+    export("history-window-face.json", &face);
+    export("history-window-view.json", &view);
 }

@@ -387,3 +387,41 @@ fn two_committed_chunks_preserve_gap_and_exact_immutable_generation_metadata() {
     );
     assert_eq!(history.next_reference(), None);
 }
+
+#[test]
+fn presentation_window_cannot_replace_exact_full_chunk_publication() {
+    let events = (1..=64).map(|n| (n, n * 1000, true)).collect::<Vec<_>>();
+    let mut publication = generation(1, &events);
+    let observers = [publication.observer.clone()];
+    let contract = ObservationContract::prepare().unwrap();
+    let mut history =
+        PreparedCommittedHistoryFace::prepare(context(), &contract, &observers).unwrap();
+    let window = conduit_environment_history::HistoryFaceWindow::prepare(8).unwrap();
+    let before = history.contribution_window(basis(), window).unwrap();
+    assert_eq!(history.read_next(&publication.content), Err(R::Uncommitted));
+    publication.publish();
+    assert_eq!(
+        history.read_next(&chunk(&events[56..])),
+        Err(R::ContentMismatch)
+    );
+    assert_eq!(
+        history.contribution_window(basis(), window).unwrap(),
+        before
+    );
+    history.read_next(&publication.content).unwrap();
+    let tail = history.contribution_window(basis(), window).unwrap();
+    assert_eq!(history.recovered().samples, 64);
+    assert_eq!(
+        property(&tail, HISTORY_SUBJECT, "visible-samples"),
+        Some(&V::Count(8))
+    );
+    assert_eq!(
+        property(&tail, HISTORY_SUBJECT, "samples-outside-view"),
+        Some(&V::Count(56))
+    );
+    assert_eq!(
+        property(&tail, HISTORY_SUBJECT, "publication-evidence"),
+        Some(&V::Text("kernel-publication-commit".into()))
+    );
+    assert_eq!(history.contribution(basis()).unwrap().subjects.len(), 65);
+}
