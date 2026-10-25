@@ -83,8 +83,8 @@ backlog, no-replan rationale and old receipt continuity. It does not independent
 reimplement the complete Rust Plan fingerprint law; ordinary worker admission
 and `verify_plan` enforce that at the pinned source.
 
-[Verification](evidence/reluctant-measurement-20261020/verification.log) passes
-against the archived capture. All [12 semantic corruption controls](evidence/reluctant-measurement-20261020/negative-controls.log)
+[Verification](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) passes
+against the archived capture. All [12 semantic corruption controls](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
 reject: missing old receipt/stage/horizon/backlog, fabricated net/clock interval,
 forecast-terminal substitution, wrong output, replayed Play, noise retrigger,
 erased continuity and foreign cost custodian. These deliberately bypass the

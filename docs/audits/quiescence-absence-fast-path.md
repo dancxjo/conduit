@@ -85,7 +85,7 @@ profile. The before checkpoint is preserved at
 
 Use isolated clean checkouts of each native producing Source with the existing
 `proof/performance/kernel-overhead.py --output <new-directory> --runs 3` driver.
-The [raw archive](evidence/quiescence-absence-native-raw.tar.gz) retains both
+The [raw archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) retains both
 complete capture directories. After extracting it into a new directory, compare:
 
 ```sh
@@ -99,7 +99,7 @@ For footprint reproduction, use the receipt's exact Source and run the ignored
 `scheduler_footprint` integration test with the retained release/profile flags.
 The [probe source](../../architecture/kernel/tests/scheduler_footprint.rs) is
 retained in Git; complete build/run records are in the
-[raw capture archive](evidence/quiescence-production-footprint-raw.tar.gz).
+[raw capture archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 The probe measures the ordinary library, not its unit-test executable.
 
 Validation completed: 143 pre-change kernel tests; 145 after-change tests plus

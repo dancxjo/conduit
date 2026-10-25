@@ -45,6 +45,7 @@ pub struct CompositionReceipt {
     /// Work used to render this revision into its retained offscreen buffer.
     pub display: DisplayReceipt,
     pub visual_expression: Option<conduit_face::AdmittedVisualExpression>,
+    pub visual_look: Option<conduit_face::LookInfo>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

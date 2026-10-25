@@ -5,3 +5,9 @@
 
 /proof/browser/node_modules/
 /proof/browser/test-results/
+
+# Raw evidence belongs in external artifact storage. Existing named fixtures and
+# publication assets remain tracked; adding a new exception must be deliberate.
+/docs/audits/evidence/**
+/site/evidence/**
+/targets/conduitos/proof/firmware-frame/**

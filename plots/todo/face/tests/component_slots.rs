@@ -196,7 +196,7 @@ fn authored_component_fore_checks_and_its_literal_binds_the_actual_todo_face() {
     install_mask_plot_value_aliases(&mut startup).unwrap();
     for (name, schema) in [
         ("ComponentRecipeInfo", component_recipe_type()),
-        ("VisualExpressionInfo", visual_expression_type()),
+        ("LookInfo", look_type()),
     ] {
         let profile = schema.profile().unwrap().value_kind().clone();
         startup

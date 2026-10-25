@@ -6,6 +6,9 @@ use alloc::string::String;
 #[path = "layout/mechanical.rs"]
 mod mechanical;
 pub(super) use mechanical::admit as admit_mechanical;
+#[path = "layout/surfaces.rs"]
+mod surfaces;
+pub(super) use surfaces::append_region_surfaces;
 
 #[path = "layout/configured.rs"]
 mod configured;
@@ -30,12 +33,16 @@ pub(super) struct Row {
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
     pub subject_index: Option<usize>,
+    pub region: Option<u8>,
+    /// Padding already reserved by checked, single-region ancestor groups.
+    pub region_inset: u16,
     pub page: usize,
     pub bounds: LayoutRect,
     pub region_start: bool,
     pub padding: u16,
     pub checkbox: Option<bool>,
     pub icon: Option<conduit_face::FaceIconKey>,
+    pub icon_size: u16,
     pub panel_bounds: Option<LayoutRect>,
 }
 
@@ -62,7 +69,7 @@ impl Row {
             super::boolean_choice::INSET
         } else {
             0
-        } + super::semantic_icons::inset(self.icon);
+        } + super::semantic_icons::inset(self.icon, self.icon_size);
         LayoutRect {
             x: self.bounds.x + self.padding as i16 + inset as i16,
             y: self.bounds.y + self.padding as i16,
@@ -100,7 +107,7 @@ pub(super) fn append_row_chrome(
     showing_details: bool,
     focused: bool,
 ) -> Result<(), FaceSceneError> {
-    if !showing_details && row.region_start {
+    if !showing_details && row.region_start && row.region.is_none() {
         push(
             scene,
             GraphicsCommand::rect(
@@ -164,6 +171,7 @@ pub(super) fn append_row_chrome(
         )?;
     }
     if !showing_details
+        && (row.icon.is_none() || row.emphasized())
         && matches!(
             row.role,
             GraphicsTextRole::Title | GraphicsTextRole::Heading
@@ -285,7 +293,8 @@ pub(super) fn admit_with_expression_selected(
         let item_width = width
             .checked_sub(inset)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width = field_clusters::text_width(&item, item_width, padding)?;
+        let text_width =
+            field_clusters::text_width(&item, item_width, padding, text_scale_percent)?;
         if cluster_start
             && let Some(demand) = field_clusters::measure(
                 core::iter::once(&item).chain(items.as_slice().iter()),
@@ -348,11 +357,14 @@ pub(super) fn admit_with_expression_selected(
                 paint: item.paint,
                 control: item.control,
                 subject_index: item.subject_index,
+                region: item.region,
+                region_inset: 0,
                 page,
                 region_start,
                 padding,
                 checkbox: item.checkbox,
                 icon: item.icon,
+                icon_size: super::semantic_icons::size(text_scale_percent),
                 panel_bounds: None,
                 bounds: LayoutRect {
                     x: (gutter + column * (width + gutter) + inset) as i16,
@@ -394,10 +406,13 @@ fn row_commands(item: &document::Item, region_start: bool) -> usize {
         + usize::from(item.checkbox.is_some())
         + usize::from(item.control.is_some() && item.checkbox.is_none())
         + usize::from(region_start)
-        + usize::from(matches!(
-            item.role,
-            GraphicsTextRole::Title | GraphicsTextRole::Heading
-        ))
+        + usize::from(
+            (item.icon.is_none() || item.control.is_some())
+                && matches!(
+                    item.role,
+                    GraphicsTextRole::Title | GraphicsTextRole::Heading
+                ),
+        )
 }
 
 fn measure_prefix(

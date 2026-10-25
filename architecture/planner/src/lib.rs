@@ -431,6 +431,7 @@ pub fn plan_with_options(
 
 mod planning_input;
 mod validated_planning;
+mod value_storage;
 pub(crate) use validated_planning::plan_validated_plot;
 
 fn planned_keep_state(

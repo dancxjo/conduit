@@ -1,4 +1,5 @@
 // Browser controls orchestrate public SDK operations; Rust owns every Body transition.
+import { decorate } from "./owner-face-icons.mjs";
 import { resolvePatchbayEditorTarget } from "./patchbay-editor.mjs";
 import { startOwnerParticipation } from "./owner-participation.mjs";
 
@@ -17,14 +18,23 @@ export async function startApplication(application) {
     <label>Choose an example <select aria-label="Choose an example"></select></label>
     <p data-lesson></p><label for="handbook-source">Plot source</label><textarea id="handbook-source" spellcheck="false" aria-label="Plot source"></textarea>
     <button type="button" data-export-source>Download displayed source</button>
-    <details><summary>Inspect source provenance</summary><pre data-source-provenance></pre></details>
+    <details><summary data-source-inspection>Inspect source provenance</summary><pre data-source-provenance></pre></details>
     <p data-check role="status"></p><button data-try>Try in my Handbook</button>
     <p>First predict the result, then try it. Open Patchbay to follow the gears, typed ports, and cords of the installed example. Trying another example stops the previous example; saved edits are kept. Unapplied edits stay in the editor.</p>
     <section class="handbook-show" tabindex="0" aria-label="Running example"></section>
-    <details><summary>Your body and browser</summary><p data-durability></p><pre data-identities></pre>
+    <details><summary data-body-inspection>Your body and browser</summary><p data-durability></p><pre data-identities></pre>
       <button data-release>Release this tab</button><button data-reset>Start my Handbook over</button>
       <p>Starting over removes this application's local body and examples. It keeps your browser Host identity.</p></details>
     <button data-retry hidden>Try again</button>`;
+  // Fixed local operations reuse the pinned vocabulary; offered Face intents
+  // still belong to the shared Face renderer and the authoritative owner.
+  for (const [selector, icon] of [
+    ['header h2', 'Library'], ['[data-wake]', 'Wake'], ['[data-lull]', 'Lull'],
+    ['[data-patchbay]', 'Face'], ['[data-example]', 'Back'],
+    ['[data-export-source]', 'FileOutput'], ['[data-source-inspection]', 'Inspect'],
+    ['[data-try]', 'Play'], ['[data-body-inspection]', 'Body'],
+    ['[data-release]', 'Close'], ['[data-reset]', 'Remove'], ['[data-retry]', 'Repeat2'],
+  ]) for (const node of root.querySelectorAll(selector)) decorate(node, icon);
   const status = root.querySelector('[data-session-status]');
   const source = root.querySelector('textarea');
   const selector = root.querySelector('select');

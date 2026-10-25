@@ -1,6 +1,0 @@
-    Finished `dev` profile [unoptimized] target(s) in 0.13s
-     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/conduit-xtask-dispatch make host verify target/conduitos/live/x86_64-pc --journey --locked`
-    Finished `dev` profile [unoptimized] target(s) in 0.18s
-     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/xtask make host verify target/conduitos/live/x86_64-pc --journey --locked`
-ConduitOS Face journey proof: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/x86_64/journey-proof.json
-VERIFIED image:sha256:775b90a56e4a020cf8fdad3d11e1debd55053707e6fda3a707603f26f49892a5

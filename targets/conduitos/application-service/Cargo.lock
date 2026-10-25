@@ -88,8 +88,10 @@ dependencies = [
  "conduit-core",
  "ed25519-dalek",
  "minicbor",
+ "miniz_oxide",
  "postcard",
  "serde",
+ "serde_json",
  "sha2",
 ]
 
@@ -131,6 +133,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-time",
+ "miniz_oxide",
  "serde",
  "serde_json",
  "sha2",

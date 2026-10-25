@@ -15,13 +15,13 @@ const CHOICES: [Choice; 2] = [
         density: "spacious",
         scale: 125,
         root: "creche-mask-columns-spacious-phosphor",
-        identity: "conduit.face/spacious-phosphor@1",
+        identity: "conduit.look/phosphor-spacious@1",
     },
     Choice {
         density: "compact",
         scale: 100,
         root: "creche-mask-columns",
-        identity: "conduit.face/compact@1",
+        identity: "conduit.look/phosphor@1",
     },
 ];
 fn effects(text: &str) -> Result<[usize; 3], ConduitosError> {

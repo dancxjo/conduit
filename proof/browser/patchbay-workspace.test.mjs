@@ -145,3 +145,15 @@ test("frames collapse only visual members and leave exact graph connections inta
   assert.equal(result.edges.length, projected.edges.length);
   assert.deepEqual(result.edges.map((edge) => [edge.source, edge.target]), projected.edges.map((edge) => [edge.source, edge.target]));
 });
+
+
+test("continued exact facts do not inflate causal Sign counts", () => {
+  const snapshot = { face: { identity: "fixture/face", revision: 1,
+    basis: { source_document_id: null, checked_plot_id: null },
+    subjects: [{ identity: "body/present", role: "Body", name: "Present Body" }],
+    properties: ["sign-0", "sign-0-continued-1", "sign-0-parts", "sign-1"].map(name => ({
+      subject: "body/present", name, value: { Text: "retained exact fact" },
+    })), relationships: [] }, interaction: { selected_subject: null } };
+  assert.equal(projectFlowScene(snapshot, "signs").nodes[0].data.clue, "2 causal Signs");
+  assert.equal(snapshot.face.properties.length, 4);
+});

@@ -84,8 +84,8 @@ fn configured(face: &Face, width: u16, height: u16) -> NativeFaceScene {
         |bytes: &[u8]| conduit_core::StructuredInfoValue::from_canonical_bytes(bytes).unwrap();
     let recipe =
         prepare_component_recipe(info(configuration.recipe.canonical_value()), face).unwrap();
-    let expression = admit_visual_expression(
-        Ok(visual_expression_from_info(info(configuration.expression.canonical_value())).unwrap()),
+    let expression = conduit_face::admit_visual_look(
+        &configuration.requested_look().unwrap(),
         VisualUserConstraints {
             forced_colors: false,
             reduced_motion: true,
@@ -93,7 +93,8 @@ fn configured(face: &Face, width: u16, height: u16) -> NativeFaceScene {
             maximum_supported_text_scale_percent: 200,
         },
     )
-    .unwrap();
+    .unwrap()
+    .visual;
     NativeFaceScene::prepare_configured(face.clone(), width, height, true, &recipe, &expression)
         .unwrap()
 }

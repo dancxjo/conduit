@@ -92,7 +92,7 @@ evaluator tests, eleven installed std tests, focused strict Clippy and
 workspace formatting. Plot also compiles for `wasm32-unknown-unknown`; no
 browser execution is inferred. The release timing test passes with all
 64 result-checked trials and 256 raw timing records retained in
-[`scalar-tape-cpu-samples.json`](evidence/scalar-tape-cpu-samples.json).
+[`scalar-tape-cpu-samples.json`](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz).
 
 Eight-batch medians on the unpinned Linux i7-12700 host:
 

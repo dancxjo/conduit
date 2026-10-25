@@ -38,6 +38,21 @@ pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};
 pub use transport_types::*;
 
 pub fn application_look_css() -> Vec<u8> {
-    let look = conduit_face::phosphor_look().expect("checked built-in Look data");
-    theme::render_look_css(&look).expect("built-in Look has a visual facet")
+    let mut css = Vec::new();
+    for look in [
+        conduit_face::phosphor_look(),
+        conduit_face::editorial_look(),
+        conduit_face::engineering_look(),
+        conduit_face::navy_look(
+            conduit_face::VisualDensity::Compact,
+            conduit_face::VisualTypography::Editorial,
+        ),
+    ] {
+        css.extend(
+            theme::render_look_css(&look.expect("checked built-in Look data"))
+                .expect("built-in Look has a visual facet"),
+        );
+    }
+    assert!(css.len() <= MAX_THEME_CSS_BYTES);
+    css
 }

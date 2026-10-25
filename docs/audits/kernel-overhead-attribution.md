@@ -54,7 +54,7 @@ separate.
 Clean measured Source `cf5b84ed96b63c81027e0a4d9fd2fdecea02fb5f` produced
 144 joined raw cases in three independent optimized processes. All 18 retained
 artifact hashes were independently verified. The [receipt and full raw counter
-rows](evidence/kernel-overhead-attribution.json) retain exact hardware, compiler,
+rows](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) retain exact hardware, compiler,
 profile, executable digest, process CPU/RSS records and process means.
 
 | Active nodes | Ready inputs | Mean Step-to-Idle, microseconds | SD across process means, microseconds |
@@ -86,7 +86,7 @@ allocator snapshots to the existing ordinary checked pipeline. Three independent
 public-entrance captures each passed all eleven optimized conformance tests and
 retained nine 1/8/32-Gear trials. All 159 artifact hashes, exact source custody
 and 27 actual hosted windows were independently verified. The
-[compact hosted receipt](evidence/hosted-overhead-attribution.json) retains
+[compact hosted receipt](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) retains
 complete measurements, producing Source/Plan/Play/Boot identities, ordered
 output hashes, mandatory output-Sign counts and source-linked artifact hashes.
 
@@ -165,7 +165,7 @@ to the earlier scheduler captures above.
 Producing Source `bafa852c973613b779594ab3030dd3a6fa59e91e` yielded
 480 raw observations across three independent optimized native processes.
 All 13 artifact hashes, each raw-row join and all 15 descriptive summaries were
-independently verified. The [receipt](evidence/sign-record-cost.json) retains
+independently verified. The [receipt](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) retains
 compiler/profile, executable identity, host load, raw rows and process means.
 
 | Records per batch / capacity | Append batch, ns (mean ± process-mean SD) | Full transient-retention batch, ns (mean ± process-mean SD) |
@@ -190,7 +190,7 @@ automatic threshold or whole-Host conclusion follows from these observations.
 Three fresh pinned Chromium processes each executed three sequential Plays of
 the checked structured-value Window fixture, through actual Source admission,
 Plan/browser-kernel execution, a true Boolean manifestation and exact terminal
-acknowledgement. The [browser receipt](evidence/browser-overhead-attribution.json)
+acknowledgement. The [browser receipt](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz)
 retains raw wall milliseconds, explicit JS-to-ABI write extent, actual effects,
 terminal receipts and linear-memory capacity. Every fetched module digest and
 byte extent matched its sealed manifest. Runtime and proof-server Source remain

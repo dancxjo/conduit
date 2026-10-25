@@ -66,7 +66,7 @@ switch in a shared target reused an old executable during one diagnostic
 experiment; that capture was discarded and the final source rebuilt freshly
 in a separate target. The final receipt binds distinct before/after executables.
 
-The [raw archive](evidence/sign-capacity-native-raw.tar.gz) retains build records,
+The [raw archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) retains build records,
 stdout, resource logs, metadata and artifact hashes. After extraction:
 
 ```sh
@@ -132,7 +132,7 @@ The alloc kernel suite and linear-ready reference suite each pass 159 tests;
 strict kernel all-target Clippy also passes.
 
 A fresh paired [receipt](evidence/sign-capacity-count-native.json) and
-[raw archive](evidence/sign-capacity-count-native-raw.tar.gz) retain three
+[raw archive](https://github.com/dancxjo/conduit/releases/download/evidence-archive-20261024/audit-captures.tar.gz) retain three
 independent processes per clean source, eight trials per case and separate
 source-specific Cargo targets. The existing verifier checks all 26 artifact
 hashes, 2,160 raw rows, 90 summaries and exact non-timing equivalence.

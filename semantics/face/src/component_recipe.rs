@@ -205,8 +205,8 @@ pub fn component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     .unwrap()
     .into_structured()
     .unwrap();
-    let expression = crate::visual_expression_info(&crate::VisualExpression::phosphor()).unwrap();
-    let fields = [("recipe", recipe), ("expression", expression)];
+    let look = crate::phosphor_look().unwrap().into_structured().unwrap();
+    let fields = [("recipe", recipe), ("look", look)];
     let port = |name: &str, value_kind: &str, direction, temporal| PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(value_kind),
@@ -216,7 +216,7 @@ pub fn component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     };
     Kind {
         kind_id: kind_id(COMPONENT_MASK_KIND),
-        kind_contract_revision: KindIdentity::from("conduit.face/component-mask@2"),
+        kind_contract_revision: KindIdentity::from("conduit.face/component-mask@4"),
         startup_parameters: conduit_core::data_label_startup_front()
             .into_iter()
             .chain(fields.iter().map(|(name, value)| FrontStartupParameter {
@@ -280,6 +280,21 @@ pub const TODO_COMPONENT_MASK_SOURCE: &str = concat!(
     "\n",
     include_str!("../components/todo-required-item.conduit"),
 );
+
+/// Independent Patchbay recipe; canonical appearance values are shared with Todo.
+pub const PATCHBAY_COMPONENT_MASK_SOURCE: &str =
+    include_str!("../components/patchbay-mask.conduit");
+
+pub const PATCHBAY_DEFAULT_MASK_ROOT: &str = "patchbay-mask-default";
+
+pub const fn patchbay_component_mask_root(look: ComponentMaskLook) -> &'static str {
+    match look {
+        ComponentMaskLook::Compact => "patchbay-mask-compact",
+        ComponentMaskLook::Spacious => "patchbay-mask-spacious",
+        ComponentMaskLook::CompactEditorial => "patchbay-mask-compact-editorial",
+        ComponentMaskLook::SpaciousPhosphor => "patchbay-mask-spacious-phosphor",
+    }
+}
 
 /// Crèche structure admits its three actual fields and full bounded inventory.
 /// Independent finite expression roots retain each checked component structure.

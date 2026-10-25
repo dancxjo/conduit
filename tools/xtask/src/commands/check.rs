@@ -65,6 +65,10 @@ use crate::{
     workspace::workspace_root,
 };
 
+#[path = "check/resource_epochs.rs"]
+mod resource_epochs;
+pub use resource_epochs::{run as run_resource_epochs, ResourceEpochArgs};
+
 mod cli;
 mod workspace;
 use workspace::run_workspace_shard;

@@ -231,7 +231,9 @@ jobs:
             target/debug
             target/release
             target/*-unknown-*
-          cache-on-failure: false
+          # Keep compiler work when later execution proof fails; proof outputs
+          # are outside these directories and required checks still run anew.
+          cache-on-failure: true
       - name: Resolve acquisition cache
         id: tools
         env:

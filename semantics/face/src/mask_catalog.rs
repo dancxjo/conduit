@@ -23,7 +23,7 @@ pub(crate) fn install_component_mask_catalog(
 ) -> Result<(), alloc::string::String> {
     for (alias, schema) in [
         ("ComponentRecipeInfo", crate::component_recipe_type()),
-        ("VisualExpressionInfo", crate::visual_expression_type()),
+        ("LookInfo", crate::look_type()),
     ] {
         let profile = schema
             .profile()

@@ -4,11 +4,13 @@
 //! admission decision; installing membership and presenting a shared Body are
 //! separate product transitions.
 
+#[cfg(test)]
+use conduit_body::{COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA};
+
 use alloc::{string::String, vec};
 use conduit_body::{
     AdmissionDocumentRefusal, PortableAdmissionReceipt, RENDEZVOUS_DESCRIPTOR_PROTOCOL,
-    ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA, RendezvousCandidate,
-    RendezvousLineFamily, RoutedAdmissionRequest, RoutedAdmissionResponse,
+    RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest, RoutedAdmissionResponse,
     SpawnRendezvousDescriptor,
 };
 use conduit_core::HostAdvertisement;
@@ -310,12 +312,19 @@ fn prepare_request(
     request: &RoutedAdmissionRequest,
     current: &HostAdvertisement,
 ) -> Result<alloc::vec::Vec<u8>, NativeOwnerAdmissionRefusal> {
-    if request.schema != ROUTED_ADMISSION_REQUEST_SCHEMA
+    if !request.supported_schema()
         || request.invitation_id != request.request.invitation_id.as_str()
         || request.request.host_advertisement != *current
         || request.request.validate().is_err()
     {
         return Err(NativeOwnerAdmissionRefusal::RequestBasis);
+    }
+    if request.schema == conduit_body::COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA {
+        let expanded = serde_json::to_vec(&request.request.host_advertisement)
+            .map_err(|_| NativeOwnerAdmissionRefusal::RequestBasis)?;
+        if expanded.len() > conduit_body::admission_advertisement_wire::MAXIMUM_EXPANDED_BYTES {
+            return Err(NativeOwnerAdmissionRefusal::RequestPressure);
+        }
     }
     let encoded =
         serde_json::to_vec(request).map_err(|_| NativeOwnerAdmissionRefusal::RequestBasis)?;
@@ -340,7 +349,7 @@ fn exchange_prepared(
         .map_err(|_| NativeOwnerAdmissionRefusal::ResponseEncoding)?;
     match outcome {
         RoutedAdmissionResponse::Admitted { schema, receipt }
-            if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA =>
+            if conduit_body::supported_routed_admission_response_schema(&schema) =>
         {
             receipt
                 .validate_against(&request.request)
@@ -348,7 +357,8 @@ fn exchange_prepared(
             Ok(*receipt)
         }
         RoutedAdmissionResponse::Refused { schema, code }
-            if schema == ROUTED_ADMISSION_RESPONSE_SCHEMA && !code.is_empty() =>
+            if conduit_body::supported_routed_admission_response_schema(&schema)
+                && !code.is_empty() =>
         {
             Err(NativeOwnerAdmissionRefusal::OwnerRefused(code))
         }

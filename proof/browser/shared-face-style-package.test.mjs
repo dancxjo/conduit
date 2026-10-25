@@ -63,3 +63,31 @@ test("owner Face Looks remain admitted assets without document-wide activation",
     assert.equal(look.path, "owner-face-look.css");
   }
 });
+
+// Native admission wire profiles grew this module beyond its former 12 KiB
+// envelope. Exercise its real package boundary without staging a full product.
+test("workspace admits the native image module and refuses an undersized envelope", async () => {
+  const original = JSON.parse(await readFile(templates[1], "utf8"));
+  const resource = original.resources.find(resource => resource.role === "conduitos-image");
+  const bytes = await readFile("targets/conduitos/deployment/browser/image.mjs");
+  const scratch = await mkdtemp(path.join(tmpdir(), "conduit-native-image-package-"));
+  try {
+    const staged = path.join(scratch, resource.path);
+    await mkdir(path.dirname(staged), { recursive: true });
+    await writeFile(staged, bytes);
+    const input = path.join(scratch, "template.json");
+    for (const [maximum, accepted] of [[resource.maximum_bytes, true], [bytes.length - 1, false]]) {
+      await writeFile(input, JSON.stringify({ ...original, resources: [{ ...resource, maximum_bytes: maximum }] }));
+      const built = spawnSync(process.execPath, [producer, input, scratch, "image.application.json"], { encoding: "utf8" });
+      assert.equal(built.status === 0, accepted, built.stderr);
+      if (accepted) {
+        const manifest = JSON.parse(await readFile(path.join(scratch, "image.application.json"), "utf8"));
+        assert.equal(manifest.resources[0].sha256, `sha256:${createHash("sha256").update(bytes).digest("hex")}`);
+      } else {
+        assert.match(built.stderr, /application resource exceeds bound/);
+      }
+    }
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
+});

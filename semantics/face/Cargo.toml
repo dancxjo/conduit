@@ -14,6 +14,8 @@ serde = { version = "1", default-features = false, features = ["alloc", "derive"
 sha2 = { version = "0.10", default-features = false }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 
+miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }
+
 [dev-dependencies]
 conduit-std-offers = { path = "../../targets/std/offers" }
 conduit-plot = { path = "../../architecture/plot" }

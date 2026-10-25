@@ -2,7 +2,7 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_body::{
-    PortableSpawnAdmissionRequest, ROUTED_ADMISSION_REQUEST_SCHEMA, RoutedAdmissionRequest,
+    COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA, PortableSpawnAdmissionRequest, RoutedAdmissionRequest,
     SPAWN_ADMISSION_REQUEST_SCHEMA, SpawnInvitationClaim, SpawnInvitationSecret,
     SpawnRendezvousDescriptor,
 };
@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use crate::spore_provision::{NativeMediaProvision, RouteCertificate};
 
-pub const JOIN_SCHEMA: &str = "conduit.conduitos/serial-spawn-observation@1";
+pub const JOIN_SCHEMA: &str = "conduit.conduitos/serial-spawn-observation@2";
 pub const MAXIMUM_JOIN_BYTES: usize = 48 * 1024;
 pub const MAXIMUM_ROUTE_REQUEST_BYTES: usize =
     crate::native_network_bounds::MAXIMUM_BINARY_MESSAGE_BYTES;
@@ -81,6 +81,7 @@ struct JoinEnvelope<'a> {
     protocol: u16,
     spore_id: &'a str,
     image_id: &'a str,
+    #[serde(with = "conduit_body::admission_advertisement_wire")]
     advertisement: &'a conduit_core::HostAdvertisement,
     invitation_id: &'a str,
     body_id: &'a str,
@@ -135,13 +136,20 @@ pub fn prepare(
     let signature = secret.sign(&transcript);
     secret_bytes.fill(0);
     provision.invitation_provision.secret.fill(0);
+    // The version-two profile has an explicit expanded-document admission
+    // limit independent of the unchanged serial/WebSocket wire limits.
+    let expanded = serde_json::to_vec(advertisement).map_err(|_| JoinError::Serialization)?;
+    if expanded.len() > conduit_body::admission_advertisement_wire::MAXIMUM_EXPANDED_BYTES {
+        return Err(JoinError::Bound);
+    }
+
     let routed_request =
         provision
             .invitation_provision
             .rendezvous
             .as_ref()
             .map(|_| RoutedAdmissionRequest {
-                schema: ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
+                schema: COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
                 invitation_id: claim.invitation_id.as_str().into(),
                 request: PortableSpawnAdmissionRequest {
                     schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
@@ -163,7 +171,7 @@ pub fn prepare(
     }
     let envelope = JoinEnvelope {
         schema: JOIN_SCHEMA,
-        protocol: 1,
+        protocol: 2,
         spore_id: &provision.spore.spore_id,
         image_id: &provision.spore.image_id,
         advertisement,
@@ -287,8 +295,12 @@ mod tests {
         assert!(encoded.len() < MAXIMUM_JOIN_BYTES);
         let value: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(
-            value["advertisement"],
-            serde_json::to_value(&advertisement).unwrap()
+            serde_json::from_value::<
+                conduit_body::admission_advertisement_wire::CompactAdvertisement,
+            >(value["advertisement"].clone())
+            .unwrap()
+            .0,
+            advertisement
         );
         assert_eq!(value["membership_claimed"], false);
         assert!(!encoded.windows(32).any(|window| window == [13; 32]));
@@ -343,21 +355,33 @@ mod tests {
             1,
             &crate::product_bases::fixture_surface_provider(),
         );
-        let advertisement_bytes = serde_json::to_vec(&advertisement).unwrap().len();
+        let advertisement_bytes = serde_json::to_vec(
+            &conduit_body::admission_advertisement_wire::CompactAdvertisement(
+                advertisement.clone(),
+            ),
+        )
+        .unwrap()
+        .len();
         assert!(
             advertisement_bytes < MAXIMUM_ROUTE_REQUEST_BYTES,
             "actual native advertisement alone is {advertisement_bytes} bytes; routed request bound is {MAXIMUM_ROUTE_REQUEST_BYTES}"
         );
         let prepared = prepare(provision.clone(), &advertisement).unwrap();
         let request = prepared.routed_request.unwrap();
-        assert_eq!(request.schema, ROUTED_ADMISSION_REQUEST_SCHEMA);
+        assert_eq!(request.schema, COMPACT_ROUTED_ADMISSION_REQUEST_SCHEMA);
         assert_eq!(request.invitation_id, "invitation/one");
         assert_eq!(request.request.host_advertisement, advertisement);
         assert_eq!(request.request.body_id.as_str(), "body/one");
         assert!(!request.request.membership_admitted);
         assert!(!request.request.plan_created);
         assert!(!request.request.play_created);
-        let request_bytes = serde_json::to_vec(&request).unwrap().len();
+        let request_wire = serde_json::to_vec(&request).unwrap();
+        let decoded: RoutedAdmissionRequest = serde_json::from_slice(&request_wire).unwrap();
+        assert_eq!(
+            serde_json::to_vec(&decoded.request).unwrap(),
+            serde_json::to_vec(&request.request).unwrap()
+        );
+        let request_bytes = request_wire.len();
         std::eprintln!(
             "layout_product_routed_bytes={request_bytes} admitted_limit={MAXIMUM_ROUTE_REQUEST_BYTES}"
         );
@@ -375,7 +399,20 @@ mod tests {
         );
         let long = prepare(provision.clone(), &long_identity).unwrap();
         let long_request = long.routed_request.unwrap();
-        assert!(serde_json::to_vec(&long_request).unwrap().len() <= MAXIMUM_ROUTE_REQUEST_BYTES);
+        let long_wire = serde_json::to_vec(&long_request).unwrap();
+        assert!(long_wire.len() <= MAXIMUM_ROUTE_REQUEST_BYTES);
+        let long_decoded: RoutedAdmissionRequest = serde_json::from_slice(&long_wire).unwrap();
+        assert_eq!(long_decoded.request.host_advertisement, long_identity);
+        std::eprintln!(
+            "join_profile_actual expanded={} compact_ad={} serial={} routed={} long_expanded={} long_serial={} long_routed={}",
+            serde_json::to_vec(&advertisement).unwrap().len(),
+            advertisement_bytes,
+            prepared.serial_observation.len(),
+            request_bytes,
+            serde_json::to_vec(&long_identity).unwrap().len(),
+            long.serial_observation.len(),
+            long_wire.len()
+        );
         assert!(!long_request.request.membership_admitted);
         assert!(!long_request.request.plan_created);
         assert!(!long_request.request.play_created);

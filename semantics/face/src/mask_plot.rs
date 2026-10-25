@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{FACE_INTERACTION_VALUE_KIND, FACE_VALUE_KIND, SHOW_VALUE_KIND};
 
+mod wire;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MaskPlot {
@@ -31,8 +33,7 @@ pub struct MaskPlotBoundary {
     pub gear_port_id: PortId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannedMaskPlot {
     pub mask: MaskPlot,
     /// The ordinary immutable Plan for this exact expanded Mask Plot.

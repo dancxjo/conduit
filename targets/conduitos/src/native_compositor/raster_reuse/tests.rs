@@ -495,3 +495,37 @@ fn typography_alone_invalidates_retained_raster_without_changing_paint_or_scale(
         .unwrap();
     assert_eq!(*engineering, fresh.surfaces[0].buffer.pixels);
 }
+
+#[cfg(feature = "native-compositor-core")]
+#[test]
+fn full_look_change_invalidates_retained_pixels_with_unchanged_expression_and_scene() {
+    use conduit_core::HostBaseId;
+    let (face, plan, main, _, mut compositor) = fixture::fixture(1);
+    let scene = scene(3);
+    let base = HostBaseId::from(fixture::BASE);
+    compositor
+        .update_surface(&face, &main, &plan, fixture::MAIN, &base, &scene)
+        .unwrap();
+    let before = compositor.surfaces[0].buffer.pixels.clone();
+    let look = conduit_face::editorial_look().unwrap();
+    compositor.surfaces[0].visual_look = Some(look.clone());
+    let (face, plan, main, _, mut fresh) = fixture::fixture(2);
+    let receipt = compositor
+        .update_surface(&face, &main, &plan, fixture::MAIN, &base, &scene)
+        .unwrap();
+    assert_eq!(receipt.visual_expression, None);
+    assert_eq!(receipt.visual_look.as_ref(), Some(&look));
+    assert_eq!(
+        usize::from(receipt.display.commands),
+        scene.commands().len()
+    );
+    assert_ne!(compositor.surfaces[0].buffer.pixels, before);
+    fresh.surfaces[0].visual_look = Some(look);
+    fresh
+        .update_surface(&face, &main, &plan, fixture::MAIN, &base, &scene)
+        .unwrap();
+    assert_eq!(
+        compositor.surfaces[0].buffer.pixels,
+        fresh.surfaces[0].buffer.pixels
+    );
+}

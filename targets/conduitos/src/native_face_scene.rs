@@ -125,6 +125,7 @@ pub struct NativeFaceScene {
     graph_reading: Option<graph_reading::GraphReading>,
     interaction_admitted: bool,
     local_input_available: bool,
+    local_creche_preferences: bool,
     local_notice: Option<String>,
 }
 
@@ -165,6 +166,7 @@ impl NativeFaceScene {
             input: input::InputState::default(),
             interaction_admitted,
             local_input_available: true,
+            local_creche_preferences: false,
             local_notice: None,
         })
     }
@@ -176,6 +178,12 @@ impl NativeFaceScene {
 
     pub fn face(&self) -> &Face {
         &self.face
+    }
+
+    /// Enabled only by the local Crèche Mask constructor, never inferred from
+    /// Face wording, roles or owner-supplied action IDs.
+    pub(crate) fn set_local_creche_preferences(&mut self, enabled: bool) {
+        self.local_creche_preferences = enabled;
     }
 
     /// Bounded Mask-local outcome text. It never changes the owner's Face.
@@ -450,3 +458,7 @@ mod cross_mask_graph_tests;
 #[cfg(test)]
 #[path = "native_face_scene/structured_source_tests.rs"]
 mod structured_source_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/local_look_hint_tests.rs"]
+mod local_look_hint_tests;

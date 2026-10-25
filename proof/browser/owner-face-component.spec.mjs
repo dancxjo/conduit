@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from '@playwright/test';
 
 // Renderer fixture only: the callback is not a Body/action receipt.
@@ -10,6 +11,57 @@ const view = {
   actions: [{ identity: 'fixture/complete', target: 'fixture/task', name: 'Complete task',
     availability: 'available', disclosure: 'CurrentAction', arguments: [] }],
 };
+
+test('semantic icons remain bounded decoration without the Look stylesheet', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    const element = document.createElement('conduit-owner-face');
+    element.show({ ...view, subjects: [{ ...view.subjects[0], role: 'Body' }],
+      actions: [{ ...view.actions[0], intent: 'todo/complete@1' }] }, { invoke: async () => {} });
+    document.body.replaceChildren(element);
+    element.shadowRoot.querySelector('link').remove();
+  }, view);
+  const face = page.locator('conduit-owner-face');
+  const icons = face.locator('svg');
+  expect(await icons.count()).toBeGreaterThan(0);
+  for (const icon of await icons.all()) {
+    await expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(await icon.evaluate(node => [node.getBoundingClientRect().width, node.getBoundingClientRect().height])).toEqual([18, 18]);
+  }
+  await expect(face.getByRole('button', { name: 'Complete task', exact: true })).toBeEnabled();
+});
+
+test('Todo add and remove icons preserve accessible names and exact action payloads', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const decorated = { ...view, actions: [
+    { ...view.actions[0], identity: 'fixture/add', intent: 'todo/add@1', name: 'Add task' },
+    { ...view.actions[0], identity: 'fixture/remove', intent: 'todo/remove@1', name: 'Remove task' },
+    { ...view.actions[0], identity: 'fixture/custom', intent: 'custom/todo/remove@1', name: 'Custom task action' },
+  ] };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    const element = document.createElement('conduit-owner-face');
+    globalThis.calls = [];
+    element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    document.body.replaceChildren(element);
+  }, decorated);
+  const face = page.locator('conduit-owner-face');
+  for (const [index, name] of ['Add task', 'Remove task'].entries()) {
+    if (index) await face.evaluate((node, view) => node.show(view, {
+      invoke: async call => { globalThis.calls.push(call); },
+    }), decorated);
+    const button = face.getByRole('button', { name, exact: true });
+    await expect(face.getByRole('heading', { name, exact: true })).toHaveCount(0);
+    await expect(button.locator('svg')).toHaveAttribute('aria-hidden', 'true');
+    await button.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls.at(-1))).toEqual({
+      view: decorated, action: decorated.actions[index], arguments: [],
+    });
+  }
+  await expect(face.getByRole('button', { name: 'Custom task action', exact: true }).locator('svg')).toHaveCount(0);
+});
 
 test('owner Face parts swap density while preserving controls and accessible actions', async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
@@ -1366,10 +1418,21 @@ test('admitted typography changes title family independently of palette, density
       await new Promise(resolve => requestAnimationFrame(resolve));
       const title = element.shadowRoot.querySelector('[data-text-purpose="Title"]');
       const button = element.shadowRoot.querySelector('button');
+      const collectionHeading = document.createElement('h4');
+      collectionHeading.textContent = 'Collection heading';
+      element.shadowRoot.append(collectionHeading);
+      const headingStyle = () => {
+        const style = getComputedStyle(collectionHeading);
+        return [style.fontFamily, style.fontSize, style.fontWeight];
+      };
+      const darkHeading = headingStyle();
+      element.dataset.componentPalette = 'editorial';
+      const lightHeading = headingStyle();
+      element.dataset.componentPalette = 'phosphor';
       result.push({ intent: element.dataset.componentTypography,
         palette: element.dataset.componentPalette, density: element.dataset.componentDensity,
         family: getComputedStyle(title).fontFamily, text: title.textContent,
-        action: button.textContent, disabled: button.disabled });
+        action: button.textContent, disabled: button.disabled, darkHeading, lightHeading });
     }
     return { result, invocations };
   }, view);
@@ -1377,7 +1440,153 @@ test('admitted typography changes title family independently of palette, density
   expect(observations.result[0].intent).toBe('editorial');
   expect(observations.result[1].intent).toBe('engineering');
   expect(observations.result[0].family).not.toBe(observations.result[1].family);
+  for (const result of observations.result) expect(result.darkHeading).toEqual(result.lightHeading);
+  expect(observations.result[0].darkHeading[0]).not.toBe(observations.result[1].darkHeading[0]);
   for (const key of ['palette', 'density', 'text', 'action', 'disabled']) {
     expect(observations.result[0][key]).toEqual(observations.result[1][key]);
   }
 });
+
+// Decoration follows explicit intent, never the human caption or opaque ID.
+// This remains renderer evidence; the callback is not an owner receipt.
+test('action icons retain labels and do not infer intent from captions', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async original => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    document.body.append(element);
+    const action = { ...original.actions[0], name: 'A source-owned caption', intent: 'conduit.intent/birth@1' };
+    globalThis.iconFixture = { ...original, actions: [action] };
+    globalThis.iconCalls = [];
+    element.show(globalThis.iconFixture, { invoke: async call => globalThis.iconCalls.push(call) });
+  }, view);
+  const element = page.locator('conduit-owner-face');
+  const button = element.getByRole('button', { name: 'A source-owned caption', exact: true });
+  await expect(button.locator('svg[aria-hidden=true][focusable=false]')).toHaveCount(1);
+  await button.focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.iconCalls[0].action.intent)).toBe('conduit.intent/birth@1');
+  await element.evaluate(element => {
+    const original = globalThis.iconFixture;
+    element.show({ ...original, actions: [{ ...original.actions[0], name: 'Birth Body', intent: 'unknown/custom@1' }] });
+  });
+  const unknown = element.getByRole('button', { name: 'Birth Body', exact: true });
+  await expect(unknown).toBeVisible();
+  await expect(unknown.locator('svg')).toHaveCount(0);
+});
+
+// Browser text preferences and admitted minimum scale must compose. This is
+// renderer evidence; it does not substitute for owner acknowledgement.
+test('browser root text preference enlarges owner controls without a new Show', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.style.margin = '0';
+    const element = document.createElement('conduit-owner-face');
+    element.show(view, { invoke: async () => {} });
+    document.body.replaceChildren(element);
+    globalThis.retainedOwnerControl = element.shadowRoot.querySelector('button');
+  }, view);
+  const face = page.locator('conduit-owner-face');
+  const button = face.getByRole('button', { name: 'Complete task', exact: true });
+  const font = () => button.evaluate(node => parseFloat(getComputedStyle(node).fontSize));
+  await expect.poll(font).toBe(13);
+  await page.evaluate(() => document.documentElement.style.fontSize = '200%');
+  await expect.poll(font).toBe(26);
+  expect(await button.evaluate(node => node === globalThis.retainedOwnerControl)).toBe(true);
+  await expect(button).toHaveAccessibleName('Complete task');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await face.evaluate((node, view) => node.show({ ...view, component: {
+    maximum_columns: 1, reflow_width: 720, gutter: 12, subject_regions: [0], groups: [0],
+    expression: { expression: { identity: 'fixture/expression', density: 'compact',
+      palette: 'phosphor', typography: 'editorial', version: 2, text_scale_percent: 200 } },
+  } }, { invoke: async () => {} }), view);
+  await expect.poll(font).toBe(52);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
+  await button.focus();
+  await expect(button).toBeFocused();
+  expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  const capture = testInfo.outputPath('owner-root-text-forced.png');
+  await page.screenshot({ path: capture, fullPage: true });
+  await testInfo.attach('owner-root-text-forced', { path: capture, contentType: 'image/png' });
+});
+
+// Canonical bytes are shared with Rust contract proof. This is renderer proof;
+// the fixture callback is not an owner acknowledgement or Body execution.
+test('complete selected Look tokens override palette hints without changing action meaning', async ({ page }, info) => {
+  const wire = Buffer.from((await readFile('proof/conformance/face-look/phosphor-look-v2.hex','utf8')).replace(/\s/gu,''),'hex');
+  const configured = { ...view, component: {
+    maximum_columns:1,reflow_width:720,gutter:12,subject_regions:[0],groups:[0],fallback:null,
+    selected_look:{canonical_value:Array.from(wire)},
+    expression:{expression:{identity:'conduit.look/phosphor@1',density:'compact',palette:'editorial',typography:'editorial',version:2,text_scale_percent:100}},
+  }};
+  await page.setViewportSize({width:900,height:700});
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view=>{
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();globalThis.calls=[];
+    const element=document.createElement('conduit-owner-face');document.body.append(element);
+    element.show(view,{invoke:async call=>globalThis.calls.push(call)});
+  },configured);
+  const element=page.locator('conduit-owner-face');
+  await expect(element).toHaveAttribute('data-component-look','conduit.look/phosphor@1');
+  await expect(element.locator('.owner-face-document')).toHaveCSS('background-color','rgb(5, 7, 11)');
+  const button=element.getByRole('button',{name:'Complete task'});
+  await expect(button).toHaveCSS('background-color','rgb(9, 13, 22)');
+  await expect(button).toHaveCSS('font-size','16px');
+  await button.focus();
+  // Change one admitted token, retaining identity, typography and all Face data.
+  const altered=Buffer.from(wire),background=altered.lastIndexOf(Buffer.from('background'));
+  const red=altered.indexOf(Buffer.from('red'),background)+3;
+  expect(altered[red]).toBe(0);expect(altered.readUInt32LE(red+1)).toBe(1);
+  altered[red+5]=0x30;
+  const bodySize=altered.lastIndexOf(Buffer.from('type_body_px'))+'type_body_px'.length;
+  expect(altered[bodySize]).toBe(0);expect(altered.readUInt32LE(bodySize+1)).toBe(2);
+  altered.writeUInt16LE(20,bodySize+5);
+  configured.component.selected_look.canonical_value=Array.from(altered);
+  await element.evaluate((element,view)=>element.show(view,{invoke:async call=>globalThis.calls.push(call)}),configured);
+  await expect(element.locator('.owner-face-document')).toHaveCSS('background-color','rgb(48, 7, 11)');
+  await expect(button).toHaveCSS('font-size','20px');
+  await page.setViewportSize({width:390,height:900});
+  await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'});
+  configured.component.expression.expression.text_scale_percent=200;
+  await element.evaluate((element,view)=>element.show(view,{invoke:async call=>globalThis.calls.push(call)}),configured);
+  await expect(button).toHaveCSS('font-size','40px');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await expect(button).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(()=>globalThis.calls)).toEqual([{view:configured,action:view.actions[0],arguments:[]}]);
+  // A generic view clears every selected-Look token instead of retaining styling
+  // from the preceding checked component.
+  await element.evaluate((element,view)=>element.show(view,{invoke:async()=>{}}),view);
+  await expect(element).not.toHaveAttribute('data-component-look');
+  expect(await element.evaluate(node=>[...node.style].filter(key=>key.startsWith('--look-')))).toEqual([]);
+});
+
+for (const palette of ['editorial', 'phosphor']) {
+  test(`forced colors replace admitted ${palette} palette tokens`, async ({ page }) => {
+    await page.emulateMedia({ forcedColors: 'active' });
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const tokens = await page.evaluate(async ({ view, palette }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      const element = document.createElement('conduit-owner-face');
+      document.body.replaceChildren(element);
+      const current = structuredClone(view);
+      current.component = { maximum_columns: 1, reflow_width: 720, gutter: 12,
+        subject_regions: current.subjects.map(() => null), groups: [],
+        expression: { expression: { identity: 'fixture/forced-look', version: 2,
+          density: 'compact', palette, typography: 'engineering', text_scale_percent: 100 } } };
+      element.show(current, { invoke: async () => {} });
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const style = getComputedStyle(element);
+      return Object.fromEntries(['paper', 'card', 'ink', 'muted', 'line', 'accent', 'control', 'focus']
+        .map(key => [key, style.getPropertyValue(`--face-${key}`).trim()]));
+    }, { view, palette });
+    expect(tokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText',
+      muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
+  });
+}

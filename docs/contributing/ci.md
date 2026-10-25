@@ -103,7 +103,7 @@ Chromium, one worker and zero retries.
 
 Descriptive JSON measurement receipts in the owned performance receipt directories are syntax-checked in preflight. They do not broaden mixed runtime changes to the entire workspace; runtime fixtures and unknown data paths remain conservative. Receipts never stand in for executing the required checks.
 
-Unit and admission jobs retain Rust compiler caches even after a failed check, so a test correction can reuse compiled dependencies. Cargo still validates its dependency fingerprints and every required check runs again. These are build caches, not accepted test results or release evidence; target proof caches retain their existing failure policy.
+Unit, admission and target jobs retain Rust compiler caches even after a failed check, so a test correction can reuse compiled dependencies. Cargo still validates its dependency fingerprints and every required check runs again. Target caches include only compiler directories; product receipts and emulator proof outputs are regenerated. These are build caches, not accepted test results or release evidence.
 
 ## Chromium proof batching (October 20, 2026 experiment)
 

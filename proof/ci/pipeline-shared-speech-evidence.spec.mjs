@@ -47,6 +47,19 @@ test('stages every retained byte and distinguishes producer from staged source',
   assert.ok(html.includes('.speech-proof audio { display: block; width: 100%; }'));
   for (const text of ['audio controls', 'NoAdmittedAcousticBack', 'publication.json', 'No physical-device', 'human listening', commit]) assert.ok(html.includes(text));
 });
+test('producer command retains either supported option order and refuses unrelated arguments', t => {
+  const root = fixture(t);
+  const output = JSON.parse(readFileSync(path.join(root, SHARED_SPEECH_EVIDENCE_ROOT, 'manifest.json'))).command.match(/--output (\S+)/)[1];
+  const prefix = 'cargo +stable xtask prove journey native-speech ';
+  for (const arguments_ of [`--output ${output}`, `--output ${output} --shared-carrier-only`, `--shared-carrier-only --output ${output}`]) {
+    change(root, 'manifest.json', data => JSON.stringify({ ...JSON.parse(data), command: prefix + arguments_ }));
+    assert.ok(verifySharedSpeechEvidence(root));
+  }
+  for (const command of [prefix + '--output /tmp/run --unknown', 'cargo test', prefix + '--shared-carrier-only']) {
+    change(root, 'manifest.json', data => JSON.stringify({ ...JSON.parse(data), command }));
+    assert.throws(() => verifySharedSpeechEvidence(root), /producer command/);
+  }
+});
 test('absent optional evidence is allowed; partial evidence is rejected', t => {
   const root = mkdtempSync(path.join(tmpdir(), 'speech-absent-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
