@@ -19,15 +19,15 @@ const defaultMetadata = endpoint => {
 };
 
 export async function restoreTrainArtifacts({ manifest, observation, acquisition, directory,
-  metadata = defaultMetadata, targets = TARGETS }) {
-  const verified = verifyTrainRun(manifest, observation);
+  metadata = defaultMetadata, targets = TARGETS, validate = verifyTrainRun }) {
+  const verified = validate(manifest, observation);
   const initial = observation.run;
   if (!positive(initial.run_attempt) || !positive(initial.repository?.id)
       || !positive(initial.head_repository?.id)) fail('Missing run attempt or repository IDs');
   const base = `repos/${verified.repository}`;
   const refresh = async () => {
     const run = await metadata(`${base}/actions/runs/${initial.id}`);
-    verifyTrainRun(manifest, { ...observation, run });
+    validate(manifest, { ...observation, run });
     if (run.run_attempt !== initial.run_attempt || run.repository?.id !== initial.repository.id
         || run.head_repository?.id !== initial.head_repository.id || run.id !== initial.id) fail('Run attempt changed');
   };
@@ -97,7 +97,7 @@ export async function restoreTrainArtifacts({ manifest, observation, acquisition
     const stat = await lstat(filename);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 2 * 1024 * 1024) fail('Invalid producer custody file');
     verifyProductCustody(JSON.parse(await readFile(filename, 'utf8')), {
-      source: verified.source, tree: verified.tree, target: target.id, run: initial,
+      source: verified.source, tree: verified.tree, target: target.id, run: initial, manifestDigest: manifest.digest,
     });
   }
   await refresh();

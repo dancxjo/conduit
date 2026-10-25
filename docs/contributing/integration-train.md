@@ -2,8 +2,9 @@
 
 This is the development implementation of the integration train. Assembly and
 capture change no GitHub refs; dispatch creates a guarded train ref and requests
-proof. Landing updates development to an already proven exact source. Publication
-adoption and a real end-to-end train acceptance remain pending.
+proof. Landing updates development to an already proven exact source. Development
+and publication can adopt that source's original proof/products. A real
+end-to-end train acceptance remains pending.
 
 Assemble explicitly selected ready PRs in a new local worktree:
 
@@ -35,6 +36,12 @@ inspect that ref/run before operator recovery rather than automatically sending
 another workflow request. A transport error preserves the ref as evidence.
 The command reports a known reused run ID or an acknowledged dispatch with no
 run ID yet; neither result claims that proof completed.
+
+The dispatch carries the bounded manifest as a separate workflow input. Before
+expensive proof, the guard independently reconstructs live admission and the
+selected merge tree, retains the manifest as an Actions artifact, and supplies
+its digest to every target producer. A source-only manual request cannot enter
+the train route without this manifest.
 
 From a clean checkout of the proposed combined source, capture explicitly
 selected PRs through the supported pipeline entrance:
@@ -147,3 +154,22 @@ does not authenticate a caller-provided product bundle. Landing requires the
 archive authentication, producer custody and live checks above; local receipt
 hashes alone cannot authorize it. Full train acceptance and publication reuse
 remain distinct from fixture tests of these adapters.
+
+After landing, the dev Integration job looks for the latest manual train proof
+of its exact source. It authenticates the original manifest archive, reconstructs
+the source tree, verifies successful exhaustive proof/Candidate aggregation and
+checks accepted development ancestry. With valid adoption it skips a duplicate
+exhaustive build. With no manual train it runs the ordinary complete proof. A
+failed, malformed or stale train refuses; it cannot silently become a green
+adoption or fall back over a known failed proof.
+
+Publication still requires a successful dev push Integration. Its supported
+entrance is `cargo xtask ci pipeline publish DEV_INTEGRATION_RUN_ID`. The
+publisher independently acquires and safely restores the selected run's exact
+archives before promoting anything: original manual train products for adopted
+sources, or actual dev products otherwise. Local bundles cannot substitute for
+those archives. Producer source/tree/workflow/run/attempt/digest, tool acquisition,
+environment and command custody are checked again. No build/test is run in this
+handoff. Release manifests keep original proof and development acceptance
+identities distinct; the accepted main tree must still equal the proven tree.
+Pages composition uses the authenticated bundle returned by publication.

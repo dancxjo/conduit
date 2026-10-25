@@ -15,7 +15,7 @@ const tree = 'd'.repeat(40);
 const repository = 'example/conduit';
 const targets = [{ id: 'hosted-linux', proofClass: 'executable' }];
 
-async function fixture(t, repositoryName = null) {
+async function fixture(t, repositoryName = null, adoptionStager = null) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'pipeline-publish-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const directory = path.join(root, 'bundle');
@@ -118,7 +118,7 @@ async function fixture(t, repositoryName = null) {
     return response(args.includes('--slurp') ? [result] : result);
   };
   const output = path.join(root, 'output');
-  const publish = createPublisher({ command, targets, output, repositoryName });
+  const publish = createPublisher({ command, targets, output, repositoryName, adoptionStager });
   return { state, directory, product, output, storage, publish: () => publish('123', directory) };
 }
 
@@ -144,7 +144,7 @@ test('promotes a release PR and publishes verified artifacts with separate sourc
   assert.equal(manifest.testedSourceSha, source);
   assert.equal(manifest.acceptedMainSha, accepted);
   assert.equal(manifest.targets[0].proofClass, 'executable');
-  assert.equal(await readFile(f.output, 'utf8'), `main-sha=${accepted}\nsource-sha=${source}\nsite-current=true\n`);
+  assert.equal(await readFile(f.output, 'utf8'), `bundle=${f.directory}\nmain-sha=${accepted}\nsource-sha=${source}\nsite-current=true\n`);
   assert.ok(!f.state.calls.some(call => call.includes('--clobber') || call.includes('cargo')));
   assert.ok(!f.state.calls.some(call => call.includes('PATCH') && call[2].includes('git/refs')));
 });
@@ -311,4 +311,23 @@ test('resuming a historical draft preserves the newer latest release', async t =
   assert.match(await readFile(f.output, 'utf8'), /site-current=false\n$/);
   assert.equal(f.state.latestTag, 'release-newer-tested-source');
   assert.equal(f.state.assets.length, 2);
+});
+
+test('publication requires its own authenticated staging before any stable mutation', async t => {
+  const f = await fixture(t, null, async () => { throw new Error('archive custody failed'); });
+  await assert.rejects(f.publish(), /archive custody failed/);
+  assert.equal(mutations(f.state).length, 0);
+});
+
+test('publisher uses the authenticated bundle and retains original train/acceptance identities', async t => {
+  let staged;
+  const f = await fixture(t, null, async () => staged);
+  staged = { adopted: true, bundle: f.directory, proofRunId: 77, runAttempt: 2,
+    acceptanceRunId: 123, acceptanceRunAttempt: 1, manifestDigest: 'e'.repeat(64) };
+  await f.publish();
+  const manifest = JSON.parse(await readFile(path.join(f.storage, 'manifest.json'), 'utf8'));
+  assert.deepEqual(manifest.adoptedProof, { runId: 77, runAttempt: 2,
+    acceptanceRunId: 123, acceptanceRunAttempt: 1, manifestDigest: 'e'.repeat(64) });
+  assert.match(await readFile(f.output, 'utf8'), new RegExp('bundle='));
+  assert.ok(!f.state.calls.some(call => call.includes('cargo')));
 });

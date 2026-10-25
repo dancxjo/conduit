@@ -13,8 +13,8 @@ const fail = message => { throw new Error(message); };
 const positive = value => Number.isSafeInteger(value) && value > 0;
 
 export async function acquireTrainArtifacts({ manifest, observation, directory,
-  command = boundedCommand, targets = TARGETS }) {
-  const verified = verifyTrainRun(manifest, observation);
+  command = boundedCommand, targets = TARGETS, validate = verifyTrainRun }) {
+  const verified = validate(manifest, observation);
   const initial = observation.run;
   if (!positive(initial.run_attempt) || !positive(initial.repository?.id)
       || !positive(initial.head_repository?.id)) fail('Missing run attempt or repository identity');
@@ -26,7 +26,7 @@ export async function acquireTrainArtifacts({ manifest, observation, directory,
   };
   const refresh = async () => {
     const run = await api(`${base}/actions/runs/${verified.integrationRun}`);
-    verifyTrainRun(manifest, { ...observation, run });
+    validate(manifest, { ...observation, run });
     if (run.id !== initial.id || run.run_attempt !== initial.run_attempt
         || run.repository?.id !== initial.repository.id
         || run.head_repository?.id !== initial.head_repository.id) fail('Integration run attempt changed');

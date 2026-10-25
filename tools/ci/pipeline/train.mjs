@@ -66,11 +66,10 @@ export function verifyTrainManifest(manifest) {
 
 // Snapshots must come from the live repository API. Git verifies actual object
 // identity and ancestry; a claimed list of parent hashes is never sufficient.
-export function captureTrain({ repository, base, selections, source, directory = process.cwd() }) {
-  const selection = selectTrainInputs({ repository, base, selections });
+function selectedSourceTree({ base, inputs, source, directory }) {
   require(sha(source), 'Invalid candidate source');
   const git = args => execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-  for (const commit of [base, ...selection.inputs.map(p => p.head), source]) {
+  for (const commit of [base, ...inputs.map(p => p.head), source]) {
     require(git(['rev-parse', '--verify', `${commit}^{commit}`]) === commit, 'Train requires exact commit objects');
     git(['merge-base', '--is-ancestor', commit, source]);
   }
@@ -80,7 +79,7 @@ export function captureTrain({ repository, base, selections, source, directory =
   // their identity is deliberately unrelated to the source receipt identity.
   let combined = base;
   let tree = git(['rev-parse', `${base}^{tree}`]);
-  for (const input of selection.inputs) {
+  for (const input of inputs) {
     tree = git(['merge-tree', '--write-tree', '--no-messages', combined, input.head]);
     require(sha(tree), 'Train selection has an unresolved merge');
     combined = execFileSync('git', ['-C', directory, 'commit-tree', tree,
@@ -93,6 +92,18 @@ export function captureTrain({ repository, base, selections, source, directory =
   }
   require(git(['rev-parse', `${source}^{tree}`]) === tree,
     'Train source tree differs from the selected PR merge tree');
+  return tree;
+}
+
+export function verifyCapturedTrainSource(manifest, directory = process.cwd()) {
+  const value = verifyTrainManifest(manifest);
+  require(selectedSourceTree({ ...value, directory }) === value.tree, 'Captured train tree mismatch');
+  return value;
+}
+
+export function captureTrain({ repository, base, selections, source, directory = process.cwd() }) {
+  const selection = selectTrainInputs({ repository, base, selections });
+  const tree = selectedSourceTree({ ...selection, source, directory });
   const value = { schema: SCHEMA, ...selection,
     source, tree };
   return { ...value, digest: digest(value) };
@@ -111,11 +122,32 @@ export function verifyTrainRun(manifest, { development, selections, run }) {
     const snapshot = selections.find(s => s.pr.number === input.number);
     requireReady(input, snapshot.pr, snapshot.candidateRun, value.repository, value.base);
   }
+  requireManualProof(value, run);
+  return { ...value, integrationRun: run.id };
+}
+
+function requireManualProof(value, run) {
   require(run?.repository?.full_name === value.repository && run.head_repository?.full_name === value.repository &&
     run.path === '.github/workflows/integration.yml' && run.event === 'workflow_dispatch' &&
     run.head_branch === value.branch && run.head_sha === value.source &&
     run.status === 'completed' && run.conclusion === 'success' && Number.isSafeInteger(run.id) && run.id > 0,
   'Train requires successful exhaustive Integration on its exact source branch');
+}
+
+// Post-landing publication has a different admission boundary: selected PRs may
+// already be merged. Its actual successful dev push must accept the same exact
+// source; discovery separately verifies current dev ancestry and authenticates
+// the original train manifest from the manual proof's Actions artifact.
+export function verifyAcceptedTrainRun(manifest, { run, acceptance }, directory = process.cwd()) {
+  const value = verifyCapturedTrainSource(manifest, directory);
+  require(acceptance?.repository?.full_name === value.repository &&
+    acceptance.head_repository?.full_name === value.repository &&
+    acceptance.event === 'push' && acceptance.head_branch === 'dev' &&
+    acceptance.path === '.github/workflows/integration.yml' && acceptance.head_sha === value.source &&
+    acceptance.status === 'completed' && acceptance.conclusion === 'success' &&
+    Number.isSafeInteger(acceptance.id) && acceptance.id > 0,
+  'Train publication requires successful exact-source development acceptance');
+  requireManualProof(value, run);
   return { ...value, integrationRun: run.id };
 }
 

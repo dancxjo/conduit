@@ -39,6 +39,65 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'compiler-cache-proof': {
+      if (args.length !== 3) throw new Error('usage: compiler-cache-proof <snapshot-manifest> <pinned-engine> <rustc>');
+      const specs = readdirSync('proof/ci').filter(name => name.startsWith('compiler-cache') && name.endsWith('.spec.mjs'));
+      const result = spawnSync('node', ['--test', ...specs.map(name => `proof/ci/${name}`)], {
+        stdio: 'inherit', env: { ...process.env,
+          CONDUIT_CARGO_CACHE_SNAPSHOT: resolve(args[0]), CONDUIT_CACHE_PROOF_ENGINE: resolve(args[1]),
+          CONDUIT_CACHE_PROOF_RUSTC: resolve(args[2]) },
+      });
+      if (result.error || result.status !== 0) throw new Error('Compiler cache proof failed');
+      break;
+    }
+    case 'compiler-cache-engine': {
+      if (args.length !== 1) throw new Error('usage: compiler-cache-engine <new-engine-directory>');
+      const { acquirePinnedEngine } = await import('../compiler-cache/runtime.mjs');
+      output('compiler-cache-engine', await acquirePinnedEngine(resolve(args[0])));
+      break;
+    }
+    case 'compiler-cache-prepare': {
+      if (args.length !== 4) throw new Error('usage: compiler-cache-prepare <pinned-engine> <rust-toolchain-root> <new-snapshot> <new-manifest>');
+      const { prepareCargoCache } = await import('../compiler-cache/command.mjs');
+      const manifest = await prepareCargoCache(...args.map(value => resolve(value)));
+      output('compiler-cache-source', manifest.sourceCommit);
+      output('compiler-cache-snapshot', manifest.sha256);
+      break;
+    }
+    case 'compiler-cache-build': {
+      if (args.length !== 3) throw new Error('usage: compiler-cache-build <snapshot-manifest> <cache-directory> <new-task-directory>');
+      const { buildCargoCache } = await import('../compiler-cache/command.mjs');
+      const receipt = await buildCargoCache(...args.map(value => resolve(value)));
+      output('compiler-cache-namespace', receipt.namespace);
+      output('compiler-cache-validated-ms', String(receipt.validatedWallMs));
+      break;
+    }
+    case 'compiler-cache-clear': {
+      if (args.length !== 3) throw new Error('usage: compiler-cache-clear <cache-directory> <expected-namespace> <new-receipt>');
+      const { clearCargoCache } = await import('../compiler-cache/command.mjs');
+      const receipt = await clearCargoCache(resolve(args[0]), args[1], resolve(args[2]));
+      output('compiler-cache-cleared-bytes', String(receipt.allocatedBytes));
+      break;
+    }
+    case 'train-adoption': {
+      if (args.length !== 1) throw new Error('usage: train-adoption <dev-integration-run-id>');
+      if (!/^[1-9][0-9]*$/.test(args[0]) || !/^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPOSITORY ?? '')) throw new Error('Invalid Actions run/repository');
+      const repository = process.env.GITHUB_REPOSITORY;
+      const pushRun = JSON.parse(run('gh', ['api', `repos/${repository}/actions/runs/${args[0]}`], true));
+      assertSourceCheckout(pushRun.head_sha);
+      const { discoverTrainAdoption } = await import('./train-adoption.mjs');
+      const adoption = await discoverTrainAdoption({ pushRun, repository });
+      output('adopted', String(adoption !== null));
+      output('proof-run', String(adoption?.integrationRun ?? pushRun.id));
+      break;
+    }
+    case 'train-admit': {
+      if (args.length !== 1) throw new Error('usage: train-admit <manifest-file>');
+      const { createTrainCommands } = await import('./train-command.mjs');
+      const manifest = await createTrainCommands().prepareDispatch(resolve(args[0]));
+      output('train-manifest-digest', manifest.digest);
+      break;
+    }
     case 'train-land': {
       if (args.length !== 4) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory>');
       const { createTrainLander } = await import('./train-land.mjs');
@@ -184,7 +243,9 @@ try {
       // remain reproducible from that source on every candidate.
       run('python3', ['architecture/core/definitions/generate.py', '--check']);
       run('cargo', ['xtask', 'ci', 'standalone-locks', '--locked']);
-      const specs = readdirSync('proof/ci').filter(name => name.startsWith('pipeline-') && name.endsWith('.spec.mjs')).map(name => `proof/ci/${name}`);
+      const specs = readdirSync('proof/ci').filter(name =>
+        (name.startsWith('pipeline-') || name.startsWith('compiler-cache')) && name.endsWith('.spec.mjs'))
+        .map(name => `proof/ci/${name}`);
       run('node', ['--test', ...specs]);
       // Syntax validation is required in CI, not a silently optional dependency.
       run(resolve('target/ci-tools/actionlint'), []);
@@ -225,8 +286,8 @@ try {
       break;
     case 'publish': {
       const { publish } = await import('./publish.mjs');
-      if (args.length !== 2) throw new Error('usage: publish <integration-run-id> <bundle-directory>');
-      await publish(args[0], resolve(args[1]));
+      if (args.length < 1 || args.length > 2) throw new Error('usage: publish <integration-run-id> [legacy-bundle-directory]');
+      await publish(args[0], resolve(args[1] ?? 'target/bundle'));
       break;
     }
     default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');

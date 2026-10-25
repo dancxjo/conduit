@@ -48,7 +48,7 @@ export function createTrainDispatcher({ command = spawnSync, directory = process
     // The workflow checks this expected source before scheduling expensive CI.
     // On a transport failure the retained ref is an ambiguous intent, not a retry token.
     api(`${base}/actions/workflows/integration.yml/dispatches`, {
-      ref: manifest.branch, inputs: { 'train-source': manifest.source },
+      ref: manifest.branch, inputs: { 'train-source': manifest.source, 'train-manifest': JSON.stringify(manifest) },
     });
     return { source: manifest.source, branch: manifest.branch, runId: null,
       reused: false, dispatched: true, manifestDigest: manifest.digest };
