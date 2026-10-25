@@ -110,6 +110,17 @@ pub(crate) fn planned(
     .unwrap()
     .advertisement()
     .clone();
+    planned_on_host(host)
+}
+
+pub(crate) fn planned_on_host(
+    host: HostAdvertisement,
+) -> (
+    HostAdvertisement,
+    BodyPlan,
+    BodyPlayIdentity,
+    conduit_body::Wake,
+) {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     install_creche_catalogs(&mut startup, &mut profile).unwrap();

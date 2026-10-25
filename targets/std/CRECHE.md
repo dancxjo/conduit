@@ -5,6 +5,16 @@ Host does not advertise it. `StdHost::new_with_creche_encounter` installs its
 offer with one explicit encounter resource, without granting build, source,
 toolchain, network or device authority.
 
+`attach_creche_encounter` adds that exact offer and slot to a retained idle Host.
+It stages validation and a replacement idle resource ledger before committing,
+advances the offer generation once, and preserves Host/Boot identity, unrelated
+offers, initialized Base custody, selected equipment and execution cursors.
+Active reservations, collisions, malformed slots and generation exhaustion
+refuse without changing the Host. Previously selected Plans must be replanned.
+The Body owner must additionally reject an outstanding proposal or Play before
+requesting this transition; ledger idleness alone is not Body lifecycle truth.
+The transition neither births a Body nor replaces its Host.
+
 `run_body_plan_with_creche_to_with_start` attaches a `HostedCrecheAdapter` to one
 exact sealed Body Plan. It prepares the adapter with actual Host/Boot/generation,
 producing Plot/Plan, prospective Body Play, resource and finite limits. The
@@ -41,4 +51,5 @@ installed Back through the generic kernel Host Call, and acknowledges its typed
 Fore output. Fixture adapters cover refusal, custody corruption, missing owner,
 start refusal, operator stop and failed drain. These tests do not establish a
 native interactive product, actual image manufacture, deployment, boot or join.
-The concrete product adapter and supported product entrance remain to be wired.
+The supported native product entrance still needs the durable Owner start/stop
+composition and actual admitted make/save grants.

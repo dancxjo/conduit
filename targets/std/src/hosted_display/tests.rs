@@ -256,6 +256,21 @@ fn actual_initialized_lifetime_admits_atomically_and_retracts_only_own_offers() 
         )
         .unwrap();
     assert!(second.ready_native_display().is_some());
+    let entry = second.ready_native_display().unwrap().entry().clone();
+    let prior_generation = second.advertisement.offer_generation.0;
+    second
+        .attach_creche_encounter(conduit_core::resource_offer(
+            "diagnostic/creche-slot",
+            conduit_body_make::deployment_runtime_catalog::CRECHE_RESOURCE,
+            1,
+        ))
+        .unwrap();
+    assert_eq!(
+        second.advertisement.offer_generation.0,
+        prior_generation + 1
+    );
+    assert_eq!(second.ready_native_display().unwrap().entry(), &entry);
+    assert!(replacement.initialized_display().unwrap().is_live());
 }
 
 fn plan_arithmetic(host: &StdHost) -> conduit_core::Plan {

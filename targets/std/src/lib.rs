@@ -28,6 +28,7 @@ mod composition_test_offers;
 pub mod confined_gear;
 mod copy_task;
 mod creche_host;
+pub use creche_host::CrecheAttachmentRefusal;
 mod deadline_reactor;
 #[cfg(feature = "local-model-proof")]
 pub mod distributed_house_plan;

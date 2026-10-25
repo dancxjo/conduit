@@ -3,6 +3,12 @@ use crate::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_body_make::deployment_runtime_catalog::{creche_std_offer, CRECHE_RESOURCE};
 use conduit_core::ResourceOffer;
 
+mod attachment;
+pub use attachment::CrecheAttachmentRefusal;
+
+#[cfg(test)]
+mod tests;
+
 impl StdHost {
     /// Construct a Host image containing Crèche support and one explicitly
     /// supplied encounter slot. This grants no source, toolchain or device
