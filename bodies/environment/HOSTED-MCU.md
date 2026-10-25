@@ -19,7 +19,10 @@ cargo xtask prove environment member-image /absolute/private/environment-owner/o
 
 The member ELF is `target/environment-esp32/xtensa-esp32-none-elf/release/conduit-esp32-tm1637-probe`.
 Flash that image using the existing ESP32 hardware workflow. The public key is
-provisioning data; `owner-secret.bin` stays on Linux. This member image embeds
+provisioning data; `owner-secret.bin` stays on Linux. The build checks an explicit
+Conduit runtime package allowlist, retains the local indexed task planner, and
+refuses linked Source parsing/checking/expansion. Source authoring remains on
+the build host. This member image embeds
 checked software, not a future Host/Boot, selected Plan or Body authority.
 
 After a fresh MCU Boot, with UART permission, run:
@@ -61,9 +64,10 @@ After flashing and a fresh Boot, use the same `host-owned` command. The image
 retains the display computations and Fahrenheit/RH Look beside the running
 native sampler. Authenticated control replies include `display_fit` telemetry
 with explicit `physical_write: false` and `mask_play_installed: false`.
-This is a fit checkpoint, not an enabled physical display: the measured free
-Root memory remains below the existing output-kernel preparation gate. See
-[the combined target measurements](make/TARGET_CHECKPOINT.md#combined-esp32-display-preparation-checkpoint).
+This is a fit checkpoint, not an enabled physical display. After selector and
+Source compaction, measured free Root memory narrowly exceeds the existing
+output-kernel preparation gate; combined admission and physical output remain
+unproved. See [the target measurements](make/TARGET_CHECKPOINT.md#further-compaction-with-the-resident-task-planner).
 
 The focused CPU construction/output proof, including exact offer equivalence,
 stale-scope refusal, packet equivalence and allocation-free execution, enters

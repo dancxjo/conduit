@@ -1,11 +1,11 @@
 #![no_std]
 //! Shared kernel Backs for the environmental Source composition.
 extern crate alloc;
-#[cfg(feature = "body-image")]
-pub mod body_image;
 #[cfg(feature = "appliance")]
 pub mod appliance;
 pub mod assigned;
+#[cfg(feature = "body-image")]
+pub mod body_image;
 mod canonical_input;
 mod canonical_storage;
 #[cfg(feature = "construction")]
@@ -22,13 +22,13 @@ pub mod publication_face_custody;
 #[cfg(feature = "face-projection")]
 pub mod retained_publication_face;
 use alloc::{boxed::Box, string::String};
+use conduit_computation::{PreparedExpressionBack, StructuredSelectorBack};
 use conduit_core::{PortTemporal, StructuredSelector};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId,
 };
 use conduit_plot::PortableExpressionProgram;
-use conduit_semantic_catalog::{PreparedExpressionBack, StructuredSelectorBack};
 
 /// The ordinary production Backs retain their lifecycle and commit ownership.
 /// Targets service their exact admitted Host Calls; this is no scheduler.
@@ -106,11 +106,7 @@ impl<const P: usize> StepBack<P> for CaptureBack {
 /// Prepared pure selection invoked by the selector Back's existing Host Call.
 /// The output envelope is reserved before Play; unmatched drops return None.
 pub struct PreparedCaptureSelector {
-    selector: StructuredSelector,
-    validator: conduit_core::PreparedStructuredValueValidator,
-    input_type: alloc::vec::Vec<u8>,
-    output_type: alloc::vec::Vec<u8>,
-    output: alloc::vec::Vec<u8>,
+    selector: conduit_core::PreparedCanonicalStructuredSelector,
 }
 impl PreparedCaptureSelector {
     pub fn prepare(
@@ -119,37 +115,18 @@ impl PreparedCaptureSelector {
         maximum_output_bytes: usize,
     ) -> Result<Self, conduit_core::StructuredInfoRefusal> {
         Ok(Self {
-            validator: conduit_core::PreparedStructuredValueValidator::new(
-                selector.input_type(),
+            selector: conduit_core::PreparedCanonicalStructuredSelector::prepare(
+                &selector,
                 maximum_input_bytes,
+                maximum_output_bytes,
             )?,
-            input_type: selector.input_type().canonical_bytes()?,
-            output_type: selector.output_type().canonical_bytes()?,
-            selector,
-            output: alloc::vec::Vec::with_capacity(maximum_output_bytes),
         })
     }
     pub fn select(
         &mut self,
         input: &[u8],
     ) -> Result<Option<&[u8]>, conduit_core::StructuredSelectorRefusal> {
-        use conduit_core::{
-            StructuredCanonicalSelection as S, StructuredSelectorRefusal as R,
-            UnmatchedVariantDisposition as D,
-        };
-        self.validator
-            .validate(input)
-            .map_err(|_| R::MalformedCheckedValue)?;
-        match self.selector.select_canonical_into(
-            input,
-            &self.input_type,
-            &self.output_type,
-            &mut self.output,
-        )? {
-            S::Matched => Ok(Some(&self.output)),
-            S::Unmatched(D::Drop) => Ok(None),
-            S::Unmatched(D::Refuse) => Err(R::UnmatchedVariant),
-        }
+        self.selector.select(input)
     }
 }
 

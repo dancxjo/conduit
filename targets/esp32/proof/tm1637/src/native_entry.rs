@@ -30,7 +30,7 @@ async fn main(spawner: Spawner) {
             .expect("initialized monotonic timer slot");
         let display = crate::native_display::NativeDisplay::prepare(p.GPIO18, p.GPIO19, &boot)
             .expect("initialized Root display provider");
-        let source = crate::native_source::load();
+        let source = crate::native_source::identity();
         crate::native_root::NativeRoot::prepare(
             sensor,
             radio,
@@ -49,7 +49,8 @@ async fn main(spawner: Spawner) {
     root.prepare_network_plan()
         .expect("current initialized Root advertisement");
     #[cfg(feature = "target-memory-check")]
-    root.measure_local_sampler().expect("target sampler measurement");
+    root.measure_local_sampler()
+        .expect("target sampler measurement");
     let uart = Uart::new(p.UART0, UartConfig::default())
         .expect("Root UART0 must initialize")
         .with_rx(p.GPIO3)

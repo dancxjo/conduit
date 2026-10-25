@@ -1,4 +1,7 @@
 //! Pinned ESP32 firmware construction; no flash or installed Body claim.
+#[path = "environment_packaging.rs"]
+mod packaging;
+
 use std::{
     error::Error,
     path::{Path, PathBuf},
@@ -35,6 +38,14 @@ fn build_with_owner(
     if let Some(current) = std::env::var_os("PATH") {
         paths.extend(std::env::split_paths(&current));
     }
+    let selected_profile = profile.unwrap_or(if body {
+        "body-image-root"
+    } else {
+        "native-face-root"
+    });
+    if native {
+        packaging::check_packages(&package, channel, selected_profile)?;
+    }
     let mut command = Command::new("cargo");
     command
         .current_dir(&package)
@@ -48,14 +59,7 @@ fn build_with_owner(
         .env("CARGO_TARGET_XTENSA_ESP32_NONE_ELF_LINKER", &linker)
         .env("CARGO_TARGET_DIR", root.join("target/environment-esp32"));
     if native {
-        command.args([
-            "--features",
-            profile.unwrap_or(if body {
-                "body-image-root"
-            } else {
-                "native-face-root"
-            }),
-        ]);
+        command.args(["--features", selected_profile]);
     }
     if let Some(key) = key {
         command.env(
@@ -69,7 +73,20 @@ fn build_with_owner(
         // not change the allocator partition or the admitted CPU stack floor.
         command.args(["--", "-C", "llvm-args=-switch-to-lookup=false"]);
     }
-    super::execute(&mut command)
+    super::execute(&mut command)?;
+    if native {
+        let symbols = linker.with_file_name(format!(
+            "xtensa-esp32-elf-nm{}",
+            std::env::consts::EXE_SUFFIX
+        ));
+        packaging::check_linked(
+            &symbols,
+            &root.join(
+                "target/environment-esp32/xtensa-esp32-none-elf/release/conduit-esp32-tm1637-probe",
+            ),
+        )?;
+    }
+    Ok(())
 }
 
 fn linker(channel: &str) -> Result<PathBuf, Box<dyn Error>> {

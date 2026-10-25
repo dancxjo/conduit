@@ -423,7 +423,7 @@ pub(super) fn initialize_portable(
         let program =
             conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).map_err(init)?;
         (
-            conduit_semantic_catalog::pure_expression_contract(&program, temporal).map_err(init)?,
+            conduit_computation::pure_expression_contract(&program, temporal).map_err(init)?,
             ApplianceBack::Native(CaptureBack::expression(&program, temporal).map_err(init)?),
         )
     } else if let Some(c::ConfigurationValue::Text(encoded)) = gear
@@ -433,7 +433,7 @@ pub(super) fn initialize_portable(
         .map(|c| &c.value)
     {
         let value = c::StructuredSelector::from_canonical_hex(encoded).map_err(init)?;
-        let kind = conduit_semantic_catalog::structured_selector_contract(&value, temporal);
+        let kind = conduit_computation::structured_selector_contract(&value, temporal);
         selector = Some(
             PreparedCaptureSelector::prepare(value, BYTES as usize, BYTES as usize)
                 .map_err(init)?,

@@ -76,8 +76,8 @@ continued with unchanged combined usage across three consecutive samples. The
 combined image leaves 41,900 stack bytes above the unchanged 36,864-byte floor.
 Its application occupies 2,491,008 of 4,128,768 flash partition bytes.
 
-**Complete native display execution still does not fit the current preparation
-profile.** Root has 10,408 bytes free, while the existing two-frame output-kernel
+**Before the further compaction below, complete native display execution did
+not fit this preparation profile.** Root had 10,408 bytes free, while the existing two-frame output-kernel
 preparation gate requires another 23,660 bytes. This gate includes fixed value
 and sign stores, scheduler, record scratch and 8 KiB control headroom. It is a
 13,252-byte shortfall against that gate, not an irreducible lower bound. Native
@@ -86,7 +86,7 @@ physical acknowledgement remain separate work. No GPIO write or installed Mask
 Play is claimed by this checkpoint. Further work must reduce those retained
 stores/preparation overlap or explicitly change the admitted host profile.
 
-The live private run is
+The earlier private run was
 `~/.local/share/conduit/environment-host-20261025/runs/e9ce8c7e-6fa8-4bff-b4d2-2eed819a0dd7/`;
 Body `3fccfc35072b9899fde3d05e871791ac469c173ddc59fd5eabab532d30ab8101`,
 MCU Boot `boot/383f610e573e4e0eaf5dd4e466a5bf87`.
@@ -100,6 +100,65 @@ The gate telemetry is attended instrumentation, not signed memory attestation.
 The actual publications retain independently verified signed Root evidence.
 Both this image and the separate `display-ready-root` output profile compile
 with the pinned ESP32 toolchain. Neither compilation claims combined output.
+
+## Further compaction with the resident task planner
+
+The next image keeps fresh current-offer planning on the MCU. Its network task
+uses the existing indexed Make-checked Source directly instead of reconstructing
+an owned expansion. CPU equivalence checks compare the resulting ordinary Plan
+and lowering, including missing authority, wrong Source and unavailable-provider
+refusals. Source parsing/checking/expansion disappear from the linked image;
+the indexed task planner remains. This does not yet move sampler planning or
+Body ownership from the attended Linux host onto the MCU.
+
+Prepared selectors now retain canonical input/output Type bytes and their exact
+operation instead of decoded Type trees and validator trees. They still admit
+the same preparation limits, fully validate canonical inputs, preserve nominal
+Types and unmatched/drop/refusal behavior, and allocate nothing during selection.
+The catalogue's exact computational contracts and kernel Backs were extracted
+without behavior changes into `conduit-computation`; existing catalogue public
+paths re-export them. The member no longer depends on the broad domain catalogue.
+
+| Same combined preparation profile | Earlier | Compacted |
+| --- | ---: | ---: |
+| CPU retained output software | 14,337 | 9,084 |
+| CPU output preparation peak | 69,169 | 68,593 |
+| ESP32 initialized Root | 80,972 | 67,040 |
+| ESP32 sampler/Face/output-software/Mask Root | 108,360 | 94,428 |
+| Root free before output assignment | 10,408 | 24,340 |
+| Additional output-kernel preparation gate | 23,660 | 23,660 |
+| Application flash bytes | 2,491,008 | 2,450,512 |
+| Conduit packages in normal runtime dependency graph | 35 | 25 |
+
+Root and SDK capacities remain 118,768 and 73,728 bytes. SDK steady usage
+remains 33,408 bytes. The output-kernel gate now narrowly fits this measured
+headroom, by 680 bytes. This is **not combined output execution**: assignment
+staging, independent Mask admission, native binding, finite continued output and
+physical acknowledgement still need proof. It does not justify borrowing the
+isolated SDK reservation or reducing the unchanged stack floor.
+
+`cargo xtask prove environment member-image` checks the reviewed Conduit runtime
+package allowlist before construction and the linked symbols afterwards. It
+refuses broad-catalogue growth, removal of the local indexed planner, and linked
+Source parsing/checking/expansion. Build-host Source generation remains separate;
+this packaging guard grants no runtime authority.
+
+The compacted ELF is external at
+`~/.cache/conduit/esp32-trimmed-member-20261025.elf`, SHA-256
+`5cc6b090abc9899afb503f0c225f499b98a42e609b9d03424173ac6f27944f64`.
+Its application image SHA-256 is
+`0ee20c043c72a9265fc8f19ae71e87ff73994483ff9db770c78ebf221f64f88d`.
+Three consecutive physical DHT11 publications passed current-Boot signature,
+Type, sequence and freshness verification with unchanged 94,428-byte Root use.
+The retained run is
+`~/.local/share/conduit/environment-host-20261025/runs/ccfe953e-82ab-4b95-b725-bd781a8acd4f/`.
+Immutable external prefixes under `~/.cache/conduit/`:
+
+- `trimmed-member-native-control.ndjson`: SHA-256 `9a1a945144c448130b225027749c00fc0d10a35ee45eb129b51f7037390d123c`.
+- `trimmed-member-native-observations.ndjson`: SHA-256 `edda51b31f16ec0ba0937a14a6ac97952e3c313b6440d5bd32ba55b3fdff41a5`.
+
+The boot/preparation/sample memory figures remain attended instrumentation,
+not signed memory attestations. Signed publication custody is verified separately.
 
 ## Pico W comparative owned-preparation gate
 

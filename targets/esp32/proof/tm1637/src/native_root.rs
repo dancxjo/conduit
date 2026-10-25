@@ -78,7 +78,7 @@ impl NativeRoot {
         sensor: Esp32PulseCapture<'static>,
         radio: crate::network::Radio,
         boot: &crate::boot::ObservedBoot,
-        network_source: conduit_plot::ExpandedCanonicalPlot,
+        network_source: c::PlotIdentity,
         sdk_reservation: crate::sdk_memory::NativeSdkReservation,
         wait: conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>,
         display: alloc::boxed::Box<crate::native_display::NativeDisplay>,
@@ -132,15 +132,9 @@ impl NativeRoot {
         }
         let owner_control = crate::native_owner_control::OwnerControl::new(owner_key::PUBLIC_KEY)
             .expect("installed owner public key must be valid and non-weak");
-        // Only the exact meaning identity survives construction. Network
-        // planning later reloads the independently checked linked Source during
-        // its admitted preparation workspace, never in the sensor Play.
-        let network_source_identity = c::PlotIdentity {
-            source_document_id: network_source.source_document_id.clone(),
-            checked_plot_id: network_source.checked_plot_id.clone(),
-            expanded_plot_id: network_source.expanded_plot_id.clone(),
-        };
-        drop(network_source);
+        // Meaning is pinned by trusted Make material; local planning borrows
+        // its index and reconstructs one checked Gear at a time when needed.
+        let network_source_identity = network_source;
         Self {
             #[cfg(feature = "body-image-root")]
             body: None,
@@ -392,7 +386,7 @@ impl NativeRoot {
         };
         let source = crate::native_source::load();
         self.network_preparation = Some(
-            crate::network_planning::PreparedNetworkSetup::from_checked_for_identity(
+            crate::network_planning::PreparedNetworkSetup::from_indexed_for_identity(
                 &self.network_source,
                 &source,
                 &host,

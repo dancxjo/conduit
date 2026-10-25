@@ -23,7 +23,7 @@ serde = { version = "1", default-features = false, features = ["derive"], option
 conduit-time = { path = "../../../../semantics/time", default-features = false, optional = true }
 conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait", optional = true }
 conduit-kernel = { path = "../../../../architecture/kernel", optional = true }
-conduit-planner = { path = "../../../../architecture/planner", optional = true }
+conduit-planner = { path = "../../../../architecture/planner", features = ["indexed-source"], optional = true }
 conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", optional = true }
 conduit-plot = { path = "../../../../architecture/plot", features = ["flat-image"], optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }

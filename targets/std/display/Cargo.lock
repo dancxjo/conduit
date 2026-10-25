@@ -189,6 +189,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-computation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-conduitos-mask-offer"
 version = "0.1.0"
 dependencies = [
@@ -384,6 +393,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-alife",
  "conduit-audio",
+ "conduit-computation",
  "conduit-core",
  "conduit-data",
  "conduit-education",

@@ -60,6 +60,44 @@ impl PreparedNetworkSetup {
         }
         Self::from_checked(source, host, bases, authority)
     }
+    /// Plan fresh bindings from the exact linked, Make-checked task image.
+    /// This retains the ordinary planner and all current-offer checks while
+    /// avoiding reconstruction/validation of a complete authoring expansion.
+    pub fn from_indexed_for_identity(
+        expected: &c::PlotIdentity,
+        source: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+        host: &c::HostAdvertisement,
+        bases: &[c::BaseImplementationId],
+        authority: &[c::AuthorityGrant],
+    ) -> Result<Self, NetworkPlanningRefusal> {
+        use NetworkPlanningRefusal as E;
+        let metadata = source.metadata().map_err(|_| E::SourceIdentity)?;
+        if &metadata.identity() != expected {
+            return Err(E::SourceIdentity);
+        }
+        drop(metadata);
+        let hosts = core::slice::from_ref(host);
+        let placements = conduit_planner::indexed_source::default_placements(source, hosts)
+            .map_err(E::Placement)?;
+        let plan = conduit_planner::indexed_source::plan_with_connection_limits(
+            source,
+            hosts,
+            &placements,
+            bases,
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
+                authority_grants: authority,
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &BTreeMap::new(),
+        )
+        .map_err(E::Planning)?;
+        Self::from_plan(plan, host)
+    }
     pub fn from_checked(
         source: &conduit_plot::ExpandedCanonicalPlot,
         host: &c::HostAdvertisement,
@@ -86,6 +124,13 @@ impl PreparedNetworkSetup {
             },
         )
         .map_err(E::Planning)?;
+        Self::from_plan(plan, host)
+    }
+    fn from_plan(
+        plan: c::Plan,
+        host: &c::HostAdvertisement,
+    ) -> Result<Self, NetworkPlanningRefusal> {
+        use NetworkPlanningRefusal as E;
         let [fragment] = plan.fragments.as_slice() else {
             return Err(E::ForeignOrMultipleFragments);
         };

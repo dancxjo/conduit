@@ -186,6 +186,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-computation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
@@ -264,6 +273,7 @@ name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-computation",
  "conduit-core",
  "conduit-environment-face",
  "conduit-face",
@@ -272,7 +282,6 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
- "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
@@ -529,12 +538,12 @@ version = "0.1.0"
 dependencies = [
  "conduit-alife",
  "conduit-audio",
+ "conduit-computation",
  "conduit-core",
  "conduit-data",
  "conduit-education",
  "conduit-face",
  "conduit-human",
- "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
