@@ -14,8 +14,22 @@ boot, offers, resources, lines, plans, and plays are current realization truth
 and are not continuity payload. Reboot replaces boot truth and clears stale
 plan/resource/line/authority bindings. Replacement machinery joins through a
 fresh admitted part claim. After the last claim is destroyed, Conduit promises
-neither recovery nor make of the same identity. `SOUL` names only this
+neither recovery nor reconstruction of the same identity. `SOUL` names only this
 bounded continuity material and protocol.
+
+## Fulfillment is explicit, not inferred
+
+The generic Body lifecycle already includes a terminal `Fulfilled` state.
+An attributed `Fulfill` transition is admitted only while the Body is
+`Lulled`, with its own authority grant, exact Sign, and settled-obligation
+evidence. It prohibits later Wake or ordinary workload mutation, without
+deleting the retained biography.
+
+Optional finite purpose and its evidence-derived readiness are separate from
+this administrative operation. An authored Plot's normal semantic completion
+does not automatically trigger Fulfillment. Concrete runtimes must also prove
+their own cleanup and persistence settlement before claiming end-to-end
+Fulfillment. See [purpose and fulfillment](body-purpose-and-fulfillment.md).
 
 ## Atomic workload replacement
 
@@ -57,7 +71,7 @@ WebUSB consume these semantics; opening a product never requests permission.
 
 ## Administration and fault disposition
 
-Birth, join/leave, plot revision, wake/lull, resource acquisition/release,
+Birth, join/leave, plot revision, wake/lull, explicit fulfillment, resource acquisition/release,
 authority change, inspection, and surviving-part recovery are exact bounded
 administrative intents. Mutation checks authority at the trusted boundary;
 reachability and membership are not authority. CLI and Patchbay/Creche are

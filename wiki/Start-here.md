@@ -22,10 +22,10 @@ read the refusal and correct the source before trying again.
 
 ## 3. Look inside your running example
 
-Choose **Open in Patchbay**, then select the clock from the resident plot list.
+Choose **Open in Patchbay**, then select the ticker from the resident plot list.
 The diagram comes from the actual plot in your body.
 
-Follow the cord from the clock's output to the display's input. Select a gear,
+Follow the cord from the ticker's clock gear to the display gear. Select a gear,
 port, or cord to inspect its facts. Port labels tell you what kind of information
 can cross that connection. You can also use Tab and Enter to select subjects.
 
@@ -35,7 +35,7 @@ identities; you do not need to memorize them to use the example.
 
 ## 4. Stop, return, and continue
 
-Choose **Return to example** to see the clock again. **Lull** stops its current
+Choose **Return to example** to see the ticker again. **Lull** stops its current
 execution; **Wake** starts another run.
 
 Reload the Handbook. In the same browser storage, your local body and installed
