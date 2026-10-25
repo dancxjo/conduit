@@ -7,7 +7,8 @@ use conduitos::{native_face_mask::NativeFaceMask, product_bases::NativeSurfacePr
 
 /// Retain exclusive scanout custody after checking its exact live Host attachment.
 /// This prepares a Mask; the Body still must issue its checked Play before any
-/// Face can be presented. The caller supplies its actual build record identity.
+/// Face can be presented. The caller supplies verified code provenance (an exact installed executable
+/// identity or target build identity), distinct from child-image Make selection.
 #[allow(clippy::type_complexity)]
 pub fn prepare_linux_creche_output<'display, 'surface>(
     host: &StdHost,

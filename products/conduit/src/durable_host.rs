@@ -144,7 +144,9 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
                 installation.host_id, installation.release_bundle_sha256
             );
         }),
-        HostServiceCommand::Run { state_dir } => run(&state_dir),
+        HostServiceCommand::Run { state_dir, creche } => {
+            service_run::run(&state_dir, creche.as_deref())
+        }
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
         HostServiceCommand::OwnBody {
             evidence,
@@ -419,43 +421,10 @@ use runtime_preparation::{prepare_runtime_with_scans, prepare_runtime_with_todo}
 #[path = "durable_host/startup_trace.rs"]
 mod startup_trace;
 
-fn run(state_dir: &Path) -> Result<(), String> {
-    use startup_trace::Phase;
-    let trace = startup_trace::Trace::from_environment();
-    let _ownership = trace.run(Phase::ServiceLock, || owner_lock::acquire(state_dir))?;
-    let _body_ownership = trace.run(Phase::BodyLock, || owner_lock::body(state_dir))?;
-    trace.run(Phase::Recovery, || owner::recover_retained_state(state_dir))?;
-    let owns_body = trace.run(Phase::OwnershipSelection, || {
-        read_installation(&state_dir.join("installation.json"))
-            .map(|installation| installation.body_state.is_some())
-    })?;
-    // Routed admission enters through authenticated local control while the
-    // service owns this lock. No second process may edit its Body biography.
-    let (status, mut truth) = runtime_preparation::prepare_traced_runtime(state_dir, &trace)?;
-    let runtime = state_dir.join("runtime.json");
-    if owns_body {
-        truth = match trace.run(Phase::OwnedBody, || truth.with_owned_body(state_dir)) {
-            Ok(truth) => truth,
-            Err(error) => {
-                let _ = fs::remove_file(&runtime);
-                return Err(error);
-            }
-        };
-    }
-    trace.prepared();
-    println!(
-        "durable host {} boot {} is running",
-        status.host_id, status.boot_id
-    );
-    let outcome = crate::durable_host_control::serve(state_dir, truth);
-    match fs::remove_file(&runtime) {
-        Ok(()) => outcome,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => outcome,
-        Err(error) => Err(format!(
-            "durable host stopped but its runtime marker could not be retired: {error}"
-        )),
-    }
-}
+#[cfg(all(feature = "native-creche-sdl", target_os = "linux"))]
+pub(crate) mod native_creche;
+#[path = "durable_host/service_run.rs"]
+mod service_run;
 
 #[cfg(test)]
 fn start_runtime(state_dir: &Path) -> Result<RuntimeStatus, String> {

@@ -9,6 +9,8 @@ mod creche_attachment;
 mod creche_planning;
 #[path = "creche_worker.rs"]
 mod creche_worker;
+#[cfg(all(test, feature = "native-creche-sdl", target_os = "linux"))]
+pub(crate) use creche_worker::tests::fixture_with_source as published_creche_fixture;
 #[path = "creche_workset.rs"]
 mod creche_workset;
 #[path = "participants/invited.rs"]

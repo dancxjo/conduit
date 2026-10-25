@@ -51,7 +51,7 @@ fn fixture(
         fail_retirement,
     )
 }
-pub(in crate::durable_host::owner::controller) fn fixture_with_source(
+pub(crate) fn fixture_with_source(
     source: &str,
     fail_retirement: bool,
 ) -> (
@@ -203,6 +203,7 @@ fn panic_is_latched_without_inventing_host_restoration() {
         thread::yield_now();
     }
     let mut worker = CrecheWorker {
+        outcome_returned: Arc::new(AtomicBool::new(false)),
         control: RunControl::default(),
         started,
         acknowledge: None,
@@ -273,6 +274,7 @@ fn exact_selected_outcome_endpoint_preserves_unrelated_fore_custody() {
     let context = prepared.get().unwrap();
     let counted = Arc::new(AtomicUsize::new(0));
     let mut output = OneOutcome {
+        returned: Arc::new(AtomicBool::new(false)),
         prepared: prepared.clone(),
         delivery: None,
         other_fore: Box::new(CountingFore(counted.clone())),
@@ -292,6 +294,7 @@ fn exact_selected_outcome_endpoint_preserves_unrelated_fore_custody() {
     output.deliver(&unrelated).unwrap();
     assert_eq!(counted.load(Ordering::SeqCst), 1);
     assert!(output.delivery.is_none());
+    assert!(!output.returned.load(AtomicOrdering::Acquire));
     let selected = ExternalForeDelivery::new(
         context.output.clone(),
         conduit_core::ConnectionTrack::Payload,
@@ -301,6 +304,7 @@ fn exact_selected_outcome_endpoint_preserves_unrelated_fore_custody() {
     );
     output.deliver(&selected).unwrap();
     assert_eq!(output.delivery.as_ref(), Some(&selected));
+    assert!(output.returned.load(AtomicOrdering::Acquire));
     assert!(output.deliver(&selected).is_err());
     assert_eq!(counted.load(Ordering::SeqCst), 1);
     std::fs::remove_dir_all(root).unwrap();
@@ -323,5 +327,96 @@ fn pre_worker_refusal_returns_adapter_and_other_fore_custody() {
     adapter.cancel_and_drain().unwrap();
     assert_eq!(retired.load(Ordering::SeqCst), 1);
     drop(refusal.other_fore);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn existing_body_runs_original_plot_and_retains_unrendered_creche_poll_refusal() {
+    const ORIGINAL: &str =
+        "plot greeting {\n show: face/text(\"Message\")\n \"Retained greeting.\" >> show\n}.";
+    let (mut owner, root, adapter, _, _) = fixture_with_source(ORIGINAL, false);
+    owner.lull().unwrap();
+    owner.persist(&root).unwrap();
+    std::fs::write(root.join("body/source.conduit"), ORIGINAL).unwrap();
+    let before = owner.session.evidence().clone();
+    let host = owner.host.advertisement().clone();
+    owner
+        .admit_shipped_creche(&root, before.body.workload_revision)
+        .unwrap();
+    owner.plan_creche_workset(&root).unwrap();
+    let mut worker = owner
+        .start_creche_run(&root, 30_000, adapter, Box::new(OtherFore))
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(40);
+    let mut observed = false;
+    loop {
+        assert!(Instant::now() < deadline);
+        if worker
+            .progress(&mut owner, &root, |context, issued| {
+                assert_eq!(context.play(), issued);
+                assert_eq!(context.plan().plots.len(), 2);
+                observed = true;
+                Ok(())
+            })
+            .unwrap()
+        {
+            break;
+        }
+        thread::sleep(Duration::from_millis(1));
+    }
+    assert!(observed);
+    assert_eq!(owner.session.evidence().body_id, before.body_id);
+    assert_eq!(owner.session.evidence().membership, before.membership);
+    assert_eq!(owner.session.evidence().body.workset.len(), 2);
+    assert_eq!(owner.host.advertisement(), &host);
+    assert!(!owner.host.is_playing());
+    let receipt = owner.last_execution.as_ref().unwrap();
+    assert!(receipt["play"].is_object());
+    assert_eq!(
+        receipt["failure"],
+        "Crèche admitted poll bound exhausted; drain required"
+    );
+    assert!(receipt["cleanup_failure"].is_null(), "{receipt}");
+    assert!(receipt["output_utf8"]
+        .as_str()
+        .unwrap()
+        .contains("Retained greeting."));
+    assert!(worker.take_completion().is_some());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn admitted_source_build_lifetime_can_exceed_short_service_window_and_still_drains() {
+    let (mut owner, root, adapter, _, retired) = fixture(false);
+    let mut worker = owner
+        .start_creche_run(&root, 1_800_000, adapter, Box::new(OtherFore))
+        .unwrap();
+    let (bound, errors) = finish(&mut worker, &mut owner, &root, true);
+    assert_eq!(bound, 1);
+    assert_eq!(errors, ["fixture native binding failed"]);
+    assert!(retired.load(Ordering::SeqCst) > 0);
+    assert!(!owner.host.is_playing());
+    assert!(worker.take_completion().is_some());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn excessive_creche_lifetime_refuses_before_taking_host_or_adapter_custody() {
+    let (mut owner, root, adapter, _, retired) = fixture(false);
+    let before = owner.truth();
+    let refusal = owner
+        .start_creche_run(
+            &root,
+            MAXIMUM_CRECHE_RUN_MILLIS + 1,
+            adapter,
+            Box::new(OtherFore),
+        )
+        .err()
+        .expect("an excessive explicit lifetime must refuse");
+    assert!(refusal.reason.contains("duration"));
+    assert_eq!(owner.truth(), before);
+    assert_eq!(retired.load(Ordering::SeqCst), 0);
+    let (_, mut adapter, _) = refusal.into_parts();
+    adapter.cancel_and_drain().unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }

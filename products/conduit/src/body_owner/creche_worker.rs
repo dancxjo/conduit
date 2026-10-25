@@ -11,6 +11,7 @@ use conduit_std_host::{
 use std::{
     path::Path,
     sync::{
+        atomic::{AtomicBool, Ordering as AtomicOrdering},
         mpsc::{self, Receiver, SyncSender, TryRecvError},
         Arc, OnceLock,
     },
@@ -22,6 +23,9 @@ mod preparation;
 use preparation::{ObservedAdapter, Prepared};
 
 const STACK_BYTES: usize = 4 * 1024 * 1024;
+// Source manufacture may exceed the short service-action window. The caller
+// admits this finite lifetime and cancellation still drains actual effects.
+const MAXIMUM_CRECHE_RUN_MILLIS: u64 = 86_400_000;
 type Started = (Arc<Prepared>, BodyPlayIdentity, Wake);
 type Outcome = (
     StdHost,
@@ -34,14 +38,20 @@ type Outcome = (
 /// Kernel acknowledgment and cleanup remain separate facts in the run report.
 /// Absence of a delivery is preserved on refusal/cancellation, never synthesized.
 pub(crate) struct CrecheCompletion {
+    outcome_acknowledged: bool,
     pub(crate) adapter: CrecheEncounterAdapter,
     pub(crate) delivery: Option<ExternalForeDelivery>,
     pub(crate) other_fore: Box<dyn BodyForeOutputAdapter + Send>,
 }
 impl CrecheCompletion {
+    /// Actual report history records this delivery only after kernel ACK.
+    #[allow(dead_code)]
+    pub(crate) fn outcome_acknowledged(&self) -> bool {
+        self.outcome_acknowledged
+    }
     /// Transfer retained custody once to the native application's completion
     /// owner. Adapter acceptance does not replace the retained terminal report.
-    #[allow(dead_code)] // Consumed by the pending native application composition.
+    #[allow(dead_code)] // Consumed by the native-creche-sdl foreground mode.
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -62,7 +72,7 @@ pub(crate) struct CrecheStartRefusal {
 impl CrecheStartRefusal {
     /// Recover both effect owners so the application can service native
     /// retirement before explicitly draining adapter custody after refusal.
-    #[allow(dead_code)] // Consumed by the pending native application composition.
+    #[allow(dead_code)] // Consumed by the native-creche-sdl foreground mode.
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -82,6 +92,7 @@ impl std::fmt::Debug for CrecheStartRefusal {
 }
 #[must_use = "retain the worker and pump native retirement until actual completion"]
 pub(crate) struct CrecheWorker {
+    outcome_returned: Arc<AtomicBool>,
     control: RunControl,
     started: Receiver<Started>,
     acknowledge: Option<SyncSender<Result<(), String>>>,
@@ -93,7 +104,7 @@ pub(crate) struct CrecheWorker {
 impl Owner {
     /// The caller first admits the workset and proposes its complete ordinary
     /// Body Plan. This entrance never replaces the Body, workset or local Host.
-    #[allow(dead_code)] // Native application composition is the next consumer.
+    #[allow(dead_code)] // Used by the native-creche-sdl foreground mode.
     pub(crate) fn start_creche_run(
         &mut self,
         root: &Path,
@@ -102,8 +113,8 @@ impl Owner {
         other_fore: Box<dyn BodyForeOutputAdapter + Send>,
     ) -> Result<CrecheWorker, Box<CrecheStartRefusal>> {
         let admitted = (|| -> Result<_, String> {
-            if !(1..=super::continuing::MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
-                return Err("Crèche run duration must be 1..900000 milliseconds".into());
+            if !(1..=MAXIMUM_CRECHE_RUN_MILLIS).contains(&maximum_millis) {
+                return Err("Crèche run duration must be 1..86400000 milliseconds".into());
             }
             if self.host.is_playing() {
                 return Err("Body Play already owns the Host".into());
@@ -134,6 +145,8 @@ impl Owner {
         };
         let control = RunControl::default();
         let worker_control = control.clone();
+        let outcome_returned = Arc::new(AtomicBool::new(false));
+        let worker_outcome_returned = outcome_returned.clone();
         let (started_tx, started) = mpsc::sync_channel(1);
         let (acknowledge, ack_rx) = mpsc::sync_channel(1);
         let thread = thread::Builder::new()
@@ -146,6 +159,7 @@ impl Owner {
                 let mut fore = OneOutcome {
                     prepared: prepared.clone(),
                     delivery: None,
+                    returned: worker_outcome_returned,
                     other_fore,
                 };
                 let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
@@ -202,11 +216,17 @@ impl Owner {
                     let _ = finished.send(());
                     result
                 });
+                let outcome_acknowledged = result.as_ref().ok().is_some_and(|report| {
+                    fore.delivery
+                        .as_ref()
+                        .is_some_and(|delivery| report.fore_deliveries.contains(delivery))
+                });
                 (
                     host,
                     result,
                     output.0,
                     CrecheCompletion {
+                        outcome_acknowledged,
                         adapter: adapter.into_inner(),
                         delivery: fore.delivery,
                         other_fore: fore.other_fore,
@@ -215,6 +235,7 @@ impl Owner {
             })
             .expect("failure to launch the only Body Play worker stops the owner service");
         Ok(CrecheWorker {
+            outcome_returned,
             control,
             started,
             acknowledge: Some(acknowledge),
@@ -236,6 +257,15 @@ impl Drop for CrecheWorker {
     }
 }
 impl CrecheWorker {
+    /// Adapter acceptance only; kernel ACK is checked independently in completion.
+    #[allow(dead_code)]
+    pub(crate) fn outcome_returned(&self) -> bool {
+        self.outcome_returned.load(AtomicOrdering::Acquire)
+    }
+    #[cfg(feature = "native-creche-sdl")]
+    pub(crate) fn requires_owner_restart(&self) -> bool {
+        self.terminal_error.is_some()
+    }
     /// Only a real started event can invoke `bind_native`. Retain lifecycle
     /// evidence before that callback and ACK; preparation alone never calls it.
     /// On error keep this worker and service retirement; no join is attempted
@@ -324,6 +354,7 @@ impl CrecheWorker {
     }
 }
 struct OneOutcome {
+    returned: Arc<AtomicBool>,
     prepared: Arc<OnceLock<Arc<Prepared>>>,
     delivery: Option<ExternalForeDelivery>,
     other_fore: Box<dyn BodyForeOutputAdapter + Send>,
@@ -348,6 +379,7 @@ impl BodyForeOutputAdapter for OneOutcome {
             return Err("Crèche emitted an unexpected or duplicate typed outcome".into());
         }
         self.delivery = Some(output.clone());
+        self.returned.store(true, AtomicOrdering::Release);
         Ok(())
     }
 }

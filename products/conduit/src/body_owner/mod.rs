@@ -1,8 +1,12 @@
 //! Foreground owner of one installed Linux Host's retained Body.
 mod controller;
+#[cfg(all(test, feature = "native-creche-sdl", target_os = "linux"))]
+pub(crate) use controller::published_creche_fixture;
 #[cfg(test)]
 pub(crate) use controller::published_todo_test_fixture;
 mod image;
+#[cfg(feature = "native-creche-sdl")]
+pub(crate) use image::verified_native_image;
 mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;

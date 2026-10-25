@@ -1,4 +1,7 @@
 //! Authenticated local control plane into the durable installed host owner.
+#[cfg(all(feature = "native-creche-sdl", target_os = "linux"))]
+#[path = "durable_host_control/native_creche.rs"]
+mod native_creche;
 
 use conduit_body::{
     BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt,

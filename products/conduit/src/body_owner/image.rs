@@ -12,13 +12,28 @@ pub(super) fn verify(root: &Path) -> Result<(), String> {
     )
 }
 
+/// Exact executable content provenance for native Mask implementation artifacts.
+/// This is not the child target's canonical Make BuildId or a release receipt.
+#[cfg(feature = "native-creche-sdl")]
+pub(crate) fn verified_native_image(root: &Path) -> Result<String, String> {
+    let installation = read_installation(&root.join("installation.json"))?;
+    verified_image_identity(
+        Path::new("/proc/self/exe"),
+        Path::new(&installation.product_executable),
+    )
+}
+
 fn verify_images(running: &Path, installed: &Path) -> Result<(), String> {
+    verified_image_identity(running, installed).map(|_| ())
+}
+
+fn verified_image_identity(running: &Path, installed: &Path) -> Result<String, String> {
     let running = digest(&bounded_read(running, MAXIMUM_RELEASE_FILE_BYTES)?);
     let installed = digest(&bounded_read(installed, MAXIMUM_RELEASE_FILE_BYTES)?);
     if running != installed {
         return Err("running executable differs from the installed Host image; launch the installed product executable".into());
     }
-    Ok(())
+    Ok(format!("installed-executable:{running}"))
 }
 
 #[cfg(all(test, target_os = "linux"))]
@@ -35,6 +50,10 @@ mod tests {
         std::fs::write(&running, b"reviewed product image").unwrap();
         std::fs::copy(&running, &installed).unwrap();
         verify_images(&running, &installed).unwrap();
+        assert_eq!(
+            verified_image_identity(&running, &installed).unwrap(),
+            format!("installed-executable:{}", digest(b"reviewed product image"))
+        );
         std::fs::write(&installed, b"different product image").unwrap();
         assert!(verify_images(&running, &installed)
             .unwrap_err()

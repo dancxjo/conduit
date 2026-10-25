@@ -11,6 +11,10 @@ fn shipped() -> Result<ResidentPlot, String> {
     ))
 }
 impl Owner {
+    #[cfg(feature = "native-creche-sdl")]
+    pub(crate) fn workload_revision(&self) -> u64 {
+        self.session.evidence().body.workload_revision
+    }
     /// A repeated encounter reuses its member and Source; it never repeats birth
     /// or rewrites the primary Source, selected resident or membership.
     #[allow(dead_code)] // Native application composition supplies the owner lock.

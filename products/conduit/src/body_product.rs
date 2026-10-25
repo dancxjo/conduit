@@ -24,9 +24,12 @@ pub(crate) fn load(path: &Path) -> Result<CheckedBodyDescription, String> {
             path.display()
         ));
     }
-    let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
+    let source = read_source(path)?;
     let description = parse_body_description_conduit(&source)
         .map_err(|diagnostic| format!("Body description decode refused: {diagnostic:?}"))?;
+    if description.hosts.len() > conduit_body_make::MAXIMUM_BODY_HOSTS {
+        return Err("Body construction exceeds the finite Host bound".into());
+    }
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     let mut configurations = BTreeMap::<String, HostConfiguration>::new();
     for host in &description.hosts {
@@ -44,8 +47,7 @@ pub(crate) fn load(path: &Path) -> Result<CheckedBodyDescription, String> {
                 configuration_path.display()
             ));
         }
-        let configuration_source =
-            fs::read_to_string(&configuration_path).map_err(|error| error.to_string())?;
+        let configuration_source = read_source(&configuration_path)?;
         let configuration =
             parse_host_configuration_conduit(&configuration_source).map_err(|diagnostic| {
                 format!(
@@ -62,6 +64,24 @@ pub(crate) fn load(path: &Path) -> Result<CheckedBodyDescription, String> {
         &conduit_workspace_make::package_set(),
     )
     .map_err(|diagnostics| format!("Body description refused: {diagnostics:?}"))
+}
+
+fn read_source(path: &Path) -> Result<String, String> {
+    use std::io::Read;
+    const MAXIMUM_BYTES: u64 = 256 * 1024;
+    let file = fs::File::open(path).map_err(|e| e.to_string())?;
+    let metadata = file.metadata().map_err(|e| e.to_string())?;
+    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > MAXIMUM_BYTES {
+        return Err("Body/Host Source violates its finite file bound".into());
+    }
+    let mut bytes = Vec::new();
+    file.take(MAXIMUM_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| e.to_string())?;
+    if bytes.len() as u64 > MAXIMUM_BYTES {
+        return Err("Body/Host Source grew beyond its finite bound".into());
+    }
+    String::from_utf8(bytes).map_err(|e| e.to_string())
 }
 
 pub(crate) fn prepare(path: &Path) -> Result<BodyProduct, String> {
@@ -142,6 +162,23 @@ fn runtime(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn oversized_construction_source_refuses_before_parsing_or_host_preparation() {
+        let root = std::env::temp_dir().join(format!(
+            "body-source-bound-{}",
+            crate::birth_identity::fresh_uuid().unwrap()
+        ));
+        fs::create_dir(&root).unwrap();
+        let path = root.join("oversized.body.conduit");
+        fs::File::create(&path)
+            .unwrap()
+            .set_len(256 * 1024 + 1)
+            .unwrap();
+        assert!(load(&path).unwrap_err().contains("finite file bound"));
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn checked_body_drives_current_hosts_and_bounded_lines_without_fixture_identity() {

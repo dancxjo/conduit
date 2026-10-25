@@ -149,6 +149,12 @@ pub struct CrecheEncounterAdapter {
     retired: bool,
 }
 impl CrecheEncounterAdapter {
+    /// Actual adapter-held outcome, including cancellation without a delivered
+    /// Fore. Observation grants no kernel acknowledgment or successful Play.
+    pub fn retained_outcome(&self) -> Option<CrecheOutcome> {
+        self.outcome
+    }
+
     /// All catalogues, profiles, slots and evidence capacity are fixed here.
     /// Model projection/edit work remains bounded hosted preparation work; this
     /// adapter does not claim allocation-free Face/model implementation.
