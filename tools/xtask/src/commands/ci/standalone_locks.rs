@@ -13,8 +13,8 @@ const LOCKS: &[StandaloneLock] = &[
         lock: "targets/std/resource-snapshot/Cargo.lock",
     },
     StandaloneLock {
-        manifest: "targets/std/display/Cargo.toml",
-        lock: "targets/std/display/Cargo.lock",
+        manifest: "targets/linux/display/Cargo.toml",
+        lock: "targets/linux/display/Cargo.lock",
     },
     StandaloneLock {
         manifest: "targets/esp32/proof/tm1637/Cargo.toml",

@@ -12,6 +12,9 @@ call has no success return, so this proves completion of the selected SDL calls,
 not independently observed physical scanout. Loss is terminal for that preparation. The Linux Host still must bind actual display
 custody and an admitted present operation before offering this Back.
 
+The package remains a standalone workspace at `targets/linux/display`; the
+product’s `native-creche-sdl` feature uses this same scanout implementation.
+
 Run the CPU proof and strict lint through:
 
 ```sh

@@ -42,7 +42,7 @@ pub(super) fn run() -> Result<(), String> {
                 action,
                 "--locked",
                 "--manifest-path",
-                "targets/std/display/Cargo.toml",
+                "targets/linux/display/Cargo.toml",
                 "--all-targets",
             ])
             .env("LIBRARY_PATH", &search);
