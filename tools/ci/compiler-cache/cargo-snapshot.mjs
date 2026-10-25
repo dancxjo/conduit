@@ -1,8 +1,8 @@
 import { promises as fs, createReadStream } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { CacheRefusal } from './store.mjs';
-import { SCCACHE_ENGINE } from './runtime.mjs';
+import { CacheRefusal } from './refusal.mjs';
+import { SCCACHE_ENGINE } from './engine.mjs';
 
 const fail = code => { throw new CacheRefusal(code); };
 const EXPECTED_MANIFEST = '[package]\nname = "conduitos-compositor-core"\nversion = "0.1.0"\nedition = "2024"\npublish = false\n\n[lib]\npath = "src/lib.rs"\n';

@@ -3,9 +3,9 @@ import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { CacheRefusal } from './store.mjs';
+import { CacheRefusal } from './refusal.mjs';
 import { hashFile, snapshotInventory, assertSupportedPackage } from './cargo-snapshot.mjs';
-import { SCCACHE_ENGINE } from './runtime.mjs';
+import { SCCACHE_ENGINE } from './engine.mjs';
 
 const fail = code => { throw new CacheRefusal(code); };
 const sha = value => createHash('sha256').update(value).digest('hex');
