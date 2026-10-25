@@ -10,3 +10,6 @@ publish = false
 conduit-face = { path = "../../../semantics/face" }
 conduitos = { path = "../../conduitos", default-features = false }
 sdl2 = { version = "=0.38.0", default-features = false }
+
+[dev-dependencies]
+conduit-core = { path = "../../../architecture/core" }

@@ -281,6 +281,7 @@ dependencies = [
 name = "conduit-linux-display"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
  "conduit-face",
  "conduitos",
  "sdl2",

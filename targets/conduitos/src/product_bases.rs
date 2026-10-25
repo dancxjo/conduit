@@ -8,7 +8,9 @@ use conduit_core::{
     ResourcePoolId,
 };
 
-pub use crate::native_surface_provider::NativeSurfaceProvider;
+pub use crate::native_surface_provider::{
+    InitializedNativeOutput, NativeSurfaceProvider, SurfaceProviderError,
+};
 #[cfg(target_arch = "x86_64")]
 use crate::{arch::UsbDevice, identity, offer::HostOffer};
 

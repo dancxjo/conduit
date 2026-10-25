@@ -50,6 +50,10 @@ impl<'a> Scanout<'a> {
         }
         Ok(self.initialized.clone())
     }
+    /// Bind Host attachment custody to this exact live SDL preparation.
+    pub fn matches_initialized(&self, initialized: &InitializedDisplay) -> bool {
+        self.live && self.initialized.is_live() && self.initialized.same_instance(initialized)
+    }
     pub fn present(&mut self, scene: &GraphicsScene) -> Result<DisplayReceipt, String> {
         if !self.live || !self.initialized.is_live() {
             return Err("display-custody-lost".into());
@@ -89,6 +93,16 @@ impl<'a> Scanout<'a> {
         self.initialized.revoke();
         self.live = false;
         self.surface.lose();
+    }
+}
+
+impl conduitos::product_bases::InitializedNativeOutput for Scanout<'_> {
+    fn require_live(&self) -> Result<(), DisplayError> {
+        if self.live && self.initialized.is_live() {
+            Ok(())
+        } else {
+            Err(DisplayError::Lost)
+        }
     }
 }
 

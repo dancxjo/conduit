@@ -1,5 +1,25 @@
 use super::*;
 use conduit_face::{GraphicsCommand, GraphicsPaintRole, LayoutRect};
+fn show_entry() -> conduit_core::BaseProviderEntry {
+    use conduit_core::{BaseEnforcementClass, BaseLifecycle, BaseProviderEntry, ResourceOffer};
+    BaseProviderEntry {
+        base_id: "linux/test/display".into(),
+        provider_instance_id: "linux/test/display/1".into(),
+        provider_generation: 1,
+        implementation_id: "linux/test/sdl@1".into(),
+        mechanism_family: "linux/test/display@1".into(),
+        enforcement_class: BaseEnforcementClass::Cooperative,
+        lifecycle: BaseLifecycle::Ready,
+        capabilities: vec![],
+        resources: vec![ResourceOffer {
+            pool_id: "linux/test/display/surface".into(),
+            class_id: conduit_face::SHOW_RESOURCE_CLASS.into(),
+            capacity_units: 1,
+            compute: None,
+            content: None,
+        }],
+    }
+}
 fn scene() -> GraphicsScene {
     let bounds = LayoutRect {
         x: 0,
@@ -56,6 +76,8 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
     let mut scanout = Scanout::prepare(&mut canvas, &textures, 32, 24).unwrap();
     let initialized = scanout.initialized_display().unwrap();
     let retained = initialized.clone();
+    assert!(initialized.same_instance(&retained));
+    assert!(scanout.matches_initialized(&initialized));
     assert!(initialized.is_live());
     assert_eq!(initialized.backend(), "dummy");
     assert_eq!(initialized.renderer(), "software");
@@ -95,6 +117,22 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
         prior
     );
     assert_ne!(before_commit, scanout.surface.bytes());
+    // Possession validation must not commit the newly written marker. The
+    // exact Ready Show entry remains descriptive until an ordinary Mask Show.
+    let provider = conduitos::product_bases::NativeSurfaceProvider::from_initialized_output(
+        show_entry(),
+        [7; 32],
+        &mut scanout,
+    )
+    .unwrap();
+    assert_eq!(provider.entry, show_entry());
+    assert_eq!(
+        scanout
+            .canvas
+            .read_pixels(None, PixelFormatEnum::ARGB8888)
+            .unwrap(),
+        before_commit
+    );
     PixelTarget::commit_frame(&mut scanout).unwrap();
     let after_commit = scanout
         .canvas
@@ -112,6 +150,15 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
         Err(DisplayError::InvalidExtent)
     );
     assert!(!scanout.live);
+    assert!(!scanout.matches_initialized(&initialized));
+    assert!(
+        conduitos::product_bases::NativeSurfaceProvider::from_initialized_output(
+            show_entry(),
+            [7; 32],
+            &mut scanout,
+        )
+        .is_err()
+    );
     assert!(!initialized.is_live() && !retained.is_live());
     assert!(scanout.initialized_display().is_err());
     assert_eq!(
@@ -136,10 +183,22 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
     assert_eq!(fresh_token.window_id(), retained.window_id());
     assert_ne!(fresh_token.instance_nonce(), retained.instance_nonce());
     assert!(fresh_token.is_live());
+    assert!(!fresh_token.same_instance(&retained));
+    assert!(!fresh.matches_initialized(&retained));
+    assert!(fresh.matches_initialized(&fresh_token));
     assert!(!retained.is_live());
     let fresh_claim = fresh_token.claim_host().unwrap();
     drop(fresh_claim);
     assert!(!fresh_token.is_live());
+    assert!(!fresh.matches_initialized(&fresh_token));
+    assert!(
+        conduitos::product_bases::NativeSurfaceProvider::from_initialized_output(
+            show_entry(),
+            [7; 32],
+            &mut fresh,
+        )
+        .is_err()
+    );
     assert_eq!(fresh.write_pixel(0, 0, 1), Err(DisplayError::Lost));
     assert_eq!(fresh.commit_frame(), Err(DisplayError::Lost));
     assert!(fresh.initialized_display().is_err());

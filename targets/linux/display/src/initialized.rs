@@ -90,6 +90,10 @@ impl InitializedDisplay {
             }),
         })
     }
+    /// Exact preparation identity; equal metadata does not establish custody.
+    pub fn same_instance(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.lease, &other.lease)
+    }
     pub fn backend(&self) -> &str {
         self.lease.backend
     }
