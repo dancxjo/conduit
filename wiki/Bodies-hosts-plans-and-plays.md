@@ -38,7 +38,7 @@ as fulfillment of an entire Body's purpose. Birth, wake, lull, plan replacement,
 completion, fulfillment, and any future final retirement deserve their own
 distinct meaning and evidence.
 
-See [Body purpose and fulfillment](../docs/architecture/body-purpose-and-fulfillment.md)
+See [Body purpose and fulfillment](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/body-purpose-and-fulfillment.md)
 for the implemented readiness rules and their limits.
 
 ## A body can outlive a host
