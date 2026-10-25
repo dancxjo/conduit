@@ -2,6 +2,11 @@ name: Measure tool acquisition
 on:
   workflow_dispatch:
     inputs:
+      validate-hosted-product:
+        description: Run the real private Linux compiler-cache product recipe on Ubuntu instead of acquisition pairs
+        type: boolean
+        default: false
+        required: false
       targets:
         description: 'all, or comma-separated pipeline target IDs (also preflight,unit)'
         type: string
@@ -17,6 +22,7 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
 jobs:
   select:
+    if: ${{ !inputs.validate-hosted-product }}
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
@@ -44,3 +50,50 @@ jobs:
       target: ${{ matrix.id }}
       runner: ${{ matrix.runner }}
       source_sha: ${{ github.sha }}
+
+  hosted-product:
+    if: inputs.validate-hosted-product
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Acquire actual hosted tools
+        run: node tools/ci/pipeline/cli.mjs setup hosted-linux
+      - name: Prepare private source-bound compiler inputs
+        id: hosted-cache
+        run: |
+          cargo fetch --locked
+          private_root="$(mktemp -d "$RUNNER_TEMP/conduit-hosted.XXXXXX")"
+          node tools/ci/pipeline/cli.mjs compiler-cache-engine "$private_root/engine"
+          node tools/ci/pipeline/cli.mjs compiler-cache-hosted-prepare \
+            "$private_root/engine/sccache" "$(rustc --print sysroot)" \
+            "$private_root/snapshot" "$private_root/snapshot.json" \
+            "$private_root/compiler-cache" "$private_root/task" "$private_root/config.json"
+      - name: Build and prove exact current-source hosted product
+        env:
+          CONDUIT_HOSTED_CACHE_CONFIG: ${{ steps.hosted-cache.outputs.hosted-cache-config }}
+        run: node tools/ci/pipeline/cli.mjs target hosted-linux "$SOURCE_SHA"
+      - name: Retain current-source product and preparation evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ubuntu-hosted-product-qualification
+          path: |
+            target/pipeline/hosted-linux/
+            target/acquisition/hosted-linux.json
+            ${{ runner.temp }}/conduit-hosted.*/snapshot.acquisition.json
+            ${{ runner.temp }}/conduit-hosted.*/task/cargo-cache-receipt.json
+            ${{ runner.temp }}/conduit-hosted.*/task/hello-proof.json
+          if-no-files-found: error
+          retention-days: 14
