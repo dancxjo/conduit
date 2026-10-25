@@ -102,6 +102,7 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-host-make",
+ "conduit-kernel",
  "conduit-planner",
  "conduit-plot",
  "serde",
