@@ -307,5 +307,5 @@ pub use loongarch64::framebuffer;
 
 // Nano handoff conformance is host-testable before a board image exists.
 #[cfg(test)]
-#[path = "jetson_nano/memory.rs"]
-mod jetson_nano_memory;
+#[path = "jetson_nano/mod.rs"]
+mod jetson_nano;

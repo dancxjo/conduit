@@ -1,10 +1,14 @@
 # Jetson Nano ConduitOS port
 
 Development work tracked by [#6478](https://github.com/dancxjo/conduit/issues/6478).
-There is currently no supported Nano image or physical boot receipt. The
+The requested deliverable is a flashable microSD image for P3450, with
+on-screen boot/status output and no required UART adapter. UART is an optional
+diagnostic path. There is currently no supported Nano image or physical boot receipt. The
 `src/arch/jetson_nano/memory.rs` prerequisite has host conformance for finite
 RAM/reservation sets and aligned placement admission. It is not yet connected
-to a DTB parser or board entry point. This
+to semantic DTB memory-node extraction or a board entry point. The bounded DTB
+envelope/token validator checks block layout, tree grammar and the reservation
+map, and protects the DTB itself; RAM and reserved-memory extraction remain open. This
 contract describes the original 4 GB Jetson Nano developer kit, not Orin Nano.
 
 ## Hardware and provenance
@@ -79,10 +83,15 @@ bootstrap alone does not establish protected execution.
    Nano feature, linker and entry assembly.
 2. Add Tegra console, GIC, timer and existing Host mechanism adapters; build
    through a supported `cargo xtask` entrance with an artifact manifest.
-3. Produce boot files for existing Nano firmware, with explicit deployment
-   instructions and no implicit device writes.
+3. Produce a flashable microSD image for existing Nano firmware, with explicit
+   deployment instructions and no implicit device writes. Supply visible HDMI
+   boot/status output so deployment and observation require no UART cable.
+   Determine whether existing firmware can provide a retained framebuffer or
+   whether a Tegra display mechanism is required; do not assume virt ramfb works.
 4. Capture physical ordinary execution, timer wake and cancellation on the exact
-   board. Retain raw serial bytes, firmware identity, DTB and image digests.
+   board. Retain firmware identity, DTB and image digests with visible results;
+   serial capture is optional. A user without a UART cable must be able to
+   flash the image, power on and observe success or a useful refusal over HDMI.
 5. Establish protected execution and service authority on the board. Track each
    additional driver and its physical acceptance separately.
 
