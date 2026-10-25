@@ -91,22 +91,24 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
   if([sourceRoot,cache,task].some((first,index,roots)=>roots.some((second,other)=>index!==other&&(first===second||first.startsWith(`${second}/`)))))fail('overlapping-cargo-roots');
   await assertSupportedPackage(path.join(sourceRoot,'source'));
   const input=await snapshotInventory(sourceRoot);if(input.sha256!==snapshot.sha256)fail('cargo-snapshot-mismatch');
-  const policy={schema:2,snapshotSha256:input.sha256,runnerSha256:sha(CARGO_SANDBOX_SCRIPT),sandboxArgsSha256:sha(cargoSandboxArgs.toString()),runnerSourceSha256:sha(runSandbox.toString()),bwrapSha256:await hashFile('/usr/bin/bwrap'),maxCacheBytes};
-  const namespace=sha(JSON.stringify(policy));
   await fs.mkdir(cache,{recursive:true,mode:0o700});
   const lease=path.join(cache,'.cargo-lease');
   try{await fs.mkdir(lease,{mode:0o700});}catch(error){if(error.code==='EEXIST')fail('cargo-cache-busy');throw error;}
   try {
     await fs.writeFile(path.join(lease,'owner.json'),JSON.stringify({pid:process.pid,bootId:(await fs.readFile('/proc/sys/kernel/random/boot_id','utf8')).trim(),procStat:await fs.readFile(`/proc/${process.pid}/stat`,'utf8')}),{flag:'wx',mode:0o600});
-    const marker=path.join(cache,'policy.json');
-    try{if(await fs.readFile(marker,'utf8')!==JSON.stringify(policy))fail('cargo-cache-policy-mismatch');}
-    catch(error){if(error.code!=='ENOENT')throw error;if((await fs.readdir(cache)).some(name=>name!=='.cargo-lease'))fail('unmanaged-cargo-cache');await fs.writeFile(marker,JSON.stringify(policy),{flag:'wx',mode:0o600});}
+    // Ownership, interrupted retirement and reserve admission precede any
+    // sandbox/tool lookup. Refusal is meaningful even on a host without bwrap.
     const names=await fs.readdir(cache);
     if(names.some(name=>name==='retirement.json'||name.startsWith('.retiring-')))fail('cargo-retirement-interrupted');
     if(names.some(name=>!['.cargo-lease','policy.json','objects'].includes(name)))fail('unmanaged-cargo-cache');
+    const free=await fs.statfs(cache,{bigint:true});if(free.bavail*free.bsize<BigInt(reserveBytes)+BigInt(maxCacheBytes)+BigInt(maxTaskBytes))fail('cargo-reserve-admission');
+    const policy={schema:2,snapshotSha256:input.sha256,runnerSha256:sha(CARGO_SANDBOX_SCRIPT),sandboxArgsSha256:sha(cargoSandboxArgs.toString()),runnerSourceSha256:sha(runSandbox.toString()),bwrapSha256:await hashFile('/usr/bin/bwrap'),maxCacheBytes};
+    const namespace=sha(JSON.stringify(policy));
+    const marker=path.join(cache,'policy.json');
+    try{if(await fs.readFile(marker,'utf8')!==JSON.stringify(policy))fail('cargo-cache-policy-mismatch');}
+    catch(error){if(error.code!=='ENOENT')throw error;if(names.some(name=>name!=='.cargo-lease'))fail('unmanaged-cargo-cache');await fs.writeFile(marker,JSON.stringify(policy),{flag:'wx',mode:0o600});}
     const objects=path.join(cache,'objects');await fs.mkdir(objects,{recursive:true,mode:0o700});
     if((await fs.lstat(objects)).isSymbolicLink())fail('unsafe-cargo-cache');
-    const free=await fs.statfs(cache,{bigint:true});if(free.bavail*free.bsize<BigInt(reserveBytes)+BigInt(maxCacheBytes)+BigInt(maxTaskBytes))fail('cargo-reserve-admission');
     if(await hashFile(path.join(sourceRoot,'engine/sccache'))!==SCCACHE_ENGINE.binarySha256)fail('engine-binary-mismatch');
     await fs.mkdir(task,{mode:0o700});for(const name of ['home','tmp'])await fs.mkdir(path.join(task,name));
     await fs.writeFile(path.join(task,'run.sh'),CARGO_SANDBOX_SCRIPT,{flag:'wx',mode:0o400});
