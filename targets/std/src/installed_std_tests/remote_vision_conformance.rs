@@ -13,9 +13,19 @@ use conduit_plot::{
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
+mod replacement;
 
 #[test]
 fn image_crosses_an_exact_line_into_the_production_vision_back() {
+    run_vision_fixture(false);
+}
+
+#[test]
+fn cancelled_pending_vision_owner_retires_before_fresh_stdhost_play() {
+    run_vision_fixture(true);
+}
+
+fn run_vision_fixture(retire_pending: bool) {
     let image = conduit_semantic_catalog::deterministic_vision_fixture()
         .unwrap()
         .image;
@@ -173,6 +183,153 @@ fn image_crosses_an_exact_line_into_the_production_vision_back() {
     let mut vision_runtime = vision_host
         .prepare_remote_fragment(vision_fragment)
         .unwrap();
+    feed_vision(&mut source_runtime, &mut vision_runtime, &encoded);
+
+    let mut retired_play = None;
+    let mut replacement_request = None;
+    if retire_pending {
+        // These descriptors are meaningful only with this trusted mutable owner.
+        // They are not capabilities to transplant into a replacement runtime.
+        let request = (0..32)
+            .find_map(|_| {
+                if let Some(request) = vision_runtime.next_host_request() {
+                    return Some(request);
+                }
+                vision_runtime.step().unwrap();
+                None
+            })
+            .expect("A reaches a genuine dispatched Vision request");
+        let input = vision_runtime
+            .host_request_view(request)
+            .unwrap()
+            .input
+            .to_vec();
+        assert_eq!(input, encoded);
+        let staged = vision_runtime
+            .store_host_value(b"retired-A-uncommitted-output")
+            .unwrap();
+        let old_play = vision_runtime.identity().clone();
+        retired_play = Some(old_play.clone());
+        let sibling_play = source_runtime.identity().clone();
+        vision_runtime.cancel().unwrap();
+        let refused = vision_runtime
+            .complete_host_call(
+                request,
+                conduit_kernel::HostCallOutcome {
+                    disposition: conduit_kernel::HostCallDisposition::Completed,
+                    output: Some(staged),
+                    failure: None,
+                },
+            )
+            .unwrap_err();
+        assert!(refused.contains("HostCallCompletionRejected"), "{refused}");
+        assert!(vision_runtime.next_host_request().is_none());
+        assert!(matches!(
+            vision_runtime.step().unwrap(),
+            conduit_kernel::scheduler::SchedulerStatus::Cancelled
+        ));
+        // A's cancellation does not cancel the independently admitted source.
+        assert_eq!(source_runtime.identity(), &sibling_play);
+        assert!(!matches!(
+            source_runtime.step().unwrap(),
+            conduit_kernel::scheduler::SchedulerStatus::Cancelled
+        ));
+        vision_host.release_remote_fragment(vision_runtime).unwrap();
+        source_host.release_remote_fragment(source_runtime).unwrap();
+        vision_runtime = vision_host
+            .prepare_remote_fragment(vision_fragment)
+            .unwrap();
+        source_runtime = source_host
+            .prepare_remote_fragment(source_fragment)
+            .unwrap();
+        assert_ne!(source_runtime.identity(), &sibling_play);
+        assert_eq!(source_runtime.identity().host_id, sibling_play.host_id);
+        assert_eq!(source_runtime.identity().boot_id, sibling_play.boot_id);
+        assert!(source_runtime.identity().play_sequence > sibling_play.play_sequence);
+        assert_ne!(vision_runtime.identity(), &old_play);
+        assert_eq!(vision_runtime.identity().host_id, old_play.host_id);
+        assert_eq!(vision_runtime.identity().boot_id, old_play.boot_id);
+        assert!(vision_runtime.identity().play_sequence > old_play.play_sequence);
+        // Fresh B obtains its own ingress and request, then uses normal provider
+        // completion below. No raw A descriptor is ever submitted to B.
+        feed_vision(&mut source_runtime, &mut vision_runtime, &encoded);
+        replacement_request = Some(replacement::pending(
+            &mut vision_runtime,
+            &mut source_runtime,
+            request,
+            &encoded,
+        ));
+    }
+
+    let mut completed_vision_call = false;
+    let mut provider_completions = 0;
+    if let Some(request) = replacement_request {
+        completed_vision_call = vision_host
+            .complete_remote_vision_host_call(&mut vision_runtime, request, 71)
+            .unwrap();
+        provider_completions += usize::from(completed_vision_call);
+        assert_eq!(replacement::completion_count(&vision_runtime, request), 1);
+    }
+    let drained = (0..32).any(|_| {
+        if let Some(request) = vision_runtime.next_host_request() {
+            completed_vision_call = vision_host
+                .complete_remote_vision_host_call(&mut vision_runtime, request, 71)
+                .unwrap();
+            provider_completions += usize::from(completed_vision_call);
+        }
+        matches!(
+            vision_runtime.step().unwrap(),
+            conduit_kernel::scheduler::SchedulerStatus::Drained
+        )
+    });
+    assert!(completed_vision_call);
+    assert!(drained);
+    assert_eq!(provider_completions, 1);
+    if let Some(request) = replacement_request {
+        assert_eq!(replacement::completion_count(&vision_runtime, request), 1);
+    }
+    if retire_pending {
+        println!(
+            "CONDUIT_STD_HOSTCALL_RETIREMENT {}",
+            serde_json::json!({
+                "schema": "conduit-std-hostcall-retirement-v1",
+                "retired_play": retired_play,
+                "replacement_play": vision_runtime.identity(),
+                "cancelled_owner_completion": "HostCallCompletionRejected",
+                "replacement_provider_completions": provider_completions,
+                "replacement_drained": drained,
+                "replacement_pending_descriptor_matches_retired": true,
+                "replacement_pending_input_and_signs_unchanged": true,
+                "replacement_output_before_fresh_completion": "no motion output routing",
+                "retired_receiver": "consumed by public release; compile-fail regression",
+                "async_completion_class": "unavailable on synchronous Vision owner",
+                "sibling_control": {
+                    "before_release": "A source sibling remained live until explicitly released",
+                    "replacement_pending": "fresh B source sibling identity and Signs unchanged"
+                },
+                "not_established": ["cross-owner descriptor replay", "asynchronous callback revocation", "Watch", "hostile confinement"]
+            })
+        );
+    }
+
+    let mut failed = source_host
+        .prepare_remote_fragment(source_fragment)
+        .err()
+        .unwrap();
+    assert!(failed.contains("combined active-instance limit exceeded"));
+    let source_endpoint = source_runtime.sessions().iter().next().unwrap().endpoint;
+    source_runtime
+        .fail_remote_line(source_endpoint, 73)
+        .unwrap();
+    failed = source_runtime.next_egress(source_endpoint).unwrap_err();
+    assert!(failed.contains("Cancelled"));
+}
+
+fn feed_vision(
+    source_runtime: &mut crate::AdmittedRemoteFragment,
+    vision_runtime: &mut crate::AdmittedRemoteFragment,
+    encoded: &[u8],
+) {
     let source_endpoint = source_runtime.sessions().iter().next().unwrap().endpoint;
     let vision_endpoint = vision_runtime.sessions().iter().next().unwrap().endpoint;
     crate::remote_cord_sessions::activate_in_process(
@@ -208,32 +365,6 @@ fn image_crosses_an_exact_line_into_the_production_vision_back() {
     );
     source_runtime.deliver_egress(&transfer).unwrap();
     vision_runtime.close_ingress(vision_endpoint).unwrap();
-
-    let mut completed_vision_call = false;
-    let drained = (0..32).any(|_| {
-        if let Some(request) = vision_runtime.next_host_request() {
-            completed_vision_call = vision_host
-                .complete_remote_vision_host_call(&mut vision_runtime, request, 71)
-                .unwrap();
-        }
-        matches!(
-            vision_runtime.step().unwrap(),
-            conduit_kernel::scheduler::SchedulerStatus::Drained
-        )
-    });
-    assert!(completed_vision_call);
-    assert!(drained);
-
-    let mut failed = source_host
-        .prepare_remote_fragment(source_fragment)
-        .err()
-        .unwrap();
-    assert!(failed.contains("combined active-instance limit exceeded"));
-    source_runtime
-        .fail_remote_line(source_endpoint, 73)
-        .unwrap();
-    failed = source_runtime.next_egress(source_endpoint).unwrap_err();
-    assert!(failed.contains("Cancelled"));
 }
 
 fn host(id: &str) -> StdHost {

@@ -13,6 +13,13 @@ export class BrowserInputRefusal extends Error {
   }
 }
 
+// Pure descriptor policy; it cannot access or mutate an acquired input owner.
+// null retires a counter after its final exactly representable wire value.
+export function advanceInputSequence(sequence, maximum) {
+  if (!Number.isSafeInteger(sequence) || sequence < 0 || sequence > maximum) return undefined;
+  return sequence === maximum ? null : sequence + 1;
+}
+
 /**
  * host-owned, finite adaptation of DOM input facts to portable Conduit values.
  * The caller supplies the current admitted Boot truth; Plots never see DOM
@@ -55,7 +62,7 @@ export function openBrowserHumanInput({
   let modifierBits = 0;
 
   const onKey = (event) => {
-    if (closed || keyboardFailure) return;
+    if (closed || terminal || keyboardFailure) return;
     const usage = browserKeyboardUsage(event.code);
     if (usage === null) return;
     // Track physical state even while a native control owns the interaction.
@@ -106,11 +113,8 @@ export function openBrowserHumanInput({
   };
 
   const onPointer = (event) => {
-    if (closed || (pointerConsumers.size === 0 && !buttonActive)) return;
+    if (closed || terminal || (pointerConsumers.size === 0 && (!buttonActive || buttonFailure))) return;
     try {
-      if (event.type === "pointerdown" && target.nodeType !== 9 && typeof target.setPointerCapture === "function") {
-        target.setPointerCapture(event.pointerId);
-      }
       assertCurrent(owner, currentBoot());
       assertPageActive(target);
       if (!currentTargetOwnsEvent(target, event)) refuse("FocusLost", "pointer target is no longer admitted");
@@ -118,15 +122,26 @@ export function openBrowserHumanInput({
         refuse("UnsupportedInput", "pointer buttons exceed the reviewed primary-button profile");
       }
       const isButtonTransition = event.type === "pointerdown" || event.type === "pointerup";
-      const buttonPlot = buttonActive && isButtonTransition
+      const buttonTransition = buttonActive && isButtonTransition && !buttonFailure;
+      // Check identity capacity before routing.capture can mutate held ownership
+      // or DOM pointer capture can occur. Commit only streams actually routed.
+      const buttonNext = buttonTransition ? advanceInputSequence(buttonSequence, Number.MAX_SAFE_INTEGER) : 0;
+      const pointerNext = pointerConsumers.size > 0 ? advanceInputSequence(pointerSequence, 0xffff_ffff) : 0;
+      if (buttonNext === undefined || pointerNext === undefined) refuse("IdentityCapacityExhausted", "browser input sequence exhausted");
+      if (event.type === "pointerdown" && target.nodeType !== 9 && typeof target.setPointerCapture === "function") {
+        target.setPointerCapture(event.pointerId);
+      }
+      const buttonPlot = buttonTransition
         ? routeInput?.("button", { pressed: event.type === "pointerdown" })
         : null;
-      if (buttonActive && isButtonTransition && !buttonFailure && (!routeInput || buttonPlot !== null)) {
+      if (buttonTransition && (!routeInput || buttonPlot !== null)) {
+        const sequence = buttonSequence;
+        buttonSequence = buttonNext;
         const transition = Object.freeze({
           schema: "input/button-transition@1",
           pressed: event.type === "pointerdown",
           ...(routeInput ? { delivery_plot: buttonPlot } : {}),
-          sequence: buttonSequence++,
+          sequence,
           owner,
         });
         if (buttonWaiters.length > 0) buttonWaiters.shift().resolve(transition);
@@ -150,6 +165,8 @@ export function openBrowserHumanInput({
       const coalesced = typeof event.getCoalescedEvents === "function"
         ? Math.max(0, event.getCoalescedEvents().length - 1)
         : 0;
+      const sequence = pointerSequence;
+      pointerSequence = pointerNext;
       const value = Object.freeze({
         schema: "input/pointer-event@1",
         ...(routeInput ? { delivery_plot: pointerPlot } : {}),
@@ -161,10 +178,9 @@ export function openBrowserHumanInput({
         coalesced,
         dropped,
         queue_capacity: 1,
-        sequence: pointerSequence,
+        sequence,
         owner,
       });
-      pointerSequence += 1;
       dropped = 0;
       for (const consume of pointerConsumers) consume(value);
     } catch (error) {
@@ -178,7 +194,9 @@ export function openBrowserHumanInput({
   };
 
   const end = (code) => {
-    if (closed) return;
+    // Focus loss alone is recoverable. Later DOM lifecycle events cannot
+    // downgrade a retired/page-lost owner into a recoverable focus refusal.
+    if (closed || (terminal && terminal.code !== "FocusLost")) return;
     terminal = new BrowserInputRefusal(code, code === "PageLost"
       ? "browser page was lost while input was pending"
       : "browser input target lost focus");
