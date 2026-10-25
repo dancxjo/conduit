@@ -4,7 +4,8 @@ The supported cache builds the actual dependency-free
 `conduitos-compositor-core` Cargo library on Linux x86_64. It does not install a
 global Cargo wrapper or authorize behavioral/release proof reuse. The hosted
 Linux extension below is an incomplete internal integration checkpoint; its full
-cold/warm release and Hello acceptance must complete before pipeline adoption.
+cold/warm release and Hello experiment has completed locally; portable CI and
+cross-revision acceptance remain required before pipeline adoption.
 
 `engine.mjs` acquires pinned sccache 0.19.0 into a new task-local directory and
 verifies both archive and executable SHA-256 digests. `cargo-snapshot.mjs`
@@ -99,15 +100,34 @@ No macro consumer is admitted by a string claiming its inputs are complete.
 The initial hosted limits are 4 GiB compiler objects, 12 GiB private task output
 and 10 GiB free reserve. Both task and cache filesystems are checked. Limits are
 monitored admission/refusal bounds, not filesystem hard quotas. Receipts retain
-actual sccache counters, output hashes, Cargo wall time and GNU time resource
-usage; maximum resident size is the largest measured child, not an aggregate
-concurrent-memory peak. Hello has its own execution receipt and timing.
+actual sccache counters, output hashes and Cargo wall time. The retained GNU
+time output measures the external bwrap launcher on this host and must not be
+reported as compiler CPU or memory. The measurement harness separately samples
+owned sandbox processes. CPU totals are sampled lower bounds; concurrent
+summed RSS can count shared pages more than once and is not exact peak
+physical RAM. Hello has its own execution receipt and timing.
 
 The namespace binds the entire retained snapshot and runner/mount/environment
 policy. This proves reuse of one exact retained snapshot; it does not establish
 cross-revision or separately prepared snapshot reuse. Procedural-macro bypass,
 namespace conservatism and preparation costs must be included when deciding
-whether the profile saves useful CI time. Completed hosted speed measurements
-and automatic CI wiring are still acceptance work at this checkpoint. The
+whether the profile saves useful CI time. One local uninterrupted fresh-target comparison of the exact retained source
+`6e55fb036498db24d1e1503ef7bf828e3978b499` took 683.62 s warm and 704.60 s
+after explicit cache clear: 88 Rust hits versus 88 misses/writes, about 21 s /
+3% observed wall-time difference. All 514 rlib/rmeta/executable hashes matched.
+The 61,653,536-byte Conduit binary independently passed unchanged canonical
+Hello in 0.403 s warm and 0.386 s cold. Preparation is additional (a separately
+prepared newer source took 22.05 s using already acquired dependency archives;
+network acquisition was not timed). These are one local pair, not a statistical
+speed claim or elimination of expensive runtime tests. Most Conduit compilation
+still bypasses the cache. Automatic CI wiring and useful cross-revision
+acceptance remain incomplete. The
 [engine Rust caveats](https://github.com/mozilla/sccache/blob/v0.19.0/docs/Rust.md)
 also exclude system-linker crate invocations from cache reuse.
+
+The internal build and Hello APIs accept a synchronous `observeCommand` callback.
+Each actual spawned process reports its program, complete arguments, host cwd,
+minimal effective host environment, duration and success/failure. In-sandbox
+commands/environment remain explicit in the bwrap arguments; the observer does
+not relabel the external supervisor as a host Cargo invocation. Custody callback
+failures refuse acceptance even if compilation itself succeeded.
