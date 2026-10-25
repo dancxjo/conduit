@@ -1,9 +1,9 @@
 # Integration train preparation
 
-This is the development assembly/admission/evidence layer for the integration
-train redesign. Landing and publication reuse are still pending. Assembly and
+This is the development implementation of the integration train. Assembly and
 capture change no GitHub refs; dispatch creates a guarded train ref and requests
-proof. None of these commands merges GitHub PRs or updates development/stable.
+proof. Landing updates development to an already proven exact source. Publication
+adoption and a real end-to-end train acceptance remain pending.
 
 Assemble explicitly selected ready PRs in a new local worktree:
 
@@ -79,8 +79,31 @@ than silently ignoring a page.
 `acquisition.json` binds the retained archives to the observed run and attempt.
 It does not extract archives or authorize landing. Actions artifact metadata
 lacks producer attempt identity: observing an unchanged attempt cannot prove an
-older artifact was produced by that attempt. Complete producer provenance,
-including toolchain/features/tests/environment and attempt, remains required.
+older artifact was produced by that attempt.
+
+Restore authenticated archives through the checked parser:
+
+```sh
+cargo xtask ci pipeline train-restore /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-restoration
+```
+
+Restoration re-reads live metadata for every immutable artifact ID and verifies
+the local ZIP hashes again. It accepts one named target tar per ZIP and only
+regular files/directories beneath that target. Links, special files, traversal,
+duplicate paths, malformed headers and oversized expansion refuse. It preserves
+executable modes, enforces a disk reserve during writes, and checks the complete
+restored product bundle through the existing receipt verifier.
+
+New target products contain `producer.json`, sealed into the product file set.
+It binds source/tree, workflow/source/run/attempt/job, observed tool versions,
+verified tool acquisition, runner image/environment fingerprint and selected
+command inventory. Restoration refuses legacy products without this custody or
+products from another run attempt, even when the archive itself is authentic.
+Environment values are fingerprinted without serializing credentials. Command
+inventories bind source recipes, arguments and effective environment; they do
+not claim individual test names or every nested rustc invocation were separately
+observed. Full source/feature/test/environment policy acceptance and the
+publication handoff still need an end-to-end real train proof.
 
 For an already restored product bundle, verify its retained products:
 
@@ -95,14 +118,32 @@ verifier. It reports source, tree and run identities only after those checks.
 Successful run metadata without products is insufficient. Manifest digests are
 integrity checks, not signatures or permission to change a protected branch.
 
-A future landing adapter must refresh state at its mutation boundary and use a
-race-safe operation that preserves the tested tree. These observational results
-are not a compare-and-swap, merge authorization or publication receipt. The
-current development and stable publication requirements remain in force.
+Land the exact proven source with authenticated archives and a fresh evidence
+directory:
+
+```sh
+cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing
+```
+
+Landing restores and validates all products, refreshes source/PR admission,
+requires the latest exact-source Integration attempt and its successful required
+Candidate aggregate, and checks live protection and rules. Unknown required
+checks/rules or human-review requirements refuse. It writes an exclusive intent
+before a single non-forced ref update to the exact proven commit, then checks
+the acknowledged source/tree and writes a separate landing receipt. A concurrent
+development update outside that source cannot be fast-forwarded over. This is
+a graph guard, not a strict compare-and-swap to the captured base.
+
+There is no forced update, protection override, PR-merge fallback or automatic
+mutation retry. Existing evidence and ambiguous outcomes require inspection.
+GitHub may reject a direct update under a pull-request requirement, including a
+zero-review requirement. Such a rejection is terminal; this command does not
+change branch policy. A returned landing receipt is not stable publication.
 
 Integration now earns the protected `candidate` context from its exhaustive
 proof. The aggregate runs even after a guard refusal or cancelled dependency and
 accepts only a successful proof; skipped proof cannot satisfy that context. This
-does not grant landing authority or authenticate a caller-provided product bundle.
-Production landing still requires binding the retained bytes to the actual run
-and complete build/proof custody before any branch mutation is enabled.
+does not authenticate a caller-provided product bundle. Landing requires the
+archive authentication, producer custody and live checks above; local receipt
+hashes alone cannot authorize it. Full train acceptance and publication reuse
+remain distinct from fixture tests of these adapters.

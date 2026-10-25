@@ -14,6 +14,7 @@ import { retainedOneBodyEvidence } from './one-body-evidence.mjs';
 import { retainedThreeHostDevelopmentEvidence } from './three-host-development-evidence.mjs';
 import { retainedDirectSpokenDevelopmentEvidence } from './direct-spoken-development-evidence.mjs';
 import { retainedTodoBrowserDevelopmentEvidence } from './todo-browser-development-evidence.mjs';
+import { beginProductCustody, finishProductCustody, abandonProductCustody } from './producer-custody.mjs';
 
 function run(program, args, capture = false) {
   const result = spawnSync(program, args, { stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', encoding: 'utf8' });
@@ -38,6 +39,23 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'train-land': {
+      if (args.length !== 4) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory>');
+      const { createTrainLander } = await import('./train-land.mjs');
+      const receipt = await createTrainLander()(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
+      output('train-landed-source', receipt.landedDev);
+      output('train-landed-tree', receipt.tree);
+      break;
+    }
+    case 'train-restore': {
+      if (args.length !== 4) throw new Error('usage: train-restore <manifest-file> <integration-run-id> <archive-directory> <new-product-directory>');
+      const { createTrainCommands } = await import('./train-command.mjs');
+      const restored = await createTrainCommands().restore(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
+      output('train-bundle', restored.bundle);
+      output('train-integration-run', String(restored.runId));
+      output('train-run-attempt', String(restored.runAttempt));
+      break;
+    }
     case 'train-acquire': {
       if (args.length !== 3) throw new Error('usage: train-acquire <manifest-file> <integration-run-id> <new-archive-directory>');
       const { createTrainCommands } = await import('./train-command.mjs');
@@ -192,8 +210,10 @@ try {
       const directory = resolve('target/pipeline', item.id);
       if (existsSync(directory)) throw new Error(`refusing stale target output: ${directory}`);
       mkdirSync(directory, { recursive: true });
+      beginProductCustody({ source: sha, target: item.id });
       await runTarget(item.id, directory);
       assertSourceCheckout(sha);
+      finishProductCustody(directory);
       await sealTarget({ directory, target: item.id, sha, proofClass: item.proofClass });
       console.log(`PASS: ${item.id} (${item.proofClass}) at ${sha}`);
       break;
@@ -209,9 +229,10 @@ try {
       await publish(args[0], resolve(args[1]));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-dispatch|train-acquire|train-verify>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
   }
 } catch (error) {
+  abandonProductCustody();
   console.error(`FAILED: pipeline/${command}: ${error.message}`);
   process.exitCode = 1;
 }
