@@ -176,6 +176,35 @@ fn root_checks_both_owners_before_spending_issuance_or_moving_either() {
         &fragment_id,
     )
     .unwrap();
+    type LocalTables<'a> =
+        conduit_plan_lowering::local_tables::VerifiedLocalKernelTables<'a, 15, 14, 1, 15, 14, 15>;
+    let local = LocalTables::prepare(&metadata, &fragment_id, &lowered).unwrap();
+    assert_eq!(local.startup_order().len(), 15);
+    assert_eq!(local.preparation_scope().0.plan_id(), metadata.plan_id());
+    for (actual, expected) in local.cords.iter().zip(&lowered.cords) {
+        assert_eq!(*actual, expected.spec);
+    }
+    for (actual, expected) in local.nodes.iter().zip(&lowered.node_specs) {
+        assert_eq!(actual.maximum_step_fuel, expected.maximum_step_fuel);
+        assert_eq!(actual.input_cords[0], expected.input_cords[0]);
+    }
+    for route in &lowered.routes {
+        assert_eq!(
+            local
+                .routes
+                .route(route.source_node, route.source_port)
+                .unwrap()
+                .collect::<Vec<_>>(),
+            route.targets
+        );
+    }
+    let mut substituted = lowered.clone();
+    substituted.node_specs[0].maximum_step_fuel += 1;
+    assert!(matches!(
+        LocalTables::prepare(&metadata, &fragment_id, &substituted),
+        Err(conduit_plan_lowering::local_tables::LocalTableRefusal::Lowering)
+    ));
+    assert!(conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<14, 14, 1, 15, 14, 15>::prepare(&metadata, &fragment_id, &lowered).is_err());
     assert!(foreign
         .reserve_verified_play(&metadata, &fragment_id)
         .is_err());

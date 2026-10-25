@@ -23,6 +23,8 @@ mod appliance_support;
 mod pulse;
 #[path = "appliance_support/software.rs"]
 mod software_tests;
+#[path = "support/verified_metadata.rs"]
+mod verified_metadata;
 use conduit_core as c;
 use conduit_environment_runtime::appliance::ApplianceBack as Driver;
 use conduit_environment_runtime::{
@@ -249,32 +251,11 @@ fn run(scenario: usize, overnight: bool) {
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (N, C));
     let (mut owner, pulse_node) =
         pulse::bind_budget(ready, &plan, &lowered, count.try_into().unwrap()).unwrap();
-    let nodes = core::array::from_fn(|i| {
-        let rich = lowered.node_specs[i];
-        assert!(rich.input_cords[P..].iter().all(Option::is_none));
-        conduit_kernel::scheduler::NodeSpec {
-            input_cords: core::array::from_fn(|port| rich.input_cords[port]),
-            maximum_step_fuel: rich.maximum_step_fuel,
-        }
-    });
-    let cords = core::array::from_fn(|i| lowered.cords[i].spec);
-    let mut routes = k::FixedRoutes::<R, C>::new(P as u16);
-    for route in &lowered.routes {
-        routes
-            .install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )
-            .unwrap();
-    }
-    routes.seal().unwrap();
-    let mut calls = k::FixedHostCallBindings::<N>::new(1);
-    for call in &lowered.host_calls {
-        calls.install(call.node, call.binding).unwrap();
-    }
-    calls.seal().unwrap();
+    let metadata = verified_metadata::from_plan(&plan);
+    let tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<N, C, P, R, C, N>::prepare(
+        &metadata, &plan.fragments[0].fragment_id, &lowered,
+    ).unwrap();
+    let (nodes, cords, routes, calls) = (tables.nodes, tables.cords, tables.routes, tables.calls);
     let mut values = conduit_environment_runtime::appliance::prepare_value_storage().unwrap();
     assert_eq!(
         values.reserved_storage_bytes(),

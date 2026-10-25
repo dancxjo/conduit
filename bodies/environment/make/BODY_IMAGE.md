@@ -232,6 +232,20 @@ cadence mismatch, exact finite operation budgets and spent-issuance refusal.
 This starts no Body. Startup still needs to connect this path to ordinary Body
 lifecycle and complete memory admission before scheduling the kernel.
 
+`conduit_plan_lowering::local_tables::VerifiedLocalKernelTables` now prepares
+finite node, Cord, route, Host Call and startup tables directly from the same
+Core-verified scope and exact lowering. It creates no assigned-wire identity or
+remote installation receipt. The complete Plan/lowering remain borrowed during
+preparation, including native resource, sign and terminal obligations. State,
+fusions, external endpoints, shared pools, general resource Cords, terminal
+transductions and partitioned execution refuse in this local profile; their
+contracts are not silently removed. Native possession and Body startup remain
+separate gates.
+The existing sampler kernel proof now uses these tables for all seven sensor
+outcomes and still verifies semantic readings, terminal behavior and zero Play
+allocation. Focused tests also reject changed tables, missing scope, insufficient
+capacity, State-profile substitution and partition execution in this profile.
+
 The single-window resident-owner/offer/selection/preparation/lowering/Body-seal
 CPU ledger compares both paths: **346,241 bytes** for compact verified material
 versus **378,925** retaining the rich Body Plan. Complete lowered output and Body
