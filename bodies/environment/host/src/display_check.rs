@@ -117,6 +117,20 @@ pub fn command(
     operation: owner::Operation,
     sequence: &mut u64,
 ) -> Result<Value> {
+    command_with_evidence(
+        line, authority, prepared, device_key, operation, sequence, None,
+    )
+}
+#[allow(clippy::too_many_arguments)]
+fn command_with_evidence(
+    line: &mut Line,
+    authority: &Authority,
+    prepared: &Prepared,
+    device_key: &[u8; 32],
+    operation: owner::Operation,
+    sequence: &mut u64,
+    evidence: Option<owner::EvidenceReference>,
+) -> Result<Value> {
     let output = prepared.display.as_ref().ok_or("display not planned")?;
     let request = owner::Request {
         protocol: owner::PROTOCOL,
@@ -133,6 +147,7 @@ pub fn command(
         fragment: output.fragment.as_str(),
         fragment_play: output.active.active_play_id.as_str(),
         assignment_seal: c::assigned_plan_payload_digest(&output.wire),
+        evidence,
     };
     *sequence += 1;
     let transcript = checked(request.transcript())?;
@@ -155,6 +170,7 @@ pub fn command(
             | owner::Operation::Release
             | owner::Operation::Cancel
             | owner::Operation::Retire
+            | owner::Operation::AcceptEvidence
     ) {
         let receipt: ack::Receipt = serde_json::from_value(reply["acknowledgement"].clone())?;
         let signature: [u8; 64] =
@@ -166,26 +182,60 @@ pub fn command(
             owner::Operation::Release => ack::State::Released,
             owner::Operation::Cancel => ack::State::Quiesced,
             owner::Operation::Retire => ack::State::Retired,
+            owner::Operation::AcceptEvidence => ack::State::EvidenceAccepted,
             _ => unreachable!(),
         };
         checked(receipt.verify(device_key, &transcript, expected, &signature))?;
     }
     use std::os::unix::fs::OpenOptionsExt;
-    let mut evidence = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .mode(0o600)
-        .open(authority.state.join("display-control.ndjson"))?;
-    writeln!(
-        evidence,
-        "{}",
-        serde_json::json!({"request":request,"reply":reply})
-    )?;
-    evidence.sync_all()?;
-    println!(
-        "{}",
-        serde_json::json!({"event":"native-display-physical-check","operation":format!("{operation:?}"),"reply":reply})
-    );
+    let page_size = reply["evidence_bytes"]
+        .as_u64()
+        .ok_or("display evidence length")? as usize;
+    if page_size > conduit_environment_runtime::display_evidence::MAXIMUM_BYTES {
+        return Err("display evidence bound".into());
+    }
+    if page_size > 0 {
+        if operation != owner::Operation::Inspect {
+            return Err("unexpected display evidence".into());
+        }
+        let bytes = line.exact(page_size)?;
+        let offer: crate::native_display_evidence::Offer =
+            serde_json::from_value(reply["evidence"].clone())?;
+        let signature: [u8; 64] =
+            serde_json::from_value::<Vec<u8>>(reply["evidence_signature"].clone())?
+                .try_into()
+                .map_err(|_| "display evidence signature length")?;
+        checked(offer.verify(device_key, &transcript, &signature, &bytes))?;
+        crate::display_evidence::retain(authority, &request, &reply, &offer, &bytes)?;
+        command_with_evidence(
+            line,
+            authority,
+            prepared,
+            device_key,
+            owner::Operation::AcceptEvidence,
+            sequence,
+            Some(offer.page),
+        )?;
+    } else if !reply["evidence"].is_null() {
+        return Err("display evidence metadata without page".into());
+    }
+    if operation != owner::Operation::Inspect || page_size > 0 {
+        let mut evidence = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .mode(0o600)
+            .open(authority.state.join("display-control.ndjson"))?;
+        writeln!(
+            evidence,
+            "{}",
+            serde_json::json!({"request":request,"reply":reply})
+        )?;
+        evidence.sync_all()?;
+        println!(
+            "{}",
+            serde_json::json!({"event":"native-display-physical-check","operation":format!("{operation:?}"),"reply":reply})
+        );
+    }
     Ok(reply)
 }
 pub fn finish(
@@ -196,6 +246,7 @@ pub fn finish(
     sequence: &mut u64,
 ) -> Result<()> {
     let deadline = Instant::now() + Duration::from_secs(10);
+    let needs_cancel;
     loop {
         let reply = command(
             line,
@@ -206,11 +257,14 @@ pub fn finish(
             sequence,
         )?;
         match reply["worker"]["phase"].as_str() {
-            Some("drained")
-                if reply["worker"]["native_calls"] == 2
+            Some("drained" | "evidence-pending" | "waiting-input")
+                if reply["worker"]["native_calls"]
+                    .as_u64()
+                    .is_some_and(|n| n >= 2)
                     && reply["worker"]["cleanup_failure"] == false =>
             {
-                break
+                needs_cancel = reply["worker"]["phase"] != "drained";
+                break;
             }
             Some("failed" | "cleanup-refused" | "ownership-refused" | "quiesced" | "retired") => {
                 return Err(format!("display checkpoint failed: {reply}").into())
@@ -222,6 +276,17 @@ pub fn finish(
         }
         std::thread::sleep(Duration::from_millis(250));
     }
+    if needs_cancel {
+        command(
+            line,
+            authority,
+            prepared,
+            device_key,
+            owner::Operation::Cancel,
+            sequence,
+        )?;
+    }
+    drain_evidence(line, authority, prepared, device_key, sequence)?;
     command(
         line,
         authority,
@@ -258,6 +323,7 @@ pub fn cleanup(
             sequence,
         )?;
     }
+    drain_evidence(line, authority, prepared, device_key, sequence)?;
     command(
         line,
         authority,
@@ -267,4 +333,27 @@ pub fn cleanup(
         sequence,
     )?;
     Ok(())
+}
+
+fn drain_evidence(
+    line: &mut Line,
+    authority: &Authority,
+    prepared: &Prepared,
+    key: &[u8; 32],
+    sequence: &mut u64,
+) -> Result<()> {
+    for _ in 0..3 {
+        let reply = command(
+            line,
+            authority,
+            prepared,
+            key,
+            owner::Operation::Inspect,
+            sequence,
+        )?;
+        if reply["evidence_bytes"] == 0 {
+            return Ok(());
+        }
+    }
+    Err("display evidence did not quiesce".into())
 }

@@ -78,19 +78,28 @@ async fn receive_kind(
     #[cfg(feature = "display-physical-check")]
     if display {
         let authenticated = result.is_ok();
+        let inspect_command = result
+            .as_ref()
+            .ok()
+            .filter(|t| t.operation() == owner::Operation::Inspect)
+            .and_then(|t| t.request().transcript().ok());
         let applied = match result {
             Ok(token) => root.apply_display_check(token).await,
             Err(_) => Err("display-authentication"),
         };
-        let size = root.encode_display_check_reply(
+        let (size, evidence_bytes) = root.encode_display_check_reply(
             buffer,
             authenticated,
             applied.as_ref().err().copied(),
             applied.as_ref().ok().and_then(Option::as_ref),
+            inspect_command,
         )?;
         return with_timeout(Duration::from_secs(2), async {
             crate::native_control::write_all(uart, b"\n").await?;
-            crate::native_control::write_all(uart, &buffer[..size]).await?;
+            let offset = conduit_environment_runtime::display_evidence::MAXIMUM_BYTES;
+            crate::native_control::write_all(uart, &buffer[offset..offset + size]).await?;
+            crate::native_control::write_all(uart, b"\n").await?;
+            crate::native_control::write_all(uart, &buffer[..evidence_bytes]).await?;
             crate::native_control::write_all(uart, b"\n").await
         })
         .await
@@ -106,6 +115,7 @@ async fn receive_kind(
             let selected = token.operation();
             operation = Some(selected);
             match selected {
+                owner::Operation::AcceptEvidence => Some("evidence-not-sampler"),
                 owner::Operation::Inspect => {
                     match crate::native_owner_reservation::OwnerReservation::inspection_command(
                         root.owner_reservation(),

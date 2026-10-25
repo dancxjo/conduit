@@ -118,12 +118,12 @@ pub fn prepare_with_signs<L: k::SignSink>(
         write: k::NodeId(3),
         maximum_value_bytes: 651,
         sign_items: if reusable {
-            128
+            64
         } else {
             plan.lowered().sign_items
         },
         sign_bytes: if reusable {
-            128 * core::mem::size_of::<k::KernelEvent>() as u32
+            64 * core::mem::size_of::<k::KernelEvent>() as u32
         } else {
             plan.lowered().sign_bytes
         },

@@ -17,6 +17,8 @@ pub mod display_output;
 pub mod display_packets;
 #[cfg(feature = "display-session")]
 pub mod display_session;
+#[cfg(feature = "display-session")]
+pub mod display_evidence;
 pub mod observation;
 pub mod publication;
 #[cfg(feature = "face-projection")]

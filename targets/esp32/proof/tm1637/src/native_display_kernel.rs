@@ -1,5 +1,6 @@
 //! Finite dormant output construction from staged transfer and retained software.
 //! Root must still bind native possession and complete Body start before stepping.
+pub use super::runtime::Prepared;
 use alloc::vec::Vec;
 use conduit_core as c;
 use conduit_environment_runtime::{
@@ -10,7 +11,6 @@ use conduit_environment_runtime::{
     display_output::*,
 };
 use conduit_kernel as k;
-pub type Prepared = PreparedAssignedDisplayKernel<k::HostedValueStore, k::HostedSignLog>;
 pub fn prepare(
     wire: &[u8],
     profile: &AssignedDisplayProfile<'_>,
@@ -26,16 +26,27 @@ pub fn prepare(
     {
         return Err("display-signs");
     }
-    let signs = DisplaySignBudget::derive(maximum_frames, profile.sign_items, profile.sign_bytes)
-        .map_err(|_| "display-signs")?;
+    let signs = DisplaySignBudget::derive(
+        if cfg!(feature = "display-physical-check") {
+            1
+        } else {
+            maximum_frames
+        },
+        profile.sign_items,
+        profile.sign_bytes,
+    )
+    .map_err(|_| "display-signs")?;
     let needed = requirements(profile.maximum_value_bytes, signs)?;
     if available_bytes < needed {
         return Err("display-kernel-capacity");
     }
-    let values = DisplayValueBudget::derive(maximum_frames, profile.maximum_value_bytes)
+    let values = DisplayValueBudget::derive(signs.maximum_frames(), profile.maximum_value_bytes)
         .map_err(|_| "display-values")?
         .prepare()
         .map_err(|_| "display-values")?;
+    #[cfg(feature = "display-physical-check")]
+    let signs = crate::native_display_evidence::fresh_log().map_err(|_| "display-signs")?;
+    #[cfg(not(feature = "display-physical-check"))]
     let signs = k::HostedSignLog::new_with_remote_storage(
         signs.ordinary_items(),
         signs.ordinary_bytes(),
@@ -61,7 +72,11 @@ pub fn prepare(
         &mut records,
     )
     .map_err(|_| "display-transfer")?;
-    Prepared::prepare(
+    #[cfg(feature = "display-physical-check")]
+    let prepare = PreparedAssignedDisplayKernel::prepare_for_session;
+    #[cfg(not(feature = "display-physical-check"))]
+    let prepare = PreparedAssignedDisplayKernel::prepare;
+    prepare(
         AssignedDisplayInput {
             header: decoded.header,
             records: decoded.records,
@@ -79,6 +94,7 @@ pub fn prepare(
         signs,
     )
     .map_err(|_| "display-kernel")
+    .and_then(Prepared::from_assigned)
 }
 
 /// Additional backing and control headroom; already retained Source/software,
@@ -93,9 +109,13 @@ pub fn requirements(
     let values = DisplayValueBudget::derive(signs.maximum_frames(), maximum_value_bytes)
         .and_then(DisplayValueBudget::storage_bytes)
         .map_err(|_| "display-values")?;
+    #[cfg(feature = "display-physical-check")]
+    let sign_backing = conduit_environment_runtime::display_evidence::MAXIMUM_BYTES;
+    #[cfg(not(feature = "display-physical-check"))]
+    let sign_backing = signs.storage_bytes().ok_or("display-signs")?;
     let needed = values
-        + signs.storage_bytes().ok_or("display-signs")?
-        + core::mem::size_of::<DisplayKernel<k::HostedValueStore, k::HostedSignLog>>()
+        + sign_backing
+        + core::mem::size_of::<super::runtime::Raw>()
         + t::MAXIMUM_RECORDS * core::mem::size_of::<c::AssignedRecord<'_>>()
         + 8192;
     Ok(needed)

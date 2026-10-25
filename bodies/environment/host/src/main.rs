@@ -3,6 +3,10 @@
 extern crate alloc;
 mod admission;
 mod display_check;
+mod display_evidence;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_display_evidence.rs"]
+#[allow(dead_code)]
+mod native_display_evidence;
 mod execution;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_owner_control.rs"]
 #[allow(dead_code)]

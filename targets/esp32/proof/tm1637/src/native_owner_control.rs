@@ -3,9 +3,9 @@
 use ed25519_dalek::{Signature, VerifyingKey};
 use sha2::{Digest, Sha256};
 
-pub const PROTOCOL: u16 = 2;
+pub const PROTOCOL: u16 = 3;
 pub const MAXIMUM_REQUEST_BYTES: usize = 2048;
-const DOMAIN: &[u8] = b"conduit.environment/root-owner-control@2";
+const DOMAIN: &[u8] = b"conduit.environment/root-owner-control@3";
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum Operation {
@@ -16,6 +16,12 @@ pub enum Operation {
     Release = 4,
     Cancel = 5,
     Retire = 6,
+    AcceptEvidence = 7,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct EvidenceReference {
+    pub invocation: u64,
+    pub sha256: [u8; 32],
 }
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -34,6 +40,8 @@ pub struct Request<'a> {
     pub fragment: &'a str,
     pub fragment_play: &'a str,
     pub assignment_seal: [u8; 32],
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<EvidenceReference>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Refusal {
@@ -70,6 +78,11 @@ impl Request<'_> {
         {
             return Err(Refusal::Malformed);
         }
+        if (self.operation == Operation::AcceptEvidence) != self.evidence.is_some()
+            || self.evidence.is_some_and(|e| e.sha256 == [0; 32])
+        {
+            return Err(Refusal::Malformed);
+        }
         let mut hash = Sha256::new();
         hash.update(DOMAIN);
         hash.update(self.protocol.to_le_bytes());
@@ -81,6 +94,10 @@ impl Request<'_> {
             hash.update(id.as_bytes());
         }
         hash.update(self.assignment_seal);
+        if let Some(evidence) = self.evidence {
+            hash.update(evidence.invocation.to_le_bytes());
+            hash.update(evidence.sha256);
+        }
         Ok(hash.finalize().into())
     }
 }

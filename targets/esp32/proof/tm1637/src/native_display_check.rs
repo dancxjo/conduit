@@ -146,6 +146,11 @@ impl NativeRoot {
                     .retire_held(&mut self.issuer, &reservation.active)?;
                 ack::State::Retired
             }
+            O::AcceptEvidence => {
+                self.display
+                    .accept_evidence(request.evidence.ok_or("display-evidence-reference")?)?;
+                ack::State::EvidenceAccepted
+            }
             O::Inspect => return Ok(None),
             O::Reserve => unreachable!(),
         };
@@ -161,7 +166,8 @@ impl NativeRoot {
         authenticated: bool,
         refusal: Option<&str>,
         receipt: Option<&ack::Receipt>,
-    ) -> Result<usize, ()> {
+        inspect_command: Option<[u8; 32]>,
+    ) -> Result<(usize, usize), ()> {
         #[derive(serde::Serialize)]
         struct Reply<'a> {
             event: &'static str,
@@ -172,7 +178,32 @@ impl NativeRoot {
             acknowledgement: Option<&'a ack::Receipt>,
             acknowledgement_signature: Option<&'a [u8]>,
             physical_mask_plot_installed: bool,
+            evidence: Option<crate::native_display_evidence::Offer>,
+            evidence_signature: Option<&'a [u8]>,
+            evidence_bytes: usize,
         }
+        let (page_buffer, output) =
+            output.split_at_mut(conduit_environment_runtime::display_evidence::MAXIMUM_BYTES);
+        let evidence = if authenticated && refusal.is_none() {
+            if let Some(command) = inspect_command {
+                self.display
+                    .copy_evidence(page_buffer)
+                    .map_err(|_| ())?
+                    .map(|(page, bytes)| crate::native_display_evidence::Offer {
+                        command,
+                        page,
+                        bytes: bytes as u16,
+                    })
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let evidence_bytes = evidence.map_or(0, |e| usize::from(e.bytes));
+        let evidence_signature = evidence
+            .as_ref()
+            .map(|e| self.admission.sign_display_evidence(e));
         let signature = receipt.map(|r| self.sign_owner_receipt(r));
         serde_json_core::to_slice(
             &Reply {
@@ -184,9 +215,13 @@ impl NativeRoot {
                 acknowledgement: receipt,
                 acknowledgement_signature: signature.as_ref().map(|s| s.as_slice()),
                 physical_mask_plot_installed: false,
+                evidence,
+                evidence_signature: evidence_signature.as_ref().map(|s| s.as_slice()),
+                evidence_bytes,
             },
             output,
         )
+        .map(|size| (size, evidence_bytes))
         .map_err(|_| ())
     }
 }

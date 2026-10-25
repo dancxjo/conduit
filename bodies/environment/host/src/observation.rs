@@ -45,17 +45,19 @@ pub fn publish(
     channel: PublicationChannel,
     bytes: &[u8],
     committed_ms: u64,
+    observed_ms: u64,
     state: &std::path::Path,
 ) -> Result<bool> {
-    checked(face.publish(
+    let current = commit_observed(
+        face,
         PublicationSnapshot {
             sequence,
             channel,
             canonical: bytes,
         },
         committed_ms,
-    ))?;
-    let current = face.current();
+        observed_ms,
+    )?;
     serde_json::to_writer(
         std::fs::File::create(state.join("face-current.json"))?,
         current,
@@ -83,4 +85,66 @@ pub fn publish(
     Ok(current.properties.iter().any(|p| {
         p.name == "sensor-status" && matches!(&p.value,FacePropertyValue::Text(t) if t=="available")
     }))
+}
+
+fn commit_observed<'a>(
+    face: &'a mut RetainedPublicationFace,
+    snapshot: PublicationSnapshot<'_>,
+    committed_ms: u64,
+    observed_ms: u64,
+) -> Result<&'a conduit_face::Face> {
+    if observed_ms < committed_ms {
+        return Err("observation precedes its commit clock".into());
+    }
+    checked(face.publish(snapshot, committed_ms))?;
+    // Both clocks are signed in the same MCU Boot domain. Age belongs to the
+    // Face; a delayed carrier does not erase an otherwise valid measurement.
+    checked(face.at(observed_ms))
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn delayed_measurement_uses_face_age_policy_and_clock_reversal_preserves_sequence() {
+        use conduit_environment_runtime::observation::{
+            ObservationContract, PreparedSourceFrameDecoder,
+        };
+        let contract = ObservationContract::prepare().unwrap();
+        let mut decoder = PreparedSourceFrameDecoder::prepare(&contract).unwrap();
+        let bytes = decoder.decode(5, [53, 0, 20, 2, 75]).unwrap();
+        let mut face = RetainedPublicationFace::prepare(
+            FaceBasis {
+                body_id: None,
+                wake_id: None,
+                source_document_id: Some("fixture/source".into()),
+                checked_plot_id: Some("fixture/checked".into()),
+                expanded_plot_id: Some("fixture/expanded".into()),
+                plan_id: Some("fixture/plan".into()),
+                active_play_id: Some("fixture/play".into()),
+                sign_ids: vec![],
+            },
+            960,
+            120000,
+        )
+        .unwrap();
+        let snapshot = |sequence| PublicationSnapshot {
+            sequence,
+            channel: PublicationChannel::Reading,
+            canonical: bytes,
+        };
+        let fresh = |face: &conduit_face::Face| {
+            face.properties
+                .iter()
+                .any(|p| p.name == "fresh" && matches!(p.value, FacePropertyValue::Flag(true)))
+        };
+        assert!(fresh(
+            commit_observed(&mut face, snapshot(1), 1000, 11000).unwrap()
+        ));
+        assert!(!fresh(face.at(121001).unwrap()));
+        assert!(fresh(
+            commit_observed(&mut face, snapshot(2), 125000, 125100).unwrap()
+        ));
+        assert!(commit_observed(&mut face, snapshot(3), 126000, 125999).is_err());
+        assert_eq!(face.last_source_sequence(), 2);
+    }
 }

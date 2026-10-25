@@ -48,6 +48,8 @@ mod native_kernel_storage;
 mod native_network;
 #[cfg(feature = "native-root")]
 mod native_owner_control;
+#[cfg(feature = "display-physical-check")]
+mod native_display_evidence;
 #[cfg(feature = "native-root")]
 mod native_owner_receipt;
 #[cfg(feature = "native-root")]

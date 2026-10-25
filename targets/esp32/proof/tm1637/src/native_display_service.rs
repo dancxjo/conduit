@@ -1,6 +1,7 @@
 //! One bounded service of an ordinary-kernel-selected output Host Call.
 //! This adapter schedules no Step, selects no Look and creates no Fore input.
-use conduit_environment_runtime::{display_output::DisplayKernel, PreparedCaptureSelector};
+use super::runtime::Kernel;
+use conduit_environment_runtime::PreparedCaptureSelector;
 use conduit_kernel::{self as k, scheduler::HostCallRequest};
 use conduit_tm1637_wire::{
     owner::{WriteCallRefusal, WriteHostCall},
@@ -15,8 +16,8 @@ impl PendingCall {
         self.request
     }
 }
-pub struct DisplayService<'a, S: k::ValueStorage, L: k::SignSink, P: OpenDrain> {
-    pub kernel: &'a mut DisplayKernel<S, L>,
+pub struct DisplayService<'a, P: OpenDrain> {
+    pub kernel: &'a mut Kernel,
     pub selectors: &'a mut [Option<PreparedCaptureSelector>; 4],
     pub write: k::NodeId,
     pub owner: &'a mut WriteHostCall<P>,
@@ -25,7 +26,7 @@ pub struct ServicedCall {
     pub request: HostCallRequest,
     pub failure: Option<k::Failure>,
 }
-impl<S: k::ValueStorage, L: k::SignSink, P: OpenDrain> DisplayService<'_, S, L, P> {
+impl<P: OpenDrain> DisplayService<'_, P> {
     pub fn take(&mut self) -> Option<PendingCall> {
         self.kernel
             .next_host_request()

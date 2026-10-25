@@ -29,6 +29,10 @@ impl NativeAdmission {
     pub fn sign_owner_receipt(&self, receipt: &crate::native_owner_receipt::Receipt) -> [u8; 64] {
         self.key.sign(&receipt.transcript()).to_bytes()
     }
+    #[cfg(feature = "display-physical-check")]
+    pub fn sign_display_evidence(&self, offer: &crate::native_display_evidence::Offer) -> [u8; 64] {
+        self.key.sign(&offer.transcript()).to_bytes()
+    }
     /// Expiry is checked by the Body authority in its own clock domain. This
     /// responder validates the exact current scope and signs no install/start.
     pub fn sign(

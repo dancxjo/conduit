@@ -1,13 +1,15 @@
 //! Owned local Fore mechanics. Root separately admits the actual producer,
 //! consumer, scope, finite work and complete future backing before Release.
+#[cfg(not(feature = "display-physical-check"))]
 use super::{Execution, Exit, Outcome};
 use conduit_environment_runtime::display_packets::{validate_display_frame, DISPLAY_FRAME_BYTES};
-use conduit_kernel::{
-    self as k,
-    scheduler::{RemoteIngressOutcome, SchedulerStatus},
-};
+use conduit_kernel as k;
+#[cfg(not(feature = "display-physical-check"))]
+use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
+#[cfg(not(feature = "display-physical-check"))]
 use conduit_tm1637_wire::OpenDrain;
 use core::future::Future;
+#[cfg(not(feature = "display-physical-check"))]
 use embassy_futures::{
     select::{select, Either},
     yield_now,
@@ -49,6 +51,7 @@ pub trait LocalFore {
     /// This sequence belongs to the refusal Fore, not the original input Frame.
     fn refused(&mut self, sequence: u64) -> impl Future<Output = Result<(), k::Failure>>;
 }
+#[cfg(not(feature = "display-physical-check"))]
 impl<P: OpenDrain> Execution<P> {
     /// The caller exclusively owns both Fore directions. Pull only at an idle
     /// boundary, keeping one Frame in flight. The explicit input bound includes
@@ -180,6 +183,7 @@ impl<P: OpenDrain> Execution<P> {
         }
     }
 }
+#[cfg(not(feature = "display-physical-check"))]
 fn failed(code: k::FailureCode, detail: u16) -> Exit {
     Exit::Failed(k::Failure { code, detail })
 }

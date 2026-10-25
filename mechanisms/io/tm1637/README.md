@@ -67,7 +67,7 @@ refusal before effects, one-time provider transfer and replay refusal.
 The assigned tests drop the assignment storage before allocation-free invocation,
 then revoke and return that same provider through idle retirement. These are CPU
 fixtures, not actual initialized ESP32 pins, Root installation or complete native
-memory/work admission. The running firmware has not adopted this component yet.
+memory/work admission. The native display checkpoint now binds this owner; ordinary Mask admission remains separate.
 
 `WriteBack` is the finite sink in the production kernel. It consumes packet input,
 requests the selected zero-result Host Call and waits for that exact completion.

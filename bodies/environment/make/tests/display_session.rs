@@ -11,13 +11,13 @@ use conduit_environment_runtime::{display_output::DisplaySignBudget, display_pac
 use conduit_kernel::{
     self as k, scheduler::prepared_session::*, scheduler::SchedulerStatus, SignQuery, ValueStorage,
 };
-type Log = k::FixedSignLog<128>;
+type Log = k::FixedSignLog<64>;
 fn log(_: DisplaySignBudget) -> Log {
     fresh_log()
 }
 fn fresh_log() -> Log {
     Log::new_with_remote_storage(
-        128 * core::mem::size_of::<k::KernelEvent>() as u32,
+        64 * core::mem::size_of::<k::KernelEvent>() as u32,
         6,
         k::remote_sign_storage_bytes(6).unwrap(),
     )
@@ -142,6 +142,26 @@ fn checked_output_reuses_960_frames_with_conditional_refusals_and_no_allocations
                         .unwrap_or_else(|e| panic!("normal checked output drain: {:?}", e.reason));
                     assert!(old.signs.retention_gap().is_none());
                     assert!(old.signs.events().count() > 0);
+                    let mut wire =
+                        [0; conduit_environment_runtime::display_evidence::MAXIMUM_BYTES];
+                    let size = conduit_environment_runtime::display_evidence::encode(
+                        sequence,
+                        old.signs.events(),
+                        &old.signs,
+                        &mut wire,
+                    )
+                    .unwrap();
+                    let page =
+                        conduit_environment_runtime::display_evidence::Page::parse(&wire[..size])
+                            .unwrap();
+                    assert_eq!(page.invocation(), sequence);
+                    assert!(page.records().map(|r| r.event).eq(old.signs.events()));
+                    for record in page.records() {
+                        assert_eq!(
+                            record.remote,
+                            old.signs.remote_identity(record.event.sequence)
+                        );
+                    }
                 }
             }
         });

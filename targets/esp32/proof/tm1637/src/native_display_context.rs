@@ -26,7 +26,15 @@ impl NativeDisplay {
         if self.execution.is_some() {
             return Err("display-context-already-prepared");
         }
-        if available < core::mem::size_of::<execution::Execution<DisplayPins<'static>>>() + 8192 {
+        if available
+            < core::mem::size_of::<execution::Execution<DisplayPins<'static>>>()
+                + 8192
+                + if cfg!(feature = "display-physical-check") {
+                    2064
+                } else {
+                    0
+                }
+        {
             return Err("display-context-capacity");
         }
         self.execution = Some(execution::Execution::boxed_retained(
@@ -81,5 +89,26 @@ impl NativeDisplay {
         }
         self.phase = "task-owned";
         Ok(())
+    }
+}
+
+#[cfg(feature = "display-physical-check")]
+impl NativeDisplay {
+    pub fn copy_evidence(
+        &self,
+        output: &mut [u8],
+    ) -> Result<Option<(crate::native_owner_control::EvidenceReference, usize)>, &'static str> {
+        if let Some(worker) = self.worker.as_ref() {
+            worker.stage_terminal_evidence()?;
+        } else if let Some(execution) = self.execution.as_ref() {
+            execution.stage_evidence()?;
+        }
+        evidence_task::copy(output)
+    }
+    pub fn accept_evidence(
+        &self,
+        page: crate::native_owner_control::EvidenceReference,
+    ) -> Result<(), &'static str> {
+        evidence_task::accept(page)
     }
 }

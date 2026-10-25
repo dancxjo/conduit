@@ -15,6 +15,9 @@ use embassy_futures::{
 // Not activated by Root until its actual local caller/consumer are admitted.
 #[allow(dead_code)]
 pub mod fore;
+#[cfg(feature = "display-physical-check")]
+#[path = "native_display_session_fore.rs"]
+mod session_fore;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Progress {
@@ -40,6 +43,8 @@ pub struct Execution<P: OpenDrain> {
     progress: Progress,
     begun: bool,
     cleanup: Option<Result<(), &'static str>>,
+    #[cfg(feature = "display-physical-check")]
+    invocation: u64,
 }
 impl<P: OpenDrain> Execution<P> {
     /// Root admits this box and preparation headroom before transfer. Missing
@@ -63,12 +68,16 @@ impl<P: OpenDrain> Execution<P> {
         {
             return Err("display-execution-scope");
         }
+        #[cfg(feature = "display-physical-check")]
+        super::evidence_task::prepare()?;
         Ok(Box::new(Self {
             storage: storage.take().expect("checked kernel"),
             owner: owner.take(),
             progress: Progress::default(),
             begun: false,
             cleanup: None,
+            #[cfg(feature = "display-physical-check")]
+            invocation: 0,
         }))
     }
     /// Cancel actual dormant custody even if later kernel preparation refused.
@@ -176,11 +185,15 @@ impl<P: OpenDrain> Execution<P> {
         None
     }
     fn finish_run(&mut self, exit: Exit) -> Outcome {
-        let cleanup = if exit == Exit::Drained {
+        let mut cleanup = if exit == Exit::Drained {
             self.revoke()
         } else {
             self.quiesce()
         };
+        #[cfg(feature = "display-physical-check")]
+        if self.stage_evidence().is_err() {
+            cleanup = Err("display-evidence-retention");
+        }
         self.cleanup = Some(cleanup);
         Outcome {
             exit,
@@ -202,6 +215,8 @@ impl<P: OpenDrain> Execution<P> {
     /// One ordinary scheduler Step and at most its existing pending Host Call.
     /// Fore adapters supply values; they do not implement another scheduler.
     fn advance(&mut self) -> Result<SchedulerStatus, Exit> {
+        #[cfg(feature = "display-physical-check")]
+        super::task::mark_running();
         let mut service = DisplayService {
             kernel: &mut self.storage.kernel,
             selectors: &mut self.storage.selectors,
@@ -240,6 +255,13 @@ impl<P: OpenDrain> Execution<P> {
         execution: &mut Option<Box<Self>>,
     ) -> Result<crate::native_retirement::RetiredDisplay<P>, &'static str> {
         let current = execution.as_mut().ok_or("display-execution-unavailable")?;
+        #[cfg(feature = "display-physical-check")]
+        {
+            current.stage_evidence()?;
+            if super::evidence_task::pending() {
+                return Err("display-evidence-outstanding");
+            }
+        }
         if current.cleanup != Some(Ok(())) {
             return Err("display-cleanup-unconfirmed");
         }

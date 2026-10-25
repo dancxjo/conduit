@@ -46,6 +46,7 @@ fn command(
         fragment: prepared.fragment.as_str(),
         fragment_play: prepared.active.active_play_id.as_str(),
         assignment_seal: conduit_core::assigned_plan_payload_digest(&prepared.wire),
+        evidence: None,
     };
     let transcript = checked(request.transcript())?;
     let signature = authority.key.sign(&transcript).to_bytes();
@@ -270,6 +271,16 @@ pub fn run(
         let mut publications = 0;
         let mut output = std::fs::File::create(authority.state.join("native-observations.ndjson"))?;
         while Instant::now() < deadline && !STOP.load(Ordering::Relaxed) {
+            if prepared.display.is_some() {
+                crate::display_check::command(
+                    line,
+                    authority,
+                    &prepared,
+                    &device_key,
+                    owner::Operation::Inspect,
+                    &mut sequence,
+                )?;
+            }
             let before = Instant::now();
             let current = sequence;
             sequence += 1;
@@ -304,9 +315,6 @@ pub fn run(
                     std::thread::sleep(Duration::from_millis(250));
                     continue;
                 }
-                if !snapshot.fresh_within(5000, before.elapsed().as_millis() as u64) {
-                    return Err("stale native observation".into());
-                }
                 let channels = conduit_environment_runtime::publication::PublicationChannel::ALL;
                 let channel = *channels
                     .get(snapshot.channel as usize)
@@ -314,7 +322,7 @@ pub fn run(
                 checked(channel.validate_value(&exchange.publication))?;
                 let evidence = serde_json::json!({"body":body.evidence().body_id,"host":prepared.active.host_id,"boot":prepared.active.boot_id,
                 "plan":prepared.active.plan_id,"play":prepared.active.active_play_id,"receipt":receipt,
-                "request":exchange.request,"root_key":device_key,"root_signature":exchange.reply["acknowledgement_signature"],"canonical_bytes":exchange.publication});
+                "request":exchange.request,"root_key":device_key,"root_signature":exchange.reply["acknowledgement_signature"],"canonical_bytes":exchange.publication,"delivery_round_trip_ms":before.elapsed().as_millis()});
                 writeln!(output, "{evidence}")?;
                 output.sync_all()?;
                 println!(
@@ -329,19 +337,10 @@ pub fn run(
                     channel,
                     &exchange.publication,
                     snapshot.committed_millis,
+                    snapshot.observed_millis,
                     &authority.state,
                 )?;
                 publications += 1;
-                if prepared.display.is_some() {
-                    crate::display_check::command(
-                        line,
-                        authority,
-                        &prepared,
-                        &device_key,
-                        owner::Operation::Inspect,
-                        &mut sequence,
-                    )?;
-                }
                 if publications == limit {
                     break;
                 }

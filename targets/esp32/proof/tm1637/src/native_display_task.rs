@@ -270,3 +270,45 @@ async fn held(slot: &'static Slot) {
     // Same executor as Root: terminal custody is visible after this poll returns.
     update(|s| s.status.task_active = false);
 }
+
+#[cfg(feature = "display-physical-check")]
+pub fn report_boundary(
+    phase: &'static str,
+    progress: super::execution::Progress,
+    inspection: &conduit_core::CapabilityInspection,
+) {
+    update(|s| {
+        s.status.phase = phase;
+        s.status.progress_current = true;
+        s.status.steps = progress.steps;
+        s.status.native_calls = progress.native_calls;
+        s.status.software_calls = progress.software_calls;
+        s.status.native_in_flight = inspection.in_flight_operations;
+        s.status.native_lifecycle = match inspection.lifecycle {
+            conduit_core::CapabilityLifecycle::Issued => "issued",
+            conduit_core::CapabilityLifecycle::Revoked => "revoked",
+            conduit_core::CapabilityLifecycle::Exhausted => "exhausted",
+        };
+    });
+}
+#[cfg(feature = "display-physical-check")]
+impl Handle {
+    pub fn stage_terminal_evidence(&self) -> Result<(), &'static str> {
+        if !self.status().task_active {
+            if let Some(execution) = self.slot.execution.borrow().as_deref() {
+                execution.stage_evidence()?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(feature = "display-physical-check")]
+pub fn mark_running() {
+    update(|s| {
+        if !s.cancelled {
+            s.status.phase = "running";
+            s.status.progress_current = false;
+        }
+    });
+}

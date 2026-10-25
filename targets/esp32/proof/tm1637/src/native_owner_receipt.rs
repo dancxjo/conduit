@@ -10,6 +10,7 @@ pub enum State {
     Quiesced = 2,
     Observed = 3,
     Retired = 4,
+    EvidenceAccepted = 5,
 }
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]

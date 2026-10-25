@@ -219,6 +219,12 @@ where
         }
         result
     }
+    pub fn discard_host_value(
+        &mut self,
+        value: ValueRef,
+    ) -> Result<(), super::HostValueDiscardRefusal> {
+        self.kernel.discard_host_value(value)
+    }
     /// An explicit resident pin; it does not create or invalidate a ValueRef.
     pub fn retain_between_invocations(&mut self, value: ValueRef) -> Result<(), SchedulerError> {
         if !matches!(self.phase, Phase::Prepared | Phase::Drained) {

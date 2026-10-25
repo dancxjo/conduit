@@ -73,7 +73,7 @@ The focused CPU construction/output proof, including exact offer equivalence,
 stale-scope refusal, packet equivalence and allocation-free execution, enters
 through `cargo xtask prove environment display-output`.
 
-## Bounded physical display check
+## Bounded native display run
 
 Build the combined native diagnostic and, after flashing and a fresh Boot, run:
 
@@ -86,30 +86,42 @@ The Body workset contains the sampler and ordinary output Plot. Both are planned
 against actual current offers, held under separate exact reservations, and
 released after the same Body start. The output's exclusive local Fore borrows
 the actual MCU publication Face; no register commands or invented measurements
-arrive over UART. It renders Fahrenheit, waits three seconds, renders RH, then
-closes after exactly two Frames. The ordinary shared kernel performs selectors,
-packet computation and admitted native GPIO writes. Cancellation/retirement
-preserve both owners and report unresolved cleanup separately.
+arrive over UART. It alternates Fahrenheit and RH through the existing pure
+Mask/Look helper, with a three-second wait before the next page. The shared
+kernel retains the checked computations and routes across individual Frames;
+request identities and the original finite write ceiling survive reuse.
 
-This is an attended physical checkpoint. It applies the existing pure timed
-Mask/Look helper, **without claiming an admitted ordinary Mask Plot/route**.
-It does not continuously refresh or clear the display after those two writes.
+The physical profile admits at most 19,200 Frames. The owner remains attached:
+one complete invocation's evidence occupies a 64-record log and a bounded
+2,064-byte transport page. Linux verifies the device signature and exact page,
+persists it with its signed provenance, syncs both files and directory entries,
+then signs an acceptance bound to the Body, Boot, Play, invocation and digest.
+Only that acceptance allows buffer reuse. A missing acceptance pressures display
+output while the independent sampler continues. Wrong/stale acknowledgements
+cannot erase custody or replay writes. Owner control protocol 3 requires the
+matching owner executable and firmware; there is no implicit legacy fallback.
 
-The checked four-node output graph now has a CPU-proved reuse path: the existing
-kernel retains prepared expressions, selectors, routes and the electrical sink
-across bounded invocations. It preserves request generations and the original
-write ceiling. Its optional refusal output counts actual emitted values across
-empty invocations. `cargo xtask prove environment display-output` includes 960
-valid frames and a separate 960-frame alternating success/refusal run, with no
-execution allocations or evidence gaps. The largest observed complete invocation
-log is 36 records; that observation is not a worst-case admission bound. These
-tests use fixture native completions. Continuous firmware output still needs
-bounded evidence transfer/acknowledgement and complete Mask admission.
-Increasing the sampler count does not increase the output allowance. Continuous
-Mask admission, freshness/withdrawal and acknowledged sign retention over the
-whole output lifetime remain separate delivery work. With this diagnostic,
-`display_fit.physical_write` is null while counters are unavailable, then reports
-confirmed native-write completion; it is instrumentation, not an LED observation.
+The owner records publication commit and observation clocks in the MCU Boot
+domain. The Face's existing two-minute age policy determines freshness; a signed
+reading older than five seconds no longer terminates a minute-period appliance.
+The publication count bounds the attended run. On completion, the owner cancels
+output, archives terminal evidence, retires both owners and records Body lull.
+Increasing that count does not increase the finite display work ceiling.
+
+This remains an attended physical checkpoint, **without an admitted ordinary
+Mask Plot/route**. Final display blanking and a complete semantic withdrawal path
+remain open. Confirmed native completions and signed evidence are instrumented
+physical execution; LED appearance still requires human observation. The
+[measurement ledger](make/TARGET_CHECKPOINT.md#reusable-physical-output-and-evidence-handoff)
+records target RAM, flash, stack and the physical run.
+
+`cargo xtask prove environment display-output` covers complete checked-graph
+reuse, conditional refusal outputs, evidence encoding, custody, signed
+acknowledgements and host age policy. The 960-valid-frame and separate
+960-alternating-success/refusal CPU runs use zero execution allocations or
+reallocations and have no evidence gaps. They use fixture native completions;
+the largest observed complete invocation log is 36 records, not a worst-case
+admission claim.
 
 ## Pico comparative gate
 

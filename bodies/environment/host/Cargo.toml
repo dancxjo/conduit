@@ -7,11 +7,12 @@ publish = false
 [workspace]
 
 [dependencies]
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-core = { path = "../../../architecture/core" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-birth-plot = { path = "../../../plots/birth" }
 conduit-environment-make = { path = "../make" }
-conduit-environment-runtime = { path = "../runtime", features = ["construction", "body-image", "face-projection"] }
+conduit-environment-runtime = { path = "../runtime", features = ["construction", "body-image", "face-projection", "display-session"] }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 conduit-embedded-build = { path = "../../../make/embedded-build" }

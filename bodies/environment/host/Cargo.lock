@@ -176,6 +176,7 @@ dependencies = [
  "conduit-environment-make",
  "conduit-environment-runtime",
  "conduit-face",
+ "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-seven-segment-mask",
  "ed25519-dalek",
@@ -217,10 +218,12 @@ dependencies = [
  "conduit-environment-face",
  "conduit-face",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
  "conduit-time",
+ "conduit-tm1637-wire",
 ]
 
 [[package]]

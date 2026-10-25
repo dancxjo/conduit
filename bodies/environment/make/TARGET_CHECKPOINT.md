@@ -3,8 +3,10 @@
 **The ESP32 sampler now runs natively as a member of a Linux-owned Body.**
 The earlier self-contained ESP32 preparation failed; the current native sampler
 uses the Linux owner. Pico comparative preparation remains separately measured below.
-A separate bounded check now writes two physical display pages alongside the
-sampler. Continuous ordinary Mask execution remains open.
+The bounded native display run now repeats physical pages alongside the sampler
+with acknowledged evidence transfer. Its latest target checkpoint is
+[below](#reusable-physical-output-and-evidence-handoff). Ordinary Mask Plot
+admission remains open; the pure helper is still explicitly fenced.
 
 ## Linux first host, native ESP32 member
 
@@ -313,6 +315,76 @@ Immutable prefixes under `~/.cache/conduit/`:
 - `display-physical-final-display-control.ndjson`: SHA-256 `f1532444b89620be56df71e9efda3a4f0db469f9814639cdda25d6e1f3ac717b`.
 - `display-physical-final-native-control.ndjson`: SHA-256 `b7ad7de3a54c0742ed9af4aea229bb3659388dec3d5e620c8a2f2c5b5f269632`.
 - `display-physical-final-native-observations.ndjson`: SHA-256 `7846ec441e5c21829ce1266f5ee32373ceee2c40faff423ee47a9be3f44e9a6a`.
+
+## Reusable physical output and evidence handoff
+
+The combined image now retains one checked output kernel across finite Frame
+invocations instead of stopping after two pages. The admitted ceiling is 19,200
+Frames; its current timed Mask is still the pure helper, not an ordinary admitted
+Mask Plot. Each invocation has a 64-record Sign log. The largest observed valid
+or brightness-refusal trace has 36 records. This observation is not a worst-case
+bound: exceeding admitted work, retention gaps, failure and cancellation remain
+explicit outcomes, and unaccepted evidence prevents retirement.
+
+A canonical transport page preserves every event field and remote lifecycle
+identity. Its maximum is 2,064 bytes. Linux verifies a device-signed offer against
+its current command/Boot/Body/Play, persists the page and signed provenance,
+syncs the files and containing directories, then sends an owner-signed exact
+acceptance. Inspection, a wrong digest, stale acceptance or cancellation cannot
+clear page custody. Successful acceptance precedes the same kernel's rearm;
+Host Call request generations and remote cord sequences remain monotonic. The
+owner and image use control protocol 3. Complete CPU graph runs now use the same
+64-record reservation, with no execution allocations/reallocations or gaps.
+
+The first physical run verified three signed sensor publications, 27 native
+TM1637 writes and 28 archived evidence pages (including cancellation). Every
+ordinary output invocation used 36 records / 1,168 encoded bytes. Terminal
+cancellation used 80 encoded bytes. Signed display retirement, sampler
+cancellation/retirement and Body lull completed. This is hardware-ACK evidence;
+no human LED observation has been received for this run.
+
+Root used and peaked at **99,600 / 118,768 bytes**, unchanged across the three
+sensor publications. SDK used 33,408 / 73,728 bytes with observed peak 34,024.
+The image leaves **40,412 stack bytes**, above the unchanged 36,864-byte floor,
+and occupies **2,581,376 / 4,128,768 application flash bytes**. Package/symbol
+guards retain the indexed task planner, 25 reviewed Conduit runtime packages
+(165 total), and no Source parsing/checking/expansion symbols.
+
+Physical run:
+`~/.local/share/conduit/environment-host-20261025/runs/8b96452c-eae2-4659-9970-6b3100905385/`.
+Body `0a1872942a9e87b139ab05a668889b0835f3db88db0fd25342e484ff8043d88b`;
+Boot `boot/1067a66a046072227a140211b3d92415`.
+ELF: `~/.cache/conduit/esp32-display-session-20261025.elf`, SHA-256
+`dd98c220b4c080829d4cd23bb3119450b67443c138c18ba6364d20a1b957a66d`.
+Raw captures, pages, signatures and firmware remain outside Git.
+
+The first deliberate owner pause exposed an older host-only five-second
+observation cutoff: a valid minute-period reading arrived older than that and
+the attended owner failed closed, then completed signed cleanup. The corrected
+owner uses the existing Face's two-minute age policy and signed commit/observe
+clocks; delay is not collapsed into execution failure. Clock reversal still
+refuses before changing the source sequence. The regression and custody/signature
+proofs enter through `cargo xtask prove environment display-output`.
+
+The corrected pressure run stopped the Linux owner at a verified idle carrier
+boundary for 25 seconds. Its first resumed display receipt showed 37 native
+writes versus 36 before the pause: one pending invocation, not an accumulating
+queue. The same owner process accepted publication four after publication three
+before the pause, and continued without restarting the MCU or Body. The live
+run subsequently reached eight publications and more than 80 native writes,
+with Root usage/peak still 99,600 bytes. It remains active under
+`~/.local/share/conduit/environment-host-20261025/runs/0be52a98-7a51-49de-84b0-c8a85fbc3dbc/`.
+Body `0835be27b7b5d2c2b167be0fb50c289c86e2da13e0c98e969249cd80c6e925e8`;
+Boot `boot/6d27b5c6b52c1b0629faac9379de5528`.
+
+The closed physical run, exact ELF, pressure harness/capture and immutable
+four-publication prefix of the active run have verified external custody in
+`~/.local/share/conduit/evidence-archives/mcu-display-session-8b96452c-20261025.tar.gz`.
+SHA-256: `3ce8766def2adca735b22f9cc5bb924ba950666048b6b5b35b9ed3bdc87b7074`.
+Every archived member was checked against its retained manifest. Keep the archive,
+recovery images, current owner state and active run out of cleanup. No raw capture
+or firmware image is added to Git.
+
 
 ## Pico W comparative owned-preparation gate
 

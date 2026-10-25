@@ -1,27 +1,65 @@
 //! Checked output construction; this entrance installs no Body or native Play.
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
-    for (manifest, test) in [
-        ("architecture/plot/Cargo.toml", "compact_scalar_children"),
-        ("bodies/environment/make/Cargo.toml", "display_output"),
-        ("bodies/environment/make/Cargo.toml", "native_root_policy"),
-        ("bodies/environment/make/Cargo.toml", "display_compact"),
-        ("bodies/environment/make/Cargo.toml", "display_session"),
+    for (manifest, selector, test) in [
+        (
+            "architecture/plot/Cargo.toml",
+            "--test",
+            "compact_scalar_children",
+        ),
         (
             "bodies/environment/make/Cargo.toml",
+            "--test",
+            "display_output",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "native_root_policy",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "display_compact",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "display_session",
+        ),
+        (
+            "bodies/environment/host/Cargo.toml",
+            "--test",
+            "display_evidence",
+        ),
+        (
+            "bodies/environment/host/Cargo.toml",
+            "--bin",
+            "conduit-environment-host",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
             "display_compact_kernel",
         ),
-        ("bodies/environment/runtime/Cargo.toml", "display_packets"),
         (
             "bodies/environment/runtime/Cargo.toml",
+            "--test",
+            "display_packets",
+        ),
+        (
+            "bodies/environment/runtime/Cargo.toml",
+            "--test",
             "observation_templates",
         ),
         (
             "bodies/environment/runtime/Cargo.toml",
+            "--test",
             "display_value_budget",
         ),
         (
             "bodies/environment/runtime/Cargo.toml",
+            "--test",
             "display_frame_material",
         ),
     ] {
@@ -32,7 +70,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
                 "--locked",
                 "--manifest-path",
                 manifest,
-                "--test",
+                selector,
                 test,
             ]);
             if manifest == "bodies/environment/runtime/Cargo.toml" {

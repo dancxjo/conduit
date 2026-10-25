@@ -13,7 +13,11 @@ use esp_hal::gpio::Pin;
     any(feature = "display-ready-root", feature = "display-physical-check"),
     feature = "display-fit-root"
 ))]
-pub const CONSTRUCTION_FRAMES: u32 = 2;
+pub const CONSTRUCTION_FRAMES: u32 = if cfg!(feature = "display-physical-check") {
+    19_200
+} else {
+    2
+};
 #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 #[path = "native_display_assignment.rs"]
 mod assignment;
@@ -43,6 +47,13 @@ mod kernel;
 ))]
 #[path = "display_layout.rs"]
 mod layout;
+#[cfg(any(
+    feature = "display-ready-root",
+    feature = "display-physical-check",
+    feature = "display-fit-root"
+))]
+#[path = "native_display_runtime.rs"]
+mod runtime;
 #[cfg(any(feature = "display-ready-root", feature = "display-physical-check"))]
 #[path = "native_display_service.rs"]
 mod service;
@@ -54,6 +65,9 @@ mod software {
 mod check_task;
 #[path = "native_display_context.rs"]
 mod context;
+#[cfg(feature = "display-physical-check")]
+#[path = "native_display_evidence_task.rs"]
+mod evidence_task;
 #[cfg(feature = "display-fit-root")]
 #[path = "native_display_fit.rs"]
 pub(crate) mod fit;
@@ -338,7 +352,11 @@ impl NativeDisplay {
 ))]
 pub fn kernel_preparation_bound() -> Result<usize, &'static str> {
     let signs = conduit_environment_runtime::display_output::DisplaySignBudget::derive(
-        CONSTRUCTION_FRAMES,
+        if cfg!(feature = "display-physical-check") {
+            1
+        } else {
+            CONSTRUCTION_FRAMES
+        },
         layout::MINIMUM_SIGN_ITEMS,
         layout::MINIMUM_SIGN_BYTES,
     )
