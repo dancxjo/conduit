@@ -3,13 +3,15 @@ use serde::de::*;
 pub(super) const MAX_BYTES: usize = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;
 pub(super) const MARKER: &str = "conduit.private/packed-u8@2";
 pub(super) const PREFIX: &str = "~b64:";
-pub(super) fn extent(value: &str) -> Result<usize, ()> {
+// Constant-work shape/size check. Alphabet and canonical padding are checked by
+// extent during framing preflight, before typed visitors or allocations run.
+fn layout(value: &str) -> Result<(&[u8], usize, usize), ()> {
     let bytes = value.strip_prefix(PREFIX).ok_or(())?.as_bytes();
     if !bytes.len().is_multiple_of(4) {
         return Err(());
     }
     if bytes.is_empty() {
-        return Ok(0);
+        return Ok((bytes, 0, 0));
     }
     let padding =
         usize::from(bytes[bytes.len() - 1] == b'=') + usize::from(bytes[bytes.len() - 2] == b'=');
@@ -19,6 +21,13 @@ pub(super) fn extent(value: &str) -> Result<usize, ()> {
         .ok_or(())?;
     if length > MAX_BYTES {
         return Err(());
+    }
+    Ok((bytes, padding, length))
+}
+pub(super) fn extent(value: &str) -> Result<usize, ()> {
+    let (bytes, padding, length) = layout(value)?;
+    if bytes.is_empty() {
+        return Ok(0);
     }
     for (index, &byte) in bytes.iter().enumerate() {
         if byte == b'=' {
@@ -72,7 +81,12 @@ impl<'de, S: DeserializeSeed<'de>> DeserializeSeed<'de> for ValueSeed<S> {
 #[inline(never)]
 fn read<'de, D: Deserializer<'de>>(d: D) -> Result<Only<'de, D::Error>, D::Error> {
     let value = <&'de str>::deserialize(d)?;
-    let length = extent(value).map_err(|_| D::Error::custom("invalid packed bytes"))?;
+    // Both decode entrances run framing preflight first. The staged entrance
+    // retains those exact decoded bytes immutably until Commit. Reuse its
+    // alphabet/padding proof instead of rescanning every field during Commit;
+    // retain independent constant-work shape/size checks and checked sextet
+    // decoding below. This is not an entrance for unvalidated wire bytes.
+    let (_, _, length) = layout(value).map_err(|_| D::Error::custom("invalid packed bytes"))?;
     Ok(Only {
         value,
         length,
