@@ -270,7 +270,7 @@ pub(crate) fn no_eligible_error(
 }
 
 pub(crate) fn validate_placements(
-    gears: &[CheckedGear],
+    gears: &crate::planning_input::PlanningGears<'_>,
     hosts: &[HostAdvertisement],
     placements: &crate::PlacementChoices,
 ) -> Result<(), PlannerError> {
@@ -283,7 +283,8 @@ pub(crate) fn validate_placements(
             }
         }
     }
-    for gear in gears {
+    for gear in gears.iter() {
+        let gear = gear?;
         let choice = placements
             .by_gear
             .get(&gear.gear_id)
@@ -297,8 +298,8 @@ pub(crate) fn validate_placements(
             .iter()
             .find(|offer| offer.capability_id == choice.capability_id)
             .ok_or_else(|| PlannerError::UnknownCapability(choice.capability_id.as_str().into()))?;
-        super::validate_operation_capability(gear, offer)?;
-        validate_selected(gear, host, offer)?;
+        super::validate_operation_capability(&gear, offer)?;
+        validate_selected(&gear, host, offer)?;
     }
     Ok(())
 }

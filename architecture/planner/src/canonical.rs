@@ -179,7 +179,7 @@ pub fn plan_expanded_canonical_with_connection_limits(
         options,
         connection_limits,
     )?;
-    attach_source_spans(plot, &mut plan)?;
+    attach_source_spans(&plot.provenance, &mut plan)?;
     Ok(
         conduit_core::seal_plan_with_realization_backs_and_completion(
             conduit_core::PlotIdentity {
@@ -216,7 +216,7 @@ pub fn plan_expanded_canonical_consuming_with_connection_limits(
         options,
         connection_limits,
     )?;
-    attach_source_spans(&plot, &mut plan)?;
+    attach_source_spans(&plot.provenance, &mut plan)?;
     Ok(
         conduit_core::seal_plan_with_realization_backs_and_completion(
             PlotIdentity {
@@ -231,14 +231,16 @@ pub fn plan_expanded_canonical_consuming_with_connection_limits(
     )
 }
 
-fn attach_source_spans(plot: &ExpandedCanonicalPlot, plan: &mut Plan) -> Result<(), PlannerError> {
+pub(crate) fn attach_source_spans(
+    provenance: &[conduit_plot::ExpandedGearProvenance],
+    plan: &mut Plan,
+) -> Result<(), PlannerError> {
     for placement in plan
         .fragments
         .iter_mut()
         .flat_map(|fragment| &mut fragment.placements)
     {
-        let provenance = plot
-            .provenance
+        let provenance = provenance
             .iter()
             .find(|entry| entry.gear_id == placement.gear_id.as_str())
             .ok_or_else(|| {

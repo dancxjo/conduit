@@ -1034,3 +1034,6 @@ pub use language_coverage::{
 
 #[cfg(test)]
 mod language_coverage_tests;
+
+#[cfg(feature = "indexed-source")]
+pub mod indexed_source;

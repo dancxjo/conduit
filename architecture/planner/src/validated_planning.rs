@@ -1,6 +1,7 @@
 //! Assemble one Plan from already validated plot identities and native offers.
 use super::*;
 use crate::planning_input::PlanningInput;
+mod connections;
 mod quantity_wire;
 
 pub(crate) fn plan_validated_plot(
@@ -46,15 +47,13 @@ pub(crate) fn plan_input_with_connection_limits(
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
-    let line_policy = contract::LineMechanismPolicy::new(bases);
     let PlanningOptions {
-        connection_bases,
-        line_candidates,
         connection_item_capacity,
         connection_byte_capacity,
         authority_grants,
         protected_resource_grants,
         line_offers,
+        ..
     } = options;
     if connection_item_capacity == 0 || connection_byte_capacity == 0 {
         return Err(PlannerError::InvalidConnectionBudget(
@@ -100,7 +99,7 @@ pub(crate) fn plan_input_with_connection_limits(
     let mut placement_lookup = BTreeMap::<GearId, PlacementId>::new();
 
     for gear_index in 0..plot.gears.len() {
-        let gear = &plot.gears[gear_index];
+        let gear = plot.gears.get(gear_index)?;
         let choice = placements
             .by_gear
             .get(&gear.gear_id)
@@ -115,8 +114,8 @@ pub(crate) fn plan_input_with_connection_limits(
             .ok_or_else(|| {
                 PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
             })?;
-        validate_operation_capability(gear, capability)?;
-        validate_keep_retention(gear, capability)?;
+        validate_operation_capability(&gear, capability)?;
+        validate_keep_retention(&gear, capability)?;
 
         let count = placement_count
             .entry((host.host_id.clone(), capability.capability_id.clone()))
@@ -133,7 +132,7 @@ pub(crate) fn plan_input_with_connection_limits(
         let resource_bindings = resource_binding::bind_resources(
             host,
             capability,
-            gear,
+            &gear,
             protected_resource_grants,
             resource_binding::ResourcePlanningState {
                 writers: &mut resource_writers,
@@ -217,7 +216,13 @@ pub(crate) fn plan_input_with_connection_limits(
             authority: authority_bindings,
             pool_references: gear.pool_references.clone(),
         };
-        planned.configuration = plot.take_configuration(gear_index);
+        planned.configuration = match gear {
+            alloc::borrow::Cow::Owned(gear) => {
+                plot.gears.retain_connection_facts(&gear);
+                gear.configuration
+            }
+            alloc::borrow::Cow::Borrowed(_) => plot.gears.take_memory_configuration(gear_index),
+        };
         planned_gears.push(planned);
     }
 
@@ -229,141 +234,20 @@ pub(crate) fn plan_input_with_connection_limits(
     }
 
     for gear in placements.by_gear.keys() {
-        if !plot.gears.iter().any(|item| &item.gear_id == gear) {
+        if plot.gears.connection_gear(gear).is_none() {
             return Err(PlannerError::UnknownGear(gear.as_str().to_string()));
         }
     }
 
-    let quantity_contracts = quantity_wire::contracts(&planned_gears)?;
-    let mut planned_connections = Vec::<PlannedConnection>::new();
-    for connection in plot.connections {
-        quantity_wire::validate_connection(connection, &quantity_contracts)?;
-        let limits = connection_limits
-            .get(&connection_endpoints(connection))
-            .copied()
-            .unwrap_or(ConnectionQueueLimits {
-                item_capacity: connection_item_capacity,
-                byte_capacity: connection_byte_capacity,
-            });
-        quantity_wire::validate_capacity(connection, &quantity_contracts, limits.byte_capacity)?;
-        let source_placement = placement_lookup
-            .get(&connection.source_gear_id)
-            .ok_or_else(|| {
-                PlannerError::UnknownGear(connection.source_gear_id.as_str().to_string())
-            })?;
-        let sink_placement = placement_lookup
-            .get(&connection.sink_gear_id)
-            .ok_or_else(|| {
-                PlannerError::UnknownGear(connection.sink_gear_id.as_str().to_string())
-            })?;
-        let source_plan = planned_gears
-            .iter()
-            .find(|item| &item.placement_id == source_placement)
-            .expect("source placement must exist");
-        let sink_plan = planned_gears
-            .iter()
-            .find(|item| &item.placement_id == sink_placement)
-            .expect("sink placement must exist");
-        let source_gear = plot
-            .gears
-            .iter()
-            .find(|gear| gear.gear_id == connection.source_gear_id)
-            .expect("checked source gear must exist");
-        let sink_gear = plot
-            .gears
-            .iter()
-            .find(|gear| gear.gear_id == connection.sink_gear_id)
-            .expect("checked sink gear must exist");
-        crate::value_storage::validate_capacity(
-            connection,
-            source_gear,
-            sink_gear,
-            limits.byte_capacity,
-        )?;
-        let resource = resource_port::plan_resource_connection(
-            connection,
-            source_gear,
-            sink_gear,
-            source_plan,
-            sink_plan,
-        )?;
-        let (selected_line, admitted_lines) = select_line(LineSelection {
-            source: source_plan,
-            sink: sink_plan,
-            policy: line_policy,
-            requested: connection_bases
-                .get(&(
-                    connection.source_gear_id.clone(),
-                    connection.sink_gear_id.clone(),
-                ))
-                .cloned(),
-            requested_candidates: line_candidates.get(&(
-                connection.source_gear_id.clone(),
-                connection.sink_gear_id.clone(),
-            )),
-            line_offers,
-            connection_item_capacity: limits.item_capacity,
-            connection_byte_capacity: limits.byte_capacity,
-        })?;
-        let source_capability =
-            find_capability(hosts, &source_plan.host_id, &source_plan.capability_id)?;
-        let sink_capability = find_capability(hosts, &sink_plan.host_id, &sink_plan.capability_id)?;
-        if limits.item_capacity > source_capability.limits.max_queue_items
-            || limits.item_capacity > sink_capability.limits.max_queue_items
-        {
-            return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
-                "connection from '{}' to '{}' requires item capacity {}",
-                source_plan.gear_id.as_str(),
-                sink_plan.gear_id.as_str(),
-                limits.item_capacity
-            )));
-        }
-        if limits.byte_capacity > source_capability.limits.max_queue_bytes
-            || limits.byte_capacity > sink_capability.limits.max_queue_bytes
-        {
-            return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
-                "connection from '{}' to '{}' requires byte capacity {}",
-                source_plan.gear_id.as_str(),
-                sink_plan.gear_id.as_str(),
-                limits.byte_capacity
-            )));
-        }
-        planned_connections.push(PlannedConnection {
-            connection_id: ConnectionId::from(hash_string(&format!(
-                "connection:{}:{}:{}:{}:{}:{}:{}:{}",
-                plot.checked_plot_id.as_str(),
-                connection.source_gear_id.as_str(),
-                connection.source_port_id.as_str(),
-                connection.sink_gear_id.as_str(),
-                connection.sink_port_id.as_str(),
-                connection.value_kind.as_str(),
-                connection.track.as_str(),
-                connection.temporal.as_str(),
-            ))),
-            source_placement_id: source_plan.placement_id.clone(),
-            source_port_id: connection.source_port_id.clone(),
-            sink_placement_id: sink_plan.placement_id.clone(),
-            sink_port_id: connection.sink_port_id.clone(),
-            value_kind: connection.value_kind.clone(),
-            resource,
-            abnormal_kind: source_capability
-                .outputs
-                .iter()
-                .find(|port| port.port_id == connection.source_port_id)
-                .and_then(|port| port.abnormal_kind.clone()),
-            track: connection.track,
-            temporal: connection.temporal,
-            pressure_policy: if source_plan.kind_id.as_str() == "flow/coalesce-latest" {
-                DeliveryPressurePolicy::CoalesceLatest
-            } else {
-                DeliveryPressurePolicy::PreserveOrder
-            },
-            selected_line,
-            admitted_lines,
-            item_capacity: limits.item_capacity,
-            byte_capacity: limits.byte_capacity,
-        });
-    }
+    let planned_connections = connections::plan(
+        &plot,
+        hosts,
+        &planned_gears,
+        &placement_lookup,
+        bases,
+        options,
+        connection_limits,
+    )?;
 
     let global_startup_order = startup::startup_order(&planned_gears, &planned_connections)?
         .ok_or_else(|| PlannerError::CyclicStartupDependencies(plot.name.into()))?;

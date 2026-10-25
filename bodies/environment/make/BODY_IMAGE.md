@@ -154,8 +154,16 @@ sampling Source to belong to the Body workset. Identity-only reading peaks at
 200 additional heap bytes in the CPU proof. Full metadata decoding peaks at
 25,420 bytes and the largest Gear at 63,851, versus 121,391 for a complete graph
 clone. These phases are not interchangeable or additive admission evidence.
-Ordinary planning still needs to consume this indexed material without retaining
-the full header/graph; that integration and combined Xtensa proof remain open.
+Ordinary planning can now consume this indexed material through the same node,
+authority, resource, quantity, Cord and queue checks as its in-memory entrance.
+It retains only checked Fore/resource facts for later Cord admission instead of
+reloading whole Gear programs. Complete Plan identity and tested refusals match.
+The CPU peak is **214,958 bytes**, versus **259,587** when the measurement window
+includes a decoded graph clone and consuming planning. The indexed proof enforces
+a 224 KiB CPU ceiling. Caller-owned offers/software and immutable image storage
+are outside both windows; these are not complete Xtensa admission bounds.
+The result is still a rich Plan. Further compact preparation and integration
+with the local Body owner are required before autonomous native startup.
 
 The rich Plan is still needed during construction and execution preparation.
 These host measurements do not establish that Root, biography, sampling, timed

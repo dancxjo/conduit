@@ -171,7 +171,12 @@ fn compute_minima_use_the_same_exact_selected_base_pool_resolution() {
         host.resources[index].capacity_units = requirement.units;
     }
     let hosts = BTreeMap::from([(host.host_id.clone(), &host)]);
-    let minima = crate::compute_admission::admit_minima(&plot.gears, &hosts, &choices).unwrap();
+    let minima = crate::compute_admission::admit_minima(
+        &crate::planning_input::PlanningGears::borrowed(&plot.gears),
+        &hosts,
+        &choices,
+    )
+    .unwrap();
     for pool in &host.resources {
         assert_eq!(
             minima[&(host.host_id.clone(), pool.pool_id.clone())],
@@ -180,7 +185,12 @@ fn compute_minima_use_the_same_exact_selected_base_pool_resolution() {
     }
     host.bases[0].resource_pool_ids.clear();
     let hosts = BTreeMap::from([(host.host_id.clone(), &host)]);
-    let shared = crate::compute_admission::admit_minima(&plot.gears, &hosts, &choices).unwrap();
+    let shared = crate::compute_admission::admit_minima(
+        &crate::planning_input::PlanningGears::borrowed(&plot.gears),
+        &hosts,
+        &choices,
+    )
+    .unwrap();
     assert_eq!(
         shared[&(host.host_id.clone(), host.resources[0].pool_id.clone())],
         requirement.units
@@ -189,7 +199,12 @@ fn compute_minima_use_the_same_exact_selected_base_pool_resolution() {
         .resource_pool_ids
         .push(host.resources[0].pool_id.clone());
     let hosts = BTreeMap::from([(host.host_id.clone(), &host)]);
-    assert!(crate::compute_admission::admit_minima(&plot.gears, &hosts, &choices).is_err());
+    assert!(crate::compute_admission::admit_minima(
+        &crate::planning_input::PlanningGears::borrowed(&plot.gears),
+        &hosts,
+        &choices
+    )
+    .is_err());
 }
 
 #[test]

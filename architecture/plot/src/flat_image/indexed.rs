@@ -38,6 +38,18 @@ impl IndexedSourceMetadata {
             expanded_plot_id: self.source.expanded_plot_id.clone(),
         }
     }
+    pub fn name(&self) -> &str {
+        &self.source.name
+    }
+    pub fn completion(&self) -> PlotCompletionPolicy {
+        self.source.completion
+    }
+    pub fn connections(&self) -> &[crate::CheckedConnection] {
+        &self.source.connections
+    }
+    pub fn provenance(&self) -> &[ExpandedGearProvenance] {
+        &self.source.provenance
+    }
     /// Hosted conformance/reconstruction; an MCU planner need not materialize
     /// this collection. Restores and validates the original complete expansion.
     pub fn into_expanded(mut self, gears: Vec<CheckedGear>) -> Result<ExpandedCanonicalPlot, E> {

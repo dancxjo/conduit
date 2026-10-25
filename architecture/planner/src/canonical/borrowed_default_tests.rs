@@ -39,7 +39,7 @@ fn borrowed_default_preserves_plan_spans_completion_and_refusals() {
             options,
         )
         .and_then(|mut plan| {
-            attach_source_spans(&expanded, &mut plan)?;
+            attach_source_spans(&expanded.provenance, &mut plan)?;
             Ok(
                 conduit_core::seal_plan_with_realization_backs_and_completion(
                     PlotIdentity {
@@ -64,6 +64,24 @@ fn borrowed_default_preserves_plan_spans_completion_and_refusals() {
             &BTreeMap::new(),
         );
         assert_eq!(current, consumed);
+        #[cfg(feature = "indexed-source")]
+        {
+            let bytes = conduit_plot::flat_image::indexed::encode(&expanded).unwrap();
+            // SAFETY: this encoder just validated the same checked Source.
+            let image = unsafe {
+                conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(&bytes)
+            }
+            .unwrap();
+            let indexed = crate::indexed_source::plan_with_connection_limits(
+                &image,
+                &hosts,
+                &placements,
+                &bases,
+                options,
+                &BTreeMap::new(),
+            );
+            assert_eq!(current, indexed);
+        }
         assert_eq!(current, legacy);
         if queue_items == 1 {
             let plan = current.unwrap();

@@ -1,7 +1,8 @@
 //! Guaranteed minimum value storage, distinct from permitted maximum size.
+use crate::planning_input::ConnectionGear;
 use crate::PlannerError;
 use conduit_core::{CheckedFront, ConnectionTrack, FrontValueLocation, ValueConstraint};
-use conduit_plot::{CheckedConnection, CheckedGear};
+use conduit_plot::CheckedConnection;
 
 fn minimum_at(front: &CheckedFront, location: FrontValueLocation) -> u32 {
     front
@@ -39,14 +40,14 @@ fn required_minimum(
 
 pub(crate) fn validate_capacity(
     connection: &CheckedConnection,
-    source: &CheckedGear,
-    sink: &CheckedGear,
+    source: &ConnectionGear<'_>,
+    sink: &ConnectionGear<'_>,
     byte_capacity: u32,
 ) -> Result<(), PlannerError> {
     let required = required_minimum(
-        &source.checked_front(),
+        &source.front(),
         &connection.source_port_id,
-        &sink.checked_front(),
+        &sink.front(),
         &connection.sink_port_id,
         connection.track,
     );

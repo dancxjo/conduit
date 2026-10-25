@@ -1,9 +1,13 @@
 //! Borrow reusable checked content, or transfer retiring configuration buffers.
-use alloc::{borrow::Cow, vec::Vec};
+use alloc::vec::Vec;
+mod connection_gear;
+mod gears;
 use conduit_core::{CheckedPlotId, ExpandedPlotId, PlotIdentity, SourceDocumentId};
 use conduit_plot::{
     CheckedConnection, CheckedGear, CheckedPlot, ExpandedCanonicalPlot, PlotCompletionPolicy,
 };
+pub(crate) use connection_gear::ConnectionGear;
+pub(crate) use gears::PlanningGears;
 
 pub(crate) struct PlanningInput<'a> {
     pub source_document_id: &'a SourceDocumentId,
@@ -11,20 +15,14 @@ pub(crate) struct PlanningInput<'a> {
     pub expanded_plot_id: &'a ExpandedPlotId,
     pub name: &'a str,
     pub completion: PlotCompletionPolicy,
-    pub gears: Cow<'a, [CheckedGear]>,
+    pub gears: PlanningGears<'a>,
     pub connections: &'a [CheckedConnection],
 }
 
 impl PlanningInput<'_> {
-    pub fn take_configuration(&mut self, index: usize) -> Vec<conduit_core::ConfigurationEntry> {
-        match &mut self.gears {
-            Cow::Borrowed(gears) => gears[index].configuration.clone(),
-            Cow::Owned(gears) => core::mem::take(&mut gears[index].configuration),
-        }
-    }
     pub fn consuming(plot: &ExpandedCanonicalPlot, gears: Vec<CheckedGear>) -> PlanningInput<'_> {
         let mut input = PlanningInput::from(plot);
-        input.gears = Cow::Owned(gears);
+        input.gears = PlanningGears::owned(gears);
         input
     }
     pub fn identity(&self) -> PlotIdentity {
@@ -44,7 +42,7 @@ impl<'a> From<&'a CheckedPlot> for PlanningInput<'a> {
             expanded_plot_id: &plot.expanded_plot_id,
             name: &plot.name,
             completion: plot.completion,
-            gears: Cow::Borrowed(&plot.gears),
+            gears: PlanningGears::borrowed(&plot.gears),
             connections: &plot.connections,
         }
     }
@@ -58,7 +56,7 @@ impl<'a> From<&'a ExpandedCanonicalPlot> for PlanningInput<'a> {
             expanded_plot_id: &plot.expanded_plot_id,
             name: &plot.name,
             completion: plot.completion,
-            gears: Cow::Borrowed(&plot.gears),
+            gears: PlanningGears::borrowed(&plot.gears),
             connections: &plot.connections,
         }
     }
