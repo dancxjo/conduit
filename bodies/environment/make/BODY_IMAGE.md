@@ -6,7 +6,9 @@ other hosts to join later. Local sampling and seven-segment display do not
 depend on a connected browser or Pi.
 
 `PreparedBodyImage` uses the existing Crèche `BirthDraft` for its generated
-friendly name and exact reviewed initial plot selection. Make supplies the
+friendly name and exact reviewed initial plot selection. `EnvironmentBodyImage::prepare`
+checks the current appliance and display-output Sources and selects their real
+checked identities, retaining both expanded identities for linking. Make supplies the
 construction UUID and attributable birth Sign. The ordinary body biography
 retains the name, so boot does not regenerate it. The name is metadata;
 independent births retain distinct identities even when their names coincide.

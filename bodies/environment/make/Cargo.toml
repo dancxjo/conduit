@@ -24,6 +24,4 @@ conduit-host-browser-make = { path = "../../../targets/browser/make" }
 conduit-face = { path = "../../../semantics/face", features = ["plot-catalog"] }
 conduit-plot = { path = "../../../architecture/plot" }
 serde_json = "1"
-
-[dev-dependencies]
-conduit-environment-runtime = { path = "../runtime" }
+conduit-environment-runtime = { path = "../runtime", features = ["construction"] }

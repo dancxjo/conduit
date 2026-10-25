@@ -76,3 +76,29 @@ fn invalid_or_unselected_workload_cannot_be_baked_as_a_running_appliance() {
         Err(BodyImageRefusal::Draft(BirthDraftRefusal::Naming(_)))
     ));
 }
+
+#[test]
+fn environment_image_selects_the_actual_checked_sources() {
+    let image = conduit_environment_make::EnvironmentBodyImage::prepare(
+        UUID.into(),
+        1,
+        "sign/build/checked-environment".into(),
+    )
+    .unwrap();
+    let sampling = conduit_environment_runtime::construction::compile_default().unwrap();
+    let display = conduit_environment_make::DisplayOutputSource::compile().unwrap();
+    let workset = &image.body.evidence().body.workset;
+    assert_eq!(workset.len(), 2);
+    for plot in [&sampling.expanded, &display.plot.expanded] {
+        assert!(workset
+            .plots()
+            .iter()
+            .any(
+                |resident| resident.source_document_id == plot.source_document_id
+                    && resident.checked_plot_id == plot.checked_plot_id
+            ));
+    }
+    assert_eq!(image.sampling, sampling.expanded.expanded_plot_id);
+    assert_eq!(image.display, display.plot.expanded.expanded_plot_id);
+    assert!(image.body.evidence().membership.parts.is_empty());
+}
