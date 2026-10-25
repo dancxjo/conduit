@@ -55,3 +55,15 @@ rewritten clone with the proposed policy. Preserve original source backups,
 payload exports, immutable custody, final maps and refusal evidence. The policy
 does not replace those global migration checks, authorize a force push, or make
 the rewritten source inherit historical runtime acceptance.
+
+The original documentary website archive is preserved independently in the
+[immutable documentary-history release](https://github.com/dancxjo/conduit-evidence/releases/tag/documentary-history-20261025-0218a5040676)
+(release423665080, archive asset676137304). Site assembly reads that archive
+with the unchanged SHA256
+`0218a50406761390aba1f00f84ccd178018782dfa89527f293d8ac66b9aa76c2`,
+without depending on the old source commit remaining downloadable. Its5,581,556
+bytes match the previously pinned codeload archive; all295 journey files match
+the original commit's blob bytes and modes. The release manifest records that
+inventory, and all three release assets passed a fresh download/hash check
+before publication and immutable-state observation. Site custody retains the
+original capture commit and archive identity; this is no new execution proof.

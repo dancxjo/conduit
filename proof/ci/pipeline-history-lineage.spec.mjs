@@ -5,6 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { deflateSync } from 'node:zlib';
 import { prepareCaptureLineagePolicy } from '../../tools/ci/pipeline/history-lineage-create.mjs';
 import { CAPTURE_LINEAGE_POLICY, createCaptureLineagePolicy, historyMap, requireCaptureLineage } from '../../tools/ci/pipeline/history-lineage.mjs';
 
@@ -263,4 +264,55 @@ test('matching root OID cannot hide a missing nested source tree', t => {
   const publication = f.install(policy);
   rmSync(path.join(f.mapped.cwd, '.git/objects', child.slice(0, 2), child.slice(2)));
   assert.throws(() => requireCaptureLineage(original, publication, { cwd: f.mapped.cwd }), /Git refused ls-tree/);
+});
+
+test('matching source tree cannot hide a missing leaf blob', t => {
+  const f = fixture(t); const publication = f.install();
+  const blob = f.mapped.git(['rev-parse', `${f.rewritten}:source.txt`]);
+  rmSync(path.join(f.mapped.cwd, '.git/objects', blob.slice(0, 2), blob.slice(2)));
+  assert.throws(() => f.check(publication), /source object missing/);
+});
+
+test('source blobs are hashed rather than trusted by their stored object name', t => {
+  const f = fixture(t); const publication = f.install();
+  const blob = f.mapped.git(['rev-parse', `${f.rewritten}:source.txt`]);
+  const changed = Buffer.from('changed source!!'); // Same length as the original content.
+  const object = Buffer.concat([Buffer.from(`blob ${changed.length}\0`), changed]);
+  const file = path.join(f.mapped.cwd, '.git/objects', blob.slice(0, 2), blob.slice(2));
+  rmSync(file); writeFileSync(file, deflateSync(object));
+  assert.throws(() => f.check(publication), /source object contents differ/);
+});
+
+test('gitlinks do not require submodule commit objects in the source repository', t => {
+  const f = fixture(t); const external = 'f'.repeat(40);
+  const oldTree = f.old.git(['mktree'], `160000 commit ${external}\tdependency\n`);
+  const newTree = f.mapped.git(['mktree'], `160000 commit ${external}\tdependency\n`);
+  const original = f.old.commit(oldTree, [f.originalBase], 'submodule capture\n');
+  const mapped = f.mapped.commit(newTree, [f.mappedBase], 'submodule capture\n');
+  const mapBytes = Buffer.from(`old new\n${f.originalBase} ${f.mappedBase}\n${original} ${mapped}\n`);
+  const policy = createCaptureLineagePolicy({ ...f.options, captures: [original], mapBytes,
+    mapAsset: { ...f.options.mapAsset, bytes: mapBytes.length, sha256: hash(mapBytes) } });
+  f.mapped.git(['reset', '--hard', mapped]);
+  const publication = f.install(policy);
+  assert.equal(requireCaptureLineage(original, publication, { cwd: f.mapped.cwd }).mappedCaptureSource, mapped);
+  assert.throws(() => f.mapped.git(['cat-file', '-t', external]));
+});
+
+test('nested source tree contents must match their referenced object hash', t => {
+  const f = fixture(t);
+  const child = f.old.tree('file.txt', 'nested source');
+  const original = f.old.commit(f.old.git(['mktree'], `040000 tree ${child}\tsrc\n`), [f.originalBase]);
+  const newChild = f.mapped.tree('file.txt', 'nested source');
+  const mapped = f.mapped.commit(f.mapped.git(['mktree'], `040000 tree ${newChild}\tsrc\n`), [f.mappedBase]);
+  const mapBytes = Buffer.from(`old new\n${f.originalBase} ${f.mappedBase}\n${original} ${mapped}\n`);
+  const policy = createCaptureLineagePolicy({ ...f.options, captures: [original], mapBytes,
+    mapAsset: { ...f.options.mapAsset, bytes: mapBytes.length, sha256: hash(mapBytes) } });
+  f.mapped.git(['reset', '--hard', mapped]);
+  const publication = f.install(policy);
+  const raw = execFileSync('git', ['cat-file', 'tree', child], { cwd: f.mapped.cwd });
+  const changed = Buffer.from(raw); changed.write('evil.txt', changed.indexOf('file.txt'));
+  const object = Buffer.concat([Buffer.from(`tree ${changed.length}\0`), changed]);
+  const file = path.join(f.mapped.cwd, '.git/objects', child.slice(0, 2), child.slice(2));
+  rmSync(file); writeFileSync(file, deflateSync(object));
+  assert.throws(() => requireCaptureLineage(original, publication, { cwd: f.mapped.cwd }), /source object contents differ/);
 });

@@ -62,12 +62,62 @@ function verifyPair(pair, root, count) {
   if (countedRoot(current, count) !== root) fail('capture or parent is not in authenticated map');
 }
 
-function invokeGit(cwd, args, maxBuffer = 16 * 1024 * 1024) {
+function invokeGit(cwd, args, maxBuffer = 16 * 1024 * 1024, input) {
+  if (input && input.length > 4 * 1024 * 1024) fail('Git input exceeds bound');
   const result = spawnSync('git', ['--no-replace-objects', '-c', 'core.commitGraph=false', ...args], {
-    cwd, maxBuffer, timeout: 120000, env: { ...process.env, GIT_NO_LAZY_FETCH: '1' },
+    cwd, input, maxBuffer, timeout: 120000, env: { ...process.env, GIT_NO_LAZY_FETCH: '1' },
   });
   if (result.error || result.signal || result.status !== 0) fail(`Git refused ${args[0]}`);
   return result.stdout;
+}
+
+// Tree traversal checks nested trees, but ls-tree never reads leaf blobs. Read
+// bounded batches and verify each canonical Git object hash as well as presence.
+function verifySourceObjects(cwd, listing) {
+  const ids = new Map();
+  for (const row of listing.toString('latin1').split('\0').filter(Boolean)) {
+    const header = row.slice(0, row.indexOf('\t'));
+    const match = /^(040000|100644|100755|120000|160000) (tree|blob|commit) ([a-f0-9]{40})$/.exec(header);
+    if (!match) fail('malformed source tree entry');
+    const [, mode, kind, oid] = match;
+    if (mode === '160000' && kind === 'commit') continue; // Submodule objects live in another repository.
+    if (!(mode === '040000' && kind === 'tree') &&
+        (!['100644', '100755', '120000'].includes(mode) || kind !== 'blob')) fail('invalid source tree mode');
+    if (ids.has(oid) && ids.get(oid) !== kind) fail('source object types conflict');
+    ids.set(oid, kind);
+    if (ids.size > 100000) fail('source object count exceeds bound');
+  }
+  if (!ids.size) return;
+  const input = Buffer.from([...ids.keys()].map(oid => `${oid}\n`).join(''));
+  const inventory = invokeGit(cwd, ['cat-file', '--batch-check'], 16 * 1024 * 1024, input).toString('ascii').trimEnd().split('\n');
+  if (inventory.length !== ids.size) fail('source object inventory differs');
+  const objects = []; let total = 0;
+  for (const [index, [oid, kind]] of [...ids].entries()) {
+    const match = /^([a-f0-9]{40}) (blob|tree) (0|[1-9][0-9]*)$/.exec(inventory[index]);
+    if (!match || match[1] !== oid || match[2] !== kind) fail('source object missing or wrong object type');
+    const size = Number(match[3]);
+    if (!Number.isSafeInteger(size) || size > 64 * 1024 * 1024) fail('source object exceeds bound');
+    total += size;
+    if (total > 1024 ** 3) fail('source object bytes exceed bound');
+    objects.push({ oid, kind, size });
+  }
+  for (let start = 0; start < objects.length;) {
+    const batch = []; let bytes = 0;
+    do {
+      const item = objects[start++]; batch.push(item); bytes += item.size + 128;
+    } while (start < objects.length && bytes + objects[start].size + 128 <= 32 * 1024 * 1024);
+    const output = invokeGit(cwd, ['cat-file', '--batch'], 65 * 1024 * 1024,
+      Buffer.from(batch.map(item => `${item.oid}\n`).join('')));
+    let offset = 0;
+    for (const item of batch) {
+      const end = output.indexOf('\n', offset);
+      if (end < offset || output.subarray(offset, end).toString('ascii') !== `${item.oid} ${item.kind} ${item.size}`) fail('source object response differs');
+      const data = output.subarray(end + 1, end + 1 + item.size);
+      offset = end + 1 + item.size;
+      if (data.length !== item.size || output[offset++] !== 10 || objectId(item.kind, data) !== item.oid) fail('source object contents differ');
+    }
+    if (offset !== output.length) fail('source object response has trailing bytes');
+  }
 }
 
 function parseCommit(raw) {
@@ -172,7 +222,7 @@ function verifyCaptureWitness(policy, capture, cwd) {
   const tree = invokeGit(cwd, ['cat-file', 'tree', original.tree]);
   if (objectId('tree', tree) !== original.tree) fail('mapped source tree object differs');
   // A missing nested tree must not be hidden behind matching root OIDs.
-  invokeGit(cwd, ['ls-tree', '-r', '-t', '-z', original.tree]);
+  verifySourceObjects(cwd, invokeGit(cwd, ['ls-tree', '-r', '-t', '-z', original.tree]));
 }
 
 /** Only a policy committed at HEAD may bridge a historical capture. Runtime
