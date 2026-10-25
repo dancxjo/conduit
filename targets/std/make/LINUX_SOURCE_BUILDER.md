@@ -84,7 +84,9 @@ builder user on the workspace and output filesystems at each bounds observation.
 This fixed safety floor protects these supported large ConduitOS builds from
 cooperative low-space pressure; it is not a reservation or quota and concurrent
 writers can consume space between observations. Fresh builds disable Cargo
-incremental output because their isolated target directory has no reuse.
+incremental output because their isolated target directory has no reuse. The
+one-shot host make helper also omits dev debug symbols; the target kernel
+still uses its selected release profile, and final bytes are independently hashed.
 
 Bounded raw stdout/stderr files remain in the admitted workspace, including on
 failure or cancellation. They refuse existing paths and count toward workspace

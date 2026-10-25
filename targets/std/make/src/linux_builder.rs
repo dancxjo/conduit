@@ -317,6 +317,10 @@ impl ReviewedBuilderBackend for LinuxSourceBuilder {
             // ordinary driver overhead can run. Keep finite headroom and avoid
             // multiplying this Host's compiler memory demand on large machines.
             .env("CARGO_INCREMENTAL", "0")
+            // The make helper executes once. Its host-side debug symbols add
+            // substantial private workspace cost without changing the target
+            // release profile or supplying useful deployment evidence.
+            .env("CARGO_PROFILE_DEV_DEBUG", "0")
             .env(
                 "CARGO_BUILD_JOBS",
                 (bounds.maximum_processes / 4).clamp(1, 4).to_string(),
