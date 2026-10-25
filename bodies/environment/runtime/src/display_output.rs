@@ -19,7 +19,7 @@ use conduit_tm1637_wire::WriteBack;
 mod assigned;
 pub use assigned::{
     AssignedDisplayInput, AssignedDisplayProfile, AssignedDisplayRefusal, AssignedDisplayScope,
-    PreparedAssignedDisplayKernel,
+    OutputSoftware, PreparedAssignedDisplayKernel,
 };
 #[path = "display_output_validation.rs"]
 mod validation;

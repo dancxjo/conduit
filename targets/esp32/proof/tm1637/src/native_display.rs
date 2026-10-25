@@ -9,7 +9,7 @@ use conduit_tm1637_wire::{
     WriteContract,
 };
 use esp_hal::gpio::Pin;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
 pub const CONSTRUCTION_FRAMES: u32 = 2;
 #[cfg(feature = "display-ready-root")]
 #[path = "native_display_assignment.rs"]
@@ -28,10 +28,10 @@ mod lifecycle;
 mod task;
 #[cfg(feature = "display-ready-root")]
 pub(crate) use task::Status as DisplayTaskStatus;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
 #[path = "native_display_kernel.rs"]
 mod kernel;
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
 #[path = "display_layout.rs"]
 mod layout;
 #[cfg(feature = "display-ready-root")]
@@ -40,7 +40,12 @@ mod service;
 mod software {
     include!(concat!(env!("OUT_DIR"), "/display-software.rs"));
 }
+#[cfg(feature = "display-fit-root")]
+#[path = "native_display_fit.rs"]
+pub(crate) mod fit;
 pub struct NativeDisplay {
+    #[cfg(feature = "display-fit-root")]
+    fit: Box<conduit_environment_runtime::display_mask::PreparedDisplayMask>,
     #[cfg(feature = "display-ready-root")]
     staged: Option<assignment::StagedDisplayAssignment>,
     #[cfg(feature = "display-ready-root")]
@@ -58,9 +63,13 @@ pub struct NativeDisplay {
     bound: Option<Box<conduit_tm1637_wire::owner::WriteHostCall<DisplayPins<'static>>>>,
     #[cfg(feature = "display-ready-root")]
     bound_write: Option<conduit_kernel::NodeId>,
-    #[cfg(feature = "display-ready-root")]
+    #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
     software: Result<
-        Box<conduit_environment_runtime::appliance::software::ReadySoftwareBacks>,
+        Box<
+            conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware<
+                'static,
+            >,
+        >,
         &'static str,
     >,
 }
@@ -106,22 +115,26 @@ impl NativeDisplay {
             )
         }
         .map_err(|_| "display-provider")?;
-        #[cfg(feature = "display-ready-root")]
+        #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
         let software = {
-            // Exact trusted artifact, separate diagnostic Boot profile. Keep
-            // 8 KiB control reserve beyond the conservative 96 KiB preparation
-            // allowance; refuse without initialization when it is unavailable.
+            // Decode trusted Make material sequentially before sampler/kernel
+            // preparation. Keep the conservative 96 KiB construction allowance
+            // plus 8 KiB control headroom; readiness never admits a Play.
             let stats = esp_alloc::HEAP.stats();
             if stats.size.saturating_sub(stats.current_usage) < (96 + 8) * 1024 {
                 Err("display-preparation-capacity")
             } else {
                 let id = ready.native_identity();
-                software::prepare(id.host_id.clone(), id.boot_id.clone())
+                software::prepare_compact(id.host_id.clone(), id.boot_id.clone())
                     .map(Box::new)
                     .map_err(|_| "display-software-initialization")
             }
         };
+        #[cfg(feature = "display-fit-root")]
+        let fit = fit::prepare()?;
         Ok(Box::new(Self {
+            #[cfg(feature = "display-fit-root")]
+            fit,
             #[cfg(feature = "display-ready-root")]
             staged: None,
             #[cfg(feature = "display-ready-root")]
@@ -139,7 +152,7 @@ impl NativeDisplay {
             bound: None,
             #[cfg(feature = "display-ready-root")]
             bound_write: None,
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
             software,
         }))
     }
@@ -147,21 +160,21 @@ impl NativeDisplay {
         self.ready.as_ref().map(|owner| owner.native_identity())
     }
     pub fn software_ready(&self) -> bool {
-        #[cfg(feature = "display-ready-root")]
+        #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
         {
             self.software.is_ok()
         }
-        #[cfg(not(feature = "display-ready-root"))]
+        #[cfg(not(any(feature = "display-ready-root", feature = "display-fit-root")))]
         {
             false
         }
     }
     pub fn software_refusal(&self) -> Option<&'static str> {
-        #[cfg(feature = "display-ready-root")]
+        #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
         {
             self.software.as_ref().err().copied()
         }
-        #[cfg(not(feature = "display-ready-root"))]
+        #[cfg(not(any(feature = "display-ready-root", feature = "display-fit-root")))]
         {
             None
         }
@@ -171,8 +184,11 @@ impl NativeDisplay {
         host: &c::HostId,
         boot: &c::BootId,
         generation: c::OfferGeneration,
-    ) -> Result<conduit_environment_runtime::appliance::software::ReadySoftwareOffers<'_>, ()> {
-        #[cfg(feature = "display-ready-root")]
+    ) -> Result<
+        conduit_environment_runtime::appliance::software_compact::CompactOutputOffers<'_, 'static>,
+        (),
+    > {
+        #[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
         {
             self.software
                 .as_mut()
@@ -180,7 +196,7 @@ impl NativeDisplay {
                 .current_offers(host, boot, generation)
                 .map_err(|_| ())
         }
-        #[cfg(not(feature = "display-ready-root"))]
+        #[cfg(not(any(feature = "display-ready-root", feature = "display-fit-root")))]
         {
             let _ = (host, boot, generation);
             Err(())
@@ -275,7 +291,7 @@ impl NativeDisplay {
     }
 }
 
-#[cfg(feature = "display-ready-root")]
+#[cfg(any(feature = "display-ready-root", feature = "display-fit-root"))]
 pub fn kernel_preparation_bound() -> Result<usize, &'static str> {
     let signs = conduit_environment_runtime::display_output::DisplaySignBudget::derive(
         CONSTRUCTION_FRAMES,
@@ -434,5 +450,12 @@ impl NativeDisplay {
         {
             false
         }
+    }
+}
+
+#[cfg(feature = "display-fit-root")]
+impl NativeDisplay {
+    pub fn fit_telemetry(&self) -> fit::Telemetry {
+        fit::telemetry(&self.fit, self.software_ready())
     }
 }

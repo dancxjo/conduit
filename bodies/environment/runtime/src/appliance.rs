@@ -69,6 +69,8 @@ impl<const P: usize> StepBack<P> for ApplianceBack {
 
 #[cfg(feature = "construction")]
 pub mod software;
+#[cfg(feature = "construction")]
+pub mod software_compact;
 
 mod value_storage;
 pub use value_storage::{prepare_value_storage, value_storage_bytes};

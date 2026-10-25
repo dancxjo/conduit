@@ -49,6 +49,58 @@ restart. The bounded owner supports up to 960 minute-period publications;
 an overnight duration is available, not yet an overnight soak result.
 See [construction and invocation](../HOSTED-MCU.md).
 
+## Combined ESP32 display preparation checkpoint
+
+The `display-fit-root` image retains actual initialized sampler software, three
+checked output computations, their exact linked offer/configuration material,
+and the existing 344-byte Fahrenheit/RH Mask with a colon-only hardware profile.
+Make descriptions remain in firmware storage; selection retains fingerprints
+and borrows the original computation text. It does not substitute another
+expression or weaken independent assignment admission. The ordinary output
+kernel accepts either the existing owned software catalogue or these compact
+owners. Its CPU proof compares resulting packet bytes and checks zero allocation
+during execution, including selector Host Calls.
+
+| Measurement | Retained / used | Peak | Capacity |
+| --- | ---: | ---: | ---: |
+| CPU owned output software | 48,551 | 67,537 | — |
+| CPU compact output software | 14,337 | 69,169 | — |
+| ESP32 combined initialized preparation | 80,972 | 96,736 | 118,768 |
+| ESP32 native sampler, worker, Face, retained output software and Mask | 108,360 | 108,360 | 118,768 |
+| Isolated radio SDK during the combined run | 33,408 | 34,024 | 73,728 |
+
+CPU figures use the same checked Source with measurement beginning after Make
+material construction; they are not target limits. The target display increment
+is 11,792 bytes relative to the sampler-only run above. Real DHT11 publications
+continued with unchanged combined usage across three consecutive samples. The
+combined image leaves 41,900 stack bytes above the unchanged 36,864-byte floor.
+Its application occupies 2,491,008 of 4,128,768 flash partition bytes.
+
+**Complete native display execution still does not fit the current preparation
+profile.** Root has 10,408 bytes free, while the existing two-frame output-kernel
+preparation gate requires another 23,660 bytes. This gate includes fixed value
+and sign stores, scheduler, record scratch and 8 KiB control headroom. It is a
+13,252-byte shortfall against that gate, not an irreducible lower bound. Native
+binding, the independently admitted Mask route, finite continued output and
+physical acknowledgement remain separate work. No GPIO write or installed Mask
+Play is claimed by this checkpoint. Further work must reduce those retained
+stores/preparation overlap or explicitly change the admitted host profile.
+
+The live private run is
+`~/.local/share/conduit/environment-host-20261025/runs/e9ce8c7e-6fa8-4bff-b4d2-2eed819a0dd7/`;
+Body `3fccfc35072b9899fde3d05e871791ac469c173ddc59fd5eabab532d30ab8101`,
+MCU Boot `boot/383f610e573e4e0eaf5dd4e466a5bf87`.
+Immutable external snapshots under `~/.cache/conduit/`:
+
+- `esp32-display-fit-20261025.elf`: SHA-256 `dcf617928ea97f65837800d186bee783ce4d017aad187cb0a2f26e601cbd0bfb`.
+- `display-fit-native-control.ndjson`: SHA-256 `ce6f73f3acd5cff429e3b227078c0dd2b448beb1b95fa009be19d726e247fdfa`.
+- `display-fit-native-observations.ndjson`: SHA-256 `aae15200589396f0233c7fca2bfb1ab1a05a775b0a5277041032898fdb1eb80c`.
+
+The gate telemetry is attended instrumentation, not signed memory attestation.
+The actual publications retain independently verified signed Root evidence.
+Both this image and the separate `display-ready-root` output profile compile
+with the pinned ESP32 toolchain. Neither compilation claims combined output.
+
 ## Pico W comparative owned-preparation gate
 
 Actual flash UID `e6639c758f78952c`; 2 MiB flash, 264 KiB RAM. The checkpoint

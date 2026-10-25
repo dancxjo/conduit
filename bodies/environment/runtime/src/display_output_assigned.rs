@@ -49,11 +49,11 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
     /// No Plan, Source graph, advertised metadata clone or provider is loaded.
     /// Root must admit the stores, boxed scheduler and construction headroom.
     /// Every fallible validation precedes exclusive software transfer.
-    pub fn prepare(
+    pub fn prepare<'a, 'm: 'a>(
         input: AssignedDisplayInput<'_>,
         profile: &AssignedDisplayProfile<'_>,
         scope: AssignedDisplayScope<'_>,
-        software: &mut ReadySoftwareBacks,
+        software: impl Into<OutputSoftware<'a, 'm>>,
         maximum_frames: u32,
         values: S,
         signs: L,
@@ -84,8 +84,9 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
         }
         let admitted = ValidatedAssignedDisplay::admit(input, profile, scope)?;
         let identity = admitted.identity();
-        let selected = software
-            .assigned_output(
+        let mut software = software.into();
+        let operations = software
+            .take_assigned(
                 identity,
                 scope.generation,
                 profile.source,
@@ -94,7 +95,7 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
             )
             .map_err(E::Software)?;
         let tables = admitted.tables;
-        let mut operations = selected.take();
+        let mut operations = operations;
         let mut selectors = core::array::from_fn(|_| None);
         let drivers = core::array::from_fn(|i| match operations[i].take() {
             Some(op) => {
@@ -127,5 +128,43 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
     }
     pub fn maximum_frames(&self) -> u32 {
         self.maximum_frames
+    }
+}
+
+/// Only these retained, Source-checked owners can supply output computations.
+pub enum OutputSoftware<'a, 'm> {
+    Owned(&'a mut ReadySoftwareBacks),
+    Compact(&'a mut crate::appliance::software_compact::CompactOutputSoftware<'m>),
+}
+impl<'a, 'm> From<&'a mut ReadySoftwareBacks> for OutputSoftware<'a, 'm> {
+    fn from(value: &'a mut ReadySoftwareBacks) -> Self {
+        Self::Owned(value)
+    }
+}
+impl<'a, 'm> From<&'a mut crate::appliance::software_compact::CompactOutputSoftware<'m>>
+    for OutputSoftware<'a, 'm>
+{
+    fn from(value: &'a mut crate::appliance::software_compact::CompactOutputSoftware<'m>) -> Self {
+        Self::Compact(value)
+    }
+}
+impl OutputSoftware<'_, '_> {
+    fn take_assigned(
+        &mut self,
+        identity: c::AssignedPlanView,
+        generation: c::OfferGeneration,
+        source: &c::PlotIdentity,
+        records: &[c::AssignedRecord<'_>],
+        write: k::NodeId,
+    ) -> Result<[Option<crate::appliance::software::PreparedSoftwareOperation>; 4], SoftwareRefusal>
+    {
+        match self {
+            Self::Owned(owner) => owner
+                .assigned_output(identity, generation, source, records, write)
+                .map(|selected| selected.take()),
+            Self::Compact(owner) => {
+                owner.take_assigned(identity, generation, source, records, write)
+            }
+        }
     }
 }

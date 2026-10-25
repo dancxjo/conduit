@@ -42,6 +42,8 @@ struct Reply<'a> {
     acknowledgement_signature: Option<&'a [u8]>,
     publication_bytes: usize,
     heap_telemetry: HeapTelemetry,
+    #[cfg(feature = "display-fit-root")]
+    display_fit: crate::native_display::fit::Telemetry,
 }
 
 /// Attended telemetry sampled before serialization, not signed attestation or
@@ -144,6 +146,8 @@ pub(super) fn encode(
             .as_ref()
             .map(|value| value.as_slice()),
         heap_telemetry: HeapTelemetry::sample(),
+        #[cfg(feature = "display-fit-root")]
+        display_fit: root.display_fit_telemetry(),
     };
     let metadata_bytes = serde_json_core::to_slice(&reply, output).map_err(|_| ())?;
     Ok(Encoded {

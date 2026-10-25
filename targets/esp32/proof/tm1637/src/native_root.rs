@@ -3,13 +3,13 @@
 //! No simulated provider, descriptor-derived availability or execution is used.
 #[path = "native_body_root.rs"]
 mod body;
-#[cfg(feature = "target-memory-check")]
-#[path = "native_memory_check.rs"]
-mod memory_check;
 #[path = "native_install.rs"]
 mod install;
 #[path = "native_lifecycle.rs"]
 mod lifecycle;
+#[cfg(feature = "target-memory-check")]
+#[path = "native_memory_check.rs"]
+mod memory_check;
 #[path = "native_offer.rs"]
 mod offers;
 #[path = "native_setup.rs"]
@@ -325,7 +325,10 @@ impl NativeRoot {
     }
     pub fn display_software_offers(
         &mut self,
-    ) -> Result<conduit_environment_runtime::appliance::software::ReadySoftwareOffers<'_>, ()> {
+    ) -> Result<
+        conduit_environment_runtime::appliance::software_compact::CompactOutputOffers<'_, 'static>,
+        (),
+    > {
         if self.owner_reservation.is_some() || self.execution_context_prepared() {
             return Err(());
         }
@@ -460,5 +463,12 @@ impl NativeRoot {
         )?;
         self.assignment_seal = self.display.assignment().map(|a| a.seal());
         Ok(identity)
+    }
+}
+
+#[cfg(feature = "display-fit-root")]
+impl NativeRoot {
+    pub fn display_fit_telemetry(&self) -> crate::native_display::fit::Telemetry {
+        self.display.fit_telemetry()
     }
 }

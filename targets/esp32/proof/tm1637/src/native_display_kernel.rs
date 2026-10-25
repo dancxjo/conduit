@@ -4,7 +4,8 @@ use alloc::vec::Vec;
 use conduit_core as c;
 use conduit_environment_runtime::{
     appliance::{
-        assigned::ResidentSourceIdentity, assignment_transfer as t, software::ReadySoftwareBacks,
+        assigned::ResidentSourceIdentity, assignment_transfer as t,
+        software_compact::CompactOutputSoftware,
     },
     display_output::*,
 };
@@ -15,7 +16,7 @@ pub fn prepare(
     profile: &AssignedDisplayProfile<'_>,
     resident: &[c::AssignedRecord<'_>],
     scope: AssignedDisplayScope<'_>,
-    software: &mut ReadySoftwareBacks,
+    software: &mut CompactOutputSoftware<'_>,
     maximum_frames: u32,
     available_bytes: usize,
 ) -> Result<Prepared, &'static str> {

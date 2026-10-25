@@ -3,7 +3,7 @@
 use crate::{native_control::write_all, native_root::NativeRoot};
 use alloc::vec::Vec;
 use esp_hal::{uart::Uart, Async};
-const GEAR_BYTES: usize = 32 * 1024;
+const GEAR_BYTES: usize = 2048;
 const FRAME_BYTES: usize = 64 * 1024;
 #[derive(serde::Serialize)]
 struct Header<'a> {
@@ -33,7 +33,7 @@ pub async fn write(root: &mut NativeRoot, uart: &mut Uart<'_, Async>) -> Result<
     buffer.resize(GEAR_BYTES, 0);
     let mut array_bytes = 2_usize;
     for (i, offer) in offers.iter().enumerate() {
-        let len = serde_json_core::to_slice(offer, &mut buffer).map_err(|_| ())?;
+        let len = offer.len();
         array_bytes = array_bytes
             .checked_add(len + usize::from(i != 0))
             .ok_or(())?;
@@ -64,11 +64,10 @@ pub async fn write(root: &mut NativeRoot, uart: &mut Uart<'_, Async>) -> Result<
         write_all(uart, &buffer[..len - 1]).await?;
         write_all(uart, b",\"capabilities\":[").await?;
         for (i, offer) in offers.iter().enumerate() {
-            let len = serde_json_core::to_slice(offer, &mut buffer).map_err(|_| ())?;
             if i != 0 {
                 write_all(uart, b",").await?;
             }
-            write_all(uart, &buffer[..len]).await?;
+            write_all(uart, offer).await?;
         }
         write_all(uart, b"]}\n").await
     })

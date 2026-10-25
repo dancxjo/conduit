@@ -49,6 +49,26 @@ do not write the physical display.** This native run currently admits only the
 sampler workset. Combined display execution, ordinary joining invitations,
 external Fore recording and durable reboot continuation remain delivery work.
 
+## Combined display preparation measurement
+
+Build the attended memory checkpoint with the same public provisioning key:
+
+```sh
+cargo xtask prove environment member-image /absolute/private/environment-owner/owner-public.bin --display-fit
+```
+
+After flashing and a fresh Boot, use the same `host-owned` command. The image
+retains the display computations and Fahrenheit/RH Look beside the running
+native sampler. Authenticated control replies include `display_fit` telemetry
+with explicit `physical_write: false` and `mask_play_installed: false`.
+This is a fit checkpoint, not an enabled physical display: the measured free
+Root memory remains below the existing output-kernel preparation gate. See
+[the combined target measurements](make/TARGET_CHECKPOINT.md#combined-esp32-display-preparation-checkpoint).
+
+The focused CPU construction/output proof, including exact offer equivalence,
+stale-scope refusal, packet equivalence and allocation-free execution, enters
+through `cargo xtask prove environment display-output`.
+
 ## Pico comparative gate
 
 Use a retained construction birth Sign from the existing environment-image

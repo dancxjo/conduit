@@ -139,6 +139,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-embedded-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-environment-make"
 version = "0.1.0"
 dependencies = [
@@ -146,11 +156,13 @@ dependencies = [
  "conduit-body",
  "conduit-body-make",
  "conduit-core",
+ "conduit-embedded-build",
  "conduit-environment-runtime",
  "conduit-face",
  "conduit-host-browser-make",
  "conduit-host-make",
  "conduit-host-rp2040",
+ "conduit-kernel",
  "conduit-monotonic-wait",
  "conduit-net",
  "conduit-network-join-call",

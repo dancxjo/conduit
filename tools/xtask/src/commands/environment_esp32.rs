@@ -6,16 +6,20 @@ use std::{
 };
 
 pub(super) fn build(root: &Path, native: bool, body: bool) -> Result<(), Box<dyn Error>> {
-    build_with_owner(root, native, body, None)
+    build_with_owner(root, native, body, None, None)
 }
 pub(super) fn build_member(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
-    build_with_owner(root, true, false, Some(key))
+    build_with_owner(root, true, false, Some(key), None)
+}
+pub(super) fn build_display_fit(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, false, Some(key), Some("display-fit-root"))
 }
 fn build_with_owner(
     root: &Path,
     native: bool,
     body: bool,
     key: Option<&Path>,
+    profile: Option<&str>,
 ) -> Result<(), Box<dyn Error>> {
     let package = root.join("targets/esp32/proof/tm1637");
     let toolchain: toml::Value = toml::from_str(&std::fs::read_to_string(
@@ -46,11 +50,11 @@ fn build_with_owner(
     if native {
         command.args([
             "--features",
-            if body {
+            profile.unwrap_or(if body {
                 "body-image-root"
             } else {
                 "native-face-root"
-            },
+            }),
         ]);
     }
     if let Some(key) = key {

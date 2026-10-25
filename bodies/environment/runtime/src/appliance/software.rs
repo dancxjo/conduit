@@ -35,11 +35,11 @@ pub struct PreparedSoftwareOperation {
     pub driver: ApplianceBack,
     pub selector: Option<PreparedCaptureSelector>,
 }
-struct ReadyOperation {
+pub(super) struct ReadyOperation {
     gear: c::GearId,
-    configuration: Vec<c::ConfigurationEntry>,
-    offer: c::CapabilityOffer,
-    prepared: Option<PreparedSoftwareOperation>,
+    pub(super) configuration: Vec<c::ConfigurationEntry>,
+    pub(super) offer: c::CapabilityOffer,
+    pub(super) prepared: Option<PreparedSoftwareOperation>,
 }
 /// All codec/interpreter/publication workspaces are initialized and owned here.
 /// Root supplies trusted checked Source and actual Host/Boot; it must separately
@@ -322,7 +322,7 @@ type InitializedOperation = (
     PreparedSoftwareOperation,
     Vec<c::HostCallRequirement>,
 );
-fn ready_operation(
+pub(super) fn ready_operation(
     gear: &conduit_plot::CheckedGear,
     initialized: InitializedOperation,
 ) -> Result<ReadyOperation, SoftwareRefusal> {
@@ -408,7 +408,7 @@ fn initialize(
         vec![],
     ))
 }
-fn initialize_portable(
+pub(super) fn initialize_portable(
     gear: &conduit_plot::CheckedGear,
 ) -> Result<InitializedOperation, SoftwareRefusal> {
     let mut selector = None;
@@ -454,4 +454,12 @@ fn initialize_portable(
 
 fn init<T>(_: T) -> SoftwareRefusal {
     SoftwareRefusal::Initialization
+}
+
+/// Make-side descriptor from the same validated portable constructor. This
+/// creates no Host, native provider, reservation or authority.
+pub fn compile_portable_offer(
+    gear: &conduit_plot::CheckedGear,
+) -> Result<c::CapabilityOffer, SoftwareRefusal> {
+    Ok(ready_operation(gear, initialize_portable(gear)?)?.offer)
 }
