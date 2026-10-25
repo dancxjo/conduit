@@ -2,6 +2,7 @@
 //! owns no Body, observation, Mask policy, scheduler, or recording authority.
 mod initialized;
 mod input;
+mod presentation_errors;
 pub use input::{NativeInput, NativeInputRefusal};
 mod surface;
 use conduit_face::GraphicsScene;
@@ -29,6 +30,7 @@ pub struct Scanout<'a> {
     surface: Surface,
     live: bool,
     input_ready: bool,
+    error_epoch: u64,
     initialized: InitializedDisplay,
 }
 impl<'a> Scanout<'a> {
@@ -38,6 +40,7 @@ impl<'a> Scanout<'a> {
         width: u32,
         height: u32,
     ) -> Result<Self, String> {
+        let error_epoch = presentation_errors::epoch();
         let surface = Surface::prepare(width, height).map_err(str::to_owned)?;
         let mut texture = textures
             .create_texture_streaming(PixelFormatEnum::ARGB8888, width, height)
@@ -50,6 +53,7 @@ impl<'a> Scanout<'a> {
             surface,
             live: true,
             input_ready: false,
+            error_epoch,
             initialized,
         })
     }
@@ -95,8 +99,9 @@ impl<'a> Scanout<'a> {
             .update(None, self.surface.bytes(), self.surface.pitch())
             .map_err(|e| e.to_string())?;
         self.canvas.copy(&self.texture, None, None)?;
+        presentation_errors::require_unchanged(self.error_epoch)?;
         self.canvas.present();
-        Ok(())
+        presentation_errors::require_unchanged(self.error_epoch)
     }
     /// Revocation is terminal for this prepared scanout. Reacquisition requires
     /// a new preparation; device availability alone cannot restore authority.
@@ -152,6 +157,7 @@ pub fn with_kmsdrm<T>(
     height: u32,
     run: impl FnOnce(&mut Scanout<'_>, &mut sdl2::EventPump) -> Result<T, String>,
 ) -> Result<T, String> {
+    let error_epoch = presentation_errors::epoch();
     if !sdl2::hint::set("SDL_VIDEODRIVER", KMSDRM_DRIVER) {
         return Err("kmsdrm-driver-selection-refused".into());
     }
@@ -166,6 +172,7 @@ pub fn with_kmsdrm<T>(
         .build()
         .map_err(|e| e.to_string())?;
     let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    presentation_errors::require_unchanged(error_epoch)?;
     let textures = canvas.texture_creator();
     let mut scanout = Scanout::prepare(&mut canvas, &textures, width, height)?;
     let mut events = sdl.event_pump()?;
