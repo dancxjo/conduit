@@ -422,6 +422,10 @@
       "maximum_bytes": 32768,
       "dependencies": [
         {
+          "role": "owner-face-history",
+          "specifier": "./owner-face-history.mjs"
+        },
+        {
           "role": "owner-face-icons",
           "specifier": "./owner-face-icons.mjs"
         },
@@ -430,6 +434,13 @@
           "specifier": "../host/assets/application-look.mjs"
         }
       ]
+    },
+    {
+      "role": "owner-face-history",
+      "kind": "module",
+      "path": "owner-face-history.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": []
     },
     {
       "role": "owner-face-icons",

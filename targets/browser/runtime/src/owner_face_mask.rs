@@ -487,3 +487,7 @@ mod prebirth_tests;
 #[cfg(test)]
 #[path = "owner_face_mask/parsec_agency_tests.rs"]
 mod parsec_agency_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/history_tests.rs"]
+mod history_tests;

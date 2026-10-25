@@ -7,10 +7,16 @@ use crate::{
     native_compositor::{CompositionReceipt, CompositorAdmission, NativeCompositor},
 };
 use alloc::vec::Vec;
-use conduit_conduitos_mask_offer::{Adapter, NativeMaskStorageProfile, prepare_stage};
+use conduit_conduitos_mask_offer::{
+    NativeMaskStorageProfile, native_host_advertisement, prepare_history_component_stage_from_offer,
+};
 use conduit_core::{HostBaseId, HostId};
 use conduit_environment_history::{HISTORY_SUBJECT, HistoryGraph};
-use conduit_face::{Face, FaceBasis, LayoutRect, ManifestationLifecycle};
+use conduit_face::{
+    AdmittedVisualLook, Face, FaceBasis, HISTORY_COMPONENT_MASK_ROOT, HISTORY_COMPONENT_RECIPE_ID,
+    LayoutRect, ManifestationLifecycle, VisualUserConstraints, admit_visual_look,
+    prepare_component_recipe,
+};
 
 mod common {
     use alloc::string::String;
@@ -77,6 +83,38 @@ impl PixelTarget for OwnedPixels {
     }
 }
 fn history_face(revision: u64) -> Face {
+    if let Some(path) = std::env::var_os("CONDUIT_HISTORY_NATIVE_PROOF_FACE") {
+        // Optional cross-Mask proof input is one explicitly selected sealed
+        // CPU fixture Face. It confers no Body membership or storage authority.
+        use std::io::Read;
+        const MAXIMUM_FACE_BYTES: u64 = 64 * 1024;
+        let file =
+            std::fs::File::open(&path).expect("open explicitly selected cross-Mask Face fixture");
+        let mut bytes = Vec::with_capacity(MAXIMUM_FACE_BYTES as usize + 1);
+        file.take(MAXIMUM_FACE_BYTES + 1)
+            .read_to_end(&mut bytes)
+            .expect("read bounded cross-Mask Face fixture");
+        assert!(
+            bytes.len() <= MAXIMUM_FACE_BYTES as usize,
+            "cross-Mask Face fixture exceeds the 64 KiB input bound"
+        );
+        let mut face: Face = serde_json::from_slice(&bytes)
+            .expect("decode explicitly selected cross-Mask Face fixture");
+        face.validate()
+            .expect("cross-Mask Face fixture must retain its exact sealed identity");
+        let offset = revision
+            .checked_sub(1)
+            .expect("native proof revision starts at one");
+        if offset != 0 {
+            face.revision = face
+                .revision
+                .checked_add(offset)
+                .expect("cross-Mask refusal fixture revision must not overflow");
+            face.reseal_prepared()
+                .expect("seal changed-revision refusal fixture");
+        }
+        return face;
+    }
     let mut history = common::prepared(1);
     history
         .read_next(&common::chunk(&[
@@ -107,18 +145,64 @@ fn history_face(revision: u64) -> Face {
     )
     .unwrap()
 }
-fn fixture(revision: u64) -> (Face, PreparedNativeMaskPlay, NativeCompositor) {
-    // Existing canonical checked source/planner and Native Back definitions.
-    // None is the existing explicit fixture Base, not discovered display custody.
-    let stage = prepare_stage(
-        Adapter::Native,
+fn fixture(
+    revision: u64,
+) -> (
+    Face,
+    PreparedNativeMaskPlay,
+    NativeCompositor,
+    AdmittedVisualLook,
+) {
+    // Existing renderer-host definitions and explicit CPU surface offer. This
+    // does not discover, initialize or establish custody of a physical Base.
+    let provider = conduit_core::BaseProviderEntry {
+        base_id: "display/native-history-cpu-fixture".into(),
+        provider_instance_id: "display/native-history-cpu-fixture/provider".into(),
+        provider_generation: 1,
+        implementation_id: "conduitos/framebuffer@1".into(),
+        mechanism_family: "conduitos.base/framebuffer@1".into(),
+        enforcement_class: conduit_core::BaseEnforcementClass::ConduitOsKernelEnforced,
+        lifecycle: conduit_core::BaseLifecycle::Ready,
+        capabilities: Vec::new(),
+        resources: vec![conduit_core::resource_offer(
+            "surface/native-history-cpu-fixture",
+            conduit_face::SHOW_RESOURCE_CLASS,
+            1,
+        )],
+    };
+    let host = native_host_advertisement(
         &HostId::from("host/native-history-cpu-fixture"),
         &"boot/native-history-cpu-fixture".into(),
         1,
-        None,
+        &provider,
+    );
+    let (stage, configuration) = prepare_history_component_stage_from_offer(&host).unwrap();
+    assert_eq!(
+        stage.planned_mask.mask.plot_name,
+        HISTORY_COMPONENT_MASK_ROOT
+    );
+    let face = history_face(revision);
+    let prepared = prepare_component_recipe(
+        conduit_core::StructuredInfoValue::from_canonical_bytes(
+            configuration.recipe.canonical_value(),
+        )
+        .unwrap(),
+        &face,
     )
     .unwrap();
-    let face = history_face(revision);
+    assert_eq!(prepared.recipe.identity(), HISTORY_COMPONENT_RECIPE_ID);
+    assert_eq!(prepared.subject_regions[0], Some(0));
+    let look = admit_visual_look(
+        &configuration.requested_look().unwrap(),
+        VisualUserConstraints {
+            forced_colors: false,
+            reduced_motion: true,
+            minimum_text_scale_percent: 100,
+            maximum_supported_text_scale_percent: 200,
+        },
+    )
+    .unwrap();
+    assert_eq!(look.selected.identity(), "conduit.look/editorial-compact@1");
     let pending = PreparedNativeMaskPlay::prepare_with_profile(
         &stage.planned_mask,
         &face,
@@ -155,34 +239,41 @@ fn fixture(revision: u64) -> (Face, PreparedNativeMaskPlay, NativeCompositor) {
             0,
         )
         .unwrap();
-    (face, pending, compositor)
+    (face, pending, compositor, look)
 }
 fn stage(
     pending: &PreparedNativeMaskPlay,
     compositor: &mut NativeCompositor,
+    look: &AdmittedVisualLook,
 ) -> CompositionReceipt {
     let request = pending.renderer_request();
     let graph = HistoryGraph::prepare(request.face(), HISTORY_SUBJECT).unwrap();
     let scene = graph.native_scene().unwrap();
     compositor
-        .update_pending_mask_surface(
+        .update_pending_look_mask_surface(
             request.face(),
             request.prepared_show(),
             request.display_base_id(),
             &scene,
+            look,
         )
         .unwrap()
         .clone()
 }
 #[test]
 fn history_dots_reach_retained_pixels_before_exact_native_show_kernel_completion() {
-    let (face, pending, mut compositor) = fixture(1);
+    let (face, pending, mut compositor, look) = fixture(1);
     let original = face.clone();
+    assert_eq!(pending.renderer_request().face(), &face);
     assert_eq!(
         pending.renderer_request().prepared_show().show.lifecycle,
         ManifestationLifecycle::Prepared
     );
-    let staged = stage(&pending, &mut compositor);
+    let staged = stage(&pending, &mut compositor, &look);
+    assert_eq!(
+        staged.visual_look.as_ref().unwrap().identity(),
+        look.selected.identity()
+    );
     assert!(
         compositor
             .scanout_acknowledgement(&staged, face.revision)
@@ -205,6 +296,21 @@ fn history_dots_reach_retained_pixels_before_exact_native_show_kernel_completion
     let y = graph.y(first.temperature_milli_c().unwrap(), false) + 1;
     let point = pixels.at(graph.x(first) + 1, y);
     let blank = pixels.at(graph.x(failed) + 1, y);
+    let conduit_face::LookVisualFacetOption::Some(visual) = look.selected.visual() else {
+        panic!("reviewed history Look has a visual facet")
+    };
+    let ink = visual.tokens().text_primary();
+    let paper = visual.tokens().background();
+    assert_eq!(
+        point,
+        pixels.format().pixel(ink.red(), ink.green(), ink.blue())
+    );
+    assert_eq!(
+        blank,
+        pixels
+            .format()
+            .pixel(paper.red(), paper.green(), paper.blue())
+    );
     assert_ne!(
         point, blank,
         "failed acquisition must remain absent, not plotted as a reading"
@@ -249,8 +355,8 @@ fn history_dots_reach_retained_pixels_before_exact_native_show_kernel_completion
 }
 #[test]
 fn display_loss_has_no_ack_or_available_show_and_cancels_pending_execution() {
-    let (face, pending, mut compositor) = fixture(1);
-    let staged = stage(&pending, &mut compositor);
+    let (face, pending, mut compositor, look) = fixture(1);
+    let staged = stage(&pending, &mut compositor, &look);
     let mut pixels = OwnedPixels::prepare(true);
     assert!(compositor.compose_frame(&mut pixels).is_err());
     assert_eq!(pixels.writes, 0);
@@ -272,15 +378,15 @@ fn display_loss_has_no_ack_or_available_show_and_cancels_pending_execution() {
 }
 #[test]
 fn scanout_of_another_face_revision_cannot_complete_the_pending_history_show() {
-    let (face, pending, mut compositor) = fixture(1);
-    let staged = stage(&pending, &mut compositor);
+    let (face, pending, mut compositor, look) = fixture(1);
+    let staged = stage(&pending, &mut compositor, &look);
     compositor
         .compose_frame(&mut OwnedPixels::prepare(false))
         .unwrap();
     let ack = compositor
         .scanout_acknowledgement(&staged, face.revision)
         .unwrap();
-    let (_, wrong_revision, _) = fixture(2);
+    let (_, wrong_revision, _, _) = fixture(2);
     assert!(matches!(
         wrong_revision.complete_render(&ack),
         Err(NativeMaskPlayError::RendererMismatch)

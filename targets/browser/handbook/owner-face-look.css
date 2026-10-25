@@ -66,6 +66,11 @@ input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visi
 :host([data-component-palette=phosphor]) .owner-face-subject[data-face-role=Status] p{background:var(--face-card);color:var(--face-ink);border-inline-start:2px solid var(--face-accent)}
 @media(forced-colors:active){:host([data-component-palette=phosphor]) .owner-face-subject[data-face-role=Status] p{background:Canvas;color:CanvasText;border-color:Highlight}}
 
+.owner-face-history{grid-column:1/-1;min-width:0;overflow-wrap:anywhere}
+.owner-face-history svg{display:block;width:100%;height:auto;min-width:0;color:var(--face-ink,CanvasText)}
+.owner-face-history-table{max-width:100%;min-width:0;overflow:auto}
+.owner-face-history table{min-width:36rem;border-collapse:collapse;font:inherit;overflow-wrap:normal}
+.owner-face-history th,.owner-face-history td{padding:.4em;text-align:start;border:1px solid currentColor}
 /* Full selected Look resources supply appearance. Checked recipes retain layout
    and source order; accessibility/system colors take precedence below. */
 :host([data-component-look]){--face-paper:var(--look-background);--face-card:var(--look-surface);--face-ink:var(--look-text-primary);--face-muted:var(--look-text-secondary);--face-line:var(--look-structure-secondary);--face-control:var(--look-structure-primary);--face-accent:var(--look-emphasis);--face-focus:var(--look-focus);--face-radius:var(--look-radius-panel);font-size:calc(max(1rem,var(--look-type-body)) * var(--face-text-scale,1));line-height:var(--look-line-height)}

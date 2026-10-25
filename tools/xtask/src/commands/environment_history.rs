@@ -7,12 +7,34 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-native" => Some(native(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
+        [name] if name == "history-owner-browser" => Some(owner_browser(root)),
+        [name] if name == "history-owner-target" => Some(owner_target(root)),
+        [name] if name == "history-cross-mask" => Some(cross_mask(root)),
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
 }
-fn native(root: &Path) -> Result<(), Box<dyn Error>> {
+fn owner_target(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("cargo").current_dir(root).args([
+        "check",
+        "--locked",
+        "-p",
+        "conduit-browser-runtime",
+        "--lib",
+        "--target",
+        "wasm32-unknown-unknown",
+    ]))
+}
+fn native(root: &Path) -> Result<(), Box<dyn Error>> {
+    native_with_face(root, None, None)
+}
+fn native_with_face(
+    root: &Path,
+    face: Option<&Path>,
+    output: Option<&Path>,
+) -> Result<(), Box<dyn Error>> {
+    let mut command = Command::new("cargo");
+    command.current_dir(root).args([
         "test",
         "--locked",
         "-p",
@@ -21,7 +43,14 @@ fn native(root: &Path) -> Result<(), Box<dyn Error>> {
         "--features",
         "native-compositor-core",
         "native_mask_play::history_tests",
-    ]))
+    ]);
+    if let Some(face) = face {
+        command.env("CONDUIT_HISTORY_NATIVE_PROOF_FACE", face);
+    }
+    if let Some(output) = output {
+        command.env("CONDUIT_HISTORY_NATIVE_PROOF_OUTPUT", output);
+    }
+    super::execute(&mut command)
 }
 fn command(root: &Path, operation: &str) -> Command {
     let mut command = Command::new("cargo");
@@ -58,6 +87,100 @@ fn preview(root: &Path) -> Result<(), Box<dyn Error>> {
 
 fn browser(root: &Path) -> Result<(), Box<dyn Error>> {
     preview(root)?;
+    chromium(root, "proof/browser/environment-history.config.mjs", None)
+}
+
+fn browser_output(root: &Path) -> std::path::PathBuf {
+    std::env::var_os("CONDUIT_HISTORY_BROWSER_PROOF_OUTPUT")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| root.join("target/environment-owner-history"))
+}
+fn cross_mask(root: &Path) -> Result<(), Box<dyn Error>> {
+    owner_browser(root)?;
+    let output = browser_output(root);
+    native_with_face(
+        root,
+        Some(&output.join("history-face.json")),
+        Some(&output.join("native")),
+    )?;
+    let view: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(output.join("history-view.json"))?)?;
+    let face: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(output.join("history-face.json"))?)?;
+    let id = view["face_id"]
+        .as_str()
+        .ok_or("browser view lacks Face identity")?;
+    let revision = view["face_revision"]
+        .as_str()
+        .ok_or("browser view lacks exact revision")?;
+    let native = std::fs::read_to_string(output.join("native/native-history.txt"))?;
+    if face["identity"].as_str() != Some(id)
+        || face["revision"]
+            .as_u64()
+            .map(|value| value.to_string())
+            .as_deref()
+            != Some(revision)
+        || !native.lines().any(|line| line == format!("Face: {id}"))
+        || !native
+            .lines()
+            .any(|line| line == format!("Revision: {revision}"))
+    {
+        return Err("browser/native proof did not retain the same exact Face revision".into());
+    }
+    println!("history_cross_mask_face={id} revision={revision}");
+    Ok(())
+}
+fn owner_browser(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-browser-mask-offer",
+        "-p",
+        "conduit-conduitos-mask-offer",
+        "history",
+    ]))?;
+    super::execute(Command::new("node").current_dir(root).args([
+        "--test",
+        "targets/browser/sdk/package-browser-bundle.test.mjs",
+    ]))?;
+    let output = browser_output(root);
+    super::execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .args([
+                "test",
+                "--locked",
+                "-p",
+                "conduit-browser-runtime",
+                "--lib",
+                "owner_face_mask::history_tests",
+            ])
+            .env("CONDUIT_HISTORY_BROWSER_PROOF_OUTPUT", &output),
+    )?;
+    // The same exported Rust view is consumed by the real DOM component.
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-browser-runtime",
+        "-p",
+        "conduit-browser-mask-offer",
+        "-p",
+        "conduit-conduitos-mask-offer",
+        "--lib",
+        "--",
+        "-D",
+        "warnings",
+    ]))?;
+    chromium(
+        root,
+        "proof/browser/environment-owner-history.config.mjs",
+        Some(&output),
+    )
+}
+
+fn chromium(root: &Path, config: &str, output: Option<&Path>) -> Result<(), Box<dyn Error>> {
     let cli = root.join("proof/browser/node_modules/@playwright/test/cli.js");
     if !cli.is_file() {
         super::execute(Command::new("npm").current_dir(root).args([
@@ -68,15 +191,20 @@ fn browser(root: &Path) -> Result<(), Box<dyn Error>> {
             "--prefer-offline",
         ]))?;
     }
-    super::execute(Command::new("node").current_dir(root).arg(cli).args([
+    let mut command = Command::new("node");
+    command.current_dir(root).arg(cli).args([
         "test",
         "--config",
-        "proof/browser/environment-history.config.mjs",
+        config,
         "--project",
         "chromium",
         "--workers=1",
         "--retries=0",
-    ]))
+    ]);
+    if let Some(output) = output {
+        command.env("CONDUIT_HISTORY_BROWSER_PROOF_OUTPUT", output);
+    }
+    super::execute(&mut command)
 }
 
 fn committed(root: &Path) -> Result<(), Box<dyn Error>> {

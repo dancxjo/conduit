@@ -4,6 +4,8 @@ use conduit_face::{
     admit_visual_look, prepare_component_recipe, AdmittedVisualExpression,
     ConfiguredMaskConfiguration, VisualUserConstraints,
 };
+#[path = "component/history.rs"]
+mod history;
 
 #[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -17,6 +19,8 @@ pub(super) struct VisualConstraints {
 
 #[derive(Clone, Serialize)]
 pub(super) struct ComponentView {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub history: Option<history::HistoryView>,
     #[serde(serialize_with = "super::component_wire::configuration")]
     pub configuration: ConfiguredMaskConfiguration,
     pub expression: AdmittedVisualExpression,
@@ -90,31 +94,45 @@ pub(super) fn prepare(
         .as_ref()
         .ok()
         .map(|prepared| prepared.recipe.identity().to_owned());
-    let (maximum_columns, reflow_width, gutter, subject_regions, groups, fallback) = match prepared
+    let (maximum_columns, reflow_width, gutter, subject_regions, groups, mut fallback) =
+        match prepared {
+            Ok(prepared) => (
+                *prepared.recipe.maximum_columns(),
+                *prepared.recipe.reflow_width(),
+                *prepared.recipe.gutter(),
+                prepared.subject_regions,
+                prepared
+                    .recipe
+                    .regions()
+                    .iter()
+                    .map(|region| *region.group())
+                    .collect(),
+                None,
+            ),
+            Err(reason) => (
+                1,
+                720,
+                12,
+                vec![None; face.subjects.len()],
+                vec![],
+                Some(reason),
+            ),
+        };
+    let history = if recipe_identity.as_deref() == Some(conduit_face::HISTORY_COMPONENT_RECIPE_ID)
+        && fallback.is_none()
     {
-        Ok(prepared) => (
-            *prepared.recipe.maximum_columns(),
-            *prepared.recipe.reflow_width(),
-            *prepared.recipe.gutter(),
-            prepared.subject_regions,
-            prepared
-                .recipe
-                .regions()
-                .iter()
-                .map(|region| *region.group())
-                .collect(),
-            None,
-        ),
-        Err(reason) => (
-            1,
-            720,
-            12,
-            vec![None; face.subjects.len()],
-            vec![],
-            Some(reason),
-        ),
+        match history::prepare(face) {
+            Ok(history) => Some(history),
+            Err(reason) => {
+                fallback = Some(format!("history graph refused: {reason:?}"));
+                None
+            }
+        }
+    } else {
+        None
     };
     Ok(Some(ComponentView {
+        history,
         configuration,
         expression,
         selected_look,

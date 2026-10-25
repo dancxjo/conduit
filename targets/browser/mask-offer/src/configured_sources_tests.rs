@@ -102,3 +102,130 @@ fn registered_nonvisual_source_recovers_default_without_trusting_unknown_roots()
     absent.capabilities.clear();
     assert!(configured_mask_configuration(&absent, &planned).is_err());
 }
+
+#[test]
+fn history_root_retains_checked_recipe_exact_required_slot_and_existing_look() {
+    use conduit_plot::rust_binding::NativeRustBinding;
+    let (planned, configuration) =
+        configured(HISTORY_COMPONENT_MASK_SOURCE, HISTORY_COMPONENT_MASK_ROOT);
+    let (_, editorial) = configured(
+        TODO_COMPONENT_MASK_SOURCE,
+        todo_component_mask_root(
+            ComponentMaskLook::CompactEditorial,
+            TodoComponentRecipe::Flat,
+        ),
+    );
+    assert_eq!(configuration.look, editorial.look);
+    assert_eq!(
+        configured_mask_configuration(&host(), &planned).unwrap(),
+        Some(configuration.clone())
+    );
+    assert_eq!(
+        super::for_root(HISTORY_COMPONENT_MASK_ROOT),
+        Some(HISTORY_COMPONENT_MASK_SOURCE)
+    );
+    assert!(!super::contains(
+        &(String::from(HISTORY_COMPONENT_MASK_SOURCE) + "\n")
+    ));
+    let decode = || {
+        StructuredInfoValue::from_canonical_bytes(configuration.recipe.canonical_value()).unwrap()
+    };
+    let recipe = ComponentRecipeInfo::from_structured(decode()).unwrap();
+    assert_eq!(recipe.identity(), HISTORY_COMPONENT_RECIPE_ID);
+    assert_eq!(recipe.regions().len(), 1);
+    let ComponentSubjectSelector::Bound(binding) = recipe.regions()[0].selector() else {
+        panic!("history selection must be an exact required slot")
+    };
+    assert_eq!(binding.subject(), "environment-history");
+    assert!(matches!(binding.role(), ComponentBindingRole::Role(role) if role == "Collection"));
+    assert_eq!(binding.properties().len(), 8);
+    assert!(binding.actions().is_empty());
+    let face = history_slot_face("environment-history", FaceRole::Collection, false, false);
+    let prepared = prepare_component_recipe(decode(), &face).unwrap();
+    assert_eq!(prepared.subject_regions, vec![Some(0)]);
+    for malformed in [
+        history_slot_face("other-history", FaceRole::Collection, false, false),
+        history_slot_face("environment-history", FaceRole::Info, false, false),
+        history_slot_face("environment-history", FaceRole::Collection, true, false),
+        history_slot_face("environment-history", FaceRole::Collection, false, true),
+    ] {
+        assert!(prepare_component_recipe(decode(), &malformed).is_err());
+    }
+    let mut wrong_root = planned;
+    wrong_root.mask.plot_name = "environment-history-mask-unreviewed".into();
+    assert!(configured_mask_configuration(&host(), &wrong_root).is_err());
+}
+
+fn history_slot_face(
+    subject: &str,
+    role: FaceRole,
+    wrong_clock: bool,
+    missing_producer: bool,
+) -> Face {
+    let mut properties = vec![];
+    for (name, value) in [
+        (
+            "schema",
+            FacePropertyValue::Text("environment/history@1".into()),
+        ),
+        (
+            "clock",
+            if wrong_clock {
+                FacePropertyValue::Count(0)
+            } else {
+                FacePropertyValue::Text("producer-boot-ms".into())
+            },
+        ),
+        (
+            "producer-host",
+            FacePropertyValue::Identity("host/history-fixture".into()),
+        ),
+        (
+            "producer-boot",
+            FacePropertyValue::Identity("boot/history-fixture".into()),
+        ),
+        (
+            "producer-plan",
+            FacePropertyValue::Identity("plan/history-fixture".into()),
+        ),
+        (
+            "producer-play",
+            FacePropertyValue::Identity("play/history-fixture".into()),
+        ),
+        ("visible-samples", FacePropertyValue::Count(0)),
+        ("samples-outside-view", FacePropertyValue::Count(0)),
+    ] {
+        if missing_producer && name == "producer-plan" {
+            continue;
+        }
+        properties.push(FaceProperty {
+            subject: subject.into(),
+            name: name.into(),
+            value,
+        });
+    }
+    Face::new_with_semantics(
+        1,
+        FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![FaceSubject {
+            identity: subject.into(),
+            role,
+            name: "History slot fixture".into(),
+        }],
+        vec![],
+        properties,
+        vec![],
+        vec![],
+        vec![],
+    )
+    .unwrap()
+}

@@ -1,4 +1,5 @@
 import { decodeVisualLook } from "../host/assets/application-look.mjs";
+import { historyRegion } from "./owner-face-history.mjs";
 import { decorate, iconForRole, iconForIntent } from "./owner-face-icons.mjs";
 // A reusable browser realization of the checked owner Face. The SDK owns the
 // Mask Plan, Play, Show acknowledgement and typed return route; this element
@@ -160,6 +161,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
     const documentNode = faceNode('article', '', 'owner-face-document');
     documentNode.setAttribute('part', 'document');
+    const history = historyRegion(view);
+    if (history) documentNode.append(history);
     const { collections, placed } = this.#projectCollections(view);
     const renderedActions = new Set();
     const actionReady = action => this.#ready(view, action, render);

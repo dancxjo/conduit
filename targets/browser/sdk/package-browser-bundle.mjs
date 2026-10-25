@@ -133,7 +133,7 @@ try {
     await copyFile(source, destination);
   }
   // One component implementation serves the application and the SDK default.
-  for (const name of ["owner-face-component.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
+  for (const name of ["owner-face-component.mjs", "owner-face-history.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
     await copyFile(path.resolve(ROOT, "../handbook", name), path.join(stageRoot, name));
   }
   const componentPath = path.join(stageRoot, "owner-face-component.mjs");

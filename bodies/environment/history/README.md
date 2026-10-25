@@ -66,6 +66,39 @@ with compositor-owned scanout acknowledgement. Its Host offers and display are
 fixtures. It does not install a native Host, join the MCU Body or establish
 physical Pi/HDMI scanout.
 
+The reviewed `environment-history-mask` root binds exactly the
+`environment-history` collection and its required producer/clock/count fields.
+The browser owner Mask prepares graph coordinates from that same checked Face;
+its DOM component adds a responsive plot and exact-value table while retaining
+all original generic Face content. Numeric observation values and revisions
+cross the JS boundary as strings; only finite drawing coordinates are numbers.
+Refused history retains the generic Face rather than drawing guessed points.
+
+```sh
+cargo +stable xtask prove environment history-owner-browser
+cargo +stable xtask prove environment history-owner-target
+cargo +stable xtask prove environment history-cross-mask
+```
+
+This proof exports the actual prepared browser Mask view, renders it in pinned
+Chromium at desktop/mobile widths, and separately verifies the real kernel's
+matching-acknowledgement gate. A DOM screenshot plus a CPU acknowledgement test
+is not a joined-Host transport receipt. The native offered-Host preparation
+helper admits the same reviewed source; native presentation selection and the
+Body-owner recipe selection route remain separate integration work. The Look
+selector files currently owned by #6469 are not modified here.
+
+The cross-Mask entrance feeds the exact exported, sealed browser fixture Face
+to the configured native Mask, preserving its Body basis and revision without
+creating another Body on the native side. Both ordinary kernels and actual DOM/
+CPU pixel rendering participate; the carrier/Host inputs remain fixtures. This
+is neither a live MCU Line nor physical display or fresh-process recorder proof.
+The target entrance checks the production browser runtime library for wasm32.
+
+The current temperature view is Celsius preparation. The user's requested
+per-Mask `°C`/`K`/`°F` Looks and retained typed default/override precedence remain
+required by #6461; a fixed-Celsius graph does not complete that requirement.
+
 This is hosted preparation and deterministic content/Mask proof. Fragment
 construction allocates; complete memory/work admission remains the integrating
 Host's responsibility. Neither decoding nor Face construction establishes an

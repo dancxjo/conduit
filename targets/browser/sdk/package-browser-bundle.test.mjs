@@ -75,12 +75,26 @@ try {
   assert(listing.includes("browser-sdk-body-face.mjs"));
   const bodyFaceRenderer = await readFile(path.join(output, "browser-sdk-body-face.mjs"), "utf8");
   assert.match(bodyFaceRenderer, /import\s+["']\.\/owner-face-component\.mjs["']/);
-  for (const name of ["owner-face-component.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
+  for (const name of ["owner-face-component.mjs", "owner-face-history.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
     const source = await readFile(path.join(root, "../handbook", name));
     const expected = name === "owner-face-component.mjs"
       ? Buffer.from(source.toString().replaceAll('"../host/assets/application-look.mjs"', '"./host/assets/application-look.mjs"'))
       : source;
     assert.deepEqual(await readFile(path.join(output, name)), expected);
+  }
+  assert(listing.includes("owner-face-history.mjs"));
+  const componentModule = await readFile(path.join(output, "owner-face-component.mjs"), "utf8");
+  assert.match(componentModule, /from\s+["']\.\/owner-face-history\.mjs["']/);
+  // Validate the produced component's actual static imports, rather than only
+  // the source list: an omitted dependency breaks every SDK Face at import time.
+  const imports = [...componentModule.matchAll(/^import\s+.*?\sfrom\s+["']([^"']+)["'];?$/gm)];
+  assert(imports.length >= 3);
+  for (const [, specifier] of imports) {
+    assert(specifier.startsWith("./"));
+    const dependency = path.resolve(output, specifier);
+    const bytes = await readFile(dependency);
+    assert(bytes.length > 0, `component dependency missing: ${specifier}`);
+    assert(listing.includes(path.relative(output, dependency).split(path.sep).join("/")));
   }
   const renderer = await readFile(path.join(output, "browser-sdk-patchbay.mjs"), "utf8");
   assert.match(renderer, /import\s+["']\.\/owner-face-component\.mjs["']/);

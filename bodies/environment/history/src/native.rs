@@ -27,6 +27,14 @@ impl<'a> HistoryGraph<'a> {
             width: 640,
             height: 360,
         };
+        // Paper and ink both come from the admitted Look. An empty compositor
+        // buffer alone cannot establish the selected background color.
+        scene.push(GraphicsCommand::rect(
+            clip,
+            clip,
+            Paint::Background,
+            GraphicsShapeStyle::Fill,
+        )?)?;
         if self.samples.is_empty() {
             scene.push(GraphicsCommand::text(
                 LayoutRect {

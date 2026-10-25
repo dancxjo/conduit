@@ -70,7 +70,7 @@ fn recording_and_current_reading_share_one_face_across_three_masks() {
             .iter()
             .filter(|c| c.kind == GraphicsCommandKind::Rect)
             .count(),
-        4
+        5 // Four observation dots and the Look-owned background.
     );
     let current = PreparedEnvironmentFace::prepare(&face, SUBJECT).unwrap();
     let seven = render(

@@ -271,6 +271,10 @@ pub use generated::{
 mod component_recipe;
 mod component_slots;
 pub use component_recipe::*;
+mod history_component;
+pub use history_component::{
+    HISTORY_COMPONENT_MASK_ROOT, HISTORY_COMPONENT_MASK_SOURCE, HISTORY_COMPONENT_RECIPE_ID,
+};
 
 mod checked_source_plan;
 pub use checked_source_plan::*;
