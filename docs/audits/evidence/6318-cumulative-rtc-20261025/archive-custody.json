@@ -705,5 +705,116 @@
         "sha256": "07d4a1442daa5abcac9d69d61edf2c962291de30cfd8ae5d4f5dc60b807bf893"
       }
     ]
+  },
+  "native-cap-621711b68.tar.zst": {
+    "sha256": "5817a2841be95ee0c50555965564bb58664b81e13d5a40c3a3109564b9163663",
+    "bytes": 9451337,
+    "files": [
+      {
+        "path": "native-cap-proof/x86_64/privilege-inventory-3ed2f5bb93bd3a7adcd9e382aba1832a57f634dfc4a6e4efdde619467ea75b43-architecture-proof-appliance.json",
+        "bytes": 63241,
+        "sha256": "3416067037abee12a5a7c792882e219ebf2ba6f1d981d11d76dcf212e7f15be6"
+      },
+      {
+        "path": "native-cap-proof/x86_64/service-trap-envelope-proof.json",
+        "bytes": 63549,
+        "sha256": "91e24566166fb02c9a27601727603f3ce437847aec2ec96a1b2b3c7aca08b78f"
+      },
+      {
+        "path": "native-cap-proof/x86_64/compositor-guest-fixture-proof.json",
+        "bytes": 1546,
+        "sha256": "96e590c38fd42915d74bc5c9586dd4b21dc0280e85cd1dcccca82a8eeaa876ca"
+      },
+      {
+        "path": "native-cap-proof/x86_64/conduitos.iso",
+        "bytes": 65988608,
+        "sha256": "2974575b86b001f71d926e2a5ba97b9c2f209527eb7b08a59e3ec400e19e98ae"
+      },
+      {
+        "path": "native-cap-proof/x86_64/compositor-hostile-broker-fixture-proof.json",
+        "bytes": 2423,
+        "sha256": "b93bb0c5ab3f0fc97e9eef5d7b2194fa3c5a67338a61d5978f87d802a65c004c"
+      },
+      {
+        "path": "native-cap-proof/x86_64/privilege-inventory-3ed2f5bb93bd3a7adcd9e382aba1832a57f634dfc4a6e4efdde619467ea75b43-architecture-proof-appliance.map",
+        "bytes": 7093345,
+        "sha256": "3143dc1b594a0da595be6c5726ffd0562ce98dfb0c054f771b9a8c68647b0995"
+      },
+      {
+        "path": "native-cap-proof/x86_64/service-memory-fixture-proof.json",
+        "bytes": 2056,
+        "sha256": "048888bc9ee05cb36c5943b07ec7459493d8043af8f45e80aa5f4f4244091405"
+      },
+      {
+        "path": "native-cap-proof/x86_64/conduitos",
+        "bytes": 61718168,
+        "sha256": "3ed2f5bb93bd3a7adcd9e382aba1832a57f634dfc4a6e4efdde619467ea75b43"
+      },
+      {
+        "path": "native-cap-proof/x86_64/compositor-copy-recovery-fixture-proof.json",
+        "bytes": 1630,
+        "sha256": "17acc83c6c37904528493bff8698b6c37ba8d02c8c1857644db91ccd0808c318"
+      },
+      {
+        "path": "native-cap-proof/x86_64/build.json",
+        "bytes": 335,
+        "sha256": "3392b110e917a2d925ea042238b74306574adbf8957241bd323f3f013e453114"
+      },
+      {
+        "path": "native-cap-proof/x86_64/image.json",
+        "bytes": 351,
+        "sha256": "f74d2d999faf1f54e3bc5d32e5a276fafcddf3d6415470aad76826059d052c27"
+      },
+      {
+        "path": "native-cap-proof/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+        "bytes": 348160,
+        "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19"
+      },
+      {
+        "path": "native-cap-proof/x86_64/iso-root/LUCIDE-LICENSE",
+        "bytes": 3208,
+        "sha256": "a595faee0e3dd03811c49c191d63ef99f24134ceb31a07f26e8a5ef9c7fbca12"
+      },
+      {
+        "path": "native-cap-proof/x86_64/iso-root/limine.conf",
+        "bytes": 247,
+        "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8"
+      },
+      {
+        "path": "native-cap-proof/x86_64/iso-root/boot/conduit-spore.bin",
+        "bytes": 32768,
+        "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+      },
+      {
+        "path": "native-cap-proof/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+        "bytes": 24576,
+        "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+      },
+      {
+        "path": "native-cap-proof/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+        "bytes": 3145728,
+        "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+      },
+      {
+        "path": "native-cap-proof/x86_64/iso-root/boot/limine/limine-bios.sys",
+        "bytes": 302836,
+        "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+      },
+      {
+        "path": "native-cap-proof/x86_64/iso-root/boot/conduitos",
+        "bytes": 61718168,
+        "sha256": "3ed2f5bb93bd3a7adcd9e382aba1832a57f634dfc4a6e4efdde619467ea75b43"
+      },
+      {
+        "path": "native-cap-proof/x86_64/ordinary-domain-proof.log",
+        "bytes": 76781,
+        "sha256": "b9e10ded5e49cdddfa3ceccf754e21f8c21532af8ce000b71113a7e41e53a16d"
+      },
+      {
+        "path": "native-cap-proof.log",
+        "bytes": 175303,
+        "sha256": "4e3d2a44b3cfca108c231db9eedf183b9bc52c7b40d2ebae983df7e8c4b431fe"
+      }
+    ]
   }
 }
