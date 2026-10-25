@@ -13,6 +13,7 @@ fn architecture_rung_entrypoints_are_proof_owned() {
     assert_eq!(
         ordinary_bins,
         [
+            "aarch64_jetson_nano.rs".into(),
             "aarch64_orange_pi_5.rs".into(),
             "aarch64_product.rs".into(),
             "ia32_product.rs".into(),
@@ -24,7 +25,8 @@ fn architecture_rung_entrypoints_are_proof_owned() {
 
     let manifest = fs::read_to_string(root.join("Cargo.toml")).expect("ConduitOS manifest");
     assert_eq!(manifest.matches("path = \"proof/appliances/").count(), 17);
-    assert_eq!(manifest.matches("path = \"src/bin/").count(), 5);
+    assert_eq!(manifest.matches("path = \"src/bin/").count(), 6);
+    assert!(manifest.contains("path = \"src/bin/aarch64_jetson_nano.rs\""));
     assert!(manifest.contains("path = \"src/bin/aarch64_orange_pi_5.rs\""));
     assert!(manifest.contains("path = \"src/bin/aarch64_product.rs\""));
     assert!(manifest.contains("path = \"src/bin/ia32_product.rs\""));
@@ -39,6 +41,7 @@ fn architecture_rung_entrypoints_are_proof_owned() {
     assert_eq!(
         ordinary_linkers,
         [
+            "aarch64_jetson_nano.ld".into(),
             "aarch64_orange_pi_5.ld".into(),
             "aarch64_product.ld".into(),
             "ia32_product.ld".into(),
