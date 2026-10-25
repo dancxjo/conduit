@@ -129,7 +129,7 @@ impl Serial {
 
 impl SerialBase for Serial {
     fn provider_generation(&self) -> Option<u64> {
-        // This boot owns one fixed PL011 provider; replacement requires a
+        // This boot owns one fixed platform serial provider; replacement requires a
         // new boot and therefore a new capability scope.
         Some(1)
     }

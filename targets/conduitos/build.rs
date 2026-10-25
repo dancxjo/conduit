@@ -48,6 +48,7 @@ fn main() {
     println!("cargo:rerun-if-changed=firmware/linker/riscv64_product.ld");
     println!("cargo:rerun-if-changed=firmware/linker/loongarch64_product.ld");
     println!("cargo:rerun-if-changed=firmware/linker/aarch64_orange_pi_5.ld");
+    println!("cargo:rerun-if-changed=firmware/linker/aarch64_jetson_nano.ld");
     println!("cargo:rerun-if-changed=proof/appliances/armv6-rpi-b-plus/linker/a0.ld");
     println!("cargo:rerun-if-changed=proof/appliances/armv6-rpi-b-plus/linker/a2.ld");
     println!("cargo:rerun-if-changed=proof/appliances/armv6-rpi-b-plus/linker/a3.ld");
@@ -70,14 +71,32 @@ fn main() {
             env::var("CONDUITOS_BUILD_ID").unwrap_or_else(|_| "build:proof-appliance".into());
         let image_binding =
             env::var("CONDUITOS_IMAGE_ID").unwrap_or_else(|_| "image:proof-appliance".into());
-        if env::var_os("CARGO_FEATURE_AARCH64_ORANGE_PI_5").is_some() {
+        if env::var_os("CARGO_FEATURE_AARCH64_ORANGE_PI_5").is_some()
+            || env::var_os("CARGO_FEATURE_AARCH64_JETSON_NANO").is_some()
+        {
+            let nano = env::var_os("CARGO_FEATURE_AARCH64_JETSON_NANO").is_some();
+            let profile = if nano {
+                "profile:conduitos-jetson-nano-tegra210-v1"
+            } else {
+                "profile:conduitos-orange-pi-5-rk3588s-v1"
+            };
+            let target = if nano {
+                "conduitos/aarch64/jetson-nano-tegra210"
+            } else {
+                "conduitos/aarch64/orange-pi-5-rk3588s"
+            };
+            let driver = if nano {
+                "DRIVER_TEGRA210_UART"
+            } else {
+                "DRIVER_DW_APB_UART2"
+            };
             fs::write(
                 output,
                 format!(
-                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:conduitos-orange-pi-5-rk3588s-v1\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/aarch64/orange-pi-5-rk3588s\", implementations: IMPL_TIME_TICK | IMPL_TICK_FACE | IMPL_TEXT_LITERAL | IMPL_TEXT_UPPER | IMPL_TEXT_FACE | IMPL_LINEAR_PRESENTER, facilities: 0, resources: 0, bases: BASE_SERIAL_TEXT, drivers: DRIVER_DW_APB_UART2, presenters: PRESENTER_LINEAR_SERIAL, proof_instrumentation: 0, face_surface_slots: 0, face_surface_bytes: 0, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
+                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: {profile:?}, build_id: {build_id:?}, image_binding: {image_binding:?}, target: {target:?}, implementations: IMPL_TIME_TICK | IMPL_TICK_FACE | IMPL_TEXT_LITERAL | IMPL_TEXT_UPPER | IMPL_TEXT_FACE | IMPL_LINEAR_PRESENTER, facilities: 0, resources: 0, bases: BASE_SERIAL_TEXT, drivers: {driver}, presenters: PRESENTER_LINEAR_SERIAL, proof_instrumentation: 0, face_surface_slots: 0, face_surface_bytes: 0, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
                 ),
             )
-            .expect("write Orange Pi 5 make record");
+            .expect("write exact AArch64 board make record");
         } else {
             // Class-neutral control/read machinery is compiled only on x86_64.
             // A fallback record must not advertise it for another CPU.
@@ -122,6 +141,11 @@ fn main() {
         );
         println!(
             "cargo:rustc-link-arg-bin=conduitos-aarch64-orange-pi-5=-T{manifest}/firmware/linker/aarch64_orange_pi_5.ld"
+        );
+    }
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("aarch64") {
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-aarch64-jetson-nano=-T{manifest}/firmware/linker/aarch64_jetson_nano.ld"
         );
     }
     if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86")

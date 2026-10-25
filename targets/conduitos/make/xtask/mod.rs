@@ -46,6 +46,7 @@ mod ia32_product_boot;
 mod ia32_vga_receipt;
 mod image;
 mod isolation_proof;
+mod jetson_nano;
 mod journey_input;
 mod journey_proof;
 mod journey_records;
@@ -278,7 +279,7 @@ pub enum ConduitosArch {
 
 pub(crate) use armv6_rpi_board::Armv6RpiBoard;
 pub(crate) use report::ArtifactRole;
-pub(crate) use target_build::{build_profile_image, ProfileBuiltImage};
+pub(crate) use target_build::{ProfileBuiltImage, build_profile_image};
 
 pub(crate) fn build_rpi_image(
     board: Armv6RpiBoard,
@@ -492,6 +493,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),
         ConduitosCommand::OrangePi5Image => orange_pi_5_image::execute(opts),
+        ConduitosCommand::JetsonNanoImage(args) => jetson_nano::execute(args, opts),
         ConduitosCommand::Flash(flash) => {
             require_make_target(flash.arch, flash.board)?;
             match flash.arch {
@@ -746,14 +748,16 @@ mod tests {
         assert!(
             Cli::try_parse_from(["xtask", "make", "conduitos", "usb-configuration-proof"]).is_ok()
         );
-        assert!(Cli::try_parse_from([
-            "xtask",
-            "make",
-            "conduitos",
-            "usb-configuration-proof",
-            "--prepared-image"
-        ])
-        .is_err());
+        assert!(
+            Cli::try_parse_from([
+                "xtask",
+                "make",
+                "conduitos",
+                "usb-configuration-proof",
+                "--prepared-image"
+            ])
+            .is_err()
+        );
         for proof in [
             "xhci-proof",
             "usb-proof",

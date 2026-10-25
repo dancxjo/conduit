@@ -22,7 +22,7 @@ pub(super) fn format(
     let mut text = crate::sign_format::FixedText::new();
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     if let ProtocolBodyRefusal::Call(
         crate::protocol_host_calls::ProtocolCallRefusal::UsbIsochronous(reason),
@@ -96,7 +96,7 @@ mod tests {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     #[test]
     fn native_dispatch_refusal_keeps_classifier_before_kernel_step() {

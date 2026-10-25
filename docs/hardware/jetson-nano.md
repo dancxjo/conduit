@@ -12,21 +12,33 @@ compressed image, SHA-256 checksum and flashing instructions. The user will
 write the card on their own machine; local USB enumeration is not a deployment
 prerequisite.
 
-The requested deliverable is a flashable microSD image for P3450, with
-on-screen boot/status output and no required UART adapter. UART is an optional
-diagnostic path. There is currently no supported Nano image or physical boot receipt. The
-`src/arch/jetson_nano/memory.rs` prerequisite has host conformance for finite
-RAM/reservation sets and aligned placement admission. It is not yet connected
-to a board entry point. Strict semantic extraction now reads root memory banks
-and static reserved-memory children with two address and two size cells,
-requires the original Nano/Tegra210 identity, and refuses unsupported layouts. The bounded DTB
-envelope/token validator checks block layout, tree grammar and the reservation
-map, and protects the DTB itself. Seventeen focused host handoff tests pass, including register-snapshot
-admission for EL1, masked exceptions, disabled translation/data cache,
-boot-core affinity and a usable counter frequency. EL2 currently refuses;
-no transition or board entry assembly is implemented.
-Real firmware DTB compatibility and physical boot remain unverified. This
-contract describes the original 4 GB Jetson Nano developer kit, not Orin Nano.
+The requested deliverable is a flashable microSD image for P3450 with no UART
+adapter requirement. The native board binary now compiles and links, runs the
+existing ordinary text/timer planning path, and includes retained firmware
+scanout diagnostics. Its HDMI, timer interrupts, memory admission and actual
+boot behavior remain physically unverified. It has no native USB device,
+USB input, storage, network or GPU driver, and no board protection-domain proof.
+A successful build is an experimental candidate, not supported hardware parity.
+
+The build entrance is:
+
+```sh
+cargo +stable xtask make conduitos jetson-nano-image --output /absolute/path/conduitos-jetson-nano.img.gz
+```
+
+It requires a clean committed source tree, an AArch64 bare-metal Rust target,
+`aarch64-linux-gnu-objcopy`, Python 3, curl and e2fsprogs. It acquires the official
+NVIDIA firmware donor on first use; `--donor` selects a previously acquired
+scrubbed donor. No block devices or on-board firmware are written. The output
+includes provenance, checksums and NVIDIA license text. See
+[media tooling](../../targets/jetson-nano/README.md) for exact firmware layout.
+
+The image links at `0xf0080000`; its ARM64 `text_offset` is `0x70080000` relative
+to the Nano DRAM base `0x80000000`. This puts the image above the official donor
+VPR candidate pool ending at `0xf0000000`. U-Boot relocates according to the
+nonzero effective size and text offset. The actual passed DTB must still admit
+the complete image/arena/stack range; neither the donor's map nor these constants
+authorize overwriting actual firmware reservations.
 
 ## Hardware and provenance
 
@@ -66,8 +78,11 @@ image, stack and page-table ranges. Reject overflow and overlapping placements.
 A nominal 4 GB specification is not an available-memory map.
 
 Before Rust or BSS writes, check exception level, execution endianness,
-MMU/cache state and primary-core identity. Either perform a reviewed EL2-to-EL1
-transition with timer access configured or refuse that entry state. Secondary
+MMU/cache state and primary-core identity. The board entry implements an EL2-to-EL1
+transition with architectural timer access configured, while refusing active
+translation/data cache and unsupported endian/exception states. It parks
+nonzero-affinity cores before stack/BSS initialization. These paths compile but
+still require physical execution proof. Secondary
 cores must park before sharing the stack or clearing BSS. The selected image
 load address must agree with both the header and linker; firmware addresses
 from unrelated boards cannot establish this.
@@ -79,7 +94,8 @@ routing below the existing architecture seam. Share semantic implementations,
 planning, kernel execution and lifecycle state. Authored plots contain no
 Nano or firmware facts.
 
-A real timer wake must pass through an installed exception vector, acknowledged
+The native GIC-400/virtual-timer implementation must demonstrate that a real
+timer wake passes through an installed exception vector, acknowledged
 interrupt source and bounded wake state. Do not copy the Orange Pi adapter's
 polling timer and software interrupt flag as evidence of hardware IRQ support.
 Preserve cancellation, stale-wake refusal and interrupt-mask restoration.

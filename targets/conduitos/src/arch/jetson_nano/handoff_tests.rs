@@ -19,7 +19,7 @@ impl Fixture {
         self.tree.extend(value.to_be_bytes());
     }
     fn pad(&mut self) {
-        while self.tree.len() % 4 != 0 {
+        while !self.tree.len().is_multiple_of(4) {
             self.tree.push(0);
         }
     }
@@ -152,4 +152,147 @@ fn dynamic_carveouts_missing_cells_and_duplicate_reg_refuse_boot() {
         let dtb = Dtb::parse(&bytes, 0x83000000).unwrap();
         assert!(handoff::memory(&dtb).is_err());
     }
+}
+
+#[test]
+fn exact_empty_reserved_slots_exclude_nothing_but_ram_and_nonzero_addresses_stay_strict() {
+    for (start, size, accepted) in [(0, 0, true), (0x90000000, 0, false)] {
+        let mut bytes = fixture(BOARD, false, true, false);
+        let original = reg(0x90000000, 0x100000);
+        let offset = bytes
+            .windows(16)
+            .position(|window| window == original)
+            .unwrap();
+        bytes[offset..offset + 16].copy_from_slice(&reg(start, size));
+        let dtb = Dtb::parse(&bytes, 0x83000000).unwrap();
+        assert_eq!(handoff::memory(&dtb).is_ok(), accepted);
+    }
+    let mut bytes = fixture(BOARD, false, true, false);
+    let original = reg(0x80000000, 0x100000000);
+    let offset = bytes
+        .windows(16)
+        .position(|window| window == original)
+        .unwrap();
+    bytes[offset..offset + 16].fill(0);
+    assert!(handoff::memory(&Dtb::parse(&bytes, 0x83000000).unwrap()).is_err());
+}
+
+fn dynamic_fixture(size: &[u8], alignment: Option<&[u8]>, ranges: Option<&[u8]>) -> Vec<u8> {
+    let mut f = Fixture::new();
+    f.begin(b"");
+    f.cells();
+    f.prop(b"compatible", BOARD);
+    f.begin(b"memory@80000000");
+    f.prop(b"device_type", b"memory\0");
+    f.prop(b"reg", &reg(0x80000000, 0x100000000));
+    f.end();
+    f.begin(b"reserved-memory");
+    f.cells();
+    f.prop(b"ranges", b"");
+    f.begin(b"vpr-carveout");
+    f.prop(b"size", size);
+    if let Some(alignment) = alignment {
+        f.prop(b"alignment", alignment);
+    }
+    if let Some(ranges) = ranges {
+        f.prop(b"alloc-ranges", ranges);
+    }
+    f.end();
+    f.end();
+    f.end();
+    f.finish()
+}
+
+#[test]
+fn dynamic_request_excludes_every_candidate_byte_instead_of_choosing_an_allocation() {
+    let candidates = [reg(0x80000000, 0x70000000), reg(0x110000000, 0x10000000)].concat();
+    let bytes = dynamic_fixture(
+        &0x19000000u64.to_be_bytes(),
+        Some(&0x400000u64.to_be_bytes()),
+        Some(&candidates),
+    );
+    let dtb = Dtb::parse(&bytes, 0x83000000).unwrap();
+    let memory = handoff::memory(&dtb).unwrap();
+    for candidate in [
+        Region::new(0x80000000, 0x70000000).unwrap(),
+        Region::new(0x110000000, 0x10000000).unwrap(),
+    ] {
+        assert!(memory.reserved.iter().any(|region| region == candidate));
+        assert!(!memory.occupied.iter().any(|region| region == candidate));
+    }
+    for start in [0x80000000, 0x90000000, 0xeffff000, 0x110000000, 0x11ffff000] {
+        assert_eq!(
+            admit(
+                &memory.ram,
+                &memory.reserved,
+                Region::new(start, 4096).unwrap(),
+                4096
+            ),
+            Err(Refusal::Reserved)
+        );
+    }
+    assert!(
+        admit(
+            &memory.ram,
+            &memory.reserved,
+            Region::new(0xf0080000, 4096).unwrap(),
+            4096
+        )
+        .is_ok()
+    );
+}
+
+#[test]
+fn unbounded_malformed_and_impossible_dynamic_allocations_refuse() {
+    let ranges = reg(0x90000001, 0x1000);
+    for (size, alignment, candidates) in [
+        (0x1000u64.to_be_bytes().to_vec(), None, None),
+        (0u64.to_be_bytes().to_vec(), None, Some(ranges.clone())),
+        (vec![1], None, Some(ranges.clone())),
+        (
+            0x1000u64.to_be_bytes().to_vec(),
+            Some(3u64.to_be_bytes().to_vec()),
+            Some(ranges.clone()),
+        ),
+        (
+            0x1000u64.to_be_bytes().to_vec(),
+            Some(0x1000u64.to_be_bytes().to_vec()),
+            Some(ranges.clone()),
+        ),
+        (
+            0x1000u64.to_be_bytes().to_vec(),
+            None,
+            Some(reg(u64::MAX, 0x1000)),
+        ),
+    ] {
+        let bytes = dynamic_fixture(&size, alignment.as_deref(), candidates.as_deref());
+        assert!(handoff::memory(&Dtb::parse(&bytes, 0x83000000).unwrap()).is_err());
+    }
+}
+
+#[test]
+fn occupied_preserves_static_regions_and_dtb_identity_without_dynamic_pools() {
+    let bytes = fixture(BOARD, false, true, false);
+    let mut dtb = Dtb::parse(&bytes, 0x83000000).unwrap();
+    let firmware_map = Region::new(0xff000000, 0x10000).unwrap();
+    dtb.reservations.push(firmware_map, false).unwrap();
+    let memory = handoff::memory(&dtb).unwrap();
+    let expected = [
+        firmware_map,
+        Region::new(0x90000000, 0x100000).unwrap(),
+        Region::new(0x83000000, bytes.len() as u64).unwrap(),
+    ];
+    assert_eq!(memory.occupied.iter().count(), expected.len());
+    for region in expected {
+        assert!(memory.occupied.iter().any(|occupied| occupied == region));
+        assert!(memory.reserved.iter().any(|reserved| reserved == region));
+    }
+    // A larger static reservation retains its exact range; matching just an
+    // inner framebuffer address is not permission to discard the reservation.
+    assert!(
+        !memory
+            .occupied
+            .iter()
+            .any(|occupied| occupied == Region::new(0x90000000, 4096).unwrap())
+    );
 }

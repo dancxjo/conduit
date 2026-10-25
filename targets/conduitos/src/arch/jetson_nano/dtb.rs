@@ -115,7 +115,7 @@ impl<'a> Dtb<'a> {
             total_bytes,
         };
         let mut tokens = dtb.tokens();
-        while tokens.next()?.is_some() {}
+        while tokens.next_token()?.is_some() {}
         Ok(dtb)
     }
 
@@ -174,7 +174,7 @@ impl<'a> Tokens<'a> {
         Ok(())
     }
 
-    pub fn next(&mut self) -> Result<Option<Token<'a>>, Error> {
+    pub fn next_token(&mut self) -> Result<Option<Token<'a>>, Error> {
         if self.done {
             return Ok(None);
         }

@@ -1,7 +1,7 @@
 //! Exact kernel-token dispatch and cooperative native completion.
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 use super::PendingUsbKind;
 use super::{I2C_CALL, I2cProvider, Owner, PreparedProtocolCalls, ProtocolCallRefusal};
@@ -28,7 +28,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .ok_or(ProtocolCallRefusal::Unsupported)?;
         #[cfg(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         {
             if self.pending_usb.is_some() || self.pending_usb_failed {
@@ -77,7 +77,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         #[cfg(not(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         )))]
         {
             let _ = binding;
@@ -97,7 +97,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         #[cfg(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         if self.pending_usb.is_some() {
             return Err(Refusal::Unsupported);
@@ -125,18 +125,18 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             Owner::EthernetFrame(_) => crate::ethernet_frame::contract::FRAME_CALL,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::StorageAuthorize => crate::storage_base::transaction_contract::AUTHORIZE_CALL,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::StorageSettle => crate::storage_base::transaction_contract::SETTLE_CALL,
 
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbControl(_)
             | Owner::UsbProtocolControl
@@ -144,19 +144,19 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             | Owner::UsbIsochronousControl => crate::usb_base::control_contract::CONTROL_CALL,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbProtocolEndpoint | Owner::UsbDuplexRead => {
                 crate::usb_base::endpoint_read_contract::ENDPOINT_READ_CALL
             }
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbDuplexWrite => crate::usb_base::endpoint_write_contract::ENDPOINT_WRITE_CALL,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbIsochronousOut => {
                 crate::usb_base::isochronous::contract::ISOCHRONOUS_OUT_CALL
@@ -179,7 +179,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .request;
         #[cfg(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         if matches!(
             binding.owner,
@@ -199,7 +199,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .map_err(Refusal::Kernel)?;
         #[cfg(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         if matches!(binding.owner, Owner::UsbIsochronousOut) {
             let result = self
@@ -222,7 +222,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         #[cfg(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         if matches!(
             binding.owner,
@@ -276,7 +276,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let result = match &mut binding.owner {
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbProtocolControl => self
                 .usb_protocol
@@ -287,7 +287,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .map_err(Refusal::UsbProtocol),
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbProtocolEndpoint
             | Owner::UsbDuplexRead
@@ -297,7 +297,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             }
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbDuplexControl => {
                 let host = self.usb_duplex.as_mut().ok_or(Refusal::InvalidPlan)?;
@@ -313,7 +313,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             }
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbIsochronousControl => self
                 .usb_isochronous
@@ -324,7 +324,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .map_err(Refusal::UsbIsochronous),
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::UsbControl(owner) => owner
                 .invoke(node, call.call, call.request, input)
@@ -337,7 +337,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .map_err(Refusal::EthernetFrame),
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Owner::StorageAuthorize | Owner::StorageSettle => return Err(Refusal::InvalidPlan),
             Owner::Pure(owner) => owner.invoke(node, call.call, call.request, input),
@@ -413,7 +413,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         #[cfg(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         if self.pending_duplex.iter().any(Option::is_some) {
             if self.pending_usb_failed {
@@ -457,7 +457,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         #[cfg(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         if let Some(admitted) = self.pending_usb {
             if self.pending_usb_failed {

@@ -56,6 +56,12 @@ pub struct Regions {
     len: usize,
 }
 
+impl Default for Regions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Regions {
     pub const fn new() -> Self {
         Self {

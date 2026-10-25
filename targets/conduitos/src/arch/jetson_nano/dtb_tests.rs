@@ -36,16 +36,16 @@ fn parses_tokens_and_protects_blob_even_without_firmware_reservation() {
     let dtb = Dtb::parse(&bytes, 0x83000000).unwrap();
     assert_eq!(dtb.total_bytes, bytes.len());
     let mut tokens = dtb.tokens();
-    assert_eq!(tokens.next().unwrap(), Some(Token::Begin(b"")));
+    assert_eq!(tokens.next_token().unwrap(), Some(Token::Begin(b"")));
     assert_eq!(
-        tokens.next().unwrap(),
+        tokens.next_token().unwrap(),
         Some(Token::Property {
             name: b"reg",
             value: &[0x12, 0x34, 0x56, 0x78]
         })
     );
-    assert_eq!(tokens.next().unwrap(), Some(Token::End));
-    assert_eq!(tokens.next().unwrap(), None);
+    assert_eq!(tokens.next_token().unwrap(), Some(Token::End));
+    assert_eq!(tokens.next_token().unwrap(), None);
     let mut ram = Regions::new();
     ram.push(Region::new(0x80000000, 0x10000000).unwrap(), true)
         .unwrap();
