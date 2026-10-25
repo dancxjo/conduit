@@ -1,10 +1,31 @@
 # Native Crèche foreground development
 
 This is development code for #6468, not a shipped Linux package or physical
-scanout acceptance claim. The installed executable must include
-`native-creche-sdl`. Linux release manufacture does not yet enable that feature:
-native and cross-target SDL2 provisioning remains open. Pi 3B+ ConduitOS SD media
-and physical boot remain separate unfinished work.
+scanout acceptance claim. Linux x86-64 release manufacture enables
+`native-creche-sdl`; ARM64 Linux release manufacture does not yet enable it.
+Pi 3B+ ConduitOS SD media and physical boot remain separate unfinished work.
+
+On a Linux x86-64 development Host, the supported manufacture entrance is:
+
+```sh
+cargo xtask setup linux-release
+cargo xtask doctor linux-release
+cargo xtask make host release --platform linux-x86_64 --output /absolute/release
+```
+
+The setup supplies native SDL2 development files. The resulting executable
+requires the system SDL2 runtime on its destination; this bundle does not ship
+that library. Native presentation also requires a working SDL2 KMSDRM driver,
+display access and input permissions. A compile or SDL2 version probe does not
+prove those runtime conditions. The full `--platform linux` set uses the same
+native x86-64 manufacture and preserves its existing ARM64 package.
+
+Install the sealed manifest without starting the background service before
+foreground use:
+
+```sh
+/absolute/release/conduit-linux-x86_64 host service install /absolute/release/hosted-linux-x86_64.json --state-dir /absolute/installed-host --no-start
+```
 
 The product entrance is:
 

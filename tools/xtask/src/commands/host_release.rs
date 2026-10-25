@@ -23,6 +23,8 @@ const MAXIMUM_NATIVE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 pub(crate) enum ReleasePlatform {
     Browser,
     Linux,
+    #[value(name = "linux-x86_64")]
+    LinuxX86_64,
     Windows,
     Macos,
 }
@@ -64,6 +66,7 @@ pub(crate) fn run(
     match platform {
         ReleasePlatform::Browser => build_browser(output, source_identity)?,
         ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
+        ReleasePlatform::LinuxX86_64 => linux::build_linux_x86_64(output, source_identity)?,
         ReleasePlatform::Windows => build_windows(output, source_identity)?,
         ReleasePlatform::Macos => build_macos(output, source_identity)?,
     }

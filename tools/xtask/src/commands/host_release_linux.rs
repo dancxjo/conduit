@@ -18,19 +18,7 @@ pub(super) fn build_linux_set(
         Command::new("cmake").arg("--version"),
         "CMake unavailable; run `cargo xtask setup linux-release`",
     )?;
-    require_success(
-        Command::new("cargo").args(["build", "--locked", "--release", "-p", "conduit"]),
-        "compile hosted Linux release",
-    )?;
-    fs::create_dir_all(output)?;
-    copy(
-        cargo_release_artifact(None, "conduit"),
-        &output.join("conduit-linux-x86_64"),
-    )?;
-    copy(
-        "products/conduit/install/install-linux-x86_64.sh",
-        &output.join("install-linux-x86_64.sh"),
-    )?;
+    build_linux_x86_64(output, source_identity)?;
     require_success(
         Command::new("cargo")
             .args([
@@ -51,23 +39,6 @@ pub(super) fn build_linux_set(
     copy(
         cargo_release_artifact(Some("aarch64-unknown-linux-gnu"), "conduit"),
         &output.join("conduit-linux-aarch64"),
-    )?;
-    seal(
-        output,
-        "hosted-linux-x86_64.json",
-        "std/x86_64/computer",
-        "hosted-native@1",
-        "native-bundle",
-        "conduit-host-hosted/build-native@1",
-        "conduit-host-hosted/launch@1",
-        source_identity,
-        &[
-            (
-                "conduit-linux-x86_64",
-                "application/vnd.conduit.host+executable",
-            ),
-            ("install-linux-x86_64.sh", "application/x-sh"),
-        ],
     )?;
     seal(
         output,
@@ -109,5 +80,62 @@ pub(super) fn build_linux_set(
         )?;
     }
 
+    Ok(())
+}
+
+/// Native x86-64 release only; no ARM cross-SDL capability is implied.
+pub(super) fn build_linux_x86_64(
+    output: &Path,
+    source_identity: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        return Err(
+            "Linux x86-64 release manufacture requires a Linux x86-64 development Host".into(),
+        );
+    }
+    require_success(
+        Command::new("pkg-config").args(["--atleast-version=2.0.0", "sdl2"]),
+        "native SDL2 development files unavailable; run `cargo xtask setup linux-release`",
+    )?;
+    require_success(
+        Command::new("cargo").args([
+            "build",
+            "--locked",
+            "--release",
+            "-p",
+            "conduit",
+            "--bin",
+            "conduit",
+            "--features",
+            "native-creche-sdl",
+        ]),
+        "compile hosted Linux release",
+    )?;
+    fs::create_dir_all(output)?;
+    copy(
+        cargo_release_artifact(None, "conduit"),
+        &output.join("conduit-linux-x86_64"),
+    )?;
+    copy(
+        "products/conduit/install/install-linux-x86_64.sh",
+        &output.join("install-linux-x86_64.sh"),
+    )?;
+    seal(
+        output,
+        "hosted-linux-x86_64.json",
+        "std/x86_64/computer",
+        "hosted-native@1",
+        "native-bundle",
+        "conduit-host-hosted/build-native@1",
+        "conduit-host-hosted/launch@1",
+        source_identity,
+        &[
+            (
+                "conduit-linux-x86_64",
+                "application/vnd.conduit.host+executable",
+            ),
+            ("install-linux-x86_64.sh", "application/x-sh"),
+        ],
+    )?;
     Ok(())
 }

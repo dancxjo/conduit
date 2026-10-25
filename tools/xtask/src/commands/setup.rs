@@ -34,6 +34,8 @@ fn setup_linux_release(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Erro
             "--no-install-recommends",
             "build-essential",
             "cmake",
+            "pkg-config",
+            "libsdl2-dev",
             "gcc-aarch64-linux-gnu",
             "g++-aarch64-linux-gnu",
             "libc6-dev-arm64-cross",

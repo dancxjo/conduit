@@ -289,6 +289,14 @@ fn linux_release_probes() -> Vec<ProbeSpec> {
         ),
         probe(
             "linux-release",
+            "doctor.linux-release.native-sdl2",
+            "native SDL2 development files (not ARM cross-SDL)",
+            "pkg-config",
+            &["--atleast-version=2.0.0", "sdl2"],
+            Some(REPAIR),
+        ),
+        probe(
+            "linux-release",
             "doctor.linux-release.cmake",
             "CMake",
             "cmake",
