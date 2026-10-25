@@ -34,9 +34,11 @@ have no fulfillment condition. Readiness does not itself authorize retirement,
 destruction, a new purpose, or a lifecycle transition.
 
 Similarly, an authored Plot reaching semantic completion is not the same event
-as fulfillment of an entire Body's purpose. Birth, wake, lull, plan replacement,
-completion, fulfillment, and any future final retirement deserve their own
-distinct meaning and evidence.
+as fulfillment of an entire Body's purpose. Birth, wake, lull, plan replacement, Plot completion, and the explicit
+terminal **Fulfilled** transition deserve their own distinct meaning and
+evidence. The current lifecycle implements Fulfilled as an authorized
+conclusion from Lulled, not an automatic consequence of a ready purpose and
+not deletion of the Body's historical record.
 
 See [Body purpose and fulfillment](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/body-purpose-and-fulfillment.md)
 for the implemented readiness rules and their limits.

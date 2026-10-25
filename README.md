@@ -20,9 +20,11 @@ Portable meaning need not carry operating-system, device, or transport choices
 just because today's implementation does.
 
 Continuity is a possibility, not perpetual execution or a requirement to grow.
-A body may lull; a plot may complete; a purpose may be fulfilled. Those are
-different facts. None alone implies automatic restart, preservation of every
-in-flight value, or destruction of the body. Durable identity also depends on
+A body may lull; a plot may complete; a purpose may become ready for
+fulfillment. An authorized Fulfill action can also conclude a body while
+retaining its history. Those are different facts. None alone implies
+automatic restart, preservation of every in-flight value, or erasure of the
+body's evidence. Durable identity also depends on
 surviving continuity evidence; it cannot be recovered merely by wishing it so.
 
 Conduit is working software and an unfinished project. Try a checked program
