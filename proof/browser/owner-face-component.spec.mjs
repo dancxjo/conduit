@@ -1569,9 +1569,17 @@ test('complete selected Look tokens override palette hints without changing acti
 
 for (const palette of ['editorial', 'phosphor']) {
   test(`forced colors replace admitted ${palette} palette tokens`, async ({ page }) => {
+    let releaseStylesheet, stylesheetRequested;
+    const stylesheetGate = new Promise(resolve => { releaseStylesheet = resolve; });
+    const requested = new Promise(resolve => { stylesheetRequested = resolve; });
+    await page.route('**/owner-face-look.css', async route => {
+      stylesheetRequested();
+      await stylesheetGate;
+      await route.continue();
+    });
     await page.emulateMedia({ forcedColors: 'active' });
     await page.goto('/proof/browser/signal-dom-host.test.html');
-    const tokens = await page.evaluate(async ({ view, palette }) => {
+    await page.evaluate(async ({ view, palette }) => {
       await import('/targets/browser/handbook/owner-face-component.mjs');
       const element = document.createElement('conduit-owner-face');
       document.body.replaceChildren(element);
@@ -1581,12 +1589,19 @@ for (const palette of ['editorial', 'phosphor']) {
         expression: { expression: { identity: 'fixture/forced-look', version: 2,
           density: 'compact', palette, typography: 'engineering', text_scale_percent: 100 } } };
       element.show(current, { invoke: async () => {} });
-      await new Promise(resolve => requestAnimationFrame(resolve));
+    }, { view, palette });
+    const readTokens = () => page.locator('conduit-owner-face').evaluate(element => {
       const style = getComputedStyle(element);
       return Object.fromEntries(['paper', 'card', 'ink', 'muted', 'line', 'accent', 'control', 'focus']
         .map(key => [key, style.getPropertyValue(`--face-${key}`).trim()]));
-    }, { view, palette });
-    expect(tokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText',
+    });
+    await requested;
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+    // An animation frame is not stylesheet readiness. Hold the actual CSS
+    // response to prove this assertion observes pending and applied states.
+    expect(Object.values(await readTokens())).toEqual(Array(8).fill(''));
+    releaseStylesheet();
+    await expect.poll(readTokens).toEqual({ paper: 'Canvas', card: 'Canvas', ink: 'CanvasText',
       muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
   });
 }

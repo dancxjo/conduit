@@ -140,10 +140,40 @@ test("focus loss is recoverable while page loss is terminal", async ({ page }) =
 
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   const pagePending = page.evaluate(() => globalThis.__conduitHumanInput.acquireKeyboard());
+  await page.evaluate(async () => {
+    const { openBrowserHumanInput } = await import("/targets/browser/host/assets/browser-human-input.mjs");
+    globalThis.terminalRouteCalls = [];
+    globalThis.terminalValues = [];
+    const boot = { host_id: "terminal-route-host", boot_id: "terminal-route-boot", offer_generation: 1,
+      implementations: ["browser/keyboard-events@1", "browser/pointer-events@1"] };
+    const owner = openBrowserHumanInput({ target: document.querySelector("#surface"), boot,
+      routeInput(kind) { globalThis.terminalRouteCalls.push(kind); return "plot/terminal-control"; } });
+    owner.observePointer((value) => { if (value) globalThis.terminalValues.push(value); });
+    globalThis.terminalButton = owner.nextButton().catch((error) => error.code);
+    globalThis.terminalKeyboard = owner.nextKeyboard().catch((error) => error.code);
+  });
   await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
   await pagePending;
   await expect(page.locator("#keyboard")).toHaveText("PageLost");
   expect(await page.evaluate(async () => (await globalThis.__conduitHumanInput.acquireKeyboard()).code)).toBe("PageLost");
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("focus"));
+  });
+  expect(await page.evaluate(() => {
+    try { globalThis.__conduitHumanInput.adapter.observePointer(() => {}); return "accepted"; }
+    catch (error) { return error.code; }
+  })).toBe("PageLost");
+  const pointerCount = await page.evaluate(() => globalThis.__conduitHumanInput.pointerValues.length);
+  await page.mouse.move(30, 140);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.press("KeyA");
+  expect(await page.evaluate(() => globalThis.__conduitHumanInput.pointerValues.length)).toBe(pointerCount);
+  expect(await page.evaluate(() => ({ calls: globalThis.terminalRouteCalls, values: globalThis.terminalValues })))
+    .toEqual({ calls: [], values: [] });
+  expect(await page.evaluate(async () => [await globalThis.terminalButton, await globalThis.terminalKeyboard]))
+    .toEqual(["PageLost", "PageLost"]);
 });
 
 test("Body routing reuses one pointer slot for 100,000 browser observations", async ({ page }) => {
