@@ -1,8 +1,10 @@
 //! Linux scanout adapter below the ordinary Face graphics Show. This module
 //! owns no Body, observation, Mask policy, scheduler, or recording authority.
+mod initialized;
 mod surface;
 use conduit_face::GraphicsScene;
 use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
+pub use initialized::InitializedDisplay;
 use sdl2::{
     pixels::PixelFormatEnum,
     render::{Canvas, Texture, TextureCreator},
@@ -17,6 +19,7 @@ pub struct Scanout<'a> {
     texture: Texture<'a>,
     surface: Surface,
     live: bool,
+    initialized: InitializedDisplay,
 }
 impl<'a> Scanout<'a> {
     pub fn prepare(
@@ -30,12 +33,22 @@ impl<'a> Scanout<'a> {
             .create_texture_streaming(PixelFormatEnum::ARGB8888, width, height)
             .map_err(|e| e.to_string())?;
         texture.set_blend_mode(sdl2::render::BlendMode::None);
+        let initialized = InitializedDisplay::prepared(canvas, width, height)?;
         Ok(Self {
             canvas,
             texture,
             surface,
             live: true,
+            initialized,
         })
+    }
+    /// Observe this exact live preparation; neither a CPU Surface nor copied
+    /// advertisement bytes can construct an InitializedDisplay.
+    pub fn initialized_display(&self) -> Result<InitializedDisplay, String> {
+        if !self.live || !self.initialized.is_live() {
+            return Err("display-custody-lost".into());
+        }
+        Ok(self.initialized.clone())
     }
     pub fn present(&mut self, scene: &GraphicsScene) -> Result<DisplayReceipt, String> {
         if !self.live {
@@ -73,8 +86,15 @@ impl<'a> Scanout<'a> {
     /// Revocation is terminal for this prepared scanout. Reacquisition requires
     /// a new preparation; device availability alone cannot restore authority.
     pub fn lose(&mut self) {
+        self.initialized.revoke();
         self.live = false;
         self.surface.lose();
+    }
+}
+
+impl Drop for Scanout<'_> {
+    fn drop(&mut self) {
+        self.lose();
     }
 }
 

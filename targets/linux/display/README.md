@@ -9,7 +9,15 @@ A prepared scanout owns one texture and an at-most-8-MiB CPU surface. Compositor
 upload, copy and present before a caller may acknowledge a Mask Show. The
 `present(GraphicsScene)` entrance uses the same commit boundary. SDL's present
 call has no success return, so this proves completion of the selected SDL calls,
-not independently observed physical scanout. Loss is terminal for that preparation. The Linux Host still must bind actual display
+not independently observed physical scanout. Loss is terminal for that preparation. `Scanout::initialized_display` returns a nonserialized lifetime token only after
+actual SDL preparation. It reports the observed backend, renderer, window ID,
+finite geometry and process-local instance nonce. All clones become lost when
+the scanout loses custody or drops; repreparation creates a fresh instance.
+Dummy/software tokens describe that explicit diagnostic backend, not production
+DRM output. This token is a prerequisite for Host attachment and grants no Ready
+Base or Show authority by itself.
+
+The Linux Host still must bind actual display
 custody and an admitted present operation before offering this Back.
 
 The package remains a standalone workspace at `targets/linux/display`; the

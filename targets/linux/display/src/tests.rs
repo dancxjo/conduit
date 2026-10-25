@@ -54,6 +54,16 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
     let mut canvas = window.into_canvas().software().build().unwrap();
     let textures = canvas.texture_creator();
     let mut scanout = Scanout::prepare(&mut canvas, &textures, 32, 24).unwrap();
+    let initialized = scanout.initialized_display().unwrap();
+    let retained = initialized.clone();
+    assert!(initialized.is_live());
+    assert_eq!(initialized.backend(), "dummy");
+    assert_eq!(initialized.renderer(), "software");
+    assert!(!initialized.is_kmsdrm());
+    assert_eq!((initialized.width(), initialized.height()), (32, 24));
+    assert_eq!(initialized.window_size(), (32, 24));
+    assert_eq!(initialized.window_id(), scanout.canvas.window().id());
+    assert!(initialized.instance_nonce() > 0);
     scanout.present(&scene()).unwrap();
     let pixels = scanout
         .canvas
@@ -93,6 +103,8 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
         Err(DisplayError::InvalidExtent)
     );
     assert!(!scanout.live);
+    assert!(!initialized.is_live() && !retained.is_live());
+    assert!(scanout.initialized_display().is_err());
     assert_eq!(
         PixelTarget::commit_frame(&mut scanout),
         Err(DisplayError::Lost)
@@ -102,5 +114,18 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
     assert_eq!(
         scanout.present(&scene()),
         Err("display-custody-lost".into())
+    );
+    drop(scanout);
+    // Repreparation on the same actual window is a fresh lifetime, not revival.
+    let fresh = Scanout::prepare(&mut canvas, &textures, 32, 24).unwrap();
+    let fresh_token = fresh.initialized_display().unwrap();
+    assert_eq!(fresh_token.window_id(), retained.window_id());
+    assert_ne!(fresh_token.instance_nonce(), retained.instance_nonce());
+    assert!(fresh_token.is_live());
+    assert!(!retained.is_live());
+    drop(fresh);
+    assert!(
+        !fresh_token.is_live(),
+        "Drop revokes all outstanding clones"
     );
 }
