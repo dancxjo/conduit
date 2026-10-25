@@ -4,8 +4,9 @@ The supported cache builds the actual dependency-free
 `conduitos-compositor-core` Cargo library on Linux x86_64. It does not install a
 global Cargo wrapper or authorize behavioral/release proof reuse. The hosted
 Linux extension below is an incomplete internal integration checkpoint; its full
-cold/warm release and Hello experiment has completed locally; portable CI and
-cross-revision acceptance remain required before pipeline adoption.
+cold/warm release and Hello experiments have completed locally, including a
+finite two-revision dependency profile. Draft CI wiring is implemented; hosted
+acceptance, accepted-producer transfer and useful total cost remain unproven.
 
 `engine.mjs` acquires pinned sccache 0.19.0 into a new task-local directory and
 verifies both archive and executable SHA-256 digests. `cargo-snapshot.mjs`
@@ -63,9 +64,11 @@ remain relevant when extending this slice.
 sccache server, bounded object storage and audited clear contract. Each build
 gets a new private Cargo target. `hosted-proof.mjs` executes the existing canonical
 Hello protocol check separately against the retained release executable and
-verifies that executable is unchanged. These are internal composition APIs;
-the supported pipeline CLI still selects the compositor profile until the
-integration owner wires and accepts the hosted profile.
+verifies that executable is unchanged. The dedicated `compiler-cache-hosted-prepare` CLI writes a fresh external target
+configuration. In this branch, the Linux hosted target requires that configuration
+and stages the binary, fresh Hello evidence and actual command custody through
+the ordinary product seal. The compositor commands above remain separate.
+Hosted wiring is under qualification and does not establish Integration acceptance.
 
 Preparation runs Cargo metadata offline. Frozen metadata canonicalizes Cargo
 package IDs and source/target paths to their actual sandbox identities; raw
@@ -75,7 +78,9 @@ refuse. Acquire the locked public dependencies
 before freezing; missing cached archives or Git source refuse. Registry source
 bytes come from freshly extracted `.crate` archives authenticated against every
 registry entry in the exact Cargo.lock, including optional entries omitted by
-metadata. Mutable registry source directories are not used as compiler inputs.
+metadata. Extraction consumes the same bounded byte buffer whose digest was
+verified; a later cache-file replacement cannot substitute different input.
+Mutable registry source directories are not used as compiler inputs.
 Archive symlinks, hardlinks, traversal and oversized inputs refuse.
 
 The pinned Tongues Git workspace preserves its shared fixture layout. Its raw
@@ -84,6 +89,11 @@ links to external private data are recorded as absent and are never followed or
 mounted. Pinned Cargo-normalized manifests for the two selected Git packages
 have explicit generated-input custody; updating that Git revision requires
 regenerating and reviewing those manifests. Other public Git bytes remain exact.
+Before compilation, the original acquisition and actual offline metadata must
+match for the selected Conduit closure: package/source identity, features,
+targets and resolved dependency edges. The verifier and canonicalization bytes
+enter the hosted cache policy. This conservative metadata comparison includes
+development/feature edges; it is not a Cargo unit-graph proof.
 
 The native closure selects the installed x86_64 GNU GCC 12–15 private
 compiler layout, concrete linker/startup/header files and their resolved ELF
@@ -97,6 +107,10 @@ compiler, assembler, linker and runtime passed a contained native execution and
 refused an existing host-only include. Actual Ubuntu execution still requires
 CI acceptance; layout fixtures alone do not establish it. Preparation requires
 19 GiB free and caps the retained snapshot at 6 GiB / 150,000 files.
+On restricted Ubuntu hosts, setup loads the distribution Bubblewrap AppArmor
+profile and probes the isolated namespace before preparing the snapshot. It
+retains `--unshare-all`, dropped capabilities and the global namespace restriction.
+Profile/probe failures refuse; the build does not fall back outside the sandbox.
 
 Before compilation, Cargo resolves the frozen inputs offline inside bwrap and
 checks that their procedural-macro closure is covered by the captured bypass
@@ -117,8 +131,8 @@ owned sandbox processes. CPU totals are sampled lower bounds; concurrent
 summed RSS can count shared pages more than once and is not exact peak
 physical RAM. Hello has its own execution receipt and timing.
 
-The namespace binds the entire retained snapshot and runner/mount/environment
-policy. This proves reuse of one exact retained snapshot; it does not establish
+In `exact-snapshot` mode the namespace binds the entire retained snapshot and
+runner/mount/environment policy. This proves reuse of one exact retained snapshot; it does not establish
 cross-revision or separately prepared snapshot reuse. Procedural-macro bypass,
 namespace conservatism and preparation costs must be included when deciding
 whether the profile saves useful CI time. One local uninterrupted fresh-target comparison of the exact retained source
@@ -130,8 +144,8 @@ Hello in 0.403 s warm and 0.386 s cold. Preparation is additional (a separately
 prepared newer source took 22.05 s using already acquired dependency archives;
 network acquisition was not timed). These are one local pair, not a statistical
 speed claim or elimination of expensive runtime tests. Most Conduit compilation
-still bypasses the cache. Automatic CI wiring and useful cross-revision
-acceptance remain incomplete. The
+still bypasses the cache. Draft CI wiring is now implemented, while hosted
+acceptance and useful total cost remain unproven. The
 [engine Rust caveats](https://github.com/mozilla/sccache/blob/v0.19.0/docs/Rust.md)
 also exclude system-linker crate invocations from cache reuse.
 
@@ -174,6 +188,29 @@ reviewed byte identity; this is not a Rust parser or generic safety claim.
 This contract assumes equally trusted build producers. Read-only snapshots and
 leases do not make arbitrary malicious writers to shared cache objects safe.
 Cross-trust restoration needs its own producer policy and artifact custody.
-Real two-revision dependency reuse, changed-revision cold-output equivalence and
-actual hosted persistence/transfer cost remain acceptance work. The earlier 3%
-exact-snapshot comparison must not be relabelled as this profile's speed result.
+A local experiment used published source `ec5fca9533017a1e738bff4dd2302bd80bd9c670`
+and documentation-only revision `b8253eeaa7c79b0d696c66874b7327325f9b6743`.
+Their distinct immutable snapshots shared one audited compatibility namespace.
+The second revision obtained four real Rust hits, then passed a fresh Hello.
+Explicit clear retired four objects / 11,839,514 bytes. A new empty-cache,
+private-target build of that same second revision obtained four misses and
+passed Hello. All 514 inventoried library/metadata/executable outputs matched
+both earlier builds byte for byte. An earlier interrupted cold attempt remains
+separate evidence and was not timed as a continuation of the fresh cold run.
+
+The warm run took 769.812 seconds and fresh cold 733.827 seconds under different
+concurrent host loads. This establishes reuse and output equivalence, not a
+wall-time improvement. Acquisition and transfer are additional. Two failed
+Ubuntu qualifications spent 96–107 seconds in their preparation steps, including
+dependency/engine acquisition, before namespace setup failed. The subsequent
+namespace repair is under actual qualification. The local compatibility
+experiment predates the added production recipe-verifier policy hash; it is not
+an acceptance receipt for a later controller or Ubuntu environment. The earlier
+3% exact-snapshot comparison must not be relabelled as this shared profile's
+speed result.
+
+Accepted-producer persistence/transfer, exact-ID retirement and total hosted cost
+remain acceptance work. Draft workflow selection authenticates successful dev
+Integration acceptance and original adopted train custody before restoring a
+separate compiler seed artifact. Current-source product/runtime proof always
+executes independently. No net hosted speed benefit is claimed.
