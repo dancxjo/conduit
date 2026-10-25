@@ -123,40 +123,8 @@ impl FaceInteraction {
         arguments: Vec<FaceInteractionArgument>,
         sequence: u64,
     ) -> Result<Self, FaceInteractionRefusal> {
+        validate_arguments(checked, show, action_id, target, &arguments)?;
         let face = checked.face();
-        validate_show(checked, show)?;
-        let action = face
-            .resolve_action(face.revision, action_id)
-            .map_err(map_action_refusal)?;
-        if action.target != target {
-            return Err(FaceInteractionRefusal::WrongTarget);
-        }
-        for (index, argument) in arguments.iter().enumerate() {
-            validate_id(&argument.name).map_err(|_| FaceInteractionRefusal::UnknownArgument)?;
-            if arguments[index + 1..]
-                .iter()
-                .any(|candidate| candidate.name == argument.name)
-            {
-                return Err(FaceInteractionRefusal::DuplicateArgument);
-            }
-        }
-        let declarations = &action.arguments;
-        for declaration in declarations {
-            let argument = arguments
-                .iter()
-                .find(|argument| argument.name == declaration.name)
-                .ok_or(FaceInteractionRefusal::MissingArgument)?;
-            if declaration.contract.value_kind.as_str() != argument.value_kind {
-                return Err(FaceInteractionRefusal::WrongValueKind);
-            }
-            declaration
-                .contract
-                .validate(&argument.value)
-                .map_err(map_value_refusal)?;
-        }
-        if arguments.len() != declarations.len() {
-            return Err(FaceInteractionRefusal::UnknownArgument);
-        }
         let mut result = Self {
             identity: FaceInteractionId(String::new()),
             face_id: face.identity.as_str().into(),
@@ -168,9 +136,16 @@ impl FaceInteraction {
             sequence,
         };
         result.identity = result.derived_identity();
-        if result.encode().len() > MAX_FACE_INTERACTION_BYTES {
-            return Err(FaceInteractionRefusal::OversizeValue);
-        }
+        interaction_encoded_len(
+            [
+                64,
+                result.face_id.len(),
+                result.show_id.len(),
+                action_id.len(),
+                target.len(),
+            ],
+            &result.arguments,
+        )?;
         Ok(result)
     }
 
@@ -201,15 +176,24 @@ impl FaceInteraction {
         if self.show_id != show.show_id.as_str() {
             return Err(FaceInteractionRefusal::StaleShow);
         }
-        let rebuilt = Self::new_validated(
+        validate_arguments(
             checked,
             show,
             &self.action_id,
             &self.target,
-            self.arguments.clone(),
-            self.sequence,
+            &self.arguments,
         )?;
-        if rebuilt.identity != self.identity {
+        interaction_encoded_len(
+            [
+                64,
+                self.face_id.len(),
+                self.show_id.len(),
+                self.action_id.len(),
+                self.target.len(),
+            ],
+            &self.arguments,
+        )?;
+        if !identity_matches(&self.identity, &self.identity_digest()) {
             return Err(FaceInteractionRefusal::MalformedEncoding);
         }
         Ok(())
@@ -278,6 +262,10 @@ impl FaceInteraction {
     }
 
     fn derived_identity(&self) -> FaceInteractionId {
+        FaceInteractionId(hex(&self.identity_digest()))
+    }
+
+    fn identity_digest(&self) -> [u8; 32] {
         let mut digest = Sha256::new();
         digest.update(b"conduit.face/interaction@2\0");
         for field in [&self.face_id, &self.show_id, &self.action_id, &self.target] {
@@ -292,9 +280,93 @@ impl FaceInteraction {
             digest.update((argument.value.len() as u32).to_le_bytes());
             digest.update(Sha256::digest(&argument.value));
         }
-        let digest: [u8; 32] = digest.finalize().into();
-        FaceInteractionId(hex(&digest))
+        digest.finalize().into()
     }
+}
+
+fn validate_arguments(
+    checked: &ValidatedFace<'_>,
+    show: &MaskShow,
+    action_id: &str,
+    target: &str,
+    arguments: &[FaceInteractionArgument],
+) -> Result<(), FaceInteractionRefusal> {
+    let face = checked.face();
+    validate_show(checked, show)?;
+    let action = face
+        .resolve_action(face.revision, action_id)
+        .map_err(map_action_refusal)?;
+    if action.target != target {
+        return Err(FaceInteractionRefusal::WrongTarget);
+    }
+    for (index, argument) in arguments.iter().enumerate() {
+        validate_id(&argument.name).map_err(|_| FaceInteractionRefusal::UnknownArgument)?;
+        if arguments[index + 1..]
+            .iter()
+            .any(|candidate| candidate.name == argument.name)
+        {
+            return Err(FaceInteractionRefusal::DuplicateArgument);
+        }
+    }
+    let declarations = &action.arguments;
+    for declaration in declarations {
+        let argument = arguments
+            .iter()
+            .find(|argument| argument.name == declaration.name)
+            .ok_or(FaceInteractionRefusal::MissingArgument)?;
+        if declaration.contract.value_kind.as_str() != argument.value_kind {
+            return Err(FaceInteractionRefusal::WrongValueKind);
+        }
+        declaration
+            .contract
+            .validate(&argument.value)
+            .map_err(map_value_refusal)?;
+    }
+    if arguments.len() != declarations.len() {
+        return Err(FaceInteractionRefusal::UnknownArgument);
+    }
+    Ok(())
+}
+
+// The derived interaction identity is always 64 lowercase hexadecimal bytes.
+// Callers validating an existing interaction must not use its untrusted ID size.
+fn interaction_encoded_len(
+    fields: [usize; 5],
+    arguments: &[FaceInteractionArgument],
+) -> Result<usize, FaceInteractionRefusal> {
+    encoded_len_from_lengths(
+        fields
+            .into_iter()
+            .chain(arguments.iter().flat_map(|argument| {
+                [
+                    argument.name.len(),
+                    argument.value_kind.len(),
+                    argument.value.len(),
+                ]
+            })),
+    )
+}
+
+fn encoded_len_from_lengths(
+    lengths: impl IntoIterator<Item = usize>,
+) -> Result<usize, FaceInteractionRefusal> {
+    // Magic, revision, sequence and argument count. Every variable field adds u32 length.
+    lengths.into_iter().try_fold(24usize, |size, length| {
+        size.checked_add(4)
+            .and_then(|size| size.checked_add(length))
+            .filter(|size| *size <= MAX_FACE_INTERACTION_BYTES)
+            .ok_or(FaceInteractionRefusal::OversizeValue)
+    })
+}
+
+fn identity_matches(identity: &FaceInteractionId, digest: &[u8; 32]) -> bool {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let identity = identity.as_str().as_bytes();
+    identity.len() == 64
+        && digest.iter().enumerate().all(|(index, byte)| {
+            identity[index * 2] == DIGITS[(byte >> 4) as usize]
+                && identity[index * 2 + 1] == DIGITS[(byte & 15) as usize]
+        })
 }
 
 fn map_value_refusal(refusal: ValueConstraintRefusal) -> FaceInteractionRefusal {
@@ -387,3 +459,7 @@ fn hex(bytes: &[u8]) -> String {
     }
     output
 }
+
+#[cfg(test)]
+#[path = "interaction_size_tests.rs"]
+mod size_tests;
