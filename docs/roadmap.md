@@ -1,8 +1,10 @@
 # What we're building next
 
-This is a navigation snapshot of open work, reviewed on **1 October 2026**.
-Follow the linked issue for its current state, dependencies, acceptance criteria,
-and scope. An open issue is planned or unfinished work, not a claim that someone
+This is a **dated navigation snapshot**, originally reviewed on **1 October
+2026** with later scoped amendments. It is neither the live issue board nor a
+claim that every listed dependency or status was rechecked on the same day.
+Follow each linked issue for its present state, dependencies, acceptance
+criteria, and scope. An open issue is planned or unfinished work, not a claim that someone
 is actively implementing it. Paused work is marked below.
 
 Conduit's direction is one continuing body running ordinary reusable plots
@@ -13,6 +15,16 @@ capabilities understandable and useful through real product experiences.
 [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
 names exact development, accepted-release, publication, lag, and proof-receipt
 identities; this roadmap does not substitute planned work for any of those.
+
+## How this roadmap relates to continuing Bodies
+
+A Body's identity is distinct from the Host or Boot currently doing its work.
+Its workload can be revised, but a continuing Body is not required to acquire
+new abilities or pursue unending work. Optional finite purpose and
+[fulfillment readiness](architecture/body-purpose-and-fulfillment.md) are
+separate from Plot completion, lull, and any future retirement operation.
+Work under active draft PRs belongs to those PRs until landed and verified;
+this roadmap does not make it an accepted feature.
 
 ## Conduitese v1 completion
 
