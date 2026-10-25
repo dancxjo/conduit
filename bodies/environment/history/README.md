@@ -67,3 +67,38 @@ ordinary invitations and planned transport to the existing MCU Body, and actual
 browser/native enactment. Native Pi/HDMI and MCU deployment keep their physical
 proof boundaries (#6325, #6376, #6457). This package creates no alternate storage,
 scheduler, sensor acquisition, Body birth or transport service.
+
+## Commit-bound history
+
+`PreparedCommittedHistoryFace` retains a borrowed, immutable selection of at most
+64 publication observers obtained from the actual `RecordingSnapshotBack`s.
+Resource semantic identity plus version must be unique; changing reference
+extent or other metadata cannot admit that generation twice. The selected
+observer cannot be replaced during a read. Before publication output commit,
+the exact same valid JSON still refuses as uncommitted. After commit, the
+observer matches the digest of its original bounded input; equal counters or a
+returned reference cannot substitute other bytes. Existing producer-context,
+clock, replay, gap and capacity checks then apply before advancing the view.
+
+The Face distinguishes no publication evidence from `kernel-publication-commit`
+and retains the last exact first-class resource reference. A digest match is
+process-local kernel evidence, not authority or a portable receipt. A fresh
+process must use the separately admitted recovery/catalog/seed path; it cannot
+reconstruct these observers from JSON or a reference.
+
+```sh
+cargo +stable xtask prove environment history-commit
+```
+
+This entrance runs the existing runtime recording tests and strict library/
+recording-target lint, then all history tests and strict all-target history lint.
+The Linux integration services the original production-kernel request using the
+existing immutable file primitive. Only after the exact request completes and
+its Back output commits can the history Face advance. It reopens the real file
+under a different Boot's binding and feeds identical bytes to another view using
+that same retained observer. Occupied-generation failure preserves the prior
+record file and Face; stale authority denies before file effects. The source,
+placement, offer and independent authority inputs remain explicit CPU fixtures.
+This establishes actual Linux file effects and kernel correlation, not an
+installed native Host, live disk-capacity admission, fresh-process recovery,
+Body membership, MCU transport, native pixels or physical scanout.

@@ -13,8 +13,13 @@ conduit-environment-face = { path = "../face" }
 conduit-environment-runtime = { path = "../runtime" }
 
 [dev-dependencies]
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 serde_json = "1"
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
 
 [profile.dev.build-override]
 opt-level = 1

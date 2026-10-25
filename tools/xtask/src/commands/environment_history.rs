@@ -3,6 +3,7 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "history" => Some(prove(root)),
+        [name] if name == "history-commit" => Some(committed(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-preview" => Some(preview(root)),
@@ -63,4 +64,37 @@ fn browser(root: &Path) -> Result<(), Box<dyn Error>> {
         "--workers=1",
         "--retries=0",
     ]))
+}
+
+fn committed(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::specifications(&["recording".into()])?;
+    super::execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .args([
+                "clippy",
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/runtime/Cargo.toml",
+                "--lib",
+                "--test",
+                "recording_publication",
+                "--test",
+                "recording_chunks",
+                "--test",
+                "recording_recovery",
+                "--test",
+                "observation_forms",
+                "--",
+                "-D",
+                "warnings",
+            ])
+            .env(
+                "CARGO_TARGET_DIR",
+                std::env::var_os("CARGO_TARGET_DIR")
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_else(|| root.join("target")),
+            ),
+    )?;
+    prove(root)
 }
