@@ -168,13 +168,7 @@ impl BirthDraft {
         Ok(())
     }
     pub fn selection(&self, revision: u32) -> Result<BirthSelection, BirthDraftRefusal> {
-        if revision != self.revision {
-            return Err(BirthDraftRefusal::StaleFace);
-        }
-        let name = self.friendly_name.trim();
-        if name.is_empty() {
-            return Err(BirthDraftRefusal::InvalidName);
-        }
+        let name = self.selection_name(revision)?;
         let workset = BodyWorkset::from_plots(
             self.choices
                 .iter()
@@ -182,14 +176,41 @@ impl BirthDraft {
                 .map(|choice| choice.plot.clone()),
         )
         .map_err(|_| BirthDraftRefusal::InvalidInventory)?;
-        if workset.is_empty() && !self.idle_body_allowed {
-            return Err(BirthDraftRefusal::EmptySelection);
-        }
+        self.require_selection(!workset.is_empty())?;
         Ok(BirthSelection {
             revision,
             friendly_name: name.into(),
             workset,
         })
+    }
+
+    /// Presentation readiness only; actual selection still constructs and
+    /// validates the workset above. `new` validates the complete inventory;
+    /// private ownership and immutable choice access preserve those identities.
+    /// Selecting a subset cannot exceed its admitted count or identity bytes,
+    /// introduce duplicates, or change an identity. No owned selection is
+    /// needed merely to describe whether Birth is available.
+    pub(crate) fn selection_readiness(&self, revision: u32) -> Result<(), BirthDraftRefusal> {
+        self.selection_name(revision)?;
+        self.require_selection(self.choices.iter().any(|choice| choice.selected))
+    }
+
+    fn selection_name(&self, revision: u32) -> Result<&str, BirthDraftRefusal> {
+        if revision != self.revision {
+            return Err(BirthDraftRefusal::StaleFace);
+        }
+        let name = self.friendly_name.trim();
+        if name.is_empty() {
+            return Err(BirthDraftRefusal::InvalidName);
+        }
+        Ok(name)
+    }
+
+    fn require_selection(&self, nonempty: bool) -> Result<(), BirthDraftRefusal> {
+        if !nonempty && !self.idle_body_allowed {
+            return Err(BirthDraftRefusal::EmptySelection);
+        }
+        Ok(())
     }
     fn next_revision(&self, expected: u32) -> Result<u32, BirthDraftRefusal> {
         if expected != self.revision {

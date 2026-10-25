@@ -1,5 +1,5 @@
 use super::*;
-use alloc::vec;
+use alloc::{format, vec};
 
 fn draft() -> BirthDraft {
     BirthDraft::new(
@@ -65,4 +65,49 @@ fn exhausted_suggestion_variation_refuses_before_mutation() {
     assert_eq!(draft.selection(revision).unwrap(), selection);
     assert_eq!(draft.suggestion(), &suggestion);
     assert_eq!(draft.requested_system(), "surprise");
+}
+
+#[test]
+fn presentation_readiness_matches_owned_selection_across_public_edits() {
+    fn check(draft: &BirthDraft) {
+        for revision in [0, draft.revision()] {
+            assert_eq!(
+                draft.selection_readiness(revision),
+                draft.selection(revision).map(|_| ())
+            );
+        }
+    }
+    let choices = (0..MAX_BODY_PLOTS)
+        .map(|index| BirthPlotChoice {
+            title: format!("Écho {index}"),
+            search_text: "音 audio".into(),
+            plot: ResidentPlot::new(
+                format!("source/{index}").into(),
+                format!("checked/{index}").into(),
+            ),
+            refusal: None,
+            selected: false,
+        })
+        .collect();
+    let mut draft =
+        BirthDraft::new("550e8400-e29b-41d4-a716-446655440000".into(), choices).unwrap();
+    check(&draft);
+    for mask in [1u16, u16::MAX, 0x5555, 0x8000, 0] {
+        for index in 0..MAX_BODY_PLOTS {
+            draft
+                .select(draft.revision(), index, mask & (1 << index) != 0)
+                .unwrap();
+            check(&draft);
+        }
+        for name in ["", " \u{2003} ", "ΣΊΓΜΑ 音"] {
+            draft.edit_name(draft.revision(), name.into()).unwrap();
+            check(&draft);
+        }
+        draft.search_plots(draft.revision(), "absent 音").unwrap();
+        check(&draft);
+        draft.suggest(draft.revision(), "roman").unwrap();
+        check(&draft);
+    }
+    draft = draft.allow_idle_body();
+    check(&draft);
 }
