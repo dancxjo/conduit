@@ -48,7 +48,7 @@ impl<'a> HistoryGraph<'a> {
             (
                 4,
                 format!(
-                    "Temperature C: top {}; bottom {}",
+                    "Temperature °C: top {}; bottom {}",
                     super::graph::milli_label(max),
                     super::graph::milli_label(min)
                 ),
