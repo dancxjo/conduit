@@ -63,11 +63,40 @@ test('symlink and oversized manifest files refuse before network observation', a
 });
 
 test('supported pipeline CLI exposes train entrances and refuses missing arguments', () => {
-  for (const name of ['train-assemble', 'train-capture', 'train-dispatch', 'train-verify']) {
+  for (const name of ['train-assemble', 'train-capture', 'train-dispatch', 'train-acquire', 'train-verify']) {
     const result = spawnSync('node', ['tools/ci/pipeline/cli.mjs', name], { encoding: 'utf8' });
     assert.equal(result.status, 1);
     assert.match(result.stderr, new RegExp(`usage: ${name}`));
   }
+});
+
+test('supported acquisition rechecks live selection and obtains the full run-owned archive inventory', async t => {
+  const f = await commands(t);
+  f.observation.run.run_attempt = 1;
+  f.observation.run.repository.id = 11;
+  f.observation.run.head_repository.id = 11;
+  await f.api.capture('example/conduit', f.source, [1, 2], f.filename);
+  const bytes = Buffer.from('inert archive fixture');
+  const artifacts = TARGETS.map((target, i) => ({ name: `product-${target.id}`, id: i + 100,
+    size_in_bytes: bytes.length, expired: false,
+    digest: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+    workflow_run: { id: 123, repository_id: 11, head_repository_id: 11, head_sha: f.source } }));
+  const artifactCommand = async (program, args, options) => {
+    assert.equal(program, 'gh');
+    if (args[1].endsWith('/zip')) {
+      await options.output.write(bytes); return { status: 0 };
+    }
+    if (args[1].includes('/artifacts?')) {
+      return { status: 0, stdout: JSON.stringify({ total_count: artifacts.length, artifacts }) };
+    }
+    return { status: 0, stdout: JSON.stringify(f.observation.run) };
+  };
+  const api = createTrainCommands({ command: f.command, directory: f.directory, artifactCommand });
+  const receipt = await api.acquire(f.filename, 123, path.join(f.output, 'acquired'));
+  assert.equal(receipt.artifacts.length, TARGETS.length);
+  assert.equal(receipt.source, f.source);
+  assert.equal(receipt.runAttempt, 1);
+  assert.equal(f.git('status', '--porcelain'), '');
 });
 
 test('machine assembly preserves exact inputs and original worktree, then captures the combined tree', async t => {
