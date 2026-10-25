@@ -4,7 +4,7 @@ use alloc::{format, string::String};
 use core::fmt::Write;
 impl HistoryGraph<'_> {
     pub fn browser_html(&self) -> String {
-        let mut out = format!("<section><h2>Room conditions history</h2><p>Recovered readings. {} samples outside this view. Dots are observations; missing readings are never interpolated.</p><details><summary>Inspect source</summary><p>Face {} revision {}. Producer Host {}; Boot {}; Plan {}; Play {}. Retrieved recording content is validated; this view does not attest a durable commit.</p></details><svg viewBox=\"0 0 640 340\" role=\"img\" aria-label=\"Temperature and humidity over producer Boot time\"><text x=\"32\" y=\"20\">Temperature (C)</text><text x=\"32\" y=\"170\">Relative humidity (%)</text>", self.omitted, escape(self.content_id), self.revision, escape(self.producer_context[0]), escape(self.producer_context[1]), escape(self.producer_context[2]), escape(self.producer_context[3]));
+        let mut out = format!("<section><h2>Room conditions history</h2><p>Recovered readings. {} samples outside this view. Dots are observations; missing readings are never interpolated.</p><details><summary>Inspect source</summary><p>Face {} revision {}. Producer Host {}; Boot {}; Plan {}; Play {}. Retrieved recording content is validated; this view does not attest a durable commit.</p></details><svg viewBox=\"0 0 640 340\" role=\"img\" aria-label=\"Temperature and humidity over producer Boot time\"><text x=\"32\" y=\"20\">Temperature (°C)</text><text x=\"32\" y=\"170\">Relative humidity (%)</text>", self.omitted, escape(self.content_id), self.revision, escape(self.producer_context[0]), escape(self.producer_context[1]), escape(self.producer_context[2]), escape(self.producer_context[3]));
         if self.samples.is_empty() {
             out.push_str("</svg><p>No recovered samples in this view.</p></section>");
             return out;
@@ -44,7 +44,7 @@ impl HistoryGraph<'_> {
                 out.push_str("</li>");
             }
         }
-        out.push_str("</ul><table><caption>Shown recovered samples</caption><thead><tr><th>Sequence</th><th>Producer Boot ms</th><th>Temperature C</th><th>Humidity %</th><th>Sensor status</th></tr></thead><tbody>");
+        out.push_str("</ul><table><caption>Shown recovered samples</caption><thead><tr><th>Sequence</th><th>Producer Boot ms</th><th>Temperature °C</th><th>Humidity %</th><th>Sensor status</th></tr></thead><tbody>");
         for sample in &self.samples {
             let temperature = sample.temperature_milli_c.map(super::graph::milli_label);
             let humidity = sample.humidity_milli_percent.map(super::graph::milli_label);
