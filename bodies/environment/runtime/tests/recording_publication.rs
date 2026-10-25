@@ -85,6 +85,7 @@ fn completion_pressure_and_uncommitted_or_cancelled_steps_cannot_advance_the_cur
             StepOutcome::Progress
         );
         assert_eq!(observer.committed(), None);
+        assert!(!observer.committed_content_matches(&content));
         <RecordingSnapshotBack as StepBack<1>>::step_committed(&mut back);
         let completion = Some((
             k::RequestId(0),
@@ -114,6 +115,7 @@ fn completion_pressure_and_uncommitted_or_cancelled_steps_cannot_advance_the_cur
         );
         <RecordingSnapshotBack as StepBack<1>>::step_committed(&mut back);
         assert_eq!(observer.committed(), None);
+        assert!(!observer.committed_content_matches(&content));
         let mut ready = StepIo::test_frame([None], [false], [Some(512)], completion, 16);
         assert_eq!(
             back.step(
@@ -123,6 +125,7 @@ fn completion_pressure_and_uncommitted_or_cancelled_steps_cannot_advance_the_cur
             StepOutcome::Progress
         );
         assert_eq!(observer.committed(), None);
+        assert!(!observer.committed_content_matches(&content));
         if cancel {
             <RecordingSnapshotBack as StepBack<1>>::cancel(&mut back);
         }
@@ -138,6 +141,7 @@ fn completion_pressure_and_uncommitted_or_cancelled_steps_cannot_advance_the_cur
         let committed = observer.committed();
         <RecordingSnapshotBack as StepBack<1>>::cancel(&mut back);
         assert_eq!(observer.committed(), committed);
+        assert_eq!(observer.committed_content_matches(&content), !cancel);
     }
 }
 enum Back {
@@ -298,6 +302,7 @@ fn execute_generation(result: ResultFixture, version: u8, first: u64) -> Recordi
             if let Some(request) = kernel.next_host_request() {
                 requests += 1;
                 assert_eq!(observer.committed(), None);
+                assert!(!observer.committed_content_matches(&content));
                 assert_eq!(kernel.host_value(request.input.value).unwrap(), content);
                 if matches!(result, ResultFixture::WrongReference) {
                     reference[0] ^= 1;
@@ -335,6 +340,7 @@ fn execute_generation(result: ResultFixture, version: u8, first: u64) -> Recordi
                     )
                     .unwrap();
                 assert_eq!(observer.committed(), None);
+                assert!(!observer.committed_content_matches(&content));
             }
             match kernel.step() {
                 Ok(SchedulerStatus::Drained) => {
@@ -385,5 +391,39 @@ fn execute_generation(result: ResultFixture, version: u8, first: u64) -> Recordi
         seen.get(),
         u32::from(matches!(result, ResultFixture::Published))
     );
+    let (matches_content, digest_allocation) =
+        allocation_probe::observe(|| observer.committed_content_matches(&content));
+    assert_eq!(matches_content, matches!(result, ResultFixture::Published));
+    assert_eq!(
+        (
+            digest_allocation.allocations,
+            digest_allocation.reallocations
+        ),
+        (0, 0)
+    );
+    if matches!(result, ResultFixture::Published) {
+        // Same exact context, cardinality, sequence range and JSON extent; only
+        // one valid acquisition time differs. Counters cannot prove content.
+        let mut changed = content.clone();
+        let start = core::str::from_utf8(&changed)
+            .unwrap()
+            .find("\"records\":\"")
+            .unwrap()
+            + "\"records\":\"".len();
+        changed[start + 17] = b'5'; // first timestamp: 100 -> 101 boot-ms
+        let mut reader =
+            PreparedRecordingReader::prepare(context(), &ObservationContract::prepare().unwrap())
+                .unwrap();
+        reader
+            .read(core::str::from_utf8(&changed).unwrap())
+            .unwrap();
+        assert_eq!(reader.len(), 2);
+        assert_eq!(reader.sample(0).unwrap().sequence, first);
+        assert_eq!(reader.sample(1).unwrap().sequence, first + 2);
+        assert!(!observer.committed_content_matches(&changed));
+        assert!(!observer.committed_content_matches(&reference));
+        assert!(!observer.committed_content_matches(&content[..content.len() - 1]));
+        assert!(!observer.committed_content_matches(&[0; MAXIMUM_CHUNK_BYTES + 1]));
+    }
     observer
 }

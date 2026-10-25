@@ -43,6 +43,8 @@ pub fn chunk(events: &[(u64, u64, bool)]) -> String {
     }
     chunk.seal().unwrap().into()
 }
+// Some integration targets use committed publication custody instead.
+#[allow(dead_code)]
 pub fn prepared(chunks: u16) -> PreparedHistoryFace {
     PreparedHistoryFace::prepare(context(), &ObservationContract::prepare().unwrap(), chunks)
         .unwrap()
