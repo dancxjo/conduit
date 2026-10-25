@@ -24,7 +24,11 @@ pub(super) fn build(root: &Path, native: bool, body: bool) -> Result<(), Box<dyn
     command
         .current_dir(&package)
         .arg(format!("+{channel}"))
-        .args(["build", "--locked", "--release"])
+        .args([
+            if body { "rustc" } else { "build" },
+            "--locked",
+            "--release",
+        ])
         .env("PATH", std::env::join_paths(paths)?)
         .env("CARGO_TARGET_XTENSA_ESP32_NONE_ELF_LINKER", &linker)
         .env("CARGO_TARGET_DIR", root.join("target/environment-esp32"));
@@ -37,6 +41,12 @@ pub(super) fn build(root: &Path, native: bool, body: bool) -> Result<(), Box<dyn
                 "native-face-root"
             },
         ]);
+    }
+    if body {
+        // ESP32's linker places compiler-generated switch lookup tables in
+        // scarce internal RAM. Keep control flow in flash instead; this does
+        // not change the allocator partition or the admitted CPU stack floor.
+        command.args(["--", "-C", "llvm-args=-switch-to-lookup=false"]);
     }
     super::execute(&mut command)
 }
