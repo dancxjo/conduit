@@ -20,6 +20,12 @@ pub struct VerifiedFragmentMetadata<'a> {
     fragment: &'a PlanFragment,
 }
 impl VerifiedPlanMetadata {
+    /// Read-only configuration-free preparation projection within this verified
+    /// scope. Body validators may inspect its identities and graph structure;
+    /// it is not a replacement for a complete serialized/executable Plan.
+    pub fn preparation_metadata(&self) -> &Plan {
+        &self.plan
+    }
     pub fn plan_id(&self) -> &PlanId {
         &self.plan.plan_id
     }

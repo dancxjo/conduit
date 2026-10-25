@@ -258,13 +258,28 @@ fn source_resident_owner_survives_selection_planning_and_lowering_in_one_memory_
     .unwrap();
     let (ready, effects) = pulse::ready(0);
     enum KeptPlan {
-        Rich(c::Plan),
+        Rich(conduit_body::BodyPlan),
         Compact(c::VerifiedPlanMetadata),
     }
+    let resident = conduit_body::ResidentPlot::new(
+        source.expanded.source_document_id.clone(),
+        source.expanded.checked_plot_id.clone(),
+    );
+    // Root's retained Wake/biography is outside this partial heap window.
+    let wake = conduit_body::Body::born_with_plots(
+        conduit_body::BodyWorkset::one(resident.clone()).unwrap(),
+        1,
+        "birth/ledger".into(),
+    )
+    .unwrap()
+    .wake(2, "wake/ledger".into())
+    .unwrap()
+    .1;
+    let mut reference_body = None;
     let mut reference_lowering = None;
     let mut rich_peak = 0;
     for compact_mode in [false, true] {
-        let ((software, host, placements, plan, lowered), memory) =
+        let ((software, host, placements, plan, lowered, body), memory) =
             allocation_probe::observe(|| {
                 let connections = limits(&source);
                 let values =
@@ -301,7 +316,7 @@ fn source_resident_owner_survives_selection_planning_and_lowering_in_one_memory_
                     line_offers: &[],
                 };
                 let bases = ["conduit.base/local@1".into()];
-                let (plan, lowered) = if compact_mode {
+                let (plan, lowered, body) = if compact_mode {
                     let compact =
                         conduit_planner::indexed_source::plan_compact_with_connection_limits(
                             &image,
@@ -319,7 +334,17 @@ fn source_resident_owner_survives_selection_planning_and_lowering_in_one_memory_
                             &verified, &fragment,
                         )
                         .unwrap();
-                    (KeptPlan::Compact(verified), lowered)
+                    let body = conduit_body::BodyPlanSeal::capture_verified(
+                        &wake,
+                        &[conduit_body::VerifiedBodyPlotPlan {
+                            plot: resident.clone(),
+                            plan: &verified,
+                        }],
+                        &[],
+                        None,
+                    )
+                    .unwrap();
+                    (KeptPlan::Compact(verified), lowered, body)
                 } else {
                     let plan = conduit_planner::indexed_source::plan_with_connection_limits(
                         &image,
@@ -336,12 +361,21 @@ fn source_resident_owner_survives_selection_planning_and_lowering_in_one_memory_
                     )
                     .unwrap()
                     .0;
-                    (KeptPlan::Rich(plan), lowered)
+                    let plan = conduit_body::BodyPlan::seal(
+                        &wake,
+                        vec![conduit_body::BodyPlotPlan {
+                            plot: resident.clone(),
+                            plan,
+                        }],
+                    )
+                    .unwrap();
+                    let body = conduit_body::BodyPlanSeal::capture(&plan).unwrap();
+                    (KeptPlan::Rich(plan), lowered, body)
                 };
-                (software, host, placements, plan, lowered)
+                (software, host, placements, plan, lowered, body)
             });
         match &plan {
-            KeptPlan::Rich(plan) => assert!(c::verify_plan(plan)),
+            KeptPlan::Rich(plan) => assert_eq!(plan.verify_seal(), Ok(())),
             KeptPlan::Compact(plan) => assert_eq!(plan.plan_id(), &lowered.identity.plan_id),
         }
         assert_eq!(placements.by_gear.len(), source.expanded.gears.len());
@@ -361,14 +395,22 @@ fn source_resident_owner_survives_selection_planning_and_lowering_in_one_memory_
         assert!(memory.peak_bytes <= 400 * 1024, "{memory:?}");
         if compact_mode {
             assert_eq!(Some(&lowered), reference_lowering.as_ref());
+            assert_eq!(Some(&body), reference_body.as_ref());
             assert!(memory.peak_bytes < rich_peak, "{memory:?}");
         } else {
             reference_lowering = Some(lowered.clone());
+            reference_body = Some(body.clone());
             rich_peak = memory.peak_bytes;
         }
 
         // This excludes Root/biography, display, radio/SDK and target stack. It is a
         // single-window CPU ledger entry, never complete Xtensa memory admission.
-        drop((software, host, placements, plan, lowered));
+        let play = conduit_body::BodyPlayIdentity::bind(&body, 1);
+        assert!(wake
+            .body_plan_ready(&body, "ready/ledger".into())
+            .unwrap()
+            .body_play_started(&body, &play, "start/ledger".into())
+            .is_ok());
+        drop((software, host, placements, plan, lowered, body));
     }
 }

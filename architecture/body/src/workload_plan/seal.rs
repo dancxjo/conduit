@@ -8,6 +8,9 @@ use conduit_core::{
     PlotIdentity,
 };
 
+pub(super) mod verified;
+pub use verified::{VerifiedBodyMaskChain, VerifiedBodyMaskTopology, VerifiedBodyPlotPlan};
+
 mod private {
     pub trait Sealed {}
 }
@@ -126,9 +129,10 @@ impl BodyMaskTopologySeal {
     }
 }
 
-/// Non-deserializable, privately owned validation evidence. Capture while the
-/// rich Plan is available, then retire that graph after its execution material
-/// is independently prepared. A digest received over a Line cannot recreate it.
+/// Non-deserializable, privately owned validation evidence. Capture from a rich
+/// Body Plan or Core-verified preparation material using the ordinary Body rules.
+/// Execution material remains a separate admission. A digest received over a
+/// Line cannot recreate this evidence.
 /// It establishes no current membership, physical possession, or execution.
 ///
 /// ```compile_fail
@@ -149,26 +153,14 @@ impl BodyPlanSeal {
     pub fn capture(plan: &BodyPlan) -> Result<Self, BodyPlanSealRefusal> {
         use BodyPlanSealRefusal as E;
         plan.verify_seal().map_err(E::Invalid)?;
-        let mut plans = 0usize;
-        let mut fragments = 0usize;
-        // Preflight every finite record before allocating the retained receipt.
-        for core in plan.plots.iter().map(|p| &p.plan).chain(
-            plan.mask_topologies
-                .iter()
-                .flat_map(|m| &m.chains)
-                .map(|c| &c.plan),
-        ) {
-            if !core.activations.is_empty() || !core.activation_preparations.is_empty() {
-                return Err(E::NestedExecution);
-            }
-            plans = plans.checked_add(1).ok_or(E::Capacity)?;
-            fragments = fragments
-                .checked_add(core.fragments.len())
-                .ok_or(E::Capacity)?;
-            if plans > MAX_BODY_SEAL_PLANS || fragments > MAX_BODY_SEAL_FRAGMENTS {
-                return Err(E::Capacity);
-            }
-        }
+        preflight_core_plans(
+            plan.plots.iter().map(|p| &p.plan).chain(
+                plan.mask_topologies
+                    .iter()
+                    .flat_map(|m| &m.chains)
+                    .map(|c| &c.plan),
+            ),
+        )?;
         let plots = plan.plots.iter().map(|p| capture_core(&p.plan)).collect();
         let masks = plan
             .mask_topologies
@@ -257,4 +249,25 @@ fn capture_core(plan: &Plan) -> BodyPlotPlanSeal {
             })
             .collect(),
     }
+}
+
+fn preflight_core_plans<'a>(
+    cores: impl Iterator<Item = &'a Plan>,
+) -> Result<(), BodyPlanSealRefusal> {
+    use BodyPlanSealRefusal as E;
+    let mut plans = 0usize;
+    let mut fragments = 0usize;
+    for core in cores {
+        if !core.activations.is_empty() || !core.activation_preparations.is_empty() {
+            return Err(E::NestedExecution);
+        }
+        plans = plans.checked_add(1).ok_or(E::Capacity)?;
+        fragments = fragments
+            .checked_add(core.fragments.len())
+            .ok_or(E::Capacity)?;
+        if plans > MAX_BODY_SEAL_PLANS || fragments > MAX_BODY_SEAL_FRAGMENTS {
+            return Err(E::Capacity);
+        }
+    }
+    Ok(())
 }

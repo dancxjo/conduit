@@ -203,16 +203,25 @@ authority. The ordinary numeric lowerer consumes that verified scope and keeps
 its exact storage/profile/State/sign admission. An otherwise correctly sealed
 Plan with an unfit sign budget receives the same refusal on both entrances.
 
-The single-window resident-owner/offer/selection/preparation/lowering CPU ledger
-now compares both paths: **346,241 bytes** for compact verified material versus
-**378,925** retaining the rich Plan. Complete lowered output is identical; both
-retain their owners and outputs through the end of the measurement. The existing
-400 KiB guard is unchanged. Linked Make descriptors stand in for immutable flash;
-dynamic connection policy is included. This still excludes Root/biography,
-native provider internals, display, radio/SDK and target stack. Local Body lifecycle evidence and
-Root startup need integration without reconstructing the rich Plan.
+Core-verified preparation can enter `BodyPlanSeal::capture_verified` without
+reconstructing configuration. It uses the shared canonical Body encoder and
+Mask path validation, preserves exact current-workset/source matching and finite
+receipt limits, and admits Body time through the ordinary rule. Rich and verified
+inputs produce identical Body seals for multiple Plots, Mask chains, combined
+Mask/time requirements and tested refusals. Both use the same sealed lifecycle
+implementation and ordinary Ready/Play transitions. This issues no membership,
+physical possession or effect authority.
 
-Existing native Root installation still needs local compact-plan integration.
+The single-window resident-owner/offer/selection/preparation/lowering/Body-seal
+CPU ledger compares both paths: **346,241 bytes** for compact verified material
+versus **378,925** retaining the rich Body Plan. Complete lowered output and Body
+seals are identical; both retain their owners and outputs through the end of the
+measurement. The existing 400 KiB guard is unchanged. Linked Make descriptors
+stand in for immutable flash; dynamic connection policy is included. Root, its
+retained Wake/biography, native provider internals, display, radio/SDK and target
+stack remain outside this window. Native Root startup still needs to consume
+this path without reconstructing the rich Plan.
+
 These host measurements do not establish that Root, biography, sampling, timed
 display, network SDK, planning scratch, and required lifecycle evidence coexist
 within the MCU budget. Compact construction and complete preparation/steady-state
