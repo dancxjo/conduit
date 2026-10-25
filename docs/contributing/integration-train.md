@@ -155,7 +155,7 @@ cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /abso
 
 Landing restores and validates all products, refreshes source/PR admission,
 requires the latest exact-source Integration attempt and its successful required
-Candidate aggregate, and checks live protection and rules. Unknown required
+`train-accepted` aggregate, and checks live protection and rules. Unknown required
 checks/rules, any pull-request requirement (including zero required reviews),
 or checks that exempt administrators refuse. It writes an exclusive intent
 before a single non-forced ref update to the exact proven commit, then checks
@@ -167,14 +167,15 @@ There is no forced update, protection override, PR-merge fallback or automatic
 mutation retry. Existing evidence and ambiguous outcomes require inspection.
 The existing dev policy requires a PR and exempts administrators; that policy
 cannot authorize this direct landing path. Before live train landing, an
-explicit machine-owned branch-policy migration must retain the Actions-owned
-`candidate` check, require its enforcement for administrators, and replace the
+explicit machine-owned branch-policy migration must require the distinct Actions-owned
+`train-accepted` check, require its enforcement for administrators, and replace the
 PR requirement with exact train admission. This command refuses the old policy
 and does not change it itself. A server rejection remains terminal. A returned landing receipt is not stable publication.
 
-Integration now earns the protected `candidate` context from its exhaustive
+Integration now earns the protected `train-accepted` context from its exhaustive
 proof. The aggregate runs even after a guard refusal or cancelled dependency and
-accepts only a successful proof; skipped proof cannot satisfy that context. This
+accepts only successful exhaustive proof or authenticated exact-source train
+adoption. Ordinary Candidate success cannot satisfy this context. This
 does not authenticate a caller-provided product bundle. Landing requires the
 archive authentication, producer custody and live checks above; local receipt
 hashes alone cannot authorize it. Full train acceptance and publication reuse
@@ -182,7 +183,7 @@ remain distinct from fixture tests of these adapters.
 
 After landing, the dev Integration job looks for the latest manual train proof
 of its exact source. It authenticates the original manifest archive, reconstructs
-the source tree, verifies successful exhaustive proof/Candidate aggregation and
+the source tree, verifies successful exhaustive proof/`train-accepted` aggregation and
 checks accepted development ancestry. With valid adoption it skips a duplicate
 exhaustive build. With no manual train it runs the ordinary complete proof. A
 failed, malformed or stale train refuses; it cannot silently become a green

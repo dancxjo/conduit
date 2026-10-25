@@ -8,9 +8,9 @@ import { createTrainLander } from '../../tools/ci/pipeline/train-land.mjs';
 async function setup(t) {
   const f = await fixture(t);
   const run = { ...f.observation.run, run_attempt: 1, check_suite_id: 777 };
-  const protection = { required_status_checks: { contexts: ['candidate'], checks: [{ context: 'candidate', app_id: 15368 }], strict: false },
+  const protection = { required_status_checks: { contexts: ['train-accepted'], checks: [{ context: 'train-accepted', app_id: 15368 }], strict: false },
     required_pull_request_reviews: null, enforce_admins: { enabled: true } };
-  const check = { name: 'candidate', app: { id: 15368 }, head_sha: f.source,
+  const check = { name: 'train-accepted', app: { id: 15368 }, head_sha: f.source,
     check_suite: { id: 777 }, status: 'completed', conclusion: 'success' };
   const inventory = { total_count: 1, workflow_runs: [run] };
   const state = { dev: f.base, rules: [], head: f.source, tree: f.manifest.tree, reject: false,
@@ -60,8 +60,11 @@ test('lands exactly authenticated source through one non-forced protected ref up
 });
 for (const [name, mutate] of [
   ['newer failed Integration', f => { f.inventory.workflow_runs.push({ ...f.run, id: 999, conclusion: 'failure' }); f.inventory.total_count++; }],
-  ['failed Candidate aggregate', f => { f.check.conclusion = 'failure'; }],
-  ['skipped Candidate aggregate', f => { f.check.conclusion = 'skipped'; }],
+  ['ordinary Candidate green', f => { f.check.name = 'candidate'; }],
+  ['ordinary Candidate protection policy', f => { f.protection.required_status_checks.contexts = ['candidate']; f.protection.required_status_checks.checks[0].context = 'candidate'; }],
+  ['missing train acceptance', f => { f.check.name = 'unrelated'; }],
+  ['failed train acceptance aggregate', f => { f.check.conclusion = 'failure'; }],
+  ['skipped train acceptance aggregate', f => { f.check.conclusion = 'skipped'; }],
   ['foreign checks app', f => { f.check.app.id = 42; }],
   ['foreign checks suite', f => { f.check.check_suite.id++; }],
   ['changed train ref', f => { f.state.head = 'a'.repeat(40); }],

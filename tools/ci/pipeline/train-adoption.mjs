@@ -75,11 +75,11 @@ export async function discoverTrainAdoption({ pushRun, repository, directory = p
   };
   const run = validateManual(api(`${base}/actions/runs/${selected.id}`));
   if (run.run_attempt !== selected.run_attempt || selected.status !== 'completed' || selected.conclusion !== 'success') fail('Manual train observation changed');
-  const checks = api(`${base}/check-suites/${run.check_suite_id}/check-runs?check_name=candidate&per_page=100`);
+  const checks = api(`${base}/check-suites/${run.check_suite_id}/check-runs?check_name=train-accepted&per_page=100`);
   const check = checks.check_runs?.[0];
-  if (checks.total_count !== 1 || checks.check_runs?.length !== 1 || check.name !== 'candidate'
+  if (checks.total_count !== 1 || checks.check_runs?.length !== 1 || check.name !== 'train-accepted'
       || check.app?.id !== 15368 || check.check_suite?.id !== run.check_suite_id
-      || check.head_sha !== source || check.status !== 'completed' || check.conclusion !== 'success') fail('Manual train lacks its exact successful Candidate aggregate');
+      || check.head_sha !== source || check.status !== 'completed' || check.conclusion !== 'success') fail('Manual train lacks its exact successful train acceptance aggregate');
   const inventory = api(`${base}/actions/runs/${run.id}/artifacts?per_page=100`);
   if (!Number.isSafeInteger(inventory.total_count) || inventory.total_count < 0 || inventory.total_count > 100
       || !Array.isArray(inventory.artifacts) || inventory.artifacts.length !== inventory.total_count) fail('Incomplete train manifest inventory');
