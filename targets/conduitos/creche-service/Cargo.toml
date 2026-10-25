@@ -17,3 +17,10 @@ panic = "abort"
 opt-level = "z"
 codegen-units = 1
 lto = "fat"
+
+# Keep the complete service inside its admitted image window while compiling
+# canonical identity and Face validation for bounded execution time.
+[profile.release.package.conduit-core]
+opt-level = 3
+[profile.release.package.conduit-face]
+opt-level = 3

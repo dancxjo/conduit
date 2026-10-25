@@ -1403,20 +1403,15 @@ fn hash_bytes(bytes: &[u8]) -> String {
 }
 
 fn hex_digest(digest: &[u8]) -> String {
-    let mut encoded = String::with_capacity(digest.len() * 2);
-    for byte in digest {
-        encoded.push(hex(byte >> 4));
-        encoded.push(hex(byte & 0x0f));
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = alloc::vec![0; digest.len() * 2];
+    for (byte, pair) in digest.iter().zip(encoded.chunks_exact_mut(2)) {
+        pair[0] = DIGITS[(byte >> 4) as usize];
+        pair[1] = DIGITS[(byte & 15) as usize];
     }
-    encoded
-}
-
-fn hex(nibble: u8) -> char {
-    match nibble {
-        0..=9 => (b'0' + nibble) as char,
-        10..=15 => (b'a' + (nibble - 10)) as char,
-        _ => unreachable!(),
-    }
+    // Every initialized byte comes from the ASCII table above. Keep the safe
+    // UTF-8 check while avoiding sixty-four String::push calls per digest.
+    String::from_utf8(encoded).expect("hex digits are ASCII")
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
