@@ -257,6 +257,27 @@ impl StdHost {
         })
     }
 
+    /// Consume the admitted receiver and release its reservation. Descriptive
+    /// request copies cannot keep this receiver alive. This ownership property
+    /// does not establish hostile worker termination or async callback fencing.
+    ///
+    /// The receiver remains usable before release:
+    ///
+    /// ```no_run
+    /// use conduit_std_host::{AdmittedRemoteFragment, StdHost};
+    /// fn before_release(host: &mut StdHost, mut old: AdmittedRemoteFragment) {
+    ///     let _ = old.next_host_request();
+    ///     host.release_remote_fragment(old).unwrap();
+    /// }
+    /// ```
+    ///
+    /// ```compile_fail,E0382
+    /// use conduit_std_host::{AdmittedRemoteFragment, StdHost};
+    /// fn old_receiver(host: &mut StdHost, mut old: AdmittedRemoteFragment) {
+    ///     host.release_remote_fragment(old).unwrap();
+    ///     old.next_host_request(); // the released owner has been consumed
+    /// }
+    /// ```
     pub fn release_remote_fragment(
         &mut self,
         mut fragment: AdmittedRemoteFragment,
