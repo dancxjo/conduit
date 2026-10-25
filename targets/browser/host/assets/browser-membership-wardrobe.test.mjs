@@ -47,6 +47,10 @@ test('component selection keeps exact Show integers and refuses open Look fields
     assert.match(text, /"kind":"face-component-mask-request"/);
     assert.equal(JSON.parse(text).look, look);
   }
+  for (const recipe of ['flat', 'grouped', 'required-item', 'patchbay-nodes']) {
+    const frame = checkedComponentMaskRequestFrame({ ...input, recipe });
+    assert.equal(JSON.parse(new TextDecoder().decode(frame)).recipe, recipe);
+  }
   for (const mutation of [{ look: 'arbitrary-css' }, { recipe: 'change-actions' },
     { requestId: 'unbounded' }, { showBytes: new Uint8Array(65537) }]) {
     assert.throws(() => checkedComponentMaskRequestFrame({ ...input, ...mutation }));

@@ -5,6 +5,7 @@ edition = "2021"
 description = "Bounded Body construction and Spore binding above Conduit Host make"
 
 [dependencies]
+conduit-birth-plot = { path = "../../plots/birth" }
 conduit-body = { path = "../../architecture/body" }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
