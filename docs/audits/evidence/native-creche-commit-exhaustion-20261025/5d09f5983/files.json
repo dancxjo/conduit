@@ -1,0 +1,14 @@
+{
+  "custody-audit.json": {
+    "bytes": 17294,
+    "sha256": "59e390c206a0afd2e9c0097151a1faa3e04bc421e74f503f8c310655197c276a"
+  },
+  "diagnostics-conduitos-x86_64.zip": {
+    "bytes": 9799885,
+    "sha256": "ee9f5a25f7853e328623e5bba06015528b1a247db3ad6b2a325c3febfd081672"
+  },
+  "job.log": {
+    "bytes": 161853,
+    "sha256": "0edb3acde65e02a87f7dc3e56d0609c7a9ea3a1344cc9002cb8050d75db12569"
+  }
+}
