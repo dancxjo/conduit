@@ -49,7 +49,7 @@ fn explicit_layout_configuration_reaches_consumer_and_preserves_complete_fallbac
     )
     .unwrap();
     let expected = observe(baseline);
-    let nonvisual_look = r#"{generative: none(empty), identity: "conduit.look/nonvisual@1", spoken: none(empty), version: 2, visual: none(empty)}"#;
+    let nonvisual_look = r#"{generative: none(empty), identity: "conduit.look/nonvisual@1", quantity: none(empty), spoken: none(empty), version: 3, visual: none(empty)}"#;
     let nonvisual_source = CRECHE_LAYOUT_MASK_SOURCE
         .lines()
         .map(|line| {

@@ -109,6 +109,7 @@ fn main() {
             .into(),
             serde_variant_exclusions: [
                 "LookVisualFacetOption".into(),
+                "LookQuantityFacetOption".into(),
                 "LookSpokenFacetOption".into(),
                 "LookGenerativeFacetOption".into(),
                 "FaceUtteranceProvenance".into(),

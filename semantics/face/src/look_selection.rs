@@ -10,6 +10,7 @@ pub fn look_facet_availability(
     host_supported: bool,
 ) -> LookFacetAvailability {
     let present = match request {
+        LookFacetRequest::Quantity => matches!(look.quantity(), LookQuantityFacetOption::Some(_)),
         LookFacetRequest::Visual => matches!(look.visual(), LookVisualFacetOption::Some(_)),
         LookFacetRequest::Spoken => matches!(look.spoken(), LookSpokenFacetOption::Some(_)),
         LookFacetRequest::Generative => {
@@ -65,7 +66,18 @@ pub fn admit_visual_look(
         visual.outcome,
         VisualExpressionOutcome::PhosphorFallback { .. }
     ) {
-        phosphor_look().map_err(LookVisualAdmissionRefusal::Native)?
+        // Visual fallback changes appearance only. Quantity expression remains
+        // independently selected, including explicit absence, across Masks.
+        let fallback = phosphor_look().map_err(LookVisualAdmissionRefusal::Native)?;
+        LookInfo::new(
+            fallback.generative().clone(),
+            fallback.identity().clone(),
+            look.quantity().clone(),
+            fallback.spoken().clone(),
+            *fallback.version(),
+            fallback.visual().clone(),
+        )
+        .map_err(LookVisualAdmissionRefusal::Native)?
     } else {
         look.clone()
     };

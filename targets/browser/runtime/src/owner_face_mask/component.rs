@@ -70,6 +70,7 @@ pub(super) fn prepare(
     use conduit_plot::rust_binding::NativeRustBinding;
     let selected = admitted
         .selected
+        .clone()
         .into_structured()
         .map_err(|error| format!("browser selected Look: {error:?}"))?;
     let selected_look = conduit_core::StructuredConfigurationValue::new(
@@ -121,7 +122,7 @@ pub(super) fn prepare(
     let history = if recipe_identity.as_deref() == Some(conduit_face::HISTORY_COMPONENT_RECIPE_ID)
         && fallback.is_none()
     {
-        match history::prepare(face) {
+        match history::prepare(face, &admitted.selected) {
             Ok(history) => Some(history),
             Err(reason) => {
                 fallback = Some(format!("history graph refused: {reason:?}"));

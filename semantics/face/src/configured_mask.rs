@@ -361,8 +361,9 @@ fn selected_layout<'a>(
         .iter()
         .filter(|p| p.key == "layout")
         .count();
-    let version_five = placement.kind_contract_revision.as_str() == "conduit.face/component-mask@5";
-    if startups.is_empty() && declarations.is_empty() && values == 0 && !version_five {
+    let requires_layout =
+        placement.kind_contract_revision.as_str() == "conduit.face/component-mask@7";
+    if startups.is_empty() && declarations.is_empty() && values == 0 && !requires_layout {
         return Ok(None);
     }
     if startups.len() != 1 || declarations.len() != 1 || values != 1 || startups[0].has_default {

@@ -3,6 +3,7 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "history" => Some(prove(root)),
+        [name] if name == "history-look" => Some(look(root)),
         [name] if name == "history-commit" => Some(committed(root)),
         [name] if name == "history-native" => Some(native(root)),
         [name] if name == "history-target" => Some(target(root)),
@@ -242,4 +243,53 @@ fn committed(root: &Path) -> Result<(), Box<dyn Error>> {
             ),
     )?;
     prove(root)
+}
+
+// Shared canonical Look and quantity formatter; no installed Host or default
+// storage claim. The separate Mask workspace retains its own conformance.
+fn look(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-face",
+        "--test",
+        "quantity_format",
+        "--test",
+        "look_contract",
+        "--test",
+        "look_selection",
+        "--test",
+        "look_browser_binding",
+        "--test",
+        "look_options",
+    ]))?;
+    super::execute(
+        Command::new("node")
+            .current_dir(root)
+            .args(["--test", "proof/browser/look-wire.test.mjs"]),
+    )?;
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command.current_dir(root).args([
+            operation,
+            "--locked",
+            "--manifest-path",
+            "plots/seven-segment-mask/Cargo.toml",
+        ]);
+        if operation == "clippy" {
+            command.args(["--all-targets", "--", "-D", "warnings"]);
+        }
+        super::execute(&mut command)?;
+    }
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-face",
+        "--lib",
+        "--",
+        "-D",
+        "warnings",
+    ]))
 }

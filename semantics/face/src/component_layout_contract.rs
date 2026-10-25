@@ -13,14 +13,14 @@ pub fn component_layout_type() -> conduit_core::StructuredInfoType {
     ComponentLayoutInfo::semantic_type().expect("checked finite component layout Type")
 }
 
-/// Complete-Look contract @5 adds required structural layout to @4.
+/// Complete-Look contract @7 adds required structural layout to @6.
 /// Recipes retain typed region bindings; ComponentLayoutInfo owns composition.
 /// Legacy recipe geometry fields do not acquire a second layout authority.
 #[cfg(feature = "plot-catalog")]
 pub fn layout_component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     use conduit_core::*;
     let mut kind = crate::component_mask_kind(maximum_bytes);
-    kind.kind_contract_revision = KindIdentity::from("conduit.face/component-mask@5");
+    kind.kind_contract_revision = KindIdentity::from("conduit.face/component-mask@7");
     let child = |node| ComponentLayoutChild::new(1, 0, 1, 0, node).unwrap();
     let root = ComponentLayoutNode::column(
         ComponentLayoutAlignment::Stretch,

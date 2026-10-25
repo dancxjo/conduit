@@ -21,7 +21,14 @@ pub fn phosphor_look() -> Result<LookInfo, NativeBindingRefusal> {
     let spoken = LookSpokenFacetOption::some(LookSpokenDelivery::Neutral, LookVerbosity::Brief)?;
     let generative =
         LookGenerativeFacetOption::some(LookGenerativeRegister::Neutral, LookVerbosity::Brief)?;
-    LookInfo::new(generative, PHOSPHOR_LOOK_ID.into(), spoken, 2, visual)
+    LookInfo::new(
+        generative,
+        PHOSPHOR_LOOK_ID.into(),
+        LookQuantityFacetOption::None,
+        spoken,
+        3,
+        visual,
+    )
 }
 
 fn phosphor_tokens() -> Result<LookVisualTokensInfo, NativeBindingRefusal> {
@@ -189,8 +196,9 @@ fn alternate_look(
     LookInfo::new(
         LookGenerativeFacetOption::None,
         identity.into(),
+        LookQuantityFacetOption::None,
         LookSpokenFacetOption::None,
-        2,
+        3,
         LookVisualFacetOption::some(expression, tokens)?,
     )
 }

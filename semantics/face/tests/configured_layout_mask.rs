@@ -6,7 +6,7 @@ use conduit_planner::*;
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_plot::*;
 use std::collections::BTreeMap;
-const EXPRESSION: &str = r#"{generative: some({register: neutral(empty), verbosity: brief(empty)}), identity: "conduit.look/phosphor@1", spoken: some({delivery: neutral(empty), verbosity: brief(empty)}), version: 2, visual: some({expression: {density: compact(empty), identity: "conduit.look/phosphor@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2}, tokens: {background: {blue: 11, green: 7, red: 5}, bootstrap_surface: {blue: 22, green: 13, red: 9}, emphasis: {blue: 37, green: 163, red: 233}, failure: {blue: 114, green: 114, red: 255}, focus: {blue: 0, green: 196, red: 244}, focus_width_px: 3, line_height_percent: 150, muted: {blue: 25, green: 76, red: 140}, radius_control_px: 6, radius_panel_px: 9, reading_paper: {blue: 28, green: 18, red: 12}, space_control_block_px: 7, space_control_inline_px: 10, space_panel_px: 13, space_unit_px: 4, structure_primary: {blue: 246, green: 216, red: 13}, structure_secondary: {blue: 135, green: 31, red: 10}, success: {blue: 155, green: 214, red: 99}, surface: {blue: 22, green: 13, red: 9}, text_primary: {blue: 247, green: 210, red: 147}, text_secondary: {blue: 201, green: 142, red: 87}, type_body_px: 16, type_small_px: 14, warning: {blue: 113, green: 189, red: 242}, workbench_canvas: {blue: 11, green: 7, red: 5}}})}"#;
+const EXPRESSION: &str = r#"{generative: some({register: neutral(empty), verbosity: brief(empty)}), identity: "conduit.look/phosphor@1", quantity: none(empty), spoken: some({delivery: neutral(empty), verbosity: brief(empty)}), version: 3, visual: some({expression: {density: compact(empty), identity: "conduit.look/phosphor@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2}, tokens: {background: {blue: 11, green: 7, red: 5}, bootstrap_surface: {blue: 22, green: 13, red: 9}, emphasis: {blue: 37, green: 163, red: 233}, failure: {blue: 114, green: 114, red: 255}, focus: {blue: 0, green: 196, red: 244}, focus_width_px: 3, line_height_percent: 150, muted: {blue: 25, green: 76, red: 140}, radius_control_px: 6, radius_panel_px: 9, reading_paper: {blue: 28, green: 18, red: 12}, space_control_block_px: 7, space_control_inline_px: 10, space_panel_px: 13, space_unit_px: 4, structure_primary: {blue: 246, green: 216, red: 13}, structure_secondary: {blue: 135, green: 31, red: 10}, success: {blue: 155, green: 214, red: 99}, surface: {blue: 22, green: 13, red: 9}, text_primary: {blue: 247, green: 210, red: 147}, text_secondary: {blue: 201, green: 142, red: 87}, type_body_px: 16, type_small_px: 14, warning: {blue: 113, green: 189, red: 242}, workbench_canvas: {blue: 11, green: 7, red: 5}}})}"#;
 const RECIPE: &str = "{gutter: 12, identity: \"test/recipe@1\", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: \"collection\", maximum_subjects: 20, selector: role(\"Collection\")}], version: 1}";
 const LAYOUT: &str = "{candidates: [{nodes: [column({block_alignment: stretch(empty), break_policy: accessible_continuation(empty), children: [{block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 1}, {block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 2}], gap_em_sixteenths: 8, inline_grow: 0, inline_alignment: stretch(empty), padding_em_sixteenths: 8, inline_shrink: 1, minimum_inline_em_sixteenths: 0}), region(0), fallback(empty)], root: 0}], identity: \"test/layout@1\", recipe_identity: \"test/recipe@1\", version: 1}";
 fn fixture(
@@ -196,11 +196,11 @@ fn complete_look_contracts_are_distinct_and_require_typed_layout() {
     assert_eq!(old.kind_id, new.kind_id);
     assert_eq!(
         old.kind_contract_revision.as_str(),
-        "conduit.face/component-mask@4"
+        "conduit.face/component-mask@6"
     );
     assert_eq!(
         new.kind_contract_revision.as_str(),
-        "conduit.face/component-mask@5"
+        "conduit.face/component-mask@7"
     );
     assert!(!old.configuration.iter().any(|f| f.key == "layout"));
     assert!(new
@@ -301,7 +301,7 @@ fn declared_required_layout_and_complete_look_revision_are_enforced() {
         evidence_with(&source, "root", None, |kind| {
             kind.startup_parameters.retain(|p| p.name != "layout");
             kind.configuration.retain(|p| p.key != "layout");
-            kind.kind_contract_revision = KindIdentity::from("conduit.face/component-mask@5");
+            kind.kind_contract_revision = KindIdentity::from("conduit.face/component-mask@7");
         }),
         Err(ConfiguredMaskRefusal::Configuration)
     ));

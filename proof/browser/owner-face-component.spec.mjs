@@ -1517,7 +1517,7 @@ test('browser root text preference enlarges owner controls without a new Show', 
 // Canonical bytes are shared with Rust contract proof. This is renderer proof;
 // the fixture callback is not an owner acknowledgement or Body execution.
 test('complete selected Look tokens override palette hints without changing action meaning', async ({ page }, info) => {
-  const wire = Buffer.from((await readFile('proof/conformance/face-look/phosphor-look-v2.hex','utf8')).replace(/\s/gu,''),'hex');
+  const wire = Buffer.from((await readFile('proof/conformance/face-look/phosphor-look-v3.hex','utf8')).replace(/\s/gu,''),'hex');
   const configured = { ...view, component: {
     maximum_columns:1,reflow_width:720,gutter:12,subject_regions:[0],groups:[0],fallback:null,
     selected_look:{canonical_value:Array.from(wire)},

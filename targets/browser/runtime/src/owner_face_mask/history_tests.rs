@@ -180,7 +180,9 @@ fn checked_history_view_preserves_exact_face_and_waits_for_matching_show_ack() {
     assert_eq!(samples.len(), 3);
     assert_eq!(samples[0]["sequence"], "1");
     assert_eq!(samples[0]["boot_ms"], "1000");
+    assert_eq!(history["temperature_unit"], "°C");
     assert_eq!(samples[0]["temperature"], "19.800");
+    assert_eq!(samples[0]["temperature_source"], "19.8°C");
     assert_eq!(samples[0]["humidity"], "59.000");
     assert_eq!(samples[0]["x"], 32);
     assert_eq!(samples[1]["x"], 88);

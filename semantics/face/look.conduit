@@ -71,9 +71,25 @@ type LookGenerativeFacetOption =
     none
     | some LookGenerativeFacetInfo
 
+# Orthogonal quantity expression policy, shared by visual, spoken and other
+# Masks. Absence remains explicit; default resolution belongs to the caller.
+type LookTemperatureUnit =
+    celsius
+    | kelvin
+    | fahrenheit
+
+type LookQuantityFacetInfo = {
+    temperature_unit: LookTemperatureUnit
+}
+
+type LookQuantityFacetOption =
+    none
+    | some LookQuantityFacetInfo
+
 type LookInfo = {
     identity: Text <= 128B not in ["", "conduit.face/phosphor@1", "conduit.presentation/phosphor@1"]
-    version: U16 in 2..=2
+    version: U16 in 3..=3
+    quantity: LookQuantityFacetOption
     visual: LookVisualFacetOption
     spoken: LookSpokenFacetOption
     generative: LookGenerativeFacetOption
@@ -81,7 +97,8 @@ type LookInfo = {
 }
 
 type LookFacetRequest =
-    visual
+    quantity
+    | visual
     | spoken
     | generative
     | unsupported Text <= 64B not in [""]

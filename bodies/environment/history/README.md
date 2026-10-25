@@ -100,9 +100,23 @@ CPU pixel rendering participate; the carrier/Host inputs remain fixtures. This
 is neither a live MCU Line nor physical display or fresh-process recorder proof.
 The target entrance checks the production browser runtime library for wasm32.
 
-The current temperature view is Celsius preparation. The user's requested
-per-Mask `°C`/`K`/`°F` Looks and retained typed default/override precedence remain
-required by #6461; a fixed-Celsius graph does not complete that requirement.
+LookInfo v3 carries an optional quantity facet, independent of palette/density.
+The shared presentation formatter converts the original temperature Point to
+`°C`, `K`, or `°F` through exact Core laws, then rounds once to three display
+places (nearest, ties away from zero). Graph coordinates retain the original
+exact Celsius projection, so an affine unit change does not move the dots.
+Both graphical preparation adapters accept that Look, and the configured
+browser/native renderer consumes its selected quantity facet. The browser table
+separates rounded selected-unit values from exact source temperatures.
+
+```sh
+cargo +stable xtask prove environment history-look
+```
+
+Celsius remains the history Mask's authored default when the quantity facet is
+absent. Interactive per-Mask selection, retained typed user defaults/overrides,
+and seven-segment Kelvin presentation still require integration for #6461.
+This contract/formatter preparation does not claim those controls or storage.
 
 This is hosted preparation and deterministic content/Mask proof. Fragment
 construction allocates; complete memory/work admission remains the integrating

@@ -36,7 +36,7 @@ pub fn layout_resource_renderer_kind(profile: NativeMaskStorageProfile) -> Kind 
     let component = layout_component_mask_kind(profile.bytes());
     let mut kind = resource_renderer_kind();
     kind.kind_id = kind_id(NATIVE_LAYOUT_COMPONENT_RENDERER_KIND);
-    kind.kind_contract_revision = "conduit.face/native-layout-component-resource-mask@2".into();
+    kind.kind_contract_revision = "conduit.face/native-layout-component-resource-mask@3".into();
     kind.startup_parameters = component.startup_parameters;
     kind.configuration = component.configuration;
     kind

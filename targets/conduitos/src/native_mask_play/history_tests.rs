@@ -260,7 +260,7 @@ fn stage(
 ) -> CompositionReceipt {
     let request = pending.renderer_request();
     let graph = HistoryGraph::prepare(request.face(), HISTORY_SUBJECT).unwrap();
-    let scene = graph.native_scene().unwrap();
+    let scene = graph.native_scene_with_look(&look.selected).unwrap();
     compositor
         .update_pending_look_mask_surface(
             request.face(),

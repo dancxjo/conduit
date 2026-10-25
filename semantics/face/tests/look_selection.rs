@@ -30,8 +30,9 @@ fn facet_absence_unknown_and_observed_host_unavailability_stay_distinct() {
     let absent = LookInfo::new(
         LookGenerativeFacetOption::None,
         "conduit.look/plain@1".into(),
+        LookQuantityFacetOption::None,
         LookSpokenFacetOption::None,
-        2,
+        3,
         LookVisualFacetOption::None,
     )
     .unwrap();
@@ -91,8 +92,9 @@ fn large_request() -> LookInfo {
     LookInfo::new(
         original.generative().clone(),
         identity.into(),
+        LookQuantityFacetOption::None,
         original.spoken().clone(),
-        2,
+        3,
         LookVisualFacetOption::some(expression, visual.tokens().clone()).unwrap(),
     )
     .unwrap()
@@ -138,9 +140,10 @@ fn foreign_visual_identity_cannot_be_attached_to_another_look() {
     assert!(LookInfo::new(
         original.generative().clone(),
         "conduit.look/forged@1".into(),
+        LookQuantityFacetOption::None,
         original.spoken().clone(),
-        2,
-        original.visual().clone()
+        3,
+        original.visual().clone(),
     )
     .is_err());
 }
@@ -151,8 +154,9 @@ fn absent_visual_policy_uses_default_without_losing_other_requested_facets() {
     let requested = LookInfo::new(
         original.generative().clone(),
         "conduit.look/nonvisual@1".into(),
+        LookQuantityFacetOption::None,
         original.spoken().clone(),
-        2,
+        3,
         LookVisualFacetOption::None,
     )
     .unwrap();
@@ -236,4 +240,57 @@ fn absent_visual_policy_uses_default_without_losing_other_requested_facets() {
             VisualExpressionRefusal::HostTextCapacity
         ))
     ));
+}
+
+#[test]
+fn visual_fallback_and_accessibility_never_replace_quantity_unit_or_absence() {
+    for quantity in [
+        LookQuantityFacetOption::None,
+        LookQuantityFacetOption::some(LookTemperatureUnit::Celsius).unwrap(),
+        LookQuantityFacetOption::some(LookTemperatureUnit::Kelvin).unwrap(),
+        LookQuantityFacetOption::some(LookTemperatureUnit::Fahrenheit).unwrap(),
+    ] {
+        for visual in [large_request(), phosphor_look().unwrap()] {
+            for absent in [false, true] {
+                let requested = LookInfo::new(
+                    visual.generative().clone(),
+                    visual.identity().clone(),
+                    quantity.clone(),
+                    visual.spoken().clone(),
+                    3,
+                    if absent {
+                        LookVisualFacetOption::None
+                    } else {
+                        visual.visual().clone()
+                    },
+                )
+                .unwrap();
+                for constraints in [
+                    user(),
+                    VisualUserConstraints {
+                        maximum_supported_text_scale_percent: 125,
+                        ..user()
+                    },
+                    VisualUserConstraints {
+                        forced_colors: true,
+                        reduced_motion: true,
+                        minimum_text_scale_percent: 150,
+                        ..user()
+                    },
+                ] {
+                    let result = admit_visual_look(&requested, constraints).unwrap();
+                    assert_eq!(result.requested, requested);
+                    assert_eq!(result.selected.quantity(), &quantity);
+                    if absent {
+                        // The explicit absent visual case always takes fallback;
+                        // the remaining cases exercise ordinary/Host limit paths.
+                        assert!(matches!(
+                            result.visual.outcome,
+                            VisualExpressionOutcome::PhosphorFallback { .. }
+                        ));
+                    }
+                }
+            }
+        }
+    }
 }

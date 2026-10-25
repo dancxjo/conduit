@@ -12,9 +12,12 @@ mod graph;
 mod native;
 pub use graph::{GraphRefusal, GraphSample, HistoryGraph, MAX_GRAPH_SAMPLES};
 
-pub use native::NativeHistoryShow;
+pub use native::{HistoryLookSceneRefusal, NativeHistoryShow};
 
 mod committed;
 pub use committed::{
     CommittedHistoryRefusal, PreparedCommittedHistoryFace, MAXIMUM_COMMITTED_HISTORY_GENERATIONS,
 };
+
+mod temperature_look;
+pub use temperature_look::HistoryTemperaturePresentation;

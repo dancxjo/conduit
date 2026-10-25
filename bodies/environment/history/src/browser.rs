@@ -1,26 +1,61 @@
 //! A bounded HTML/SVG preparation adapter, without browser execution or persistence.
 use crate::graph::HistoryGraph;
-use alloc::{format, string::String};
+use crate::{GraphRefusal, HistoryTemperaturePresentation};
+use alloc::{format, string::String, vec::Vec};
+use conduit_face::LookInfo;
 use core::fmt::Write;
 impl HistoryGraph<'_> {
     pub fn browser_html(&self) -> String {
-        let mut out = format!("<section><h2>Room conditions history</h2><p>Recovered readings. {} samples outside this view. Dots are observations; missing readings are never interpolated.</p><details><summary>Inspect source</summary><p>Face {} revision {}. Producer Host {}; Boot {}; Plan {}; Play {}. Retrieved recording content is validated; this view does not attest a durable commit.</p></details><svg viewBox=\"0 0 640 340\" role=\"img\" aria-label=\"Temperature and humidity over producer Boot time\"><text x=\"32\" y=\"20\">Temperature (°C)</text><text x=\"32\" y=\"170\">Relative humidity (%)</text>", self.omitted, escape(self.content_id), self.revision, escape(self.producer_context[0]), escape(self.producer_context[1]), escape(self.producer_context[2]), escape(self.producer_context[3]));
+        let (min, max) = self.temperature_range();
+        let labels = self
+            .samples
+            .iter()
+            .map(|sample| sample.temperature_milli_c.map(super::graph::milli_label))
+            .collect::<Vec<_>>();
+        self.browser_html_labels(
+            "°C",
+            &super::graph::milli_label(max),
+            &super::graph::milli_label(min),
+            &labels,
+        )
+    }
+    pub fn browser_html_with_look(&self, look: &LookInfo) -> Result<String, GraphRefusal> {
+        let shown = HistoryTemperaturePresentation::prepare(self, look)?;
+        let labels = shown
+            .samples
+            .iter()
+            .map(|sample| sample.as_ref().map(|value| value.number()))
+            .collect::<Vec<_>>();
+        Ok(self.browser_html_labels(
+            shown.unit_label(),
+            &shown.top.number(),
+            &shown.bottom.number(),
+            &labels,
+        ))
+    }
+    fn browser_html_labels(
+        &self,
+        unit: &str,
+        top: &str,
+        bottom: &str,
+        labels: &[Option<String>],
+    ) -> String {
+        let mut out = format!("<section><h2>Room conditions history</h2><p>Recovered readings. {} samples outside this view. Dots are observations; missing readings are never interpolated.</p><details><summary>Inspect source</summary><p>Face {} revision {}. Producer Host {}; Boot {}; Plan {}; Play {}. Retrieved recording content is validated; this view does not attest a durable commit.</p></details><svg viewBox=\"0 0 640 340\" role=\"img\" aria-label=\"Temperature and humidity over producer Boot time\"><text x=\"32\" y=\"20\">Temperature ({unit})</text><text x=\"32\" y=\"170\">Relative humidity (%)</text>", self.omitted, escape(self.content_id), self.revision, escape(self.producer_context[0]), escape(self.producer_context[1]), escape(self.producer_context[2]), escape(self.producer_context[3]));
         if self.samples.is_empty() {
             out.push_str("</svg><p>No recovered samples in this view.</p></section>");
             return out;
         }
-        let (min, max) = self.temperature_range();
         let first = self.samples.first().map_or(0, |s| s.boot_ms);
         let last = self.samples.last().map_or(0, |s| s.boot_ms);
-        let _ = write!(out, "<text x=\"32\" y=\"35\">top {}; bottom {}</text><text x=\"32\" y=\"185\">top 100; bottom 0</text><text x=\"32\" y=\"325\">Boot ms: left {first}; right {last}</text>", super::graph::milli_label(max), super::graph::milli_label(min));
-        for sample in &self.samples {
+        let _ = write!(out, "<text x=\"32\" y=\"35\">top {}; bottom {}</text><text x=\"32\" y=\"185\">top 100; bottom 0</text><text x=\"32\" y=\"325\">Boot ms: left {first}; right {last}</text>", top, bottom);
+        for (index, sample) in self.samples.iter().enumerate() {
             let x = self.x(sample);
             for (value, humidity) in [
                 (sample.temperature_milli_c, false),
                 (sample.humidity_milli_percent, true),
             ] {
                 if let Some(value) = value {
-                    let _ = write!(out, "<circle cx=\"{x}\" cy=\"{}\" r=\"3\"><title>sequence {}; {} ms; {} {}</title></circle>", self.y(value, humidity), sample.sequence, sample.boot_ms, super::graph::milli_label(value), if humidity { "%" } else { "C" });
+                    let _ = write!(out, "<circle cx=\"{x}\" cy=\"{}\" r=\"3\"><title>sequence {}; {} ms; {} {}</title></circle>", self.y(value, humidity), sample.sequence, sample.boot_ms, if humidity { super::graph::milli_label(value) } else { labels[index].clone().unwrap_or_default() }, if humidity { "%" } else { unit });
                 }
             }
         }
@@ -44,9 +79,9 @@ impl HistoryGraph<'_> {
                 out.push_str("</li>");
             }
         }
-        out.push_str("</ul><table><caption>Shown recovered samples</caption><thead><tr><th>Sequence</th><th>Producer Boot ms</th><th>Temperature °C</th><th>Humidity %</th><th>Sensor status</th></tr></thead><tbody>");
-        for sample in &self.samples {
-            let temperature = sample.temperature_milli_c.map(super::graph::milli_label);
+        let _ = write!(out, "</ul><table><caption>Shown recovered samples</caption><thead><tr><th>Sequence</th><th>Producer Boot ms</th><th>Temperature {unit}</th><th>Humidity %</th><th>Sensor status</th></tr></thead><tbody>");
+        for (index, sample) in self.samples.iter().enumerate() {
+            let temperature = &labels[index];
             let humidity = sample.humidity_milli_percent.map(super::graph::milli_label);
             let _ = write!(
                 out,

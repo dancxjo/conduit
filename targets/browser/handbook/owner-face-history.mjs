@@ -1,3 +1,4 @@
+import { decodeLook } from "../host/assets/application-look.mjs";
 // Drawing material is prepared from the checked Face in Rust. This adapter
 // retains no readings, clock, history, interactions or acknowledgement state.
 const RECIPE = 'conduit.face/environment-history@1';
@@ -14,18 +15,27 @@ const pair = (value, y, min, max) => (value === null && y === null)
   || (value !== null && coordinate(y, min, max));
 
 function valid(view, graph) {
-  return graph?.schema === 'conduit.browser/environment-history@1'
+  let unit;
+  try {
+    const look = decodeLook(view.component.selected_look.canonical_value);
+    unit = look.quantity.tag === 'none' ? '°C'
+      : { celsius: '°C', kelvin: 'K', fahrenheit: '°F' }[look.quantity.payload.temperature_unit.tag];
+  } catch { return false; }
+  return graph?.schema === 'conduit.browser/environment-history@2'
     && text(graph.face_id) && graph.face_id === view.face_id
     && count(graph.face_revision) && graph.face_revision === String(view.face_revision)
     && graph.subject === 'environment-history'
     && view.subjects.some(subject => subject.identity === graph.subject)
     && Array.isArray(graph.producer) && graph.producer.length === 4 && graph.producer.every(text)
+    && ['°C', 'K', '°F'].includes(graph.temperature_unit) && graph.temperature_unit === unit
     && count(graph.omitted) && quantity(graph.temperature_top) && graph.temperature_top !== null
     && quantity(graph.temperature_bottom) && graph.temperature_bottom !== null
     && Array.isArray(graph.samples) && graph.samples.length <= 16
     && graph.samples.every(sample => sample !== null && typeof sample === 'object'
       && count(sample.sequence) && count(sample.boot_ms)
       && quantity(sample.temperature) && quantity(sample.humidity)
+      && ((sample.temperature === null && sample.temperature_source === null)
+        || (sample.temperature !== null && text(sample.temperature_source) && sample.temperature_source.length > 0))
       && coordinate(sample.x, 32, 592)
       && pair(sample.temperature, sample.temperature_y, 40, 140)
       && pair(sample.humidity, sample.humidity_y, 192, 292)
@@ -53,7 +63,7 @@ export function historyRegion(view) {
     region.append(node('p', 'No recovered samples in this view.'));
     return region;
   }
-  region.append(node('p', `Temperature °C: top ${graph.temperature_top}; bottom ${graph.temperature_bottom}. Humidity %: top 100; bottom 0.`));
+  region.append(node('p', `Temperature ${graph.temperature_unit}: top ${graph.temperature_top}; bottom ${graph.temperature_bottom}. Humidity %: top 100; bottom 0.`));
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 640 320');
   svg.setAttribute('role', 'img');
@@ -88,7 +98,7 @@ export function historyRegion(view) {
   const table = node('table', '');
   table.append(node('caption', 'Recovered samples; unavailable readings stay absent'));
   const header = node('tr', '');
-  for (const title of ['Sequence', 'Boot ms', 'Temperature °C', 'Humidity %', 'Status']) {
+  for (const title of ['Sequence', 'Boot ms', `Temperature ${graph.temperature_unit} (rounded to 3 places)`, 'Exact source temperature', 'Humidity %', 'Status']) {
     const heading = node('th', title);
     heading.scope = 'col';
     header.append(heading);
@@ -98,7 +108,7 @@ export function historyRegion(view) {
   for (const sample of graph.samples) {
     const row = node('tr', '');
     const gap = sample.gap_before ? `; missing sequences ${sample.gap_before[0]} through ${sample.gap_before[1]}` : '';
-    for (const value of [sample.sequence, sample.boot_ms, sample.temperature ?? 'Unavailable',
+    for (const value of [sample.sequence, sample.boot_ms, sample.temperature ?? 'Unavailable', sample.temperature_source ?? 'Unavailable',
       sample.humidity ?? 'Unavailable', `${sample.failure ?? 'Recorded'}${gap}`]) row.append(node('td', value));
     body.append(row);
   }

@@ -73,9 +73,9 @@ mod generated {
 }
 pub use generated::{
     LookFacetAvailability, LookFacetRequest, LookGenerativeFacetInfo, LookGenerativeFacetOption,
-    LookGenerativeRegister, LookInfo, LookSpokenDelivery, LookSpokenFacetInfo,
-    LookSpokenFacetOption, LookVerbosity, LookVisualFacetInfo, LookVisualFacetOption,
-    LookVisualTokensInfo,
+    LookGenerativeRegister, LookInfo, LookQuantityFacetInfo, LookQuantityFacetOption,
+    LookSpokenDelivery, LookSpokenFacetInfo, LookSpokenFacetOption, LookTemperatureUnit,
+    LookVerbosity, LookVisualFacetInfo, LookVisualFacetOption, LookVisualTokensInfo,
 };
 
 pub use generated::{
@@ -302,3 +302,9 @@ pub use parsec_instruction_frame::{
 };
 mod parsec_input_instruction_producer;
 pub use parsec_input_instruction_producer::*;
+
+mod quantity_format;
+pub use quantity_format::{
+    rounded_quantity_coordinate, FormattedTemperature, QuantityFormatRefusal,
+    MAX_QUANTITY_DISPLAY_DECIMAL_PLACES,
+};

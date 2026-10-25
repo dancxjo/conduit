@@ -28,7 +28,7 @@ test('checked history Mask view renders exact °C values and gaps at desktop and
     await expect(history.locator('circle')).toHaveCount(4);
     await expect(history).toContainText('Temperature °C');
     await history.getByText('Exact recorded values and gaps', { exact: true }).click();
-    await expect(history.getByRole('columnheader', { name: 'Temperature °C', exact: true })).toBeVisible();
+    await expect(history.getByRole('columnheader', { name: 'Temperature °C (rounded to 3 places)', exact: true })).toBeVisible();
     const rows = history.getByRole('row');
     await expect(rows).toHaveCount(4);
     await expect(rows.nth(2)).toContainText('Unavailable');
@@ -54,6 +54,11 @@ test('stale graph material and another recipe never become graph pixels', async 
   face = await show(page, foreign);
   await expect(face.locator('[part=history]')).toHaveCount(0);
   await expect(face.getByRole('img')).toHaveCount(0);
+  const wrongUnit = structuredClone(fixture);
+  wrongUnit.component.history.temperature_unit = '°F';
+  face = await show(page, wrongUnit);
+  await expect(face.locator('[part=history]')).toHaveCount(0);
+  await expect(face).toContainText('History graph unavailable');
   const fallback = JSON.parse(await readFile(`${directory}/history-fallback-view.json`, 'utf8'));
   face = await show(page, fallback);
   await expect(face.locator('[part=history]')).toHaveCount(0);

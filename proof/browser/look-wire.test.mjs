@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { decodeLook, decodeVisualLook } from "../../targets/browser/host/assets/application-look.mjs";
 
-const original = () => Buffer.from(fs.readFileSync(new URL("../conformance/face-look/phosphor-look-v2.hex", import.meta.url), "utf8").replace(/\s/gu, ""), "hex");
+const original = () => Buffer.from(fs.readFileSync(new URL("../conformance/face-look/phosphor-look-v3.hex", import.meta.url), "utf8").replace(/\s/gu, ""), "hex");
 const reject = code => { throw new Error(code); };
 const read = bytes => decodeVisualLook(bytes, reject);
 
@@ -93,4 +93,45 @@ test("Look byte admission refuses coercion and checks bounds before conversion",
 test("historical v1 Look wire refuses instead of acquiring implicit typography", () => {
   const historical = Buffer.from(fs.readFileSync(new URL('../conformance/face-look/phosphor-look-v1.hex', import.meta.url), 'utf8').replace(/\s/gu, ''), 'hex');
   assert.throws(() => read(historical), /look-canonical-type-required-retired-theme-wire/u);
+});
+
+test("quantity units are typed independently of the selected visual Look", () => {
+  const u32 = value => { const bytes = Buffer.alloc(4); bytes.writeUInt32LE(value); return bytes; };
+  const text = value => { const bytes = Buffer.from(value); return Buffer.concat([u32(bytes.length), bytes]); };
+  const empty = Buffer.from([0, 0, 0, 0, 0]);
+  const variant = (name, payload) => Buffer.concat([Buffer.from([3]), text(name), payload]);
+  const absent = variant("none", empty);
+  const bytes = original(), field = bytes.lastIndexOf(Buffer.from("quantity")) + "quantity".length;
+  assert(field >= "quantity".length);
+  assert.deepEqual(bytes.subarray(field, field + absent.length), absent);
+  const withUnit = unit => {
+    const record = Buffer.concat([Buffer.from([2]), u32(1), text("temperature_unit"), variant(unit, empty)]);
+    return Buffer.concat([bytes.subarray(0, field), variant("some", record), bytes.subarray(field + absent.length)]);
+  };
+  const visual = read(bytes);
+  assert.equal(decodeLook(bytes).quantity.tag, "none");
+  for (const unit of ["celsius", "kelvin", "fahrenheit"]) {
+    const selected = withUnit(unit);
+    assert.equal(decodeLook(selected).quantity.payload.temperature_unit.tag, unit);
+    assert.deepEqual(read(selected), visual);
+  }
+  assert.throws(() => decodeLook(withUnit("rankine")), /look-unsupported-variant/u);
+});
+
+test("historical v2 Look wire refuses instead of acquiring an implicit unit policy", () => {
+  const historical = Buffer.from(fs.readFileSync(new URL('../conformance/face-look/phosphor-look-v2.hex', import.meta.url), 'utf8').replace(/\s/gu, ''), 'hex');
+  assert.throws(() => read(historical), /look-canonical-type-required-retired-theme-wire/u);
+});
+
+
+test("a version-two value under the current exact schema still refuses", () => {
+  const bytes = original();
+  const spoken = bytes.lastIndexOf(Buffer.from("spoken"));
+  const outerVersion = bytes.indexOf(Buffer.from("version"), spoken);
+  assert(outerVersion > spoken);
+  const marker = outerVersion + "version".length;
+  assert.equal(bytes[marker], 0);
+  assert.equal(bytes.readUInt32LE(marker + 1), 2);
+  bytes.writeUInt16LE(2, marker + 5);
+  assert.throws(() => decodeLook(bytes), /look-version-or-identity/u);
 });

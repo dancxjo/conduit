@@ -79,10 +79,18 @@ new domain actions. Optional detail must remain genuinely reachable.
 ## Canonical Look and retirement
 
 `LookInfo`, checked from `semantics/face/look.conduit`, is the finite common
-contract with separately typed optional visual, spoken and generative facets.
+version-three contract with separately typed optional quantity, visual, spoken
+and generative facets. The quantity facet selects Celsius, Kelvin or Fahrenheit
+independently of palette, density and modality. Its absence is explicit; saved
+default resolution is a separate caller responsibility. Visual fallback and
+accessibility admission preserve the requested quantity facet.
+
 The built-in Phosphor resource has identity `conduit.look/phosphor@1` and version
-1. The visual facet carries bounded RGB/metric tokens and a checked expression;
-structural breakpoint/grid selection stays with the component/Mask.
+3. Its visual facet carries bounded RGB/metric tokens and a version-two checked
+expression; structural breakpoint/grid selection stays with the component/Mask.
+Earlier Look versions remain negative fixtures and do not acquire an implicit
+quantity policy. Component Fore revisions six and seven carry this Look schema
+without and with required layout, respectively.
 
 The former `ApplicationTheme` binary versions and Phosphor identities are
 retired. There is no old reader or alias. Canonical admission rejects retired

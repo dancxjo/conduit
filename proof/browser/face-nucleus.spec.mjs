@@ -206,7 +206,7 @@ test("generic no-Look encounter clears prior owned paint without changing meanin
   await expect(page.locator("#result")).toHaveText("ok");
   const result = await page.evaluate(async () => {
     const { encodeApplicationView, manifestApplicationView } = await import("/targets/browser/host/assets/application-face.mjs");
-    const hex = await fetch("/proof/conformance/face-look/phosphor-look-v2.hex").then(response => response.text());
+    const hex = await fetch("/proof/conformance/face-look/phosphor-look-v3.hex").then(response => response.text());
     const look = Uint8Array.from(hex.replace(/\s/gu, "").match(/../gu), byte => Number.parseInt(byte, 16));
     const root = document.createElement("section"); document.body.append(root);
     const view = encodeApplicationView({ revision: 1, actions: [], nodes: [
@@ -624,7 +624,7 @@ test('a forged Look field refuses before replacing the accessible manifestation'
   await page.goto('/proof/browser/signal-dom-host.test.html');
   const result = await page.evaluate(async () => {
     const { createApplicationFaceHost } = await import('/targets/browser/host/assets/application-face.mjs');
-    const hex = await (await fetch('/proof/conformance/face-look/phosphor-look-v2.hex')).text();
+    const hex = await (await fetch('/proof/conformance/face-look/phosphor-look-v3.hex')).text();
     const bytes = Uint8Array.from(hex.replace(/\s/gu, '').match(/../gu), pair => parseInt(pair, 16));
     const root = document.createElement('section'); root.dataset.applicationSlot = 'look-proof'; document.body.append(root);
     const host = createApplicationFaceHost(document);
@@ -1207,7 +1207,7 @@ test('canonical Look typography reaches computed font intent and clears with the
   await page.setContent('<link rel="stylesheet" href="/targets/browser/host/assets/conduit.css"><section data-application-slot="type-proof"></section><p id="outside">Outside Look scope</p>');
   await page.evaluate(async () => {
     const { createApplicationFaceHost } = await import('/targets/browser/host/assets/application-face.mjs');
-    const hex = await (await fetch('/proof/conformance/face-look/phosphor-look-v2.hex')).text();
+    const hex = await (await fetch('/proof/conformance/face-look/phosphor-look-v3.hex')).text();
     const bytes = Uint8Array.from(hex.replace(/\s/gu, '').match(/../gu), pair => parseInt(pair, 16));
     const host = createApplicationFaceHost(document);
     const view = revision => ({ revision, actions: [{ id: 'type.safe', event: 'activate' }], nodes: [

@@ -17,7 +17,7 @@ fn configured_resource_renderer_kind_for_profile(profile: NativeMaskStorageProfi
     let mut kind = resource_renderer_kind();
     kind.kind_id = kind_id(NATIVE_COMPONENT_RENDERER_KIND);
     kind.kind_contract_revision =
-        KindIdentity::from("conduit.face/native-component-resource-mask@2");
+        KindIdentity::from("conduit.face/native-component-resource-mask@3");
     kind.startup_parameters = component.startup_parameters;
     kind.configuration = component.configuration;
     kind

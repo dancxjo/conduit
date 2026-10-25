@@ -9,6 +9,7 @@ fn neutral(
     LookInfo::new(
         LookGenerativeFacetOption::None,
         identity.into(),
+        LookQuantityFacetOption::None,
         LookSpokenFacetOption::None,
         version,
         LookVisualFacetOption::None,
@@ -17,7 +18,7 @@ fn neutral(
 
 #[test]
 fn canonical_identity_version_and_retired_identities_are_exact() {
-    let value = neutral("conduit.look/neutral@1", 2).unwrap();
+    let value = neutral("conduit.look/neutral@1", 3).unwrap();
     assert_eq!(
         LookInfo::decode(&value.clone().encode().unwrap()).unwrap(),
         value
@@ -27,11 +28,12 @@ fn canonical_identity_version_and_retired_identities_are_exact() {
         "conduit.face/phosphor@1",
         "conduit.presentation/phosphor@1",
     ] {
-        assert!(neutral(identity, 2).is_err());
+        assert!(neutral(identity, 3).is_err());
     }
-    assert!(neutral(&"x".repeat(129), 2).is_err());
+    assert!(neutral(&"x".repeat(129), 3).is_err());
     assert!(neutral("conduit.look/neutral@1", 0).is_err());
     assert!(neutral("conduit.look/neutral@1", 1).is_err());
+    assert!(neutral("conduit.look/neutral@1", 2).is_err());
 }
 
 #[test]
@@ -44,8 +46,9 @@ fn spoken_and_generative_facets_are_distinct_closed_parameters() {
     let value = LookInfo::new(
         generative,
         "conduit.look/narration@1".into(),
+        LookQuantityFacetOption::None,
         spoken,
-        2,
+        3,
         LookVisualFacetOption::None,
     )
     .unwrap();
@@ -109,4 +112,59 @@ fn historical_look_v1_wire_is_not_silently_extended_with_typography() {
         .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
         .collect();
     assert!(LookInfo::decode(&bytes).is_err());
+}
+
+#[test]
+fn historical_v2_look_cannot_acquire_an_implicit_quantity_facet() {
+    let bytes: Vec<_> = include_str!("../../../proof/conformance/face-look/phosphor-look-v2.hex")
+        .split_whitespace()
+        .collect::<String>()
+        .as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect();
+    assert!(LookInfo::decode(&bytes).is_err());
+}
+
+#[test]
+fn quantity_unit_is_closed_typed_and_orthogonal_to_visual_policy() {
+    for base in [phosphor_look().unwrap(), editorial_look().unwrap()] {
+        assert!(matches!(base.quantity(), LookQuantityFacetOption::None));
+        for unit in [
+            LookTemperatureUnit::Celsius,
+            LookTemperatureUnit::Kelvin,
+            LookTemperatureUnit::Fahrenheit,
+        ] {
+            let quantity = LookQuantityFacetOption::some(unit).unwrap();
+            let look = LookInfo::new(
+                base.generative().clone(),
+                base.identity().clone(),
+                quantity.clone(),
+                base.spoken().clone(),
+                3,
+                base.visual().clone(),
+            )
+            .unwrap();
+            assert_eq!(look.visual(), base.visual());
+            assert_eq!(look.quantity(), &quantity);
+            assert_eq!(
+                LookInfo::decode(&look.clone().encode().unwrap()).unwrap(),
+                look
+            );
+            assert_eq!(
+                look_facet_availability(&look, &LookFacetRequest::Quantity, true),
+                LookFacetAvailability::Selected
+            );
+            assert_eq!(
+                look_facet_availability(&look, &LookFacetRequest::Quantity, false),
+                LookFacetAvailability::HostUnavailable
+            );
+        }
+        assert_eq!(
+            look_facet_availability(&base, &LookFacetRequest::Quantity, true),
+            LookFacetAvailability::Absent
+        );
+    }
 }

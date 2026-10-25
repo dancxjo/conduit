@@ -1,10 +1,16 @@
 //! Normal finite GraphicsScene adapter. The caller owns checked Mask/Show admission.
 use crate::graph::HistoryGraph;
+use crate::{GraphRefusal, HistoryTemperaturePresentation};
 use alloc::format;
 use conduit_face::{
     GraphicsCommand, GraphicsError, GraphicsPaintRole as Paint, GraphicsScene, GraphicsShapeStyle,
-    LayoutRect,
+    LayoutRect, LookInfo,
 };
+#[derive(Debug)]
+pub enum HistoryLookSceneRefusal {
+    History(GraphRefusal),
+    Graphics(GraphicsError),
+}
 /// Correlation travels beside the native graphical payload, never in renderer state.
 pub struct NativeHistoryShow<'a> {
     pub content_id: &'a str,
@@ -20,6 +26,32 @@ impl<'a> HistoryGraph<'a> {
         })
     }
     pub fn native_scene(&self) -> Result<GraphicsScene, GraphicsError> {
+        let (min, max) = self.temperature_range();
+        self.native_scene_labels(
+            "°C",
+            &super::graph::milli_label(max),
+            &super::graph::milli_label(min),
+        )
+    }
+    pub fn native_scene_with_look(
+        &self,
+        look: &LookInfo,
+    ) -> Result<GraphicsScene, HistoryLookSceneRefusal> {
+        let shown = HistoryTemperaturePresentation::prepare(self, look)
+            .map_err(HistoryLookSceneRefusal::History)?;
+        self.native_scene_labels(
+            shown.unit_label(),
+            &shown.top.number(),
+            &shown.bottom.number(),
+        )
+        .map_err(HistoryLookSceneRefusal::Graphics)
+    }
+    fn native_scene_labels(
+        &self,
+        unit: &str,
+        top: &str,
+        bottom: &str,
+    ) -> Result<GraphicsScene, GraphicsError> {
         let mut scene = GraphicsScene::empty();
         let clip = LayoutRect {
             x: 0,
@@ -49,18 +81,10 @@ impl<'a> HistoryGraph<'a> {
             )?)?;
             return Ok(scene);
         }
-        let (min, max) = self.temperature_range();
         let first = self.samples.first().map_or(0, |s| s.boot_ms);
         let last = self.samples.last().map_or(0, |s| s.boot_ms);
         for (y, label) in [
-            (
-                4,
-                format!(
-                    "Temperature °C: top {}; bottom {}",
-                    super::graph::milli_label(max),
-                    super::graph::milli_label(min)
-                ),
-            ),
+            (4, format!("Temperature {unit}: top {top}; bottom {bottom}")),
             (156, "Humidity %: top 100; bottom 0".into()),
             (
                 306,

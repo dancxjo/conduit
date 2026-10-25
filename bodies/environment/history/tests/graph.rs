@@ -282,3 +282,62 @@ fn extreme_coordinate_retains_its_axis_and_partial_record_is_refused() {
         Err(GraphRefusal::InvalidProperty)
     ));
 }
+
+#[test]
+fn quantity_looks_change_both_graphical_labels_without_changing_the_face_or_dot_coordinates() {
+    use conduit_environment_history::HistoryTemperaturePresentation;
+    use conduit_face::{LookInfo, LookQuantityFacetOption, LookTemperatureUnit as T};
+    let face = face(&[1000, 2000, 9000]);
+    let original = face.clone();
+    let graph = HistoryGraph::prepare(&face, "body/history").unwrap();
+    let dots = graph
+        .samples()
+        .iter()
+        .map(|sample| {
+            (
+                graph.x(sample),
+                sample.temperature_milli_c().map(|v| graph.y(v, false)),
+            )
+        })
+        .collect::<Vec<_>>();
+    let base = conduit_face::editorial_look().unwrap();
+    for (unit, label) in [(T::Celsius, "°C"), (T::Kelvin, "K"), (T::Fahrenheit, "°F")] {
+        let look = LookInfo::new(
+            base.generative().clone(),
+            base.identity().into(),
+            LookQuantityFacetOption::some(unit).unwrap(),
+            base.spoken().clone(),
+            3,
+            base.visual().clone(),
+        )
+        .unwrap();
+        let shown = HistoryTemperaturePresentation::prepare(&graph, &look).unwrap();
+        assert_eq!(shown.unit_label(), label);
+        for (sample, displayed) in graph.samples().iter().zip(&shown.samples) {
+            assert_eq!(
+                displayed.as_ref().map(|value| value.source()),
+                sample.temperature_source()
+            );
+        }
+        let html = graph.browser_html_with_look(&look).unwrap();
+        assert!(html.contains(&format!("Temperature ({label})")));
+        assert!(html.contains(&format!("Temperature {label}</th>")));
+        let scene = graph.native_scene_with_look(&look).unwrap();
+        assert!(scene
+            .commands()
+            .iter()
+            .any(|command| command.payload().contains(&format!("Temperature {label}:"))));
+        assert_eq!(
+            graph
+                .samples()
+                .iter()
+                .map(|sample| (
+                    graph.x(sample),
+                    sample.temperature_milli_c().map(|v| graph.y(v, false))
+                ))
+                .collect::<Vec<_>>(),
+            dots
+        );
+        assert_eq!(face, original);
+    }
+}

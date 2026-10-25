@@ -18,6 +18,7 @@ pub struct GraphSample {
     pub(crate) sequence: u64,
     pub(crate) boot_ms: u64,
     pub(crate) temperature_milli_c: Option<i64>,
+    pub(crate) temperature_source: Option<Quantity>,
     pub(crate) humidity_milli_percent: Option<i64>,
     pub(crate) gap_before: Option<(u64, u64)>,
     pub(crate) failure: bool,
@@ -39,6 +40,9 @@ impl GraphSample {
     }
     pub fn boot_ms(&self) -> u64 {
         self.boot_ms
+    }
+    pub fn temperature_source(&self) -> Option<Quantity> {
+        self.temperature_source
     }
     pub fn temperature_milli_c(&self) -> Option<i64> {
         self.temperature_milli_c
@@ -254,7 +258,7 @@ impl<'a> HistoryGraph<'a> {
                 QuantityRole::Linear,
             )?;
             if (failure && (temperature.is_some() || humidity.is_some()))
-                || humidity.is_some_and(|h| !(0..=100_000).contains(&h))
+                || humidity.is_some_and(|h| !(0..=100_000).contains(&h.0))
                 || (!failure && (temperature.is_none() || humidity.is_none()))
             {
                 return Err(R::InvalidProperty);
@@ -263,8 +267,9 @@ impl<'a> HistoryGraph<'a> {
                 samples.push(GraphSample {
                     sequence,
                     boot_ms,
-                    temperature_milli_c: if failure { None } else { temperature },
-                    humidity_milli_percent: if failure { None } else { humidity },
+                    temperature_milli_c: temperature.map(|value| value.0),
+                    temperature_source: temperature.map(|value| value.1),
+                    humidity_milli_percent: humidity.map(|value| value.0),
                     gap_before,
                     failure,
                     failure_reason,
@@ -343,7 +348,7 @@ fn quantity(
     name: &str,
     target: Unit,
     role: QuantityRole,
-) -> Result<Option<i64>, GraphRefusal> {
+) -> Result<Option<(i64, Quantity)>, GraphRefusal> {
     let Some(V::TypedValue { contract, bytes }) = property(face, subject, name)? else {
         return if property(face, subject, name)?.is_none() {
             Ok(None)
@@ -385,10 +390,11 @@ fn quantity(
         }
         coefficient.checked_div(divisor)
     };
-    Ok(Some(
+    Ok(Some((
         i64::try_from(value.ok_or(GraphRefusal::InvalidProperty)?)
             .map_err(|_| GraphRefusal::InvalidProperty)?,
-    ))
+        q,
+    )))
 }
 
 pub(crate) fn milli_label(value: i64) -> alloc::string::String {
