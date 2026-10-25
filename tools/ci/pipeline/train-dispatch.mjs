@@ -12,7 +12,7 @@ export function createTrainDispatcher({ command = spawnSync, directory = process
     if (body) args.push('--method', 'POST', '--input', '-');
     const result = command('gh', args, { cwd: directory, encoding: 'utf8',
       maxBuffer: 2 * 1024 * 1024, ...(body ? { input: JSON.stringify(body) } : {}) });
-    if (result.error || result.status !== 0) fail(`Train API failed: ${result.error?.message ?? result.stderr ?? result.status}`);
+    if (result.error || result.signal || result.status !== 0) fail('Train API failed; transport outcome unknown, inspect retained intent before retrying');
     return result.stdout.trim() ? JSON.parse(result.stdout) : null;
   };
   return async function dispatch(filename) {
@@ -41,8 +41,22 @@ export function createTrainDispatcher({ command = spawnSync, directory = process
     if (refs.length) fail('Train ref exists without a visible run; dispatch outcome requires inspection');
     const refreshed = await commands.prepareDispatch(filename);
     if (refreshed.digest !== manifest.digest) fail('Train changed before ref creation');
-    const created = api(`${base}/git/refs`, { ref: fullRef, sha: manifest.source });
-    if (created?.ref !== fullRef || created.object?.sha !== manifest.source) fail('Train ref creation was not acknowledged');
+    // The merge exists only locally until this transfer. An empty expected-ref
+    // lease allows creation alone: neither a changed nor identical existing ref
+    // grants dispatch ownership. Git can report identical refs as up to date,
+    // so require its exclusive new-branch acknowledgement as well as success.
+    const pushed = command('git', ['-c', 'credential.helper=',
+      '-c', 'credential.helper=!gh auth git-credential', '-c', 'credential.interactive=false',
+      'push', '--porcelain', '--no-follow-tags', '--recurse-submodules=no', `--force-with-lease=${fullRef}:`,
+      `https://github.com/${manifest.repository}.git`, `${manifest.source}:${fullRef}`], {
+      cwd: directory, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024, timeout: 120000,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    });
+    if (pushed.error || pushed.signal || pushed.status !== 0) fail('Train ref push failed; transport outcome unknown, inspect retained intent before retrying');
+    const acknowledgements = (pushed.stdout ?? '').split('\n').filter(line => /^[ =*!+\-]\t/.test(line));
+    if (acknowledgements.length !== 1 || acknowledgements[0] !== `*\t${manifest.source}:${fullRef}\t[new branch]`) {
+      fail('Exclusive new train ref creation was not acknowledged; inspect retained intent before retrying');
+    }
     const current = api(`${base}/git/ref/heads/${manifest.branch}`);
     if (current?.object?.sha !== manifest.source) fail('Train ref moved before dispatch');
     // The workflow checks this expected source before scheduling expensive CI.

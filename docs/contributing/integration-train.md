@@ -28,7 +28,10 @@ cargo xtask ci pipeline train-dispatch /absolute/train.json
 ```
 
 Dispatch refreshes live readiness and reproduces local commit/tree custody. It
-creates the exact remote train ref and passes the expected source to Integration,
+uploads the locally assembled commit with Git push and creates the exact remote
+train ref under an empty expected-ref lease. Only a new-branch acknowledgement
+grants dispatch ownership; an identical existing ref or creation race refuses.
+It reads back the exact source, then passes the expected source to Integration,
 whose guard refuses a mismatching source before expensive proof starts. Existing
 queued, running or successful exact-source runs are reused. Failed runs and
 changed refs refuse. An existing ref with no visible run is an ambiguous intent;
