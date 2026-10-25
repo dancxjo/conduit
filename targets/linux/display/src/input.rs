@@ -25,10 +25,14 @@ pub enum NativeInputRefusal {
     InvalidKey { scancode: Option<i32> },
 }
 impl Scanout<'_> {
-    /// Before Play, discard queued input from earlier window lifetimes. Each
+    /// Withdraw input after a semantic Face replacement. This grants no authority.
+    pub fn withdraw_input(&mut self) {
+        self.input_ready = false;
+    }
+    /// Discard queued input from earlier window/Face lifetimes. Each
     /// call inspects at most the supplied allowance. Readiness requires an
-    /// actual empty SDL queue, not merely the end of a poll cycle. Preparation
-    /// may allocate one bounded peek slot; poll_input never performs that peek.
+    /// actual empty SDL queue, not merely the end of a poll cycle. The peek
+    /// owns one stack slot and performs no Rust heap allocation.
     pub fn prepare_input(
         &mut self,
         events: &mut EventPump,
@@ -41,13 +45,6 @@ impl Scanout<'_> {
         if self.input_ready {
             return Ok(NativeInput::Idle);
         }
-        let queue = self
-            .canvas
-            .window()
-            .subsystem()
-            .sdl()
-            .event()
-            .map_err(|_| NativeInputRefusal::PreparationUnavailable)?;
         for _ in 0..maximum_events {
             match events.poll_event() {
                 Some(Event::KeyDown { .. } | Event::KeyUp { .. }) => {}
@@ -57,8 +54,7 @@ impl Scanout<'_> {
                     }
                 }
                 None => {
-                    let pending: Vec<Event> = queue.peek_events(1);
-                    if pending.is_empty() {
+                    if queue_is_empty()? {
                         self.input_ready = true;
                         return Ok(NativeInput::Idle);
                     }
@@ -179,6 +175,27 @@ fn key(
     KeyEvent::new(usage, transition, KeyModifiers::from_bits(bits))
         .map(NativeInput::Key)
         .map_err(|_| invalid)
+}
+// SDL's safe Rust peek wrapper allocates a Vec. This bounded equivalent
+// retains one stack slot; payload ownership stays with the SDL queue.
+fn queue_is_empty() -> Result<bool, NativeInputRefusal> {
+    let mut slot = core::mem::MaybeUninit::<sdl2::sys::SDL_Event>::uninit();
+    // SAFETY: the valid aligned slot holds at most the one event SDL may write.
+    // PEEKEVENT does not consume it. We read only the count, never slot data.
+    let count = unsafe {
+        sdl2::sys::SDL_PeepEvents(
+            slot.as_mut_ptr(),
+            1,
+            sdl2::sys::SDL_eventaction::SDL_PEEKEVENT,
+            sdl2::sys::SDL_EventType::SDL_FIRSTEVENT as u32,
+            sdl2::sys::SDL_EventType::SDL_LASTEVENT as u32,
+        )
+    };
+    match count {
+        0 => Ok(true),
+        1 => Ok(false),
+        _ => Err(NativeInputRefusal::PreparationUnavailable),
+    }
 }
 #[cfg(test)]
 mod tests;

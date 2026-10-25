@@ -129,6 +129,27 @@ fn real_native_owner_redraws_acknowledges_and_returns_exact_input_to_encounter()
     assert!(!native.shared.has_returned().unwrap());
     // Only this CPU fixture can reset its diagnostic flag; SDL loss is terminal.
     native.display.revoked = false;
+    #[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+    {
+        assert_eq!(
+            native.pump_input_turn(&controller, 0, |_, _, _| panic!(
+                "invalid bound acquired input"
+            )),
+            Err(LinuxCrechePumpError::Input(
+                conduit_linux_display::NativeInputRefusal::InvalidBound
+            ))
+        );
+        assert_eq!(
+            native
+                .pump_input_turn(&controller, 8, |_, withdraw, bound| {
+                    assert!(!withdraw);
+                    assert_eq!(bound, 8);
+                    Ok(conduit_linux_display::NativeInput::Idle)
+                })
+                .unwrap(),
+            LinuxCrecheTurn::Idle
+        );
+    }
     let mut reached = false;
     for _ in 0..64 {
         assert!(!native.key(&controller, tab).unwrap());
@@ -150,11 +171,39 @@ fn real_native_owner_redraws_acknowledges_and_returns_exact_input_to_encounter()
         "focus reading crossed actual commit hook"
     );
     let rendered_show = native.mask.show().unwrap().clone();
+    #[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+    assert_eq!(
+        native
+            .pump_input_turn(&controller, 8, |_, withdraw, _| {
+                assert!(!withdraw);
+                Ok(conduit_linux_display::NativeInput::Key(enter))
+            })
+            .unwrap(),
+        LinuxCrecheTurn::InputQueued
+    );
+    #[cfg(not(all(target_os = "linux", feature = "native-creche-sdl")))]
     assert!(
         native.key(&controller, enter).unwrap(),
         "Mask typed return must match controller acknowledged Show after redraw"
     );
     assert!(native.shared.has_returned().unwrap());
+    #[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+    {
+        let inputs = native.inputs;
+        assert_eq!(
+            native
+                .pump_input_turn(&controller, 8, |_, _, _| {
+                    Ok(conduit_linux_display::NativeInput::Key(enter))
+                })
+                .unwrap(),
+            LinuxCrecheTurn::AwaitingConsumption
+        );
+        assert_eq!(
+            native.inputs, inputs,
+            "pending semantic return suppresses extra key selection"
+        );
+    }
+
     assert!(
         native.key(&controller, tab).is_err(),
         "one queued returned occurrence retains input pressure"
@@ -174,6 +223,17 @@ fn real_native_owner_redraws_acknowledges_and_returns_exact_input_to_encounter()
         .unwrap());
     assert!(native.mask.show().is_none());
     assert!(!native.shared.has_returned().unwrap());
+    #[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+    assert_eq!(
+        native
+            .pump_input_turn(&controller, 8, |_, withdraw, _| {
+                assert!(withdraw, "new semantic Face withdraws old queued input");
+                Ok(conduit_linux_display::NativeInput::Idle)
+            })
+            .unwrap(),
+        LinuxCrecheTurn::Idle
+    );
+    #[cfg(not(all(target_os = "linux", feature = "native-creche-sdl")))]
     assert!(native.present_current(&controller).unwrap());
     assert!(
         !native.shared.has_returned().unwrap(),
@@ -248,6 +308,15 @@ fn real_native_owner_redraws_acknowledges_and_returns_exact_input_to_encounter()
     assert!(!native.present_current(&controller).unwrap());
     retirement.join().unwrap().unwrap();
     owner.retire().unwrap();
+    #[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+    assert_eq!(
+        native
+            .pump_input_turn(&controller, 8, |_, _, _| panic!(
+                "retired owner acquired input"
+            ))
+            .unwrap(),
+        LinuxCrecheTurn::Retired
+    );
     assert!(native.display.revoked);
     assert!(native.mask.show().is_none() && native.mask.render_receipt().is_none());
 }

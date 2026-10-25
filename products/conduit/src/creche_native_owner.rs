@@ -350,3 +350,8 @@ impl LocalCrecheScanout for conduit_linux_display::Scanout<'_> {
 mod linux;
 #[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
 pub use linux::prepare_linux_creche_output;
+
+#[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+mod linux_pump;
+#[cfg(all(target_os = "linux", feature = "native-creche-sdl"))]
+pub use linux_pump::{LinuxCrechePumpError, LinuxCrecheTurn};

@@ -89,8 +89,16 @@ issuer key, and refuses a different or lost display instance. Preparation neithe
 issues Body Play nor presents or acknowledges a Show. This is a trusted
 cooperative Host-driver boundary, not isolation from hostile Rust code.
 
-The full native application entrance still needs actual input acquisition and
-the event loop. The Images model, save machinery
+`pump_linux` composes one UI turn with the actual retained SDL scanout and
+selected Mask. It services retirement first, publishes the controller's actual
+Face, drains keys queued under an older semantic Face, and acquires at most one
+observation. A pending semantic return suppresses further key selection. Driver
+inspection bounds are explicit; keys still pass through the ordinary Mask's
+acknowledged Show/focus route. Quit drains presentation and leaves cancellation
+and collection of the Body worker's actual outcome to the application owner.
+
+The full native application entrance still needs start/stop composition of the
+ordinary Body runner with this UI pump and real make/save grant selection. The Images model, save machinery
 and owner APIs do not themselves acquire display custody, choose a file for the
 user, deploy a carrier, or supply a complete launched application.
 

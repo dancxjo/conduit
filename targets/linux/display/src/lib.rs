@@ -7,6 +7,7 @@ mod surface;
 use conduit_face::GraphicsScene;
 use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
 pub use initialized::{DisplayClaimRefusal, DisplayHostClaim, InitializedDisplay};
+pub use sdl2::EventPump;
 use sdl2::{
     pixels::PixelFormatEnum,
     render::{Canvas, Texture, TextureCreator},

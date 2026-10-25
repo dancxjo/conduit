@@ -103,6 +103,30 @@ pub(crate) fn live_events(scanout: &mut Scanout<'_>, sdl: &sdl2::Sdl) {
         Err(NativeInputRefusal::InvalidKey { scancode: None })
     );
     assert!(scanout.initialized_display().is_ok());
+    // A key queued under the previous semantic Face cannot cross publication.
+    queue.push_event(down(window_id, false)).unwrap();
+    scanout.withdraw_input();
+    assert_eq!(
+        scanout.poll_input(&mut pump, 1),
+        Err(NativeInputRefusal::NotPrepared)
+    );
+    let mut ready = false;
+    for _ in 0..8 {
+        match scanout.prepare_input(&mut pump, 1).unwrap() {
+            NativeInput::Idle => {
+                ready = true;
+                break;
+            }
+            NativeInput::Pending => {}
+            other => panic!("old Face input escaped drain: {other:?}"),
+        }
+    }
+    assert!(ready);
+    queue.push_event(down(window_id, false)).unwrap();
+    assert!(matches!(
+        queued(scanout, &mut pump),
+        Ok(NativeInput::Key(_))
+    ));
 }
 pub(crate) fn focus_loss(scanout: &mut Scanout<'_>, sdl: &sdl2::Sdl) {
     let token = scanout.initialized_display().unwrap();

@@ -39,11 +39,12 @@ construction; metadata equality cannot substitute for the same live instance.
 
 `prepare_input` establishes a fresh input boundary before Play by draining old
 queued keys in finite batches. It checks the actual queue after an empty poll
-cycle; SDL may end a cycle while events still remain queued. Preparation can
-allocate one bounded peek slot. `poll_input` then inspects at most 256 events
+cycle; SDL may end a cycle while events still remain queued. The queue check owns one
+stack slot and performs no Rust heap allocation. `poll_input` then inspects at most 256 events
 without waiting or allocating, forwards canonical key transitions only for the
 same live window, and suppresses repeat notifications. Invalid keys and absent
-preparation are typed refusals. Window focus/output loss revokes the preparation;
+preparation are typed refusals. A semantic Face replacement withdraws input
+readiness and requires another finite drain before key delivery. Window focus/output loss revokes the preparation;
 reacquisition requires fresh output and input preparation. These observations
 must still pass through the selected Mask's acknowledged Show/focus route.
 The diagnostic test injects actual SDL queue events; it proves no physical
