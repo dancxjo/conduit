@@ -6,8 +6,8 @@ use conduit_host_make::{BuilderBounds, BuilderRefusal};
 use sha2::{Digest, Sha256};
 use std::{
     fs,
-    io::Read,
-    os::unix::process::CommandExt,
+    io::{Read, Write},
+    os::unix::{fs::OpenOptionsExt, process::CommandExt},
     path::Path,
     process::{Command, Stdio},
     sync::{
@@ -26,6 +26,7 @@ pub(super) struct ExecutionEvidence {
     stdout_bytes: u64,
     stderr_bytes: u64,
     hash: Sha256,
+    process_sequence: u64,
 }
 
 pub(super) struct Execution<'a> {
@@ -37,6 +38,7 @@ pub(super) struct Execution<'a> {
     stdout_bytes: u64,
     stderr_bytes: u64,
     evidence: Sha256,
+    process_sequence: u64,
 }
 impl<'a> Execution<'a> {
     pub fn new(
@@ -54,6 +56,7 @@ impl<'a> Execution<'a> {
             stdout_bytes: 0,
             stderr_bytes: 0,
             evidence: Sha256::new(),
+            process_sequence: 0,
         }
     }
     pub fn started_at(mut self, started: Instant) -> Self {
@@ -93,6 +96,25 @@ impl<'a> Execution<'a> {
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
             .env("RUSTUP_AUTO_INSTALL", "0");
+        self.process_sequence = self
+            .process_sequence
+            .checked_add(1)
+            .ok_or(BuilderRefusal::BoundExhausted)?;
+        // Fixed names within the admitted workspace; no caller-selected sink or overwrite.
+        // create_new also refuses a pre-existing symlink. Raw bytes are never env dumps.
+        let diagnostic = |stream: &str| {
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(self.workspace.join(format!(
+                    "execution-{:06}-{stream}.log",
+                    self.process_sequence
+                )))
+                .map_err(|_| BuilderRefusal::WorkspaceUnavailable)
+        };
+        let stdout_log = diagnostic("stdout")?;
+        let stderr_log = diagnostic("stderr")?;
         let mut child = command.spawn().map_err(|_| BuilderRefusal::BuildFailed)?;
         let group = child.id() as i32;
         let remaining = self
@@ -100,8 +122,18 @@ impl<'a> Execution<'a> {
             .maximum_evidence_bytes
             .saturating_sub(self.stdout_bytes + self.stderr_bytes);
         let observed = Arc::new(AtomicU64::new(0));
-        let stdout = read_pipe(child.stdout.take().unwrap(), observed.clone(), remaining);
-        let stderr = read_pipe(child.stderr.take().unwrap(), observed.clone(), remaining);
+        let stdout = read_pipe(
+            child.stdout.take().unwrap(),
+            stdout_log,
+            observed.clone(),
+            remaining,
+        );
+        let stderr = read_pipe(
+            child.stderr.take().unwrap(),
+            stderr_log,
+            observed.clone(),
+            remaining,
+        );
         let mut next_disk_check = Instant::now();
         let outcome = loop {
             let refusal = if self.cancelled.load(Ordering::Acquire) {
@@ -162,12 +194,14 @@ impl<'a> Execution<'a> {
             stdout_bytes: self.stdout_bytes,
             stderr_bytes: self.stderr_bytes,
             hash: self.evidence.clone(),
+            process_sequence: self.process_sequence,
         }
     }
     pub fn inherit_evidence(mut self, evidence: &ExecutionEvidence) -> Self {
         self.stdout_bytes = evidence.stdout_bytes;
         self.stderr_bytes = evidence.stderr_bytes;
         self.evidence = evidence.hash.clone();
+        self.process_sequence = evidence.process_sequence;
         self
     }
     pub fn evidence(&self) -> (u64, u64, String) {
@@ -180,6 +214,7 @@ impl<'a> Execution<'a> {
 }
 fn read_pipe(
     mut pipe: impl Read + Send + 'static,
+    mut diagnostic: fs::File,
     total: Arc<AtomicU64>,
     limit: u64,
 ) -> thread::JoinHandle<Result<(Vec<u8>, u64), BuilderRefusal>> {
@@ -195,10 +230,16 @@ fn read_pipe(
                 break;
             }
             bytes = bytes.saturating_add(n as u64);
-            total.fetch_add(n as u64, Ordering::AcqRel);
-            let allowed = limit.saturating_sub(captured.len() as u64).min(n as u64) as usize;
+            let offset = total.fetch_add(n as u64, Ordering::AcqRel);
+            let allowed = limit.saturating_sub(offset).min(n as u64) as usize;
+            diagnostic
+                .write_all(&buffer[..allowed])
+                .map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
             captured.extend_from_slice(&buffer[..allowed]);
         }
+        diagnostic
+            .sync_all()
+            .map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
         Ok((captured, bytes))
     })
 }
@@ -285,12 +326,22 @@ mod tests {
             execution.run(&mut command),
             Err(BuilderRefusal::BoundExhausted)
         ));
+        assert_eq!(
+            fs::read(root.join("execution-000001-stdout.log")).unwrap(),
+            vec![b'x'; 128]
+        );
+        assert_eq!(
+            fs::metadata(root.join("execution-000001-stderr.log"))
+                .unwrap()
+                .len(),
+            0
+        );
         cancelled.store(true, Ordering::Release);
         assert!(matches!(
             execution.run(&mut Command::new("true")),
             Err(BuilderRefusal::Interrupted)
         ));
-        fs::remove_dir(&root).unwrap();
+        fs::remove_dir_all(&root).unwrap();
     }
     #[test]
     fn cancellation_terminates_a_running_command() {
@@ -314,7 +365,32 @@ mod tests {
         ));
         assert!(started.elapsed() < Duration::from_secs(2));
         cancellation.join().unwrap();
-        fs::remove_dir(root).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn failing_command_retains_exact_stderr_without_overwrite() {
+        let root =
+            std::env::temp_dir().join(format!("conduit-linux-stderr-{}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        let bounds = bounds();
+        let cancelled = AtomicBool::new(false);
+        let mut execution = Execution::new(&root, None, &bounds, &cancelled);
+        let mut command = Command::new("sh");
+        command.args(["-c", "printf reviewed-build-error >&2; exit 7"]);
+        assert!(matches!(
+            execution.run(&mut command),
+            Err(BuilderRefusal::BuildFailed)
+        ));
+        let diagnostic = root.join("execution-000001-stderr.log");
+        assert_eq!(fs::read(&diagnostic).unwrap(), b"reviewed-build-error");
+        // A new execution cannot silently replace retained proof from an earlier one.
+        let mut duplicate = Execution::new(&root, None, &bounds, &cancelled);
+        assert!(matches!(
+            duplicate.run(&mut Command::new("true")),
+            Err(BuilderRefusal::WorkspaceUnavailable)
+        ));
+        assert_eq!(fs::read(diagnostic).unwrap(), b"reviewed-build-error");
+        fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn process_group_stat_parser_counts_this_process() {
