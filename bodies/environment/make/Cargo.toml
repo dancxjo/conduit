@@ -11,6 +11,8 @@ path = "src/main.rs"
 [workspace]
 
 [dependencies]
+conduit-body = { path = "../../../architecture/body" }
+conduit-birth-plot = { path = "../../../plots/birth" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"] }
 conduit-planner = { path = "../../../architecture/planner" }
