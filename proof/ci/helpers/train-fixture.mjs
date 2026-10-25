@@ -27,10 +27,18 @@ export async function fixture(t) {
   const selections = [first, second].map((head, i) => ({
     pr: { number: i + 1, state: 'open', draft: false, mergeable: true,
       head: { sha: head, repo }, base: { ref: 'dev', sha: base, repo } },
-    candidateRun: { repository: repo, head_repository: repo, event: 'pull_request',
+    candidateRun: { id: i + 10, run_attempt: 1, repository: repo, head_repository: repo, event: 'pull_request',
       path: '.github/workflows/candidate.yml', head_sha: head, status: 'completed',
       conclusion: 'success', pull_requests: [{ number: i + 1 }] },
   }));
+  for (const selected of selections) {
+    const names = ['proof / candidate/quick', 'proof / admission', 'proof / unit', 'proof / target / ${{ matrix.id }}', 'proof / complete', 'candidate'];
+    selected.candidateJobs = { total_count: names.length, jobs: names.map((name, i) => ({
+      id: selected.candidateRun.id * 100 + i + 1, name, run_id: selected.candidateRun.id,
+      run_attempt: selected.candidateRun.run_attempt, head_sha: selected.pr.head.sha, status: 'completed',
+      conclusion: ['proof / unit', 'proof / target / ${{ matrix.id }}'].includes(name) ? 'skipped' : 'success',
+    })) };
+  }
   const capture = overrides => captureTrain({ repository, base, selections, source, directory, ...overrides });
   const manifest = capture();
   const observation = { development: base, selections, run: { id: 123, repository: repo,
