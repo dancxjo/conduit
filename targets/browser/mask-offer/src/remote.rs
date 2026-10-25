@@ -6,10 +6,10 @@
 use conduit_core::{
     BaseImplementationId, ConnectionTrack, HostAdvertisement, LineOffer, PortDirection,
 };
-use conduit_face::{PlannedMaskPlot, MAX_OWNER_FACE_RESPONSE_BYTES};
-use conduit_planner::{bind_external_fore_lines, ExternalForeLineChoice};
+use conduit_face::{MAX_OWNER_FACE_RESPONSE_BYTES, PlannedMaskPlot};
+use conduit_planner::{ExternalForeLineChoice, bind_external_fore_lines};
 
-use crate::{planned_mask_with_fore_limits, OwnerCarrierForeLimits};
+use crate::{OwnerCarrierForeLimits, planned_mask_configuration_with_look};
 
 const WEBSOCKET: &conduit_host_browser_make::BrowserLineRealizationDescriptor =
     &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
@@ -58,6 +58,53 @@ fn planned_owner_mask(
     source: &str,
     name: &str,
 ) -> Result<PlannedMaskPlot, String> {
+    planned_owner_mask_with_look(
+        browser,
+        owner,
+        face_line,
+        return_line,
+        interaction_line,
+        source,
+        name,
+        None,
+    )
+}
+
+/// Select the reviewed history Root with an independently retained typed Look.
+#[allow(clippy::too_many_arguments)]
+pub fn planned_owner_face_show_interaction_mask_with_look(
+    browser: &HostAdvertisement,
+    owner: &HostAdvertisement,
+    face_line: &LineOffer,
+    return_line: &LineOffer,
+    interaction_line: &LineOffer,
+    source: &str,
+    name: &str,
+    look: &conduit_face::LookInfo,
+) -> Result<PlannedMaskPlot, String> {
+    planned_owner_mask_with_look(
+        browser,
+        owner,
+        face_line,
+        return_line,
+        Some(interaction_line),
+        source,
+        name,
+        Some(look),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn planned_owner_mask_with_look(
+    browser: &HostAdvertisement,
+    owner: &HostAdvertisement,
+    face_line: &LineOffer,
+    return_line: &LineOffer,
+    interaction_line: Option<&LineOffer>,
+    source: &str,
+    name: &str,
+    selected_look: Option<&conduit_face::LookInfo>,
+) -> Result<PlannedMaskPlot, String> {
     for line in [Some(face_line), Some(return_line), interaction_line]
         .into_iter()
         .flatten()
@@ -83,7 +130,7 @@ fn planned_owner_mask(
         .limits
         .maximum_payload_bytes
         .min(MAX_OWNER_FACE_RESPONSE_BYTES as u32);
-    let planned = planned_mask_with_fore_limits(
+    let (planned, _) = planned_mask_configuration_with_look(
         browser,
         source,
         name,
@@ -91,6 +138,7 @@ fn planned_owner_mask(
             face_bytes,
             show_bytes,
         }),
+        selected_look,
     )?;
     let mut choices = vec![
         ExternalForeLineChoice {
@@ -145,8 +193,8 @@ fn planned_owner_mask(
 mod tests {
     use super::*;
     use conduit_core::{
-        process_owned_line_offer_with_limits, resource_offer, BootId, HostId, HostProfileId,
-        LineAvailability, LinkLimits, OfferGeneration, FACE_RESOURCE_CLASS, PROTOCOL_VERSION,
+        BootId, FACE_RESOURCE_CLASS, HostId, HostProfileId, LineAvailability, LinkLimits,
+        OfferGeneration, PROTOCOL_VERSION, process_owned_line_offer_with_limits, resource_offer,
     };
 
     fn host(id: &str, browser: bool) -> HostAdvertisement {
@@ -265,37 +313,43 @@ mod tests {
         let [face, returning, _] = lines(&owner, &browser);
         let mut stale = face.clone();
         stale.binding.sink.boot_id = BootId::from("stale");
-        assert!(planned_owner_face_show_mask(
-            &browser,
-            &owner,
-            &stale,
-            &returning,
-            crate::MASK_SOURCE,
-            "browser-graphical"
-        )
-        .is_err());
+        assert!(
+            planned_owner_face_show_mask(
+                &browser,
+                &owner,
+                &stale,
+                &returning,
+                crate::MASK_SOURCE,
+                "browser-graphical"
+            )
+            .is_err()
+        );
         let mut unavailable = returning.clone();
         unavailable.availability.availability = LineAvailability::Unavailable;
-        assert!(planned_owner_face_show_mask(
-            &browser,
-            &owner,
-            &face,
-            &unavailable,
-            crate::MASK_SOURCE,
-            "browser-graphical"
-        )
-        .is_err());
+        assert!(
+            planned_owner_face_show_mask(
+                &browser,
+                &owner,
+                &face,
+                &unavailable,
+                crate::MASK_SOURCE,
+                "browser-graphical"
+            )
+            .is_err()
+        );
         let mut wrong_base = returning.clone();
         wrong_base.binding.base = BaseImplementationId::from("conduit.base/unreviewed@1");
-        assert!(planned_owner_face_show_mask(
-            &browser,
-            &owner,
-            &face,
-            &wrong_base,
-            crate::MASK_SOURCE,
-            "browser-graphical"
-        )
-        .is_err());
+        assert!(
+            planned_owner_face_show_mask(
+                &browser,
+                &owner,
+                &face,
+                &wrong_base,
+                crate::MASK_SOURCE,
+                "browser-graphical"
+            )
+            .is_err()
+        );
         let mut smaller = face;
         smaller.binding.limits.maximum_payload_bytes = 8 * 1024;
         let planned = planned_owner_face_show_mask(
@@ -340,27 +394,31 @@ mod tests {
             Some(interaction.admitted_line())
         );
         assert!(conduit_core::verify_plan(&selected.plan));
-        assert!(planned_owner_face_show_interaction_mask(
-            &browser,
-            &owner,
-            &face,
-            &returning,
-            &returning,
-            crate::MASK_SOURCE,
-            "browser-graphical",
-        )
-        .is_err());
+        assert!(
+            planned_owner_face_show_interaction_mask(
+                &browser,
+                &owner,
+                &face,
+                &returning,
+                &returning,
+                crate::MASK_SOURCE,
+                "browser-graphical",
+            )
+            .is_err()
+        );
         let mut stale = interaction;
         stale.availability.availability = LineAvailability::Unavailable;
-        assert!(planned_owner_face_show_interaction_mask(
-            &browser,
-            &owner,
-            &face,
-            &returning,
-            &stale,
-            crate::MASK_SOURCE,
-            "browser-graphical",
-        )
-        .is_err());
+        assert!(
+            planned_owner_face_show_interaction_mask(
+                &browser,
+                &owner,
+                &face,
+                &returning,
+                &stale,
+                crate::MASK_SOURCE,
+                "browser-graphical",
+            )
+            .is_err()
+        );
     }
 }

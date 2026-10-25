@@ -144,7 +144,7 @@ fn owner_browser(root: &Path) -> Result<(), Box<dyn Error>> {
         "conduit-browser-mask-offer",
         "-p",
         "conduit-conduitos-mask-offer",
-        "history",
+        "--lib",
     ]))?;
     super::execute(Command::new("node").current_dir(root).args([
         "--test",

@@ -99,3 +99,26 @@ test('full recording chunk window reports omitted history and renders all select
   await expect(rows.nth(1)).toContainText('57');
   await expect(rows.nth(8)).toContainText('64');
 });
+
+test('checked unit Looks render converted values over the same Face and graph coordinates', async ({ page }) => {
+  let dots;
+  const plans = new Set();
+  for (const [suffix, unit, value] of [['C', '°C', '19.800'], ['K', 'K', '292.950'], ['F', '°F', '67.640']]) {
+    const view = JSON.parse(await readFile(`${directory}/history-unit-${suffix}.json`, 'utf8'));
+    expect(view.face_id).toBe(fixture.face_id);
+    expect(view.face_revision).toBe(fixture.face_revision);
+    plans.add(view.mask_plan_id);
+    const face = await show(page, view);
+    const history = face.locator('[part=history]');
+    await expect(history.getByRole('img')).toBeVisible();
+    await expect(history).toContainText(`Temperature ${unit}`);
+    const actual = await history.locator('circle').evaluateAll(nodes => nodes.map(node => [node.getAttribute('cx'), node.getAttribute('cy')]));
+    if (dots) expect(actual).toEqual(dots); else dots = actual;
+    await history.getByText('Exact recorded values and gaps', { exact: true }).click();
+    await expect(history.getByRole('columnheader', { name: `Temperature ${unit} (rounded to 3 places)`, exact: true })).toBeVisible();
+    await expect(history.getByRole('row').nth(1)).toContainText(value);
+    await expect(history.getByRole('row').nth(1)).toContainText('19.8°C');
+    await page.screenshot({ path: `${directory}/owner-history-unit-${suffix}.png`, fullPage: true });
+  }
+  expect(plans.size).toBe(3);
+});

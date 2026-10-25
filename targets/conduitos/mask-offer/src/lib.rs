@@ -33,7 +33,10 @@ mod storage_profile;
 pub use configured::*;
 pub use layout_configured::*;
 mod history;
-pub use history::prepare_history_component_stage_from_offer;
+pub use history::{
+    prepare_history_component_stage_from_offer,
+    prepare_history_component_stage_with_look_from_offer,
+};
 pub use storage_profile::*;
 
 pub const MASK_BYTES: usize = 48 * 1024;

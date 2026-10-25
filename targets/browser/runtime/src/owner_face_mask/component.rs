@@ -1,8 +1,8 @@
 //! Realization configuration from the exact current planned renderer placement.
 use super::*;
 use conduit_face::{
-    admit_visual_look, prepare_component_recipe, AdmittedVisualExpression,
-    ConfiguredMaskConfiguration, VisualUserConstraints,
+    AdmittedVisualExpression, ConfiguredMaskConfiguration, VisualUserConstraints,
+    admit_visual_look, prepare_component_recipe,
 };
 #[path = "component/history.rs"]
 mod history;
@@ -35,17 +35,22 @@ pub(super) struct ComponentView {
     pub fallback: Option<String>,
 }
 
-pub(super) fn prepare(
+pub(super) fn prepare_with_look(
     basis: &HostBasis,
     planned: &conduit_face::PlannedMaskPlot,
     face: &Face,
+    selected_look: Option<&conduit_face::LookInfo>,
 ) -> Result<Option<ComponentView>, String> {
     let host = crate::installed_browser::membership_advertisement(
         basis.host_id.clone(),
         basis.boot_id.clone(),
     );
     let Some(configuration) =
-        crate::installed_browser::dom_mask::configured_mask_configuration(&host, planned)?
+        crate::installed_browser::dom_mask::configured_mask_configuration_with_look(
+            &host,
+            planned,
+            selected_look,
+        )?
     else {
         return Ok(None);
     };

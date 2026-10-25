@@ -8,14 +8,16 @@ use crate::{
 };
 use alloc::vec::Vec;
 use conduit_conduitos_mask_offer::{
-    native_host_advertisement, prepare_history_component_stage_from_offer, NativeMaskStorageProfile,
+    NativeMaskStorageProfile, native_host_advertisement,
+    prepare_history_component_stage_from_offer,
+    prepare_history_component_stage_with_look_from_offer,
 };
 use conduit_core::{HostBaseId, HostId};
-use conduit_environment_history::{HistoryGraph, HISTORY_SUBJECT};
+use conduit_environment_history::{HISTORY_SUBJECT, HistoryGraph};
 use conduit_face::{
-    admit_visual_look, prepare_component_recipe, AdmittedVisualLook, Face, FaceBasis, LayoutRect,
-    ManifestationLifecycle, VisualUserConstraints, HISTORY_COMPONENT_MASK_ROOT,
-    HISTORY_COMPONENT_RECIPE_ID,
+    AdmittedVisualLook, Face, FaceBasis, HISTORY_COMPONENT_MASK_ROOT, HISTORY_COMPONENT_RECIPE_ID,
+    LayoutRect, ManifestationLifecycle, VisualUserConstraints, admit_visual_look,
+    prepare_component_recipe,
 };
 
 mod common {
@@ -43,6 +45,9 @@ impl OwnedPixels {
         self.pixels[usize::from(y) * WIDTH as usize + usize::from(x)]
     }
     fn export_if_requested(&self, face: &Face) {
+        self.export_named_if_requested(face, "native-history");
+    }
+    fn export_named_if_requested(&self, face: &Face, name: &str) {
         let Some(output) = std::env::var_os("CONDUIT_HISTORY_NATIVE_PROOF_OUTPUT") else {
             return;
         };
@@ -52,8 +57,8 @@ impl OwnedPixels {
         for pixel in &self.pixels {
             ppm.extend_from_slice(&[(pixel >> 16) as u8, (pixel >> 8) as u8, *pixel as u8]);
         }
-        std::fs::write(output.join("native-history.ppm"), ppm).unwrap();
-        std::fs::write(output.join("native-history.txt"), format!(
+        std::fs::write(output.join(format!("{name}.ppm")), ppm).unwrap();
+        std::fs::write(output.join(format!("{name}.txt")), format!(
             "Synthetic fixture — not a live sensor connection\nCPU retained framebuffer from production native compositor.\nFace: {}\nRevision: {}\n{}x{}; {} successful pixel writes.\nNo physical display, Body membership, storage durability or human observation claimed.\n",
             face.identity.as_str(), face.revision, WIDTH, HEIGHT, self.writes)).unwrap();
     }
@@ -166,6 +171,17 @@ fn fixture_face(
     NativeCompositor,
     AdmittedVisualLook,
 ) {
+    fixture_face_with_look(face, None)
+}
+fn fixture_face_with_look(
+    face: Face,
+    requested: Option<&conduit_face::LookInfo>,
+) -> (
+    Face,
+    PreparedNativeMaskPlay,
+    NativeCompositor,
+    AdmittedVisualLook,
+) {
     // Existing renderer-host definitions and explicit CPU surface offer. This
     // does not discover, initialize or establish custody of a physical Base.
     let provider = conduit_core::BaseProviderEntry {
@@ -189,7 +205,14 @@ fn fixture_face(
         1,
         &provider,
     );
-    let (stage, configuration) = prepare_history_component_stage_from_offer(&host).unwrap();
+    let (stage, configuration) = match requested {
+        Some(look) => prepare_history_component_stage_with_look_from_offer(&host, look),
+        None => prepare_history_component_stage_from_offer(&host),
+    }
+    .unwrap();
+    if let Some(requested) = requested {
+        assert_eq!(configuration.requested_look().unwrap(), *requested);
+    }
     assert_eq!(
         stage.planned_mask.mask.plot_name,
         HISTORY_COMPONENT_MASK_ROOT
@@ -286,12 +309,16 @@ fn history_dots_reach_retained_pixels_before_exact_native_show_kernel_completion
         staged.visual_look.as_ref().unwrap().identity(),
         look.selected.identity()
     );
-    assert!(compositor
-        .scanout_acknowledgement(&staged, face.revision)
-        .is_none());
-    assert!(compositor
-        .focus_surface("surface/native-history-cpu-fixture")
-        .is_err());
+    assert!(
+        compositor
+            .scanout_acknowledgement(&staged, face.revision)
+            .is_none()
+    );
+    assert!(
+        compositor
+            .focus_surface("surface/native-history-cpu-fixture")
+            .is_err()
+    );
     let graph = HistoryGraph::prepare(&face, HISTORY_SUBJECT).unwrap();
     let mut pixels = OwnedPixels::prepare(false);
     let frame = compositor.compose_frame(&mut pixels).unwrap();
@@ -333,9 +360,11 @@ fn history_dots_reach_retained_pixels_before_exact_native_show_kernel_completion
     assert_eq!(pixels.at(graph.x(first) + 1, humidity_y), point);
     assert_eq!(pixels.at(graph.x(failed) + 1, humidity_y), blank);
     assert_eq!(last.gap_before(), Some((3, 3)));
-    assert!(compositor
-        .scanout_acknowledgement(&staged, face.revision + 1)
-        .is_none());
+    assert!(
+        compositor
+            .scanout_acknowledgement(&staged, face.revision + 1)
+            .is_none()
+    );
     let ack = compositor
         .scanout_acknowledgement(&staged, face.revision)
         .unwrap();
@@ -366,12 +395,16 @@ fn display_loss_has_no_ack_or_available_show_and_cancels_pending_execution() {
     let mut pixels = OwnedPixels::prepare(true);
     assert!(compositor.compose_frame(&mut pixels).is_err());
     assert_eq!(pixels.writes, 0);
-    assert!(compositor
-        .scanout_acknowledgement(&staged, face.revision)
-        .is_none());
-    assert!(compositor
-        .focus_surface("surface/native-history-cpu-fixture")
-        .is_err());
+    assert!(
+        compositor
+            .scanout_acknowledgement(&staged, face.revision)
+            .is_none()
+    );
+    assert!(
+        compositor
+            .focus_surface("surface/native-history-cpu-fixture")
+            .is_err()
+    );
     assert_eq!(
         pending.renderer_request().prepared_show().show.lifecycle,
         ManifestationLifecycle::Prepared
@@ -432,9 +465,11 @@ fn full_recording_window_fits_native_admission_and_completes_only_after_scanout(
     assert_eq!(graph.samples().len(), 8);
     let (original, pending, mut compositor, look) = fixture_face(face.clone());
     let staged = stage(&pending, &mut compositor, &look);
-    assert!(compositor
-        .scanout_acknowledgement(&staged, face.revision)
-        .is_none());
+    assert!(
+        compositor
+            .scanout_acknowledgement(&staged, face.revision)
+            .is_none()
+    );
     let frame = compositor
         .compose_frame(&mut OwnedPixels::prepare(false))
         .unwrap();
@@ -450,4 +485,112 @@ fn full_recording_window_fits_native_admission_and_completes_only_after_scanout(
     assert_eq!(session.render_receipt().face_id, face.identity.as_str());
     session.close_without_input().unwrap();
     assert_eq!(original, face);
+}
+
+#[test]
+fn three_checked_quantity_looks_keep_one_face_and_dots_through_real_cpu_scanout_and_ack() {
+    use conduit_environment_history::HistoryTemperaturePresentation;
+    use conduit_face::{LookInfo, LookQuantityFacetOption, LookTemperatureUnit as T};
+    // Under the cross-Mask proof entrance, all three native Looks consume the
+    // exact exported browser Face, including its identity and u64 revision.
+    let face = history_face(1);
+    let graph = HistoryGraph::prepare(&face, HISTORY_SUBJECT).unwrap();
+    let original = face.clone();
+    let (_, _, _, authored) = fixture_face(face.clone());
+    let base = authored.requested;
+    let mut plan_ids = Vec::new();
+    for (unit, symbol, number, top, bottom) in [
+        (T::Celsius, "°C", "19.800", "20.800", "18.800"),
+        (T::Kelvin, "K", "292.950", "293.950", "291.950"),
+        (T::Fahrenheit, "°F", "67.640", "69.440", "65.840"),
+    ] {
+        let requested = LookInfo::new(
+            base.generative().clone(),
+            base.identity().into(),
+            LookQuantityFacetOption::some(unit).unwrap(),
+            base.spoken().clone(),
+            3,
+            base.visual().clone(),
+        )
+        .unwrap();
+        let (observed, pending, mut compositor, look) =
+            fixture_face_with_look(face.clone(), Some(&requested));
+        assert_eq!(observed, face);
+        assert_eq!(pending.renderer_request().face(), &face);
+        assert_eq!(look.selected.quantity(), requested.quantity());
+        assert_eq!(look.selected.visual(), base.visual());
+        let shown = HistoryTemperaturePresentation::prepare(&graph, &look.selected).unwrap();
+        assert_eq!(shown.unit_label(), symbol);
+        assert_eq!(shown.top.number(), top);
+        assert_eq!(shown.bottom.number(), bottom);
+        assert_eq!(shown.samples[0].unwrap().number(), number);
+        assert_eq!(
+            shown.samples[0].unwrap().source(),
+            graph.samples()[0].temperature_source().unwrap()
+        );
+        assert!(shown.samples[1].is_none());
+        let scene = graph.native_scene_with_look(&look.selected).unwrap();
+        let expected = format!("Temperature {symbol}: top {top}; bottom {bottom}");
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|command| command.payload() == expected)
+        );
+        let staged = stage(&pending, &mut compositor, &look);
+        assert!(plan_ids.iter().all(|id| id != &staged.plan_id));
+        plan_ids.push(staged.plan_id.clone());
+        assert!(
+            compositor
+                .scanout_acknowledgement(&staged, face.revision)
+                .is_none()
+        );
+        let mut pixels = OwnedPixels::prepare(false);
+        let frame = compositor.compose_frame(&mut pixels).unwrap();
+        assert_eq!(pixels.writes, WIDTH * HEIGHT);
+        assert_eq!(frame.pixels_written, WIDTH * HEIGHT);
+        let first = &graph.samples()[0];
+        let failed = &graph.samples()[1];
+        let y = graph.y(first.temperature_milli_c().unwrap(), false) + 1;
+        let point = pixels.at(graph.x(first) + 1, y);
+        let blank = pixels.at(graph.x(failed) + 1, y);
+        assert_ne!(point, blank);
+        assert_eq!(pixels.at(graph.x(&graph.samples()[2]) + 1, y), point);
+        assert_eq!(
+            pixels.at(300, y),
+            blank,
+            "unit changes must not bridge the gap"
+        );
+        let humidity_y = graph.y(first.humidity_milli_percent().unwrap(), true) + 1;
+        assert_eq!(pixels.at(graph.x(first) + 1, humidity_y), point);
+        assert_eq!(pixels.at(graph.x(failed) + 1, humidity_y), blank);
+        assert!(
+            compositor
+                .scanout_acknowledgement(&staged, face.revision + 1)
+                .is_none()
+        );
+        let ack = compositor
+            .scanout_acknowledgement(&staged, face.revision)
+            .unwrap();
+        assert_eq!(ack.frame_sequence(), frame.frame_sequence);
+        let session = pending.complete_render(&ack).unwrap();
+        assert_eq!(
+            session.show().show.lifecycle,
+            ManifestationLifecycle::Available
+        );
+        assert_eq!(session.render_receipt().face_id, face.identity.as_str());
+        assert_eq!(session.render_receipt().face_revision, face.revision);
+        assert_eq!(
+            session.render_receipt().scanout_pixels_written,
+            pixels.writes
+        );
+        assert!(session.render_receipt().kernel_signs > 0);
+        let receipt = session.close_without_input().unwrap();
+        assert_eq!(receipt.mask_plan_id, staged.plan_id);
+        assert_eq!(observed, original);
+        pixels.export_named_if_requested(
+            &face,
+            &format!("native-history-unit-{}", symbol.trim_start_matches('°')),
+        );
+    }
 }
