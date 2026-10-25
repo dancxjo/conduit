@@ -56,6 +56,9 @@ pub struct Snapshot {
     pub selected_window: u32,
     pub display_command: u32,
     pub smmu_config: u32,
+    pub controller: usize,
+    pub smmu_asid: u32,
+    pub smmu_clients: u32,
     pub active_size: u32,
     pub interlace_control: u32,
     pub options: u32,
@@ -80,12 +83,19 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
-    fn read(dc: &mut impl FnMut(u32) -> u32, mc: &mut impl FnMut(u32) -> u32) -> Self {
+    fn read(
+        controller: usize,
+        dc: &mut impl FnMut(u32) -> u32,
+        mc: &mut impl FnMut(u32) -> u32,
+    ) -> Self {
         Self {
             state_access: dc(0x040),
             selected_window: dc(0x042),
             display_command: dc(0x032),
             smmu_config: mc(0x010),
+            controller,
+            smmu_asid: mc(if controller == 0 { 0x240 } else { 0x244 }),
+            smmu_clients: mc(0x228),
             active_size: dc(0x409),
             interlace_control: dc(0x4e5),
             options: dc(0x700),
@@ -113,11 +123,15 @@ impl Snapshot {
     /// Bounded double observation rejects a changed mode/selection. Firmware
     /// and secondary cores must already be quiescent; equality is not a lock.
     pub fn capture(
+        controller: usize,
         mut dc: impl FnMut(u32) -> u32,
         mut mc: impl FnMut(u32) -> u32,
     ) -> Result<Self, Refusal> {
-        let first = Self::read(&mut dc, &mut mc);
-        let second = Self::read(&mut dc, &mut mc);
+        if controller > 1 {
+            return Err(Refusal::Translation);
+        }
+        let first = Self::read(controller, &mut dc, &mut mc);
+        let second = Self::read(controller, &mut dc, &mut mc);
         if first != second {
             return Err(Refusal::Unstable);
         }
@@ -143,16 +157,34 @@ impl Snapshot {
         if self.display_command & (3 << 5) != 1 << 5 {
             return Err(Refusal::NotContinuous);
         }
-        // Deliberately require global bypass. A programmed ASID/client map
-        // cannot establish an identity translation without walking its tables.
-        if self.smmu_config & 1 != 0 {
+        // Global enable does not imply this display client is translated.
+        // Tegra210's DC A/B/C clients occupy MC0x228 bits1/3/5, with DCB
+        // bits2/4/6. Group ASIDs are MC0x240/0x244, enabled by bit31.
+        // Require BOTH client and ASID disabled before accepting bypass; never
+        // infer an identity translation from an enabled page-table context.
+        // Sources: drivers/memory/tegra/tegra210.c and tegra_smmu_disable()
+        // in drivers/iommu/tegra-smmu.c.
+        let window_index = match self.selected_window {
+            0x10 => 0,
+            0x20 => 1,
+            _ => 2,
+        };
+        if self.controller > 1 {
             return Err(Refusal::Translation);
         }
-        if self.options != 1 << 30
+        let client_bit = 1 + self.controller + window_index * 2;
+        if self.smmu_config & 1 != 0
+            && (self.smmu_asid & (1 << 31) != 0 || self.smmu_clients & (1 << client_bit) != 0)
+        {
+            return Err(Refusal::Translation);
+        }
+        // COLOR_EXPAND changes output component expansion, not framebuffer
+        // addressing/stride. Its presence is harmless for admitted 8-bit RGB.
+        // All direction/filter/CSC/unknown option bits remain unsupported.
+        if self.options & !(1 << 6) != 1 << 30
             || self.byte_swap != 0
             || self.buffer_control != 0
             || self.interlace_control != 0
-            || self.position != 0
             || self.initial_dda_h != 0
             || self.initial_dda_v != 0
             || self.dda_inc != 0x1000_1000
@@ -166,13 +198,23 @@ impl Snapshot {
             return Err(Refusal::Layout);
         }
         let format = match self.color_depth {
-            12 => PixelFormat::Bgra8888,
-            13 => PixelFormat::Rgba8888,
+            // Linux plane.c maps ARGB/XRGB8888 to depths12/37 and
+            // ABGR/XBGR8888 to13/38. The X byte is ignored; diagnostics
+            // write it opaque, preserving identical 32-bit RGB addressing.
+            12 | 37 => PixelFormat::Bgra8888,
+            13 | 38 => PixelFormat::Rgba8888,
             _ => return Err(Refusal::Format),
         };
         let width = self.size & 0x1fff;
         let height = (self.size >> 16) & 0x1fff;
-        if self.size != self.active_size
+        let active_width = self.active_size & 0x1fff;
+        let active_height = (self.active_size >> 16) & 0x1fff;
+        let x = self.position & 0x1fff;
+        let y = (self.position >> 16) & 0x1fff;
+        if self.active_size & !0x1fff_1fff != 0
+            || self.position & !0x1fff_1fff != 0
+            || x + width > active_width
+            || y + height > active_height
             || self.size & !0x1fff_1fff != 0
             || width == 0
             || height == 0

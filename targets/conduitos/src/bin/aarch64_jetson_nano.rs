@@ -30,6 +30,7 @@ pub extern "C" fn conduitos_aarch64_jetson_nano_start(dtb_address: u64) -> ! {
     validate_handoff(dtb_address);
     boot_diagnostic("CONDUITOS STARTING");
     arch::enable_fp_simd();
+    boot_diagnostic("CONDUITOS KERNEL ENTERED\nINITIALIZING INTERRUPTS");
     arch::initialize_machine();
     let arena = core::ptr::addr_of_mut!(RUNTIME_ARENA).cast::<u8>() as usize;
     unsafe {
@@ -109,6 +110,7 @@ pub extern "C" fn conduitos_aarch64_jetson_nano_start(dtb_address: u64) -> ! {
 
     let mut prepared = dual_region_plan::prepare(&identities, &offer, EMBEDDED_MAKE.build_id)
         .unwrap_or_else(|error| refuse(error.as_str()));
+    boot_diagnostic("CONDUITOS PLAN PREPARED\nRUNNING TEXT AND TIMER");
     let mut clock = arch::Clock::new();
     let mut timer = arch::Timer::new();
     let mut serial = arch::Serial::new();
@@ -203,8 +205,6 @@ fn validate_handoff(address: u64) {
     let start = core::ptr::addr_of!(__conduitos_image_start) as u64;
     let end = core::ptr::addr_of!(__conduitos_image_end) as u64;
     let image = Region::new(start, end - start).unwrap_or_else(|_| refuse("image-extent"));
-    admit(&memory.ram, &memory.reserved, image, 4096)
-        .unwrap_or_else(|_| refuse("image-memory-conflict"));
     if let Some(framebuffer) = firmware.framebuffer {
         let mut protected = conduitos::arch::jetson_nano::memory::Regions::new();
         let framebuffer_end = framebuffer.start() + framebuffer.bytes();
@@ -242,8 +242,13 @@ fn validate_handoff(address: u64) {
             unsafe {
                 BOOT_DISPLAY = Some(display);
             }
+            boot_diagnostic("CONDUITOS KERNEL ENTERED\nDISPLAY HANDOFF ACCEPTED");
         }
     }
+    // The validated display remains available to explain image-placement
+    // refusal. No runtime arena/planner/interrupt initialization precedes this.
+    admit(&memory.ram, &memory.reserved, image, 4096)
+        .unwrap_or_else(|_| refuse("image-memory-conflict"));
 }
 
 // Diagnostic-only custody. Initialized once with IRQs masked, then read-only;

@@ -10,7 +10,7 @@
 //! https://github.com/torvalds/linux/blob/v6.12/drivers/clk/tegra/clk.c
 
 use super::display::Descriptor;
-use super::display_boot::{self, DC_BASES, Error, MC_BASE, Registers};
+use super::display_boot::{self, Error, Registers, DC_BASES, MC_BASE};
 use super::memory::{Region, Regions};
 
 const CAR_BASE: u64 = 0x6000_6000;
@@ -93,10 +93,10 @@ impl Registers for NativeRegisters {
     }
 
     fn read_mc(&mut self, byte: u32) -> u32 {
-        if byte != 0x010 {
+        if !matches!(byte, 0x010 | 0x228 | 0x240 | 0x244) {
             return u32::MAX;
         }
-        // SAFETY: SMMU_CONFIG is inside probe's admitted live MC aperture.
+        // SAFETY: SMMU global/client/ASID registers are inside the admitted MC aperture.
         unsafe { read(MC_BASE + u64::from(byte)) }
     }
 }
