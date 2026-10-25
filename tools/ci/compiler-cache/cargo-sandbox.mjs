@@ -7,6 +7,7 @@ import { CacheRefusal } from './refusal.mjs';
 import { hashFile, snapshotInventory, assertSupportedPackage } from './cargo-snapshot.mjs';
 import { SCCACHE_ENGINE } from './engine.mjs';
 import { HOSTED_SNAPSHOT_LIMITS, proceduralMacroBypassNames } from './hosted-snapshot.mjs';
+import { verifyHostedSelectedRecipe } from './hosted-recipe.mjs';
 import { sharedCompatibilityInventory, verifyHostedAdmission } from './hosted-admission.mjs';
 
 const fail = code => { throw new CacheRefusal(code); };
@@ -150,7 +151,7 @@ async function deriveCargoPolicy(snapshot,input,{maxCacheBytes,cacheMode}) {
   if(shared)await verifyHostedAdmission(snapshot.root);
   const script=hosted?HOSTED_CARGO_SANDBOX_SCRIPT:CARGO_SANDBOX_SCRIPT;
   const wrapper=shared?HOSTED_SHARED_RUSTC_WRAPPER:HOSTED_RUSTC_WRAPPER;
-  const policy={schema:shared?3:2,...(shared?{cacheMode:frozenMode,compatibilitySha256:sha(JSON.stringify(sharedCompatibilityInventory(input.files)))}:{snapshotSha256:input.sha256}),runnerSha256:sha(script+(hosted?wrapper+HOSTED_METADATA_SCRIPT:'')),sandboxArgsSha256:sha(cargoSandboxArgs.toString()),runnerSourceSha256:sha(runSandbox.toString()),bwrapSha256:await hashFile('/usr/bin/bwrap'),maxCacheBytes};
+  const policy={schema:shared?3:2,...(shared?{cacheMode:frozenMode,compatibilitySha256:sha(JSON.stringify(sharedCompatibilityInventory(input.files)))}:{snapshotSha256:input.sha256}),...(hosted?{recipeVerifierSha256:sha(await fs.readFile(new URL('./hosted-recipe.mjs',import.meta.url),'utf8')+await fs.readFile(new URL('./hosted-metadata.mjs',import.meta.url),'utf8'))}:{}),runnerSha256:sha(script+(hosted?wrapper+HOSTED_METADATA_SCRIPT:'')),sandboxArgsSha256:sha(cargoSandboxArgs.toString()),runnerSourceSha256:sha(runSandbox.toString()),bwrapSha256:await hashFile('/usr/bin/bwrap'),maxCacheBytes};
   return {policy,namespace:sha(JSON.stringify(policy))};
 }
 // Read-only pre-restore identity. Exact same derivation is used by the build;
@@ -207,10 +208,14 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
       if(await measureCargoOutputBytes(objects)>maxCacheBytes)fail('cargo-cache-bound');if(await measureCargoOutputBytes(task)>maxTaskBytes)fail('cargo-task-bound');
     };
     await check();
+    let selectedRecipe;
     if(hosted){
       try{await runSandbox(cargoSandboxArgs({snapshotRoot:sourceRoot,taskRoot:task,cacheObjects:objects,namespace,maxCacheBytes,hosted,sharedAdmission,mode:'hosted-metadata'}),{onTick:check,observeCommand});
       const metadataFile=path.join(task,'resolved-metadata.json');if((await fs.stat(metadataFile)).size>32*1024**2)fail('hosted-metadata-bound');
-      const actualNames=proceduralMacroBypassNames(JSON.parse(await fs.readFile(metadataFile,'utf8')));
+      const actualMetadata=JSON.parse(await fs.readFile(metadataFile,'utf8'));
+      selectedRecipe=verifyHostedSelectedRecipe(JSON.parse(await fs.readFile(path.join(sourceRoot,'metadata.json'),'utf8')),actualMetadata);
+      await fs.writeFile(path.join(task,'selected-recipe.json'),JSON.stringify(selectedRecipe),{flag:'wx',mode:0o600});
+      const actualNames=proceduralMacroBypassNames(actualMetadata);
       const allowed=new Set((await fs.readFile(path.join(sourceRoot,'proc-macro-bypass.txt'),'utf8')).trimEnd().split('\n'));
       if(actualNames.some(name=>!allowed.has(name)))fail('hosted-macro-closure-mismatch');
       }catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({stage:'offline-metadata',code:error.code,message:error.message,path:error.path,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
@@ -231,7 +236,7 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
       try{buildScriptOutputs.push({packageDirectory:name,...await snapshotInventory(out,HOSTED_SNAPSHOT_LIMITS)});}
       catch(error){if(error.code!=='ENOENT')throw error;}
     }
-    const receipt={schema:1,bounds:{maxCacheBytes,maxTaskBytes,reserveBytes},scope:hosted?'Actual hosted Linux release Cargo build; transitive procedural-macro consumers bypass cache, behavioral proof executes separately':'Actual compositor-core Cargo --lib build only; no full workspace, link/test/release or arbitrary procedural-macro proof',namespace,snapshotSha256:input.sha256,generatedInputs:{lockfileSha256:await hashFile(path.join(sourceRoot,'source/Cargo.lock')),buildScriptOutputs},policy,compilerBoundary:'Owned server and rustc children inside bwrap --unshare-all with snapshot mounts read-only',args,environment:script,bwrapSha256:policy.bwrapSha256,before,after,outputs,...(hosted?{resourceUsage:await fs.readFile(path.join(task,'resource-usage.txt'),'utf8'),procMacroBypasses:(await fs.readFile(path.join(task,'proc-macro-bypass.log'),'utf8')).trimEnd().split('\n')}:{}),cacheBytes:await measureCargoOutputBytes(objects),taskBytes:await measureCargoOutputBytes(task),validatedWallMs:performance.now()-started,...result};
+    const receipt={schema:1,bounds:{maxCacheBytes,maxTaskBytes,reserveBytes},scope:hosted?'Actual hosted Linux release Cargo build; transitive procedural-macro consumers bypass cache, behavioral proof executes separately':'Actual compositor-core Cargo --lib build only; no full workspace, link/test/release or arbitrary procedural-macro proof',namespace,snapshotSha256:input.sha256,generatedInputs:{lockfileSha256:await hashFile(path.join(sourceRoot,'source/Cargo.lock')),buildScriptOutputs},policy,compilerBoundary:'Owned server and rustc children inside bwrap --unshare-all with snapshot mounts read-only',args,environment:script,bwrapSha256:policy.bwrapSha256,before,after,outputs,...(hosted?{selectedRecipe,resourceUsage:await fs.readFile(path.join(task,'resource-usage.txt'),'utf8'),procMacroBypasses:(await fs.readFile(path.join(task,'proc-macro-bypass.log'),'utf8')).trimEnd().split('\n')}:{}),cacheBytes:await measureCargoOutputBytes(objects),taskBytes:await measureCargoOutputBytes(task),validatedWallMs:performance.now()-started,...result};
     await fs.writeFile(path.join(task,'cargo-cache-receipt.json'),JSON.stringify(receipt,null,2),{flag:'wx',mode:0o600});return receipt;
   } finally{await fs.rm(lease,{recursive:true});}
 }
