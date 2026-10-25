@@ -17,6 +17,10 @@ not a promise of identical support on every host.
 | Where is an old acceptance record? | [History](https://github.com/dancxjo/conduit/blob/dev/docs/history/README.md) |
 
 Development implementation, accepted release, and published product can differ.
+The roadmap is a dated orientation document, not a continuously synchronized
+issue board; linked issues own their latest scope. The
+[documentation ownership guide](../docs/documentation-policy.md) describes
+how present contracts, proposals, proof receipts, and historical records differ.
 An open issue is unfinished or planned work; it does not establish that someone
 is actively implementing it. Follow an issue for its latest scope and state.
 

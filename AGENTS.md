@@ -13,7 +13,9 @@ The [roadmap](docs/roadmap.md) points to current work; the old R1 milestone
 [#361](https://github.com/dancxjo/conduit/issues/361) is completed history.
 
 The canon owns architectural intent, STATUS owns capability and proof claims,
-and the active issue owns the present scope. If they conflict, identify the
+and the active issue owns the present scope. For documentation changes, use
+[documentation ownership](docs/documentation-policy.md) to keep introductions,
+exact contracts, status, and historical evidence distinct. If they conflict, identify the
 conflict instead of inventing a new architecture. Ordinary features conform
 to the canon; changing an invariant requires an explicit architecture issue.
 
