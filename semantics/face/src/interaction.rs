@@ -112,7 +112,19 @@ impl FaceInteraction {
         sequence: u64,
     ) -> Result<Self, FaceInteractionRefusal> {
         let checked = ValidatedFace::new(face).map_err(|_| FaceInteractionRefusal::InvalidFace)?;
-        validate_show(&checked, show)?;
+        Self::new_validated(&checked, show, action_id, target, arguments, sequence)
+    }
+
+    fn new_validated(
+        checked: &ValidatedFace<'_>,
+        show: &MaskShow,
+        action_id: &str,
+        target: &str,
+        arguments: Vec<FaceInteractionArgument>,
+        sequence: u64,
+    ) -> Result<Self, FaceInteractionRefusal> {
+        let face = checked.face();
+        validate_show(checked, show)?;
         let action = face
             .resolve_action(face.revision, action_id)
             .map_err(map_action_refusal)?;
@@ -173,8 +185,24 @@ impl FaceInteraction {
         if self.show_id != show.show_id.as_str() {
             return Err(FaceInteractionRefusal::StaleShow);
         }
-        let rebuilt = Self::new(
-            face,
+        let checked = ValidatedFace::new(face).map_err(|_| FaceInteractionRefusal::InvalidFace)?;
+        self.validate_against_validated(&checked, show)
+    }
+
+    pub(crate) fn validate_against_validated(
+        &self,
+        checked: &ValidatedFace<'_>,
+        show: &MaskShow,
+    ) -> Result<(), FaceInteractionRefusal> {
+        let face = checked.face();
+        if self.face_id != face.identity.as_str() || self.face_revision != face.revision {
+            return Err(FaceInteractionRefusal::StaleFace);
+        }
+        if self.show_id != show.show_id.as_str() {
+            return Err(FaceInteractionRefusal::StaleShow);
+        }
+        let rebuilt = Self::new_validated(
+            checked,
             show,
             &self.action_id,
             &self.target,

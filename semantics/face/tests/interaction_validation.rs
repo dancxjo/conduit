@@ -198,3 +198,88 @@ fn exact_target_argument_contract_and_interaction_identity_remain_mandatory() {
         Err(FaceInteractionRefusal::StaleShow)
     );
 }
+
+fn constructed(face: Face) -> Result<CheckedFace, FaceError> {
+    CheckedFace::new_with_semantics(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+}
+
+#[test]
+fn constructor_proof_matches_public_validation_for_exact_and_adversarial_inputs() {
+    let (face, show) = basis();
+    let checked = constructed(face.clone()).unwrap();
+    assert_eq!(checked.as_face(), &face);
+    assert_eq!(
+        serde_json::to_vec(checked.as_face()).unwrap(),
+        serde_json::to_vec(&face).unwrap()
+    );
+    let valid = interaction(&face, &show).unwrap();
+    let roundtrip = FaceInteraction::decode(&valid.encode()).unwrap();
+    assert_eq!(checked.validate_interaction(&roundtrip, &show), Ok(()));
+    for mutation in 0..10 {
+        let mut input = valid.clone();
+        match mutation {
+            0 => input.face_revision += 1,
+            1 => input.show_id = "stale".into(),
+            2 => input.action_id = "unknown".into(),
+            3 => input.target = "wrong".into(),
+            4 => input.arguments.clear(),
+            5 => input.arguments[0].value_kind = "value/bool".into(),
+            6 => input.arguments[0].value = vec![b'x'; 17],
+            7 => input.arguments.push(input.arguments[0].clone()),
+            8 => input.arguments[0].value = b"changed".to_vec(),
+            _ => input.identity = serde_json::from_str("\"forged\"").unwrap(),
+        }
+        let expected = input.validate_against(&face, &show);
+        assert!(expected.is_err());
+        assert_eq!(checked.validate_interaction(&input, &show), expected);
+    }
+    for mutation in 0..5 {
+        let mut wrong = show.clone();
+        match mutation {
+            0 => wrong.planned_mask.plan.plan_id = "wrong".into(),
+            1 => wrong.planned_mask.plan.fragments[0].placements[0].artifact_id = "wrong".into(),
+            2 => wrong.show.boot_id = "wrong".into(),
+            3 => {
+                wrong = show
+                    .fail(ManifestationFailure::DeliveryFailed, "sign/failed".into())
+                    .unwrap()
+            }
+            _ => {
+                wrong = show
+                    .transition(ManifestationLifecycle::Closed, "sign/closed".into())
+                    .unwrap()
+            }
+        }
+        let expected = valid.validate_against(&face, &wrong);
+        assert!(expected.is_err());
+        assert_eq!(checked.validate_interaction(&valid, &wrong), expected);
+    }
+    let mut unwrapped = checked.into_face();
+    unwrapped.text[0].text.push('x');
+    assert_eq!(
+        valid.validate_against(&unwrapped, &show),
+        Err(FaceInteractionRefusal::InvalidFace)
+    );
+}
+
+#[test]
+fn checked_constructor_retains_content_refusals() {
+    let (mut face, _) = basis();
+    face.subjects.push(face.subjects[0].clone());
+    assert_eq!(constructed(face).unwrap_err(), FaceError::DuplicateSubject);
+    let (mut face, _) = basis();
+    face.actions[0].arguments[0].contract.maximum_bytes = u32::MAX;
+    assert_eq!(
+        constructed(face).unwrap_err(),
+        FaceError::InvalidInputContract
+    );
+}
