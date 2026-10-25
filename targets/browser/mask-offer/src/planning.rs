@@ -9,9 +9,9 @@ use conduit_plot::{
 use std::{collections::BTreeMap, string::String};
 
 #[derive(Clone, Copy)]
-pub(super) struct OwnerCarrierForeLimits {
-    pub(super) face_bytes: u32,
-    pub(super) show_bytes: u32,
+pub struct OwnerCarrierForeLimits {
+    pub face_bytes: u32,
+    pub show_bytes: u32,
 }
 
 pub fn planned_mask(
@@ -46,7 +46,7 @@ pub(super) fn planned_mask_configuration(
     planned_mask_configuration_with_look(host, source, name, owner_carrier, None)
 }
 
-pub(super) fn planned_mask_configuration_with_look(
+pub fn planned_mask_configuration_with_look(
     host: &HostAdvertisement,
     source: &str,
     name: &str,

@@ -19,7 +19,7 @@ mod configured_sources;
 mod planning;
 #[cfg(test)]
 use planning::planned_mask_configuration;
-use planning::{OwnerCarrierForeLimits, planned_mask_configuration_with_look};
+pub use planning::{OwnerCarrierForeLimits, planned_mask_configuration_with_look};
 pub use planning::{
     configured_mask_configuration, configured_mask_configuration_with_look, planned_mask,
 };

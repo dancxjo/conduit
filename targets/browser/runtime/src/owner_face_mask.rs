@@ -172,6 +172,7 @@ struct RouteView {
 }
 
 struct OwnerBrowserMask {
+    startup_history_look: Option<conduit_face::LookInfo>,
     component: Option<component::ComponentView>,
     body_id: BodyId,
     face: Face,

@@ -9,6 +9,29 @@ impl OwnerBrowserMask {
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
+        Self::prepare_with_history_look(
+            basis,
+            face,
+            route,
+            play_sequence,
+            interactions_admitted,
+            None,
+        )
+    }
+
+    pub(super) fn prepare_with_history_look(
+        basis: HostBasis,
+        face: Face,
+        route: RemoteOwnerMaskRouteSeal,
+        play_sequence: u64,
+        interactions_admitted: bool,
+        history_look: Option<&conduit_face::LookInfo>,
+    ) -> Result<Self, String> {
+        if history_look.is_some()
+            && route.planned_mask.mask.plot_name != conduit_face::HISTORY_COMPONENT_MASK_ROOT
+        {
+            return Err("history startup Look requires reviewed history Root".into());
+        }
         face.validate()
             .map_err(|error| format!("owner Face invalid: {error:?}"))?;
         if face.basis.body_id.as_ref() != Some(&basis.body_id) {
@@ -39,7 +62,7 @@ impl OwnerBrowserMask {
             route.return_line.clone(),
             route.interaction_line.clone(),
         );
-        Self::prepare_planned(
+        Self::prepare_planned_with_look(
             basis,
             face,
             route.planned_mask,
@@ -47,6 +70,7 @@ impl OwnerBrowserMask {
             Some(selected_lines),
             play_sequence,
             interactions_admitted,
+            history_look,
         )
     }
 
@@ -79,6 +103,7 @@ impl OwnerBrowserMask {
         )
     }
 
+    #[cfg(test)]
     pub(super) fn prepare_planned(
         basis: HostBasis,
         face: Face,
@@ -121,6 +146,14 @@ impl OwnerBrowserMask {
         interactions_admitted: bool,
         selected_look: Option<&conduit_face::LookInfo>,
     ) -> Result<Self, String> {
+        if selected_look.is_some()
+            && planned.mask.plot_name != conduit_face::HISTORY_COMPONENT_MASK_ROOT
+        {
+            return Err("history startup Look requires reviewed history Root".into());
+        }
+        if selected_look.is_some() {
+            reproduce_history_plan(&basis, &planned, selected_lines.as_ref(), selected_look)?;
+        }
         let component = component::prepare_with_look(&basis, &planned, &face, selected_look)?;
         let terminal = planned.show_placement();
         let play = bind_active_play(
@@ -198,6 +231,7 @@ impl OwnerBrowserMask {
             return Err("browser Mask received a different owner Face".into());
         }
         Ok(Self {
+            startup_history_look: selected_look.cloned(),
             component,
             body_id: basis.body_id,
             face,
@@ -214,4 +248,110 @@ impl OwnerBrowserMask {
             interactions_admitted,
         })
     }
+}
+
+/// Reproduce the entire checked local Plan, then compare after removing only
+/// the independently validated routed carrier selections. This comparison
+/// admits no configuration, queue, activation, connection or identity override.
+fn reproduce_history_plan(
+    basis: &HostBasis,
+    planned: &conduit_face::PlannedMaskPlot,
+    selected_lines: Option<&(
+        conduit_core::AdmittedLine,
+        conduit_core::AdmittedLine,
+        Option<conduit_core::AdmittedLine>,
+    )>,
+    look: Option<&conduit_face::LookInfo>,
+) -> Result<(), String> {
+    use conduit_core::{PlotIdentity, PortDirection, seal_plan_with_activation_entries};
+    let host = crate::installed_browser::membership_advertisement(
+        basis.host_id.clone(),
+        basis.boot_id.clone(),
+    );
+    let budget = |direction, id: &conduit_core::PortId| -> Result<u32, String> {
+        let mut matches = planned
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.fore_ports)
+            .filter(|p| p.direction == direction && &p.front_port_id == id);
+        let port = matches.next().ok_or("history Fore absent")?;
+        if matches.next().is_some()
+            || port.item_capacity != 1
+            || port.byte_capacity == 0
+            || port.byte_capacity as usize > conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES
+        {
+            return Err("history Fore ambiguous or unbounded".into());
+        }
+        if selected_lines.is_some() {
+            let line = port
+                .selected_line
+                .as_ref()
+                .ok_or("history Fore carrier missing")?;
+            let limits = line.binding.limits;
+            if limits.maximum_in_flight_items < port.item_capacity
+                || limits.maximum_payload_bytes < port.byte_capacity
+                || limits.maximum_frame_bytes < port.byte_capacity
+                || limits.maximum_buffered_bytes < port.byte_capacity
+            {
+                return Err("history Fore exceeds its admitted carrier".into());
+            }
+        }
+        Ok(port.byte_capacity)
+    };
+    let limits = if let Some((face_line, show_line, interaction_line)) = selected_lines {
+        if interaction_line.is_none() {
+            return Err("history interaction carrier missing".into());
+        }
+        budget(PortDirection::Input, &planned.mask.face_input.front_port_id)?;
+        budget(
+            PortDirection::Output,
+            &planned.mask.show_output.front_port_id,
+        )?;
+        budget(
+            PortDirection::Output,
+            &planned.mask.interaction_output.front_port_id,
+        )?;
+        Some(conduit_browser_mask_offer::OwnerCarrierForeLimits {
+            face_bytes: face_line
+                .binding
+                .limits
+                .maximum_payload_bytes
+                .min(conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES as u32),
+            show_bytes: show_line
+                .binding
+                .limits
+                .maximum_payload_bytes
+                .min(conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES as u32),
+        })
+    } else {
+        None
+    };
+    let (expected, _) = conduit_browser_mask_offer::planned_mask_configuration_with_look(
+        &host,
+        conduit_face::HISTORY_COMPONENT_MASK_SOURCE,
+        conduit_face::HISTORY_COMPONENT_MASK_ROOT,
+        limits,
+        look,
+    )?;
+    let mut fragments = planned.plan.fragments.clone();
+    for fore in fragments.iter_mut().flat_map(|f| &mut f.fore_ports) {
+        fore.selected_line = None;
+    }
+    let plan = &planned.plan;
+    let local = seal_plan_with_activation_entries(
+        PlotIdentity {
+            source_document_id: plan.source_document_id.clone(),
+            checked_plot_id: plan.checked_plot_id.clone(),
+            expanded_plot_id: plan.expanded_plot_id.clone(),
+        },
+        plan.completion_policy,
+        plan.realization_backs.clone(),
+        plan.activations.clone(),
+        fragments,
+    );
+    if expected.mask != planned.mask || expected.plan != local {
+        return Err("history routed Plan differs from exact checked startup reproduction".into());
+    }
+    Ok(())
 }

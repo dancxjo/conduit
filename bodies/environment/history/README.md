@@ -171,3 +171,16 @@ Body membership, MCU transport, native pixels or physical scanout.
 The cross-Mask proof also recovers a full 64-sample chunk, projects an explicit
 eight-sample tail and admits its exact exported Face through both configured
 Masks. All 56 samples outside that view remain counted; the recording is intact.
+
+## Browser owner receiver Look input
+
+`cargo +stable xtask prove environment history-browser-look-receiver` exercises
+the production owner-Mask ABI and its JavaScript byte bridge. An independent
+canonical Look uses a separate bounded 64 KiB input arena; the owner Face frame
+retains its 60 KiB ceiling. The receiver reproduces the complete checked history
+Plan using the actual admitted carrier limits. Wrong or missing startup input,
+foreign Roots, altered queues and oversized frames refuse while retaining the
+previous acknowledged Show. An unchanged response requires the same independent
+Look custody. The tests use CPU lifecycle and carrier fixtures; this entrance
+does not establish live owner selection, browser SDK preference retention,
+saved defaults, DOM enactment or an installed environmental recorder.

@@ -14,6 +14,7 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-owner-control" => Some(owner_control(root)),
         [name] if name == "history-native-controls" => Some(native_controls(root)),
         [name] if name == "history-native-unit-preview" => Some(native_unit_preview(root)),
+        [name] if name == "history-browser-look-receiver" => Some(browser_look_receiver(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-owner-browser" => Some(owner_browser(root)),
@@ -22,6 +23,20 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn browser_look_receiver(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("node").current_dir(root).args([
+        "--test",
+        "targets/browser/host/assets/browser-runtime-bridge.test.mjs",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-browser-runtime",
+        "--lib",
+        "owner_face_mask::",
+    ]))
 }
 fn native_unit_preview(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("cargo").current_dir(root).args([

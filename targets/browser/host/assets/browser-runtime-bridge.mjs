@@ -279,8 +279,13 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         return { status, outputBytes: null, outputJson: null };
       }, { retireInput: true });
     },
-    ownerFacePrepare(basis, frameBytes) {
+    ownerFacePrepare(basis, frameBytes, { historyLookBytes } = {}) {
       if (!(frameBytes instanceof Uint8Array)) throw new TypeError("owner Face frame must retain exact bytes");
+      boundedLength(frameBytes.length, { minimum: 1, maximum: 60 * 1024, label: "owner Face frame" });
+      if (historyLookBytes !== undefined) {
+        if (!(historyLookBytes instanceof Uint8Array)) throw new TypeError("owner history Look must retain exact bytes");
+        boundedLength(historyLookBytes.length, { minimum: 1, maximum: 64 * 1024, label: "owner history Look" });
+      }
       const basisBytes = encoder.encode(JSON.stringify(basis));
       const input = new Uint8Array(basisBytes.length + frameBytes.length);
       input.set(basisBytes);
@@ -290,7 +295,17 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         capacityExport: "conduit_browser_owner_face_input_capacity",
         label: "owner Face Mask input",
       }, () => {
-        const status = call("conduit_browser_owner_face_prepare", basisBytes.length, frameBytes.length);
+        // Independent startup intent has its own finite arena. Never recover it
+        // from display material or append it to the existing Face-frame budget.
+        const status = historyLookBytes === undefined
+          ? call("conduit_browser_owner_face_prepare", basisBytes.length, frameBytes.length)
+          : withInput(api, historyLookBytes, {
+            pointerExport: "conduit_browser_owner_face_history_look_input_ptr",
+            capacityExport: "conduit_browser_owner_face_history_look_input_capacity",
+            minimum: 1,
+            label: "owner history Look",
+          }, length => call("conduit_browser_owner_face_prepare_with_history_look",
+            basisBytes.length, frameBytes.length, length), { retireInput: true });
         if (status < 0) throw new Error(`owner Face Mask refused (${status})`);
         return readJson(api, {
           pointerExport: "conduit_browser_owner_face_output_ptr",

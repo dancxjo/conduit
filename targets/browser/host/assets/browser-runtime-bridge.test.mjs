@@ -607,3 +607,49 @@ test('Body Face bridge preserves raw owner u64 values and exact decimal ACK revi
     assert.throws(() => bridge.bodyFaceAcknowledge({ face_revision: revision }), /exact u64/);
   }
 });
+
+test('owner history Look uses separate bounded bytes and retires both input arenas', () => {
+  const api = runtime(); api.memory.grow(3);
+  const facePointer = 4096, lookPointer = 80 * 1024, outputPointer = 160 * 1024;
+  api.conduit_browser_owner_face_input_ptr = () => facePointer;
+  api.conduit_browser_owner_face_input_capacity = () => 72 * 1024;
+  api.conduit_browser_owner_face_history_look_input_ptr = () => lookPointer;
+  api.conduit_browser_owner_face_history_look_input_capacity = () => 64 * 1024;
+  api.conduit_browser_owner_face_output_ptr = () => outputPointer;
+  api.conduit_browser_owner_face_output_capacity = () => 64 * 1024;
+  const output = new TextEncoder().encode('{"face_revision":"9007199254740993"}');
+  api.conduit_browser_owner_face_output_len = () => output.length;
+  let calls = 0, status = 0;
+  const frame = new Uint8Array(60 * 1024).fill(13);
+  const look = new Uint8Array(64 * 1024).fill(29);
+  api.conduit_browser_owner_face_prepare = () => { throw new Error('must not silently use default'); };
+  api.conduit_browser_owner_face_prepare_with_history_look = (basisLength, frameLength, lookLength) => {
+    calls++;
+    assert.equal(frameLength, frame.length); assert.equal(lookLength, look.length);
+    assert.deepEqual(new Uint8Array(api.memory.buffer, facePointer + basisLength, frameLength), frame);
+    assert.deepEqual(new Uint8Array(api.memory.buffer, lookPointer, lookLength), look);
+    new Uint8Array(api.memory.buffer, outputPointer, output.length).set(output);
+    return status;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "history Look proof" });
+  assert.equal(bridge.ownerFacePrepare({}, frame, { historyLookBytes: look }).face_revision, '9007199254740993');
+  assert.ok(new Uint8Array(api.memory.buffer, facePointer, frame.length + 2).every(x => x === 0));
+  assert.ok(new Uint8Array(api.memory.buffer, lookPointer, look.length).every(x => x === 0));
+  assert.equal(look[0], 29, 'caller startup custody is retained for later refresh');
+  status = -5;
+  assert.throws(() => bridge.ownerFacePrepare({}, frame, { historyLookBytes: look }), /refused \(-5\)/);
+  assert.ok(new Uint8Array(api.memory.buffer, facePointer, frame.length + 2).every(x => x === 0));
+  assert.ok(new Uint8Array(api.memory.buffer, lookPointer, look.length).every(x => x === 0));
+  assert.equal(calls, 2);
+});
+
+test('owner history Look rejects invalid byte intents before invoking WASM', () => {
+  const api = runtime();
+  const bridge = bindBrowserRuntimeBridge(api, { context: "history Look proof" });
+  for (const look of [null, [], 'Celsius', new Uint8Array(0), new Uint8Array(64 * 1024 + 1)]) {
+    assert.throws(() => bridge.ownerFacePrepare({}, new Uint8Array([1]), { historyLookBytes: look }), /owner history Look/);
+  }
+  for (const frame of [new Uint8Array(0), new Uint8Array(60 * 1024 + 1)]) {
+    assert.throws(() => bridge.ownerFacePrepare({}, frame, { historyLookBytes: new Uint8Array([1]) }), /owner Face frame/);
+  }
+});

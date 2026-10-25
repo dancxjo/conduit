@@ -49,11 +49,23 @@ pub extern "C" fn conduit_browser_owner_face_output_capacity() -> usize {
 
 #[no_mangle]
 pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len: usize) -> i32 {
+    prepare_with_history_look(basis_len, frame_len, None)
+}
+
+fn prepare_with_history_look(
+    basis_len: usize,
+    frame_len: usize,
+    history_look: Option<&conduit_face::LookInfo>,
+) -> i32 {
     OUTPUT.with(|output| output.borrow_mut().clear());
     let Some(total_len) = basis_len.checked_add(frame_len) else {
         return -1;
     };
-    if basis_len == 0 || frame_len == 0 || total_len > INPUT_CAPACITY {
+    if basis_len == 0
+        || frame_len == 0
+        || frame_len > conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES
+        || total_len > INPUT_CAPACITY
+    {
         return -1;
     }
     let decoded = INPUT.with(|input| {
@@ -93,9 +105,20 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             let Some(route) = route else {
                 return -5;
             };
-            let Ok(mask) =
-                OwnerBrowserMask::prepare(basis, *face, *route, sequence, interactions_admitted)
-            else {
+            let prepared = match history_look {
+                Some(look) => OwnerBrowserMask::prepare_with_history_look(
+                    basis,
+                    *face,
+                    *route,
+                    sequence,
+                    interactions_admitted,
+                    Some(look),
+                ),
+                None => {
+                    OwnerBrowserMask::prepare(basis, *face, *route, sequence, interactions_admitted)
+                }
+            };
+            let Ok(mask) = prepared else {
                 return -5;
             };
             let result = write_output(&mask.view());
@@ -136,7 +159,8 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             let Some(mask) = current.as_ref() else {
                 return -6;
             };
-            if mask.body_id != basis.body_id
+            if mask.startup_history_look.as_ref() != history_look
+                || mask.body_id != basis.body_id
                 || mask.play.host_id != basis.host_id
                 || mask.play.boot_id != basis.boot_id
                 || mask.face.revision != revision
@@ -333,9 +357,11 @@ mod tests {
         });
         assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
         let bytes = OUTPUT.with(|output| output.borrow().clone());
-        assert!(std::str::from_utf8(&bytes)
-            .unwrap()
-            .contains("18446744073709551615"));
+        assert!(
+            std::str::from_utf8(&bytes)
+                .unwrap()
+                .contains("18446744073709551615")
+        );
         let observed: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         let retained: Face = serde_json::from_value(observed["face"].clone()).unwrap();
         assert_eq!(retained, face);
@@ -397,3 +423,8 @@ mod tests {
         conduit_browser_owner_face_clear();
     }
 }
+
+#[path = "abi/history_look.rs"]
+mod history_look;
+#[cfg(test)]
+pub(super) use history_look::*;
