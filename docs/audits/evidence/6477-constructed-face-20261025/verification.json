@@ -1,0 +1,74 @@
+[
+  {
+    "label": "build",
+    "command": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "host",
+      "build",
+      "targets/conduitos/profiles/conduitos-native.host.conduit",
+      "--output",
+      "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/constructed-face-product-ram"
+    ],
+    "source": "97fad828d39598d7c102315a5960795a6d888a18",
+    "exit_code": 0,
+    "log": "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/constructed-face-product-ram-build.log",
+    "log_sha256": "d67335f133951496e213f1d697e4856f70031e0959a18cfb89bc448ac4d09cd1",
+    "completed_utc": "2026-10-25T09:15:45.981766+00:00"
+  },
+  {
+    "label": "boot",
+    "command": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "host",
+      "verify",
+      "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/constructed-face-product-ram",
+      "--boot"
+    ],
+    "source": "97fad828d39598d7c102315a5960795a6d888a18",
+    "exit_code": 0,
+    "log": "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/constructed-face-product-ram-boot.log",
+    "log_sha256": "fec42483942b3f851ed683130fcb778d5a3dc0d79d18db396a60397e620b8a3f",
+    "completed_utc": "2026-10-25T09:15:59.875232+00:00"
+  },
+  {
+    "label": "journey",
+    "command": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "host",
+      "verify",
+      "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/constructed-face-product-ram",
+      "--journey"
+    ],
+    "source": "97fad828d39598d7c102315a5960795a6d888a18",
+    "exit_code": 0,
+    "log": "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/constructed-face-product-ram-journey.log",
+    "log_sha256": "e7b3c9aaee47bd2cff3d0be98e4130475eb9333ca32b6db9f2c80424e717ad99",
+    "completed_utc": "2026-10-25T09:17:18.643020+00:00"
+  },
+  {
+    "label": "integrity",
+    "command": [
+      "cargo",
+      "+stable",
+      "xtask",
+      "make",
+      "host",
+      "verify",
+      "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/constructed-face-product-ram"
+    ],
+    "source": "97fad828d39598d7c102315a5960795a6d888a18",
+    "exit_code": 0,
+    "log": "/home/dancxjo/Documents/Codex/2026-10-24/goal-scan-the-conduit-github-issue/work/constructed-face-product-ram-integrity.log",
+    "log_sha256": "5018fbaadc95a29a46ac2b345964fb0519226343e7d06ff93fbc8c4740641438",
+    "completed_utc": "2026-10-25T09:17:21.255055+00:00"
+  }
+]
