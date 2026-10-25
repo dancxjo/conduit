@@ -1,0 +1,13 @@
+# Crèche checked-Face normal native proof
+
+Source `f4edd5819488a50950a8768feecd2dd459076896`, issue #6477, implementation PR #6482. This evidence-only branch starts from that exact source; it does not change product code. Candidate, merged-source Integration, publication, physical and human acceptance are separate and are not claimed here.
+
+The normal-product archive retains every regular file under `creche-product/` and `creche-product-proof/`: actual Root ELF and ISO bytes, manifests, boot/journey receipts, full serial/QMP, 27 PNG captures, staged boot description and build inventory. Supported PROFILE build, Boot, complete normal journey and artifact integrity all exited zero. The independent audit records no custody errors, verifies actual ELF/ISO hashes and exact Source/Boot/Face/Show/action/capture joins, and counts 18 action receipts. This dev-based repair has zero Application BEGIN/COST records; it does not establish #6318 cumulative Application operation acceptance.
+
+The implementation reuses one checked immutable Face borrow across a batch of existing action validations. Typed arguments, current Show/Plan/Host/Boot/lifecycle checks remain in their existing owners. No RTC cap, heap grant, timeout, retry, Root fallback or native protocol was increased. A passing normal journey is observed local emulator behavior, not a calibrated or causal performance comparison.
+
+The archive also includes the exact earlier Candidate x86 diagnostic ZIP, raw failed job log and independent negative audit for preview `5d09f5983c497dc3e7cd19df1e07adbaa124e0da` (run 40165855445, job 121086993264). That packet reports Crèche commit WorkExhausted at 64 RTC interrupts, before Application operations. Its actual ISO bytes are absent; its failure PNG lacks a matching screendump in the retained QMP log. Root snapshots do not establish guest fault IP. CI and local service image bytes differ; this archive does not establish the historical failure's cause or erase it.
+
+Focused/public Face validation, complete Face suite (330 passed, 2 existing spoken-template tests ignored), 16 Birth tests, strict lint, format and source handoff/logs are included. The separate 160 MiB compressed hosted test-executable archive remains preserved locally; its member custody manifest is included here, but those executable bytes are not part of this native package.
+
+`archive-custody.json` records every regular member's byte count and SHA256 plus the archive digest. All decompressed members were compared against the original records, then all originals were rehashed to confirm they remained unchanged. No source, worktree, original product, image or evidence was deleted.

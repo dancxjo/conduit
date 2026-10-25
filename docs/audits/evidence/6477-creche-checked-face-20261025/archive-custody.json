@@ -1,0 +1,811 @@
+{
+  "schema": "conduit.local-normal-native-archive-custody/v1",
+  "source": "f4edd5819488a50950a8768feecd2dd459076896",
+  "created_utc": "2026-10-25T06:57:33.098314+00:00",
+  "archive": "normal-product-f4edd581.tar.zst",
+  "archive_bytes": 54887203,
+  "archive_sha256": "be755c9eeaf7e9095966a2a18bdeb2d13cf893d1375c898043007642da27259c",
+  "members": [
+    {
+      "path": "audit-native-product-custody.py",
+      "bytes": 14134,
+      "sha256": "778c01980967d1ab876ea609019ded2fafffac5d4866a08c7f652d057e6e89fc",
+      "mode": "0o664",
+      "mtime_ns": 1792910763068010281
+    },
+    {
+      "path": "audit-p0-candidate-custody.py",
+      "bytes": 10601,
+      "sha256": "3ce84613a93f46b43d6470ca640d83ed4e5005d4680c6b28125efe8767ca5c2f",
+      "mode": "0o664",
+      "mtime_ns": 1792909576707694527
+    },
+    {
+      "path": "creche-checked-face-birth-suite.log",
+      "bytes": 2429,
+      "sha256": "386febceb5c96b3f4f5825103cbc5de552eccadbfb06554ceb3ac7396f160e64",
+      "mode": "0o664",
+      "mtime_ns": 1792910044550562288
+    },
+    {
+      "path": "creche-checked-face-cache-archive.log",
+      "bytes": 179,
+      "sha256": "37ab16015e581a92d60c20799d3806f299f50489c952b17f7ed09aeeb49863fe",
+      "mode": "0o664",
+      "mtime_ns": 1792910676143170977
+    },
+    {
+      "path": "creche-checked-face-cache-clean.log",
+      "bytes": 38,
+      "sha256": "004d5abee746a2ba08db7798778e857765d1534441b2be81b82800a3ea780cc0",
+      "mode": "0o664",
+      "mtime_ns": 1792910711321107223
+    },
+    {
+      "path": "creche-checked-face-cache-custody/custody.json",
+      "bytes": 28107,
+      "sha256": "8b67b2c92316f88807e4aad077f78fe198d868e8fa03c50e79eb72a892121e69",
+      "mode": "0o664",
+      "mtime_ns": 1792910711323873546
+    },
+    {
+      "path": "creche-checked-face-clippy.log",
+      "bytes": 5313,
+      "sha256": "d02b70401a6f13a62d2904f1085b201d1334a69c54041a31d5ced95cb4e35436",
+      "mode": "0o664",
+      "mtime_ns": 1792910229534976185
+    },
+    {
+      "path": "creche-checked-face-format.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "0o664",
+      "mtime_ns": 1792909903488285289
+    },
+    {
+      "path": "creche-checked-face-full-suite.log",
+      "bytes": 47146,
+      "sha256": "ef7b9487d2a075e0f757287fa95e3e0a0422d6cc4759fbac0c2a6f5bf1bf4206",
+      "mode": "0o664",
+      "mtime_ns": 1792910008092487020
+    },
+    {
+      "path": "creche-checked-face-handoff.json",
+      "bytes": 2173,
+      "sha256": "4d057137a376c856b50c3f72f56d56df97f048ad0b4b13c1f5ff8324433552db",
+      "mode": "0o664",
+      "mtime_ns": 1792910280975050667
+    },
+    {
+      "path": "creche-checked-face-tested-executables.json",
+      "bytes": 10611,
+      "sha256": "ef466ebc12a7e7716e56e6ecb35e8d41ee2096e0a2f667b9d047d59c43f2ed3a",
+      "mode": "0o664",
+      "mtime_ns": 1792910631294389590
+    },
+    {
+      "path": "creche-checked-face-tests.log",
+      "bytes": 6189,
+      "sha256": "b0bb615c214c68385ccded16178162541400bd2b2be43cd2bd928fb2934c2127",
+      "mode": "0o664",
+      "mtime_ns": 1792909882391247438
+    },
+    {
+      "path": "creche-independent-audit-f4edd581.json",
+      "bytes": 18448,
+      "sha256": "4d1f8901c3a4b7c50cd1b5fb94238d86ab15821d520196c21da74a8d5d736d3d",
+      "mode": "0o664",
+      "mtime_ns": 1792911261948036105
+    },
+    {
+      "path": "creche-product-boot.log",
+      "bytes": 1391,
+      "sha256": "55bb7ebfecd002c49eae8e0df4a621c4cadbb800bcc449e46b47cf632dede36a",
+      "mode": "0o664",
+      "mtime_ns": 1792911122764742052
+    },
+    {
+      "path": "creche-product-build.log",
+      "bytes": 43938,
+      "sha256": "fcaf0f2d3ddbc70611a74ca31847d463b878939485b5e27ddf8dda3140b24b8d",
+      "mode": "0o664",
+      "mtime_ns": 1792911108203712729
+    },
+    {
+      "path": "creche-product-integrity.log",
+      "bytes": 925,
+      "sha256": "6afd85cec9254dd7acac2edd784643edcee6eb9331c988e4252553fa6af9085c",
+      "mode": "0o664",
+      "mtime_ns": 1792911227060960233
+    },
+    {
+      "path": "creche-product-journey.log",
+      "bytes": 1116,
+      "sha256": "07e50ca5f24da6aa6edaedf2431b4d064d426bddb526c25c444b29f8d14b827e",
+      "mode": "0o664",
+      "mtime_ns": 1792911223639952866
+    },
+    {
+      "path": "creche-product-proof/x86_64/build.json",
+      "bytes": 319,
+      "sha256": "8a955a3247d1557b2f7114e2b71e00aa89a53a1aa6153be056a4e90793b43700",
+      "mode": "0o664",
+      "mtime_ns": 1792911104486705293
+    },
+    {
+      "path": "creche-product-proof/x86_64/compositor-lifecycle-proof.json",
+      "bytes": 69126,
+      "sha256": "8b1c57ca3382e6e4d0ac2c89155a641ccf2a810d252600b480362c1bdf0bf2a7",
+      "mode": "0o664",
+      "mtime_ns": 1792911220896946969
+    },
+    {
+      "path": "creche-product-proof/x86_64/conduitos",
+      "bytes": 80524888,
+      "sha256": "41a4c69173e74ee292a527cd55c827f143d23c71d2ab24112293f31400a9455d",
+      "mode": "0o775",
+      "mtime_ns": 1792911100407697155
+    },
+    {
+      "path": "creche-product-proof/x86_64/conduitos.iso",
+      "bytes": 84801536,
+      "sha256": "fa226b9ad1f93736da7ade68beb0299011ca31ba9fd9c612b4bd0b73f3f5266f",
+      "mode": "0o664",
+      "mtime_ns": 1792911104648705617
+    },
+    {
+      "path": "creche-product-proof/x86_64/image.json",
+      "bytes": 335,
+      "sha256": "b50cee7a4f7417818ad0ed1cc1277eab6efb975d924203b56e72b8d831a9da1a",
+      "mode": "0o664",
+      "mtime_ns": 1792911105853708026
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+      "bytes": 348160,
+      "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19",
+      "mode": "0o644",
+      "mtime_ns": 1792911104542544608
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/LUCIDE-LICENSE",
+      "bytes": 3208,
+      "sha256": "a595faee0e3dd03811c49c191d63ef99f24134ceb31a07f26e8a5ef9c7fbca12",
+      "mode": "0o664",
+      "mtime_ns": 1792911104539714714
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/boot/conduit-build.json",
+      "bytes": 4453,
+      "sha256": "26b3de0841e5726934859526f74a15ea77ba5439436186635e8243bad8a14c93",
+      "mode": "0o664",
+      "mtime_ns": 1792911104542544608
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2",
+      "mode": "0o664",
+      "mtime_ns": 1792911104539714714
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/boot/conduitos",
+      "bytes": 80524888,
+      "sha256": "41a4c69173e74ee292a527cd55c827f143d23c71d2ab24112293f31400a9455d",
+      "mode": "0o775",
+      "mtime_ns": 1792911104538705397
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8",
+      "mode": "0o644",
+      "mtime_ns": 1792911104540536115
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a",
+      "mode": "0o644",
+      "mtime_ns": 1792911104540074364
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06",
+      "mode": "0o644",
+      "mtime_ns": 1792911104541705403
+    },
+    {
+      "path": "creche-product-proof/x86_64/iso-root/limine.conf",
+      "bytes": 247,
+      "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8",
+      "mode": "0o664",
+      "mtime_ns": 1792911104539924132
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/body-playing.png",
+      "bytes": 69420,
+      "sha256": "cbcec6bee2375637ba6b2ddbc478691aa2316289c6b1365172c440f7bbb317b4",
+      "mode": "0o664",
+      "mtime_ns": 1792911159620817572
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/body-stopped.png",
+      "bytes": 202512,
+      "sha256": "763cb0a25f491a50fd85032554996ccc65c918ead11c734796b1dbb532ff81ec",
+      "mode": "0o664",
+      "mtime_ns": 1792911203708910214
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-editorial-compact.png",
+      "bytes": 177898,
+      "sha256": "30d943292310c2819ea43d16d381a23b871de5f1a7a4a55e9dd1c47a3b3a60c9",
+      "mode": "0o664",
+      "mtime_ns": 1792911135220767370
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-engineering-editorial-compact.png",
+      "bytes": 177944,
+      "sha256": "3ab0c17a3966c608875cf887079704bc23cb3cd9958aa775bfdab4acc988b441",
+      "mode": "0o664",
+      "mtime_ns": 1792911141775780779
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-engineering-phosphor-compact.png",
+      "bytes": 166465,
+      "sha256": "ba035fe1177d53177364ef1092837508010d1a86c36efdbcd55f85d11cb7d813",
+      "mode": "0o664",
+      "mtime_ns": 1792911140224777601
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-engineering-phosphor-spacious.png",
+      "bytes": 151437,
+      "sha256": "d4d0d52714dd9e21718458b28abc5eadf68191d1ff7a696e4c426fbbf1afbbe3",
+      "mode": "0o664",
+      "mtime_ns": 1792911144578786530
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-four-restored.png",
+      "bytes": 166413,
+      "sha256": "c3e5ee10fa22d4244d66bb89bc33fb117b075bafc0bc1e282ff524a8651eafab",
+      "mode": "0o664",
+      "mtime_ns": 1792911149793797258
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-fourth-checked.png",
+      "bytes": 166411,
+      "sha256": "c606f77c1c5bc76f54e5410dd7b39c106cf50f323637431cac85cff3d84e4678",
+      "mode": "0o664",
+      "mtime_ns": 1792911150839799415
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 166469,
+      "sha256": "0b508b5239b6d4c22949a0294a1ea920161ff46847c1c1afbce5309a17c64970",
+      "mode": "0o664",
+      "mtime_ns": 1792911153004803882
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 166563,
+      "sha256": "4d531a161a9aa8ebe126d788e1f3ea1ff3e2839b733deda0d95ade90948dd075",
+      "mode": "0o664",
+      "mtime_ns": 1792911151922801649
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-ready.png",
+      "bytes": 166421,
+      "sha256": "18e14700d3e5fdfb3d582e96de370a93c5d8bcc31cbc3b8bae4de577660abe77",
+      "mode": "0o664",
+      "mtime_ns": 1792911133664764196
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/creche-three-selected.png",
+      "bytes": 166508,
+      "sha256": "6037f9c0b6e310961d930376231e0b059a94b6e80b34eb9b1c22f93a86aebb24",
+      "mode": "0o664",
+      "mtime_ns": 1792911148792795196
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "mode": "0o664",
+      "mtime_ns": 1792911132576761978
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/home-returned.png",
+      "bytes": 57685,
+      "sha256": "e7b8ef84c1834ccab13d533892c56b79045bc2c21e12384dcc26bd281de13798",
+      "mode": "0o664",
+      "mtime_ns": 1792911204210911283
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/home.png",
+      "bytes": 69420,
+      "sha256": "cbcec6bee2375637ba6b2ddbc478691aa2316289c6b1365172c440f7bbb317b4",
+      "mode": "0o664",
+      "mtime_ns": 1792911167572834101
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/manifest.json",
+      "bytes": 477303,
+      "sha256": "a1ce1fe9ebf8791a6e564f588aadc28c779bec2fb2fc171f615d85ddd5db29e3",
+      "mode": "0o664",
+      "mtime_ns": 1792911215370935114
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 162975,
+      "sha256": "6e0970436169662b72cb4afa50d61735bd752182f98f4fa40f12a3696770effd",
+      "mode": "0o664",
+      "mtime_ns": 1792911171659842628
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-diagram.png",
+      "bytes": 163310,
+      "sha256": "ebf03476d449126c363c788c083e7583f7f1d580a323091ff16a8f10929d4b27",
+      "mode": "0o664",
+      "mtime_ns": 1792911170674840571
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-face.png",
+      "bytes": 158515,
+      "sha256": "6d0a975d9fb587b85fcd895362b64aff9a97d6cdf321e52e495d294501e1ec6a",
+      "mode": "0o664",
+      "mtime_ns": 1792911169819838787
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-gear-details.png",
+      "bytes": 244399,
+      "sha256": "1d5e416b4aef9d2b220e544858e8eae164a29a0c13998ebf785247fd08adb5a2",
+      "mode": "0o664",
+      "mtime_ns": 1792911171058841373
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-inspected-other-and-returned.png",
+      "bytes": 158515,
+      "sha256": "6d0a975d9fb587b85fcd895362b64aff9a97d6cdf321e52e495d294501e1ec6a",
+      "mode": "0o664",
+      "mtime_ns": 1792911189473880040
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-mask-replanned.png",
+      "bytes": 146412,
+      "sha256": "ff4f04e3e1dd478659ff17635bdd6e04005dff332de8b647509eb1649a2876e4",
+      "mode": "0o664",
+      "mtime_ns": 1792911202970908644
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-reentered.png",
+      "bytes": 56767,
+      "sha256": "ede659f76ce0bcf6e8e3abab1a6de0f0142d5f3319170fa0f4b5c49781334022",
+      "mode": "0o664",
+      "mtime_ns": 1792911204603912120
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-source-editor-loaded.png",
+      "bytes": 105828,
+      "sha256": "49727e29eed36d27118593cda2fb168126ca8a7a27f73e28917db591b8c11590",
+      "mode": "0o664",
+      "mtime_ns": 1792911214112932421
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/patchbay-workspace.png",
+      "bytes": 158515,
+      "sha256": "6d0a975d9fb587b85fcd895362b64aff9a97d6cdf321e52e495d294501e1ec6a",
+      "mode": "0o664",
+      "mtime_ns": 1792911169417837948
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 70485,
+      "sha256": "5e03535d6741e3e2e5926389c27a0c6accedf7597845d6be110276b127e0e1b7",
+      "mode": "0o664",
+      "mtime_ns": 1792911163504825635
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/protected-memory-lantern.png",
+      "bytes": 62020,
+      "sha256": "e6e722be0426988190f3f5e36e151405a23566db7cfea613f9c02b80a55aed75",
+      "mode": "0o664",
+      "mtime_ns": 1792911166398831656
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-frames/wake-refused.png",
+      "bytes": 128182,
+      "sha256": "a9c4158e17d7e635770fd8880b1f651a976096d205115248272de5869831a83a",
+      "mode": "0o664",
+      "mtime_ns": 1792911161995822500
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-proof.json",
+      "bytes": 1513578,
+      "sha256": "244f1ea26fd4b524dbcf581ad663561e94d692d1fbda05f0bb430b0772f1d79b",
+      "mode": "0o664",
+      "mtime_ns": 1792911215338935046
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "0o664",
+      "mtime_ns": 1792911126882750398
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-qmp.log",
+      "bytes": 226764,
+      "sha256": "5d2819170d2d71fe99ad9a666fccc8060a690477ac287fe04e667196d8bb47a0",
+      "mode": "0o664",
+      "mtime_ns": 1792911214703933686
+    },
+    {
+      "path": "creche-product-proof/x86_64/journey-serial.log",
+      "bytes": 3539580,
+      "sha256": "e7474de89bd7b33014b6564e18a5cee20145098c55d9a181460f2b347f8a79a3",
+      "mode": "0o664",
+      "mtime_ns": 1792911214682857060
+    },
+    {
+      "path": "creche-product-proof/x86_64/local-look-proof.json",
+      "bytes": 29424,
+      "sha256": "f1b2446985d2886d5611d0fb0dff3f1dc23aa1cae7ae8538552d220af3d19c92",
+      "mode": "0o664",
+      "mtime_ns": 1792911147469792473
+    },
+    {
+      "path": "creche-product-proof/x86_64/make-record.rs",
+      "bytes": 684,
+      "sha256": "048526edb1489554f73d1c9892ca039731226feeee95ba2117eed332b38b84a6",
+      "mode": "0o664",
+      "mtime_ns": 1792910715217070831
+    },
+    {
+      "path": "creche-product-proof/x86_64/memory-lantern-native-edit.json",
+      "bytes": 5057,
+      "sha256": "e0776b79caab067c7fb6a7710af63e2a51a572a7fd15b6503a80e5c5bdbed1fb",
+      "mode": "0o664",
+      "mtime_ns": 1792911166236831319
+    },
+    {
+      "path": "creche-product-proof/x86_64/native-shell-paired-linear.json",
+      "bytes": 5101903,
+      "sha256": "d46e239aeb066681006b86dfb4e00d7f25f17cd16989ad26fbdfda8ab5838581",
+      "mode": "0o664",
+      "mtime_ns": 1792911215151934646
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-checked-source/details-cord.png",
+      "bytes": 351213,
+      "sha256": "1c53bf8941448e24e8e9d23fc38b675ac707d492e481acc4725b72b289262bdc",
+      "mode": "0o664",
+      "mtime_ns": 1792911184265869062
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-checked-source/details-gear.png",
+      "bytes": 321535,
+      "sha256": "546deb0b5c53085d25658a230370c746113c8bfd856585088704b09b9bb43ec7",
+      "mode": "0o664",
+      "mtime_ns": 1792911180386860907
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-checked-source/details-port.png",
+      "bytes": 321551,
+      "sha256": "ec55552e160d9cb3e3eb4503117fa89bf53ab4fac1ed87c8434bf0ae42c66625",
+      "mode": "0o664",
+      "mtime_ns": 1792911180801861778
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-checked-source/diagram-backward-000.png",
+      "bytes": 319685,
+      "sha256": "53bd559983c0985c7c7ec9922e5322336d2e0022604ff860ca5016e8a45eebb2",
+      "mode": "0o664",
+      "mtime_ns": 1792911179965860023
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-checked-source/diagram-forward-000.png",
+      "bytes": 319685,
+      "sha256": "53bd559983c0985c7c7ec9922e5322336d2e0022604ff860ca5016e8a45eebb2",
+      "mode": "0o664",
+      "mtime_ns": 1792911178865857714
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-checked-source/diagram-forward-001.png",
+      "bytes": 183096,
+      "sha256": "8ea00c1d742ec5ba0c562598b6dc82a584485fa0983424a5e0f744aeec63d58c",
+      "mode": "0o664",
+      "mtime_ns": 1792911179321858671
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-checked-source/manifest.json",
+      "bytes": 534265,
+      "sha256": "2bc4469449b858fb011bc30e5ef9e8314e60a9e0daa64dd69145b0ef9a13ce0f",
+      "mode": "0o664",
+      "mtime_ns": 1792911189193879449
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-checked-source/source-selected.png",
+      "bytes": 158588,
+      "sha256": "28085fa2fec6d1cc5ce0b3cd436857e20ba1a0f9e239271cb6763e87847ca4f0",
+      "mode": "0o664",
+      "mtime_ns": 1792911178178856273
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-001.png",
+      "bytes": 240374,
+      "sha256": "78c3dbf349bc6919390e04a29eaaccb25e0ed6f9e863a3c5e19ddfe9bc899843",
+      "mode": "0o664",
+      "mtime_ns": 1792911192705886869
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-002.png",
+      "bytes": 329231,
+      "sha256": "b43041ad7666335bcc39d920558d5d497deeaebd6748d5b5bb7778ede9bc4eb7",
+      "mode": "0o664",
+      "mtime_ns": 1792911193085887673
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-003.png",
+      "bytes": 414850,
+      "sha256": "455c645890afd696486a1844e5a655c5579307b4c396ce9c834f3711412f4dba",
+      "mode": "0o664",
+      "mtime_ns": 1792911193515888583
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-004.png",
+      "bytes": 161792,
+      "sha256": "c352f13c021d2faf21a66b87a6ea2524bf9cf9e57b2afde21081c65d440b047a",
+      "mode": "0o664",
+      "mtime_ns": 1792911193872490856
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-005.png",
+      "bytes": 154390,
+      "sha256": "c83d683de59658fe051e9f0a8a19bed875d599c986998f96ade6d3abc4c73859",
+      "mode": "0o664",
+      "mtime_ns": 1792911194219890073
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-006.png",
+      "bytes": 226708,
+      "sha256": "f1cb23e006fb4541e3a588eca8c3b1fa819149d201137773e401067673bf8480",
+      "mode": "0o664",
+      "mtime_ns": 1792911194597890873
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-007.png",
+      "bytes": 340211,
+      "sha256": "5f9724036e1dc9a4cefb9a8985af2ac18fd2f30a2c571e83b398731285b30745",
+      "mode": "0o664",
+      "mtime_ns": 1792911195020891769
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-008.png",
+      "bytes": 356685,
+      "sha256": "f221954c3cd09101b364fa44449a815f62d3b6fdb0463408938a33c75a2c5b28",
+      "mode": "0o664",
+      "mtime_ns": 1792911195451892682
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-009.png",
+      "bytes": 368916,
+      "sha256": "4a0770122306579130e0262b49ba454b5494f6bd8a30df97b0fe966ec49cfe7e",
+      "mode": "0o664",
+      "mtime_ns": 1792911195884893599
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-010.png",
+      "bytes": 338481,
+      "sha256": "3264e50fb9c387aa42edb1936d3c9ee7d8ec47fa7107141080976941ae34898c",
+      "mode": "0o664",
+      "mtime_ns": 1792911196327894538
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-011.png",
+      "bytes": 359897,
+      "sha256": "545ac975bc353f39cb8cfa220798d884f85084694f07b6524b039083264d8bb3",
+      "mode": "0o664",
+      "mtime_ns": 1792911196745895424
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-012.png",
+      "bytes": 323317,
+      "sha256": "5dc96bfe7caeda2cb4ae56c3ea6ffd263926438f28212ecb4c648e7e757fec32",
+      "mode": "0o664",
+      "mtime_ns": 1792911197131896242
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-013.png",
+      "bytes": 308347,
+      "sha256": "0f818180af59c05c1b432dd3d3f9d30728f802196f05539bef9adb252ecb9343",
+      "mode": "0o664",
+      "mtime_ns": 1792911197564897161
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-014.png",
+      "bytes": 341675,
+      "sha256": "c58a9f42c17ab3297477c97b0cf0787f6a8aa1f4362b9716b6db7327dc300356",
+      "mode": "0o664",
+      "mtime_ns": 1792911197995898075
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-015.png",
+      "bytes": 392963,
+      "sha256": "e060dbca806ddbf266096554ee23a33e1b94713a9a7deaff4e81161246857140",
+      "mode": "0o664",
+      "mtime_ns": 1792911198432899002
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-016.png",
+      "bytes": 299680,
+      "sha256": "7a569dbc1072ae0ef937b033dfa38cc37ebaea45152d858a0506338ec124fa3c",
+      "mode": "0o664",
+      "mtime_ns": 1792911198839899866
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-017.png",
+      "bytes": 326466,
+      "sha256": "3ff5ca513cbd7ed69b01e215e9ae061ceb3eb0b670c8e91c2be8ae8c499a083b",
+      "mode": "0o664",
+      "mtime_ns": 1792911199273900787
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-018.png",
+      "bytes": 242668,
+      "sha256": "39b709aa95c0bdb192cfb041f8ea5ac6234ab19f4ae7c2d257230440c89bbe73",
+      "mode": "0o664",
+      "mtime_ns": 1792911199670901630
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-019.png",
+      "bytes": 312677,
+      "sha256": "f6900a6168bd584ca4a14e7749981765bd26358566d6c22df9716b5316ffdf91",
+      "mode": "0o664",
+      "mtime_ns": 1792911200299902966
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/details-020.png",
+      "bytes": 362909,
+      "sha256": "002b3080c6c48a7f129826e861d22f679ccf90c6869aaece2f95a6bf2c451b11",
+      "mode": "0o664",
+      "mtime_ns": 1792911200968904387
+    },
+    {
+      "path": "creche-product-proof/x86_64/patchbay-refusal-details/manifest.json",
+      "bytes": 26926,
+      "sha256": "c806ecbd332d9310c13edd1d3d64c5ccc028be1cb0299b8852352dee7e1f69b1",
+      "mode": "0o664",
+      "mtime_ns": 1792911201332905161
+    },
+    {
+      "path": "creche-product-proof/x86_64/privilege-inventory-41a4c69173e74ee292a527cd55c827f143d23c71d2ab24112293f31400a9455d-product-host.json",
+      "bytes": 63448,
+      "sha256": "9b21d8629e90846e83ad1fd3e138ee022d04026b964b7e39a2865876a985adc6",
+      "mode": "0o664",
+      "mtime_ns": 1792911104486705293
+    },
+    {
+      "path": "creche-product-proof/x86_64/privilege-inventory-41a4c69173e74ee292a527cd55c827f143d23c71d2ab24112293f31400a9455d-product-host.map",
+      "bytes": 23668569,
+      "sha256": "3bbfe715e6d35fe22283b45f70e24954a4cc5b5e7aa1dbaf770478a06366bd79",
+      "mode": "0o664",
+      "mtime_ns": 1792911101805699941
+    },
+    {
+      "path": "creche-product-proof/x86_64/profile-built-boot.log",
+      "bytes": 41801,
+      "sha256": "a88d8b951cb5173b195ea05504a8830c062d844979687cec7e3ca8772c76228a",
+      "mode": "0o664",
+      "mtime_ns": 1792911121488730178
+    },
+    {
+      "path": "creche-product-proof/x86_64/x86_64-product-journey-proof.json",
+      "bytes": 1587544,
+      "sha256": "b297b4d3bf1f8e523bb0434466a470cef7d4268431687c62df1739993be28fbd",
+      "mode": "0o664",
+      "mtime_ns": 1792911220970947128
+    },
+    {
+      "path": "creche-product-proof/x86_64/x86_64-product-proof.json",
+      "bytes": 1725,
+      "sha256": "c8d7a1f52bdd2bf09438acf6d15ac16f510a82e06f22817486a3b8170af85014",
+      "mode": "0o664",
+      "mtime_ns": 1792911122764742052
+    },
+    {
+      "path": "creche-product-verification.json",
+      "bytes": 2491,
+      "sha256": "77e5919d2861d223001c7bdf2255e9ca0f10712f7cb2362152cbfed47daff0ee",
+      "mode": "0o664",
+      "mtime_ns": 1792911227063057637
+    },
+    {
+      "path": "creche-product/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "a83f9dd0315d8aeeb99bfbca3606fe9edd63207a182e5c021bba0acfab7ff5e1",
+      "mode": "0o664",
+      "mtime_ns": 1792911108203712729
+    },
+    {
+      "path": "creche-product/conduitos-kernel.elf",
+      "bytes": 80524888,
+      "sha256": "41a4c69173e74ee292a527cd55c827f143d23c71d2ab24112293f31400a9455d",
+      "mode": "0o775",
+      "mtime_ns": 1792911105871708061
+    },
+    {
+      "path": "creche-product/conduitos-x86_64.iso",
+      "bytes": 84801536,
+      "sha256": "fa226b9ad1f93736da7ade68beb0299011ca31ba9fd9c612b4bd0b73f3f5266f",
+      "mode": "0o664",
+      "mtime_ns": 1792911105891708102
+    },
+    {
+      "path": "creche-product/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "26b3de0841e5726934859526f74a15ea77ba5439436186635e8243bad8a14c93",
+      "mode": "0o664",
+      "mtime_ns": 1792911108203712729
+    },
+    {
+      "path": "p0-candidate-independent-custody-audit.json",
+      "bytes": 17294,
+      "sha256": "59e390c206a0afd2e9c0097151a1faa3e04bc421e74f503f8c310655197c276a",
+      "mode": "0o664",
+      "mtime_ns": 1792909580401468999
+    },
+    {
+      "path": "p0-x86-candidate-diagnostics.zip",
+      "bytes": 9799885,
+      "sha256": "ee9f5a25f7853e328623e5bba06015528b1a247db3ad6b2a325c3febfd081672",
+      "mode": "0o664",
+      "mtime_ns": 1792909142163047892
+    },
+    {
+      "path": "p0-x86-candidate-failed.log",
+      "bytes": 161853,
+      "sha256": "0edb3acde65e02a87f7dc3e56d0609c7a9ea3a1344cc9002cb8050d75db12569",
+      "mode": "0o664",
+      "mtime_ns": 1792909099935147536
+    },
+    {
+      "path": "verify-creche-product.py",
+      "bytes": 1648,
+      "sha256": "3ec080301f4d2460d97b3af42d314356e0f10f0b83c318f1beb13a3d29a5d9ee",
+      "mode": "0o664",
+      "mtime_ns": 1792910535054367164
+    }
+  ],
+  "member_count": 110,
+  "total_original_bytes": 474027750,
+  "all_decoded_members_size_and_sha256_verified": true,
+  "all_originals_rehashed_after_archive_verification": true,
+  "positive_proof": {
+    "class": "normal freestanding QEMU product",
+    "phases": [
+      "build",
+      "boot",
+      "journey",
+      "integrity"
+    ],
+    "png_count": 27,
+    "action_count": 18,
+    "application_operation_records": 0,
+    "kernel_sha256": "41a4c69173e74ee292a527cd55c827f143d23c71d2ab24112293f31400a9455d",
+    "iso_sha256": "fa226b9ad1f93736da7ade68beb0299011ca31ba9fd9c612b4bd0b73f3f5266f"
+  },
+  "negative_proof": {
+    "source": "5d09f5983c497dc3e7cd19df1e07adbaa124e0da",
+    "run": 40165855445,
+    "job": 121086993264,
+    "status": "retained failed Candidate packet; separate Source/image from f4 positive",
+    "iso_bytes_present": false
+  },
+  "hosted_test_executables": {
+    "archive_included": false,
+    "retained_local_archive": "creche-checked-face-cache-custody/tested-executables.tar.zst",
+    "custody_manifest_included": true
+  },
+  "original_artifacts_deleted": false
+}
