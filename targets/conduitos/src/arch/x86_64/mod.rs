@@ -12,7 +12,7 @@ mod service_domain;
 #[cfg(target_os = "none")]
 mod service_memory;
 #[cfg(target_os = "none")]
-pub use service_domain::ServiceDomain;
+pub use service_domain::{ApplicationEntryReceipt, ServiceDomain};
 mod entropy;
 mod ftdi_line;
 mod gdt;
