@@ -27,6 +27,10 @@ pub use preparation_cache::{
     CatalogueRead, CatalogueTable, PreparationCacheLimitError, PreparationCacheLimits,
     PreparationCacheStats, PreparedSource, SourcePreparationCache, SourcePreparationEvent,
 };
+#[cfg(target_has_atomic = "ptr")]
+mod source_check_info;
+#[cfg(target_has_atomic = "ptr")]
+pub use source_check_info::*;
 mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
