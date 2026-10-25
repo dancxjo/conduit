@@ -58,3 +58,46 @@ Images and captures remain external to Git. The existing full-flash recovery
 was restored and its device MD5 rechecked as
 `4f8db50b72e16cfc70e19e41bdeeabc5`. Recovery firmware explicitly reports
 `body_installed:false`; its bench reading is not the missing native Body proof.
+
+## Flash-backed Text experiment, 2026-10-25
+
+A second physical run tested one substantial representation change: explicit
+immutable configuration Text borrowed from linked flash, through the existing
+Core offer, checked Source, and planner interfaces. Owned and borrowed Text
+retained identical meaning, debug output, JSON and postcard bytes; ordinary
+wire decoding stayed owned. Two representation tests and four existing verified
+metadata tests passed, and the environment image builder compiled. These checks
+were prerequisites to the hardware experiment, not delivery evidence.
+
+The same ESP32, Body, initialized Root/radio, native providers, 118,768-byte Root
+heap, 73,728-byte SDK heap and 41,268-byte stack reservation were retained.
+
+| Target phase | Root used | Root free | Result |
+| --- | ---: | ---: | --- |
+| Initialized Root, Body and radio | 73,956 | 44,812 | Same baseline |
+| Five native offers | 81,600 | 37,168 | Same baseline |
+| All thirteen software offers | 106,764 | 12,004 | First blocker removed |
+| All fifteen individually decoded Source Gears, then dropped | 106,764 | 12,004 | All passed |
+| Indexed selection | — | — | Allocation of 1,120 bytes failed |
+
+The last reported Root peak was 109,676 bytes; it is not the final failing peak
+or a complete appliance bound. Before selection the free bank extents were
+`[0, 3812, 8192]`. The panic backtrace identifies serde sequence growth during
+selection; it does not identify the precise failing collection. Selection,
+planning, execution and a physical native sample remain unproved. No native
+sample reached the display.
+
+The experiment was set aside rather than published as a partial Core Text API
+migration. Its source patch and new source files are retained outside Git in
+`~/.cache/conduit/borrowed-text-target-experiment.patch` and
+`borrowed-text-target-experiment-new-source.tar`; the local stash is named
+`borrowed-text-target-experiment-20261025`. Do not silently reapply it or promote
+its component tests to appliance delivery. The hardware decision is now explicit:
+retain this exact MCU and specialize preparation further, or use more RAM.
+
+Experimental ELF SHA-256:
+`9fd382c7a9cfbde2043cb20d3a5cbd8023510c02b0c8ad28f6e551a503006692`.
+Raw capture SHA-256:
+`53b385944ccc9caa024cf03d85fed07826ea4c205d044675ea06f636c4fbed5a`.
+The full bench image was restored and independently rechecked against device
+MD5 `4f8db50b72e16cfc70e19e41bdeeabc5`.
