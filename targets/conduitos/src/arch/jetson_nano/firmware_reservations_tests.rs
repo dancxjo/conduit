@@ -1,5 +1,6 @@
 use super::super::memory::{Refusal, admit};
 use super::*;
+use alloc::vec::Vec;
 
 #[test]
 fn parses_stock_style_values_and_excludes_both_allocations() {
