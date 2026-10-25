@@ -459,8 +459,8 @@ fn record_operation_cost(
 ) {
     use core::fmt::Write;
     let mut line = crate::sign_format::FixedText::new();
-    if writeln!(line, "CONDUIT_APPLICATION_OPERATION_COST sequence={sequence} request={request:?} instance={} cap={} rtc={} source={} result={:?}",
-        receipt.instance(), receipt.admitted_rtc(), receipt.consumed_rtc(),
+    if writeln!(line, "CONDUIT_APPLICATION_OPERATION_COST sequence={sequence} native_sequence={} request={request:?} instance={} cap={} rtc={} source={} result={:?}",
+        receipt.sequence(), receipt.instance(), receipt.admitted_rtc(), receipt.consumed_rtc(),
         receipt.source_interrupts(), receipt.result()).is_ok() {
         write_observation(line.as_bytes());
     }

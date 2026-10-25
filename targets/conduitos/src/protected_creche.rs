@@ -127,7 +127,30 @@ impl CrecheService {
         let exchange = domain.exchange().map_err(TransportError::Backend)?;
         exchange.fill(0);
         wire::encode_request(envelope, request, exchange).map_err(|_| TransportError::Protocol)?;
-        if domain.enter(1).map_err(TransportError::Backend)? != DomainReturn::Yielded {
+        let before = domain.cost();
+        let returned = domain.enter(1).map_err(TransportError::Backend)?;
+        if returned != DomainReturn::Yielded {
+            // Preserve the actual terminal observation before the caller tears
+            // down this instance; payload bytes and grants remain unchanged.
+            use core::fmt::Write;
+            let request = match request {
+                Request::Begin { .. } => "begin",
+                Request::Write { .. } => "write",
+                Request::Commit => "commit",
+                Request::AllowIdle => "allow-idle",
+                Request::HomeInit => "home-init",
+                Request::HomeReset { .. } => "home-reset",
+                Request::HomeRefusal { .. } => "home-refusal",
+                Request::NativeKey { .. } => "native-key",
+                Request::Apply { .. } => "apply",
+                Request::Snapshot { .. } => "snapshot",
+                Request::Selection { .. } => "selection",
+                Request::Read { .. } => "read",
+            };
+            let mut line = crate::sign_format::FixedText::new();
+            if writeln!(line, "CONDUIT_CRECHE_ENTRY_REFUSAL instance={} sequence={} request={request} result={returned:?} before={before:?} after={:?}", self.instance, envelope.request, domain.cost()).is_ok() {
+                crate::arch::early_write(line.as_bytes());
+            }
             return Err(TransportError::Terminated);
         }
         let exchange = domain.exchange().map_err(TransportError::Backend)?;
