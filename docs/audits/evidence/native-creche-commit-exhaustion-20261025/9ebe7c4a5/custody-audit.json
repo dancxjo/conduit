@@ -1,0 +1,594 @@
+{
+  "schema": "conduit.independent-refreshed-candidate-custody-audit@1",
+  "run": 40171712393,
+  "job": 121106961660,
+  "artifact": 12592910451,
+  "archive_sha256": "615e7f0774a83215e6e1d4583c7db21ab750e9e0d6f08ea782da8260c41ce538",
+  "archive_and_extracted_members_verified": 23,
+  "source": "9ebe7c4a5f97176a692373aca21a9744a30c18a8",
+  "parents": [
+    "31f2e04c3cf964e248dd72a15cc1a246fd004570",
+    "2418a6aa641d60d905889f312354e50888f6b20c"
+  ],
+  "tree": "2e04ad204414272c6fd3c13b09c59ad849c0ba0d",
+  "errors": [],
+  "custody_consistent": true,
+  "root_elf_sha256": "adcd948b1f30a444c3b975a59879b4be09fecd9931732d90e8a82aaa0396cf61",
+  "actual_elf_contains_build_and_description_binding": true,
+  "actual_elf_contains_literal_source_commit": false,
+  "build_id": "build:sha256:9da5c1d8c890fcca475156ad45a8c38777d3620f7fd82cdcc8ca86c1452a7a28",
+  "image_description_binding": "image:sha256:e8447a9a1e4a4d8eb10c7b1b6a94828f60e5966b16e0e3570d99be5cef3d9331",
+  "host_id": "a0e56db36e277c57d10a0e17d35e08407b67910217dc048edfab996715458db5",
+  "boot_id": "46c4791a15c7dbc0fa42beec6ea9148bb6e522c242ad10f07101cd5f1380e53d",
+  "manifest_reported_iso_sha256": "e18d462bec9fa40a7eece695034145a5f1df52d03d93d6a3eee614af1ec2976f",
+  "actual_iso_bytes_present": false,
+  "actual_iso_hash_verified": false,
+  "serial_sha256": "3d23ea37219c40051b5a68ed5245e822dd9792b09eefae0fa0db03777d35052c",
+  "qmp_sha256": "26ed2e5b994843d7f7d7b9b8f693eb9aff288300d542fea824e33bdf77487d0b",
+  "serial_complete_lines": true,
+  "checkpoints": [
+    {
+      "checkpoint": "front-door-ready",
+      "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "serial_byte_end": 43030,
+      "guest_in_captured_serial": true,
+      "show_in_captured_serial": null,
+      "qmp_capture_acknowledged": true
+    },
+    {
+      "checkpoint": "creche-ready",
+      "png_sha256": "2e986bfdbf1c8ce92c5c87c66a064ee430839a6473324b75ddea98ef87bbf060",
+      "pixel_sha256": "67fd54fd72440171d85c0755e7318d409590f9f4a406329fff576c4facd0f238",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "serial_byte_end": 82712,
+      "guest_in_captured_serial": true,
+      "show_in_captured_serial": true,
+      "qmp_capture_acknowledged": true
+    },
+    {
+      "checkpoint": "creche-editorial-compact",
+      "png_sha256": "8cf3c9ba39fbb1aac787007b3a7aad4954fc78accc5c46f4f4f666e8371fba53",
+      "pixel_sha256": "49e8f56c237ec53de8ba5cf73395dd996c1bfc8eb627aef21ae50e077c9977da",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "serial_byte_end": 114464,
+      "guest_in_captured_serial": true,
+      "show_in_captured_serial": true,
+      "qmp_capture_acknowledged": true
+    },
+    {
+      "checkpoint": "creche-engineering-phosphor-compact",
+      "png_sha256": "aeedb3b047a3414c7f92647c1d5a58474559effc96934697595feb1d25fc579d",
+      "pixel_sha256": "012a11777becd1797bb8786926aaea5a2e094db88e7e8ef0bc6e26ae6bf869f1",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "serial_byte_end": 236093,
+      "guest_in_captured_serial": true,
+      "show_in_captured_serial": true,
+      "qmp_capture_acknowledged": true
+    },
+    {
+      "checkpoint": "creche-engineering-editorial-compact",
+      "png_sha256": "ddff460d8ad03a43a39cef9c7fc3199ce011d19ee8c92904d603ea52de47879e",
+      "pixel_sha256": "a2aa88156f1f44b8765e82fff8c27739b85fd389e698ffb2b14db16126c7d396",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "serial_byte_end": 266495,
+      "guest_in_captured_serial": true,
+      "show_in_captured_serial": true,
+      "qmp_capture_acknowledged": true
+    },
+    {
+      "checkpoint": "creche-engineering-phosphor-spacious",
+      "png_sha256": "65ff3508eb548c205fca92513e9481e8ba44d4df487c632407f00578bbb880f2",
+      "pixel_sha256": "3683c2a8179a4be9ef7e6c8eda27f429fba99a351a96ddc56214c4c64012b5d5",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "serial_byte_end": 327775,
+      "guest_in_captured_serial": true,
+      "show_in_captured_serial": true,
+      "qmp_capture_acknowledged": true
+    },
+    {
+      "checkpoint": "failure",
+      "png_sha256": "ee362c9c1759ff5b1c9d0dc6ff13d397d2a0552c9525d5f95dd5f3314381cc42",
+      "pixel_sha256": "086131f21f577e1c48ccc3895bb9ebe104b61497b83c1906810607d6b7dcdcb5",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "serial_byte_end": 391084,
+      "guest_in_captured_serial": true,
+      "show_in_captured_serial": true,
+      "qmp_capture_acknowledged": false
+    }
+  ],
+  "qmp_capture_count": 6,
+  "failure": {
+    "detail": "no complete guest record for creche-three-selected",
+    "reason": "creche-choice-timeout"
+  },
+  "status": "failed",
+  "process_stop": {
+    "cause": "harness-stop-after-failure",
+    "code": null,
+    "status": "signal: 9 (SIGKILL)"
+  },
+  "creche_terminal": {
+    "raw": "CONDUIT_CRECHE_ENTRY_REFUSAL instance=3 sequence=70 request=commit result=Fault(WorkExhausted) before=DomainCost { entries: 69, interrupt_entries: 75, source_timer_interrupts: 0, privilege_transitions: 288, gate_transitions: 69, copied_bytes: 0, setup_copied_bytes: 1348363, base_gate_transitions: 0, tlb_flushes: 138, setup_ticks: 1745748, teardown_ticks: 0, teardown_zeroed_bytes: 0, shared_peak_bytes: 0, root_metadata_bytes: 168, address_space_switches: 138, scheduler_returns: 69, preemptions: 0, reserved_bytes: 3276800 } after=DomainCost { entries: 70, interrupt_entries: 139, source_timer_interrupts: 0, privilege_transitions: 416, gate_transitions: 69, copied_bytes: 0, setup_copied_bytes: 1348363, base_gate_transitions: 0, tlb_flushes: 140, setup_ticks: 1745748, teardown_ticks: 165674513, teardown_zeroed_bytes: 3276800, shared_peak_bytes: 0, root_metadata_bytes: 168, address_space_switches: 140, scheduler_returns: 70, preemptions: 1, reserved_bytes: 3276800 }",
+    "instance": 3,
+    "sequence": 70,
+    "request": "commit",
+    "result": "Fault(WorkExhausted)",
+    "before": {
+      "entries": 69,
+      "interrupt_entries": 75,
+      "source_timer_interrupts": 0,
+      "privilege_transitions": 288,
+      "gate_transitions": 69,
+      "copied_bytes": 0,
+      "setup_copied_bytes": 1348363,
+      "base_gate_transitions": 0,
+      "tlb_flushes": 138,
+      "setup_ticks": 1745748,
+      "teardown_ticks": 0,
+      "teardown_zeroed_bytes": 0,
+      "shared_peak_bytes": 0,
+      "root_metadata_bytes": 168,
+      "address_space_switches": 138,
+      "scheduler_returns": 69,
+      "preemptions": 0,
+      "reserved_bytes": 3276800
+    },
+    "after": {
+      "entries": 70,
+      "interrupt_entries": 139,
+      "source_timer_interrupts": 0,
+      "privilege_transitions": 416,
+      "gate_transitions": 69,
+      "copied_bytes": 0,
+      "setup_copied_bytes": 1348363,
+      "base_gate_transitions": 0,
+      "tlb_flushes": 140,
+      "setup_ticks": 1745748,
+      "teardown_ticks": 165674513,
+      "teardown_zeroed_bytes": 3276800,
+      "shared_peak_bytes": 0,
+      "root_metadata_bytes": 168,
+      "address_space_switches": 140,
+      "scheduler_returns": 70,
+      "preemptions": 1,
+      "reserved_bytes": 3276800
+    },
+    "delta": {
+      "entries": 1,
+      "interrupt_entries": 64,
+      "source_timer_interrupts": 0,
+      "privilege_transitions": 128,
+      "gate_transitions": 0,
+      "copied_bytes": 0,
+      "setup_copied_bytes": 0,
+      "base_gate_transitions": 0,
+      "tlb_flushes": 2,
+      "setup_ticks": 0,
+      "teardown_ticks": 165674513,
+      "teardown_zeroed_bytes": 3276800,
+      "shared_peak_bytes": 0,
+      "root_metadata_bytes": 0,
+      "address_space_switches": 2,
+      "scheduler_returns": 1,
+      "preemptions": 1,
+      "reserved_bytes": 0
+    },
+    "rtc": 64,
+    "source_timer": 0
+  },
+  "application_operation_records": 0,
+  "embedded_creche": [
+    {
+      "offset": 15552040,
+      "bytes": 1669592,
+      "sha256": "a8da3a4babf9cb0f0d90ee7ab3106104f8d16f2d65b74942b03631166bdfed64",
+      "load_file_bytes": 1348363,
+      "load_segments": [
+        {
+          "flags": 5,
+          "bytes": 1107067,
+          "sha256": "ad2eacd69eb142c9a64f597d2fd8a37cde9213454869d21d485883dd41e04d1d"
+        },
+        {
+          "flags": 4,
+          "bytes": 241280,
+          "sha256": "ea0552e6b7e8ade603c81013428402be1b4ff7b42f37b5b0dbbe78d832c9fad7"
+        },
+        {
+          "flags": 6,
+          "bytes": 16,
+          "sha256": "f256023a66c18e7d96db86a8902736e39f2ea2f100abc1a811e6c3d067a5820e"
+        }
+      ]
+    },
+    {
+      "offset": 17437431,
+      "bytes": 1669592,
+      "sha256": "a8da3a4babf9cb0f0d90ee7ab3106104f8d16f2d65b74942b03631166bdfed64",
+      "load_file_bytes": 1348363,
+      "load_segments": [
+        {
+          "flags": 5,
+          "bytes": 1107067,
+          "sha256": "ad2eacd69eb142c9a64f597d2fd8a37cde9213454869d21d485883dd41e04d1d"
+        },
+        {
+          "flags": 4,
+          "bytes": 241280,
+          "sha256": "ea0552e6b7e8ade603c81013428402be1b4ff7b42f37b5b0dbbe78d832c9fad7"
+        },
+        {
+          "flags": 6,
+          "bytes": 16,
+          "sha256": "f256023a66c18e7d96db86a8902736e39f2ea2f100abc1a811e6c3d067a5820e"
+        }
+      ]
+    }
+  ],
+  "old_comparison": {
+    "old_source": "5d09f5983c497dc3e7cd19df1e07adbaa124e0da",
+    "old_parents": [
+      "e18604669d993a20d4974cf6bf46397d2cac7a40",
+      "621711b680b9bc474210d16552859efbabc058c5"
+    ],
+    "new_source": "9ebe7c4a5f97176a692373aca21a9744a30c18a8",
+    "new_parents": [
+      "31f2e04c3cf964e248dd72a15cc1a246fd004570",
+      "2418a6aa641d60d905889f312354e50888f6b20c"
+    ],
+    "same_root_elf": false,
+    "same_reported_iso": false,
+    "same_failure_reason": true,
+    "old_creche_terminal": {
+      "raw": "CONDUIT_CRECHE_ENTRY_REFUSAL instance=3 sequence=70 request=commit result=Fault(WorkExhausted) before=DomainCost { entries: 69, interrupt_entries: 76, source_timer_interrupts: 0, privilege_transitions: 290, gate_transitions: 69, copied_bytes: 0, setup_copied_bytes: 1348491, base_gate_transitions: 0, tlb_flushes: 138, setup_ticks: 1686776, teardown_ticks: 0, teardown_zeroed_bytes: 0, shared_peak_bytes: 0, root_metadata_bytes: 168, address_space_switches: 138, scheduler_returns: 69, preemptions: 0, reserved_bytes: 3276800 } after=DomainCost { entries: 70, interrupt_entries: 140, source_timer_interrupts: 0, privilege_transitions: 418, gate_transitions: 69, copied_bytes: 0, setup_copied_bytes: 1348491, base_gate_transitions: 0, tlb_flushes: 140, setup_ticks: 1686776, teardown_ticks: 171677478, teardown_zeroed_bytes: 3276800, shared_peak_bytes: 0, root_metadata_bytes: 168, address_space_switches: 140, scheduler_returns: 70, preemptions: 1, reserved_bytes: 3276800 }",
+      "before": {
+        "entries": 69,
+        "interrupt_entries": 76,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 290,
+        "gate_transitions": 69,
+        "copied_bytes": 0,
+        "setup_copied_bytes": 1348491,
+        "base_gate_transitions": 0,
+        "tlb_flushes": 138,
+        "setup_ticks": 1686776,
+        "teardown_ticks": 0,
+        "teardown_zeroed_bytes": 0,
+        "shared_peak_bytes": 0,
+        "root_metadata_bytes": 168,
+        "address_space_switches": 138,
+        "scheduler_returns": 69,
+        "preemptions": 0,
+        "reserved_bytes": 3276800
+      },
+      "after": {
+        "entries": 70,
+        "interrupt_entries": 140,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 418,
+        "gate_transitions": 69,
+        "copied_bytes": 0,
+        "setup_copied_bytes": 1348491,
+        "base_gate_transitions": 0,
+        "tlb_flushes": 140,
+        "setup_ticks": 1686776,
+        "teardown_ticks": 171677478,
+        "teardown_zeroed_bytes": 3276800,
+        "shared_peak_bytes": 0,
+        "root_metadata_bytes": 168,
+        "address_space_switches": 140,
+        "scheduler_returns": 70,
+        "preemptions": 1,
+        "reserved_bytes": 3276800
+      },
+      "delta": {
+        "entries": 1,
+        "interrupt_entries": 64,
+        "source_timer_interrupts": 0,
+        "privilege_transitions": 128,
+        "gate_transitions": 0,
+        "copied_bytes": 0,
+        "setup_copied_bytes": 0,
+        "base_gate_transitions": 0,
+        "tlb_flushes": 2,
+        "setup_ticks": 0,
+        "teardown_ticks": 171677478,
+        "teardown_zeroed_bytes": 3276800,
+        "shared_peak_bytes": 0,
+        "root_metadata_bytes": 0,
+        "address_space_switches": 2,
+        "scheduler_returns": 1,
+        "preemptions": 1,
+        "reserved_bytes": 0
+      },
+      "instance": 3,
+      "sequence": 70,
+      "request": "commit",
+      "result": "Fault(WorkExhausted)",
+      "rtc_cost": 64,
+      "source_cost": 0,
+      "setup_copied_bytes_matches_embedded_creche_load_bytes": true
+    },
+    "old_embedded_creche": [
+      {
+        "sha256": "45fb037f59e65361c54560386405b15c1786831530b9b73b7568597e3ac31d96",
+        "offset": 15552040,
+        "bytes": 1669680
+      },
+      {
+        "sha256": "45fb037f59e65361c54560386405b15c1786831530b9b73b7568597e3ac31d96",
+        "offset": 17437519,
+        "bytes": 1669680
+      }
+    ],
+    "new_embedded_creche": [
+      {
+        "offset": 15552040,
+        "bytes": 1669592,
+        "sha256": "a8da3a4babf9cb0f0d90ee7ab3106104f8d16f2d65b74942b03631166bdfed64",
+        "load_file_bytes": 1348363,
+        "load_segments": [
+          {
+            "flags": 5,
+            "bytes": 1107067,
+            "sha256": "ad2eacd69eb142c9a64f597d2fd8a37cde9213454869d21d485883dd41e04d1d"
+          },
+          {
+            "flags": 4,
+            "bytes": 241280,
+            "sha256": "ea0552e6b7e8ade603c81013428402be1b4ff7b42f37b5b0dbbe78d832c9fad7"
+          },
+          {
+            "flags": 6,
+            "bytes": 16,
+            "sha256": "f256023a66c18e7d96db86a8902736e39f2ea2f100abc1a811e6c3d067a5820e"
+          }
+        ]
+      },
+      {
+        "offset": 17437431,
+        "bytes": 1669592,
+        "sha256": "a8da3a4babf9cb0f0d90ee7ab3106104f8d16f2d65b74942b03631166bdfed64",
+        "load_file_bytes": 1348363,
+        "load_segments": [
+          {
+            "flags": 5,
+            "bytes": 1107067,
+            "sha256": "ad2eacd69eb142c9a64f597d2fd8a37cde9213454869d21d485883dd41e04d1d"
+          },
+          {
+            "flags": 4,
+            "bytes": 241280,
+            "sha256": "ea0552e6b7e8ade603c81013428402be1b4ff7b42f37b5b0dbbe78d832c9fad7"
+          },
+          {
+            "flags": 6,
+            "bytes": 16,
+            "sha256": "f256023a66c18e7d96db86a8902736e39f2ea2f100abc1a811e6c3d067a5820e"
+          }
+        ]
+      }
+    ],
+    "interpretation": "Two distinct preview sources and actual binaries show the same observed outer Cr\u00e8che Commit WorkExhausted. Neither identifies an internal phase, nor does this join establish a shared source/codegen cause."
+  },
+  "limits": [
+    "ISO bytes absent; ISO identity is joined manifest/receipt evidence only.",
+    "Failure PNG lacks retained QMP screendump request/ACK; normal six captures have ACKs.",
+    "Embedded Cr\u00e8che identity from actual ELF symbols and inventory, not independent instance-to-image runtime attestation.",
+    "Root register/stack snapshots do not identify original guest fault instruction or internal phase.",
+    "No Application operation records in retained serial; no claim about all executions outside trace.",
+    "QMP key acknowledgements do not prove guest action acceptance.",
+    "Distinct Boot proof invocations in product receipt and journey are expected and not conflated."
+  ],
+  "embedded_comparison": {
+    "renewed": [
+      {
+        "offset": 15552040,
+        "sha256": "a8da3a4babf9cb0f0d90ee7ab3106104f8d16f2d65b74942b03631166bdfed64",
+        "bytes": 1669592,
+        "segments": [
+          {
+            "flags": 5,
+            "sha256": "ad2eacd69eb142c9a64f597d2fd8a37cde9213454869d21d485883dd41e04d1d",
+            "bytes": 1107067
+          },
+          {
+            "flags": 4,
+            "sha256": "ea0552e6b7e8ade603c81013428402be1b4ff7b42f37b5b0dbbe78d832c9fad7",
+            "bytes": 241280
+          },
+          {
+            "flags": 6,
+            "sha256": "f256023a66c18e7d96db86a8902736e39f2ea2f100abc1a811e6c3d067a5820e",
+            "bytes": 16
+          }
+        ]
+      },
+      {
+        "offset": 17437431,
+        "sha256": "a8da3a4babf9cb0f0d90ee7ab3106104f8d16f2d65b74942b03631166bdfed64",
+        "bytes": 1669592,
+        "segments": [
+          {
+            "flags": 5,
+            "sha256": "ad2eacd69eb142c9a64f597d2fd8a37cde9213454869d21d485883dd41e04d1d",
+            "bytes": 1107067
+          },
+          {
+            "flags": 4,
+            "sha256": "ea0552e6b7e8ade603c81013428402be1b4ff7b42f37b5b0dbbe78d832c9fad7",
+            "bytes": 241280
+          },
+          {
+            "flags": 6,
+            "sha256": "f256023a66c18e7d96db86a8902736e39f2ea2f100abc1a811e6c3d067a5820e",
+            "bytes": 16
+          }
+        ]
+      }
+    ],
+    "local-f4": [
+      {
+        "offset": 15294784,
+        "sha256": "6a70ab36a9d008805b03459301921f9a5f33f9813da47a388066d39d3bc52318",
+        "bytes": 1669648,
+        "segments": [
+          {
+            "flags": 5,
+            "sha256": "99b6f422e756b43878ea0bdfdfb8693089a34306314e6f67f9685a93925a06b4",
+            "bytes": 1107259
+          },
+          {
+            "flags": 4,
+            "sha256": "1b899d4fadd3efd012cb5ac26663fd3a1fc043a1b528eaa32c68211fadc03a72",
+            "bytes": 241280
+          },
+          {
+            "flags": 6,
+            "sha256": "528c15edbe70e8b0b2b76b346f8372373c77f3a0e91669cd60a83e74e14de5f7",
+            "bytes": 16
+          }
+        ]
+      },
+      {
+        "offset": 19046352,
+        "sha256": "6a70ab36a9d008805b03459301921f9a5f33f9813da47a388066d39d3bc52318",
+        "bytes": 1669648,
+        "segments": [
+          {
+            "flags": 5,
+            "sha256": "99b6f422e756b43878ea0bdfdfb8693089a34306314e6f67f9685a93925a06b4",
+            "bytes": 1107259
+          },
+          {
+            "flags": 4,
+            "sha256": "1b899d4fadd3efd012cb5ac26663fd3a1fc043a1b528eaa32c68211fadc03a72",
+            "bytes": 241280
+          },
+          {
+            "flags": 6,
+            "sha256": "528c15edbe70e8b0b2b76b346f8372373c77f3a0e91669cd60a83e74e14de5f7",
+            "bytes": 16
+          }
+        ]
+      }
+    ],
+    "old-5d09": [
+      {
+        "offset": 15552040,
+        "sha256": "45fb037f59e65361c54560386405b15c1786831530b9b73b7568597e3ac31d96",
+        "bytes": 1669680,
+        "segments": [
+          {
+            "flags": 5,
+            "sha256": "ae6090c782e75bb320cfabba176f5e0bc7955b76eac124f121480676f8523ddb",
+            "bytes": 1107195
+          },
+          {
+            "flags": 4,
+            "sha256": "3b83bebc77b48789e9a24d3fef39a07cc07f7ab49e20fce4dbd5fcd1f8e4c8b6",
+            "bytes": 241280
+          },
+          {
+            "flags": 6,
+            "sha256": "f6f0cabb30b0571fbb19d584b32eadf88a55ecca037a5a6496f87ce3d141340d",
+            "bytes": 16
+          }
+        ]
+      },
+      {
+        "offset": 17437519,
+        "sha256": "45fb037f59e65361c54560386405b15c1786831530b9b73b7568597e3ac31d96",
+        "bytes": 1669680,
+        "segments": [
+          {
+            "flags": 5,
+            "sha256": "ae6090c782e75bb320cfabba176f5e0bc7955b76eac124f121480676f8523ddb",
+            "bytes": 1107195
+          },
+          {
+            "flags": 4,
+            "sha256": "3b83bebc77b48789e9a24d3fef39a07cc07f7ab49e20fce4dbd5fcd1f8e4c8b6",
+            "bytes": 241280
+          },
+          {
+            "flags": 6,
+            "sha256": "f6f0cabb30b0571fbb19d584b32eadf88a55ecca037a5a6496f87ce3d141340d",
+            "bytes": 16
+          }
+        ]
+      }
+    ]
+  },
+  "actual_bytecode_face_validation": {
+    "renewed": {
+      "<conduit_face::interaction::FaceInteraction>::new": [
+        "45a3ec:\te8 b6 ad ff ff       \tcall   4551a7 <<conduit_face::face::Face>::validate_content>",
+        "45a422:\te8 cc b6 ff ff       \tcall   455af3 <<conduit_face::face::Face>::content_digest_bytes>",
+        "45a8ab:\te8 28 95 ff ff       \tcall   453dd8 <<conduit_face::mask_plot::PlannedMaskPlot>::show_placement>",
+        "45a904:\te8 76 95 ff ff       \tcall   453e7f <<conduit_face::manifestation::Manifestation>::validate_against_validated_mask_plot>",
+        "45a946:\te8 4e 9a ff ff       \tcall   454399 <conduit_face::mask_show::bind_show>",
+        "45ad04:\te8 e4 f9 fe ff       \tcall   44a6ed <<conduit_core::value_constraint::CheckedValueContract>::validate>",
+        "45ae2c:\te8 df 00 00 00       \tcall   45af10 <<conduit_face::interaction::FaceInteraction>::derived_identity>",
+        "45ae6b:\te8 33 07 00 00       \tcall   45b5a3 <<conduit_face::interaction::FaceInteraction>::encode>",
+        "45aeab:\te8 0f f3 ff ff       \tcall   45a1bf <core::ptr::drop_glue::<conduit_face::interaction::FaceInteraction>>"
+      ]
+    },
+    "old-5d09": {
+      "<conduit_face::face::Face>::validate": [
+        "453de2:\te8 2e 14 00 00       \tcall   455215 <<conduit_face::face::Face>::validate_content>",
+        "453e00:\te8 5c 1d 00 00       \tcall   455b61 <<conduit_face::face::Face>::content_digest_bytes>"
+      ],
+      "<conduit_face::interaction::FaceInteraction>::new": [
+        "45a45a:\te8 79 99 ff ff       \tcall   453dd8 <<conduit_face::face::Face>::validate>",
+        "45a48a:\te8 49 99 ff ff       \tcall   453dd8 <<conduit_face::face::Face>::validate>",
+        "45a925:\te8 1c 95 ff ff       \tcall   453e46 <<conduit_face::mask_plot::PlannedMaskPlot>::show_placement>",
+        "45a993:\te8 55 95 ff ff       \tcall   453eed <<conduit_face::manifestation::Manifestation>::validate_against_validated_mask_plot>",
+        "45a9df:\te8 23 9a ff ff       \tcall   454407 <conduit_face::mask_show::bind_show>",
+        "45ad61:\te8 87 f9 fe ff       \tcall   44a6ed <<conduit_core::value_constraint::CheckedValueContract>::validate>",
+        "45ae9d:\te8 e8 00 00 00       \tcall   45af8a <<conduit_face::interaction::FaceInteraction>::derived_identity>",
+        "45aedc:\te8 3c 07 00 00       \tcall   45b61d <<conduit_face::interaction::FaceInteraction>::encode>",
+        "45af1c:\te8 0c f3 ff ff       \tcall   45a22d <core::ptr::drop_glue::<conduit_face::interaction::FaceInteraction>>"
+      ]
+    },
+    "local-f4": {
+      "<conduit_face::interaction::FaceInteraction>::new": [
+        "45a4a4:\te8 6b ae ff ff       \tcall   455314 <<conduit_face::face::Face>::validate_content>",
+        "45a4da:\te8 81 b7 ff ff       \tcall   455c60 <<conduit_face::face::Face>::content_digest_bytes>",
+        "45a963:\te8 d2 95 ff ff       \tcall   453f3a <<conduit_face::mask_plot::PlannedMaskPlot>::show_placement>",
+        "45a9bc:\te8 20 96 ff ff       \tcall   453fe1 <<conduit_face::manifestation::Manifestation>::validate_against_validated_mask_plot>",
+        "45a9fe:\te8 f8 9a ff ff       \tcall   4544fb <conduit_face::mask_show::bind_show>",
+        "45adbc:\te8 8e fa fe ff       \tcall   44a84f <<conduit_core::value_constraint::CheckedValueContract>::validate>",
+        "45aee4:\te8 df 00 00 00       \tcall   45afc8 <<conduit_face::interaction::FaceInteraction>::derived_identity>",
+        "45af23:\te8 49 07 00 00       \tcall   45b671 <<conduit_face::interaction::FaceInteraction>::encode>",
+        "45af63:\te8 0f f3 ff ff       \tcall   45a277 <core::ptr::drop_glue::<conduit_face::interaction::FaceInteraction>>"
+      ]
+    }
+  },
+  "bytecode_conclusion": "Actual renewed FaceInteraction::new contains one direct validate_content call plus content_digest_bytes and retained Show/Manifestation checks, matching local f4 shape. Old 5d09 calls Face::validate twice. This contradicts stale-old-guest caching for this specific fix; it does not establish complete source equivalence or explain continued exhaustion.",
+  "visual_observation": "Viewed actual failure PNG: Cr\u00e8che Current View1/2; name Helena Clara Silva Carvalho; Keyboard canvas/Text editor/Tutorial/Patchbay remain visibly checked. Retained prior view is not proof of completed guest commit.",
+  "raw_job_log_sha256": "34527afdfe02dcc2ac25bb78e7817460d95035b78e8495cbabb1ab753522f7d4"
+}
