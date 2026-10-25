@@ -6,6 +6,17 @@ use std::{
 };
 
 pub(super) fn build(root: &Path, native: bool, body: bool) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, native, body, None)
+}
+pub(super) fn build_member(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, false, Some(key))
+}
+fn build_with_owner(
+    root: &Path,
+    native: bool,
+    body: bool,
+    key: Option<&Path>,
+) -> Result<(), Box<dyn Error>> {
     let package = root.join("targets/esp32/proof/tm1637");
     let toolchain: toml::Value = toml::from_str(&std::fs::read_to_string(
         package.join("rust-toolchain.toml"),
@@ -25,7 +36,7 @@ pub(super) fn build(root: &Path, native: bool, body: bool) -> Result<(), Box<dyn
         .current_dir(&package)
         .arg(format!("+{channel}"))
         .args([
-            if body { "rustc" } else { "build" },
+            if native { "rustc" } else { "build" },
             "--locked",
             "--release",
         ])
@@ -42,7 +53,13 @@ pub(super) fn build(root: &Path, native: bool, body: bool) -> Result<(), Box<dyn
             },
         ]);
     }
-    if body {
+    if let Some(key) = key {
+        command.env(
+            "CONDUIT_ENVIRONMENT_OWNER_PUBLIC_KEY_FILE",
+            std::fs::canonicalize(key)?,
+        );
+    }
+    if native {
         // ESP32's linker places compiler-generated switch lookup tables in
         // scarce internal RAM. Keep control flow in flash instead; this does
         // not change the allocator partition or the admitted CPU stack floor.

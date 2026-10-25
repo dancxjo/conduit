@@ -1,7 +1,96 @@
-# ESP32 delivery checkpoint — 2026-10-25
+# MCU delivery checkpoints — 2026-10-25
 
-**The current owned-offer preparation path does not fit. No native sample or
-physical Show was reached.** Component tests do not establish appliance delivery.
+**The ESP32 sampler now runs natively as a member of a Linux-owned Body.**
+Self-contained owned-offer preparation still fails on ESP32 and the Pico W.
+The physical seven-segment display is not yet part of this native Body run.
+
+## Linux first host, native ESP32 member
+
+The attended owner in `bodies/environment/host` used the actual Linux machine
+identity and a fresh process Boot, existing Crèche birth, ambient challenge
+admission, ordinary current-offer planning and the Body lifecycle. The ESP32
+independently admitted the assignment against its linked Source, issued native
+possession and acknowledged Start held. Linux recorded Body start before signed
+Release. Real DHT11 readings then traversed the shared kernel and typed
+publication Back. Linux verified the current-Boot Root receipt, payload digest,
+exact channel Type, source sequence and conservative age before publishing its
+semantic Face. Native metadata truthfully reports no MCU-owned biography.
+
+| ESP32 phase | Root used | Root peak | Root capacity | SDK used / capacity |
+| --- | ---: | ---: | ---: | ---: |
+| Initialized member, software and network service | 69,180 | 84,944 | 118,768 | 33,408 / 73,728 |
+| Reserved assignment | 71,452 | 84,944 | 118,768 | 33,408 / 73,728 |
+| Kernel, worker and Face prepared; physical publication | 96,568 | 96,568 | 118,768 | 33,408 / 73,728 |
+
+The unchanged stack floor is 36,864 bytes; this image leaves 41,932 bytes.
+Two consecutive physical publications passed, and a later run verified signed
+`StartedHeld`, `Released`, `Quiesced` and `Retired` receipts, including SIGINT
+cleanup followed by ordinary Body lull. Re-entry into an already controlled
+Boot refuses before another birth. The same typed Face produced Fahrenheit
+and RH Mask previews (`64:8F` and ` 54H`, using the explicit colon Look).
+Those previews make no physical display-write claim.
+
+The retained signed-control run is
+`~/.local/share/conduit/environment-host-20261025/runs/5220255d-a465-4f47-a6b2-3008d583e42f/`.
+Body: `1e981a879733d93f69f2c11a0acda737c550765aad1b873ebc8fc0f0e13c9f65`;
+MCU Boot: `boot/3bdd549a210990a23c0eef84af90d11a`.
+External SHA-256 references:
+
+- ESP32 ELF: `515b67dc6750f27e07ca75a409aba03fb7031110b983b3a0a02edac314545cd3`.
+- Admission proof: `dae9c13011c4b78c183e4d82690fb808791f79099527f237b5225b0deb5e46db`.
+- Native control: `0f38485c4948bef8ed5c0d503f9f2220273497825fe26a1fe0831ec507a78169`.
+- Native publication: `b22ab545d03cb761c6560de0801a8c2839593f9294adb4336c1f7759d0234bf8`.
+- Lulled biography: `e27fdae23d40fdaa76003d9beac17438b5d81b45703e2751a0528bd63f40bfdb`.
+- Earlier consecutive-reading capture: `a96d917445618a61157f44bd2713184cf99fac00408da85eb7cbf07807225e20`.
+
+This proves the distributed sampler path, not compiler specialization into C,
+combined display execution, invitations, external Fore recording or durable
+restart. The bounded owner supports up to 960 minute-period publications;
+an overnight duration is available, not yet an overnight soak result.
+See [construction and invocation](../HOSTED-MCU.md).
+
+## Pico W comparative owned-preparation gate
+
+Actual flash UID `e6639c758f78952c`; 2 MiB flash, 264 KiB RAM. The checkpoint
+links 1,990,248 flash bytes, 208,172 static RAM bytes including a fixed
+200,704-byte heap, leaving 62,020 bytes above `.uninit` for the stack. The
+36,864-byte stack floor is unchanged. It installs the same retained Saito Minato
+Body under the actual Pico Host/Boot, retaining actual GP2 PIO/DMA capture and
+monotonic-wait owners, checked resident software, active AP and HTTP storage.
+
+| Pico phase | Heap retained | Reported peak |
+| --- | ---: | ---: |
+| Native provider offers | 4,856 | 7,008 |
+| Installed Body and resident software | 68,568 | 77,060 |
+| Active radio, Body and software | 103,476 | 103,476 |
+| All 13 owned software offers | 165,456 | 165,584 |
+| Allocation fault during individual Source preparation | 197,600 | 198,168 |
+
+The failing allocation requests **29,798 bytes** with only 3,104 bytes free.
+The final run reports `before-source-gear` index 4 immediately before resetting.
+The fault receipt was recovered by loading the identical image; the gate does
+not silently retry. Indexed selection, planning and Play were not reached.
+Both peripherals remained on the ESP32, so no Pico physical sensor success is
+claimed. This is a lower bound: display and full admission/control Root are
+omitted. Their addition cannot rescue this owned-preparation strategy; this
+does not establish an irreducible hardware limit for a different lowering.
+
+Initial capture SHA-256:
+`300b5b25d187c7640078ee093766c2883208ef5c371e4fa5ab19205ffc56e412`.
+Recovered fault SHA-256:
+`ba35571d9039f573addc68900b15370a10164535814d64ee772fff200758da12`.
+The final formatted-source ELF SHA-256 is
+`dcd2690b75ab4429a8626479288dbb95903b0ec9a1f0e250af2f4403f32d52a3`;
+its repeated physical capture is
+`4245f102a05c812f0b43b2d2ad2dd1ade9221cc274a48543326dacdda6fb9f04`,
+and its recovered fault receipt has the same checksum and measurements.
+Its flash/static-RAM sizes are identical. Images, raw captures, owner secrets
+and recovery material remain outside Git.
+
+## Earlier self-contained ESP32 checkpoint
+
+**The owned-offer preparation path did not fit. No native sample or physical
+Show was reached in these earlier self-contained runs.**
 
 The diagnostic ran on ESP32 rev 3.1, MAC `b0:a7:32:28:61:78`, 4 MiB flash,
 using published source `3fbb3845e45bd424b3762167094d672b1036991a` plus the

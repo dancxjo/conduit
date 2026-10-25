@@ -7,6 +7,8 @@ mod environment_body_image;
 mod environment_esp32;
 #[path = "environment_face_publication.rs"]
 mod environment_face_publication;
+#[path = "environment_host_owned.rs"]
+mod environment_host_owned;
 #[path = "environment_output.rs"]
 mod environment_output;
 #[path = "environment_source.rs"]
@@ -28,6 +30,9 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if let Some(result) = environment_host_owned::dispatch(&root, arguments) {
+        return result;
+    }
     if arguments == ["body-image"] {
         return environment_body_image::prove(&root);
     }
