@@ -42,7 +42,9 @@ struct Instruction {
 enum Operation {
     Input,
     Literal(Vec<u8>),
+    ProjectedInput { start: u32, length: u32 },
     Unary(UnaryOperator, usize),
+    Widen(usize),
     Binary(BinaryOperator, bool, usize, usize),
     BranchFalse(usize, usize),
     Jump(usize),
@@ -67,12 +69,13 @@ fn supported(kind: PrimitiveInfoKind) -> bool {
 impl ScalarTape {
     pub(super) fn prepare(root: &PreparedNode) -> Result<Self, Refusal> {
         let mut tape = Self {
-            instructions: Vec::with_capacity(MAXIMUM_INSTRUCTIONS),
+            instructions: Vec::new(),
             result: 0,
             scratch: ScratchProfile::Maximum,
         };
         tape.result = tape.lower(root)?;
         tape.scratch = ScratchProfile::prepare(tape.instructions.len());
+        tape.instructions.shrink_to_fit();
         Ok(tape)
     }
     fn push(&mut self, kind: PrimitiveInfoKind, operation: Operation) -> Result<usize, Refusal> {
@@ -97,9 +100,16 @@ impl ScalarTape {
         }
         let operation = match &node.operation {
             PreparedOperation::Input => Operation::Input,
+            PreparedOperation::Projection(selection) => {
+                let (start, length) = selection.fixed_leaf().ok_or_else(|| {
+                    Refusal::UnsupportedType("scalar-tape/variable-projection@1".into())
+                })?;
+                Operation::ProjectedInput { start, length }
+            }
             PreparedOperation::Literal(bytes) if bytes.len() <= 16 => {
                 Operation::Literal(bytes.clone())
             }
+            PreparedOperation::Widen(operand) => Operation::Widen(self.lower(operand)?),
             PreparedOperation::Unary { operator, operand } => {
                 Operation::Unary(*operator, self.lower(operand)?)
             }
@@ -182,7 +192,22 @@ impl ScalarTape {
                     PrimitiveValue::borrowed(instruction.kind, input)?
                 }
                 Operation::Literal(bytes) => PrimitiveValue::borrowed(instruction.kind, bytes)?,
+                Operation::ProjectedInput { start, length } => {
+                    let node = input
+                        .get(*start as usize..*start as usize + *length as usize)
+                        .ok_or(Refusal::InvalidInput)?;
+                    let [0, a, b, c, d, bytes @ ..] = node else {
+                        return Err(Refusal::InvalidInput);
+                    };
+                    if bytes.len() != u32::from_le_bytes([*a, *b, *c, *d]) as usize {
+                        return Err(Refusal::InvalidInput);
+                    }
+                    PrimitiveValue::borrowed(instruction.kind, bytes)?
+                }
                 Operation::Unary(op, index) => evaluate_unary(*op, instruction.kind, get(*index)?)?,
+                Operation::Widen(index) => {
+                    primitive::evaluate_widen(instruction.kind, get(*index)?)?
+                }
                 Operation::Binary(op, proven, left, right) => {
                     evaluate_binary(*op, *proven, instruction.kind, get(*left)?, get(*right)?)?
                 }
@@ -261,7 +286,9 @@ impl PreparedPortableExpressionEvaluator {
 // retain their validation programs. Unwrapping its representation would erase
 // those laws, including assumptions used by proven arithmetic. Such profiles
 // need a retained validation witness before this Back can admit them.
-fn require_intrinsic_type(value_type: &conduit_core::StructuredInfoType) -> Result<(), Refusal> {
+pub(super) fn require_intrinsic_type(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Result<(), Refusal> {
     match value_type.shape() {
         StructuredInfoTypeShape::Leaf(_) => Ok(()),
         StructuredInfoTypeShape::Nominal { .. } => Err(Refusal::UnsupportedType(
@@ -278,7 +305,7 @@ fn require_intrinsic_type(value_type: &conduit_core::StructuredInfoType) -> Resu
     }
 }
 
-fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Refusal> {
+pub(super) fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Refusal> {
     require_intrinsic_type(&node.value_type)?;
     match &node.operation {
         PortableExpressionOperation::ValueContract { value: operand, .. }
@@ -298,7 +325,18 @@ fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Ref
             require_intrinsic_node_types(when_true)?;
             require_intrinsic_node_types(when_false)
         }
-        // Other composite operations already refuse during tape lowering.
+        PortableExpressionOperation::Projection { value, .. }
+        | PortableExpressionOperation::Variant { payload: value, .. } => {
+            require_intrinsic_node_types(value)
+        }
+        PortableExpressionOperation::Tuple(values)
+        | PortableExpressionOperation::Collection(values)
+        | PortableExpressionOperation::SemanticCall {
+            arguments: values, ..
+        } => values.iter().try_for_each(require_intrinsic_node_types),
+        PortableExpressionOperation::Record(fields) => fields
+            .iter()
+            .try_for_each(|(_, value)| require_intrinsic_node_types(value)),
         _ => Ok(()),
     }
 }

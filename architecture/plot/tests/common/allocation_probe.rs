@@ -12,6 +12,15 @@ pub struct Observation {
     pub requested_bytes: usize,
     live_bytes: usize,
 }
+impl Observation {
+    #[allow(
+        dead_code,
+        reason = "shared probe; only compaction tests inspect retained payload"
+    )]
+    pub fn retained_bytes(&self) -> usize {
+        self.live_bytes
+    }
+}
 thread_local! {
     static TRACKING: Cell<bool> = const { Cell::new(false) };
     static OBSERVATION: Cell<Observation> = const { Cell::new(Observation { allocations: 0, reallocations: 0, deallocations: 0, peak_bytes: 0, requested_bytes: 0, live_bytes: 0 }) };

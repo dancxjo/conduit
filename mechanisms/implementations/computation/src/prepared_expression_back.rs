@@ -38,7 +38,7 @@ impl PreparedExpressionBack {
     pub fn prepare(program: &PortableExpressionProgram) -> Result<Self, String> {
         let (maximum_input_bytes, maximum_output_bytes) = prepared_expression_bounds(program)?;
         Ok(Self {
-            evaluator: PreparedPortableExpressionEvaluator::new(program)
+            evaluator: PreparedPortableExpressionEvaluator::new_compact(program)
                 .map_err(|e| format!("prepare local expression: {e:?}"))?,
             maximum_input_bytes,
             maximum_output_bytes,

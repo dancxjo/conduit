@@ -8,6 +8,7 @@ use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
+mod compact;
 mod equality;
 mod evaluate;
 mod fixed_projection;
@@ -60,8 +61,10 @@ pub struct PreparedPortableExpressionEvaluator {
     root: PreparedRoot,
     input: PreparedInput,
     input_maximum_bytes: Option<u32>,
-    input_value_contract: Option<conduit_core::CheckedValueContract>,
-    output_value_contract: Option<conduit_core::CheckedValueContract>,
+    // Most computations have no boundary predicates. Reserve their decoded
+    // contracts only when present, rather than two full inline descriptors.
+    input_value_contract: Option<Box<conduit_core::CheckedValueContract>>,
+    output_value_contract: Option<Box<conduit_core::CheckedValueContract>>,
     output: Vec<u8>,
 }
 
@@ -109,7 +112,7 @@ enum PreparedRoot {
         nominal_type: Option<Vec<u8>>,
     },
     Primitive {
-        node: PreparedNode,
+        node: Box<PreparedNode>,
         nominal_type: Option<Vec<u8>>,
     },
     Structured(PreparedStructuredExpression),
@@ -312,8 +315,8 @@ impl PreparedPortableExpressionEvaluator {
     ) -> Result<Self, Refusal> {
         let (input_contract, output_contract, body) =
             crate::expression_program::value_contract::boundary(program.root);
-        let input_value_contract = input_contract.cloned();
-        let output_value_contract = output_contract.cloned();
+        let input_value_contract = input_contract.cloned().map(Box::new);
+        let output_value_contract = output_contract.cloned().map(Box::new);
         let program = ProgramView {
             root: body,
             ..program
@@ -327,7 +330,7 @@ impl PreparedPortableExpressionEvaluator {
                     return Err(Refusal::InvalidProgram);
                 }
                 PreparedRoot::Primitive {
-                    node: root,
+                    node: Box::new(root),
                     nominal_type: matches!(
                         program.output_type.shape(),
                         StructuredInfoTypeShape::Nominal { .. }

@@ -2,6 +2,7 @@
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     for (manifest, test) in [
+        ("architecture/plot/Cargo.toml", "compact_scalar_children"),
         ("bodies/environment/make/Cargo.toml", "display_output"),
         ("bodies/environment/make/Cargo.toml", "display_compact"),
         (
@@ -9,6 +10,14 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
             "display_compact_kernel",
         ),
         ("bodies/environment/runtime/Cargo.toml", "display_packets"),
+        (
+            "bodies/environment/runtime/Cargo.toml",
+            "observation_templates",
+        ),
+        (
+            "bodies/environment/runtime/Cargo.toml",
+            "display_value_budget",
+        ),
         (
             "bodies/environment/runtime/Cargo.toml",
             "display_frame_material",
@@ -24,6 +33,9 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
                 "--test",
                 test,
             ]);
+            if manifest == "bodies/environment/runtime/Cargo.toml" {
+                command.args(["--features", "display-output"]);
+            }
             if operation == "clippy" {
                 command.args(["--", "-D", "warnings"]);
             }

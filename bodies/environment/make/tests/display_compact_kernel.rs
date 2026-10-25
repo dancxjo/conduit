@@ -9,9 +9,21 @@ use conduit_core as c;
 use conduit_embedded_build as b;
 use conduit_environment_make::{DisplayOutputSource, DisplaySourceMaterial, PreparedDisplayOutput};
 use conduit_environment_runtime::{assigned::ResidentLayout, display_output::*};
-use conduit_kernel::{self as k, scheduler::SchedulerStatus};
+use conduit_kernel::{self as k, scheduler::SchedulerStatus, ValueStorage};
 #[test]
 fn compact_owner_refuses_foreign_scope_then_executes_the_checked_output() {
+    for brightness in [0, 3, 7, 8, 255] {
+        for frames in [1, 2] {
+            for cancel_at in [None, Some(0), Some(3), Some(9)] {
+                run(brightness, frames, cancel_at, false);
+            }
+        }
+    }
+    for frames in [1, 2] {
+        run(3, frames, None, true);
+    }
+}
+fn run(brightness: u8, frames: u32, cancel_at: Option<usize>, native_failure: bool) {
     let source = DisplayOutputSource::compile().unwrap();
     let material = DisplaySourceMaterial::prepare(&source).unwrap();
     let fixture = fixture::fixture(&source);
@@ -104,9 +116,13 @@ fn compact_owner_refuses_foreign_scope_then_executes_the_checked_output() {
         maxima,
     };
     let stores = || {
-        let signs = DisplaySignBudget::derive(1, profile.sign_items, profile.sign_bytes).unwrap();
+        let signs =
+            DisplaySignBudget::derive(frames, profile.sign_items, profile.sign_bytes).unwrap();
         (
-            k::HostedValueStore::new(12, 651, 12 * 651).unwrap(),
+            DisplayValueBudget::derive(frames, 651)
+                .unwrap()
+                .prepare()
+                .unwrap(),
             k::HostedSignLog::new_with_remote_storage(
                 signs.ordinary_items(),
                 signs.ordinary_bytes(),
@@ -126,7 +142,7 @@ fn compact_owner_refuses_foreign_scope_then_executes_the_checked_output() {
             generation: host.offer_generation
         },
         &mut software,
-        1,
+        frames,
         values,
         signs
     )
@@ -149,7 +165,7 @@ fn compact_owner_refuses_foreign_scope_then_executes_the_checked_output() {
             generation: host.offer_generation,
         },
         &mut software,
-        1,
+        frames,
         values,
         signs,
     )
@@ -164,13 +180,15 @@ fn compact_owner_refuses_foreign_scope_then_executes_the_checked_output() {
     );
     let mut frame =
         conduit_environment_runtime::display_packets::PreparedDisplayFrame::prepare().unwrap();
-    let canonical = frame.encode([6, 91, 79, 102, 0, 0], 3, true).unwrap();
+    let canonical = frame
+        .encode([6, 91, 79, 102, 0, 0], brightness, true)
+        .unwrap();
     let endpoint = k::RemoteEndpointId(prepared.input.endpoint());
     let cord = k::CordId(prepared.input.cord());
     let mut packet_encoder =
         conduit_environment_runtime::display_packets::PreparedDisplayPackets::prepare().unwrap();
     let expected = packet_encoder
-        .encode_canonical([6, 91, 79, 102, 0, 0], 3, true)
+        .encode_canonical([6, 91, 79, 102, 0, 0], brightness.min(7), true)
         .unwrap()
         .to_vec();
     let ((), memory) = allocation_probe::observe(|| {
@@ -178,12 +196,33 @@ fn compact_owner_refuses_foreign_scope_then_executes_the_checked_output() {
             .kernel
             .admit_remote_input(endpoint, cord, 0, canonical)
             .unwrap();
-        prepared.kernel.close_remote_input(endpoint, cord).unwrap();
+        let mut submitted = 1;
+        let mut closed = false;
         let mut writes = 0;
         let mut drained = false;
-        for _ in 0..128 {
+        for step in 0..256 {
+            if cancel_at == Some(step) {
+                prepared.kernel.cancel().unwrap();
+                assert_eq!(prepared.kernel.values().used_items(), 0);
+                return;
+            }
+            if submitted < frames {
+                match prepared
+                    .kernel
+                    .admit_remote_input(endpoint, cord, u64::from(submitted), canonical)
+                    .unwrap()
+                {
+                    k::scheduler::RemoteIngressOutcome::Accepted { .. } => submitted += 1,
+                    k::scheduler::RemoteIngressOutcome::Full { .. } => (),
+                }
+            }
+            if submitted == frames && !closed {
+                prepared.kernel.close_remote_input(endpoint, cord).unwrap();
+                closed = true;
+            }
             let status = prepared.kernel.step().unwrap();
             if let Some(request) = prepared.kernel.next_host_request() {
+                let fail_native = request.node == prepared.write && native_failure;
                 let bytes = prepared.kernel.host_value(request.input.value).unwrap();
                 let output = if request.node == prepared.write {
                     assert_eq!(bytes, expected.as_slice());
@@ -209,12 +248,38 @@ fn compact_owner_refuses_foreign_scope_then_executes_the_checked_output() {
                         request.node,
                         request.request,
                         k::HostCallOutcome {
-                            disposition: k::HostCallDisposition::Completed,
+                            disposition: if fail_native {
+                                k::HostCallDisposition::Failed
+                            } else {
+                                k::HostCallDisposition::Completed
+                            },
                             output,
-                            failure: None,
+                            failure: fail_native.then_some(k::Failure {
+                                code: k::FailureCode::HostCallFailed,
+                                detail: 1,
+                            }),
                         },
                     )
                     .unwrap();
+                if fail_native {
+                    prepared.kernel.cancel().unwrap();
+                    assert_eq!(prepared.kernel.values().used_items(), 0);
+                    return;
+                }
+            }
+            if step >= 32 {
+                let endpoint = k::RemoteEndpointId(prepared.refusal.endpoint());
+                let cord = k::CordId(prepared.refusal.cord());
+                if let Some(offer) = prepared.kernel.remote_egress_offer(endpoint, cord).unwrap() {
+                    prepared
+                        .kernel
+                        .remote_egress_accept(endpoint, cord, offer.sequence)
+                        .unwrap();
+                    prepared
+                        .kernel
+                        .remote_egress_delivered(endpoint, cord, offer.sequence)
+                        .unwrap();
+                }
             }
             if status == SchedulerStatus::Drained {
                 drained = true;
@@ -222,7 +287,7 @@ fn compact_owner_refuses_foreign_scope_then_executes_the_checked_output() {
             }
         }
         assert!(drained);
-        assert_eq!(writes, 1);
+        assert_eq!(writes, if brightness <= 7 { frames } else { 0 });
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }

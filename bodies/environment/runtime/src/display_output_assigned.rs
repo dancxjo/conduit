@@ -62,11 +62,13 @@ impl<S: k::ValueStorage, L: k::SignSink> PreparedAssignedDisplayKernel<S, L> {
         let sign_budget =
             DisplaySignBudget::derive(maximum_frames, profile.sign_items, profile.sign_bytes)
                 .map_err(|_| E::Bounds)?;
+        let value_budget = DisplayValueBudget::derive(maximum_frames, profile.maximum_value_bytes)
+            .map_err(|_| E::Bounds)?;
         if maximum_frames == 0
-            || values.item_capacity() < 12
+            || values.item_capacity() < value_budget.items()
             || profile.maximum_value_bytes == 0
             || profile.maximum_value_bytes > 1024
-            || values.byte_capacity() < 12 * profile.maximum_value_bytes
+            || values.byte_capacity() < value_budget.bytes()
             || values.used_items() != 0
             || values.used_bytes() != 0
             || profile.sign_items == 0

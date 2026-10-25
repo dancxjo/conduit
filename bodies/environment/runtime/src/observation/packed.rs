@@ -2,17 +2,18 @@
 //! These bytes are representation material, not a new observation Type or a
 //! self-identifying transport record. The selected session must retain the exact
 //! semantic contract and both Form identities, plus its independent provenance.
-use super::{field, forms, ObservationContract, ObservationRefusal, MAXIMUM_BYTES};
+use super::{
+    forms, template::QuantityTemplate, ObservationContract, ObservationRefusal, MAXIMUM_BYTES,
+};
+use crate::canonical_input::PreparedCanonicalInput;
 use conduit_core::{
-    validate_canonical_structured_value as validate, PreparedStructuredComposer as Composer,
-    PreparedStructuredValueValidator, Quantity, StructuredInfoRefusal as R, QUANTITY_ENCODED_LEN,
+    validate_canonical_structured_value as validate, PreparedStructuredValueValidator, Quantity,
+    StructuredInfoRefusal as R,
 };
 
 pub struct PreparedObservationQuantityForms {
-    validator: PreparedStructuredValueValidator,
-    temperature: Composer,
-    humidity: Composer,
-    observation: Composer,
+    validator: PreparedCanonicalInput,
+    observation: QuantityTemplate<false>,
 }
 impl PreparedObservationQuantityForms {
     pub const TEMPERATURE_FORM_ID: &'static str = forms::DeviceDht11TemperatureForm::IDENTITY;
@@ -22,15 +23,17 @@ impl PreparedObservationQuantityForms {
 
     pub fn prepare(contract: &ObservationContract) -> Result<Self, R> {
         let ty = contract.observation_type();
-        let leaf = |name| {
-            let ty = field(ty, name)?;
-            Composer::new(ty, ty.canonical_bytes()?.len() + 5 + QUANTITY_ENCODED_LEN)
-        };
+        drop(PreparedStructuredValueValidator::new(
+            ty,
+            MAXIMUM_BYTES as usize,
+        )?);
         Ok(Self {
-            validator: PreparedStructuredValueValidator::new(ty, MAXIMUM_BYTES as usize)?,
-            temperature: leaf("temperature")?,
-            humidity: leaf("humidity")?,
-            observation: Composer::new(ty, MAXIMUM_BYTES as usize)?,
+            validator: PreparedCanonicalInput::with_static_schema(
+                ty,
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation.type")),
+                MAXIMUM_BYTES as usize,
+            )?,
+            observation: QuantityTemplate::prepare(ty)?,
         })
     }
 
@@ -64,12 +67,8 @@ impl PreparedObservationQuantityForms {
         }
         let temperature = forms::DeviceDht11TemperatureForm::decode(&packed[..2])?;
         let humidity = forms::DeviceDht11HumidityForm::decode(&packed[2..])?;
-        self.temperature.leaf(&temperature.encode())?;
-        self.humidity.leaf(&humidity.encode())?;
-        self.observation.record(&[
-            validate(self.humidity.encoded())?,
-            validate(self.temperature.encoded())?,
-        ])?;
-        Ok(self.observation.encoded())
+        self.observation
+            .quantities(temperature, humidity)
+            .map_err(Into::into)
     }
 }

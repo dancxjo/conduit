@@ -82,7 +82,11 @@ fn node_bytes(ty: &Type, depth: u8) -> Option<usize> {
     match ty.shape() {
         Shape::Leaf(kind) => {
             let kind = conduit_core::primitive_info_kind(kind.as_str())?;
-            let length = conduit_core::fixed_integer_bytes(kind);
+            let length = if kind == conduit_core::PrimitiveInfoKind::Count {
+                conduit_core::COUNT_ENCODED_LEN
+            } else {
+                conduit_core::fixed_integer_bytes(kind)
+            };
             if length != 0 {
                 5usize.checked_add(length)
             } else if kind == conduit_core::PrimitiveInfoKind::Bool {

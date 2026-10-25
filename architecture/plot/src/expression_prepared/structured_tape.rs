@@ -25,6 +25,12 @@ pub(super) struct StructuredTape {
     values: Vec<PreparedChild>,
 }
 impl StructuredTape {
+    pub(super) fn compact_scalars(&mut self) {
+        for value in &mut self.values {
+            value.evaluator.compact_scalars();
+        }
+    }
+
     /// Optimization eligibility is not a new program-acceptance rule. Bounded
     /// compiler refusal leaves ordinary preparation to report its own result.
     pub(super) fn prepare(program: ProgramView<'_>, input: &PreparedInput) -> Option<Self> {

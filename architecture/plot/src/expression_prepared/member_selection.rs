@@ -160,6 +160,12 @@ pub(super) fn prepare(
     })
 }
 impl PreparedMemberSelection {
+    /// Checked location; only usable after the enclosing evaluator validates
+    /// the entire input and its exact Type. Variable layouts retain their path.
+    pub(super) fn fixed_leaf(&self) -> Option<(u32, u32)> {
+        self.fixed
+    }
+
     pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
         if let Some((start, length)) = self.fixed {
             // Whole-input validation and checked geometry establish the leaf

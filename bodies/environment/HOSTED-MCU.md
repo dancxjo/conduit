@@ -65,9 +65,9 @@ retains the display computations and Fahrenheit/RH Look beside the running
 native sampler. Authenticated control replies include `display_fit` telemetry
 with explicit `physical_write: false` and `mask_play_installed: false`.
 This is a fit checkpoint, not an enabled physical display. After selector and
-Source compaction, measured free Root memory narrowly exceeds the existing
+Source compaction, measured free Root memory exceeds the existing
 output-kernel preparation gate; combined admission and physical output remain
-unproved. See [the target measurements](make/TARGET_CHECKPOINT.md#further-compaction-with-the-resident-task-planner).
+unproved. See [the target measurements](make/TARGET_CHECKPOINT.md#compiled-scalar-and-observation-lowering).
 
 The focused CPU construction/output proof, including exact offer equivalence,
 stale-scope refusal, packet equivalence and allocation-free execution, enters
@@ -86,7 +86,9 @@ This produces a UF2 in `target/environment-rp2040/thumbv6m-none-eabi/release/`.
 It is a memory checkpoint, not a full Host deployment. Its actual PIO GP2
 capture provider, initialized monotonic timer, installed Body, resident sampler
 software and active Pico W AP remain retained during owned-offer and indexed
-Source preparation. The heap is fixed at 196 KiB; the stack floor is 36 KiB.
+Source preparation. The maximal diagnostic uses a fixed 212 KiB heap; the
+stack floor remains 36 KiB. The checkpoint also retains an unchanged-196-KiB
+comparison so heap growth is separate from compiler savings.
 It starts no Play. DHT/display wiring can remain on the ESP32.
 
 The gate is a lower bound: it omits display and the complete admission/control

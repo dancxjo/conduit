@@ -43,23 +43,44 @@ struct PreparedChild {
 enum ChildEvaluator {
     Constant { encoded: Vec<u8> },
     Dynamic(Box<PreparedPortableExpressionEvaluator>),
+    Scalar(Box<super::compact::ScalarChild>),
 }
 impl ChildEvaluator {
+    fn compact_scalars(&mut self) {
+        let Self::Dynamic(evaluator) = self else {
+            return;
+        };
+        evaluator.compact_scalars();
+        if evaluator.scalar_child_eligible() {
+            let Self::Dynamic(evaluator) = core::mem::replace(
+                self,
+                Self::Constant {
+                    encoded: Vec::new(),
+                },
+            ) else {
+                unreachable!("preflighted dynamic child")
+            };
+            *self = Self::Scalar(Box::new(super::compact::ScalarChild::take(*evaluator)));
+        }
+    }
+
     fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
         match self {
             Self::Constant { encoded, .. } => Ok(encoded),
             Self::Dynamic(evaluator) => evaluator.evaluate(input),
+            Self::Scalar(evaluator) => evaluator.evaluate(input),
         }
     }
     fn output_bytes(&self) -> &[u8] {
         match self {
             Self::Constant { encoded, .. } => encoded,
             Self::Dynamic(evaluator) => evaluator.output_bytes(),
+            Self::Scalar(evaluator) => evaluator.output_bytes(),
         }
     }
     fn output_type_prefix(&self) -> Option<&[u8]> {
         match self {
-            Self::Constant { .. } => None,
+            Self::Constant { .. } | Self::Scalar(_) => None,
             Self::Dynamic(evaluator) => evaluator.output_type_prefix(),
         }
     }
@@ -70,6 +91,33 @@ enum ChildOutput {
 }
 
 impl PreparedStructuredExpression {
+    pub(super) fn compact_scalars(&mut self) {
+        match &mut self.shape {
+            PreparedShape::Tape(tape) => tape.compact_scalars(),
+            PreparedShape::Record(fields) => {
+                for field in fields {
+                    field.value.evaluator.compact_scalars();
+                }
+            }
+            PreparedShape::Collection(values) => {
+                for value in values {
+                    value.evaluator.compact_scalars();
+                }
+            }
+            PreparedShape::Variant { payload, .. } => payload.evaluator.compact_scalars(),
+            PreparedShape::Conditional {
+                condition,
+                when_true,
+                when_false,
+            } => {
+                condition.evaluator.compact_scalars();
+                when_true.evaluator.compact_scalars();
+                when_false.evaluator.compact_scalars();
+            }
+            _ => (),
+        }
+    }
+
     pub(super) fn type_prefix(&self) -> &[u8] {
         &self.type_prefix
     }

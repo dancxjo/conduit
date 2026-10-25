@@ -1,7 +1,8 @@
 # MCU delivery checkpoints — 2026-10-25
 
 **The ESP32 sampler now runs natively as a member of a Linux-owned Body.**
-Self-contained owned-offer preparation still fails on ESP32 and the Pico W.
+The earlier self-contained ESP32 preparation failed; the current native sampler
+uses the Linux owner. Pico comparative preparation remains separately measured below.
 The physical seven-segment display is not yet part of this native Body run.
 
 ## Linux first host, native ESP32 member
@@ -160,11 +161,81 @@ Immutable external prefixes under `~/.cache/conduit/`:
 The boot/preparation/sample memory figures remain attended instrumentation,
 not signed memory attestations. Signed publication custody is verified separately.
 
+## Compiled scalar and observation lowering
+
+The next pass lowers admitted intrinsic scalar children to finite tapes,
+including fixed-field reads, checked integer widening and lazy branches. Tape
+instruction storage follows the lowered count rather than reserving 128 entries.
+The ordinary evaluator remains the fallback for unsupported/native-law profiles;
+this optimization supplies no new native-law witness. Actual boundary predicates
+remain retained and checked. Their descriptors and recursive scalar roots are
+boxed only where needed, avoiding permanent spare inline capacity in every
+computation.
+
+Make now derives immutable observation framing and quantity locations through
+ordinary canonical constructors. The runtime decodes the same authored Forms,
+keeps Temperature and Ratio values, and constructs one canonical output. It
+borrows its exact input schema from linked storage. The four-byte quantity Form
+codec shares this representation lowering. It is not a new observation Type or
+self-identifying wire format. An independent ordinary-constructor oracle checks
+all failure variants and positive/negative quantities byte for byte. Conversion,
+Form round trips and scalar evaluation allocate nothing during execution.
+
+For the pinned display graph, each admitted frame can create at most four
+historical values, including both selector outcomes. One extra slot covers a
+staged output; fan-out and pending calls retain references. The two-frame
+preparation profile therefore needs nine slots instead of twelve. The bound
+retains the exclusive finite Fore requirement and covers pressure, delayed
+refusal delivery, native failure and cancellation. Larger work retains the
+previous twelve-slot profile. This is not a general graph liveness allocator.
+
+| Same combined ESP32 profile | Before this pass | After |
+| --- | ---: | ---: |
+| Initialized Root used | 67,040 | 53,344 |
+| Initialized Root peak | 79,208 | 77,800 |
+| Sampler/Face/output-software/Mask Root used and peak | 94,428 | 80,732 |
+| Root free before output assignment | 24,340 | 38,036 |
+| Additional output-kernel preparation gate | 23,660 | 21,659 |
+| Gate margin before output staging | 680 | 16,377 |
+| CPU retained output software | 9,084 | 8,156 |
+| CPU output preparation peak | 68,593 | 68,579 |
+| Application flash bytes | 2,450,512 | 2,456,192 |
+
+The ESP32 retains its 118,768-byte Root heap, isolated 73,728-byte SDK reservation
+and unchanged 36,864-byte stack floor. SDK samples used 33,408–33,716 bytes with
+34,036 observed peak. Three consecutive physical DHT11 publications passed
+current-Boot signature, Type, sequence and freshness verification at stable Root
+usage. The local indexed task planner and the reviewed package/symbol guards
+remain present. The 5,680-byte flash increase buys 13,696 bytes of Root savings;
+the image is still smaller than the earlier 2,491,008-byte combined checkpoint.
+**Combined physical display execution and solo Body/sampler planning remain
+unproved.** Cross-Plot arena sharing and compact representation on kernel cords
+are not implemented by this pass.
+
+External final artifacts under `~/.cache/conduit/`:
+
+- `esp32-compact-native-20261025.elf`: SHA-256 `7e2b5913736c8193555f50563d9e454cdae7a646bce1b21a941869500d503003`.
+- `esp32-compact-native-image.bin`: SHA-256 `5d97da3d5d3b14d09f7d521169b3eb7589dc8da82e072a9c111cd8f8c188fdb6`.
+- `compact-native-final-native-control.ndjson`: SHA-256 `2d36311fb1a51ea64a2614803761f498d98befb5daf01e3ac95c5bcef315f418`.
+- `compact-native-final-native-observations.ndjson`: SHA-256 `f35b2c80615fb59705e0b3bde21a674d34413f399795bb5256c3417dd09f495d`.
+
+The immutable evidence prefix belongs to private run
+`~/.local/share/conduit/environment-host-20261025/runs/cf152f93-803a-4b7a-81ac-c003c315d115/`.
+Memory telemetry is attended instrumentation, separately from signed publication
+custody. A later 35-publication prefix reports Root used 80,732–80,860 bytes
+and peak 80,876; SDK used 33,408–34,504 bytes and peak 45,728. The earlier
+three-sample table is not a worst-case network allocation bound. This prefix is
+`~/.cache/conduit/compact-native-35-publications.log`, SHA-256
+`f64c66b94faae8d5434e1afc4e76d4b797319d0ebd5e682a89de63ce456d8048`.
+These are focused compiler/runtime and physical-sampling results, not
+an overnight soak or a full workspace/integration claim.
+
 ## Pico W comparative owned-preparation gate
 
 Actual flash UID `e6639c758f78952c`; 2 MiB flash, 264 KiB RAM. The checkpoint
-links 1,990,248 flash bytes, 208,172 static RAM bytes including a fixed
-200,704-byte heap, leaving 62,020 bytes above `.uninit` for the stack. The
+links 1,990,248 flash bytes, 208,172 `.bss`/`.uninit` bytes plus 144 bytes
+of initialized data, including a fixed 200,704-byte heap. It leaves 62,020
+bytes above `.uninit` for the stack. The
 36,864-byte stack floor is unchanged. It installs the same retained Saito Minato
 Body under the actual Pico Host/Boot, retaining actual GP2 PIO/DMA capture and
 monotonic-wait owners, checked resident software, active AP and HTTP storage.
@@ -197,6 +268,41 @@ its repeated physical capture is
 and its recovered fault receipt has the same checksum and measurements.
 Its flash/static-RAM sizes are identical. Images, raw captures, owner secrets
 and recovery material remain outside Git.
+
+## Pico W after compiled observation lowering
+
+The same 196 KiB heap now retains 45,284 bytes for Body/software, 80,192 with
+radio, and 142,172 with all 13 owned offers (previously 165,456). It still fails
+while preparing Source gear 3: the recovered identical-image fault requests
+29,798 bytes at 174,316 retained / 174,884 peak, leaving 26,388 free. This is
+23,284 bytes of savings before Source preparation, with unchanged heap capacity.
+
+A separate maximal diagnostic profile uses 212 KiB (217,088 bytes), adding
+16 KiB of spare SRAM while retaining the 36,864-byte stack floor. It leaves
+45,636 stack bytes, versus 62,020 with the 196 KiB profile. It successfully
+loads Source gears 0–12, then fails before indexed selection. The last serial
+record is incomplete; the recovered fault is complete and reports 194,484
+retained / 204,308 peak, requesting 29,798 with 22,604 free. The remaining gap
+for that allocation is 7,194 bytes, before later planning/execution storage.
+This profile change is not credited as compiler savings.
+
+Flash spans are 1,992,348 and 1,992,332 bytes respectively. Total static SRAM
+including heap,
+initialized data and `.uninit` is 208,316 bytes for the unchanged profile and
+224,700 for the 212 KiB profile. Both retained actual PIO/timer providers,
+installed Body, resident software and active AP. Neither reached indexed
+selection, Plan or Play. Both peripherals remain on the ESP32. Display and the
+full admission/control Root remain omitted from this comparative lower bound.
+
+External artifacts under `~/.cache/conduit/`, SHA-256:
+
+- `pico-compact-native-20261025.elf`: `9a7dc3193819c91098e95abd30d288fe5dc7662266d4127b4e8c5b28755c4cd8`.
+- `pico-compact-native-physical.log`: `b402c2d889bed15472f37c28376dd1bea00df0271d743221bcb7ee19d4b21dad`.
+- `pico-compact-native-fault.log`: `0f52519c240560ba83897ad4b48ba9de4d9f690509932e05364143f45efbb94e`.
+- `pico-compact-212-20261025.elf`: `631ccc4219acb53adf0530d2a65e44514ca6ad44b121cd487d29255a692ad958`.
+- `pico-compact-212-20261025.uf2`: `28b92fa3142224abeef7bdbfac826814987f5c3335645581ae68d82f01e03381`.
+- `pico-compact-212-physical.log`: `d6e2a4cec9a23e5bca3464e9cbceb38d4d3c3e064dea40098a2b4beb1a0fdd2b`.
+- `pico-compact-212-fault.log`: `ec8eca7e1195ff09635e10eb44ff59ecce162499fa3034109cbbd6a2b54373be`.
 
 ## Earlier self-contained ESP32 checkpoint
 

@@ -27,6 +27,9 @@ pub use validation::ValidatedAssignedDisplay;
 #[path = "display_signs.rs"]
 mod signs;
 pub use signs::{DisplaySignBudget, SignBudgetRefusal};
+#[path = "display_values.rs"]
+mod values;
+pub use values::DisplayValueBudget;
 pub enum DisplayBack {
     Software(ApplianceBack),
     Write(WriteBack),

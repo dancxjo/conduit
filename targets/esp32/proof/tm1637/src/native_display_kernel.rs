@@ -32,12 +32,10 @@ pub fn prepare(
     if available_bytes < needed {
         return Err("display-kernel-capacity");
     }
-    let values = k::HostedValueStore::new(
-        12,
-        profile.maximum_value_bytes,
-        12 * profile.maximum_value_bytes,
-    )
-    .map_err(|_| "display-values")?;
+    let values = DisplayValueBudget::derive(maximum_frames, profile.maximum_value_bytes)
+        .map_err(|_| "display-values")?
+        .prepare()
+        .map_err(|_| "display-values")?;
     let signs = k::HostedSignLog::new_with_remote_storage(
         signs.ordinary_items(),
         signs.ordinary_bytes(),
@@ -92,7 +90,8 @@ pub fn requirements(
     if maximum_value_bytes == 0 || maximum_value_bytes > 1024 {
         return Err("display-value-extent");
     }
-    let values = k::HostedValueStore::canonical_storage_bytes([maximum_value_bytes; 12])
+    let values = DisplayValueBudget::derive(signs.maximum_frames(), maximum_value_bytes)
+        .and_then(DisplayValueBudget::storage_bytes)
         .map_err(|_| "display-values")?;
     let needed = values
         + signs.storage_bytes().ok_or("display-signs")?
