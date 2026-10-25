@@ -11,6 +11,8 @@ use conduit_face::{
 mod field_values;
 #[path = "fixtures.rs"]
 mod fixtures;
+#[path = "recipe_placement_tests.rs"]
+mod recipe_placement;
 use fixtures::{basis, draft, host_owned_basis};
 fn input(
     draft: &BirthDraft,
