@@ -1,0 +1,94 @@
+# Portable descriptive check Info. These values cannot construct compiler owners,
+# admit a Plan/Play or carry Source access/Host authority. Revision labels name
+# the reference custodian's immutable snapshots, not self-authenticating claims.
+type SourceCheckLabel = Text <= 256B not in [""]
+type SourceCheckDigest = Text <= 64B not in [""]
+type SourceCheckSnapshot = {
+    owner: SourceCheckLabel
+    generation: U64 in 1..=18446744073709551615
+    sha256: SourceCheckDigest
+    source_document_id: SourceCheckDigest
+}
+type SourceCheckContext = {
+    grammar_edition: SourceCheckLabel
+    catalog: SourceCheckLabel
+    kinds_fores: SourceCheckLabel
+    types_laws: SourceCheckLabel
+    backs: SourceCheckLabel
+}
+type SourceCheckLimits = {
+    diagnostics: U32 in 0..=16
+    diagnostic_bytes: U32 in 0..=16384
+    dependencies: U32 in 0..=1024
+    dependency_bytes: U32 in 0..=131072
+}
+type SourceCheckRequest = {
+    snapshot: SourceCheckSnapshot
+    context: SourceCheckContext
+    entry: SourceCheckLabel
+    limits: SourceCheckLimits
+}
+# UTF-8 byte extents plus one-based Unicode scalar line/column coordinates.
+# The reference derives all locations from the retained exact Source bytes.
+type SourceCheckSpan = {
+    start: U32 in 0..=1048576
+    end: U32 in 0..=1048576
+    line: U32 in 1..=1048577
+    column: U32 in 1..=1048577
+    end_line: U32 in 1..=1048577
+    end_column: U32 in 1..=1048577
+    where .start <= .end
+}
+type SourceCheckDiagnostic = {
+    code: Text <= 4096B not in [""]
+    summary: Text <= 4096B not in [""]
+    source_document_id: SourceCheckDigest
+    content_hash: SourceCheckDigest
+    primary_span: SourceCheckSpan?
+}
+type SourceCheckCandidate = {
+    checked_plot_id: SourceCheckDigest?
+    expanded_plot_id: SourceCheckDigest?
+}
+
+type SourceCheckOutcome =
+    accepted
+    | rejected
+type SourceCheckRealization =
+    absent
+type SourceCheckDependency = {
+    table: Text <= 32B not in [""]
+    key: Text <= 131072B
+}
+type SourceCheckDependencies =
+    observed {
+        checking: sequence SourceCheckDependency <= 1024
+        expansion: sequence SourceCheckDependency <= 1024
+    }
+    | whole_context
+
+type SourceCheckInfoV1 = {
+    schema_version: U16 in 1..=1
+    snapshot: SourceCheckSnapshot
+    context: SourceCheckContext
+    requested_entry: SourceCheckLabel
+    limits: SourceCheckLimits
+    check: SourceCheckOutcome
+    candidate: SourceCheckCandidate
+    diagnostics: sequence SourceCheckDiagnostic <= 16
+    dependencies: SourceCheckDependencies
+    plan: SourceCheckRealization
+    play: SourceCheckRealization
+}
+
+type SourceCheckRefusal =
+    invalid_snapshot
+    | source_bytes
+    | stale_source
+    | unknown_grammar
+    | unknown_context
+    | entry_bytes
+    | limits
+    | invalid_diagnostic_span
+    | diagnostic_overflow
+    | dependency_overflow
