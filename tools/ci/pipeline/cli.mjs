@@ -357,6 +357,9 @@ try {
   }
 } catch (error) {
   abandonProductCustody();
+  if (typeof error.result?.stderr === 'string' && error.result.stderr) {
+    console.error(error.result.stderr.slice(-8192));
+  }
   console.error(`FAILED: pipeline/${command}: ${error.message}`);
   process.exitCode = 1;
 }

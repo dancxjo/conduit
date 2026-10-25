@@ -95,5 +95,8 @@ jobs:
             ${{ runner.temp }}/conduit-hosted.*/snapshot.acquisition.json
             ${{ runner.temp }}/conduit-hosted.*/task/cargo-cache-receipt.json
             ${{ runner.temp }}/conduit-hosted.*/task/hello-proof.json
+            ${{ runner.temp }}/conduit-hosted.*/task/failure.json
+            ${{ runner.temp }}/conduit-hosted.*/task/resource-usage.txt
+            ${{ runner.temp }}/conduit-hosted.*/task/resolved-metadata.json
           if-no-files-found: error
           retention-days: 14

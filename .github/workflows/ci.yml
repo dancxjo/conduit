@@ -338,6 +338,8 @@ jobs:
             target/conduitos/**/*.json
             target/conduitos/**/*.png
             target/conduitos/x86_64/conduitos
+            ${{ runner.temp }}/conduit-hosted.*/task/failure.json
+            ${{ runner.temp }}/conduit-hosted.*/task/resource-usage.txt
           if-no-files-found: ignore
           retention-days: 7
   complete:
