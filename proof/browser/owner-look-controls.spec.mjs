@@ -91,3 +91,25 @@ test('fresh Faces preserve unfinished Look proposals until the acknowledged poli
   await expect(layout).toHaveValue('grouped');
   await expect(page.getByLabel('Minimum text size',{exact:true})).toHaveValue('200');
 });
+
+
+test('Patchbay appearance retains its node recipe across every Look and fresh Show', async ({ page }, info) => {
+  await mount(page, { body_id: 'patchbay/body', component: { ...shown.component,
+    recipe_identity: 'conduit.face/patchbay-nodes@1' } });
+  await expect(page.getByLabel('Layout', { exact: true })).toHaveValue('patchbay-nodes');
+  for (const [density, palette, look] of [['compact', 'editorial', 'compact-editorial'],
+    ['spacious', 'editorial', 'spacious'], ['spacious', 'phosphor', 'spacious-phosphor'],
+    ['compact', 'phosphor', 'compact']]) {
+    await page.getByLabel('Density', { exact: true }).selectOption(density);
+    await page.getByLabel('Palette', { exact: true }).selectOption(palette);
+    await page.getByRole('button', { name: 'Apply face', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => calls.at(-1))).toEqual({ look,
+      recipe: 'patchbay-nodes', minimumTextScalePercent: 200 });
+  }
+  await page.evaluate(view => lookControls.observe({ body_id: 'patchbay/body',
+    show_id: 'fresh/show', component: { ...view.component,
+      recipe_identity: 'conduit.face/patchbay-nodes@1' } }), shown);
+  await expect(page.getByLabel('Layout', { exact: true })).toHaveValue('patchbay-nodes');
+  await page.screenshot({ path: info.outputPath('patchbay-appearance-controls.png') });
+});

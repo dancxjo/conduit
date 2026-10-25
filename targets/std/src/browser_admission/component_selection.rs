@@ -28,14 +28,33 @@ pub enum BrowserComponentRecipe {
     Flat,
     Grouped,
     RequiredItem,
+    PatchbayNodes,
 }
 
-impl From<BrowserComponentRecipe> for TodoComponentRecipe {
-    fn from(value: BrowserComponentRecipe) -> Self {
-        match value {
-            BrowserComponentRecipe::Flat => Self::Flat,
-            BrowserComponentRecipe::Grouped => Self::Grouped,
-            BrowserComponentRecipe::RequiredItem => Self::RequiredItem,
+impl BrowserComponentRecipe {
+    /// The selected checked component owns structure; the Look only changes paint.
+    pub fn source_root(self, look: ComponentMaskLook) -> (&'static str, &'static str) {
+        use conduit_face::{
+            patchbay_component_mask_root, todo_component_mask_root, PATCHBAY_COMPONENT_MASK_SOURCE,
+            TODO_COMPONENT_MASK_SOURCE,
+        };
+        match self {
+            Self::PatchbayNodes => (
+                PATCHBAY_COMPONENT_MASK_SOURCE,
+                patchbay_component_mask_root(look),
+            ),
+            Self::Flat => (
+                TODO_COMPONENT_MASK_SOURCE,
+                todo_component_mask_root(look, TodoComponentRecipe::Flat),
+            ),
+            Self::Grouped => (
+                TODO_COMPONENT_MASK_SOURCE,
+                todo_component_mask_root(look, TodoComponentRecipe::Grouped),
+            ),
+            Self::RequiredItem => (
+                TODO_COMPONENT_MASK_SOURCE,
+                todo_component_mask_root(look, TodoComponentRecipe::RequiredItem),
+            ),
         }
     }
 }
@@ -44,6 +63,23 @@ impl From<BrowserComponentRecipe> for TodoComponentRecipe {
 mod tests {
     use super::*;
     use conduit_face::{ComponentVisualSelection, VisualDensity, VisualPalette};
+    #[test]
+    fn patchbay_selection_keeps_its_checked_structure_across_looks() {
+        let recipe: BrowserComponentRecipe = serde_json::from_str("\"patchbay-nodes\"").unwrap();
+        for look in [
+            ComponentMaskLook::Compact,
+            ComponentMaskLook::Spacious,
+            ComponentMaskLook::CompactEditorial,
+            ComponentMaskLook::SpaciousPhosphor,
+        ] {
+            let (source, root) = recipe.source_root(look);
+            assert_eq!(source, conduit_face::PATCHBAY_COMPONENT_MASK_SOURCE);
+            assert_eq!(root, conduit_face::patchbay_component_mask_root(look));
+            assert_ne!(source, BrowserComponentRecipe::Grouped.source_root(look).0);
+        }
+        assert_eq!(serde_json::to_value(recipe).unwrap(), "patchbay-nodes");
+    }
+
     #[test]
     fn browser_wire_covers_four_existing_independent_density_palette_roots() {
         for (wire, density, palette) in [
