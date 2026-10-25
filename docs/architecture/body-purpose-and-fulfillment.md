@@ -72,7 +72,10 @@ An optional `BodyPurpose` retains identity and explicit revisions across
 replanning, host change, and lull. [Its contract](../../architecture/body/src/character_purpose_continuity.rs)
 refuses *active* readiness once fulfilled, while keeping the last semantic
 purpose inspectable. A ready purpose does **not** automatically call
-`fulfill`: readiness and authority remain independent.
+`fulfill`: readiness and authority remain independent. The generic lifecycle
+also does not infer the readiness of a particular application purpose;
+correspondence between purpose obligations and administrative settlement is a
+separately governed caller/policy responsibility, never an ambient guess.
 
 Fulfillment concludes the Body's active useful continuity; it does not erase
 biography or evidence. Physical cleanup, external persistence settlement, and
