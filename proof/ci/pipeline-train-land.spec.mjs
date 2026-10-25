@@ -9,8 +9,7 @@ async function setup(t) {
   const f = await fixture(t);
   const run = { ...f.observation.run, run_attempt: 1, check_suite_id: 777 };
   const protection = { required_status_checks: { contexts: ['candidate'], checks: [{ context: 'candidate', app_id: 15368 }], strict: false },
-    required_pull_request_reviews: { required_approving_review_count: 0, require_code_owner_reviews: false,
-      require_last_push_approval: false, dismiss_stale_reviews: false } };
+    required_pull_request_reviews: null, enforce_admins: { enabled: true } };
   const check = { name: 'candidate', app: { id: 15368 }, head_sha: f.source,
     check_suite: { id: 777 }, status: 'completed', conclusion: 'success' };
   const inventory = { total_count: 1, workflow_runs: [run] };
@@ -68,8 +67,10 @@ for (const [name, mutate] of [
   ['changed train ref', f => { f.state.head = 'a'.repeat(40); }],
   ['changed source tree', f => { f.state.tree = 'a'.repeat(40); }],
   ['advanced dev', f => { f.state.dev = 'a'.repeat(40); }],
-  ['review requirement', f => { f.protection.required_pull_request_reviews.required_approving_review_count = 1; }],
-  ['code-owner requirement', f => { f.protection.required_pull_request_reviews.require_code_owner_reviews = true; }],
+  ['zero-review PR requirement', f => { f.protection.required_pull_request_reviews = { required_approving_review_count: 0, require_code_owner_reviews: false }; }],
+  ['review requirement', f => { f.protection.required_pull_request_reviews = { required_approving_review_count: 1 }; }],
+  ['administrator check bypass', f => { f.protection.enforce_admins.enabled = false; }],
+  ['unknown administrator enforcement', f => { delete f.protection.enforce_admins; }],
   ['unknown required check', f => { f.protection.required_status_checks.contexts.push('security'); }],
   ['ruleset requirement', f => { f.state.rules.push({ type: 'pull_request' }); }],
   ['unknown branch requirement', f => { f.protection.unknown_gate = { enabled: true }; }],
