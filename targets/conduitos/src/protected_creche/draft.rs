@@ -108,7 +108,7 @@ impl CrecheDraft {
         show: &MaskShow,
         input: &FaceInteraction,
     ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
-        let bytes = encode(&InteractionRequest {
+        let bytes = conduitos_creche_core::data::encode_interaction(&InteractionRequest {
             revision: self.revision(),
             basis: basis.clone(),
             show: show.clone(),
