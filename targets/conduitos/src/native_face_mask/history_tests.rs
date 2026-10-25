@@ -4,7 +4,7 @@
 use super::*;
 use crate::display::RetainedPixelTarget;
 use crate::native_face_scene::raster_layout_tests::Pixels;
-use alloc::vec;
+use alloc::{vec, vec::Vec};
 use conduit_body::{BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
 use conduit_core::*;
 use conduit_face::*;
@@ -14,6 +14,27 @@ mod common {
 }
 
 fn setup() -> (
+    NativeFaceMask,
+    Face,
+    RemoteOwnerMaskRouteSeal,
+    crate::native_surface_provider::NativeSurfaceProvider,
+) {
+    setup_with_look(None)
+}
+pub(crate) fn setup_with_look(
+    history_look: Option<&LookInfo>,
+) -> (
+    NativeFaceMask,
+    Face,
+    RemoteOwnerMaskRouteSeal,
+    crate::native_surface_provider::NativeSurfaceProvider,
+) {
+    setup_route(history_look, false)
+}
+fn setup_route(
+    history_look: Option<&LookInfo>,
+    ordinary: bool,
+) -> (
     NativeFaceMask,
     Face,
     RemoteOwnerMaskRouteSeal,
@@ -127,24 +148,51 @@ fn setup() -> (
         line.contract.security = LineSecurity::PlaintextNetwork;
         line
     };
+    // Body/session/Face always derive from the authored default stage above.
+    // Only the independently selected routed Mask changes with this Look.
+    let routed = if ordinary {
+        conduit_conduitos_mask_offer::prepare_stage_from_offer(
+            conduit_conduitos_mask_offer::Adapter::Native,
+            &host,
+        )
+        .unwrap()
+    } else {
+        match history_look {
+            Some(look) => {
+                conduit_conduitos_mask_offer::prepare_history_component_stage_with_look_from_offer(
+                    &host, look,
+                )
+                .unwrap()
+                .0
+            }
+            None => stage,
+        }
+    };
     let route = RemoteOwnerMaskRouteSeal::seal_current(
         &session,
         &face,
         &owner,
         &host,
-        &stage.planned_mask,
+        &routed.planned_mask,
         &line("face", &owner, &host),
         &line("return", &host, &owner),
     )
     .unwrap();
-    let mask = prepare(&provider, &route).unwrap();
+    let mask = prepare_with_look(&provider, &route, history_look).unwrap();
     (mask, face, route, provider)
 }
 fn prepare(
     provider: &crate::native_surface_provider::NativeSurfaceProvider,
     route: &RemoteOwnerMaskRouteSeal,
 ) -> Result<NativeFaceMask, NativeFaceMaskError> {
-    NativeFaceMask::prepare_with_owner_route(
+    prepare_with_look(provider, route, None)
+}
+fn prepare_with_look(
+    provider: &crate::native_surface_provider::NativeSurfaceProvider,
+    route: &RemoteOwnerMaskRouteSeal,
+    history_look: Option<&LookInfo>,
+) -> Result<NativeFaceMask, NativeFaceMaskError> {
+    NativeFaceMask::prepare_with_owner_route_and_history_look(
         "host/history-owner-cpu".into(),
         "boot/history-owner-cpu".into(),
         OfferGeneration(1),
@@ -153,6 +201,7 @@ fn prepare(
         "surface/history-owner-cpu",
         provider,
         Some(route),
+        history_look,
     )
 }
 fn key(mask: &mut NativeFaceMask, usage: u8, seq: u64, pixels: &mut Pixels) -> NativeFaceMaskInput {
@@ -340,4 +389,162 @@ fn selected_history_inspector_survives_a_fresh_mask_publication() {
     assert_ne!(mask.show().unwrap().show_id, previous);
     key(&mut mask, 0x3b, 2, &mut pixels);
     assert!(mask.history_visible);
+}
+
+#[test]
+fn independent_history_looks_use_one_body_face_and_exact_routed_kernel_scanout() {
+    let (default, expected_face, _, _) = setup();
+    let base = default
+        .component_configuration()
+        .unwrap()
+        .requested_look()
+        .unwrap();
+    let mut ids = std::collections::BTreeSet::new();
+    let mut expected_dots = None;
+    for (unit, symbol, top, bottom) in [
+        (LookTemperatureUnit::Celsius, "°C", "20.800", "18.800"),
+        (LookTemperatureUnit::Kelvin, "K", "293.950", "291.950"),
+        (LookTemperatureUnit::Fahrenheit, "°F", "69.440", "65.840"),
+    ] {
+        let requested = LookInfo::new(
+            base.generative().clone(),
+            base.identity().into(),
+            LookQuantityFacetOption::some(unit).unwrap(),
+            base.spoken().clone(),
+            3,
+            base.visual().clone(),
+        )
+        .unwrap();
+        let (mut mask, face, route, provider) = setup_with_look(Some(&requested));
+        assert_eq!(
+            face, expected_face,
+            "Body basis, history and current lifecycle must remain identical across Mask choices"
+        );
+        assert_eq!(
+            mask.component_configuration()
+                .unwrap()
+                .requested_look()
+                .unwrap(),
+            requested
+        );
+        assert!(ids.insert(route.planned_mask.plan.plan_id.clone()));
+        assert!(
+            prepare(&provider, &route).is_err(),
+            "default-only entry must not infer Look from the routed Plan"
+        );
+        let wrong_unit = if unit == LookTemperatureUnit::Celsius {
+            LookTemperatureUnit::Kelvin
+        } else {
+            LookTemperatureUnit::Celsius
+        };
+        let wrong = LookInfo::new(
+            base.generative().clone(),
+            base.identity().into(),
+            LookQuantityFacetOption::some(wrong_unit).unwrap(),
+            base.spoken().clone(),
+            3,
+            base.visual().clone(),
+        )
+        .unwrap();
+        assert!(prepare_with_look(&provider, &route, Some(&wrong)).is_err());
+        let mut pixels = Pixels::new(640, 480);
+        let receipt = mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
+        export_pixels(
+            &pixels,
+            match unit {
+                LookTemperatureUnit::Celsius => "native-unit-C",
+                LookTemperatureUnit::Kelvin => "native-unit-K",
+                LookTemperatureUnit::Fahrenheit => "native-unit-F",
+            },
+            &face,
+        );
+        assert!(mask.history_visible);
+        assert!(mask.component_fallback().is_none());
+        assert!(
+            mask.history_scene
+                .as_ref()
+                .unwrap()
+                .commands()
+                .iter()
+                .any(|command| command.payload()
+                    == format!("Temperature {symbol}: top {top}; bottom {bottom}"))
+        );
+        let graph = conduit_environment_history::HistoryGraph::prepare(
+            &face,
+            conduit_environment_history::HISTORY_SUBJECT,
+        )
+        .unwrap();
+        let dots = graph
+            .samples()
+            .iter()
+            .map(|sample| {
+                (
+                    graph.x(sample),
+                    sample
+                        .temperature_milli_c()
+                        .map(|value| graph.y(value, false)),
+                    sample
+                        .humidity_milli_percent()
+                        .map(|value| graph.y(value, true)),
+                )
+            })
+            .collect::<Vec<_>>();
+        if let Some(expected) = &expected_dots {
+            assert_eq!(&dots, expected);
+        } else {
+            expected_dots = Some(dots);
+        }
+        let first = &graph.samples()[0];
+        let failed = &graph.samples()[1];
+        let y = graph.y(first.temperature_milli_c().unwrap(), false) + 1;
+        assert_ne!(
+            pixels
+                .read_pixel(u32::from(graph.x(first) + 1), u32::from(y))
+                .unwrap(),
+            pixels
+                .read_pixel(u32::from(graph.x(failed) + 1), u32::from(y))
+                .unwrap()
+        );
+        assert_eq!(
+            mask.show().unwrap().show.lifecycle,
+            ManifestationLifecycle::Available
+        );
+        assert_eq!(mask.show().unwrap().show.face_id, face.identity);
+        assert_eq!(
+            mask.show().unwrap().show.plan_id,
+            route.planned_mask.plan.plan_id
+        );
+        assert_eq!(mask.render_receipt().unwrap().mask_plan_id, receipt.plan_id);
+        assert!(mask.render_receipt().unwrap().kernel_signs > 0);
+        assert!(mask.render_receipt().unwrap().scanout_pixels_written > 0);
+        let show = mask.show().unwrap().clone();
+        assert!(matches!(
+            key(&mut mask, 0x3b, 1, &mut pixels),
+            NativeFaceMaskInput::Redrawn(_)
+        ));
+        assert_eq!(mask.scene().unwrap().face(), &expected_face);
+        assert_eq!(mask.show().unwrap().show_id, show.show_id);
+    }
+    assert_eq!(ids.len(), 3);
+}
+
+#[test]
+fn independent_look_requires_a_reviewed_history_route() {
+    let (_, _, route, provider) = setup_route(None, true);
+    let look = conduit_face::editorial_look().unwrap();
+    assert!(prepare_with_look(&provider, &route, Some(&look)).is_err());
+    assert!(
+        NativeFaceMask::prepare_with_owner_route_and_history_look(
+            "host/history-owner-cpu".into(),
+            "boot/history-owner-cpu".into(),
+            OfferGeneration(1),
+            "build",
+            provider.entry.base_id.clone(),
+            "surface/history-owner-cpu",
+            &provider,
+            None,
+            Some(&look)
+        )
+        .is_err()
+    );
 }

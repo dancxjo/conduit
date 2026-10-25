@@ -474,4 +474,4 @@ mod inputless_tests;
 
 #[cfg(test)]
 #[path = "native_face_mask/history_tests.rs"]
-mod history_tests;
+pub(crate) mod history_tests;

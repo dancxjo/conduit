@@ -113,6 +113,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
         | Request::BodyNativeComponentMask { token, .. }
+        | Request::BodyNativeHistoryMask { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
         | Request::BirthWidgetFace { token, .. }
         | Request::BirthInteraction { token, .. }

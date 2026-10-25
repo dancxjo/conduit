@@ -68,6 +68,13 @@ pub(super) fn acknowledge_show(
             &mut line, listener, state_dir, grant, sequence, document,
         );
     }
+    if document.get("schema").and_then(serde_json::Value::as_str) == Some(history_selection::SCHEMA)
+    {
+        if !allow_refresh {
+            return Ok(ShowGate::Stopped);
+        }
+        return history_selection::serve(&mut line, listener, state_dir, grant, sequence, document);
+    }
     let outcome = match serde_json::from_value::<ShowAcknowledgement>(document) {
         Ok(ack)
             if ack.schema == SHOW_ACK_SCHEMA

@@ -56,8 +56,14 @@ pub(super) fn dispatch(
         return Ok(None);
     };
     let prior = current.as_ref().ok_or("native-owner-face-absent")?;
+    let history = super::face_arrival::history_available(prior);
+    if (event.usage() == 67 && !history) || (history && event.usage() == 65) {
+        return Ok(None);
+    }
     let owner = route.as_mut().ok_or("native-owner-return-unavailable")?;
-    let result = if shift_only && matches!(event.usage(), 63 | 64) {
+    let result = if history && matches!(event.usage(), 63 | 64 | 67) {
+        arrival.select_history_key(identities, prior, owner, event.usage(), shift_only, display)
+    } else if shift_only && matches!(event.usage(), 63 | 64) {
         arrival.toggle_owner_axis(identities, prior, owner, event.usage(), display)
     } else if event.usage() == 65 && shift_only {
         arrival.select_owner_required_item(identities, prior, owner, display)
@@ -99,8 +105,8 @@ fn selection_modifiers(event: KeyEvent) -> Option<bool> {
     let shift_only = modifiers != 0
         && modifiers & !(KeyModifiers::LEFT_SHIFT.bits() | KeyModifiers::RIGHT_SHIFT.bits()) == 0;
     (event.transition() == KeyTransition::Pressed
-        && matches!(event.usage(), 63..=66)
-        && (modifiers == 0 || shift_only))
+        && matches!(event.usage(), 63..=67)
+        && (modifiers == 0 || (shift_only && event.usage() != 67)))
         .then_some(shift_only)
 }
 
@@ -117,7 +123,7 @@ mod tests {
     use super::*;
     #[test]
     fn appearance_keys_admit_only_exact_unmodified_presets_and_closed_shifted_controls() {
-        for usage in 62..=67 {
+        for usage in 62..=68 {
             for modifiers in [
                 KeyModifiers::NONE,
                 KeyModifiers::LEFT_SHIFT,
@@ -127,7 +133,7 @@ mod tests {
             ] {
                 let event = KeyEvent::new(usage, KeyTransition::Pressed, modifiers).unwrap();
                 let expected = if modifiers == KeyModifiers::NONE {
-                    (63..=66).contains(&usage).then_some(false)
+                    (63..=67).contains(&usage).then_some(false)
                 } else if matches!(
                     modifiers,
                     KeyModifiers::LEFT_SHIFT | KeyModifiers::RIGHT_SHIFT

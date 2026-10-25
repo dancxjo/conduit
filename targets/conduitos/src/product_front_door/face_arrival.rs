@@ -17,8 +17,11 @@ use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{Face, FaceInteraction, MaskShow, RemoteOwnerMaskRouteSeal};
 use conduit_human::KeyEvent;
 
+#[path = "face_arrival/history_selection.rs"]
+mod history_selection;
 #[path = "face_arrival/selection.rs"]
 mod selection;
+pub(super) use history_selection::history_available;
 pub(super) use selection::OwnerSelectionError;
 
 pub(super) struct FaceArrival {

@@ -4,11 +4,12 @@
 //! received immutable Face describes the Body named by the exact admission
 //! receipt. A separate, bounded return grant is required before actions.
 
-use alloc::{format, string::String};
+use alloc::{format, string::String, vec::Vec};
 use conduit_body::{PortableAdmissionReceipt, SPAWN_ADMISSION_RECEIPT_SCHEMA};
 use conduit_face::{
     Face, FaceRole, OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::native_guest_part::NativeGuestPart;
 
@@ -18,6 +19,7 @@ pub struct NativeGuestFace {
     face: Face,
     interactions_admitted: bool,
     route: Option<RemoteOwnerMaskRouteSeal>,
+    history_look: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,6 +32,7 @@ pub enum GuestFaceRefusal {
     Face,
     BodyBasis,
     MaskRoute,
+    LookInput,
 }
 
 impl GuestFaceRefusal {
@@ -43,6 +46,7 @@ impl GuestFaceRefusal {
             Self::Face => "native-owner-face-invalid",
             Self::BodyBasis => "native-owner-face-body-mismatch",
             Self::MaskRoute => "native-owner-mask-route-invalid",
+            Self::LookInput => "native-owner-mask-look-invalid",
         }
     }
 }
@@ -116,6 +120,7 @@ impl NativeGuestFace {
             face,
             interactions_admitted,
             route,
+            history_look: None,
         })
     }
 
@@ -134,6 +139,65 @@ impl NativeGuestFace {
 
     pub fn route(&self) -> Option<&RemoteOwnerMaskRouteSeal> {
         self.route.as_ref()
+    }
+
+    /// Retain independent presentation intent only after reproducing this exact
+    /// owner-issued Mask Plan on the independently admitted Host offer.
+    pub fn with_history_look(
+        mut self,
+        receipt: &PortableAdmissionReceipt,
+        look: &conduit_face::LookInfo,
+    ) -> Result<Self, GuestFaceRefusal> {
+        if self.credential_id != receipt.credential.credential_id.as_str()
+            || self.face.basis.body_id.as_ref() != Some(&receipt.credential.body_id)
+        {
+            return Err(GuestFaceRefusal::ReceiptBasis);
+        }
+        let bytes = look
+            .clone()
+            .encode()
+            .map_err(|_| GuestFaceRefusal::LookInput)?;
+        if bytes.len() > conduit_face::MAX_LOOK_BYTES {
+            return Err(GuestFaceRefusal::LookInput);
+        }
+        let (expected, _) =
+            conduit_conduitos_mask_offer::prepare_history_component_stage_with_look_from_offer(
+                &receipt.host_advertisement,
+                look,
+            )
+            .map_err(|_| GuestFaceRefusal::LookInput)?;
+        if self.route.as_ref().map(|r| &r.planned_mask) != Some(&expected.planned_mask) {
+            return Err(GuestFaceRefusal::MaskRoute);
+        }
+        self.history_look = Some(bytes);
+        Ok(self)
+    }
+
+    /// A refresh of the same prepared Mask retains already validated intent;
+    /// it does not compile an unchanged Source again for every observation.
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    pub(crate) fn retain_history_look_from(
+        mut self,
+        prior: &Self,
+    ) -> Result<Self, GuestFaceRefusal> {
+        if self.credential_id != prior.credential_id
+            || self.face.basis.body_id != prior.face.basis.body_id
+            || self.route.as_ref().map(|r| &r.planned_mask)
+                != prior.route.as_ref().map(|r| &r.planned_mask)
+        {
+            return Err(GuestFaceRefusal::MaskRoute);
+        }
+        self.history_look = prior.history_look.clone();
+        Ok(self)
+    }
+
+    pub fn history_look(&self) -> Result<Option<conduit_face::LookInfo>, GuestFaceRefusal> {
+        self.history_look
+            .as_deref()
+            .map(|bytes| {
+                conduit_face::LookInfo::decode(bytes).map_err(|_| GuestFaceRefusal::LookInput)
+            })
+            .transpose()
     }
 
     pub fn into_face(self) -> Face {

@@ -93,9 +93,12 @@ mod client_frame;
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
+#[path = "durable_host_control/native_history.rs"]
+mod native_history;
 #[cfg(unix)]
 #[path = "durable_host_control/speech_route.rs"]
 pub(crate) mod speech_route;
+pub(crate) use native_history::select_native_history_mask;
 mod thermostat_action;
 #[cfg(not(unix))]
 pub(crate) mod direct_spoken {
@@ -1145,6 +1148,14 @@ enum Request {
         look: conduit_face::ComponentMaskLook,
         recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
     },
+    BodyNativeHistoryMask {
+        protocol: u16,
+        token: Vec<u8>,
+        receipt: Box<PortableAdmissionReceipt>,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: Vec<u8>,
+    },
     BodyNativeMaskShow {
         protocol: u16,
         token: Vec<u8>,
@@ -1924,6 +1935,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
         | Request::BodyNativeComponentMask { token, .. }
+        | Request::BodyNativeHistoryMask { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
         | Request::BirthWidgetFace { token, .. }
         | Request::BirthInteraction { token, .. }
@@ -1965,6 +1977,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyLocalWardrobe { .. }
                 | Request::BodyNativeMaskRoute { .. }
                 | Request::BodyNativeComponentMask { .. }
+                | Request::BodyNativeHistoryMask { .. }
                 | Request::BodyNativeMaskShow { .. }
                 | Request::BodyInteraction { .. }
                 | Request::BodyBrowserInteraction { .. }
@@ -2258,7 +2271,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                     conduit_face::TodoComponentRecipe::RequiredItem
                 }
                 conduit_std_host::browser_admission::BrowserComponentRecipe::PatchbayNodes
-                | conduit_std_host::browser_admission::BrowserComponentRecipe::EnvironmentHistory => {
+                | conduit_std_host::browser_admission::BrowserComponentRecipe::EnvironmentHistory =>
+                {
                     return refused("native-component-recipe-unsupported");
                 }
             };
@@ -2270,6 +2284,20 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 })
                 .unwrap_or_else(|code| refused(&code))
         }
+        Request::BodyNativeHistoryMask {
+            protocol,
+            receipt,
+            request,
+            show,
+            look,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_native_history_mask(&request, &show, &receipt, &look)
+            .map(|route| Response::BodyNativeMaskRoute {
+                protocol: PROTOCOL,
+                route: Box::new(route),
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyNativeMaskShow {
             protocol,
             request,

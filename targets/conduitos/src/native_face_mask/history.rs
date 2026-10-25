@@ -55,7 +55,7 @@ pub(super) fn prepare(
         .map_err(|e| alloc::format!("HistoryBackground({e:?})"))?;
     for command in graph_scene.commands() {
         scene
-            .push(command.clone())
+            .push(*command)
             .map_err(|e| alloc::format!("HistoryScene({e:?})"))?;
     }
     scene
@@ -69,7 +69,7 @@ pub(super) fn prepare(
                 },
                 bounds,
                 conduit_face::GraphicsPaintRole::Foreground,
-                "F2: complete Face, context and actions",
+                "F2: complete Face and actions; F10: temperature unit",
             )
             .map_err(|e| alloc::format!("HistoryDisclosure({e:?})"))?,
         )

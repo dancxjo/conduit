@@ -8,6 +8,8 @@ mod action;
 mod component_selection;
 #[path = "return_route/face_request.rs"]
 mod face_request;
+#[path = "return_route/history_selection.rs"]
+mod history_selection;
 #[path = "return_route/refresh.rs"]
 mod refresh;
 #[path = "return_route/show_ack.rs"]
@@ -216,7 +218,7 @@ pub(super) fn serve(
             .and_then(serde_json::Value::as_str);
         if matches!(
             schema,
-            Some(component_selection::SCHEMA | refresh::REFRESH_SCHEMA)
+            Some(component_selection::SCHEMA | history_selection::SCHEMA | refresh::REFRESH_SCHEMA)
         ) {
             if refreshes >= MAX_FACE_REFRESHES {
                 break;
@@ -229,6 +231,15 @@ pub(super) fn serve(
                     &grant,
                     sequence,
                     document.map_err(|_| "native refresh frame unavailable")?,
+                )?
+            } else if schema == Some(history_selection::SCHEMA) {
+                history_selection::serve(
+                    &mut line,
+                    listener,
+                    state_dir,
+                    &grant,
+                    sequence,
+                    document.map_err(|_| "native history frame unavailable")?,
                 )?
             } else {
                 component_selection::serve(

@@ -88,6 +88,54 @@ impl FaceArrival {
         Ok(fresh)
     }
 
+    /// Apply one complete independently selected history Look through the owner.
+    pub(in crate::product_front_door) fn select_owner_history(
+        &mut self,
+        identities: BootIdentities,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        look: &conduit_face::LookInfo,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
+        let preferences = (
+            self.preparation.forced_colors,
+            self.preparation.minimum_text_scale_percent,
+        );
+        self.select_owner_history_with_preferences(
+            identities,
+            prior,
+            route,
+            look,
+            preferences,
+            display,
+        )
+    }
+
+    fn select_owner_history_with_preferences(
+        &mut self,
+        identities: BootIdentities,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        look: &conduit_face::LookInfo,
+        preferences: (bool, u16),
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
+        self.ensure_look_replacement_ready()?;
+        let focus = self.mask.scene().and_then(|scene| scene.focused_request());
+        let show = self.mask.show().cloned().ok_or("owner-face-show-absent")?;
+        let fresh = route.select_history(identities, prior, &show, look)?;
+        self.replace_owner_mask(&fresh, preferences, display)?;
+        if let Some(request) = focus {
+            self.mask
+                .focus_named(&request, display)
+                .map_err(|error| error.as_str())?;
+        }
+        self.acknowledge_owner_show(route, identities)?;
+        self.record_focus()?;
+        self.preparation.selected = None;
+        Ok(fresh)
+    }
+
     fn replace_owner_mask(
         &mut self,
         fresh: &crate::native_guest_face::NativeGuestFace,
@@ -95,7 +143,8 @@ impl FaceArrival {
         display: &mut impl PixelTarget,
     ) -> Result<(), &'static str> {
         let context = &self.preparation;
-        let mut replacement = NativeFaceMask::prepare_with_owner_route(
+        let history_look = fresh.history_look().map_err(|error| error.as_str())?;
+        let mut replacement = NativeFaceMask::prepare_with_owner_route_and_history_look(
             context.host_id.clone(),
             context.boot_id.clone(),
             context.generation,
@@ -104,6 +153,7 @@ impl FaceArrival {
             "conduitos/creche/face",
             &context.provider,
             fresh.route(),
+            history_look.as_ref(),
         )
         .map_err(|error| error.as_str())?;
         replacement
@@ -138,6 +188,17 @@ impl FaceArrival {
         } else {
             100
         };
+        if history_available(prior) {
+            let look = self.history_look_for(prior)?;
+            return self.select_owner_history_with_preferences(
+                identities,
+                prior,
+                route,
+                &look,
+                (self.preparation.forced_colors, scale),
+                display,
+            );
+        }
         let (look, recipe) = self.preparation.selected.unwrap_or((
             conduit_face::ComponentMaskLook::Compact,
             conduit_face::TodoComponentRecipe::Flat,
@@ -161,6 +222,20 @@ impl FaceArrival {
     ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
         self.ensure_look_replacement_ready()?;
         let forced_colors = !self.preparation.forced_colors;
+        if history_available(prior) {
+            let look = self.history_look_for(prior)?;
+            return self.select_owner_history_with_preferences(
+                identities,
+                prior,
+                route,
+                &look,
+                (
+                    !self.preparation.forced_colors,
+                    self.preparation.minimum_text_scale_percent,
+                ),
+                display,
+            );
+        }
         let (look, recipe) = self.preparation.selected.unwrap_or((
             conduit_face::ComponentMaskLook::Compact,
             conduit_face::TodoComponentRecipe::Flat,

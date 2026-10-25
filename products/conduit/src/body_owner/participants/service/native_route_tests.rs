@@ -579,6 +579,34 @@ fn exercise_independent_component_selection(
 ) {
     use conduit_face::{ComponentMaskLook as Look, TodoComponentRecipe as Recipe};
     let face = owner.local_face_snapshot().unwrap();
+    // A history choice cannot manufacture environmental facts on this Todo
+    // owner. A failed replacement must preserve its acknowledged current Show.
+    let (_, configured) = conduit_conduitos_mask_offer::prepare_history_component_stage_from_offer(
+        &receipt.host_advertisement,
+    )
+    .unwrap();
+    let history_look = configured.requested_look().unwrap();
+    let original_plan = owner.face_wardrobe.as_ref().unwrap().plan().plan_id.clone();
+    let refusal = owner
+        .select_native_history_mask(request, &previous, receipt, history_look.clone())
+        .unwrap_err();
+    assert!(
+        refusal.starts_with("native-history-face-unavailable"),
+        "{refusal}"
+    );
+    assert_eq!(owner.local_face_snapshot().unwrap(), face);
+    assert_eq!(
+        owner.face_wardrobe.as_ref().unwrap().plan().plan_id,
+        original_plan
+    );
+    owner.validate_native_mask_show(request, &previous).unwrap();
+    let mut stale = previous.clone();
+    stale.face_revision += 1;
+    let refusal = owner
+        .select_native_history_mask(request, &stale, receipt, history_look)
+        .unwrap_err();
+    assert!(!refusal.starts_with("native-history-face-unavailable"));
+    owner.validate_native_mask_show(request, &previous).unwrap();
     let mut sequence = previous.show.play_sequence;
     for recipe in [Recipe::Flat, Recipe::Grouped] {
         for look in [

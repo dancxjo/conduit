@@ -4,7 +4,10 @@ use super::*;
 enum Selection<'a> {
     Ordinary,
     OrdinaryCollection,
-    Owner(&'a RemoteOwnerMaskRouteSeal),
+    Owner(
+        &'a RemoteOwnerMaskRouteSeal,
+        Option<&'a conduit_face::LookInfo>,
+    ),
     Creche(
         conduit_face::CrecheComponentRecipe,
         conduit_face::ComponentVisualSelection,
@@ -92,6 +95,44 @@ impl NativeFaceMask {
         provider: &NativeSurfaceProvider,
         route: Option<&RemoteOwnerMaskRouteSeal>,
     ) -> Result<Self, NativeFaceMaskError> {
+        Self::prepare_with_owner_route_and_history_look(
+            host_id,
+            boot_id,
+            offer_generation,
+            build_id,
+            display_base_id,
+            surface_id,
+            provider,
+            route,
+            None,
+        )
+    }
+
+    /// Independent typed history intent is rechecked against the actual offer
+    /// and exact routed Plan. A Plan never supplies its own startup custody.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_with_owner_route_and_history_look(
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        build_id: &str,
+        display_base_id: HostBaseId,
+        surface_id: &str,
+        provider: &NativeSurfaceProvider,
+        route: Option<&RemoteOwnerMaskRouteSeal>,
+        history_look: Option<&conduit_face::LookInfo>,
+    ) -> Result<Self, NativeFaceMaskError> {
+        if history_look.is_some()
+            && !route.is_some_and(|route| {
+                matches!(
+                    route.planned_mask.mask.plot_name.as_str(),
+                    conduit_face::HISTORY_COMPONENT_MASK_ROOT
+                        | conduit_face::HISTORY_LAYOUT_MASK_ROOT
+                )
+            })
+        {
+            return Err(NativeFaceMaskError::Plan);
+        }
         Self::prepare_selected(
             host_id,
             boot_id,
@@ -100,7 +141,9 @@ impl NativeFaceMask {
             display_base_id,
             surface_id,
             provider,
-            route.map_or(Selection::Ordinary, Selection::Owner),
+            route.map_or(Selection::Ordinary, |route| {
+                Selection::Owner(route, history_look)
+            }),
         )
     }
 
@@ -229,7 +272,7 @@ impl NativeFaceMask {
         .map_err(NativeFaceMaskError::Producer)?;
         let mut component_configuration = None;
         let mask = match selection {
-            Selection::Owner(route) => {
+            Selection::Owner(route, history_look) => {
                 let offer = crate::product_bases::native_mask_host_advertisement(
                     &host_id,
                     &boot_id,
@@ -247,11 +290,10 @@ impl NativeFaceMask {
                     conduit_face::HISTORY_COMPONENT_MASK_ROOT
                         | conduit_face::HISTORY_LAYOUT_MASK_ROOT
                 ) {
-                    let (stage, configuration) =
-                        conduit_conduitos_mask_offer::prepare_history_component_stage_from_offer(
-                            &offer,
-                        )
-                        .map_err(|_| NativeFaceMaskError::Plan)?;
+                    let (stage, configuration) = match history_look {
+                        Some(look) => conduit_conduitos_mask_offer::prepare_history_component_stage_with_look_from_offer(&offer, look),
+                        None => conduit_conduitos_mask_offer::prepare_history_component_stage_from_offer(&offer),
+                    }.map_err(|_| NativeFaceMaskError::Plan)?;
                     component_configuration = Some(configuration);
                     stage
                 } else if let Some((selection, recipe)) = selected {

@@ -1,6 +1,7 @@
 //! One bounded owner Face and return-grant refresh before native Show acknowledgement.
 
 use super::*;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 const MAX_FACE_REFRESHES: u8 = 4;
 const REFRESH_SCHEMA: &str = "conduit.body/native-owner-return-refresh@1";
@@ -23,6 +24,26 @@ struct ComponentSelection<'a> {
     show: &'a MaskShow,
     look: conduit_face::ComponentMaskLook,
     recipe: &'static str,
+}
+
+#[derive(Clone, Copy)]
+enum PresentationSelection<'a> {
+    Todo(
+        &'a MaskShow,
+        conduit_face::ComponentMaskLook,
+        conduit_face::TodoComponentRecipe,
+    ),
+    History(&'a MaskShow, &'a conduit_face::LookInfo, &'a [u8]),
+}
+
+#[derive(Serialize)]
+struct HistorySelection<'a> {
+    schema: &'static str,
+    token: [u8; 32],
+    sequence: u8,
+    request: OwnerFaceSnapshotRequest,
+    show: &'a MaskShow,
+    look: &'a [u8],
 }
 
 #[derive(Deserialize)]
@@ -54,21 +75,47 @@ impl NativeOwnerReturnRoute {
         look: conduit_face::ComponentMaskLook,
         recipe: conduit_face::TodoComponentRecipe,
     ) -> Result<NativeGuestFace, &'static str> {
-        self.refresh_with_selection(identities, prior, Some((show, look, recipe)))
+        self.refresh_with_selection(
+            identities,
+            prior,
+            Some(PresentationSelection::Todo(show, look, recipe)),
+        )
+    }
+
+    /// Select a complete caller-owned Look. Its checked canonical bytes are
+    /// transport data; the returned routed Plan is reproduced independently.
+    pub fn select_history(
+        &mut self,
+        identities: BootIdentities,
+        prior: &NativeGuestFace,
+        show: &MaskShow,
+        look: &conduit_face::LookInfo,
+    ) -> Result<NativeGuestFace, &'static str> {
+        let bytes = look
+            .clone()
+            .encode()
+            .map_err(|_| "native-owner-history-look-invalid")?;
+        if bytes.len() > conduit_face::MAX_LOOK_BYTES {
+            return Err("native-owner-history-look-pressure");
+        }
+        self.refresh_with_selection(
+            identities,
+            prior,
+            Some(PresentationSelection::History(show, look, &bytes)),
+        )
     }
 
     fn refresh_with_selection(
         &mut self,
         identities: BootIdentities,
         prior: &NativeGuestFace,
-        selection: Option<(
-            &MaskShow,
-            conduit_face::ComponentMaskLook,
-            conduit_face::TodoComponentRecipe,
-        )>,
+        selection: Option<PresentationSelection<'_>>,
     ) -> Result<NativeGuestFace, &'static str> {
         let show_valid = match selection {
-            Some((show, _, _)) => self.acknowledged_show.as_ref() == Some(show),
+            Some(
+                PresentationSelection::Todo(show, _, _)
+                | PresentationSelection::History(show, _, _),
+            ) => self.acknowledged_show.as_ref() == Some(show),
             None => self.acknowledged_show.is_none(),
         };
         if !self.available() || !show_valid || self.refreshes >= MAX_FACE_REFRESHES {
@@ -90,7 +137,7 @@ impl NativeOwnerReturnRoute {
         let mut request = owner_request(&self.receipt);
         request.last_seen_revision = Some(prior.face().revision);
         request.last_seen_identity = Some(prior.face().identity.clone());
-        let length = if let Some((show, look, recipe)) = selection {
+        let length = if let Some(PresentationSelection::Todo(show, look, recipe)) = selection {
             let recipe = match recipe {
                 conduit_face::TodoComponentRecipe::Flat => "flat",
                 conduit_face::TodoComponentRecipe::Grouped => "grouped",
@@ -105,6 +152,18 @@ impl NativeOwnerReturnRoute {
                     show,
                     look,
                     recipe,
+                },
+                &mut self.action_storage,
+            )
+        } else if let Some(PresentationSelection::History(show, _, look)) = selection {
+            serde_json_core::to_slice(
+                &HistorySelection {
+                    schema: "conduit.body/native-owner-history-selection@1",
+                    token: self.grant.token,
+                    sequence: 0,
+                    request,
+                    show,
+                    look,
                 },
                 &mut self.action_storage,
             )
@@ -146,10 +205,14 @@ impl NativeOwnerReturnRoute {
         )
         .map_err(|_| "native-owner-refresh-outcome-unknown")?;
         self.device = Some(device);
-        let fresh = if let Some((_, look, recipe)) = selection {
-            validated_component_selection(&self.receipt, prior, response, look, recipe)?
-        } else {
-            validated_refresh(&self.receipt, prior, response)?
+        let fresh = match selection {
+            Some(PresentationSelection::Todo(_, look, recipe)) => {
+                validated_component_selection(&self.receipt, prior, response, look, recipe)?
+            }
+            Some(PresentationSelection::History(_, look, _)) => {
+                validated_history_selection(&self.receipt, prior, response, look)?
+            }
+            None => validated_refresh(&self.receipt, prior, response)?,
         };
         if fresh.1.token == self.grant.token {
             return Err("native-owner-refresh-bearer-not-replaced");
@@ -207,6 +270,9 @@ fn validated_refresh(
     {
         return Err("native-owner-refresh-face-stale-or-route-changed");
     }
+    let face = face
+        .retain_history_look_from(prior)
+        .map_err(|_| "native-owner-history-plan-invalid")?;
     Ok((face, grant))
 }
 
@@ -241,131 +307,34 @@ fn validated_component_selection(
     Ok((face, grant))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use alloc::boxed::Box;
-    use conduit_body::{Body, MembershipCredential, SPAWN_ADMISSION_RECEIPT_SCHEMA};
-    use conduit_core::{OfferGeneration, PROTOCOL_VERSION, SignId};
-    use conduit_face::{BodyFace, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA};
-
-    #[test]
-    fn refresh_requires_exact_credential_and_admitted_current_face() {
-        let body = Body::born(
-            "source/native-refresh".into(),
-            "checked/native-refresh".into(),
-            1,
-            SignId::from("sign/native-refresh-born"),
-        )
-        .unwrap();
-        let advertisement = conduit_core::HostAdvertisement {
-            protocol_version: PROTOCOL_VERSION,
-            host_id: "host/native-refresh".into(),
-            boot_id: "boot/native-refresh".into(),
-            offer_generation: OfferGeneration(1),
-            profile: "profile/native-refresh".into(),
-            bases: vec![],
-            resources: vec![],
-            capabilities: vec![],
-            planner_capabilities: vec![],
-        };
-        let credential = MembershipCredential {
-            credential_id: serde_json::from_str("\"credential/native-refresh\"").unwrap(),
-            body_id: body.body_id.clone(),
-            part_id: serde_json::from_str("\"part/native-refresh\"").unwrap(),
-            host_id: advertisement.host_id.clone(),
-            boot_id: advertisement.boot_id.clone(),
-            issued_at_millis: 1,
-        };
-        let receipt = PortableAdmissionReceipt {
-            schema: SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
-            credential: credential.clone(),
-            host_advertisement: advertisement,
-            membership_admitted: true,
-            current_offers_available: false,
-            plan_created: false,
-            play_created: false,
-        };
-        let face = BodyFace::project(
-            &body,
-            None,
-            7,
-            FaceContext::Overview,
-            FaceFocus::Body,
-            vec![],
-        )
-        .unwrap()
-        .face;
-        let snapshot = || OwnerFaceSnapshotResponse::Snapshot {
-            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-            face: Box::new(face.clone()),
-            interactions_admitted: false,
-            route: None,
-        };
-        let prior = NativeGuestFace::from_owner_response(&receipt, snapshot()).unwrap();
-        let grant = NativeOwnerReturnGrant {
-            schema: "conduit.body/native-owner-return-grant@1".into(),
-            token: [7; 32],
-            credential_id: credential.credential_id.as_str().into(),
-            body_id: credential.body_id.as_str().into(),
-            part_id: credential.part_id.as_str().into(),
-            host_id: credential.host_id.as_str().into(),
-            boot_id: credential.boot_id.as_str().into(),
-            remaining_millis: 60_000,
-            maximum_actions: 4,
-        };
-        assert!(matches!(
-            validated_refresh(
-                &receipt,
-                &prior,
-                RefreshResponse {
-                    schema: REFRESH_RESPONSE_SCHEMA.into(),
-                    face: OwnerFaceSnapshotResponse::Refused {
-                        schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                        code: "selected-native-route-unavailable".into(),
-                    },
-                    grant: None,
-                },
-            ),
-            Err("native-owner-refresh-owner-refused")
-        ));
-        assert!(matches!(
-            validated_refresh(
-                &receipt,
-                &prior,
-                RefreshResponse {
-                    schema: REFRESH_RESPONSE_SCHEMA.into(),
-                    face: snapshot(),
-                    grant: None,
-                },
-            ),
-            Err("native-owner-refresh-grant-absent")
-        ));
-        let mut foreign = grant.clone();
-        foreign.boot_id = "boot/foreign".into();
-        assert!(matches!(
-            validated_refresh(
-                &receipt,
-                &prior,
-                RefreshResponse {
-                    schema: REFRESH_RESPONSE_SCHEMA.into(),
-                    face: snapshot(),
-                    grant: Some(foreign),
-                },
-            ),
-            Err("native-owner-refresh-grant-invalid")
-        ));
-        assert!(matches!(
-            validated_refresh(
-                &receipt,
-                &prior,
-                RefreshResponse {
-                    schema: REFRESH_RESPONSE_SCHEMA.into(),
-                    face: snapshot(),
-                    grant: Some(grant),
-                },
-            ),
-            Err("native-owner-refresh-face-stale-or-route-changed")
-        ));
+fn validated_history_selection(
+    receipt: &PortableAdmissionReceipt,
+    prior: &NativeGuestFace,
+    response: RefreshResponse,
+    look: &conduit_face::LookInfo,
+) -> Result<(NativeGuestFace, NativeOwnerReturnGrant), &'static str> {
+    if response.schema != REFRESH_RESPONSE_SCHEMA {
+        return Err("native-owner-refresh-schema-invalid");
     }
+    let grant = response.grant.ok_or("native-owner-refresh-grant-absent")?;
+    if !grant.matches_receipt(receipt) {
+        return Err("native-owner-refresh-grant-invalid");
+    }
+    let face = NativeGuestFace::from_owner_response(receipt, response.face)
+        .map_err(|_| "native-owner-refresh-face-invalid")?;
+    if !face.interactions_admitted() || face.face() != prior.face() {
+        return Err("native-owner-history-face-changed");
+    }
+    let face = face
+        .with_history_look(receipt, look)
+        .map_err(|_| "native-owner-history-plan-invalid")?;
+    Ok((face, grant))
 }
+
+#[cfg(test)]
+#[path = "refresh/tests.rs"]
+mod tests;
+
+#[cfg(all(test, feature = "native-compositor-core"))]
+#[path = "refresh/history_tests.rs"]
+mod history_tests;

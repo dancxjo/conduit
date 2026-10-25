@@ -10,6 +10,10 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-installed-native" => Some(installed_native(root)),
         [name] if name == "history-installed-native-target" => Some(installed_native_target(root)),
         [name] if name == "history-installed-browser" => Some(installed_browser(root)),
+        [name] if name == "history-owner-control-target" => Some(owner_control_target(root)),
+        [name] if name == "history-owner-control" => Some(owner_control(root)),
+        [name] if name == "history-native-controls" => Some(native_controls(root)),
+        [name] if name == "history-native-unit-preview" => Some(native_unit_preview(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-owner-browser" => Some(owner_browser(root)),
@@ -18,6 +22,53 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn native_unit_preview(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test", "--locked", "-p", "conduitos", "--lib", "--features",
+        "native-compositor",
+        "native_face_mask::history_tests::independent_history_looks_use_one_body_face_and_exact_routed_kernel_scanout",
+    ]))
+}
+fn native_controls(root: &Path) -> Result<(), Box<dyn Error>> {
+    for filter in [
+        "native_face_mask::",
+        "native_owner_return::refresh::",
+        "product_front_door::face_arrival::history_selection::",
+        "product_front_door::owner_selection::tests",
+        "product_front_door::face_arrival::selection::tests",
+        "product_front_door::face_arrival::owner_selection::tests",
+    ] {
+        super::execute(Command::new("cargo").current_dir(root).args([
+            "test",
+            "--locked",
+            "-p",
+            "conduitos",
+            "--lib",
+            "--features",
+            "native-compositor",
+            filter,
+        ]))?;
+    }
+    Ok(())
+}
+fn owner_control(root: &Path) -> Result<(), Box<dyn Error>> {
+    for filter in [
+        "native_mask_route::selection::tests",
+        "remote_native_mask_accepts_only_the_offered_scoped_present_binding",
+    ] {
+        super::execute(Command::new("cargo").current_dir(root).args([
+            "test", "--locked", "-p", "conduit", "--bin", "conduit", filter,
+        ]))?;
+    }
+    Ok(())
+}
+fn owner_control_target(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .args(["check", "--locked", "-p", "conduit", "--bin", "conduit"]),
+    )
 }
 fn installed_browser(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("node").current_dir(root).args([
