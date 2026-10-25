@@ -13,6 +13,13 @@ export class BrowserInputRefusal extends Error {
   }
 }
 
+// Pure descriptor policy; it cannot access or mutate an acquired input owner.
+// null retires a counter after its final exactly representable wire value.
+export function advanceInputSequence(sequence, maximum) {
+  if (!Number.isSafeInteger(sequence) || sequence < 0 || sequence > maximum) return undefined;
+  return sequence === maximum ? null : sequence + 1;
+}
+
 /**
  * host-owned, finite adaptation of DOM input facts to portable Conduit values.
  * The caller supplies the current admitted Boot truth; Plots never see DOM
@@ -122,11 +129,15 @@ export function openBrowserHumanInput({
         ? routeInput?.("button", { pressed: event.type === "pointerdown" })
         : null;
       if (buttonActive && isButtonTransition && !buttonFailure && (!routeInput || buttonPlot !== null)) {
+        const sequence = buttonSequence;
+        const next = advanceInputSequence(sequence, Number.MAX_SAFE_INTEGER);
+        if (next === undefined) refuse("IdentityCapacityExhausted", "button input sequence exhausted");
+        buttonSequence = next;
         const transition = Object.freeze({
           schema: "input/button-transition@1",
           pressed: event.type === "pointerdown",
           ...(routeInput ? { delivery_plot: buttonPlot } : {}),
-          sequence: buttonSequence++,
+          sequence,
           owner,
         });
         if (buttonWaiters.length > 0) buttonWaiters.shift().resolve(transition);
@@ -150,6 +161,10 @@ export function openBrowserHumanInput({
       const coalesced = typeof event.getCoalescedEvents === "function"
         ? Math.max(0, event.getCoalescedEvents().length - 1)
         : 0;
+      const sequence = pointerSequence;
+      const next = advanceInputSequence(sequence, 0xffff_ffff);
+      if (next === undefined) refuse("IdentityCapacityExhausted", "pointer input sequence exhausted");
+      pointerSequence = next;
       const value = Object.freeze({
         schema: "input/pointer-event@1",
         ...(routeInput ? { delivery_plot: pointerPlot } : {}),
@@ -161,10 +176,9 @@ export function openBrowserHumanInput({
         coalesced,
         dropped,
         queue_capacity: 1,
-        sequence: pointerSequence,
+        sequence,
         owner,
       });
-      pointerSequence += 1;
       dropped = 0;
       for (const consume of pointerConsumers) consume(value);
     } catch (error) {
