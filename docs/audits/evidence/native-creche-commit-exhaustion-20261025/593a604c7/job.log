@@ -1,0 +1,1728 @@
+﻿2026-10-25T08:10:20.9462968Z Current runner version: '2.338.0'
+2026-10-25T08:10:20.9487739Z ##[group]Runner Image Provisioner
+2026-10-25T08:10:20.9488796Z Hosted Compute Agent
+2026-10-25T08:10:20.9489675Z Version: 20261021.618
+2026-10-25T08:10:20.9490372Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-10-25T08:10:20.9491197Z Build Date: 2026-10-21T00:45:21Z
+2026-10-25T08:10:20.9491890Z Worker ID: {ccbe01f3-7a4c-42e7-8f8b-081fcab7f891}
+2026-10-25T08:10:20.9492664Z Region: westus
+2026-10-25T08:10:20.9493264Z Cloud: Azure
+2026-10-25T08:10:20.9493838Z ##[endgroup]
+2026-10-25T08:10:20.9495435Z ##[group]Operating System
+2026-10-25T08:10:20.9496127Z Ubuntu
+2026-10-25T08:10:20.9496731Z 24.04.5
+2026-10-25T08:10:20.9497247Z LTS
+2026-10-25T08:10:20.9497742Z ##[endgroup]
+2026-10-25T08:10:20.9498396Z ##[group]Runner Image
+2026-10-25T08:10:20.9498988Z Image: ubuntu-24.04
+2026-10-25T08:10:20.9499882Z Version: 20261012.334.1
+2026-10-25T08:10:20.9501130Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-25T08:10:20.9502746Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-25T08:10:20.9503716Z ##[endgroup]
+2026-10-25T08:10:20.9504906Z ##[group]GITHUB_TOKEN Permissions
+2026-10-25T08:10:20.9507116Z Contents: read
+2026-10-25T08:10:20.9507846Z Metadata: read
+2026-10-25T08:10:20.9508421Z ##[endgroup]
+2026-10-25T08:10:20.9510818Z Secret source: Actions
+2026-10-25T08:10:20.9512088Z Cache mode: write
+2026-10-25T08:10:20.9513277Z Prepare workflow directory
+2026-10-25T08:10:21.0108021Z Prepare all required actions
+2026-10-25T08:10:21.0158248Z Getting action download info
+2026-10-25T08:10:21.3938532Z Download action repository 'actions/checkout@v7.0.1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-25T08:10:21.5280846Z Download action repository 'dtolnay/rust-toolchain@1.98.1' (SHA:18f0487477426dce244608110aa2660c2893deb7)
+2026-10-25T08:10:21.7170664Z Download action repository 'actions/setup-node@v7.0.0' (SHA:820762786026740c76f36085b0efc47a31fe5020)
+2026-10-25T08:10:21.8062881Z Download action repository 'Swatinem/rust-cache@v2' (SHA:d1527c8f67ef9af357290475d4af4b0fab8f12e0)
+2026-10-25T08:10:22.3059647Z Download action repository 'actions/cache@v6.1.0' (SHA:55cc8345863c7cc4c66a329aec7e433d2d1c52a9)
+2026-10-25T08:10:22.4103139Z Download action repository 'actions/upload-artifact@v7.0.1' (SHA:043fb46d1a93c77aae656e7c1c64a875d1fc6a0a)
+2026-10-25T08:10:22.6877756Z Uses: dancxjo/conduit/.github/workflows/ci.yml@refs/heads/dev (593a604c75befd4fd1b3bc9904857c238ced70a4)
+2026-10-25T08:10:22.6883378Z ##[group] Inputs
+2026-10-25T08:10:22.6884061Z   sha: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:22.6885253Z   exhaustive: true
+2026-10-25T08:10:22.6885780Z   base: all
+2026-10-25T08:10:22.6886240Z ##[endgroup]
+2026-10-25T08:10:22.6886858Z Complete job name: proof / target / conduitos-x86_64
+2026-10-25T08:10:22.7910968Z ##[group]Run actions/checkout@v7.0.1
+2026-10-25T08:10:22.7912045Z with:
+2026-10-25T08:10:22.7912597Z   ref: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:22.7913399Z   fetch-depth: 1
+2026-10-25T08:10:22.7914007Z   persist-credentials: false
+2026-10-25T08:10:22.7914658Z   repository: dancxjo/conduit
+2026-10-25T08:10:22.7922363Z   token: ***
+2026-10-25T08:10:22.7922865Z   ssh-strict: true
+2026-10-25T08:10:22.7923376Z   ssh-user: git
+2026-10-25T08:10:22.7923856Z   clean: true
+2026-10-25T08:10:22.7924380Z   sparse-checkout-cone-mode: true
+2026-10-25T08:10:22.7925047Z   fetch-tags: false
+2026-10-25T08:10:22.7925571Z   show-progress: true
+2026-10-25T08:10:22.7926100Z   lfs: false
+2026-10-25T08:10:22.7926570Z   submodules: false
+2026-10-25T08:10:22.7927102Z   set-safe-directory: true
+2026-10-25T08:10:22.7927737Z   allow-unsafe-pr-checkout: false
+2026-10-25T08:10:22.7928650Z env:
+2026-10-25T08:10:22.7929368Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:22.7930026Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:22.7930612Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:22.7931257Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:22.7932159Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:22.7932960Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:22.7933865Z ##[endgroup]
+2026-10-25T08:10:22.8962072Z Syncing repository: dancxjo/conduit
+2026-10-25T08:10:22.8964160Z ##[group]Getting Git version info
+2026-10-25T08:10:22.8965082Z Working directory is '/home/runner/work/conduit/conduit'
+2026-10-25T08:10:22.8966545Z [command]/usr/bin/git version
+2026-10-25T08:10:22.9049847Z git version 2.55.0
+2026-10-25T08:10:22.9072578Z ##[endgroup]
+2026-10-25T08:10:22.9084735Z Temporarily overriding HOME='/home/runner/work/_temp/9dddf9b5-bc35-438a-bcf9-7880cb4bd9be' before making global git config changes
+2026-10-25T08:10:22.9086998Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-25T08:10:22.9089732Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/conduit/conduit
+2026-10-25T08:10:22.9138840Z Deleting the contents of '/home/runner/work/conduit/conduit'
+2026-10-25T08:10:22.9147854Z ##[group]Determining repository object format
+2026-10-25T08:10:22.9150251Z ##[endgroup]
+2026-10-25T08:10:22.9158589Z ##[group]Initializing the repository
+2026-10-25T08:10:22.9160679Z [command]/usr/bin/git init /home/runner/work/conduit/conduit
+2026-10-25T08:10:22.9257694Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-25T08:10:22.9259953Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-25T08:10:22.9262365Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-25T08:10:22.9263451Z hint: call:
+2026-10-25T08:10:22.9263900Z hint:
+2026-10-25T08:10:22.9264523Z hint: 	git config --global init.defaultBranch <name>
+2026-10-25T08:10:22.9265337Z hint:
+2026-10-25T08:10:22.9266113Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-25T08:10:22.9267946Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-25T08:10:22.9269011Z hint:
+2026-10-25T08:10:22.9269968Z hint: 	git branch -m <name>
+2026-10-25T08:10:22.9270557Z hint:
+2026-10-25T08:10:22.9271811Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-25T08:10:22.9274176Z Initialized empty Git repository in /home/runner/work/conduit/conduit/.git/
+2026-10-25T08:10:22.9276484Z [command]/usr/bin/git remote add origin https://github.com/dancxjo/conduit
+2026-10-25T08:10:22.9328040Z ##[endgroup]
+2026-10-25T08:10:22.9328982Z ##[group]Disabling automatic garbage collection
+2026-10-25T08:10:22.9331393Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-25T08:10:22.9362341Z ##[endgroup]
+2026-10-25T08:10:22.9363408Z ##[group]Setting up auth
+2026-10-25T08:10:22.9364058Z Removing SSH command configuration
+2026-10-25T08:10:22.9368859Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-25T08:10:22.9398626Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-25T08:10:22.9765955Z Removing HTTP extra header
+2026-10-25T08:10:22.9772848Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-25T08:10:22.9806896Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-25T08:10:23.0024482Z Removing includeIf entries pointing to credentials config files
+2026-10-25T08:10:23.0030532Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-25T08:10:23.0072467Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-25T08:10:23.0326136Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-25T08:10:23.0376246Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/conduit/conduit/.git.path /home/runner/work/_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config
+2026-10-25T08:10:23.0414233Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/conduit/conduit/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config
+2026-10-25T08:10:23.0448326Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config
+2026-10-25T08:10:23.0480809Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config
+2026-10-25T08:10:23.0509646Z ##[endgroup]
+2026-10-25T08:10:23.0511238Z ##[group]Fetching the repository
+2026-10-25T08:10:23.0517273Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:28.3359749Z From https://github.com/dancxjo/conduit
+2026-10-25T08:10:28.3361387Z  * branch            593a604c75befd4fd1b3bc9904857c238ced70a4 -> FETCH_HEAD
+2026-10-25T08:10:28.3376298Z [command]/usr/bin/git rev-parse --verify --quiet 593a604c75befd4fd1b3bc9904857c238ced70a4^{object}
+2026-10-25T08:10:28.3402422Z 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:28.3406841Z ##[endgroup]
+2026-10-25T08:10:28.3407649Z ##[group]Determining the checkout info
+2026-10-25T08:10:28.3408183Z ##[endgroup]
+2026-10-25T08:10:28.3413963Z [command]/usr/bin/git sparse-checkout disable
+2026-10-25T08:10:28.3465432Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-25T08:10:28.3494513Z ##[group]Checking out the ref
+2026-10-25T08:10:28.3498900Z [command]/usr/bin/git checkout --progress --force 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:29.3717215Z Updating files:  67% (8390/12498)
+2026-10-25T08:10:29.3791315Z Updating files:  68% (8499/12498)
+2026-10-25T08:10:29.3862245Z Updating files:  69% (8624/12498)
+2026-10-25T08:10:29.3943270Z Updating files:  70% (8749/12498)
+2026-10-25T08:10:29.4451464Z Updating files:  71% (8874/12498)
+2026-10-25T08:10:29.4655533Z Updating files:  72% (8999/12498)
+2026-10-25T08:10:29.4850520Z Updating files:  73% (9124/12498)
+2026-10-25T08:10:29.4902719Z Updating files:  74% (9249/12498)
+2026-10-25T08:10:29.4967742Z Updating files:  75% (9374/12498)
+2026-10-25T08:10:29.5049842Z Updating files:  76% (9499/12498)
+2026-10-25T08:10:29.5136727Z Updating files:  77% (9624/12498)
+2026-10-25T08:10:29.5236671Z Updating files:  78% (9749/12498)
+2026-10-25T08:10:29.5320754Z Updating files:  79% (9874/12498)
+2026-10-25T08:10:29.5447151Z Updating files:  80% (9999/12498)
+2026-10-25T08:10:29.5534910Z Updating files:  81% (10124/12498)
+2026-10-25T08:10:29.5622260Z Updating files:  82% (10249/12498)
+2026-10-25T08:10:29.5706103Z Updating files:  83% (10374/12498)
+2026-10-25T08:10:29.5779634Z Updating files:  84% (10499/12498)
+2026-10-25T08:10:29.5857715Z Updating files:  85% (10624/12498)
+2026-10-25T08:10:29.5957139Z Updating files:  86% (10749/12498)
+2026-10-25T08:10:29.6031848Z Updating files:  87% (10874/12498)
+2026-10-25T08:10:29.6106383Z Updating files:  88% (10999/12498)
+2026-10-25T08:10:29.6184243Z Updating files:  89% (11124/12498)
+2026-10-25T08:10:29.6275465Z Updating files:  90% (11249/12498)
+2026-10-25T08:10:29.6361724Z Updating files:  91% (11374/12498)
+2026-10-25T08:10:29.6447420Z Updating files:  92% (11499/12498)
+2026-10-25T08:10:29.6581696Z Updating files:  93% (11624/12498)
+2026-10-25T08:10:29.6719334Z Updating files:  94% (11749/12498)
+2026-10-25T08:10:29.6796502Z Updating files:  95% (11874/12498)
+2026-10-25T08:10:29.6880196Z Updating files:  96% (11999/12498)
+2026-10-25T08:10:29.6967733Z Updating files:  97% (12124/12498)
+2026-10-25T08:10:29.7055564Z Updating files:  98% (12249/12498)
+2026-10-25T08:10:29.7122187Z Updating files:  99% (12374/12498)
+2026-10-25T08:10:29.7122656Z Updating files: 100% (12498/12498)
+2026-10-25T08:10:29.7123015Z Updating files: 100% (12498/12498), done.
+2026-10-25T08:10:29.7257357Z Note: switching to '593a604c75befd4fd1b3bc9904857c238ced70a4'.
+2026-10-25T08:10:29.7257853Z 
+2026-10-25T08:10:29.7258135Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-25T08:10:29.7258754Z changes and commit them, and you can discard any commits you make in this
+2026-10-25T08:10:29.7259769Z state without impacting any branches by switching back to a branch.
+2026-10-25T08:10:29.7260318Z 
+2026-10-25T08:10:29.7260675Z If you want to create a new branch to retain commits you create, you may
+2026-10-25T08:10:29.7261367Z do so (now or later) by using -c with the switch command. Example:
+2026-10-25T08:10:29.7261817Z 
+2026-10-25T08:10:29.7262065Z   git switch -c <new-branch-name>
+2026-10-25T08:10:29.7262346Z 
+2026-10-25T08:10:29.7262498Z Or undo this operation with:
+2026-10-25T08:10:29.7262780Z 
+2026-10-25T08:10:29.7262918Z   git switch -
+2026-10-25T08:10:29.7263123Z 
+2026-10-25T08:10:29.7263472Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-25T08:10:29.7263969Z 
+2026-10-25T08:10:29.7264420Z HEAD is now at 593a604 test(browser): await applied forced-color styles before sampling (#6481)
+2026-10-25T08:10:29.7315901Z ##[endgroup]
+2026-10-25T08:10:29.7362029Z [command]/usr/bin/git log -1 --format=%H
+2026-10-25T08:10:29.7386198Z 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:29.7395275Z ##[group]Removing auth
+2026-10-25T08:10:29.7395616Z Removing SSH command configuration
+2026-10-25T08:10:29.7399922Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-25T08:10:29.7430310Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-25T08:10:29.7668504Z Removing HTTP extra header
+2026-10-25T08:10:29.7674343Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-25T08:10:29.7710891Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-25T08:10:29.7955820Z Removing includeIf entries pointing to credentials config files
+2026-10-25T08:10:29.7960511Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-25T08:10:29.7987627Z includeif.gitdir:/home/runner/work/conduit/conduit/.git.path
+2026-10-25T08:10:29.7988433Z includeif.gitdir:/home/runner/work/conduit/conduit/.git/worktrees/*.path
+2026-10-25T08:10:29.7988882Z includeif.gitdir:/github/workspace/.git.path
+2026-10-25T08:10:29.7989994Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-25T08:10:29.7997665Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/conduit/conduit/.git.path
+2026-10-25T08:10:29.8020968Z /home/runner/work/_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config
+2026-10-25T08:10:29.8031042Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/conduit/conduit/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-72ee16e5\-e09a\-4915\-9d42\-5b5703b603e7\.config
+2026-10-25T08:10:29.8074381Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/conduit/conduit/.git/worktrees/*.path
+2026-10-25T08:10:29.8097451Z /home/runner/work/_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config
+2026-10-25T08:10:29.8107092Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/conduit/conduit/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-72ee16e5\-e09a\-4915\-9d42\-5b5703b603e7\.config
+2026-10-25T08:10:29.8147011Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-25T08:10:29.8169558Z /github/runner_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config
+2026-10-25T08:10:29.8177309Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-72ee16e5\-e09a\-4915\-9d42\-5b5703b603e7\.config
+2026-10-25T08:10:29.8211434Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-25T08:10:29.8232759Z /github/runner_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config
+2026-10-25T08:10:29.8240896Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-72ee16e5\-e09a\-4915\-9d42\-5b5703b603e7\.config
+2026-10-25T08:10:29.8277631Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-25T08:10:29.8518146Z Removing credentials config '/home/runner/work/_temp/git-credentials-72ee16e5-e09a-4915-9d42-5b5703b603e7.config'
+2026-10-25T08:10:29.8528720Z ##[endgroup]
+2026-10-25T08:10:29.8886464Z ##[group]Run dtolnay/rust-toolchain@1.98.1
+2026-10-25T08:10:29.8886783Z with:
+2026-10-25T08:10:29.8886970Z env:
+2026-10-25T08:10:29.8887174Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:29.8887410Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:29.8887638Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:29.8887876Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:29.8888110Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:29.8888404Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:29.8888735Z ##[endgroup]
+2026-10-25T08:10:29.8968329Z ##[start-action display=Parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+2026-10-25T08:10:29.9027932Z ##[group]Run if [[ -z $toolchain ]]; then
+2026-10-25T08:10:29.9028319Z [36;1mif [[ -z $toolchain ]]; then[0m
+2026-10-25T08:10:29.9028871Z [36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070[0m
+2026-10-25T08:10:29.9029808Z [36;1m  echo "'toolchain' is a required input" >&2[0m
+2026-10-25T08:10:29.9030104Z [36;1m  exit 1[0m
+2026-10-25T08:10:29.9030436Z [36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then[0m
+2026-10-25T08:10:29.9030844Z [36;1m  if [[ Linux == macOS ]]; then[0m
+2026-10-25T08:10:29.9031362Z [36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-10-25T08:10:29.9031863Z [36;1m  else[0m
+2026-10-25T08:10:29.9032262Z [36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-10-25T08:10:29.9032722Z [36;1m  fi[0m
+2026-10-25T08:10:29.9033018Z [36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then[0m
+2026-10-25T08:10:29.9033553Z [36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT[0m
+2026-10-25T08:10:29.9034022Z [36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then[0m
+2026-10-25T08:10:29.9034542Z [36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT[0m
+2026-10-25T08:10:29.9035037Z [36;1melse[0m
+2026-10-25T08:10:29.9035233Z [36;1m  delimiter=EOF[0m
+2026-10-25T08:10:29.9035544Z [36;1m  while [[ $toolchain == *$delimiter* ]]; do delimiter+=_; done[0m
+2026-10-25T08:10:29.9036044Z [36;1m  printf 'toolchain<<%s\n%s\n%s\n' "$delimiter" "$toolchain" "$delimiter" >> $GITHUB_OUTPUT[0m
+2026-10-25T08:10:29.9067535Z [36;1mfi[0m
+2026-10-25T08:10:29.9357655Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:29.9358030Z env:
+2026-10-25T08:10:29.9358243Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:29.9358486Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:29.9358716Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:29.9358962Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:29.9359912Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:29.9360253Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:29.9360621Z   toolchain: 1.98.1
+2026-10-25T08:10:29.9360840Z ##[endgroup]
+2026-10-25T08:10:29.9512501Z ##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=54]
+2026-10-25T08:10:29.9517381Z ##[start-action display=Set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+2026-10-25T08:10:29.9542077Z ##[group]Run echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+2026-10-25T08:10:29.9542617Z [36;1mecho CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV[0m
+2026-10-25T08:10:29.9608763Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:29.9609296Z env:
+2026-10-25T08:10:29.9609500Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:29.9609742Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:29.9609969Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:29.9610209Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:29.9610466Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:29.9611021Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:29.9611411Z ##[endgroup]
+2026-10-25T08:10:29.9713970Z ##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=19]
+2026-10-25T08:10:29.9716584Z ##[start-action display=Install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+2026-10-25T08:10:29.9745369Z ##[group]Run if ! command -v rustup &>/dev/null; then
+2026-10-25T08:10:29.9745746Z [36;1mif ! command -v rustup &>/dev/null; then[0m
+2026-10-25T08:10:29.9746530Z [36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y[0m
+2026-10-25T08:10:29.9747280Z [36;1m  echo "$CARGO_HOME/bin" >> $GITHUB_PATH[0m
+2026-10-25T08:10:29.9747561Z [36;1mfi[0m
+2026-10-25T08:10:29.9816954Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:29.9817312Z env:
+2026-10-25T08:10:29.9817511Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:29.9817745Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:29.9817977Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:29.9818214Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:29.9818447Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:29.9818754Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:29.9819325Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:29.9819724Z ##[endgroup]
+2026-10-25T08:10:29.9919507Z ##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=success;conclusion=success;duration_ms=20]
+2026-10-25T08:10:29.9922261Z ##[start-action display=Install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+2026-10-25T08:10:29.9929456Z ##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-25T08:10:29.9943447Z ##[start-action display=rustup toolchain install 1.98.1;id=__dtolnay_rust-toolchain.__run_4]
+2026-10-25T08:10:29.9966162Z ##[group]Run set -f  # split targets and components on commas and whitespace, without glob expansion
+2026-10-25T08:10:29.9966841Z [36;1mset -f  # split targets and components on commas and whitespace, without glob expansion[0m
+2026-10-25T08:10:29.9967286Z [36;1mflags=()[0m
+2026-10-25T08:10:29.9967559Z [36;1mfor t in ${targets//,/ }; do flags+=(--target "$t"); done[0m
+2026-10-25T08:10:29.9967963Z [36;1mfor c in ${components//,/ }; do flags+=(--component "$c"); done[0m
+2026-10-25T08:10:29.9968464Z [36;1mif [[ $toolchain == nightly && -n $components ]]; then flags+=(--allow-downgrade); fi[0m
+2026-10-25T08:10:29.9968882Z [36;1mlog=$(mktemp)[0m
+2026-10-25T08:10:29.9969382Z [36;1mtrap 'rm -f "$log"' EXIT[0m
+2026-10-25T08:10:29.9969671Z [36;1mfor attempt in 1 2 3 4 5; do[0m
+2026-10-25T08:10:29.9970236Z [36;1m  if rustup toolchain install "$toolchain" "${flags[@]}" --profile minimal --no-self-update --force-non-host 2>&1 | tee "$log"; then[0m
+2026-10-25T08:10:29.9970798Z [36;1m    break[0m
+2026-10-25T08:10:29.9971178Z [36;1m  else[0m
+2026-10-25T08:10:29.9971377Z [36;1m    status=$?[0m
+2026-10-25T08:10:29.9971598Z [36;1m  fi[0m
+2026-10-25T08:10:29.9971897Z [36;1m  if [[ $attempt == 5 ]] || ! grep -Fq 'checksum failed for ' "$log" \[0m
+2026-10-25T08:10:29.9972440Z [36;1m      || ! grep -Fq 'this is likely due to an ongoing update of the official release server' "$log"; then[0m
+2026-10-25T08:10:29.9972893Z [36;1m    exit "$status"[0m
+2026-10-25T08:10:29.9973117Z [36;1m  fi[0m
+2026-10-25T08:10:29.9973462Z [36;1m  echo "Retrying rustup toolchain install in 30 seconds (retry $attempt of 4)" >&2[0m
+2026-10-25T08:10:29.9973877Z [36;1m  sleep 30[0m
+2026-10-25T08:10:29.9974078Z [36;1mdone[0m
+2026-10-25T08:10:30.0045151Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:30.0045509Z env:
+2026-10-25T08:10:30.0045711Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:30.0045947Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:30.0046194Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:30.0046445Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:30.0046682Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:30.0047198Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:30.0047562Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:30.0047804Z   toolchain: 1.98.1
+2026-10-25T08:10:30.0048001Z   targets: 
+2026-10-25T08:10:30.0048186Z   components: 
+2026-10-25T08:10:30.0048389Z   RUSTUP_PERMIT_COPY_RENAME: 1
+2026-10-25T08:10:30.0048621Z ##[endgroup]
+2026-10-25T08:10:30.0639340Z info: syncing channel updates for 1.98.1-x86_64-unknown-linux-gnu
+2026-10-25T08:10:30.1769968Z info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+2026-10-25T08:10:30.1770613Z info: downloading 3 components
+2026-10-25T08:10:37.5526631Z 
+2026-10-25T08:10:37.5607856Z   1.98.1-x86_64-unknown-linux-gnu installed - rustc 1.98.1 (48a229cea 2026-09-01)
+2026-10-25T08:10:37.5608350Z 
+2026-10-25T08:10:37.5708293Z ##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=7576]
+2026-10-25T08:10:37.5715025Z ##[start-action display=rustup default 1.98.1;id=__dtolnay_rust-toolchain.__run_5]
+2026-10-25T08:10:37.5742448Z ##[group]Run rustup default "$toolchain" --force-non-host
+2026-10-25T08:10:37.5743033Z [36;1mrustup default "$toolchain" --force-non-host[0m
+2026-10-25T08:10:37.5808551Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:37.5808895Z env:
+2026-10-25T08:10:37.5809369Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:37.5809632Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:37.5809858Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:37.5810088Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:37.5810330Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:37.5810633Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:37.5810977Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:37.5811215Z   toolchain: 1.98.1
+2026-10-25T08:10:37.5811413Z ##[endgroup]
+2026-10-25T08:10:37.5937892Z info: using existing install for 1.98.1-x86_64-unknown-linux-gnu
+2026-10-25T08:10:37.6006618Z info: default toolchain set to 1.98.1-x86_64-unknown-linux-gnu
+2026-10-25T08:10:37.6007091Z 
+2026-10-25T08:10:37.6078902Z info: note that the toolchain '1.98.1-x86_64-unknown-linux-gnu' is currently in use (overridden by environment variable RUSTUP_TOOLCHAIN)
+2026-10-25T08:10:37.6080325Z   1.98.1-x86_64-unknown-linux-gnu unchanged - rustc 1.98.1 (48a229cea 2026-09-01)
+2026-10-25T08:10:37.6081047Z 
+2026-10-25T08:10:37.6103016Z ##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=38]
+2026-10-25T08:10:37.6107367Z ##[start-action display=Create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+2026-10-25T08:10:37.6161796Z ##[group]Run DATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+2026-10-25T08:10:37.6162653Z [36;1mDATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')[0m
+2026-10-25T08:10:37.6163637Z [36;1mHASH=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-hash: //p')[0m
+2026-10-25T08:10:37.6164149Z [36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT[0m
+2026-10-25T08:10:37.6227194Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:37.6227531Z env:
+2026-10-25T08:10:37.6227726Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:37.6227956Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:37.6228171Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:37.6228405Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:37.6228640Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:37.6228934Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:37.6229544Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:37.6229786Z   toolchain: 1.98.1
+2026-10-25T08:10:37.6229991Z ##[endgroup]
+2026-10-25T08:10:37.7387139Z ##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=127]
+2026-10-25T08:10:37.7390172Z ##[start-action display=Disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+2026-10-25T08:10:37.7570387Z ##[group]Run if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+2026-10-25T08:10:37.7570773Z [36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then[0m
+2026-10-25T08:10:37.7571097Z [36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV[0m
+2026-10-25T08:10:37.7571376Z [36;1mfi[0m
+2026-10-25T08:10:37.7642195Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:37.7642535Z env:
+2026-10-25T08:10:37.7642739Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:37.7642978Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:37.7643199Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:37.7643441Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:37.7643684Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:37.7643984Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:37.7644330Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:37.7644584Z ##[endgroup]
+2026-10-25T08:10:37.8033638Z ##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=64]
+2026-10-25T08:10:37.8036148Z ##[start-action display=Enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+2026-10-25T08:10:37.8054730Z ##[group]Run if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+2026-10-25T08:10:37.8055117Z [36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then[0m
+2026-10-25T08:10:37.8055448Z [36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV[0m
+2026-10-25T08:10:37.8055736Z [36;1mfi[0m
+2026-10-25T08:10:37.8117486Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:37.8117830Z env:
+2026-10-25T08:10:37.8118024Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:37.8118484Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:37.8118706Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:37.8118943Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:37.8119499Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:37.8119806Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:37.8120170Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:37.8120419Z ##[endgroup]
+2026-10-25T08:10:37.8212297Z ##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=17]
+2026-10-25T08:10:37.8215560Z ##[start-action display=Enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+2026-10-25T08:10:37.8234152Z ##[group]Run # implemented in 1.66, stabilized in 1.68, made default in 1.70
+2026-10-25T08:10:37.8234677Z [36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70[0m
+2026-10-25T08:10:37.8235430Z [36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then[0m
+2026-10-25T08:10:37.8251484Z [36;1m  if rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[89]\.'; then[0m
+2026-10-25T08:10:37.8252527Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-10-25T08:10:37.8253692Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV[0m
+2026-10-25T08:10:37.8254581Z [36;1m  elif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[67]\.'; then[0m
+2026-10-25T08:10:37.8255589Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-10-25T08:10:37.8256486Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV[0m
+2026-10-25T08:10:37.8257072Z [36;1m  fi[0m
+2026-10-25T08:10:37.8257382Z [36;1mfi[0m
+2026-10-25T08:10:37.8321594Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:37.8321935Z env:
+2026-10-25T08:10:37.8322127Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:37.8322363Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:37.8322581Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:37.8322813Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:37.8323050Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:37.8323342Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:37.8323701Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:37.8324107Z   toolchain: 1.98.1
+2026-10-25T08:10:37.8324316Z ##[endgroup]
+2026-10-25T08:10:37.8753459Z ##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=53]
+2026-10-25T08:10:37.8757228Z ##[start-action display=Work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+2026-10-25T08:10:37.9107525Z ##[group]Run # https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+2026-10-25T08:10:37.9108314Z [36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation[0m
+2026-10-25T08:10:37.9108983Z [36;1mif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.7[01]\.'; then[0m
+2026-10-25T08:10:37.9109944Z [36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV[0m
+2026-10-25T08:10:37.9110286Z [36;1mfi[0m
+2026-10-25T08:10:37.9173649Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:37.9174006Z env:
+2026-10-25T08:10:37.9174209Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:37.9174445Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:37.9174670Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:37.9174911Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:37.9175147Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:37.9175453Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:37.9175808Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:37.9176155Z   toolchain: 1.98.1
+2026-10-25T08:10:37.9176358Z ##[endgroup]
+2026-10-25T08:10:37.9381988Z ##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=62]
+2026-10-25T08:10:37.9386522Z ##[start-action display=rustc +1.98.1 --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+2026-10-25T08:10:37.9601285Z ##[group]Run rustc +"$toolchain" --version --verbose
+2026-10-25T08:10:37.9601910Z [36;1mrustc +"$toolchain" --version --verbose[0m
+2026-10-25T08:10:37.9672042Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:37.9672605Z env:
+2026-10-25T08:10:37.9672977Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:37.9673382Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:37.9673757Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:37.9674200Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:37.9674613Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:37.9674979Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:37.9675335Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:37.9675581Z   toolchain: 1.98.1
+2026-10-25T08:10:37.9675793Z ##[endgroup]
+2026-10-25T08:10:37.9895086Z rustc 1.98.1 (48a229cea 2026-09-01)
+2026-10-25T08:10:37.9895775Z binary: rustc
+2026-10-25T08:10:37.9896305Z commit-hash: 48a229ceaefd4985c50990b14116b6d856af0985
+2026-10-25T08:10:37.9896928Z commit-date: 2026-09-01
+2026-10-25T08:10:37.9897470Z host: x86_64-unknown-linux-gnu
+2026-10-25T08:10:37.9897988Z release: 1.98.1
+2026-10-25T08:10:37.9898752Z LLVM version: 22.1.8
+2026-10-25T08:10:37.9911709Z ##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=52]
+2026-10-25T08:10:38.1042014Z ##[group]Run actions/setup-node@v7.0.0
+2026-10-25T08:10:38.1042322Z with:
+2026-10-25T08:10:38.1042520Z   node-version: 22
+2026-10-25T08:10:38.1042738Z   check-latest: false
+2026-10-25T08:10:38.1045159Z   token: ***
+2026-10-25T08:10:38.1045389Z   package-manager-cache: true
+2026-10-25T08:10:38.1045631Z env:
+2026-10-25T08:10:38.1045820Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:38.1046049Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:38.1046270Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:38.1046508Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:38.1046742Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:38.1047040Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:38.1047391Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:38.1047632Z ##[endgroup]
+2026-10-25T08:10:38.4537253Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-25T08:10:38.4538404Z ##[group]Environment details
+2026-10-25T08:10:39.3182864Z node: v22.23.3
+2026-10-25T08:10:39.3183467Z npm: 10.9.9
+2026-10-25T08:10:39.3183789Z yarn: 1.22.22
+2026-10-25T08:10:39.3184511Z ##[endgroup]
+2026-10-25T08:10:39.3330005Z ##[group]Run Swatinem/rust-cache@v2
+2026-10-25T08:10:39.3330308Z with:
+2026-10-25T08:10:39.3330517Z   key: target-conduitos-x86_64
+2026-10-25T08:10:39.3330782Z   prefix-key: conduit-compiler-v1
+2026-10-25T08:10:39.3331036Z   cache-targets: false
+2026-10-25T08:10:39.3331354Z   cache-directories: target/debug
+target/release
+target/*-unknown-*
+
+2026-10-25T08:10:39.3331721Z   cache-on-failure: true
+2026-10-25T08:10:39.3331946Z   add-job-id-key: true
+2026-10-25T08:10:39.3332182Z   add-rust-environment-hash-key: true
+2026-10-25T08:10:39.3332451Z   cache-all-crates: false
+2026-10-25T08:10:39.3332686Z   cache-workspace-crates: false
+2026-10-25T08:10:39.3332921Z   save-if: true
+2026-10-25T08:10:39.3333122Z   cache-provider: github
+2026-10-25T08:10:39.3333353Z   cache-bin: true
+2026-10-25T08:10:39.3333552Z   lookup-only: false
+2026-10-25T08:10:39.3333752Z   cmd-format: {0}
+2026-10-25T08:10:39.3333939Z env:
+2026-10-25T08:10:39.3334121Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:39.3334367Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:39.3334579Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:39.3334810Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:39.3335039Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:39.3335333Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:39.3335675Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:39.3335912Z ##[endgroup]
+2026-10-25T08:10:40.8736165Z ##[group]Cache Configuration
+2026-10-25T08:10:40.8750684Z Cache Provider:
+2026-10-25T08:10:40.8751121Z     github
+2026-10-25T08:10:40.8751441Z Workspaces:
+2026-10-25T08:10:40.8751905Z     /home/runner/work/conduit/conduit
+2026-10-25T08:10:40.8752400Z Cache Paths:
+2026-10-25T08:10:40.8752796Z     /home/runner/.cargo/bin
+2026-10-25T08:10:40.8753350Z     /home/runner/.cargo/.crates.toml
+2026-10-25T08:10:40.8753885Z     /home/runner/.cargo/.crates2.json
+2026-10-25T08:10:40.8754403Z     /home/runner/.cargo/registry
+2026-10-25T08:10:40.8754884Z     /home/runner/.cargo/git
+2026-10-25T08:10:40.8755332Z     target/debug
+2026-10-25T08:10:40.8755719Z     target/release
+2026-10-25T08:10:40.8756117Z     target/*-unknown-*
+2026-10-25T08:10:40.8756539Z Restore Key:
+2026-10-25T08:10:40.8757219Z     conduit-compiler-v1-target-conduitos-x86_64-target-Linux-x64-2f443374
+2026-10-25T08:10:40.8757916Z Cache Key:
+2026-10-25T08:10:40.8758620Z     conduit-compiler-v1-target-conduitos-x86_64-target-Linux-x64-2f443374-d06c3295
+2026-10-25T08:10:40.8759977Z .. Prefix:
+2026-10-25T08:10:40.8760644Z   - conduit-compiler-v1-target-conduitos-x86_64-target-Linux-x64
+2026-10-25T08:10:40.8761418Z .. Environment considered:
+2026-10-25T08:10:40.8761891Z   - Rust Versions:
+2026-10-25T08:10:40.8762614Z     - 1.98.1 x86_64-unknown-linux-gnu 48a229ceaefd4985c50990b14116b6d856af0985
+2026-10-25T08:10:40.8764155Z     - 1.99.0 x86_64-unknown-linux-gnu b940084d7eb6a299eb4bfeb8e34901bc051e7ac4
+2026-10-25T08:10:40.8764894Z   - CARGO_HOME
+2026-10-25T08:10:40.8765282Z   - CARGO_INCREMENTAL
+2026-10-25T08:10:40.8765722Z   - CARGO_PROFILE_DEV_DEBUG
+2026-10-25T08:10:40.8766260Z   - CARGO_PROFILE_TEST_DEBUG
+2026-10-25T08:10:40.8766740Z   - CARGO_TERM_COLOR
+2026-10-25T08:10:40.8767152Z   - RUSTUP_TOOLCHAIN
+2026-10-25T08:10:40.8767611Z .. Lockfiles considered:
+2026-10-25T08:10:40.8768234Z   - /home/runner/work/conduit/conduit/.cargo/config.toml
+2026-10-25T08:10:40.8769490Z   - /home/runner/work/conduit/conduit/architecture/assigned-plan/Cargo.toml
+2026-10-25T08:10:40.8770521Z   - /home/runner/work/conduit/conduit/architecture/body/Cargo.toml
+2026-10-25T08:10:40.8771437Z   - /home/runner/work/conduit/conduit/architecture/composite/Cargo.toml
+2026-10-25T08:10:40.8772305Z   - /home/runner/work/conduit/conduit/architecture/core/Cargo.toml
+2026-10-25T08:10:40.8773131Z   - /home/runner/work/conduit/conduit/architecture/kernel/Cargo.toml
+2026-10-25T08:10:40.8774007Z   - /home/runner/work/conduit/conduit/architecture/observatory/Cargo.toml
+2026-10-25T08:10:40.8774551Z   - /home/runner/work/conduit/conduit/architecture/plan-lowering/Cargo.toml
+2026-10-25T08:10:40.8775361Z   - /home/runner/work/conduit/conduit/architecture/planner/Cargo.toml
+2026-10-25T08:10:40.8775869Z   - /home/runner/work/conduit/conduit/architecture/plot/Cargo.toml
+2026-10-25T08:10:40.8776366Z   - /home/runner/work/conduit/conduit/architecture/protected-line/Cargo.toml
+2026-10-25T08:10:40.8776865Z   - /home/runner/work/conduit/conduit/architecture/wire/Cargo.toml
+2026-10-25T08:10:40.8777310Z   - /home/runner/work/conduit/conduit/bodies/pete/Cargo.toml
+2026-10-25T08:10:40.8777742Z   - /home/runner/work/conduit/conduit/Cargo.lock
+2026-10-25T08:10:40.8778125Z   - /home/runner/work/conduit/conduit/make/body/Cargo.toml
+2026-10-25T08:10:40.8778565Z   - /home/runner/work/conduit/conduit/make/embedded-build/Cargo.toml
+2026-10-25T08:10:40.8779001Z   - /home/runner/work/conduit/conduit/make/host/Cargo.toml
+2026-10-25T08:10:40.8779762Z   - /home/runner/work/conduit/conduit/make/workspace/Cargo.toml
+2026-10-25T08:10:40.8780279Z   - /home/runner/work/conduit/conduit/mechanisms/devices/create-oi/Cargo.toml
+2026-10-25T08:10:40.8780843Z   - /home/runner/work/conduit/conduit/mechanisms/devices/mpu6050/Cargo.toml
+2026-10-25T08:10:40.8781367Z   - /home/runner/work/conduit/conduit/mechanisms/devices/ssd1306/Cargo.toml
+2026-10-25T08:10:40.8781933Z   - /home/runner/work/conduit/conduit/mechanisms/implementations/burn-model/Cargo.toml
+2026-10-25T08:10:40.8782623Z   - /home/runner/work/conduit/conduit/mechanisms/implementations/emergency-keyword-spotter/Cargo.toml
+2026-10-25T08:10:40.8783364Z   - /home/runner/work/conduit/conduit/mechanisms/implementations/linear-framebuffer-make/Cargo.toml
+2026-10-25T08:10:40.8784014Z   - /home/runner/work/conduit/conduit/mechanisms/implementations/synth/Cargo.toml
+2026-10-25T08:10:40.8784592Z   - /home/runner/work/conduit/conduit/mechanisms/io/resource-snapshot/Cargo.toml
+2026-10-25T08:10:40.8785162Z   - /home/runner/work/conduit/conduit/mechanisms/protocols/bluetooth/Cargo.toml
+2026-10-25T08:10:40.8785706Z   - /home/runner/work/conduit/conduit/mechanisms/protocols/midi/Cargo.toml
+2026-10-25T08:10:40.8786190Z   - /home/runner/work/conduit/conduit/plots/birth/Cargo.toml
+2026-10-25T08:10:40.8786610Z   - /home/runner/work/conduit/conduit/plots/commons/Cargo.toml
+2026-10-25T08:10:40.8787113Z   - /home/runner/work/conduit/conduit/plots/little-seismograph/fixture/Cargo.toml
+2026-10-25T08:10:40.8787689Z   - /home/runner/work/conduit/conduit/plots/patchbay/application/Cargo.toml
+2026-10-25T08:10:40.8788176Z   - /home/runner/work/conduit/conduit/plots/patchbay/Cargo.toml
+2026-10-25T08:10:40.8788678Z   - /home/runner/work/conduit/conduit/plots/patchbay/graph/Cargo.toml
+2026-10-25T08:10:40.8789575Z   - /home/runner/work/conduit/conduit/plots/patchbay/workbench/host-contract/Cargo.toml
+2026-10-25T08:10:40.8790237Z   - /home/runner/work/conduit/conduit/plots/patchbay/workbench/model/Cargo.toml
+2026-10-25T08:10:40.8790982Z   - /home/runner/work/conduit/conduit/plots/patchbay/workbench/svg-mask/Cargo.toml
+2026-10-25T08:10:40.8791520Z   - /home/runner/work/conduit/conduit/plots/thermostat/face/Cargo.toml
+2026-10-25T08:10:40.8792017Z   - /home/runner/work/conduit/conduit/plots/thermostat/model/Cargo.toml
+2026-10-25T08:10:40.8792515Z   - /home/runner/work/conduit/conduit/plots/thermostat/runtime/Cargo.toml
+2026-10-25T08:10:40.8792987Z   - /home/runner/work/conduit/conduit/plots/todo/face/Cargo.toml
+2026-10-25T08:10:40.8793437Z   - /home/runner/work/conduit/conduit/plots/todo/model/Cargo.toml
+2026-10-25T08:10:40.8793887Z   - /home/runner/work/conduit/conduit/plots/tour/Cargo.toml
+2026-10-25T08:10:40.8794319Z   - /home/runner/work/conduit/conduit/products/conduit/Cargo.toml
+2026-10-25T08:10:40.8794848Z   - /home/runner/work/conduit/conduit/proof/conformance/alife-distributed/Cargo.toml
+2026-10-25T08:10:40.8795583Z   - /home/runner/work/conduit/conduit/proof/conformance/body-lifecycle/Cargo.toml
+2026-10-25T08:10:40.8796143Z   - /home/runner/work/conduit/conduit/proof/conformance/network-r1/Cargo.toml
+2026-10-25T08:10:40.8796719Z   - /home/runner/work/conduit/conduit/proof/conformance/patchbay-workbench/Cargo.toml
+2026-10-25T08:10:40.8797439Z   - /home/runner/work/conduit/conduit/proof/conformance/pete-workload/Cargo.toml
+2026-10-25T08:10:40.8797981Z   - /home/runner/work/conduit/conduit/proof/conformance/signal/Cargo.toml
+2026-10-25T08:10:40.8798555Z   - /home/runner/work/conduit/conduit/proof/fixtures/rp2040-pio-audio-extension/Cargo.toml
+2026-10-25T08:10:40.8799356Z   - /home/runner/work/conduit/conduit/proof/performance/runtime/Cargo.toml
+2026-10-25T08:10:40.8799833Z   - /home/runner/work/conduit/conduit/rust-toolchain.toml
+2026-10-25T08:10:40.8800249Z   - /home/runner/work/conduit/conduit/semantics/ai/Cargo.toml
+2026-10-25T08:10:40.8800677Z   - /home/runner/work/conduit/conduit/semantics/alife/Cargo.toml
+2026-10-25T08:10:40.8801116Z   - /home/runner/work/conduit/conduit/semantics/audio/Cargo.toml
+2026-10-25T08:10:40.8801599Z   - /home/runner/work/conduit/conduit/semantics/body-invitation/Cargo.toml
+2026-10-25T08:10:40.8802086Z   - /home/runner/work/conduit/conduit/semantics/catalog/Cargo.toml
+2026-10-25T08:10:40.8802530Z   - /home/runner/work/conduit/conduit/semantics/chat/Cargo.toml
+2026-10-25T08:10:40.8802956Z   - /home/runner/work/conduit/conduit/semantics/data/Cargo.toml
+2026-10-25T08:10:40.8803402Z   - /home/runner/work/conduit/conduit/semantics/education/Cargo.toml
+2026-10-25T08:10:40.8803851Z   - /home/runner/work/conduit/conduit/semantics/face/Cargo.toml
+2026-10-25T08:10:40.8804283Z   - /home/runner/work/conduit/conduit/semantics/finance/Cargo.toml
+2026-10-25T08:10:40.8804713Z   - /home/runner/work/conduit/conduit/semantics/home/Cargo.toml
+2026-10-25T08:10:40.8805134Z   - /home/runner/work/conduit/conduit/semantics/human/Cargo.toml
+2026-10-25T08:10:40.8805577Z   - /home/runner/work/conduit/conduit/semantics/language/Cargo.toml
+2026-10-25T08:10:40.8806075Z   - /home/runner/work/conduit/conduit/semantics/net/Cargo.toml
+2026-10-25T08:10:40.8806621Z   - /home/runner/work/conduit/conduit/semantics/plot-library/Cargo.toml
+2026-10-25T08:10:40.8807094Z   - /home/runner/work/conduit/conduit/semantics/process/Cargo.toml
+2026-10-25T08:10:40.8807544Z   - /home/runner/work/conduit/conduit/semantics/purpose/Cargo.toml
+2026-10-25T08:10:40.8807992Z   - /home/runner/work/conduit/conduit/semantics/robotics/Cargo.toml
+2026-10-25T08:10:40.8808445Z   - /home/runner/work/conduit/conduit/semantics/signal/Cargo.toml
+2026-10-25T08:10:40.8808884Z   - /home/runner/work/conduit/conduit/semantics/speech/Cargo.toml
+2026-10-25T08:10:40.8809753Z   - /home/runner/work/conduit/conduit/semantics/system-continuity/Cargo.toml
+2026-10-25T08:10:40.8810352Z   - /home/runner/work/conduit/conduit/semantics/text/Cargo.toml
+2026-10-25T08:10:40.8810869Z   - /home/runner/work/conduit/conduit/semantics/time/Cargo.toml
+2026-10-25T08:10:40.8811545Z   - /home/runner/work/conduit/conduit/semantics/tongues/Cargo.toml
+2026-10-25T08:10:40.8812278Z   - /home/runner/work/conduit/conduit/semantics/tutorial/Cargo.toml
+2026-10-25T08:10:40.8813020Z   - /home/runner/work/conduit/conduit/semantics/web/Cargo.toml
+2026-10-25T08:10:40.8825528Z   - /home/runner/work/conduit/conduit/targets/avr/firmware/promicro-host/.cargo/config.toml
+2026-10-25T08:10:40.8826619Z   - /home/runner/work/conduit/conduit/targets/avr/firmware/promicro-host/rust-toolchain.toml
+2026-10-25T08:10:40.8827234Z   - /home/runner/work/conduit/conduit/targets/avr/make/Cargo.toml
+2026-10-25T08:10:40.8827737Z   - /home/runner/work/conduit/conduit/targets/browser/host/Cargo.toml
+2026-10-25T08:10:40.8828221Z   - /home/runner/work/conduit/conduit/targets/browser/make/Cargo.toml
+2026-10-25T08:10:40.8828873Z   - /home/runner/work/conduit/conduit/targets/browser/mask-offer/Cargo.toml
+2026-10-25T08:10:40.8829948Z   - /home/runner/work/conduit/conduit/targets/browser/patchbay-workbench/Cargo.toml
+2026-10-25T08:10:40.8830640Z   - /home/runner/work/conduit/conduit/targets/browser/runtime/Cargo.toml
+2026-10-25T08:10:40.8831212Z   - /home/runner/work/conduit/conduit/targets/conduitos/application-core/Cargo.toml
+2026-10-25T08:10:40.8831757Z   - /home/runner/work/conduit/conduit/targets/conduitos/Cargo.toml
+2026-10-25T08:10:40.8832507Z   - /home/runner/work/conduit/conduit/targets/conduitos/compositor-core/Cargo.toml
+2026-10-25T08:10:40.8833569Z   - /home/runner/work/conduit/conduit/targets/conduitos/creche-core/Cargo.toml
+2026-10-25T08:10:40.8834510Z   - /home/runner/work/conduit/conduit/targets/conduitos/make/Cargo.toml
+2026-10-25T08:10:40.8835415Z   - /home/runner/work/conduit/conduit/targets/conduitos/mask-core/Cargo.toml
+2026-10-25T08:10:40.8836370Z   - /home/runner/work/conduit/conduit/targets/conduitos/mask-offer/Cargo.toml
+2026-10-25T08:10:40.8837344Z   - /home/runner/work/conduit/conduit/targets/conduitos/network-core/Cargo.toml
+2026-10-25T08:10:40.8838326Z   - /home/runner/work/conduit/conduit/targets/conduitos/runtime-core/Cargo.toml
+2026-10-25T08:10:40.8839457Z   - /home/runner/work/conduit/conduit/targets/conduitos/tls-core/Cargo.toml
+2026-10-25T08:10:40.8840068Z   - /home/runner/work/conduit/conduit/targets/esp32/firmware/c3-signal/.cargo/config.toml
+2026-10-25T08:10:40.8840778Z   - /home/runner/work/conduit/conduit/targets/esp32/firmware/s3-signal/.cargo/config.toml
+2026-10-25T08:10:40.8841417Z   - /home/runner/work/conduit/conduit/targets/esp32/firmware/wroom-signal/.cargo/config.toml
+2026-10-25T08:10:40.8841971Z   - /home/runner/work/conduit/conduit/targets/esp32/make/Cargo.toml
+2026-10-25T08:10:40.8842501Z   - /home/runner/work/conduit/conduit/targets/esp32/proof/tm1637/.cargo/config.toml
+2026-10-25T08:10:40.8843085Z   - /home/runner/work/conduit/conduit/targets/esp32/proof/tm1637/rust-toolchain.toml
+2026-10-25T08:10:40.8843951Z   - /home/runner/work/conduit/conduit/targets/orange-pi/make/Cargo.toml
+2026-10-25T08:10:40.8844665Z   - /home/runner/work/conduit/conduit/targets/raspberry-pi/make/Cargo.toml
+2026-10-25T08:10:40.8845160Z   - /home/runner/work/conduit/conduit/targets/rp2040/make/Cargo.toml
+2026-10-25T08:10:40.8845689Z   - /home/runner/work/conduit/conduit/targets/rp2040/network-realization/Cargo.toml
+2026-10-25T08:10:40.8846181Z   - /home/runner/work/conduit/conduit/targets/std/Cargo.toml
+2026-10-25T08:10:40.8846612Z   - /home/runner/work/conduit/conduit/targets/std/make/Cargo.toml
+2026-10-25T08:10:40.8847069Z   - /home/runner/work/conduit/conduit/targets/std/offers/Cargo.toml
+2026-10-25T08:10:40.8847576Z   - /home/runner/work/conduit/conduit/targets/std/patchbay-workbench/Cargo.toml
+2026-10-25T08:10:40.8848098Z   - /home/runner/work/conduit/conduit/tools/xtask-dispatch/Cargo.toml
+2026-10-25T08:10:40.8848538Z   - /home/runner/work/conduit/conduit/tools/xtask/Cargo.toml
+2026-10-25T08:10:40.8849052Z ##[endgroup]
+2026-10-25T08:10:40.8849409Z 
+2026-10-25T08:10:40.8849585Z ... Restoring cache ...
+2026-10-25T08:10:41.1208524Z Cache hit for: conduit-compiler-v1-target-conduitos-x86_64-target-Linux-x64-2f443374-d06c3295
+2026-10-25T08:10:42.3978123Z Received 0 of 669172743 (0.0%), 0.0 MBs/sec
+2026-10-25T08:10:43.3988296Z Received 134217728 of 669172743 (20.1%), 64.0 MBs/sec
+2026-10-25T08:10:44.3994283Z Received 297795584 of 669172743 (44.5%), 94.6 MBs/sec
+2026-10-25T08:10:45.4031134Z Received 465567744 of 669172743 (69.6%), 110.9 MBs/sec
+2026-10-25T08:10:46.4023355Z Received 660784135 of 669172743 (98.7%), 125.9 MBs/sec
+2026-10-25T08:10:47.1914224Z Received 669172743 of 669172743 (100.0%), 110.1 MBs/sec
+2026-10-25T08:10:47.1914780Z Cache Size: ~638 MB (669172743 B)
+2026-10-25T08:10:47.2024804Z [command]/usr/bin/tar -xf /home/runner/work/_temp/3a7adf3a-ad46-4565-af9f-becb2fe2c22f/cache.tzst -P -C /home/runner/work/conduit/conduit --use-compress-program unzstd
+2026-10-25T08:10:49.8925836Z Cache restored successfully
+2026-10-25T08:10:50.7656154Z Restored from cache key "conduit-compiler-v1-target-conduitos-x86_64-target-Linux-x64-2f443374-d06c3295" full match: true.
+2026-10-25T08:10:50.8588055Z ##[group]Run cargo xtask ci pipeline acquisition-key "$TARGET"
+2026-10-25T08:10:50.8588919Z [36;1mcargo xtask ci pipeline acquisition-key "$TARGET"[0m
+2026-10-25T08:10:51.0700728Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:51.0701257Z env:
+2026-10-25T08:10:51.0701558Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:51.0701922Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:51.0702310Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:51.0702566Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:51.0702821Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:51.0703142Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:51.0703506Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:51.0703758Z   CACHE_ON_FAILURE: true
+2026-10-25T08:10:51.0703989Z   TARGET: conduitos-x86_64
+2026-10-25T08:10:51.0704222Z ##[endgroup]
+2026-10-25T08:10:51.1827665Z [1m[92m    Updating[0m crates.io index
+2026-10-25T08:10:52.0043513Z [1m[92m   Compiling[0m conduit-xtask-dispatch v0.1.0 (/home/runner/work/conduit/conduit/tools/xtask-dispatch)
+2026-10-25T08:10:53.3241792Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 2.21s
+2026-10-25T08:10:53.3331278Z [1m[92m     Running[0m `target/debug/conduit-xtask-dispatch ci pipeline acquisition-key conduitos-x86_64`
+2026-10-25T08:10:53.3976568Z {"target":"conduitos-x86_64","key":"conduit-acquisition-v1-linux-x64-ubuntu24-20261023.334.3-conduitos-x86_64-7cb3222046bfbf1f50a2b1447c3d1d7cd84d655c2d98db9a862541702e91d750","specificationKey":"7cb3222046bfbf1f50a2b1447c3d1d7cd84d655c2d98db9a862541702e91d750","runnerImage":{"os":"ubuntu24","version":"20261023.334.3"},"paths":["/home/runner/.cache/conduit-ci"],"cacheable":true}
+2026-10-25T08:10:53.4108139Z ##[group]Run actions/cache/restore@v6.1.0
+2026-10-25T08:10:53.4108702Z with:
+2026-10-25T08:10:53.4109334Z   path: /home/runner/.cache/conduit-ci
+2026-10-25T08:10:53.4110569Z   key: conduit-acquisition-v1-linux-x64-ubuntu24-20261023.334.3-conduitos-x86_64-7cb3222046bfbf1f50a2b1447c3d1d7cd84d655c2d98db9a862541702e91d750
+2026-10-25T08:10:53.4111831Z   enableCrossOsArchive: false
+2026-10-25T08:10:53.4112325Z   fail-on-cache-miss: false
+2026-10-25T08:10:53.4112758Z   lookup-only: false
+2026-10-25T08:10:53.4113126Z env:
+2026-10-25T08:10:53.4113449Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:53.4113873Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:53.4114288Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:53.4114726Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:53.4115149Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:53.4115691Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:53.4116332Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:53.4116823Z   CACHE_ON_FAILURE: true
+2026-10-25T08:10:53.4117217Z ##[endgroup]
+2026-10-25T08:10:53.7727092Z Cache not found for input keys: conduit-acquisition-v1-linux-x64-ubuntu24-20261023.334.3-conduitos-x86_64-7cb3222046bfbf1f50a2b1447c3d1d7cd84d655c2d98db9a862541702e91d750
+2026-10-25T08:10:53.7824778Z ##[group]Run cargo xtask ci pipeline setup "$TARGET"
+2026-10-25T08:10:53.7825487Z [36;1mcargo xtask ci pipeline setup "$TARGET"[0m
+2026-10-25T08:10:53.7889859Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:10:53.7890196Z env:
+2026-10-25T08:10:53.7890393Z   CARGO_TERM_COLOR: always
+2026-10-25T08:10:53.7890636Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:10:53.7890868Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:10:53.7891108Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:10:53.7891345Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:10:53.7891648Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:10:53.7892006Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:10:53.7892256Z   CACHE_ON_FAILURE: true
+2026-10-25T08:10:53.7892488Z   TARGET: conduitos-x86_64
+2026-10-25T08:10:53.7894951Z   GITHUB_TOKEN: ***
+2026-10-25T08:10:53.7895177Z ##[endgroup]
+2026-10-25T08:10:54.0356135Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 0.22s
+2026-10-25T08:10:54.0391701Z [1m[92m     Running[0m `target/debug/conduit-xtask-dispatch ci pipeline setup conduitos-x86_64`
+2026-10-25T08:12:00.4478119Z {"schema":"conduit.ci/apt-acquisition@1","requested":["build-essential","cmake","curl","libasound2-dev","libclang-dev","libssl-dev","libudev-dev","pkg-config","qemu-system-x86","tar","xorriso"],"repositoryScope":{"policy":"ubuntu-build-prerequisites@1","resolution":"no-removal-no-version-downgrade@1","os":"PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n","suite":"noble","source":"Types: deb\nURIs: https://archive.ubuntu.com/ubuntu\nSuites: noble noble-updates\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\nTypes: deb\nURIs: https://security.ubuntu.com/ubuntu\nSuites: noble-security\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n","signingKeySha256":"80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31"},"cache":"miss","downloadedPackages":39,"downloadedBytes":68896818,"installedVersions":{"build-essential":"12.10ubuntu1","cmake":"3.28.3-1build7","curl":"8.5.0-2ubuntu10.15","libasound2-dev":"1.2.11-1ubuntu0.3","libclang-dev":"1:18.0-59~exp2","libssl-dev":"3.0.13-0ubuntu3.16","libudev-dev":"255.4-1ubuntu8.18","pkg-config":"1.8.1-2build1","qemu-system-x86":"1:8.2.2+ds-0ubuntu1.18","tar":"1.35+dfsg-3ubuntu0.4","xorriso":"1:1.5.6-1.1ubuntu3"},"durationMs":66314,"resolutionKey":"41d5e243678835b18e58113d9066aa23b53d59b2afa1199f0ed80bd6c43c6ad4","resolvedPackages":[{"name":"build-essential","version":"12.10ubuntu1","architecture":"amd64","sha256":"9b2159b95a4c01937309783c7c8a6ec8dfbcb7ffd604951c9713ac52ee9c7268","bytes":4928},{"name":"cmake-data","version":"3.28.3-1build7","architecture":"all","sha256":"20a3b644211ce82f35c24f1f5052199adeb0ac159978a8740fd6c0959611557f","bytes":2154936},{"name":"cmake","version":"3.28.3-1build7","architecture":"amd64","sha256":"4b0a7f8c0daf27b26b46997d994ae5d1ee7a3d11dfcda9f7627bb1462c162295","bytes":11190006},{"name":"ipxe-qemu","version":"1.21.1+git-20220113.fbbdc3926-0ubuntu2","architecture":"all","sha256":"1f1612934b6ddaf4dd633760dfe5ef2a79ea2507341fd5efe394ff589a044707","bytes":1564600},{"name":"libasound2-dev","version":"1.2.11-1ubuntu0.3","architecture":"amd64","sha256":"b83795b1ba0e40cfa8363359fd17a06260838d8ae0f315531771a62f7c7e215a","bytes":115386},{"name":"libbrlapi0.8","version":"6.6-4ubuntu5","architecture":"amd64","sha256":"82272b3090c912e45d92ff7ed200de289c47e504513559377a6f6c5a372cbcf5","bytes":31388},{"name":"libburn4t64","version":"1.5.6-1.1build1","architecture":"amd64","sha256":"1ffba645a32e490ef69b3142d12d5a02f1efc495f11179202a760e04baf03c19","bytes":158128},{"name":"libcacard0","version":"1:2.8.0-3build4","architecture":"amd64","sha256":"7a75de14b0fdff2828a3d218a49e7fe4da2df533185ba9ccbabd0647db05e33c","bytes":36546},{"name":"libclang-18-dev","version":"1:18.1.3-1ubuntu1","architecture":"amd64","sha256":"c7575822ec648defe1b04d83a1d6b7779fc26da548c2453acfa120e26d47ed53","bytes":28788538},{"name":"libclang-dev","version":"1:18.0-59~exp2","architecture":"amd64","sha256":"4089fd3e1ee1245b0d17a6da51fd9ea42910bff8e630b72ac3348e5f04b3ee7c","bytes":5424},{"name":"libdaxctl1","version":"77-2ubuntu2","architecture":"amd64","sha256":"c6629b49c79343fb11ae404aeaa3156f051168da6c6d3d9d8d516acd94705061","bytes":21404},{"name":"libfdt1","version":"1.7.0-2build1","architecture":"amd64","sha256":"274d20dfab9d6b216b5de85446a93f6ce5b2cd82c847b8dfdc508577f76eb96a","bytes":20128},{"name":"libisoburn1t64","version":"1:1.5.6-1.1ubuntu3","architecture":"amd64","sha256":"0ddf6338c1ae7a30bf40a1222f5defebb7415bd46d64f57071c93f132d8c8a93","bytes":405162},{"name":"libisofs6t64","version":"1.5.6.pl01-1.1ubuntu2","architecture":"amd64","sha256":"05404ceb43455cbbc1c4c0976ac2720976d2764ae5f7a8698ea733887a3184f9","bytes":220202},{"name":"libjsoncpp25","version":"1.9.5-6build1","architecture":"amd64","sha256":"8efea5b75952f3ad1c40e6b5b31de687c297ea29f87f8b63efebb55e13467211","bytes":82754},{"name":"libndctl6","version":"77-2ubuntu2","architecture":"amd64","sha256":"4eab53588a8fa9e3192635e118c2d91bc069cde46a4a3785c77a0bb1ae001d02","bytes":62750},{"name":"libnss-systemd","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"81295714c4611b0f912448ff2816c1f1663515e1e0f3ba83467367ea9433bd6e","bytes":159366},{"name":"libpam-systemd","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"fb189407aefa51b5ac3ffde8d8e391826312067633bf8f5bb7a93e0c6f63ef6a","bytes":235370},{"name":"libpcsclite1","version":"2.0.3-1build1","architecture":"amd64","sha256":"703bacc9204a7ecc24486ac8c96d15d0b9e2c91c385388e132ad4fd8f56f035a","bytes":21432},{"name":"libpmem1","version":"1.13.1-1.1ubuntu2","architecture":"amd64","sha256":"8f1be1cc834a98f0cf5c0950153f7f939a0c2c92095e98cd7bb40c752c545c1b","bytes":84760},{"name":"librdmacm1t64","version":"50.0-2ubuntu0.2","architecture":"amd64","sha256":"7b7cc2fa16564bf301751b43d05d16f0846288b080d9a25a92a691d0df33fc68","bytes":70698},{"name":"librhash0","version":"1.4.3-3build1","architecture":"amd64","sha256":"e9ee69963ff1a56378b9c5ffdd21ea0feaec9647c522349b7612b25103490528","bytes":128748},{"name":"libsystemd-shared","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"20210e06618cfc824b19ebc0e2163d72cd57509d947fa71aad8d53d78b808caa","bytes":2077180},{"name":"libsystemd0","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"2da3fa28302cf007075e89cdc3aabe6973916afcd62c3884b86f67b77c73a5b4","bytes":436342},{"name":"libudev-dev","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"28d640688470ff4dd7d8868fdfec689860465d9168a6cda2ea5a9944a94b910d","bytes":22032},{"name":"libudev1","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"6de7321adcc37068f8702fe6826473662df73c36377e00f07f7acfeca2e40d4a","bytes":177836},{"name":"liburing2","version":"2.5-1build1","architecture":"amd64","sha256":"c2aef62accee92a06263c3ad4ef46132c13e409b54296c44792a20491830a7b0","bytes":21092},{"name":"libusbredirparser1t64","version":"0.13.0-2.1build1","architecture":"amd64","sha256":"78be9176f05512bcac369fcada499686b1dd34320965d27e3405c7aacbc4e461","bytes":16508},{"name":"qemu-system-common","version":"1:8.2.2+ds-0ubuntu1.18","architecture":"amd64","sha256":"0a0b744f31e87d72dd0465436b8dfbb1ef9f574ecd0d5a2e9dd8c5cb7d0fef1f","bytes":1255316},{"name":"qemu-system-data","version":"1:8.2.2+ds-0ubuntu1.18","architecture":"all","sha256":"a14b88d864859bd61c8a3274971da4ecb7da6cec15be6c265d0d411f783d5f2e","bytes":1796342},{"name":"qemu-system-x86","version":"1:8.2.2+ds-0ubuntu1.18","architecture":"amd64","sha256":"14602e262627adac030329d2cecfee5f6c0938b34566ff2ea2d4c9a9eb02430d","bytes":11222476},{"name":"seabios","version":"1.16.3-2","architecture":"all","sha256":"cac4e59a66c834d19cae751c22ab3a0391c22f78010fd11aa2e3fe630e6bc0e0","bytes":174648},{"name":"systemd-coredump","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"e45540b0bc0bfac4775d531e1b1c2bf70c6ced14057767a13bc0dbafc827cbae","bytes":71696},{"name":"systemd-dev","version":"255.4-1ubuntu8.18","architecture":"all","sha256":"08a19c4b503e54945510fac8db363782095b7cd68f017ffc60e758f24d4c82d3","bytes":107102},{"name":"systemd-resolved","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"8edd8ae2bd440ff9e04dd201a1bfed87ec789a1184fa0377769f3ae73371fbb9","bytes":296494},{"name":"systemd-sysv","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"6e16b759af4f32dfca76f20ce69f70a8bddf9078ad7ffb1f3469b95d93ac379c","bytes":11892},{"name":"systemd","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"ba37e7dc1e33690d94a1063543d27f9b17c013a20791c3315b2423fbf9e7ae7b","bytes":3474856},{"name":"udev","version":"255.4-1ubuntu8.18","architecture":"amd64","sha256":"1d7cadb0638e46995c1320d9c14fde7f776803e1a189d9fc4e896b30c169c15c","bytes":1875008},{"name":"xorriso","version":"1:1.5.6-1.1ubuntu3","architecture":"amd64","sha256":"7a0644fc4bc269d22ce8d27bd39e14b5849b532097265161938a9b216468f84d","bytes":297344}]}
+2026-10-25T08:12:00.4685749Z > rustup target list --installed --toolchain 1.98.1-x86_64-unknown-linux-gnu
+2026-10-25T08:12:00.4977935Z > rustup target add --toolchain 1.98.1-x86_64-unknown-linux-gnu x86_64-unknown-none
+2026-10-25T08:12:00.5498340Z info: downloading component rust-std
+2026-10-25T08:12:01.7675073Z > rustup target list --installed --toolchain 1.98.1-x86_64-unknown-linux-gnu
+2026-10-25T08:12:01.7959384Z > rustup component list --installed --toolchain 1.98.1-x86_64-unknown-linux-gnu
+2026-10-25T08:12:01.8228954Z > rustup component add --toolchain 1.98.1-x86_64-unknown-linux-gnu rust-src llvm-tools-preview
+2026-10-25T08:12:01.9091295Z info: downloading 2 components
+2026-10-25T08:12:05.0745816Z > rustup component list --installed --toolchain 1.98.1-x86_64-unknown-linux-gnu
+2026-10-25T08:12:05.1030546Z Acquisition conduitos-x86_64: success in 70998 ms; report target/acquisition/conduitos-x86_64.json
+2026-10-25T08:12:05.1152440Z ##[group]Run actions/cache/save@v6.1.0
+2026-10-25T08:12:05.1152744Z with:
+2026-10-25T08:12:05.1152970Z   path: /home/runner/.cache/conduit-ci
+2026-10-25T08:12:05.1153652Z   key: conduit-acquisition-v1-linux-x64-ubuntu24-20261023.334.3-conduitos-x86_64-7cb3222046bfbf1f50a2b1447c3d1d7cd84d655c2d98db9a862541702e91d750
+2026-10-25T08:12:05.1154352Z   enableCrossOsArchive: false
+2026-10-25T08:12:05.1154596Z env:
+2026-10-25T08:12:05.1154792Z   CARGO_TERM_COLOR: always
+2026-10-25T08:12:05.1155023Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:12:05.1155246Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:12:05.1155485Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:12:05.1155725Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:12:05.1156025Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:12:05.1156380Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:12:05.1156627Z   CACHE_ON_FAILURE: true
+2026-10-25T08:12:05.1156851Z ##[endgroup]
+2026-10-25T08:12:05.2491673Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/conduit/conduit --files-from manifest.txt --use-compress-program zstdmt
+2026-10-25T08:12:06.6042664Z Sent 18612224 of 68757149 (27.1%), 17.8 MBs/sec
+2026-10-25T08:12:07.6046337Z Sent 68757149 of 68757149 (100.0%), 32.8 MBs/sec
+2026-10-25T08:12:08.0828485Z Cache saved with key: conduit-acquisition-v1-linux-x64-ubuntu24-20261023.334.3-conduitos-x86_64-7cb3222046bfbf1f50a2b1447c3d1d7cd84d655c2d98db9a862541702e91d750
+2026-10-25T08:12:08.0971170Z ##[group]Run actions/upload-artifact@v7.0.1
+2026-10-25T08:12:08.0971503Z with:
+2026-10-25T08:12:08.0971731Z   name: acquisition-conduitos-x86_64
+2026-10-25T08:12:08.0972054Z   path: target/acquisition/conduitos-x86_64.json
+2026-10-25T08:12:08.0972372Z   if-no-files-found: warn
+2026-10-25T08:12:08.0972612Z   retention-days: 14
+2026-10-25T08:12:08.0972832Z   compression-level: 6
+2026-10-25T08:12:08.0973049Z   overwrite: false
+2026-10-25T08:12:08.0973469Z   include-hidden-files: false
+2026-10-25T08:12:08.0973711Z   archive: true
+2026-10-25T08:12:08.0973905Z env:
+2026-10-25T08:12:08.0974102Z   CARGO_TERM_COLOR: always
+2026-10-25T08:12:08.0974331Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:12:08.0974560Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:12:08.0974800Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:12:08.0975040Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:12:08.0975350Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:12:08.0975741Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:12:08.0975999Z   CACHE_ON_FAILURE: true
+2026-10-25T08:12:08.0976223Z ##[endgroup]
+2026-10-25T08:12:08.2392977Z With the provided path, there will be 1 file uploaded
+2026-10-25T08:12:08.2397966Z Artifact name is valid!
+2026-10-25T08:12:08.2398648Z Root directory input is valid!
+2026-10-25T08:12:08.6194685Z Uploading artifact: acquisition-conduitos-x86_64.zip
+2026-10-25T08:12:08.6233083Z Beginning upload of artifact content to blob storage
+2026-10-25T08:12:08.9074750Z Uploaded bytes 4156
+2026-10-25T08:12:08.9758771Z Finished uploading artifact content to blob storage!
+2026-10-25T08:12:08.9760303Z SHA256 digest of uploaded artifact is 19d38cad472b5cfd822c9add5f172d4137f282a2f0d5dd3d7430081f22ae76d6
+2026-10-25T08:12:08.9761523Z Finalizing artifact upload
+2026-10-25T08:12:09.5676301Z Artifact acquisition-conduitos-x86_64 successfully finalized. Artifact ID 12591594174
+2026-10-25T08:12:09.5677900Z Artifact acquisition-conduitos-x86_64 has been successfully uploaded! Final size is 4156 bytes. Artifact ID is 12591594174
+2026-10-25T08:12:09.5680781Z Artifact download URL: https://github.com/dancxjo/conduit/actions/runs/40175295513/artifacts/12591594174
+2026-10-25T08:12:09.5798429Z ##[group]Run cargo xtask ci pipeline target "$TARGET" "$SHA"
+2026-10-25T08:12:09.5798903Z [36;1mcargo xtask ci pipeline target "$TARGET" "$SHA"[0m
+2026-10-25T08:12:09.5861263Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-25T08:12:09.5861629Z env:
+2026-10-25T08:12:09.5861855Z   CARGO_TERM_COLOR: always
+2026-10-25T08:12:09.5862118Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:12:09.5862355Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:12:09.5862614Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:12:09.5862871Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:12:09.5863207Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:12:09.5863583Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:12:09.5863860Z   CACHE_ON_FAILURE: true
+2026-10-25T08:12:09.5864099Z   TARGET: conduitos-x86_64
+2026-10-25T08:12:09.5864379Z   SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:12:09.5864674Z ##[endgroup]
+2026-10-25T08:12:09.8330514Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 0.23s
+2026-10-25T08:12:09.8373446Z [1m[92m     Running[0m `target/debug/conduit-xtask-dispatch ci pipeline target conduitos-x86_64 593a604c75befd4fd1b3bc9904857c238ced70a4`
+2026-10-25T08:12:10.4526915Z > cargo +1.98.1-x86_64-unknown-linux-gnu xtask make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --locked
+2026-10-25T08:12:10.6939048Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 0.22s
+2026-10-25T08:12:10.6997296Z [1m[92m     Running[0m `target/debug/conduit-xtask-dispatch make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --locked`
+2026-10-25T08:12:11.9574816Z [1m[92m   Compiling[0m conduit-assigned-plan v0.1.0 (/home/runner/work/conduit/conduit/architecture/assigned-plan)
+2026-10-25T08:12:11.9741680Z [1m[92m   Compiling[0m patchbay-control v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay)
+2026-10-25T08:12:11.9744863Z [1m[92m   Compiling[0m conduit-protected-line v0.1.0 (/home/runner/work/conduit/conduit/architecture/protected-line)
+2026-10-25T08:12:12.2001751Z [1m[92m   Compiling[0m conduitos v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos)
+2026-10-25T08:12:12.4171167Z [1m[92m   Compiling[0m conduit-core v0.1.0 (/home/runner/work/conduit/conduit/architecture/core)
+2026-10-25T08:12:13.4781757Z [1m[92m   Compiling[0m conduit-kernel v0.1.0 (/home/runner/work/conduit/conduit/architecture/kernel)
+2026-10-25T08:12:14.2351675Z [1m[92m   Compiling[0m conduit-create-oi v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/devices/create-oi)
+2026-10-25T08:12:14.5377636Z [1m[92m   Compiling[0m conduit-emergency-keyword-spotter v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/implementations/emergency-keyword-spotter)
+2026-10-25T08:12:14.6282249Z [1m[92m   Compiling[0m conduit-mpu6050 v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/devices/mpu6050)
+2026-10-25T08:12:14.9847439Z [1m[92m   Compiling[0m conduitos-runtime-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/runtime-core)
+2026-10-25T08:12:22.9541871Z [1m[92m   Compiling[0m conduit-plot v0.1.0 (/home/runner/work/conduit/conduit/architecture/plot)
+2026-10-25T08:12:22.9544495Z [1m[92m   Compiling[0m conduit-body v0.1.0 (/home/runner/work/conduit/conduit/architecture/body)
+2026-10-25T08:12:30.8391468Z [1m[92m   Compiling[0m conduit-plan-lowering v0.1.0 (/home/runner/work/conduit/conduit/architecture/plan-lowering)
+2026-10-25T08:12:32.7061498Z [1m[92m   Compiling[0m conduit-thermostat-plot v0.1.0 (/home/runner/work/conduit/conduit/plots/thermostat/model)
+2026-10-25T08:12:32.8921658Z [1m[92m   Compiling[0m conduit-composite v0.1.0 (/home/runner/work/conduit/conduit/architecture/composite)
+2026-10-25T08:12:35.7852196Z [1m[92m   Compiling[0m conduit-resource-snapshot v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/io/resource-snapshot)
+2026-10-25T08:12:35.8861521Z [1m[92m   Compiling[0m conduit-commons-plot v0.1.0 (/home/runner/work/conduit/conduit/plots/commons)
+2026-10-25T08:12:36.0821760Z [1m[92m   Compiling[0m patchbay-workbench-host-contract v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay/workbench/host-contract)
+2026-10-25T08:12:36.1689642Z [1m[92m   Compiling[0m conduit-rp2040-network-realization v0.1.0 (/home/runner/work/conduit/conduit/targets/rp2040/network-realization)
+2026-10-25T08:12:36.3601820Z [1m[92m   Compiling[0m conduit-embedded-build v0.1.0 (/home/runner/work/conduit/conduit/make/embedded-build)
+2026-10-25T08:12:44.2878490Z [1m[92m   Compiling[0m conduit-browser-runtime v0.1.0 (/home/runner/work/conduit/conduit/targets/browser/runtime)
+2026-10-25T08:13:05.5222586Z [1m[92m   Compiling[0m conduit-time v0.1.0 (/home/runner/work/conduit/conduit/semantics/time)
+2026-10-25T08:13:05.5224559Z [1m[92m   Compiling[0m conduit-language v0.1.0 (/home/runner/work/conduit/conduit/semantics/language)
+2026-10-25T08:13:05.5246200Z [1m[92m   Compiling[0m conduit-human v0.1.0 (/home/runner/work/conduit/conduit/semantics/human)
+2026-10-25T08:13:22.8172701Z [1m[92m   Compiling[0m conduit-data v0.1.0 (/home/runner/work/conduit/conduit/semantics/data)
+2026-10-25T08:13:36.9631066Z [1m[92m   Compiling[0m conduit-face v0.1.0 (/home/runner/work/conduit/conduit/semantics/face)
+2026-10-25T08:13:38.6681546Z [1m[92m   Compiling[0m conduit-web v0.1.0 (/home/runner/work/conduit/conduit/semantics/web)
+2026-10-25T08:13:39.6381415Z [1m[92m   Compiling[0m conduit-audio v0.1.0 (/home/runner/work/conduit/conduit/semantics/audio)
+2026-10-25T08:13:40.1281384Z [1m[92m   Compiling[0m conduit-process v0.1.0 (/home/runner/work/conduit/conduit/semantics/process)
+2026-10-25T08:13:40.5861624Z [1m[92m   Compiling[0m conduit-net v0.1.0 (/home/runner/work/conduit/conduit/semantics/net)
+2026-10-25T08:13:40.6840478Z [1m[92m   Compiling[0m conduit-text v0.1.0 (/home/runner/work/conduit/conduit/semantics/text)
+2026-10-25T08:13:40.9142138Z [1m[92m   Compiling[0m conduit-alife v0.1.0 (/home/runner/work/conduit/conduit/semantics/alife)
+2026-10-25T08:13:41.4091423Z [1m[92m   Compiling[0m conduit-robotics v0.1.0 (/home/runner/work/conduit/conduit/semantics/robotics)
+2026-10-25T08:13:42.3861360Z [1m[92m   Compiling[0m conduit-purpose v0.1.0 (/home/runner/work/conduit/conduit/semantics/purpose)
+2026-10-25T08:13:46.9021219Z [1m[92m   Compiling[0m conduit-ai v0.1.0 (/home/runner/work/conduit/conduit/semantics/ai)
+2026-10-25T08:13:59.6821840Z [1m[92m   Compiling[0m conduit-midi v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/protocols/midi)
+2026-10-25T08:13:59.9331489Z [1m[92m   Compiling[0m conduit-tongues v0.1.0 (/home/runner/work/conduit/conduit/semantics/tongues)
+2026-10-25T08:14:00.7148993Z [1m[92m   Compiling[0m conduit-chat v0.1.0 (/home/runner/work/conduit/conduit/semantics/chat)
+2026-10-25T08:14:01.5061485Z [1m[92m   Compiling[0m conduit-signal v0.1.0 (/home/runner/work/conduit/conduit/semantics/signal)
+2026-10-25T08:14:01.9341268Z [1m[92m   Compiling[0m conduit-todo-plot v0.1.0 (/home/runner/work/conduit/conduit/plots/todo/model)
+2026-10-25T08:14:02.1987431Z [1m[92m   Compiling[0m conduit-wire v0.1.0 (/home/runner/work/conduit/conduit/architecture/wire)
+2026-10-25T08:14:08.3070996Z [1m[92m   Compiling[0m conduit-planner v0.1.0 (/home/runner/work/conduit/conduit/architecture/planner)
+2026-10-25T08:14:11.0441078Z [1m[92m   Compiling[0m conduit-tutorial-plot v0.1.0 (/home/runner/work/conduit/conduit/semantics/tutorial)
+2026-10-25T08:14:11.3761644Z [1m[92m   Compiling[0m conduit-bluetooth v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/protocols/bluetooth)
+2026-10-25T08:14:11.6652047Z [1m[92m   Compiling[0m conduit-plot-library v0.1.0 (/home/runner/work/conduit/conduit/semantics/plot-library)
+2026-10-25T08:14:11.9682314Z [1m[92m   Compiling[0m conduit-body-invitation-plot v0.1.0 (/home/runner/work/conduit/conduit/semantics/body-invitation)
+2026-10-25T08:14:16.3031946Z [1m[92m   Compiling[0m conduit-observatory v0.1.0 (/home/runner/work/conduit/conduit/architecture/observatory)
+2026-10-25T08:14:19.5381564Z [1m[92m   Compiling[0m conduit-synth v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/implementations/synth)
+2026-10-25T08:14:19.7701369Z [1m[92m   Compiling[0m conduit-little-seismograph-fixture v0.1.0 (/home/runner/work/conduit/conduit/plots/little-seismograph/fixture)
+2026-10-25T08:14:19.8751462Z [1m[92m   Compiling[0m conduit-home-model v0.1.0 (/home/runner/work/conduit/conduit/semantics/home)
+2026-10-25T08:14:20.1921274Z [1m[92m   Compiling[0m conduit-finance v0.1.0 (/home/runner/work/conduit/conduit/semantics/finance)
+2026-10-25T08:14:27.2581684Z [1m[92m   Compiling[0m conduit-birth-plot v0.1.0 (/home/runner/work/conduit/conduit/plots/birth)
+2026-10-25T08:14:28.1751454Z [1m[92m   Compiling[0m conduit-thermostat-face v0.1.0 (/home/runner/work/conduit/conduit/plots/thermostat/face)
+2026-10-25T08:14:28.3142600Z [1m[92m   Compiling[0m conduit-alife-distributed-conformance v0.1.0 (/home/runner/work/conduit/conduit/proof/conformance/alife-distributed)
+2026-10-25T08:14:28.3631699Z [1m[92m   Compiling[0m conduit-todo-face v0.1.0 (/home/runner/work/conduit/conduit/plots/todo/face)
+2026-10-25T08:14:28.4883840Z [1m[92m   Compiling[0m conduit-conduitos-mask-offer v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/mask-offer)
+2026-10-25T08:14:28.7041421Z [1m[92m   Compiling[0m conduitos-mask-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/mask-core)
+2026-10-25T08:15:31.8911619Z [1m[92m   Compiling[0m conduit-education v0.1.0 (/home/runner/work/conduit/conduit/semantics/education)
+2026-10-25T08:15:31.8912830Z [1m[92m   Compiling[0m conduit-speech v0.1.0 (/home/runner/work/conduit/conduit/semantics/speech)
+2026-10-25T08:15:32.6761634Z [1m[92m   Compiling[0m conduit-semantic-catalog v0.1.0 (/home/runner/work/conduit/conduit/semantics/catalog)
+2026-10-25T08:15:35.1923672Z [1m[92m   Compiling[0m conduit-host-make v0.1.0 (/home/runner/work/conduit/conduit/make/host)
+2026-10-25T08:15:38.1271416Z [1m[92m   Compiling[0m conduit-std-offers v0.1.0 (/home/runner/work/conduit/conduit/targets/std/offers)
+2026-10-25T08:15:39.1581211Z [1m[92m   Compiling[0m patchbay-graph v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay/graph)
+2026-10-25T08:15:39.8141547Z [1m[92m   Compiling[0m conduit-host-browser-make v0.1.0 (/home/runner/work/conduit/conduit/targets/browser/make)
+2026-10-25T08:15:40.0862116Z [1m[92m   Compiling[0m patchbay-application v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay/application)
+2026-10-25T08:15:40.4291401Z [1m[92m   Compiling[0m conduit-tour-model v0.1.0 (/home/runner/work/conduit/conduit/plots/tour)
+2026-10-25T08:15:40.7861100Z [1m[92m   Compiling[0m conduit-host-hosted v0.1.0 (/home/runner/work/conduit/conduit/targets/std/make)
+2026-10-25T08:15:41.0321627Z [1m[92m   Compiling[0m conduit-signal-conformance v0.1.0 (/home/runner/work/conduit/conduit/proof/conformance/signal)
+2026-10-25T08:15:41.1521393Z [1m[92m   Compiling[0m conduit-host-conduitos-make v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/make)
+2026-10-25T08:15:41.3871672Z [1m[92m   Compiling[0m conduit-host-avr-make v0.1.0 (/home/runner/work/conduit/conduit/targets/avr/make)
+2026-10-25T08:15:41.4961654Z [1m[92m   Compiling[0m conduit-host-orange-pi v0.1.0 (/home/runner/work/conduit/conduit/targets/orange-pi/make)
+2026-10-25T08:15:41.5262168Z [1m[92m   Compiling[0m conduit-host-raspberry-pi v0.1.0 (/home/runner/work/conduit/conduit/targets/raspberry-pi/make)
+2026-10-25T08:15:41.6031676Z [1m[92m   Compiling[0m conduit-host-rp2040 v0.1.0 (/home/runner/work/conduit/conduit/targets/rp2040/make)
+2026-10-25T08:15:41.6741783Z [1m[92m   Compiling[0m conduit-linear-framebuffer-make v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/implementations/linear-framebuffer-make)
+2026-10-25T08:15:41.6881523Z [1m[92m   Compiling[0m conduit-host-esp32-make v0.1.0 (/home/runner/work/conduit/conduit/targets/esp32/make)
+2026-10-25T08:15:41.8318463Z [1m[92m   Compiling[0m conduit-browser-mask-offer v0.1.0 (/home/runner/work/conduit/conduit/targets/browser/mask-offer)
+2026-10-25T08:15:42.1132272Z [1m[92m   Compiling[0m conduit-body-make v0.1.0 (/home/runner/work/conduit/conduit/make/body)
+2026-10-25T08:15:42.5931543Z [1m[92m   Compiling[0m conduit-workspace-make v0.1.0 (/home/runner/work/conduit/conduit/make/workspace)
+2026-10-25T08:15:43.1701939Z [1m[92m   Compiling[0m conduit-r1-network-conformance v0.1.0 (/home/runner/work/conduit/conduit/proof/conformance/network-r1)
+2026-10-25T08:15:43.7570353Z [1m[92m   Compiling[0m conduitos-application-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/application-core)
+2026-10-25T08:15:44.4602749Z [1m[92m   Compiling[0m conduit-patchbay-workbench-conformance v0.1.0 (/home/runner/work/conduit/conduit/proof/conformance/patchbay-workbench)
+2026-10-25T08:15:44.6711265Z [1m[92m   Compiling[0m conduit-pete v0.1.0 (/home/runner/work/conduit/conduit/bodies/pete)
+2026-10-25T08:16:57.1780404Z [1m[92m   Compiling[0m conduit-std-host v0.1.0 (/home/runner/work/conduit/conduit/targets/std)
+2026-10-25T08:16:57.1782323Z [1m[92m   Compiling[0m conduit-patchbay-workbench v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay/workbench/model)
+2026-10-25T08:17:13.8541968Z [1m[92m   Compiling[0m xtask v0.1.0 (/home/runner/work/conduit/conduit/tools/xtask)
+2026-10-25T08:17:39.7835233Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 5m 29s
+2026-10-25T08:17:39.8139751Z [1m[92m     Running[0m `target/debug/xtask make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --locked`
+2026-10-25T08:17:40.3216708Z [1m[92m   Compiling[0m conduit-assigned-plan v0.1.0 (/home/runner/work/conduit/conduit/architecture/assigned-plan)
+2026-10-25T08:17:40.3321847Z [1m[92m    Checking[0m patchbay-control v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay)
+2026-10-25T08:17:40.3344355Z [1m[92m   Compiling[0m conduitos v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos)
+2026-10-25T08:17:40.4391705Z [1m[92m    Checking[0m conduit-protected-line v0.1.0 (/home/runner/work/conduit/conduit/architecture/protected-line)
+2026-10-25T08:17:40.5481367Z [1m[92m    Checking[0m conduit-core v0.1.0 (/home/runner/work/conduit/conduit/architecture/core)
+2026-10-25T08:17:41.4512290Z [1m[92m    Checking[0m conduit-kernel v0.1.0 (/home/runner/work/conduit/conduit/architecture/kernel)
+2026-10-25T08:17:42.7318156Z [1m[92m    Checking[0m conduitos-runtime-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/runtime-core)
+2026-10-25T08:17:43.0061602Z [1m[92m    Checking[0m conduitos-compositor-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/compositor-core)
+2026-10-25T08:17:52.5441568Z [1m[92m    Checking[0m conduit-plot v0.1.0 (/home/runner/work/conduit/conduit/architecture/plot)
+2026-10-25T08:18:03.1281469Z [1m[92m    Checking[0m conduit-body v0.1.0 (/home/runner/work/conduit/conduit/architecture/body)
+2026-10-25T08:18:08.1021601Z [1m[92m    Checking[0m conduit-plan-lowering v0.1.0 (/home/runner/work/conduit/conduit/architecture/plan-lowering)
+2026-10-25T08:18:08.7691541Z [1m[92m    Checking[0m conduit-composite v0.1.0 (/home/runner/work/conduit/conduit/architecture/composite)
+2026-10-25T08:18:09.6221393Z [1m[92m    Checking[0m conduit-commons-plot v0.1.0 (/home/runner/work/conduit/conduit/plots/commons)
+2026-10-25T08:19:20.2032000Z [1m[92m   Compiling[0m conduit-time v0.1.0 (/home/runner/work/conduit/conduit/semantics/time)
+2026-10-25T08:19:37.2091467Z [1m[92m   Compiling[0m conduit-human v0.1.0 (/home/runner/work/conduit/conduit/semantics/human)
+2026-10-25T08:19:38.2081705Z [1m[92m   Compiling[0m conduit-data v0.1.0 (/home/runner/work/conduit/conduit/semantics/data)
+2026-10-25T08:19:38.9761924Z [1m[92m   Compiling[0m conduit-language v0.1.0 (/home/runner/work/conduit/conduit/semantics/language)
+2026-10-25T08:20:03.4801400Z [1m[92m   Compiling[0m conduit-audio v0.1.0 (/home/runner/work/conduit/conduit/semantics/audio)
+2026-10-25T08:20:15.9821941Z [1m[92m   Compiling[0m conduit-face v0.1.0 (/home/runner/work/conduit/conduit/semantics/face)
+2026-10-25T08:20:17.5781667Z [1m[92m   Compiling[0m conduit-process v0.1.0 (/home/runner/work/conduit/conduit/semantics/process)
+2026-10-25T08:20:18.0541422Z [1m[92m   Compiling[0m conduit-robotics v0.1.0 (/home/runner/work/conduit/conduit/semantics/robotics)
+2026-10-25T08:20:18.6282398Z [1m[92m   Compiling[0m conduit-net v0.1.0 (/home/runner/work/conduit/conduit/semantics/net)
+2026-10-25T08:20:18.9501434Z [1m[92m   Compiling[0m conduit-purpose v0.1.0 (/home/runner/work/conduit/conduit/semantics/purpose)
+2026-10-25T08:20:19.1164860Z [1m[92m   Compiling[0m conduit-web v0.1.0 (/home/runner/work/conduit/conduit/semantics/web)
+2026-10-25T08:20:19.2561384Z [1m[92m   Compiling[0m conduit-text v0.1.0 (/home/runner/work/conduit/conduit/semantics/text)
+2026-10-25T08:20:19.6601196Z [1m[92m   Compiling[0m conduit-alife v0.1.0 (/home/runner/work/conduit/conduit/semantics/alife)
+2026-10-25T08:20:21.2211598Z [1m[92m    Checking[0m conduit-midi v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/protocols/midi)
+2026-10-25T08:20:21.3451452Z [1m[92m   Compiling[0m conduit-ai v0.1.0 (/home/runner/work/conduit/conduit/semantics/ai)
+2026-10-25T08:20:21.6212426Z [1m[92m   Compiling[0m conduit-tutorial-plot v0.1.0 (/home/runner/work/conduit/conduit/semantics/tutorial)
+2026-10-25T08:20:21.9200996Z [1m[92m   Compiling[0m conduit-home-model v0.1.0 (/home/runner/work/conduit/conduit/semantics/home)
+2026-10-25T08:20:22.2861597Z [1m[92m   Compiling[0m conduit-wire v0.1.0 (/home/runner/work/conduit/conduit/architecture/wire)
+2026-10-25T08:20:22.9401391Z [1m[92m    Checking[0m conduit-synth v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/implementations/synth)
+2026-10-25T08:20:34.9166164Z [1m[92m    Checking[0m conduit-planner v0.1.0 (/home/runner/work/conduit/conduit/architecture/planner)
+2026-10-25T08:20:36.6530420Z [1m[92m    Checking[0m conduit-observatory v0.1.0 (/home/runner/work/conduit/conduit/architecture/observatory)
+2026-10-25T08:20:42.7881237Z [1m[92m    Checking[0m conduit-birth-plot v0.1.0 (/home/runner/work/conduit/conduit/plots/birth)
+2026-10-25T08:20:43.3111733Z [1m[92m    Checking[0m conduitos-creche-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/creche-core)
+2026-10-25T08:20:43.3223467Z [1m[92m    Checking[0m conduit-conduitos-mask-offer v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/mask-offer)
+2026-10-25T08:20:43.3921202Z [1m[92m    Checking[0m conduitos-mask-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/mask-core)
+2026-10-25T08:21:43.8109753Z [1m[92m   Compiling[0m conduit-education v0.1.0 (/home/runner/work/conduit/conduit/semantics/education)
+2026-10-25T08:21:44.2988879Z [1m[92m    Checking[0m conduit-semantic-catalog v0.1.0 (/home/runner/work/conduit/conduit/semantics/catalog)
+2026-10-25T08:21:45.7998138Z [1m[92m    Checking[0m patchbay-graph v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay/graph)
+2026-10-25T08:21:45.8070775Z [1m[92m    Checking[0m conduit-tour-model v0.1.0 (/home/runner/work/conduit/conduit/plots/tour)
+2026-10-25T08:21:46.2278565Z [1m[92m    Checking[0m patchbay-application v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay/application)
+2026-10-25T08:21:47.9916997Z [1m[92m    Checking[0m conduitos-application-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/application-core)
+2026-10-25T08:21:49.3496773Z [1m[33mwarning[0m[1m: unused import: `ProtectedDocument`[0m
+2026-10-25T08:21:49.3497585Z   [1m[94m--> [0mtargets/conduitos/src/text_protection.rs:14:27
+2026-10-25T08:21:49.3498093Z    [1m[94m|[0m
+2026-10-25T08:21:49.3499867Z [1m[94m14[0m [1m[94m|[0m pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+2026-10-25T08:21:49.3500910Z    [1m[94m|[0m                           [1m[33m^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:49.3501330Z    [1m[94m|[0m
+2026-10-25T08:21:49.3501876Z    [1m[94m= [0m[1mnote[0m: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+2026-10-25T08:21:49.3502404Z 
+2026-10-25T08:21:49.3504184Z [1m[33mwarning[0m[1m: unused imports: `FaceBack`, `IndicatorBack`, `LiteralBack`, `LiteralState`, `MorseBack`, `TourMorseBack`, and `UpperBack`[0m
+2026-10-25T08:21:49.3505182Z  [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:4:25
+2026-10-25T08:21:49.3505599Z   [1m[94m|[0m
+2026-10-25T08:21:49.3506333Z [1m[94m4[0m [1m[94m|[0m     text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
+2026-10-25T08:21:49.3507212Z   [1m[94m|[0m                         [1m[33m^^^^^^^^[0m  [1m[33m^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^[0m
+2026-10-25T08:21:49.3508091Z [1m[94m5[0m [1m[94m|[0m     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
+2026-10-25T08:21:49.3508863Z   [1m[94m|[0m                        [1m[33m^^^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:49.3509385Z 
+2026-10-25T08:21:49.3510324Z [1m[33mwarning[0m[1m: unused imports: `FixedHostCallBindings`, `FixedRoutes`, `FixedScheduler`, `FixedSignLog`, `FixedValueStore`, `KernelEvent`, and `ValueStorage`[0m
+2026-10-25T08:21:49.3511252Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:9:22
+2026-10-25T08:21:49.3511623Z    [1m[94m|[0m
+2026-10-25T08:21:49.3512261Z [1m[94m 9[0m [1m[94m|[0m     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+2026-10-25T08:21:49.3513121Z    [1m[94m|[0m                      [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:49.3514055Z [1m[94m10[0m [1m[94m|[0m     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+2026-10-25T08:21:49.3514899Z    [1m[94m|[0m                                           [1m[33m^^^^^^^^^^^[0m                              [1m[33m^^^^^^^^^^^^[0m
+2026-10-25T08:21:49.3515754Z [1m[94m11[0m [1m[94m|[0m     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+2026-10-25T08:21:49.3516380Z    [1m[94m|[0m                 [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:49.3516838Z 
+2026-10-25T08:21:52.1023860Z [1m[33mwarning[0m[1m: unused import: `SignSink`[0m
+2026-10-25T08:21:52.1024608Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:10:64
+2026-10-25T08:21:52.1025098Z    [1m[94m|[0m
+2026-10-25T08:21:52.1025991Z [1m[94m10[0m [1m[94m|[0m     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+2026-10-25T08:21:52.1026947Z    [1m[94m|[0m                                                                [1m[33m^^^^^^^^[0m
+2026-10-25T08:21:52.1027299Z 
+2026-10-25T08:21:54.3316296Z [1m[33mwarning[0m[1m: associated function `prepare` is never used[0m
+2026-10-25T08:21:54.3317367Z   [1m[94m--> [0mtargets/conduitos/src/front_door/commons.rs:17:19
+2026-10-25T08:21:54.3318033Z    [1m[94m|[0m
+2026-10-25T08:21:54.3318622Z [1m[94m16[0m [1m[94m|[0m impl Commons {
+2026-10-25T08:21:54.3322078Z    [1m[94m|[0m [1m[94m------------[0m [1m[94massociated function in this implementation[0m
+2026-10-25T08:21:54.3323476Z [1m[94m17[0m [1m[94m|[0m     pub(crate) fn prepare() -> Result<Self, Error> {
+2026-10-25T08:21:54.3324389Z    [1m[94m|[0m                   [1m[33m^^^^^^^[0m
+2026-10-25T08:21:54.3324950Z    [1m[94m|[0m
+2026-10-25T08:21:54.3325841Z    [1m[94m= [0m[1mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+2026-10-25T08:21:54.3326417Z 
+2026-10-25T08:21:54.3327355Z [1m[33mwarning[0m[1m: associated items `embedded_image_bytes` and `observation` are never used[0m
+2026-10-25T08:21:54.3328396Z    [1m[94m--> [0mtargets/conduitos/src/protected_compositor.rs:46:19
+2026-10-25T08:21:54.3329729Z     [1m[94m|[0m
+2026-10-25T08:21:54.3330592Z [1m[94m 43[0m [1m[94m|[0m impl CompositorService {
+2026-10-25T08:21:54.3331742Z     [1m[94m|[0m [1m[94m----------------------[0m [1m[94massociated items in this implementation[0m
+2026-10-25T08:21:54.3332640Z [1m[94m...[0m
+2026-10-25T08:21:54.3333581Z [1m[94m 46[0m [1m[94m|[0m     pub(crate) fn embedded_image_bytes() -> &'static [u8] {
+2026-10-25T08:21:54.3334612Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3335249Z [1m[94m...[0m
+2026-10-25T08:21:54.3336193Z [1m[94m114[0m [1m[94m|[0m     pub(crate) fn observation(&self) -> lifecycle::ServiceObservation {
+2026-10-25T08:21:54.3336783Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3337091Z 
+2026-10-25T08:21:54.3337891Z [1m[33mwarning[0m[1m: fields `host`, `boot`, `generation`, `base`, and `format` are never read[0m
+2026-10-25T08:21:54.3339418Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_grant.rs:14:5
+2026-10-25T08:21:54.3340260Z    [1m[94m|[0m
+2026-10-25T08:21:54.3340992Z [1m[94m13[0m [1m[94m|[0m pub(crate) struct DisplayGrant {
+2026-10-25T08:21:54.3341757Z    [1m[94m|[0m                   [1m[94m------------[0m [1m[94mfields in this struct[0m
+2026-10-25T08:21:54.3342274Z [1m[94m14[0m [1m[94m|[0m     host: HostId,
+2026-10-25T08:21:54.3342640Z    [1m[94m|[0m     [1m[33m^^^^[0m
+2026-10-25T08:21:54.3343019Z [1m[94m15[0m [1m[94m|[0m     boot: BootId,
+2026-10-25T08:21:54.3343371Z    [1m[94m|[0m     [1m[33m^^^^[0m
+2026-10-25T08:21:54.3343811Z [1m[94m16[0m [1m[94m|[0m     generation: OfferGeneration,
+2026-10-25T08:21:54.3344256Z    [1m[94m|[0m     [1m[33m^^^^^^^^^^[0m
+2026-10-25T08:21:54.3344670Z [1m[94m17[0m [1m[94m|[0m     base: HostBaseId,
+2026-10-25T08:21:54.3345153Z    [1m[94m|[0m     [1m[33m^^^^[0m
+2026-10-25T08:21:54.3345987Z [1m[94m18[0m [1m[94m|[0m     format: DisplayFormat,
+2026-10-25T08:21:54.3346738Z    [1m[94m|[0m     [1m[33m^^^^^^[0m
+2026-10-25T08:21:54.3347369Z    [1m[94m|[0m
+2026-10-25T08:21:54.3348335Z    [1m[94m= [0m[1mnote[0m: `DisplayGrant` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+2026-10-25T08:21:54.3349065Z 
+2026-10-25T08:21:54.3350188Z [1m[33mwarning[0m[1m: struct `DisplayIdentity` is never constructed[0m
+2026-10-25T08:21:54.3351057Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_grant.rs:22:19
+2026-10-25T08:21:54.3351863Z    [1m[94m|[0m
+2026-10-25T08:21:54.3352586Z [1m[94m22[0m [1m[94m|[0m pub(crate) struct DisplayIdentity<'a> {
+2026-10-25T08:21:54.3353524Z    [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3353934Z 
+2026-10-25T08:21:54.3354512Z [1m[33mwarning[0m[1m: associated items `identity`, `new`, `matches`, `format_matches`, and `extent` are never used[0m
+2026-10-25T08:21:54.3355293Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_grant.rs:31:19
+2026-10-25T08:21:54.3355725Z    [1m[94m|[0m
+2026-10-25T08:21:54.3356077Z [1m[94m30[0m [1m[94m|[0m impl DisplayGrant {
+2026-10-25T08:21:54.3356648Z    [1m[94m|[0m [1m[94m-----------------[0m [1m[94massociated items in this implementation[0m
+2026-10-25T08:21:54.3357332Z [1m[94m31[0m [1m[94m|[0m     pub(crate) fn identity(&self) -> DisplayIdentity<'_> {
+2026-10-25T08:21:54.3357846Z    [1m[94m|[0m                   [1m[33m^^^^^^^^[0m
+2026-10-25T08:21:54.3358165Z [1m[94m...[0m
+2026-10-25T08:21:54.3358520Z [1m[94m44[0m [1m[94m|[0m     pub(crate) fn new(
+2026-10-25T08:21:54.3358916Z    [1m[94m|[0m                   [1m[33m^^^[0m
+2026-10-25T08:21:54.3359484Z [1m[94m...[0m
+2026-10-25T08:21:54.3359848Z [1m[94m64[0m [1m[94m|[0m     pub(crate) fn matches(
+2026-10-25T08:21:54.3360261Z    [1m[94m|[0m                   [1m[33m^^^^^^^[0m
+2026-10-25T08:21:54.3360577Z [1m[94m...[0m
+2026-10-25T08:21:54.3361305Z [1m[94m77[0m [1m[94m|[0m     pub(crate) fn format_matches(&self, format: DisplayFormat) -> bool {
+2026-10-25T08:21:54.3361882Z    [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3362216Z [1m[94m...[0m
+2026-10-25T08:21:54.3362652Z [1m[94m81[0m [1m[94m|[0m     pub(crate) fn extent(&self) -> (u16, u16) {
+2026-10-25T08:21:54.3363128Z    [1m[94m|[0m                   [1m[33m^^^^^^[0m
+2026-10-25T08:21:54.3363338Z 
+2026-10-25T08:21:54.3363638Z [1m[33mwarning[0m[1m: constant `STAGING_BYTES` is never used[0m
+2026-10-25T08:21:54.3364229Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_owner.rs:25:18
+2026-10-25T08:21:54.3364661Z    [1m[94m|[0m
+2026-10-25T08:21:54.3365331Z [1m[94m25[0m [1m[94m|[0m pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
+2026-10-25T08:21:54.3365895Z    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3366116Z 
+2026-10-25T08:21:54.3366450Z [1m[33mwarning[0m[1m: constant `SERVICE_RESERVED_BYTES` is never used[0m
+2026-10-25T08:21:54.3367061Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_owner.rs:26:18
+2026-10-25T08:21:54.3367487Z    [1m[94m|[0m
+2026-10-25T08:21:54.3368190Z [1m[94m26[0m [1m[94m|[0m pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
+2026-10-25T08:21:54.3368834Z    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3369070Z 
+2026-10-25T08:21:54.3369673Z [1m[33mwarning[0m[1m: enum `PreparationError` is never used[0m
+2026-10-25T08:21:54.3370781Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_owner.rs:31:17
+2026-10-25T08:21:54.3371503Z    [1m[94m|[0m
+2026-10-25T08:21:54.3371917Z [1m[94m31[0m [1m[94m|[0m pub(crate) enum PreparationError {
+2026-10-25T08:21:54.3372377Z    [1m[94m|[0m                 [1m[33m^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3372596Z 
+2026-10-25T08:21:54.3373291Z [1m[33mwarning[0m[1m: fields `report`, `grant`, `guest_image_sha256`, `staging_preparation_raw_ticks`, and `preparation_raw_ticks` are never read[0m
+2026-10-25T08:21:54.3374156Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_owner.rs:54:5
+2026-10-25T08:21:54.3374575Z    [1m[94m|[0m
+2026-10-25T08:21:54.3374963Z [1m[94m49[0m [1m[94m|[0m pub(crate) struct DisplayOwner {
+2026-10-25T08:21:54.3375700Z    [1m[94m|[0m                   [1m[94m------------[0m [1m[94mfields in this struct[0m
+2026-10-25T08:21:54.3376094Z [1m[94m...[0m
+2026-10-25T08:21:54.3376480Z [1m[94m54[0m [1m[94m|[0m     report: PreparationReport,
+2026-10-25T08:21:54.3376875Z    [1m[94m|[0m     [1m[33m^^^^^^[0m
+2026-10-25T08:21:54.3377306Z [1m[94m55[0m [1m[94m|[0m     grant: SharedDisplayGrant,
+2026-10-25T08:21:54.3377689Z    [1m[94m|[0m     [1m[33m^^^^^[0m
+2026-10-25T08:21:54.3378125Z [1m[94m56[0m [1m[94m|[0m     guest_image_sha256: [u8; 32],
+2026-10-25T08:21:54.3378550Z    [1m[94m|[0m     [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3378863Z [1m[94m...[0m
+2026-10-25T08:21:54.3379603Z [1m[94m61[0m [1m[94m|[0m     staging_preparation_raw_ticks: Option<u64>,
+2026-10-25T08:21:54.3380105Z    [1m[94m|[0m     [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3380597Z [1m[94m62[0m [1m[94m|[0m     preparation_raw_ticks: Option<u64>,
+2026-10-25T08:21:54.3381049Z    [1m[94m|[0m     [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3381259Z 
+2026-10-25T08:21:54.3381564Z [1m[33mwarning[0m[1m: multiple associated items are never used[0m
+2026-10-25T08:21:54.3382151Z    [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_owner.rs:73:19
+2026-10-25T08:21:54.3382585Z     [1m[94m|[0m
+2026-10-25T08:21:54.3382927Z [1m[94m 68[0m [1m[94m|[0m impl DisplayOwner {
+2026-10-25T08:21:54.3383492Z     [1m[94m|[0m [1m[94m-----------------[0m [1m[94massociated items in this implementation[0m
+2026-10-25T08:21:54.3383932Z [1m[94m...[0m
+2026-10-25T08:21:54.3384747Z [1m[94m 73[0m [1m[94m|[0m     pub(crate) fn prepare(grant: DisplayGrant) -> Result<SharedDisplayOwner, PreparationError> {
+2026-10-25T08:21:54.3385386Z     [1m[94m|[0m                   [1m[33m^^^^^^^[0m
+2026-10-25T08:21:54.3385708Z [1m[94m...[0m
+2026-10-25T08:21:54.3386088Z [1m[94m 85[0m [1m[94m|[0m     pub(crate) fn prepare_shared(
+2026-10-25T08:21:54.3386538Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3386860Z [1m[94m...[0m
+2026-10-25T08:21:54.3387336Z [1m[94m144[0m [1m[94m|[0m     pub(crate) fn guest_image_sha256(&self) -> &[u8; 32] {
+2026-10-25T08:21:54.3387857Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3388184Z [1m[94m...[0m
+2026-10-25T08:21:54.3388679Z [1m[94m149[0m [1m[94m|[0m     pub(crate) fn embedded_image_bytes(&self) -> &'static [u8] {
+2026-10-25T08:21:54.3389496Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3389850Z [1m[94m...[0m
+2026-10-25T08:21:54.3390563Z [1m[94m154[0m [1m[94m|[0m     pub(crate) fn display_identity(&self) -> super::display_grant::DisplayIdentity<'_> {
+2026-10-25T08:21:54.3391180Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3391509Z [1m[94m...[0m
+2026-10-25T08:21:54.3391892Z [1m[94m158[0m [1m[94m|[0m     pub(crate) fn matches_scope(
+2026-10-25T08:21:54.3392336Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3392662Z [1m[94m...[0m
+2026-10-25T08:21:54.3393325Z [1m[94m168[0m [1m[94m|[0m     pub(crate) fn format_matches(&self, format: crate::display::DisplayFormat) -> bool {
+2026-10-25T08:21:54.3393935Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3394252Z [1m[94m...[0m
+2026-10-25T08:21:54.3394922Z [1m[94m202[0m [1m[94m|[0m     pub(crate) fn lifecycle_observation(&self) -> super::lifecycle::DisplayObservation {
+2026-10-25T08:21:54.3395566Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3395909Z [1m[94m...[0m
+2026-10-25T08:21:54.3396374Z [1m[94m216[0m [1m[94m|[0m     pub(crate) fn service_cost(&self) -> DomainCost {
+2026-10-25T08:21:54.3396877Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3397370Z [1m[94m...[0m
+2026-10-25T08:21:54.3397893Z [1m[94m220[0m [1m[94m|[0m     pub(crate) fn preparation_report(&self) -> PreparationReport {
+2026-10-25T08:21:54.3398448Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3398778Z [1m[94m...[0m
+2026-10-25T08:21:54.3399301Z [1m[94m229[0m [1m[94m|[0m     pub(crate) fn with_raster<R>(
+2026-10-25T08:21:54.3399752Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3399969Z 
+2026-10-25T08:21:54.3400330Z [1m[33mwarning[0m[1m: constant `STAGING_PIXELS` is never used[0m
+2026-10-25T08:21:54.3400931Z  [1m[94m--> [0mtargets/conduitos/src/protected_compositor/raster_staging.rs:6:11
+2026-10-25T08:21:54.3401366Z   [1m[94m|[0m
+2026-10-25T08:21:54.3401833Z [1m[94m6[0m [1m[94m|[0m pub const STAGING_PIXELS: usize = 2_097_152;
+2026-10-25T08:21:54.3402291Z   [1m[94m|[0m           [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3402501Z 
+2026-10-25T08:21:54.3402820Z [1m[33mwarning[0m[1m: constant `UPLOAD_CHUNK_PIXELS` is never used[0m
+2026-10-25T08:21:54.3403414Z  [1m[94m--> [0mtargets/conduitos/src/protected_compositor/raster_staging.rs:7:11
+2026-10-25T08:21:54.3403830Z   [1m[94m|[0m
+2026-10-25T08:21:54.3404269Z [1m[94m7[0m [1m[94m|[0m pub const UPLOAD_CHUNK_PIXELS: usize = 16_384;
+2026-10-25T08:21:54.3404740Z   [1m[94m|[0m           [1m[33m^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3404955Z 
+2026-10-25T08:21:54.3405271Z [1m[33mwarning[0m[1m: struct `RasterStaging` is never constructed[0m
+2026-10-25T08:21:54.3405863Z  [1m[94m--> [0mtargets/conduitos/src/protected_compositor/raster_staging.rs:9:12
+2026-10-25T08:21:54.3406418Z   [1m[94m|[0m
+2026-10-25T08:21:54.3406801Z [1m[94m9[0m [1m[94m|[0m pub struct RasterStaging<'a> {
+2026-10-25T08:21:54.3407219Z   [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3407425Z 
+2026-10-25T08:21:54.3407770Z [1m[33mwarning[0m[1m: associated items `admit` and `lease` are never used[0m
+2026-10-25T08:21:54.3408391Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/raster_staging.rs:14:12
+2026-10-25T08:21:54.3408817Z    [1m[94m|[0m
+2026-10-25T08:21:54.3409456Z [1m[94m12[0m [1m[94m|[0m impl<'a> RasterStaging<'a> {
+2026-10-25T08:21:54.3410084Z    [1m[94m|[0m [1m[94m--------------------------[0m [1m[94massociated items in this implementation[0m
+2026-10-25T08:21:54.3410874Z [1m[94m13[0m [1m[94m|[0m     /// Validate capacity before touching the caller's buffer. No allocation.
+2026-10-25T08:21:54.3411648Z [1m[94m14[0m [1m[94m|[0m     pub fn admit(pixels: &'a mut [u32]) -> Result<Self, DisplayError> {
+2026-10-25T08:21:54.3412165Z    [1m[94m|[0m            [1m[33m^^^^^[0m
+2026-10-25T08:21:54.3412473Z [1m[94m...[0m
+2026-10-25T08:21:54.3413119Z [1m[94m25[0m [1m[94m|[0m     pub fn lease(&mut self, width: u16, height: u16) -> Result<RasterLease<'_>, DisplayError> {
+2026-10-25T08:21:54.3413691Z    [1m[94m|[0m            [1m[33m^^^^^[0m
+2026-10-25T08:21:54.3413890Z 
+2026-10-25T08:21:54.3414206Z [1m[33mwarning[0m[1m: struct `RasterLease` is never constructed[0m
+2026-10-25T08:21:54.3414805Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/raster_staging.rs:53:12
+2026-10-25T08:21:54.3415232Z    [1m[94m|[0m
+2026-10-25T08:21:54.3415607Z [1m[94m53[0m [1m[94m|[0m pub struct RasterLease<'a> {
+2026-10-25T08:21:54.3416020Z    [1m[94m|[0m            [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3416223Z 
+2026-10-25T08:21:54.3416566Z [1m[33mwarning[0m[1m: methods `upload_chunks` and `index` are never used[0m
+2026-10-25T08:21:54.3417192Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/raster_staging.rs:66:12
+2026-10-25T08:21:54.3417618Z    [1m[94m|[0m
+2026-10-25T08:21:54.3417962Z [1m[94m57[0m [1m[94m|[0m impl RasterLease<'_> {
+2026-10-25T08:21:54.3418492Z    [1m[94m|[0m [1m[94m--------------------[0m [1m[94mmethods in this implementation[0m
+2026-10-25T08:21:54.3418908Z [1m[94m...[0m
+2026-10-25T08:21:54.3419776Z [1m[94m66[0m [1m[94m|[0m     pub fn upload_chunks(&self) -> impl ExactSizeIterator<Item = &[u32]> {
+2026-10-25T08:21:54.3420319Z    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3420640Z [1m[94m...[0m
+2026-10-25T08:21:54.3421159Z [1m[94m69[0m [1m[94m|[0m     fn index(&self, x: u32, y: u32) -> Result<usize, DisplayError> {
+2026-10-25T08:21:54.3421640Z    [1m[94m|[0m        [1m[33m^^^^^[0m
+2026-10-25T08:21:54.3421830Z 
+2026-10-25T08:21:54.3422355Z [1m[33mwarning[0m[1m: methods `instance`, `observed_cost`, `request`, `upload`, and `visit_frame` are never used[0m
+2026-10-25T08:21:54.3423103Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/session_owner.rs:13:8
+2026-10-25T08:21:54.3423522Z    [1m[94m|[0m
+2026-10-25T08:21:54.3423890Z [1m[94m11[0m [1m[94m|[0m pub(crate) trait Transport {
+2026-10-25T08:21:54.3424400Z    [1m[94m|[0m                  [1m[94m---------[0m [1m[94mmethods in this trait[0m
+2026-10-25T08:21:54.3424879Z [1m[94m12[0m [1m[94m|[0m     type Error;
+2026-10-25T08:21:54.3425335Z [1m[94m13[0m [1m[94m|[0m     fn instance(&self) -> u64;
+2026-10-25T08:21:54.3425756Z    [1m[94m|[0m        [1m[33m^^^^^^^^[0m
+2026-10-25T08:21:54.3426473Z [1m[94m14[0m [1m[94m|[0m     fn observed_cost(&self) -> Option<crate::protected_region::DomainCost> {
+2026-10-25T08:21:54.3427016Z    [1m[94m|[0m        [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3427333Z [1m[94m...[0m
+2026-10-25T08:21:54.3427950Z [1m[94m17[0m [1m[94m|[0m     fn request(&mut self, request: Request) -> Result<Response, Self::Error>;
+2026-10-25T08:21:54.3428608Z    [1m[94m|[0m        [1m[33m^^^^^^^[0m
+2026-10-25T08:21:54.3429622Z [1m[94m18[0m [1m[94m|[0m     fn upload(&mut self, offset: u32, pixels: &[u32]) -> Result<Response, Self::Error>;
+2026-10-25T08:21:54.3430188Z    [1m[94m|[0m        [1m[33m^^^^^^[0m
+2026-10-25T08:21:54.3430598Z [1m[94m19[0m [1m[94m|[0m     fn visit_frame<R>(
+2026-10-25T08:21:54.3430998Z    [1m[94m|[0m        [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3431201Z 
+2026-10-25T08:21:54.3431511Z [1m[33mwarning[0m[1m: struct `Activation` is never constructed[0m
+2026-10-25T08:21:54.3432116Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/session_owner.rs:34:19
+2026-10-25T08:21:54.3432552Z    [1m[94m|[0m
+2026-10-25T08:21:54.3432928Z [1m[94m34[0m [1m[94m|[0m pub(crate) struct Activation {
+2026-10-25T08:21:54.3433367Z    [1m[94m|[0m                   [1m[33m^^^^^^^^^^[0m
+2026-10-25T08:21:54.3433584Z 
+2026-10-25T08:21:54.3433841Z [1m[33mwarning[0m[1m: enum `OwnerError` is never used[0m
+2026-10-25T08:21:54.3434404Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/session_owner.rs:40:17
+2026-10-25T08:21:54.3434835Z    [1m[94m|[0m
+2026-10-25T08:21:54.3435212Z [1m[94m40[0m [1m[94m|[0m pub(crate) enum OwnerError<E> {
+2026-10-25T08:21:54.3435663Z    [1m[94m|[0m                 [1m[33m^^^^^^^^^^[0m
+2026-10-25T08:21:54.3435882Z 
+2026-10-25T08:21:54.3436418Z [1m[33mwarning[0m[1m: fields `instance`, `namespace`, `generations`, and `activation_observation` are never read[0m
+2026-10-25T08:21:54.3437161Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/session_owner.rs:53:5
+2026-10-25T08:21:54.3437588Z    [1m[94m|[0m
+2026-10-25T08:21:54.3438033Z [1m[94m51[0m [1m[94m|[0m pub(crate) struct SessionOwner<T: Transport> {
+2026-10-25T08:21:54.3438624Z    [1m[94m|[0m                   [1m[94m------------[0m [1m[94mfields in this struct[0m
+2026-10-25T08:21:54.3439244Z [1m[94m52[0m [1m[94m|[0m     transport: T,
+2026-10-25T08:21:54.3439671Z [1m[94m53[0m [1m[94m|[0m     instance: u64,
+2026-10-25T08:21:54.3440041Z    [1m[94m|[0m     [1m[33m^^^^^^^^[0m
+2026-10-25T08:21:54.3440440Z [1m[94m54[0m [1m[94m|[0m     namespace: u64,
+2026-10-25T08:21:54.3440805Z    [1m[94m|[0m     [1m[33m^^^^^^^^^[0m
+2026-10-25T08:21:54.3441105Z [1m[94m...[0m
+2026-10-25T08:21:54.3441505Z [1m[94m57[0m [1m[94m|[0m     generations: [u64; MAX_SURFACES],
+2026-10-25T08:21:54.3442091Z    [1m[94m|[0m     [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3442501Z [1m[94m58[0m [1m[94m|[0m     terminated: bool,
+2026-10-25T08:21:54.3443154Z [1m[94m59[0m [1m[94m|[0m     activation_observation: lifecycle::ActivationObservation,
+2026-10-25T08:21:54.3443676Z    [1m[94m|[0m     [1m[33m^^^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3443888Z 
+2026-10-25T08:21:54.3444198Z [1m[33mwarning[0m[1m: multiple associated items are never used[0m
+2026-10-25T08:21:54.3444793Z    [1m[94m--> [0mtargets/conduitos/src/protected_compositor/session_owner.rs:62:12
+2026-10-25T08:21:54.3445229Z     [1m[94m|[0m
+2026-10-25T08:21:54.3445629Z [1m[94m 61[0m [1m[94m|[0m impl<T: Transport> SessionOwner<T> {
+2026-10-25T08:21:54.3446286Z     [1m[94m|[0m [1m[94m----------------------------------[0m [1m[94massociated items in this implementation[0m
+2026-10-25T08:21:54.3447121Z [1m[94m 62[0m [1m[94m|[0m     pub fn new(mut transport: T) -> Result<Self, OwnerError<T::Error>> {
+2026-10-25T08:21:54.3447626Z     [1m[94m|[0m            [1m[33m^^^[0m
+2026-10-25T08:21:54.3447927Z [1m[94m...[0m
+2026-10-25T08:21:54.3448383Z [1m[94m 79[0m [1m[94m|[0m     pub fn active_session(&self) -> Option<SessionId> {
+2026-10-25T08:21:54.3448866Z     [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3449311Z [1m[94m...[0m
+2026-10-25T08:21:54.3449751Z [1m[94m 82[0m [1m[94m|[0m     pub fn active_namespace(&self) -> Option<u64> {
+2026-10-25T08:21:54.3450231Z     [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3450676Z [1m[94m...[0m
+2026-10-25T08:21:54.3451110Z [1m[94m 85[0m [1m[94m|[0m     pub fn service_instance(&self) -> u64 {
+2026-10-25T08:21:54.3451574Z     [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3451890Z [1m[94m...[0m
+2026-10-25T08:21:54.3452523Z [1m[94m 89[0m [1m[94m|[0m     pub fn activation_observation(&self) -> lifecycle::ActivationObservation {
+2026-10-25T08:21:54.3453116Z     [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3453453Z [1m[94m...[0m
+2026-10-25T08:21:54.3454046Z [1m[94m 98[0m [1m[94m|[0m     pub fn activate(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+2026-10-25T08:21:54.3454582Z     [1m[94m|[0m            [1m[33m^^^^^^^^[0m
+2026-10-25T08:21:54.3454906Z [1m[94m...[0m
+2026-10-25T08:21:54.3455641Z [1m[94m101[0m [1m[94m|[0m     fn observe_activation(&mut self, withdrawn: bool) -> Result<Activation, OwnerError<T::Error>> {
+2026-10-25T08:21:54.3456276Z     [1m[94m|[0m        [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3456596Z [1m[94m...[0m
+2026-10-25T08:21:54.3457212Z [1m[94m127[0m [1m[94m|[0m     fn activate_inner(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+2026-10-25T08:21:54.3457758Z     [1m[94m|[0m        [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3458069Z [1m[94m...[0m
+2026-10-25T08:21:54.3458722Z [1m[94m189[0m [1m[94m|[0m     pub fn activate_withdrawn(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+2026-10-25T08:21:54.3459449Z     [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3459773Z [1m[94m...[0m
+2026-10-25T08:21:54.3460178Z [1m[94m200[0m [1m[94m|[0m     pub fn is_terminated(&self) -> bool {
+2026-10-25T08:21:54.3460637Z     [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3460944Z [1m[94m...[0m
+2026-10-25T08:21:54.3461417Z [1m[94m203[0m [1m[94m|[0m     pub fn is_active(&self, session: SessionId) -> bool {
+2026-10-25T08:21:54.3461907Z     [1m[94m|[0m            [1m[33m^^^^^^^^^[0m
+2026-10-25T08:21:54.3462213Z [1m[94m...[0m
+2026-10-25T08:21:54.3462838Z [1m[94m206[0m [1m[94m|[0m     fn session(&self, session: SessionId) -> Result<(), OwnerError<T::Error>> {
+2026-10-25T08:21:54.3463370Z     [1m[94m|[0m        [1m[33m^^^^^^^[0m
+2026-10-25T08:21:54.3463676Z [1m[94m...[0m
+2026-10-25T08:21:54.3464436Z [1m[94m215[0m [1m[94m|[0m     fn handle(&self, handle: Handle) -> Result<(), OwnerError<T::Error>> {
+2026-10-25T08:21:54.3464958Z     [1m[94m|[0m        [1m[33m^^^^^^[0m
+2026-10-25T08:21:54.3465258Z [1m[94m...[0m
+2026-10-25T08:21:54.3465965Z [1m[94m227[0m [1m[94m|[0m     fn command(&self, session: SessionId, request: Request) -> Result<(), OwnerError<T::Error>> {
+2026-10-25T08:21:54.3466558Z     [1m[94m|[0m        [1m[33m^^^^^^^[0m
+2026-10-25T08:21:54.3466857Z [1m[94m...[0m
+2026-10-25T08:21:54.3467170Z [1m[94m243[0m [1m[94m|[0m     fn response(
+2026-10-25T08:21:54.3467546Z     [1m[94m|[0m        [1m[33m^^^^^^^^[0m
+2026-10-25T08:21:54.3467840Z [1m[94m...[0m
+2026-10-25T08:21:54.3468172Z [1m[94m293[0m [1m[94m|[0m     pub fn request(
+2026-10-25T08:21:54.3468557Z     [1m[94m|[0m            [1m[33m^^^^^^^[0m
+2026-10-25T08:21:54.3468860Z [1m[94m...[0m
+2026-10-25T08:21:54.3469492Z [1m[94m307[0m [1m[94m|[0m     pub fn upload_chunk(
+2026-10-25T08:21:54.3469920Z     [1m[94m|[0m            [1m[33m^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3470236Z [1m[94m...[0m
+2026-10-25T08:21:54.3470616Z [1m[94m325[0m [1m[94m|[0m     pub fn with_frame_step<R>(
+2026-10-25T08:21:54.3471045Z     [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3471260Z 
+2026-10-25T08:21:54.3471571Z [1m[33mwarning[0m[1m: function `mapped_coverage` is never used[0m
+2026-10-25T08:21:54.3472171Z    [1m[94m--> [0mtargets/conduitos/src/protected_compositor/session_owner.rs:357:4
+2026-10-25T08:21:54.3472614Z     [1m[94m|[0m
+2026-10-25T08:21:54.3473397Z [1m[94m357[0m [1m[94m|[0m fn mapped_coverage(handles: &[Option<Handle>; MAX_SURFACES], span: FrameSpan) -> bool {
+2026-10-25T08:21:54.3473997Z     [1m[94m|[0m    [1m[33m^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3474209Z 
+2026-10-25T08:21:54.3474624Z [1m[33mwarning[0m[1m: methods `service_observation` and `service_cost` are never used[0m
+2026-10-25T08:21:54.3475302Z    [1m[94m--> [0mtargets/conduitos/src/protected_compositor/session_owner.rs:396:19
+2026-10-25T08:21:54.3475731Z     [1m[94m|[0m
+2026-10-25T08:21:54.3476231Z [1m[94m395[0m [1m[94m|[0m impl SessionOwner<super::CompositorService> {
+2026-10-25T08:21:54.3476912Z     [1m[94m|[0m [1m[94m-------------------------------------------[0m [1m[94mmethods in this implementation[0m
+2026-10-25T08:21:54.3477783Z [1m[94m396[0m [1m[94m|[0m     pub(crate) fn service_observation(&self) -> lifecycle::ServiceObservation {
+2026-10-25T08:21:54.3478389Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3478724Z [1m[94m...[0m
+2026-10-25T08:21:54.3479509Z [1m[94m399[0m [1m[94m|[0m     pub(crate) fn service_cost(&self) -> crate::protected_region::DomainCost {
+2026-10-25T08:21:54.3480098Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3480314Z 
+2026-10-25T08:21:54.3480653Z [1m[33mwarning[0m[1m: struct `DisplayObservation` is never constructed[0m
+2026-10-25T08:21:54.3481264Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/lifecycle.rs:86:19
+2026-10-25T08:21:54.3481673Z    [1m[94m|[0m
+2026-10-25T08:21:54.3482087Z [1m[94m86[0m [1m[94m|[0m pub(crate) struct DisplayObservation {
+2026-10-25T08:21:54.3482570Z    [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3482798Z 
+2026-10-25T08:21:54.3483079Z [1m[33mwarning[0m[1m: method `record_result` is never used[0m
+2026-10-25T08:21:54.3483605Z    [1m[94m--> [0mtargets/conduitos/src/protected_creche/home.rs:124:19
+2026-10-25T08:21:54.3483989Z     [1m[94m|[0m
+2026-10-25T08:21:54.3484312Z [1m[94m 14[0m [1m[94m|[0m impl Home {
+2026-10-25T08:21:54.3484793Z     [1m[94m|[0m [1m[94m---------[0m [1m[94mmethod in this implementation[0m
+2026-10-25T08:21:54.3485179Z [1m[94m...[0m
+2026-10-25T08:21:54.3485571Z [1m[94m124[0m [1m[94m|[0m     pub(crate) fn record_result(
+2026-10-25T08:21:54.3486025Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3486379Z 
+2026-10-25T08:21:54.3486712Z [1m[33mwarning[0m[1m: field `display_owner` is never read[0m
+2026-10-25T08:21:54.3487325Z   [1m[94m--> [0mtargets/conduitos/src/native_surface_provider.rs:14:16
+2026-10-25T08:21:54.3487738Z    [1m[94m|[0m
+2026-10-25T08:21:54.3488137Z [1m[94m 9[0m [1m[94m|[0m pub struct NativeSurfaceProvider {
+2026-10-25T08:21:54.3488697Z    [1m[94m|[0m            [1m[94m---------------------[0m [1m[94mfield in this struct[0m
+2026-10-25T08:21:54.3489345Z [1m[94m...[0m
+2026-10-25T08:21:54.3489765Z [1m[94m14[0m [1m[94m|[0m     pub(crate) display_owner:
+2026-10-25T08:21:54.3490219Z    [1m[94m|[0m                [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3490537Z    [1m[94m|[0m
+2026-10-25T08:21:54.3491284Z    [1m[94m= [0m[1mnote[0m: `NativeSurfaceProvider` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+2026-10-25T08:21:54.3491822Z 
+2026-10-25T08:21:54.3492112Z [1m[33mwarning[0m[1m: constant `QUEUE_SLOTS` is never used[0m
+2026-10-25T08:21:54.3492630Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:28:7
+2026-10-25T08:21:54.3493002Z    [1m[94m|[0m
+2026-10-25T08:21:54.3493374Z [1m[94m28[0m [1m[94m|[0m const QUEUE_SLOTS: usize = 2;
+2026-10-25T08:21:54.3493777Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3493980Z 
+2026-10-25T08:21:54.3494268Z [1m[33mwarning[0m[1m: constant `ROUTE_SLOTS` is never used[0m
+2026-10-25T08:21:54.3494774Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:29:7
+2026-10-25T08:21:54.3495134Z    [1m[94m|[0m
+2026-10-25T08:21:54.3495714Z [1m[94m29[0m [1m[94m|[0m const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+2026-10-25T08:21:54.3496176Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3496376Z 
+2026-10-25T08:21:54.3496669Z [1m[33mwarning[0m[1m: constant `ROUTE_TARGETS` is never used[0m
+2026-10-25T08:21:54.3497176Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:30:7
+2026-10-25T08:21:54.3497539Z    [1m[94m|[0m
+2026-10-25T08:21:54.3497914Z [1m[94m30[0m [1m[94m|[0m const ROUTE_TARGETS: usize = 2;
+2026-10-25T08:21:54.3498331Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3498533Z 
+2026-10-25T08:21:54.3498845Z [1m[33mwarning[0m[1m: constant `HOST_BINDING_SLOTS` is never used[0m
+2026-10-25T08:21:54.3499506Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:31:7
+2026-10-25T08:21:54.3499868Z    [1m[94m|[0m
+2026-10-25T08:21:54.3500341Z [1m[94m31[0m [1m[94m|[0m const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+2026-10-25T08:21:54.3500838Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3501048Z 
+2026-10-25T08:21:54.3501361Z [1m[33mwarning[0m[1m: constant `PENDING_REQUESTS` is never used[0m
+2026-10-25T08:21:54.3501921Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:32:7
+2026-10-25T08:21:54.3502288Z    [1m[94m|[0m
+2026-10-25T08:21:54.3502681Z [1m[94m32[0m [1m[94m|[0m const PENDING_REQUESTS: usize = 3;
+2026-10-25T08:21:54.3503110Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3503350Z 
+2026-10-25T08:21:54.3503637Z [1m[33mwarning[0m[1m: constant `VALUE_SLOTS` is never used[0m
+2026-10-25T08:21:54.3504153Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:33:7
+2026-10-25T08:21:54.3504514Z    [1m[94m|[0m
+2026-10-25T08:21:54.3504886Z [1m[94m33[0m [1m[94m|[0m const VALUE_SLOTS: usize = 6;
+2026-10-25T08:21:54.3505281Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3505479Z 
+2026-10-25T08:21:54.3505765Z [1m[33mwarning[0m[1m: constant `VALUE_BYTES` is never used[0m
+2026-10-25T08:21:54.3506269Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:34:7
+2026-10-25T08:21:54.3506627Z    [1m[94m|[0m
+2026-10-25T08:21:54.3507235Z [1m[94m34[0m [1m[94m|[0m const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
+2026-10-25T08:21:54.3507970Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3508177Z 
+2026-10-25T08:21:54.3508468Z [1m[33mwarning[0m[1m: constant `SIGN_CAPACITY` is never used[0m
+2026-10-25T08:21:54.3508970Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:35:7
+2026-10-25T08:21:54.3509619Z    [1m[94m|[0m
+2026-10-25T08:21:54.3510009Z [1m[94m35[0m [1m[94m|[0m const SIGN_CAPACITY: usize = 64;
+2026-10-25T08:21:54.3510425Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3510630Z 
+2026-10-25T08:21:54.3510913Z [1m[33mwarning[0m[1m: method `read_document` is never used[0m
+2026-10-25T08:21:54.3511451Z   [1m[94m--> [0mtargets/conduitos/src/text_protection/document.rs:26:12
+2026-10-25T08:21:54.3511838Z    [1m[94m|[0m
+2026-10-25T08:21:54.3512237Z [1m[94m25[0m [1m[94m|[0m impl<I: TextOwner> ProtectedText<I> {
+2026-10-25T08:21:54.3512855Z    [1m[94m|[0m [1m[94m-----------------------------------[0m [1m[94mmethod in this implementation[0m
+2026-10-25T08:21:54.3513707Z [1m[94m26[0m [1m[94m|[0m     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+2026-10-25T08:21:54.3514308Z    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3514516Z 
+2026-10-25T08:21:54.3514798Z [1m[33mwarning[0m[1m: constant `QUEUE_SLOTS` is never used[0m
+2026-10-25T08:21:54.3515294Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:21:7
+2026-10-25T08:21:54.3515653Z    [1m[94m|[0m
+2026-10-25T08:21:54.3516024Z [1m[94m21[0m [1m[94m|[0m const QUEUE_SLOTS: usize = 4;
+2026-10-25T08:21:54.3516560Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3516764Z 
+2026-10-25T08:21:54.3517050Z [1m[33mwarning[0m[1m: constant `ROUTE_SLOTS` is never used[0m
+2026-10-25T08:21:54.3517536Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:22:7
+2026-10-25T08:21:54.3517916Z    [1m[94m|[0m
+2026-10-25T08:21:54.3518371Z [1m[94m22[0m [1m[94m|[0m const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+2026-10-25T08:21:54.3518826Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3519023Z 
+2026-10-25T08:21:54.3519451Z [1m[33mwarning[0m[1m: constant `ROUTE_TARGETS` is never used[0m
+2026-10-25T08:21:54.3519948Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:23:7
+2026-10-25T08:21:54.3520298Z    [1m[94m|[0m
+2026-10-25T08:21:54.3520683Z [1m[94m23[0m [1m[94m|[0m const ROUTE_TARGETS: usize = 4;
+2026-10-25T08:21:54.3521107Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3521309Z 
+2026-10-25T08:21:54.3521624Z [1m[33mwarning[0m[1m: constant `HOST_BINDING_SLOTS` is never used[0m
+2026-10-25T08:21:54.3522165Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:24:7
+2026-10-25T08:21:54.3522596Z    [1m[94m|[0m
+2026-10-25T08:21:54.3523070Z [1m[94m24[0m [1m[94m|[0m const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+2026-10-25T08:21:54.3523565Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3523782Z 
+2026-10-25T08:21:54.3524091Z [1m[33mwarning[0m[1m: constant `PENDING_REQUESTS` is never used[0m
+2026-10-25T08:21:54.3524614Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:25:7
+2026-10-25T08:21:54.3524964Z    [1m[94m|[0m
+2026-10-25T08:21:54.3525353Z [1m[94m25[0m [1m[94m|[0m const PENDING_REQUESTS: usize = 4;
+2026-10-25T08:21:54.3525779Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3525982Z 
+2026-10-25T08:21:54.3526262Z [1m[33mwarning[0m[1m: constant `VALUE_SLOTS` is never used[0m
+2026-10-25T08:21:54.3526755Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:26:7
+2026-10-25T08:21:54.3527100Z    [1m[94m|[0m
+2026-10-25T08:21:54.3527474Z [1m[94m26[0m [1m[94m|[0m const VALUE_SLOTS: usize = 12;
+2026-10-25T08:21:54.3527873Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3528068Z 
+2026-10-25T08:21:54.3528346Z [1m[33mwarning[0m[1m: constant `VALUE_BYTES` is never used[0m
+2026-10-25T08:21:54.3528995Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:27:7
+2026-10-25T08:21:54.3529486Z    [1m[94m|[0m
+2026-10-25T08:21:54.3529847Z [1m[94m27[0m [1m[94m|[0m const VALUE_BYTES: usize =
+2026-10-25T08:21:54.3530234Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3530428Z 
+2026-10-25T08:21:54.3530718Z [1m[33mwarning[0m[1m: constant `SIGN_CAPACITY` is never used[0m
+2026-10-25T08:21:54.3531219Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:29:7
+2026-10-25T08:21:54.3531564Z    [1m[94m|[0m
+2026-10-25T08:21:54.3531957Z [1m[94m29[0m [1m[94m|[0m const SIGN_CAPACITY: usize = 96;
+2026-10-25T08:21:54.3532375Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:21:54.3532571Z 
+2026-10-25T08:21:54.6741858Z [1m[33mwarning[0m: `conduitos` (lib) generated 47 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+2026-10-25T08:21:54.6742791Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 4m 14s
+2026-10-25T08:21:55.2740468Z [1m[92m   Compiling[0m conduit-assigned-plan v0.1.0 (/home/runner/work/conduit/conduit/architecture/assigned-plan)
+2026-10-25T08:21:55.2870553Z [1m[92m   Compiling[0m patchbay-control v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay)
+2026-10-25T08:21:55.2878786Z [1m[92m   Compiling[0m conduitos v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos)
+2026-10-25T08:21:55.4701792Z [1m[92m   Compiling[0m conduit-protected-line v0.1.0 (/home/runner/work/conduit/conduit/architecture/protected-line)
+2026-10-25T08:21:56.3271268Z [1m[92m   Compiling[0m conduit-core v0.1.0 (/home/runner/work/conduit/conduit/architecture/core)
+2026-10-25T08:21:56.3665409Z [1m[92m   Compiling[0m conduit-kernel v0.1.0 (/home/runner/work/conduit/conduit/architecture/kernel)
+2026-10-25T08:21:59.9697881Z [1m[92m   Compiling[0m conduitos-runtime-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/runtime-core)
+2026-10-25T08:22:10.2531498Z [1m[92m   Compiling[0m conduitos-tls-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/tls-core)
+2026-10-25T08:22:13.0411325Z [1m[92m   Compiling[0m conduit-plot v0.1.0 (/home/runner/work/conduit/conduit/architecture/plot)
+2026-10-25T08:22:38.5721301Z [1m[92m   Compiling[0m conduit-body v0.1.0 (/home/runner/work/conduit/conduit/architecture/body)
+2026-10-25T08:23:00.5893122Z [1m[92m   Compiling[0m conduit-plan-lowering v0.1.0 (/home/runner/work/conduit/conduit/architecture/plan-lowering)
+2026-10-25T08:23:10.9001911Z [1m[92m   Compiling[0m conduit-composite v0.1.0 (/home/runner/work/conduit/conduit/architecture/composite)
+2026-10-25T08:23:27.8681385Z [1m[92m   Compiling[0m conduit-commons-plot v0.1.0 (/home/runner/work/conduit/conduit/plots/commons)
+2026-10-25T08:23:31.1059818Z [1m[92m   Compiling[0m conduitos-network-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/network-core)
+2026-10-25T08:23:32.1002133Z [1m[92m   Compiling[0m conduitos-compositor-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/compositor-core)
+2026-10-25T08:23:55.8191541Z [1m[92m   Compiling[0m conduit-time v0.1.0 (/home/runner/work/conduit/conduit/semantics/time)
+2026-10-25T08:24:14.6371182Z [1m[92m   Compiling[0m conduit-data v0.1.0 (/home/runner/work/conduit/conduit/semantics/data)
+2026-10-25T08:24:18.6611583Z [1m[92m   Compiling[0m conduit-human v0.1.0 (/home/runner/work/conduit/conduit/semantics/human)
+2026-10-25T08:24:36.2352350Z [1m[92m   Compiling[0m conduit-language v0.1.0 (/home/runner/work/conduit/conduit/semantics/language)
+2026-10-25T08:25:00.1661813Z [1m[92m   Compiling[0m conduit-face v0.1.0 (/home/runner/work/conduit/conduit/semantics/face)
+2026-10-25T08:25:01.8031207Z [1m[92m   Compiling[0m conduit-audio v0.1.0 (/home/runner/work/conduit/conduit/semantics/audio)
+2026-10-25T08:25:57.8891708Z [1m[92m   Compiling[0m conduit-planner v0.1.0 (/home/runner/work/conduit/conduit/architecture/planner)
+2026-10-25T08:26:47.2762057Z [1m[92m   Compiling[0m conduit-process v0.1.0 (/home/runner/work/conduit/conduit/semantics/process)
+2026-10-25T08:26:47.7691387Z [1m[92m   Compiling[0m conduit-purpose v0.1.0 (/home/runner/work/conduit/conduit/semantics/purpose)
+2026-10-25T08:26:48.0851485Z [1m[92m   Compiling[0m conduit-web v0.1.0 (/home/runner/work/conduit/conduit/semantics/web)
+2026-10-25T08:26:48.5651776Z [1m[92m   Compiling[0m conduit-text v0.1.0 (/home/runner/work/conduit/conduit/semantics/text)
+2026-10-25T08:26:49.1212052Z [1m[92m   Compiling[0m conduit-alife v0.1.0 (/home/runner/work/conduit/conduit/semantics/alife)
+2026-10-25T08:26:50.1701543Z [1m[92m   Compiling[0m conduit-net v0.1.0 (/home/runner/work/conduit/conduit/semantics/net)
+2026-10-25T08:26:50.5109966Z [1m[92m   Compiling[0m conduit-robotics v0.1.0 (/home/runner/work/conduit/conduit/semantics/robotics)
+2026-10-25T08:27:31.6731690Z [1m[92m   Compiling[0m conduit-midi v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/protocols/midi)
+2026-10-25T08:27:32.2111154Z [1m[92m   Compiling[0m conduit-ai v0.1.0 (/home/runner/work/conduit/conduit/semantics/ai)
+2026-10-25T08:27:35.1308952Z [1m[92m   Compiling[0m conduit-tutorial-plot v0.1.0 (/home/runner/work/conduit/conduit/semantics/tutorial)
+2026-10-25T08:27:35.4441521Z [1m[92m   Compiling[0m conduit-home-model v0.1.0 (/home/runner/work/conduit/conduit/semantics/home)
+2026-10-25T08:27:36.1501763Z [1m[92m   Compiling[0m conduit-wire v0.1.0 (/home/runner/work/conduit/conduit/architecture/wire)
+2026-10-25T08:27:37.0482646Z [1m[92m   Compiling[0m conduit-birth-plot v0.1.0 (/home/runner/work/conduit/conduit/plots/birth)
+2026-10-25T08:27:40.8896549Z [1m[92m   Compiling[0m conduitos-creche-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/creche-core)
+2026-10-25T08:27:44.9331428Z [1m[92m   Compiling[0m conduit-education v0.1.0 (/home/runner/work/conduit/conduit/semantics/education)
+2026-10-25T08:27:48.4001388Z [1m[92m   Compiling[0m conduit-semantic-catalog v0.1.0 (/home/runner/work/conduit/conduit/semantics/catalog)
+2026-10-25T08:28:08.8261237Z [1m[92m   Compiling[0m patchbay-graph v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay/graph)
+2026-10-25T08:28:12.5141237Z [1m[92m   Compiling[0m patchbay-application v0.1.0 (/home/runner/work/conduit/conduit/plots/patchbay/application)
+2026-10-25T08:28:17.4051716Z [1m[92m   Compiling[0m conduit-tour-model v0.1.0 (/home/runner/work/conduit/conduit/plots/tour)
+2026-10-25T08:28:21.0962004Z [1m[92m   Compiling[0m conduitos-application-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/application-core)
+2026-10-25T08:28:29.5651451Z [1m[92m   Compiling[0m conduit-observatory v0.1.0 (/home/runner/work/conduit/conduit/architecture/observatory)
+2026-10-25T08:28:34.5761545Z [1m[92m   Compiling[0m conduitos-mask-core v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/mask-core)
+2026-10-25T08:28:38.7818763Z [1m[92m   Compiling[0m conduit-conduitos-mask-offer v0.1.0 (/home/runner/work/conduit/conduit/targets/conduitos/mask-offer)
+2026-10-25T08:28:41.2840974Z [1m[92m   Compiling[0m conduit-synth v0.1.0 (/home/runner/work/conduit/conduit/mechanisms/implementations/synth)
+2026-10-25T08:49:27.4461027Z [1m[33mwarning[0m[1m: unused import: `ProtectedDocument`[0m
+2026-10-25T08:49:27.4462037Z   [1m[94m--> [0mtargets/conduitos/src/text_protection.rs:14:27
+2026-10-25T08:49:27.4462709Z    [1m[94m|[0m
+2026-10-25T08:49:27.4463962Z [1m[94m14[0m [1m[94m|[0m pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+2026-10-25T08:49:27.4465076Z    [1m[94m|[0m                           [1m[33m^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:27.4465704Z    [1m[94m|[0m
+2026-10-25T08:49:27.4466559Z    [1m[94m= [0m[1mnote[0m: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+2026-10-25T08:49:27.4467116Z 
+2026-10-25T08:49:27.4468312Z [1m[33mwarning[0m[1m: unused imports: `FaceBack`, `IndicatorBack`, `LiteralBack`, `LiteralState`, `MorseBack`, `TourMorseBack`, and `UpperBack`[0m
+2026-10-25T08:49:27.4470326Z  [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:4:25
+2026-10-25T08:49:27.4470951Z   [1m[94m|[0m
+2026-10-25T08:49:27.4472012Z [1m[94m4[0m [1m[94m|[0m     text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
+2026-10-25T08:49:27.4473326Z   [1m[94m|[0m                         [1m[33m^^^^^^^^[0m  [1m[33m^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^[0m
+2026-10-25T08:49:27.4476726Z [1m[94m5[0m [1m[94m|[0m     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
+2026-10-25T08:49:27.4477895Z   [1m[94m|[0m                        [1m[33m^^^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:49:27.4478414Z 
+2026-10-25T08:49:27.4480050Z [1m[33mwarning[0m[1m: unused imports: `FixedHostCallBindings`, `FixedRoutes`, `FixedScheduler`, `FixedSignLog`, `FixedValueStore`, `KernelEvent`, and `ValueStorage`[0m
+2026-10-25T08:49:27.4481523Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:9:22
+2026-10-25T08:49:27.4482162Z    [1m[94m|[0m
+2026-10-25T08:49:27.4483316Z [1m[94m 9[0m [1m[94m|[0m     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+2026-10-25T08:49:27.4484806Z    [1m[94m|[0m                      [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^^[0m  [1m[33m^^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:27.4486427Z [1m[94m10[0m [1m[94m|[0m     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+2026-10-25T08:49:27.4488173Z    [1m[94m|[0m                                           [1m[33m^^^^^^^^^^^[0m                              [1m[33m^^^^^^^^^^^^[0m
+2026-10-25T08:49:27.4489922Z [1m[94m11[0m [1m[94m|[0m     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+2026-10-25T08:49:27.4490981Z    [1m[94m|[0m                 [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:27.4491346Z 
+2026-10-25T08:49:31.0152275Z [1m[33mwarning[0m[1m: unused import: `SignSink`[0m
+2026-10-25T08:49:31.0153001Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:10:64
+2026-10-25T08:49:31.0153411Z    [1m[94m|[0m
+2026-10-25T08:49:31.0154177Z [1m[94m10[0m [1m[94m|[0m     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+2026-10-25T08:49:31.0154982Z    [1m[94m|[0m                                                                [1m[33m^^^^^^^^[0m
+2026-10-25T08:49:31.0155276Z 
+2026-10-25T08:49:34.5610433Z [1m[33mwarning[0m[1m: method `lifecycle_copy_ack` is never used[0m
+2026-10-25T08:49:34.5611949Z  [1m[94m--> [0mtargets/conduitos/src/native_face_mask/lifecycle_evidence.rs:6:19
+2026-10-25T08:49:34.5612904Z   [1m[94m|[0m
+2026-10-25T08:49:34.5613684Z [1m[94m4[0m [1m[94m|[0m impl NativeFaceMask {
+2026-10-25T08:49:34.5614872Z   [1m[94m|[0m [1m[94m-------------------[0m [1m[94mmethod in this implementation[0m
+2026-10-25T08:49:34.5616672Z [1m[94m5[0m [1m[94m|[0m     /// Read-only current validated-copy ACK; never acknowledges or enters the guest.
+2026-10-25T08:49:34.5618366Z [1m[94m6[0m [1m[94m|[0m     pub(crate) fn lifecycle_copy_ack(
+2026-10-25T08:49:34.5619503Z   [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5620069Z   [1m[94m|[0m
+2026-10-25T08:49:34.5620826Z   [1m[94m= [0m[1mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+2026-10-25T08:49:34.5621334Z 
+2026-10-25T08:49:34.5621957Z [1m[33mwarning[0m[1m: method `embedded_image_bytes` is never used[0m
+2026-10-25T08:49:34.5623149Z    [1m[94m--> [0mtargets/conduitos/src/protected_compositor/display_owner.rs:149:19
+2026-10-25T08:49:34.5623990Z     [1m[94m|[0m
+2026-10-25T08:49:34.5624651Z [1m[94m 68[0m [1m[94m|[0m impl DisplayOwner {
+2026-10-25T08:49:34.5625652Z     [1m[94m|[0m [1m[94m-----------------[0m [1m[94mmethod in this implementation[0m
+2026-10-25T08:49:34.5626323Z [1m[94m...[0m
+2026-10-25T08:49:34.5627121Z [1m[94m149[0m [1m[94m|[0m     pub(crate) fn embedded_image_bytes(&self) -> &'static [u8] {
+2026-10-25T08:49:34.5627727Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5627977Z 
+2026-10-25T08:49:34.5628303Z [1m[33mwarning[0m[1m: method `active_session` is never used[0m
+2026-10-25T08:49:34.5628931Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/session_owner.rs:79:12
+2026-10-25T08:49:34.5629701Z    [1m[94m|[0m
+2026-10-25T08:49:34.5630123Z [1m[94m61[0m [1m[94m|[0m impl<T: Transport> SessionOwner<T> {
+2026-10-25T08:49:34.5630780Z    [1m[94m|[0m [1m[94m----------------------------------[0m [1m[94mmethod in this implementation[0m
+2026-10-25T08:49:34.5631244Z [1m[94m...[0m
+2026-10-25T08:49:34.5631717Z [1m[94m79[0m [1m[94m|[0m     pub fn active_session(&self) -> Option<SessionId> {
+2026-10-25T08:49:34.5632226Z    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5632443Z 
+2026-10-25T08:49:34.5632784Z [1m[33mwarning[0m[1m: variant `Disposal` is never constructed[0m
+2026-10-25T08:49:34.5633379Z   [1m[94m--> [0mtargets/conduitos/src/protected_compositor/lifecycle_sign.rs:46:5
+2026-10-25T08:49:34.5633805Z    [1m[94m|[0m
+2026-10-25T08:49:34.5634159Z [1m[94m42[0m [1m[94m|[0m pub(crate) enum Stage {
+2026-10-25T08:49:34.5634636Z    [1m[94m|[0m                 [1m[94m-----[0m [1m[94mvariant in this enum[0m
+2026-10-25T08:49:34.5635014Z [1m[94m...[0m
+2026-10-25T08:49:34.5635333Z [1m[94m46[0m [1m[94m|[0m     Disposal,
+2026-10-25T08:49:34.5635687Z    [1m[94m|[0m     [1m[33m^^^^^^^^[0m
+2026-10-25T08:49:34.5635985Z    [1m[94m|[0m
+2026-10-25T08:49:34.5636861Z    [1m[94m= [0m[1mnote[0m: `Stage` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+2026-10-25T08:49:34.5637343Z 
+2026-10-25T08:49:34.5637646Z [1m[33mwarning[0m[1m: method `record_result` is never used[0m
+2026-10-25T08:49:34.5638181Z    [1m[94m--> [0mtargets/conduitos/src/protected_creche/home.rs:124:19
+2026-10-25T08:49:34.5638577Z     [1m[94m|[0m
+2026-10-25T08:49:34.5638895Z [1m[94m 14[0m [1m[94m|[0m impl Home {
+2026-10-25T08:49:34.5639553Z     [1m[94m|[0m [1m[94m---------[0m [1m[94mmethod in this implementation[0m
+2026-10-25T08:49:34.5639942Z [1m[94m...[0m
+2026-10-25T08:49:34.5640333Z [1m[94m124[0m [1m[94m|[0m     pub(crate) fn record_result(
+2026-10-25T08:49:34.5640790Z     [1m[94m|[0m                   [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5641015Z 
+2026-10-25T08:49:34.5641304Z [1m[33mwarning[0m[1m: constant `QUEUE_SLOTS` is never used[0m
+2026-10-25T08:49:34.5641820Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:28:7
+2026-10-25T08:49:34.5642214Z    [1m[94m|[0m
+2026-10-25T08:49:34.5642596Z [1m[94m28[0m [1m[94m|[0m const QUEUE_SLOTS: usize = 2;
+2026-10-25T08:49:34.5642997Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5643197Z 
+2026-10-25T08:49:34.5643486Z [1m[33mwarning[0m[1m: constant `ROUTE_SLOTS` is never used[0m
+2026-10-25T08:49:34.5643991Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:29:7
+2026-10-25T08:49:34.5644351Z    [1m[94m|[0m
+2026-10-25T08:49:34.5644782Z [1m[94m29[0m [1m[94m|[0m const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+2026-10-25T08:49:34.5645226Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5645425Z 
+2026-10-25T08:49:34.5645715Z [1m[33mwarning[0m[1m: constant `ROUTE_TARGETS` is never used[0m
+2026-10-25T08:49:34.5646221Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:30:7
+2026-10-25T08:49:34.5646578Z    [1m[94m|[0m
+2026-10-25T08:49:34.5646964Z [1m[94m30[0m [1m[94m|[0m const ROUTE_TARGETS: usize = 2;
+2026-10-25T08:49:34.5647385Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5647582Z 
+2026-10-25T08:49:34.5647895Z [1m[33mwarning[0m[1m: constant `HOST_BINDING_SLOTS` is never used[0m
+2026-10-25T08:49:34.5648427Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:31:7
+2026-10-25T08:49:34.5648923Z    [1m[94m|[0m
+2026-10-25T08:49:34.5649525Z [1m[94m31[0m [1m[94m|[0m const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+2026-10-25T08:49:34.5650022Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5650224Z 
+2026-10-25T08:49:34.5650532Z [1m[33mwarning[0m[1m: constant `PENDING_REQUESTS` is never used[0m
+2026-10-25T08:49:34.5651055Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:32:7
+2026-10-25T08:49:34.5651416Z    [1m[94m|[0m
+2026-10-25T08:49:34.5651802Z [1m[94m32[0m [1m[94m|[0m const PENDING_REQUESTS: usize = 3;
+2026-10-25T08:49:34.5652244Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5652453Z 
+2026-10-25T08:49:34.5652772Z [1m[33mwarning[0m[1m: constant `VALUE_SLOTS` is never used[0m
+2026-10-25T08:49:34.5653277Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:33:7
+2026-10-25T08:49:34.5653637Z    [1m[94m|[0m
+2026-10-25T08:49:34.5654009Z [1m[94m33[0m [1m[94m|[0m const VALUE_SLOTS: usize = 6;
+2026-10-25T08:49:34.5654412Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5654610Z 
+2026-10-25T08:49:34.5654887Z [1m[33mwarning[0m[1m: constant `VALUE_BYTES` is never used[0m
+2026-10-25T08:49:34.5655389Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:34:7
+2026-10-25T08:49:34.5655755Z    [1m[94m|[0m
+2026-10-25T08:49:34.5656453Z [1m[94m34[0m [1m[94m|[0m const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
+2026-10-25T08:49:34.5656983Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5657183Z 
+2026-10-25T08:49:34.5657614Z [1m[33mwarning[0m[1m: constant `SIGN_CAPACITY` is never used[0m
+2026-10-25T08:49:34.5658129Z   [1m[94m--> [0mtargets/conduitos/src/text_planned_kernel.rs:35:7
+2026-10-25T08:49:34.5658502Z    [1m[94m|[0m
+2026-10-25T08:49:34.5658885Z [1m[94m35[0m [1m[94m|[0m const SIGN_CAPACITY: usize = 64;
+2026-10-25T08:49:34.5659487Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5659696Z 
+2026-10-25T08:49:34.5659987Z [1m[33mwarning[0m[1m: method `read_document` is never used[0m
+2026-10-25T08:49:34.5660528Z   [1m[94m--> [0mtargets/conduitos/src/text_protection/document.rs:26:12
+2026-10-25T08:49:34.5660926Z    [1m[94m|[0m
+2026-10-25T08:49:34.5661333Z [1m[94m25[0m [1m[94m|[0m impl<I: TextOwner> ProtectedText<I> {
+2026-10-25T08:49:34.5661965Z    [1m[94m|[0m [1m[94m-----------------------------------[0m [1m[94mmethod in this implementation[0m
+2026-10-25T08:49:34.5662829Z [1m[94m26[0m [1m[94m|[0m     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+2026-10-25T08:49:34.5663432Z    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5663644Z 
+2026-10-25T08:49:34.5663932Z [1m[33mwarning[0m[1m: constant `QUEUE_SLOTS` is never used[0m
+2026-10-25T08:49:34.5664428Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:21:7
+2026-10-25T08:49:34.5664790Z    [1m[94m|[0m
+2026-10-25T08:49:34.5665168Z [1m[94m21[0m [1m[94m|[0m const QUEUE_SLOTS: usize = 4;
+2026-10-25T08:49:34.5665568Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5665767Z 
+2026-10-25T08:49:34.5666047Z [1m[33mwarning[0m[1m: constant `ROUTE_SLOTS` is never used[0m
+2026-10-25T08:49:34.5666535Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:22:7
+2026-10-25T08:49:34.5666883Z    [1m[94m|[0m
+2026-10-25T08:49:34.5667315Z [1m[94m22[0m [1m[94m|[0m const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+2026-10-25T08:49:34.5667762Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5667962Z 
+2026-10-25T08:49:34.5668255Z [1m[33mwarning[0m[1m: constant `ROUTE_TARGETS` is never used[0m
+2026-10-25T08:49:34.5668760Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:23:7
+2026-10-25T08:49:34.5669234Z    [1m[94m|[0m
+2026-10-25T08:49:34.5669622Z [1m[94m23[0m [1m[94m|[0m const ROUTE_TARGETS: usize = 4;
+2026-10-25T08:49:34.5670176Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5670373Z 
+2026-10-25T08:49:34.5670687Z [1m[33mwarning[0m[1m: constant `HOST_BINDING_SLOTS` is never used[0m
+2026-10-25T08:49:34.5671206Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:24:7
+2026-10-25T08:49:34.5671562Z    [1m[94m|[0m
+2026-10-25T08:49:34.5672032Z [1m[94m24[0m [1m[94m|[0m const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+2026-10-25T08:49:34.5672531Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5672739Z 
+2026-10-25T08:49:34.5673049Z [1m[33mwarning[0m[1m: constant `PENDING_REQUESTS` is never used[0m
+2026-10-25T08:49:34.5673569Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:25:7
+2026-10-25T08:49:34.5673924Z    [1m[94m|[0m
+2026-10-25T08:49:34.5674310Z [1m[94m25[0m [1m[94m|[0m const PENDING_REQUESTS: usize = 4;
+2026-10-25T08:49:34.5674743Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5674953Z 
+2026-10-25T08:49:34.5675229Z [1m[33mwarning[0m[1m: constant `VALUE_SLOTS` is never used[0m
+2026-10-25T08:49:34.5675719Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:26:7
+2026-10-25T08:49:34.5676070Z    [1m[94m|[0m
+2026-10-25T08:49:34.5676437Z [1m[94m26[0m [1m[94m|[0m const VALUE_SLOTS: usize = 12;
+2026-10-25T08:49:34.5676841Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5677040Z 
+2026-10-25T08:49:34.5677318Z [1m[33mwarning[0m[1m: constant `VALUE_BYTES` is never used[0m
+2026-10-25T08:49:34.5677800Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:27:7
+2026-10-25T08:49:34.5678283Z    [1m[94m|[0m
+2026-10-25T08:49:34.5678644Z [1m[94m27[0m [1m[94m|[0m const VALUE_BYTES: usize =
+2026-10-25T08:49:34.5679034Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5679384Z 
+2026-10-25T08:49:34.5679696Z [1m[33mwarning[0m[1m: constant `SIGN_CAPACITY` is never used[0m
+2026-10-25T08:49:34.5680221Z   [1m[94m--> [0mtargets/conduitos/src/tour_morse_kernel.rs:29:7
+2026-10-25T08:49:34.5680580Z    [1m[94m|[0m
+2026-10-25T08:49:34.5680967Z [1m[94m29[0m [1m[94m|[0m const SIGN_CAPACITY: usize = 96;
+2026-10-25T08:49:34.5681396Z    [1m[94m|[0m       [1m[33m^^^^^^^^^^^^^[0m
+2026-10-25T08:49:34.5681600Z 
+2026-10-25T08:50:38.8930096Z [1m[33mwarning[0m: `conduitos` (lib) generated 26 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+2026-10-25T08:50:42.2623486Z [1m[92m    Finished[0m `release` profile [optimized] target(s) in 28m 47s
+2026-10-25T08:50:50.7501076Z ConduitOS ELF: /home/runner/work/conduit/conduit/target/conduitos/x86_64/conduitos
+2026-10-25T08:50:54.0184591Z ConduitOS image: /home/runner/work/conduit/conduit/target/conduitos/x86_64/conduitos.iso
+2026-10-25T08:50:58.3626335Z BUILT image:sha256:f352fed3eb213ed56c8bc634049921fd45ea86d0de5e209f0653bb1dcdbf684f (DiskImage)
+2026-10-25T08:50:58.3627424Z IMAGE: /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64/conduitos-x86_64.iso
+2026-10-25T08:50:58.3628472Z manifest: /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64/build-manifest.json
+2026-10-25T08:50:58.3648173Z > cargo +1.98.1-x86_64-unknown-linux-gnu xtask make host verify /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --boot --locked
+2026-10-25T08:50:58.6023823Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 0.22s
+2026-10-25T08:50:58.6063524Z [1m[92m     Running[0m `target/debug/conduit-xtask-dispatch make host verify /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --boot --locked`
+2026-10-25T08:50:59.1431026Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 0.52s
+2026-10-25T08:50:59.1688024Z [1m[92m     Running[0m `target/debug/xtask make host verify /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --boot --locked`
+2026-10-25T08:51:11.5817947Z BOOTED /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64/conduitos-x86_64.iso to presented front door on Boot ccfd34005056e8fb734a6b9c7c5a09e78edd7decaf1899baaf05de0fe809f77d
+2026-10-25T08:51:19.5703878Z BOOTED /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64/conduitos-x86_64.iso to presented front door on Boot b01307bce9c7bb53d1c45f7cd71252736dff86b5d28e73ddecf72884c5b8b6ca
+2026-10-25T08:51:21.7764114Z VERIFIED image:sha256:f352fed3eb213ed56c8bc634049921fd45ea86d0de5e209f0653bb1dcdbf684f
+2026-10-25T08:51:21.7780079Z > cargo +1.98.1-x86_64-unknown-linux-gnu xtask make host verify /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --journey --locked
+2026-10-25T08:51:22.0156840Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 0.22s
+2026-10-25T08:51:22.0197376Z [1m[92m     Running[0m `target/debug/conduit-xtask-dispatch make host verify /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --journey --locked`
+2026-10-25T08:51:22.3789753Z [1m[92m    Finished[0m `dev` profile [unoptimized] target(s) in 0.34s
+2026-10-25T08:51:22.4046961Z [1m[92m     Running[0m `target/debug/xtask make host verify /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --journey --locked`
+2026-10-25T08:52:20.7138488Z xtask error: ConduitOS proof refusal [creche-choice-timeout]: no complete guest record for creche-three-selected
+2026-10-25T08:52:20.7158166Z FAILED: pipeline/target: cargo +1.98.1-x86_64-unknown-linux-gnu xtask make host verify /home/runner/work/conduit/conduit/target/pipeline/conduitos-x86_64 --journey --locked failed: 1
+2026-10-25T08:52:20.7211589Z xtask error: pipeline failed: exit status: 1
+2026-10-25T08:52:20.7255523Z ##[error]Process completed with exit code 1.
+2026-10-25T08:52:20.7366329Z ##[group]Run actions/upload-artifact@v7.0.1
+2026-10-25T08:52:20.7366679Z with:
+2026-10-25T08:52:20.7366913Z   name: diagnostics-conduitos-x86_64
+2026-10-25T08:52:20.7367694Z   path: proof/browser/test-results/
+target/pipeline/conduitos-x86_64/**/*.json
+target/conduitos/**/*.log
+target/conduitos/**/*.json
+target/conduitos/**/*.png
+target/conduitos/x86_64/conduitos
+
+2026-10-25T08:52:20.7368476Z   if-no-files-found: ignore
+2026-10-25T08:52:20.7368724Z   retention-days: 7
+2026-10-25T08:52:20.7368950Z   compression-level: 6
+2026-10-25T08:52:20.7369523Z   overwrite: false
+2026-10-25T08:52:20.7369802Z   include-hidden-files: false
+2026-10-25T08:52:20.7370051Z   archive: true
+2026-10-25T08:52:20.7370252Z env:
+2026-10-25T08:52:20.7370444Z   CARGO_TERM_COLOR: always
+2026-10-25T08:52:20.7370680Z   CARGO_INCREMENTAL: 0
+2026-10-25T08:52:20.7370908Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-25T08:52:20.7371163Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-25T08:52:20.7371414Z   RUSTUP_TOOLCHAIN: 1.98.1
+2026-10-25T08:52:20.7371757Z   CONDUIT_CHECKOUT_SHA: 593a604c75befd4fd1b3bc9904857c238ced70a4
+2026-10-25T08:52:20.7372120Z   CARGO_HOME: /home/runner/.cargo
+2026-10-25T08:52:20.7372393Z   CACHE_ON_FAILURE: true
+2026-10-25T08:52:20.7372620Z ##[endgroup]
+2026-10-25T08:52:21.0693145Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-25T08:52:21.0695823Z The least common ancestor is /home/runner/work/conduit/conduit. This will be the root directory of the artifact
+2026-10-25T08:52:21.0696591Z With the provided path, there will be 23 files uploaded
+2026-10-25T08:52:21.0701981Z Artifact name is valid!
+2026-10-25T08:52:21.0702806Z Root directory input is valid!
+2026-10-25T08:52:21.4595621Z Uploading artifact: diagnostics-conduitos-x86_64.zip
+2026-10-25T08:52:21.4633254Z Beginning upload of artifact content to blob storage
+2026-10-25T08:52:23.2552832Z Uploaded bytes 8388608
+2026-10-25T08:52:23.4533352Z Uploaded bytes 9778805
+2026-10-25T08:52:23.5238451Z Finished uploading artifact content to blob storage!
+2026-10-25T08:52:23.5242643Z SHA256 digest of uploaded artifact is fc129df8db57e190c58418976f73365f57e7a3c7fb0837b0884ee073036feb50
+2026-10-25T08:52:23.5244448Z Finalizing artifact upload
+2026-10-25T08:52:24.1388366Z Artifact diagnostics-conduitos-x86_64 successfully finalized. Artifact ID 12593153390
+2026-10-25T08:52:24.1390830Z Artifact diagnostics-conduitos-x86_64 has been successfully uploaded! Final size is 9778805 bytes. Artifact ID is 12593153390
+2026-10-25T08:52:24.1394776Z Artifact download URL: https://github.com/dancxjo/conduit/actions/runs/40175295513/artifacts/12593153390
+2026-10-25T08:52:24.1587908Z Post job cleanup.
+2026-10-25T08:52:24.2902168Z Cache up-to-date.
+2026-10-25T08:52:24.3052474Z Post job cleanup.
+2026-10-25T08:52:24.3946061Z [command]/usr/bin/git version
+2026-10-25T08:52:24.3991787Z git version 2.55.0
+2026-10-25T08:52:24.4029723Z Temporarily overriding HOME='/home/runner/work/_temp/303eb97d-6c43-42cf-9d43-dc574780a582' before making global git config changes
+2026-10-25T08:52:24.4031262Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-25T08:52:24.4035632Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/conduit/conduit
+2026-10-25T08:52:24.4065834Z Removing SSH command configuration
+2026-10-25T08:52:24.4072341Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-25T08:52:24.4105694Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-25T08:52:24.4352865Z Removing HTTP extra header
+2026-10-25T08:52:24.4360405Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-25T08:52:24.4397183Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-25T08:52:24.4638419Z Removing includeIf entries pointing to credentials config files
+2026-10-25T08:52:24.4645493Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-25T08:52:24.4675907Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-25T08:52:24.5054254Z Cleaning up orphan processes

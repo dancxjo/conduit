@@ -1,0 +1,42 @@
+{
+  "scope": "merged-dev negative basic artifact/source/Root/Boot custody, not complete pixel/QMP audit",
+  "run": 40175295513,
+  "job": 121115360913,
+  "artifact": 12593153390,
+  "source": "593a604c75befd4fd1b3bc9904857c238ced70a4",
+  "original_zip_sha256": "fc129df8db57e190c58418976f73365f57e7a3c7fb0837b0884ee073036feb50",
+  "zip_bytes": 9778805,
+  "actual_root_sha256": "3da6209f0048d4cf290b49f22e4134ae6f36a6e1342c9fc80a64de70bfa7959f",
+  "boot": {
+    "schema": "conduit.conduitos.boot-sign/v1",
+    "status": "accepted",
+    "arch": "x86_64",
+    "firmware": "x86-bios",
+    "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+    "build_id": "build:sha256:022204fc69c0da37d4677817513306d414ce462a0bacba5e032fc2ffedbfea5b",
+    "image_binding": "image:sha256:800455fffadefd677a53e3575dfeb12df74b1a2d0890012dbb45e68df6d6329a",
+    "offer_generation": 1,
+    "limine": "12.5.2",
+    "qemu_profile": "q35-single-cpu-512m-normal-product",
+    "host_id": "080ccf2ab00c05afb1d3e57ac1cdb29062da60459d772f938db019583046c81f",
+    "boot_id": "5d654c0efeac64ebb9031ead006685d6654cde1eb42a636c44a92105ff3c88b2",
+    "memory_regions": 19,
+    "artifacts": 1,
+    "framebuffers": 1,
+    "command_line_bytes": 38,
+    "runtime_arena_bytes": 268435456
+  },
+  "terminal": [
+    "CONDUIT_CRECHE_INTERACTION_REFUSAL phase=input refusal=Terminated"
+  ],
+  "enhanced_entry_diagnostics": [],
+  "application_operation_records": 0,
+  "collector": "creche-choice-timeout before creche-three-selected",
+  "limits": [
+    "No enhanced entry receipt in this source. WorkExhausted/64RTC/internal subphase not established by this packet.",
+    "Original CI ISO bytes absent; image digest is manifest evidence.",
+    "Root failure registers/stack are post-refusal state, not guest fault instruction.",
+    "No new PNG pixel or exact QMP screenshot-ack audit performed for this small packet."
+  ],
+  "all_zip_members_verified_against_extraction": true
+}
