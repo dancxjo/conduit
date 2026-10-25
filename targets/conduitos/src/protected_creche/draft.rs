@@ -114,7 +114,7 @@ impl CrecheDraft {
             show: show.clone(),
             input: input.clone(),
         })
-        .map_err(|error| interaction_error("encode", error))?;
+        .map_err(|error| interaction_error("encode", TransportError::Refused(error)))?;
         let response = self
             .service
             .get_mut()
