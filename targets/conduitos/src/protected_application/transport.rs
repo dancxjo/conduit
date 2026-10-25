@@ -188,9 +188,12 @@ impl Service {
         }
         if matches!(
             command,
-            Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+            Command::PrepareTarget { .. }
+                | Command::PrepareGraphProjection { .. }
+                | Command::PatchbayPublish { .. }
         ) {
-            // Separate immutable decompression/framing from typed graph decode.
+            // Full Face publications, like graphs, need decompression/framing
+            // separated from typed decode and semantic validation.
             // Preflight freezes the same bytes consumed by the following Commit.
             self.request(Request::Preflight)?;
         }

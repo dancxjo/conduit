@@ -155,7 +155,9 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
     }
     if matches!(
         command,
-        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+        Command::PrepareTarget { .. }
+            | Command::PrepareGraphProjection { .. }
+            | Command::PatchbayPublish { .. }
     ) {
         assert_eq!(
             state.execute(Request::Preflight, transfer),
