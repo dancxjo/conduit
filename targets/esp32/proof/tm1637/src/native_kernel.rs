@@ -70,7 +70,7 @@ pub async fn report(
         additional_preparation_bound: requirements().map_or(0, |v| v.0),
         root_heap_used_bytes: memory.current_usage,
         root_heap_peak_bytes: memory.max_usage,
-        body_installed: false,
+        body_installed: root.body_installed(),
         native_plan_installed: false,
         capability_possession_issued: false,
     };

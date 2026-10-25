@@ -31,7 +31,7 @@ pub async fn write(root: &NativeRoot, uart: &mut Uart<'_, Async>) -> Result<(), 
         count: cadence.count,
         period_ms: cadence.period_ms,
         capabilities_bytes: offers.array_bytes(),
-        body_installed: false,
+        body_installed: root.body_installed(),
         native_plan_installed: false,
     };
     let mut buffer = [0; 1024];

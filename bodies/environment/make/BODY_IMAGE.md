@@ -61,10 +61,10 @@ in the biography. Running the command again creates a new construction.
 The linked-body firmware has passed the unchanged 36 KiB CPU stack guard.
 The pinned compiler disables switch-to-lookup conversion for this image because
 the ESP32 linker otherwise places those immutable tables in internal RAM. The
-measured linked image reserves 41,428 stack bytes and contains its exact
-1,973-byte biography. Four CPU contract tests cover local installation and its
-refusals; physical local membership, Plot startup, and AP invitation delivery
-remain unverified. Mutable biography persistence and reboot continuity also
+measured native profile reserves 41,428 stack bytes and contains its exact
+construction biography (its byte size depends on the generated name). Four CPU contract tests cover local installation and its
+refusals. Local installation has also passed the two-Boot hardware check below;
+Plot startup and AP invitation delivery remain unverified. Mutable biography persistence and reboot continuity also
 remain integration work; a linked pristine snapshot cannot replace that history.
 The existing `prove environment display-esp32` builds a display diagnostic only.
 
@@ -103,3 +103,27 @@ The rich Plan itself remains owned and large. This change does not establish
 that Root, biography, sampling, timed display, network SDK, planning scratch,
 and required lifecycle evidence coexist within the MCU budget. Compact Plan
 ownership and complete preparation/steady-state accounting remain required.
+
+## Physical local-installation check
+
+The ESP32 WROOM (revision 3.1, 4 MiB flash) booted the native image twice. Both
+boots retained Body `9e927a828ada6bf173452a3c44e65866e84f4c189ef582bc34bed923dd317987`
+and generated name **River J. Collins**, with different actual Boot identities.
+Ordinary membership reached revision 2; its Host, Boot and offer generation
+matched the initialized Root advertisement. Root owns the Body session, and its
+management report derives `body_installed` from that retained owner. It reported
+`true` while `play_started` remained `false`.
+
+The tested ELF SHA-256 is
+`89a39a5955cd594c0496495d48fd9c0fad586daeab6fd64089cdd4f4dd49949f`.
+After local installation, Root reported 70,464 bytes used out of 118,768, with
+an 80,436-byte peak. At the first management offer it reported 74,580 used and
+a 90,344-byte peak; the separate radio SDK arena reported 33,408 used and a
+33,436-byte peak. These are observations at startup, **not** worst-case
+combined planning, execution, client-network, or invitation admission bounds.
+
+The test preserved a checksum-verified full flash recovery image outside Git.
+Afterward that operational firmware was restored; two live sample sequences,
+AP readiness, and successful display writes were observed. The attached device
+is currently running that temperature firmware, not this incomplete native
+appliance. Raw serial captures and recovery binaries are kept outside Git.

@@ -125,7 +125,7 @@ pub(super) fn encode(
         next_play_sequence: root.next_play_sequence(),
         reservation: root.owner_reservation(),
         control_applied: applied,
-        body_installed: false,
+        body_installed: root.body_installed(),
         native_plan_installed: false,
         appliance_kernel_prepared: root.appliance_kernel_prepared(),
         execution_context_prepared: root.execution_context_prepared(),

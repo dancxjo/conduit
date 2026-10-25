@@ -42,7 +42,7 @@ async fn main(spawner: Spawner) {
         )
     };
     #[cfg(feature = "body-image-root")]
-    let _body_owner = crate::native_body_image::load(&root).expect("linked body biography");
+    root.install_linked_body().expect("linked body biography");
     root.start_preparation_service(spawner)
         .await
         .expect("Root preparation service must start");

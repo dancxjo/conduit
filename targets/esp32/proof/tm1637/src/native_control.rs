@@ -6,7 +6,7 @@ use crate::{
 };
 use embassy_time::{with_timeout, Duration};
 use esp_hal::{uart::Uart, Async};
-const PREFIX: &[u8] = b"\n{\"event\":\"native-root-offer\",\"body_installed\":false,\"native_plan_installed\":false,\"image_sha256\":null,\"network_configuration\":\"";
+const PREFIX: &[u8] = b"\n{\"event\":\"native-root-offer\",\"native_plan_installed\":false,\"image_sha256\":null,\"network_configuration\":\"";
 const REFUSED: &[u8] =
     b"{\"event\":\"native-root-request-refused\",\"native_plan_installed\":false}\n";
 /// UART0 owns GPIO1 TX/GPIO3 RX. Command storage holds at most 64 bytes;
@@ -120,8 +120,8 @@ async fn offer(
     use core::fmt::Write;
     write!(
         memory_json,
-        "\",\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_sdk_heap_peak_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"native_root_heap_peak_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"native_network_ready\":{},\"network_control_installed\":{},\"network_control_failure_phase\":\"{}\",\"network_control_failure_reason\":\"{}\",\"network_control_steps\":{},\"network_control_dispatches\":[{},{},{}],\"network_control_receipt\":{},\"network_control_kernel_bytes\":{},\"network_control_binding\":{},\"assignment_staged\":{},\"appliance_kernel_prepared\":{},\"owner_control_configured\":{},\"owner_control_sequence\":{},\"display_software_ready\":{},\"display_software_refusal\":\"{}\",\"sampling_software_ready\":{},\"advertisement\":",
-        memory.size, memory.current_usage, memory.max_usage, root_memory.size, root_memory.current_usage, root_memory.max_usage, root.network_source().source_document_id.as_str(), root.network_plan_status(), root.network_ready(), root.control_installed(), failure_phase, failure_reason, steps, dispatches[0], dispatches[1], dispatches[2], receipt, conduit_network_join_call::CONTROL_KERNEL_BYTES, binding, root.assignment_staged(), root.appliance_kernel_prepared(), root.owner_control_configured(), root.owner_control_sequence(), display_ready, display_refusal, root.software().is_some()
+        "\",\"body_installed\":{},\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_sdk_heap_peak_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"native_root_heap_peak_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"native_network_ready\":{},\"network_control_installed\":{},\"network_control_failure_phase\":\"{}\",\"network_control_failure_reason\":\"{}\",\"network_control_steps\":{},\"network_control_dispatches\":[{},{},{}],\"network_control_receipt\":{},\"network_control_kernel_bytes\":{},\"network_control_binding\":{},\"assignment_staged\":{},\"appliance_kernel_prepared\":{},\"owner_control_configured\":{},\"owner_control_sequence\":{},\"display_software_ready\":{},\"display_software_refusal\":\"{}\",\"sampling_software_ready\":{},\"advertisement\":",
+        root.body_installed(), memory.size, memory.current_usage, memory.max_usage, root_memory.size, root_memory.current_usage, root_memory.max_usage, root.network_source().source_document_id.as_str(), root.network_plan_status(), root.network_ready(), root.control_installed(), failure_phase, failure_reason, steps, dispatches[0], dispatches[1], dispatches[2], receipt, conduit_network_join_call::CONTROL_KERNEL_BYTES, binding, root.assignment_staged(), root.appliance_kernel_prepared(), root.owner_control_configured(), root.owner_control_sequence(), display_ready, display_refusal, root.software().is_some()
     )
     .map_err(|_| ())?;
     // Start a fresh line after any pre-ownership Boot ROM/SDK log fragment.

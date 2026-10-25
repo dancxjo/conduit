@@ -59,7 +59,7 @@ pub async fn receive(
         refusal: result.as_ref().err().copied(),
         plan: result.as_ref().ok().map(|view| view.plan.0),
         fragment: result.as_ref().ok().map(|view| view.fragment.0),
-        body_installed: false,
+        body_installed: root.body_installed(),
         native_plan_installed: false,
         capability_possession_issued: false,
         root_heap_used_bytes: stats.current_usage,

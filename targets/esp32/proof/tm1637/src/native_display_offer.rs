@@ -25,6 +25,7 @@ pub async fn write(root: &mut NativeRoot, uart: &mut Uart<'_, Async>) -> Result<
     if memory.size.saturating_sub(memory.current_usage) < GEAR_BYTES + 8192 {
         return Err(());
     }
+    let body_installed = root.body_installed();
     let grant = root.display_policy_grant()?;
     let offers = root.display_software_offers()?;
     let mut buffer = Vec::new();
@@ -48,7 +49,7 @@ pub async fn write(root: &mut NativeRoot, uart: &mut Uart<'_, Async>) -> Result<
         capabilities_bytes: array_bytes,
         authority_grants: [grant],
         capability_possession_issued: false,
-        body_installed: false,
+        body_installed,
         native_plan_installed: false,
     };
     let len = serde_json_core::to_slice(&header, &mut buffer).map_err(|_| ())?;

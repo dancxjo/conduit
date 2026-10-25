@@ -32,7 +32,7 @@ pub fn encode(root: &NativeRoot, output: &mut [u8]) -> Result<usize, ()> {
             period_ms: cadence.period_ms,
             authority_grants: grants,
             capability_possession_issued: false,
-            body_installed: false,
+            body_installed: root.body_installed(),
             native_plan_installed: false,
         },
         output,
