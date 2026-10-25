@@ -43,9 +43,12 @@ These are pre-admission candidates for #694, not operation-success records.
 The initial spike used provisional selected-subject state. Its integration gate
 required the typed platform-neutral interaction path from #694: selection and
 meaningful control had to cross ordinary admitted operations before acceptance.
-The current shared implementation is
-[`PatchbayInteraction`](../../../products/patchbay/model/src/interaction.rs), with
-[selection and refusal conformance](../../../products/patchbay/model/src/interaction_tests.rs).
+The original Patchbay interaction owner moved during repository reorganization.
+The present shared implementation is
+[`PatchbayInteraction`](../../../plots/patchbay/workbench/model/src/interaction.rs), with
+[selection and refusal conformance](../../../plots/patchbay/workbench/model/src/interaction_tests.rs).
+The historical source and acceptance discussion on this page remain scoped to
+its named August checkpoint.
 Hit success alone remains distinct from operation success.
 
 ## Native composition

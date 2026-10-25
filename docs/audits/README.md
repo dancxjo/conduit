@@ -44,3 +44,6 @@ even if a later representation or realization removes that bottleneck.
 This directory is a record collection, not a second roadmap. New active
 instructions belong in their owning target or topic guide. The
 [documentation policy](../documentation-policy.md) explains the boundary.
+
+For the inventory and cross-reference corrections in the 25 October review,
+see the [documentation sweep record](documentation-sweep-20261025.md).

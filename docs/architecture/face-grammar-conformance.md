@@ -171,7 +171,7 @@ These are nonvisual projection and hosted kernel/Host Call proofs.
 Native/browser prebirth and committed Todo Shows, audible speech,
 Patchbay, Commons, unknown-domain fallback and pressure
 remain required parts of the open four-Mask matrix. Separate reconstruction
-accounts in `proof/conformance/presentation-waist` remain model proof and must
+accounts in `proof/conformance/face-waist` remain model proof and must
 not substitute for these execution witnesses.
 
 The Patchbay specimen in
@@ -260,12 +260,12 @@ through that route still require the canonical shell migration in #5356.
 ## Reference Face-to-Mask exchange
 
 The canonical `face` Fore input is the complete validated Face, such as
-[`open-domain-face.json`](../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json).
+[`open-domain-face.json`](../../proof/conformance/face-waist/domain-derived/open-domain-face.json).
 It is not a layout, an application-state copy, or the partial summary below.
 The checked Mask emits its correlated `show` Fore value; the `interaction`
 Fore may return only actions and arguments supplied by that exact Face.
 
-[`face-mask-reference.json`](../../proof/conformance/presentation-waist/domain-derived/face-mask-reference.json)
+[`face-mask-reference.json`](../../proof/conformance/face-waist/domain-derived/face-mask-reference.json)
 records the source/context basis, Host/Boot, Mask Plot/Plan/Play, Show, and actual
 returned interaction for the open-domain browser fixture. The producing test
 checks complete equality with this record. DOM acknowledgement is simulated;
