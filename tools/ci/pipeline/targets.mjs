@@ -43,9 +43,11 @@ function hosted(id, directory) {
   const platform = id.slice('hosted-'.length);
   const expected = { linux: 'linux', windows: 'win32', macos: 'darwin' }[platform];
   if (process.platform !== expected) throw new Error(`${id} requires its native runner`);
-  // The old Linux release command also cross-builds Raspberry Pi. Keep this
-  // native executable lane independent of every embedded compiler.
-  cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit');
+  // Prove the Linux executable with the same native encounter feature as its
+  // release bundle. Hello proves executable viability, not KMSDRM interaction.
+  // Keep this native lane independent of embedded cross compilers.
+  const features = id === 'hosted-linux' ? ['--features', 'native-creche-sdl'] : [];
+  cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit', ...features);
   const name = process.platform === 'win32' ? 'conduit.exe' : 'conduit';
   const binary = path.join(directory, name);
   copyFile(cargoArtifact('release', name), binary);
