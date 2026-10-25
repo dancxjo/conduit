@@ -52,6 +52,43 @@ pub fn prepare_checked_source_plan<'a>(
     Ok(PreparedCheckedSourcePlan { plan, expanded })
 }
 
+/// Reproduce using external sealed Root invocation inputs, never expanded metadata.
+pub fn prepare_checked_source_plan_with_startup<'a>(
+    document: &CheckedSyntaxDocument,
+    expanded: &'a ExpandedAuthoringPlot,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+    startup: &conduit_plot::PreparedRootStartupInputs,
+    plan: &'a Plan,
+    selection: CheckedSourcePlanInputs<'_>,
+) -> Result<PreparedCheckedSourcePlan<'a>, CheckedSourcePlanRefusal> {
+    let reproduced =
+        reproduce_checked_expansion_with_startup(document, expanded, catalog, backs, startup)?;
+    require_selected_source_plan(&reproduced, plan, selection)?;
+    Ok(PreparedCheckedSourcePlan { plan, expanded })
+}
+
+pub(crate) fn reproduce_checked_expansion_with_startup(
+    document: &CheckedSyntaxDocument,
+    expanded: &ExpandedAuthoringPlot,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+    startup: &conduit_plot::PreparedRootStartupInputs,
+) -> Result<ExpandedAuthoringPlot, CheckedSourcePlanRefusal> {
+    let reproduced = conduit_plot::expand_canonical_plot_for_authoring_with_startup(
+        document,
+        &expanded.expanded.name,
+        catalog,
+        backs,
+        startup,
+    )
+    .map_err(|_| CheckedSourcePlanRefusal::SourceExpansion)?;
+    if reproduced != *expanded {
+        return Err(CheckedSourcePlanRefusal::SourceExpansion);
+    }
+    Ok(reproduced)
+}
+
 pub(crate) fn reproduce_checked_expansion(
     document: &CheckedSyntaxDocument,
     expanded: &ExpandedAuthoringPlot,

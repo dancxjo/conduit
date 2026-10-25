@@ -1,0 +1,16 @@
+# Finite user/encounter preference data. This record is not a storage commit,
+# membership, an effect grant, or a planned renderer configuration.
+type LookPreferenceLookOption =
+    none
+    | some LookInfo
+
+type LookPreferenceTemperatureOption =
+    none
+    | some LookTemperatureUnit
+
+type LookPreferencesInfo = {
+    version: U16 in 1..=1
+    look: LookPreferenceLookOption
+    temperature_unit: LookPreferenceTemperatureOption
+    where .look is some ? (.look.some.visual is some ? .look.some.visual.some.expression.identity == .look.some.identity : true) : true
+}

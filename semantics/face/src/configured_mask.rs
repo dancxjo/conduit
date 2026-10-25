@@ -65,6 +65,57 @@ pub fn prepare_configured_mask<'a>(
     let reproduced =
         crate::checked_source_plan::reproduce_checked_expansion(document, expanded, catalog, backs)
             .map_err(|_| ConfiguredMaskRefusal::SourceExpansion)?;
+    prepare_reproduced_mask(
+        document,
+        expanded,
+        catalog,
+        backs,
+        planned,
+        selection,
+        renderer_kind,
+        reproduced,
+    )
+}
+
+/// Admit actual Root invocation configuration using independent preparation custody.
+#[allow(clippy::too_many_arguments)]
+pub fn prepare_configured_mask_with_startup<'a>(
+    document: &CheckedSyntaxDocument,
+    expanded: &ExpandedAuthoringPlot,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+    startup: &conduit_plot::PreparedRootStartupInputs,
+    planned: &'a PlannedMaskPlot,
+    selection: ConfiguredMaskPlanningInputs<'_>,
+    renderer_kind: &KindId,
+) -> Result<PreparedConfiguredMask<'a>, ConfiguredMaskRefusal> {
+    let reproduced = crate::checked_source_plan::reproduce_checked_expansion_with_startup(
+        document, expanded, catalog, backs, startup,
+    )
+    .map_err(|_| ConfiguredMaskRefusal::SourceExpansion)?;
+    prepare_reproduced_mask(
+        document,
+        expanded,
+        catalog,
+        backs,
+        planned,
+        selection,
+        renderer_kind,
+        reproduced,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_reproduced_mask<'a>(
+    document: &CheckedSyntaxDocument,
+    expanded: &ExpandedAuthoringPlot,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+    planned: &'a PlannedMaskPlot,
+    selection: ConfiguredMaskPlanningInputs<'_>,
+    renderer_kind: &KindId,
+    reproduced: ExpandedAuthoringPlot,
+) -> Result<PreparedConfiguredMask<'a>, ConfiguredMaskRefusal> {
     let mask = MaskPlot::admit(expanded).map_err(|_| ConfiguredMaskRefusal::MaskPlan)?;
     if mask != planned.mask || PlannedMaskPlot::admit(&mask, &planned.plan).is_err() {
         return Err(ConfiguredMaskRefusal::MaskPlan);

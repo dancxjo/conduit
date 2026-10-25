@@ -77,6 +77,9 @@ pub use generated::{
     LookSpokenDelivery, LookSpokenFacetInfo, LookSpokenFacetOption, LookTemperatureUnit,
     LookVerbosity, LookVisualFacetInfo, LookVisualFacetOption, LookVisualTokensInfo,
 };
+pub use generated::{
+    LookPreferenceLookOption, LookPreferenceTemperatureOption, LookPreferencesInfo,
+};
 
 pub use generated::{
     ActionInputBindingProposalInfo, AdmittedNavigationDestination, ApplicationAction,
@@ -216,6 +219,8 @@ pub use linear::*;
 pub use linear_navigation::*;
 pub use look::*;
 pub use look_selection::*;
+mod look_preferences;
+pub use look_preferences::*;
 pub use manifestation::*;
 pub use manifestation_set::*;
 #[cfg(feature = "plot-catalog")]

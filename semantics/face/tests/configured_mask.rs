@@ -426,3 +426,202 @@ fn explicit_component_forwarding_and_slash_plot_ancestry_are_checked() {
         Err(ConfiguredMaskRefusal::Configuration)
     ));
 }
+
+#[test]
+fn root_startup_look_changes_selected_plan_under_independent_source_custody() {
+    let source = source("render")
+        .replace(
+            "plot compact-mask (\n",
+            &format!("plot compact-mask (\n selected: LookInfo = {VALUE}\n"),
+        )
+        .replace(
+            &format!("invoke: component(look = {VALUE})"),
+            "invoke: component(look = selected)",
+        );
+    let (checked, default, profiles, host) = fixture(&source, "compact-mask");
+    let base = phosphor_look().unwrap();
+    let changed = LookInfo::new(
+        base.generative().clone(),
+        base.identity().into(),
+        LookQuantityFacetOption::some(LookTemperatureUnit::Fahrenheit).unwrap(),
+        base.spoken().clone(),
+        3,
+        base.visual().clone(),
+    )
+    .unwrap();
+    let binding = CheckedStartupBinding {
+        name: "selected".into(),
+        value_type: "LookInfo".into(),
+        value: CanonicalStartupValue::Structured(
+            CanonicalStructuredStartupValue::from_owned_checked_value(
+                changed.clone().into_structured().unwrap(),
+            ),
+        ),
+    };
+    let startup =
+        PreparedRootStartupInputs::prepare(&checked, "compact-mask", &profiles, &[binding])
+            .unwrap();
+    let backs = CanonicalBackCatalog::new();
+    let expanded = expand_canonical_plot_for_authoring_with_startup(
+        &checked,
+        "compact-mask",
+        &profiles,
+        &backs,
+        &startup,
+    )
+    .unwrap();
+    assert_ne!(
+        expanded.expanded.expanded_plot_id,
+        default.expanded.expanded_plot_id
+    );
+    let placements =
+        default_expanded_placements(&expanded.expanded, std::slice::from_ref(&host)).unwrap();
+    let empty = BTreeMap::new();
+    let lines = BTreeMap::new();
+    let boundaries = expanded
+        .input_bindings
+        .iter()
+        .map(|b| (PortDirection::Input, b))
+        .chain(
+            expanded
+                .output_bindings
+                .iter()
+                .map(|b| (PortDirection::Output, b)),
+        )
+        .map(|(direction, b)| {
+            (
+                ForeBoundaryKey {
+                    direction,
+                    front_port_id: b.front_port_id.clone(),
+                    track: b.track,
+                },
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: 4096,
+                },
+            )
+        })
+        .collect();
+    let options = || PlanningOptions {
+        connection_bases: &empty,
+        line_candidates: &lines,
+        connection_item_capacity: 1,
+        connection_byte_capacity: 4096,
+        authority_grants: &[],
+        protected_resource_grants: &[],
+        line_offers: &[],
+    };
+    let plan = plan_expanded_authoring_with_options(
+        &expanded,
+        std::slice::from_ref(&host),
+        &placements,
+        &[],
+        options(),
+        &boundaries,
+    )
+    .unwrap();
+    let default_placements =
+        default_expanded_placements(&default.expanded, std::slice::from_ref(&host)).unwrap();
+    let default_plan = plan_expanded_authoring_with_options(
+        &default,
+        std::slice::from_ref(&host),
+        &default_placements,
+        &[],
+        options(),
+        &boundaries,
+    )
+    .unwrap();
+    assert_ne!(plan.plan_id, default_plan.plan_id);
+    assert_eq!(plan.source_document_id, default_plan.source_document_id);
+    let planned = PlannedMaskPlot::admit(&MaskPlot::admit(&expanded).unwrap(), &plan).unwrap();
+    let selection = || CheckedSourcePlanInputs {
+        hosts: std::slice::from_ref(&host),
+        placements: &placements,
+        bases: &[],
+        options: options(),
+        boundary_limits: &boundaries,
+    };
+    let prepared = prepare_configured_mask_with_startup(
+        &checked,
+        &expanded,
+        &profiles,
+        &backs,
+        &startup,
+        &planned,
+        selection(),
+        &kind_id("test/configured-renderer"),
+    )
+    .unwrap();
+    assert_eq!(
+        LookInfo::decode(prepared.look.canonical_value()).unwrap(),
+        changed
+    );
+    prepare_checked_source_plan_with_startup(
+        &checked,
+        &expanded,
+        &profiles,
+        &backs,
+        &startup,
+        &plan,
+        selection(),
+    )
+    .unwrap();
+    assert!(matches!(
+        prepare_configured_mask(
+            &checked,
+            &expanded,
+            &profiles,
+            &backs,
+            &planned,
+            selection(),
+            &kind_id("test/configured-renderer")
+        ),
+        Err(ConfiguredMaskRefusal::SourceExpansion)
+    ));
+    assert!(matches!(
+        prepare_checked_source_plan(&checked, &expanded, &profiles, &backs, &plan, selection()),
+        Err(CheckedSourcePlanRefusal::SourceExpansion)
+    ));
+    let defaults =
+        PreparedRootStartupInputs::prepare(&checked, "compact-mask", &profiles, &[]).unwrap();
+    assert!(matches!(
+        prepare_checked_source_plan_with_startup(
+            &checked,
+            &expanded,
+            &profiles,
+            &backs,
+            &defaults,
+            &plan,
+            selection()
+        ),
+        Err(CheckedSourcePlanRefusal::SourceExpansion)
+    ));
+    let mut forged = plan.clone();
+    forged.plan_id = PlanId::from("plan/forged-root-input");
+    assert!(matches!(
+        prepare_checked_source_plan_with_startup(
+            &checked,
+            &expanded,
+            &profiles,
+            &backs,
+            &startup,
+            &forged,
+            selection()
+        ),
+        Err(CheckedSourcePlanRefusal::PlanReproduction)
+    ));
+    let mut forged_expanded = expanded.clone();
+    forged_expanded.expanded.gears[0].configuration.clear();
+    assert!(matches!(
+        prepare_checked_source_plan_with_startup(
+            &checked,
+            &forged_expanded,
+            &profiles,
+            &backs,
+            &startup,
+            &plan,
+            selection()
+        ),
+        Err(CheckedSourcePlanRefusal::SourceExpansion)
+    ));
+}

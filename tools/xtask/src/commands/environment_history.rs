@@ -4,6 +4,7 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
     match args {
         [name] if name == "history" => Some(prove(root)),
         [name] if name == "history-look" => Some(look(root)),
+        [name] if name == "history-preferences" => Some(preferences(root)),
         [name] if name == "history-commit" => Some(committed(root)),
         [name] if name == "history-native" => Some(native(root)),
         [name] if name == "history-target" => Some(target(root)),
@@ -263,6 +264,8 @@ fn look(root: &Path) -> Result<(), Box<dyn Error>> {
         "look_browser_binding",
         "--test",
         "look_options",
+        "--test",
+        "look_preferences",
     ]))?;
     super::execute(
         Command::new("node")
@@ -285,6 +288,41 @@ fn look(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("cargo").current_dir(root).args([
         "clippy",
         "--locked",
+        "-p",
+        "conduit-face",
+        "--lib",
+        "--",
+        "-D",
+        "warnings",
+    ]))
+}
+
+fn preferences(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--lib",
+        "canonical_expansion_tests::root_startup",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-face",
+        "--test",
+        "configured_mask",
+        "--test",
+        "look_preferences",
+        "--test",
+        "look_browser_binding",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
         "-p",
         "conduit-face",
         "--lib",
