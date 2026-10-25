@@ -1,4 +1,4 @@
-import { promises as fs } from 'node:fs';
+import { promises as fs, constants as fsConstants } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -60,15 +60,30 @@ async function canonicalDestination(value) {
     catch(error) { if(error.code!=='ENOENT')throw error; const parent=path.dirname(existing); if(parent===existing)throw error; missing.push(path.basename(existing)); existing=parent; }
   }
 }
-async function boundedBytes(root) {
+// Observe compiler temporaries without mistaking a normal unlink for a failed
+// build. Directory FDs + O_NOFOLLOW also prevent following a swapped symlink
+// out of the owned task/cache while accounting runs outside the sandbox.
+export async function measureCargoOutputBytes(root) {
   let total=0,count=0;
-  async function walk(directory) { for(const item of await fs.readdir(directory,{withFileTypes:true})) {
-    if(++count>100000)fail('cargo-runtime-file-bound'); const file=path.join(directory,item.name);
-    if(item.isDirectory())await walk(file);
-    else if(item.isFile())total+=(await fs.lstat(file)).size;
-    else if(!item.isSocket())fail('cargo-runtime-unsupported-file');
-  } }
-  await walk(root); return total;
+  async function walk(directory,outer=false) {
+    let fd;
+    try {fd=await fs.open(directory,fsConstants.O_RDONLY|fsConstants.O_DIRECTORY|fsConstants.O_NOFOLLOW);}
+    catch(error){if(error.code==='ENOENT'&&!outer)return;if(error.code==='ELOOP')fail('cargo-runtime-unsupported-file');throw error;}
+    try{
+      let entries;
+      try{entries=await fs.readdir(`/proc/self/fd/${fd.fd}`,{withFileTypes:true});}
+      catch(error){if(error.code==='ENOENT'&&!outer)return;throw error;}
+      for(const item of entries){
+        if(++count>100000)fail('cargo-runtime-file-bound');
+        const file=`/proc/self/fd/${fd.fd}/${item.name}`;let stat;
+        try{stat=await fs.lstat(file);}catch(error){if(error.code==='ENOENT')continue;throw error;}
+        if(stat.isDirectory())await walk(file);
+        else if(stat.isFile())total+=stat.size;
+        else if(!stat.isSocket())fail('cargo-runtime-unsupported-file');
+      }
+    }finally{await fd.close();}
+  }
+  await walk(root,true);return total;
 }
 export function runSandbox(args,{onTick,timeoutMs=120000,monitorMs=100,resourcesFile}={}) {
   return new Promise((resolve,reject)=>{
@@ -159,7 +174,7 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
     const check=async()=>{
       const stat=await fs.statfs(cache,{bigint:true});if(stat.bavail*stat.bsize<BigInt(reserveBytes))fail('cargo-reserve-lost');
       const taskSpace=await fs.statfs(task,{bigint:true});if(taskSpace.bavail*taskSpace.bsize<BigInt(reserveBytes))fail('cargo-reserve-lost');
-      if(await boundedBytes(objects)>maxCacheBytes)fail('cargo-cache-bound');if(await boundedBytes(task)>maxTaskBytes)fail('cargo-task-bound');
+      if(await measureCargoOutputBytes(objects)>maxCacheBytes)fail('cargo-cache-bound');if(await measureCargoOutputBytes(task)>maxTaskBytes)fail('cargo-task-bound');
     };
     await check();
     if(hosted){
@@ -168,12 +183,12 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
       const actualNames=proceduralMacroBypassNames(JSON.parse(await fs.readFile(metadataFile,'utf8')));
       const allowed=new Set((await fs.readFile(path.join(sourceRoot,'proc-macro-bypass.txt'),'utf8')).trimEnd().split('\n'));
       if(actualNames.some(name=>!allowed.has(name)))fail('hosted-macro-closure-mismatch');
-      }catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({stage:'offline-metadata',code:error.code,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
+      }catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({stage:'offline-metadata',code:error.code,message:error.message,path:error.path,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
     }
     const args=cargoSandboxArgs({snapshotRoot:sourceRoot,taskRoot:task,cacheObjects:objects,namespace,maxCacheBytes,hosted});
     let result;
     try{result=await runSandbox(args,{onTick:check,timeoutMs:hosted?3600000:120000,monitorMs:hosted?1000:100,resourcesFile:hosted?path.join(task,'resource-usage.txt'):undefined});}
-    catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({code:error.code,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
+    catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({code:error.code,message:error.message,path:error.path,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
     await check();if((await snapshotInventory(sourceRoot,inventoryOptions)).sha256!==input.sha256)fail('cargo-snapshot-mutated');
     const before=JSON.parse(await fs.readFile(path.join(task,'before.json'),'utf8'));
     const after=JSON.parse(await fs.readFile(path.join(task,'after.json'),'utf8'));
@@ -186,7 +201,7 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
       try{buildScriptOutputs.push({packageDirectory:name,...await snapshotInventory(out,HOSTED_SNAPSHOT_LIMITS)});}
       catch(error){if(error.code!=='ENOENT')throw error;}
     }
-    const receipt={schema:1,scope:hosted?'Actual hosted Linux release Cargo build; transitive procedural-macro consumers bypass cache, behavioral proof executes separately':'Actual compositor-core Cargo --lib build only; no full workspace, link/test/release or arbitrary procedural-macro proof',namespace,snapshotSha256:input.sha256,generatedInputs:{lockfileSha256:await hashFile(path.join(sourceRoot,'source/Cargo.lock')),buildScriptOutputs},policy,compilerBoundary:'Owned server and rustc children inside bwrap --unshare-all with snapshot mounts read-only',args,environment:script,bwrapSha256:policy.bwrapSha256,before,after,outputs,...(hosted?{resourceUsage:await fs.readFile(path.join(task,'resource-usage.txt'),'utf8'),procMacroBypasses:(await fs.readFile(path.join(task,'proc-macro-bypass.log'),'utf8')).trimEnd().split('\n')}:{}),cacheBytes:await boundedBytes(objects),taskBytes:await boundedBytes(task),validatedWallMs:performance.now()-started,...result};
+    const receipt={schema:1,scope:hosted?'Actual hosted Linux release Cargo build; transitive procedural-macro consumers bypass cache, behavioral proof executes separately':'Actual compositor-core Cargo --lib build only; no full workspace, link/test/release or arbitrary procedural-macro proof',namespace,snapshotSha256:input.sha256,generatedInputs:{lockfileSha256:await hashFile(path.join(sourceRoot,'source/Cargo.lock')),buildScriptOutputs},policy,compilerBoundary:'Owned server and rustc children inside bwrap --unshare-all with snapshot mounts read-only',args,environment:script,bwrapSha256:policy.bwrapSha256,before,after,outputs,...(hosted?{resourceUsage:await fs.readFile(path.join(task,'resource-usage.txt'),'utf8'),procMacroBypasses:(await fs.readFile(path.join(task,'proc-macro-bypass.log'),'utf8')).trimEnd().split('\n')}:{}),cacheBytes:await measureCargoOutputBytes(objects),taskBytes:await measureCargoOutputBytes(task),validatedWallMs:performance.now()-started,...result};
     await fs.writeFile(path.join(task,'cargo-cache-receipt.json'),JSON.stringify(receipt,null,2),{flag:'wx',mode:0o600});return receipt;
   } finally{await fs.rm(lease,{recursive:true});}
 }

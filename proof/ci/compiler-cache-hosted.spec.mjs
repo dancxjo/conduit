@@ -100,3 +100,38 @@ with tarfile.open(sys.argv[1],'w:gz') as t:
   await assert.rejects(extractAuthenticatedRegistry(unsafe),error=>error.code==='hosted-snapshot-command-failed'&&/unsupported crate member/.test(error.diagnostic));
   assert.deepEqual(await fs.readdir(path.join(unsafe.vendorRoot,'example-1.0.0')),[]);
 });
+
+test('active output accounting tolerates a rustc temporary disappearing after directory enumeration', async t => {
+  const {measureCargoOutputBytes}=await import('../../tools/ci/compiler-cache/cargo-sandbox.mjs');
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'hosted-output-race-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+  await fs.writeFile(path.join(root,'temporary'),'transient');await fs.writeFile(path.join(root,'retained'),'keep');
+  const original=fs.lstat;let removed=false;
+  t.mock.method(fs,'lstat',async function(file,...rest){
+    if(String(file).endsWith('/temporary')&&!removed){removed=true;await fs.unlink(path.join(root,'temporary'));}
+    return original.call(fs,file,...rest);
+  });
+  assert.equal(await measureCargoOutputBytes(root),4);assert.equal(removed,true);
+});
+
+test('output accounting refuses task symlinks rather than following host paths', async t => {
+  const {measureCargoOutputBytes}=await import('../../tools/ci/compiler-cache/cargo-sandbox.mjs');
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'hosted-output-link-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+  await fs.symlink('/etc',path.join(root,'outside'));
+  await assert.rejects(measureCargoOutputBytes(root),/cargo-runtime-unsupported-file/);
+});
+
+test('accounting tolerates a removed child directory but still refuses an absent root', async t => {
+  const {measureCargoOutputBytes}=await import('../../tools/ci/compiler-cache/cargo-sandbox.mjs');
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'hosted-directory-race-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+  await fs.mkdir(path.join(root,'temporary'));await fs.writeFile(path.join(root,'retained'),'keep');
+  const originalOpen=fs.open,originalRead=fs.readdir;let childFd;
+  t.mock.method(fs,'open',async function(file,...rest){
+    const fd=await originalOpen.call(fs,file,...rest);if(String(file).endsWith('/temporary'))childFd=fd.fd;return fd;
+  });
+  t.mock.method(fs,'readdir',async function(file,...rest){
+    if(file===`/proc/self/fd/${childFd}`){await fs.rmdir(path.join(root,'temporary'));throw Object.assign(new Error('Removed child'),{code:'ENOENT'});}
+    return originalRead.call(fs,file,...rest);
+  });
+  assert.equal(await measureCargoOutputBytes(root),4);
+  await assert.rejects(measureCargoOutputBytes(path.join(root,'missing')),error=>error.code==='ENOENT');
+});
