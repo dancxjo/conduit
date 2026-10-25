@@ -113,3 +113,43 @@ test('Patchbay appearance retains its node recipe across every Look and fresh Sh
   await expect(page.getByLabel('Layout', { exact: true })).toHaveValue('patchbay-nodes');
   await page.screenshot({ path: info.outputPath('patchbay-appearance-controls.png') });
 });
+
+test('history units and appearance axes make independent owner proposals', async ({page}, info) => {
+  const view = {body_id:'history/body',subjects:[{identity:'environment-history',role:'Collection'}],
+    component:{recipe_identity:'conduit.face/environment-history@1',history:{temperature_unit:'°C'},
+      expression:{expression:{density:'compact',palette:'editorial',text_scale_percent:100}}}};
+  await mount(page,view);
+  for (const [unit,density,palette] of [['kelvin','spacious','phosphor'],['fahrenheit','compact','phosphor'],['celsius','spacious','editorial']]) {
+    await page.getByLabel('Temperature unit',{exact:true}).selectOption(unit);
+    await page.getByLabel('Density',{exact:true}).selectOption(density);
+    await page.getByLabel('Palette',{exact:true}).selectOption(palette);
+    await page.getByRole('button',{name:'Apply face',exact:true}).click();
+    expect(await page.evaluate(() => calls.at(-1))).toEqual({recipe:'environment-history',unit,density,palette,minimumTextScalePercent:100});
+  }
+  await page.evaluate(view => lookControls.observe({...view,show_id:'fresh'}),view);
+  await expect(page.getByLabel('Temperature unit',{exact:true})).toHaveValue('celsius');
+  await expect(page.getByLabel('Density',{exact:true})).toHaveValue('spacious');
+  await page.screenshot({path:info.outputPath('history-unit-controls.png')});
+});
+
+test('fresh identical history policy preserves unfinished unit and visual proposals', async ({page}) => {
+  const view = {body_id:'history/body',face_id:'face/one',face_revision:1,show_id:'show/one',
+    subjects:[{identity:'environment-history',role:'Collection'}],
+    component:{recipe_identity:'conduit.face/environment-history@1',history:{temperature_unit:'°C'},
+      expression:{expression:{density:'compact',palette:'editorial',text_scale_percent:100}}}};
+  await mount(page,view);
+  const unit = page.getByLabel('Temperature unit',{exact:true});
+  await unit.selectOption('kelvin');
+  await page.getByLabel('Density',{exact:true}).selectOption('spacious');
+  await page.getByLabel('Palette',{exact:true}).selectOption('phosphor');
+  await unit.focus();
+  await page.evaluate(view => lookControls.observe({...view,face_revision:2,show_id:'show/two'}),view);
+  await expect(unit).toHaveValue('kelvin');
+  await expect(unit).toBeFocused();
+  await expect(page.getByLabel('Density',{exact:true})).toHaveValue('spacious');
+  await expect(page.getByLabel('Palette',{exact:true})).toHaveValue('phosphor');
+  await page.getByRole('button',{name:'Apply face',exact:true}).click();
+  expect(await page.evaluate(() => calls.at(-1))).toEqual({recipe:'environment-history',unit:'kelvin',density:'spacious',palette:'phosphor',minimumTextScalePercent:100});
+  await page.evaluate(view => lookControls.observe({...view,component:{...view.component,history:{temperature_unit:'°F'}}}),view);
+  await expect(unit).toHaveValue('fahrenheit');
+});

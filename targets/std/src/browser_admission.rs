@@ -42,6 +42,7 @@ pub const MAX_BROWSER_ADMISSION_FRAME_BYTES: usize =
     MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 1_024;
 
 mod component_selection;
+mod history_selection;
 pub use component_selection::{BrowserComponentLook, BrowserComponentRecipe};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -106,6 +107,13 @@ pub enum BrowserAdmissionIngress {
         show: Box<MaskShow>,
         look: BrowserComponentLook,
         recipe: BrowserComponentRecipe,
+    },
+    FaceHistoryMaskRequest {
+        protocol: u16,
+        request_id: String,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: Vec<u8>,
     },
     FaceWardrobeRequest {
         protocol: u16,
@@ -232,6 +240,12 @@ pub enum BrowserAdmissionEgress {
         request_id: String,
         accepted: bool,
         code: String,
+    },
+    FaceHistoryMaskResponse {
+        protocol: u16,
+        request_id: String,
+        accepted: bool,
+        refusal: String,
     },
     FaceWardrobeResponse {
         protocol: u16,
@@ -521,6 +535,16 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             {
                 return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
             }
+            protocol
+        }
+        BrowserAdmissionIngress::FaceHistoryMaskRequest {
+            protocol,
+            request_id,
+            request,
+            show,
+            look,
+        } => {
+            history_selection::validate_request(request_id, request, show, look)?;
             protocol
         }
         BrowserAdmissionIngress::FaceWardrobeRequest {

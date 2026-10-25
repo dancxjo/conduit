@@ -1,8 +1,8 @@
 use conduit_core::{
-    bind_active_play, bind_face, bind_sign, kind_id, ArtifactId, BaseImplementationId, BootId,
-    CapabilityId, CapabilityLimits, FaceIdentity, HostAdvertisement, HostCallContractId, HostId,
-    HostProfileId, ImplementationId, OfferGeneration, PlacementId, PlanFragment,
-    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, SignIdentity, PROTOCOL_VERSION,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, FaceIdentity,
+    HostAdvertisement, HostCallContractId, HostId, HostProfileId, ImplementationId,
+    OfferGeneration, PROTOCOL_VERSION, PlacementId, PlanFragment, PlannerCapabilityOffer,
+    PlannerLimits, PlannerProfileId, SignIdentity, bind_active_play, bind_face, bind_sign, kind_id,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
@@ -14,19 +14,19 @@ use conduit_kernel::{
     SignError, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment,
-    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE, KernelExecutionIdentityMap, LoweredPlanFragment,
+    lower_plan_fragment,
 };
 use conduit_planner::{
-    default_placements, plan_with_advertised_profile, PlanningOptions, BROWSER_PLANNER_PROFILE,
+    BROWSER_PLANNER_PROFILE, PlanningOptions, default_placements, plan_with_advertised_profile,
 };
 use conduit_signal::{
-    decode_signal_bytes, encode_signal, parse_pulse_configuration, pulse_contract_revision,
-    pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
-    pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_call_requirements, show_inputs, show_resource_requirements,
-    signal_level_for_sequence, signal_profile_catalog, signal_resource_offers, Signal, PULSE_KIND,
-    SHOW_KIND, SIGNAL_ENCODED_LEN,
+    PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, Signal, decode_signal_bytes, encode_signal,
+    parse_pulse_configuration, pulse_contract_revision, pulse_execution_profile,
+    pulse_host_call_requirements, pulse_outputs, pulse_resource_requirements,
+    show_contract_revision, show_execution_profile, show_host_call_requirements, show_inputs,
+    show_resource_requirements, signal_level_for_sequence, signal_profile_catalog,
+    signal_resource_offers,
 };
 use std::{cell::RefCell, collections::BTreeMap};
 
@@ -43,6 +43,7 @@ pub mod human_media;
 mod installed_browser;
 pub mod membership;
 pub use installed_browser::patchbay_ingress;
+mod history_look_intent;
 mod membership_abi;
 mod owner_face_mask;
 #[cfg(feature = "plot-runner")]
@@ -642,10 +643,10 @@ impl BrowserSession {
                 match self.scheduler.step() {
                     Ok(SchedulerStatus::Progress { .. }) => continue,
                     Ok(SchedulerStatus::Cancelled) | Err(SchedulerError::BackFailed(_)) => {
-                        return self.fail(ERROR_TERMINAL_FAILURE)
+                        return self.fail(ERROR_TERMINAL_FAILURE);
                     }
                     Ok(SchedulerStatus::Drained | SchedulerStatus::Idle) | Err(_) => {
-                        return self.fail(ERROR_TERMINAL_FAILURE)
+                        return self.fail(ERROR_TERMINAL_FAILURE);
                     }
                 }
             }

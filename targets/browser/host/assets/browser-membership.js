@@ -46,6 +46,37 @@ export function checkedComponentMaskRequestFrame({ requestId, request, showBytes
 }
 
 
+export function checkedHistoryMaskResponse(frame, pending, byteLength) {
+  if (!pending || frame?.kind !== 'face-history-mask-response' || frame.protocol !== 1
+      || frame.request_id !== pending.requestId || !Number.isSafeInteger(byteLength)
+      || byteLength < 1 || byteLength > 4096 || typeof frame.accepted !== 'boolean'
+      || typeof frame.refusal !== 'string' || frame.refusal.length > 128
+      || (frame.accepted ? frame.refusal !== '' : frame.refusal === '')) {
+    throw new Error('invalid or mismatched history Mask response');
+  }
+  if (!frame.accepted) {
+    const error = new Error(`history Mask selection refused: ${frame.refusal}`);
+    error.code = frame.refusal;
+    throw error;
+  }
+}
+
+export function checkedHistoryMaskRequestFrame({requestId, request, showBytes, lookBytes}) {
+  if (typeof requestId !== 'string' || !/^browser-history:[1-9][0-9]{0,15}$/.test(requestId)
+      || !(lookBytes instanceof Uint8Array) || lookBytes.length < 1 || lookBytes.length > 64 * 1024
+      || !(showBytes instanceof Uint8Array) || showBytes.length < 1 || showBytes.length > 64 * 1024) {
+    throw new Error('history Mask selection exceeds its declared finite fields');
+  }
+  const show = new TextDecoder('utf-8', {fatal:true}).decode(showBytes);
+  if (!show.startsWith('{') || !show.endsWith('}')) throw new Error('invalid current Mask Show receipt');
+  const prefix = JSON.stringify({kind:'face-history-mask-request', protocol:1,
+    request_id:requestId, request, look:Array.from(lookBytes)});
+  const bytes = wardrobeEncoder.encode(`${prefix.slice(0,-1)},"show":${show}}`);
+  if (bytes.length > 193 * 1024) throw new Error('history Mask request exceeds its carrier bound');
+  return bytes;
+}
+
+
 export function checkedOwnerWardrobeResponse(frame, pending, frameLength) {
   if (!pending || frame?.kind !== "face-wardrobe-response" || frame.protocol !== 1 ||
       frame.request_id !== pending.requestId || !Number.isSafeInteger(frameLength) ||
@@ -264,6 +295,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   let wardrobeSequence = 0;
   let componentSequence = 0;
   let pendingComponent = null;
+  let pendingHistory = null;
+  let historySequence = 0;
   let pendingSelectedSpeech = null;
   let selectedSpeechSequence = 0;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
@@ -435,6 +468,16 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         checkedComponentMaskResponse(frame, pending, frameBytes.length);
         pending.resolve();
       } catch (error) { pending.reject(error); }
+    } else if (frame.kind === "face-history-mask-response" && frame.protocol === 1) {
+      const pending = pendingHistory;
+      if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited history Mask response");
+      clearTimeout(pending.timeout);
+      pendingHistory = null;
+      try { checkedHistoryMaskResponse(frame, pending, frameBytes.length); pending.resolve(); }
+      catch (error) {
+        if (!error.code) socket.close(1000, "Invalid history selection outcome");
+        pending.reject(error);
+      }
     } else if (frame.kind === "selected-speech-response" && frame.protocol === 1) {
       const pending = pendingSelectedSpeech;
       if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
@@ -675,6 +718,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingMediaPlan.reject(new Error("media use planning Line closed"));
         pendingMediaPlan = null;
       }
+      if (pendingHistory) {
+        clearTimeout(pendingHistory.timeout);
+        pendingHistory.reject(new Error("history selection Line closed; outcome unknown"));
+        pendingHistory = null;
+      }
       if (pendingComponent) {
         clearTimeout(pendingComponent.timeout);
         pendingComponent.reject(new Error("component selection Line closed; outcome unknown"));
@@ -857,7 +905,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("current browser presence is required for component selection"));
     }
-    if (pendingComponent) return Promise.reject(new Error("one component selection is already pending"));
+    if (pendingHistory || pendingComponent) return Promise.reject(new Error("one component selection is already pending"));
     const requestId = `browser-component:${++componentSequence}`;
     const request = { schema: OWNER_FACE_REQUEST_SCHEMA, credential_id: credential.credential_id,
       body_id: credential.body_id, part_id: credential.part_id, host_id: credential.host_id,
@@ -876,6 +924,35 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       pendingComponent = { requestId, resolve, reject, timeout };
       try { socket.send(bytes); }
       catch (error) { clearTimeout(timeout); pendingComponent = null; reject(error); }
+    });
+  }
+  function selectHistoryMask({showBytes, lookBytes}) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for history selection"));
+    }
+    if (pendingHistory || pendingComponent) return Promise.reject(new Error("one Mask selection is already pending"));
+    const requestId = `browser-history:${++historySequence}`;
+    const request = {schema:OWNER_FACE_REQUEST_SCHEMA, credential_id:credential.credential_id,
+      body_id:credential.body_id, part_id:credential.part_id, host_id:credential.host_id,
+      boot_id:credential.boot_id, last_seen_revision:null, last_seen_identity:null};
+    let bytes;
+    try { bytes = checkedHistoryMaskRequestFrame({requestId,request,showBytes,lookBytes}); }
+    catch (error) { return Promise.reject(error); }
+    return new Promise((resolve,reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingHistory?.requestId === requestId) {
+          pendingHistory = null;
+          socket.close(1000,"History selection outcome unknown");
+          reject(new Error("history selection deadline; outcome unknown"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingHistory = {requestId,resolve,reject,timeout};
+      try { socket.send(bytes); }
+      catch (error) {
+        clearTimeout(timeout); pendingHistory = null;
+        socket.close(1000, "History selection outcome unknown");
+        reject(error);
+      }
     });
   }
   function ownerWardrobe({ action = null, ownerPlanId = null, basisRevision = "0" } = {}) {
@@ -1023,6 +1100,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     advertisement: Object.freeze(advertisement),
     submitFaceInteraction,
     selectComponentMask,
+    selectHistoryMask,
     publishMediaResource,
     close: () => {
       clearTimeout(renewalTimer);

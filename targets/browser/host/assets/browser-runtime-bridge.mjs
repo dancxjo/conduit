@@ -279,6 +279,40 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         return { status, outputBytes: null, outputJson: null };
       }, { retireInput: true });
     },
+    ownerHistoryLookIntent(intent, priorLookBytes) {
+      const label = "owner history Look intent";
+      if (!intent || typeof intent !== "object" || Array.isArray(intent)
+          || Object.keys(intent).length !== 3
+          || !Object.keys(intent).every(key => ["unit", "density", "palette"].includes(key))
+          || !["celsius", "kelvin", "fahrenheit"].includes(intent.unit)
+          || !["compact", "spacious"].includes(intent.density)
+          || !["editorial", "phosphor"].includes(intent.palette)) {
+        throw new TypeError(`${label} requires finite unit, density and palette`);
+      }
+      if (priorLookBytes !== undefined) {
+        if (!(priorLookBytes instanceof Uint8Array)) throw new TypeError("prior owner history Look must retain exact bytes");
+        boundedLength(priorLookBytes.length, { minimum: 1, maximum: 64 * 1024, label: "prior owner history Look" });
+      }
+      // This JSON carries finite human intent only. Rust owns Look encoding.
+      const input = encoder.encode(JSON.stringify({ unit: intent.unit, density: intent.density, palette: intent.palette }));
+      return withInput(api, input, {
+        pointerExport: "conduit_browser_history_look_intent_input_ptr",
+        capacityExport: "conduit_browser_history_look_intent_input_capacity", label,
+      }, intentLength => withInput(api, priorLookBytes ?? new Uint8Array(), {
+        pointerExport: "conduit_browser_history_look_intent_prior_ptr",
+        capacityExport: "conduit_browser_history_look_intent_prior_capacity",
+        label: "prior owner history Look",
+      }, priorLength => {
+        const status = call("conduit_browser_history_look_intent", intentLength, priorLength);
+        if (status < 0) throw new Error(`${label} refused (${status})`);
+        return readBytes(api, {
+          pointerExport: "conduit_browser_history_look_intent_output_ptr",
+          lengthExport: "conduit_browser_history_look_intent_output_len",
+          capacityExport: "conduit_browser_history_look_intent_output_capacity",
+          minimum: 1, maximum: 64 * 1024, label: "owner history Look bytes",
+        });
+      }, { retireInput: true }), { retireInput: true });
+    },
     ownerFacePrepare(basis, frameBytes, { historyLookBytes } = {}) {
       if (!(frameBytes instanceof Uint8Array)) throw new TypeError("owner Face frame must retain exact bytes");
       boundedLength(frameBytes.length, { minimum: 1, maximum: 60 * 1024, label: "owner Face frame" });

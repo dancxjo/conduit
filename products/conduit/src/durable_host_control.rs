@@ -87,6 +87,8 @@ mod body_run;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
+#[path = "durable_host_control/browser_history.rs"]
+mod browser_history;
 #[cfg(unix)]
 #[path = "durable_host_control/client_frame.rs"]
 mod client_frame;
@@ -1079,6 +1081,15 @@ enum Request {
         look: conduit_std_host::browser_admission::BrowserComponentLook,
         recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
     },
+    BodyBrowserHistoryMask {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: Vec<u8>,
+    },
     BodyBrowserWardrobe {
         protocol: u16,
         token: Vec<u8>,
@@ -1926,6 +1937,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
         | Request::BodyBrowserComponentMask { token, .. }
+        | Request::BodyBrowserHistoryMask { token, .. }
         | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
@@ -1972,6 +1984,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserMaskRoute { .. }
                 | Request::BodyBrowserShow { .. }
                 | Request::BodyBrowserComponentMask { .. }
+                | Request::BodyBrowserHistoryMask { .. }
                 | Request::BodyBrowserWardrobe { .. }
                 | Request::BodyLocalFace { .. }
                 | Request::BodyLocalWardrobe { .. }
@@ -2128,6 +2141,18 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 .map(|_| Response::BodyBrowserComponentMaskAccepted { protocol: PROTOCOL })
                 .unwrap_or_else(|code| refused(&code))
         }
+        Request::BodyBrowserHistoryMask {
+            protocol,
+            window_id,
+            binding,
+            request,
+            show,
+            look,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_browser_history_mask(&window_id, &binding, &request, &show, &look)
+            .map(|_| Response::BodyBrowserComponentMaskAccepted { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserWardrobe {
             protocol,
             window_id,

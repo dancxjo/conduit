@@ -1,5 +1,7 @@
 //! Pure recorded-history Face and Mask preparation; no live Host claim.
 use std::{error::Error, path::Path, process::Command};
+#[path = "environment_history_browser_selection.rs"]
+mod browser_selection;
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "history" => Some(prove(root)),
@@ -15,6 +17,9 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-native-controls" => Some(native_controls(root)),
         [name] if name == "history-native-unit-preview" => Some(native_unit_preview(root)),
         [name] if name == "history-browser-look-receiver" => Some(browser_look_receiver(root)),
+        [name] if name == "history-browser-selection" => Some(browser_selection::prove(root)),
+        [name] if name == "history-browser-selection-ui" => Some(browser_selection::browser(root)),
+        [name] if name == "history-browser-selection-lint" => Some(browser_selection::lint(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-owner-browser" => Some(owner_browser(root)),

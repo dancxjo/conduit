@@ -1,7 +1,7 @@
 import { decorate } from "./owner-face-icons.mjs";
 
-// Only existing checked presets cross the owner transport. These controls hold
-// proposals; the acknowledged component remains the rendering authority.
+// Controls propose finite appearance choices. The SDK prepares canonical Look
+// bytes through Rust; the acknowledged component remains rendering authority.
 const presets = Object.freeze({
   'compact/phosphor': 'compact', 'compact/editorial': 'compact-editorial',
   'spacious/phosphor': 'spacious-phosphor', 'spacious/editorial': 'spacious',
@@ -40,7 +40,10 @@ export function createOwnerLookControls(onApply) {
     ['environment-history', 'Recorded conditions graph']]);
   const historyOption = [...recipe.options].find(option => option.value === 'environment-history');
   historyOption.disabled = true;
-  let historyUnit;
+  const unit = select('Temperature unit', [['celsius', '°C · Celsius'], ['kelvin', 'K · Kelvin'], ['fahrenheit', '°F · Fahrenheit']]);
+  const updateUnit = () => { unit.parentElement.hidden = recipe.value !== 'environment-history'; };
+  recipe.addEventListener('change', updateUnit);
+  updateUnit();
   const minimum = select('Minimum text size', [[100, '100%'], [150, '150%'], [200, '200%']]);
   const apply = decorate(document.createElement('button'), 'Confirm');
   apply.type = 'button'; apply.append('Apply face');
@@ -58,9 +61,13 @@ export function createOwnerLookControls(onApply) {
       feedback.textContent = 'Choose a supported appearance and layout.';
       return;
     }
-    if (recipe.value === 'environment-history' && (historyOption.disabled
-        || look !== 'compact-editorial' || (historyUnit !== undefined && historyUnit !== '°C'))) {
-      feedback.textContent = 'History appearance selection currently requires its compact editorial Celsius view.';
+    if (recipe.value === 'environment-history') {
+      if (historyOption.disabled || !['celsius','kelvin','fahrenheit'].includes(unit.value)) {
+        feedback.textContent = 'History requires an available recorded conditions collection.';
+        return;
+      }
+      onApply({recipe:'environment-history',unit:unit.value,density:density.value,palette:palette.value,
+        minimumTextScalePercent:Number(minimum.value)});
       return;
     }
     onApply({ look, recipe: recipe.value, minimumTextScalePercent: Number(minimum.value) });
@@ -73,7 +80,7 @@ export function createOwnerLookControls(onApply) {
     observe(view) {
       historyOption.disabled = !view?.subjects?.some(subject => subject.identity === 'environment-history'
         && subject.role === 'Collection');
-      historyUnit = view?.component?.history?.temperature_unit;
+      const historyUnit = view?.component?.history?.temperature_unit;
       const expression = view?.component?.expression?.expression;
       // New Face/Show occurrences do not erase an unfinished local proposal.
       // Reconcile fields only when their acknowledged policy actually changes.
@@ -91,6 +98,8 @@ export function createOwnerLookControls(onApply) {
       }
       const identity = view?.component?.recipe_identity;
       recipe.value = typeof identity === 'string' && Object.hasOwn(recipes, identity) ? recipes[identity] : '';
+      unit.value = ({'°C':'celsius',K:'kelvin','°F':'fahrenheit'})[historyUnit] ?? 'celsius';
+      updateUnit();
       if (view?.component?.expression?.accessibility_overrides?.text_scale
           && ['150', '200'].includes(String(expression?.text_scale_percent))) {
         minimum.value = String(expression.text_scale_percent);

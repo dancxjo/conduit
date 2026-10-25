@@ -327,7 +327,9 @@ export async function startOwnerParticipation(application, root) {
     let acknowledgedShow = null;
     try {
       faceStatus.textContent = 'Asking the owner for its current Face…';
-      const prepared = selection?.look && selection?.recipe
+      const prepared = selection?.recipe === 'environment-history'
+        ? await participation.selectOwnerHistoryMask(selection)
+        : selection?.look && selection?.recipe
         ? await participation.selectOwnerComponentMask(selection)
         : await participation.prepareOwnerFaceMask(priorFace ? {
           lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,

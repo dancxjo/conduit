@@ -548,6 +548,78 @@ fn browser_mask_planning_requires_the_reviewed_back_and_face_resource() {
             &available_show,
         )
         .unwrap();
+    // Complete history intent cannot manufacture environmental facts on this
+    // admitted generic Body. A refusal must retain the acknowledged route.
+    let history_look = conduit_plot::rust_binding::NativeRustBinding::encode(
+        conduit_face::editorial_look().unwrap(),
+    )
+    .unwrap();
+    let history_request = serde_json::json!({"kind":"face-history-mask-request", "protocol":1,
+        "request_id":"browser-history:1", "request":face_request,
+        "show":available_show, "look":history_look});
+    let decoded = conduit_std_host::browser_admission::decode_browser_admission_frame(
+        &serde_json::to_vec(&history_request).unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(decoded, In::FaceHistoryMaskRequest { .. }));
+    let previous_plan = owner.face_wardrobe.as_ref().unwrap().plan().clone();
+    for (binding, bytes) in [
+        ("line/test/foreign", history_look.as_slice()),
+        ("line/test/browser-mask", &[1u8][..]),
+        ("line/test/browser-mask", history_look.as_slice()),
+    ] {
+        assert!(owner
+            .select_browser_history_mask(
+                &authorized.window_id,
+                &LinkBindingId::from(binding),
+                &face_request,
+                &available_show,
+                bytes
+            )
+            .is_err());
+        assert_eq!(owner.face_wardrobe.as_ref().unwrap().plan(), &previous_plan);
+        owner
+            .validate_browser_mask_show(
+                &authorized.window_id,
+                &LinkBindingId::from("line/test/browser-mask"),
+                &face_request,
+                &available_show,
+            )
+            .unwrap();
+    }
+    let mut stale_show = available_show.clone();
+    stale_show.face_revision += 1;
+    assert!(owner
+        .select_browser_history_mask(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/browser-mask"),
+            &face_request,
+            &stale_show,
+            &history_look
+        )
+        .is_err());
+    assert_eq!(owner.face_wardrobe.as_ref().unwrap().plan(), &previous_plan);
+    owner
+        .validate_browser_mask_show(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/browser-mask"),
+            &face_request,
+            &available_show,
+        )
+        .unwrap();
+    let mut malformed = history_request;
+    malformed["look"] = serde_json::json!([1]);
+    assert!(
+        conduit_std_host::browser_admission::decode_browser_admission_frame(
+            &serde_json::to_vec(&malformed).unwrap()
+        )
+        .is_err()
+    );
+    super::super::route::assert_history_selection_plans(
+        owner.host.advertisement(),
+        &browser_offer,
+        &carrier_evidence,
+    );
     let wardrobe = owner.face_wardrobe.as_ref().unwrap();
     assert_eq!(wardrobe.plan().routes.len(), 2);
     assert_eq!(

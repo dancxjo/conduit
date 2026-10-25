@@ -653,3 +653,46 @@ test('owner history Look rejects invalid byte intents before invoking WASM', () 
     assert.throws(() => bridge.ownerFacePrepare({}, frame, { historyLookBytes: new Uint8Array([1]) }), /owner Face frame/);
   }
 });
+
+test("history Look intent uses separate bounded inputs and canonical runtime output", () => {
+  const api = runtime();
+  const canonical = new Uint8Array([7, 11, 13]);
+  const prior = new Uint8Array([19, 23]);
+  let seen;
+  Object.assign(api, {
+    conduit_browser_history_look_intent_input_ptr: () => 2048,
+    conduit_browser_history_look_intent_input_capacity: () => 256,
+    conduit_browser_history_look_intent_prior_ptr: () => 4096,
+    conduit_browser_history_look_intent_prior_capacity: () => 64 * 1024,
+    conduit_browser_history_look_intent_output_ptr: () => 8192,
+    conduit_browser_history_look_intent_output_len: () => canonical.length,
+    conduit_browser_history_look_intent_output_capacity: () => 64 * 1024,
+    conduit_browser_history_look_intent: (length, priorLength) => {
+      seen = { intent: JSON.parse(new TextDecoder().decode(new Uint8Array(api.memory.buffer, 2048, length))), prior: new Uint8Array(api.memory.buffer, 4096, priorLength).slice() };
+      new Uint8Array(api.memory.buffer, 8192, canonical.length).set(canonical);
+      return 0;
+    },
+  });
+  const bridge = bindBrowserRuntimeBridge(api, { context: "history Look proof" });
+  const intent = { unit: "kelvin", density: "spacious", palette: "phosphor" };
+  const result = bridge.ownerHistoryLookIntent(intent, prior);
+  assert.deepEqual(seen, { intent, prior });
+  assert.deepEqual(result, canonical);
+  assert.deepEqual(new Uint8Array(api.memory.buffer, 2048, 256), new Uint8Array(256));
+  assert.deepEqual(new Uint8Array(api.memory.buffer, 4096, prior.length), new Uint8Array(prior.length));
+  new Uint8Array(api.memory.buffer, 8192, 3).fill(0);
+  assert.deepEqual(result, canonical);
+  bridge.ownerHistoryLookIntent(intent);
+  assert.equal(seen.prior.length, 0);
+  for (const bad of [{ ...intent, extra: true }, { ...intent, unit: "rankine" }, {}, null]) {
+    assert.throws(() => bridge.ownerHistoryLookIntent(bad), /finite unit, density and palette/);
+  }
+  assert.throws(() => bridge.ownerHistoryLookIntent(intent, []), /exact bytes/);
+  assert.throws(() => bridge.ownerHistoryLookIntent(intent, new Uint8Array(65537)), /bound/);
+  api.conduit_browser_history_look_intent = () => -1;
+  assert.throws(() => bridge.ownerHistoryLookIntent(intent, prior), /refused/);
+  assert.deepEqual(new Uint8Array(api.memory.buffer, 4096, prior.length), new Uint8Array(prior.length));
+  api.conduit_browser_history_look_intent = () => 0;
+  api.conduit_browser_history_look_intent_output_len = () => 65537;
+  assert.throws(() => bridge.ownerHistoryLookIntent(intent), /bound/);
+});

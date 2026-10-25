@@ -125,3 +125,39 @@ test('prepared Show custody is detached from returned views and cleared on inval
   clearOwnerFaceShow(state);
   assert.equal(state.preparedOwnerShow, null);
 });
+
+test('history intent custody copies both inputs and outputs and clears on membership replacement', async () => {
+  const {ownerHistoryLook,retainOwnerHistoryLook} = await import('./browser-sdk-owner-show-state.mjs');
+  const state = {}, basis = {body_id:'body/one',host_id:'host/one',boot_id:'boot/one',credential_id:'credential/one',part_id:'part/one'};
+  const source = Uint8Array.of(1,2,3);
+  retainOwnerHistoryLook(state,basis,source); source[0]=9;
+  const first = ownerHistoryLook(state,basis); assert.deepEqual([...first],[1,2,3]);
+  first[1]=9; assert.deepEqual([...ownerHistoryLook(state,basis)],[1,2,3]);
+  clearOwnerFaceShow(state); assert.deepEqual([...ownerHistoryLook(state,basis)],[1,2,3]);
+  for (const key of ['body_id','host_id','boot_id','credential_id','part_id']) {
+    retainOwnerHistoryLook(state,basis,Uint8Array.of(1));
+    assert.equal(ownerHistoryLook(state,{...basis,[key]:'different'}),undefined);
+    assert.equal(ownerHistoryLook(state,basis),undefined);
+  }
+  assert.throws(() => retainOwnerHistoryLook(state,basis,new Uint8Array()));
+  assert.throws(() => retainOwnerHistoryLook(state,basis,new Uint8Array(65537)));
+});
+
+test('history input is retained only after accepted current selection and survives ordinary refresh', async () => {
+  const {selectOwnerFaceComponent,ownerHistoryLook,retainOwnerHistoryLook} = await import('./browser-sdk-owner-show-state.mjs');
+  const basis = {body_id:'body/one',host_id:'host/one',boot_id:'boot/one',credential_id:'credential/one',part_id:'part/one'};
+  for (const outcome of ['accepted','refused','superseded','presence-lost']) {
+    const state = {}, gate = deferred(); let current = true;
+    retainOwnerHistoryLook(state,basis,Uint8Array.of(1));
+    const pending = selectOwnerFaceComponent(state,() => gate.promise,() => {
+      retainOwnerHistoryLook(state,basis,Uint8Array.of(2));
+      return ownerHistoryLook(state,basis);
+    },() => current);
+    const refused = outcome === 'accepted' ? null : assert.rejects(pending);
+    if (outcome === 'superseded') clearOwnerFaceShow(state);
+    if (outcome === 'presence-lost') current = false;
+    if (outcome === 'refused') gate.reject(new Error('owner refused')); else gate.resolve();
+    if (refused) { await refused; assert.deepEqual([...ownerHistoryLook(state,basis)],[1]); }
+    else { assert.deepEqual([...(await pending)],[2]); clearOwnerFaceShow(state); assert.deepEqual([...ownerHistoryLook(state,basis)],[2]); }
+  }
+});

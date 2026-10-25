@@ -3,6 +3,7 @@
 //! The owner may issue a face-only browser Mask route on the admitted
 //! carrier; the Body workload remains on its authoritative Host.
 mod admission;
+mod history_selection;
 mod pending_action;
 mod service;
 #[cfg(unix)]
@@ -462,6 +463,17 @@ fn serve_presence(
                     accepted: result.is_ok(),
                     code,
                 })?;
+            }
+            In::FaceHistoryMaskRequest {
+                protocol: PROTOCOL,
+                request_id,
+                request,
+                show,
+                look,
+            } => {
+                history_selection::respond(
+                    socket, state_dir, window_id, binding, request_id, request, show, look,
+                )?;
             }
             In::FaceWardrobeRequest {
                 protocol: PROTOCOL,

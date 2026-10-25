@@ -182,5 +182,23 @@ Plan using the actual admitted carrier limits. Wrong or missing startup input,
 foreign Roots, altered queues and oversized frames refuse while retaining the
 previous acknowledged Show. An unchanged response requires the same independent
 Look custody. The tests use CPU lifecycle and carrier fixtures; this entrance
-does not establish live owner selection, browser SDK preference retention,
-saved defaults, DOM enactment or an installed environmental recorder.
+does not establish live owner selection, saved defaults, DOM enactment or an
+installed environmental recorder.
+
+`cargo +stable xtask prove environment history-browser-selection` checks the
+finite Rust intent constructor, admission wire, owner recipe/rollback path and
+SDK/carrier custody. The browser controls request °C/K/°F independently of
+palette and density. Accepted canonical input is retained separately across
+Show-only failure/retry; Body, Host, Boot, credential or Part replacement clears
+it. The authenticated installed actor and ordinary current Show gates select
+the Mask; an absent environmental history Face refuses without creating facts.
+Positive recipe planning and SDK tests use explicit fixtures, not a live owner.
+
+`cargo +stable xtask prove environment history-browser-selection-ui` exercises
+the actual controls in pinned Chromium (one worker, zero retries), including
+unfinished proposals, fresh Shows, narrow width and forced colors. The controls
+use supplied component evidence. Neither this UI proof nor the retained
+encounter preference establishes committed/recovered saved defaults, installed
+current/history composition, continuous recording, MCU transport or physical
+sensor/display operation. Strict owning lint enters through
+`cargo +stable xtask prove environment history-browser-selection-lint`.

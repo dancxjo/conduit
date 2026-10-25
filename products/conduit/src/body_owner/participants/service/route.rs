@@ -1,6 +1,9 @@
 //! Owner selection of the ordinary browser Mask on its current admitted carrier.
 use super::*;
 mod component_selection;
+#[cfg(test)]
+pub(super) use component_selection::tests::assert_history_selection_plans;
+pub(super) use component_selection::BrowserMaskSelection;
 use conduit_core::{
     BaseImplementationId, BaseInstanceId, CredentialReferenceId, LineAvailability,
     LinkAuthorityReference, LinkCredentialReference, LinkLimits,
@@ -181,20 +184,6 @@ impl Owner {
                 return Err("browser-route-part-unavailable".into());
             }
             let browser = &observation.advertisement;
-            let (mask_source, mask_root, mask_offer) = match window.component_mask_selection {
-                Some((look, recipe)) => {
-                    let (source, root) = recipe.source_root(look)?;
-                    (source, root, conduit_browser_mask_offer::configured_offer())
-                }
-                None => (
-                    conduit_browser_mask_offer::MASK_SOURCE,
-                    "browser-graphical",
-                    conduit_browser_mask_offer::offer(),
-                ),
-            };
-            if !browser.capabilities.contains(&mask_offer) {
-                return Err("browser-route-mask-back-unavailable".into());
-            }
             let owner = self.host.advertisement();
             let evidence = evidence.ok_or("browser-line-evidence-missing")?;
             validate_carrier_evidence(
@@ -206,16 +195,14 @@ impl Owner {
                 owner,
                 browser,
             )?;
-            let planned = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
+            let face = self.local_face_snapshot()?;
+            let planned = component_selection::plan(
+                window.component_mask_selection.as_ref(),
                 browser,
                 owner,
-                &evidence.face,
-                &evidence.returned,
-                &evidence.interaction,
-                mask_source,
-                mask_root,
+                evidence,
+                &face,
             )?;
-            let face = self.local_face_snapshot()?;
             let selected = RemoteOwnerMaskRouteSeal::seal_current_with_interaction(
                 &self.session,
                 &face,

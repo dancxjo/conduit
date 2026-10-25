@@ -13,6 +13,9 @@ use conduit_face::{
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use std::path::Path;
+#[path = "browser/history_mask.rs"]
+mod history_mask;
+pub(crate) use history_mask::history_mask;
 
 pub(crate) fn selected_speech_start(
     state_dir: &Path,
@@ -93,6 +96,7 @@ fn call(state_dir: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Re
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
         | Request::BodyBrowserComponentMask { token, .. }
+        | Request::BodyBrowserHistoryMask { token, .. }
         | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserLeave { token, .. }

@@ -90,6 +90,15 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             }
             protocol
         }
+        BrowserAdmissionEgress::FaceHistoryMaskResponse {
+            protocol,
+            request_id,
+            accepted,
+            refusal,
+        } => {
+            history_selection::validate_response(request_id, *accepted, refusal)?;
+            protocol
+        }
         BrowserAdmissionEgress::FaceWardrobeResponse {
             protocol,
             request_id,

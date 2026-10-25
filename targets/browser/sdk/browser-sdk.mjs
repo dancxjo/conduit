@@ -1,6 +1,6 @@
 import { showBodyFace } from "./browser-sdk-body-face.mjs";
 import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
-import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
+import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow, ownerHistoryLook, retainOwnerHistoryLook } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
 import { checkedAcknowledgedOwnerFaceArguments, checkedPatchbayFaceArguments } from "./browser-sdk-face-actions.mjs";
@@ -225,7 +225,11 @@ export class BrowserBodyParticipation {
   get hostId() { return this.#state.membership.hostId; }
   get bootId() { return this.#state.membership.bootId; }
   get advertisement() { return this.#state.membership.advertisement; }
-  membershipCredential() { return this.#state.membership.membershipCredential(); }
+  membershipCredential() {
+    const credential = this.#state.membership.membershipCredential();
+    ownerHistoryLook(this.#state, credential && {body_id:credential.body_id,host_id:this.hostId,boot_id:this.bootId,credential_id:credential.credential_id,part_id:credential.part_id});
+    return credential;
+  }
   biographyEvidence() { return this.#state.membership.biographyEvidence(); }
   offerEvidence() { return this.#state.membership.offerEvidence(); }
   state() { return this.#state.membership.state(); }
@@ -265,6 +269,7 @@ export class BrowserBodyParticipation {
     }
     this.#state.minimumOwnerTextScalePercent = minimumTextScale;
     const hostId = this.hostId, bootId = this.bootId, bodyId = credential.body_id;
+    const credentialId = credential.credential_id, partId = credential.part_id;
     return prepareOwnerFaceShow(this.#state, epoch,
       () => this.ownerFaceSnapshot(options),
       frame => {
@@ -276,7 +281,7 @@ export class BrowserBodyParticipation {
             reduced_motion: mediaMatches('(prefers-reduced-motion: reduce)'),
             minimum_text_scale_percent: minimumTextScale,
           },
-        }, frame);
+        }, frame, {historyLookBytes:ownerHistoryLook(this.#state, {body_id:bodyId,host_id:hostId,boot_id:bootId,credential_id:credentialId,part_id:partId})});
         if (view?.schema === "conduit.browser/owner-face-refusal@1") {
           throw new Error(`owner Face refused: ${view.code}`);
         }
@@ -288,7 +293,9 @@ export class BrowserBodyParticipation {
         return view;
       },
       () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
-        && this.membershipCredential()?.body_id === bodyId);
+        && this.membershipCredential()?.body_id === bodyId
+        && this.membershipCredential()?.credential_id === credentialId
+        && this.membershipCredential()?.part_id === partId);
   }
   async acknowledgeOwnerFaceMask(view) {
     const credential = this.membershipCredential();
@@ -313,6 +320,8 @@ export class BrowserBodyParticipation {
   }
   /** Retire this browser Mask and its pending/acknowledged local Show authority. */
   discardOwnerFaceMask() {
+    // Retire Show authority only. Accepted owner configuration still requires
+    // the same independent startup bytes when preparation is retried.
     this.#state.host.bridge.ownerFaceClear();
     clearOwnerFaceShow(this.#state);
   }
@@ -330,11 +339,38 @@ export class BrowserBodyParticipation {
     return selectOwnerFaceComponent(this.#state,
       () => this.#state.membership.selectComponentMask({ showBytes, look, recipe }),
       () => {
+        this.#state.ownerHistoryLook = null;
         this.#state.host.bridge.ownerFaceClear();
         return this.prepareOwnerFaceMask({ minimumTextScalePercent });
       },
       () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
         && this.membershipCredential()?.body_id === bodyId);
+  }
+  async selectOwnerHistoryMask({unit, density, palette, minimumTextScalePercent} = {}) {
+    if (minimumTextScalePercent !== undefined && (!Number.isInteger(minimumTextScalePercent)
+        || minimumTextScalePercent < 100 || minimumTextScalePercent > 200)) {
+      throw new Error("minimum text scale must be between 100 and 200 percent");
+    }
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential || !this.#state.lastOwnerShow) {
+      throw new Error("current acknowledged owner Show is required for history selection");
+    }
+    const basis = {body_id:credential.body_id,host_id:this.hostId,boot_id:this.bootId,credential_id:credential.credential_id,part_id:credential.part_id};
+    const bytes = this.#state.host.bridge.ownerHistoryLookIntent({unit,density,palette},ownerHistoryLook(this.#state,basis));
+    // Capture both buffers before crossing an asynchronous carrier boundary.
+    const proposed = bytes.slice();
+    const showBytes = this.#state.host.bridge.ownerFaceShowReceipt().slice();
+    return selectOwnerFaceComponent(this.#state,
+      () => this.#state.membership.selectHistoryMask({showBytes,lookBytes:proposed.slice()}),
+      () => {
+        retainOwnerHistoryLook(this.#state,basis,proposed);
+        this.#state.host.bridge.ownerFaceClear();
+        return this.prepareOwnerFaceMask({minimumTextScalePercent});
+      },
+      () => this.presenceState() === "available" && this.hostId === basis.host_id && this.bootId === basis.boot_id
+        && this.membershipCredential()?.body_id === basis.body_id
+        && this.membershipCredential()?.credential_id === basis.credential_id
+        && this.membershipCredential()?.part_id === basis.part_id);
   }
   /** Exact retained Face bytes for observation; this does not refresh or acknowledge. */
   ownerCanonicalFaceSnapshot() {
@@ -394,6 +430,7 @@ export class BrowserBodyParticipation {
   replanWebRtc() { return this.#state.membership.replanWebRtc(); }
   publishMediaResource(evidence) { return this.#state.membership.publishMediaResource(evidence); }
   close() {
+    this.#state.ownerHistoryLook = null;
     this.#state.host.bridge.ownerFaceClear?.();
     clearOwnerFaceShow(this.#state);
     return this.#state.membership.close();
