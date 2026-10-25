@@ -2,9 +2,9 @@ Start with the [interactive Handbook](index.html). You do not need to install
 Rust or run a server to use the published site. Your browser creates a local
 Conduit body for your examples, or recovers the one it already keeps.
 
-## 1. Predict what the clock will do
+## 1. Predict what the ticker will do
 
-In the Handbook workbench, choose **A clock you can stop**. Read its source:
+In the Handbook workbench, choose **A ticker you can stop**. Read its source:
 `time/every(1s)` produces ticks at an interval, and `>>` connects them to
 `face/tick`.
 

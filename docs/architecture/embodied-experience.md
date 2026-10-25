@@ -955,7 +955,7 @@ purpose genuinely complete
 The Presenter policy should not produce:
 
 - self-sabotage to accelerate Fulfillment;
-- make of completed obligations;
+- fabrication of completion evidence;
 - resistance to repair;
 - despair or panic about continued operation;
 - fear or bargaining about Fulfillment;
@@ -1016,19 +1016,23 @@ cannot trigger it merely by wanting or saying it.
 
 ## 24. Purpose and face composition
 
-A deterministic purpose evaluation might look conceptually like:
+The current [checked fulfillment-readiness Plot](../../plots/fulfillment-readiness/main.conduit)
+already implements the deterministic semantic derivation:
 
 ```conduit
-# PROPOSED SOURCE.
 plot fulfillment-readiness (
-    >> purpose: PurposeState
-    readiness: FulfillmentReadiness >
+    >> purpose: $PurposeState
+    readiness: $FulfillmentReadiness >>
 ) {
     evaluate: purpose/fulfillment-readiness
     purpose >> evaluate.purpose
     evaluate.readiness >> readiness
 }
 ```
+
+This checked Plot does not perform the administrative `Fulfill` operation.
+Its present readiness derivation remains distinct from the broader proposed
+Experiencer/Presenter journey above.
 
 The separation matters:
 
