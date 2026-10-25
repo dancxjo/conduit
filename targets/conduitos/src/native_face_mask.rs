@@ -27,6 +27,8 @@ mod lifecycle_evidence;
 
 #[path = "native_face_mask/input.rs"]
 mod input;
+#[path = "native_face_mask/scanout.rs"]
+mod scanout;
 
 #[path = "native_face_mask/preparation.rs"]
 mod preparation;
@@ -375,9 +377,7 @@ impl NativeFaceMask {
         }
         .map_err(NativeFaceMaskError::Compositor)?
         .clone();
-        self.compositor
-            .compose_frame(display)
-            .map_err(NativeFaceMaskError::Compositor)?;
+        self.compose_and_commit(display)?;
         let session = {
             let acknowledgement = self
                 .compositor
@@ -390,9 +390,7 @@ impl NativeFaceMask {
         self.compositor
             .focus_surface(&self.surface_id)
             .map_err(NativeFaceMaskError::Compositor)?;
-        self.compositor
-            .compose_frame(display)
-            .map_err(NativeFaceMaskError::Compositor)?;
+        self.compose_and_commit(display)?;
         self.publication = Some(published.receipt);
         self.scene = Some(scene);
         self.session = Some(session);
@@ -412,10 +410,7 @@ impl NativeFaceMask {
             .repaint_mask_surface(scene.face(), &show, &self.display_base_id, &frame.scene)
             .map_err(NativeFaceMaskError::Compositor)?
             .clone();
-        if let Err(error) = self.compositor.compose_frame(display) {
-            self.session.take();
-            return Err(NativeFaceMaskError::Compositor(error));
-        }
+        self.compose_and_commit(display)?;
         if self
             .compositor
             .scanout_acknowledgement(&receipt, show.face_revision)

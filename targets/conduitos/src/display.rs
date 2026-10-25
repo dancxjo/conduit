@@ -99,6 +99,14 @@ pub trait PixelTarget {
     fn format(&self) -> DisplayFormat;
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError>;
 
+    /// Finish this frame before renderer acknowledgement. Direct framebuffers
+    /// expose completed writes immediately and need no additional operation.
+    /// Buffered targets must override this with their fallible upload/present;
+    /// writing only a CPU surface is not a successful display commit.
+    fn commit_frame(&mut self) -> Result<(), DisplayError> {
+        Ok(())
+    }
+
     /// Write consecutive pixels in row order. Empty spans have no effect.
     /// The default preserves each pixel's error boundary; a scanout Base may
     /// validate an entire admitted row once before writing it.
@@ -128,6 +136,9 @@ impl<T: RetainedPixelTarget + ?Sized> RetainedPixelTarget for &mut T {
 }
 
 impl<T: PixelTarget + ?Sized> PixelTarget for &mut T {
+    fn commit_frame(&mut self) -> Result<(), DisplayError> {
+        (**self).commit_frame()
+    }
     fn format(&self) -> DisplayFormat {
         (**self).format()
     }

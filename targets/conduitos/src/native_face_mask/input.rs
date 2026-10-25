@@ -104,10 +104,7 @@ impl NativeFaceMask {
                 return Err(NativeFaceMaskError::Face);
             }
         }
-        if let Err(error) = self.compositor.compose_frame(display) {
-            self.session.take();
-            return Err(NativeFaceMaskError::Compositor(error));
-        }
+        self.compose_and_commit(display)?;
         Ok(())
     }
 
