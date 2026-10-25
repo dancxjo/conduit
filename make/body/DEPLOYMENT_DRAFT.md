@@ -24,3 +24,18 @@ This transaction does not execute a Crèche Plot, project native Face, acquire
 source/toolchains/releases, manufacture media, or perform carrier effects.
 Those production consumers remain #6458 work. Build intent does not authorize
 a process or network acquisition, and review does not claim an image exists.
+
+
+`DeploymentEncounter` now projects Body, Hosts and Make pages as canonical
+Faces over an actual producing Body/Plot/Plan basis. It reuses Birth naming
+and Plot controls. Every interaction is checked against the current owner
+Face and acknowledged Mask Show before mutation. Host-name/profile edits
+revalidate construction; changing a target selects that package's default
+media kind. Offered checked recipes are finite (at most 64); ambiguous
+configuration identities refuse instead of choosing by load order.
+
+The final action returns an exact review for the owning make operation. It
+cannot claim an image was built. Its checked/planned Mask test fixture
+acknowledges output explicitly for interaction conformance only; it establishes
+no native rendering or physical effect proof. The production ordinary Plot,
+Host operation and native rendering consumer remain to be wired.
