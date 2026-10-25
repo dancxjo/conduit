@@ -95,3 +95,21 @@ The default Look uses decimal points. An explicitly selected colon fractional
 marker retains temperature tenths on colon-only glass: `67:6F` means 67.6 °F.
 This Look requests the existing colon annunciator and leaves all decimal points
 off. The hardware profile must still declare the colon's actual wiring.
+
+## Shared quantity rounding
+
+Temperature and humidity presentation use `conduit_face::rounded_quantity_coordinate`.
+It converts through Core's exact unit laws and rounds once, nearest with ties
+away from zero, at a finite requested decimal precision. Very small affine
+inputs use the bounded exact rational path before integer narrowing; display
+coordinates do not replace the source Quantity. Four-digit fitting, suffix
+glyphs, colon selection and hardware mapping remain this Mask's policies.
+
+Run the focused shared quantity tests and strict owning-crate checks with:
+
+```sh
+cargo +stable xtask prove environment quantity-rounding
+```
+
+This validates numerical presentation and the existing seven-segment suite;
+it does not select a new Look contract or establish physical display output.
