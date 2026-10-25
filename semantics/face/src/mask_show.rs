@@ -57,6 +57,10 @@ pub enum MaskShowError {
 pub(crate) struct ValidatedFace<'a>(&'a Face);
 
 impl<'a> ValidatedFace<'a> {
+    pub(crate) fn from_constructed(face: &'a crate::CheckedFace) -> Self {
+        Self(face.as_face())
+    }
+
     pub(crate) fn new(face: &'a Face) -> Result<Self, crate::FaceError> {
         face.validate()?;
         Ok(Self(face))
