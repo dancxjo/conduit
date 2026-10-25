@@ -9,7 +9,7 @@ type Events = Vec<(String, ApplicationEventKind)>;
 pub(super) fn project(
     draft: &BirthDraft,
     basis: BirthProjectionBasis<'_>,
-) -> Result<(Face, Events), BirthFaceRefusal> {
+) -> Result<(CheckedFace, Events), BirthFaceRefusal> {
     if basis.encounter_id().is_empty() || basis.encounter_id().len() > 128 {
         return Err(BirthFaceRefusal::InvalidProjection);
     }
@@ -106,7 +106,7 @@ pub(super) fn project(
             value: FacePropertyValue::Identity(basis.boot_id().as_str().into()),
         },
     ]);
-    let face = Face::new_with_semantics(
+    let face = CheckedFace::new_with_semantics(
         u64::from(draft.revision()),
         conduit_face::FaceBasis {
             body_id: None,

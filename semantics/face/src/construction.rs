@@ -87,3 +87,66 @@ impl Face {
         )
     }
 }
+
+/// A constructor-checked Face whose contents remain immutable until consumed.
+/// This is validation provenance, not permission to perform an interaction.
+///
+/// ```compile_fail
+/// fn mutate(checked: &mut conduit_face::CheckedFace) {
+///     checked.as_face().revision += 1;
+/// }
+/// ```
+/// ```compile_fail
+/// fn forge(face: conduit_face::Face) -> conduit_face::CheckedFace {
+///     conduit_face::CheckedFace { face }
+/// }
+/// ```
+#[derive(Debug)]
+pub struct CheckedFace {
+    face: Face,
+}
+
+impl CheckedFace {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_semantics(
+        revision: u64,
+        basis: FaceBasis,
+        subjects: Vec<FaceSubject>,
+        relationships: Vec<FaceRelationship>,
+        properties: Vec<FaceProperty>,
+        text: Vec<FaceText>,
+        actions: Vec<FaceAction>,
+        disclosures: Vec<FaceDisclosure>,
+    ) -> Result<Self, FaceError> {
+        Face::new_with_semantics(
+            revision,
+            basis,
+            subjects,
+            relationships,
+            properties,
+            text,
+            actions,
+            disclosures,
+        )
+        .map(|face| Self { face })
+    }
+
+    pub fn as_face(&self) -> &Face {
+        &self.face
+    }
+
+    pub fn into_face(self) -> Face {
+        self.face
+    }
+
+    pub fn validate_interaction(
+        &self,
+        input: &crate::FaceInteraction,
+        show: &crate::MaskShow,
+    ) -> Result<(), crate::FaceInteractionRefusal> {
+        input.validate_against_validated(
+            &crate::mask_show::ValidatedFace::from_constructed(self),
+            show,
+        )
+    }
+}
