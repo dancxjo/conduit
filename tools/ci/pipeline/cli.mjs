@@ -1,3 +1,4 @@
+import { requireCaptureLineage } from './history-lineage.mjs';
 import { checkEvidenceRetention } from './evidence-retention.mjs';
 import { readDeliveryStatus } from './delivery-status.mjs';
 import { appendFileSync, mkdirSync, readdirSync, existsSync, readFileSync } from 'node:fs';
@@ -39,6 +40,13 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'history-lineage-create': {
+      if (args.length !== 6) throw new Error('usage: history-lineage-create <original-repo> <mapped-repo> <commit-map> <capture-inventory> <immutable-custody> <new-policy-output>');
+      const { prepareCaptureLineagePolicy } = await import('./history-lineage-create.mjs');
+      const [originalDirectory, mappedDirectory, mapFile, capturesFile, custodyFile, outputFile] = args.map(value => resolve(value));
+      output('history-lineage', await prepareCaptureLineagePolicy({ originalDirectory, mappedDirectory, mapFile, capturesFile, custodyFile, outputFile }));
+      break;
+    }
     case 'compiler-cache-proof': {
       if (args.length !== 1) throw new Error('usage: compiler-cache-proof <snapshot-manifest>');
       const specs = readdirSync('proof/ci').filter(name => name.startsWith('compiler-cache') && name.endsWith('.spec.mjs'));
@@ -217,15 +225,15 @@ try {
       if (oneBodyEvidence) {
         // The browser target has a shallow checkout. Verify ancestry here,
         // where CI retains the full history, before any expensive target work.
-        run('git', ['merge-base', '--is-ancestor', oneBodyEvidence.sourceCommit, 'HEAD']);
+        requireCaptureLineage(oneBodyEvidence.sourceCommit, run('git', ['rev-parse', 'HEAD'], true));
       }
       const threeHostDevelopment = oneBodyEvidence ? null : retainedThreeHostDevelopmentEvidence();
       if (threeHostDevelopment) {
-        run('git', ['merge-base', '--is-ancestor', threeHostDevelopment.sourceCommit, 'HEAD']);
+        requireCaptureLineage(threeHostDevelopment.sourceCommit, run('git', ['rev-parse', 'HEAD'], true));
       }
       const directSpokenDevelopment = retainedDirectSpokenDevelopmentEvidence();
       if (directSpokenDevelopment) {
-        run('git', ['merge-base', '--is-ancestor', directSpokenDevelopment.sourceCommit, 'HEAD']);
+        requireCaptureLineage(directSpokenDevelopment.sourceCommit, run('git', ['rev-parse', 'HEAD'], true));
       }
       retainedTodoBrowserDevelopmentEvidence(undefined, run('git', ['rev-parse', 'HEAD'], true));
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
