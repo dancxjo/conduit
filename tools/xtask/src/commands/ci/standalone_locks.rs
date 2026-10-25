@@ -25,6 +25,10 @@ const LOCKS: &[StandaloneLock] = &[
         lock: "bodies/environment/face/Cargo.lock",
     },
     StandaloneLock {
+        manifest: "bodies/environment/history/Cargo.toml",
+        lock: "bodies/environment/history/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "bodies/environment/http/Cargo.toml",
         lock: "bodies/environment/http/Cargo.lock",
     },
