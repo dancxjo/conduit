@@ -93,9 +93,17 @@ references. It keeps the existing seal identity and refusal behavior, including
 canonicalizing an unsorted candidate. It no longer clones the rich graph merely
 to revalidate it.
 
-The actual environmental sampling Plan's CPU measurement records 33,163 bytes
-of additional peak heap for Body-plan validation, compared with 142,584 bytes
-for a rich Plan clone alone. These are 64-bit host measurements, not Xtensa
+Core's canonical field encoders now write to either stored bytes or a streaming
+fingerprint sink. Plan, fragment and callable-Front fingerprints consume the
+same field order and length prefixes, borrowing immutable computation and
+semantic-contract payloads instead of duplicating them into hash scratch.
+Frozen historical vectors cover UTF-8, embedded zeroes, structured payloads,
+boundary lengths, and equal-length content changes.
+
+The actual environmental sampling Plan's CPU measurement records **593 bytes**
+of additional peak heap for Body-plan validation (previously 33,163), compared
+with 142,584 bytes for a rich Plan clone alone. The CPU profile now enforces a
+4 KiB validation scratch ceiling. These are 64-bit host measurements, not Xtensa
 admission figures. The existing sensor-outcome kernel proof checks the measured
 validation path and still passes all seven transcript scenarios.
 

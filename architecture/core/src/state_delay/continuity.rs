@@ -43,7 +43,7 @@ impl RetainedStateProvenance {
             }
     }
 
-    pub(super) fn push_canonical(&self, bytes: &mut Vec<u8>) {
+    pub(super) fn push_canonical(&self, bytes: &mut impl crate::canonical_bytes::CanonicalSink) {
         crate::push_string(bytes, "conduit/retained-state@1");
         for identity in [
             self.source_plot.source_document_id.as_str(),

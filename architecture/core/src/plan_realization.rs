@@ -1,5 +1,5 @@
 use super::{push_string, push_u32, CheckedPlotId, KindId, KindIdentity, SourceDocumentId};
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 /// Exact reusable Plot selected while expanding one high-level Kind invocation.
@@ -12,7 +12,10 @@ pub struct PlotBack {
     pub checked_plot_id: CheckedPlotId,
 }
 
-pub(super) fn push_canonical(canonical: &mut Vec<u8>, backs: &[PlotBack]) {
+pub(super) fn push_canonical(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    backs: &[PlotBack],
+) {
     push_string(canonical, "canonical-realization-backs@1");
     push_u32(canonical, backs.len() as u32);
     for back in backs {

@@ -1,6 +1,7 @@
 #![no_std]
 
 extern crate alloc;
+mod canonical_bytes;
 
 use alloc::collections::VecDeque;
 use alloc::format;
@@ -1384,16 +1385,16 @@ fn valid_fore_line(fragment: &PlanFragment, fore: &PlannedForePort, line: &Admit
         && !matches!(&binding.authority, LinkAuthorityReference::Grant(id) if id.as_str().is_empty())
 }
 
-fn push_string(canonical: &mut Vec<u8>, value: &str) {
+fn push_string(canonical: &mut impl canonical_bytes::CanonicalSink, value: &str) {
     push_u32(canonical, value.len() as u32);
     canonical.extend_from_slice(value.as_bytes());
 }
 
-fn push_u32(canonical: &mut Vec<u8>, value: u32) {
+fn push_u32(canonical: &mut impl canonical_bytes::CanonicalSink, value: u32) {
     canonical.extend_from_slice(&value.to_le_bytes());
 }
 
-fn push_u64(canonical: &mut Vec<u8>, value: u64) {
+fn push_u64(canonical: &mut impl canonical_bytes::CanonicalSink, value: u64) {
     canonical.extend_from_slice(&value.to_le_bytes());
 }
 

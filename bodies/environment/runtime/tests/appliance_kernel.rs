@@ -124,8 +124,8 @@ fn run(scenario: usize, overnight: bool) {
             // Revalidation may hash semantic chunks and sort bounded references;
             // it must not duplicate the appliance's rich nested Plan.
             assert!(
-                validation_memory.peak_bytes < plan_memory.peak_bytes / 2,
-                "Body validation copied rich Plan backing: {validation_memory:?}"
+                validation_memory.peak_bytes <= 4096,
+                "Body validation exceeds this profile's 4 KiB CPU scratch budget: {validation_memory:?}"
             );
             eprintln!(
                 "environment_body_plan_validation_peak={} plan_copy_peak={}",

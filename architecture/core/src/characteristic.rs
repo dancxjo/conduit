@@ -281,16 +281,16 @@ pub fn stable_realization_category(
 }
 
 pub(crate) fn push_characteristic_canonical(
-    canonical: &mut Vec<u8>,
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
     characteristic: &crate::RealizationCharacteristic,
 ) {
-    fn push_u32(bytes: &mut Vec<u8>, value: u32) {
+    fn push_u32(bytes: &mut impl crate::canonical_bytes::CanonicalSink, value: u32) {
         bytes.extend_from_slice(&value.to_le_bytes());
     }
-    fn push_u64(bytes: &mut Vec<u8>, value: u64) {
+    fn push_u64(bytes: &mut impl crate::canonical_bytes::CanonicalSink, value: u64) {
         bytes.extend_from_slice(&value.to_le_bytes());
     }
-    fn push_string(bytes: &mut Vec<u8>, value: &str) {
+    fn push_string(bytes: &mut impl crate::canonical_bytes::CanonicalSink, value: &str) {
         push_u32(bytes, value.len() as u32);
         bytes.extend_from_slice(value.as_bytes());
     }
