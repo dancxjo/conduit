@@ -32,3 +32,18 @@ jobs:
     with:
       sha: ${{ github.sha }}
       base: all
+  candidate:
+    # The protected branch's required context must be earned by this exact
+    # exhaustive source proof, including a refused or cancelled train guard.
+    if: ${{ always() }}
+    needs: [train-source, proof]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require successful exhaustive source proof
+        env:
+          GUARD: ${{ needs.train-source.result }}
+          RESULT: ${{ needs.proof.result }}
+        run: |
+          case "$GUARD" in success|skipped) ;; *) exit 1 ;; esac
+          test "$RESULT" = success

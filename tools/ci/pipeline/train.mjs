@@ -74,8 +74,27 @@ export function captureTrain({ repository, base, selections, source, directory =
     require(git(['rev-parse', '--verify', `${commit}^{commit}`]) === commit, 'Train requires exact commit objects');
     git(['merge-base', '--is-ancestor', commit, source]);
   }
+  // Ancestry alone admits arbitrary additional changes. Reconstruct the selected
+  // merge tree with Git's default merge strategy, without changing refs/index or
+  // the working tree. Synthetic commits retain ancestry for subsequent merges;
+  // their identity is deliberately unrelated to the source receipt identity.
+  let combined = base;
+  let tree = git(['rev-parse', `${base}^{tree}`]);
+  for (const input of selection.inputs) {
+    tree = git(['merge-tree', '--write-tree', '--no-messages', combined, input.head]);
+    require(sha(tree), 'Train selection has an unresolved merge');
+    combined = execFileSync('git', ['-C', directory, 'commit-tree', tree,
+      '-p', combined, '-p', input.head, '-m', 'Train tree reconstruction'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, GIT_AUTHOR_NAME: 'Conduit train', GIT_COMMITTER_NAME: 'Conduit train',
+        GIT_AUTHOR_EMAIL: 'train@example.invalid', GIT_COMMITTER_EMAIL: 'train@example.invalid',
+        GIT_AUTHOR_DATE: '2000-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2000-01-01T00:00:00Z' },
+    }).trim();
+  }
+  require(git(['rev-parse', `${source}^{tree}`]) === tree,
+    'Train source tree differs from the selected PR merge tree');
   const value = { schema: SCHEMA, ...selection,
-    source, tree: git(['rev-parse', `${source}^{tree}`]) };
+    source, tree };
   return { ...value, digest: digest(value) };
 }
 

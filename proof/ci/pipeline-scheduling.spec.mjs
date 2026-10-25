@@ -85,6 +85,22 @@ test('PR scopes use the actual merge-preview parent, including admission', () =>
   assert.match(job(ci, 'admission'), /BASE: \$\{\{ needs\.preflight\.outputs\.base \}\}/);
 });
 
+test('Integration earns the protected candidate context only with successful exhaustive proof', () => {
+  const gate = job(integration, 'candidate');
+  assert.match(gate, /if: \$\{\{ always\(\) \}\}/);
+  assert.match(gate, /needs: \[train-source, proof\]/);
+  const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
+  for (const guard of ['success', 'skipped', 'failure', 'cancelled', '']) {
+    for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
+      const observed = spawnSync('bash', ['-e', '-c', script], {
+        env: { ...process.env, GUARD: guard, RESULT: result },
+      }).status === 0;
+      assert.equal(observed, ['success', 'skipped'].includes(guard) && result === 'success',
+        `guard=${guard} proof=${result}`);
+    }
+  }
+});
+
 
 test('diagnostic runtime measurements run on demand without occupying every Candidate', () => {
   const measurements = readFileSync('.github/workflows/runtime-performance.yml', 'utf8');

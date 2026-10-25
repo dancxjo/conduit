@@ -45,6 +45,13 @@ cargo xtask ci pipeline train-capture owner/repository SOURCE_SHA /absolute/new-
 
 `SOURCE_SHA` must be the exact checked-out commit. Git must contain the current
 development base and every selected head as ancestors of that commit. The
+captured source tree must also equal Git's default conflict-free merge of the
+selected heads in canonical PR-number order onto that base. Capture reconstructs
+this tree using temporary Git objects, without changing refs, the index or the
+working tree. Extra source changes and manual conflict resolutions refuse;
+resolve those changes in a selected PR and prove the new selection instead.
+Ancestry alone is insufficient admission.
+The
 command reads the live development ref, selected PRs and their latest exact-head
 Candidate runs using the existing `gh` authentication. It requires open,
 non-draft, mergeable same-repository PRs targeting the captured development base
@@ -71,3 +78,10 @@ A future landing adapter must refresh state at its mutation boundary and use a
 race-safe operation that preserves the tested tree. These observational results
 are not a compare-and-swap, merge authorization or publication receipt. The
 current development and stable publication requirements remain in force.
+
+Integration now earns the protected `candidate` context from its exhaustive
+proof. The aggregate runs even after a guard refusal or cancelled dependency and
+accepts only a successful proof; skipped proof cannot satisfy that context. This
+does not grant landing authority or authenticate a caller-provided product bundle.
+Production landing still requires binding the retained bytes to the actual run
+and complete build/proof custody before any branch mutation is enabled.
