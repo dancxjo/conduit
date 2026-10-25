@@ -1,4 +1,4 @@
-import { promises as fs } from 'node:fs';
+import { promises as fs, constants as fsConstants } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -6,6 +6,7 @@ import { performance } from 'node:perf_hooks';
 import { CacheRefusal } from './refusal.mjs';
 import { hashFile, snapshotInventory, assertSupportedPackage } from './cargo-snapshot.mjs';
 import { SCCACHE_ENGINE } from './engine.mjs';
+import { HOSTED_SNAPSHOT_LIMITS, proceduralMacroBypassNames } from './hosted-snapshot.mjs';
 
 const fail = code => { throw new CacheRefusal(code); };
 const sha = value => createHash('sha256').update(value).digest('hex');
@@ -27,29 +28,70 @@ done
 wait "$server"
 trap - EXIT HUP INT TERM
 `;
+// Macro reexports can hide their dynamic artifact behind an ordinary rlib.
+// Use the full resolver dependency closure, never only --extern suffixes.
+export const HOSTED_RUSTC_WRAPPER = `#!/bin/sh
+set -eu
+compiler="$1"; shift
+for arg in "$@"; do
+  case "$arg" in @*) echo 'compiler-cache refuses response files' >&2; exit 64;; esac
+done
+for arg in "$@"; do
+  case "$arg" in --print=*|-vV|--version) exec "$compiler" "$@";; esac
+done
+while IFS= read -r name; do
+  if [ "$name" = "\${CARGO_PKG_NAME:-}" ]; then
+    printf '%s\n' "$name" >> /task/proc-macro-bypass.log
+    exec "$compiler" "$@"
+  fi
+done < /closure/proc-macro-bypass.txt
+for arg in "$@"; do
+  case "$arg" in proc-macro|*.so) echo 'unclassified procedural macro input' >&2; exit 64;; esac
+done
+exec /engine/sccache "$compiler" "$@"
+`;
+export const HOSTED_METADATA_SCRIPT = '#!/bin/sh\nset -eu\n/toolchain/bin/cargo metadata --frozen --offline --config /closure/cargo-config.toml --manifest-path /source/Cargo.toml --format-version 1 > /task/resolved-metadata.json\n';
+export const HOSTED_CARGO_SANDBOX_SCRIPT = CARGO_SANDBOX_SCRIPT.replace(
+  '/toolchain/bin/cargo build --frozen --offline --manifest-path /source/Cargo.toml --target-dir /task/target --lib -j 1',
+  '/toolchain/bin/cargo build --locked --frozen --offline --config /closure/cargo-config.toml --manifest-path /source/Cargo.toml --target-dir /task/target --release -p conduit --bin conduit -j 2');
 async function canonicalDestination(value) {
   let existing = path.resolve(value); const missing=[];
   for (;;) { try { return path.join(await fs.realpath(existing),...missing.reverse()); }
     catch(error) { if(error.code!=='ENOENT')throw error; const parent=path.dirname(existing); if(parent===existing)throw error; missing.push(path.basename(existing)); existing=parent; }
   }
 }
-async function boundedBytes(root) {
+// Observe compiler temporaries without mistaking a normal unlink for a failed
+// build. Directory FDs + O_NOFOLLOW also prevent following a swapped symlink
+// out of the owned task/cache while accounting runs outside the sandbox.
+export async function measureCargoOutputBytes(root) {
   let total=0,count=0;
-  async function walk(directory) { for(const item of await fs.readdir(directory,{withFileTypes:true})) {
-    if(++count>100000)fail('cargo-runtime-file-bound'); const file=path.join(directory,item.name);
-    if(item.isDirectory())await walk(file);
-    else if(item.isFile())total+=(await fs.lstat(file)).size;
-    else if(!item.isSocket())fail('cargo-runtime-unsupported-file');
-  } }
-  await walk(root); return total;
+  async function walk(directory,outer=false) {
+    let fd;
+    try {fd=await fs.open(directory,fsConstants.O_RDONLY|fsConstants.O_DIRECTORY|fsConstants.O_NOFOLLOW);}
+    catch(error){if(error.code==='ENOENT'&&!outer)return;if(error.code==='ELOOP')fail('cargo-runtime-unsupported-file');throw error;}
+    try{
+      let entries;
+      try{entries=await fs.readdir(`/proc/self/fd/${fd.fd}`,{withFileTypes:true});}
+      catch(error){if(error.code==='ENOENT'&&!outer)return;throw error;}
+      for(const item of entries){
+        if(++count>100000)fail('cargo-runtime-file-bound');
+        const file=`/proc/self/fd/${fd.fd}/${item.name}`;let stat;
+        try{stat=await fs.lstat(file);}catch(error){if(error.code==='ENOENT')continue;throw error;}
+        if(stat.isDirectory())await walk(file);
+        else if(stat.isFile())total+=stat.size;
+        else if(!stat.isSocket())fail('cargo-runtime-unsupported-file');
+      }
+    }finally{await fd.close();}
+  }
+  await walk(root,true);return total;
 }
-function runSandbox(args,{onTick,timeoutMs=120000}={}) {
+export function runSandbox(args,{onTick,timeoutMs=120000,monitorMs=100,resourcesFile}={}) {
   return new Promise((resolve,reject)=>{
-    const child=spawn('/usr/bin/bwrap',args,{detached:true,stdio:['ignore','pipe','pipe'],env:{PATH:'/usr/bin:/bin',LANG:'C'}});
+    const child=spawn(resourcesFile?'/usr/bin/time':'/usr/bin/bwrap',resourcesFile?['-v','-o',resourcesFile,'/usr/bin/bwrap',...args]:args,{detached:true,stdio:['ignore','pipe','pipe'],env:{PATH:'/usr/bin:/bin',LANG:'C'}});
     const started=performance.now(); let failure; let logBytes=0;const stdout=[],stderr=[];let checking=false;
     const kill=()=>{if(child.exitCode===null&&child.signalCode===null){try{process.kill(-child.pid,'SIGKILL');}catch{}}};
     const timer=setTimeout(()=>{failure=new CacheRefusal('cargo-timeout');kill();},timeoutMs);
-    const monitor=setInterval(()=>{if(checking||!onTick)return;checking=true;onTick().catch(error=>{failure=error;kill();}).finally(()=>{checking=false;});},100);
+    const monitor=setInterval(()=>{if(checking||!onTick)return;checking=true;onTick().catch(error=>{failure=error;kill();}).finally(()=>{checking=false;});},monitorMs);
     for(const [stream,chunks]of [[child.stdout,stdout],[child.stderr,stderr]])stream.on('data',bytes=>{logBytes+=bytes.length;if(logBytes>1024*1024){failure=new CacheRefusal('cargo-log-bound');kill();}else chunks.push(bytes);});
     child.once('error',error=>{failure=error;});
     child.once('close',async(code,signal)=>{
@@ -62,7 +104,7 @@ function runSandbox(args,{onTick,timeoutMs=120000}={}) {
     });
   });
 }
-export function cargoSandboxArgs({snapshotRoot,taskRoot,cacheObjects,namespace,maxCacheBytes,mode='cargo'}) {
+export function cargoSandboxArgs({snapshotRoot,taskRoot,cacheObjects,namespace,maxCacheBytes,mode='cargo',hosted=false}) {
   const args=['--unshare-all','--die-with-parent','--new-session','--cap-drop','ALL','--clearenv',
     '--ro-bind',path.join(snapshotRoot,'source'),'/source',
     '--ro-bind',path.join(snapshotRoot,'toolchain'),'/toolchain',
@@ -76,6 +118,14 @@ export function cargoSandboxArgs({snapshotRoot,taskRoot,cacheObjects,namespace,m
     '--setenv','TMPDIR','/task/tmp','--setenv','LANG','C','--setenv','CARGO_INCREMENTAL','0',
     '--setenv','RUSTC','/toolchain/bin/rustc','--setenv','RUSTC_WRAPPER','/engine/sccache',
     '--setenv','CARGO_CONDUIT_CACHE_INPUTS_SHA256',namespace,'--setenv','SCCACHE_CACHE_SIZE',String(maxCacheBytes)];
+  if(hosted){
+    args.push('--ro-bind',path.join(snapshotRoot,'vendor'),'/vendor',
+      '--ro-bind',path.join(snapshotRoot,'git-vendor'),'/git-vendor',
+      '--ro-bind',path.join(snapshotRoot,'cargo-config.toml'),'/closure/cargo-config.toml',
+      '--ro-bind',path.join(snapshotRoot,'proc-macro-bypass.txt'),'/closure/proc-macro-bypass.txt',
+      '--setenv','RUSTC_WRAPPER','/task/rustc-wrapper.sh');
+  }
+  if(mode==='hosted-metadata'&&hosted)return [...args,'/bin/sh','/task/metadata.sh'];
   if(mode==='cargo')return [...args,'/bin/sh','/task/run.sh'];
   if(mode==='negative-read')return [...args,'/toolchain/bin/rustc','/task/negative.rs','--crate-name','outside_read','--crate-type=rlib','--out-dir','/task/negative-output'];
   fail('unsupported-cargo-mode');
@@ -86,11 +136,14 @@ export function cargoSandboxArgs({snapshotRoot,taskRoot,cacheObjects,namespace,m
 // no host daemon can silently perform compilation outside the snapshot.
 export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCacheBytes=16*1024*1024,maxTaskBytes=64*1024*1024,reserveBytes=1024*1024*1024}) {
   const started=performance.now();
-  if(snapshot?.schema!=='compositor-cargo-snapshot-v1'||![snapshot.root,cacheRoot,taskRoot].every(value=>typeof value==='string'&&path.isAbsolute(value))||[maxCacheBytes,maxTaskBytes,reserveBytes].some(value=>!Number.isSafeInteger(value)||value<=0))fail('invalid-cargo-cache-policy');
+  const hosted=snapshot?.schema==='hosted-linux-cargo-snapshot-v1';
+  const inventoryOptions=hosted?HOSTED_SNAPSHOT_LIMITS:undefined;
+  const script=hosted?HOSTED_CARGO_SANDBOX_SCRIPT:CARGO_SANDBOX_SCRIPT;
+  if((!hosted&&snapshot?.schema!=='compositor-cargo-snapshot-v1')||![snapshot.root,cacheRoot,taskRoot].every(value=>typeof value==='string'&&path.isAbsolute(value))||[maxCacheBytes,maxTaskBytes,reserveBytes].some(value=>!Number.isSafeInteger(value)||value<=0))fail('invalid-cargo-cache-policy');
   const [sourceRoot,cache,task]=await Promise.all([fs.realpath(snapshot.root),canonicalDestination(cacheRoot),canonicalDestination(taskRoot)]);
   if([sourceRoot,cache,task].some((first,index,roots)=>roots.some((second,other)=>index!==other&&(first===second||first.startsWith(`${second}/`)))))fail('overlapping-cargo-roots');
-  await assertSupportedPackage(path.join(sourceRoot,'source'));
-  const input=await snapshotInventory(sourceRoot);if(input.sha256!==snapshot.sha256)fail('cargo-snapshot-mismatch');
+  if(!hosted)await assertSupportedPackage(path.join(sourceRoot,'source'));
+  const input=await snapshotInventory(sourceRoot,inventoryOptions);if(input.sha256!==snapshot.sha256)fail('cargo-snapshot-mismatch');
   await fs.mkdir(cache,{recursive:true,mode:0o700});
   const lease=path.join(cache,'.cargo-lease');
   try{await fs.mkdir(lease,{mode:0o700});}catch(error){if(error.code==='EEXIST')fail('cargo-cache-busy');throw error;}
@@ -102,7 +155,8 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
     if(names.some(name=>name==='retirement.json'||name.startsWith('.retiring-')))fail('cargo-retirement-interrupted');
     if(names.some(name=>!['.cargo-lease','policy.json','objects'].includes(name)))fail('unmanaged-cargo-cache');
     const free=await fs.statfs(cache,{bigint:true});if(free.bavail*free.bsize<BigInt(reserveBytes)+BigInt(maxCacheBytes)+BigInt(maxTaskBytes))fail('cargo-reserve-admission');
-    const policy={schema:2,snapshotSha256:input.sha256,runnerSha256:sha(CARGO_SANDBOX_SCRIPT),sandboxArgsSha256:sha(cargoSandboxArgs.toString()),runnerSourceSha256:sha(runSandbox.toString()),bwrapSha256:await hashFile('/usr/bin/bwrap'),maxCacheBytes};
+    const taskFree=await fs.statfs(path.dirname(task),{bigint:true});if(taskFree.bavail*taskFree.bsize<BigInt(reserveBytes)+BigInt(maxTaskBytes))fail('cargo-reserve-admission');
+    const policy={schema:2,snapshotSha256:input.sha256,runnerSha256:sha(script+(hosted?HOSTED_RUSTC_WRAPPER+HOSTED_METADATA_SCRIPT:'')),sandboxArgsSha256:sha(cargoSandboxArgs.toString()),runnerSourceSha256:sha(runSandbox.toString()),bwrapSha256:await hashFile('/usr/bin/bwrap'),maxCacheBytes};
     const namespace=sha(JSON.stringify(policy));
     const marker=path.join(cache,'policy.json');
     try{if(await fs.readFile(marker,'utf8')!==JSON.stringify(policy))fail('cargo-cache-policy-mismatch');}
@@ -111,23 +165,43 @@ export async function runCompositorCargoCache({snapshot,cacheRoot,taskRoot,maxCa
     if((await fs.lstat(objects)).isSymbolicLink())fail('unsafe-cargo-cache');
     if(await hashFile(path.join(sourceRoot,'engine/sccache'))!==SCCACHE_ENGINE.binarySha256)fail('engine-binary-mismatch');
     await fs.mkdir(task,{mode:0o700});for(const name of ['home','tmp'])await fs.mkdir(path.join(task,name));
-    await fs.writeFile(path.join(task,'run.sh'),CARGO_SANDBOX_SCRIPT,{flag:'wx',mode:0o400});
+    if(hosted){
+      await fs.writeFile(path.join(task,'rustc-wrapper.sh'),HOSTED_RUSTC_WRAPPER,{flag:'wx',mode:0o500});
+      await fs.writeFile(path.join(task,'metadata.sh'),HOSTED_METADATA_SCRIPT,{flag:'wx',mode:0o400});
+    }
+    await fs.writeFile(path.join(task,'run.sh'),script,{flag:'wx',mode:0o400});
     await fs.writeFile(path.join(task,'sccache.toml'),`[cache.disk]\ndir = "/cache"\nsize = ${maxCacheBytes}\n`,{flag:'wx',mode:0o400});
     const check=async()=>{
       const stat=await fs.statfs(cache,{bigint:true});if(stat.bavail*stat.bsize<BigInt(reserveBytes))fail('cargo-reserve-lost');
-      if(await boundedBytes(objects)>maxCacheBytes)fail('cargo-cache-bound');if(await boundedBytes(task)>maxTaskBytes)fail('cargo-task-bound');
+      const taskSpace=await fs.statfs(task,{bigint:true});if(taskSpace.bavail*taskSpace.bsize<BigInt(reserveBytes))fail('cargo-reserve-lost');
+      if(await measureCargoOutputBytes(objects)>maxCacheBytes)fail('cargo-cache-bound');if(await measureCargoOutputBytes(task)>maxTaskBytes)fail('cargo-task-bound');
     };
     await check();
-    const args=cargoSandboxArgs({snapshotRoot:sourceRoot,taskRoot:task,cacheObjects:objects,namespace,maxCacheBytes});
+    if(hosted){
+      try{await runSandbox(cargoSandboxArgs({snapshotRoot:sourceRoot,taskRoot:task,cacheObjects:objects,namespace,maxCacheBytes,hosted,mode:'hosted-metadata'}),{onTick:check});
+      const metadataFile=path.join(task,'resolved-metadata.json');if((await fs.stat(metadataFile)).size>32*1024**2)fail('hosted-metadata-bound');
+      const actualNames=proceduralMacroBypassNames(JSON.parse(await fs.readFile(metadataFile,'utf8')));
+      const allowed=new Set((await fs.readFile(path.join(sourceRoot,'proc-macro-bypass.txt'),'utf8')).trimEnd().split('\n'));
+      if(actualNames.some(name=>!allowed.has(name)))fail('hosted-macro-closure-mismatch');
+      }catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({stage:'offline-metadata',code:error.code,message:error.message,path:error.path,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
+    }
+    const args=cargoSandboxArgs({snapshotRoot:sourceRoot,taskRoot:task,cacheObjects:objects,namespace,maxCacheBytes,hosted});
     let result;
-    try{result=await runSandbox(args,{onTick:check});}
-    catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({code:error.code,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
-    await check();if((await snapshotInventory(sourceRoot)).sha256!==input.sha256)fail('cargo-snapshot-mutated');
+    try{result=await runSandbox(args,{onTick:check,timeoutMs:hosted?3600000:120000,monitorMs:hosted?1000:100,resourcesFile:hosted?path.join(task,'resource-usage.txt'):undefined});}
+    catch(error){await fs.writeFile(path.join(task,'failure.json'),JSON.stringify({code:error.code,message:error.message,path:error.path,result:error.result},null,2),{flag:'wx',mode:0o600});throw error;}
+    await check();if((await snapshotInventory(sourceRoot,inventoryOptions)).sha256!==input.sha256)fail('cargo-snapshot-mutated');
     const before=JSON.parse(await fs.readFile(path.join(task,'before.json'),'utf8'));
     const after=JSON.parse(await fs.readFile(path.join(task,'after.json'),'utf8'));
-    const outputs=[];const dependencies=path.join(task,'target/debug/deps');
+    const outputs=[];const dependencies=path.join(task,hosted?'target/release/deps':'target/debug/deps');
     for(const name of (await fs.readdir(dependencies)).sort())if(name.endsWith('.rlib')||name.endsWith('.rmeta'))outputs.push({name,sha256:await hashFile(path.join(dependencies,name)),bytes:(await fs.stat(path.join(dependencies,name))).size});
-    const receipt={schema:1,scope:'Actual compositor-core Cargo --lib build only; no full workspace, link/test/release or arbitrary procedural-macro proof',namespace,snapshotSha256:input.sha256,generatedInputs:{lockfileSha256:await hashFile(path.join(sourceRoot,'source/Cargo.lock')),buildScriptOutputs:[]},policy,compilerBoundary:'Owned server and rustc children inside bwrap --unshare-all with snapshot mounts read-only',args,environment:CARGO_SANDBOX_SCRIPT,bwrapSha256:policy.bwrapSha256,before,after,outputs,cacheBytes:await boundedBytes(objects),taskBytes:await boundedBytes(task),validatedWallMs:performance.now()-started,...result};
+    if(hosted)outputs.push({name:'conduit',sha256:await hashFile(path.join(task,'target/release/conduit')),bytes:(await fs.stat(path.join(task,'target/release/conduit'))).size});
+    const buildScriptOutputs=[];
+    if(hosted)for(const name of await fs.readdir(path.join(task,'target/release/build'))){
+      const out=path.join(task,'target/release/build',name,'out');
+      try{buildScriptOutputs.push({packageDirectory:name,...await snapshotInventory(out,HOSTED_SNAPSHOT_LIMITS)});}
+      catch(error){if(error.code!=='ENOENT')throw error;}
+    }
+    const receipt={schema:1,scope:hosted?'Actual hosted Linux release Cargo build; transitive procedural-macro consumers bypass cache, behavioral proof executes separately':'Actual compositor-core Cargo --lib build only; no full workspace, link/test/release or arbitrary procedural-macro proof',namespace,snapshotSha256:input.sha256,generatedInputs:{lockfileSha256:await hashFile(path.join(sourceRoot,'source/Cargo.lock')),buildScriptOutputs},policy,compilerBoundary:'Owned server and rustc children inside bwrap --unshare-all with snapshot mounts read-only',args,environment:script,bwrapSha256:policy.bwrapSha256,before,after,outputs,...(hosted?{resourceUsage:await fs.readFile(path.join(task,'resource-usage.txt'),'utf8'),procMacroBypasses:(await fs.readFile(path.join(task,'proc-macro-bypass.log'),'utf8')).trimEnd().split('\n')}:{}),cacheBytes:await measureCargoOutputBytes(objects),taskBytes:await measureCargoOutputBytes(task),validatedWallMs:performance.now()-started,...result};
     await fs.writeFile(path.join(task,'cargo-cache-receipt.json'),JSON.stringify(receipt,null,2),{flag:'wx',mode:0o600});return receipt;
   } finally{await fs.rm(lease,{recursive:true});}
 }
@@ -244,4 +318,9 @@ export async function clearCompositorCargoCache({cacheRoot,expectedNamespace}) {
     await fs.rmdir(retired);await fs.mkdir(objects,{mode:0o700});await syncDirectory(cache);
     await fs.unlink(intent);await syncDirectory(cache);return receipt;
   } finally {await fs.rm(lease,{recursive:true});}
+}
+
+export async function runHostedCargoCache(options) {
+  if(options.snapshot?.schema!=='hosted-linux-cargo-snapshot-v1')fail('invalid-hosted-snapshot');
+  return runCompositorCargoCache({maxCacheBytes:4*1024**3,maxTaskBytes:12*1024**3,reserveBytes:10*1024**3,...options});
 }
