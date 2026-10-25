@@ -7,6 +7,7 @@ import { copyCompilerClosure, copyRegular, snapshotInventory, hashFile } from '.
 import { SCCACHE_ENGINE } from './engine.mjs';
 import { canonicalHostedMetadata } from './hosted-metadata.mjs';
 import { captureHostedNativeClosure } from './hosted-native.mjs';
+import { buildHostedAdmission } from './hosted-admission.mjs';
 
 export const HOSTED_SNAPSHOT_LIMITS = Object.freeze({ maxBytes: 6 * 1024 ** 3, maxFiles: 150000 });
 const fail = code => { throw new CacheRefusal(code); };
@@ -58,11 +59,16 @@ export async function extractAuthenticatedRegistry({lockFile,vendorRoot,archiveC
   return JSON.parse(run('/usr/bin/python3',['-c',VENDOR,lockFile,vendorRoot,archiveCache],{maxBuffer:1024*1024}));
 }
 
-export async function prepareHostedSnapshot({ repositoryRoot, toolchainRoot, engine, destination, cargoHome = path.join(process.env.HOME, '.cargo') }) {
+export async function prepareHostedSnapshot({ repositoryRoot, toolchainRoot, engine, destination, cargoHome = path.join(process.env.HOME, '.cargo'), acquisitionFile, cacheMode = 'exact-snapshot' }) {
   if (process.platform !== 'linux' || process.arch !== 'x64' || ![repositoryRoot,toolchainRoot,engine,destination,cargoHome].every(value => typeof value === 'string' && path.isAbsolute(value))) fail('unsupported-hosted-snapshot-policy');
-  repositoryRoot=await fs.realpath(repositoryRoot);toolchainRoot=await fs.realpath(toolchainRoot);engine=await fs.realpath(engine);
+  if(!['exact-snapshot','audited-dependencies'].includes(cacheMode))fail('unsupported-hosted-cache-mode');
+  repositoryRoot=await fs.realpath(repositoryRoot);toolchainRoot=await fs.realpath(toolchainRoot);engine=await fs.realpath(engine);cargoHome=await fs.realpath(cargoHome);
   destination=path.join(await fs.realpath(path.dirname(destination)),path.basename(destination));
   if ([repositoryRoot,toolchainRoot,cargoHome].some(root=>destination===root||destination.startsWith(root+'/'))) fail('overlapping-hosted-snapshot');
+  acquisitionFile??=destination+'.acquisition.json';
+  if(!path.isAbsolute(acquisitionFile))fail('invalid-hosted-acquisition-path');
+  acquisitionFile=path.join(await fs.realpath(path.dirname(acquisitionFile)),path.basename(acquisitionFile));
+  if([destination,repositoryRoot,toolchainRoot,cargoHome,engine].some(root=>acquisitionFile===root||acquisitionFile.startsWith(root+'/')))fail('overlapping-hosted-acquisition');
   if (await hashFile(engine)!==SCCACHE_ENGINE.binarySha256) fail('engine-binary-mismatch');
   const free=await fs.statfs(path.dirname(destination),{bigint:true});if(free.bavail*free.bsize<19n*1024n**3n)fail('hosted-snapshot-reserve');
   const git=args=>run('git',['--no-replace-objects','-C',repositoryRoot,...args]).toString().trim();
@@ -79,7 +85,7 @@ export async function prepareHostedSnapshot({ repositoryRoot, toolchainRoot, eng
   const acquisitionCargoSha256=await hashFile(path.join(toolchainRoot,'bin/cargo'));
   const acquiredBytes=run(path.join(toolchainRoot,'bin/cargo'),['metadata','--locked','--offline','--format-version','1'],{cwd:source,env:acquisitionEnv,maxBuffer:32*1024**2});
   const acquired=JSON.parse(acquiredBytes);
-  const acquisitionReceipt=destination+'.acquisition.json';
+  const acquisitionReceipt=acquisitionFile;
   await fs.writeFile(acquisitionReceipt,JSON.stringify({schema:1,scope:'Raw acquisition provenance outside immutable compiler inputs',sourceCommit,sourceTree,acquisitionCargoSha256,rawMetadataSha256:digest(acquiredBytes),rawMetadata:acquiredBytes.toString()},null,2),{flag:'wx',mode:0o600});
   const bypassNames=proceduralMacroBypassNames(acquired);
   await fs.writeFile(path.join(destination,'proc-macro-bypass.txt'),bypassNames.join('\n')+'\n',{mode:0o444,flag:'wx'});
@@ -144,8 +150,13 @@ export async function prepareHostedSnapshot({ repositoryRoot, toolchainRoot, eng
   await fs.writeFile(path.join(destination,'cargo-config.toml'),vendorConfig,{mode:0o444,flag:'wx'});
   if(await hashFile(path.join(destination,'toolchain/bin/cargo'))!==acquisitionCargoSha256)fail('hosted-acquisition-cargo-mutated');
   await verifyHostedSource({repositoryRoot,sourceRoot:source,sourceCommit,sourceTree});
+  if(cacheMode==='audited-dependencies'){
+    const {admission,script}=await buildHostedAdmission({root:destination,metadata:acquired,bypassNames});
+    await fs.writeFile(path.join(destination,'shared-admission.json'),JSON.stringify(admission),{flag:'wx',mode:0o444});
+    await fs.writeFile(path.join(destination,'shared-admission.sh'),script,{flag:'wx',mode:0o444});
+  }
   const snapshot=await snapshotInventory(destination,HOSTED_SNAPSHOT_LIMITS);
-  return {schema:'hosted-linux-cargo-snapshot-v1',root:destination,host:'x86_64-unknown-linux-gnu',sourceCommit,sourceTree,...snapshot,acquisitionReceipt,native,vendor:vendorReceipt,procMacroBypass:bypassNames,package:{name:'conduit',command:['build','--locked','--release','-p','conduit','--bin','conduit'],proceduralMacroPolicy:'Bypass all transitive procedural-macro dependencies, including reexports; response files refuse'},acquisitionPolicySha256:digest(VENDOR)};
+  return {schema:'hosted-linux-cargo-snapshot-v1',root:destination,host:'x86_64-unknown-linux-gnu',sourceCommit,sourceTree,cacheMode,...snapshot,acquisitionReceipt,native,vendor:vendorReceipt,procMacroBypass:bypassNames,package:{name:'conduit',command:['build','--locked','--release','-p','conduit','--bin','conduit'],proceduralMacroPolicy:'Bypass all transitive procedural-macro dependencies, including reexports; response files refuse'},acquisitionPolicySha256:digest(VENDOR)};
 }
 
 // Resolver features intentionally overapproximate the fixed package build.

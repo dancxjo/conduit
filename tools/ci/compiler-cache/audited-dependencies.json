@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "policy": "finite-third-party-no-own-build-script-v1",
+  "scope": "Exact immutable Rust library source identities, no procedural macros, own build scripts, native/assembly input mechanisms or custom compiler extensions. Builtin includes and Cargo env macros remain ordinary pinned sccache tracked inputs. Not generic arbitrary Rust admission.",
+  "crates": [
+    {
+      "name": "syn",
+      "version": "2.0.119",
+      "archiveSha256": "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297",
+      "sourceInventorySha256": "3a36269b041c54231e0d6c8c32cc9cf2e7983855bb8f3a8b7276784713ae605e"
+    },
+    {
+      "name": "syn",
+      "version": "3.0.6",
+      "archiveSha256": "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee",
+      "sourceInventorySha256": "4790f5fa1e1b061aebc94a58f93958945f9615dfe34ce6a3eb37db32dd393dcf"
+    },
+    {
+      "name": "clap_builder",
+      "version": "4.6.7",
+      "archiveSha256": "ec0797fb7aeb1406c84efac526901f7ec3ead2124f946b494e72879d4b54704d",
+      "sourceInventorySha256": "c14cd8f5473aac272b5efffad1b8353113ec4c32482b3864ca19020627d38237"
+    },
+    {
+      "name": "winnow",
+      "version": "0.7.15",
+      "archiveSha256": "df79d97927682d2fd8adb29682d1140b343be4ac0f08fd68b7765d9c059d3945",
+      "sourceInventorySha256": "f09e558857405e49933a2180480ff8ef86082e4cbfe68802853104b2f3041db1"
+    }
+  ]
+}
