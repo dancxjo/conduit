@@ -3,8 +3,9 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { verifyBundle } from './receipts.mjs';
 import { TARGETS } from './targets.mjs';
+import { candidateAdmission, canonicalCandidateAdmission } from './train-input-admission.mjs';
 
-const SCHEMA = 'conduit.integration-train/v1';
+const SCHEMA = 'conduit.integration-train/v2';
 const sha = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value);
 const repositoryName = value => typeof value === 'string' && value.length <= 512 && /^[\w.-]+\/[\w.-]+$/.test(value);
 const require = (condition, reason) => { if (!condition) throw new Error(reason); };
@@ -18,12 +19,15 @@ function identities(repository, base, inputs) {
     require(Number.isSafeInteger(input.number) && input.number > 0 && sha(input.head), 'Invalid train input');
     require(!seen.has(input.number), 'Duplicate train pull request');
     seen.add(input.number);
-    return { number: input.number, head: input.head };
+    const admission = canonicalCandidateAdmission(input.admission);
+    require(admission.head === input.head, 'Candidate admission head differs');
+    require(Object.keys(input).sort().join() === ['admission', 'head', 'number'].sort().join(), 'Unknown train input field');
+    return { number: input.number, head: input.head, admission };
   }).sort((a, b) => a.number - b.number);
   return { repository, base, inputs: result };
 }
 
-function requireReady(identity, pr, run, repository) {
+function requireReady(identity, pr, run, jobs, repository) {
   require(pr?.number === identity.number && pr.state === 'open' && pr.draft === false && pr.mergeable === true,
     'Train input is not an open, non-draft, mergeable pull request');
   require(pr.head?.sha === identity.head && pr.head?.repo?.full_name === repository &&
@@ -31,19 +35,26 @@ function requireReady(identity, pr, run, repository) {
   'Train input head, repository or base changed');
   require(run?.repository?.full_name === repository && run.head_repository?.full_name === repository &&
     run.path === '.github/workflows/candidate.yml' && run.event === 'pull_request' &&
-    run.head_sha === identity.head && run.status === 'completed' && run.conclusion === 'success' &&
+    run.head_sha === identity.head && run.status === 'completed' && ['success', 'failure'].includes(run.conclusion) &&
     run.pull_requests?.some(p => p.number === identity.number),
-  'Train input lacks successful exact-head Candidate evidence');
+  'Train input lacks completed exact-head Candidate evidence');
+  return candidateAdmission(run, jobs);
 }
 
 export function selectTrainInputs({ repository, base, selections }) {
   require(Array.isArray(selections), 'Missing train selection snapshots');
-  const selection = identities(repository, base, selections.map(s => ({ number: s.pr?.number, head: s.pr?.head?.sha })));
-  for (const input of selection.inputs) {
-    const snapshot = selections.find(s => s.pr.number === input.number);
-    requireReady(input, snapshot.pr, snapshot.candidateRun, repository);
-  }
-  return { ...selection, branch: `train/${digest(selection)}` };
+  const inputs = selections.map(snapshot => {
+    const identity = { number: snapshot.pr?.number, head: snapshot.pr?.head?.sha };
+    return { ...identity, admission: requireReady(identity, snapshot.pr, snapshot.candidateRun, snapshot.candidateJobs, repository) };
+  });
+  const selection = identities(repository, base, inputs);
+  const selected = { ...selection, branch: `train/${digest(selection)}` };
+  // Reserve the exact fixed-width source/tree/digest envelope before assembly
+  // creates any worktree. Never truncate job custody to fit a workflow input.
+  require(Buffer.byteLength(JSON.stringify({ schema: SCHEMA, ...selected,
+    source: '0'.repeat(40), tree: '0'.repeat(40), digest: '0'.repeat(64) }, null, 2) + '\n') <= 65536,
+  'Train admission manifest exceeds bound');
+  return selected;
 }
 
 function payload(manifest) {
@@ -56,6 +67,7 @@ function payload(manifest) {
 }
 
 export function verifyTrainManifest(manifest) {
+  require(Buffer.byteLength(JSON.stringify(manifest, null, 2) + '\n') <= 65536, 'Train manifest exceeds bound');
   const value = payload(manifest);
   require(manifest.digest === digest(value), 'Train manifest digest mismatch');
   // Reject fields that could be mistaken for additional authorization or policy.
@@ -115,13 +127,8 @@ export function verifyTrainRun(manifest, { development, selections, run }) {
   const value = verifyTrainManifest(manifest);
   require(development === value.base, 'Development advanced; train must be rebuilt');
   require(Array.isArray(selections) && selections.length === value.inputs.length, 'Train input set changed');
-  const current = identities(value.repository, development,
-    selections.map(s => ({ number: s.pr?.number, head: s.pr?.head?.sha })));
-  require(JSON.stringify(current.inputs) === JSON.stringify(value.inputs), 'Train input set changed');
-  for (const input of value.inputs) {
-    const snapshot = selections.find(s => s.pr.number === input.number);
-    requireReady(input, snapshot.pr, snapshot.candidateRun, value.repository);
-  }
+  const current = selectTrainInputs({ repository: value.repository, base: development, selections });
+  require(JSON.stringify(current.inputs) === JSON.stringify(value.inputs), 'Train input admission/run/attempt/job evidence changed');
   requireManualProof(value, run);
   return { ...value, integrationRun: run.id };
 }

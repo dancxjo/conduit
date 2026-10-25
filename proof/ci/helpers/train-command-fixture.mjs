@@ -22,7 +22,14 @@ export async function commands(t) {
     else if (args[1].includes('/pulls/')) value = f.selections.find(s => args[1].endsWith(`/pulls/${s.pr.number}`))?.pr;
     else if (args[1].includes('/actions/workflows/candidate.yml/runs?')) {
       const index = f.selections.findIndex(s => args[1].includes(`head_sha=${s.pr.head.sha}`));
-      value = { workflow_runs: runs[index] };
+      value = { total_count: runs[index].length, workflow_runs: runs[index] };
+    } else if (/\/actions\/runs\/\d+\/attempts\/\d+\/jobs\?per_page=100$/.test(args[1])) {
+      const selected = f.selections.find(s => args[1].includes(`/runs/${s.candidateRun.id}/`));
+      const run = runs[f.selections.indexOf(selected)].at(-1);
+      value = { ...selected.candidateJobs, jobs: selected.candidateJobs.jobs.map(job => ({ ...job,
+        run_id: run.id, run_attempt: run.run_attempt, head_sha: run.head_sha })) };
+    } else if (/\/actions\/runs\/\d+$/.test(args[1])) {
+      value = runs.flat().find(run => args[1].endsWith(`/runs/${run.id}`));
     } else assert.fail(`Unexpected API ${args[1]}`);
     return { status: 0, stdout: JSON.stringify(value) };
   };

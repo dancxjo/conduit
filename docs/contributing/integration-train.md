@@ -64,10 +64,23 @@ Ancestry alone is insufficient admission. The command reads the live development
 ref, selected PRs and their latest exact-head
 Candidate runs using the existing `gh` authentication. It requires open,
 non-draft, mergeable same-repository PRs targeting the captured development base
-and successful completed Candidate evidence. A newer failed or running attempt
-cannot be replaced with an older green attempt. Missing or ambiguous evidence
-refuses. The bounded manifest is created exclusively; an existing file is
-preserved. Its deterministic train branch name binds the base and selected heads.
+and exact completed Candidate run/attempt evidence. A successful Candidate
+remains eligible. A bounded `native-deferred` tier may also admit a failed
+Candidate when its exact-attempt complete job inventory proves preflight,
+package admission and every selected portable/unit/host/non-native target
+successful, with failures confined to the known ConduitOS product lanes and
+their aggregate wrappers. An explicitly skipped unselected unit/target placeholder
+is recorded; a missing or skipped selected job refuses. Unknown jobs, incomplete
+matrices, cancelled/running jobs or changed attempts refuse. A newer failed or
+running cheap-admission attempt cannot be replaced with older green evidence.
+The v2 manifest binds exact run/attempt/head, every job ID/name/conclusion and
+all deferred native failures into its digest. It never reports the input PR's
+Candidate as successful or makes it directly mergeable. No ordinary Candidate
+workflow or branch protection is weakened; only eligibility for full combined
+proof changes. Every native product lane must still pass on the combined exact
+source before landing. Missing or ambiguous evidence refuses. The bounded
+manifest is created exclusively; an existing file is preserved. Its deterministic
+train branch name binds the base, selected heads and exact admission receipts.
 The live development ref is authoritative: GitHub PR metadata can retain an older
 `base.sha` even when its current merge preview contains the new development tip.
 An old metadata value does not replace or invalidate the captured live base.
@@ -189,3 +202,16 @@ publisher composes the authenticated browser site and exact-source ConduitOS
 journey in a fresh directory and checks all local links. A composition or link
 failure retains the output for diagnosis and refuses promotion. Only the
 verified directory is exposed as `pages-site` for the subsequent Pages upload.
+
+
+Input observations use the attempt-specific jobs API, bounded to 100 jobs and
+100 run records with exact total-count equality. Run/attempt/head and latest-run
+state are rechecked after jobs are read; assembly, dispatch, acquisition,
+restoration and landing reobserve and compare canonical admission custody.
+Neither a fresh rerun nor a newly created run silently substitutes for the
+manifest's original admission. Oversized custody refuses before assembly
+creates a worktree; the manifest retains its 64 KiB bound without truncation.
+Historical v1 train manifests are refused explicitly and must be recaptured as
+v2 rather than relabelled. Global cheap PR admission still requires a separate
+enforced machine-only landing policy; this bounded train-input tier does not
+activate it.
