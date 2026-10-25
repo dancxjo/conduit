@@ -47,6 +47,7 @@ mod offers;
 #[cfg(feature = "authenticated-admission")]
 mod pico_admission;
 mod planning_session;
+mod prepared_birth_media;
 mod presence;
 mod provenance;
 mod rendezvous;
@@ -96,6 +97,7 @@ pub use offers::*;
 #[cfg(feature = "authenticated-admission")]
 pub use pico_admission::*;
 pub use planning_session::*;
+pub use prepared_birth_media::*;
 pub use presence::*;
 pub use provenance::*;
 pub use rendezvous::*;
