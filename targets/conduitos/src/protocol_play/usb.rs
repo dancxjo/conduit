@@ -6,7 +6,7 @@ mod storage_ingress;
 impl<P: I2cProvider> PreparedProtocolPlay<P> {
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub fn prepare_usb(
         definition: KernelCompositeDefinition,
@@ -21,7 +21,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_with_sign_storage(
         definition: KernelCompositeDefinition,
@@ -49,7 +49,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_endpoint_only(
         definition: KernelCompositeDefinition,
@@ -74,7 +74,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     /// Both exact native operations retain one controller and ordinary kernel.
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_protocol(
         definition: KernelCompositeDefinition,
@@ -110,7 +110,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     /// Both exact native operations retain one controller and ordinary kernel.
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_isochronous(
         definition: KernelCompositeDefinition,
@@ -145,7 +145,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_duplex(
         definition: KernelCompositeDefinition,

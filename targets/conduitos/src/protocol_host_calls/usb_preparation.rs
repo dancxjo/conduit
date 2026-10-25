@@ -8,7 +8,7 @@ use conduit_core::*;
 impl<P: I2cProvider> PreparedProtocolCalls<P> {
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb(
         plan: &Plan,
@@ -48,7 +48,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_usb_protocol(
@@ -142,22 +142,22 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             usb_isochronous: None,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb_kind: PendingUsbKind::ProtocolRead,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb: None,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb_failed: false,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_duplex: [None, None],
         })
@@ -165,7 +165,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_usb_isochronous(
@@ -259,22 +259,22 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             usb_duplex: None,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb_kind: PendingUsbKind::ProtocolRead,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb: None,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb_failed: false,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_duplex: [None, None],
         })
@@ -282,7 +282,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_duplex(
         plan: &Plan,
@@ -297,7 +297,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     #[allow(clippy::too_many_arguments)]
     pub(super) fn prepare_usb_duplex_with_bindings(
@@ -416,22 +416,22 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             usb_isochronous: None,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb_kind: PendingUsbKind::ProtocolRead,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb: None,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_usb_failed: false,
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_duplex: [None, None],
         })
@@ -440,7 +440,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 #[path = "usb_preparation/endpoint_only.rs"]
 mod endpoint_only;

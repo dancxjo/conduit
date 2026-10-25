@@ -10,17 +10,17 @@ use conduit_kernel::{Failure, FailureCode};
 pub enum ProtocolCallRefusal {
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     Usb(crate::arch::UsbControlCallRefusal),
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     UsbProtocol(crate::arch::UsbNativeProtocolRefusal),
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     UsbIsochronous(crate::arch::UsbIsochronousCallRefusal),
     #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
@@ -69,12 +69,12 @@ impl ProtocolCallRefusal {
 
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Self::Usb(error) => control_failure(error),
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Self::UsbProtocol(error) => {
                 use crate::arch::{UsbNativeHostRefusal as Host, UsbNativeProtocolRefusal as Usb};
@@ -99,7 +99,7 @@ impl ProtocolCallRefusal {
             }
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             Self::UsbIsochronous(_) => (FailureCode::HostCallFailed, 1094),
             Self::InvalidPlan => (FailureCode::InvalidLifecycle, 1020),
@@ -148,7 +148,7 @@ impl ProtocolCallRefusal {
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 fn control_failure(error: &crate::arch::UsbControlCallRefusal) -> (FailureCode, u16) {
     use crate::arch::UsbControlCallRefusal as Usb;
@@ -172,7 +172,7 @@ fn control_failure(error: &crate::arch::UsbControlCallRefusal) -> (FailureCode, 
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 fn native_usb_failure(
     error: &crate::arch::usb_xhci::UsbError,
@@ -188,7 +188,7 @@ fn native_usb_failure(
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 fn endpoint_failure(error: &crate::arch::EndpointNativeRefusal) -> (FailureCode, u16) {
     use crate::arch::EndpointNativeRefusal as Endpoint;
@@ -218,7 +218,7 @@ fn endpoint_failure(error: &crate::arch::EndpointNativeRefusal) -> (FailureCode,
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 fn write_failure(error: &crate::arch::EndpointWriteNativeRefusal) -> (FailureCode, u16) {
     use crate::arch::EndpointWriteNativeRefusal as Endpoint;
