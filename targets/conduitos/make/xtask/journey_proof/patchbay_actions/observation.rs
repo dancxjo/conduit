@@ -1,5 +1,5 @@
 //! A terminal kernel refusal must not become an action observation timeout.
-use super::{ACTION, ConduitosError, face_correspondence};
+use super::{face_correspondence, ConduitosError, ACTION};
 
 pub(super) fn action_observed(text: &str, count: usize) -> Result<bool, ConduitosError> {
     for line in text
