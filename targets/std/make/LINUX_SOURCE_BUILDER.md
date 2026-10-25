@@ -78,7 +78,13 @@ toolchain preparation and build. Source hashing checks regular file types and
 byte bounds before reading, rejects symlinks and special files, and checks
 cancellation/deadline between 64 KiB chunks. Media hashing uses the same cadence.
 The backend monitors process count, workspace/output size and captured output,
-and reserves process capacity around a maximum of four Cargo jobs.
+and reserves process capacity around a maximum of four Cargo jobs. All Linux
+source, toolchain and build phases also require at least 4 GiB available to the
+builder user on the workspace and output filesystems at each bounds observation.
+This fixed safety floor protects these supported large ConduitOS builds from
+cooperative low-space pressure; it is not a reservation or quota and concurrent
+writers can consume space between observations. Fresh builds disable Cargo
+incremental output because their isolated target directory has no reuse.
 
 Bounded raw stdout/stderr files remain in the admitted workspace, including on
 failure or cancellation. They refuse existing paths and count toward workspace

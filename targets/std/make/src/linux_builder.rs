@@ -117,8 +117,9 @@ impl ReviewedBuilderBackend for LinuxSourceBuilder {
             }
             let started = *self.started.get_or_insert_with(Instant::now);
             fs::create_dir_all(workspace).map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
-            let mut execution =
-                Execution::new(workspace, None, bounds, &self.cancelled).started_at(started);
+            let mut execution = Execution::new(workspace, None, bounds, &self.cancelled)
+                .minimum_free_bytes(4 * 1024 * 1024 * 1024)
+                .started_at(started);
             if let Some(evidence) = &self.prepared_evidence {
                 execution = execution.inherit_evidence(evidence);
             }
@@ -155,8 +156,9 @@ impl ReviewedBuilderBackend for LinuxSourceBuilder {
         let workspace = workspace
             .canonicalize()
             .map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
-        let mut execution =
-            Execution::new(&workspace, None, bounds, &self.cancelled).started_at(started);
+        let mut execution = Execution::new(&workspace, None, bounds, &self.cancelled)
+            .minimum_free_bytes(4 * 1024 * 1024 * 1024)
+            .started_at(started);
         if let Some(evidence) = &self.prepared_evidence {
             execution = execution.inherit_evidence(evidence);
         }
@@ -237,6 +239,7 @@ impl ReviewedBuilderBackend for LinuxSourceBuilder {
             return Err(BuilderRefusal::WorkspaceUnavailable);
         }
         let mut execution = Execution::new(&workspace, Some(&output), bounds, &self.cancelled)
+            .minimum_free_bytes(4 * 1024 * 1024 * 1024)
             .started_at(self.started.ok_or(BuilderRefusal::ToolchainUnavailable)?)
             .inherit_evidence(
                 self.prepared_evidence
@@ -313,6 +316,7 @@ impl ReviewedBuilderBackend for LinuxSourceBuilder {
             // build scripts. Giving every slot to rustc jobs exhausts it before
             // ordinary driver overhead can run. Keep finite headroom and avoid
             // multiplying this Host's compiler memory demand on large machines.
+            .env("CARGO_INCREMENTAL", "0")
             .env(
                 "CARGO_BUILD_JOBS",
                 (bounds.maximum_processes / 4).clamp(1, 4).to_string(),

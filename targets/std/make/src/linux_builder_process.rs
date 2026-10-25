@@ -39,6 +39,7 @@ pub(super) struct Execution<'a> {
     stderr_bytes: u64,
     evidence: Sha256,
     process_sequence: u64,
+    minimum_free_bytes: u64,
 }
 impl<'a> Execution<'a> {
     pub fn new(
@@ -57,7 +58,12 @@ impl<'a> Execution<'a> {
             stderr_bytes: 0,
             evidence: Sha256::new(),
             process_sequence: 0,
+            minimum_free_bytes: 0,
         }
+    }
+    pub fn minimum_free_bytes(mut self, bytes: u64) -> Self {
+        self.minimum_free_bytes = bytes;
+        self
     }
     pub fn started_at(mut self, started: Instant) -> Self {
         self.started = started;
@@ -74,6 +80,13 @@ impl<'a> Execution<'a> {
     }
     pub fn check_bounds(&self) -> Result<(), BuilderRefusal> {
         self.check_progress()?;
+        if self.minimum_free_bytes > 0 {
+            for path in std::iter::once(self.workspace).chain(self.output) {
+                if available_bytes(path)? < self.minimum_free_bytes {
+                    return Err(BuilderRefusal::BoundExhausted);
+                }
+            }
+        }
         if directory_bytes(self.workspace, self.bounds.maximum_workspace_bytes)?
             > self.bounds.maximum_workspace_bytes
             || self.output.is_some_and(|path| {
@@ -243,6 +256,19 @@ fn read_pipe(
         Ok((captured, bytes))
     })
 }
+fn available_bytes(path: &Path) -> Result<u64, BuilderRefusal> {
+    let path = std::ffi::CString::new(path.as_os_str().as_encoded_bytes())
+        .map_err(|_| BuilderRefusal::WorkspaceUnavailable)?;
+    let mut information = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+    // SAFETY: path is terminated; statvfs initializes the valid output on success.
+    if unsafe { libc::statvfs(path.as_ptr(), information.as_mut_ptr()) } != 0 {
+        return Err(BuilderRefusal::WorkspaceUnavailable);
+    }
+    // SAFETY: the successful call initialized information.
+    let information = unsafe { information.assume_init() };
+    let bytes = u128::from(information.f_bavail) * u128::from(information.f_frsize);
+    u64::try_from(bytes).map_err(|_| BuilderRefusal::WorkspaceUnavailable)
+}
 fn directory_bytes(root: &Path, limit: u64) -> Result<u64, BuilderRefusal> {
     directory_bytes_observing(root, limit, &mut |_| {})
 }
@@ -320,129 +346,5 @@ fn process_group_size(group: i32) -> Result<u64, BuilderRefusal> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    fn bounds() -> BuilderBounds {
-        BuilderBounds {
-            maximum_source_files: 10,
-            maximum_source_bytes: 1024,
-            maximum_workspace_bytes: 1024 * 1024,
-            maximum_output_bytes: 1024,
-            maximum_processes: 16,
-            maximum_seconds: 2,
-            maximum_evidence_bytes: 128,
-        }
-    }
-    #[test]
-    fn output_pressure_and_cancellation_are_distinct() {
-        let root =
-            std::env::temp_dir().join(format!("conduit-linux-process-{}", std::process::id()));
-        fs::create_dir(&root).unwrap();
-        let bounds = bounds();
-        let cancelled = AtomicBool::new(false);
-        let mut execution = Execution::new(&root, None, &bounds, &cancelled);
-        let mut command = Command::new("printf");
-        command.arg("x".repeat(256));
-        assert!(matches!(
-            execution.run(&mut command),
-            Err(BuilderRefusal::BoundExhausted)
-        ));
-        assert_eq!(
-            fs::read(root.join("execution-000001-stdout.log")).unwrap(),
-            vec![b'x'; 128]
-        );
-        assert_eq!(
-            fs::metadata(root.join("execution-000001-stderr.log"))
-                .unwrap()
-                .len(),
-            0
-        );
-        cancelled.store(true, Ordering::Release);
-        assert!(matches!(
-            execution.run(&mut Command::new("true")),
-            Err(BuilderRefusal::Interrupted)
-        ));
-        fs::remove_dir_all(&root).unwrap();
-    }
-    #[test]
-    fn cancellation_terminates_a_running_command() {
-        let root =
-            std::env::temp_dir().join(format!("conduit-linux-cancel-{}", std::process::id()));
-        fs::create_dir(&root).unwrap();
-        let bounds = bounds();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let trigger = cancelled.clone();
-        let cancellation = thread::spawn(move || {
-            thread::sleep(Duration::from_millis(75));
-            trigger.store(true, Ordering::Release);
-        });
-        let mut execution = Execution::new(&root, None, &bounds, &cancelled);
-        let mut command = Command::new("sleep");
-        command.arg("30");
-        let started = Instant::now();
-        assert!(matches!(
-            execution.run(&mut command),
-            Err(BuilderRefusal::Interrupted)
-        ));
-        assert!(started.elapsed() < Duration::from_secs(2));
-        cancellation.join().unwrap();
-        fs::remove_dir_all(root).unwrap();
-    }
-    #[test]
-    fn failing_command_retains_exact_stderr_without_overwrite() {
-        let root =
-            std::env::temp_dir().join(format!("conduit-linux-stderr-{}", std::process::id()));
-        fs::create_dir(&root).unwrap();
-        let bounds = bounds();
-        let cancelled = AtomicBool::new(false);
-        let mut execution = Execution::new(&root, None, &bounds, &cancelled);
-        let mut command = Command::new("sh");
-        command.args(["-c", "printf reviewed-build-error >&2; exit 7"]);
-        assert!(matches!(
-            execution.run(&mut command),
-            Err(BuilderRefusal::BuildFailed)
-        ));
-        let diagnostic = root.join("execution-000001-stderr.log");
-        assert_eq!(fs::read(&diagnostic).unwrap(), b"reviewed-build-error");
-        // A new execution cannot silently replace retained proof from an earlier one.
-        let mut duplicate = Execution::new(&root, None, &bounds, &cancelled);
-        assert!(matches!(
-            duplicate.run(&mut Command::new("true")),
-            Err(BuilderRefusal::WorkspaceUnavailable)
-        ));
-        assert_eq!(fs::read(diagnostic).unwrap(), b"reviewed-build-error");
-        fs::remove_dir_all(root).unwrap();
-    }
-    #[test]
-    fn accounting_tolerates_disappearing_children_but_preserves_real_errors() {
-        let root =
-            std::env::temp_dir().join(format!("conduit-linux-accounting-{}", std::process::id()));
-        fs::create_dir(&root).unwrap();
-        fs::write(root.join("cargo-temporary"), b"temporary").unwrap();
-        let mut removed = false;
-        let bytes = directory_bytes_observing(&root, 1024, &mut |path| {
-            // Deterministic actual disappearance between readdir and metadata.
-            fs::remove_file(path).unwrap();
-            removed = true;
-        })
-        .unwrap();
-        assert!(removed);
-        assert_eq!(bytes, 0);
-        let file = root.join("not-a-directory");
-        fs::write(&file, b"retained").unwrap();
-        assert_eq!(
-            directory_bytes(&file, 1024),
-            Err(BuilderRefusal::WorkspaceUnavailable)
-        );
-        fs::remove_dir_all(&root).unwrap();
-        assert_eq!(
-            directory_bytes(&root, 1024),
-            Err(BuilderRefusal::WorkspaceUnavailable)
-        );
-    }
-    #[test]
-    fn process_group_stat_parser_counts_this_process() {
-        // SAFETY: getpgrp has no preconditions and does not mutate process state.
-        assert!(process_group_size(unsafe { libc::getpgrp() }).unwrap() >= 1);
-    }
-}
+#[path = "linux_builder_process_tests.rs"]
+mod tests;
