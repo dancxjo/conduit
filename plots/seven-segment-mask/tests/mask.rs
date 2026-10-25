@@ -493,3 +493,89 @@ fn timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime() {
         assert_eq!(show.face_content_id, face.identity.as_str());
     }
 }
+
+fn canonical_quantity_look(
+    unit: Option<conduit_face::LookTemperatureUnit>,
+) -> conduit_face::LookInfo {
+    use conduit_face::*;
+    let base = editorial_look().unwrap();
+    LookInfo::new(
+        base.generative().clone(),
+        base.identity().into(),
+        unit.map_or(LookQuantityFacetOption::None, |unit| {
+            LookQuantityFacetOption::some(unit).unwrap()
+        }),
+        base.spoken().clone(),
+        3,
+        base.visual().clone(),
+    )
+    .unwrap()
+}
+
+#[test]
+fn canonical_quantity_look_renders_same_exact_face_with_shared_rounding_and_authored_marker() {
+    use conduit_face::LookTemperatureUnit;
+    let face = face("19.75°C", "59%", true, true);
+    let before = face.clone();
+    let projected = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
+    for (unit, expected) in [
+        (LookTemperatureUnit::Celsius, "19.8C"),
+        (LookTemperatureUnit::Fahrenheit, "67.6F"),
+    ] {
+        let selected = SevenSegmentLook::fahrenheit()
+            .with_quantity_look(&canonical_quantity_look(Some(unit)))
+            .unwrap();
+        let rendered = render(&projected, SevenSegmentSelection::Temperature, &selected);
+        assert_eq!(text(&rendered.show), expected);
+        assert_eq!(
+            rendered.disposition,
+            MaskDisposition::Temperature { decimal_places: 1 }
+        );
+        assert_eq!(rendered.face_content_id, face.identity.as_str());
+        assert_eq!(rendered.face_revision, face.revision);
+        let colon = SevenSegmentLook::fahrenheit()
+            .with_colon_fraction()
+            .with_quantity_look(&canonical_quantity_look(Some(unit)))
+            .unwrap();
+        let rendered = render(&projected, SevenSegmentSelection::Temperature, &colon);
+        assert!(*rendered.show.colon());
+        assert_eq!(rendered.show.decimal_points(), &[false; 4]);
+        assert_eq!(text(&rendered.show), expected.replace('.', ":"));
+    }
+    assert_eq!(face, before);
+}
+
+#[test]
+fn absent_canonical_quantity_preserves_each_authored_device_policy() {
+    let absent = canonical_quantity_look(None);
+    for authored in [
+        SevenSegmentLook::celsius(),
+        SevenSegmentLook::fahrenheit(),
+        SevenSegmentLook::celsius().with_colon_fraction(),
+        SevenSegmentLook::fahrenheit().with_colon_fraction(),
+    ] {
+        assert_eq!(
+            authored.clone().with_quantity_look(&absent).unwrap(),
+            authored
+        );
+    }
+}
+
+#[test]
+fn canonical_kelvin_has_a_typed_unsupported_unit_refusal() {
+    use conduit_face::LookTemperatureUnit;
+    let requested = canonical_quantity_look(Some(LookTemperatureUnit::Kelvin));
+    for authored in [
+        SevenSegmentLook::celsius(),
+        SevenSegmentLook::fahrenheit(),
+        SevenSegmentLook::celsius().with_colon_fraction(),
+        SevenSegmentLook::fahrenheit().with_colon_fraction(),
+    ] {
+        assert_eq!(
+            authored.with_quantity_look(&requested),
+            Err(SevenSegmentLookRefusal::UnsupportedTemperatureUnit(
+                LookTemperatureUnit::Kelvin
+            ))
+        );
+    }
+}

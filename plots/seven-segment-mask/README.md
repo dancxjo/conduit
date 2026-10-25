@@ -21,8 +21,18 @@ Look is an explicit renderer argument. Fahrenheit is the requested application
 choice: the captured 19.8°C observation renders as `67.6F`. Changing the Look
 does not alter Face content or its quantity's physical meaning.
 
-This Mask-specific Look facet is checked Source data. It has not yet been added
-to the universal `LookInfo` carrier's visual/spoken/generative facet inventory.
+This Mask-specific Look is checked Source data. `SevenSegmentLook::with_quantity_look`
+admits the universal `LookInfo` quantity facet: Celsius and Fahrenheit select the
+corresponding display unit; an absent quantity facet preserves the authored unit.
+The authored decimal-point/colon policy remains unchanged. Kelvin returns typed
+`SevenSegmentLookRefusal::UnsupportedTemperatureUnit(Kelvin)` before Show
+preparation: the reviewed seven-segment alphabet has no faithful `K` glyph.
+It never substitutes `H`, removes the unit label, or changes the Face quantity.
+Other universal Look facets do not select wiring or firmware policy.
+The canonical quantity admission and existing renderer regressions run through
+`cargo +stable xtask prove environment history-device-look`, including strict
+all-target lint. This adapter does not connect a live preference carrier or
+change the existing C/F suffix glyph policy.
 `SevenSegmentShow` is the finite renderer payload; the existing canonical Show
 and MaskShow retain separate Plan/Play, delivery and acknowledgement identities.
 Computing a payload does not acknowledge physical output.

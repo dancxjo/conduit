@@ -6,6 +6,7 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
     match args {
         [name] if name == "history" => Some(prove(root)),
         [name] if name == "history-look" => Some(look(root)),
+        [name] if name == "history-device-look" => Some(device_look(root)),
         [name] if name == "history-preferences" => Some(preferences(root)),
         [name] if name == "history-commit" => Some(committed(root)),
         [name] if name == "history-native" => Some(native(root)),
@@ -28,6 +29,22 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn device_look(root: &Path) -> Result<(), Box<dyn Error>> {
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command.current_dir(root).args([
+            operation,
+            "--locked",
+            "--manifest-path",
+            "plots/seven-segment-mask/Cargo.toml",
+        ]);
+        if operation == "clippy" {
+            command.args(["--all-targets", "--", "-D", "warnings"]);
+        }
+        super::execute(&mut command)?;
+    }
+    Ok(())
 }
 fn browser_look_receiver(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("node").current_dir(root).args([
