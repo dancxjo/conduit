@@ -8,8 +8,7 @@ use conduit_core::{
     PlotIdentity,
 };
 
-pub(super) mod verified;
-pub use verified::{VerifiedBodyMaskChain, VerifiedBodyMaskTopology, VerifiedBodyPlotPlan};
+mod verified;
 
 mod private {
     pub trait Sealed {}

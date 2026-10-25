@@ -1,4 +1,5 @@
 //! Capture ordinary Body lifecycle evidence from immutable Core verification.
+use super::super::verified_inputs::{VerifiedBodyMaskTopology, VerifiedBodyPlotPlan};
 use super::super::{
     encoding::bind_body_plan_views,
     masks::validate_mask_views,
@@ -7,24 +8,7 @@ use super::super::{
     MAX_BODY_PLOTS,
 };
 use super::*;
-use crate::ResidentPlot;
-use conduit_core::VerifiedPlanMetadata;
 
-#[derive(Debug)]
-pub struct VerifiedBodyPlotPlan<'a> {
-    pub plot: ResidentPlot,
-    pub plan: &'a VerifiedPlanMetadata,
-}
-#[derive(Debug)]
-pub struct VerifiedBodyMaskChain<'a> {
-    pub plan: &'a VerifiedPlanMetadata,
-    pub stage_placement_ids: Vec<PlacementId>,
-}
-#[derive(Debug)]
-pub struct VerifiedBodyMaskTopology<'a> {
-    pub face: BodyFaceSelector,
-    pub chains: Vec<VerifiedBodyMaskChain<'a>>,
-}
 impl BodyPlanSeal {
     /// Same Body workset, Mask path, time and identity rules as ordinary sealing.
     /// Core verification is retained by borrowed opaque inputs; no configuration

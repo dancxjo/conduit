@@ -1,6 +1,8 @@
 //! Combined Mask/time policy uses the ordinary private sealing path too.
 use super::*;
-use crate::{Body, BodyMaskChainPlan, BodyMaskTopology, BodyPlotPlan};
+use crate::{
+    Body, BodyMaskChainPlan, BodyMaskTopology, BodyPlotPlan, ResidentPlot, VerifiedBodyMaskChain,
+};
 use alloc::vec;
 use conduit_core::{BodyTimeTolerance, MonotonicDuration, TemporalScale};
 mod fixture {

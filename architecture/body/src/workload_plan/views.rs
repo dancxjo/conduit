@@ -1,5 +1,5 @@
 //! Borrowed rich/verified representations for the same Body validation and hash.
-use super::seal::verified::{
+use super::verified_inputs::{
     VerifiedBodyMaskChain, VerifiedBodyMaskTopology, VerifiedBodyPlotPlan,
 };
 use super::*;

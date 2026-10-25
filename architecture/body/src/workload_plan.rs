@@ -32,8 +32,10 @@ mod encoding;
 mod masks;
 mod seal;
 mod validation;
+mod verified_inputs;
 mod views;
 pub use seal::*;
+pub use verified_inputs::{VerifiedBodyMaskChain, VerifiedBodyMaskTopology, VerifiedBodyPlotPlan};
 
 pub const MAX_BODY_MASK_TOPOLOGIES: usize = 16;
 pub const MAX_BODY_MASK_CHAINS: usize = 8;
