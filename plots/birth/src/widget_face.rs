@@ -16,7 +16,7 @@ pub trait BirthWidgetFace {
 impl BirthWidgetFace for BirthDraft {
     fn widget_face(&self) -> Result<SemanticApplicationView, SemanticFaceRefusal> {
         let mut birth = action("creche.birth", "Birth Body", ApplicationEventKind::Activate);
-        let readiness = self.selection(self.revision());
+        let readiness = self.selection_readiness(self.revision());
         if let Err(error) = &readiness {
             birth.availability = ActionAvailability::Unavailable {
                 detail: format!("{error:?}"),
@@ -61,11 +61,17 @@ impl BirthWidgetFace for BirthDraft {
             })
             .collect();
         let query = self.search().to_lowercase();
+        let no_search_terms = query.split_whitespace().next().is_none();
         let choices: Vec<_> = self
             .choices()
             .iter()
             .enumerate()
             .filter(|(_, choice)| {
+                // An empty term iterator already matches every candidate.
+                // Avoid constructing and lowercasing discarded search text.
+                if no_search_terms {
+                    return true;
+                }
                 let text = format!("{} {}", choice.title, choice.search_text).to_lowercase();
                 query.split_whitespace().all(|term| text.contains(term))
             })
