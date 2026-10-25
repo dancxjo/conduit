@@ -17,7 +17,7 @@ was performed for this document.
 | [Native service identity](../../targets/conduitos/src/arch/x86_64/service_domain.rs); Root admission for a protected x86_64 service | Root-process static `NEXT_INSTANCE:AtomicU64`, subordinate to exact installed service/Boot ownership. | Starts at one; checked `fetch_update` allocates distinct instances within that Root lifetime, at most u64::MAX−1. Failed admission may consume an ID; it does not refund it. | Checked addition refuses rather than wrapping. No forced Atomic maximum test is claimed here. | Actual instance plus envelope sequence fences service replies. Terminal quarantine retires the service. Local Atomic uniqueness does not establish global Boot uniqueness, cross-architecture containment, physical/DMA quiescence or correct routing by an external owner. |
 | [Timer nucleus](../../targets/conduitos/src/timer_nucleus.rs); cooperative logical helper | One pending token plus one cancelled observation. Token is caller Play generation u32 plus request generation u32. | At most `request_capacity:u16` arms per epoch, so request wrap is unreachable within one admitted epoch. At this audited baseline, replan accepts repeated/older Play generations and resets the request counter. | Arm refuses AlreadyArmed/CapacityExhausted. **Baseline defect:** `new(7,1) → arm A → replan(7,1) → arm B` recreates A's token, so A can settle B. | Exact pending/cancelled comparisons alone do not fence repeated epoch identity. The prepared strictly-increasing-generation correction is not in this baseline; see the separate preparation record below. Even that correction does not authenticate a newly constructed timer owner or reacquire physical authority. |
 | [Fixed value store](../../architecture/kernel/src/fixed_value_store.rs), [hosted store](../../architecture/kernel/src/hosted.rs); kernel-owned storage | Admitted finite slots/bytes; ValueRef names slot, u16 generation and byte length, with retained reference ownership. | At most 65,535 generations per slot. Final-generation live values remain valid until final release/clear; other reusable slots retain their normal selection order. | A free slot whose generation cannot advance is retired, not wrapped. When retirement prevents an otherwise fitting allocation, GenerationExhausted is explicit. | Clear preserves retirement and generation, so old same-length references cannot revive. Existing public full-domain and remote-ingress regressions are recorded in [value-generation-retirement.md](value-generation-retirement.md); not rerun here. This is storage custody, not physical/Host authority. |
-| [Reusable value pool](../../architecture/composite/src/reusable_value_pool.rs), [controller](../../architecture/composite/src/bounded_activation/reusable.rs), [scan controller](../../architecture/composite/src/bounded_scan_activation/reuse_pool.rs); cooperative move ownership | One private child in Ready/Leased/Drained; prepared bindings/sign storage tied to parent Play, activation and invocation. | Nonzero u16 maximum, finite preprepared invocation vector. [Rearm](../../architecture/composite/src/kernel_executor/reusable_value.rs) requires exact definition Arc, parent/activation and checked next invocation. | Take refuses unavailable/wrong lifecycle; advance consumes one prepared binding. Failed rearm retains a drained owner and does not cold-retry. | Controller call sites move the active child back exactly once by source inspection. `retire` has a debug assertion, not release enforcement or isolation. No reachable public double-retire was demonstrated; forced public controller rearm-failure/panic/disposal proof remains open. |
+| [Reusable value pool](../../architecture/composite/src/reusable_value_pool.rs), [controller](../../architecture/composite/src/bounded_activation/reusable.rs), [scan controller](../../architecture/composite/src/bounded_scan_activation/reuse_pool.rs); cooperative move ownership | One private child in Ready/Leased/Drained; prepared bindings/sign storage tied to parent Play, activation and invocation. | Nonzero u16 maximum, finite preprepared invocation vector. [Rearm](../../architecture/composite/src/kernel_executor/reusable_value.rs) requires exact definition Arc, parent/activation and checked next invocation. | Take refuses unavailable/wrong lifecycle; advance consumes one prepared binding. Failed rearm retains a drained owner and does not cold-retry. | Controller call sites move the active child back exactly once by source inspection. `retire` has a debug assertion, not release enforcement or isolation. No reachable public double-retire was demonstrated. Existing scheduler rearm-refusal proof is recorded below; panic-in-rearm/destructor and external-resource disposal remain unproved. |
 | [Std worker](../../targets/std/src/kernel_preparation/worker.rs), [serve/retirement](../../targets/std/src/kernel_preparation/worker/run.rs); cooperative OS thread | Private Control Arc, one command/reply slot, one optional installed prepared kernel and owned JoinHandle. Install/Start are once-only. | Control/JoinHandle ownership replaces a reusable numeric worker ID. Prepared transfer/stack and mailbox capacities are explicit; stopping/exited refuses submission. | Unread command/reply gives Busy; no hidden retry or second kernel installation. | Serving and cancellation are separately caught for panic evidence. Shutdown takes JoinHandle once, joins and retains kernel/failure/cancellation custody; Drop attempts shutdown. Panic/poison reporting cannot hard-terminate arbitrary uncooperative code. Public effect callback/Host Call lease/Watch owners need their own replay proof. |
 | [Protected runtime broker](../../targets/conduitos/src/protected_runtime.rs); protected guest plus trusted Root | Actual service instance, checked u64 request sequence, fixed per-node pending calls, one input and staged output custody. | Request starts one; checked increment before dispatch. Exact native response envelope and current pending node/request constrain publication. | Counter exhaustion returns DecisionLimitExceeded before dispatch. Output must match staged ValueRef and admitted Host Call byte bounds. | Error/cancel/abort quarantines domain, clears pending/ledger/references and zeros input/staged bytes. Complete requires exact pending request before guest ACK. Clearing software custody is not proof of external Host Call cancellation, native fault-to-fresh-B replay or DMA quiescence. |
 | [Root input-loan/ingress ledger](../../targets/conduitos/src/protected_runtime/ledger.rs); trusted Root custody, not a scheduler or bearer | Fixed admitted cord/slot arrays and exact loan bytes/optional Root ValueRef. Per-cord u64 ingress sequence starts zero; u16 queue heads advance modulo admitted capacity, and len never exceeds that capacity. | Exact endpoint+cord and expected sequence; declared item/byte limits and fixed storage. Numeric node/request/value identities are local to their selected owner. | u64::MAX refuses before publication through checked_add. Pressure creates no loan and consumes no sequence; accepted ingress increments only after preflight. Public maximum exhaustion has not been forced. | Accept consumes one exact Root loan; fabricated/duplicate bytes or references refuse. Clear removes loans **and route grants**, not just sequences. Root [Patchbay owner gate](../../targets/conduitos/src/native_workset/play/patchbay.rs) checks current Body/Plan/Play and liveness before publication/ingress. Calling fresh B with A's matching local numbers alone is not a cross-owner authority test. |
@@ -76,11 +76,14 @@ These independent recovery branches are not in audited baseline `31f2e04c3`.
 Their local receipts belong to their stated source; this document does not
 relabel them as current dev, Candidate or Integration acceptance.
 
-- Timer correction: `work/6409-timer-lifetime-20261025` at
-  `ef5a4476a70a078064d13f0c16a7ab05de57be8c`. Its
-  [source-pinned audit](https://github.com/dancxjo/conduit/blob/ef5a4476a70a078064d13f0c16a7ab05de57be8c/docs/audits/timer-nucleus-lifetime.md)
-  reports six actual-module tests in debug/optimized modes plus a compile-fail
-  ownership case. Strictly newer generations and move-only ownership fence
+- Timer correction: `prep/6409-timer-after-creche-20261025` at
+  `ceaf07d503c6abc5954fd9519d500bba4b7fbf2d`. Its
+  [source-pinned audit](https://github.com/dancxjo/conduit/blob/ceaf07d503c6abc5954fd9519d500bba4b7fbf2d/docs/audits/timer-nucleus-lifetime.md)
+  reports six actual-module tests in debug/optimized modes, plus owning-package
+  execution at clean `4a31575e1`: six library cases and one focused doctest pass.
+  An actual-crate positive control compiles and executes; the moved-owner
+  negative control fails solely with E0382. The final preparation adds docs only.
+  Strictly newer generations and move-only ownership fence
   **same-owner** replay; fresh-owner identity remains an integration obligation.
 - Std retirement preparation: `work/6409-worker-retirement-20261025` at
   `5e128c3e9ef0ed2054467c3eb3643bfb4619064b`. Its
@@ -91,9 +94,10 @@ relabel them as current dev, Candidate or Integration acceptance.
   full effect callback/lease/Watch matrix, arbitrary hard termination or a
   surviving semantic Body replan.
 - Browser lifetime preparation: `work/6409-browser-lifetime-20261025` at
-  `24197e5ce6aa3ecac64a89c8468005e728c9c8f8`. Its
-  [audit](https://github.com/dancxjo/conduit/blob/24197e5ce6aa3ecac64a89c8468005e728c9c8f8/docs/audits/browser-body-host-lifetime.md)
-  reports actual local WASM/Chromium A-close→B, one worker/zero retries, old
+  `86b1454f0f9626b387ffd3f4a5d414e8fb9652d3`. Its
+  [audit](https://github.com/dancxjo/conduit/blob/86b1454f0f9626b387ffd3f4a5d414e8fb9652d3/docs/audits/browser-body-host-lifetime.md)
+  reports fresh actual local WASM/Chromium A-close→B execution at clean
+  `ad37ef411` on current dev `d3356f28`, one worker/zero retries, old
   effect tuple refusal and post-promise-settlement callback/input controls.
   This is page-owned WASM/BodyHost proof, not execution WebWorker termination,
   debugger Watch, independent Host isolation or physical authority.
@@ -199,9 +203,11 @@ scanout, driver isolation and DMA isolation where applicable.
 
 Reconcile the finite audited-owner table and applicable negative matrix with
 merged code and exact-source receipts. No new domain-table or model Atomic
-defect was demonstrated here. Timer ABA and browser finite-input/terminal-owner
-corrections remain separate unmerged preparations; the Std receiver/Body cases
-are positive scoped proof, not newly demonstrated production defects.
+defect was demonstrated here. Timer ABA remains a separate unmerged preparation.
+The browser finite-input and terminal-owner correction is merged by #6492;
+the separate browser A→B fixture
+remains prepared. The merged Std receiver/Body cases are positive scoped proof,
+not newly demonstrated production defects.
 
 Generic protected CPU fault→quarantine→fresh B is not wholly unproved: the
 native cases above cover that class within their stated owner/profile. A joined
