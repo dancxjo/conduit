@@ -50,9 +50,8 @@ selected heads in canonical PR-number order onto that base. Capture reconstructs
 this tree using temporary Git objects, without changing refs, the index or the
 working tree. Extra source changes and manual conflict resolutions refuse;
 resolve those changes in a selected PR and prove the new selection instead.
-Ancestry alone is insufficient admission.
-The
-command reads the live development ref, selected PRs and their latest exact-head
+Ancestry alone is insufficient admission. The command reads the live development
+ref, selected PRs and their latest exact-head
 Candidate runs using the existing `gh` authentication. It requires open,
 non-draft, mergeable same-repository PRs targeting the captured development base
 and successful completed Candidate evidence. A newer failed or running attempt
@@ -61,7 +60,29 @@ refuses. The bounded manifest is created exclusively; an existing file is
 preserved. Its deterministic train branch name binds the base and selected heads.
 
 Once the exact source on that train branch has completed an exhaustive manual
-Integration run, verify its retained products:
+Integration run, acquire its immutable archives into a new directory:
+
+```sh
+cargo xtask ci pipeline train-acquire /absolute/train.json INTEGRATION_RUN_ID /absolute/new-archives
+```
+
+Acquisition refreshes readiness, reconstructs the selected source tree, and reads
+the actual successful run before and after downloading. It requires the complete
+target archive set, unique artifact IDs, matching repository/source/run IDs,
+unexpired archives and API SHA256 digests. Each exact artifact ID is downloaded
+with streamed byte limits, then checked for size and digest. Existing outputs
+refuse; failed evidence is retained. A changed run attempt refuses. Downloads are
+bounded to 4 GiB per archive and 32 GiB total with at least 1 GiB initial disk
+reserve. This initial path refuses artifact inventories above 100 entries rather
+than silently ignoring a page.
+
+`acquisition.json` binds the retained archives to the observed run and attempt.
+It does not extract archives or authorize landing. Actions artifact metadata
+lacks producer attempt identity: observing an unchanged attempt cannot prove an
+older artifact was produced by that attempt. Complete producer provenance,
+including toolchain/features/tests/environment and attempt, remains required.
+
+For an already restored product bundle, verify its retained products:
 
 ```sh
 cargo xtask ci pipeline train-verify /absolute/train.json INTEGRATION_RUN_ID /absolute/product-bundle

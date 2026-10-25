@@ -13,7 +13,7 @@ const number = value => {
   return Number(value);
 };
 
-export function createTrainCommands({ command = spawnSync, directory = process.cwd() } = {}) {
+export function createTrainCommands({ command = spawnSync, directory = process.cwd(), artifactCommand } = {}) {
   const invoke = (program, args) => {
     const result = command(program, args, { cwd: directory, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 });
     if (result.error || result.status !== 0) fail(`${program} failed: ${result.error?.message ?? result.stderr ?? result.status}`);
@@ -50,6 +50,22 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
     return manifest;
   };
   return {
+    async acquire(filename, runId, output) {
+      // Admission and Git reconstruction precede any download. Acquired archives
+      // authenticate run-owned bytes, not complete producer build provenance.
+      const manifest = await this.prepareDispatch(filename);
+      const base = basePath(manifest.repository);
+      const observation = {
+        development: api(`${base}/git/ref/heads/dev`).object?.sha,
+        selections: selection(manifest.repository, manifest.inputs.map(input => input.number)),
+        run: api(`${base}/actions/runs/${number(runId)}`),
+      };
+      const { acquireTrainArtifacts } = await import('./train-artifacts.mjs');
+      const receipt = await acquireTrainArtifacts({ manifest, observation, directory: output,
+        ...(artifactCommand ? { command: artifactCommand } : {}) });
+      await this.prepareDispatch(filename);
+      return receipt;
+    },
     async prepareDispatch(filename) {
       const manifest = await loadManifest(filename);
       assertSourceCheckout(manifest.source, directory);
