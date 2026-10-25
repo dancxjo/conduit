@@ -50,6 +50,20 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
     return manifest;
   };
   return {
+    async restore(filename, runId, acquisition, output) {
+      const manifest = await this.prepareDispatch(filename);
+      const base = basePath(manifest.repository);
+      const observation = {
+        development: api(`${base}/git/ref/heads/dev`).object?.sha,
+        selections: selection(manifest.repository, manifest.inputs.map(input => input.number)),
+        run: api(`${base}/actions/runs/${number(runId)}`),
+      };
+      const { restoreTrainArtifacts } = await import('./train-restore.mjs');
+      const restored = await restoreTrainArtifacts({ manifest, observation, acquisition,
+        directory: output, metadata: api });
+      await this.prepareDispatch(filename);
+      return restored;
+    },
     async acquire(filename, runId, output) {
       // Admission and Git reconstruction precede any download. Acquired archives
       // authenticate run-owned bytes, not complete producer build provenance.
