@@ -67,7 +67,11 @@ verifies that executable is unchanged. These are internal composition APIs;
 the supported pipeline CLI still selects the compositor profile until the
 integration owner wires and accepts the hosted profile.
 
-Preparation runs Cargo metadata offline. Acquire the locked public dependencies
+Preparation runs Cargo metadata offline. Frozen metadata canonicalizes Cargo
+package IDs and source/target paths to their actual sandbox identities; raw
+acquisition paths and bytes remain in a private sibling `.acquisition.json`
+receipt outside the hashed snapshot. Unsupported external acquisition paths
+refuse. Acquire the locked public dependencies
 before freezing; missing cached archives or Git source refuse. Registry source
 bytes come from freshly extracted `.crate` archives authenticated against every
 registry entry in the exact Cargo.lock, including optional entries omitted by

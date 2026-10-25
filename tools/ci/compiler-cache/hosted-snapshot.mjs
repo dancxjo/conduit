@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { CacheRefusal } from './refusal.mjs';
 import { copyCompilerClosure, copyRegular, snapshotInventory, hashFile } from './cargo-snapshot.mjs';
 import { SCCACHE_ENGINE } from './engine.mjs';
+import { canonicalHostedMetadata } from './hosted-metadata.mjs';
 
 export const HOSTED_SNAPSHOT_LIMITS = Object.freeze({ maxBytes: 6 * 1024 ** 3, maxFiles: 150000 });
 const fail = code => { throw new CacheRefusal(code); };
@@ -75,8 +76,10 @@ export async function prepareHostedSnapshot({ repositoryRoot, toolchainRoot, eng
   run('/usr/bin/tar',['-x','--no-same-owner','--no-same-permissions','-C',source],{input:archive});
   const acquisitionEnv={PATH:'/usr/bin:/bin',HOME:process.env.HOME,CARGO_HOME:cargoHome,RUSTC:path.join(toolchainRoot,'bin/rustc'),RUSTC_WRAPPER:'',RUSTC_WORKSPACE_WRAPPER:''};
   const acquisitionCargoSha256=await hashFile(path.join(toolchainRoot,'bin/cargo'));
-  const acquired=JSON.parse(run(path.join(toolchainRoot,'bin/cargo'),['metadata','--locked','--offline','--format-version','1'],{cwd:source,env:acquisitionEnv,maxBuffer:32*1024**2}));
-  const metadata=path.join(destination,'metadata.json');await fs.writeFile(metadata,JSON.stringify(acquired));
+  const acquiredBytes=run(path.join(toolchainRoot,'bin/cargo'),['metadata','--locked','--offline','--format-version','1'],{cwd:source,env:acquisitionEnv,maxBuffer:32*1024**2});
+  const acquired=JSON.parse(acquiredBytes);
+  const acquisitionReceipt=destination+'.acquisition.json';
+  await fs.writeFile(acquisitionReceipt,JSON.stringify({schema:1,scope:'Raw acquisition provenance outside immutable compiler inputs',sourceCommit,sourceTree,acquisitionCargoSha256,rawMetadataSha256:digest(acquiredBytes),rawMetadata:acquiredBytes.toString()},null,2),{flag:'wx',mode:0o600});
   const bypassNames=proceduralMacroBypassNames(acquired);
   await fs.writeFile(path.join(destination,'proc-macro-bypass.txt'),bypassNames.join('\n')+'\n',{mode:0o444,flag:'wx'});
   const vendor=path.join(destination,'vendor');await fs.mkdir(vendor);
@@ -89,6 +92,7 @@ export async function prepareHostedSnapshot({ repositoryRoot, toolchainRoot, eng
   const revision=gitSource.split('#')[1];
   const checkout=run('git',['-C',path.dirname(gitPackages[0].manifest_path),'rev-parse','--show-toplevel']).toString().trim();
   if(run('git',['--no-replace-objects','-C',checkout,'rev-parse','HEAD']).toString().trim()!==revision)fail('hosted-git-revision-mismatch');
+  await fs.writeFile(path.join(destination,'metadata.json'),JSON.stringify(canonicalHostedMetadata(acquired,{sourceRoot:source,gitCheckout:checkout})),{flag:'wx',mode:0o444});
   const gitTree=run('git',['--no-replace-objects','-C',checkout,'rev-parse',`${revision}^{tree}`]).toString().trim();
   const gitRoot=path.join(destination,'git-vendor/tongues');await fs.mkdir(gitRoot,{recursive:true});
   const gitArchive=run('git',['--no-replace-objects','-C',checkout,'archive','--format=tar',revision],{maxBuffer:128*1024**2});
@@ -155,7 +159,7 @@ export async function prepareHostedSnapshot({ repositoryRoot, toolchainRoot, eng
   if(await hashFile(path.join(destination,'toolchain/bin/cargo'))!==acquisitionCargoSha256)fail('hosted-acquisition-cargo-mutated');
   await verifyHostedSource({repositoryRoot,sourceRoot:source,sourceCommit,sourceTree});
   const snapshot=await snapshotInventory(destination,HOSTED_SNAPSHOT_LIMITS);
-  return {schema:'hosted-linux-cargo-snapshot-v1',root:destination,host:'x86_64-unknown-linux-gnu',sourceCommit,sourceTree,...snapshot,vendor:vendorReceipt,procMacroBypass:bypassNames,package:{name:'conduit',command:['build','--locked','--release','-p','conduit','--bin','conduit'],proceduralMacroPolicy:'Bypass all transitive procedural-macro dependencies, including reexports; response files refuse'},acquisitionPolicySha256:digest(VENDOR)};
+  return {schema:'hosted-linux-cargo-snapshot-v1',root:destination,host:'x86_64-unknown-linux-gnu',sourceCommit,sourceTree,...snapshot,acquisitionReceipt,vendor:vendorReceipt,procMacroBypass:bypassNames,package:{name:'conduit',command:['build','--locked','--release','-p','conduit','--bin','conduit'],proceduralMacroPolicy:'Bypass all transitive procedural-macro dependencies, including reexports; response files refuse'},acquisitionPolicySha256:digest(VENDOR)};
 }
 
 // Resolver features intentionally overapproximate the fixed package build.
