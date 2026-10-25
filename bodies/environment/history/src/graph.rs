@@ -124,7 +124,8 @@ impl<'a> HistoryGraph<'a> {
                     || recovered < chunks
                     || recovered > chunks * 64
                     || outside < chunks - 1
-                    || outside > (chunks - 1) * 64))
+                    || visible > 64
+                    || outside > recovered - 1))
         {
             return Err(R::InvalidProperty);
         }

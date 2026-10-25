@@ -5,7 +5,7 @@ use conduit_environment_runtime::{
     observation::ObservationContract,
     recording::{
         PreparedRecordingHistory, RecordingContext, RecordingDisposition as D,
-        RecordingHistoryRefusal, RecoveredHistory,
+        RecordingHistoryRefusal, RecoveredHistory, MAXIMUM_CHUNK_SAMPLES,
     },
 };
 use conduit_face::{
@@ -19,6 +19,28 @@ pub enum HistoryFaceRefusal {
     Recording(RecordingHistoryRefusal),
     Observation,
     Fragment,
+    Window,
+}
+
+/// Explicit sample budget for allocating Face preparation. This selects a tail
+/// of the loaded chunk; it does not trim the recording or promise that a whole
+/// composed Face fits any particular Host's separately admitted byte budget.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HistoryFaceWindow {
+    maximum_samples: usize,
+}
+impl HistoryFaceWindow {
+    pub fn prepare(maximum_samples: usize) -> Result<Self, HistoryFaceRefusal> {
+        if !(1..=MAXIMUM_CHUNK_SAMPLES).contains(&maximum_samples) {
+            return Err(HistoryFaceRefusal::Window);
+        }
+        Ok(Self { maximum_samples })
+    }
+    pub const fn complete_chunk() -> Self {
+        Self {
+            maximum_samples: MAXIMUM_CHUNK_SAMPLES,
+        }
+    }
 }
 
 /// One exact producer context and the recorder's existing one-chunk workspace.
@@ -68,8 +90,20 @@ impl PreparedHistoryFace {
         &mut self,
         basis: FaceContributionBasis,
     ) -> Result<FaceFragment, HistoryFaceRefusal> {
+        self.contribution_window(basis, HistoryFaceWindow::complete_chunk())
+    }
+
+    /// Project the selected tail without advancing recovery. Sequence numbers,
+    /// producer times, failures and the original boundary gap remain exact.
+    pub fn contribution_window(
+        &mut self,
+        basis: FaceContributionBasis,
+        window: HistoryFaceWindow,
+    ) -> Result<FaceFragment, HistoryFaceRefusal> {
         let recovered = self.history.recovered();
-        let count = self.history.loaded_samples();
+        let loaded = self.history.loaded_samples();
+        let start = loaded.saturating_sub(window.maximum_samples);
+        let count = loaded - start;
         let mut fragment = FaceFragment {
             basis: basis.clone(),
             subjects: vec![FaceSubject {
@@ -116,7 +150,7 @@ impl PreparedHistoryFace {
         ] {
             push(&mut fragment.properties, HISTORY_SUBJECT, name, value);
         }
-        for index in 0..count {
+        for index in start..loaded {
             let sample = self
                 .history
                 .sample(index)

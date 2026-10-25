@@ -67,3 +67,8 @@ ordinary invitations and planned transport to the existing MCU Body, and actual
 browser/native enactment. Native Pi/HDMI and MCU deployment keep their physical
 proof boundaries (#6325, #6376, #6457). This package creates no alternate storage,
 scheduler, sensor acquisition, Body birth or transport service.
+
+`HistoryFaceWindow::prepare` selects an explicit tail before Face construction,
+without discarding recorded samples or advancing recovery. Samples outside the
+view remain counted. This sample budget does not replace admission of the full
+composed Face against the selected Host byte limits.
