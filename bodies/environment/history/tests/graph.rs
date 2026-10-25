@@ -119,7 +119,7 @@ fn same_face_both_masks_use_actual_boot_time_and_bound_samples() {
     assert_eq!(native.content_id, graph.content_id());
     assert_eq!(native.revision, graph.revision());
     assert!(graph.browser_html().contains("cx=\"88\""));
-    assert_eq!(graph.native_scene().unwrap().commands().len(), 10);
+    assert_eq!(graph.native_scene().unwrap().commands().len(), 11);
     let face = face(&(0..64).collect::<Vec<_>>());
     let graph = HistoryGraph::prepare(&face, "body/history").unwrap();
     assert_eq!(graph.samples().len(), 16);
