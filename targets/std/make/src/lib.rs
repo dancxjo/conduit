@@ -9,6 +9,10 @@ mod builder;
 mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
+#[cfg(target_os = "linux")]
+mod linux_builder;
+#[cfg(target_os = "linux")]
+pub use linux_builder::*;
 pub use builder::*;
 pub use microphone_initialization::{
     alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
