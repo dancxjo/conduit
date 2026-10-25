@@ -4,11 +4,11 @@
 //! product orchestration. Unit shard metadata is shared with the full xtask.
 
 #[cfg(feature = "host-release")]
-use std::path::PathBuf;
-
-#[cfg(feature = "host-release")]
 #[path = "../../xtask/src/commands/host_release.rs"]
 mod host_release;
+
+#[cfg(feature = "host-release")]
+mod host_release_args;
 
 // Share the exact catalog sealer and validator with the full xtask. The
 // catalog command needs neither its other product nor hardware dependencies.
@@ -402,54 +402,18 @@ fn launch_host_release(options: &[String]) -> ! {
 
 #[cfg(feature = "host-release")]
 fn run_host_release(options: &[String]) -> Result<(), String> {
-    let mut values = options.iter();
-    let mut output = None;
-    let mut platform = None;
-    let mut source_identity = None;
-    let mut json = false;
-    let mut quiet = false;
-    while let Some(argument) = values.next() {
-        match argument.as_str() {
-            "--locked" => {}
-            "--json" => json = true,
-            "--quiet" => quiet = true,
-            "--output" => {
-                output = Some(PathBuf::from(values.next().ok_or("missing --output path")?));
-            }
-            "--platform" => {
-                platform = Some(match values.next().map(String::as_str) {
-                    Some("browser") => host_release::ReleasePlatform::Browser,
-                    Some("linux") => host_release::ReleasePlatform::Linux,
-                    Some("windows") => host_release::ReleasePlatform::Windows,
-                    Some("macos") => host_release::ReleasePlatform::Macos,
-                    Some(other) => return Err(format!("unsupported release platform: {other}")),
-                    None => return Err("missing --platform value".into()),
-                });
-            }
-            "--source-identity" => {
-                source_identity = Some(
-                    values
-                        .next()
-                        .cloned()
-                        .ok_or("missing --source-identity value")?,
-                );
-            }
-            other => return Err(format!("unsupported host release argument: {other}")),
-        }
-    }
-    let output = output.ok_or("host release requires --output")?;
-    let platform = platform.ok_or("host release requires --platform")?;
+    let host_release_args::ReleaseArgs {
+        output,
+        platform,
+        source_identity,
+        presentation,
+    } = host_release_args::parse(options)?;
     let source_identity = match source_identity {
         Some(identity) => identity,
         None => command_identity("git", &["rev-parse", "HEAD"])?,
     };
-    host_release::run(
-        &output,
-        platform,
-        &source_identity,
-        &host_release::ReleaseOptions { json, quiet },
-    )
-    .map_err(|error| error.to_string())
+    host_release::run(&output, platform, &source_identity, &presentation)
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(feature = "host-release")]
