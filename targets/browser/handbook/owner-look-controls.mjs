@@ -7,6 +7,7 @@ const presets = Object.freeze({
   'spacious/phosphor': 'spacious-phosphor', 'spacious/editorial': 'spacious',
 });
 const recipes = Object.freeze({
+  'conduit.face/environment-history@1': 'environment-history',
   'conduit.face/patchbay-nodes@1': 'patchbay-nodes',
   'conduit.face/todo-flat@1': 'flat',
   'conduit.face/todo-grouped@1': 'grouped',
@@ -35,7 +36,11 @@ export function createOwnerLookControls(onApply) {
   const density = select('Density', [['compact', 'Compact'], ['spacious', 'Spacious']]);
   const palette = select('Palette', [['phosphor', 'Phosphor · dark'], ['editorial', 'Editorial · light']]);
   const recipe = select('Layout', [['', 'Choose layout'], ['flat', 'Single section'],
-    ['grouped', 'Grouped sections'], ['required-item', 'Bound item'], ['patchbay-nodes', 'Patchbay nodes']]);
+    ['grouped', 'Grouped sections'], ['required-item', 'Bound item'], ['patchbay-nodes', 'Patchbay nodes'],
+    ['environment-history', 'Recorded conditions graph']]);
+  const historyOption = [...recipe.options].find(option => option.value === 'environment-history');
+  historyOption.disabled = true;
+  let historyUnit;
   const minimum = select('Minimum text size', [[100, '100%'], [150, '150%'], [200, '200%']]);
   const apply = decorate(document.createElement('button'), 'Confirm');
   apply.type = 'button'; apply.append('Apply face');
@@ -53,6 +58,11 @@ export function createOwnerLookControls(onApply) {
       feedback.textContent = 'Choose a supported appearance and layout.';
       return;
     }
+    if (recipe.value === 'environment-history' && (historyOption.disabled
+        || look !== 'compact-editorial' || (historyUnit !== undefined && historyUnit !== '°C'))) {
+      feedback.textContent = 'History appearance selection currently requires its compact editorial Celsius view.';
+      return;
+    }
     onApply({ look, recipe: recipe.value, minimumTextScalePercent: Number(minimum.value) });
   });
   const setDisabled = value => { element.disabled = Boolean(value); apply.disabled = Boolean(value); };
@@ -61,10 +71,13 @@ export function createOwnerLookControls(onApply) {
   return {
     element, apply, setDisabled,
     observe(view) {
+      historyOption.disabled = !view?.subjects?.some(subject => subject.identity === 'environment-history'
+        && subject.role === 'Collection');
+      historyUnit = view?.component?.history?.temperature_unit;
       const expression = view?.component?.expression?.expression;
       // New Face/Show occurrences do not erase an unfinished local proposal.
       // Reconcile fields only when their acknowledged policy actually changes.
-      const policy = JSON.stringify([view?.body_id, view?.component?.recipe_identity,
+      const policy = JSON.stringify([view?.body_id, view?.component?.recipe_identity, historyUnit,
         expression?.density, expression?.palette, expression?.typography,
         expression?.text_scale_percent,
         view?.component?.expression?.accessibility_overrides?.text_scale]);

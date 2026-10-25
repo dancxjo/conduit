@@ -242,7 +242,19 @@ impl NativeFaceMask {
                 let selected = conduit_face::ComponentVisualSelection::from_todo_root(
                     &route.planned_mask.mask.plot_name,
                 );
-                let local = if let Some((selection, recipe)) = selected {
+                let local = if matches!(
+                    route.planned_mask.mask.plot_name.as_str(),
+                    conduit_face::HISTORY_COMPONENT_MASK_ROOT
+                        | conduit_face::HISTORY_LAYOUT_MASK_ROOT
+                ) {
+                    let (stage, configuration) =
+                        conduit_conduitos_mask_offer::prepare_history_component_stage_from_offer(
+                            &offer,
+                        )
+                        .map_err(|_| NativeFaceMaskError::Plan)?;
+                    component_configuration = Some(configuration);
+                    stage
+                } else if let Some((selection, recipe)) = selected {
                     let (stage, configuration) =
                         conduit_conduitos_mask_offer::prepare_selected_component_stage_from_offer(
                             &offer, selection, recipe,
@@ -344,6 +356,8 @@ impl NativeFaceMask {
             },
             component_fallback: None,
             encounter_pending: false,
+            history_scene: None,
+            history_visible: false,
         })
     }
 }

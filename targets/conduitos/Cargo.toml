@@ -219,6 +219,7 @@ loongarch64-a4 = []
 loongarch64-product = []
 
 [dependencies]
+conduit-environment-history = { path = "../../bodies/environment/history" }
 conduit-commons-plot = { path = "../../plots/commons" }
 conduit-birth-plot = { path = "../../plots/birth" }
 conduit-home-model = { path = "../../semantics/home" }
@@ -274,7 +275,6 @@ conduitos-creche-core = { path = "creche-core" }
 
 [dev-dependencies]
 # Synthetic recorded-history Face through the existing native Mask/scanout path.
-conduit-environment-history = { path = "../../bodies/environment/history" }
 conduit-environment-runtime = { path = "../../bodies/environment/runtime" }
 conduitos-creche-core = { path = "creche-core" }
 conduitos-compositor-core = { path = "compositor-core" }

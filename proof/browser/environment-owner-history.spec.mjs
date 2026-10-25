@@ -122,3 +122,48 @@ test('checked unit Looks render converted values over the same Face and graph co
   }
   expect(plans.size).toBe(3);
 });
+
+test('actual owner ABI view preserves complete Body context and actions beside the history graph', async ({ page }) => {
+  const view = JSON.parse(await readFile(`${directory}/history-body-view.json`, 'utf8'));
+  const face = await show(page, view);
+  await expect(face.locator('[part=history] circle')).toHaveCount(4);
+  await expect(face).toHaveAttribute('data-component-look', view.component.expression.expression.identity);
+  const forms = face.locator('form[data-owner-action]');
+  await expect(forms).toHaveCount(view.actions.length);
+  expect(view.subjects.some(subject => subject.role === 'Body')).toBe(true);
+  // Open the actual finite native disclosures rather than bypassing their
+  // focus/visibility behavior to reach the retained Body controls.
+  for (const summary of await face.locator('summary').all()) {
+    if (!await summary.evaluate(node => node.parentElement.open)) await summary.click();
+  }
+  const available = view.actions.find(action => action.availability === 'available');
+  expect(available).toBeTruthy();
+  const button = forms.filter({ has: page.locator(`button[data-owner-focus]`) }).getByRole('button').first();
+  await button.focus();
+  await expect(button).toBeFocused();
+  await page.screenshot({ path: `${directory}/owner-history-body.png`, fullPage: true });
+});
+
+test('history selection uses the existing finite owner request and preserves unsupported unit choices', async ({ page }) => {
+  await page.goto('/proof/browser/environment-owner-history.test.html');
+  await page.evaluate(async view => {
+    const { createOwnerLookControls } = await import('/targets/browser/handbook/owner-look-controls.mjs');
+    globalThis.historySelections = [];
+    globalThis.historyControls = createOwnerLookControls(selection => globalThis.historySelections.push(selection));
+    historyControls.observe(view); historyControls.setDisabled(false);
+    document.body.replaceChildren(historyControls.element);
+  }, fixture);
+  await page.getByLabel('Layout', { exact: true }).selectOption('environment-history');
+  await page.getByRole('button', { name: 'Apply face', exact: true }).click();
+  expect(await page.evaluate(() => historySelections)).toEqual([
+    { look: 'compact-editorial', recipe: 'environment-history', minimumTextScalePercent: 100 },
+  ]);
+  await page.getByLabel('Palette', { exact: true }).selectOption('phosphor');
+  await page.getByRole('button', { name: 'Apply face', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('requires');
+  expect(await page.evaluate(() => historySelections.length)).toBe(1);
+  const kelvin = JSON.parse(await readFile(`${directory}/history-unit-K.json`, 'utf8'));
+  await page.evaluate(view => historyControls.observe(view), kelvin);
+  await page.getByRole('button', { name: 'Apply face', exact: true }).click();
+  expect(await page.evaluate(() => historySelections.length)).toBe(1);
+});

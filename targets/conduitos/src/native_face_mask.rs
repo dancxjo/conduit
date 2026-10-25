@@ -111,10 +111,14 @@ pub struct NativeFaceMask {
     visual_constraints: conduit_face::VisualUserConstraints,
     component_fallback: Option<String>,
     encounter_pending: bool,
+    history_scene: Option<conduit_face::GraphicsScene>,
+    history_visible: bool,
 }
 
 #[path = "native_face_mask/configured.rs"]
 mod configured;
+#[path = "native_face_mask/history.rs"]
+mod history;
 
 impl NativeFaceMask {
     /// Apply actual Host user preferences before the next render; Host capacity
@@ -203,6 +207,8 @@ impl NativeFaceMask {
             self.surface_admitted = false;
         }
         self.scene = None;
+        self.history_scene = None;
+        self.history_visible = false;
         self.encounter_pending = false;
         Ok(())
     }
@@ -283,7 +289,41 @@ impl NativeFaceMask {
         }
         scene.set_local_creche_preferences(self.local_creche_preferences);
         self.restore_pending_encounter(&mut scene)?;
+        let history_scene = if let (Some(configuration), Some(look)) =
+            (&self.component_configuration, &self.visual_look)
+        {
+            match history::prepare(
+                configuration,
+                &face,
+                width,
+                height,
+                self.local_input_available,
+                look,
+            ) {
+                Ok(graph) => graph,
+                Err(reason) => {
+                    self.component_fallback = Some(reason);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+        // A new observation must not pull the reader out of the complete
+        // inspector while it replaces the graph under the same Mask.
+        let history_visible =
+            history_scene.is_some() && (self.history_scene.is_none() || self.history_visible);
+        if history_scene.is_some() && !history_visible {
+            scene.show_details(true);
+            scene
+                .set_local_notice("F2: return to history graph")
+                .map_err(NativeFaceMaskError::Scene)?;
+        }
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
+        let graphics = history_scene
+            .as_ref()
+            .filter(|_| history_visible)
+            .unwrap_or(&frame.scene);
         let front_subject = face
             .subjects
             .iter()
@@ -342,7 +382,7 @@ impl NativeFaceMask {
                 request.face(),
                 request.prepared_show(),
                 request.display_base_id(),
-                &frame.scene,
+                graphics,
                 expression,
             )
         } else {
@@ -350,7 +390,7 @@ impl NativeFaceMask {
                 request.face(),
                 request.prepared_show(),
                 request.display_base_id(),
-                &frame.scene,
+                graphics,
             )
         }
         .map_err(NativeFaceMaskError::Compositor)?
@@ -374,6 +414,8 @@ impl NativeFaceMask {
             .compose_frame(display)
             .map_err(NativeFaceMaskError::Compositor)?;
         self.publication = Some(published.receipt);
+        self.history_visible = history_visible;
+        self.history_scene = history_scene;
         self.scene = Some(scene);
         self.session = Some(session);
         self.interaction_admitted = interaction_admitted;
@@ -387,9 +429,16 @@ impl NativeFaceMask {
         let show = self.show().ok_or(NativeFaceMaskError::Face)?.clone();
         let scene = self.scene.as_ref().ok_or(NativeFaceMaskError::Face)?;
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
+        let graphics = if self.history_visible {
+            self.history_scene
+                .as_ref()
+                .ok_or(NativeFaceMaskError::Face)?
+        } else {
+            &frame.scene
+        };
         let receipt = self
             .compositor
-            .repaint_mask_surface(scene.face(), &show, &self.display_base_id, &frame.scene)
+            .repaint_mask_surface(scene.face(), &show, &self.display_base_id, graphics)
             .map_err(NativeFaceMaskError::Compositor)?
             .clone();
         if let Err(error) = self.compositor.compose_frame(display) {
@@ -422,3 +471,7 @@ mod submission_tests;
 #[cfg(test)]
 #[path = "native_face_mask/inputless_tests.rs"]
 mod inputless_tests;
+
+#[cfg(test)]
+#[path = "native_face_mask/history_tests.rs"]
+mod history_tests;

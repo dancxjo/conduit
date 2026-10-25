@@ -29,16 +29,29 @@ pub enum BrowserComponentRecipe {
     Grouped,
     RequiredItem,
     PatchbayNodes,
+    EnvironmentHistory,
 }
 
 impl BrowserComponentRecipe {
     /// The selected checked component owns structure; the Look only changes paint.
-    pub fn source_root(self, look: ComponentMaskLook) -> (&'static str, &'static str) {
+    pub fn source_root(
+        self,
+        look: ComponentMaskLook,
+    ) -> Result<(&'static str, &'static str), &'static str> {
         use conduit_face::{
-            patchbay_component_mask_root, todo_component_mask_root, PATCHBAY_COMPONENT_MASK_SOURCE,
-            TODO_COMPONENT_MASK_SOURCE,
+            PATCHBAY_COMPONENT_MASK_SOURCE, TODO_COMPONENT_MASK_SOURCE,
+            patchbay_component_mask_root, todo_component_mask_root,
         };
-        match self {
+        Ok(match self {
+            Self::EnvironmentHistory => {
+                if look != ComponentMaskLook::CompactEditorial {
+                    return Err("history-look-not-installed");
+                }
+                (
+                    conduit_face::HISTORY_COMPONENT_MASK_SOURCE,
+                    conduit_face::HISTORY_COMPONENT_MASK_ROOT,
+                )
+            }
             Self::PatchbayNodes => (
                 PATCHBAY_COMPONENT_MASK_SOURCE,
                 patchbay_component_mask_root(look),
@@ -55,7 +68,7 @@ impl BrowserComponentRecipe {
                 TODO_COMPONENT_MASK_SOURCE,
                 todo_component_mask_root(look, TodoComponentRecipe::RequiredItem),
             ),
-        }
+        })
     }
 }
 
@@ -72,10 +85,13 @@ mod tests {
             ComponentMaskLook::CompactEditorial,
             ComponentMaskLook::SpaciousPhosphor,
         ] {
-            let (source, root) = recipe.source_root(look);
+            let (source, root) = recipe.source_root(look).unwrap();
             assert_eq!(source, conduit_face::PATCHBAY_COMPONENT_MASK_SOURCE);
             assert_eq!(root, conduit_face::patchbay_component_mask_root(look));
-            assert_ne!(source, BrowserComponentRecipe::Grouped.source_root(look).0);
+            assert_ne!(
+                source,
+                BrowserComponentRecipe::Grouped.source_root(look).unwrap().0
+            );
         }
         assert_eq!(serde_json::to_value(recipe).unwrap(), "patchbay-nodes");
     }
@@ -114,6 +130,33 @@ mod tests {
             serde_json::Value::Null,
         ] {
             assert!(serde_json::from_value::<BrowserComponentLook>(invalid).is_err());
+        }
+    }
+}
+
+#[cfg(test)]
+mod history_tests {
+    use super::*;
+    #[test]
+    fn history_selects_exact_reviewed_source_and_refuses_uninstalled_looks() {
+        let recipe: BrowserComponentRecipe =
+            serde_json::from_str("\"environment-history\"").unwrap();
+        assert_eq!(serde_json::to_value(recipe).unwrap(), "environment-history");
+        assert_eq!(
+            recipe
+                .source_root(ComponentMaskLook::CompactEditorial)
+                .unwrap(),
+            (
+                conduit_face::HISTORY_COMPONENT_MASK_SOURCE,
+                conduit_face::HISTORY_COMPONENT_MASK_ROOT
+            )
+        );
+        for look in [
+            ComponentMaskLook::Compact,
+            ComponentMaskLook::Spacious,
+            ComponentMaskLook::SpaciousPhosphor,
+        ] {
+            assert_eq!(recipe.source_root(look), Err("history-look-not-installed"));
         }
     }
 }

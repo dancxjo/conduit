@@ -78,20 +78,35 @@ pub fn prepare_layout_component_document(
     root: &str,
     profile: NativeMaskStorageProfile,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    configured::prepare_renderer_document(
-        host,
-        source,
-        root,
-        profile,
-        configured::RendererContract {
-            component: layout_component_mask_kind(profile.bytes()),
-            renderer: layout_resource_renderer_kind(profile),
-            kind_name: NATIVE_LAYOUT_COMPONENT_RENDERER_KIND,
-            back_source: BACK_SOURCE,
-            back_root: "native-layout-component-back",
-            capability: NATIVE_LAYOUT_COMPONENT_CAPABILITY,
-        },
-    )
+    prepare_layout_component_document_with_startup(host, source, root, profile, None)
+}
+
+pub(super) fn prepare_layout_component_document_with_startup(
+    host: &HostAdvertisement,
+    source: &str,
+    root: &str,
+    profile: NativeMaskStorageProfile,
+    inputs: Option<&[conduit_plot::CheckedStartupBinding]>,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    let contract = configured::RendererContract {
+        component: layout_component_mask_kind(profile.bytes()),
+        renderer: layout_resource_renderer_kind(profile),
+        kind_name: NATIVE_LAYOUT_COMPONENT_RENDERER_KIND,
+        back_source: BACK_SOURCE,
+        back_root: "native-layout-component-back",
+        capability: NATIVE_LAYOUT_COMPONENT_CAPABILITY,
+    };
+    match inputs {
+        Some(inputs) => configured::prepare_renderer_document_with_startup(
+            host,
+            source,
+            root,
+            profile,
+            contract,
+            Some(inputs),
+        ),
+        None => configured::prepare_renderer_document(host, source, root, profile, contract),
+    }
 }
 
 /// Deployment entrance for a native consumer implementing checked layouts.

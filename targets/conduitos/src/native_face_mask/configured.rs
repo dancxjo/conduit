@@ -1,5 +1,6 @@
 //! Checked configuration, selected Look admission and generic scene fallback.
 use super::*;
+use conduit_plot::rust_binding::NativeRustBinding;
 
 impl NativeFaceMask {
     // Private shared preparation boundary: callers retain exact source/Plan custody.
@@ -30,6 +31,23 @@ impl NativeFaceMask {
             configuration.recipe.canonical_value(),
         )
         .map_err(|_| NativeFaceMaskError::Plan)?;
+        // History has a separate graph mode, but its complete inspector always
+        // retains the same full Face, including Body/context and owner actions.
+        if conduit_face::ComponentRecipeInfo::from_structured(recipe.clone())
+            .map_err(|_| NativeFaceMaskError::Plan)?
+            .identity()
+            == conduit_face::HISTORY_COMPONENT_RECIPE_ID
+        {
+            let scene = NativeFaceScene::prepare_visual_fallback(
+                face.clone(),
+                width,
+                height,
+                interaction_admitted,
+                expression,
+            )
+            .map_err(NativeFaceMaskError::Scene)?;
+            return Ok((scene, admitted, None));
+        }
         // Preparation failures and renderer capacity failures retain separate
         // reasons. Neither can turn a partial configured scene into a Show.
         let configured = if let Some(layout) = &configuration.layout {

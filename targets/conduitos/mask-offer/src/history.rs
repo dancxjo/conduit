@@ -4,17 +4,13 @@ use super::{MaskOfferError, MaskStage, NativeMaskStorageProfile, configured};
 use conduit_core::HostAdvertisement;
 use conduit_face::{
     ConfiguredMaskConfiguration, HISTORY_COMPONENT_MASK_ROOT, HISTORY_COMPONENT_MASK_SOURCE,
+    HISTORY_LAYOUT_MASK_ROOT, HISTORY_LAYOUT_MASK_SOURCE,
 };
 
 pub fn prepare_history_component_stage_from_offer(
     host: &HostAdvertisement,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    configured::prepare_component_document(
-        host,
-        HISTORY_COMPONENT_MASK_SOURCE,
-        HISTORY_COMPONENT_MASK_ROOT,
-        NativeMaskStorageProfile::Standard,
-    )
+    prepare_history_document(host, None)
 }
 
 /// Supply a complete typed Look through the checked Root invocation before Plan.
@@ -35,13 +31,36 @@ pub fn prepare_history_component_stage_with_look_from_offer(
             conduit_plot::CanonicalStructuredStartupValue::from_owned_checked_value(value),
         ),
     };
-    configured::prepare_component_document_with_startup(
-        host,
-        HISTORY_COMPONENT_MASK_SOURCE,
-        HISTORY_COMPONENT_MASK_ROOT,
-        NativeMaskStorageProfile::Standard,
-        Some(core::slice::from_ref(&input)),
-    )
+    prepare_history_document(host, Some(core::slice::from_ref(&input)))
+}
+
+fn prepare_history_document(
+    host: &HostAdvertisement,
+    inputs: Option<&[conduit_plot::CheckedStartupBinding]>,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    // Presence selects this exact deployment contract. A malformed or stale
+    // layout offer refuses in ordinary planning; never fabricate the old Back.
+    if host
+        .capabilities
+        .iter()
+        .any(|offer| offer.capability_id.as_str() == super::NATIVE_LAYOUT_COMPONENT_CAPABILITY)
+    {
+        super::layout_configured::prepare_layout_component_document_with_startup(
+            host,
+            HISTORY_LAYOUT_MASK_SOURCE,
+            HISTORY_LAYOUT_MASK_ROOT,
+            NativeMaskStorageProfile::Standard,
+            inputs,
+        )
+    } else {
+        configured::prepare_component_document_with_startup(
+            host,
+            HISTORY_COMPONENT_MASK_SOURCE,
+            HISTORY_COMPONENT_MASK_ROOT,
+            NativeMaskStorageProfile::Standard,
+            inputs,
+        )
+    }
 }
 
 #[cfg(test)]
@@ -223,5 +242,110 @@ mod quantity_tests {
         let mut stale = host;
         stale.offer_generation.0 = 0;
         assert!(prepare_history_component_stage_with_look_from_offer(&stale, &base).is_err());
+    }
+}
+
+#[cfg(test)]
+mod layout_tests {
+    use super::*;
+    use alloc::{vec, vec::Vec};
+    use conduit_core::*;
+    use conduit_face::*;
+    use conduit_plot::rust_binding::NativeRustBinding;
+
+    #[test]
+    fn deployed_layout_offer_selects_its_checked_source_for_default_and_three_unit_inputs() {
+        // CPU Base/Host offer fixture. The product uses this same deployment
+        // constructor with actual independently retained display custody.
+        let provider = BaseProviderEntry {
+            base_id: "fixture/history/layout".into(),
+            provider_instance_id: "fixture/history/provider".into(),
+            provider_generation: 1,
+            implementation_id: "conduitos/framebuffer@1".into(),
+            mechanism_family: "conduitos.base/framebuffer@1".into(),
+            enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: vec![],
+            resources: vec![resource_offer(
+                "fixture/history/surface",
+                SHOW_RESOURCE_CLASS,
+                1,
+            )],
+        };
+        let host = crate::native_layout_host_advertisement(
+            &"host/history-layout-cpu".into(),
+            &"boot/history-layout-cpu".into(),
+            1,
+            &provider,
+            NativeMaskStorageProfile::Standard,
+        );
+        assert!(
+            !host
+                .capabilities
+                .iter()
+                .any(|b| b.capability_id.as_str() == "renderer-conduitos-component")
+        );
+        let (default, configured) = prepare_history_component_stage_from_offer(&host).unwrap();
+        assert_eq!(
+            default.planned_mask.mask.plot_name,
+            HISTORY_LAYOUT_MASK_ROOT
+        );
+        assert!(configured.layout.is_some());
+        assert!(
+            default
+                .planned_mask
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|f| &f.placements)
+                .any(|p| p.capability_id.as_str() == crate::NATIVE_LAYOUT_COMPONENT_CAPABILITY)
+        );
+        let layout = ComponentLayoutInfo::from_structured(
+            StructuredInfoValue::from_canonical_bytes(
+                configured.layout.as_ref().unwrap().canonical_value(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(layout.recipe_identity(), HISTORY_COMPONENT_RECIPE_ID);
+        let base = configured.requested_look().unwrap();
+        let (same, _) = prepare_history_component_stage_with_look_from_offer(&host, &base).unwrap();
+        assert_eq!(same.planned_mask.plan, default.planned_mask.plan);
+        let mut ids = Vec::new();
+        for unit in [
+            LookTemperatureUnit::Celsius,
+            LookTemperatureUnit::Kelvin,
+            LookTemperatureUnit::Fahrenheit,
+        ] {
+            let look = LookInfo::new(
+                base.generative().clone(),
+                base.identity().into(),
+                LookQuantityFacetOption::some(unit).unwrap(),
+                base.spoken().clone(),
+                3,
+                base.visual().clone(),
+            )
+            .unwrap();
+            let (stage, selected) =
+                prepare_history_component_stage_with_look_from_offer(&host, &look).unwrap();
+            assert_eq!(selected.requested_look().unwrap(), look);
+            assert_eq!(selected.recipe, configured.recipe);
+            assert_eq!(selected.layout, configured.layout);
+            assert_eq!(
+                stage.planned_mask.plan.source_document_id,
+                default.planned_mask.plan.source_document_id
+            );
+            assert!(ids.iter().all(|id| id != &stage.planned_mask.plan.plan_id));
+            ids.push(stage.planned_mask.plan.plan_id);
+        }
+        let mut malformed = host;
+        malformed
+            .capabilities
+            .iter_mut()
+            .find(|b| b.capability_id.as_str() == crate::NATIVE_LAYOUT_COMPONENT_CAPABILITY)
+            .unwrap()
+            .kind_contract_revision = "wrong/layout-contract".into();
+        assert!(prepare_history_component_stage_from_offer(&malformed).is_err());
+        assert!(prepare_history_component_stage_with_look_from_offer(&malformed, &base).is_err());
     }
 }

@@ -17,8 +17,8 @@ pub mod application_canvas;
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 
-    pub(crate) fn generated_action_affordance_checked_type(
-    ) -> Result<conduit_plot::CheckedNativeType, conduit_plot::rust_binding::NativeBindingRefusal>
+    pub(crate) fn generated_action_affordance_checked_type()
+    -> Result<conduit_plot::CheckedNativeType, conduit_plot::rust_binding::NativeBindingRefusal>
     {
         let value_type = GeneratedActionAffordance::semantic_type()?;
         let conduit_core::StructuredInfoTypeShape::Record { schema, .. } = value_type.shape()
@@ -39,8 +39,8 @@ mod generated {
         })
     }
 
-    pub(crate) fn action_input_binding_checked_type(
-    ) -> Result<conduit_plot::CheckedNativeType, conduit_plot::rust_binding::NativeBindingRefusal>
+    pub(crate) fn action_input_binding_checked_type()
+    -> Result<conduit_plot::CheckedNativeType, conduit_plot::rust_binding::NativeBindingRefusal>
     {
         let value_type = ActionInputBindingProposalInfo::semantic_type()?;
         let conduit_core::StructuredInfoTypeShape::Record { schema, .. } = value_type.shape()
@@ -256,7 +256,7 @@ pub use temporal_wording::*;
 pub use visual_expression::*;
 
 mod typed_value;
-pub use typed_value::{display_typed_value, spoken_typed_value, MAX_FACE_VALUE_BYTES};
+pub use typed_value::{MAX_FACE_VALUE_BYTES, display_typed_value, spoken_typed_value};
 
 #[cfg(feature = "plot-catalog")]
 mod configured_mask;
@@ -279,6 +279,7 @@ pub use component_recipe::*;
 mod history_component;
 pub use history_component::{
     HISTORY_COMPONENT_MASK_ROOT, HISTORY_COMPONENT_MASK_SOURCE, HISTORY_COMPONENT_RECIPE_ID,
+    HISTORY_LAYOUT_MASK_ROOT, HISTORY_LAYOUT_MASK_SOURCE,
 };
 
 mod checked_source_plan;
@@ -310,6 +311,6 @@ pub use parsec_input_instruction_producer::*;
 
 mod quantity_format;
 pub use quantity_format::{
-    rounded_quantity_coordinate, FormattedTemperature, QuantityFormatRefusal,
-    MAX_QUANTITY_DISPLAY_DECIMAL_PLACES,
+    FormattedTemperature, MAX_QUANTITY_DISPLAY_DECIMAL_PLACES, QuantityFormatRefusal,
+    rounded_quantity_coordinate,
 };

@@ -421,3 +421,6 @@ fn checked_history_unit_selection_replans_same_face_and_refuses_different_retain
     }
     assert_eq!(plan_ids.len(), 3);
 }
+
+#[path = "history_owner_tests.rs"]
+mod owner_entry;

@@ -198,7 +198,7 @@ pub(super) fn prepare_renderer_document(
     prepare_renderer_document_with_startup(host, source, root, profile, contract, None)
 }
 
-fn prepare_renderer_document_with_startup(
+pub(super) fn prepare_renderer_document_with_startup(
     host: &HostAdvertisement,
     source: &str,
     root: &str,

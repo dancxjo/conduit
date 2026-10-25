@@ -5,3 +5,8 @@ pub const HISTORY_COMPONENT_MASK_ROOT: &str = "environment-history-mask";
 pub const HISTORY_COMPONENT_RECIPE_ID: &str = "conduit.face/environment-history@1";
 pub const HISTORY_COMPONENT_MASK_SOURCE: &str =
     include_str!("../components/environment-history-mask.conduit");
+
+/// The separately checked layout Back contract selected by installed native Hosts.
+pub const HISTORY_LAYOUT_MASK_ROOT: &str = "environment-history-layout-mask";
+pub const HISTORY_LAYOUT_MASK_SOURCE: &str =
+    include_str!("../components/environment-history-layout-mask.conduit");

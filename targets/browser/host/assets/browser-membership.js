@@ -31,7 +31,8 @@ export function checkedComponentMaskResponse(frame, pending, byteLength) {
 // Embed the actual WASM Show receipt without rounding its canonical integers.
 export function checkedComponentMaskRequestFrame({ requestId, request, showBytes, look, recipe }) {
   if (typeof requestId !== 'string' || !/^browser-component:[1-9][0-9]{0,15}$/.test(requestId)
-      || !['compact', 'spacious', 'compact-editorial', 'spacious-phosphor'].includes(look) || !['flat', 'grouped', 'required-item', 'patchbay-nodes'].includes(recipe)
+      || !['compact', 'spacious', 'compact-editorial', 'spacious-phosphor'].includes(look) || !['flat', 'grouped', 'required-item', 'patchbay-nodes', 'environment-history'].includes(recipe)
+      || (recipe === 'environment-history' && look !== 'compact-editorial')
       || !(showBytes instanceof Uint8Array) || showBytes.length < 1 || showBytes.length > 64 * 1024) {
     throw new Error('component Mask selection exceeds its declared finite fields');
   }

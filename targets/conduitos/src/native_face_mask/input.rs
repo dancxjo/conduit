@@ -12,7 +12,7 @@ impl NativeFaceMask {
         self.compositor
             .validate_active_session()
             .map_err(NativeFaceMaskError::Compositor)?;
-        if !self.interaction_admitted {
+        if self.history_visible || !self.interaction_admitted {
             return Err(NativeFaceMaskError::InputUnavailable);
         }
         self.session
@@ -62,6 +62,36 @@ impl NativeFaceMask {
         self.input_refusal = None;
         if !self.route_keyboard()? {
             return Err(NativeFaceMaskError::Face);
+        }
+        if self.history_scene.is_some() && event.usage() == 0x3b {
+            if event.transition() == KeyTransition::Pressed {
+                if !self.history_visible
+                    && self
+                        .scene
+                        .as_ref()
+                        .is_some_and(NativeFaceScene::has_pending_input)
+                {
+                    self.scene
+                        .as_mut()
+                        .ok_or(NativeFaceMaskError::Face)?
+                        .set_local_notice("Finish or cancel input before history")
+                        .map_err(NativeFaceMaskError::Scene)?;
+                    return self.repaint(display).map(NativeFaceMaskInput::Redrawn);
+                }
+                self.history_visible = !self.history_visible;
+                if !self.history_visible {
+                    let scene = self.scene.as_mut().ok_or(NativeFaceMaskError::Face)?;
+                    scene.show_details(true);
+                    scene
+                        .set_local_notice("F2: return to history graph")
+                        .map_err(NativeFaceMaskError::Scene)?;
+                }
+                return self.repaint(display).map(NativeFaceMaskInput::Redrawn);
+            }
+            return Ok(NativeFaceMaskInput::Unchanged);
+        }
+        if self.history_visible {
+            return Ok(NativeFaceMaskInput::Unchanged);
         }
         let show = self.show().ok_or(NativeFaceMaskError::Face)?.clone();
         let scene = self.scene.as_mut().ok_or(NativeFaceMaskError::Face)?;
@@ -122,6 +152,9 @@ impl NativeFaceMask {
             return Err(NativeFaceMaskError::InputUnavailable);
         }
         self.input_refusal = None;
+        if self.history_visible {
+            return Ok(NativeFaceMaskInput::Unchanged);
+        }
         let route = self
             .compositor
             .route_pointer(x, y, true)

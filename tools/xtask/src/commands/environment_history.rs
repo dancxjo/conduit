@@ -7,6 +7,9 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-preferences" => Some(preferences(root)),
         [name] if name == "history-commit" => Some(committed(root)),
         [name] if name == "history-native" => Some(native(root)),
+        [name] if name == "history-installed-native" => Some(installed_native(root)),
+        [name] if name == "history-installed-native-target" => Some(installed_native_target(root)),
+        [name] if name == "history-installed-browser" => Some(installed_browser(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-owner-browser" => Some(owner_browser(root)),
@@ -15,6 +18,71 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn installed_browser(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("node").current_dir(root).args([
+        "--test",
+        "targets/browser/host/assets/browser-membership-wardrobe.test.mjs",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "browser_admission::component_selection",
+    ]))?;
+    super::execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .args([
+                "test",
+                "--locked",
+                "-p",
+                "conduit-browser-runtime",
+                "--lib",
+                "owner_face_mask::history_tests::owner_entry",
+            ])
+            .env("CONDUIT_HISTORY_BROWSER_PROOF_OUTPUT", browser_output(root)),
+    )?;
+    super::execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .args(["check", "--locked", "-p", "conduit", "--bin", "conduit"]),
+    )
+}
+fn installed_native(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-conduitos-mask-offer",
+        "--lib",
+        "history",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor-core",
+        "native_face_mask::",
+    ]))
+}
+fn installed_native_target(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "check",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--target",
+        "x86_64-unknown-none",
+        "--features",
+        "native-compositor",
+    ]))
 }
 fn owner_target(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("cargo").current_dir(root).args([

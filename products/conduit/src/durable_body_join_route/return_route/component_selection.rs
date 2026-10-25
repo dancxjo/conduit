@@ -38,7 +38,7 @@ pub(super) fn serve(
         BrowserComponentRecipe::Flat => conduit_face::TodoComponentRecipe::Flat,
         BrowserComponentRecipe::Grouped => conduit_face::TodoComponentRecipe::Grouped,
         BrowserComponentRecipe::RequiredItem => conduit_face::TodoComponentRecipe::RequiredItem,
-        BrowserComponentRecipe::PatchbayNodes => {
+        BrowserComponentRecipe::PatchbayNodes | BrowserComponentRecipe::EnvironmentHistory => {
             return Err("native-component-recipe-unsupported".into())
         }
     };
