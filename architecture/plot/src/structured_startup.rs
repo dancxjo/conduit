@@ -1,7 +1,7 @@
 mod literal;
 mod prepared;
 mod resolution;
-use literal::canonical_leaf_literal;
+pub(crate) use literal::canonical_leaf_literal;
 pub(crate) use literal::parse_scalar_literal;
 pub(crate) use resolution::{check_structured_expression, StartupValueSyntax};
 
