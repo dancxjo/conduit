@@ -2,14 +2,14 @@
 
 use std::{fs, path::Path};
 
-use conduit_host_make::{verify_image_binding, BuildManifest, HostImage};
+use conduit_host_make::{BuildManifest, HostImage, verify_image_binding};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     cli::GlobalOpts,
     commands::conduitos::{
-        build_profile_image, target_backend, target_build::boot_profile_image,
-        target_build::verify_artifact_digest, ArtifactRole, ProfileBuiltImage,
+        ArtifactRole, ProfileBuiltImage, build_profile_image, target_backend,
+        target_build::boot_profile_image, target_build::verify_artifact_digest,
     },
 };
 
@@ -47,6 +47,9 @@ pub struct TargetBuildManifest {
     pub source_identity: String,
     pub toolchain_identity: String,
     pub target: String,
+    /// Explicit consumer support; absent on older or unsupported kernels.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prepared_birth_media_schema: Option<String>,
     pub kernel: ArtifactReceipt,
     pub image: ArtifactReceipt,
     pub boot_assets: BootAssetsReceipt,
@@ -93,6 +96,18 @@ pub fn verify_target(output: &Path) -> Result<TargetBuildManifest, Box<dyn std::
     }
     if manifest.artifact_role != ArtifactRole::ProductHost {
         return Err("target BUILD manifest is not a product Host artifact".into());
+    }
+    if let Some(schema) = &manifest.prepared_birth_media_schema {
+        if schema != conduit_body::PREPARED_BIRTH_MEDIA_SCHEMA
+            || manifest.target != "conduitos/x86_64/pc"
+            || !manifest
+                .resolved_build
+                .presenters
+                .iter()
+                .any(|p| p == "presenter/native-graphical@1")
+        {
+            return Err("target BUILD declares an unsupported prepared birth consumer".into());
+        }
     }
     let backend = target_backend::select(&manifest.target)?;
     if manifest.kernel.file != backend.kernel_file
@@ -190,6 +205,13 @@ fn receipt(image: &HostImage, built: &ProfileBuiltImage) -> TargetBuildManifest 
         source_identity: image.manifest.source_identity.clone(),
         toolchain_identity: image.manifest.toolchain_identity.clone(),
         target: image.manifest.target.clone(),
+        prepared_birth_media_schema: (image.manifest.target == "conduitos/x86_64/pc"
+            && image
+                .manifest
+                .presenters
+                .iter()
+                .any(|p| p == "presenter/native-graphical@1"))
+        .then(|| conduit_body::PREPARED_BIRTH_MEDIA_SCHEMA.into()),
         kernel: ArtifactReceipt {
             role: backend.kernel_role.into(),
             file: backend.kernel_file.into(),
