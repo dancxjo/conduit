@@ -47,7 +47,8 @@ function hosted(id, directory) {
   // release bundle. Hello proves executable viability, not KMSDRM interaction.
   // Keep this native lane independent of embedded cross compilers.
   const options = id === 'hosted-linux' ? ['--features', 'native-creche-sdl',
-    '--config', 'profile.release.package.conduit.opt-level="s"'] : [];
+    '--config', 'profile.release.package.conduit.opt-level="s"',
+    '--config', 'profile.release.package.conduit.strip="symbols"'] : [];
   cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit', ...options);
   const name = process.platform === 'win32' ? 'conduit.exe' : 'conduit';
   const binary = path.join(directory, name);

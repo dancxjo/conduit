@@ -112,6 +112,8 @@ pub(super) fn build_linux_x86_64(
             // Keep dependency optimization and panic/unwind recovery unchanged.
             "--config",
             "profile.release.package.conduit.opt-level=\"s\"",
+            "--config",
+            "profile.release.package.conduit.strip=\"symbols\"",
             "--target",
             "x86_64-unknown-linux-gnu",
         ]),
