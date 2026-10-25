@@ -74,6 +74,38 @@ pub(super) fn enter_context_with_budget(
     profile: domain_budget::EntryBudget,
     #[cfg(feature = "ordinary-domain-proof")] permit: Option<super::clock_boundary::Permit>,
 ) -> Result<TransitionReturn, DomainRefusal> {
+    run_context(
+        context,
+        profile,
+        #[cfg(feature = "ordinary-domain-proof")]
+        permit,
+        None,
+    )
+    .map(|(returned, _)| returned)
+}
+
+pub(super) fn enter_context_with_receipt(
+    context: EntryContext,
+    profile: domain_budget::EntryBudget,
+    identity: domain_budget::EntryIdentity,
+    #[cfg(feature = "ordinary-domain-proof")] permit: Option<super::clock_boundary::Permit>,
+) -> Result<domain_budget::NativeEntryReceipt, DomainRefusal> {
+    run_context(
+        context,
+        profile,
+        #[cfg(feature = "ordinary-domain-proof")]
+        permit,
+        Some(identity),
+    )?
+    .1
+    .ok_or(DomainRefusal::BackendFailure)
+}
+fn run_context(
+    context: EntryContext,
+    profile: domain_budget::EntryBudget,
+    #[cfg(feature = "ordinary-domain-proof")] permit: Option<super::clock_boundary::Permit>,
+    identity: Option<domain_budget::EntryIdentity>,
+) -> Result<(TransitionReturn, Option<domain_budget::NativeEntryReceipt>), DomainRefusal> {
     let _interrupts = super::cpu::InterruptMask::new();
     if ACTIVE.swap(true, Ordering::AcqRel) {
         return Err(DomainRefusal::InvalidLifecycle);
@@ -179,11 +211,15 @@ pub(super) fn enter_context_with_budget(
     );
     #[cfg(feature = "ordinary-domain-proof")]
     crate::ordinary_domain_proof::observe_transition_return(result.value, result.origin);
+    // Snapshot while the live Budget and masked exclusive entry still exist.
+    // Keep the capture Result local: even a refused observation must restore
+    // RTC routing and release ACTIVE before propagating its error.
+    let receipt = identity.map(|identity| budget.capture_receipt(identity, &result));
     drop(budget);
     ACTIVE.store(false, Ordering::Release);
     #[cfg(feature = "ordinary-domain-proof")]
     super::super::domain_context_probe::finish()?;
-    Ok(result)
+    Ok((result, receipt.transpose()?))
 }
 
 #[unsafe(no_mangle)]

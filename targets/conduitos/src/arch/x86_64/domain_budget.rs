@@ -10,34 +10,17 @@ use core::{
 };
 
 pub(super) const VECTOR: u8 = 0x28;
-// An ordinary first Memory edit exhausted the former three-tick quantum
-// in a normal host-time QEMU product run. Admit one finite frame-sized turn.
-// Sixteen RTC ticks give roughly one 60 Hz frame of execution at 1024 Hz,
-// while retaining a finite, independent return even for a non-yielding entry.
-const ENTRY_BUDGET_TICKS: u32 = 16;
 static READY: AtomicBool = AtomicBool::new(false);
 static SEEN: AtomicU32 = AtomicU32::new(0);
 static REMAINING: AtomicU32 = AtomicU32::new(0);
 static SOURCE_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 static USER_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 
-/// Closed mechanism profiles. Draft's larger bound is an unmeasured local
-/// preparation ceiling, not evidence that any canonical command fits it.
-#[derive(Clone, Copy)]
-pub(super) enum EntryBudget {
-    Ordinary,
-    Draft,
-}
-impl EntryBudget {
-    const fn ticks(self) -> u32 {
-        match self {
-            Self::Ordinary => ENTRY_BUDGET_TICKS,
-            Self::Draft => 64,
-        }
-    }
-}
+mod entry;
+pub(super) use entry::{ApplicationRemaining, EntryBudget, EntryIdentity, NativeEntryReceipt};
 
 pub(super) struct Budget {
+    profile: EntryBudget,
     rtc_a: u8,
     rtc_b: u8,
     master: u8,
@@ -46,6 +29,21 @@ pub(super) struct Budget {
 }
 
 impl Budget {
+    /// Capture only through the live armed guard; no caller supplies counts or
+    /// a replacement cap. The native owner supplies its actual assembly return.
+    pub(super) fn capture_receipt(
+        &self,
+        identity: EntryIdentity,
+        returned: &super::domain_transition::TransitionReturn,
+    ) -> Result<NativeEntryReceipt, DomainRefusal> {
+        NativeEntryReceipt::capture(
+            identity,
+            self.profile,
+            user_interrupts(),
+            returned.value,
+            returned.origin,
+        )
+    }
     pub fn arm(profile: EntryBudget) -> Result<Self, DomainRefusal> {
         let flags: u64;
         unsafe {
@@ -67,6 +65,7 @@ impl Budget {
             return Err(DomainRefusal::Unsupported);
         }
         let guard = Self {
+            profile,
             rtc_a,
             rtc_b,
             master: unsafe { inb(0x21) },
