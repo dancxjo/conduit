@@ -46,8 +46,9 @@ function hosted(id, directory) {
   // Prove the Linux executable with the same native encounter feature as its
   // release bundle. Hello proves executable viability, not KMSDRM interaction.
   // Keep this native lane independent of embedded cross compilers.
-  const features = id === 'hosted-linux' ? ['--features', 'native-creche-sdl'] : [];
-  cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit', ...features);
+  const options = id === 'hosted-linux' ? ['--features', 'native-creche-sdl',
+    '--config', 'profile.release.package.conduit.opt-level="s"'] : [];
+  cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit', ...options);
   const name = process.platform === 'win32' ? 'conduit.exe' : 'conduit';
   const binary = path.join(directory, name);
   copyFile(cargoArtifact('release', name), binary);
