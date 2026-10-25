@@ -434,7 +434,7 @@ impl NativeRoot {
             .ok_or(())?;
         serde_json_core::to_slice(&self.advertisement()?, output).map_err(|_| ())
     }
-    fn advertisement(&self) -> Result<c::HostAdvertisement, ()> {
+    pub(crate) fn advertisement(&self) -> Result<c::HostAdvertisement, ()> {
         let mut advertisement = c::HostAdvertisement {
             protocol_version: c::PROTOCOL_VERSION,
             host_id: self.host.clone(),

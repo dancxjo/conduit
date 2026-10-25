@@ -21,9 +21,11 @@ ordinary assigned-table validator remains responsible for graph admission;
 these descriptors establish no physical possession or effect authority.
 
 The current producer links initial Lulled biography material into firmware
-without claiming a current Host, Boot, capability or Play. Local Root admission
-and startup, simultaneous display/network memory admission, and AP invitation
-delivery remain integration work. This component alone is not that appliance.
+without claiming a future Host, Boot, capability or Play. At boot the trusted
+image-install path records ordinary admission/presence events for the initialized
+local Root and opens the linked Body as a Lulled member. Existing membership
+cannot use this first-install entrance to replace a Boot. Startup, simultaneous
+display/network memory admission, and AP invitation delivery remain integration work. This component alone is not that appliance.
 
 Check the construction contract with:
 
@@ -59,9 +61,11 @@ in the biography. Running the command again creates a new construction.
 The linked-body firmware has passed the unchanged 36 KiB CPU stack guard.
 The pinned compiler disables switch-to-lookup conversion for this image because
 the ESP32 linker otherwise places those immutable tables in internal RAM. The
-measured linked image reserves 41,444 stack bytes and contains its exact
-1,973-byte biography. These are link-time checks, not proof of local membership,
-Plot startup, or AP invitation delivery; those remain incomplete.
+measured linked image reserves 41,428 stack bytes and contains its exact
+1,973-byte biography. Four CPU contract tests cover local installation and its
+refusals; physical local membership, Plot startup, and AP invitation delivery
+remain unverified. Mutable biography persistence and reboot continuity also
+remain integration work; a linked pristine snapshot cannot replace that history.
 The existing `prove environment display-esp32` builds a display diagnostic only.
 
 The image-generation entrance must eventually perform these steps together:
