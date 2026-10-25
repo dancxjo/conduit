@@ -5,7 +5,7 @@ edition = "2021"
 default-run = "conduit"
 
 [features]
-native-creche-sdl = ["native-creche", "dep:conduit-linux-display"]
+native-creche-sdl = ["native-creche", "dep:conduit-linux-display", "conduit-std-host/linux-display"]
 native-creche = ["dep:conduitos", "conduitos/native-compositor", "dep:conduit-human"]
 
 [dependencies]

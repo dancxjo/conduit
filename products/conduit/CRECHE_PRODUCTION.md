@@ -80,8 +80,11 @@ revokes that initialized scanout synchronously on its owning thread. The package
 is excluded from root workspace membership; the feature adds a Linux-only
 optional dependency without duplicating the renderer.
 
-The full native application entrance still needs an admitted Linux Show Base,
-actual input acquisition and the event loop. The Images model, save machinery
+The standard Host now has optional initialized Linux display readiness
+attachment, with private lifetime observation, a finite Show resource and
+transactional loss retraction after drain. The full native application entrance
+still needs the trusted bridge from that admission to NativeSurfaceProvider
+possession, actual input acquisition and the event loop. The Images model, save machinery
 and owner APIs do not themselves acquire display custody, choose a file for the
 user, deploy a carrier, or supply a complete launched application.
 

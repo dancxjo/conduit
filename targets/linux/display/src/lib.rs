@@ -4,7 +4,7 @@ mod initialized;
 mod surface;
 use conduit_face::GraphicsScene;
 use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
-pub use initialized::InitializedDisplay;
+pub use initialized::{DisplayClaimRefusal, DisplayHostClaim, InitializedDisplay};
 use sdl2::{
     pixels::PixelFormatEnum,
     render::{Canvas, Texture, TextureCreator},
@@ -51,7 +51,7 @@ impl<'a> Scanout<'a> {
         Ok(self.initialized.clone())
     }
     pub fn present(&mut self, scene: &GraphicsScene) -> Result<DisplayReceipt, String> {
-        if !self.live {
+        if !self.live || !self.initialized.is_live() {
             return Err("display-custody-lost".into());
         }
         let result = self.present_inner(scene);
@@ -66,7 +66,7 @@ impl<'a> Scanout<'a> {
         Ok(receipt)
     }
     fn commit_pixels(&mut self) -> Result<(), String> {
-        if !self.live {
+        if !self.live || !self.initialized.is_live() {
             return Err("display-custody-lost".into());
         }
         let result = self.commit_pixels_inner();
@@ -105,7 +105,7 @@ impl PixelTarget for Scanout<'_> {
         self.surface.format()
     }
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        if !self.live {
+        if !self.live || !self.initialized.is_live() {
             return Err(DisplayError::Lost);
         }
         let result = self.surface.write_pixel(x, y, pixel);

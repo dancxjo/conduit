@@ -10,6 +10,8 @@ pub(super) struct TodoCheckpointResidenceRoot {
 }
 
 pub struct StdHost {
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    pub(super) native_display: Option<crate::hosted_display::ReadyShowBase>,
     pub(super) advertisement: HostAdvertisement,
     #[cfg(unix)]
     pub(super) terminal_attachment: Option<std::os::unix::net::UnixStream>,
@@ -56,6 +58,8 @@ impl StdHost {
         base_registry: conduit_core::BaseRegistry,
     ) -> Self {
         Self {
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             advertisement,
             #[cfg(unix)]
             terminal_attachment: None,

@@ -74,6 +74,8 @@ pub use hosted_body_conversation_context::{
 };
 pub mod hosted_calendar;
 pub mod hosted_data;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod hosted_display;
 pub mod hosted_geometry;
 pub mod hosted_history;
 pub mod hosted_http;

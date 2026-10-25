@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 default = []
+linux-display = ["dep:conduit-linux-display"]
 burn-model = ["dep:conduit-burn-model"]
 burn-model-cuda = ["burn-model", "conduit-burn-model/cuda"]
 bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]
@@ -86,6 +87,7 @@ webrtc-util = { version = "0.17.1", default-features = false, features = ["conn"
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+conduit-linux-display = { path = "../linux/display", optional = true }
 bluer = { version = "0.17.4", features = ["bluetoothd"], optional = true }
 dbus = { version = "0.9.12", features = ["vendored"], optional = true }
 futures = { version = "0.3", optional = true }
@@ -141,3 +143,6 @@ ort-sys = { version = "=2.0.0-rc.12", default-features = false, features = ["std
 name = "conduit-native-model-worker"
 path = "src/bin/conduit-native-model-worker.rs"
 required-features = ["native-model-backing"]
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+sdl2 = { version = "=0.38.0", default-features = false }

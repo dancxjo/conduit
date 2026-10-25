@@ -15,6 +15,7 @@ struct Lease {
     window_height: u32,
     instance_nonce: u64,
     live: AtomicBool,
+    host_claimed: AtomicBool,
 }
 /// Only Scanout preparation issues this cloneable observation. Clones share
 /// terminal loss; SDL dummy/software observations remain explicitly identifiable.
@@ -22,7 +23,49 @@ struct Lease {
 pub struct InitializedDisplay {
     lease: Arc<Lease>,
 }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DisplayClaimRefusal {
+    Lost,
+    AlreadyClaimed,
+}
+/// Exclusive Host attachment custody. Dropping this noncloneable guard revokes
+/// the entire preparation; another Host must use a fresh Scanout preparation.
+pub struct DisplayHostClaim {
+    initialized: InitializedDisplay,
+}
+impl DisplayHostClaim {
+    pub fn initialized(&self) -> &InitializedDisplay {
+        &self.initialized
+    }
+}
+impl Drop for DisplayHostClaim {
+    fn drop(&mut self) {
+        self.initialized.revoke();
+        self.initialized
+            .lease
+            .host_claimed
+            .store(false, Ordering::Release);
+    }
+}
 impl InitializedDisplay {
+    /// Atomically claim this actual initialized surface once. Caller staging
+    /// before this step does not affect lifetime; a successful claim owns it.
+    pub fn claim_host(&self) -> Result<DisplayHostClaim, DisplayClaimRefusal> {
+        if !self.is_live() {
+            return Err(DisplayClaimRefusal::Lost);
+        }
+        self.lease
+            .host_claimed
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .map_err(|_| DisplayClaimRefusal::AlreadyClaimed)?;
+        if !self.is_live() {
+            self.lease.host_claimed.store(false, Ordering::Release);
+            return Err(DisplayClaimRefusal::Lost);
+        }
+        Ok(DisplayHostClaim {
+            initialized: self.clone(),
+        })
+    }
     pub(super) fn prepared(
         canvas: &sdl2::render::Canvas<sdl2::video::Window>,
         width: u32,
@@ -43,6 +86,7 @@ impl InitializedDisplay {
                 window_height,
                 instance_nonce,
                 live: AtomicBool::new(true),
+                host_claimed: AtomicBool::new(false),
             }),
         })
     }

@@ -64,6 +64,15 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
     assert_eq!(initialized.window_size(), (32, 24));
     assert_eq!(initialized.window_id(), scanout.canvas.window().id());
     assert!(initialized.instance_nonce() > 0);
+    let host_claim = initialized.claim_host().unwrap();
+    assert_eq!(
+        host_claim.initialized().instance_nonce(),
+        initialized.instance_nonce()
+    );
+    assert!(matches!(
+        retained.claim_host(),
+        Err(DisplayClaimRefusal::AlreadyClaimed)
+    ));
     scanout.present(&scene()).unwrap();
     let pixels = scanout
         .canvas
@@ -115,15 +124,34 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
         scanout.present(&scene()),
         Err("display-custody-lost".into())
     );
+    drop(host_claim);
+    assert!(matches!(
+        retained.claim_host(),
+        Err(DisplayClaimRefusal::Lost)
+    ));
     drop(scanout);
     // Repreparation on the same actual window is a fresh lifetime, not revival.
-    let fresh = Scanout::prepare(&mut canvas, &textures, 32, 24).unwrap();
+    let mut fresh = Scanout::prepare(&mut canvas, &textures, 32, 24).unwrap();
     let fresh_token = fresh.initialized_display().unwrap();
     assert_eq!(fresh_token.window_id(), retained.window_id());
     assert_ne!(fresh_token.instance_nonce(), retained.instance_nonce());
     assert!(fresh_token.is_live());
     assert!(!retained.is_live());
+    let fresh_claim = fresh_token.claim_host().unwrap();
+    drop(fresh_claim);
+    assert!(!fresh_token.is_live());
+    assert_eq!(fresh.write_pixel(0, 0, 1), Err(DisplayError::Lost));
+    assert_eq!(fresh.commit_frame(), Err(DisplayError::Lost));
+    assert!(fresh.initialized_display().is_err());
+    assert!(fresh.present(&scene()).is_err());
     drop(fresh);
+    let next = Scanout::prepare(&mut canvas, &textures, 32, 24).unwrap();
+    let next_token = next.initialized_display().unwrap();
+    assert_ne!(next_token.instance_nonce(), fresh_token.instance_nonce());
+    let next_claim = next_token.claim_host().unwrap();
+    drop(next);
+    assert!(!next_claim.initialized().is_live());
+    drop(next_claim);
     assert!(
         !fresh_token.is_live(),
         "Drop revokes all outstanding clones"
