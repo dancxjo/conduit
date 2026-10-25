@@ -1,0 +1,84 @@
+//! Borrow offer bytes only while their initialized software owner is retained.
+use super::*;
+
+#[derive(Clone, Copy)]
+pub struct ResidentSoftwareOffer<'a> {
+    node: u16,
+    json: &'a [u8],
+}
+impl<'a> ResidentSoftwareOffer<'a> {
+    /// Retain compiler-produced metadata, never incoming assignment descriptors.
+    /// # Safety
+    /// Bytes must be the exact compiler-produced CapabilityOffer JSON for this node's
+    /// software artifact in the same independently pinned Make recipe. They must
+    /// contain no Host/Boot, native provider, resource or authority facts. This
+    /// constructor establishes no readiness and initializes no implementation.
+    pub const unsafe fn from_make(node: u16, json: &'a [u8]) -> Self {
+        Self { node, json }
+    }
+}
+/// The borrow prevents transferring the corresponding owner while publishing.
+/// Outer Host/Boot/offer-generation provenance remains Root's responsibility.
+pub struct ReadyResidentOffers<'a, V> {
+    _owner: &'a PreparedResidentSoftware<V>,
+    offers: &'a [ResidentSoftwareOffer<'a>],
+    array_bytes: usize,
+}
+impl<'a, V> ReadyResidentOffers<'a, V> {
+    /// Exact JSON array extent, including brackets and separating commas.
+    pub fn array_bytes(&self) -> usize {
+        self.array_bytes
+    }
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &'a [u8]> + '_ {
+        self.offers.iter().map(|offer| offer.json)
+    }
+}
+impl<V: ValueStorage> PreparedResidentSoftware<V> {
+    /// Preflight all metadata before lending any bytes. Static descriptors alone
+    /// cannot call this method; the complete software set must be initialized.
+    pub fn offers<'a>(
+        &'a self,
+        resident: &ResidentAppliance<'_>,
+        offers: &'a [ResidentSoftwareOffer<'a>],
+    ) -> Result<ReadyResidentOffers<'a, V>, NativePreparationRefusal> {
+        self.source_offers(&resident.software_spec(), offers)
+    }
+    /// Lend availability from Source-only construction, before graph admission.
+    pub fn source_offers<'a>(
+        &'a self,
+        resident: &ResidentSoftwareSpec<'_>,
+        offers: &'a [ResidentSoftwareOffer<'a>],
+    ) -> Result<ReadyResidentOffers<'a, V>, NativePreparationRefusal> {
+        use NativePreparationRefusal as E;
+        let expected = resident_software::Construction::prepare(
+            resident,
+            self.construction.count,
+            self.construction.period_ms,
+        )?;
+        if self.construction != expected || offers.len() != NODES - 2 {
+            return Err(E::Configuration);
+        }
+        let mut seen = [false; NODES];
+        let mut array_bytes = 2 + offers.len().saturating_sub(1);
+        for offer in offers {
+            let node = usize::from(offer.node);
+            if node >= NODES
+                || offer.node == self.construction.roles.pulse.0
+                || offer.node == self.construction.roles.tick.0
+                || seen[node]
+                || offer.json.is_empty()
+            {
+                return Err(E::Configuration);
+            }
+            array_bytes = array_bytes
+                .checked_add(offer.json.len())
+                .ok_or(E::Configuration)?;
+            seen[node] = true;
+        }
+        Ok(ReadyResidentOffers {
+            _owner: self,
+            offers,
+            array_bytes,
+        })
+    }
+}

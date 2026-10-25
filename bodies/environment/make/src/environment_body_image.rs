@@ -1,5 +1,8 @@
 //! Select the actual checked environmental Sources for build-side birth.
-use crate::{BodyImageRefusal, DisplayOutputSource, PreparedBodyImage};
+use crate::{
+    BodyImageRefusal, DisplayOutputSource, NativeSoftwareSourceRecipe, PreparedBodyImage,
+    SourceRecipeRefusal,
+};
 use conduit_birth_plot::BirthPlotChoice;
 use conduit_body::ResidentPlot;
 use conduit_core::{ExpandedPlotId, SignId};
@@ -9,6 +12,7 @@ pub enum EnvironmentBodyImageRefusal {
     Sampling(String),
     Display(String),
     Birth(BodyImageRefusal),
+    Software(SourceRecipeRefusal),
 }
 
 /// Build material retains both expanded identities for subsequent linking.
@@ -17,6 +21,7 @@ pub struct EnvironmentBodyImage {
     pub body: PreparedBodyImage,
     pub sampling: ExpandedPlotId,
     pub display: ExpandedPlotId,
+    pub sampling_software: NativeSoftwareSourceRecipe,
 }
 
 impl EnvironmentBodyImage {
@@ -29,6 +34,8 @@ impl EnvironmentBodyImage {
         let sampling =
             conduit_environment_runtime::construction::compile_default().map_err(E::Sampling)?;
         let display = DisplayOutputSource::compile().map_err(E::Display)?;
+        let sampling_software =
+            NativeSoftwareSourceRecipe::prepare(&sampling).map_err(E::Software)?;
         let choices = [
             ("Environmental sampling", &sampling.expanded),
             ("Seven-segment output", &display.plot.expanded),
@@ -52,6 +59,7 @@ impl EnvironmentBodyImage {
             body,
             sampling: sampling.expanded.expanded_plot_id,
             display: display.plot.expanded.expanded_plot_id,
+            sampling_software,
         })
     }
 }

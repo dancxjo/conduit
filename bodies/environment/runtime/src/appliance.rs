@@ -10,6 +10,8 @@ use conduit_kernel::{
     PortId,
 };
 
+pub mod assigned;
+
 pub enum ApplianceBack {
     Native(CaptureBack),
     Tick(conduit_time::TickBack),

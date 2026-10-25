@@ -13,6 +13,12 @@ construction UUID and attributable birth Sign. The ordinary body biography
 retains the name, so boot does not regenerate it. The name is metadata;
 independent births retain distinct identities even when their names coincide.
 
+The sampling material now includes `NativeSoftwareSourceRecipe`, emitted from
+that same checked Source. It can initialize retained portable software and lend
+its offers without reconstructing the rich Source graph on the MCU. The
+ordinary assigned-table validator remains responsible for graph admission;
+these descriptors establish no physical possession or effect authority.
+
 The current producer creates initial Lulled biography material without claiming
 a current Host, Boot, capability or Play. Linking it into firmware, local Root
 admission/start, simultaneous display/network memory admission and AP invitation
