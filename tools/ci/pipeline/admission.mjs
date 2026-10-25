@@ -10,6 +10,8 @@ export function isMeasurementReceipt(name) {
 function preflightOnly(name) {
   return name === 'tools/xtask/tests/ci_workflow_contract.rs'
     || name === 'tools/ci/pipeline/train-restore.py'
+    // The real bounded archive helper executes in preflight's seed corpus.
+    || name === 'tools/ci/pipeline/hosted-cache-seed.py'
     || isMeasurementReceipt(name) || name.endsWith('.md') || name === 'LICENSE'
     || /^(?:tools\/ci\/|proof\/ci\/).+\.(?:mjs|js)$/.test(name)
     || /^\.github\/workflows\/[^/]+\.ya?ml$/.test(name);

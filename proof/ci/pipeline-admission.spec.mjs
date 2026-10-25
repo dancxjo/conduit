@@ -333,8 +333,8 @@ test('shared xtask sources compile both tooling entrances during narrow admissio
   assert.deepEqual(admissionPlan(['tools/xtask/README.md'], model, '/repo').packages, []);
 });
 
-test('exact standalone workflow wrapper and restoration parser are proved in preflight without xtask dependency rebuilds', () => {
-  const paths = ['tools/xtask/tests/ci_workflow_contract.rs', 'tools/ci/pipeline/train-restore.py'];
+test('exact standalone workflow wrapper and archive parsers are proved in preflight without xtask dependency rebuilds', () => {
+  const paths = ['tools/xtask/tests/ci_workflow_contract.rs', 'tools/ci/pipeline/train-restore.py', 'tools/ci/pipeline/hosted-cache-seed.py'];
   const commands = [];
   runAdmission(paths, metadata, '/repo', (...args) => commands.push(args));
   assert.deepEqual(commands, []);
@@ -347,7 +347,7 @@ test('other Rust and Python paths retain conservative package or workspace admis
     { id: 'xtask', name: 'xtask', manifest_path: '/repo/tools/xtask/Cargo.toml' },
     { id: 'conduit-xtask-dispatch', name: 'conduit-xtask-dispatch', manifest_path: '/repo/tools/xtask-dispatch/Cargo.toml' },
   ] };
-  for (const name of ['tools/xtask/tests/another_contract.rs', 'tools/ci/pipeline/another_parser.py']) {
+  for (const name of ['tools/xtask/tests/another_contract.rs', 'tools/ci/pipeline/another_parser.py', 'tools/ci/pipeline/hosted-cache-seed-unreviewed.py']) {
     const selected = admissionPlan([name], ownerMetadata, '/repo');
     assert.deepEqual(selected.packages, ['conduit-xtask-dispatch', 'xtask']);
     const calls = []; runAdmission([name], ownerMetadata, '/repo', (...args) => calls.push(args));

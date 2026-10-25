@@ -252,3 +252,9 @@ GitHub artifacts. Local audited cache clearing remains separate and preserves
 private task outputs. Remote transfer, snapshot preparation and full-history
 checkout costs must be included in hosted performance measurements; local cache
 hits alone do not prove a net pipeline speed improvement.
+
+The exact `tools/ci/pipeline/hosted-cache-seed.py` helper is also covered by
+preflight rather than rebuilding xtask's Rust dependency graph. The seed corpus
+executes that real Python helper for archive sealing/extraction and malformed
+archive refusals. This exception does not cover adjacent Python files, compiler
+profile JSON/TOML, product Rust, or runtime dependencies.
