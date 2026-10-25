@@ -369,15 +369,13 @@ mod tests {
             Cli::try_parse_from(args.into_iter().chain(["--specializations", "recipe.json"]))
                 .is_ok()
         );
-        assert!(
-            Cli::try_parse_from(args.into_iter().chain([
-                "--specializations",
-                "recipe.json",
-                "--package",
-                "old.json"
-            ]))
-            .is_err()
-        );
+        assert!(Cli::try_parse_from(args.into_iter().chain([
+            "--specializations",
+            "recipe.json",
+            "--package",
+            "old.json"
+        ]))
+        .is_err());
     }
 }
 
@@ -406,50 +404,48 @@ mod endpoint_command_tests {
             Cli::try_parse_from(["xtask", "make", "conduitos", "usb-proof", "--hid-mouse"]).is_ok()
         );
         for conflicting in ["--prepared-image", "--endpoint-read", "--hid-endpoint"] {
-            assert!(
-                Cli::try_parse_from([
-                    "xtask",
-                    "make",
-                    "conduitos",
-                    "usb-proof",
-                    "--hid-mouse",
-                    conflicting
-                ])
-                .is_err()
-            );
+            assert!(Cli::try_parse_from([
+                "xtask",
+                "make",
+                "conduitos",
+                "usb-proof",
+                "--hid-mouse",
+                conflicting
+            ])
+            .is_err());
         }
         assert!(
             Cli::try_parse_from(["xtask", "make", "conduitos", "usb-proof", "--hid-endpoint"])
                 .is_ok()
         );
         for conflicting in ["--prepared-image", "--endpoint-read"] {
-            assert!(
-                Cli::try_parse_from([
-                    "xtask",
-                    "make",
-                    "conduitos",
-                    "usb-proof",
-                    "--hid-endpoint",
-                    conflicting
-                ])
-                .is_err()
-            );
-        }
-        assert!(
-            Cli::try_parse_from(["xtask", "make", "conduitos", "usb-proof", "--endpoint-read"])
-                .is_ok()
-        );
-        assert!(
-            Cli::try_parse_from([
+            assert!(Cli::try_parse_from([
                 "xtask",
                 "make",
                 "conduitos",
                 "usb-proof",
-                "--endpoint-read",
-                "--prepared-image"
+                "--hid-endpoint",
+                conflicting
             ])
-            .is_err()
-        );
+            .is_err());
+        }
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "usb-proof",
+            "--endpoint-read"
+        ])
+        .is_ok());
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "usb-proof",
+            "--endpoint-read",
+            "--prepared-image"
+        ])
+        .is_err());
     }
 }
 

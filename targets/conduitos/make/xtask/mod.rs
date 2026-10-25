@@ -279,7 +279,7 @@ pub enum ConduitosArch {
 
 pub(crate) use armv6_rpi_board::Armv6RpiBoard;
 pub(crate) use report::ArtifactRole;
-pub(crate) use target_build::{ProfileBuiltImage, build_profile_image};
+pub(crate) use target_build::{build_profile_image, ProfileBuiltImage};
 
 pub(crate) fn build_rpi_image(
     board: Armv6RpiBoard,
@@ -748,16 +748,14 @@ mod tests {
         assert!(
             Cli::try_parse_from(["xtask", "make", "conduitos", "usb-configuration-proof"]).is_ok()
         );
-        assert!(
-            Cli::try_parse_from([
-                "xtask",
-                "make",
-                "conduitos",
-                "usb-configuration-proof",
-                "--prepared-image"
-            ])
-            .is_err()
-        );
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "usb-configuration-proof",
+            "--prepared-image"
+        ])
+        .is_err());
         for proof in [
             "xhci-proof",
             "usb-proof",

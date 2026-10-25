@@ -10,7 +10,7 @@
 //! https://github.com/torvalds/linux/blob/v6.12/drivers/clk/tegra/clk.c
 
 use super::display::Descriptor;
-use super::display_boot::{self, Error, Registers, DC_BASES, MC_BASE};
+use super::display_boot::{self, DC_BASES, Error, MC_BASE, Registers};
 use super::memory::{Region, Regions};
 
 const CAR_BASE: u64 = 0x6000_6000;

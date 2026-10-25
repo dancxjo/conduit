@@ -1,5 +1,5 @@
 //! Native Nano image build with retained NVIDIA firmware partitions.
-use super::{ConduitosArch, ConduitosError, profile::Paths, report::git_head};
+use super::{profile::Paths, report::git_head, ConduitosArch, ConduitosError};
 use crate::cli::GlobalOpts;
 use clap::Args;
 use std::{
