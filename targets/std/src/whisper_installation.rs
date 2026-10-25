@@ -35,29 +35,8 @@ impl StdHost {
         });
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
             speech_recognition: Some(adapter),
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
@@ -95,29 +74,8 @@ impl StdHost {
         });
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
             speech_recognition: Some(adapter),
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 

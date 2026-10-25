@@ -36,29 +36,13 @@ impl StdHost {
         let kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
             playback: Some(playback),
-            wav_artifact: None,
-            speech_synthesis: None,
             midi_input: Some(midi_input),
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: crate::empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(
+                advertisement,
+                kernel_resources,
+                crate::empty_base_registry(),
+            )
         })
     }
 
@@ -91,29 +75,13 @@ impl StdHost {
         let kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
             midi_input: Some(midi_input),
             midi_output: Some(midi_output),
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: crate::empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(
+                advertisement,
+                kernel_resources,
+                crate::empty_base_registry(),
+            )
         })
     }
 
@@ -149,29 +117,13 @@ impl StdHost {
         let kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
             midi_input: Some(midi_input),
             midi_output: Some(midi_output),
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: crate::empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(
+                advertisement,
+                kernel_resources,
+                crate::empty_base_registry(),
+            )
         })
     }
 
@@ -201,29 +153,12 @@ impl StdHost {
         let kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
             midi_input: Some(midi_input),
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: crate::empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(
+                advertisement,
+                kernel_resources,
+                crate::empty_base_registry(),
+            )
         })
     }
 
@@ -301,29 +236,12 @@ impl StdHost {
         let kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
             midi_output: Some(midi_output),
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: crate::empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(
+                advertisement,
+                kernel_resources,
+                crate::empty_base_registry(),
+            )
         })
     }
 

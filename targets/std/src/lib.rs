@@ -558,50 +558,9 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     Ok(report)
 }
 
-struct TodoCheckpointResidenceRoot {
-    path: std::path::PathBuf,
-    #[cfg(unix)]
-    device: u64,
-    #[cfg(unix)]
-    inode: u64,
-}
-
-pub struct StdHost {
-    advertisement: HostAdvertisement,
-    #[cfg(unix)]
-    terminal_attachment: Option<std::os::unix::net::UnixStream>,
-    image_identity: Option<conduit_host_make::ImageBootIdentity>,
-    playback: Option<hosted_audio::HostedPlaybackSelection>,
-    wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
-    speech_synthesis: Option<hosted_speech_synthesis::EspeakSpeechAdapter>,
-    midi_input: Option<hosted_midi::HostedRawMidiSelection>,
-    midi_output: Option<hosted_midi::MidiOutputSelection>,
-    local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
-    speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
-    microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
-    base_registry: conduit_core::BaseRegistry,
-    vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
-    model_work: Option<Box<dyn hosted_model_work::HostedModelWorkAdapter>>,
-    calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
-    body_conversation_context: Option<BodyConversationContextSource>,
-    vision: Option<hosted_vision::FiniteHostedVisionBase>,
-    kernel_resources: kernel_preparation::KernelResourceLedger,
-    numerical_preparation: numerical_host::preparation_cache::NumericalPreparationCache,
-    todo_checkpoint_root: Option<TodoCheckpointResidenceRoot>,
-    next_kernel_play_sequence: u64,
-    next_kernel_sign_sequence: u64,
-}
-
-fn empty_base_registry() -> conduit_core::BaseRegistry {
-    conduit_core::BaseRegistry::new(conduit_core::BaseRegistryLimits {
-        maximum_bases: 16,
-        maximum_capabilities_per_base: 16,
-        maximum_resources_per_base: 16,
-        maximum_advertised_capabilities: 256,
-        maximum_advertised_resources: 256,
-    })
-    .expect("std Base registry bounds are fixed and valid")
-}
+mod host_state;
+pub use host_state::StdHost;
+use host_state::{empty_base_registry, TodoCheckpointResidenceRoot};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct IssuedKernelPlay {
@@ -910,31 +869,7 @@ impl StdHost {
             composition::build_advertisement(config, composition, None, None, None, false);
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)
             .expect("std kernel resource offers are exact and bounded");
-        Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
-        }
+        Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
     }
 
     pub fn new_with_finite_vision(
@@ -983,29 +918,8 @@ impl StdHost {
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry,
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
             vision: Some(vision),
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, base_registry)
         })
     }
 
@@ -1031,29 +945,8 @@ impl StdHost {
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
             local_model: Some(adapter),
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
@@ -1078,29 +971,8 @@ impl StdHost {
         });
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
             vector_search: Some(adapter),
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
@@ -1125,29 +997,8 @@ impl StdHost {
         });
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
             model_work: Some(adapter),
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
@@ -1172,29 +1023,8 @@ impl StdHost {
         });
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
             calendar: Some(adapter),
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
@@ -1203,31 +1033,11 @@ impl StdHost {
     /// composition here would discard admitted platform implementations.
     pub fn from_advertisement(advertisement: HostAdvertisement) -> Result<Self, String> {
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-        Ok(Self {
+        Ok(Self::from_prepared_state(
             advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
             kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
-        })
+            empty_base_registry(),
+        ))
     }
 
     pub fn new_with_playback(
@@ -1260,29 +1070,8 @@ impl StdHost {
         });
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
             playback: Some(playback),
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
@@ -1311,29 +1100,8 @@ impl StdHost {
         );
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
             midi_output: Some(midi_output),
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
@@ -1351,29 +1119,8 @@ impl StdHost {
         let (image_identity, advertisement) = binding.into_parts();
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
             image_identity: Some(image_identity),
-            playback: None,
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
@@ -1404,29 +1151,8 @@ impl StdHost {
         );
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
-            advertisement,
-            image_identity: None,
             playback: Some(playback),
-            wav_artifact: None,
-            speech_synthesis: None,
-            midi_input: None,
-            midi_output: None,
-            local_model: None,
-            speech_recognition: None,
-            microphone: None,
-            base_registry: empty_base_registry(),
-            vector_search: None,
-            model_work: None,
-            calendar: None,
-            body_conversation_context: None,
-            vision: None,
-            kernel_resources,
-            numerical_preparation: Default::default(),
-            todo_checkpoint_root: None,
-            next_kernel_play_sequence: 0,
-            next_kernel_sign_sequence: 0,
-            #[cfg(unix)]
-            terminal_attachment: None,
+            ..Self::from_prepared_state(advertisement, kernel_resources, empty_base_registry())
         })
     }
 
