@@ -31,7 +31,7 @@ was performed for this document.
 | Exact new cases | Full eight-slot table refuses a ninth issue; revocation never recycles slots and rejects old handles/leases. Two-operation admission refuses excess/in-flight work; replaying the first completion cannot settle the second lease; the second completes exactly once and sibling authority remains usable. | It proves admitted finite limits, not billions of operations, global issuer uniqueness or newly constructed tables using repeated secrets/scopes. |
 | HTTP guard | Public cases exist in [http_ticket_lifetime.rs](../../targets/conduitos/tests/http_ticket_lifetime.rs); compile-fail borrow/consumption cases exist in request.rs. Source includes repeated transaction/bytes, provider/refusal, sibling and forgotten-guard controls. | Not rerun by this audit. Do not reuse the historical detached-ticket ABA diagnosis against this guard implementation or infer asynchronous/network rollback proof. |
 | Root loans and authority route | Actual numeric-kernel/Root-ledger cases exist in [ledger_tests.rs](../../targets/conduitos/src/protected_runtime/ledger_tests.rs); current public owner checks exist in native_workset/play and [product journey workset tests](../../targets/conduitos/src/product_journey/workset_tests.rs). | Test presence is not a new passing result. Hosted loan checks do not instantiate a protected Broker fault, and local numbers are not owner routing capabilities. |
-| Composite reuse | Existing controller/rearm tests were inspected. | Not rerun here. No new rearm-fault, panic or disposal proof. |
+| Composite reuse | Six existing scheduler rearm cases passed in Candidate40196598054 admission: active/cancelled refusal, prior failure, missing evidence, stale input, lost resident pin and exhausted sequence identity. Selected pool/controller/scheduler sources were byte-identical to dev5b483a91. | Existing finite owner/rearm proof, not a new panic-in-rearm, destructor or native external-resource disposal witness. The private moved-child source audit does not turn its debug assertion into isolation enforcement. |
 | Native model process | At `465af45ad`, all three ignored [owning lifecycle cases](https://github.com/dancxjo/conduit/blob/465af45add0195e4481e56fe90ed46cf74872d91/targets/std/tests/model_infer_native_lifecycle.rs) passed against explicitly pinned installed ORT on Linux x86_64 GNU. Actual Source/Plan/Play selects the native worker. Two ordinary Plays retain the same worker PID/starttime, mappings and admission; host drop reaps it. Ordinary Stop cancels with nine request bytes queued, emits no output and reaps the child. SIGKILL provider loss returns the existing String `BackFailed`/`HostCallFailed` detail 71, emits no output and spawns no retry child. | SIGSTOP establishes pending cancellation, not interruption during native CPU computation. These cases do not force panic, kill/wait failure, late-completion races, fresh-owner A→B replay, Atomic exhaustion or cross-artifact/profile reuse. They establish no hostile confinement, physical authority, native performance or CI/release acceptance. |
 
 The CPU harness/source/log hashes are retained in this task's
@@ -92,8 +92,11 @@ relabel them as current dev, Candidate or Integration acceptance.
   debugger Watch, independent Host isolation or physical authority.
 
 - Ordinary StdHost receiver retirement and retained Body replan:
-  [PR #6491](https://github.com/dancxjo/conduit/pull/6491), currently unmerged at
-  `3f4864c18f2978e57fd9dcb08309f841c17d1a3a`. Actual local validation at
+  [PR #6491](https://github.com/dancxjo/conduit/pull/6491), merged into dev at
+  `5b483a91a630d39dbd692c97c74b1f9758a51ff4` after Candidate
+  [40195009584](https://github.com/dancxjo/conduit/actions/runs/40195009584)
+  passed at `3f4864c18f2978e57fd9dcb08309f841c17d1a3a`. Its actual admission
+  log confirms both owning regressions and ownership doctests. Local validation at
   `3daddea9ca346d7499540a4f08b44b83a8fe868c` passed all ten Todo integration
   cases, two Vision cases, two receiver-ownership doctests and strict
   library/Todo Clippy. The subsequent conflict-free merge of dev `100ae115`
@@ -117,8 +120,12 @@ relabel them as current dev, Candidate or Integration acceptance.
   bearer lease or separate physical Base handle. Async callback/Watch revocation,
   hostile confinement and physical authority remain outside these cases.
 - Browser finite input and terminal owner correction:
-  [PR #6492](https://github.com/dancxjo/conduit/pull/6492), currently unmerged at
-  `53b0fd621efeff8b22f2757ba8fc0df2821ad092`. Pointer sequences retire at the
+  [PR #6492](https://github.com/dancxjo/conduit/pull/6492), merged normally into dev
+  at `d3356f28a341a02f212e1030fc456a51076f125e` after Candidate
+  [40196598054](https://github.com/dancxjo/conduit/actions/runs/40196598054)
+  passed at `53b0fd621efeff8b22f2757ba8fc0df2821ad092`. The product log
+  records all 276 Chromium tests passing, including all thirteen human-input
+  cases and the terminal PageLost regression. Pointer sequences retire at the
   u32 boundary and buttons at the exact safe-Number boundary before u64 encoding;
   the last representable value emits once, then issuance refuses. Capacity is
   checked before routing/pointer capture, failed button streams cannot route,
@@ -131,7 +138,9 @@ relabel them as current dev, Candidate or Integration acceptance.
   The supported browser check suite registers the policy cases. These tests do
   not inject a maximum into a live owner, run billions of events or prove the
   counter boundary through WASM. They neither grant new authority nor rerun the
-  earlier WASM lifetime proof; current-head CI acceptance remains separate.
+  earlier WASM lifetime proof. The two policy-boundary cases have local execution
+  and permanent named xtask registration; the 276-case Chromium CI result must
+  not be substituted for forced live-owner maximum or WASM counter-boundary proof.
 
 A separate source review found unchecked u32 Tour timer/manifestation completion
 **reporting** counts. Pending effect correlation uses Play, placement and request,
