@@ -1,6 +1,8 @@
 //! Linux scanout adapter below the ordinary Face graphics Show. This module
 //! owns no Body, observation, Mask policy, scheduler, or recording authority.
 mod initialized;
+mod input;
+pub use input::{NativeInput, NativeInputRefusal};
 mod surface;
 use conduit_face::GraphicsScene;
 use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
@@ -19,6 +21,7 @@ pub struct Scanout<'a> {
     texture: Texture<'a>,
     surface: Surface,
     live: bool,
+    input_ready: bool,
     initialized: InitializedDisplay,
 }
 impl<'a> Scanout<'a> {
@@ -39,6 +42,7 @@ impl<'a> Scanout<'a> {
             texture,
             surface,
             live: true,
+            input_ready: false,
             initialized,
         })
     }
@@ -163,3 +167,6 @@ pub fn with_kmsdrm<T>(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod input_queue_tests;

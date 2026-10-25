@@ -37,6 +37,18 @@ it to the ordinary native Mask. The bridge performs no presentation or Show
 acknowledgement. Scanout loss and Host-claim loss refuse further provider
 construction; metadata equality cannot substitute for the same live instance.
 
+`prepare_input` establishes a fresh input boundary before Play by draining old
+queued keys in finite batches. It checks the actual queue after an empty poll
+cycle; SDL may end a cycle while events still remain queued. Preparation can
+allocate one bounded peek slot. `poll_input` then inspects at most 256 events
+without waiting or allocating, forwards canonical key transitions only for the
+same live window, and suppresses repeat notifications. Invalid keys and absent
+preparation are typed refusals. Window focus/output loss revokes the preparation;
+reacquisition requires fresh output and input preparation. These observations
+must still pass through the selected Mask's acknowledged Show/focus route.
+The diagnostic test injects actual SDL queue events; it proves no physical
+keyboard, user enactment or completed application event loop.
+
 The Linux Host still must bind actual display
 custody and an admitted present operation before offering this Back.
 

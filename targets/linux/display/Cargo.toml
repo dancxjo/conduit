@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 conduit-face = { path = "../../../semantics/face" }
+conduit-human = { path = "../../../semantics/human" }
 conduitos = { path = "../../conduitos", default-features = false }
 sdl2 = { version = "=0.38.0", default-features = false }
 

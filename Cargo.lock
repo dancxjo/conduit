@@ -2178,6 +2178,7 @@ name = "conduit-linux-display"
 version = "0.1.0"
 dependencies = [
  "conduit-face",
+ "conduit-human",
  "conduitos",
  "sdl2",
 ]
