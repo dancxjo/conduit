@@ -171,3 +171,32 @@ test('Integration guards manual train source before proof while retaining normal
   assert.match(workflow, /base: all/);
   assert.match(workflow, /cancel-in-progress: false/);
 });
+
+
+test('only Integration earns train-accepted after exhaustive proof or authenticated adoption', async () => {
+  const workflow = await readFile('.github/workflows/integration.yml', 'utf8');
+  const candidate = await readFile('.github/workflows/candidate.yml', 'utf8');
+  assert.match(workflow, /\n  train-accepted:\n/);
+  assert.doesNotMatch(workflow, /\n  candidate:\n/);
+  assert.doesNotMatch(candidate, /train-accepted/);
+  const aggregate = workflow.split('  train-accepted:\n')[1];
+  assert.match(aggregate, /if: \$\{\{ always\(\) \}\}/);
+  assert.match(aggregate, /needs: \[train-source, adoption, proof\]/);
+  const script = aggregate.split('        run: |\n')[1].split('\n').map(line => line.slice(10)).join('\n');
+  for (const [guard, adoption, adopted, result, accepted] of [
+    ['success', 'skipped', '', 'success', true],
+    ['skipped', 'success', 'false', 'success', true],
+    ['skipped', 'success', 'true', 'skipped', true],
+    ['failure', 'skipped', '', 'success', false],
+    ['cancelled', 'skipped', '', 'success', false],
+    ['success', 'skipped', '', 'skipped', false],
+    ['success', 'skipped', '', 'failure', false],
+    ['skipped', 'failure', 'true', 'skipped', false],
+    ['skipped', 'success', 'true', 'success', false],
+    ['skipped', 'success', '', 'success', false],
+  ]) {
+    const outcome = spawnSync('bash', ['-e', '-c', script], { env: { ...process.env,
+      GUARD: guard, ADOPTION: adoption, ADOPTED: adopted, RESULT: result } });
+    assert.equal(outcome.status === 0, accepted, JSON.stringify({ guard, adoption, adopted, result }));
+  }
+});

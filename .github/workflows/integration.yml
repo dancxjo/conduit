@@ -96,7 +96,7 @@ jobs:
       sha: ${{ github.sha }}
       base: all
       train-manifest-digest: ${{ needs.train-source.outputs.digest }}
-  candidate:
+  train-accepted:
     # The protected branch's required context must be earned by this exact
     # exhaustive source proof, including a refused or cancelled train guard.
     if: ${{ always() }}

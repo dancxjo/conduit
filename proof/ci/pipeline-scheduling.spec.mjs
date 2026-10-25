@@ -85,8 +85,8 @@ test('PR scopes use the actual merge-preview parent, including admission', () =>
   assert.match(job(ci, 'admission'), /BASE: \$\{\{ needs\.preflight\.outputs\.base \}\}/);
 });
 
-test('Integration earns the protected candidate context only with successful exhaustive proof', () => {
-  const gate = job(integration, 'candidate');
+test('Integration earns its distinct protected context only with successful exhaustive proof', () => {
+  const gate = job(integration, 'train-accepted');
   assert.match(gate, /if: \$\{\{ always\(\) \}\}/);
   assert.match(gate, /needs: \[train-source, adoption, proof\]/);
   const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
@@ -102,7 +102,7 @@ test('Integration earns the protected candidate context only with successful exh
 });
 
 test('accepted train proof replaces dev rebuild only after successful adoption', () => {
-  const gate = job(integration, 'candidate');
+  const gate = job(integration, 'train-accepted');
   const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
   for (const adoption of ['success', 'failure', 'cancelled', 'skipped', '']) {
     for (const adopted of ['true', 'false', '', 'unknown']) {

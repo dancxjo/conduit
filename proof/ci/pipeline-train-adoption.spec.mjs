@@ -12,7 +12,7 @@ async function setup(t, zipVariation = '') {
   const pushRun = { id: 555, run_attempt: 1, head_sha: f.source, repository: repo, head_repository: repo,
     event: 'push', head_branch: 'dev', path: '.github/workflows/integration.yml', status: 'in_progress', conclusion: null };
   const run = { ...f.observation.run, run_attempt: 2, check_suite_id: 777, repository: repo, head_repository: repo };
-  const checks = { total_count: 1, check_runs: [{ name: 'candidate', app: { id: 15368 },
+  const checks = { total_count: 1, check_runs: [{ name: 'train-accepted', app: { id: 15368 },
     check_suite: { id: 777 }, head_sha: f.source, status: 'completed', conclusion: 'success' }] };
   const state = { inventory: [run], accepted: f.source, mergeBase: f.source,
     artifactList: true, tree: f.manifest.tree, zipVariation, latestChange: false, reads: 0 };
@@ -75,8 +75,11 @@ for (const [name, mutate] of [
   ['foreign manifest source', f => { f.artifact().workflow_run.head_sha = 'a'.repeat(40); }],
   ['foreign artifact run', f => { f.artifact().workflow_run.id++; }],
   ['wrong ZIP digest', f => { f.artifact().digest = `sha256:${'0'.repeat(64)}`; }],
-  ['failed candidate', f => { f.checks.check_runs[0].conclusion = 'failure'; }],
-  ['foreign candidate app', f => { f.checks.check_runs[0].app.id = 42; }],
+  ['ordinary Candidate green', f => { f.checks.check_runs[0].name = 'candidate'; }],
+  ['missing train acceptance', f => { f.checks.total_count = 0; f.checks.check_runs = []; }],
+  ['foreign train acceptance suite', f => { f.checks.check_runs[0].check_suite.id++; }],
+  ['failed train acceptance', f => { f.checks.check_runs[0].conclusion = 'failure'; }],
+  ['foreign train acceptance app', f => { f.checks.check_runs[0].app.id = 42; }],
   ['unaccepted source', f => { f.state.mergeBase = 'a'.repeat(40); }],
   ['wrong accepted tree', f => { f.state.tree = 'a'.repeat(40); }],
   ['changed run attempt', f => { f.state.latestChange = true; }],

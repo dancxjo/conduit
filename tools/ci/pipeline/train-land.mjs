@@ -14,8 +14,8 @@ export function validateLandingProtection(protection, rules) {
   if (!status || typeof status.strict !== 'boolean'
       || Object.keys(status).some(key => !['url', 'strict', 'contexts', 'contexts_url', 'checks'].includes(key))
       || !Array.isArray(status.contexts) || status.contexts.length !== 1
-      || status.contexts[0] !== 'candidate' || !Array.isArray(status.checks) || status.checks.length !== 1
-      || status.checks[0].context !== 'candidate' || status.checks[0].app_id !== 15368) fail('Unrecognized required checks');
+      || status.contexts[0] !== 'train-accepted' || !Array.isArray(status.checks) || status.checks.length !== 1
+      || status.checks[0].context !== 'train-accepted' || status.checks[0].app_id !== 15368) fail('Unrecognized required checks');
   // Even a zero-review PR rule still requires a pull request. An admin token
   // must not silently turn a direct update into a policy bypass.
   if (protection.required_pull_request_reviews != null) fail('Pull request requirement prevents exact-source ref landing');
@@ -70,12 +70,12 @@ export function createTrainLander({ command = spawnSync, directory = process.cwd
       const latest = matching.sort((a, b) => b.id - a.id)[0];
       if (!latest || latest.id !== run.id || latest.run_attempt !== run.run_attempt
           || latest.status !== 'completed' || latest.conclusion !== 'success') fail('Newer or changed Integration attempt');
-      const checks = api(`${base}/check-suites/${run.check_suite_id}/check-runs?check_name=candidate&per_page=100`);
-      if (checks.total_count !== 1 || checks.check_runs?.length !== 1) fail('Ambiguous required Candidate aggregate');
+      const checks = api(`${base}/check-suites/${run.check_suite_id}/check-runs?check_name=train-accepted&per_page=100`);
+      if (checks.total_count !== 1 || checks.check_runs?.length !== 1) fail('Ambiguous required train acceptance aggregate');
       const check = checks.check_runs[0];
-      if (check.name !== 'candidate' || check.app?.id !== 15368 || check.head_sha !== manifest.source
+      if (check.name !== 'train-accepted' || check.app?.id !== 15368 || check.head_sha !== manifest.source
           || check.check_suite?.id !== run.check_suite_id || check.status !== 'completed'
-          || check.conclusion !== 'success') fail('Candidate aggregate does not belong to successful train proof');
+          || check.conclusion !== 'success') fail('train acceptance aggregate does not belong to successful train proof');
       if (api(`${base}/git/ref/heads/${manifest.branch}`).object?.sha !== manifest.source) fail('Remote train ref changed');
       if (api(`${base}/git/commits/${manifest.source}`).tree?.sha !== manifest.tree) fail('Remote source tree differs');
       return run;
