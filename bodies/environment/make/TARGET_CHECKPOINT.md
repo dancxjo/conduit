@@ -101,3 +101,26 @@ Raw capture SHA-256:
 `53b385944ccc9caa024cf03d85fed07826ea4c205d044675ea06f636c4fbed5a`.
 The full bench image was restored and independently rechecked against device
 MD5 `4f8db50b72e16cfc70e19e41bdeeabc5`.
+
+## Exact outer offer reservation, 2026-10-25
+
+A third physical run added exact reservation for the thirteen software offers
+before appending them to the five native offers. This saved 3,024 retained bytes
+against the second run. After all offers and all individual Gear probes, Root
+used 103,740 bytes, leaving 15,028, with free bank extents `[0, 6836, 8192]`.
+Indexed selection still failed, now requesting 2,240 bytes in serde sequence
+growth. The exact collection remains unproved. The last reported peak was
+106,652; it is not the failing peak or a complete appliance bound. Neither
+planning nor native execution was reached. No native sample reached the display.
+
+The build took 5m44s; stack reservation remained 41,268 bytes. The experiment is
+preserved in the local stash `exact-offers-target-experiment-20261025` and the
+external `~/.cache/conduit/exact-offers-target-experiment.patch` plus
+`exact-offers-target-experiment-new-source.tar`, not shipped as an API migration.
+ELF SHA-256:
+`7ba4802c0a057b28d1c23a1f04254fd68ba5029a9d1a549ef531bda224970232`.
+Capture SHA-256:
+`49eae30e96b5c79695246c0b4190800b86a742afd43e098701fb23a43501c023`.
+The full recovery image was restored and its device MD5 reverified as
+`4f8db50b72e16cfc70e19e41bdeeabc5`. The next decision remains the target's RAM
+requirement versus a larger compiler/runtime change, not more component APIs.
