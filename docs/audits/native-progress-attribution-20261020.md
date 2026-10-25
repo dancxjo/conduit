@@ -52,7 +52,9 @@ checks (including three new progress checks), 19 native workset checks and 15
 compositor checks. Two existing manual compositor observations remain ignored.
 The tests cover nesting/outcomes, one-shot exhaustion, clock/order/context
 refusal, actual Root protocol parsing/custody, workset admission and raster/ACK
-regressions. Formatting and diff checks pass. [Retained logs](evidence/native-progress-attribution-20261020/hosted/).
+regressions. Formatting and diff checks pass. The report cited retained logs under
+`evidence/native-progress-attribution-20261020/hosted/`, which is not present
+in this Git checkout.
 
 The initial unit compilation hit local disk exhaustion; after the compiler
 stopped, inactive regenerable caches were removed while preserving executables,

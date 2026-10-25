@@ -47,7 +47,7 @@ language manual.
 
 ## Evidence and history
 
-- [Development audits](audits/README.md): point-in-time observations; they do not override current contracts
+- [Development audits](audits/README.md) and [documentation sweep (25 October 2026)](audits/documentation-sweep-20261025.md): point-in-time observations; they do not override current contracts
 - [History and accepted milestones](history/README.md): checkpoint-specific receipts and retired designs
 - [Reuse ledger](reuse-ledger.md): provenance and decisions about retained work
 - [Documentation ownership and claim rules](documentation-policy.md): how to keep this corpus coherent
