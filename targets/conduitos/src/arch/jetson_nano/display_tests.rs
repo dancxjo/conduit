@@ -10,6 +10,9 @@ fn valid() -> Snapshot {
         selected_window: 0x10,
         display_command: 1 << 5,
         smmu_config: 0,
+        controller: 0,
+        smmu_asid: 0,
+        smmu_clients: 0,
         active_size: 1080 << 16 | 1920,
         interlace_control: 0,
         options: 1 << 30,
@@ -78,6 +81,7 @@ fn refuses_shadow_stopped_or_translated_scanout() {
         (
             Snapshot {
                 smmu_config: 1,
+                smmu_asid: 1 << 31,
                 ..valid()
             },
             Refusal::Translation,
@@ -196,6 +200,7 @@ fn framebuffer_cannot_alias_image_or_other_live_reservations() {
 fn capture_is_finite_and_requires_stable_registers() {
     let mut reads = 0;
     let snapshot = Snapshot::capture(
+        0,
         |_| {
             reads += 1;
             0
@@ -208,6 +213,7 @@ fn capture_is_finite_and_requires_stable_registers() {
     let mut accesses = 0;
     assert_eq!(
         Snapshot::capture(
+            0,
             |reg| {
                 if reg == 0x040 {
                     accesses += 1;
@@ -220,4 +226,93 @@ fn capture_is_finite_and_requires_stable_registers() {
         ),
         Err(Refusal::Unstable)
     );
+}
+
+#[test]
+fn global_smmu_enable_accepts_only_explicit_selected_client_bypass() {
+    for controller in 0..2 {
+        for (index, selected_window) in [0x10, 0x20, 0x40].into_iter().enumerate() {
+            let client_bit = 1 + controller + index * 2;
+            let mut snapshot = Snapshot {
+                controller,
+                selected_window,
+                smmu_config: 1,
+                // Unrelated translated clients must not veto a bypassed window.
+                smmu_clients: !(1 << client_bit),
+                ..valid()
+            };
+            assert!(snapshot.descriptor(firmware(), &Regions::new()).is_ok());
+            snapshot.smmu_clients |= 1 << client_bit;
+            assert_eq!(
+                snapshot.descriptor(firmware(), &Regions::new()),
+                Err(Refusal::Translation)
+            );
+            snapshot.smmu_clients = 0;
+            snapshot.smmu_asid = 1 << 31;
+            assert_eq!(
+                snapshot.descriptor(firmware(), &Regions::new()),
+                Err(Refusal::Translation)
+            );
+        }
+    }
+}
+
+#[test]
+fn known_component_expansion_and_positioned_unscaled_window_keep_exact_layout() {
+    let snapshot = Snapshot {
+        options: (1 << 30) | (1 << 6),
+        position: (100 << 16) | 200,
+        size: (400 << 16) | 640,
+        prescaled_size: (400 << 16) | (640 * 4),
+        stride: 640 * 4,
+        ..valid()
+    };
+    let descriptor = snapshot.descriptor(firmware(), &Regions::new()).unwrap();
+    assert_eq!(
+        (descriptor.width, descriptor.height, descriptor.stride),
+        (640, 400, 2560)
+    );
+    assert_eq!(descriptor.memory, firmware());
+    let outside = Snapshot {
+        position: (1000 << 16) | 200,
+        ..snapshot
+    };
+    assert_eq!(
+        outside.descriptor(firmware(), &Regions::new()),
+        Err(Refusal::Geometry)
+    );
+    let reserved_position = Snapshot {
+        position: 1 << 15,
+        ..snapshot
+    };
+    assert_eq!(
+        reserved_position.descriptor(firmware(), &Regions::new()),
+        Err(Refusal::Geometry)
+    );
+}
+
+#[test]
+fn invalid_controller_is_refused_before_register_reads() {
+    assert_eq!(
+        Snapshot::capture(
+            2,
+            |_| panic!("invalid DC read"),
+            |_| panic!("invalid MC read")
+        ),
+        Err(Refusal::Translation)
+    );
+}
+
+#[test]
+fn opaque_rgbx_formats_preserve_the_documented_byte_order() {
+    for (color_depth, expected) in [(37, PixelFormat::Bgra8888), (38, PixelFormat::Rgba8888)] {
+        let descriptor = Snapshot {
+            color_depth,
+            ..valid()
+        }
+        .descriptor(firmware(), &Regions::new())
+        .unwrap();
+        assert_eq!(descriptor.format, expected);
+        assert_eq!(descriptor.stride, 7680);
+    }
 }

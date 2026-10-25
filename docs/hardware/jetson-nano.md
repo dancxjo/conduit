@@ -132,3 +132,26 @@ Compilation checks code generation and linking. QEMU virt checks its own virtual
 machine. Physical Nano acceptance requires the actual board and a source-bound
 receipt; neither of the former proves it. The port remains open until its
 scoped physical and protection requirements are satisfied.
+
+## First physical observation and diagnostic revision
+
+The user flashed the candidate from `e23216e56830fcce212228ee9a5795c963b4819a`
+and observed a persistent NVIDIA splash after the monitor received independent
+power. This confirms firmware HDMI output; it does not establish native kernel
+entry, DTB admission, interrupt delivery or ordinary execution. No UART capture
+is available, and the candidate has no USB device-mode driver.
+
+The second diagnostic revision accepts documented XRGB/XBGR32 scanout formats,
+COLOR_EXPAND, and positioned unscaled windows within the active raster. It also
+recognizes an explicitly bypassed display client with the global SMMU enabled,
+but still refuses enabled display-client or ASID translation. The exact address,
+linear layout, pitch, extent and occupied-memory exclusions remain checked.
+Thirty-nine focused handoff/display tests pass. These compatibility changes are
+plausible fixes, not evidence that one caused the observed splash.
+
+Display custody is established before final image-placement admission so that
+placement refusals can become visible. New messages distinguish accepted
+firmware display handoff, interrupt initialization and the planned text/timer
+run. Failure before those diagnostics can still leave the firmware splash.
+The revised image still needs a physical test; it does not establish hardware
+support or protection-domain parity.

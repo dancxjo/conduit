@@ -78,6 +78,7 @@ fn controller<R: Registers>(
         }
         let shared = RefCell::new(&mut *transaction.registers);
         let snapshot = Snapshot::capture(
+            index,
             |word| shared.borrow_mut().read_dc(index, word),
             |byte| shared.borrow_mut().read_mc(byte),
         )
@@ -317,7 +318,7 @@ mod tests {
             }
         }
         fn read_mc(&mut self, byte: u32) -> u32 {
-            assert_eq!(byte, 0x10);
+            assert!(matches!(byte, 0x10 | 0x228 | 0x240 | 0x244));
             0
         }
     }
