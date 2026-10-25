@@ -6,7 +6,7 @@ import { TARGETS } from './targets.mjs';
 
 const SCHEMA = 'conduit.integration-train/v1';
 const sha = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value);
-const repositoryName = value => typeof value === 'string' && /^[\w.-]+\/[\w.-]+$/.test(value);
+const repositoryName = value => typeof value === 'string' && value.length <= 512 && /^[\w.-]+\/[\w.-]+$/.test(value);
 const require = (condition, reason) => { if (!condition) throw new Error(reason); };
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
@@ -36,6 +36,16 @@ function requireReady(identity, pr, run, repository, base) {
   'Train input lacks successful exact-head Candidate evidence');
 }
 
+export function selectTrainInputs({ repository, base, selections }) {
+  require(Array.isArray(selections), 'Missing train selection snapshots');
+  const selection = identities(repository, base, selections.map(s => ({ number: s.pr?.number, head: s.pr?.head?.sha })));
+  for (const input of selection.inputs) {
+    const snapshot = selections.find(s => s.pr.number === input.number);
+    requireReady(input, snapshot.pr, snapshot.candidateRun, repository, base);
+  }
+  return { ...selection, branch: `train/${digest(selection)}` };
+}
+
 function payload(manifest) {
   require(manifest?.schema === SCHEMA, 'Unknown train schema');
   const selection = identities(manifest.repository, manifest.base, manifest.inputs);
@@ -57,19 +67,14 @@ function verifiedManifest(manifest) {
 // Snapshots must come from the live repository API. Git verifies actual object
 // identity and ancestry; a claimed list of parent hashes is never sufficient.
 export function captureTrain({ repository, base, selections, source, directory = process.cwd() }) {
-  require(Array.isArray(selections), 'Missing train selection snapshots');
-  const selection = identities(repository, base, selections.map(s => ({ number: s.pr?.number, head: s.pr?.head?.sha })));
-  for (const input of selection.inputs) {
-    const snapshot = selections.find(s => s.pr.number === input.number);
-    requireReady(input, snapshot.pr, snapshot.candidateRun, repository, base);
-  }
+  const selection = selectTrainInputs({ repository, base, selections });
   require(sha(source), 'Invalid candidate source');
   const git = args => execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   for (const commit of [base, ...selection.inputs.map(p => p.head), source]) {
     require(git(['rev-parse', '--verify', `${commit}^{commit}`]) === commit, 'Train requires exact commit objects');
     git(['merge-base', '--is-ancestor', commit, source]);
   }
-  const value = { schema: SCHEMA, ...selection, branch: `train/${digest(selection)}`,
+  const value = { schema: SCHEMA, ...selection,
     source, tree: git(['rev-parse', `${source}^{tree}`]) };
   return { ...value, digest: digest(value) };
 }

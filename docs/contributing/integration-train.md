@@ -1,8 +1,23 @@
 # Integration train preparation
 
-This is the development admission/evidence layer for the integration-train
-redesign. Automatic assembly, workflow dispatch, landing and publication reuse
-are still pending. These commands do not change GitHub refs or merge PRs.
+This is the development assembly/admission/evidence layer for the integration
+train redesign. Workflow dispatch, landing and publication reuse are still
+pending. These commands do not change GitHub refs or merge GitHub PRs.
+
+Assemble explicitly selected ready PRs in a new local worktree:
+
+```sh
+cargo xtask ci pipeline train-assemble owner/repository /absolute/new-worktree /absolute/new-train.json PR_NUMBER...
+```
+
+Assembly checks live readiness first, fetches only the exact selected commits
+and development base, and merges those heads on a deterministic local train
+branch. It rechecks input readiness and base freshness before emitting a
+manifest. The original worktree is preserved. Existing destinations and branch
+names are never overwritten. A conflict or late stale-state refusal preserves
+the new branch/worktree for diagnosis and does not emit a success manifest. No
+retry, cleanup or merge-abort is performed implicitly. Keep the manifest outside
+the candidate source worktree so it does not become an untracked source input.
 
 From a clean checkout of the proposed combined source, capture explicitly
 selected PRs through the supported pipeline entrance:

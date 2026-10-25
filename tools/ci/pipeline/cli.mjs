@@ -38,6 +38,16 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'train-assemble': {
+      if (args.length < 4 || args.length > 35) throw new Error('usage: train-assemble <owner/repository> <new-worktree> <new-manifest-file> <pr-number>...');
+      const { createTrainCommands } = await import('./train-command.mjs');
+      const [repository, worktree, outputFile, ...numbers] = args;
+      const manifest = await createTrainCommands().assemble(repository, numbers, resolve(worktree), resolve(outputFile));
+      output('train-branch', manifest.branch);
+      output('train-source', manifest.source);
+      output('train-manifest-digest', manifest.digest);
+      break;
+    }
     case 'train-capture': {
       if (args.length < 4 || args.length > 35) throw new Error('usage: train-capture <owner/repository> <source-sha> <new-manifest-file> <pr-number>...');
       const { createTrainCommands } = await import('./train-command.mjs');
@@ -185,7 +195,7 @@ try {
       await publish(args[0], resolve(args[1]));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-capture|train-verify>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-verify>');
   }
 } catch (error) {
   console.error(`FAILED: pipeline/${command}: ${error.message}`);

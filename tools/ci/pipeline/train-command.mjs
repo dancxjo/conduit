@@ -1,8 +1,9 @@
 // Read live train evidence through the repository's existing gh credentials.
-// No merge, ref update, workflow dispatch or artifact publication occurs here.
+// Assembly changes only a new local worktree/branch. No remote mutation occurs.
 import { spawnSync } from 'node:child_process';
 import { lstat, readFile, writeFile } from 'node:fs/promises';
-import { captureTrain, verifyTrainProducts } from './train.mjs';
+import path from 'node:path';
+import { captureTrain, selectTrainInputs, verifyTrainProducts } from './train.mjs';
 import { assertSourceCheckout } from './source.mjs';
 
 const fail = message => { throw new Error(message); };
@@ -20,7 +21,7 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
   };
   const api = endpoint => JSON.parse(invoke('gh', ['api', endpoint]));
   const basePath = repository => {
-    if (typeof repository !== 'string' || !repositoryPattern.test(repository)) fail('Invalid repository');
+    if (typeof repository !== 'string' || repository.length > 512 || !repositoryPattern.test(repository)) fail('Invalid repository');
     return `repos/${repository}`;
   };
   const selection = (repository, numbers) => {
@@ -42,6 +43,39 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
     });
   };
   return {
+    async assemble(repository, numbers, worktree, output) {
+      const base = api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha;
+      const selected = selectTrainInputs({ repository, base, selections: selection(repository, numbers) });
+      if (!path.isAbsolute(worktree) || !path.isAbsolute(output)) fail('Absolute train worktree/output paths required');
+      const relative = path.relative(worktree, output);
+      if (!relative || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))) {
+        fail('Train manifest must be outside its source worktree');
+      }
+      // Fail before branch/worktree creation if the destination is occupied.
+      for (const destination of [worktree, output]) {
+        try { await lstat(destination); fail('Train destination already exists'); }
+        catch (error) { if (error.code !== 'ENOENT') throw error; }
+      }
+      invoke('git', ['fetch', '--no-tags', 'origin', base, ...selected.inputs.map(input => input.head)]);
+      if (api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha !== base) fail('Development changed before assembly');
+      invoke('git', ['worktree', 'add', '-b', selected.branch, '--', worktree, base]);
+      try {
+        for (const input of selected.inputs) {
+          invoke('git', ['-C', worktree, 'merge', '--no-ff', input.head, '-m', `Train PR #${input.number}`]);
+        }
+        const source = invoke('git', ['-C', worktree, 'rev-parse', 'HEAD']);
+        assertSourceCheckout(source, worktree);
+        const refreshed = selection(repository, numbers);
+        const manifest = captureTrain({ repository, base, source, directory: worktree, selections: refreshed });
+        if (manifest.branch !== selected.branch || api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha !== base) {
+          fail('Train inputs changed during assembly');
+        }
+        await writeFile(output, `${JSON.stringify(manifest, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+        return manifest;
+      } catch (error) {
+        throw new Error(`Train assembly stopped; retained ${selected.branch} at ${worktree}: ${error.message}`);
+      }
+    },
     async capture(repository, source, numbers, output) {
       basePath(repository);
       assertSourceCheckout(source, directory);
