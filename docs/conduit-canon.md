@@ -767,6 +767,41 @@ host reports, lines, planning, and the one kernel; it does not invent a parallel
 distributed runtime. See [body lifecycle contracts](architecture/body-lifecycle-waists.md)
 and the [current roadmap](roadmap.md).
 
+## Purpose and fulfillment are not lifecycle authority
+
+A Body's ability to continue is not an obligation to invent more work or to
+become progressively more capable. Its current workload and its optional
+semantic purpose are independent of the fact that it is the same Body.
+
+An application may declare a finite `PurposeState` with an identity, revision,
+obligations, and a completion policy. The reviewed deterministic readiness
+derivation has three dispositions:
+
+- **Ready** only when an explicit fulfillment condition applies and each
+  obligation is supported as satisfied.
+- **NotReady** when unfinished, repair-required, missing-evidence, uncertain, or
+  disputed obligations remain; their reasons are retained rather than guessed
+  away.
+- **Unavailable** when the declared policy has no fulfillment condition.
+
+The typed
+[Purpose and Fulfillment contracts](../semantics/purpose/types.conduit)
+and [Body-side derivation](../architecture/body/src/character_purpose.rs)
+supply the present bounded representation. A
+[checked fulfillment-readiness Plot](../plots/fulfillment-readiness/main.conduit)
+derives semantic readiness; it performs no lifecycle action.
+
+Fulfillment readiness is **not** proof of execution completion, authorization to
+lull or retire, a guarantee of durable persistence, or an instruction to
+destroy continuity evidence. The full stop completing an authored Plot belongs
+to the Plot's semantics, not to Body-purpose fulfillment. A future irreversible
+retirement operation requires separate explicit authority and its own exact
+evidence, just as other lifecycle transitions do.
+
+Continuity and fulfillment therefore protect complementary things: the Body
+can remain itself while its machinery changes, and it need not be made to chase
+unending purposes merely to justify continuing.
+
 ## Proof classes
 
 The repository uses precise proof names:
