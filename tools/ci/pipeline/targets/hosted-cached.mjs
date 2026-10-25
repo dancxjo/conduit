@@ -20,7 +20,7 @@ async function digest(file) {
 // product files for the caller's existing custody/sealing path. It never
 // restores a Cargo target or adopts an earlier task's proof.
 export async function cachedHostedLinux({ snapshot, cacheRoot, taskRoot, directory,
-  repositoryRoot = process.cwd() }, {
+  repositoryRoot = process.cwd(), maxCacheBytes }, {
   build = runHostedCargoCache, prove = proveHostedHello,
   verifySource = verifyHostedSource, assertCheckout = assertSourceCheckout,
   observeCommand = recordProductCommand,
@@ -45,7 +45,8 @@ export async function cachedHostedLinux({ snapshot, cacheRoot, taskRoot, directo
     observeCommand(observation);
     observed++;
   };
-  const compilation = await build({ snapshot, cacheRoot, taskRoot, observeCommand: observe });
+  const compilation = await build({ snapshot, cacheRoot, taskRoot, observeCommand: observe,
+    ...(maxCacheBytes === undefined ? {} : { maxCacheBytes }) });
   if (!observed) fail('build omitted actual command custody');
   const binary = path.join(taskRoot, 'target/release/conduit');
   const before = await digest(binary);

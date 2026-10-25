@@ -39,6 +39,17 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'compiler-cache-hosted-prepare': {
+      if (args.length !== 7) throw new Error('usage: compiler-cache-hosted-prepare <engine> <toolchain-root> <new-snapshot> <new-manifest> <cache-root> <new-task-root> <new-config>');
+      const [engine, toolchainRoot, destination, manifestFile, cacheRoot, taskRoot, configFile] = args.map(value => resolve(value));
+      const { prepareHostedProductCache } = await import('./hosted-cache-command.mjs');
+      const prepared = await prepareHostedProductCache({ engine, toolchainRoot, destination, manifestFile, cacheRoot, taskRoot, configFile });
+      output('hosted-cache-namespace', prepared.namespace);
+      output('hosted-cache-config', prepared.configFile);
+      output('hosted-cache-policy', prepared.managedPaths[0]);
+      output('hosted-cache-objects', prepared.managedPaths[1]);
+      break;
+    }
     case 'compiler-cache-proof': {
       if (args.length !== 1) throw new Error('usage: compiler-cache-proof <snapshot-manifest>');
       const specs = readdirSync('proof/ci').filter(name => name.startsWith('compiler-cache') && name.endsWith('.spec.mjs'));
