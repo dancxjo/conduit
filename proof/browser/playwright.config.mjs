@@ -37,6 +37,7 @@ export default defineConfig({
     "application-syntax-face.spec.mjs",
     "browser-host-calls.spec.mjs",
     "browser-pointer.spec.mjs",
+    "browser-lifetime.spec.mjs",
     "browser-human-input.spec.mjs",
     "browser-keymap.spec.mjs",
     "browser-preparation.spec.mjs",

@@ -1,0 +1,120 @@
+<!doctype html><meta charset="utf-8"><title>Actual browser Host lifetime fixture</title>
+<style>#surface { width: 800px; min-height: 400px; padding: 20px; border: 1px solid; }</style>
+<p id="status">preparing</p><section id="surface" tabindex="0" aria-label="Lifetime input and output"></section>
+<script type="module">
+import { initializeBrowserHostInstance } from '../../targets/browser/host/assets/browser-host-membership.mjs';
+import { bindBrowserRuntimeBridge } from '../../targets/browser/host/assets/browser-runtime-bridge.mjs';
+import { acquireBrowserBodyHost } from '../../targets/browser/host/assets/browser-body-host.mjs';
+import { BrowserPlot } from '../../targets/browser/sdk/browser-sdk-plots.mjs';
+
+const source = `plot concurrent {
+ button: input/button
+ state: input/button-indicator-state
+ indicator: face/indicator-state("Button state")
+ clock: time/every(freq = 10000ms)
+ count: state/count(start = 0)
+ show: face/count("Current count")
+ button >> state >> indicator
+ clock.tick >> count.bump
+ count.value >> show.value
+}`;
+const root = document.querySelector('#surface');
+const errors = [], effects = [], callbacks = [], inputCallbacks = [];
+let phase = 'prepare', sequence = 0, current = null, old = null, oldEvent = null;
+const originalTimeout = window.setTimeout.bind(window);
+window.setTimeout = (callback, delay, ...args) => {
+  const handle = originalTimeout(callback, delay, ...args);
+  if (phase === 'A') callbacks.push({ callback, args, delay });
+  return handle;
+};
+const originalAdd = root.addEventListener.bind(root);
+root.addEventListener = (type, callback, options) => {
+  if (phase === 'A' && typeof callback === 'function') inputCallbacks.push({ type, callback });
+  return originalAdd(type, callback, options);
+};
+originalAdd('pointerdown', event => { if (phase === 'A') oldEvent = event; }, true);
+const response = await fetch('/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm');
+if (!response.ok) throw new Error(`runtime unavailable: ${response.status}`);
+const runtimeBytes = new Uint8Array(await response.arrayBuffer());
+const wasmSha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', runtimeBytes))].map(x => x.toString(16).padStart(2, '0')).join('');
+const { instance } = await WebAssembly.instantiate(runtimeBytes, {});
+const actual = instance.exports;
+const readActual = () => JSON.parse(new TextDecoder().decode(new Uint8Array(actual.memory.buffer, actual.conduit_browser_plot_output_ptr(), actual.conduit_browser_plot_output_len())));
+// Read-only observer: every operation delegates to the actual WASM export.
+// No effect, identity, scheduling state or response is supplied by this object.
+const api = { ...actual };
+for (const name of ['conduit_browser_body_start', 'conduit_browser_plot_poll_effect', 'conduit_browser_plot_complete_effect']) {
+  api[name] = (...args) => {
+    const status = actual[name](...args);
+    if (status >= 0) {
+      const output = readActual();
+      const effect = output.progress ?? output;
+      if (effect.effect_kind) effects.push({ phase, ...structuredClone(effect) });
+    }
+    return status;
+  };
+}
+Object.freeze(api);
+const initialized = await initializeBrowserHostInstance(instance, { durable: false });
+const { hostId, bootId, membership } = initialized;
+const bridge = bindBrowserRuntimeBridge(api, { context: 'actual browser lifetime proof' });
+const accept = (result, label) => {
+  if (result.status < 0) throw new Error(`${label}: ${JSON.stringify(result.outputJson)}`);
+  return result.outputJson;
+};
+const check = await new BrowserPlot(source, bridge).check();
+if (!check.ok) throw new Error(`source refused: ${JSON.stringify(check)}`);
+accept(bridge.crecheAdmitSourceInteraction(source, BigInt(++sequence)), 'source');
+accept(bridge.crecheBirth({ host: hostId, boot: bootId, friendlyName: 'Lifetime fixture', initialPlots: check.plots.map(plot => ({ name: plot.name, source_document_id: plot.sourceDocumentId, checked_plot_id: plot.checkedPlotId })), source, sequence: BigInt(++sequence) }), 'birth');
+accept(bridge.crecheAttachHere(new TextEncoder().encode(hostId), new TextEncoder().encode(bootId), BigInt(++sequence)), 'attach');
+accept(bridge.workspaceRequest({ action: 'Arrive', advertisement: membership.advertisement() }), 'arrive');
+function begin(label) {
+  phase = label;
+  const proposal = accept(bridge.workspaceRequest({ action: 'Propose', host_id: hostId, boot_id: bootId, source, joined_lines: [], browser_audio_authority: false }), 'propose');
+  const owner = acquireBrowserBodyHost({ api, hostId, bootId, proposal, inputTarget: root, outputRoot: root });
+  const started = owner.start(proposal.wake.wake_sequence);
+  accept(bridge.workspaceRequest({ action: 'Started', host_id: hostId, boot_id: bootId, play: started.play, wake_at_start: started.wake_at_start }), 'started');
+  const running = owner.run().catch(error => { errors.push(String(error?.stack ?? error)); return null; });
+  return { owner, started, running };
+}
+function snapshot() {
+  return { evidence: structuredClone(current.owner.evidence()), html: root.innerHTML, outputs: [...root.querySelectorAll('[data-face-kind]')].map(element => ({kind: element.dataset.faceKind, placement: element.dataset.placementId, html: element.outerHTML})), play: structuredClone(current.started.play) };
+}
+current = begin('A');
+globalThis.__browserLifetime = {
+  ready: () => effects.some(e => e.phase === phase && e.effect_kind === 'timer'),
+  snapshot,
+  async replace() {
+    if (!oldEvent) throw new Error('actual A pointer observation absent');
+    const timer = effects.find(e => e.phase === 'A' && e.effect_kind === 'timer');
+    if (!timer || !callbacks.length) throw new Error('actual A timer evidence absent');
+    old = { ...current, timer, callbacks: callbacks.slice(), inputCallbacks: inputCallbacks.slice() };
+    const closed = old.owner.close();
+    if (old.owner.close() !== closed) throw new Error('second close changed receipt');
+    accept(bridge.workspaceRequest({ action: 'Lull', host_id: hostId, boot_id: bootId, terminated_play: closed.receipt ? old.started.play : null }), 'lull');
+    current = begin('B');
+    const retiredDispatch = await old.running;
+    return { oldPlay: old.started.play, newPlay: current.started.play, close: closed, retiredDispatch };
+  },
+  replay() {
+    const before = snapshot();
+    const effect = old.timer;
+    const calls = [
+      () => bridge.browserPlotCompleteEffect(effect.active_play_id, effect.placement_id, effect.request_sequence, Uint8Array.of(91,92,93)),
+      () => bridge.browserPlotAcknowledgeCancellation(effect.active_play_id, effect.placement_id, effect.request_sequence),
+      () => bridge.browserPlotRefuseEffect(effect.active_play_id, effect.placement_id, effect.request_sequence, 2, 3),
+    ];
+    const results = calls.map(call => {
+      const result = call();
+      const input = new Uint8Array(api.memory.buffer, api.conduit_browser_plot_input_ptr(), new TextEncoder().encode(effect.active_play_id + effect.placement_id).length + 3);
+      return { status: result.status, refusal: structuredClone(bridge.browserPlotReadOutputJson()), stagingCleared: input.every(byte => byte === 0) };
+    });
+    for (const saved of old.callbacks) saved.callback(...saved.args);
+    for (const saved of old.inputCallbacks.filter(c => c.type === 'pointerdown')) saved.callback(oldEvent);
+    return { before, after: snapshot(), results, callbacks: old.callbacks.length, inputCallbacks: old.inputCallbacks.length };
+  },
+  state: () => ({ effects: structuredClone(effects), errors: errors.slice(), wasmSha256, hostId, bootId, phase }),
+  async close() { const result = current.owner.close(); await current.running; return result; },
+};
+document.querySelector('#status').textContent = 'ready';
+</script>
