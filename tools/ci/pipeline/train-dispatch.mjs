@@ -1,12 +1,13 @@
 import { spawnSync } from 'node:child_process';
 import { createTrainCommands } from './train-command.mjs';
+import { withIsolatedTrainPushContext } from './train-push-context.mjs';
 
 const fail = message => { throw new Error(message); };
 
 // The first creator of the exact remote train ref owns dispatch. An existing
 // ref with no visible run is ambiguous, never permission to start duplicate CI.
-export function createTrainDispatcher({ command = spawnSync, directory = process.cwd(), commands, observeCheapPolicy } = {}) {
-  commands ??= createTrainCommands({ command, directory, observeCheapPolicy });
+export function createTrainDispatcher({ command = spawnSync, directory = process.cwd(), commands, observeCheapPolicy, sourceEnvironment } = {}) {
+  let initialized = false;
   const api = (endpoint, body) => {
     const args = ['api', endpoint];
     if (body) args.push('--method', 'POST', '--input', '-');
@@ -16,6 +17,17 @@ export function createTrainDispatcher({ command = spawnSync, directory = process
     return result.stdout.trim() ? JSON.parse(result.stdout) : null;
   };
   return async function dispatch(filename) {
+    if (!initialized) {
+      if (command === spawnSync) {
+        // Legacy explicit-token entrance retains token-only authentication,
+        // without restoring it to object preparation or stored-human fallback.
+        const { createTrainSessionCommand, createTrainSourceEnvironment } = await import('./train-controller.mjs');
+        sourceEnvironment ??= createTrainSourceEnvironment(process.env);
+        command = createTrainSessionCommand({ installationToken: process.env.GH_TOKEN });
+      }
+      commands ??= createTrainCommands({ command, directory, observeCheapPolicy, sourceEnvironment });
+      initialized = true;
+    }
     const manifest = await commands.prepareDispatch(filename);
     const base = `repos/${manifest.repository}`;
     const fullRef = `refs/heads/${manifest.branch}`;
@@ -45,13 +57,14 @@ export function createTrainDispatcher({ command = spawnSync, directory = process
     // lease allows creation alone: neither a changed nor identical existing ref
     // grants dispatch ownership. Git can report identical refs as up to date,
     // so require its exclusive new-branch acknowledgement as well as success.
-    const pushed = command('git', ['-c', 'credential.helper=',
+    const pushed = await withIsolatedTrainPushContext({ directory, source: manifest.source,
+      environment: sourceEnvironment ?? process.env, command }, context => command('git', ['-c', 'credential.helper=',
       '-c', 'credential.helper=!gh auth git-credential', '-c', 'credential.interactive=false',
       'push', '--porcelain', '--no-follow-tags', '--recurse-submodules=no', `--force-with-lease=${fullRef}:`,
       `https://github.com/${manifest.repository}.git`, `${manifest.source}:${fullRef}`], {
-      cwd: directory, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024, timeout: 120000,
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-    });
+      cwd: context.directory, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024, timeout: 120000,
+      env: context.environment,
+    }));
     if (pushed.error || pushed.signal || pushed.status !== 0) fail('Train ref push failed; transport outcome unknown, inspect retained intent before retrying');
     const acknowledgements = (pushed.stdout ?? '').split('\n').filter(line => /^[ =*!+\-]\t/.test(line));
     if (acknowledgements.length !== 1 || acknowledgements[0] !== `*\t${manifest.source}:${fullRef}\t[new branch]`) {
