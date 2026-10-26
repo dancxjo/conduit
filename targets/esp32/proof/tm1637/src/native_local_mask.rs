@@ -249,8 +249,19 @@ impl NativeRoot {
         &mut self,
         execute: bool,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
-        let sample_image = crate::native_software::planning_source()?;
+        // Keep the sampler planner outside the later assembly frame. Its
+        // complete immutable result crosses this synchronous ownership handoff;
+        // no plan, authority, or metadata is omitted.
         let sample = self.prepare_local_sampler_plan()?;
+        self.prepare_local_plots_from_sampler(sample, execute)
+    }
+    #[inline(never)]
+    fn prepare_local_plots_from_sampler(
+        &mut self,
+        sample: c::VerifiedPlanMetadata,
+        execute: bool,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        let sample_image = crate::native_software::planning_source()?;
         let generation = c::OfferGeneration(self.offer_generation);
         // Validate and transfer dormant software before retaining the Body
         // proposal. Construction metadata is no longer needed after this point;
