@@ -680,3 +680,22 @@ acknowledged physical checkpoint remains running, with its timed FaceFore fence
 intact. Next native work must bind an actually possessed renderer, admit the
 Body route/current Face and Look, replace/share the old output realization, and
 measure combined target memory before claiming an ordinary physical Mask.
+
+### Native assigned Fore configuration gate
+
+The assigned native local-Fore binder previously selected empty configuration
+unconditionally. That refuses the ordinary Mask's nonempty checked label even
+when the kernel's configuration pins are correct. The configured-Fore entry now
+checks independently retained checked Source configuration through the same
+native identity, exact Fore, resource, authority, current capability and Play
+checks. Existing empty-configuration callers retain their refusal behavior.
+Borrowed-record and contiguous assignment regressions accept the exact expected
+label and refuse missing/substituted labels with zero pin edges and retained
+provider custody. This gate is CPU proof, not renderer installation or a Show.
+The focused display-output entrance now includes the native owner regressions.
+
+The first broader reruns failed during tool linking when the `/tmp` user quota
+was exhausted. Removing 65 superseded test executables freed 1,569,595,384 bytes;
+the active owner, firmware, keys, recovery and retained evidence were preserved.
+The subsequent focused entrance passed. The two configured-Fore tests and strict
+native-owner Clippy also passed after the final test addition. No flash occurred.

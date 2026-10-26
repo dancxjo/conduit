@@ -102,12 +102,32 @@ pub fn bind_selected_assigned_fore_operation(
     native: AssignedNativeIdentity<'_>,
     selected: SelectedAssignedForeOperationPlan<'_>,
 ) -> Result<NodeId, E> {
+    bind_selected_assigned_configured_fore_operation(
+        table,
+        claim,
+        definition,
+        &[],
+        native,
+        selected,
+    )
+}
+/// Local Fore admission with independently retained checked configuration.
+/// Nonempty renderer configuration must be checked here as well as in the
+/// kernel tables; the incoming assignment cannot supply its own expectation.
+pub fn bind_selected_assigned_configured_fore_operation(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[c::ConfigurationEntry],
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedForeOperationPlan<'_>,
+) -> Result<NodeId, E> {
     let subject = &definition.kind.kind_id;
     bind_assigned_profile(
         table,
         claim,
         definition,
-        &[],
+        configuration,
         native,
         AssignedSelection {
             subject,

@@ -2,6 +2,7 @@
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     for (manifest, selector, test) in [
+        ("mechanisms/io/tm1637/Cargo.toml", "--test", "owner"),
         ("bodies/environment/make/Cargo.toml", "--test", "mask_plan"),
         (
             "bodies/environment/make/Cargo.toml",
@@ -91,6 +92,9 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
             ]);
             if manifest == "bodies/environment/runtime/Cargo.toml" {
                 command.args(["--features", "display-output"]);
+            }
+            if manifest == "mechanisms/io/tm1637/Cargo.toml" {
+                command.args(["--features", "host-call"]);
             }
             if operation == "clippy" {
                 command.args(["--", "-D", "warnings"]);
