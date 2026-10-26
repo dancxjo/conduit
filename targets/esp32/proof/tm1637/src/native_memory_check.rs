@@ -124,21 +124,55 @@ impl NativeRoot {
             .into_verified_metadata()
             .map_err(|_| "verification")?;
         mark("verified-plan-live", plan.fragment_count());
-        let id = &plan.preparation_metadata().fragments[0].fragment_id;
-        let lowered =
-            conduit_plan_lowering::lowering::lower_verified_plan_metadata_fragment(&plan, id)
-                .map_err(|_| "lowering")?;
-        mark("lowered-live", lowered.nodes.len());
-        let _tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<
-            15,
-            14,
-            1,
-            15,
-            14,
-            15,
-        >::prepare(&plan, id, &lowered)
-        .map_err(|_| "tables")?;
-        mark("local-tables-live", 15);
-        Ok(())
+        // Opaque verification owns the selected metadata now. Retire Source
+        // selection descriptions before the installed Body clones its finite
+        // biography/proposal state; those descriptions are not execution state.
+        drop((host, choices, queues, grants, empty, lines));
+        mark("planning-scratch-retired", 0);
+        let metadata = plan.preparation_metadata();
+        let plot = conduit_body::ResidentPlot::new(
+            metadata.source_document_id.clone(),
+            metadata.checked_plot_id.clone(),
+        );
+        self.body
+            .as_mut()
+            .ok_or("body-owner")?
+            .propose_verified(
+                &[conduit_body::VerifiedBodyPlotPlan { plot, plan: &plan }],
+                &[],
+                None,
+                &self.host,
+                &self.boot,
+            )
+            .map_err(|_| "body-verified-proposal")?;
+        mark("body-local-proposal-live", 1);
+        let preparation = (|| -> Result<(), &'static str> {
+            let id = &plan.preparation_metadata().fragments[0].fragment_id;
+            let lowered =
+                conduit_plan_lowering::lowering::lower_verified_plan_metadata_fragment(&plan, id)
+                    .map_err(|_| "lowering")?;
+            mark("lowered-live", lowered.nodes.len());
+            let _tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<
+                15,
+                14,
+                1,
+                15,
+                14,
+                15,
+            >::prepare(&plan, id, &lowered)
+            .map_err(|_| "tables")?;
+            mark("local-tables-live", 15);
+            Ok(())
+        })();
+        drop(plan);
+        // This diagnostic prepared no worker or native call. Close its proposed
+        // Wake normally; retaining a Plan seal is not a started Body Play.
+        self.body
+            .as_mut()
+            .ok_or("body-owner")?
+            .lull(&self.host, &self.boot, None)
+            .map_err(|_| "body-probe-lull")?;
+        mark("body-probe-lulled", 0);
+        preparation
     }
 }
