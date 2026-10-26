@@ -1,0 +1,22 @@
+{
+  "name": "Conduit Integration",
+  "url": "https://github.com/dancxjo/conduit",
+  "description": "Dedicated exact-source development train controller; registration and installation require separate setup.",
+  "public": false,
+  "hook_attributes": {
+    "url": "https://github.com/dancxjo/conduit",
+    "active": false
+  },
+  "default_permissions": {
+    "actions": "write",
+    "administration": "read",
+    "checks": "read",
+    "contents": "write",
+    "metadata": "read",
+    "pull_requests": "read",
+    "workflows": "write"
+  },
+  "default_events": [],
+  "request_oauth_on_install": false,
+  "setup_on_update": false
+}

@@ -1,0 +1,196 @@
+// Train evidence admission. This module cannot merge or update a branch.
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { verifyBundle } from './receipts.mjs';
+import { requireCheapTrainPolicy } from './train-cheap-policy.mjs';
+import { TARGETS } from './targets.mjs';
+import { candidateAdmission, canonicalCandidateAdmission } from './train-input-admission.mjs';
+
+const SCHEMA = 'conduit.integration-train/v2';
+const sha = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value);
+const repositoryName = value => typeof value === 'string' && value.length <= 512 && /^[\w.-]+\/[\w.-]+$/.test(value);
+const require = (condition, reason) => { if (!condition) throw new Error(reason); };
+const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+
+function identities(repository, base, inputs) {
+  require(repositoryName(repository) && sha(base), 'Invalid train repository or base');
+  require(Array.isArray(inputs) && inputs.length > 0 && inputs.length <= 32, 'Train requires 1..32 inputs');
+  const seen = new Set();
+  const result = inputs.map(input => {
+    require(Number.isSafeInteger(input.number) && input.number > 0 && sha(input.head), 'Invalid train input');
+    require(!seen.has(input.number), 'Duplicate train pull request');
+    seen.add(input.number);
+    const admission = canonicalCandidateAdmission(input.admission);
+    require(admission.head === input.head, 'Candidate admission head differs');
+    require(Object.keys(input).sort().join() === ['admission', 'head', 'number'].sort().join(), 'Unknown train input field');
+    return { number: input.number, head: input.head, admission };
+  }).sort((a, b) => a.number - b.number);
+  return { repository, base, inputs: result };
+}
+
+function requireReady(identity, pr, run, jobs, repository) {
+  require(pr?.number === identity.number && pr.state === 'open' && pr.draft === false && pr.mergeable === true,
+    'Train input is not an open, non-draft, mergeable pull request');
+  require(pr.head?.sha === identity.head && pr.head?.repo?.full_name === repository &&
+    pr.base?.ref === 'dev' && sha(pr.base?.sha) && pr.base?.repo?.full_name === repository,
+  'Train input head, repository or base changed');
+  require(run?.repository?.full_name === repository && run.head_repository?.full_name === repository &&
+    run.path === '.github/workflows/candidate.yml' && run.event === 'pull_request' &&
+    run.head_sha === identity.head && run.status === 'completed' && ['success', 'failure'].includes(run.conclusion) &&
+    run.pull_requests?.some(p => p.number === identity.number),
+  'Train input lacks completed exact-head Candidate evidence');
+  return candidateAdmission(run, jobs);
+}
+
+function selectInputs({ repository, base, selections }, policy) {
+  require(Array.isArray(selections), 'Missing train selection snapshots');
+  const inputs = selections.map(snapshot => {
+    const identity = { number: snapshot.pr?.number, head: snapshot.pr?.head?.sha };
+    const admission = requireReady(identity, snapshot.pr, snapshot.candidateRun, snapshot.candidateJobs, repository);
+    if (admission.tier === 'cheap-input-v1' && policy) {
+      const grant = typeof snapshot.cheapPolicy === 'function' ? snapshot.cheapPolicy() : snapshot.cheapPolicy;
+      requireCheapTrainPolicy(grant, repository);
+    }
+    return { ...identity, admission };
+  });
+  const selection = identities(repository, base, inputs);
+  const selected = { ...selection, branch: `train/${digest(selection)}` };
+  // Reserve the exact fixed-width source/tree/digest envelope before assembly
+  // creates any worktree. Never truncate job custody to fit a workflow input.
+  require(Buffer.byteLength(JSON.stringify({ schema: SCHEMA, ...selected,
+    source: '0'.repeat(40), tree: '0'.repeat(40), digest: '0'.repeat(64) }, null, 2) + '\n') <= 65536,
+  'Train admission manifest exceeds bound');
+  return selected;
+}
+
+// Trusted control retains fresh machine policy on every cheap input. There is
+// no exported policy-bypass flag for capture, dispatch, restore or landing.
+export function selectTrainInputs(observation) {
+  return selectInputs(observation, true);
+}
+
+function payload(manifest) {
+  require(manifest?.schema === SCHEMA, 'Unknown train schema');
+  const selection = identities(manifest.repository, manifest.base, manifest.inputs);
+  require(sha(manifest.source) && sha(manifest.tree), 'Invalid train source or tree');
+  const branch = `train/${digest(selection)}`;
+  require(manifest.branch === branch, 'Train branch does not bind its selection');
+  return { schema: SCHEMA, ...selection, branch, source: manifest.source, tree: manifest.tree };
+}
+
+export function verifyTrainManifest(manifest) {
+  require(Buffer.byteLength(JSON.stringify(manifest, null, 2) + '\n') <= 65536, 'Train manifest exceeds bound');
+  const value = payload(manifest);
+  require(manifest.digest === digest(value), 'Train manifest digest mismatch');
+  // Reject fields that could be mistaken for additional authorization or policy.
+  require(Object.keys(manifest).sort().join() === [...Object.keys(value), 'digest'].sort().join(),
+    'Unknown train manifest field');
+  return value;
+}
+
+// Snapshots must come from the live repository API. Git verifies actual object
+// identity and ancestry; a claimed list of parent hashes is never sufficient.
+function selectedSourceTree({ base, inputs, source, directory, sourceEnvironment }) {
+  require(sha(source), 'Invalid candidate source');
+  const execute = (args, extra = {}) => {
+    try { return execFileSync('git', ['-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', '-C', directory, ...args], { encoding: 'utf8',
+      timeout: 60000, killSignal: 'SIGKILL', maxBuffer: 2 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'pipe'], ...(sourceEnvironment === undefined ? {} : { env: sourceEnvironment }), ...extra }).trim(); }
+    catch (error) { if (sourceEnvironment !== undefined) throw new Error('Train source Git operation failed'); throw error; }
+  };
+  const git = args => execute(args);
+  for (const commit of [base, ...inputs.map(p => p.head), source]) {
+    require(git(['rev-parse', '--verify', `${commit}^{commit}`]) === commit, 'Train requires exact commit objects');
+    git(['merge-base', '--is-ancestor', commit, source]);
+  }
+  // Ancestry alone admits arbitrary additional changes. Reconstruct the selected
+  // merge tree with Git's default merge strategy, without changing refs/index or
+  // the working tree. Synthetic commits retain ancestry for subsequent merges;
+  // their identity is deliberately unrelated to the source receipt identity.
+  let combined = base;
+  let tree = git(['rev-parse', `${base}^{tree}`]);
+  for (const input of inputs) {
+    tree = git(['merge-tree', '--write-tree', '--no-messages', combined, input.head]);
+    require(sha(tree), 'Train selection has an unresolved merge');
+    combined = execute(['commit-tree', tree,
+      '-p', combined, '-p', input.head, '-m', 'Train tree reconstruction'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...(sourceEnvironment ?? process.env), GIT_AUTHOR_NAME: 'Conduit train', GIT_COMMITTER_NAME: 'Conduit train',
+        GIT_AUTHOR_EMAIL: 'train@example.invalid', GIT_COMMITTER_EMAIL: 'train@example.invalid',
+        GIT_AUTHOR_DATE: '2000-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2000-01-01T00:00:00Z' },
+    }).trim();
+  }
+  require(git(['rev-parse', `${source}^{tree}`]) === tree,
+    'Train source tree differs from the selected PR merge tree');
+  return tree;
+}
+
+export function verifyCapturedTrainSource(manifest, directory = process.cwd(), sourceEnvironment) {
+  const value = verifyTrainManifest(manifest);
+  require(selectedSourceTree({ ...value, directory, sourceEnvironment }) === value.tree, 'Captured train tree mismatch');
+  return value;
+}
+
+export function captureTrain({ repository, base, selections, source, directory = process.cwd(), sourceEnvironment }) {
+  const selection = selectTrainInputs({ repository, base, selections });
+  const tree = selectedSourceTree({ ...selection, source, directory, sourceEnvironment });
+  const value = { schema: SCHEMA, ...selection,
+    source, tree };
+  return { ...value, digest: digest(value) };
+}
+
+// Only schedules exhaustive proof. It returns no accepted-product or landing
+// authority and cannot replace verifyTrainRun/verifyTrainProducts.
+export function verifyTrainProofAdmission(manifest, { development, selections }, directory = process.cwd(), sourceEnvironment) {
+  const value = verifyTrainManifest(manifest);
+  require(development === value.base, 'Development advanced; train must be rebuilt');
+  const current = selectInputs({ repository: value.repository, base: development, selections }, false);
+  require(JSON.stringify(current.inputs) === JSON.stringify(value.inputs), 'Train proof input readiness/run/attempt/head/jobs changed');
+  require(selectedSourceTree({ ...value, directory, sourceEnvironment }) === value.tree, 'Train proof source tree differs');
+  return { source: value.source, tree: value.tree, digest: manifest.digest };
+}
+
+// Recheck live inputs immediately before any landing adapter acts. A candidate
+// can be valid evidence but no longer eligible to land after dev or a PR moves.
+export function verifyTrainRun(manifest, { development, selections, run }) {
+  const value = verifyTrainManifest(manifest);
+  require(development === value.base, 'Development advanced; train must be rebuilt');
+  require(Array.isArray(selections) && selections.length === value.inputs.length, 'Train input set changed');
+  const current = selectTrainInputs({ repository: value.repository, base: development, selections });
+  require(JSON.stringify(current.inputs) === JSON.stringify(value.inputs), 'Train input admission/run/attempt/job evidence changed');
+  requireManualProof(value, run);
+  return { ...value, integrationRun: run.id };
+}
+
+function requireManualProof(value, run) {
+  require(run?.repository?.full_name === value.repository && run.head_repository?.full_name === value.repository &&
+    run.path === '.github/workflows/integration.yml' && run.event === 'workflow_dispatch' &&
+    run.head_branch === value.branch && run.head_sha === value.source &&
+    run.status === 'completed' && run.conclusion === 'success' && Number.isSafeInteger(run.id) && run.id > 0,
+  'Train requires successful exhaustive Integration on its exact source branch');
+}
+
+// Post-landing publication has a different admission boundary: selected PRs may
+// already be merged. Its actual successful dev push must accept the same exact
+// source; discovery separately verifies current dev ancestry and authenticates
+// the original train manifest from the manual proof's Actions artifact.
+export function verifyAcceptedTrainRun(manifest, { run, acceptance }, directory = process.cwd()) {
+  const value = verifyCapturedTrainSource(manifest, directory);
+  require(acceptance?.repository?.full_name === value.repository &&
+    acceptance.head_repository?.full_name === value.repository &&
+    acceptance.event === 'push' && acceptance.head_branch === 'dev' &&
+    acceptance.path === '.github/workflows/integration.yml' && acceptance.head_sha === value.source &&
+    acceptance.status === 'completed' && acceptance.conclusion === 'success' &&
+    Number.isSafeInteger(acceptance.id) && acceptance.id > 0,
+  'Train publication requires successful exact-source development acceptance');
+  requireManualProof(value, run);
+  return { ...value, integrationRun: run.id };
+}
+
+// Use the existing full file/size/hash/proof-class verifier. A successful run
+// metadata record alone does not establish custody of publishable products.
+export async function verifyTrainProducts(manifest, observation, directory) {
+  const verified = verifyTrainRun(manifest, observation);
+  const receipts = await verifyBundle({ directory, sha: verified.source, targets: TARGETS });
+  return { ...verified, receipts };
+}

@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+extern crate std;
+use self::std::{format, vec, vec::Vec};
+
 use conduit_body::Body;
 // Shared by Rust 2021 and 2024 test crates; preserve one import layout.
 #[rustfmt::skip]

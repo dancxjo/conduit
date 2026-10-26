@@ -16,6 +16,7 @@ import { stageSharedSpeechEvidence } from '../shared-speech-evidence.mjs';
 // Retain the last documentary publication as history, never as new execution.
 const HISTORY = 'd9b79319bd78c72e4a6b48ef524e269300a82bdf';
 const HISTORY_DIGEST = '0218a50406761390aba1f00f84ccd178018782dfa89527f293d8ac66b9aa76c2';
+const HISTORY_ARCHIVE = 'https://github.com/dancxjo/conduit-evidence/releases/download/documentary-history-20261025-0218a5040676/history.tar.gz';
 const RECORDED_THREE_BODIES = '8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa';
 const escape = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 const styles = () => readFileSync('targets/browser/host/assets/conduit.css', 'utf8') + '\n' + readFileSync('site/chrome.css', 'utf8');
@@ -35,7 +36,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
   try {
     const archive = path.join(temporary, 'history.tar.gz');
     acquire('curl', ['--fail', '--location', '--max-time', '90',
-      `https://codeload.github.com/dancxjo/conduit/tar.gz/${HISTORY}`, '--output', archive]);
+      HISTORY_ARCHIVE, '--output', archive]);
     if (digest(archive) !== HISTORY_DIGEST) throw new Error('Recorded website archive digest changed');
     command('tar', ['-xzf', archive, '-C', temporary]);
     cpSync(path.join(temporary, `conduit-${HISTORY}`, 'journeys'), path.join(directory, 'journeys'), { recursive: true });
@@ -153,6 +154,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
   writeFileSync(path.join(directory, 'site-publication.json'), JSON.stringify({
     schema: 'conduit.site-publication/v1', sourceCommit,
     recordedHistoryCommit: HISTORY,
+    recordedHistoryArchive: { url: HISTORY_ARCHIVE, sha256: HISTORY_DIGEST },
     handbook: { sourceCommit, environment: 'Chromium', path: 'journeys/verticals/handbook/' },
     fieldStation: { sourceCommit, environment: 'Chromium', path: 'journeys/verticals/field-station-clock/' },
     threeBodies: { sourceCommit: RECORDED_THREE_BODIES, path: 'journeys/current/three-bodies/', refreshedExecution: false },

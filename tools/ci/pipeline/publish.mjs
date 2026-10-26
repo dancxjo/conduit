@@ -1,11 +1,14 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { appendFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { TARGETS } from './targets.mjs';
 import { verifyBundle } from './receipts.mjs';
+import { stageTrainPublication } from './train-publication.mjs';
+import { preparePublicationSite } from './publication-site.mjs';
+import { publicationIdentityFromEnvironment, validatePublicationIdentity, writePublicationReceipt } from './publication-receipt.mjs';
 
 const SHA = /^[a-f0-9]{40}$/;
 const fail = message => { throw new Error(message); };
@@ -50,7 +53,8 @@ async function digest(filename) {
 // Injection keeps refusal and recovery tests offline. Production always uses gh
 // with the publication job's token, and performs no test or build commands.
 export function createPublisher({ command = spawnSync, targets = TARGETS, output = process.env.GITHUB_OUTPUT,
-  repositoryName = process.env.GITHUB_REPOSITORY } = {}) {
+  repositoryName = process.env.GITHUB_REPOSITORY, adoptionStager = null, sitePreparer = null,
+  publicationIdentity = null, publicationReceipt = path.resolve('target/publication-receipt.json') } = {}) {
   const run = (program, args) => {
     const result = command(program, args, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
     if (result.error || result.status !== 0) {
@@ -75,12 +79,30 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
     const checkout = run('git', ['rev-parse', 'HEAD']);
     const integration = api(`${base}/actions/runs/${runId}`);
     const source = validateIntegrationRun(integration, repository, checkout);
+    const observePublisher = () => publicationIdentity === null ? null
+      : validatePublicationIdentity(publicationIdentity, repository, integration,
+        api(`${base}/actions/runs/${publicationIdentity.runId}`));
+    if (publicationIdentity !== null && integration.id !== Number(runId)) fail('Publication acceptance identity differs');
+    observePublisher();
+    // Production resolves adoption itself and restores authenticated archives.
+    // Caller-local receipts cannot stand in for the selected Actions artifacts.
+    const adopted = adoptionStager ? await adoptionStager({ pushRun: integration, repository,
+      directory: path.join(await mkdtemp(path.join(os.tmpdir(), 'conduit-adopted-publication-')), 'staging'),
+      command, targets }) : null;
+    if (adopted?.bundle) directory = adopted.bundle;
+    if (adoptionStager && !adopted?.bundle) fail('Publication source did not authenticate its products');
+    if (/[\r\n]/.test(path.resolve(directory))) fail('Nonportable publication bundle path');
     const development = api(`${base}/git/ref/heads/dev`).object?.sha;
     if (!SHA.test(development ?? '')) fail('Invalid development branch identity');
     requireAncestor(api(`${base}/compare/${source}...${development}`), source);
     const receipts = await verifyBundle({ directory, sha: source, targets });
     const sourceTree = api(`${base}/git/commits/${source}`).tree?.sha;
     requireTreeIdentity(sourceTree, run('git', ['rev-parse', `${source}^{tree}`]));
+    // Composition and link validation must precede every stable mutation.
+    // Keep the fresh, authenticated site for Pages upload after promotion.
+    const site = sitePreparer ? await sitePreparer({ directory, source, command }) : null;
+    if (sitePreparer && (!path.isAbsolute(site ?? '') || /[\r\n]/.test(site))) fail('Invalid prepared Pages site');
+    observePublisher();
     const branch = `release/${source}`;
     const tag = `release-${source}`;
     const open = pages(`${base}/pulls?state=open&per_page=100`);
@@ -162,6 +184,11 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
         schema: 'conduit.pipeline-release/v1', repository, integrationRun: String(runId),
         testedSourceSha: source, acceptedMainSha: accepted, treeSha: sourceTree,
         targets: receipts, assets,
+        ...(adopted?.adopted ? { adoptedProof: {
+          runId: adopted.proofRunId, runAttempt: adopted.runAttempt,
+          acceptanceRunId: adopted.acceptanceRunId, acceptanceRunAttempt: adopted.acceptanceRunAttempt,
+          manifestDigest: adopted.manifestDigest,
+        } } : {}),
       };
       const manifestName = 'manifest.json';
       await writeFile(path.join(staging, manifestName), `${JSON.stringify(manifest, null, 2)}\n`);
@@ -208,6 +235,7 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
         }
       }
       if (api(`${base}/commits/${tag}`).sha !== accepted) fail('Release tag changed before publication');
+      observePublisher();
       if (release.draft) {
         // A historical draft may resume after a newer batch has reached main.
         // Retain its artifacts without moving the latest release backward.
@@ -216,7 +244,11 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
         });
       }
       if (api(`${base}/commits/${tag}`).sha !== accepted) fail('Published tag does not identify accepted main');
-      if (output) await appendFile(output, `main-sha=${accepted}\nsource-sha=${source}\nsite-current=${main() === accepted}\n`);
+      if (publicationIdentity !== null) {
+        await writePublicationReceipt({ filename: publicationReceipt, publication: observePublisher(),
+          repository, integration, manifest, manifestBytes: await readFile(path.join(staging, manifestName)) });
+      }
+      if (output) await appendFile(output, `bundle=${path.resolve(directory)}\n${site ? `pages-site=${site}\n` : ''}main-sha=${accepted}\nsource-sha=${source}\nsite-current=${main() === accepted}\n`);
       return { sourceSha: source, mainSha: accepted, treeSha: sourceTree, tag, manifest };
     } finally {
       await rm(staging, { recursive: true, force: true });
@@ -224,4 +256,7 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
   };
 }
 
-export const publish = createPublisher();
+export async function publish(...args) {
+  return createPublisher({ adoptionStager: stageTrainPublication, sitePreparer: preparePublicationSite,
+    publicationIdentity: publicationIdentityFromEnvironment() })(...args);
+}

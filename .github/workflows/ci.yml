@@ -9,6 +9,10 @@ on:
         type: boolean
         default: true
         description: Run exhaustive integration proof instead of PR admission
+      train-manifest-digest:
+        type: string
+        required: false
+        default: ''
       base:
         type: string
         required: true
@@ -21,6 +25,7 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
   RUSTUP_TOOLCHAIN: 1.98.1
   CONDUIT_CHECKOUT_SHA: ${{ inputs.sha }}
+  CONDUIT_TRAIN_MANIFEST_DIGEST: ${{ inputs.train-manifest-digest }}
 jobs:
   preflight:
     name: candidate/quick
@@ -197,6 +202,9 @@ jobs:
             cargo xtask ci pipeline admission "$BASE"
           fi
   target:
+    permissions:
+      contents: read
+      actions: read
     needs: preflight
     if: needs.preflight.outputs.has-targets == 'true'
     strategy:
@@ -215,14 +223,15 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.sha }}
-          # Site assembly verifies retained evidence against publication ancestry.
-          fetch-depth: ${{ matrix.id == 'browser' && '0' || '1' }}
+          # Site assembly and accepted compiler-seed discovery reconstruct source ancestry.
+          fetch-depth: ${{ (matrix.id == 'browser' || matrix.id == 'hosted-linux') && '0' || '1' }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.98.1
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
       - uses: Swatinem/rust-cache@v2
+        if: matrix.id != 'hosted-linux'
         with:
           key: target-${{ matrix.id }}
           prefix-key: conduit-compiler-v1
@@ -263,11 +272,50 @@ jobs:
           path: target/acquisition/${{ matrix.id }}.json
           if-no-files-found: warn
           retention-days: 14
+      - name: Prepare immutable hosted Linux compiler inputs
+        if: matrix.id == 'hosted-linux'
+        id: hosted-cache
+        run: |
+          cargo fetch --locked
+          private_root="$(mktemp -d "$RUNNER_TEMP/conduit-hosted.XXXXXX")"
+          node tools/ci/pipeline/cli.mjs compiler-cache-engine "$private_root/engine"
+          node tools/ci/pipeline/cli.mjs compiler-cache-hosted-prepare \
+            "$private_root/engine/sccache" "$(rustc --print sysroot)" \
+            "$private_root/snapshot" "$private_root/snapshot.json" \
+            "$private_root/compiler-cache" "$private_root/task" "$private_root/config.json"
+      - name: Restore compiler data from an accepted Integration producer
+        if: matrix.id == 'hosted-linux'
+        id: hosted-cache-seed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CACHE_CONFIG: ${{ steps.hosted-cache.outputs.hosted-cache-config }}
+        run: |
+          node tools/ci/pipeline/cli.mjs compiler-cache-hosted-restore "$CACHE_CONFIG" \
+            "$RUNNER_TEMP/conduit-hosted-acquisition-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            "$RUNNER_TEMP/conduit-hosted-restored-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
       - name: Build, prove, and retain the exact product
         env:
           TARGET: ${{ matrix.id }}
           SHA: ${{ inputs.sha }}
+          CONDUIT_HOSTED_CACHE_CONFIG: ${{ steps.hosted-cache-seed.outputs.hosted-cache-config }}
         run: cargo xtask ci pipeline target "$TARGET" "$SHA"
+      - name: Seal inactive managed compiler objects separately from proof
+        if: matrix.id == 'hosted-linux'
+        id: hosted-seed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CACHE_CONFIG: ${{ steps.hosted-cache-seed.outputs.hosted-cache-config }}
+        run: |
+          node tools/ci/pipeline/cli.mjs compiler-cache-hosted-seal "$CACHE_CONFIG" \
+            "$RUNNER_TEMP/conduit-hosted-seed-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+      - name: Retain managed compiler seed
+        if: matrix.id == 'hosted-linux'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ steps.hosted-seed.outputs.hosted-seed-name }}
+          path: ${{ steps.hosted-seed.outputs.hosted-seed-archive }}
+          if-no-files-found: error
+          retention-days: 14
       - name: Preserve product executable modes
         env:
           TARGET: ${{ matrix.id }}
@@ -290,6 +338,8 @@ jobs:
             target/conduitos/**/*.json
             target/conduitos/**/*.png
             target/conduitos/x86_64/conduitos
+            ${{ runner.temp }}/conduit-hosted.*/task/failure.json
+            ${{ runner.temp }}/conduit-hosted.*/task/resource-usage.txt
           if-no-files-found: ignore
           retention-days: 7
   complete:
