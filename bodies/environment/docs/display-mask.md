@@ -23,3 +23,30 @@ custody, replace or revoke obsolete material, and clear manifestation on loss
 or cancellation. A typed Frame grants no output authority and performs no GPIO
 write. The ordinary selected output Fore and its lifecycle evidence remain
 required for physical delivery.
+
+## Complete Mask wire preparation
+
+`SevenSegmentMaskSource` checks and plans the existing ordinary Mask Source
+against caller-supplied current Host offers, resources and grants. It creates no
+provider possession. The CPU planning fixture deliberately supplies renderer
+metadata only; it proves neither native Mask admission nor physical readiness.
+
+The fixture retains 14,083 bytes for its ordinary Plan and another 16,300 bytes
+for a prepared rich `MaskShow`. Serializing that Show directly peaks at 275,846
+allocated bytes, mostly because the embedded complete Plan is compressed again.
+These are CPU allocation measurements, not ESP32 memory or fit measurements.
+
+`PreparedMaskPlanJson` prepares the complete existing Plan wire once.
+`PreparedMaskShowJson` owns a snapshot of the remaining Show metadata and borrows
+only that immutable wire; the rich Plan and Show can be dropped before encoding.
+The same fixture retains 4,453 bytes for cached Plan wire and 2,270 bytes for the
+Show snapshot. Encoding into the caller's 6,723-byte buffer allocates nothing over
+960 repetitions. Prepared, Available, Closed and Failed codec fixtures match the
+existing serializer byte for byte. A different complete Plan is rejected even
+when its Plan ID is unchanged. Too-small output is rejected before mutation.
+
+Preparation still allocates and compresses, and its byte ceiling bounds the
+result rather than its temporary heap. It belongs off the tight execution path.
+Encoding neither validates a current Face nor acknowledges delivery: ordinary
+owner admission, Plan/Play correlation, lifecycle and actual output acceptance
+remain required. This codec is not yet installed as the MCU's ordinary Mask.

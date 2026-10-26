@@ -158,6 +158,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+]
+
+[[package]]
 name = "conduit-environment-make"
 version = "0.1.0"
 dependencies = [
@@ -191,6 +199,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-computation",
  "conduit-core",
+ "conduit-environment-face",
+ "conduit-face",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
