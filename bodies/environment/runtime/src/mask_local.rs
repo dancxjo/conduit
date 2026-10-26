@@ -17,13 +17,20 @@ impl PreparedMaskKernel {
     /// Dormant pure-software preparation only. This admits no native provider,
     /// Body/Face route, caller permit, Play, Host Call or electrical effect.
     pub fn prepare_local(input: LocalMaskInput<'_, '_>) -> Result<Self, &'static str> {
+        Self::prepare_local_parts(input)?.finish()
+    }
+    /// Retain only checked owned tables/Backs/Fore, allowing the caller to retire
+    /// the complete verified Plan and lowering before canonical slot allocation.
+    pub fn prepare_local_parts(
+        input: LocalMaskInput<'_, '_>,
+    ) -> Result<PreparedMaskKernelParts, &'static str> {
         // All Source/configuration/Cord scratch is retired before kernel storage.
         check(&input)?;
         let (plan, lowered) = input.verified.preparation_scope();
         let fragment = plan
             .fragment(&lowered.identity.fragment_id)
             .ok_or("mask-local-fragment")?;
-        Self::prepare_lowered(fragment.lowering_metadata(), lowered, |_| Ok(()))
+        Self::prepare_lowered_parts(fragment.lowering_metadata(), lowered, |_| Ok(()))
     }
 }
 fn check(input: &LocalMaskInput<'_, '_>) -> Result<(), &'static str> {

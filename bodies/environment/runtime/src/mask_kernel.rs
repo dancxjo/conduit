@@ -22,27 +22,70 @@ pub struct PreparedMaskKernel {
     pub show: LoweredForePort,
     pub interaction: LoweredForePort,
 }
+/// Private canonical storage reserved before other heap owners fragment memory.
+/// This is uninitialized value capacity, never a Plan or execution permission.
+pub struct PreparedMaskValueBacking {
+    values: k::HostedValueStore,
+    face_bytes: u32,
+    show_bytes: u32,
+}
+impl PreparedMaskValueBacking {
+    pub fn prepare(face_bytes: u32, show_bytes: u32) -> Result<Self, &'static str> {
+        if face_bytes == 0 || show_bytes == 0 || face_bytes > 8192 || show_bytes > 8192 {
+            return Err("mask-values");
+        }
+        let values = k::HostedValueStore::new_with_slot_capacities(
+            &[face_bytes, show_bytes],
+            face_bytes + show_bytes,
+        )
+        .map_err(|_| "mask-values")?;
+        Ok(Self {
+            values,
+            face_bytes,
+            show_bytes,
+        })
+    }
+}
+/// Owned, checked dormant assembly material. It retains neither Plan nor
+/// lowering scratch and cannot be constructed from received numeric tables.
+/// Finishing allocates canonical value backing; it grants no execution authority.
+pub struct PreparedMaskKernelParts {
+    nodes: [NodeSpec<2>; 3],
+    cords: [CordSpec; 6],
+    routes: k::FixedRoutes<6, 6>,
+    calls: k::FixedHostCallBindings<3>,
+    backs: [MaskBack; 3],
+    face: LoweredForePort,
+    show: LoweredForePort,
+    interaction: LoweredForePort,
+}
 impl PreparedMaskKernel {
     /// Storage uses the sealed Plan ceilings. Full canonical Face/Show values
     /// stay in the ordinary
     /// kernel store; no local handle is substituted for their semantic Types.
     pub fn prepare(planned: &f::PlannedMaskPlot) -> Result<Self, &'static str> {
+        Self::prepare_parts(planned)?.finish()
+    }
+    /// Complete ordinary admission, retaining only owned assembly material.
+    pub fn prepare_parts(
+        planned: &f::PlannedMaskPlot,
+    ) -> Result<PreparedMaskKernelParts, &'static str> {
         planned.validate().map_err(|_| "mask-plan")?;
         let [fragment] = planned.plan.fragments.as_slice() else {
             return Err("mask-fragments");
         };
         let lowered = lower_plan_fragment(fragment).map_err(|_| "mask-lowering")?;
-        Self::prepare_lowered(fragment, &lowered, |placement| {
+        Self::prepare_lowered_parts(fragment, &lowered, |placement| {
             c::face_data_label(&placement.configuration)
                 .map(|_| ())
                 .map_err(|_| "mask-configuration")
         })
     }
-    fn prepare_lowered(
+    fn prepare_lowered_parts(
         fragment: &c::PlanFragment,
         lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
         mut configuration: impl FnMut(&c::PlannedGear) -> Result<(), &'static str>,
-    ) -> Result<Self, &'static str> {
+    ) -> Result<PreparedMaskKernelParts, &'static str> {
         if fragment.placements.len() != 3
             || lowered.cords.len() != 6
             || lowered.host_calls.len() != 1
@@ -149,14 +192,62 @@ impl PreparedMaskKernel {
             .install(call.node, call.binding)
             .map_err(|_| "mask-call")?;
         calls.seal().map_err(|_| "mask-call")?;
-        // Face fan-out shares its ValueRef. A pending call retains that Face
-        // until completion; the result needs one separate Show slot. Egress and
-        // interaction share the same Show. No next Face enters this one-shot Play.
-        let values = k::HostedValueStore::new_with_slot_capacities(
-            &[face.byte_capacity, show.byte_capacity],
-            face.byte_capacity + show.byte_capacity,
-        )
-        .map_err(|_| "mask-values")?;
+        let cords = core::array::from_fn(|index| lowered.cords[index].spec);
+        Ok(PreparedMaskKernelParts {
+            nodes,
+            cords,
+            routes,
+            calls,
+            backs: backs.try_into().map_err(|_| "mask-backs")?,
+            face,
+            show,
+            interaction,
+        })
+    }
+}
+impl PreparedMaskKernelParts {
+    /// Exact canonical slot backing plus boxed scheduler. Allocator overhead,
+    /// the parts wrapper, remote Sign storage and owner control reserves remain
+    /// separate admission responsibilities.
+    pub fn required_heap_bytes(&self) -> Result<usize, &'static str> {
+        k::HostedValueStore::canonical_storage_bytes([
+            self.face.byte_capacity,
+            self.show.byte_capacity,
+        ])
+        .map_err(|_| "mask-values")?
+        .checked_add(core::mem::size_of::<Kernel>())
+        .ok_or("mask-values")
+    }
+    /// Consume checked owned parts after retiring Plan/lowering preparation.
+    /// No Step, provider possession or native effect occurs here.
+    pub fn finish(self) -> Result<PreparedMaskKernel, &'static str> {
+        let backing =
+            PreparedMaskValueBacking::prepare(self.face.byte_capacity, self.show.byte_capacity)?;
+        self.finish_with_backing(backing)
+    }
+    /// Attach only exact, fresh canonical storage reserved by the private
+    /// backing constructor. Mismatched capacity cannot narrow the checked Plan.
+    pub fn finish_with_backing(
+        self,
+        backing: PreparedMaskValueBacking,
+    ) -> Result<PreparedMaskKernel, &'static str> {
+        if backing.face_bytes != self.face.byte_capacity
+            || backing.show_bytes != self.show.byte_capacity
+        {
+            return Err("mask-values");
+        }
+        let Self {
+            nodes,
+            cords,
+            routes,
+            calls,
+            backs,
+            face,
+            show,
+            interaction,
+        } = self;
+        // Face fan-out shares its ValueRef, while Show occupies its own full slot.
+        let values = backing.values;
         let signs = k::FixedSignLog::new_with_remote_storage(
             (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
             12,
@@ -164,24 +255,10 @@ impl PreparedMaskKernel {
         )
         .map_err(|_| "mask-signs")?;
         let kernel = Kernel::new_boxed_with_active_counts_and_host_calls(
-            3,
-            6,
-            nodes,
-            lowered
-                .cords
-                .iter()
-                .map(|cord| cord.spec)
-                .collect::<Vec<_>>()
-                .try_into()
-                .map_err(|_| "mask-cords")?,
-            routes,
-            calls,
-            backs.try_into().map_err(|_| "mask-backs")?,
-            values,
-            signs,
+            3, 6, nodes, cords, routes, calls, backs, values, signs,
         )
         .map_err(|_| "mask-kernel")?;
-        Ok(Self {
+        Ok(PreparedMaskKernel {
             kernel,
             face,
             show,

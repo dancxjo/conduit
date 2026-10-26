@@ -45,11 +45,29 @@ fn ordinary_mask_reuses_its_kernel_without_resetting_requests_or_discarding_evid
     let prepared =
         conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare(&planned).unwrap();
     let local = local_kernel(&source, &planned).unwrap();
+    let rich_parts =
+        conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare_parts(&planned)
+            .unwrap();
+    let local_parts = local_kernel_parts(&source, &planned).unwrap();
+    assert_eq!(
+        rich_parts.required_heap_bytes(),
+        local_parts.required_heap_bytes()
+    );
+    assert!(
+        local_parts.required_heap_bytes().unwrap()
+            >= 16384 + core::mem::size_of::<conduit_environment_runtime::mask_kernel::Kernel>()
+    );
+    // The helper has dropped its verified Plan, lowering and Source material.
+    let reserved =
+        conduit_environment_runtime::mask_kernel::PreparedMaskValueBacking::prepare(8192, 8192)
+            .unwrap();
+    let staged_local = local_parts.finish_with_backing(reserved).unwrap();
+    let staged_rich = rich_parts.finish().unwrap();
     assert_eq!(prepared.face, local.face);
     assert_eq!(prepared.show, local.show);
     assert_eq!(prepared.interaction, local.interaction);
     let mut traces = Vec::new();
-    for prepared in [prepared, local] {
+    for prepared in [prepared, local, staged_rich, staged_local] {
         use prepared_session::{OwnedValueBoundary as Boundary, PreparedKernelSession};
         let boundary = |fore: &conduit_plan_lowering::lowering::LoweredForePort| Boundary {
             endpoint: fore.endpoint,
@@ -166,7 +184,9 @@ fn ordinary_mask_reuses_its_kernel_without_resetting_requests_or_discarding_evid
             traces.push(session.kernel().signs().events().collect::<Vec<_>>());
         }
     }
-    assert_eq!(&traces[..4], &traces[4..]);
+    for trace in traces.as_chunks::<4>().0.iter().skip(1) {
+        assert_eq!(&traces[..4], trace);
+    }
 }
 
 fn verified(plan: &c::Plan) -> c::VerifiedPlanMetadata {
@@ -191,6 +211,12 @@ fn local_kernel(
     source: &conduit_environment_make::SevenSegmentMaskSource,
     planned: &f::PlannedMaskPlot,
 ) -> Result<conduit_environment_runtime::mask_kernel::PreparedMaskKernel, &'static str> {
+    local_kernel_parts(source, planned)?.finish()
+}
+fn local_kernel_parts(
+    source: &conduit_environment_make::SevenSegmentMaskSource,
+    planned: &f::PlannedMaskPlot,
+) -> Result<conduit_environment_runtime::mask_kernel::PreparedMaskKernelParts, &'static str> {
     let material = conduit_environment_make::SevenSegmentMaskMaterial::prepare(source).unwrap();
     // SAFETY: bytes were just encoded from this independently checked Source.
     let image = unsafe {
@@ -207,7 +233,7 @@ fn local_kernel(
     )
     .map_err(|_| "test-lowering")?;
     let host = fixture::host();
-    conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare_local(
+    conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare_local_parts(
         conduit_environment_runtime::mask_kernel::LocalMaskInput {
             verified: &lowered,
             image: &image,
@@ -261,5 +287,57 @@ fn local_mask_refuses_wrong_role_source_configuration_fore_and_numeric_contracts
         );
         assert!(c::verify_plan(&wrong.plan), "{failure}");
         assert!(local_kernel(&source, &wrong).is_err(), "{failure}");
+        assert!(
+            local_kernel_parts(&source, &wrong).is_err(),
+            "staged {failure}"
+        );
+    }
+}
+
+#[test]
+fn checked_mask_parts_defer_full_canonical_storage_until_finish() {
+    use conduit_environment_runtime::mask_kernel::PreparedMaskKernel;
+    let source = conduit_environment_make::SevenSegmentMaskSource::compile().unwrap();
+    let planned = source.plan(&fixture::host(), 8192, &[]).unwrap();
+    let (rich, rich_memory) =
+        allocation_probe::observe(|| PreparedMaskKernel::prepare(&planned).unwrap());
+    let (parts, parts_memory) =
+        allocation_probe::observe(|| PreparedMaskKernel::prepare_parts(&planned).unwrap());
+    let (local, local_memory) =
+        allocation_probe::observe(|| local_kernel_parts(&source, &planned).unwrap());
+    assert!(rich_memory.retained_bytes() >= parts_memory.retained_bytes() + 16384);
+    assert!(rich_memory.retained_bytes() >= local_memory.retained_bytes() + 16384);
+    assert_eq!(parts.required_heap_bytes(), local.required_heap_bytes());
+    // Both owned values outlive every input used to capture them.
+    drop(planned);
+    drop(source);
+    let staged = parts.finish().unwrap();
+    let staged_local = local.finish().unwrap();
+    assert_eq!(rich.face, staged.face);
+    assert_eq!(rich.show, staged.show);
+    assert_eq!(rich.interaction, staged.interaction);
+    assert_eq!(staged.face, staged_local.face);
+    assert_eq!(staged.show, staged_local.show);
+    assert_eq!(staged.interaction, staged_local.interaction);
+}
+
+#[test]
+fn mask_value_backing_requires_exact_sealed_slot_capacities() {
+    use conduit_environment_runtime::mask_kernel::{PreparedMaskKernel, PreparedMaskValueBacking};
+    let source = conduit_environment_make::SevenSegmentMaskSource::compile().unwrap();
+    let planned = source.plan(&fixture::host(), 8192, &[]).unwrap();
+    for (face, show) in [(4096, 8192), (8192, 4096)] {
+        let parts = PreparedMaskKernel::prepare_parts(&planned).unwrap();
+        let backing = PreparedMaskValueBacking::prepare(face, show).unwrap();
+        assert!(matches!(
+            parts.finish_with_backing(backing),
+            Err("mask-values")
+        ));
+    }
+    for (face, show) in [(0, 8192), (8192, 0), (8193, 8192), (8192, 8193)] {
+        assert!(matches!(
+            PreparedMaskValueBacking::prepare(face, show),
+            Err("mask-values")
+        ));
     }
 }
