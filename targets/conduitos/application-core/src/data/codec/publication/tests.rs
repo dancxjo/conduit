@@ -2,7 +2,7 @@ extern crate std;
 use super::*;
 use crate::data::{Workspace, encode_command, transport_codec};
 use alloc::{vec, vec::Vec};
-use conduit_face::{FaceBasis, FaceRole, FaceSubject};
+use conduit_face::{FaceBasis, FaceRole, FaceSubject, MaskShow};
 #[rustfmt::skip]
 #[path = "../../../../../../../semantics/face/tests/common/mod.rs"]
 mod mask_fixture;
@@ -56,7 +56,7 @@ fn complete_plan_round_trip_preserves_public_json_and_canonical_validation() {
         unreachable!()
     };
     show.validate(face).unwrap();
-    conduit_core::verify_plan(&show.planned_mask.plan).unwrap();
+    assert!(conduit_core::verify_plan(&show.planned_mask.plan));
     let public = serde_json::to_vec(&command).unwrap();
     let public_face = serde_json::to_vec(face).unwrap();
     let public_show = serde_json::to_vec(show).unwrap();
@@ -87,7 +87,7 @@ fn complete_plan_round_trip_preserves_public_json_and_canonical_validation() {
     assert_eq!(actual_show, show);
     assert_eq!(serde_json::to_vec(&decoded).unwrap(), public);
     actual_show.validate(actual).unwrap();
-    std::println!("publication_cbor_fixture wire_bytes={}", bytes.len());
+    std::println!("publication_direct_fixture wire_bytes={}", bytes.len());
 }
 
 #[test]
@@ -149,15 +149,14 @@ fn malformed_prefix_duplicate_fields_and_trailing_values_refuse() {
     trailing.push(0);
     assert!(Workspace::new().unwrap().decode_command(&trailing).is_err());
     // Preserve every required field and append a duplicate: failure cannot be
-    // explained by an incomplete fixture or by malformed CBOR framing.
+    // explained by an incomplete fixture or by malformed JSON framing.
     let mut duplicate = bytes.clone();
-    assert_eq!(duplicate[MAGIC.len()], 0xa5);
-    duplicate[MAGIC.len()] = 0xa6;
-    duplicate.extend_from_slice(&[0x64, b's', b'l', b'o', b't', 0]);
+    assert_eq!(duplicate[MAGIC.len()], b'{');
+    assert_eq!(duplicate.pop(), Some(b'}'));
+    duplicate.extend_from_slice(br#","slot":0}"#);
     assert_eq!(super::preflight(&duplicate), Ok(()));
     assert!(super::decode_preflighted(&duplicate).is_err());
-    let result: Result<Owned, _> =
-        ciborium::de::from_reader_with_recursion_limit(&duplicate[MAGIC.len()..], 64);
+    let result: Result<Owned, _> = serde_json::from_slice(&duplicate[MAGIC.len()..]);
     let error = match result {
         Err(error) => error,
         Ok(_) => panic!("duplicate slot admitted"),
@@ -166,7 +165,7 @@ fn malformed_prefix_duplicate_fields_and_trailing_values_refuse() {
 }
 
 #[test]
-fn binary_native_integer_ranges_and_bignums_preserve_typed_values() {
+fn direct_json_preserves_complete_integer_ranges() {
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
     struct Numeric {
         u: u64,
@@ -183,17 +182,14 @@ fn binary_native_integer_ranges_and_bignums_preserve_typed_values() {
         bytes: [0, 23, 24, 255],
     };
     let mut storage = [0u8; 512];
-    let mut remaining = &mut storage[..];
-    ciborium::ser::into_writer(&value, &mut remaining).unwrap();
-    let length = 512 - remaining.len();
-    assert_eq!(super::preflight::validate(&storage[..length]), Ok(()));
-    let actual: Numeric =
-        ciborium::de::from_reader_with_recursion_limit(&storage[..length], 64).unwrap();
+    let length = transport_codec::encode_plain(&value, &mut storage).unwrap();
+    assert_eq!(transport_codec::preflight_plain(&storage[..length]), Ok(()));
+    let actual: Numeric = serde_json::from_slice(&storage[..length]).unwrap();
     assert_eq!(actual, value);
 }
 
 #[test]
-fn binary_publication_still_invokes_checked_structured_configuration_constructor() {
+fn direct_publication_still_invokes_checked_structured_configuration_constructor() {
     use conduit_core::{
         ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue, StructuredInfoType,
         StructuredInfoValue, TEXT_INFO_ID, kind_id,
@@ -227,4 +223,53 @@ fn binary_publication_still_invokes_checked_structured_configuration_constructor
         Workspace::new().unwrap().decode_command(&bytes).err(),
         Some(Refusal::Malformed)
     );
+}
+
+#[test]
+fn exact_expanded_plan_boundary_survives_outer_compression_and_escaped_keys() {
+    let command = fixture();
+    let Command::PatchbayPublish { show, .. } = &command else {
+        unreachable!()
+    };
+    let mut plan = vec![0; MAX_PLAN_JSON_BYTES];
+    let length = transport_codec::encode_plain(&show.planned_mask.plan, &mut plan).unwrap();
+    let original = encode_command(&command).unwrap();
+    assert!(original.starts_with(MAGIC));
+    let key = br#""plan":"#;
+    let start = original.windows(key.len()).position(|v| v == key).unwrap() + key.len();
+    assert_eq!(original[start], b'{');
+    for extra in [0, 1] {
+        let mut wire = original.clone();
+        wire.splice(
+            start + 1..start + 1,
+            core::iter::repeat_n(b' ', MAX_PLAN_JSON_BYTES - length + extra),
+        );
+        for escaped in [false, true] {
+            let bytes = if escaped {
+                let json = core::str::from_utf8(&wire[MAGIC.len()..])
+                    .unwrap()
+                    .replacen("\"show\":", "\"\\u0073how\":", 1)
+                    .replacen("\"planned_mask\":", "\"planned\\u005fmask\":", 1)
+                    .replacen("\"plan\":", "\"pl\\u0061n\":", 1);
+                let mut bytes = MAGIC.to_vec();
+                bytes.extend_from_slice(json.as_bytes());
+                bytes
+            } else {
+                wire.clone()
+            };
+            // The genuine old outer compression grant remains: a raw >128KiB
+            // test never bypasses the transfer ceiling to reach the decoder.
+            let compressed = super::super::compress_json(&bytes).unwrap();
+            assert!(compressed.len() <= crate::MAX_BLOB);
+            let decoded = Workspace::new().unwrap().decode_command(&compressed);
+            if extra == 0 {
+                let Command::PatchbayPublish { show: actual, .. } = decoded.unwrap() else {
+                    unreachable!()
+                };
+                assert_eq!(actual, *show);
+            } else {
+                assert_eq!(decoded.err(), Some(Refusal::Bounds));
+            }
+        }
+    }
 }

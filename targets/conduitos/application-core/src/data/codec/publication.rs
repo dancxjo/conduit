@@ -1,13 +1,16 @@
 //! Private publication transfer; the complete ordinary Plan stays typed.
-//! Binary serde selects MaskShow's existing full Plan representation rather
-//! than the public JSON compressed-Plan document. Public JSON is unchanged.
-mod preflight;
+//! Carry one ordinary full Plan directly, avoiding a compressed JSON document
+//! nested inside another compressed JSON command. Public JSON is unchanged.
+mod show;
 use super::{Command, Refusal};
 use conduit_body::BodyId;
-use conduit_face::{Face, FaceContributionBasis, MaskShow};
+use conduit_face::{Face, FaceContributionBasis};
 use serde::{Deserialize, Serialize};
 
-const MAGIC: &[u8] = b"CAPB\x01";
+const MAGIC: &[u8] = b"CAPP\x01";
+// Preserve the old public Mask carrier's expanded Plan bound. Its separate
+// 64KiB inner zlib/hex carrier is replaced by the existing outer CAPZ grant.
+const MAX_PLAN_JSON_BYTES: usize = 256 * 1024;
 
 #[derive(Serialize)]
 struct Borrowed<'a> {
@@ -15,7 +18,7 @@ struct Borrowed<'a> {
     body: &'a BodyId,
     basis: &'a FaceContributionBasis,
     face: &'a Face,
-    show: &'a MaskShow,
+    show: show::ShowRef<'a>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -24,7 +27,7 @@ struct Owned {
     body: BodyId,
     basis: FaceContributionBasis,
     face: Face,
-    show: MaskShow,
+    show: show::ShowOwned,
 }
 
 pub(super) fn matches(bytes: &[u8]) -> bool {
@@ -46,37 +49,37 @@ pub(super) fn encode(command: &Command, output: &mut [u8]) -> Result<usize, Refu
         .ok_or(Refusal::Capacity)?
         .copy_from_slice(MAGIC);
     let capacity = output.len();
-    let mut remaining = &mut output[MAGIC.len()..];
-    ciborium::ser::into_writer(
+    let length = super::transport_codec::encode_plain(
         &Borrowed {
             slot: *slot,
             body,
             basis,
             face,
-            show,
+            show: show::ShowRef::from(show),
         },
-        &mut remaining,
-    )
-    .map_err(|_| Refusal::Capacity)?;
-    Ok(capacity - remaining.len())
+        &mut output[MAGIC.len()..],
+    )?;
+    debug_assert!(length <= capacity - MAGIC.len());
+    let length = MAGIC.len() + length;
+    preflight(&output[..length])?;
+    Ok(length)
 }
 pub(super) fn preflight(bytes: &[u8]) -> Result<(), Refusal> {
-    preflight::validate(bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?)
+    super::transport_codec::preflight_publication(
+        bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?,
+        MAX_PLAN_JSON_BYTES,
+    )
 }
 /// Only the immutable bytes already checked by Workspace may reach this path.
 pub(super) fn decode_preflighted(bytes: &[u8]) -> Result<Command, Refusal> {
-    let mut remaining = bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?;
-    let value: Owned = ciborium::de::from_reader_with_recursion_limit(&mut remaining, 64)
+    let value: Owned = serde_json::from_slice(bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?)
         .map_err(|_| Refusal::Malformed)?;
-    if !remaining.is_empty() {
-        return Err(Refusal::Malformed);
-    }
     Ok(Command::PatchbayPublish {
         slot: value.slot,
         body: value.body,
         basis: value.basis,
         face: value.face,
-        show: value.show,
+        show: value.show.into(),
     })
 }
 
