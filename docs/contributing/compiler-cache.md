@@ -251,3 +251,28 @@ than Cargo compilation; do not add its duration to the Cargo wall time above.
 The upload is the qualification product and evidence, not a shared compiler seed
 transfer or publication measurement. Tool acquisition and private preparation
 remain part of the total cost when evaluating future cache benefit.
+
+## Optional accepted-seed product qualification
+
+The manual **Measure tool acquisition** workflow keeps its acquisition-pair
+and cold hosted-product modes. Select `require-accepted-hosted-seed: true` to
+run only the Ubuntu hosted-product qualification with authenticated accepted
+Integration compiler data. This also selects hosted-product qualification when
+`validate-hosted-product` is false. Both options default to false.
+
+Strict mode refuses to build if production discovery finds no compatible
+accepted seed. After transfer, it creates a fresh private Cargo target and runs
+the unchanged production hosted release build and separate fresh Hello proof.
+Qualification also requires a positive Rust cache-hit delta; restoring objects
+alone does not qualify reuse. Namespace/source, retained binary and Hello
+identities must agree. No mutable target is shared and no manual-job compiler
+seed is sealed or published.
+
+The qualification artifact retains source-bound product and Hello receipts,
+actual before/after compiler statistics, `accepted-seed-qualification.json`,
+selected recipe metadata, preparation acquisition and transfer timing. Transfer
+timing covers discovery, download, verification and config selection, including
+failed restore attempts. Restored compiler objects and downloaded seed archives
+are excluded from that artifact. Keep acquisition/preparation/build/runtime
+costs separate; a successful qualification establishes neither exhaustive
+Integration acceptance nor a net pipeline speed benefit.

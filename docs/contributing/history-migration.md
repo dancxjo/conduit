@@ -67,3 +67,5 @@ the original commit's blob bytes and modes. The release manifest records that
 inventory, and all three release assets passed a fresh download/hash check
 before publication and immutable-state observation. Site custody retains the
 original capture commit and archive identity; this is no new execution proof.
+
+After machine-writer activation, follow the [separate history maintenance procedure](history-migration-maintenance.md) for writer freeze, final backup/maps, policy activation, exact leased updates, policy restoration and event-preserving publication recovery. The pure mapping and later policy-activation child are distinct identities. No production controller permission is widened for maintenance.
