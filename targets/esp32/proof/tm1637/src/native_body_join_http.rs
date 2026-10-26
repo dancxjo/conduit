@@ -22,6 +22,9 @@ struct State {
     completed: Option<Completed>,
     refused: Option<u32>,
 }
+// Awake CPU-only mailbox metadata; all transport payloads remain heap-owned.
+#[allow(unexpected_cfgs)] // Native profile is absent from the CPU proof crate.
+#[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
     enabled: false,
     next: 0,
