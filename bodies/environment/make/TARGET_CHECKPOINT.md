@@ -1,9 +1,40 @@
 # MCU delivery checkpoints — 2026-10-25
 
-**The latest ESP32 flash is a fresh MCU-owned preparation diagnostic.** It
+**The latest successful ESP32 boot checkpoint is MCU-owned preparation.** It
 has not started sampling or presenting the ordinary Mask. Historical attended
 Linux-owned sampler and raw display proofs below remain separate from this new
 startup path. The current RAM boundary is recorded first.
+
+## Autonomous integration, not yet flashed — 2026-10-26
+
+Source `99c701697` prepares both actual held workers, accepts one canonical Body
+Play, checkpoints the complete biography and Root signing key, then releases
+sampling and the timed ordinary Mask together. The display uses finite fresh
+child leases, real provider withdrawal/retirement and independent local evidence
+consumption; signed reading epochs remain independent of display consumption.
+This is implemented and cross-compiled, **not yet physical execution proof**.
+
+The complete firmware links with **37,532 bytes of CPU stack** above the same
+36,864-byte floor. Actual initialized Embassy pools use 5,472 bytes of otherwise
+unused RTC-slow memory in this profile; RTC-fast remains the existing 8 KiB Root
+heap bank. Legacy UART snapshot duplication is excluded only from this appliance
+profile; canonical Face and signed-history consumers retain the readings.
+
+The exact application image is **3,628,400 bytes**, exceeding the existing
+2,621,440-byte app partition. The enlarged runtime path still pulls a rich
+network Source decoder; replacing that duplicated runtime metadata with the
+same authenticated Make callbacks is the next flash-size investigation. No
+new full erase was performed for this unflashable image. A later diagnostic
+flash exercised native pulse/wait preparation but refused fragmented codec
+allocation before any Body start; the successful hardware table below remains
+the last completed simultaneous-kernel checkpoint.
+
+The bounded complete Mask codec now borrows the otherwise empty canonical
+slots only during cold preparation, wipes them on return/unwind, and never
+creates ValueRefs. Focused CPU proof saves exactly 16,384 heap bytes. Streamed
+complete Playing checkpoints use a 128-byte NOR staging buffer and measured
+3,648 bytes of total transient host heap; two-pass identity/readback/commit-last
+checks preserve prior committed state. These CPU results are not target peaks.
 
 ## Fresh ordinary Mask preparation — 2026-10-26
 
