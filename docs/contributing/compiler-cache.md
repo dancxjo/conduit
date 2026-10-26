@@ -233,3 +233,21 @@ Its source/tree, run/attempt, binary, compiler and runtime receipts agree. The
 production Integration producer verifier correctly refuses this acquisition
 workflow artifact: it is qualification evidence, not accepted train/dev/stable
 proof and cannot replace the exhaustive combined Integration gate.
+
+The same successful job's Actions timestamps separate its surrounding costs:
+
+| Stage | Seconds |
+|---|---:|
+| Dispatch to job start | 3 |
+| Checkout | 28 |
+| Hosted tool acquisition and sandbox preparation | 137 |
+| Private source-bound compiler input preparation | 96 |
+| Complete product build/proof/sealing step | 1,211 |
+| Product/evidence artifact upload | 4 |
+| Complete job | 1,491 |
+
+These timestamps have one-second resolution. The product step includes more
+than Cargo compilation; do not add its duration to the Cargo wall time above.
+The upload is the qualification product and evidence, not a shared compiler seed
+transfer or publication measurement. Tool acquisition and private preparation
+remain part of the total cost when evaluating future cache benefit.
