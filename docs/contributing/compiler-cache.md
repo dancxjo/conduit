@@ -5,8 +5,9 @@ The supported cache builds the actual dependency-free
 global Cargo wrapper or authorize behavioral/release proof reuse. The hosted
 Linux extension below is an incomplete internal integration checkpoint; its full
 cold/warm release and Hello experiments have completed locally, including a
-finite two-revision dependency profile. Draft CI wiring is implemented; hosted
-acceptance, accepted-producer transfer and useful total cost remain unproven.
+finite two-revision dependency profile. Draft CI wiring and actual Ubuntu product qualification are implemented/proved;
+full Integration acceptance, accepted-producer transfer and useful total cost
+remain unproven.
 
 `engine.mjs` acquires pinned sccache 0.19.0 into a new task-local directory and
 verifies both archive and executable SHA-256 digests. `cargo-snapshot.mjs`
@@ -68,7 +69,8 @@ verifies that executable is unchanged. The dedicated `compiler-cache-hosted-prep
 configuration. In this branch, the Linux hosted target requires that configuration
 and stages the binary, fresh Hello evidence and actual command custody through
 the ordinary product seal. The compositor commands above remain separate.
-Hosted wiring is under qualification and does not establish Integration acceptance.
+The Ubuntu qualification below passes this path; it does not establish
+Integration acceptance.
 
 Preparation runs Cargo metadata offline. Frozen metadata canonicalizes Cargo
 package IDs and source/target paths to their actual sandbox identities; raw
@@ -104,8 +106,8 @@ and unknown loader output refuse; there is no fallback mount of host `/usr`,
 `/home` or `/etc`. Two independently prepared local GCC 15 snapshots at distinct
 paths were byte-identical (56,270 files / 2,226,552,902 bytes); the copied C
 compiler, assembler, linker and runtime passed a contained native execution and
-refused an existing host-only include. Actual Ubuntu execution still requires
-CI acceptance; layout fixtures alone do not establish it. Preparation requires
+refused an existing host-only include. Actual Ubuntu product qualification now
+also passes, as recorded below; layout fixtures alone did not establish it. Preparation requires
 19 GiB free and caps the retained snapshot at 6 GiB / 150,000 files.
 On restricted Ubuntu hosts, setup loads the distribution Bubblewrap AppArmor
 profile and probes the isolated namespace before preparing the snapshot. It
@@ -144,8 +146,8 @@ Hello in 0.403 s warm and 0.386 s cold. Preparation is additional (a separately
 prepared newer source took 22.05 s using already acquired dependency archives;
 network acquisition was not timed). These are one local pair, not a statistical
 speed claim or elimination of expensive runtime tests. Most Conduit compilation
-still bypasses the cache. Draft CI wiring is now implemented, while hosted
-acceptance and useful total cost remain unproven. The
+still bypasses the cache. Draft CI wiring and Ubuntu product qualification now pass, while full
+Integration acceptance and useful total cost remain unproven. The
 [engine Rust caveats](https://github.com/mozilla/sccache/blob/v0.19.0/docs/Rust.md)
 also exclude system-linker crate invocations from cache reuse.
 
@@ -203,7 +205,7 @@ concurrent host loads. This establishes reuse and output equivalence, not a
 wall-time improvement. Acquisition and transfer are additional. Two failed
 Ubuntu qualifications spent 96–107 seconds in their preparation steps, including
 dependency/engine acquisition, before namespace setup failed. The subsequent
-namespace repair is under actual qualification. The local compatibility
+namespace repair passed actual Ubuntu qualification. The local compatibility
 experiment predates the added production recipe-verifier policy hash; it is not
 an acceptance receipt for a later controller or Ubuntu environment. The earlier
 3% exact-snapshot comparison must not be relabelled as this shared profile's
@@ -214,3 +216,20 @@ remain acceptance work. Draft workflow selection authenticates successful dev
 Integration acceptance and original adopted train custody before restoring a
 separate compiler seed artifact. Current-source product/runtime proof always
 executes independently. No net hosted speed benefit is claimed.
+
+## Actual Ubuntu product qualification
+
+[Run 40245276851](https://github.com/dancxjo/conduit/actions/runs/40245276851)
+passed the production private preparation/build/Hello/sealing path at exact source
+`e184009236701e2e1025d3b52a9eb532f37128cb`. The selected 377-package metadata
+recipe matched, with the same recipe digest as the local acquisition audit.
+The 61,645,288-byte binary passed fresh Hello in 0.766 seconds. Actual Cargo wall
+time was 1,113.393 seconds; validation-inclusive compilation took 1,158.362
+seconds. These are cold product qualification measurements, not a hosted warm
+comparison or a net pipeline speed benefit.
+
+The downloaded artifact matched its API digest and every sealed product hash.
+Its source/tree, run/attempt, binary, compiler and runtime receipts agree. The
+production Integration producer verifier correctly refuses this acquisition
+workflow artifact: it is qualification evidence, not accepted train/dev/stable
+proof and cannot replace the exhaustive combined Integration gate.
