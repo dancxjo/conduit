@@ -10,9 +10,9 @@ use static_cell::StaticCell;
 // retaining a smaller, disjoint display-evidence region. Other profiles retain
 // their original partition contract; a mismatched table is refused at boot.
 #[cfg(feature = "local-appliance")]
-const EVIDENCE_START: u32 = 0x330000;
+const EVIDENCE_START: u32 = 0x337000;
 #[cfg(feature = "local-appliance")]
-const EVIDENCE_LENGTH: u32 = 0x8000;
+const EVIDENCE_LENGTH: u32 = 0x1000;
 #[cfg(not(feature = "local-appliance"))]
 const EVIDENCE_START: u32 = 0x290000;
 #[cfg(not(feature = "local-appliance"))]
