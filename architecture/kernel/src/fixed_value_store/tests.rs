@@ -118,3 +118,49 @@ fn fixed_encoding_refusals_and_unwind_release_ownership_without_reviving_generat
     values.release(first).unwrap();
     values.release(next).unwrap();
 }
+
+#[test]
+fn empty_scratch_is_exclusive_wiped_and_preserves_value_identity() {
+    extern crate std;
+    let mut values = FixedValueStore::<2, 8>::new(16).unwrap();
+    let first = values.store(b"live").unwrap();
+    let mut called = false;
+    assert_eq!(
+        values.with_empty_scratch(|_| called = true),
+        Err(StorageError::ItemCapacityExceeded)
+    );
+    assert!(!called);
+    assert_eq!(values.get(first).unwrap(), b"live");
+    values.release(first).unwrap();
+    let generations = values.slots.each_ref().map(|slot| slot.generation);
+    values
+        .with_empty_scratch(|slices| {
+            assert_eq!(slices.len(), 2);
+            assert!(slices
+                .iter()
+                .all(|slice| slice.iter().all(|byte| *byte == 0)));
+            slices[0].fill(5);
+            slices[1].fill(9);
+        })
+        .unwrap();
+    assert!(values.slots.iter().all(|slot| slot.bytes == [0; 8]));
+    assert_eq!(
+        values.slots.each_ref().map(|slot| slot.generation),
+        generations
+    );
+    assert_eq!((values.used_items(), values.used_bytes()), (0, 0));
+    assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _ = values.with_empty_scratch(|slices| {
+            slices[0].fill(6);
+            slices[1].fill(7);
+            panic!("cold preparation");
+        });
+    }))
+    .is_err());
+    assert!(values.slots.iter().all(|slot| slot.bytes == [0; 8]));
+    let next = values.store(b"new").unwrap();
+    assert_eq!(next.slot, first.slot);
+    assert_eq!(next.generation, first.generation + 1);
+    assert_eq!(values.get(first), Err(StorageError::StaleReference));
+    assert_eq!(values.get(next).unwrap(), b"new");
+}

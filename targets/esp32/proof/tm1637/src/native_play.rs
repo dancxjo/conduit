@@ -21,7 +21,7 @@ pub struct NativePlay {
     dispatches: [u8; 3],
     attempted: bool,
     phase: &'static str,
-    prepared: Option<PreparedNetworkKernel>,
+    prepared: Option<alloc::boxed::Box<PreparedNetworkKernel>>,
     source: Option<n::NetworkCredentialsHostCall<Source>>,
     join: Option<n::NetworkJoinHostCall<Provider>>,
     active: Option<c::ActivePlayIdentity>,
@@ -155,7 +155,7 @@ impl NativePlay {
             return Err(());
         }
         let active = issuer.reserve_play(fragment)?;
-        self.prepared = Some(kernel);
+        self.prepared = Some(alloc::boxed::Box::new(kernel));
         let (table, handle, claim) = issuer.issue(
             source.as_ref().ok_or(())?.native_identity(),
             Operation::Credentials,
@@ -489,7 +489,7 @@ impl NativePlay {
             .map_err(|_| "network-retirement-provider")?;
         let source = n::NetworkCredentialsHostCall::retire_retained(&mut self.source)
             .expect("preflighted source retirement");
-        let evidence = alloc::boxed::Box::new(self.prepared.take().expect("preflighted kernel"));
+        let evidence = self.prepared.take().expect("preflighted kernel");
         let active = self.active.take().expect("preflighted scope");
         *self = Self::new();
         Ok(RetiredNetworkControl {

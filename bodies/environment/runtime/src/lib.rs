@@ -10,11 +10,11 @@ mod canonical_input;
 mod canonical_storage;
 #[cfg(feature = "construction")]
 pub mod construction;
-#[cfg(feature = "display-session")]
+#[cfg(any(feature = "evidence-journal", feature = "display-session", feature = "mask-renderer"))]
 pub mod display_evidence;
-#[cfg(feature = "display-session")]
+#[cfg(feature = "evidence-journal")]
 pub mod display_evidence_compact;
-#[cfg(feature = "display-session")]
+#[cfg(feature = "evidence-journal")]
 pub mod display_evidence_journal;
 #[cfg(feature = "display-mask")]
 pub mod display_mask;

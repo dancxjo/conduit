@@ -32,6 +32,38 @@ pub struct FixedValueStore<const SLOTS: usize, const MAX_VALUE_BYTES: usize> {
 }
 
 impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> FixedValueStore<SLOTS, MAX_VALUE_BYTES> {
+    /// Borrow only the byte backing of a completely empty store for cold
+    /// preparation. Slot identities, generations and ownership never enter the
+    /// callback. Bytes are wiped on return and unwind; no ValueRef is created.
+    pub fn with_empty_scratch<R>(
+        &mut self,
+        prepare: impl FnOnce(&mut [&mut [u8]]) -> R,
+    ) -> Result<R, StorageError> {
+        if self.used_items != 0
+            || self.used_bytes != 0
+            || self
+                .slots
+                .iter()
+                .any(|slot| slot.references != 0 || slot.len != 0)
+        {
+            return Err(StorageError::ItemCapacityExceeded);
+        }
+        struct Scratch<'a, const S: usize, const M: usize>(&'a mut [FixedValueSlot<M>; S]);
+        impl<const S: usize, const M: usize> Drop for Scratch<'_, S, M> {
+            fn drop(&mut self) {
+                for slot in self.0.iter_mut() {
+                    slot.bytes.fill(0);
+                }
+            }
+        }
+        let guard = Scratch(&mut self.slots);
+        for slot in guard.0.iter_mut() {
+            slot.bytes.fill(0);
+        }
+        let mut bytes = guard.0.each_mut().map(|slot| slot.bytes.as_mut_slice());
+        Ok(prepare(&mut bytes))
+    }
+
     pub const fn new(byte_capacity: u32) -> Result<Self, StorageError> {
         let physical_bytes = match SLOTS.checked_mul(MAX_VALUE_BYTES) {
             Some(bytes) if bytes <= u32::MAX as usize => bytes as u32,

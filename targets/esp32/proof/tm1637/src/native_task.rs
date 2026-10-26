@@ -58,6 +58,7 @@ const PROJECTION_BYTES: usize = 4096;
 // This is volatile scratch, never retained state across reset or DMA backing.
 #[cfg_attr(feature = "native-face-root", esp_hal::ram(unstable(rtc_slow)))]
 #[cfg_attr(not(feature = "native-face-root"), esp_hal::ram(reclaimed))]
+#[cfg(not(feature = "local-appliance"))]
 static mut CANONICAL: core::mem::MaybeUninit<[u8; PROJECTION_BYTES]> =
     core::mem::MaybeUninit::uninit();
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
@@ -164,7 +165,14 @@ impl Handle {
         });
         Ok(providers)
     }
+    /// This appliance delivers canonical readings through its actual Face and
+    /// signed history consumers; it does not also retain the legacy UART copy.
+    #[cfg(feature = "local-appliance")]
+    pub fn copy_publication(&self, _: &mut [u8]) -> Result<Option<Status>, &'static str> {
+        Err("use-local-face-or-signed-history")
+    }
     /// Copy under the short critical section; parsing/Mask work happens outside.
+    #[cfg(not(feature = "local-appliance"))]
     pub fn copy_publication(&self, output: &mut [u8]) -> Result<Option<Status>, &'static str> {
         STATE.lock(|state| {
             let state = state.borrow();
@@ -229,9 +237,34 @@ pub fn prepare(
         }
     }
 }
-#[embassy_executor::task]
-async fn worker(slot: &'static Slot) {
-    held(slot).await;
+// Exact stable expansion from pinned embassy-executor0.10.0 / macros0.8.0,
+// with only the initialized pool's placement changed. CPU0 awake data only;
+// neither DMA, second-core access nor persistence across sleep is admitted.
+fn worker(
+    slot: &'static Slot,
+) -> Result<embassy_executor::SpawnToken<impl Sized>, embassy_executor::SpawnError> {
+    const POOL_SIZE: usize = 1;
+    #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
+    static POOL: embassy_executor::_export::TaskPoolHolder<
+        { embassy_executor::_export::task_pool_size::<_, _, _, POOL_SIZE>(held) },
+        { embassy_executor::_export::task_pool_align::<_, _, _, POOL_SIZE>(held) },
+    > = unsafe {
+        // SAFETY: the exact upstream initialized layout cast, with both size
+        // and alignment inferred from this same held async function.
+        core::mem::transmute(embassy_executor::_export::task_pool_new::<_, _, _, POOL_SIZE>(held))
+    };
+    const fn get<F, Args, Fut>(_: F) -> &'static embassy_executor::raw::TaskPool<Fut, POOL_SIZE>
+    where
+        F: embassy_executor::_export::TaskFn<Args, Fut = Fut>,
+        Fut: core::future::Future + 'static,
+    {
+        // SAFETY: upstream Holder guarantees layout; the same function is used
+        // for initialization, inference and in-place exclusive pool spawning.
+        unsafe { &*POOL.get().cast() }
+    }
+    // SAFETY: exactly an async-function constructor, as required by the pinned
+    // API; preserve its Send bookkeeping and in-place initialization path.
+    unsafe { get(held)._spawn_async_fn(move || held(slot)) }
 }
 async fn held(slot: &'static Slot) {
     let Some(mut execution) = slot.execution.borrow_mut().take() else {
@@ -281,6 +314,7 @@ async fn held(slot: &'static Slot) {
                             }
                             // SAFETY: bounded above and serialized by STATE;
                             // the kernel snapshot cannot alias this private backing.
+                            #[cfg(not(feature = "local-appliance"))]
                             unsafe {
                                 core::ptr::copy_nonoverlapping(
                                     snapshot.canonical.as_ptr(),

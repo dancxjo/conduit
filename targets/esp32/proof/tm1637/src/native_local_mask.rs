@@ -1,8 +1,23 @@
 //! Preparation of the true ordinary Mask beside the local sampler. No Step,
-//! native possession, Body start, caller permit or GPIO operation is released.
+//! Body start, caller permit or GPIO operation is released. The separate native
+//! diagnostic also checks and retains actual pulse/wait possession.
 use super::mask::material;
 use super::{c, memory_check::mark, NativeRoot};
 use alloc::collections::BTreeMap;
+
+type Bindings = crate::native_authority::NativeBindings<
+    conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+    crate::native_wait::EspWait,
+>;
+struct PreparedLocalPlots {
+    sampler: Option<crate::native_kernel::PreparedKernel>,
+    native: Option<Bindings>,
+    publisher: crate::native_face::Publisher,
+    active: c::ActivePlayIdentity,
+    fragment: c::FragmentId,
+    mask: crate::native_display::LocalPreparation,
+    leases: crate::native_authority::MaskLeaseIssuer,
+}
 
 // Exclusive full canonical storage is linked in ordinary DRAM. The image linker
 // still enforces the unchanged 36 KiB CPU stack floor. This is neither heap
@@ -40,6 +55,127 @@ fn image() -> Result<conduit_plot::flat_image::indexed::IndexedSourceImage<'stat
     .map_err(|_| "local-mask-source")
 }
 impl NativeRoot {
+    #[cfg(feature = "local-appliance")]
+    pub async fn start_local_appliance(&mut self) -> Result<(), &'static str> {
+        let prepared = self
+            .prepare_local_plots(true)?
+            .ok_or("local-plots-not-prepared")?;
+        let PreparedLocalPlots {
+            mut sampler,
+            mut native,
+            publisher,
+            active,
+            fragment,
+            mask,
+            leases,
+        } = *prepared;
+        #[cfg(feature = "body-persistence")]
+        self.checkpoint_body()?;
+        self.display.retain_local(mask)?;
+        let mut session = Some(self.display.take_local()?);
+        let mut leases = Some(alloc::boxed::Box::new(leases));
+        let mut evidence = Some(alloc::boxed::Box::new(
+            crate::native_mask_evidence::Consumer::new(),
+        ));
+        self.local_mask_worker = Some(crate::native_display::task::prepare(
+            &mut session,
+            &mut leases,
+            &mut evidence,
+            self.worker_spawner.ok_or("local-worker-executor")?,
+        )?);
+        self.display.mark_local_task_registered()?;
+        let mask_worker = self.local_mask_worker.as_ref().ok_or("local-mask-worker")?;
+        embassy_time::with_timeout(
+            embassy_time::Duration::from_secs(2),
+            mask_worker.wait_ready(),
+        )
+        .await
+        .map_err(|_| "local-mask-ready-timeout")?;
+        if mask_worker.status().phase != "ready-held" {
+            return Err("local-mask-not-held");
+        }
+        if let Err(error) = self
+            .prepare_local_sampler_worker(&mut sampler, &mut native, publisher, &active, &fragment)
+            .await
+        {
+            self.local_mask_worker
+                .as_ref()
+                .expect("retained Mask task")
+                .abort_preparation();
+            return Err(error);
+        }
+        // Exact canonical transition is accepted only after both actual owners
+        // are held in their executor tasks; neither has polled a Step.
+        let body = self.body.as_mut().ok_or("local-body-owner")?;
+        let current = body.realization().ok_or("local-body-proposal")?;
+        if current.play.is_some() {
+            return Err("local-body-already-playing");
+        }
+        let play = conduit_body::BodyPlayIdentity::bind(&current.plan, 1);
+        let sign = |sequence| {
+            c::bind_sign(&self.host, &self.boot, Some(&play.active_play_id), sequence).sign_id
+        };
+        let started = current
+            .wake
+            .body_plan_ready(&current.plan, sign(0))
+            .and_then(|wake| wake.body_play_started(&current.plan, &play, sign(1)))
+            .map_err(|_| "local-body-start-transition")?;
+        body.started(&self.host, &self.boot, play, started)
+            .map_err(|_| "local-body-start")?;
+        #[cfg(feature = "body-persistence")]
+        self.checkpoint_body()?;
+        let mask = self.local_mask_worker.as_ref().ok_or("local-mask-worker")?;
+        mask.activate(
+            self.body.as_ref().ok_or("local-body-owner")?,
+            embassy_time::Instant::now().as_millis(),
+        )?;
+        let sampler = self.worker.as_ref().ok_or("local-sampler-worker")?;
+        sampler.accept_start()?;
+        mask.accept_start()?;
+        // No await between these two releases. Both admitted workers become
+        // runnable together at the next executor yield, independently of HTTP.
+        sampler.release()?;
+        mask.release()?;
+        mark("both-local-plots-released", 2);
+        Ok(())
+    }
+    #[cfg(feature = "local-appliance")]
+    pub fn report_local_progress(&self) {
+        #[derive(serde::Serialize)]
+        struct Report {
+            event: &'static str,
+            millis: u64,
+            root_used: usize,
+            root_free: usize,
+            sampler: Option<crate::native_task::Status>,
+            mask: Option<crate::native_display::task::Status>,
+            consumed_mask: crate::native_mask_evidence::Status,
+            face: Option<crate::native_face::Inspection>,
+        }
+        let millis = embassy_time::Instant::now().as_millis();
+        let memory = esp_alloc::HEAP.stats();
+        let report = Report {
+            event: "local-appliance-progress",
+            millis,
+            root_used: memory.current_usage,
+            root_free: memory.size.saturating_sub(memory.current_usage),
+            sampler: self.worker.as_ref().map(|worker| worker.status()),
+            mask: self
+                .local_mask_worker
+                .as_ref()
+                .map(|worker| worker.status()),
+            consumed_mask: crate::native_mask_evidence::status(),
+            face: self
+                .face_reader
+                .and_then(|reader| reader.inspect(millis).ok()),
+        };
+        let mut bytes = [0; 2048];
+        if let Ok(length) = serde_json_core::to_slice(&report, &mut bytes) {
+            if let Ok(text) = core::str::from_utf8(&bytes[..length]) {
+                esp_println::println!("{}", text);
+            }
+        }
+    }
     fn prepare_local_mask_plan(&mut self) -> Result<c::VerifiedPlanMetadata, &'static str> {
         let image = image()?;
         let boundary = material::planning_boundary().map_err(|_| "local-mask-boundary")?;
@@ -106,13 +242,20 @@ impl NativeRoot {
     }
     #[inline(never)]
     pub fn measure_local_mask(&mut self) -> Result<(), &'static str> {
+        self.prepare_local_plots(false).map(|_| ())
+    }
+    #[inline(never)]
+    fn prepare_local_plots(
+        &mut self,
+        execute: bool,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
         let sample_image = crate::native_software::planning_source()?;
         let sample = self.prepare_local_sampler_plan()?;
         let generation = c::OfferGeneration(self.offer_generation);
         // Validate and transfer dormant software before retaining the Body
         // proposal. Construction metadata is no longer needed after this point;
         // numeric tables/drivers alone confer no native or Body execution right.
-        let sampler_parts = {
+        let (sampler_parts, native, active, fragment) = {
             let fragment = &sample.preparation_metadata().fragments[0].fragment_id;
             let tables = crate::native_software::DirectTables::prepare(&sample, fragment)
                 .map_err(|_| "local-sampler-tables")?;
@@ -123,6 +266,32 @@ impl NativeRoot {
                 (&self.host, &self.boot, generation),
             )?;
             mark("ordinary-mask-sampler-tables-live", 15);
+            let fragment_id = fragment.clone();
+            let active = self
+                .issuer
+                .reserve_verified_play(&sample, fragment)
+                .map_err(|_| "local-sampler-play")?;
+            let native = if execute || cfg!(feature = "target-mask-native-check") {
+                let resident =
+                    crate::native_software::resident().map_err(|_| "local-sampler-source-facts")?;
+                let placements = &sample.preparation_metadata().fragments[0].placements;
+                let pulse = &placements[usize::from(resident.roles.pulse.0)].placement_id;
+                let wait = &placements[usize::from(resident.roles.tick.0)].placement_id;
+                Some(self.issuer.bind_direct_native(
+                    &mut self.pulse,
+                    &mut self.wait,
+                    crate::native_authority::DirectNativeInput {
+                        tables: &tables,
+                        active: &active,
+                        cadence: &resident.cadence,
+                        pulse,
+                        wait,
+                        contract: &self.contract,
+                    },
+                )?)
+            } else {
+                None
+            };
             // Source and actual owner checks precede transfer. The resulting
             // numeric arrays and owned drivers no longer borrow Plan metadata.
             let prepared = crate::native_software::bind_local_direct(
@@ -132,7 +301,7 @@ impl NativeRoot {
                 (&self.host, &self.boot, generation),
             )?;
             let parts = crate::native_kernel_storage::LocalKernelParts::from_checked(prepared);
-            parts
+            (parts, native, active, fragment_id)
         };
         mark("ordinary-mask-software-construction-retired", 15);
         let mask_values = take_fixed_values()?;
@@ -193,15 +362,151 @@ impl NativeRoot {
             )
             .map_err(|_| "local-mask-body-proposal")?;
         mark("ordinary-mask-body-proposal-prepared", 2);
-        let fragment = sample.preparation_metadata().fragments[0]
-            .fragment_id
-            .clone();
-        let active = self
-            .issuer
-            .reserve_verified_play(&sample, &fragment)
-            .map_err(|_| "local-sampler-play")?;
         drop(sample);
         mark("ordinary-mask-sampler-plan-retired", 15);
+        let context = if execute || cfg!(feature = "target-mask-native-check") {
+            // The codec bounds output before allocation and drops dictionaries
+            // before final envelope assembly. This independently pinned small
+            // Mask needs one placement/configuration at a time (3 KiB scratch).
+            let needed = conduit_face::PreparedMaskShowContext::codec_workspace_bytes()
+                .saturating_sub(16384)
+                + 4096
+                + 3072
+                + 8192;
+            let memory = esp_alloc::HEAP.stats();
+            if memory.size.saturating_sub(memory.current_usage) < needed {
+                return Err("local-mask-context-capacity");
+            }
+            // This immutable complete Plan envelope has its own stricter 4 KiB
+            // cold extent; complete lifecycle Shows retain the 8 KiB ceiling.
+            let source = image()?;
+            let context = mask_values
+                .with_empty_scratch(|scratch| {
+                    conduit_face::PreparedMaskShowContext::prepare_verified_with_workspace(
+                        &role,
+                        &mask,
+                        |gear| {
+                            for index in 0..source.gear_count() {
+                                let configuration =
+                                    source.gear_configuration(index).map_err(|_| ())?;
+                                if configuration.gear_id == gear.gear_id {
+                                    return Ok(configuration.configuration);
+                                }
+                            }
+                            Err(())
+                        },
+                        4096,
+                        scratch,
+                    )
+                })
+                .map_err(|_| "local-mask-scratch-not-empty")?
+                .map_err(|_| "local-mask-show-context")?;
+            mark("ordinary-mask-complete-show-context-live", 1);
+            Some(context)
+        } else {
+            None
+        };
+        self.body
+            .as_mut()
+            .ok_or("body-owner")?
+            .commit_verified_proposal(proposal)
+            .map_err(|_| "local-mask-body-publication")?;
+        mark("ordinary-mask-body-proposal-live", 2);
+        let retained = if execute {
+            use conduit_body::BodyPlanEvidence;
+            use conduit_plan_lowering::selected_operation::{
+                SelectedVerifiedForeOperationPlan, SelectedVerifiedOperationPlan,
+            };
+            let body = self.body.as_ref().ok_or("body-owner")?;
+            let current = body.realization().ok_or("local-mask-body-realization")?;
+            let routes = conduit_face::AdmittedMaskPlotRoutes::from_sealed_session(
+                body,
+                &role,
+                &mask,
+                alloc::vec![conduit_face::SealedMaskPlotRoute {
+                    route_id: "route/esp32/local-tm1637".into(),
+                    mask_plot: role.plot_identity.clone(),
+                    plan_id: current.plan.plan_id().clone(),
+                    child_mask_plan_id: None,
+                    owner_route_seal_id: None,
+                    placement_ids: mask.preparation_metadata().fragments[0]
+                        .placements
+                        .iter()
+                        .map(|p| p.placement_id.clone())
+                        .collect(),
+                    currently_available: true,
+                }],
+            )
+            .map_err(|_| "local-mask-sealed-route")?;
+            let wardrobe = conduit_face::MaskWardrobeControl::new_from_admitted_routes(
+                conduit_face::BodyMaskWardrobe::new(
+                    current.plan.body_id().clone(),
+                    Some(current.plan.wake_id().clone()),
+                    conduit_face::MaskWardrobe::new(
+                        conduit_face::MaskWardrobeLifetime::Wake,
+                        alloc::vec![role.plot_identity.clone()],
+                        alloc::vec![role.plot_identity.clone()],
+                    )
+                    .map_err(|_| "local-mask-wardrobe")?,
+                )
+                .map_err(|_| "local-mask-wardrobe-scope")?,
+                &routes,
+                None,
+            )
+            .map_err(|_| "local-mask-wardrobe-route")?;
+            let mask_fragment = &mask.preparation_metadata().fragments[0];
+            let mask_active = c::bind_active_play(
+                mask.plan_id(),
+                &self.host,
+                &self.boot,
+                self.issuer
+                    .next_play_sequence()
+                    .ok_or("local-mask-play-exhausted")?,
+            );
+            let placement = mask_fragment
+                .placements
+                .iter()
+                .find(|p| p.gear_id == role.show_output.gear_id)
+                .ok_or("local-mask-renderer-placement")?;
+            let source = image()?;
+            let configuration = (0..source.gear_count())
+                .find_map(|i| {
+                    source
+                        .gear_configuration(i)
+                        .ok()
+                        .filter(|gear| gear.gear_id == placement.gear_id)
+                })
+                .ok_or("local-mask-renderer-configuration")?;
+            let lowered = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
+                &mask,
+                &mask_fragment.fragment_id,
+            )
+            .map_err(|_| "local-mask-renderer-lowering")?;
+            let (leases, invocation, guard) = self.issuer.prepare_mask_leases(
+                self.display.renderer().ok_or("local-mask-renderer-owner")?,
+                &configuration.configuration,
+                SelectedVerifiedForeOperationPlan {
+                    fore: &mask_fragment.fore_ports,
+                    operation: SelectedVerifiedOperationPlan {
+                        plan: &mask,
+                        fragment_id: &mask_fragment.fragment_id,
+                        lowered: lowered.lowered(),
+                        active: &mask_active,
+                        placement_id: &placement.placement_id,
+                    },
+                },
+            )?;
+            self.local_mask_scope = Some(guard);
+            Some((
+                leases,
+                invocation,
+                routes,
+                wardrobe,
+                current.plan.wake_id().clone(),
+            ))
+        } else {
+            None
+        };
         let mask_parts = {
             let image = image()?;
             let boundary = material::planning_boundary().map_err(|_| "local-mask-boundary")?;
@@ -225,12 +530,6 @@ impl NativeRoot {
         mark("ordinary-mask-plan-lowering-retired", 3);
         let sampler_kernel = crate::native_kernel::prepare_local_direct(sampler_parts)?;
         mark("ordinary-mask-sampler-kernel-live", 15);
-        self.body
-            .as_mut()
-            .ok_or("body-owner")?
-            .commit_verified_proposal(proposal)
-            .map_err(|_| "local-mask-body-publication")?;
-        mark("ordinary-mask-body-proposal-live", 2);
         let (publisher, reader) = crate::native_face::prepare_installed_local(
             self.body.as_ref().ok_or("body-owner")?,
             &fragment,
@@ -248,13 +547,44 @@ impl NativeRoot {
             .finish_with_fixed_storage(mask_values)
             .map_err(|_| "local-mask-kernel")?;
         mark("both-ordinary-local-kernels-face-live", 18);
-        drop((sampler_kernel, publisher, mask_kernel, role));
+        if let Some((leases, invocation, routes, wardrobe, wake)) = retained {
+            let mask = crate::native_display::LocalPreparation {
+                context: context.ok_or("local-mask-context-unavailable")?,
+                kernel: mask_kernel,
+                invocation,
+                routes,
+                wardrobe,
+                producer: crate::native_display::FaceScope {
+                    producer: crate::native_software::source_identity(),
+                    active: active.clone(),
+                    wake,
+                },
+                reader: self.face_reader.ok_or("local-mask-face-reader")?,
+            };
+            return Ok(Some(alloc::boxed::Box::new(PreparedLocalPlots {
+                sampler: Some(sampler_kernel),
+                native,
+                publisher,
+                active,
+                fragment,
+                mask,
+                leases,
+            })));
+        }
+        drop((
+            sampler_kernel,
+            publisher,
+            mask_kernel,
+            role,
+            context,
+            native,
+        ));
         self.body
             .as_mut()
             .ok_or("body-owner")?
             .lull(&self.host, &self.boot, None)
             .map_err(|_| "local-mask-probe-lull")?;
         mark("ordinary-mask-probe-lulled", 0);
-        Ok(())
+        Ok(None)
     }
 }

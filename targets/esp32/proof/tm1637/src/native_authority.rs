@@ -10,6 +10,11 @@ mod fixture;
 #[cfg(feature = "mask-root")]
 #[path = "native_mask_authority.rs"]
 mod mask;
+#[cfg(feature = "mask-root")]
+#[path = "native_mask_lease.rs"]
+mod mask_lease;
+#[cfg(feature = "mask-root")]
+pub use mask_lease::{MaskLeaseIssuer, MaskScopeGuard};
 #[path = "native_pulse_authority.rs"]
 mod pulse;
 #[path = "native_verified_bindings.rs"]
@@ -20,6 +25,8 @@ pub use bindings::{AssignedNativeInput, NativeBindings};
 use conduit_core as c;
 use conduit_network_join_call::installation::NetworkNativeIdentity;
 use sha2::{Digest, Sha256};
+#[cfg(feature = "target-mask-memory-check")]
+pub use verified_bindings::DirectNativeInput;
 pub use verified_bindings::VerifiedNativeInput;
 #[derive(Clone, Copy)]
 pub enum Operation {

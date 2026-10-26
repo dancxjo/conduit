@@ -7,9 +7,10 @@ publish = false
 [workspace]
 
 [features]
+evidence-journal = []
 body-image = ["dep:conduit-body"]
 display-output = ["construction", "dep:conduit-tm1637-wire", "dep:conduit-plan-lowering"]
-display-session = ["display-output", "conduit-computation/prepared-expression-session", "conduit-tm1637-wire/prepared-write-session"]
+display-session = ["evidence-journal", "display-output", "conduit-computation/prepared-expression-session", "conduit-tm1637-wire/prepared-write-session"]
 mask-renderer = ["mask-kernel", "display-mask", "dep:conduit-tm1637-wire"]
 mask-kernel = ["dep:conduit-face", "dep:conduit-plan-lowering", "conduit-kernel/alloc"]
 display-mask = ["dep:conduit-face", "dep:conduit-seven-segment-mask"]

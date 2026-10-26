@@ -27,6 +27,8 @@ mod native_appliance_policy;
 mod native_assignment;
 #[cfg(feature = "native-root")]
 mod native_authority;
+#[cfg(feature = "body-persistence")]
+mod native_body_checkpoint;
 #[cfg(feature = "body-image-root")]
 mod native_body_image;
 #[cfg(feature = "native-root")]
@@ -44,14 +46,23 @@ mod native_display;
 mod native_display;
 #[cfg(feature = "local-evidence-store")]
 mod native_evidence_archive;
-#[cfg(feature = "local-evidence-store")]
+#[cfg(any(
+    feature = "local-evidence-store",
+    feature = "network-credential-store",
+    feature = "body-persistence",
+    feature = "observation-store"
+))]
 mod native_evidence_region;
-#[cfg(feature = "local-evidence-store")]
+#[cfg(feature = "mask-root")]
+mod native_mask_evidence;
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
 mod native_observed_archive;
-#[cfg(feature = "local-evidence-store")]
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
 mod native_observed_http;
-#[cfg(feature = "local-evidence-store")]
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
 mod native_observed_wire;
+#[cfg(feature = "body-persistence")]
+mod native_restart;
 #[cfg(all(
     feature = "mask-root",
     any(

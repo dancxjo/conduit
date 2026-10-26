@@ -16,6 +16,9 @@ mod local_display_plan;
 #[cfg(feature = "target-mask-memory-check")]
 #[path = "native_local_mask.rs"]
 mod local_mask;
+#[cfg(feature = "target-mask-memory-check")]
+#[path = "native_local_sampler_run.rs"]
+mod local_sampler_run;
 #[cfg(feature = "mask-root")]
 #[path = "native_mask_root.rs"]
 mod mask;
@@ -82,6 +85,10 @@ pub struct NativeRoot {
     network: crate::native_network::NativeNetwork,
     pulse: Option<ReadyPulseBase<Esp32PulseCapture<'static>>>,
     display: alloc::boxed::Box<crate::native_display::NativeDisplay>,
+    #[cfg(feature = "mask-root")]
+    local_mask_scope: Option<crate::native_authority::MaskScopeGuard>,
+    #[cfg(feature = "mask-root")]
+    local_mask_worker: Option<crate::native_display::task::Handle>,
     contract: PulseReadContract,
     wait: Option<conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>>,
     host: c::HostId,
@@ -184,6 +191,10 @@ impl NativeRoot {
             network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
             pulse: Some(pulse),
             display,
+            #[cfg(feature = "mask-root")]
+            local_mask_scope: None,
+            #[cfg(feature = "mask-root")]
+            local_mask_worker: None,
             contract: PulseReadContract::prepare().unwrap(),
             wait: Some(wait),
             host,

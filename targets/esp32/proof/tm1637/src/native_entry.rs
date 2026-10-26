@@ -12,14 +12,33 @@ async fn main(spawner: Spawner) {
     let timer = TimerGroup::new(p.TIMG0);
     let interrupts = SoftwareInterruptControl::new(p.SW_INTERRUPT);
     esp_rtos::start(timer.timer0, interrupts.software_interrupt0);
-    #[cfg(feature = "local-evidence-store")]
+    #[cfg(any(
+        feature = "local-evidence-store",
+        feature = "network-credential-store",
+        feature = "body-persistence",
+        feature = "observation-store"
+    ))]
     {
         let regions =
             crate::native_evidence_region::prepare(p.FLASH).expect("dedicated evidence backing");
+        #[cfg(feature = "local-evidence-store")]
         crate::native_evidence_archive::initialize(regions.evidence)
             .expect("display evidence backing");
-        crate::native_observed_archive::initialize(regions.observations)
-            .expect("observed publication backing");
+        #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+        crate::native_observed_archive::initialize_epochs(
+            regions.observations,
+            regions.observation_epochs,
+        )
+        .expect("observed publication backing");
+        #[cfg(feature = "network-credential-store")]
+        crate::native_credentials::initialize_journal(regions.credentials)
+            .expect("credential backing");
+        #[cfg(feature = "network-credential-store")]
+        crate::native_play::journal::initialize(regions.network_recovery)
+            .expect("network recovery backing");
+        #[cfg(feature = "body-persistence")]
+        crate::native_body_image::initialize_restart(regions.body_state)
+            .expect("Body restart backing");
     }
     let sensor = conduit_esp32_pulse_capture::Esp32PulseCapture::new(p.GPIO27);
     let seed = u64::from(esp_hal::rng::Rng::new().random());
@@ -61,15 +80,34 @@ async fn main(spawner: Spawner) {
         #[cfg(feature = "target-memory-check")]
         root.measure_local_sampler()
             .expect("target sampler measurement");
-        #[cfg(feature = "target-mask-memory-check")]
+        #[cfg(feature = "local-appliance")]
+        root.start_local_appliance()
+            .await
+            .expect("autonomous local plots");
+        #[cfg(all(feature = "target-mask-memory-check", not(feature = "local-appliance")))]
         root.measure_local_mask()
             .expect("target ordinary Mask measurement");
         // This preparation diagnostic accepts no management assignments. Keep
         // its retained Root alive for memory inspection without linking the
         // unrelated remote installation/control interpreter into the image.
+        #[cfg(feature = "local-appliance")]
+        let mut next_report = embassy_time::Instant::now();
         loop {
-            core::hint::black_box(&root);
-            embassy_time::Timer::after_secs(60).await;
+            #[cfg(feature = "local-appliance")]
+            {
+                let _ = root.advance_setup().await;
+                if embassy_time::Instant::now() >= next_report {
+                    root.report_local_progress();
+                    next_report =
+                        embassy_time::Instant::now() + embassy_time::Duration::from_secs(15);
+                }
+                embassy_time::Timer::after_millis(50).await;
+            }
+            #[cfg(not(feature = "local-appliance"))]
+            {
+                core::hint::black_box(&root);
+                embassy_time::Timer::after_secs(60).await;
+            }
         }
     }
     #[cfg(all(
