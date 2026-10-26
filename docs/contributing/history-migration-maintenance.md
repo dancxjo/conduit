@@ -1,4 +1,4 @@
-# History maintenance after machine-writer activation
+# History maintenance with machine-writer policy
 
 A source-history migration is a separate operator maintenance operation. The
 normal train lander deliberately uses non-forced updates and refuses a policy
@@ -11,10 +11,27 @@ no App, changes no policy or ref, and does not replace explicit maintenance
 authorization or the final source-preservation review. Keep ordinary development
 and automated main publication under their existing contracts.
 
+## Inactive bootstrap path
+
+A separately authorized operator migration can precede App registration while
+machine-writer policy and cheap admission remain inactive. First complete the
+ordinary bootstrap Candidate, landing, exact dev-push Integration and publication.
+Then settle writers and satisfy the same final backup, map, lease, event and
+new-source acceptance requirements below. Do not activate the App merely to
+authorize maintenance.
+
+Save and restore the actual existing server gates and admission state. An
+inactive installation must not silently acquire a future machine-only policy
+as part of restoration. Dedicated App registration, independent actor-gate
+proof, trusted mapped-source controller review and a real positive train remain
+required before later machine activation. Historical mapping does not transfer
+old live checks or products to a new source identity.
+
 ## Freeze and preserve the final source
 
-Finish the accepted train, actual dev-push adoption and publication before
-freezing history. Drain controller sessions, queued landers, releases and
+With an active machine writer, finish the accepted train, actual dev-push
+adoption and publication before freezing history. Drain controller sessions,
+queued landers, releases and
 synchronization work. Stop new admission, token issuance and dispatch; settle
 ambiguous operations before revoking outstanding scoped tokens. Record the
 admission variable's exact absent/present state before temporarily disabling
@@ -91,8 +108,9 @@ a retry grant: inspect actual refs, retain the freeze and resolve ambiguity.
 Compare every resulting ref with its intended actual cutover target.
 
 Restore complete normal writer/proof/main gates and verify effective readbacks
-before normal mutation resumes. The update bypass must again name only the
-reviewed dedicated App; classic proof remains independent and admin-enforced.
+before normal mutation resumes. If machine policy was active, the update bypass
+must again name only the reviewed dedicated App; classic proof remains independent
+and admin-enforced. The inactive path restores its saved ordinary gates.
 Restore admission activation only to its recorded state when its live gates
 remain valid. Migrate clean local refs/checkouts with exact old-OID checks and
 owner handoff; do not merge original ancestry back or discard index evidence.
