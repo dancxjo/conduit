@@ -4,13 +4,25 @@ use crate::DisplayOutputSource;
 use conduit_core as c;
 use conduit_environment_runtime::appliance::software::{ReadySoftwareBacks, SoftwareRefusal};
 use std::fmt::{self, Write};
+#[path = "display_material/planning.rs"]
+mod planning;
 const MAXIMUM_GEAR_BYTES: usize = 32 * 1024;
 pub struct DisplaySourceMaterial {
     identity: c::PlotIdentity,
+    planning_image: Vec<u8>,
+    front: c::CheckedFront,
+    inputs: Vec<conduit_plot::AuthoringFrontBinding>,
+    outputs: Vec<conduit_plot::AuthoringFrontBinding>,
     gears: Vec<(Vec<u8>, Vec<c::ConfigurationEntry>, Vec<u8>)>,
 }
 impl DisplaySourceMaterial {
     pub fn prepare(source: &DisplayOutputSource) -> Result<Self, String> {
+        source
+            .plot
+            .validate_boundary_provenance()
+            .map_err(|e| format!("display boundary: {e:?}"))?;
+        let planning_image = conduit_plot::flat_image::indexed::encode(&source.plot.expanded)
+            .map_err(|e| format!("display indexed Source: {e:?}"))?;
         let mut gears = Vec::new();
         for original in &source.plot.expanded.gears {
             if original.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND {
@@ -38,6 +50,10 @@ impl DisplaySourceMaterial {
             return Err("output computation closure".into());
         }
         Ok(Self {
+            planning_image,
+            front: source.plot.front.clone(),
+            inputs: source.plot.input_bindings.clone(),
+            outputs: source.plot.output_bindings.clone(),
             identity: c::PlotIdentity {
                 source_document_id: source.plot.expanded.source_document_id.clone(),
                 checked_plot_id: source.plot.expanded.checked_plot_id.clone(),
@@ -122,7 +138,8 @@ impl DisplaySourceMaterial {
             out,
             "unsafe {{ ReadySoftwareBacks::prepare_portable_make(source,gears,host,boot) }} }}"
         )?;
-        self.write_compact_rust(out)
+        self.write_compact_rust(out)?;
+        self.write_planning_rust(out)
     }
     fn write_compact_rust(&self, out: &mut impl Write) -> fmt::Result {
         writeln!(out, "pub fn prepare_compact(host:c::HostId, boot:c::BootId) -> Result<conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware<'static>, SoftwareRefusal> {{")?;

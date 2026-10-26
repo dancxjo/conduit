@@ -71,6 +71,11 @@ mod evidence_task;
 #[cfg(feature = "display-fit-root")]
 #[path = "native_display_fit.rs"]
 pub(crate) mod fit;
+#[cfg(feature = "target-memory-check")]
+#[path = "native_display_source.rs"]
+mod source;
+#[cfg(feature = "target-memory-check")]
+pub(crate) use source::{planning_boundary, planning_source};
 pub struct NativeDisplay {
     #[cfg(feature = "display-fit-root")]
     fit: Option<Box<conduit_environment_runtime::display_mask::PreparedDisplayMask>>,

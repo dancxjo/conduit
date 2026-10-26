@@ -2,7 +2,7 @@
 use super::*;
 use alloc::collections::BTreeMap;
 #[inline(never)]
-fn mark(phase: &str, item: usize) {
+pub(super) fn mark(phase: &str, item: usize) {
     let root = esp_alloc::HEAP.stats();
     let sdk = crate::sdk_memory::stats();
     let bank_free = core::array::from_fn::<_, 3, _>(|i| {
@@ -136,11 +136,25 @@ impl NativeRoot {
             metadata.source_document_id.clone(),
             metadata.checked_plot_id.clone(),
         );
+        mark("before-display-planning", 0);
+        let display_plan = self.prepare_local_display_plan()?;
+        mark("display-verified-plan-live", display_plan.fragment_count());
+        let display = display_plan.preparation_metadata();
+        let display_plot = conduit_body::ResidentPlot::new(
+            display.source_document_id.clone(),
+            display.checked_plot_id.clone(),
+        );
         self.body
             .as_mut()
             .ok_or("body-owner")?
             .propose_verified(
-                &[conduit_body::VerifiedBodyPlotPlan { plot, plan: &plan }],
+                &[
+                    conduit_body::VerifiedBodyPlotPlan { plot, plan: &plan },
+                    conduit_body::VerifiedBodyPlotPlan {
+                        plot: display_plot,
+                        plan: &display_plan,
+                    },
+                ],
                 &[],
                 None,
                 &self.host,
@@ -154,7 +168,8 @@ impl NativeRoot {
                 ) => "body-workset-incomplete",
                 _ => "body-verified-proposal",
             })?;
-        mark("body-local-proposal-live", 1);
+        drop(display_plan);
+        mark("body-local-proposal-live", 2);
         let preparation = (|| -> Result<(), &'static str> {
             let id = &plan.preparation_metadata().fragments[0].fragment_id;
             let verified_lowering =

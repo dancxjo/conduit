@@ -10,6 +10,9 @@ mod display_check;
 mod install;
 #[path = "native_lifecycle.rs"]
 mod lifecycle;
+#[cfg(feature = "target-memory-check")]
+#[path = "native_local_display_plan.rs"]
+mod local_display_plan;
 #[cfg(feature = "mask-root")]
 #[path = "native_mask_root.rs"]
 mod mask;

@@ -80,15 +80,43 @@ fn seal_fore(
     mut plan: Plan,
     boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
-    let expected = plot
-        .input_bindings
+    attach_fore(
+        &plot.front,
+        &plot.input_bindings,
+        &plot.output_bindings,
+        &mut plan.fragments,
+        boundary_limits,
+    )?;
+    Ok(conduit_core::seal_plan_with_activation_entries(
+        PlotIdentity {
+            source_document_id: plan.source_document_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
+        },
+        plan.completion_policy,
+        plan.realization_backs,
+        plan.activations,
+        plan.fragments,
+    ))
+}
+
+/// Shared exact Fore checks for rich authoring and authenticated indexed Make
+/// material. The caller seals the resulting fragments in their original scope.
+pub(crate) fn attach_fore(
+    front: &conduit_core::CheckedFront,
+    input_bindings: &[conduit_plot::AuthoringFrontBinding],
+    output_bindings: &[conduit_plot::AuthoringFrontBinding],
+    fragments: &mut [conduit_core::PlanFragment],
+    boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
+) -> Result<(), PlannerError> {
+    let expected = input_bindings
         .iter()
         .map(|binding| ForeBoundaryKey {
             direction: conduit_core::PortDirection::Input,
             front_port_id: binding.front_port_id.clone(),
             track: binding.track,
         })
-        .chain(plot.output_bindings.iter().map(|binding| ForeBoundaryKey {
+        .chain(output_bindings.iter().map(|binding| ForeBoundaryKey {
             direction: conduit_core::PortDirection::Output,
             front_port_id: binding.front_port_id.clone(),
             track: binding.track,
@@ -104,13 +132,13 @@ fn seal_fore(
     for (direction, bindings, descriptors) in [
         (
             conduit_core::PortDirection::Input,
-            plot.input_bindings.as_slice(),
-            plot.front.inputs(),
+            input_bindings,
+            front.inputs(),
         ),
         (
             conduit_core::PortDirection::Output,
-            plot.output_bindings.as_slice(),
-            plot.front.outputs(),
+            output_bindings,
+            front.outputs(),
         ),
     ] {
         for binding in bindings {
@@ -162,15 +190,14 @@ fn seal_fore(
                         conduit_core::FrontValueLocation::Output(binding.front_port_id.clone())
                     }
                 };
-                plot.front
+                front
                     .value_contracts()
                     .iter()
                     .find(|contract| contract.location == location)
                     .map(|contract| contract.contract.clone())
             })
             .flatten();
-            let fragment = plan
-                .fragments
+            let fragment = fragments
                 .iter_mut()
                 .find(|fragment| {
                     fragment
@@ -287,7 +314,7 @@ fn seal_fore(
             });
         }
     }
-    for fragment in &mut plan.fragments {
+    for fragment in fragments {
         fragment.fore_ports.sort_by(|left, right| {
             (left.direction as u8, &left.front_port_id, left.track).cmp(&(
                 right.direction as u8,
@@ -296,15 +323,5 @@ fn seal_fore(
             ))
         });
     }
-    Ok(conduit_core::seal_plan_with_activation_entries(
-        PlotIdentity {
-            source_document_id: plan.source_document_id,
-            checked_plot_id: plan.checked_plot_id,
-            expanded_plot_id: plan.expanded_plot_id,
-        },
-        plan.completion_policy,
-        plan.realization_backs,
-        plan.activations,
-        plan.fragments,
-    ))
+    Ok(())
 }

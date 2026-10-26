@@ -67,5 +67,10 @@ pub fn plan_with_connection_limits(
     )
 }
 
+mod authoring;
+pub use authoring::IndexedAuthoringBoundary;
 mod compact;
-pub use compact::{plan_compact_with_connection_limits, CompactIndexedPlan};
+pub use compact::{
+    plan_compact_authoring_with_connection_limits, plan_compact_with_connection_limits,
+    CompactIndexedPlan,
+};

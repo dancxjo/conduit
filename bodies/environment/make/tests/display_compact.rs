@@ -48,3 +48,10 @@ fn compact_owners_preserve_full_offers_and_current_scope() {
         3
     );
 }
+
+#[test]
+fn changed_fore_cannot_be_emitted_as_trusted_display_make_material() {
+    let mut source = DisplayOutputSource::compile().unwrap();
+    source.plot.input_bindings[0].gear_port_id = "changed-input".into();
+    assert!(DisplaySourceMaterial::prepare(&source).is_err());
+}

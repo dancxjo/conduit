@@ -138,6 +138,52 @@ pub fn plan_compact_with_connection_limits<'a>(
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<CompactIndexedPlan<'a>, PlannerError> {
+    plan_compact_inputs(
+        image,
+        hosts,
+        placements,
+        bases,
+        options,
+        connection_limits,
+        None,
+    )
+}
+/// Preserve the same admitted Fore as rich authoring planning while retaining
+/// Source configurations by index. This grants no ingress or native authority.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_compact_authoring_with_connection_limits<'a>(
+    image: &'a IndexedSourceImage<'a>,
+    boundary: &super::IndexedAuthoringBoundary,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+    boundary_limits: &BTreeMap<crate::ForeBoundaryKey, ConnectionQueueLimits>,
+) -> Result<CompactIndexedPlan<'a>, PlannerError> {
+    plan_compact_inputs(
+        image,
+        hosts,
+        placements,
+        bases,
+        options,
+        connection_limits,
+        Some((boundary, boundary_limits)),
+    )
+}
+#[allow(clippy::too_many_arguments)]
+fn plan_compact_inputs<'a>(
+    image: &'a IndexedSourceImage<'a>,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+    boundary: Option<(
+        &super::IndexedAuthoringBoundary,
+        &BTreeMap<crate::ForeBoundaryKey, ConnectionQueueLimits>,
+    )>,
+) -> Result<CompactIndexedPlan<'a>, PlannerError> {
     let metadata = image.metadata().map_err(|e| {
         PlannerError::InvalidPlotIdentity(alloc::format!("indexed Source metadata: {e:?}"))
     })?;
@@ -162,6 +208,9 @@ pub fn plan_compact_with_connection_limits<'a>(
         &mut retention,
     )?;
     crate::canonical::attach_fragment_source_spans(metadata.provenance(), &mut fragments)?;
+    if let Some((boundary, limits)) = boundary {
+        boundary.attach(&identity, &mut fragments, limits)?;
+    }
     // Retire decoded metadata before the final one-Gear canonical encoding pass.
     drop(metadata);
     let mut compact = CompactIndexedPlan {
