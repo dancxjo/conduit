@@ -57,6 +57,12 @@ export async function observeTrainDownstream({ expected, binding = null, api, di
     if (typeof api !== 'function' || typeof discovery !== 'function'
         || typeof readManifest !== 'function') fail('Explicit trusted read-only observation adapters required');
     const base = `repos/${expected.repository}`;
+    const recheck = async (prior, event, workflow) => {
+      const current = await api(`${base}/actions/runs/${prior.id}`);
+      runIdentity(current, expected, event, workflow);
+      if (workflow === 'integration' && (current.head_sha !== expected.source || current.head_branch !== 'dev')) fail('Acceptance source changed during observation');
+      sameRun(prior, current);
+    };
     const endpoint = `${base}/actions/workflows/integration.yml/runs?head_sha=${expected.source}&event=push&branch=dev&per_page=100`;
     const select = async () => {
       const runs = inventory(await api(endpoint), 'workflow_runs');
@@ -89,7 +95,7 @@ export async function observeTrainDownstream({ expected, binding = null, api, di
     const latest = await select();
     if (!latest) fail('Acceptance run disappeared after adoption');
     sameRun(run, latest);
-    sameRun(run, await api(`${base}/actions/runs/${run.id}`));
+    await recheck(run, 'push', 'integration');
 
     phase = 'publication';
     // Exact tag endpoint avoids guessing from a most-recent release window.
@@ -186,8 +192,8 @@ export async function observeTrainDownstream({ expected, binding = null, api, di
       publicationReceiptArchiveDigest: artifact.digest };
     if (publishRun.status !== 'completed') return { kind: 'waiting', phase, binding: completeBinding, reason: 'publish-running' };
     if (publishRun.conclusion !== 'success') return { kind: 'failed', phase, binding: completeBinding, reason: 'publish-failed' };
-    sameRun(publishRun, await api(`${base}/actions/runs/${publishRun.id}`));
-    sameRun(run, await api(`${base}/actions/runs/${run.id}`));
+    await recheck(publishRun, 'workflow_run', 'publish');
+    await recheck(run, 'push', 'integration');
     const currentRelease = await api(`${base}/releases/tags/release-${expected.source}`);
     const currentAsset = currentRelease?.assets?.filter(value => value.name === 'manifest.json');
     if (currentRelease?.id !== release.id || currentRelease.draft !== false || currentRelease.prerelease !== false

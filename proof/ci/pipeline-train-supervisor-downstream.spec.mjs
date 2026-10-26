@@ -277,3 +277,16 @@ test('receipt acceptance run and attempt remain numeric identities', async () =>
     assert.equal((await f.observe()).kind, 'refused');
   }
 });
+
+
+test('final snapshots revalidate repository, workflow and event rather than only run IDs', async () => {
+  for (const target of [100, 200]) {
+    const f = fixture(); let reads = 0;
+    const api = async endpoint => {
+      const value = await f.api(endpoint);
+      if (endpoint.endsWith(`/actions/runs/${target}`) && ++reads > 1) value.event = 'pull_request';
+      return value;
+    };
+    assert.equal((await f.observe({ api })).kind, 'refused');
+  }
+});
