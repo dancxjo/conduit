@@ -58,6 +58,11 @@ impl Collector {
         ]) {
             out.copy_from_slice(&Sha256::digest(text.as_bytes()));
         }
+        Self::from_authenticated_scope(scope, key)
+    }
+    /// The caller must obtain this exact Body/Boot/Play scope and producer key
+    /// through authenticated membership admission, never from a history reply.
+    pub fn from_authenticated_scope(scope: [u8; 96], key: &[u8; 32]) -> Result<Self> {
         let contract =
             checked(conduit_environment_runtime::observation::ObservationContract::prepare())?;
         let forms = Sha256::digest(checked(observed_record::descriptor(&contract))?).into();
@@ -68,6 +73,46 @@ impl Collector {
             after: 0,
             observed_ms: 0,
         })
+    }
+    /// Restore only a complete, signed, contiguous durable prefix. Failure leaves
+    /// this collector unchanged. Temporary files are never custody receipts.
+    pub fn restore(&mut self, directory: &Path) -> Result<()> {
+        let mut replay = Self {
+            after: 0,
+            observed_ms: 0,
+            ..*self
+        };
+        if !directory.exists() {
+            return Ok(());
+        }
+        let mut paths = std::fs::read_dir(directory)?
+            .map(|entry| entry.map(|entry| entry.path()))
+            .collect::<std::io::Result<Vec<_>>>()?;
+        paths.retain(|path| {
+            path.file_name().is_some_and(|name| {
+                let name = name.to_string_lossy();
+                name.starts_with("observed-history-") && name.ends_with(".json")
+            })
+        });
+        paths.sort();
+        for path in paths {
+            let bytes = std::fs::read(&path)?;
+            let (after, clock) = replay.validate(&bytes)?;
+            if after == replay.after
+                || path.file_name().unwrap()
+                    != std::ffi::OsStr::new(&format!(
+                        "observed-history-{:04}-{after:04}.json",
+                        replay.after
+                    ))
+            {
+                return Err("history custody filename or empty batch".into());
+            }
+            replay.after = after;
+            replay.observed_ms = clock;
+        }
+        self.after = replay.after;
+        self.observed_ms = replay.observed_ms;
+        Ok(())
     }
     fn validate(&self, bytes: &[u8]) -> Result<(u32, u64)> {
         if bytes.len() > 2048 {
@@ -132,8 +177,10 @@ impl Collector {
             .map(|entry| entry.map(|entry| entry.path()))
             .collect::<std::io::Result<Vec<_>>>()?;
         paths.retain(|path| {
-            path.file_name()
-                .is_some_and(|name| name.to_string_lossy().starts_with("observed-history-"))
+            path.file_name().is_some_and(|name| {
+                let name = name.to_string_lossy();
+                name.starts_with("observed-history-") && name.ends_with(".json")
+            })
         });
         paths.sort();
         for path in paths {
@@ -156,6 +203,9 @@ impl Collector {
         Ok(())
     }
     pub fn collect(&mut self, address: SocketAddr, directory: &Path) -> Result<()> {
+        if self.after == 0 {
+            self.restore(directory)?;
+        }
         // At most 240 batches cover the admitted 960-publication lifetime.
         for _ in 0..240 {
             let bytes = fetch(address, self.after)?;
@@ -171,23 +221,7 @@ impl Collector {
                 "observed-history-{:04}-{after:04}.json",
                 self.after
             ));
-            match OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .mode(0o600)
-                .open(&path)
-            {
-                Ok(mut output) => {
-                    output.write_all(&bytes)?;
-                    output.sync_all()?;
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                    if std::fs::read(path)? != bytes {
-                        return Err("history custody differs".into());
-                    }
-                }
-                Err(error) => return Err(error.into()),
-            }
+            persist_batch(&path, &bytes)?;
             File::open(directory)?.sync_all()?;
             // Advance only after file and directory custody is durable.
             self.after = after;
@@ -195,6 +229,48 @@ impl Collector {
         }
         Ok(())
     }
+}
+// Publish a synced inode without replacing any existing custody. A crash can
+// leave a temporary inode, but can never expose a partially written final file.
+fn persist_batch(path: &Path, bytes: &[u8]) -> Result<()> {
+    if path.exists() {
+        if std::fs::read(path)? != bytes {
+            return Err("history custody differs".into());
+        }
+        File::open(path)?.sync_all()?;
+        return Ok(());
+    }
+    let mut nonce = 0u64;
+    let (temporary, mut output) = loop {
+        let temporary = path.with_extension(format!("pending-{}-{nonce}", std::process::id()));
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&temporary)
+        {
+            Ok(output) => break (temporary, output),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => nonce += 1,
+            Err(error) => return Err(error.into()),
+        }
+    };
+    let result = (|| -> Result<()> {
+        output.write_all(bytes)?;
+        output.sync_all()?;
+        match std::fs::hard_link(&temporary, path) {
+            Ok(()) => (),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                if std::fs::read(path)? != bytes {
+                    return Err("history custody differs".into());
+                }
+            }
+            Err(error) => return Err(error.into()),
+        }
+        File::open(path.parent().ok_or("history directory")?)?.sync_all()?;
+        Ok(())
+    })();
+    let _ = std::fs::remove_file(temporary);
+    result
 }
 fn fetch(address: SocketAddr, after: u32) -> Result<Vec<u8>> {
     let mut socket = TcpStream::connect_timeout(&address, Duration::from_secs(3))?;

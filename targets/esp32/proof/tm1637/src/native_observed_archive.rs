@@ -12,6 +12,8 @@ use conduit_environment_runtime::{
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
+#[path = "native_observed_recovery.rs"]
+mod recovery;
 const WORK_BYTES: usize = 536;
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<Option<State>>> =
     Mutex::new(RefCell::new(None));
@@ -27,11 +29,11 @@ struct Active {
     forms: [u8; 32],
     last_sequence: u64,
     failed: bool,
+    recovered: bool,
 }
 enum State {
     Cold(Cold),
     Active(Active),
-    Retained { _region: Region },
     Failed,
 }
 #[inline(never)]
@@ -48,7 +50,28 @@ pub fn initialize(region: Region) -> Result<(), &'static str> {
                 work: Box::new([0; WORK_BYTES]),
             })
         }
-        Err((region, _)) => State::Retained { _region: region },
+        Err((region, _)) => {
+            let contract =
+                ObservationContract::prepare().map_err(|_| "observed-history-contract")?;
+            let basis: &'static [u8] = Box::leak(Box::new(
+                observed_record::descriptor(&contract).map_err(|_| "observed-history-forms")?,
+            ));
+            let mut work = Box::new([0; WORK_BYTES]);
+            match recovery::reopen(region, basis, &mut work[..]) {
+                Ok((journal, scope, last_sequence)) => State::Active(Active {
+                    journal,
+                    work,
+                    scope,
+                    forms: Sha256::digest(basis).into(),
+                    last_sequence,
+                    failed: false,
+                    recovered: true,
+                }),
+                // Invalid media is preserved physically; its unique handle is
+                // retired and cannot be erased or reissued by this adapter.
+                Err(_) => State::Failed,
+            }
+        }
     };
     STATE.lock(|cell| {
         let mut state = cell.borrow_mut();
@@ -72,7 +95,22 @@ pub(crate) fn bind_local(
     body: &str,
     active: &conduit_core::ActivePlayIdentity,
 ) -> Result<(), &'static str> {
-    bind_scope(body, active)
+    let retained = STATE.lock(|cell| match cell.borrow().as_ref() {
+        Some(State::Active(active)) => active.recovered,
+        Some(State::Failed) => true,
+        _ => false,
+    });
+    if retained {
+        // Measurement remains available even if old media is unreadable. This
+        // Boot has no append/signing authority over the prior-Boot outbox.
+        return Ok(());
+    }
+    match bind_scope(body, active) {
+        // Archive media failure cannot suppress independently admitted local
+        // measurement. Failed state remains visible and refuses all appends.
+        Err("observed-history-header") => Ok(()),
+        outcome => outcome,
+    }
 }
 fn bind_scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> Result<(), &'static str> {
     let (_, cadence) = crate::native_software::source_facts();
@@ -112,6 +150,7 @@ fn bind_scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> Result<(
             forms: Sha256::digest(basis).into(),
             last_sequence: 0,
             failed: false,
+            recovered: false,
         }));
         Ok(())
     })
@@ -137,6 +176,9 @@ pub fn append(snapshot: PublicationSnapshot<'_>, observed_ms: u64) -> Result<(),
         let Some(State::Active(active)) = state.as_mut() else {
             return Err("observed-history-unavailable");
         };
+        if active.recovered {
+            return Err("observed-history-prior-boot-read-only");
+        }
         if active.failed {
             return Err("observed-history-failed");
         }
@@ -164,6 +206,7 @@ pub struct Status {
     last_sequence: u64,
     scope_ready: bool,
     failed: bool,
+    recovered_read_only: bool,
 }
 pub fn status() -> Status {
     STATE.lock(|cell| match cell.borrow().as_ref() {
@@ -171,8 +214,9 @@ pub fn status() -> Status {
             committed: active.journal.committed_count(),
             retained_bytes: active.journal.retained_extent(),
             last_sequence: active.last_sequence,
-            scope_ready: true,
+            scope_ready: !active.recovered,
             failed: active.failed,
+            recovered_read_only: active.recovered,
         },
         Some(State::Cold(_)) => Status {
             committed: 0,
@@ -180,6 +224,7 @@ pub fn status() -> Status {
             last_sequence: 0,
             scope_ready: false,
             failed: false,
+            recovered_read_only: false,
         },
         _ => Status {
             committed: 0,
@@ -187,6 +232,7 @@ pub fn status() -> Status {
             last_sequence: 0,
             scope_ready: false,
             failed: true,
+            recovered_read_only: false,
         },
     })
 }
@@ -200,11 +246,26 @@ pub struct Batch {
     pub records: [u8; 4 * observed_record::BYTES],
 }
 pub fn copy(after: u32) -> Result<Batch, &'static str> {
+    copy_checked(after, None)
+}
+/// Root may read retained bytes only against an independently authenticated
+/// exact original scope. This does not restore its original signing key.
+#[allow(dead_code)]
+pub(crate) fn copy_recovered(scope: &[u8; 96], after: u32) -> Result<Batch, &'static str> {
+    copy_checked(after, Some(scope))
+}
+fn copy_checked(after: u32, expected: Option<&[u8; 96]>) -> Result<Batch, &'static str> {
     STATE.lock(|cell| {
         let mut state = cell.borrow_mut();
         let Some(State::Active(active)) = state.as_mut() else {
             return Err("observed-history-unavailable");
         };
+        if active.recovered && expected != Some(&active.scope) {
+            return Err("observed-history-original-scope-required");
+        }
+        if expected.is_some_and(|scope| scope != &active.scope) {
+            return Err("observed-history-scope");
+        }
         let mut cursor = active
             .journal
             .replay_cursor_at(after)
