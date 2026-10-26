@@ -51,7 +51,7 @@ impl<'de, const N: usize> Deserialize<'de> for Bytes<N> {
                     return Err(E::custom("observer byte length"));
                 }
                 let mut bytes = [0; N];
-                for (out, pair) in bytes.iter_mut().zip(value.as_bytes().chunks_exact(2)) {
+                for (out, pair) in bytes.iter_mut().zip(value.as_bytes().as_chunks::<2>().0) {
                     fn digit(byte: u8) -> Option<u8> {
                         match byte {
                             b'0'..=b'9' => Some(byte - b'0'),
