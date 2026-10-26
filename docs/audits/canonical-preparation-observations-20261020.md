@@ -24,7 +24,9 @@ remains a separate required admission law.
 18 cache integration tests pass, including five new cold/hit, exact owner/cold
 meaning, refusal/non-retention, dependency distinction and zero-retention checks.
 All 472 owning-package unit tests pass; one existing manual observation remains
-ignored. Formatting and diff checks pass. [Retained checks](evidence/canonical-preparation-observations-20261020/).
+ignored. Formatting and diff checks pass. The report cited retained checks under
+`evidence/canonical-preparation-observations-20261020/`; that directory is not
+present in this Git checkout. This document does not supply those raw bytes.
 An initial new test incorrectly assumed that an expansion-only revision changes
 checking; the existing dependency-aware cache correctly hit. The corrected
 checks exercise actual checking dependencies and preserve that behavior.

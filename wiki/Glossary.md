@@ -53,8 +53,13 @@ A changed plan does not imply a changed plot. A sign is evidence, not authority.
 | **birth** | explicit authorized creation of a body |
 | **wake** | body lifecycle transition into active availability |
 | **lull** | body lifecycle transition out of active play while preserving continuity |
+| **purpose** | optional finite Body-level obligations, identified and revised independently of current machinery |
+| **fulfillment readiness** | evidence-derived disposition of a declared purpose: ready, not ready, or unavailable; not a lifecycle command |
 
 A host can reboot without becoming a new body; a body can lose a host without necessarily losing its identity.
+A plot's semantic completion, a purpose's fulfillment readiness, and a Body's
+lull or retirement are different facts. Continuity does not demand perpetual work.
+See [purpose and fulfillment](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/body-purpose-and-fulfillment.md).
 
 ## Human encounter
 

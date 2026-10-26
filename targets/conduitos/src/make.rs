@@ -32,6 +32,7 @@ pub const BASE_HTTP_NETWORK: u16 = 1 << 2;
 pub const DRIVER_LINEAR_FRAMEBUFFER: u16 = 1;
 pub const DRIVER_HTTP_NETWORK: u16 = 1 << 2;
 pub const DRIVER_DW_APB_UART2: u16 = 1 << 3;
+pub const DRIVER_TEGRA210_UART: u16 = 1 << 7;
 pub const DRIVER_IA32_DEBUGCON_SERIAL: u16 = 1 << 4;
 pub const DRIVER_RISCV64_SBI_CONSOLE: u16 = 1 << 5;
 pub const DRIVER_LOONGARCH64_UART: u16 = 1 << 6;
@@ -144,6 +145,7 @@ impl MakeRecord {
                 | "conduitos/riscv64/virt"
                 | "conduitos/loongarch64/virt"
                 | "conduitos/aarch64/orange-pi-5-rk3588s"
+                | "conduitos/aarch64/jetson-nano-tegra210"
         ) {
             return Err(MakeError::WrongTarget);
         }
@@ -161,6 +163,7 @@ impl MakeRecord {
                     | DRIVER_PL011_SERIAL
                     | DRIVER_HTTP_NETWORK
                     | DRIVER_DW_APB_UART2
+                    | DRIVER_TEGRA210_UART
                     | DRIVER_IA32_DEBUGCON_SERIAL
                     | DRIVER_RISCV64_SBI_CONSOLE
                     | DRIVER_LOONGARCH64_UART)
@@ -185,6 +188,7 @@ impl MakeRecord {
         let expected_serial_driver = match self.target {
             "conduitos/ia32/pc" => DRIVER_IA32_DEBUGCON_SERIAL,
             "conduitos/aarch64/orange-pi-5-rk3588s" => DRIVER_DW_APB_UART2,
+            "conduitos/aarch64/jetson-nano-tegra210" => DRIVER_TEGRA210_UART,
             "conduitos/riscv64/virt" => DRIVER_RISCV64_SBI_CONSOLE,
             "conduitos/loongarch64/virt" => DRIVER_LOONGARCH64_UART,
             _ => DRIVER_PL011_SERIAL,
@@ -195,6 +199,7 @@ impl MakeRecord {
             || self.drivers
                 & (DRIVER_PL011_SERIAL
                     | DRIVER_DW_APB_UART2
+                    | DRIVER_TEGRA210_UART
                     | DRIVER_IA32_DEBUGCON_SERIAL
                     | DRIVER_RISCV64_SBI_CONSOLE
                     | DRIVER_LOONGARCH64_UART)

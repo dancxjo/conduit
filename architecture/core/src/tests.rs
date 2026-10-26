@@ -50,3 +50,18 @@ fn execution_identity_chain_keeps_plan_play_sign_and_face_distinct() {
         active.active_play_id
     );
 }
+
+#[test]
+fn identity_hex_keeps_canonical_lowercase_bytes() {
+    let bytes: alloc::vec::Vec<u8> = (0..=255).collect();
+    let expected: alloc::string::String = bytes
+        .iter()
+        .map(|byte| alloc::format!("{byte:02x}"))
+        .collect();
+    assert_eq!(super::hex_digest(&bytes), expected);
+    assert_eq!(super::hex_digest(&[]), "");
+    assert_eq!(
+        super::hex_digest(&[0, 1, 15, 16, 127, 128, 255]),
+        "00010f107f80ff"
+    );
+}

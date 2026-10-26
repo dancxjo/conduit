@@ -1,6 +1,6 @@
 //! Canonical BirthDraft state; no Body creation, execution, device, or Root grant.
 use super::{
-    data::{self, DraftSnapshot, FaceRequest, Initialize, InteractionRequest},
+    data::{self, DraftSnapshot, FaceRequest, Initialize},
     wire::*,
 };
 use alloc::vec::Vec;
@@ -272,7 +272,7 @@ impl State {
                 self.publish(OutputKind::Face, &face)
             }
             InputKind::FaceInteraction => {
-                let input: InteractionRequest = data::decode(&bytes)?;
+                let input = data::decode_interaction(&bytes)?;
                 drop(bytes);
                 data::validate_basis(&input.basis)?;
                 self.current(input.revision)?;

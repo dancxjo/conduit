@@ -1,9 +1,9 @@
 //! Ordinary boot admission of one administratively approved protocol workload.
-#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-board")))]
 mod absent_providers;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod authority;
 mod request;
@@ -17,12 +17,12 @@ mod owners;
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod body;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod runtime;
 mod step_failure;
@@ -39,26 +39,26 @@ pub use usb_request::UsbProtocolBootRequest;
     all(
         target_arch = "aarch64",
         feature = "aarch64-product",
-        not(feature = "aarch64-orange-pi-5")
+        not(feature = "aarch64-board")
     )
 ))]
 mod usb_bootstrap;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod usb_owners;
 
 #[cfg(all(
     target_arch = "aarch64",
     feature = "aarch64-product",
-    not(feature = "aarch64-orange-pi-5")
+    not(feature = "aarch64-board")
 ))]
 pub use usb_bootstrap::run_if_selected;
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 #[path = "protocol_boot/usb_preflight.rs"]
 mod usb_preflight;

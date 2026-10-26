@@ -98,6 +98,14 @@ These distinctions let Conduit say something more precise than “the computer r
 
 Continuity belongs to the body, not to any one process or machine.
 
+Continuity is a *possibility*, not a command to run forever. A body may be
+lulled, and an authored plot may reach semantic completion. A body may also
+carry an optional, finite purpose whose obligations can be fulfilled. These
+facts do not silently retire or destroy it. A thermometer need not accumulate
+new purposes simply because more machinery becomes available. See
+[[Bodies, hosts, plans, and plays|Bodies-hosts-plans-and-plays]] and the
+[body fulfillment contract](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/body-purpose-and-fulfillment.md).
+
 ## State is a promise, not a variable
 
 A **keep** says that some current semantic truth must remain available for an exact duration.

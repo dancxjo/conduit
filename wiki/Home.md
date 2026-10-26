@@ -1,14 +1,26 @@
 # Conduit handbook
 
-Start with [[Conduitese by example|Conduitese-by-example]] to learn the language
-through connected plots. Explore [[units and quantities|Units-and-quantities]]
-for exact conversions, temperature changes, dimensional refusals and all 24 SI
-prefixes. The [[feature example index|Conduitese-feature-coverage]] connects
-every reviewed language feature to an example, including clearly labeled
-proposals from the live issue list.
+**One continuing computer, made from the computers you have.**
 
-The website build renders this handbook at `/conduit/handbook/` with guided
-navigation, canonical syntax highlighting, and the generated Plot diagrams.
-This repository-owned Markdown and its diagrams remain the handbook's authored
-source. The separate GitHub wiki is maintained manually as a short signpost to
-the [main website](https://dancxjo.github.io/conduit/).
+New to Conduit? Read [[Why Conduit|Why-Conduit]] to understand the separation
+between a Body's enduring identity and the machinery currently doing its work.
+Then take the [[architecture tour|Architecture-tour]] or begin with the
+[[guided first experience|Start-here]].
+
+To learn the language through real source, use
+[[Conduitese by example|Conduitese-by-example]]. The
+[[current language reference|Current-language-surface]] names implemented
+grammar and its boundaries; the
+[[feature example index|Conduitese-feature-coverage]] distinguishes reviewed
+features from open proposals. [[Units and quantities|Units-and-quantities]]
+covers exact conversions, temperature points and differences, and SI prefixes.
+
+For continuity without compulsory endless work, see
+[[Bodies, hosts, plans, and plays|Bodies-hosts-plans-and-plays]] and the
+[Body purpose and fulfillment contract](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/body-purpose-and-fulfillment.md).
+
+The website build renders this repository-owned Markdown and its diagrams as the
+[handbook](https://dancxjo.github.io/conduit/handbook/). The separate GitHub
+wiki is maintained manually as a signpost to the
+[main website](https://dancxjo.github.io/conduit/), not an alternate canonical
+source.

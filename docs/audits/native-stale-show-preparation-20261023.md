@@ -33,8 +33,9 @@ No screenshot delay, retry, forced private state, injected scene error or
 synthetic notice is used to manufacture the case.
 
 Implementation is prepared. Both new submission cases, all 19 related native
-Mask cases and all four collector/profile/capacity/recovery cases pass. The
-[CPU packet](evidence/native-stale-show-preparation-20261023/) also preserves
+Mask cases and all four collector/profile/capacity/recovery cases pass. The CPU packet reported under
+`evidence/native-stale-show-preparation-20261023/` (not present in this Git
+checkout) also preserves
 the initial featureless invocation, which failed to compile existing tests
 requiring `native-compositor`; the corrected invocation supplies that feature.
 The fresh QEMU result is recorded below; relevant merged checks remain pending.

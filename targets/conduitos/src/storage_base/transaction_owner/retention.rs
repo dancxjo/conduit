@@ -33,7 +33,7 @@ pub(crate) fn charge(
         .and_then(|bytes| bytes.checked_add(body))
         .ok_or(StorageTransactionRefusal::Retention)?;
     // These retained USB diagnostics use the early console on product proof targets.
-    #[cfg(all(not(target_arch = "arm"), not(feature = "aarch64-orange-pi-5")))]
+    #[cfg(all(not(target_arch = "arm"), not(feature = "aarch64-board")))]
     if crate::allocation::BOOT_ARENA.capacity() != 0 {
         use core::fmt::Write;
         let mut line = crate::sign_format::FixedText::new();
