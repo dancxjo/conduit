@@ -252,9 +252,24 @@ fn run(scenario: usize, overnight: bool) {
     let (mut owner, pulse_node) =
         pulse::bind_budget(ready, &plan, &lowered, count.try_into().unwrap()).unwrap();
     let metadata = verified_metadata::from_plan(&plan);
-    let tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<N, C, P, R, C, N>::prepare(
-        &metadata, &plan.fragments[0].fragment_id, &lowered,
-    ).unwrap();
+    let verified_lowering = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
+        &metadata,
+        &plan.fragments[0].fragment_id,
+    )
+    .unwrap();
+    assert_eq!(verified_lowering.lowered(), &lowered);
+    let (tables, projection_memory) = allocation_probe::observe(|| {
+        conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<N, C, P, R, C, N>::from_verified_lowering(
+            &verified_lowering,
+        ).unwrap()
+    });
+    assert_eq!(
+        (
+            projection_memory.allocations,
+            projection_memory.reallocations
+        ),
+        (0, 0)
+    );
     let (nodes, cords, routes, calls) = (tables.nodes, tables.cords, tables.routes, tables.calls);
     let mut values = conduit_environment_runtime::appliance::prepare_value_storage().unwrap();
     assert_eq!(

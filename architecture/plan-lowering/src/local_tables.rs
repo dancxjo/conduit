@@ -15,6 +15,29 @@ pub enum LocalTableRefusal {
     Unsupported,
     Kernel(k::ProtocolError),
 }
+/// Own one exact lowering from a Core-verified fragment. The private fields
+/// preserve provenance so consumers need not recreate a second rich lowering
+/// while the first occupies constrained preparation memory.
+pub struct VerifiedLocalLowering<'a> {
+    plan: &'a VerifiedPlanMetadata,
+    lowered: LoweredPlanFragment,
+}
+impl<'a> VerifiedLocalLowering<'a> {
+    pub fn prepare(
+        plan: &'a VerifiedPlanMetadata,
+        fragment: &FragmentId,
+    ) -> Result<Self, LocalTableRefusal> {
+        if plan.fragment(fragment).is_none() {
+            return Err(LocalTableRefusal::Scope);
+        }
+        let lowered = lower_verified_plan_metadata_fragment(plan, fragment)
+            .map_err(|_| LocalTableRefusal::Lowering)?;
+        Ok(Self { plan, lowered })
+    }
+    pub fn lowered(&self) -> &LoweredPlanFragment {
+        &self.lowered
+    }
+}
 /// No assigned wire identity is fabricated. Exact Plan and lowering stay borrowed
 /// throughout preparation, retaining resource, sign and terminal obligations.
 /// Native resources need separately installed Host Call possession before Play.
@@ -53,13 +76,35 @@ impl<
         lowered: &'a LoweredPlanFragment,
     ) -> Result<Self, LocalTableRefusal> {
         use LocalTableRefusal as E;
-        let view = plan.fragment(fragment).ok_or(E::Scope)?;
-        let metadata = view.lowering_metadata();
+        if plan.fragment(fragment).is_none() {
+            return Err(E::Scope);
+        }
         if lower_verified_plan_metadata_fragment(plan, fragment).map_err(|_| E::Lowering)?
             != *lowered
         {
             return Err(E::Lowering);
         }
+        Self::prepare_checked(plan, fragment, lowered)
+    }
+    /// Project the already checked lowering without making a duplicate. The
+    /// borrow keeps its exact verified Plan scope alive through table use.
+    pub fn from_verified_lowering(
+        verified: &'a VerifiedLocalLowering<'a>,
+    ) -> Result<Self, LocalTableRefusal> {
+        Self::prepare_checked(
+            verified.plan,
+            &verified.lowered.identity.fragment_id,
+            &verified.lowered,
+        )
+    }
+    fn prepare_checked(
+        plan: &'a VerifiedPlanMetadata,
+        fragment: &FragmentId,
+        lowered: &'a LoweredPlanFragment,
+    ) -> Result<Self, LocalTableRefusal> {
+        use LocalTableRefusal as E;
+        let view = plan.fragment(fragment).ok_or(E::Scope)?;
+        let metadata = view.lowering_metadata();
         if N == 0
             || P == 0
             || N > usize::from(u16::MAX)

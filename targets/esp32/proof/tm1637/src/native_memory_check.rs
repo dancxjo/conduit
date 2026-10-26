@@ -148,10 +148,10 @@ impl NativeRoot {
         mark("body-local-proposal-live", 1);
         let preparation = (|| -> Result<(), &'static str> {
             let id = &plan.preparation_metadata().fragments[0].fragment_id;
-            let lowered =
-                conduit_plan_lowering::lowering::lower_verified_plan_metadata_fragment(&plan, id)
+            let verified_lowering =
+                conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(&plan, id)
                     .map_err(|_| "lowering")?;
-            mark("lowered-live", lowered.nodes.len());
+            mark("lowered-live", verified_lowering.lowered().nodes.len());
             let _tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<
                 15,
                 14,
@@ -159,7 +159,7 @@ impl NativeRoot {
                 15,
                 14,
                 15,
-            >::prepare(&plan, id, &lowered)
+            >::from_verified_lowering(&verified_lowering)
             .map_err(|_| "tables")?;
             mark("local-tables-live", 15);
             Ok(())

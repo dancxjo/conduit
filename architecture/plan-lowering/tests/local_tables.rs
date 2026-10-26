@@ -1,3 +1,7 @@
+#[path = "../../plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core as c;
 use conduit_plan_lowering::{local_tables::*, lowering::lower_verified_plan_metadata_fragment};
 #[path = "common/execution_regions.rs"]
@@ -105,5 +109,45 @@ fn a_state_profile_cannot_replace_the_local_storage_profile() {
     assert!(matches!(
         VerifiedLocalKernelTables::<1, 0, 4, 4, 0, 1>::prepare(&plan, id, &lowered),
         Err(LocalTableRefusal::Lowering)
+    ));
+}
+
+#[test]
+fn owned_verified_lowering_avoids_duplicate_preparation_and_preserves_tables() {
+    let plan = verified(local_plan());
+    let id = &plan.preparation_metadata().fragments[0].fragment_id;
+    let lowering = VerifiedLocalLowering::prepare(&plan, id).unwrap();
+    let (borrowed, before) =
+        allocation_probe::observe(|| Tables::prepare(&plan, id, lowering.lowered()).unwrap());
+    let (direct, after) =
+        allocation_probe::observe(|| Tables::from_verified_lowering(&lowering).unwrap());
+    assert_eq!((after.allocations, after.reallocations), (0, 0));
+    assert!(before.peak_bytes > after.peak_bytes);
+    assert_eq!(direct.nodes, borrowed.nodes);
+    assert_eq!(direct.cords, borrowed.cords);
+    assert_eq!(direct.startup_order(), borrowed.startup_order());
+    assert_eq!(
+        direct.preparation_scope().0.plan_id(),
+        borrowed.preparation_scope().0.plan_id()
+    );
+    assert_eq!(direct.preparation_scope().1, borrowed.preparation_scope().1);
+    for node in 0..2 {
+        for port in 0..4 {
+            let route = |tables: &Tables<'_>| {
+                tables
+                    .routes
+                    .route(conduit_kernel::NodeId(node), conduit_kernel::PortId(port))
+                    .map(|targets| targets.collect::<Vec<_>>())
+            };
+            assert_eq!(route(&direct), route(&borrowed));
+        }
+    }
+    assert!(matches!(
+        VerifiedLocalLowering::prepare(&plan, &"missing".into()),
+        Err(LocalTableRefusal::Scope)
+    ));
+    assert!(matches!(
+        VerifiedLocalKernelTables::<1, 1, 4, 8, 1, 2>::from_verified_lowering(&lowering),
+        Err(LocalTableRefusal::Capacity)
     ));
 }
