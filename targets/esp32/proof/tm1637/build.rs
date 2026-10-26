@@ -46,6 +46,17 @@ fn main() {
         std::fs::write(out.join("network-source.sha256"), Sha256::digest(&image)).unwrap();
         #[cfg(feature = "native-root")]
         {
+            let material = conduit_environment_make::NetworkSourceMaterial::prepare(&source)
+                .expect("exact checked network construction");
+            assert_eq!(material.planning_image(), &image);
+            let mut network_rust = String::new();
+            material
+                .write_rust(&mut network_rust)
+                .expect("linked network Source constructors");
+            std::fs::write(out.join("network-software.rs"), network_rust).unwrap();
+        }
+        #[cfg(feature = "native-root")]
+        {
             let display = conduit_environment_make::DisplayOutputSource::compile()
                 .expect("checked display Source");
             let material = conduit_environment_make::DisplaySourceMaterial::prepare(&display)

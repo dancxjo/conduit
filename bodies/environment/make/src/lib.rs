@@ -13,6 +13,8 @@ pub use source_recipe::{NativeSoftwareSourceRecipe, SourceRecipeRefusal};
 mod display_material;
 pub use display_material::DisplaySourceMaterial;
 mod network_source;
+mod network_source_material;
+pub use network_source_material::NetworkSourceMaterial;
 pub use conduit_environment_runtime::construction::compile_default as compile_appliance_source;
 pub use network_source::compile_network_setup;
 

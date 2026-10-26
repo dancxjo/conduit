@@ -211,15 +211,17 @@ impl BodyRegion {
             return Err(Refusal::Geometry);
         }
         let start = self.0.bound(u32::from(bank) * 0x8000, 0x8000)?;
-        self.0.base.lock(|base| {
-            let mut flash = base.borrow_mut();
-            // Retire the leading commit sector before touching later payload.
-            for offset in (0..0x8000).step_by(4096) {
+        // Exclusive BodyRegion custody prevents same-bank interleaving. Keep
+        // the leading commit sector first, but release the flash critical
+        // section between sectors so an active radio/pulse interrupt can run.
+        for offset in (0..0x8000).step_by(4096) {
+            self.0.base.lock(|base| {
+                let mut flash = base.borrow_mut();
                 NorFlash::erase(&mut *flash, start + offset, start + offset + 4096)
-                    .map_err(|_| Refusal::Media)?;
-            }
-            Ok(())
-        })
+                    .map_err(|_| Refusal::Media)
+            })?;
+        }
+        Ok(())
     }
 }
 impl Storage for NetworkRegion {

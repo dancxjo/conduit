@@ -71,11 +71,13 @@ impl PreparedNetworkSetup {
         authority: &[c::AuthorityGrant],
     ) -> Result<Self, NetworkPlanningRefusal> {
         use NetworkPlanningRefusal as E;
-        let metadata = source.metadata().map_err(|_| E::SourceIdentity)?;
-        if &metadata.identity() != expected {
+        // This preliminary fence needs only the three pinned identities. Both
+        // indexed placement and planning below validate the complete planning
+        // metadata bounds; retaining the rich provenance decoder here would
+        // reconstruct unrelated construction data on constrained native Roots.
+        if &source.identity().map_err(|_| E::SourceIdentity)? != expected {
             return Err(E::SourceIdentity);
         }
-        drop(metadata);
         let hosts = core::slice::from_ref(host);
         let placements = conduit_planner::indexed_source::default_placements(source, hosts)
             .map_err(E::Placement)?;
