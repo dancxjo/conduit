@@ -93,7 +93,8 @@ export function verifyTrainManifest(manifest) {
 function selectedSourceTree({ base, inputs, source, directory, sourceEnvironment }) {
   require(sha(source), 'Invalid candidate source');
   const execute = (args, extra = {}) => {
-    try { return execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8',
+    try { return execFileSync('git', ['-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', '-C', directory, ...args], { encoding: 'utf8',
+      timeout: 60000, killSignal: 'SIGKILL', maxBuffer: 2 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'pipe'], ...(sourceEnvironment === undefined ? {} : { env: sourceEnvironment }), ...extra }).trim(); }
     catch (error) { if (sourceEnvironment !== undefined) throw new Error('Train source Git operation failed'); throw error; }
   };
