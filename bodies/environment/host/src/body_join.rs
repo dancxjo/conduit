@@ -80,6 +80,34 @@ fn load<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     }
     Ok(serde_json::from_slice(&bytes)?)
 }
+/// Export the private bootstrap only into an explicitly selected local helper.
+/// The public AP/LAN page never receives this bearer secret.
+pub fn browser(input: &Path, output: &Path) -> Result<()> {
+    use std::os::unix::fs::OpenOptionsExt;
+    let bootstrap: Bootstrap = load(input)?;
+    checked(bootstrap.invitation.validate(0))?;
+    let json = serde_json::to_string(&bootstrap)?.replace('<', "\\u003c");
+    let template = include_str!("body_join_browser.html");
+    if template.matches("__PRIVATE_BOOTSTRAP_JSON__").count() != 1 {
+        return Err("browser helper template marker".into());
+    }
+    let parent = output.parent().ok_or("private helper parent")?;
+    private(parent, true)?;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(output)?;
+    file.write_all(
+        template
+            .replace("__PRIVATE_BOOTSTRAP_JSON__", &json)
+            .as_bytes(),
+    )?;
+    file.sync_all()?;
+    std::fs::File::open(parent)?.sync_all()?;
+    Ok(())
+}
 pub fn issue(state: &Path, serial: &str, output: &Path) -> Result<()> {
     if serial.starts_with("tcp://") {
         return Err("invitation capture requires physical USB UART".into());
@@ -132,6 +160,19 @@ pub fn issue(state: &Path, serial: &str, output: &Path) -> Result<()> {
     bootstrap.invitation.secret.fill(0);
     result
 }
+fn compact_request(request: &conduit_body::PortableSpawnAdmissionRequest) -> Result<Vec<u8>> {
+    let hex = |bytes: &[u8]| {
+        bytes
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    let mut value = serde_json::to_value(request)?;
+    value["schema"] = serde_json::json!("conduit.environment/observer-admission@1");
+    value["nonce"] = serde_json::json!(hex(&request.nonce));
+    value["signature"] = serde_json::json!(hex(&request.signature));
+    Ok(serde_json::to_vec(&value)?)
+}
 fn http(peer: &str, method: &str, path: &str, body: &[u8]) -> Result<(u16, Vec<u8>)> {
     use std::net::ToSocketAddrs;
     if peer.len() > 255 || peer.contains(['/', '@', '\r', '\n']) {
@@ -143,7 +184,11 @@ fn http(peer: &str, method: &str, path: &str, body: &[u8]) -> Result<(u16, Vec<u
             let mut s = std::net::TcpStream::connect_timeout(&address, Duration::from_secs(3))?;
             s.set_read_timeout(Some(Duration::from_secs(3)))?;
             s.set_write_timeout(Some(Duration::from_secs(3)))?;
-            write!(s,"{method} {path} HTTP/1.1\r\nHost: {peer}\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",body.len())?;
+            let request_header = format!("{method} {path} HTTP/1.1\r\nHost: {peer}\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",body.len());
+            if request_header.len() + body.len() > 1024 {
+                return Err("join request exceeds native1024-byte frame".into());
+            }
+            s.write_all(request_header.as_bytes())?;
             s.write_all(body)?;
             let mut bytes = Vec::new();
             s.take(16385).read_to_end(&mut bytes)?;
@@ -246,7 +291,7 @@ pub fn join(input: &Path, state: &Path, peer: &str) -> Result<()> {
     };
     // Retain continuity authority before a possibly successful irreversible admission.
     save(&state.join("continuity-private.json"), &bootstrap)?;
-    let (status, bytes) = http(peer, "POST", "/body/join", &serde_json::to_vec(&request)?)?;
+    let (status, bytes) = http(peer, "POST", "/body/join", &compact_request(&request)?)?;
     if status != 202 {
         return Err(format!("join submission HTTP {status}").into());
     }
@@ -379,6 +424,19 @@ mod tests {
             "root_key":key.verifying_key().to_bytes(),"producer_host":"06".repeat(32),"producer_boot":"07".repeat(32)
         })).unwrap();
         save(&input, &bootstrap).unwrap();
+        let malicious_input = dir.join("html-input.json");
+        let mut html_bootstrap = serde_json::to_value(&bootstrap).unwrap();
+        html_bootstrap["producer_host"] = serde_json::json!("</script><script>untrusted</script>");
+        save(&malicious_input, &html_bootstrap).unwrap();
+        let helper = dir.join("helper.html");
+        browser(&malicious_input, &helper).unwrap();
+        let html = std::fs::read_to_string(&helper).unwrap();
+        assert!(html.contains("\\u003c/script>"));
+        assert!(!html.contains("<script>untrusted"));
+        assert!(!html.contains("__PRIVATE_BOOTSTRAP_JSON__"));
+        private(&helper, false).unwrap();
+        assert!(browser(&malicious_input, &helper).is_err());
+
         let retained_request = if resume {
             std::fs::DirBuilder::new()
                 .mode(0o700)
@@ -441,8 +499,20 @@ mod tests {
                 socket.read_exact(&mut body).unwrap();
                 let (status, body) = if round == 0 {
                     assert!(header.starts_with("POST /body/join "));
+                    let mut wire: serde_json::Value = serde_json::from_slice(&body).unwrap();
+                    assert_eq!(wire["schema"], "conduit.environment/observer-admission@1");
+                    wire["schema"] =
+                        serde_json::json!(conduit_body::SPAWN_ADMISSION_REQUEST_SCHEMA);
+                    for field in ["nonce", "signature"] {
+                        let hex = wire[field].as_str().unwrap();
+                        let bytes: Vec<u8> = (0..hex.len())
+                            .step_by(2)
+                            .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+                            .collect();
+                        wire[field] = serde_json::json!(bytes);
+                    }
                     let r: conduit_body::PortableSpawnAdmissionRequest =
-                        serde_json::from_slice(&body).unwrap();
+                        serde_json::from_value(wire).unwrap();
                     assert!(r.host_advertisement.capabilities.is_empty());
                     assert!(!r.membership_admitted);
                     let signature: [u8; 64] = r.signature.as_slice().try_into().unwrap();

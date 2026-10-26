@@ -30,6 +30,16 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args.get(1).is_some_and(|a| a == "--browser-invitation") {
+        if args.len() != 4 {
+            return Err("expected --browser-invitation PRIVATE_BOOTSTRAP LOCAL_HELPER.html".into());
+        }
+        return body_join::browser(
+            std::path::Path::new(&args[2]),
+            std::path::Path::new(&args[3]),
+        );
+    }
+
     if args
         .get(1)
         .is_some_and(|a| a == "--issue-private-invitation" || a == "--join-observer")
