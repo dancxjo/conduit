@@ -24,3 +24,10 @@ lto = "fat"
 opt-level = 3
 [profile.release.package.conduit-face]
 opt-level = 3
+
+# The private named-map decoder is a measured guest transaction hotspot. Keep
+# its bounded parser optimized without expanding the complete reducer profile.
+[profile.release.package.ciborium-ll]
+opt-level = 3
+[profile.release.package.ciborium-io]
+opt-level = 3
