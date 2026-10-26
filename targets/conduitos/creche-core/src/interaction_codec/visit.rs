@@ -137,9 +137,10 @@ impl<'de, V: Visitor<'de>> Visitor<'de> for Wrapped<V> {
             inner: access,
             depth,
             count: 0,
+            ended: false,
         };
         let result = self.visitor.visit_seq(&mut access)?;
-        if access.inner.next_element::<de::IgnoredAny>()?.is_some() {
+        if !access.ended && de::SeqAccess::next_element::<de::IgnoredAny>(&mut access)?.is_some() {
             return Err(de::Error::custom("unconsumed sequence element"));
         }
         if expected.is_some_and(|n| n != access.count) {

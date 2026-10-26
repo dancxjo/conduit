@@ -18,6 +18,7 @@ pub(super) struct Seq<A> {
     pub inner: A,
     pub depth: u8,
     pub count: usize,
+    pub ended: bool,
 }
 impl<'de, A: de::SeqAccess<'de>> de::SeqAccess<'de> for Seq<A> {
     type Error = A::Error;
@@ -25,10 +26,14 @@ impl<'de, A: de::SeqAccess<'de>> de::SeqAccess<'de> for Seq<A> {
         &mut self,
         seed: T,
     ) -> Result<Option<T::Value>, A::Error> {
+        if self.ended {
+            return Ok(None);
+        }
         let value = self.inner.next_element_seed(Seed {
             inner: seed,
             depth: self.depth,
         })?;
+        self.ended = value.is_none();
         if value.is_some() {
             self.count += 1;
         }

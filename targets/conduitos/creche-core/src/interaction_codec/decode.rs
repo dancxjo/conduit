@@ -1,4 +1,6 @@
 //! Recursive view of packed byte arrays as their original integer sequences.
+//! Typed scalar methods delegate directly: Ciborium never gives those visitors
+//! child deserializers. Only paths that can expose children require a wrapper.
 use super::visit::{Gate, Wrapped};
 use serde::de::{self, Visitor};
 pub(super) struct Sequences<D> {
@@ -15,116 +17,52 @@ impl<'de, D: de::Deserializer<'de>> de::Deserializer<'de> for Sequences<D> {
         })
     }
     fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_bool(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_bool(visitor)
     }
     fn deserialize_i8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_i8(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_i8(visitor)
     }
     fn deserialize_i16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_i16(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_i16(visitor)
     }
     fn deserialize_i32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_i32(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_i32(visitor)
     }
     fn deserialize_i64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_i64(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_i64(visitor)
     }
     fn deserialize_i128<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_i128(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_i128(visitor)
     }
     fn deserialize_u8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_u8(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_u8(visitor)
     }
     fn deserialize_u16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_u16(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_u16(visitor)
     }
     fn deserialize_u32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_u32(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_u32(visitor)
     }
     fn deserialize_u64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_u64(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_u64(visitor)
     }
     fn deserialize_u128<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_u128(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_u128(visitor)
     }
     fn deserialize_f32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_f32(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_f32(visitor)
     }
     fn deserialize_f64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_f64(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_f64(visitor)
     }
     fn deserialize_char<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_char(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_char(visitor)
     }
     fn deserialize_str<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_str(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_str(visitor)
     }
     fn deserialize_string<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_string(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_string(visitor)
     }
     fn deserialize_bytes<V: Visitor<'de>>(self, _: V) -> Result<V::Value, D::Error> {
         Err(de::Error::custom("source byte strings unsupported"))
@@ -140,11 +78,7 @@ impl<'de, D: de::Deserializer<'de>> de::Deserializer<'de> for Sequences<D> {
         })
     }
     fn deserialize_unit<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_unit(Wrapped {
-            visitor,
-            depth: self.depth,
-            gate: Gate::Any,
-        })
+        self.inner.deserialize_unit(visitor)
     }
     fn deserialize_identifier<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, D::Error> {
         self.inner.deserialize_identifier(Wrapped {
@@ -165,14 +99,7 @@ impl<'de, D: de::Deserializer<'de>> de::Deserializer<'de> for Sequences<D> {
         name: &'static str,
         visitor: V,
     ) -> Result<V::Value, D::Error> {
-        self.inner.deserialize_unit_struct(
-            name,
-            Wrapped {
-                visitor,
-                depth: self.depth,
-                gate: Gate::Any,
-            },
-        )
+        self.inner.deserialize_unit_struct(name, visitor)
     }
     fn deserialize_newtype_struct<V: Visitor<'de>>(
         self,

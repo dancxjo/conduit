@@ -269,3 +269,34 @@ fn enum_seed_and_content_buffering_cannot_hide_the_packed_container_depth() {
         );
     }
 }
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(transparent)]
+struct Indefinite(Vec<u16>);
+impl Serialize for Indefinite {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeSeq;
+        let mut seq = s.serialize_seq(None)?;
+        for value in &self.0 {
+            seq.serialize_element(value)?;
+        }
+        seq.end()
+    }
+}
+#[test]
+fn indefinite_sequence_termination_does_not_consume_the_following_map_field() {
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    struct Record {
+        before: Indefinite,
+        after: u8,
+    }
+    differential(&Indefinite(vec![1, 256]));
+    differential(&Record {
+        before: Indefinite(vec![1, 256]),
+        after: 7,
+    });
+    differential(&Record {
+        before: Indefinite(vec![]),
+        after: 7,
+    });
+}
