@@ -132,3 +132,34 @@ fn invalid_marks_refuse_without_touching_neighboring_units() {
     assert!(!mark(&mut [], 0, 1, true));
     assert_eq!(find(&[], 0x640000, 0, 0, 1, UNIT), None);
 }
+
+#[test]
+fn large_fragmented_ranges_and_shifted_heap_match_original() {
+    let mut seed = 0x986a_234b_eda1_375du64;
+    for _ in 0..200 {
+        let mut words = [0u64; 8];
+        for word in &mut words {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            *word = seed & (seed >> 1) & (seed >> 2) & (seed >> 3);
+        }
+        for heap in [0x640000, 0x640020, 0x640060] {
+            for start in [0, 1, 31, 63, 64, 65, 127, 200, 400] {
+                for end in [401, 448, 511, 512] {
+                    if start > end {
+                        continue;
+                    }
+                    for needed in [64, 65, 66, 95, 127, 128, 129, 255] {
+                        for alignment in [32, 64, 128, 256, 4096] {
+                            assert_eq!(
+                                find(&words, heap, start, end, needed, alignment),
+                                reference_find(&words, heap, start, end, needed, alignment)
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
