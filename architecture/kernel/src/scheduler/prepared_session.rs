@@ -9,6 +9,7 @@ use crate::{
     CordEndpoint, HostCallOutcome, NodeId, RequestId, SignQuery, SignSink, ValueRef, ValueStorage,
 };
 use alloc::boxed::Box;
+mod encoded;
 mod owned_boundaries;
 pub use owned_boundaries::OwnedValueBoundary;
 

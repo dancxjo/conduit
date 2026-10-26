@@ -34,11 +34,14 @@ fn ordinary_mask_reuses_its_kernel_without_resetting_requests_or_discarding_evid
         })
         .collect();
     let cache = f::PreparedMaskPlanJson::prepare(&planned, 8192).unwrap();
+    let expected: Vec<_> = shows
+        .iter()
+        .map(|show| serde_json::to_vec(show).unwrap())
+        .collect();
     let encoders: Vec<_> = shows
         .iter()
         .map(|show| cache.bind(show, 8192).unwrap())
         .collect();
-    let mut output = vec![0; 8192];
     let prepared =
         conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare(&planned).unwrap();
     use prepared_session::{OwnedValueBoundary as Boundary, PreparedKernelSession};
@@ -57,13 +60,14 @@ fn ordinary_mask_reuses_its_kernel_without_resetting_requests_or_discarding_evid
     )
     .unwrap_or_else(|(r, _)| panic!("{r:?}"));
     let fresh_log = || {
-        k::FixedSignLog::<64>::new_with_remote_storage(
+        k::FixedSignLog::<64, 12>::new_with_remote_storage(
             (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
             12,
             k::remote_sign_storage_bytes(12).unwrap(),
         )
         .unwrap()
     };
+    let mut evidence = [0; conduit_environment_runtime::display_evidence::MAXIMUM_BYTES];
     for (sequence, encoder) in encoders.iter().enumerate() {
         let new_log = fresh_log(); // cold reservation, admitted before Play
         let (_, memory) = allocation_probe::observe(|| {
@@ -73,9 +77,29 @@ fn ordinary_mask_reuses_its_kernel_without_resetting_requests_or_discarding_evid
                     .unwrap_or_else(|r| panic!("{:?}", r.reason));
                 // Exact previous signs move to their caller; no silent clear.
                 assert!(!retired.signs.is_empty());
+                let length = conduit_environment_runtime::display_evidence::encode(
+                    (sequence - 1) as u64,
+                    retired.signs.events(),
+                    &retired.signs,
+                    &mut evidence,
+                )
+                .unwrap();
+                let page =
+                    conduit_environment_runtime::display_evidence::Page::parse(&evidence[..length])
+                        .unwrap();
+                assert_eq!(page.invocation(), (sequence - 1) as u64);
             }
             session
-                .admit_owned_input(face_fore.endpoint, face_fore.cord, sequence as u64, &bytes)
+                .admit_owned_input_encoded(
+                    face_fore.endpoint,
+                    face_fore.cord,
+                    sequence as u64,
+                    8192,
+                    |out| {
+                        out[..bytes.len()].copy_from_slice(&bytes);
+                        Ok::<_, ()>(bytes.len())
+                    },
+                )
                 .unwrap();
             session
                 .close_owned_input(face_fore.endpoint, face_fore.cord)
@@ -90,8 +114,11 @@ fn ordinary_mask_reuses_its_kernel_without_resetting_requests_or_discarding_evid
                         session.kernel().host_value(request.input.value).unwrap(),
                         bytes
                     );
-                    let length = encoder.encode(&mut output).unwrap();
-                    let value = session.store_host_value(&output[..length]).unwrap();
+                    let value = session
+                        .store_host_value_encoded(encoder.encoded_bytes(), |out| {
+                            encoder.encode(out)
+                        })
+                        .unwrap();
                     session
                         .complete_host_call(
                             request.node,
@@ -112,7 +139,7 @@ fn ordinary_mask_reuses_its_kernel_without_resetting_requests_or_discarding_evid
                         assert_eq!(offer.sequence, sequence as u64);
                         assert_eq!(
                             session.kernel().host_value(offer.value).unwrap(),
-                            &output[..encoder.encoded_bytes()]
+                            expected[sequence]
                         );
                         session
                             .accept_owned_output(offer.endpoint, offer.cord, offer.sequence)

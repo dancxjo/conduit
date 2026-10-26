@@ -528,7 +528,7 @@ pub use owned_compact_output::{PendingCompactF32Publication, PreparedCompactF32O
 mod hosted;
 
 #[cfg(feature = "alloc")]
-pub use hosted::Store as HostedValueStore;
+pub use hosted::{EncodedValueRefusal, Store as HostedValueStore};
 
 mod remote_sign;
 use remote_sign::RemoteLifecycleSign;
@@ -661,7 +661,7 @@ pub trait SignQuery {
     }
 }
 
-pub struct FixedSignLog<const EVENTS: usize> {
+pub struct FixedSignLog<const EVENTS: usize, const REMOTE_EVENTS: usize = EVENTS> {
     entries: [Option<KernelEvent>; EVENTS],
     len: u16,
     // Non-transient entries are never evicted; updated only on publication.
@@ -669,7 +669,7 @@ pub struct FixedSignLog<const EVENTS: usize> {
     byte_capacity: u32,
     used_bytes: u32,
     next_sequence: u32,
-    remote_entries: [Option<RemoteLifecycleSign>; EVENTS],
+    remote_entries: [Option<RemoteLifecycleSign>; REMOTE_EVENTS],
     remote_item_capacity: u16,
     remote_byte_capacity: u32,
     remote_len: u16,
@@ -677,7 +677,7 @@ pub struct FixedSignLog<const EVENTS: usize> {
     retention_gap: Option<SignRetentionGap>,
 }
 
-impl<const EVENTS: usize> FixedSignLog<EVENTS> {
+impl<const EVENTS: usize, const REMOTE_EVENTS: usize> FixedSignLog<EVENTS, REMOTE_EVENTS> {
     pub fn new(byte_capacity: u32) -> Result<Self, SignError> {
         Self::new_with_remote_storage(byte_capacity, 0, 0)
     }
@@ -698,6 +698,7 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
             || byte_capacity == 0
             || byte_capacity > physical_bytes
             || usize::from(remote_item_capacity) > EVENTS
+            || usize::from(remote_item_capacity) > REMOTE_EVENTS
             || (remote_item_capacity == 0 && remote_byte_capacity != 0)
             || (remote_item_capacity != 0
                 && (remote_byte_capacity == 0 || remote_byte_capacity > remote_physical_bytes))
@@ -711,7 +712,7 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
             byte_capacity,
             used_bytes: 0,
             next_sequence: 0,
-            remote_entries: [None; EVENTS],
+            remote_entries: [None; REMOTE_EVENTS],
             remote_item_capacity,
             remote_byte_capacity,
             remote_len: 0,
@@ -752,7 +753,9 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
     }
 }
 
-impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
+impl<const EVENTS: usize, const REMOTE_EVENTS: usize> SignSink
+    for FixedSignLog<EVENTS, REMOTE_EVENTS>
+{
     fn requires_canonical_debug_values(&self) -> bool {
         false
     }
@@ -936,7 +939,9 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
     }
 }
 
-impl<const EVENTS: usize> SignQuery for FixedSignLog<EVENTS> {
+impl<const EVENTS: usize, const REMOTE_EVENTS: usize> SignQuery
+    for FixedSignLog<EVENTS, REMOTE_EVENTS>
+{
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.events().any(|event| event.kind == kind)
     }
@@ -1247,3 +1252,6 @@ impl SignQuery for HostedSignLog {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod fixed_sign_capacity_tests;

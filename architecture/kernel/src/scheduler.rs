@@ -4,6 +4,9 @@ mod host_call_back;
 mod host_dispatch;
 mod host_input_ownership;
 mod host_values;
+mod remote_input;
+#[cfg(feature = "alloc")]
+pub use remote_input::HostEncodingRefusal;
 mod output_readiness;
 pub use host_call_back::HostCallBack;
 pub use host_values::HostValueDiscardRefusal;
@@ -1591,77 +1594,6 @@ where
             },
         )?;
         Ok(())
-    }
-
-    /// Admits bytes through a remote ingress cord into the kernel-owned value
-    /// store and queue. `Full` performs no allocation or sequence advance, so
-    /// the line must retry the same sequence.
-    pub fn admit_remote_input(
-        &mut self,
-        endpoint: RemoteEndpointId,
-        cord: CordId,
-        sequence: u64,
-        bytes: &[u8],
-    ) -> Result<RemoteIngressOutcome, SchedulerError> {
-        if self.cancelled {
-            return Err(SchedulerError::Cancelled);
-        }
-        let cord_index = usize::from(cord.0);
-        if cord_index >= self.active_cords {
-            return Err(SchedulerError::InvalidRemoteCordAccess);
-        }
-        let spec = *self
-            .cord_specs
-            .get(cord_index)
-            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
-        let (sink_node, sink_port) = match (spec.source, spec.sink) {
-            (CordEndpoint::Remote(candidate), CordEndpoint::Local { node, port })
-                if candidate == endpoint =>
-            {
-                (node, port)
-            }
-            _ => return Err(SchedulerError::InvalidRemoteCordAccess),
-        };
-        let state = self
-            .cords
-            .get(cord_index)
-            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
-        if state.producer_closed || state.next_remote_sequence != sequence {
-            return Err(SchedulerError::RemoteSequenceRejected);
-        }
-        let byte_len =
-            u32::try_from(bytes.len()).map_err(|_| SchedulerError::QueueByteCapacityExceeded)?;
-        if !self.payload_admissible(spec, state, byte_len)? {
-            return Ok(RemoteIngressOutcome::Full { sequence });
-        }
-        let next_sequence = sequence
-            .checked_add(1)
-            .ok_or(SchedulerError::RemoteSequenceRejected)?;
-        self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
-        let value = self.values.store(bytes)?;
-        match self.push(cord_index, value) {
-            Ok(Some(superseded)) => self.values.release(superseded)?,
-            Ok(None) => {}
-            Err(error) => {
-                self.values.release(value)?;
-                return Err(error);
-            }
-        }
-        self.cords[cord_index].next_remote_sequence = next_sequence;
-        self.set_ready(usize::from(sink_node.0), true);
-        self.signs.record_remote(
-            sink_node,
-            sink_port,
-            KernelEventKind::RemoteInputAdmitted,
-            crate::RemoteLifecycleIdentity {
-                endpoint,
-                cord,
-                direction: crate::RemoteCordDirection::Ingress,
-                sequence,
-            },
-        )?;
-        Ok(RemoteIngressOutcome::Accepted { sequence })
     }
 
     pub fn close_remote_input(

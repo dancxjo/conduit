@@ -2,10 +2,12 @@ use alloc::vec::Vec;
 
 use super::{StorageError, ValueRef, ValueStorage};
 mod compact_f32;
+mod encoded;
 mod native_values;
 mod owned_compact_f32;
 mod sign_storage;
 mod value_admission;
+pub use encoded::EncodedValueRefusal;
 
 struct HostedValueSlot {
     generation: u16,

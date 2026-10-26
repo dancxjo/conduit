@@ -7,7 +7,10 @@ use conduit_face as f;
 use conduit_kernel::{self as k, scheduler::*};
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredForePort};
 pub type Kernel =
-    FixedScheduler<MaskBack, k::HostedValueStore, k::FixedSignLog<64>, 3, 6, 2, 6, 6, 6, 3, 3>;
+    FixedScheduler<MaskBack, k::HostedValueStore, k::FixedSignLog<64, 12>, 3, 6, 2, 6, 6, 6, 3, 3>;
+#[path = "mask_assigned.rs"]
+mod assigned;
+pub use assigned::*;
 pub struct PreparedMaskKernel {
     pub kernel: Box<Kernel>,
     pub face: LoweredForePort,

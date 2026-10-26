@@ -141,6 +141,24 @@ where
         sequence: u64,
         bytes: &[u8],
     ) -> Result<RemoteIngressOutcome, SchedulerError> {
+        if let Some(outcome) = self.preflight_owned_input(endpoint, cord, sequence, bytes.len())? {
+            return Ok(outcome);
+        }
+        let result = self
+            .kernel
+            .admit_remote_input(endpoint, cord, sequence, bytes);
+        if matches!(result, Ok(RemoteIngressOutcome::Accepted { .. })) {
+            self.phase = Phase::Active;
+        }
+        self.observe_io(result)
+    }
+    pub(super) fn preflight_owned_input(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        sequence: u64,
+        maximum_bytes: usize,
+    ) -> Result<Option<RemoteIngressOutcome>, SchedulerError> {
         self.owned_io()?;
         let index = usize::from(cord.0);
         let spec = self
@@ -150,7 +168,7 @@ where
             .filter(|_| index < self.kernel.active_cords)
             .filter(|spec| spec.source == CordEndpoint::Remote(endpoint))
             .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
-        if bytes.len() > spec.maximum_value_bytes as usize {
+        if maximum_bytes > spec.maximum_value_bytes as usize {
             return self.observe_io(Err(SchedulerError::QueueByteCapacityExceeded));
         }
         // One Value per declared input in each invocation. A subsequent Value
@@ -159,18 +177,12 @@ where
         if sequence == self.owned_value_index + 1
             && self.kernel.cords[index].next_remote_sequence == sequence
         {
-            return Ok(RemoteIngressOutcome::Full { sequence });
+            return Ok(Some(RemoteIngressOutcome::Full { sequence }));
         }
         if sequence != self.owned_value_index {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
-        let result = self
-            .kernel
-            .admit_remote_input(endpoint, cord, sequence, bytes);
-        if matches!(result, Ok(RemoteIngressOutcome::Accepted { .. })) {
-            self.phase = Phase::Active;
-        }
-        self.observe_io(result)
+        Ok(None)
     }
     pub fn close_owned_input(
         &mut self,

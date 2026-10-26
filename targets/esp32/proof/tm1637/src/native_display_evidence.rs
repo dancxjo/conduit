@@ -6,7 +6,7 @@ use conduit_environment_runtime::display_evidence as wire;
 use conduit_kernel as k;
 use ed25519_dalek::{Signature, VerifyingKey};
 use sha2::{Digest, Sha256};
-pub type Log = k::FixedSignLog<{ wire::MAXIMUM_EVENTS }>;
+pub type Log = k::FixedSignLog<{ wire::MAXIMUM_EVENTS }, 6>;
 pub fn fresh_log() -> Result<Log, k::SignError> {
     Log::new_with_remote_storage(
         (wire::MAXIMUM_EVENTS * core::mem::size_of::<k::KernelEvent>()) as u32,
