@@ -194,3 +194,62 @@ fn environment_body_cannot_start_by_silently_omitting_its_display_plot() {
     assert_eq!(owner.evidence(), &body);
     assert!(owner.realization().is_none());
 }
+
+#[test]
+fn installed_opaque_seal_retains_exact_face_scope_after_core_plan_retirement() {
+    let (mut owner, plan, host, boot) = fixture();
+    let source = c::PlotIdentity {
+        source_document_id: plan.source_document_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        expanded_plot_id: plan.expanded_plot_id.clone(),
+    };
+    let fragment = plan.fragments[0].fragment_id.clone();
+    let generation = plan.fragments[0].offer_generation;
+    let verified = verify(plan);
+    let active = c::bind_active_play(verified.plan_id(), &host, &boot, 1);
+    owner
+        .propose_verified(
+            &[VerifiedBodyPlotPlan {
+                plot: ResidentPlot::new(
+                    source.source_document_id.clone(),
+                    source.checked_plot_id.clone(),
+                ),
+                plan: &verified,
+            }],
+            &[],
+            None,
+            &host,
+            &boot,
+        )
+        .unwrap();
+    drop(verified);
+    let current = owner.realization().unwrap();
+    assert_eq!(
+        local_scope::check_installed(&owner, &source, &fragment, &active, generation),
+        Ok((current.plan.body_id(), current.plan.wake_id()))
+    );
+    assert!(
+        local_scope::check_installed(&owner, &source, &"missing".into(), &active, generation)
+            .is_err()
+    );
+    assert!(local_scope::check_installed(
+        &owner,
+        &source,
+        &fragment,
+        &active,
+        c::OfferGeneration(generation.0 + 1)
+    )
+    .is_err());
+    let mut wrong = source.clone();
+    wrong.expanded_plot_id = "claimed".into();
+    assert!(local_scope::check_installed(&owner, &wrong, &fragment, &active, generation).is_err());
+    let claimed = c::bind_active_play(&"claimed".into(), &host, &boot, 1);
+    assert!(
+        local_scope::check_installed(&owner, &source, &fragment, &claimed, generation).is_err()
+    );
+    owner.lull(&host, &boot, None).unwrap();
+    assert_eq!(
+        local_scope::check_installed(&owner, &source, &fragment, &active, generation),
+        Err("local-face-no-proposal")
+    );
+}

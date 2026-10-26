@@ -100,6 +100,26 @@ pub fn prepare_local(
     crate::native_observed_archive::bind_local(body_id.as_str(), active)?;
     prepare_scope(body_id, wake_id, active)
 }
+/// Prepare from the current opaque Body seal after checked Plot metadata was
+/// retired. No received identity replaces that seal or the linked Source.
+#[cfg(feature = "body-image-root")]
+pub fn prepare_installed_local(
+    body: &conduit_body::SealedBodyLifecycleSession,
+    fragment: &conduit_core::FragmentId,
+    active: &conduit_core::ActivePlayIdentity,
+    generation: conduit_core::OfferGeneration,
+) -> Result<(Publisher, &'static Reader), &'static str> {
+    let source = crate::native_software::source_identity();
+    let (body_id, wake_id) =
+        local_scope::check_installed(body, &source, fragment, active, generation)?;
+    let stats = esp_alloc::HEAP.stats();
+    if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
+        return Err("face-preparation-capacity");
+    }
+    #[cfg(feature = "local-evidence-store")]
+    crate::native_observed_archive::bind_local(body_id.as_str(), active)?;
+    prepare_scope(body_id, wake_id, active)
+}
 fn prepare_scope(
     body: &conduit_body::BodyId,
     wake: &conduit_body::WakeId,
