@@ -77,3 +77,48 @@ fn filesystem_or_protocol_failures_do_not_become_carrier_retries() {
             .as_ref()
     ));
 }
+#[test]
+fn private_usb_reply_filter_skips_progress_and_fails_explicit_refusal() {
+    for refused in [false, true] {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let peer = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket.write_all(b"stale boot text\n{\"event\":\"local-appliance-progress\"}\n{\"schema\":\"unrelated\"}\n").unwrap();
+            if refused {
+                socket
+                    .write_all(b"{\"event\":\"body-join-refused\"}\n")
+                    .unwrap();
+            } else {
+                socket.write_all(b"{\"schema\":\"challenge\",\"ok\":true}\n{\"invitation\":{\"schema\":\"private\"}}\n").unwrap();
+            }
+        });
+        let mut line = Line::open(&format!("tcp://{address}")).unwrap();
+        if refused {
+            assert!(line.schema_document("challenge").is_err());
+        } else {
+            assert_eq!(line.schema_document("challenge").unwrap()["ok"], true);
+            assert_eq!(
+                line.schema_document("private").unwrap()["invitation"]["schema"],
+                "private"
+            );
+        }
+        peer.join().unwrap();
+    }
+}
+#[test]
+fn private_usb_reply_filter_enforces_total_discard_budget() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let peer = std::thread::spawn(move || {
+        let (mut socket, _) = listener.accept().unwrap();
+        socket.write_all(&vec![b'x'; 8192]).unwrap();
+    });
+    let mut line = Line::open(&format!("tcp://{address}")).unwrap();
+    assert!(line
+        .schema_document("challenge")
+        .unwrap_err()
+        .to_string()
+        .contains("document bound"));
+    peer.join().unwrap();
+}

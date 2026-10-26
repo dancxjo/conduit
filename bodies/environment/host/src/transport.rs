@@ -179,6 +179,33 @@ impl Line {
         }
         Err("UART exchange bound".into())
     }
+    /// Select the exact private USB reply while unrelated progress continues.
+    /// The total byte budget and absolute deadline include discarded lines.
+    pub fn schema_document(&mut self, schema: &str) -> Result<Value> {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut bytes = Vec::new();
+        for _ in 0..8192 {
+            self.ready(libc::POLLIN, deadline)?;
+            let mut byte = [0];
+            self.file.read_exact(&mut byte).map_err(error::io)?;
+            if byte[0] == b'\n' {
+                if let Ok(value) = serde_json::from_slice::<Value>(&bytes) {
+                    if value["event"] == "body-join-refused"
+                        || value["event"] == "native-root-request-refused"
+                    {
+                        return Err("Root refused private invitation".into());
+                    }
+                    if value["schema"] == schema || value["invitation"]["schema"] == schema {
+                        return Ok(value);
+                    }
+                }
+                bytes.clear();
+            } else {
+                bytes.push(byte[0]);
+            }
+        }
+        Err("private invitation document bound".into())
+    }
     pub fn document(&mut self) -> Result<Value> {
         // Admission documents have no event discriminator and fit Root's 8 KiB bound.
         let mut bytes = Vec::new();

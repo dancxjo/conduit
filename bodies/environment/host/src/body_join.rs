@@ -117,7 +117,9 @@ pub fn issue(state: &Path, serial: &str, output: &Path) -> Result<()> {
     let authority = crate::admission::Authority::new(state)?;
     let mut line = crate::transport::Line::open(serial)?;
     line.text("JOIN?")?;
-    let challenge: Challenge = serde_json::from_value(line.document()?)?;
+    let challenge: Challenge = serde_json::from_value(
+        line.schema_document("conduit.environment/private-invitation-challenge@1")?,
+    )?;
     if challenge.schema != "conduit.environment/private-invitation-challenge@1"
         || challenge.nonce == [0; 32]
         || challenge.valid_for_ms != 30000
@@ -145,7 +147,8 @@ pub fn issue(state: &Path, serial: &str, output: &Path) -> Result<()> {
         .to_bytes()
         .to_vec();
     line.text(&format!("JOIN {}", serde_json::to_string(&request)?))?;
-    let mut bootstrap: Bootstrap = serde_json::from_value(line.document()?)?;
+    let mut bootstrap: Bootstrap =
+        serde_json::from_value(line.schema_document(conduit_body::INVITATION_SCHEMA)?)?;
     let result = (|| {
         checked(bootstrap.invitation.validate(0))?;
         if bootstrap.root_key != request.root_key
