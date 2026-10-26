@@ -17,6 +17,14 @@ mod workload;
 use body_identity::bind_body;
 pub use body_identity::BodyIdentityDerivation;
 
+/// A checked fresh Wake, kept private to the unpublished lifecycle transaction.
+pub(crate) struct PreparedBodyWake(Wake);
+impl PreparedBodyWake {
+    pub(crate) fn wake(&self) -> &Wake {
+        &self.0
+    }
+}
+
 pub const MAX_BODY_SIGNS: usize = 16;
 pub const MAX_WAKE_SIGNS: usize = 32;
 pub const MAX_WAKE_PLANS: usize = 8;
@@ -225,6 +233,17 @@ impl Body {
         wake_sequence: u64,
         sign_id: SignId,
     ) -> Result<(Self, Wake), BodyLifecycleError> {
+        let prepared = self.prepare_wake(wake_sequence, sign_id)?;
+        let mut body = self.clone();
+        let wake = body.commit_wake_unpublished(prepared);
+        Ok((body, wake))
+    }
+
+    pub(crate) fn prepare_wake(
+        &self,
+        wake_sequence: u64,
+        sign_id: SignId,
+    ) -> Result<PreparedBodyWake, BodyLifecycleError> {
         self.validate()?;
         if matches!(self.state, BodyState::Fulfilled { .. }) {
             return Err(BodyLifecycleError::Fulfilled);
@@ -238,16 +257,7 @@ impl Body {
             &[self.body_id.as_str()],
             wake_sequence,
         ));
-        let mut body = self.clone();
-        body.state = BodyState::Awake {
-            wake_id: wake_id.clone(),
-        };
-        body.sign_ids.push(sign_id.clone());
-        body.events.push(BodyLifecycleEvent::Woke {
-            wake_id: wake_id.clone(),
-            sign_id: sign_id.clone(),
-        });
-        let wake = Wake {
+        Ok(PreparedBodyWake(Wake {
             wake_id,
             body_id: self.body_id.clone(),
             workset: self.workset.clone(),
@@ -256,12 +266,25 @@ impl Body {
             lifecycle: WakeLifecycle::AwaitingPlan,
             plans: Vec::new(),
             rejections: Vec::new(),
-            sign_ids: vec![sign_id],
-            events: vec![WakeLifecycleEvent::Woke {
-                sign_id: body.sign_ids.last().cloned().expect("wake sign is present"),
-            }],
+            sign_ids: vec![sign_id.clone()],
+            events: vec![WakeLifecycleEvent::Woke { sign_id }],
+        }))
+    }
+
+    /// The caller owns an unpublished candidate and has not changed its Body
+    /// since preparation. No fallible work remains in this primitive transition.
+    pub(crate) fn commit_wake_unpublished(&mut self, prepared: PreparedBodyWake) -> Wake {
+        let wake = prepared.0;
+        let sign_id = wake.sign_ids[0].clone();
+        self.state = BodyState::Awake {
+            wake_id: wake.wake_id.clone(),
         };
-        Ok((body, wake))
+        self.sign_ids.push(sign_id.clone());
+        self.events.push(BodyLifecycleEvent::Woke {
+            wake_id: wake.wake_id.clone(),
+            sign_id,
+        });
+        wake
     }
 
     pub fn retain_after_lull(

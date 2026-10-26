@@ -132,14 +132,15 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
         // Reserve Woke and the eventual retained lull before publishing either.
         next.make_lifecycle_room(2, 1)?;
         let sequence = next.next_sequence()?;
-        let (body, wake) = next
+        let prepared = next
             .evidence
             .body
-            .wake(sequence, sign(host, boot, sequence))
+            .prepare_wake(sequence, sign(host, boot, sequence))
             .map_err(BodyLifecycleSessionError::Lifecycle)?;
-        let plan = retain(&wake, input)?;
-        next.evidence
-            .append_wake(body, wake.clone(), sequence)
+        let plan = retain(prepared.wake(), input)?;
+        let wake = next
+            .evidence
+            .append_prepared_wake_unpublished(prepared, sequence)
             .map_err(BodyLifecycleSessionError::Biography)?;
         next.realization = Some(BodyLifecycleRealization {
             wake,

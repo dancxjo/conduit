@@ -208,6 +208,48 @@ impl BodyBiographyEvidence {
         Ok(())
     }
 
+    /// Commit a fresh Wake only inside an unpublished owner transaction. The
+    /// token was checked against this unchanged Body before Plan retention.
+    /// Unlike the general public extension entrance, failure may mutate this
+    /// private candidate; its owner must discard the entire candidate on error.
+    pub(crate) fn append_prepared_wake_unpublished(
+        &mut self,
+        prepared: crate::lifecycle::PreparedBodyWake,
+        first_sequence: u64,
+    ) -> Result<Wake, BodyBiographyError> {
+        self.validate()?;
+        let wake = prepared.wake();
+        if wake.body_id != self.body_id {
+            return Err(BodyBiographyError::WrongBody);
+        }
+        wake.validate()
+            .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+        if self.wakes.iter().any(|old| old.wake_id == wake.wake_id) {
+            return Err(BodyBiographyError::InvalidEvidence);
+        }
+        if self.wakes.len() >= MAX_BODY_BIOGRAPHY_WAKES {
+            return Err(BodyBiographyError::CapacityExhausted);
+        }
+        self.can_append(1)?;
+        if first_sequence <= self.last_sequence() {
+            return Err(BodyBiographyError::InvalidSequence);
+        }
+        let sign_id = wake.sign_ids[0].clone();
+        let wake_id = wake.wake_id.clone();
+        let wake = self.body.commit_wake_unpublished(prepared);
+        self.wakes.push(wake.clone());
+        self.records.push(BodyBiographyRecord {
+            sequence: first_sequence,
+            sign_id,
+            kind: BodyBiographyRecordKind::WakeEvent {
+                wake_id,
+                event_index: 0,
+            },
+        });
+        self.validate()?;
+        Ok(wake)
+    }
+
     pub(super) fn validate_wake_history(&self) -> Result<(), BodyBiographyError> {
         let invalid = |_| BodyBiographyError::InvalidEvidence;
         if self.wakes.len() > MAX_BODY_BIOGRAPHY_WAKES {
@@ -387,5 +429,80 @@ impl BodyBiographyEvidence {
             return Err(BodyBiographyError::InvalidEvidence);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod unpublished_tests {
+    use super::*;
+
+    #[test]
+    fn fresh_wake_matches_public_extension_without_recopying_existing_storage() {
+        let body = Body::born(
+            "source/work".into(),
+            "checked/work".into(),
+            1,
+            "sign/birth".into(),
+        )
+        .unwrap();
+        let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+        let mut candidate =
+            BodyBiographyEvidence::born(body, membership, "Workbench".into()).unwrap();
+        let mut expected = candidate.clone();
+        let (body, wake) = expected.body.wake(2, "sign/wake".into()).unwrap();
+        expected.append_wake(body, wake.clone(), 2).unwrap();
+        let body_storage = candidate.body.body_id.as_str().as_ptr();
+        let name_storage = candidate.friendly_name.as_ptr();
+        let birth_storage = candidate.records[0].sign_id.as_str().as_ptr();
+        let prepared = candidate.body.prepare_wake(2, "sign/wake".into()).unwrap();
+        let actual = candidate
+            .append_prepared_wake_unpublished(prepared, 2)
+            .unwrap();
+        assert_eq!(actual, wake);
+        assert_eq!(candidate, expected);
+        assert_eq!(
+            serde_json::to_vec(&candidate).unwrap(),
+            serde_json::to_vec(&expected).unwrap()
+        );
+        assert_eq!(
+            postcard::to_allocvec(&candidate).unwrap(),
+            postcard::to_allocvec(&expected).unwrap()
+        );
+        // These allocations belong to the existing candidate. A nested Body or
+        // biography transaction would copy them and replace their addresses.
+        assert_eq!(candidate.body.body_id.as_str().as_ptr(), body_storage);
+        assert_eq!(candidate.friendly_name.as_ptr(), name_storage);
+        assert_eq!(
+            candidate.records[0].sign_id.as_str().as_ptr(),
+            birth_storage
+        );
+    }
+    #[test]
+    fn fresh_wake_sequence_refusal_matches_public_extension() {
+        let body = Body::born(
+            "source/work".into(),
+            "checked/work".into(),
+            1,
+            "sign/birth".into(),
+        )
+        .unwrap();
+        let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+        let original = BodyBiographyEvidence::born(body, membership, "Workbench".into()).unwrap();
+        let mut public = original.clone();
+        let mut unpublished = original.clone();
+        let (body, wake) = public.body.wake(2, "sign/wake".into()).unwrap();
+        let expected = public.append_wake(body, wake, 1).unwrap_err();
+        let prepared = unpublished
+            .body
+            .prepare_wake(2, "sign/wake".into())
+            .unwrap();
+        assert_eq!(
+            unpublished
+                .append_prepared_wake_unpublished(prepared, 1)
+                .unwrap_err(),
+            expected
+        );
+        assert_eq!(public, original);
+        assert_eq!(unpublished, original);
     }
 }
