@@ -792,11 +792,17 @@ supply the present bounded representation. A
 derives semantic readiness; it performs no lifecycle action.
 
 Fulfillment readiness is **not** proof of execution completion, authorization to
-lull or retire, a guarantee of durable persistence, or an instruction to
+lull or Fulfill, a guarantee of durable persistence, or an instruction to
 destroy continuity evidence. The full stop completing an authored Plot belongs
-to the Plot's semantics, not to Body-purpose fulfillment. A future irreversible
-retirement operation requires separate explicit authority and its own exact
-evidence, just as other lifecycle transitions do.
+to the Plot's semantics, not to Body-purpose fulfillment.
+
+The current Body lifecycle **already has** a terminal
+`BodyState::Fulfilled`, admitted from `Lulled` with separate authoritative
+settlement and Sign evidence. It concludes mutable useful continuity while
+retaining the record of what was fulfilled; it is not automatic upon readiness
+and is not a generic erase operation. Exact operator, cleanup, and host-delivery
+proof remain separate from the semantic readiness derivation. See
+[Body purpose and fulfillment](architecture/body-purpose-and-fulfillment.md).
 
 Continuity and fulfillment therefore protect complementary things: the Body
 can remain itself while its machinery changes, and it need not be made to chase

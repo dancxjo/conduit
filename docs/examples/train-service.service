@@ -1,0 +1,12 @@
+# Inert example. Review identities, credentials and a single repository state root first.
+[Unit]
+Description=Advance retained Conduit integration train batches
+
+[Service]
+Type=oneshot
+WorkingDirectory=/absolute/pinned-trusted-controller
+EnvironmentFile=/private/train/observer.env
+UMask=0077
+ExecStart=/absolute/pinned-cargo +stable xtask ci pipeline train-service /private/train/service.json /private/train/machine.json /private/train/app.pem CONDUIT_TRAIN_POLICY_OBSERVER
+TimeoutStartSec=20min
+# No Restart=on-failure: retained ambiguous intents require inspection.

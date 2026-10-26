@@ -18,10 +18,11 @@ const number = value => {
 export function createTrainCommands({ command = spawnSync, directory = process.cwd(), artifactCommand, observeCheapPolicy, sourceEnvironment } = {}) {
   sourceEnvironment = sourceEnvironment === undefined ? undefined : { ...sourceEnvironment };
   const invoke = (program, args) => {
+    if (program === 'git') args = ['-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', ...args];
     let result;
     try { result = command(program, args, { cwd: directory, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024,
       ...(sourceEnvironment === undefined || program !== 'git' ? {} : { env: sourceEnvironment }),
-      ...(program === 'gh' ? { timeout: 60000 } : {}) }); }
+      timeout: 60000, killSignal: 'SIGKILL' }); }
     catch (error) { if (sourceEnvironment !== undefined) fail('Train child operation failed'); throw error; }
     if (result.error || result.status !== 0) {
       if (sourceEnvironment !== undefined) fail('Train child operation failed');
@@ -105,7 +106,9 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
       invoke('git', ['worktree', 'add', '-b', selected.branch, '--', worktree, base]);
       try {
         for (const input of selected.inputs) {
-          invoke('git', ['-C', worktree, 'merge', '--no-ff', input.head, '-m', `Train PR #${input.number}`]);
+          invoke('git', ['-C', worktree, '-c', 'user.name=Conduit train',
+            '-c', 'user.email=train@example.invalid', 'merge', '--no-ff', input.head,
+            '-m', `Train PR #${input.number}`]);
         }
         const source = invoke('git', ['-C', worktree, 'rev-parse', 'HEAD']);
         assertSourceCheckout(source, worktree, sourceEnvironment);

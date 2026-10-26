@@ -1,0 +1,12 @@
+# Inert example; enable only after deployment and recovery acceptance.
+[Unit]
+Description=Observe and advance the retained Conduit integration train
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=30s
+Unit=train-service.service
+
+[Install]
+WantedBy=timers.target

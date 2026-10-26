@@ -15,7 +15,7 @@ const tree = 'd'.repeat(40);
 const repository = 'example/conduit';
 const targets = [{ id: 'hosted-linux', proofClass: 'executable' }];
 
-async function fixture(t, repositoryName = null, adoptionStager = null, sitePreparer = null) {
+async function fixture(t, repositoryName = null, adoptionStager = null, sitePreparer = null, publicationIdentity = null) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'pipeline-publish-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const directory = path.join(root, 'bundle');
@@ -26,12 +26,15 @@ async function fixture(t, repositoryName = null, adoptionStager = null, sitePrep
   await writeFile(path.join(product, 'conduit'), 'tested binary');
   await sealTarget({ directory: product, target: 'hosted-linux', sha: source, proofClass: 'executable' });
   const state = {
-    integration: { repository: { full_name: repository }, head_repository: { full_name: repository },
+    integration: { id: 123, run_attempt: 1, repository: { id: 101, full_name: repository }, head_repository: { id: 101, full_name: repository },
       event: 'push', head_branch: 'dev', path: '.github/workflows/integration.yml',
       status: 'completed', conclusion: 'success', head_sha: source },
     head: source, main: previous, acceptedTree: tree, ancestor: true,
     dev: '9'.repeat(40), devContainsSource: true,
     open: [], own: [], refs: [], releases: [], assets: [], calls: [], uploads: 0,
+    publisher: { id: 456, run_attempt: 1, path: '.github/workflows/publish.yml', event: 'workflow_run',
+      status: 'in_progress', conclusion: null, repository: { id: 101, full_name: repository },
+      head_repository: { id: 101, full_name: repository } },
   };
   const response = value => ({ status: 0, stdout: typeof value === 'string' ? value : JSON.stringify(value), stderr: '' });
   const command = (program, args, options) => {
@@ -59,6 +62,7 @@ async function fixture(t, repositoryName = null, adoptionStager = null, sitePrep
     const fields = Object.fromEntries(args.flatMap((arg, i) => ['-F', '-f'].includes(arg) ? [args[i + 1].split(/=(.*)/s).slice(0, 2)] : []));
     let result;
     if (endpoint === 'actions/runs/123') result = state.integration;
+    else if (endpoint === 'actions/runs/456') result = state.publisher;
     else if (endpoint === `git/commits/${source}`) result = { tree: { sha: tree } };
     else if (endpoint === `git/commits/${accepted}`) result = state.mainCommit ?? { tree: { sha: state.acceptedTree } };
     else if (endpoint === `git/commits/${previous}`) result = { tree: { sha: tree }, parents: [] };
@@ -118,8 +122,10 @@ async function fixture(t, repositoryName = null, adoptionStager = null, sitePrep
     return response(args.includes('--slurp') ? [result] : result);
   };
   const output = path.join(root, 'output');
-  const publish = createPublisher({ command, targets, output, repositoryName, adoptionStager, sitePreparer });
-  return { state, directory, product, output, storage, publish: () => publish('123', directory) };
+  const publicationReceipt = path.join(root, 'publication-receipt.json');
+  const publish = createPublisher({ command, targets, output, repositoryName, adoptionStager, sitePreparer,
+    publicationIdentity, publicationReceipt });
+  return { state, directory, product, output, storage, publicationReceipt, publish: () => publish('123', directory) };
 }
 
 function mutations(state) {
@@ -353,4 +359,40 @@ test('publisher prepares the authenticated bundle before promotion and exposes i
   });
   await f.publish();
   assert.ok((await readFile(f.output, 'utf8')).includes(`pages-site=${site}\n`));
+});
+
+
+const publicationIdentity = { runId: 456, runAttempt: 1, workflow: '.github/workflows/publish.yml' };
+test('run-bound publication receipt preserves stable release manifest bytes', async t => {
+  const { createHash } = await import('node:crypto');
+  const f = await fixture(t, null, null, null, publicationIdentity);
+  await f.publish();
+  const bytes = await readFile(path.join(f.storage, 'manifest.json'));
+  const manifest = JSON.parse(bytes);
+  const receipt = JSON.parse(await readFile(f.publicationReceipt));
+  assert.equal(manifest.publication, undefined, 'attempt identity must not destabilize resumable release assets');
+  assert.deepEqual(receipt.publication, publicationIdentity);
+  assert.equal(receipt.integrationRun, 123);
+  assert.equal(receipt.acceptanceRunAttempt, 1);
+  assert.equal(receipt.testedSourceSha, source);
+  assert.equal(receipt.acceptedMainSha, accepted);
+  assert.equal(receipt.treeSha, tree);
+  assert.equal(receipt.releaseManifestSha256, createHash('sha256').update(bytes).digest('hex'));
+});
+for (const [field, value] of [['run_attempt', 2], ['event', 'push'], ['path', '.github/workflows/ci.yml'], ['status', 'completed']]) {
+  test(`publisher refuses wrong publication ${field} before stable mutations`, async t => {
+    const f = await fixture(t, null, null, null, publicationIdentity);
+    f.state.publisher[field] = value;
+    await assert.rejects(f.publish(), /Publication run identity refused/);
+    assert.equal(mutations(f.state).length, 0);
+  });
+}
+test('publisher refuses publication run movement before promotion after site preparation', async t => {
+  let f;
+  f = await fixture(t, null, null, async () => {
+    f.state.publisher.run_attempt = 2;
+    return path.join(os.tmpdir(), 'fixture-site');
+  }, publicationIdentity);
+  await assert.rejects(f.publish(), /Publication run identity refused/);
+  assert.equal(mutations(f.state).length, 0);
 });
