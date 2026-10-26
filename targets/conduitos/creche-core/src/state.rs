@@ -8,6 +8,8 @@ use conduit_birth_plot::{
     BirthActionOutcome, BirthActions, BirthDraft, BirthFaceRefusal, BirthWidgetFace,
 };
 use conduit_face::ApplicationEventKind;
+mod incoming;
+use incoming::Incoming;
 mod home;
 mod home_presentation;
 mod presentation;
@@ -15,7 +17,7 @@ mod presentation;
 pub struct State {
     draft: Option<super::native::Controller>,
     home: Option<super::home::Controller>,
-    incoming: Option<(InputKind, u32, Vec<u8>)>,
+    incoming: Option<Incoming>,
     outgoing: Vec<u8>,
     read_offset: u32,
 }
@@ -91,11 +93,7 @@ impl State {
                 } {
                     return Err(Refusal::Order);
                 }
-                let mut bytes = Vec::new();
-                bytes
-                    .try_reserve_exact(total as usize)
-                    .map_err(|_| Refusal::Capacity)?;
-                self.incoming = Some((kind, total, bytes));
+                self.incoming = Some(Incoming::new(kind, total)?);
                 self.outgoing = Vec::new();
                 self.read_offset = 0;
                 Ok(Response::Ready {
@@ -107,22 +105,12 @@ impl State {
                 window_offset,
                 bytes,
             } => {
-                let (_, total, incoming) = self.incoming.as_mut().ok_or(Refusal::Order)?;
-                let end = offset
-                    .checked_add(bytes)
-                    .filter(|n| *n <= *total)
-                    .ok_or(Refusal::Bounds)?;
-                let window_end = window_offset
-                    .checked_add(bytes)
-                    .filter(|n| *n <= TRANSFER_BYTES)
-                    .ok_or(Refusal::Bounds)?;
-                if bytes == 0 || offset as usize != incoming.len() {
-                    return Err(Refusal::Order);
-                }
-                incoming.extend_from_slice(&transfer[window_offset as usize..window_end as usize]);
-                if incoming.len() != end as usize {
-                    return Err(Refusal::Bounds);
-                }
+                self.incoming.as_mut().ok_or(Refusal::Order)?.write(
+                    offset,
+                    window_offset,
+                    bytes,
+                    transfer,
+                )?;
                 Ok(Response::Ready {
                     revision: self.draft.as_ref().map_or(1, |draft| draft.revision()),
                 })
@@ -232,7 +220,12 @@ impl State {
         }
     }
     fn commit(&mut self) -> Result<Response, Refusal> {
-        let (kind, total, bytes) = self.incoming.take().ok_or(Refusal::Order)?;
+        let Incoming {
+            kind,
+            total,
+            bytes,
+            prepared,
+        } = self.incoming.take().ok_or(Refusal::Order)?;
         if bytes.len() != total as usize {
             return Err(Refusal::Order);
         }
@@ -272,7 +265,9 @@ impl State {
                 self.publish(OutputKind::Face, &face)
             }
             InputKind::FaceInteraction => {
-                let input = data::decode_interaction(&bytes)?;
+                // Only Commit can consume the prepared value or expose its refusal.
+                // There is deliberately no fallback decode or reusable cache.
+                let input = prepared.ok_or(Refusal::Order)??;
                 drop(bytes);
                 data::validate_basis(&input.basis)?;
                 self.current(input.revision)?;

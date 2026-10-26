@@ -4,6 +4,7 @@
 mod draft;
 mod errors;
 mod home;
+mod input_cost;
 use crate::{
     arch::ServiceDomain,
     protected_region::{DomainBackend, DomainCost, DomainRefusal, DomainReturn},
@@ -187,6 +188,8 @@ impl CrecheService {
         if total == 0 || total > wire::MAX_BLOB_BYTES {
             return Err(TransportError::Bounds);
         }
+        let mut phases =
+            (kind == InputKind::FaceInteraction).then(|| input_cost::InputCost::new(self.cost()));
         self.request(Request::Begin { kind, total })?;
         let mut offset = 0;
         for chunk in bytes.chunks(wire::TRANSFER_BYTES as usize) {
@@ -201,14 +204,23 @@ impl CrecheService {
                 .get_mut(..chunk.len())
                 .ok_or(TransportError::Protocol)?
                 .copy_from_slice(chunk);
+            let before = self.cost();
             self.request(Request::Write {
                 offset,
                 window_offset: 0,
                 bytes: chunk.len() as u32,
             })?;
+            if let Some(phases) = phases.as_mut() {
+                phases.write(before, self.cost());
+            }
             offset += chunk.len() as u32;
         }
-        self.request(Request::Commit)
+        let before = self.cost();
+        let response = self.request(Request::Commit)?;
+        if let Some(phases) = phases {
+            phases.finish(total, before, self.cost());
+        }
+        Ok(response)
     }
 
     fn blob(
