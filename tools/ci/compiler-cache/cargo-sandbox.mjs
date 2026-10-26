@@ -331,7 +331,10 @@ export async function clearCompositorCargoCache({cacheRoot,expectedNamespace}) {
     if(!stat.isFile()||stat.nlink!==1||stat.uid!==process.getuid()||stat.size>16384)fail('unsafe-cargo-cache-policy');
     const policy=JSON.parse(await fs.readFile(marker,'utf8'));
     const fields=policy.schema===3?['schema','cacheMode','compatibilitySha256','runnerSha256','sandboxArgsSha256','runnerSourceSha256','bwrapSha256','maxCacheBytes']:['schema','snapshotSha256','runnerSha256','sandboxArgsSha256','runnerSourceSha256','bwrapSha256','maxCacheBytes'];
-    if(Object.keys(policy).sort().join()!==fields.sort().join()||![2,3].includes(policy.schema)||(policy.schema===3&&policy.cacheMode!=='audited-dependencies')||!Number.isSafeInteger(policy.maxCacheBytes)||policy.maxCacheBytes<=0||fields.filter(key=>key.endsWith('Sha256')).some(key=>!/^[a-f0-9]{64}$/.test(policy[key]))||sha(JSON.stringify(policy))!==expectedNamespace)fail('cargo-clear-policy-mismatch');
+    // Hosted policies bind the selected Cargo recipe verifier in either schema.
+    // Keep the optional field explicit: all other unexpected keys still refuse.
+    if(Object.hasOwn(policy,'recipeVerifierSha256'))fields.push('recipeVerifierSha256');
+    if(Object.keys(policy).sort().join()!==fields.sort().join()||![2,3].includes(policy.schema)||(policy.schema===3&&policy.cacheMode!=='audited-dependencies')||!Number.isSafeInteger(policy.maxCacheBytes)||policy.maxCacheBytes<=0||fields.filter(key=>key.endsWith('Sha256')).some(key=>typeof policy[key]!=='string'||!/^[a-f0-9]{64}$/.test(policy[key]))||sha(JSON.stringify(policy))!==expectedNamespace)fail('cargo-clear-policy-mismatch');
     const objects=path.join(cache,'objects');const inventory=await retirementInventory(objects);
     const processAudit=await assertInactiveEngineObjects(objects,inventory.identities);
     const tombstone=`.retiring-${randomUUID()}`;const intent=path.join(cache,'retirement.json');
