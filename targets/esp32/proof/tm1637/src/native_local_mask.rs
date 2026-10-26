@@ -9,6 +9,12 @@ type Bindings = crate::native_authority::NativeBindings<
     conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
     crate::native_wait::EspWait,
 >;
+struct PreparedSamplerParts {
+    sampler_parts: crate::native_kernel_storage::LocalKernelParts,
+    native: Option<Bindings>,
+    active: c::ActivePlayIdentity,
+    fragment: c::FragmentId,
+}
 struct PreparedLocalPlots {
     sampler: Option<crate::native_kernel::PreparedKernel>,
     native: Option<Bindings>,
@@ -253,14 +259,22 @@ impl NativeRoot {
         // complete immutable result crosses this synchronous ownership handoff;
         // no plan, authority, or metadata is omitted.
         let sample = self.prepare_local_sampler_plan()?;
-        self.prepare_local_plots_from_sampler(sample, execute)
+        let sampler = self.prepare_local_sampler_parts(&sample, execute)?;
+        mark("ordinary-mask-software-construction-retired", 15);
+        let mask_values = take_fixed_values()?;
+        mark(
+            "ordinary-mask-fixed-canonical-storage",
+            core::mem::size_of_val(mask_values),
+        );
+        let mask = self.prepare_local_mask_plan()?;
+        self.assemble_local_plots(sample, sampler, mask, mask_values, execute)
     }
     #[inline(never)]
-    fn prepare_local_plots_from_sampler(
+    fn prepare_local_sampler_parts(
         &mut self,
-        sample: c::VerifiedPlanMetadata,
+        sample: &c::VerifiedPlanMetadata,
         execute: bool,
-    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+    ) -> Result<PreparedSamplerParts, &'static str> {
         let sample_image = crate::native_software::planning_source()?;
         let generation = c::OfferGeneration(self.offer_generation);
         // Validate and transfer dormant software before retaining the Body
@@ -314,13 +328,29 @@ impl NativeRoot {
             let parts = crate::native_kernel_storage::LocalKernelParts::from_checked(prepared);
             (parts, native, active, fragment_id)
         };
-        mark("ordinary-mask-software-construction-retired", 15);
-        let mask_values = take_fixed_values()?;
-        mark(
-            "ordinary-mask-fixed-canonical-storage",
-            core::mem::size_of_val(mask_values),
-        );
-        let mask = self.prepare_local_mask_plan()?;
+        Ok(PreparedSamplerParts {
+            sampler_parts,
+            native,
+            active,
+            fragment,
+        })
+    }
+    #[inline(never)]
+    fn assemble_local_plots(
+        &mut self,
+        sample: c::VerifiedPlanMetadata,
+        sampler: PreparedSamplerParts,
+        mask: c::VerifiedPlanMetadata,
+        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+        execute: bool,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        let PreparedSamplerParts {
+            sampler_parts,
+            native,
+            active,
+            fragment,
+        } = sampler;
+        let generation = c::OfferGeneration(self.offer_generation);
         let role = material::role().map_err(|_| "local-mask-role")?;
         let resident = |plan: &c::VerifiedPlanMetadata| {
             let metadata = plan.preparation_metadata();

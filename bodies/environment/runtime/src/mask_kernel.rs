@@ -258,6 +258,8 @@ impl PreparedMaskKernelParts {
     pub fn required_fixed_heap_bytes(&self) -> usize {
         core::mem::size_of::<Kernel<&mut k::FixedValueStore<2, 8192>>>()
     }
+    // Keep fixed SignLog/scheduler construction out of callers that also plan.
+    #[inline(never)]
     fn finish_with_values<V: k::ValueStorage>(
         self,
         values: V,
