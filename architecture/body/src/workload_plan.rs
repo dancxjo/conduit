@@ -1,6 +1,6 @@
 //! One immutable body-wide Plan over the current exact plot workset.
 
-use alloc::{format, string::String, vec::Vec};
+use alloc::{string::String, vec::Vec};
 use conduit_core::{verify_plan, ActivePlayId, BodyTimeRequirement, PlacementId, Plan, PlanId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -293,7 +293,7 @@ fn validate_body_time_requirement(
     Ok(())
 }
 
-fn push_temporal_scale(bytes: &mut Vec<u8>, scale: conduit_core::TemporalScale) {
+fn push_temporal_scale(bytes: &mut Sha256, scale: conduit_core::TemporalScale) {
     let label = match scale {
         conduit_core::TemporalScale::Seconds => "seconds",
         conduit_core::TemporalScale::Milliseconds => "milliseconds",
@@ -321,25 +321,27 @@ fn bind_body_play(
     plan_id: &PlanId,
     play_sequence: u64,
 ) -> ActivePlayId {
-    let mut bytes = Vec::new();
-    push(&mut bytes, "conduit.body/body-play@1");
-    push(&mut bytes, body_id.as_str());
-    push(&mut bytes, wake_id.as_str());
-    push(&mut bytes, plan_id.as_str());
-    bytes.extend_from_slice(&play_sequence.to_le_bytes());
-    ActivePlayId::from(digest_id("body-play", &bytes))
+    let mut hash = Sha256::new();
+    push(&mut hash, "conduit.body/body-play@1");
+    push(&mut hash, body_id.as_str());
+    push(&mut hash, wake_id.as_str());
+    push(&mut hash, plan_id.as_str());
+    hash.update(play_sequence.to_le_bytes());
+    ActivePlayId::from(digest_id("body-play", hash))
 }
 
-fn push(output: &mut Vec<u8>, value: &str) {
-    output.extend_from_slice(&(value.len() as u32).to_le_bytes());
-    output.extend_from_slice(value.as_bytes());
+fn push(output: &mut Sha256, value: &str) {
+    output.update((value.len() as u32).to_le_bytes());
+    output.update(value.as_bytes());
 }
 
-fn digest_id(prefix: &str, bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    let mut hex = String::with_capacity(digest.len() * 2);
-    for byte in digest {
-        hex.push_str(&format!("{byte:02x}"));
+fn digest_id(prefix: &str, hash: Sha256) -> String {
+    use core::fmt::Write;
+    let mut output = String::with_capacity(prefix.len() + 8 + 64);
+    output.push_str(prefix);
+    output.push_str("/sha256:");
+    for byte in hash.finalize() {
+        let _ = write!(output, "{byte:02x}");
     }
-    format!("{prefix}/sha256:{hex}")
+    output
 }
