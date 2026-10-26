@@ -92,9 +92,9 @@ try {
     }
     case 'train-admit': {
       if (args.length !== 1) throw new Error('usage: train-admit <manifest-file>');
-      const { createTrainCommands } = await import('./train-command.mjs');
-      const manifest = await createTrainCommands().prepareDispatch(resolve(args[0]));
-      output('train-manifest-digest', manifest.digest);
+      const { createTrainProofAdmission } = await import('./train-proof-admission.mjs');
+      const proof = await createTrainProofAdmission()(resolve(args[0]));
+      output('train-manifest-digest', proof.digest);
       break;
     }
     case 'train-land': {

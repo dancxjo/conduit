@@ -5,8 +5,8 @@ const fail = message => { throw new Error(message); };
 
 // The first creator of the exact remote train ref owns dispatch. An existing
 // ref with no visible run is ambiguous, never permission to start duplicate CI.
-export function createTrainDispatcher({ command = spawnSync, directory = process.cwd() } = {}) {
-  const commands = createTrainCommands({ command, directory });
+export function createTrainDispatcher({ command = spawnSync, directory = process.cwd(), commands, observeCheapPolicy } = {}) {
+  commands ??= createTrainCommands({ command, directory, observeCheapPolicy });
   const api = (endpoint, body) => {
     const args = ['api', endpoint];
     if (body) args.push('--method', 'POST', '--input', '-');

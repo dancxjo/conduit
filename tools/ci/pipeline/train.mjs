@@ -42,12 +42,12 @@ function requireReady(identity, pr, run, jobs, repository) {
   return candidateAdmission(run, jobs);
 }
 
-export function selectTrainInputs({ repository, base, selections }) {
+function selectInputs({ repository, base, selections }, policy) {
   require(Array.isArray(selections), 'Missing train selection snapshots');
   const inputs = selections.map(snapshot => {
     const identity = { number: snapshot.pr?.number, head: snapshot.pr?.head?.sha };
     const admission = requireReady(identity, snapshot.pr, snapshot.candidateRun, snapshot.candidateJobs, repository);
-    if (admission.tier === 'cheap-input-v1') {
+    if (admission.tier === 'cheap-input-v1' && policy) {
       const grant = typeof snapshot.cheapPolicy === 'function' ? snapshot.cheapPolicy() : snapshot.cheapPolicy;
       requireCheapTrainPolicy(grant, repository);
     }
@@ -61,6 +61,12 @@ export function selectTrainInputs({ repository, base, selections }) {
     source: '0'.repeat(40), tree: '0'.repeat(40), digest: '0'.repeat(64) }, null, 2) + '\n') <= 65536,
   'Train admission manifest exceeds bound');
   return selected;
+}
+
+// Trusted control retains fresh machine policy on every cheap input. There is
+// no exported policy-bypass flag for capture, dispatch, restore or landing.
+export function selectTrainInputs(observation) {
+  return selectInputs(observation, true);
 }
 
 function payload(manifest) {
@@ -125,6 +131,17 @@ export function captureTrain({ repository, base, selections, source, directory =
   const value = { schema: SCHEMA, ...selection,
     source, tree };
   return { ...value, digest: digest(value) };
+}
+
+// Only schedules exhaustive proof. It returns no accepted-product or landing
+// authority and cannot replace verifyTrainRun/verifyTrainProducts.
+export function verifyTrainProofAdmission(manifest, { development, selections }, directory = process.cwd()) {
+  const value = verifyTrainManifest(manifest);
+  require(development === value.base, 'Development advanced; train must be rebuilt');
+  const current = selectInputs({ repository: value.repository, base: development, selections }, false);
+  require(JSON.stringify(current.inputs) === JSON.stringify(value.inputs), 'Train proof input readiness/run/attempt/head/jobs changed');
+  require(selectedSourceTree({ ...value, directory }) === value.tree, 'Train proof source tree differs');
+  return { source: value.source, tree: value.tree, digest: manifest.digest };
 }
 
 // Recheck live inputs immediately before any landing adapter acts. A candidate
