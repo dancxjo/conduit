@@ -62,6 +62,8 @@ events, and disables webhook delivery. The inactive hook URL names the
 repository, not a deployed webhook service. If webhooks become necessary, they
 require their own reviewed service/secret contract before activation.
 
+For an operator using the ordinary settings UI, the [prefilled private App registration](https://github.com/settings/apps/new?name=Conduit+Integration&description=Dedicated+exact-source+development+train+controller%3B+registration+and+installation+require+separate+setup.&url=https%3A%2F%2Fgithub.com%2Fdancxjo%2Fconduit&public=false&request_oauth_on_install=false&setup_on_update=false&webhook_active=false&webhook_url=https%3A%2F%2Fgithub.com%2Fdancxjo%2Fconduit&actions=write&administration=read&checks=read&contents=write&metadata=read&pull_requests=read&workflows=write) selects this manifest's reviewed permissions without a callback receiver or manifest-code exchange. This uses [GitHub's documented URL parameters](https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-using-url-parameters). Opening the page creates nothing; verify its editable settings before registration. If the name is unavailable, record and pin the actual App ID/slug after renaming. Generate the RSA key through GitHub and store only its external owner-only file path in the controller handoff, never key text in source, logs or conversation.
+
 Registration is a separate operator action. The [manifest flow](https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-from-a-manifest)
 creates credentials, so do not run it from a PR job or log its response. Select
 only `dancxjo/conduit` during installation. Store the private key, client secrets
@@ -189,3 +191,5 @@ restored source without force; actual dev push Integration adopts the original
 proof; publication authenticates the same products. Fixtures establish validator
 behavior only. Live activation, App setup, positive landing and global cheap
 admission remain unfinished until those distinct boundaries pass.
+
+History rewrites use the separate [operator maintenance procedure](history-migration-maintenance.md). The normal App/observer channels and non-forced lander remain unchanged.

@@ -100,3 +100,5 @@ redaction, byte/timeout and child-credential refusals. These are local protocol
 proofs. Registration, hosted API compatibility, correct/wrong-actor gates,
 positive exact landing, actual dev push adoption and publication reuse remain
 distinct live acceptance work.
+
+The controller has no history-rewrite operation. Use the [separate operator maintenance procedure](history-migration-maintenance.md), preserving non-forced ordinary landing and the independent proof/writer gates.
