@@ -6,8 +6,8 @@ use conduit_core as c;
 use conduit_face as f;
 use conduit_kernel::{self as k, scheduler::*};
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredForePort};
-pub type Kernel =
-    FixedScheduler<MaskBack, k::HostedValueStore, k::FixedSignLog<64, 12>, 3, 6, 2, 6, 6, 6, 3, 3>;
+pub type Kernel<V = k::HostedValueStore> =
+    FixedScheduler<MaskBack, V, k::FixedSignLog<64, 12>, 3, 6, 2, 6, 6, 6, 3, 3>;
 #[path = "mask_assigned.rs"]
 mod assigned;
 pub use assigned::*;
@@ -16,8 +16,8 @@ pub use assigned::*;
 mod local;
 #[cfg(feature = "local-planning")]
 pub use local::LocalMaskInput;
-pub struct PreparedMaskKernel {
-    pub kernel: Box<Kernel>,
+pub struct PreparedMaskKernel<V: k::ValueStorage = k::HostedValueStore> {
+    pub kernel: Box<Kernel<V>>,
     pub face: LoweredForePort,
     pub show: LoweredForePort,
     pub interaction: LoweredForePort,
@@ -236,6 +236,32 @@ impl PreparedMaskKernelParts {
         {
             return Err("mask-values");
         }
+        self.finish_with_values(backing.values)
+    }
+    /// Attach exclusive canonical fixed backing. This reserves the same two
+    /// full 8192-byte slots in target static storage instead of fragmented heap.
+    pub fn finish_with_fixed_storage(
+        self,
+        values: &mut k::FixedValueStore<2, 8192>,
+    ) -> Result<PreparedMaskKernel<&mut k::FixedValueStore<2, 8192>>, &'static str> {
+        use k::ValueStorage;
+        if self.face.byte_capacity != 8192
+            || self.show.byte_capacity != 8192
+            || values.byte_capacity() != 16384
+            || values.used_items() != 0
+            || values.used_bytes() != 0
+        {
+            return Err("mask-values");
+        }
+        self.finish_with_values(values)
+    }
+    pub fn required_fixed_heap_bytes(&self) -> usize {
+        core::mem::size_of::<Kernel<&mut k::FixedValueStore<2, 8192>>>()
+    }
+    fn finish_with_values<V: k::ValueStorage>(
+        self,
+        values: V,
+    ) -> Result<PreparedMaskKernel<V>, &'static str> {
         let Self {
             nodes,
             cords,
@@ -247,14 +273,13 @@ impl PreparedMaskKernelParts {
             interaction,
         } = self;
         // Face fan-out shares its ValueRef, while Show occupies its own full slot.
-        let values = backing.values;
         let signs = k::FixedSignLog::new_with_remote_storage(
             (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
             12,
             k::remote_sign_storage_bytes(12).ok_or("mask-signs")?,
         )
         .map_err(|_| "mask-signs")?;
-        let kernel = Kernel::new_boxed_with_active_counts_and_host_calls(
+        let kernel = Kernel::<V>::new_boxed_with_active_counts_and_host_calls(
             3, 6, nodes, cords, routes, calls, backs, values, signs,
         )
         .map_err(|_| "mask-kernel")?;
