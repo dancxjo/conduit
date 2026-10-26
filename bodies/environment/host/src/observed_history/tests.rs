@@ -357,6 +357,7 @@ fn complete_body_and_private_seed_survive_each_successor_power_cut() {
     };
     let mut journal = Checkpoint::open(original.clone()).unwrap();
     assert_eq!(journal.generation(), None);
+    assert_eq!(journal.payload_length(&[3; 32]).unwrap(), None);
     journal
         .save(&[3; 32], &[6; 32], b"oldest retired biography")
         .unwrap();

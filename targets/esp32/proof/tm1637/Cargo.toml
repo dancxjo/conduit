@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [features]
+body-persistence = ["dep:esp-storage", "dep:embedded-storage"]
 local-evidence-store = ["display-physical-check", "owner-wifi", "dep:esp-storage", "dep:embedded-storage"]
 owner-wifi = ["native-root"]
 mask-root = ["native-face-root", "conduit-environment-runtime/mask-renderer"]

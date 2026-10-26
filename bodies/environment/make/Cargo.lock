@@ -190,6 +190,7 @@ dependencies = [
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
+ "serde",
  "serde-json-core",
  "serde_json",
  "sha2",
@@ -199,6 +200,7 @@ dependencies = [
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-computation",
  "conduit-core",
  "conduit-environment-face",

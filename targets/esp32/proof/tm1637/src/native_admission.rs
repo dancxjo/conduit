@@ -11,6 +11,7 @@ pub const MAXIMUM_ADVERTISEMENT_BYTES: usize = 8192;
 pub const MAXIMUM_ENVELOPE_BYTES: usize = MAXIMUM_ADVERTISEMENT_BYTES + 320;
 pub struct NativeAdmission {
     key: SigningKey,
+    activated: bool,
 }
 impl NativeAdmission {
     /// Caller supplies independently initialized hardware entropy. No fallback.
@@ -18,21 +19,67 @@ impl NativeAdmission {
         if seed == [0; 32] {
             return Err(());
         }
+        #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+        {
+            let retained = crate::native_restart::select_signer_seed(seed);
+            seed.fill(0);
+            seed = retained.map_err(|_| ())?;
+        }
         let key = SigningKey::from_bytes(&seed);
-        #[cfg(feature = "local-evidence-store")]
+        #[cfg(all(
+            any(feature = "local-evidence-store", feature = "observation-store"),
+            not(all(feature = "body-image-root", feature = "body-persistence"))
+        ))]
         crate::native_observed_http::install(key.clone())?;
         seed.fill(0);
-        Ok(Self { key })
+        Ok(Self {
+            key,
+            activated: !cfg!(all(
+                feature = "body-image-root",
+                feature = "body-persistence"
+            )),
+        })
+    }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn activate_after_checkpoint(&mut self) -> Result<(), &'static str> {
+        if !crate::native_restart::publication_ready() {
+            return Err("restart-publication-not-durable");
+        }
+        if !self.activated {
+            #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+            crate::native_observed_http::install(self.key.clone())
+                .map_err(|_| "restart-history-signer")?;
+            self.activated = true;
+        }
+        Ok(())
+    }
+    fn ready(&self) -> bool {
+        #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+        {
+            self.activated && crate::native_restart::publication_ready()
+        }
+        #[cfg(not(all(feature = "body-image-root", feature = "body-persistence")))]
+        {
+            self.activated
+        }
     }
     pub fn verifying_key(&self) -> [u8; 32] {
         self.key.verifying_key().to_bytes()
     }
     /// Root supplies this only after exact reservation/lifecycle admission.
     pub fn sign_owner_receipt(&self, receipt: &crate::native_owner_receipt::Receipt) -> [u8; 64] {
+        assert!(
+            self.ready(),
+            "Root signing requires durable current Body custody"
+        );
         self.key.sign(&receipt.transcript()).to_bytes()
     }
     #[cfg(feature = "display-physical-check")]
     pub fn sign_display_evidence(&self, offer: &crate::native_display_evidence::Offer) -> [u8; 64] {
+        assert!(
+            self.ready(),
+            "Root signing requires durable current Body custody"
+        );
         self.key.sign(&offer.transcript()).to_bytes()
     }
     /// Expiry is checked by the Body authority in its own clock domain. This
@@ -44,7 +91,7 @@ impl NativeAdmission {
         boot: &str,
         generation: u64,
     ) -> Result<[u8; 64], ()> {
-        if !validate_pico_challenge(challenge, host, boot, generation) {
+        if !self.ready() || !validate_pico_challenge(challenge, host, boot, generation) {
             return Err(());
         }
         Ok(self

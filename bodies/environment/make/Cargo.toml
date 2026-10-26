@@ -29,6 +29,7 @@ conduit-time = { path = "../../../semantics/time", default-features = false }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }
 
 [dev-dependencies]
+serde = { version = "1", features = ["derive"] }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 serde-json-core = { version = "=0.6.0", default-features = false }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
@@ -36,5 +37,5 @@ conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["plot-catalog", "host-call"] }
 conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait" }
 conduit-network-join-call = { path = "../../../mechanisms/io/network-join" }
-conduit-environment-runtime = { path = "../runtime", features = ["display-session", "face-projection", "mask-kernel", "mask-renderer", "local-planning"] }
+conduit-environment-runtime = { path = "../runtime", features = ["body-image", "display-session", "face-projection", "mask-kernel", "mask-renderer", "local-planning"] }
 sha2 = { version = "0.10", default-features = false }

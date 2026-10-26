@@ -46,7 +46,23 @@ impl<S: Storage> Checkpoint<S> {
             (Some(a), Some(b)) if a.generation == b.generation => return Err(Refusal::Generation),
             (Some(a), Some(b)) => Some(if a.generation > b.generation { a } else { b }),
         };
+        if retained.is_none() {
+            let mut bytes = [0; 128];
+            for at in (0..2 * BANK).step_by(bytes.len()) {
+                storage.read(at, &mut bytes)?;
+                if bytes.iter().any(|byte| *byte != 255) {
+                    return Err(Refusal::Corrupt);
+                }
+            }
+        }
         Ok(Self { storage, retained })
+    }
+    pub fn payload_length(&self, binding: &[u8; 32]) -> Result<Option<usize>, Refusal> {
+        match self.retained {
+            Some(retained) if &retained.binding == binding => Ok(Some(retained.length as usize)),
+            Some(_) => Err(Refusal::Corrupt),
+            None => Ok(None),
+        }
     }
     pub fn generation(&self) -> Option<u64> {
         self.retained.map(|r| r.generation)
