@@ -32,13 +32,13 @@ pub struct FixedValueStore<const SLOTS: usize, const MAX_VALUE_BYTES: usize> {
 }
 
 impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> FixedValueStore<SLOTS, MAX_VALUE_BYTES> {
-    pub fn new(byte_capacity: u32) -> Result<Self, StorageError> {
-        let physical_bytes = SLOTS
-            .checked_mul(MAX_VALUE_BYTES)
-            .and_then(|value| u32::try_from(value).ok())
-            .ok_or(StorageError::InvalidBudget)?;
+    pub const fn new(byte_capacity: u32) -> Result<Self, StorageError> {
+        let physical_bytes = match SLOTS.checked_mul(MAX_VALUE_BYTES) {
+            Some(bytes) if bytes <= u32::MAX as usize => bytes as u32,
+            _ => return Err(StorageError::InvalidBudget),
+        };
         if SLOTS == 0
-            || SLOTS > usize::from(u16::MAX)
+            || SLOTS > u16::MAX as usize
             || MAX_VALUE_BYTES == 0
             || byte_capacity == 0
             || byte_capacity > physical_bytes
@@ -54,6 +54,53 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> FixedValueStore<SLOTS, MA
             has_retired_slots: false,
             #[cfg(test)]
             slot_probes: 0,
+        })
+    }
+
+    fn reserve_value_slot(&mut self, length: usize) -> Result<ValueRef, StorageError> {
+        if length > MAX_VALUE_BYTES {
+            return Err(StorageError::ValueTooLarge);
+        }
+        let byte_len = u32::try_from(length).map_err(|_| StorageError::ValueTooLarge)?;
+        if self
+            .used_bytes
+            .checked_add(byte_len)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(StorageError::ByteCapacityExceeded);
+        }
+        #[cfg(test)]
+        let probes = &mut self.slot_probes;
+        let (offset, slot) = self.slots[self.free_search_start..]
+            .iter_mut()
+            .enumerate()
+            .inspect(|_| {
+                #[cfg(test)]
+                {
+                    *probes += 1;
+                }
+            })
+            .find(|(_, slot)| slot.references == 0 && slot.generation != u16::MAX)
+            .ok_or(if self.has_retired_slots {
+                StorageError::GenerationExhausted
+            } else {
+                StorageError::ItemCapacityExceeded
+            })?;
+        let slot_index = self.free_search_start + offset;
+        self.free_search_start = slot_index + 1;
+        slot.generation += 1;
+        slot.references = 1;
+        slot.len = byte_len;
+        self.used_items = self
+            .used_items
+            .checked_add(1)
+            .ok_or(StorageError::ItemCapacityExceeded)?;
+        self.used_bytes += byte_len;
+        Ok(ValueRef {
+            slot: u16::try_from(slot_index).map_err(|_| StorageError::ItemCapacityExceeded)?,
+            generation: slot.generation,
+            byte_len,
         })
     }
 
@@ -105,51 +152,9 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
     }
 
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
-        if bytes.len() > MAX_VALUE_BYTES {
-            return Err(StorageError::ValueTooLarge);
-        }
-        let byte_len = u32::try_from(bytes.len()).map_err(|_| StorageError::ValueTooLarge)?;
-        if self
-            .used_bytes
-            .checked_add(byte_len)
-            .filter(|used| *used <= self.byte_capacity)
-            .is_none()
-        {
-            return Err(StorageError::ByteCapacityExceeded);
-        }
-        #[cfg(test)]
-        let probes = &mut self.slot_probes;
-        let (offset, slot) = self.slots[self.free_search_start..]
-            .iter_mut()
-            .enumerate()
-            .inspect(|_| {
-                #[cfg(test)]
-                {
-                    *probes += 1;
-                }
-            })
-            .find(|(_, slot)| slot.references == 0 && slot.generation != u16::MAX)
-            .ok_or(if self.has_retired_slots {
-                StorageError::GenerationExhausted
-            } else {
-                StorageError::ItemCapacityExceeded
-            })?;
-        let slot_index = self.free_search_start + offset;
-        self.free_search_start = slot_index + 1;
-        slot.generation += 1;
-        slot.references = 1;
-        slot.len = byte_len;
-        slot.bytes[..bytes.len()].copy_from_slice(bytes);
-        self.used_items = self
-            .used_items
-            .checked_add(1)
-            .ok_or(StorageError::ItemCapacityExceeded)?;
-        self.used_bytes += byte_len;
-        Ok(ValueRef {
-            slot: u16::try_from(slot_index).map_err(|_| StorageError::ItemCapacityExceeded)?,
-            generation: slot.generation,
-            byte_len,
-        })
+        let value = self.reserve_value_slot(bytes.len())?;
+        self.slots[usize::from(value.slot)].bytes[..bytes.len()].copy_from_slice(bytes);
+        Ok(value)
     }
 
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
@@ -201,3 +206,98 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
 
 #[cfg(test)]
 mod tests;
+
+/// Exclusive borrowed fixed backing retains the same slot generations,
+/// canonical byte limits and refusal semantics as its owned store.
+impl<const S: usize, const M: usize> ValueStorage for &mut FixedValueStore<S, M> {
+    fn item_capacity(&self) -> u16 {
+        (**self).item_capacity()
+    }
+    fn byte_capacity(&self) -> u32 {
+        (**self).byte_capacity()
+    }
+    fn used_items(&self) -> u16 {
+        (**self).used_items()
+    }
+    fn used_bytes(&self) -> u32 {
+        (**self).used_bytes()
+    }
+    fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
+        (**self).store(bytes)
+    }
+    fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
+        (**self).get(value)
+    }
+    fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
+        (**self).reference_count(value)
+    }
+    fn retain(&mut self, value: ValueRef) -> Result<(), StorageError> {
+        (**self).retain(value)
+    }
+    fn release(&mut self, value: ValueRef) -> Result<(), StorageError> {
+        (**self).release(value)
+    }
+    fn clear(&mut self) {
+        (**self).clear()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<const S: usize, const M: usize> crate::CanonicalEncodedValueStorage for FixedValueStore<S, M> {
+    fn store_encoded<E>(
+        &mut self,
+        maximum_bytes: usize,
+        encode: impl FnOnce(&mut [u8]) -> Result<usize, E>,
+    ) -> Result<ValueRef, crate::EncodedValueRefusal<E>> {
+        let value = self
+            .reserve_value_slot(maximum_bytes)
+            .map_err(crate::EncodedValueRefusal::Storage)?;
+        let mut pending = FixedPending {
+            store: self,
+            value,
+            committed: false,
+        };
+        let index = usize::from(value.slot);
+        pending.store.slots[index].bytes[..maximum_bytes].fill(0);
+        let length = encode(&mut pending.store.slots[index].bytes[..maximum_bytes])
+            .map_err(crate::EncodedValueRefusal::Encoder)?;
+        if length > maximum_bytes {
+            return Err(crate::EncodedValueRefusal::Length);
+        }
+        pending.store.slots[index].bytes[length..maximum_bytes].fill(0);
+        pending.store.slots[index].len = length as u32;
+        pending.store.used_bytes -= value.byte_len - length as u32;
+        pending.value.byte_len = length as u32;
+        pending.committed = true;
+        Ok(pending.value)
+    }
+}
+#[cfg(feature = "alloc")]
+struct FixedPending<'a, const S: usize, const M: usize> {
+    store: &'a mut FixedValueStore<S, M>,
+    value: ValueRef,
+    committed: bool,
+}
+#[cfg(feature = "alloc")]
+impl<const S: usize, const M: usize> Drop for FixedPending<'_, S, M> {
+    fn drop(&mut self) {
+        if !self.committed {
+            self.store.slots[usize::from(self.value.slot)].bytes.fill(0);
+            self.store
+                .release(self.value)
+                .expect("exclusive fixed encoder reservation");
+        }
+    }
+}
+#[cfg(feature = "alloc")]
+impl<const S: usize, const M: usize> crate::CanonicalEncodedValueStorage
+    for &mut FixedValueStore<S, M>
+{
+    fn store_encoded<E>(
+        &mut self,
+        maximum_bytes: usize,
+        encode: impl FnOnce(&mut [u8]) -> Result<usize, E>,
+    ) -> Result<ValueRef, crate::EncodedValueRefusal<E>> {
+        crate::CanonicalEncodedValueStorage::store_encoded(&mut **self, maximum_bytes, encode)
+    }
+}

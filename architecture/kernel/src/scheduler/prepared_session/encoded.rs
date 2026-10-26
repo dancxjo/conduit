@@ -3,6 +3,7 @@ use super::*;
 use crate::scheduler::{HostEncodingRefusal, RemoteIngressOutcome};
 impl<
         D,
+        V,
         E,
         const N: usize,
         const C: usize,
@@ -12,9 +13,10 @@ impl<
         const T: usize,
         const H: usize,
         const A: usize,
-    > PreparedKernelSession<D, crate::HostedValueStore, E, N, C, P, Q, R, T, H, A>
+    > PreparedKernelSession<D, V, E, N, C, P, Q, R, T, H, A>
 where
     D: ReusableStepBack<P>,
+    V: crate::CanonicalEncodedValueStorage,
     E: SignSink + SignQuery,
 {
     /// Same finite one-Value-per-invocation contract, using admitted store

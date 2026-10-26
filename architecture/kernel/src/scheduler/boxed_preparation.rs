@@ -67,7 +67,7 @@ where
         )?;
         Ok(alloc::boxed::Box::new(Self {
             node_specs,
-            terminal_transductions: [[None; PORTS]; NODES],
+            terminal_transductions: TerminalContracts::empty(),
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],

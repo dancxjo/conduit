@@ -975,6 +975,9 @@ impl CordState {
     };
 }
 
+mod terminal_storage;
+use terminal_storage::TerminalContracts;
+
 pub struct FixedScheduler<
     D,
     S,
@@ -993,7 +996,7 @@ pub struct FixedScheduler<
     E: SignSink,
 {
     node_specs: [NodeSpec<PORTS>; NODES],
-    terminal_transductions: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    terminal_transductions: TerminalContracts<NODES, PORTS>,
     terminal_inputs_consumed: [[bool; PORTS]; NODES],
     terminal_phases: [Option<ActiveTerminalPhase>; NODES],
     terminal_cancellation_pending: [bool; NODES],
@@ -1113,7 +1116,7 @@ where
         )?;
         Ok(Self {
             node_specs,
-            terminal_transductions: [[None; PORTS]; NODES],
+            terminal_transductions: TerminalContracts::empty(),
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
@@ -1233,8 +1236,30 @@ where
         self.step_region(&mut proceed)
     }
 
+    /// Maximum additional cold heap backing for terminal-law binding. Alloc
+    /// profiles allocate this table only when at least one exact law is present;
+    /// non-alloc profiles already include it in the fixed scheduler footprint.
+    /// Callers must admit it before binding; stepping never allocates this table.
+    pub const fn maximum_terminal_transduction_preparation_bytes() -> usize {
+        #[cfg(feature = "alloc")]
+        {
+            core::mem::size_of::<[[Option<AssignedTerminalTransduction>; PORTS]; NODES]>()
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            0
+        }
+    }
+    /// Additional backing for these exact supplied laws, admitted before bind.
+    pub fn terminal_transduction_preparation_bytes(
+        contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    ) -> usize {
+        TerminalContracts::preparation_bytes(contracts)
+    }
+
     /// Bind the exact Plan-lowered terminal contracts before play. A prepared
-    /// Back may not claim a different mapping or behavior.
+    /// Back may not claim a different mapping or behavior. Admit the additional
+    /// preparation bytes before calling; execution never allocates this table.
     pub fn bind_terminal_transductions(
         &mut self,
         contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
@@ -1257,7 +1282,7 @@ where
                 return Err(SchedulerError::InvalidPlan);
             }
         }
-        self.terminal_transductions = contracts;
+        self.terminal_transductions = TerminalContracts::prepare(contracts);
         self.bind_projected_recoveries()?;
         Ok(())
     }

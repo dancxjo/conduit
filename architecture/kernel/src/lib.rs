@@ -529,6 +529,26 @@ mod hosted;
 
 #[cfg(feature = "alloc")]
 pub use hosted::{EncodedValueRefusal, Store as HostedValueStore};
+/// Encode canonical bytes into an already admitted free slot. Failed or
+/// unwound encoding retires its generation and releases all reserved ownership.
+#[cfg(feature = "alloc")]
+pub trait CanonicalEncodedValueStorage: ValueStorage {
+    fn store_encoded<E>(
+        &mut self,
+        maximum_bytes: usize,
+        encode: impl FnOnce(&mut [u8]) -> Result<usize, E>,
+    ) -> Result<ValueRef, EncodedValueRefusal<E>>;
+}
+#[cfg(feature = "alloc")]
+impl CanonicalEncodedValueStorage for HostedValueStore {
+    fn store_encoded<E>(
+        &mut self,
+        maximum_bytes: usize,
+        encode: impl FnOnce(&mut [u8]) -> Result<usize, E>,
+    ) -> Result<ValueRef, EncodedValueRefusal<E>> {
+        HostedValueStore::store_encoded(self, maximum_bytes, encode)
+    }
+}
 
 mod remote_sign;
 use remote_sign::RemoteLifecycleSign;

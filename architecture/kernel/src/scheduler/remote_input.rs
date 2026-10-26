@@ -121,6 +121,7 @@ where
 #[cfg(feature = "alloc")]
 impl<
         D,
+        V,
         E,
         const N: usize,
         const C: usize,
@@ -130,9 +131,10 @@ impl<
         const T: usize,
         const H: usize,
         const A: usize,
-    > FixedScheduler<D, crate::HostedValueStore, E, N, C, P, Q, R, T, H, A>
+    > FixedScheduler<D, V, E, N, C, P, Q, R, T, H, A>
 where
     D: StepBack<P>,
+    V: crate::CanonicalEncodedValueStorage,
     E: SignSink,
 {
     /// Reserve the full finite ceiling before invoking the encoder. Refusal or
