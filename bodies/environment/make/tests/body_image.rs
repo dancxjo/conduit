@@ -151,3 +151,138 @@ fn compiled_bootstrap_reconstructs_the_same_creche_biography_and_both_plots() {
     assert!(rust.contains("restore_pristine_image"));
     assert!(!rust.contains("serde_json"));
 }
+
+#[test]
+fn ordinary_mask_image_selects_exact_sampler_and_mask_without_changing_raw_profile() {
+    use conduit_environment_make::{EnvironmentBodyImage, SevenSegmentMaskSource};
+    let sign: conduit_core::SignId = "sign/build/mask-profile".into();
+    let image = EnvironmentBodyImage::prepare_mask(UUID.into(), 7, sign.clone()).unwrap();
+    let raw = EnvironmentBodyImage::prepare(UUID.into(), 7, sign.clone()).unwrap();
+    let sampling = conduit_environment_runtime::construction::compile_default().unwrap();
+    let mask = SevenSegmentMaskSource::compile().unwrap();
+    let display = conduit_environment_make::DisplayOutputSource::compile().unwrap();
+    let residents = |other: &conduit_plot::ExpandedCanonicalPlot| {
+        [&sampling.expanded, other].map(|plot| {
+            ResidentPlot::new(
+                plot.source_document_id.clone(),
+                plot.checked_plot_id.clone(),
+            )
+        })
+    };
+    let mask_residents = residents(&mask.plot.expanded);
+    let evidence = image.body.evidence();
+    assert_eq!(evidence.body.workset.len(), 2);
+    for resident in &mask_residents {
+        assert!(evidence.body.workset.plots().contains(resident));
+    }
+    assert_eq!(image.sampling, sampling.expanded.expanded_plot_id);
+    assert_eq!(image.display, mask.role.plot_identity.expanded_plot_id);
+    assert_eq!(
+        image.sampling_software.planning_image(),
+        conduit_plot::flat_image::indexed::encode(&sampling.expanded).unwrap()
+    );
+    let canonical =
+        conduit_body::Body::born_with_plots(evidence.body.workset.clone(), 7, sign.clone())
+            .unwrap();
+    assert_eq!(evidence.body, canonical);
+    assert_eq!(evidence.body.state, BodyState::Lulled);
+    assert!(evidence.membership.parts.is_empty());
+    assert_eq!(image.body.reconstruct_bootstrap().unwrap(), *evidence);
+
+    // Recreate the preexisting raw-output construction contract independently:
+    // exact titles, review order, explicit UUID and original checked identities.
+    let raw_choices = [
+        ("Environmental sampling", &sampling.expanded),
+        ("Seven-segment output", &display.plot.expanded),
+    ]
+    .into_iter()
+    .map(|(title, plot)| BirthPlotChoice {
+        title: title.into(),
+        search_text: title.into(),
+        plot: ResidentPlot::new(
+            plot.source_document_id.clone(),
+            plot.checked_plot_id.clone(),
+        ),
+        selected: true,
+        refusal: None,
+    })
+    .collect();
+    let original_raw = PreparedBodyImage::prepare(UUID.into(), raw_choices, 7, sign).unwrap();
+    assert_eq!(raw.body.evidence(), original_raw.evidence());
+    assert_eq!(raw.display, display.plot.expanded.expanded_plot_id);
+    assert_eq!(raw.sampling, image.sampling);
+    assert_eq!(raw.body.evidence().friendly_name, evidence.friendly_name);
+    assert_ne!(raw.body.evidence().body_id, evidence.body_id);
+    assert!(!evidence
+        .body
+        .workset
+        .plots()
+        .contains(&residents(&display.plot.expanded)[1]));
+}
+
+#[test]
+fn mask_sign_construction_shares_canonical_seed_and_bootstrap_without_admitting_a_host() {
+    use conduit_environment_make::{EnvironmentBodyImage, EnvironmentBodyImageRefusal};
+    let sign = conduit_core::bind_sign(
+        &"construction/mask-host".into(),
+        &"construction/mask-boot".into(),
+        None,
+        23,
+    );
+    let image = EnvironmentBodyImage::prepare_mask_from_sign(&sign).unwrap();
+    let repeated = EnvironmentBodyImage::prepare_mask_from_sign(&sign).unwrap();
+    let raw = EnvironmentBodyImage::prepare_from_sign(&sign).unwrap();
+    let text = sign.sign_id.as_str();
+    let seed = format!(
+        "{}-{}-{}-{}-{}",
+        &text[..8],
+        &text[8..12],
+        &text[12..16],
+        &text[16..20],
+        &text[20..32]
+    );
+    let explicit =
+        EnvironmentBodyImage::prepare_mask(seed.clone(), sign.sequence, sign.sign_id.clone())
+            .unwrap();
+    let explicit_raw =
+        EnvironmentBodyImage::prepare(seed, sign.sequence, sign.sign_id.clone()).unwrap();
+    assert_eq!(image.body.evidence(), repeated.body.evidence());
+    assert_eq!(image.body.evidence(), explicit.body.evidence());
+    assert_eq!(raw.body.evidence(), explicit_raw.body.evidence());
+    assert_eq!(
+        image.body.evidence().friendly_name,
+        raw.body.evidence().friendly_name
+    );
+    assert_eq!(
+        image.body.evidence().body.sign_ids,
+        vec![sign.sign_id.clone()]
+    );
+    let restored = image.body.reconstruct_bootstrap().unwrap();
+    assert_eq!(restored, *image.body.evidence());
+    let encoded = serde_json::to_vec(&restored).unwrap();
+    let owner = BodyLifecycleSession::open(serde_json::from_slice(&encoded).unwrap()).unwrap();
+    assert!(owner.realization().is_none());
+    assert!(owner.evidence().membership.parts.is_empty());
+    let mut rust = String::new();
+    image.body.write_bootstrap_rust(&mut rust).unwrap();
+    assert!(rust.contains("restore_pristine_image"));
+    assert!(!rust.contains("serde_json"));
+    for malformed in 0..4 {
+        let mut forged = sign.clone();
+        match malformed {
+            0 => forged.sign_id = "not-a-canonical-sign".into(),
+            1 => forged.sequence += 1,
+            2 => forged.host_id = "foreign/host".into(),
+            3 => forged.boot_id = "foreign/boot".into(),
+            _ => unreachable!(),
+        }
+        assert!(matches!(
+            EnvironmentBodyImage::prepare_mask_from_sign(&forged),
+            Err(EnvironmentBodyImageRefusal::BirthSign)
+        ));
+        assert!(matches!(
+            EnvironmentBodyImage::prepare_from_sign(&forged),
+            Err(EnvironmentBodyImageRefusal::BirthSign)
+        ));
+    }
+}
