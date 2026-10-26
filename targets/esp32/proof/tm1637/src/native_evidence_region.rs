@@ -1,4 +1,4 @@
-//! One actual flash owner, with two checked disjoint Root integrity regions.
+//! One actual flash owner, with six checked disjoint Root integrity regions.
 //! Region handles expose no erase operation or address outside their partition.
 use conduit_environment_runtime::display_evidence_journal::{Refusal, Storage};
 use core::cell::RefCell;
@@ -18,7 +18,18 @@ pub struct Region {
 pub struct Regions {
     pub evidence: Region,
     pub observations: Region,
+    /// Five additional immutable signed Boot epochs; no erase entrance.
+    pub observation_epochs: [Region; 5],
+    pub credentials: CredentialRegion,
+    pub network_recovery: NetworkRegion,
+    pub body_state: BodyRegion,
 }
+/// Only this narrow credential partition supports bounded rotating-sector erase.
+pub struct CredentialRegion(Region);
+/// Append-only recovery evidence; no erase entrance is exposed.
+pub struct NetworkRegion(Region);
+/// Exclusive Body/key checkpoint custody, with exactly two bounded erase banks.
+pub struct BodyRegion(Region);
 /// Consume the actual FLASH peripheral exactly once. Narrow handles are issued
 /// only after checking the real table, including all overlapping partitions.
 #[inline(never)]
@@ -31,16 +42,24 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
     let table =
         esp_bootloader_esp_idf::partitions::read_partition_table(&mut flash, &mut bytes[..])
             .map_err(|_| "evidence-partition-table")?;
-    let mut counts = [0; 2];
+    let mut counts = [0; 6];
     for part in table.iter() {
         let start = part.offset();
         let end = start
             .checked_add(part.len())
             .ok_or("evidence-partition-overflow")?;
         let expected = if part.label().starts_with(b"evidence\0") {
-            Some((0, 0x290000, 0x160000))
+            Some((0, 0x290000, 0xa8000))
         } else if part.label().starts_with(b"observations\0") {
             Some((1, 0x3f0000, 0x10000))
+        } else if part.label().starts_with(b"credentials\0") {
+            Some((2, 0xd000, 0x2000))
+        } else if part.label().starts_with(b"net_recovery\0") {
+            Some((3, 0x3d8000, 0x8000))
+        } else if part.label().starts_with(b"obs_epochs\0") {
+            Some((5, 0x338000, 0xa0000))
+        } else if part.label().starts_with(b"body_state\0") {
+            Some((4, 0x3e0000, 0x10000))
         } else {
             None
         };
@@ -54,11 +73,11 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
                 return Err("evidence-partition-geometry");
             }
             counts[index] += 1;
-        } else if start < 0x400000 && end > 0x290000 {
+        } else if (start < 0x400000 && end > 0x290000) || (start < 0xf000 && end > 0xd000) {
             return Err("evidence-partition-overlap");
         }
     }
-    if counts != [1, 1] {
+    if counts != [1, 1, 1, 1, 1, 1] {
         return Err("evidence-partition-unavailable");
     }
     let base = FLASH
@@ -68,13 +87,33 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
         evidence: Region {
             base,
             start: 0x290000,
-            length: 0x160000,
+            length: 0xa8000,
         },
         observations: Region {
             base,
             start: 0x3f0000,
             length: 0x10000,
         },
+        observation_epochs: core::array::from_fn(|index| Region {
+            base,
+            start: 0x338000 + (index as u32) * 0x20000,
+            length: 0x20000,
+        }),
+        credentials: CredentialRegion(Region {
+            base,
+            start: 0xd000,
+            length: 0x2000,
+        }),
+        network_recovery: NetworkRegion(Region {
+            base,
+            start: 0x3d8000,
+            length: 0x8000,
+        }),
+        body_state: BodyRegion(Region {
+            base,
+            start: 0x3e0000,
+            length: 0x10000,
+        }),
     })
 }
 impl Region {
@@ -122,5 +161,75 @@ impl Storage for Region {
             }
             Ok(())
         })
+    }
+}
+
+impl crate::native_credentials::journal::Storage for CredentialRegion {
+    fn capacity(&self) -> u32 {
+        self.0.length
+    }
+    fn read(
+        &mut self,
+        at: u32,
+        output: &mut [u8],
+    ) -> Result<(), crate::native_credentials::journal::Refusal> {
+        Storage::read(&mut self.0, at, output)
+            .map_err(|_| crate::native_credentials::journal::Refusal::Media)
+    }
+    fn program(
+        &mut self,
+        at: u32,
+        bytes: &[u8],
+    ) -> Result<(), crate::native_credentials::journal::Refusal> {
+        Storage::program(&mut self.0, at, bytes)
+            .map_err(|_| crate::native_credentials::journal::Refusal::Media)
+    }
+    fn erase_sector(&mut self, at: u32) -> Result<(), crate::native_credentials::journal::Refusal> {
+        use crate::native_credentials::journal::Refusal as E;
+        if at != 0 && at != 4096 {
+            return Err(E::Geometry);
+        }
+        let start = self.0.bound(at, 4096).map_err(|_| E::Geometry)?;
+        self.0.base.lock(|base| {
+            NorFlash::erase(&mut *base.borrow_mut(), start, start + 4096).map_err(|_| E::Media)
+        })
+    }
+}
+
+impl BodyRegion {
+    pub fn capacity(&self) -> u32 {
+        self.0.length
+    }
+    pub fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), Refusal> {
+        Storage::read(&mut self.0, at, out)
+    }
+    pub fn program(&mut self, at: u32, bytes: &[u8]) -> Result<(), Refusal> {
+        Storage::program(&mut self.0, at, bytes)
+    }
+    pub fn erase_bank(&mut self, bank: u8) -> Result<(), Refusal> {
+        if bank > 1 {
+            return Err(Refusal::Geometry);
+        }
+        let start = self.0.bound(u32::from(bank) * 0x8000, 0x8000)?;
+        self.0.base.lock(|base| {
+            let mut flash = base.borrow_mut();
+            // Retire the leading commit sector before touching later payload.
+            for offset in (0..0x8000).step_by(4096) {
+                NorFlash::erase(&mut *flash, start + offset, start + offset + 4096)
+                    .map_err(|_| Refusal::Media)?;
+            }
+            Ok(())
+        })
+    }
+}
+impl Storage for NetworkRegion {
+    fn capacity(&self) -> u32 {
+        self.0.length
+    }
+    fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), Refusal> {
+        Storage::read(&mut self.0, at, out)
+    }
+    fn program(&mut self, at: u32, bytes: &[u8]) -> Result<(), Refusal> {
+        Storage::program(&mut self.0, at, bytes)
     }
 }

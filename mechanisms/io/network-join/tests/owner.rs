@@ -414,3 +414,51 @@ fn native_storage_pressure_remains_distinct_and_preserves_cleanup_without_retry(
     assert_eq!(state.cleanups.get(), 2);
     assert_eq!(owner.inspection().completed_operations, 1);
 }
+
+#[test]
+fn provider_retirement_requires_revocation_and_acknowledged_cleanup() {
+    let state = Rc::new(State::default());
+    let (owner, node) = ready(state.clone());
+    let mut retained = Some(owner);
+    assert!(matches!(
+        NetworkJoinHostCall::retire_retained(&mut retained),
+        Err(JoinCallRefusal::Possession)
+    ));
+    assert!(retained.is_some());
+    let mut bytes = [0; MAXIMUM_JOIN_INPUT_BYTES as usize];
+    let length = encode_network_join_request(
+        NetworkJoinRequest {
+            ssid: b"fixture-net",
+            credential: b"fixture-password",
+        },
+        &mut bytes,
+    )
+    .unwrap();
+    run(retained
+        .as_mut()
+        .unwrap()
+        .invoke(node, HostCallId(0), RequestId(0), &bytes[..length]))
+    .unwrap();
+    retained
+        .as_mut()
+        .unwrap()
+        .revoke(node, HostCallId(0))
+        .unwrap();
+    assert!(matches!(
+        NetworkJoinHostCall::retire_retained(&mut retained),
+        Err(JoinCallRefusal::Possession)
+    ));
+    state.cleanup_failed.set(true);
+    assert!(run(retained.as_mut().unwrap().cleanup()).is_err());
+    assert!(NetworkJoinHostCall::retire_retained(&mut retained).is_err());
+    state.cleanup_failed.set(false);
+    run(retained.as_mut().unwrap().cleanup()).unwrap();
+    let provider = NetworkJoinHostCall::retire_retained(&mut retained).unwrap();
+    assert!(retained.is_none());
+    assert!(Rc::ptr_eq(&provider.0, &state));
+    assert_eq!(state.effects.get(), 1);
+    assert!(matches!(
+        NetworkJoinHostCall::retire_retained(&mut retained),
+        Err(JoinCallRefusal::OwnerUnavailable)
+    ));
+}

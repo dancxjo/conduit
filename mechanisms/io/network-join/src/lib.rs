@@ -18,5 +18,6 @@ pub use control_back::NetworkControlBack;
 pub mod installation;
 mod lease;
 mod owner;
+pub mod recovery_evidence;
 pub use contract::{AttachmentRecord, NetworkJoinProvider, PreparedJoinContract};
 pub use owner::{AssignedJoinSelection, JoinCallRefusal, NetworkJoinHostCall};

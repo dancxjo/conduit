@@ -96,6 +96,22 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
         config.ssid().as_str().as_bytes() == request.ssid
             && config.password().as_bytes() == request.credential
     }
+    /// Observation of this actual retained interface, not attachment evidence.
+    /// HTTP service readiness remains separately acknowledged by the owner.
+    pub fn station_link_and_address_up(&self) -> bool {
+        self.radio.station_stack.is_link_up() && self.radio.station_stack.config_v4().is_some()
+    }
+    /// Return restored AP ownership without rearming this spent attempt.
+    /// Root must retire selected possession before calling this on a provider
+    /// reclaimed through NetworkJoinHostCall::retire_retained, then prepare a
+    /// fresh provider/attachment generation for any subsequent selected join.
+    pub fn into_restored_radio(self) -> Result<Esp32ApStationSwitch<'a, 'd, S>, Self> {
+        if self.radio.cleanup_required() {
+            Err(self)
+        } else {
+            Ok(self.radio)
+        }
+    }
 }
 impl<S: AccessPointServices> NetworkJoinProvider for Esp32NetworkJoinProvider<'_, '_, S> {
     async fn join(

@@ -13,6 +13,7 @@ use std::{
     path::Path,
     time::Duration,
 };
+#[allow(dead_code)] // The shared native profile also supplies per-record/server APIs.
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_observed_wire.rs"]
 mod wire;
 #[derive(Deserialize)]
@@ -203,12 +204,16 @@ impl Collector {
         Ok(())
     }
     pub fn collect(&mut self, address: SocketAddr, directory: &Path) -> Result<()> {
+        self.collect_slot(address, directory, 0)
+    }
+    fn collect_slot(&mut self, address: SocketAddr, directory: &Path, slot: u8) -> Result<()> {
         if self.after == 0 {
             self.restore(directory)?;
         }
         // At most 240 batches cover the admitted 960-publication lifetime.
         for _ in 0..240 {
-            let bytes = fetch(address, self.after)?;
+            let cursor = wire::epoch_cursor(slot, self.after).ok_or("history epoch cursor")?;
+            let bytes = fetch(address, cursor)?;
             let (after, observed_ms) = self.validate(&bytes)?;
             if after == self.after {
                 return Ok(());
@@ -228,6 +233,81 @@ impl Collector {
             self.observed_ms = observed_ms;
         }
         Ok(())
+    }
+    /// Follow only a directory signed by this collector's independently admitted
+    /// producer key, within its already pinned Body and Forms. Discovery cannot
+    /// introduce a different key or Body. Each scope gets separate fsynced files.
+    #[allow(dead_code)] // Pending joined-sibling transport integration.
+    pub fn collect_epochs(&self, address: SocketAddr, directory: &Path) -> Result<usize> {
+        let bytes = fetch(address, wire::DIRECTORY_CURSOR)?;
+        let epochs = self.verify_directory(&bytes)?;
+        for (slot, scope) in &epochs {
+            let mut collector = Self {
+                scope: *scope,
+                forms: self.forms,
+                key: self.key,
+                after: 0,
+                observed_ms: 0,
+            };
+            let name = scope
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>();
+            collector.collect_slot(address, &directory.join(format!("epoch-{name}")), *slot)?;
+        }
+        Ok(epochs.len())
+    }
+    #[allow(dead_code)]
+    fn verify_directory(&self, bytes: &[u8]) -> Result<Vec<(u8, [u8; 96])>> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Directory {
+            profile: String,
+            directory: String,
+            signature: String,
+        }
+        let document: Directory = serde_json::from_slice(bytes)?;
+        if document.profile != "observed-epochs@1" {
+            return Err("history directory profile".into());
+        }
+        let raw = hex(&document.directory)?;
+        let raw: &[u8; wire::DIRECTORY_BYTES] = raw
+            .as_slice()
+            .try_into()
+            .map_err(|_| "history directory extent")?;
+        let signature: [u8; 64] = hex(&document.signature)?
+            .try_into()
+            .map_err(|_| "history directory signature")?;
+        checked(self.key.verify_strict(
+            &wire::directory_transcript(raw),
+            &Signature::from_bytes(&signature),
+        ))?;
+        let count = usize::from(raw[32]);
+        if raw[..32] != self.scope[..32]
+            || count > 5
+            || raw[33 + count * 133..].iter().any(|byte| *byte != 0)
+        {
+            return Err("history directory Body or capacity".into());
+        }
+        let mut epochs: Vec<(u8, [u8; 96])> = Vec::with_capacity(count);
+        for entry in raw[33..33 + count * 133].as_chunks::<133>().0 {
+            let slot = entry[0];
+            let scope: [u8; 96] = entry[1..97].try_into().unwrap();
+            let committed = u32::from_le_bytes(entry[129..133].try_into().unwrap());
+            if slot > 5
+                || scope[..32] != self.scope[..32]
+                || entry[97..129] != self.forms
+                || committed == 0
+                || committed > 960
+                || epochs
+                    .iter()
+                    .any(|(old_slot, old_scope)| *old_slot == slot || old_scope == &scope)
+            {
+                return Err("history directory epoch scope".into());
+            }
+            epochs.push((slot, scope));
+        }
+        Ok(epochs)
     }
 }
 // Publish a synced inode without replacing any existing custody. A crash can

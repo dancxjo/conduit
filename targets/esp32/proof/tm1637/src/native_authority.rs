@@ -320,3 +320,26 @@ impl RootIssuer {
         Ok((table, handle, claim))
     }
 }
+
+impl RootIssuer {
+    /// Finish only the exact returned network owners. No other native worker's
+    /// scope, sequence, generation or issued state changes at this boundary.
+    pub fn finish_network_play(
+        &mut self,
+        retired: &crate::native_play::RetiredNetworkControl,
+    ) -> Result<(), ()> {
+        let active = retired.active();
+        if !retired.evidence_is_committed()
+            || self.issued != [true, true]
+            || self.reserved_play.as_deref() != Some(active)
+            || active.host_id != self.host
+            || active.boot_id != self.boot
+            || !retired.matches_active(active)
+        {
+            return Err(());
+        }
+        self.issued = [false, false];
+        self.reserved_play = None;
+        Ok(())
+    }
+}

@@ -1,5 +1,7 @@
 //! Root-owned native preparation. No radio effect can be called here: the
 //! prepared provider is exposed only through its exact-selection Base owner.
+#[path = "native_network_recovery.rs"]
+pub(crate) mod recovery;
 use conduit_core as c;
 use conduit_esp32_network_switch::{Esp32ApStationSwitch, Esp32NetworkJoinProvider};
 use conduit_network_join_call::installation::{NetworkNativeIdentity, ReadyNetworkJoinBase};
@@ -19,6 +21,9 @@ pub struct NativeNetwork {
     ready: Option<ReadyNetworkJoinBase<Provider>>,
     sdk: crate::sdk_memory::NativeSdkReservation,
     selected: bool,
+    generation: u64,
+    pub(crate) recovery: recovery::Recovery,
+    pub(crate) retirement: Option<alloc::boxed::Box<crate::native_play::RetiredNetworkControl>>,
 }
 impl NativeNetwork {
     pub fn new(radio: crate::network::Radio, sdk: crate::sdk_memory::NativeSdkReservation) -> Self {
@@ -31,6 +36,9 @@ impl NativeNetwork {
             ready: None,
             sdk,
             selected: false,
+            generation: 1,
+            recovery: recovery::Recovery::new(),
+            retirement: None,
         }
     }
     pub fn stacks(&self) -> Option<(embassy_net::Stack<'static>, embassy_net::Stack<'static>)> {
@@ -49,9 +57,25 @@ impl NativeNetwork {
             || self.adapter.is_some()
             || self.ready.is_some()
     }
-    pub fn stage(&mut self, configuration: esp_radio::wifi::sta::StationConfig) {
-        assert!(self.configuration.is_none() && self.adapter.is_none() && !self.is_ready());
-        self.configuration = Some(configuration);
+    pub fn stage(&mut self, configuration: esp_radio::wifi::sta::StationConfig) -> Result<(), ()> {
+        if self.configuration.is_some() || self.is_ready() || self.selected {
+            return Err(());
+        }
+        if let Some(adapter) = &mut self.adapter {
+            adapter
+                .stage_station_configuration(configuration)
+                .map_err(|_| ())
+        } else {
+            self.configuration = Some(configuration);
+            Ok(())
+        }
+    }
+    pub fn has_reclaimed_access_point(&self) -> bool {
+        self.adapter.is_some()
+            && !self.selected
+            && !self.is_ready()
+            && self.radio.is_none()
+            && self.configuration.is_none()
     }
     /// Root's cooperative profile admits one attempt, no SDK retry, and one
     /// separately bounded restoration. It is not a hard real-time SDK WCET claim.
@@ -74,9 +98,12 @@ impl NativeNetwork {
             boot: boot.clone(),
             base: "base/esp32/wifi-station".into(),
             instance: "instance/esp32/wifi-station".into(),
-            provider_generation: 1,
+            provider_generation: self.generation,
             resource: RESOURCE.into(),
-            resource_generation: c::ResourceGenerationId("generation/wifi-station/1".into()),
+            resource_generation: c::ResourceGenerationId(alloc::format!(
+                "generation/wifi-station/{}",
+                self.generation
+            )),
             envelope: "envelope/esp32/wifi-station".into(),
             artifact: "native/esp32-wifi-station-root@1".into(),
             implementation: "esp32/wifi-station@1".into(),
@@ -107,17 +134,18 @@ impl NativeNetwork {
         // reserves one attachment generation in this observed Boot and admits
         // the fixed native storage and separate attempt/cleanup durations.
         // The SDK configuration validator requires failure_retry_cnt == 0.
+        let attachment = alloc::format!("attachment/esp32/wifi-station/{}", self.generation);
         let provider = unsafe {
             Esp32NetworkJoinProvider::prepare(
                 &mut self.adapter,
                 Duration::from_secs(ATTEMPT_SECONDS),
                 Duration::from_secs(CLEANUP_SECONDS),
                 conduit_net::NetworkAttachmentInfo {
-                    attachment_id: "attachment/esp32/wifi-station/1",
+                    attachment_id: &attachment,
                     host_id: host.as_str(),
                     boot_id: boot.as_str(),
                     resource_pool_id: RESOURCE,
-                    generation: 1,
+                    generation: self.generation,
                 },
             )
         }
@@ -126,10 +154,48 @@ impl NativeNetwork {
         // The initialized ownership is distinct from successful association and
         // from the opaque authority/selection still required before invocation.
         self.ready = Some(
-            unsafe { ReadyNetworkJoinBase::new(identity, 1, provider) }
+            unsafe { ReadyNetworkJoinBase::new(identity, self.generation, provider) }
                 .expect("validated nonempty current native identity"),
         );
         Ok(())
+    }
+    /// Reclaim the actual spent provider after selected possession retirement.
+    /// AP restoration must already be acknowledged; no readiness flag is reset
+    /// without returned ownership. Fresh preparation will use a new generation.
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+    pub fn can_reclaim_restored(&self) -> bool {
+        self.selected
+            && self.ready.is_none()
+            && self.adapter.is_none()
+            && self.radio.is_none()
+            && self.services.is_none()
+            && self.configuration.is_none()
+            && self.generation < u64::MAX
+    }
+    pub fn reclaim_restored(&mut self, provider: Provider) -> Result<(), Provider> {
+        if !self.selected
+            || self.ready.is_some()
+            || self.adapter.is_some()
+            || self.radio.is_some()
+            || self.services.is_some()
+            || self.configuration.is_some()
+        {
+            return Err(provider);
+        }
+        let Some(next) = self.generation.checked_add(1) else {
+            return Err(provider);
+        };
+        match provider.into_restored_radio() {
+            Ok(adapter) => {
+                self.adapter = Some(adapter);
+                self.generation = next;
+                self.selected = false;
+                Ok(())
+            }
+            Err(provider) => Err(provider),
+        }
     }
     pub fn ready(&self) -> Option<&ReadyNetworkJoinBase<Provider>> {
         self.ready.as_ref()

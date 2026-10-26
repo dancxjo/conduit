@@ -25,7 +25,11 @@ fn hex(output: &mut heapless::String<2048>, bytes: &[u8]) -> Option<()> {
 }
 #[inline(never)]
 pub fn response(after: u32) -> Option<heapless::String<2048>> {
-    let batch = crate::native_observed_archive::copy(after).ok()?;
+    if after == crate::native_observed_wire::DIRECTORY_CURSOR {
+        return directory_response();
+    }
+    let (slot, after) = crate::native_observed_wire::split_cursor(after)?;
+    let batch = crate::native_observed_archive::copy_epoch(slot, after).ok()?;
     let records = &batch.records[..batch.used];
     let digest = crate::native_observed_wire::transcript(
         &batch.scope,
@@ -49,6 +53,49 @@ pub fn response(after: u32) -> Option<heapless::String<2048>> {
     )
     .ok()?;
     hex(&mut output, records)?;
+    output.push_str("\",\"signature\":\"").ok()?;
+    hex(&mut output, &signature)?;
+    output.push_str("\"}\n").ok()?;
+    Some(output)
+}
+
+pub(crate) fn sign_record(
+    scope: &[u8; 96],
+    forms: &[u8; 32],
+    record: &[u8],
+) -> Result<[u8; 64], &'static str> {
+    let key = KEY
+        .lock(|slot| slot.get())
+        .ok_or("observed-history-signer-not-ready")?;
+    crate::native_observed_archive::history::sign(key, scope, forms, record)
+}
+pub(crate) fn verify_record(
+    scope: &[u8; 96],
+    forms: &[u8; 32],
+    record: &[u8],
+    signature: &[u8; 64],
+) -> Result<(), &'static str> {
+    let key = KEY
+        .lock(|slot| slot.get())
+        .ok_or("observed-history-signer-not-ready")?;
+    crate::native_observed_archive::history::verify(
+        &key.verifying_key(),
+        scope,
+        forms,
+        record,
+        signature,
+    )
+}
+
+fn directory_response() -> Option<heapless::String<2048>> {
+    let bytes = crate::native_observed_archive::directory().ok()?;
+    let key = KEY.lock(|slot| slot.get())?;
+    let signature = key
+        .sign(&crate::native_observed_wire::directory_transcript(&bytes))
+        .to_bytes();
+    let mut output = heapless::String::new();
+    output.push_str("HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n{\"profile\":\"observed-epochs@1\",\"directory\":\"").ok()?;
+    hex(&mut output, &bytes)?;
     output.push_str("\",\"signature\":\"").ok()?;
     hex(&mut output, &signature)?;
     output.push_str("\"}\n").ok()?;

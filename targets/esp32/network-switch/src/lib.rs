@@ -88,6 +88,19 @@ impl<'a, 'd, S: AccessPointServices> Esp32ApStationSwitch<'a, 'd, S> {
     pub fn cleanup_required(&self) -> bool {
         self.cleanup_required
     }
+    /// Cold staging while this actual owner has acknowledged AP restoration.
+    /// No controller method runs here; fresh provider preparation revalidates
+    /// the SDK profile before any selected invocation can configure the radio.
+    pub fn stage_station_configuration(
+        &mut self,
+        configuration: StationConfig,
+    ) -> Result<(), StationConfig> {
+        if self.cleanup_required {
+            return Err(configuration);
+        }
+        self.station_config = Config::Station(configuration);
+        Ok(())
+    }
 }
 impl<S: AccessPointServices> StationOperations for Esp32ApStationSwitch<'_, '_, S> {
     async fn associate(&mut self) -> Result<(), StationFailure> {

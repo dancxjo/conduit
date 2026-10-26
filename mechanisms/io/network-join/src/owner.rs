@@ -222,6 +222,23 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
     pub fn cleanup_required(&self) -> bool {
         self.cleanup_required
     }
+    /// Return the actual provider only after its cleanup obligation completed
+    /// and exact selected possession was revoked without in-flight work.
+    /// Refusal preserves the complete owner. The returned provider remains
+    /// spent; this does not reset its request, attachment or native generations.
+    pub fn retire_retained(slot: &mut Option<Self>) -> Result<P, JoinCallRefusal> {
+        let owner = slot.as_ref().ok_or(JoinCallRefusal::OwnerUnavailable)?;
+        if !owner.retirement_ready() {
+            return Err(JoinCallRefusal::Possession);
+        }
+        Ok(slot.take().expect("preflighted retained owner").provider)
+    }
+    pub fn retirement_ready(&self) -> bool {
+        let inspection = self.inspection();
+        !self.cleanup_required
+            && inspection.lifecycle == CapabilityLifecycle::Revoked
+            && inspection.in_flight_operations == 0
+    }
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), JoinCallRefusal> {
         self.check_binding(node, call)?;
         self.table
@@ -233,6 +250,11 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
             .inspections()
             .next()
             .expect("single admitted capability")
+    }
+    /// Read-only observation of the actual retained native owner. This cannot
+    /// invoke, replace or rearm the selected provider or manufacture attachment.
+    pub fn observe_provider<R>(&self, observe: impl FnOnce(&P) -> R) -> R {
+        observe(&self.provider)
     }
     fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), JoinCallRefusal> {
         if node != self.node || call != HostCallId(0) {

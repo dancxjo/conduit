@@ -1,12 +1,16 @@
 //! One admitted Root construction workspace. Acknowledged setup input remains
-//! queued until native custody actually releases it; this performs no retry.
+//! queued until native custody releases it or an independent workspace is admitted.
+//! Recovery always retires selected ownership and commits evidence before retry.
 use super::NativeRoot;
+use crate::native_network::recovery::Action;
 use conduit_core as c;
 impl NativeRoot {
     /// Preparation never consumes the selected source or changes radio mode.
     /// Once configured, subsequent offers reuse the retained SDK configuration.
     pub fn prepare_network_configuration(&mut self) -> &'static [u8] {
-        use conduit_environment_http::network_setup::NetworkSetupRefusal as E;
+        if self.network.retirement.is_some() {
+            return b"retirement-evidence-pending";
+        }
         if self.play.attempted() {
             return self.play.status().as_bytes();
         }
@@ -16,68 +20,189 @@ impl NativeRoot {
         if self.network.is_ready() {
             return b"prepared";
         }
-        if self.network.has_staged_configuration() {
-            // A refused preparation still retains its initialized owner. The
-            // one-submission diagnostic never overwrites or silently retries it.
-            return b"refused";
+        let now = embassy_time::Instant::now().as_millis();
+        if self.network.recovery.access_point_only() {
+            let acknowledged = self
+                .credential_writer
+                .try_lock()
+                .is_ok_and(|mailbox| mailbox.has_acknowledged());
+            if !acknowledged
+                && crate::native_credentials::committed_revision()
+                    <= self.network.recovery.revision()
+            {
+                return b"waiting";
+            }
+            let configuration =
+                match crate::native_credentials::prepare_configuration(&self.credential_writer) {
+                    Ok(configuration) => configuration,
+                    Err("credential-unavailable" | "credential-not-acknowledged") => {
+                        return b"waiting"
+                    }
+                    Err(_) => return b"refused",
+                };
+            let revision = match crate::native_credentials::committed_revision() {
+                0 => match self.network.recovery.revision().checked_add(1) {
+                    Some(revision) => revision,
+                    None => return b"configuration-exhausted",
+                },
+                revision => revision,
+            };
+            if self.network.stage(configuration).is_err() {
+                return b"refused";
+            }
+            if self.network.recovery.configuration(revision, now).is_err() {
+                return b"configuration-refused";
+            }
         }
-        // Reserve both availability transitions before staging private input or
-        // transferring an owner. Never wrap into a previously advertised epoch.
+        if !self.network.recovery.awaiting_attempt() {
+            return b"waiting";
+        }
+        let generation = match self.network.recovery.poll(now, true, false) {
+            Ok(Action::PrepareAttempt { generation, .. }) => generation,
+            Ok(_) => return b"retry-backoff",
+            Err(_) => return b"recovery-refused",
+        };
+        if generation != self.network.generation() {
+            return b"attachment-generation-refused";
+        }
         let Some(selected_generation) = self.offer_generation.checked_add(2) else {
             return b"offer-generation-exhausted";
         };
-        let configuration = {
-            let Ok(mailbox) = self.credential_writer.try_lock() else {
-                return b"busy";
-            };
-            mailbox
-                .prepare_acknowledged(conduit_esp32_network_switch::prepare_station_configuration)
-        };
-        match configuration {
-            Ok(Ok(config)) => {
-                self.network.stage(config);
-                if self.network.prepare(&self.host, &self.boot).is_err() {
-                    return b"refused";
-                }
-                self.offer_generation = selected_generation - 1;
-                // The retained provider changes the truthful offer generation.
-                // Preparation is fresh; old refusal/Plan material is discarded.
-                if self.prepare_network_plan().is_err() {
-                    return b"refused";
-                }
-                let prepared = match self.network_preparation.take() {
-                    Some(Ok(prepared)) => prepared,
-                    refusal => {
-                        self.network_preparation = refusal;
-                        return b"planning-refused";
-                    }
-                };
-                // Selected owners and kernel retain their exact bindings. The
-                // rich construction Plan/lowering is not continuing execution
-                // custody and is released after installation, on either result.
-                let result = self.play.install(
-                    &prepared,
-                    &mut self.credentials,
-                    self.network.ready_slot(),
-                    &mut self.issuer,
-                );
-                self.network.mark_selected();
-                self.offer_generation = selected_generation;
-                if result.is_err() {
-                    return b"installation-refused";
-                }
-                b"installed"
-            }
-            Ok(Err(_)) => b"refused",
-            Err(E::NoSubmission | E::NotAcknowledged) => b"waiting",
-            Err(_) => b"refused",
+        if self.network.prepare(&self.host, &self.boot).is_err() {
+            return b"refused";
         }
+        self.offer_generation = selected_generation - 1;
+        if self.prepare_network_plan().is_err() {
+            return b"refused";
+        }
+        let prepared = match self.network_preparation.take() {
+            Some(Ok(prepared)) => prepared,
+            refusal => {
+                self.network_preparation = refusal;
+                return b"planning-refused";
+            }
+        };
+        let result = self.play.install(
+            &prepared,
+            &mut self.credentials,
+            self.network.ready_slot(),
+            &mut self.issuer,
+        );
+        self.network.mark_selected();
+        self.offer_generation = selected_generation;
+        if result.is_err() {
+            return b"installation-refused";
+        }
+        b"installed"
     }
-    /// Poll independently of UART management. HTTP acknowledgement is required
-    /// before preparation, selection or the control Play can consume input.
+    /// Independent control polling. Current interface/service evidence controls
+    /// availability; a receipt from an old successful join is insufficient.
     pub async fn advance_setup(&mut self) {
+        if self.network.retirement.is_some() {
+            let _ = self.finish_network_retirement();
+            return;
+        }
         self.prepare_network_configuration();
         self.play.run().await;
+        let generation = self.network.recovery.generation();
+        let mut action = Action::None;
+        if self.network.recovery.is_joining() {
+            match self.play.status() {
+                "attached" => {
+                    let _ = self.network.recovery.attached(generation);
+                }
+                "access-point-restored"
+                | "cleanup-failed"
+                | "setup-denied"
+                | "installation-refused" => {
+                    action = self
+                        .network
+                        .recovery
+                        .failed(generation)
+                        .unwrap_or(Action::None);
+                }
+                _ => (),
+            }
+        }
+        if action == Action::None {
+            let workspace = !self.native_workspace_held();
+            action = self
+                .network
+                .recovery
+                .poll(
+                    embassy_time::Instant::now().as_millis(),
+                    workspace,
+                    self.play.station_services_available(),
+                )
+                .unwrap_or(Action::None);
+        }
+        if let Action::RestoreAccessPoint { generation } = action {
+            if self.play.status() != "access-point-restored"
+                && self.play.restore_for_retirement().await.is_err()
+            {
+                let _ = self.network.recovery.restored(
+                    generation,
+                    embassy_time::Instant::now().as_millis(),
+                    false,
+                );
+                return;
+            }
+            match self.play.take_retired() {
+                Ok(retired) => {
+                    self.network.retirement = Some(alloc::boxed::Box::new(retired));
+                    let _ = self.finish_network_retirement();
+                }
+                Err(_) => {
+                    let _ = self.network.recovery.restored(
+                        generation,
+                        embassy_time::Instant::now().as_millis(),
+                        false,
+                    );
+                }
+            }
+        }
+    }
+    fn finish_network_retirement(&mut self) -> Result<(), &'static str> {
+        #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
+        {
+            if !self.network.can_reclaim_restored() {
+                return Err("network-reclaim-preflight");
+            }
+            let retired = self
+                .network
+                .retirement
+                .as_mut()
+                .ok_or("network-retirement-unavailable")?;
+            if !retired.owners_recoverable() {
+                return Err("network-retirement-generation-exhausted");
+            }
+            retired.commit_evidence()?;
+            self.issuer
+                .finish_network_play(retired)
+                .map_err(|_| "network-retirement-issuer")?;
+            let (provider, source) = retired
+                .take_owners()
+                .expect("durably committed actual owners");
+            self.network
+                .reclaim_restored(provider)
+                .unwrap_or_else(|_| unreachable!("checked restored AP owner"));
+            self.credentials = Some(
+                crate::native_credentials::reprepare(source, &self.host, &self.boot)
+                    .unwrap_or_else(|_| unreachable!("checked returned private source")),
+            );
+            // Mandatory evidence is now readback-committed in append-only flash.
+            self.network.retirement = None;
+            let generation = self.network.recovery.generation();
+            self.network
+                .recovery
+                .restored(generation, embassy_time::Instant::now().as_millis(), true)
+                .map_err(|_| "network-recovery-transition")?;
+            Ok(())
+        }
+        #[cfg(not(any(feature = "local-evidence-store", feature = "network-credential-store")))]
+        {
+            Err("network-recovery-durable-custody-required")
+        }
     }
     pub fn control_binding(&self) -> Option<&c::ActivePlayIdentity> {
         self.play.active()
@@ -90,6 +215,12 @@ impl NativeRoot {
         self.play.installed()
     }
     pub fn control_status(&self) -> &'static str {
+        if self.network.retirement.is_some() {
+            return "retirement-evidence-pending";
+        }
+        if self.network.recovery.awaiting_attempt() && !self.play.attempted() {
+            return "retry-backoff";
+        }
         if !self.play.attempted()
             && self.native_workspace_held()
             && self

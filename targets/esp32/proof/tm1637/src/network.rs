@@ -4,7 +4,13 @@ use embassy_net::{Config, Ipv4Address, Ipv4Cidr, Stack, StackResources, StaticCo
 use esp_radio::wifi::{ap::AccessPointConfig, Config as WifiConfig, ControllerConfig, CountryInfo};
 use static_cell::StaticCell;
 static AP_RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
+#[cfg(not(all(feature = "network-mdns", feature = "owner-wifi")))]
 static STATION_RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
+#[cfg(all(feature = "network-mdns", feature = "owner-wifi"))]
+static STATION_RESOURCES: StaticCell<StackResources<5>> = StaticCell::new();
+#[cfg(all(feature = "network-mdns", feature = "owner-wifi"))]
+pub const MDNS_SOCKET_BYTES: usize =
+    core::mem::size_of::<StackResources<5>>() - core::mem::size_of::<StackResources<4>>();
 /// Actual initialized resources retained by the composition root. This value is
 /// not an offer or attachment, and makes no claim of station association.
 pub struct Radio {

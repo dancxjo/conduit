@@ -229,4 +229,25 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
             .revoke(&self.handle)
             .map_err(CredentialCallRefusal::Capability)
     }
+    pub fn retirement_ready(&self) -> bool {
+        let mut entries = self.table.inspections();
+        entries.next().is_some_and(|entry| {
+            entry.lifecycle == CapabilityLifecycle::Revoked && entry.in_flight_operations == 0
+        }) && entries.next().is_none()
+    }
+    /// Recover the actual private source after its exact selected capability
+    /// was revoked. Invocation counters are not reset by returning custody.
+    pub fn retire_retained(slot: &mut Option<Self>) -> Result<P, CredentialCallRefusal> {
+        if !slot
+            .as_ref()
+            .ok_or(CredentialCallRefusal::OwnerUnavailable)?
+            .retirement_ready()
+        {
+            return Err(CredentialCallRefusal::Possession);
+        }
+        Ok(slot
+            .take()
+            .expect("preflighted retained credential source")
+            .source)
+    }
 }

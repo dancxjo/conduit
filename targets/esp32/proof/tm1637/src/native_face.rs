@@ -22,9 +22,9 @@ pub fn http_response(
     after: Option<u32>,
 ) -> Option<heapless::String<2048>> {
     if let Some(after) = after {
-        #[cfg(feature = "local-evidence-store")]
+        #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
         return crate::native_observed_http::response(after);
-        #[cfg(not(feature = "local-evidence-store"))]
+        #[cfg(not(any(feature = "local-evidence-store", feature = "observation-store")))]
         {
             let _ = after;
             return None;
@@ -70,7 +70,7 @@ pub fn prepare(
     }
     let body: conduit_body::BodyId = scope::identity(&reservation.body)?;
     let wake: conduit_body::WakeId = scope::identity(&reservation.wake)?;
-    #[cfg(feature = "local-evidence-store")]
+    #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
     crate::native_observed_archive::bind(reservation)?;
     prepare_scope(&body, &wake, &reservation.active)
 }
@@ -96,7 +96,7 @@ pub fn prepare_local(
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
     }
-    #[cfg(feature = "local-evidence-store")]
+    #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
     crate::native_observed_archive::bind_local(body_id.as_str(), active)?;
     prepare_scope(body_id, wake_id, active)
 }
@@ -116,7 +116,7 @@ pub fn prepare_installed_local(
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
     }
-    #[cfg(feature = "local-evidence-store")]
+    #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
     crate::native_observed_archive::bind_local(body_id.as_str(), active)?;
     prepare_scope(body_id, wake_id, active)
 }
@@ -197,7 +197,7 @@ impl Publisher {
             self.reader.withdraw_http();
             return;
         }
-        #[cfg(feature = "local-evidence-store")]
+        #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
         let _ = crate::native_observed_archive::append(
             PublicationSnapshot {
                 channel: snapshot.channel,

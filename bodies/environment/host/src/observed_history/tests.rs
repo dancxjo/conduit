@@ -488,3 +488,66 @@ fn recorder_reconnects_from_durable_cursor_after_network_and_process_interruptio
     assert_eq!((restarted.after, restarted.observed_ms), (2, 20));
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn root_signed_epoch_directory_delegates_only_same_body_forms_and_unique_scopes() {
+    let hex = |bytes: &[u8]| {
+        bytes
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    let key = SigningKey::from_bytes(&[7; 32]);
+    let scope = [3; 96];
+    let forms = [4; 32];
+    let collector = Collector {
+        scope,
+        forms,
+        key: key.verifying_key(),
+        after: 0,
+        observed_ms: 0,
+    };
+    let mut directory = [0; wire::DIRECTORY_BYTES];
+    directory[..32].copy_from_slice(&scope[..32]);
+    directory[32] = 1;
+    directory[33] = 2;
+    directory[34..130].copy_from_slice(&scope);
+    directory[130..162].copy_from_slice(&forms);
+    directory[162..166].copy_from_slice(&12u32.to_le_bytes());
+    let document = |bytes: &[u8; wire::DIRECTORY_BYTES], signer: &SigningKey| {
+        serde_json::to_vec(
+            &serde_json::json!({"profile":"observed-epochs@1", "directory":hex(bytes),
+            "signature":hex(&signer.sign(&wire::directory_transcript(bytes)).to_bytes())}),
+        )
+        .unwrap()
+    };
+    assert_eq!(
+        collector
+            .verify_directory(&document(&directory, &key))
+            .unwrap(),
+        vec![(2, scope)]
+    );
+    assert!(collector
+        .verify_directory(&document(&directory, &SigningKey::from_bytes(&[8; 32])))
+        .is_err());
+    for offset in [0, 34, 130, wire::DIRECTORY_BYTES - 1] {
+        let mut changed = directory;
+        changed[offset] ^= 1;
+        assert!(collector
+            .verify_directory(&document(&changed, &key))
+            .is_err());
+    }
+    let mut duplicated = directory;
+    duplicated[32] = 2;
+    duplicated[166..299].copy_from_slice(&directory[33..166]);
+    assert!(collector
+        .verify_directory(&document(&duplicated, &key))
+        .is_err());
+    assert_eq!(
+        wire::epoch_cursor(5, 960).and_then(wire::split_cursor),
+        Some((5, 960))
+    );
+    assert!(wire::split_cursor(wire::DIRECTORY_CURSOR).is_none());
+    assert!(wire::epoch_cursor(6, 0).is_none());
+    assert!(wire::epoch_cursor(0, 961).is_none());
+}

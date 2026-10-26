@@ -1,4 +1,7 @@
 //! Actual socket-task ownership for the attended bench. No Body/Plan identity.
+#[cfg(feature = "network-mdns")]
+#[path = "native_mdns.rs"]
+mod mdns;
 use conduit_environment_http::network_setup::NetworkSetupWriter;
 use conduit_environment_http::service_control::{
     ServiceControl, ServiceMailbox, ServiceMode, ServiceState,
@@ -30,6 +33,15 @@ pub async fn run(
                 heapless::String::new(),
                 heapless::String::new(),
             ]))
+        }
+    };
+    #[cfg(feature = "network-mdns")]
+    let mut mdns_buffers = {
+        let stats = esp_alloc::HEAP.stats();
+        if stats.size.saturating_sub(stats.current_usage) < mdns::BACKING_BYTES + 8192 {
+            None
+        } else {
+            Some(alloc::boxed::Box::new(mdns::Buffers::new()))
         }
     };
     let mut command = MAILBOX.next_command().await;
@@ -116,6 +128,16 @@ pub async fn run(
                         .await
                     }
                 };
+                #[cfg(feature = "network-mdns")]
+                let serving = async {
+                    if station {
+                        let backing = mdns_buffers.as_deref_mut().ok_or(())?;
+                        let _ = select(serving, mdns::run(stack, backing)).await;
+                        Err(())
+                    } else {
+                        serving.await
+                    }
+                };
                 let next = select(serving, MAILBOX.next_command()).await;
                 // select owns and has now dropped all socket/request futures.
                 match next {
@@ -167,4 +189,15 @@ pub fn control(observations: bool) -> Owner {
         control: MAILBOX.claim_control(32).unwrap(),
         observations,
     }
+}
+
+#[cfg(feature = "network-mdns")]
+pub const MDNS_BACKING_BYTES: usize = mdns::BACKING_BYTES;
+#[cfg(feature = "network-mdns")]
+pub fn mdns_available() -> bool {
+    mdns::available()
+}
+#[cfg(feature = "network-mdns")]
+pub fn mdns_hostname() -> heapless::String<48> {
+    mdns::hostname()
 }
