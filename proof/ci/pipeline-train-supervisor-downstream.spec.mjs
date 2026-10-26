@@ -139,7 +139,7 @@ for (const [name, mutate] of [
   ['draft release', f => { f.release.draft = true; }],
   ['wrong Publish event', f => { f.publisher.event = 'push'; }],
   ['wrong Publish workflow', f => { f.publisher.path = '.github/workflows/candidate.yml'; }],
-  ['stale Publish attempt', f => { f.publisher.run_attempt++; }],
+  ['stale Publish attempt', f => { f.publisher.run_attempt++; f.artifact.name = 'publication-receipt-4'; }],
   ['foreign Publish repository', f => { f.publisher.repository = { id: 11, full_name: 'fork/conduit' }; }],
   ['changed publication asset', f => { f.state.changeRelease = true; }],
 ]) test(`refuses ${name}`, async () => {
