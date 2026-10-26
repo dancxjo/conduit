@@ -298,7 +298,7 @@ fn run(scenario: usize, overnight: bool) {
                 Driver::Native(CaptureBack::pulse(1024))
             } else {
                 let prepared = software
-                    .take_selected(&plan.fragments[0], placement)
+                    .take_verified(&metadata, &plan.fragments[0].fragment_id, placement)
                     .unwrap();
                 selectors[i] = prepared.selector;
                 prepared.driver
