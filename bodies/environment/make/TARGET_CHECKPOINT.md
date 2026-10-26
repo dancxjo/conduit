@@ -29,6 +29,17 @@ flash exercised native pulse/wait preparation but refused fragmented codec
 allocation before any Body start; the successful hardware table below remains
 the last completed simultaneous-kernel checkpoint.
 
+Subsequent unflashed size checks replaced the network metadata decoder,
+fenced unsupported HOLD records before native restart decoding, shared generic
+JSON field framing, and selected SHA-2's compact software backend. The linked
+application is now **3,282,720 bytes**. The appliance-only layout admits
+**3,305,472 bytes**, retaining five 128 KiB signed history epochs, both Body
+banks, credential sectors and network recovery. Only the unused raw-display
+journal area shrinks to one 4 KiB sector. Invitation endpoint integration is
+still pending a final coherent link and physical boot; this size checkpoint
+must not be reported as autonomous execution or restart proof. Focused compact
+SHA owner/bootstrap and actual durable admission tests both pass.
+
 The bounded complete Mask codec now borrows the otherwise empty canonical
 slots only during cold preparation, wipes them on return/unwind, and never
 creates ValueRefs. Focused CPU proof saves exactly 16,384 heap bytes. Streamed
