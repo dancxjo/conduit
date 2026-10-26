@@ -594,3 +594,6 @@ fn local_verified_renderer_checks_fore_configuration_and_possession_before_trans
         }
     }
 }
+
+#[path = "native_mask_renderer_invocation.rs"]
+mod invocation_tests;

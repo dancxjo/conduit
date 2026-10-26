@@ -22,7 +22,7 @@ pub const ATTACHMENT: &str = "machine/tm1637-attachment";
 pub const AUTHORITY: &str = "conduit.authority/seven-segment-present@1";
 /// Electrical identity fields only. No WRITE Kind, grant or capability is reused.
 pub type RendererIdentity = WriteNativeIdentity;
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Bounds {
     pub face_bytes: u32,
     pub show_bytes: u32,
@@ -40,12 +40,15 @@ pub struct ReadyRenderer<P> {
 }
 #[path = "mask_renderer_delivery.rs"]
 mod delivery;
+#[path = "mask_renderer_invocation.rs"]
+mod invocation;
 #[path = "mask_renderer_offer.rs"]
 mod offer;
 pub use delivery::{
     DeliveryRefusal, PreparedPresentation, PresentationBasis, RendererCall, RendererState,
     VerifiedPresentation,
 };
+pub use invocation::PreparedRendererInvocation;
 impl<P: OpenDrain> ReadyRenderer<P> {
     /// # Safety
     /// Root must transfer the exact initialized pins named by identity, retain
@@ -194,6 +197,27 @@ impl<P: OpenDrain> ReadyRenderer<P> {
         selected: conduit_plan_lowering::selected_operation::SelectedVerifiedForeOperationPlan<'_>,
     ) -> Result<RendererCall<P>, &'static str> {
         let ready = owner.as_ref().ok_or("renderer-unavailable")?;
+        let active = selected.operation.active;
+        let node = Self::check_verified(ready, &table, &claim, configuration, selected)?;
+        let active = active.clone();
+        let ready = owner.take().expect("preflighted renderer owner");
+        Ok(RendererCall {
+            ready,
+            table,
+            handle,
+            claim,
+            active,
+            node,
+            state: RendererState::Ready,
+        })
+    }
+    fn check_verified(
+        ready: &Self,
+        table: &c::BaseCapabilityTable,
+        claim: &c::BaseOperationClaim,
+        configuration: &[c::ConfigurationEntry],
+        selected: conduit_plan_lowering::selected_operation::SelectedVerifiedForeOperationPlan<'_>,
+    ) -> Result<NodeId, &'static str> {
         let identity = &ready.identity;
         let b = ready.bounds;
         if claim.host_id != identity.host_id
@@ -222,9 +246,8 @@ impl<P: OpenDrain> ReadyRenderer<P> {
             return Err("renderer-possession-bound");
         }
         drop(inspections);
-        let active = selected.operation.active.clone();
         let node = conduit_plan_lowering::selected_operation::bind_selected_verified_configured_fore_operation(
-            &table, &claim,
+            table, claim,
             SelectedOperationContract {
                 kind: &ready.realization_contract(), call: CALL,
                 input_bytes: b.face_bytes, output_bytes: b.show_bytes,
@@ -237,15 +260,6 @@ impl<P: OpenDrain> ReadyRenderer<P> {
                 mechanism: ATTACHMENT, authority: AUTHORITY, resource_class: ATTACHMENT,
             }, selected,
         ).map_err(|_| "renderer-selected-binding")?;
-        let ready = owner.take().expect("preflighted renderer owner");
-        Ok(RendererCall {
-            ready,
-            table,
-            handle,
-            claim,
-            active,
-            node,
-            state: RendererState::Ready,
-        })
+        Ok(node)
     }
 }
