@@ -7,6 +7,9 @@ pub(super) struct Seed<T> {
 }
 impl<'de, T: DeserializeSeed<'de>> DeserializeSeed<'de> for Seed<T> {
     type Value = T::Value;
+    // Keep recursive typed field decoding behind one reusable monomorphized
+    // boundary instead of duplicating it inside every enclosing map visitor.
+    #[inline(never)]
     fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<Self::Value, D::Error> {
         self.inner.deserialize(Sequences {
             inner: d,
