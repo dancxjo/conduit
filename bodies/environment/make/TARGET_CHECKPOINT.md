@@ -10,6 +10,13 @@ admission remains open; the pure helper is still explicitly fenced.
 
 ## Local startup boundary — 2026-10-26
 
+Delivery requires MCU-local sampling and temperature/RH Mask progress while
+every fellow member is unavailable. A lost Line may suspend synchronization;
+it must not cancel the local Play, require a remote acknowledgement for each
+sample/display update, or cause a new Body birth on reconnect. Current carrier
+outage evidence supports continued sampling, but does not yet establish fully
+autonomous startup or the ordinary local timed Mask path.
+
 Local preparation now has Core-verified Body proposal, lean retained-software
 admission, one owned lowering, ordinary kernel assembly, and a producer Face
 constructor that does not fabricate a remote-owner reservation. The local Face
@@ -37,12 +44,18 @@ workset proposal alone does not install them.
 
 The diagnostic instruments simultaneous Body, Face and sampler-kernel
 preparation, but still has **no on-device combined-memory result**. The latest
-linked two-plot image is 2,766,160 bytes against the existing 2,621,440-byte
-application partition; image construction correctly refuses the 144,720-byte
-overflow. Its linker stack reserve is 56,868 bytes. No partition was enlarged
-and this diagnostic was not flashed. The Linux-owned native thermometer remains
-on its previously tested firmware. The next packaging work must reduce
-representation/loader costs while preserving both plots and their contracts.
+two-plot image initially linked at 2,766,160 bytes against the existing
+2,621,440-byte application partition; image construction correctly refused it.
+Replacing the general biography JSON decoder with Make-emitted pristine
+evidence reconstruction reduced the application to **2,423,360 bytes**, leaving
+198,080 bytes. Image construction now succeeds without enlarging the partition.
+Make requires equality with the complete retained original biography, including
+the Crèche name, birth Sign and both plots. This representation cannot resume
+mutable membership history; cold-Boot continuation still requires retained
+evidence and the ordinary recovery path. Seven runtime and six Make tests pass.
+This diagnostic was not flashed. The Linux-owned native thermometer remains on
+its previously tested firmware; fitting flash does not establish combined RAM
+admission, autonomous startup or physical execution.
 
 ## Linux first host, native ESP32 member
 

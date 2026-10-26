@@ -45,5 +45,11 @@ pub fn emit(out: &Path) -> conduit_environment_make::NativeSoftwareSourceRecipe 
             .expect("retain biography");
     }
     fs::write(out.join("body-biography.json"), biography).expect("linked biography");
+    let mut bootstrap = String::new();
+    image
+        .body
+        .write_bootstrap_rust(&mut bootstrap)
+        .expect("exact pristine Body representation");
+    fs::write(out.join("body-bootstrap.rs"), bootstrap).expect("compiled biography representation");
     image.sampling_software
 }

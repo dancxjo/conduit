@@ -4,6 +4,8 @@ use conduit_birth_plot::{BirthDraft, BirthDraftRefusal, BirthPlotChoice};
 use conduit_body::BodyBiographyEvidence;
 use conduit_body_make::{PreparedBirthRefusal, PreparedBodyBirth};
 use conduit_core::SignId;
+#[path = "body_image/bootstrap.rs"]
+mod bootstrap;
 
 pub struct PreparedBodyImage {
     evidence: BodyBiographyEvidence,

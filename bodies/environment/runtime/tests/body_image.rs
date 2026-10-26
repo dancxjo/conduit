@@ -128,3 +128,107 @@ fn sealed_image_owner_uses_the_same_membership_evidence_as_the_hosted_owner() {
     assert_eq!(hosted.evidence(), retained.evidence());
     assert!(retained.realization().is_none());
 }
+
+#[test]
+fn pristine_compiled_representation_keeps_the_complete_installed_evidence() {
+    use conduit_environment_runtime::body_image::restore_pristine_image;
+    for sequence in [1, 11, u64::from(u32::MAX)] {
+        let original = image(sequence);
+        let restored = restore_pristine_image(
+            original.body.workset.clone(),
+            sequence,
+            original.records[0].sign_id.clone(),
+            original.friendly_name.clone(),
+            original.body_id.as_str(),
+        )
+        .unwrap();
+        assert_eq!(restored, original);
+        let initialized = root("boot/representation");
+        assert_eq!(
+            open_installed_image(restored, &initialized)
+                .unwrap()
+                .evidence(),
+            open_installed_image(original, &initialized)
+                .unwrap()
+                .evidence()
+        );
+    }
+}
+#[test]
+fn changed_pristine_seed_cannot_restore_the_expected_body_identity() {
+    use conduit_environment_runtime::body_image::{
+        restore_pristine_image, PristineImageRefusal as P,
+    };
+    let original = image(11);
+    let mut changed_workset = original.body.workset.clone();
+    changed_workset
+        .add(conduit_body::ResidentPlot::new(
+            "other/source".into(),
+            "other/checked".into(),
+        ))
+        .unwrap();
+    assert_eq!(
+        restore_pristine_image(
+            changed_workset,
+            11,
+            original.records[0].sign_id.clone(),
+            original.friendly_name.clone(),
+            original.body_id.as_str()
+        ),
+        Err(P::Identity)
+    );
+    let restore = |sequence, sign, name, expected: &str| {
+        restore_pristine_image(
+            original.body.workset.clone(),
+            sequence,
+            sign,
+            name,
+            expected,
+        )
+    };
+    assert_eq!(
+        restore(
+            12,
+            original.records[0].sign_id.clone(),
+            original.friendly_name.clone(),
+            original.body_id.as_str()
+        ),
+        Err(P::Identity)
+    );
+    assert_eq!(
+        restore(
+            11,
+            "other/sign".into(),
+            original.friendly_name.clone(),
+            original.body_id.as_str()
+        ),
+        Err(P::Identity)
+    );
+    assert_eq!(
+        restore(
+            11,
+            original.records[0].sign_id.clone(),
+            original.friendly_name.clone(),
+            "claimed/body"
+        ),
+        Err(P::Identity)
+    );
+    assert_eq!(
+        restore(
+            11,
+            "".into(),
+            original.friendly_name.clone(),
+            original.body_id.as_str()
+        ),
+        Err(P::Birth)
+    );
+    assert_eq!(
+        restore(
+            11,
+            original.records[0].sign_id.clone(),
+            "".into(),
+            original.body_id.as_str()
+        ),
+        Err(P::Biography)
+    );
+}

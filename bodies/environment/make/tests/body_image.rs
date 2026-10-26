@@ -132,3 +132,22 @@ fn build_sign_generates_and_retains_the_body_without_a_manual_name_or_uuid() {
         Err(conduit_environment_make::EnvironmentBodyImageRefusal::BirthSign)
     ));
 }
+
+#[test]
+fn compiled_bootstrap_reconstructs_the_same_creche_biography_and_both_plots() {
+    let sign = conduit_core::bind_sign(
+        &"construction/host".into(),
+        &"construction/boot".into(),
+        None,
+        17,
+    );
+    let image = conduit_environment_make::EnvironmentBodyImage::prepare_from_sign(&sign).unwrap();
+    let restored = image.body.reconstruct_bootstrap().unwrap();
+    assert_eq!(&restored, image.body.evidence());
+    assert_eq!(restored.body.workset.len(), 2);
+    assert_eq!(restored.records[0].sign_id, sign.sign_id);
+    let mut rust = String::new();
+    image.body.write_bootstrap_rust(&mut rust).unwrap();
+    assert!(rust.contains("restore_pristine_image"));
+    assert!(!rust.contains("serde_json"));
+}

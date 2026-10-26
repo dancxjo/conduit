@@ -1,16 +1,14 @@
 //! Trusted installed-image boundary. Membership is separate from Play.
 use alloc::boxed::Box;
-use conduit_body::{BodyBiographyEvidence, SealedBodyLifecycleSession};
+use conduit_body::SealedBodyLifecycleSession;
+mod material {
+    include!(concat!(env!("OUT_DIR"), "/body-bootstrap.rs"));
+}
 
 pub fn load(
     root: &crate::native_root::NativeRoot,
 ) -> Result<Box<SealedBodyLifecycleSession>, &'static str> {
-    let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/body-biography.json"));
-    if bytes.len() > 8192 {
-        return Err("body-image-bound");
-    }
-    let evidence: BodyBiographyEvidence =
-        serde_json::from_slice(bytes).map_err(|_| "body-image-representation")?;
+    let evidence = material::evidence()?;
     let source = crate::native_software::planning_source()?;
     if source.gear_count() != conduit_environment_runtime::appliance::assigned::NODES {
         return Err("body-image-source-shape");

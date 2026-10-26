@@ -6,6 +6,9 @@ use conduit_body::{
     PartId, SealedBodyLifecycleSession,
 };
 use conduit_core::{bind_sign, HostAdvertisement};
+#[path = "body_image_pristine.rs"]
+mod pristine;
+pub use pristine::{restore_pristine_image, PristineImageRefusal};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ImageInstallationRefusal {
