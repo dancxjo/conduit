@@ -1,8 +1,12 @@
 pub fn emit(out: &std::path::Path) {
     let source = conduit_environment_make::SevenSegmentMaskSource::compile()
         .expect("checked ordinary Mask Source");
-    let identity = &source.role.plot_identity;
-    let mut rust=format!("pub fn source() -> conduit_core::PlotIdentity {{ conduit_core::PlotIdentity {{source_document_id:{:?}.into(),checked_plot_id:{:?}.into(),expanded_plot_id:{:?}.into()}} }}\n",identity.source_document_id.as_str(),identity.checked_plot_id.as_str(),identity.expanded_plot_id.as_str());
+    let material = conduit_environment_make::SevenSegmentMaskMaterial::prepare(&source)
+        .expect("exact ordinary Mask planning material");
+    let mut rust = String::new();
+    material
+        .write_rust(&mut rust)
+        .expect("linked ordinary Mask module");
     rust.push_str("pub const CONFIGURATIONS: &[(&str, &str, &str)] = &[\n");
     for gear in &source.plot.expanded.gears {
         let label = conduit_core::face_data_label(&gear.configuration).expect("finite label");
@@ -25,8 +29,6 @@ pub fn emit(out: &std::path::Path) {
         ));
     }
     rust.push_str("];\n");
-    let role = serde_json::to_vec(&source.role).unwrap();
-    rust.push_str(&format!("pub const ROLE: &[u8] = &{:?};\n", role));
     std::fs::write(out.join("mask-source.rs"), rust).unwrap();
     println!("cargo:rerun-if-changed=../../../../plots/seven-segment-mask/main.conduit");
 }

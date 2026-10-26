@@ -70,7 +70,7 @@ pub fn planning_source(
     .map_err(|_| "body-source-image-representation")
 }
 
-#[cfg(feature = "target-memory-check")]
+#[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
 pub fn check_local(
     software: &Software,
     verified: &conduit_plan_lowering::local_tables::VerifiedLocalLowering<'_>,
@@ -89,7 +89,7 @@ pub fn check_local(
         .map_err(|_| "local-software-admission")
 }
 
-#[cfg(feature = "target-memory-check")]
+#[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
 pub fn bind_local<'a>(
     software: &mut Option<Box<Software>>,
     verified: &'a conduit_plan_lowering::local_tables::VerifiedLocalLowering<'a>,
@@ -109,6 +109,58 @@ pub fn bind_local<'a>(
     PreparedResidentSoftware::bind_local_retained(
         software,
         verified,
+        image,
+        material::offers(),
+        scope,
+    )
+    .map_err(|_| "local-software-binding")
+}
+
+#[cfg(feature = "target-mask-memory-check")]
+pub type DirectTables<'a> = conduit_plan_lowering::local_tables::DirectLocalKernelTables<
+    'a,
+    { conduit_environment_runtime::appliance::assigned::NODES },
+    { conduit_environment_runtime::appliance::assigned::CORDS },
+    { conduit_environment_runtime::appliance::assigned::PORTS },
+    { conduit_environment_runtime::appliance::assigned::NODES },
+    { conduit_environment_runtime::appliance::assigned::CORDS },
+    { conduit_environment_runtime::appliance::assigned::NODES },
+>;
+#[cfg(feature = "target-mask-memory-check")]
+pub fn check_local_direct(
+    software: &Software,
+    tables: &DirectTables<'_>,
+    image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+    scope: (
+        &conduit_core::HostId,
+        &conduit_core::BootId,
+        conduit_core::OfferGeneration,
+    ),
+) -> Result<(), &'static str> {
+    software
+        .check_local_direct(tables, image, material::offers(), scope)
+        .map_err(|_| "local-software-admission")
+}
+#[cfg(feature = "target-mask-memory-check")]
+pub fn bind_local_direct<'a>(
+    software: &mut Option<Box<Software>>,
+    tables: DirectTables<'a>,
+    image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+    scope: (
+        &conduit_core::HostId,
+        &conduit_core::BootId,
+        conduit_core::OfferGeneration,
+    ),
+) -> Result<
+    conduit_environment_runtime::appliance::assigned::PreparedDirectLocalAppliance<
+        'a,
+        conduit_kernel::HostedValueStore,
+    >,
+    &'static str,
+> {
+    PreparedResidentSoftware::bind_local_direct_retained(
+        software,
+        tables,
         image,
         material::offers(),
         scope,

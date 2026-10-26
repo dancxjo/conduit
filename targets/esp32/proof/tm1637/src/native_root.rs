@@ -13,10 +13,13 @@ mod lifecycle;
 #[cfg(feature = "target-memory-check")]
 #[path = "native_local_display_plan.rs"]
 mod local_display_plan;
+#[cfg(feature = "target-mask-memory-check")]
+#[path = "native_local_mask.rs"]
+mod local_mask;
 #[cfg(feature = "mask-root")]
 #[path = "native_mask_root.rs"]
 mod mask;
-#[cfg(feature = "target-memory-check")]
+#[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
 #[path = "native_memory_check.rs"]
 pub(crate) mod memory_check;
 #[path = "native_offer.rs"]

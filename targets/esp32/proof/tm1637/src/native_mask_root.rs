@@ -6,7 +6,7 @@ use alloc::boxed::Box;
 use conduit_core as c;
 #[path = "native_mask_source.rs"]
 mod source_check;
-mod material {
+pub(super) mod material {
     include!(concat!(env!("OUT_DIR"), "/mask-source.rs"));
 }
 impl NativeRoot {

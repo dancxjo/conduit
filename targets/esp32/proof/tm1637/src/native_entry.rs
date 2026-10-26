@@ -56,10 +56,14 @@ async fn main(spawner: Spawner) {
         .expect("Root preparation service must start");
     root.prepare_network_plan()
         .expect("current initialized Root advertisement");
-    #[cfg(feature = "target-memory-check")]
+    #[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
     {
+        #[cfg(feature = "target-memory-check")]
         root.measure_local_sampler()
             .expect("target sampler measurement");
+        #[cfg(feature = "target-mask-memory-check")]
+        root.measure_local_mask()
+            .expect("target ordinary Mask measurement");
         // This preparation diagnostic accepts no management assignments. Keep
         // its retained Root alive for memory inspection without linking the
         // unrelated remote installation/control interpreter into the image.
@@ -68,7 +72,10 @@ async fn main(spawner: Spawner) {
             embassy_time::Timer::after_secs(60).await;
         }
     }
-    #[cfg(all(not(feature = "owner-wifi"), not(feature = "target-memory-check")))]
+    #[cfg(all(
+        not(feature = "owner-wifi"),
+        not(any(feature = "target-memory-check", feature = "target-mask-memory-check"))
+    ))]
     {
         let mut uart = esp_hal::uart::Uart::new(p.UART0, esp_hal::uart::Config::default())
             .expect("Root UART0 must initialize")
@@ -79,7 +86,10 @@ async fn main(spawner: Spawner) {
             .await
             .expect("Root UART management failed");
     }
-    #[cfg(all(feature = "owner-wifi", not(feature = "target-memory-check")))]
+    #[cfg(all(
+        feature = "owner-wifi",
+        not(any(feature = "target-memory-check", feature = "target-mask-memory-check"))
+    ))]
     {
         let mut listener = crate::native_carrier::Listener::new(owner_stacks);
         loop {

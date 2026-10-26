@@ -6,7 +6,7 @@ extern crate alloc;
 #[cfg(not(feature = "live"))]
 use conduit_tm1637_wire::{transmit, Packet};
 use esp_backtrace as _;
-#[cfg(feature = "target-memory-check")]
+#[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
 #[no_mangle]
 pub extern "Rust" fn custom_pre_backtrace() {
     crate::native_root::memory_check::mark("panic", 0);

@@ -9,6 +9,7 @@ local-evidence-store = ["display-physical-check", "owner-wifi", "dep:esp-storage
 owner-wifi = ["native-root"]
 mask-root = ["native-face-root", "conduit-environment-runtime/mask-renderer"]
 target-memory-check = ["body-image-root", "display-fit-root", "conduit-planner/indexed-source", "conduit-environment-runtime/local-planning", "esp-backtrace/custom-pre-backtrace"]
+target-mask-memory-check = ["body-image-root", "mask-root", "conduit-planner/indexed-source", "conduit-environment-runtime/local-planning", "esp-backtrace/custom-pre-backtrace"]
 body-image-root = ["native-face-root", "conduit-environment-runtime/body-image"]
 native-face-root = ["native-root", "conduit-environment-runtime/face-projection"]
 display-fit-root = ["native-face-root", "conduit-environment-runtime/display-output", "conduit-environment-runtime/display-mask"]

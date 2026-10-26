@@ -18,7 +18,7 @@ pub(crate) fn mark(phase: &str, item: usize) {
 }
 impl NativeRoot {
     #[inline(never)]
-    pub fn measure_local_sampler(&mut self) -> Result<(), &'static str> {
+    pub fn prepare_local_sampler_plan(&mut self) -> Result<c::VerifiedPlanMetadata, &'static str> {
         mark("initialized-root-body-radio", 0);
         let image = crate::native_software::planning_source()?;
         let mut host = self.advertisement().map_err(|_| "native-offers")?;
@@ -110,7 +110,6 @@ impl NativeRoot {
         ];
         let empty = BTreeMap::new();
         let lines = BTreeMap::new();
-        let offer_generation = host.offer_generation;
         mark("before-compact-planning", 0);
         let compact =
             conduit_planner::indexed_source::plan_compact_consuming_with_connection_limits(
@@ -139,6 +138,14 @@ impl NativeRoot {
             .into_verified_metadata()
             .map_err(|_| "verification")?;
         mark("verified-plan-live", plan.fragment_count());
+        Ok(plan)
+    }
+    #[cfg(feature = "target-memory-check")]
+    #[inline(never)]
+    pub fn measure_local_sampler(&mut self) -> Result<(), &'static str> {
+        let image = crate::native_software::planning_source()?;
+        let plan = self.prepare_local_sampler_plan()?;
+        let offer_generation = c::OfferGeneration(self.offer_generation);
         let metadata = plan.preparation_metadata();
         let plot = conduit_body::ResidentPlot::new(
             metadata.source_document_id.clone(),

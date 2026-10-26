@@ -17,8 +17,12 @@ pub fn emit(out: &Path) -> conduit_environment_make::NativeSoftwareSourceRecipe 
         .expect("read birth Sign");
     assert!(bytes.len() <= 8192, "birth Sign exceeds image profile");
     let sign = serde_json::from_slice(&bytes).expect("typed construction birth Sign");
+    #[cfg(not(feature = "target-mask-memory-check"))]
     let image = conduit_environment_make::EnvironmentBodyImage::prepare_from_sign(&sign)
         .expect("checked image Body birth");
+    #[cfg(feature = "target-mask-memory-check")]
+    let image = conduit_environment_make::EnvironmentBodyImage::prepare_mask_from_sign(&sign)
+        .expect("checked ordinary Mask Body birth");
     let biography = serde_json::to_vec(image.body.evidence()).expect("ordinary biography encoding");
     assert!(
         biography.len() <= 8192,

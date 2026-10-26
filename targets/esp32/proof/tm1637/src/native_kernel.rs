@@ -52,7 +52,7 @@ pub fn prepare(
     assemble(prepared, signs)
 }
 /// Preparation-only local path: no native provider transfer, Step or Body start.
-#[cfg(feature = "target-memory-check")]
+#[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
 #[inline(never)]
 pub fn prepare_local<'a>(
     software: &mut Option<Box<crate::native_software::Software>>,
@@ -80,6 +80,30 @@ pub fn prepare_local<'a>(
     let signs =
         k::HostedSignLog::new(slots, lowered.sign_bytes).map_err(|_| "local-sign-budget")?;
     crate::native_kernel_storage::assemble_local(prepared, signs)
+}
+#[cfg(feature = "target-mask-memory-check")]
+pub fn local_parts_requirements(
+    prepared: &crate::native_kernel_storage::LocalKernelParts,
+) -> Result<(usize, u16), &'static str> {
+    requirements_for(
+        prepared.sign_items,
+        prepared.sign_bytes,
+        core::mem::size_of::<crate::native_kernel_storage::LocalKernelParts>(),
+    )
+}
+#[cfg(feature = "target-mask-memory-check")]
+#[inline(never)]
+pub fn prepare_local_direct(
+    prepared: crate::native_kernel_storage::LocalKernelParts,
+) -> Result<PreparedKernel, &'static str> {
+    let sign_bytes = prepared.sign_bytes;
+    let (needed, slots) = local_parts_requirements(&prepared)?;
+    let memory = esp_alloc::HEAP.stats();
+    if memory.size.saturating_sub(memory.current_usage) < needed {
+        return Err("local-kernel-capacity");
+    }
+    let signs = k::HostedSignLog::new(slots, sign_bytes).map_err(|_| "local-sign-budget")?;
+    crate::native_kernel_storage::assemble_local_direct(prepared, signs)
 }
 pub async fn report(
     root: &mut crate::native_root::NativeRoot,

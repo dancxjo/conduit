@@ -1,12 +1,49 @@
 # MCU delivery checkpoints — 2026-10-25
 
-**The ESP32 sampler now runs natively as a member of a Linux-owned Body.**
-The earlier self-contained ESP32 preparation failed; the current native sampler
-uses the Linux owner. Pico comparative preparation remains separately measured below.
-The bounded native display run now repeats physical pages alongside the sampler
-with acknowledged evidence transfer. Its latest target checkpoint is
-[below](#right-sized-evidence-backing-on-the-physical-esp32). Ordinary Mask Plot
-admission remains open; the pure helper is still explicitly fenced.
+**The latest ESP32 flash is a fresh MCU-owned preparation diagnostic.** It
+has not started sampling or presenting the ordinary Mask. Historical attended
+Linux-owned sampler and raw display proofs below remain separate from this new
+startup path. The current RAM boundary is recorded first.
+
+## Fresh ordinary Mask preparation — 2026-10-26
+
+The owner authorized a fresh Body and full reflash. The original 4 MiB flash
+and previous host custody were retained privately before erase. The latest
+physical diagnostic prepares the sampler plus the **ordinary three-node Mask**,
+not the separate raw display-output Plot. Both kernels, the explicit Body
+proposal and producer Face publisher now fit simultaneously.
+
+| Physical preparation phase | Root used | Root peak |
+| --- | ---: | ---: |
+| Verified sampler Plan | 96,300 | 107,620 |
+| Both verified Plans | 102,088 | 107,620 |
+| Opaque prepared Body proposal | 105,416 | 107,620 |
+| Both Plot Plans retired | 57,612 | 107,620 |
+| Sampler kernel | 70,592 | 107,620 |
+| Published Body proposal and Face publisher | 75,592 | 107,620 |
+| Both ordinary kernels and Face publisher | **79,736** | **107,620** |
+| Probe completed normal Body lull | 26,824 | 107,620 |
+
+Root heap remains 118,768 bytes; SDK arena remains 73,728 bytes (33,408 used).
+Two complete 8192-byte canonical Mask slots occupy 16,416 bytes of exclusive
+static DRAM including metadata. This replaces fragmentation-prone large heap
+requests, not payloads with local handles. The keyed image leaves **40,948 bytes
+of CPU stack**, above the unchanged **36,864-byte floor**. The application is
+**2,436,192 / 2,621,440 bytes**, without enlarging the partition.
+
+Indexed planning retains exact configurations, provenance and Fore. Direct
+numeric projection avoids a second rich lowering; streaming fingerprints avoid
+whole byte buffers. Alloc-enabled kernels omit their empty terminal-law table;
+nonempty laws are still checked and bound before execution, and non-alloc
+profiles retain fixed backing. The sealed Body proposal is prepared from both
+verified Plans, then committed atomically against a hash of the unchanged full
+lifecycle state after those bulky inputs retire. Face custody checks the exact
+installed opaque seal, independently pinned Source and current member epoch.
+
+This diagnostic has **no sampling, GPIO presentation, native possession, Body
+start, autonomous operation, reconnect or restart proof**. Complete Mask Show
+context, native bindings, execution and timed child-invocation custody remain
+separate steps. Fresh linked biography alone is not mutable restart continuity.
 
 ## Local startup boundary — 2026-10-26
 
