@@ -3,6 +3,7 @@
 extern crate alloc;
 mod admission;
 mod body_join;
+mod body_join_proxy;
 mod display_check;
 mod display_evidence;
 mod execution;
@@ -30,6 +31,15 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args.get(1).is_some_and(|a| a == "--browser-join-proxy") {
+        if !(3..=4).contains(&args.len()) {
+            return Err(
+                "expected --browser-join-proxy DEVICE_HOST:PORT [LOOPBACK_PORT=8787]".into(),
+            );
+        }
+        return body_join_proxy::run(&args[2], args.get(3).map_or(Ok(8787), |port| port.parse())?);
+    }
+
     if args.get(1).is_some_and(|a| a == "--browser-invitation") {
         if args.len() != 4 {
             return Err("expected --browser-invitation PRIVATE_BOOTSTRAP LOCAL_HELPER.html".into());

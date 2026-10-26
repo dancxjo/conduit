@@ -173,7 +173,7 @@ fn compact_request(request: &conduit_body::PortableSpawnAdmissionRequest) -> Res
     value["signature"] = serde_json::json!(hex(&request.signature));
     Ok(serde_json::to_vec(&value)?)
 }
-fn http(peer: &str, method: &str, path: &str, body: &[u8]) -> Result<(u16, Vec<u8>)> {
+pub(crate) fn http(peer: &str, method: &str, path: &str, body: &[u8]) -> Result<(u16, Vec<u8>)> {
     use std::net::ToSocketAddrs;
     if peer.len() > 255 || peer.contains(['/', '@', '\r', '\n']) {
         return Err("join peer must be HOST:PORT".into());
@@ -191,7 +191,23 @@ fn http(peer: &str, method: &str, path: &str, body: &[u8]) -> Result<(u16, Vec<u
             s.write_all(request_header.as_bytes())?;
             s.write_all(body)?;
             let mut bytes = Vec::new();
-            s.take(16385).read_to_end(&mut bytes)?;
+            let deadline = Instant::now() + Duration::from_secs(3);
+            let mut block = [0; 1024];
+            loop {
+                s.set_read_timeout(Some(
+                    deadline
+                        .checked_duration_since(Instant::now())
+                        .ok_or("join HTTP deadline")?,
+                ))?;
+                let n = s.read(&mut block)?;
+                if n == 0 {
+                    break;
+                }
+                if bytes.len() + n > 16384 {
+                    return Err("join HTTP extent".into());
+                }
+                bytes.extend_from_slice(&block[..n]);
+            }
             if bytes.len() > 16384 {
                 return Err("join HTTP extent".into());
             }
