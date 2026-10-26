@@ -29,6 +29,19 @@ environment is not changed. Git reads do not receive the App token, and source
 operations do not receive the owner observer. Artifact downloads use an explicit
 scoped token and fixed working directory, not ambient `gh` authentication.
 
+The credentialed Git push runs from a new private controller-owned bare
+repository, borrowing only the proved source's object directory. Its empty
+hooks/template and independent configuration prevent target-local hooks and URL
+rewrites from running with the token. Global/system Git configuration and
+ambient Git directory/config/transport overrides are disabled. The temporary
+context is removed after success or failure; the original exclusive-ref lease,
+new-branch acknowledgement and remote readback still govern dispatch ownership.
+Target source Git metadata is never the credentialed push working directory.
+The older `train-dispatch` entrance requires an explicit `GH_TOKEN` and uses
+the same scoped child bridge; it cannot fall back to stored human GitHub login.
+It does not itself mint or validate a dedicated App session. Use `train-control`
+for production machine identity and session validation.
+
 An assemble request explicitly selects ready PR numbers:
 
 ```json

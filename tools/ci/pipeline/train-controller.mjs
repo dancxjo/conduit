@@ -64,6 +64,10 @@ export async function readTrainControllerRequest(filename) {
 export function createTrainSourceEnvironment(environment = process.env, credentialReferences = []) {
   const env = { ...environment };
   for (const name of ['GH_TOKEN', 'GITHUB_TOKEN', ...credentialReferences]) if (name) delete env[name];
+  for (const name of Object.keys(env)) if (name.startsWith('GIT_')) delete env[name];
+  Object.assign(env, { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_SYSTEM: '/dev/null', GIT_TERMINAL_PROMPT: '0', GIT_NO_REPLACE_OBJECTS: '1',
+    GIT_NO_LAZY_FETCH: '1' });
   return Object.freeze(env);
 }
 
@@ -79,6 +83,18 @@ export function createTrainSessionCommand({ installationToken, observerEnvironme
     if (!['gh', 'git'].includes(program) || !Array.isArray(args)
         || (program === 'gh' && args[0] !== 'api')) fail('unsupported controller child program');
     const env = clean(options.env);
+    if (program === 'git') {
+      // Never let ambient Git directory/config/transport overrides escape the
+      // fresh push context. Synthetic commit identity is trusted caller data.
+      for (const name of Object.keys(env)) if (name.startsWith('GIT_')) delete env[name];
+      Object.assign(env, { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null',
+        GIT_CONFIG_SYSTEM: '/dev/null', GIT_TERMINAL_PROMPT: '0', GIT_NO_REPLACE_OBJECTS: '1',
+        GIT_NO_LAZY_FETCH: '1' });
+      for (const name of ['GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_AUTHOR_DATE',
+        'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL', 'GIT_COMMITTER_DATE']) {
+        if (options.env && Object.hasOwn(options.env, name)) env[name] = options.env[name];
+      }
+    }
     if (program === 'gh' || args.includes('push')) env.GH_TOKEN = installationToken;
     env.GH_HOST = 'github.com';
     let result;
@@ -137,7 +153,7 @@ export async function runTrainController({ request, config, privateKeyFile, obse
       switch (request.operation) {
         case 'assemble': return commands.assemble(config.repository, request.prs, request.worktree, request.manifest);
         case 'capture': return commands.capture(config.repository, request.source, request.prs, request.manifest);
-        case 'dispatch': return createTrainDispatcher({ command: child, directory: request.targetSource, commands })(request.manifest);
+        case 'dispatch': return createTrainDispatcher({ command: child, directory: request.targetSource, commands, sourceEnvironment })(request.manifest);
         case 'acquire': return commands.acquire(request.manifest, request.runId, request.archives);
         case 'land': return createTrainLander({ command: child, directory: request.targetSource, commands,
           machineWriter: config, appIdentityApi, policyObserverApi: policyApi })(request.manifest,
