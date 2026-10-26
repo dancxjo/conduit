@@ -3,13 +3,17 @@
 use alloc::{string::String, vec::Vec};
 use conduit_body::{AdmissionManager, BodyBiographyArchiveSegment, BodyBiographyEvidence};
 use serde::{Deserialize, Serialize};
+#[path = "native_restart_profile.rs"]
+mod profile;
 pub const SCHEMA: &str = "conduit.environment/root-restart@1";
 pub const MAX_BYTES: usize = 32768 - 160;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Retained {
     pub schema: String,
+    #[serde(deserialize_with = "profile::deserialize_evidence")]
     pub evidence: BodyBiographyEvidence,
+    #[serde(deserialize_with = "profile::deserialize_archives")]
     pub archives: Vec<BodyBiographyArchiveSegment>,
     #[serde(default)]
     pub admissions: Option<AdmissionManager>,
@@ -17,7 +21,7 @@ pub struct Retained {
 #[derive(Serialize)]
 struct Snapshot<'a> {
     schema: &'static str,
-    evidence: &'a BodyBiographyEvidence,
+    evidence: profile::EvidenceRef<'a>,
     archives: Archives<'a>,
     #[serde(skip_serializing_if = "Option::is_none")]
     admissions: Option<&'a AdmissionManager>,
@@ -31,7 +35,7 @@ impl Serialize for Archives<'_> {
         use serde::ser::SerializeSeq;
         let mut seq = serializer.serialize_seq(Some(self.0.len() + self.1.len()))?;
         for segment in self.0.iter().chain(self.1) {
-            seq.serialize_element(segment)?;
+            seq.serialize_element(&profile::ArchiveRef::from(segment))?;
         }
         seq.end()
     }
@@ -47,6 +51,8 @@ fn validate_chain(
     archives: &[BodyBiographyArchiveSegment],
     pending: &[BodyBiographyArchiveSegment],
 ) -> Result<(), &'static str> {
+    profile::ensure_no_holds(evidence, archives)?;
+    profile::ensure_no_holds(evidence, pending)?;
     evidence.validate().map_err(|_| "restart-biography")?;
     let mut previous = None;
     let mut ordinal = 0u64;
@@ -83,7 +89,7 @@ pub fn encode(
     validate_chain(evidence, archives, pending)?;
     let snapshot = Snapshot {
         schema: SCHEMA,
-        evidence,
+        evidence: evidence.into(),
         archives: Archives(archives, pending),
         admissions: None,
     };
@@ -159,7 +165,7 @@ pub fn stream_with_admissions<E>(
     }
     let snapshot = Snapshot {
         schema: SCHEMA,
-        evidence,
+        evidence: evidence.into(),
         archives: Archives(archives, pending),
         admissions,
     };
