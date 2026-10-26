@@ -109,6 +109,43 @@ pub(crate) fn attach_fore(
     fragments: &mut [conduit_core::PlanFragment],
     boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
 ) -> Result<(), PlannerError> {
+    let mut ports = Vec::new();
+    visit_fore(
+        front,
+        input_bindings,
+        output_bindings,
+        fragments,
+        boundary_limits,
+        |index, port| {
+            ports.push((index, port));
+            Ok(())
+        },
+    )?;
+    for (index, port) in ports {
+        fragments[index].fore_ports.push(port);
+    }
+    for fragment in fragments {
+        fragment.fore_ports.sort_by(|left, right| {
+            (left.direction as u8, &left.front_port_id, left.track).cmp(&(
+                right.direction as u8,
+                &right.front_port_id,
+                right.track,
+            ))
+        });
+    }
+    Ok(())
+}
+
+/// Construct one exact Fore at a time for sealing or read-only comparison.
+/// Verification never clones the selected graph or its configuration payloads.
+pub(crate) fn visit_fore(
+    front: &conduit_core::CheckedFront,
+    input_bindings: &[conduit_plot::AuthoringFrontBinding],
+    output_bindings: &[conduit_plot::AuthoringFrontBinding],
+    fragments: &[conduit_core::PlanFragment],
+    boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
+    mut visit: impl FnMut(usize, PlannedForePort) -> Result<(), PlannerError>,
+) -> Result<(), PlannerError> {
     let expected = input_bindings
         .iter()
         .map(|binding| ForeBoundaryKey {
@@ -197,9 +234,10 @@ pub(crate) fn attach_fore(
                     .map(|contract| contract.contract.clone())
             })
             .flatten();
-            let fragment = fragments
-                .iter_mut()
-                .find(|fragment| {
+            let (fragment_index, fragment) = fragments
+                .iter()
+                .enumerate()
+                .find(|(_, fragment)| {
                     fragment
                         .placements
                         .iter()
@@ -297,31 +335,25 @@ pub(crate) fn attach_fore(
                     binding.front_port_id.as_str(),
                 )));
             }
-            fragment.fore_ports.push(PlannedForePort {
-                front_port_id: binding.front_port_id.clone(),
-                direction,
-                placement_id: placement.placement_id.clone(),
-                gear_port_id: binding.gear_port_id.clone(),
-                value_kind: descriptor.value_kind.clone(),
-                value_contract,
-                abnormal_kind: descriptor.abnormal_kind.clone(),
-                track: binding.track,
-                temporal: descriptor.temporal,
-                pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
-                item_capacity: limits.item_capacity,
-                byte_capacity: limits.byte_capacity,
-                selected_line: None,
-            });
+            visit(
+                fragment_index,
+                PlannedForePort {
+                    front_port_id: binding.front_port_id.clone(),
+                    direction,
+                    placement_id: placement.placement_id.clone(),
+                    gear_port_id: binding.gear_port_id.clone(),
+                    value_kind: descriptor.value_kind.clone(),
+                    value_contract,
+                    abnormal_kind: descriptor.abnormal_kind.clone(),
+                    track: binding.track,
+                    temporal: descriptor.temporal,
+                    pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
+                    item_capacity: limits.item_capacity,
+                    byte_capacity: limits.byte_capacity,
+                    selected_line: None,
+                },
+            )?;
         }
-    }
-    for fragment in fragments {
-        fragment.fore_ports.sort_by(|left, right| {
-            (left.direction as u8, &left.front_port_id, left.track).cmp(&(
-                right.direction as u8,
-                &right.front_port_id,
-                right.track,
-            ))
-        });
     }
     Ok(())
 }

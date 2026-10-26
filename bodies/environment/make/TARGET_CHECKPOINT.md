@@ -38,17 +38,25 @@ Plan, including both Fore ports, canonical identities and refusal behavior.
 It also seals both sampling/display Plans against the unchanged image workset,
 with fragments on the same Host/Boot. Existing external-Fore and authoring-scan
 regressions pass. These results do not prove on-target admission or execution.
-The ordinary timed Mask/Fore caller, display kernel/native binding, complete
-memory admission and startup release still need integration; a complete
-workset proposal alone does not install them.
+The local display kernel now consumes the existing compact pure-software
+owners after checking the independently authenticated indexed Source, exact
+selected offers/configurations, checked Fore and finite acyclic output shape.
+The Fore comparison shares ordinary admission's visitor and does not clone the
+selected graph. Refusal leaves the software retained. CPU execution covers valid
+frames and brightness refusals with no Play allocations; changed configuration,
+artifact or Fore, stale Boot/epoch and insufficient backing refuse before
+transfer. Native output possession, the ordinary timed Mask/Fore caller,
+complete memory/work admission and startup release still need integration.
 
-The diagnostic instruments simultaneous Body, Face and sampler-kernel
+The diagnostic now instruments simultaneous Body, Face and **both kernels'**
 preparation, but still has **no on-device combined-memory result**. The latest
 two-plot image initially linked at 2,766,160 bytes against the existing
 2,621,440-byte application partition; image construction correctly refused it.
 Replacing the general biography JSON decoder with Make-emitted pristine
 evidence reconstruction reduced the application to **2,423,360 bytes**, leaving
-198,080 bytes. Image construction now succeeds without enlarging the partition.
+198,080 bytes. Adding local display kernel preparation brings the latest image
+to **2,450,128 bytes**, with **171,312 bytes free**; image construction succeeds
+without enlarging the partition. Its linker stack reserve is 57,324 bytes.
 Make requires equality with the complete retained original biography, including
 the Crèche name, birth Sign and both plots. This representation cannot resume
 mutable membership history; cold-Boot continuation still requires retained

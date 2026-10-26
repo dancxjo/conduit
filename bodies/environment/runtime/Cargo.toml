@@ -15,7 +15,7 @@ mask-kernel = ["dep:conduit-face", "dep:conduit-plan-lowering", "conduit-kernel/
 display-mask = ["dep:conduit-face", "dep:conduit-seven-segment-mask"]
 appliance = ["conduit-kernel/alloc", "dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
 construction = ["appliance", "dep:conduit-planner"]
-local-planning = ["construction", "dep:conduit-plan-lowering", "dep:serde_json", "conduit-plot/flat-image"]
+local-planning = ["construction", "dep:conduit-plan-lowering", "dep:serde_json", "conduit-plot/flat-image", "conduit-planner/indexed-source"]
 face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["dep:conduit-pulse-capture"]
 

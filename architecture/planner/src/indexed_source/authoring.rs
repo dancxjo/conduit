@@ -85,4 +85,68 @@ impl IndexedAuthoringBoundary {
             limits,
         )
     }
+    /// Recheck selected local Fores against this independently authenticated
+    /// checked boundary. No graph clone, permission, caller or Line is created.
+    pub fn check_selected_fore(
+        &self,
+        plan: &conduit_core::VerifiedPlanMetadata,
+    ) -> Result<(), PlannerError> {
+        let metadata = plan.preparation_metadata();
+        if metadata.source_document_id != self.source.source_document_id
+            || metadata.checked_plot_id != self.source.checked_plot_id
+            || metadata.expanded_plot_id != self.source.expanded_plot_id
+        {
+            return Err(PlannerError::InvalidPlotIdentity(
+                "indexed Fore Source scope".into(),
+            ));
+        }
+        let mut limits = BTreeMap::new();
+        let mut count = 0;
+        for port in metadata.fragments.iter().flat_map(|f| &f.fore_ports) {
+            let key = crate::ForeBoundaryKey {
+                direction: port.direction,
+                front_port_id: port.front_port_id.clone(),
+                track: port.track,
+            };
+            let value = ConnectionQueueLimits {
+                item_capacity: port.item_capacity,
+                byte_capacity: port.byte_capacity,
+            };
+            if limits.insert(key, value).is_some_and(|old| old != value) {
+                return Err(PlannerError::InvalidPlotIdentity(
+                    "inconsistent Fore bounds".into(),
+                ));
+            }
+            count += 1;
+        }
+        let mut matched = 0;
+        crate::canonical::authoring::visit_fore(
+            &self.front,
+            &self.inputs,
+            &self.outputs,
+            &metadata.fragments,
+            &limits,
+            |index, expected| {
+                if metadata.fragments[index]
+                    .fore_ports
+                    .iter()
+                    .filter(|actual| **actual == expected)
+                    .count()
+                    != 1
+                {
+                    return Err(PlannerError::InvalidPlotIdentity(
+                        "selected Fore differs from checked boundary".into(),
+                    ));
+                }
+                matched += 1;
+                Ok(())
+            },
+        )?;
+        if matched != count {
+            return Err(PlannerError::InvalidPlotIdentity(
+                "selected Fore count".into(),
+            ));
+        }
+        Ok(())
+    }
 }

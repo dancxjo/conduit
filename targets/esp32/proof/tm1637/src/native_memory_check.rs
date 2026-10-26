@@ -168,8 +168,20 @@ impl NativeRoot {
                 ) => "body-workset-incomplete",
                 _ => "body-verified-proposal",
             })?;
-        drop(display_plan);
         mark("body-local-proposal-live", 2);
+        let display_kernel = {
+            let id = &display_plan.preparation_metadata().fragments[0].fragment_id;
+            let lowered = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
+                &display_plan,
+                id,
+            )
+            .map_err(|_| "display-local-lowering")?;
+            mark("before-local-display-kernel", 4);
+            self.display
+                .prepare_local_kernel(&lowered, (&self.host, &self.boot, offer_generation))?
+        };
+        drop(display_plan);
+        mark("local-display-kernel-live", 4);
         let preparation = (|| -> Result<(), &'static str> {
             let id = &plan.preparation_metadata().fragments[0].fragment_id;
             let verified_lowering =
@@ -214,13 +226,14 @@ impl NativeRoot {
                 &image,
                 (&self.host, &self.boot, offer_generation),
             )?;
-            mark("local-kernel-face-live", 15);
+            mark("both-local-kernels-face-live", 19);
             drop(kernel);
             drop(publisher);
             mark("local-kernel-retired", 0);
             Ok(())
         })();
         drop(plan);
+        drop(display_kernel);
         // This diagnostic prepared no worker or native call. Close its proposed
         // Wake normally; retaining a Plan seal is not a started Body Play.
         self.body

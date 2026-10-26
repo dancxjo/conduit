@@ -6,6 +6,9 @@ use super::software::{
 };
 use alloc::vec::Vec;
 use conduit_core as c;
+#[cfg(all(feature = "local-planning", feature = "display-output"))]
+#[path = "software_compact_local.rs"]
+mod local;
 
 struct Operation<'a> {
     node: [u8; 48],

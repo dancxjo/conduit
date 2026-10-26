@@ -14,6 +14,11 @@ use conduit_plan_lowering::lowering::{
     lower_plan_fragment_from_plan, LoweredForePort, LoweredPlanFragment,
 };
 use conduit_tm1637_wire::WriteBack;
+#[cfg(all(feature = "local-planning", feature = "display-output"))]
+#[path = "display_output_local.rs"]
+mod local;
+#[cfg(all(feature = "local-planning", feature = "display-output"))]
+pub use local::LocalDisplayInput;
 
 #[path = "display_output_assigned.rs"]
 mod assigned;

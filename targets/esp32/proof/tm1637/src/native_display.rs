@@ -75,6 +75,9 @@ pub(crate) mod fit;
 #[path = "native_display_source.rs"]
 mod source;
 #[cfg(feature = "target-memory-check")]
+#[path = "native_local_display_kernel.rs"]
+mod local_kernel;
+#[cfg(feature = "target-memory-check")]
 pub(crate) use source::{planning_boundary, planning_source};
 pub struct NativeDisplay {
     #[cfg(feature = "display-fit-root")]
