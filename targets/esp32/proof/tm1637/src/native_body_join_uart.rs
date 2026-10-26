@@ -63,10 +63,15 @@ impl Bootstrap {
                 continue;
             }
             if *byte == b'\n' {
-                let result = self.handle(root, uart).await;
+                let result = self.prepare_reply(root);
                 self.clear();
-                if result.is_err() {
-                    write(uart, b"\n{\"event\":\"body-join-refused\"}\n").await?;
+                match result {
+                    Ok(reply) => {
+                        write(uart, b"\n").await?;
+                        write(uart, &reply.0).await?;
+                        write(uart, b"\n").await?;
+                    }
+                    Err(_) => write(uart, b"\n{\"event\":\"body-join-refused\"}\n").await?,
                 }
             } else if *byte != b'\r' {
                 self.command.push(*byte);
@@ -78,11 +83,8 @@ impl Bootstrap {
         self.command.fill(0);
         self.command = Vec::new();
     }
-    async fn handle(
-        &mut self,
-        root: &mut NativeRoot,
-        uart: &mut Uart<'_, esp_hal::Async>,
-    ) -> Result<(), &'static str> {
+    #[inline(never)]
+    fn prepare_reply(&mut self, root: &mut NativeRoot) -> Result<Reply, &'static str> {
         let now = Instant::now().as_millis();
         let (host, boot, body, key) = root.body_join_scope()?;
         if self.command == b"JOIN?" {
@@ -113,7 +115,7 @@ impl Bootstrap {
                     .next_sequence()
                     .ok_or("body-join-owner-exhausted")?,
             };
-            return write_json(uart, &challenge).await;
+            return encode_json(&challenge);
         }
         let bytes = self
             .command
@@ -139,7 +141,7 @@ impl Bootstrap {
         secret.fill(0);
         nonce.fill(0);
         let mut bootstrap = result?;
-        let result = write_json(uart, &bootstrap).await;
+        let result = encode_json(&bootstrap);
         bootstrap.invitation.secret.fill(0);
         result
     }
@@ -150,10 +152,8 @@ fn entropy(bytes: &mut [u8]) -> Result<(), &'static str> {
         .read(bytes);
     Ok(())
 }
-async fn write_json(
-    uart: &mut Uart<'_, esp_hal::Async>,
-    value: &impl serde::Serialize,
-) -> Result<(), &'static str> {
+#[inline(never)]
+fn encode_json(value: &impl serde::Serialize) -> Result<Reply, &'static str> {
     let mut reply = Reply(Vec::new());
     reply
         .0
@@ -162,10 +162,10 @@ async fn write_json(
     reply.0.resize(2048, 0);
     let length =
         serde_json_core::to_slice(value, &mut reply.0).map_err(|_| "body-join-uart-encoding")?;
-    write(uart, b"\n").await?;
-    write(uart, &reply.0[..length]).await?;
-    write(uart, b"\n").await
+    reply.0.truncate(length);
+    Ok(reply)
 }
+
 async fn write(uart: &mut Uart<'_, esp_hal::Async>, mut bytes: &[u8]) -> Result<(), &'static str> {
     with_timeout(Duration::from_secs(2), async {
         while !bytes.is_empty() {
