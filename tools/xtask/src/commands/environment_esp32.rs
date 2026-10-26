@@ -17,8 +17,20 @@ pub(super) fn build_member(root: &Path, key: &Path) -> Result<(), Box<dyn Error>
 pub(super) fn build_display_fit(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
     build_with_owner(root, true, false, Some(key), Some("display-fit-root"))
 }
+pub(super) fn build_mask_preparation(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, false, Some(key), Some("mask-root"))
+}
 pub(super) fn build_display_check(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
     build_with_owner(root, true, false, Some(key), Some("display-physical-check"))
+}
+pub(super) fn build_wireless_display(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(
+        root,
+        true,
+        false,
+        Some(key),
+        Some("display-physical-check,owner-wifi"),
+    )
 }
 fn build_with_owner(
     root: &Path,

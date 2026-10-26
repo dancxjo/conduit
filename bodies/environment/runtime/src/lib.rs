@@ -12,6 +12,8 @@ mod canonical_storage;
 pub mod construction;
 #[cfg(feature = "display-session")]
 pub mod display_evidence;
+#[cfg(feature = "display-session")]
+pub mod display_evidence_compact;
 #[cfg(feature = "display-mask")]
 pub mod display_mask;
 #[cfg(feature = "display-output")]

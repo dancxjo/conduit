@@ -4,6 +4,7 @@ use conduit_body as b;
 use conduit_core as c;
 pub struct Prepared {
     pub display: Option<crate::display_check::Output>,
+    pub mask: Option<crate::mask::Mask>,
     pub body_plan: b::BodyPlan,
     pub wake: b::Wake,
     pub play: b::BodyPlayIdentity,
@@ -19,6 +20,7 @@ pub fn prepare(
     advertisement: c::HostAdvertisement,
     policy: serde_json::Value,
     display: Option<crate::display_check::Output>,
+    mask: Option<crate::mask::Mask>,
 ) -> Result<Prepared> {
     let recipe = checked(conduit_environment_make::NativeSoftwareSourceRecipe::prepare(&source))?;
     if policy["host_id"] != serde_json::to_value(&advertisement.host_id)?
@@ -96,6 +98,12 @@ pub fn prepare(
     )?;
     wire.truncate(size);
     let sampler_plan = plan.plan_id.clone();
+    let masks = mask
+        .as_ref()
+        .map(|mask| crate::mask::topology(mask, resident.clone()))
+        .transpose()?
+        .into_iter()
+        .collect();
     let mut plans = vec![b::BodyPlotPlan {
         plot: resident,
         plan,
@@ -109,8 +117,12 @@ pub fn prepare(
             plan: display.plan.clone(),
         });
     }
-    let realization =
-        checked(body.propose(plans, &authority.host.host_id, &authority.host.boot_id))?;
+    let realization = checked(body.propose_with_masks(
+        plans,
+        masks,
+        &authority.host.host_id,
+        &authority.host.boot_id,
+    ))?;
     let body_plan = realization.plan.clone();
     let wake = realization.wake.clone();
     let sampler = &body_plan
@@ -125,6 +137,7 @@ pub fn prepare(
     let play = b::BodyPlayIdentity::bind(&body_plan, 1);
     Ok(Prepared {
         display,
+        mask,
         body_plan,
         wake,
         play,

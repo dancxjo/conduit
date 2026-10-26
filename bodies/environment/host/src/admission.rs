@@ -98,6 +98,24 @@ impl Authority {
         out.sync_all()?;
         Ok(())
     }
+    /// The caller has stopped the previous owner and retained signed quiescence.
+    /// Preserve biography and Body identity; never revive a prior active Play.
+    pub fn resume(&self, path: &Path) -> Result<b::BodyLifecycleSession> {
+        let evidence: b::BodyBiographyEvidence = serde_json::from_slice(&std::fs::read(path)?)?;
+        if evidence.body.state != b::BodyState::Lulled {
+            return Err("resume requires retained Body lull evidence".into());
+        }
+        let body = checked(b::BodyLifecycleSession::resume_here(
+            evidence,
+            &self.host.host_id,
+            &self.host.boot_id,
+        ))?;
+        if !body.pending_archives().is_empty() {
+            return Err("resume requires explicit archive custody".into());
+        }
+        self.save(&body, "body-resumed.json")?;
+        Ok(body)
+    }
     pub fn birth(
         &self,
         source: &conduit_environment_runtime::construction::ApplianceSource,
@@ -159,9 +177,9 @@ impl Authority {
         let candidate = checked(candidates.observe(b::CandidateObservation {
             advertisement: arrival.advertisement.clone(),
             friendly_label: arrival.friendly_label,
-            observed_binding_id: format!("serial/{port}").into(),
+            observed_binding_id: format!("carrier/{port}").into(),
             observation_sign_id: self.sign(20),
-            proof_id: checked(b::DiscoveryProofId::bind(&format!("serial/{port}")))?,
+            proof_id: checked(b::DiscoveryProofId::bind(&format!("carrier/{port}")))?,
             freshness_sequence: arrival.freshness_sequence,
             encoded_bytes: serde_json::to_vec(&document)?.len() as u32,
         }))?;
@@ -231,3 +249,7 @@ impl Authority {
         Ok((arrival.advertisement, key))
     }
 }
+
+#[cfg(test)]
+#[path = "continuity_tests.rs"]
+mod continuity_tests;

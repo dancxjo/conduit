@@ -7,6 +7,9 @@ mod display;
 #[cfg(test)]
 #[path = "../tests/authority_fixture.rs"]
 mod fixture;
+#[cfg(feature = "mask-root")]
+#[path = "native_mask_authority.rs"]
+mod mask;
 #[path = "native_pulse_authority.rs"]
 mod pulse;
 #[path = "native_verified_bindings.rs"]

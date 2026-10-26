@@ -25,13 +25,29 @@ mod native_authority;
 #[cfg(feature = "body-image-root")]
 mod native_body_image;
 #[cfg(feature = "native-root")]
+mod native_carrier;
+#[cfg(feature = "native-root")]
 mod native_command;
 #[cfg(feature = "native-root")]
 mod native_control;
 #[cfg(feature = "native-root")]
 mod native_credentials;
-#[cfg(feature = "native-root")]
+#[cfg(all(feature = "native-root", not(feature = "mask-root")))]
 mod native_display;
+#[cfg(feature = "mask-root")]
+#[path = "native_mask_display.rs"]
+mod native_display;
+#[cfg(all(
+    feature = "mask-root",
+    any(
+        feature = "display-ready-root",
+        feature = "display-physical-check",
+        feature = "display-fit-root"
+    )
+))]
+compile_error!("mask-root exclusively owns display GPIOs; select one display realization");
+#[cfg(feature = "display-physical-check")]
+mod native_display_evidence;
 #[cfg(feature = "native-root")]
 mod native_display_offer;
 #[cfg(feature = "native-root")]
@@ -44,12 +60,12 @@ mod native_face;
 mod native_kernel;
 #[cfg(feature = "native-root")]
 mod native_kernel_storage;
+#[cfg(feature = "mask-root")]
+mod native_mask_wire;
 #[cfg(feature = "native-root")]
 mod native_network;
 #[cfg(feature = "native-root")]
 mod native_owner_control;
-#[cfg(feature = "display-physical-check")]
-mod native_display_evidence;
 #[cfg(feature = "native-root")]
 mod native_owner_receipt;
 #[cfg(feature = "native-root")]

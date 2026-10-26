@@ -2,10 +2,7 @@
 //! Plot planning, effect authority, and execution remain separate admission.
 use embassy_executor::Spawner;
 use esp_hal::{
-    clock::CpuClock,
-    interrupt::software::SoftwareInterruptControl,
-    timer::timg::TimerGroup,
-    uart::{Config as UartConfig, Uart},
+    clock::CpuClock, interrupt::software::SoftwareInterruptControl, timer::timg::TimerGroup,
 };
 #[esp_rtos::main]
 async fn main(spawner: Spawner) {
@@ -18,6 +15,8 @@ async fn main(spawner: Spawner) {
     let sensor = conduit_esp32_pulse_capture::Esp32PulseCapture::new(p.GPIO27);
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let radio = crate::network::start(spawner, p.WIFI, seed);
+    #[cfg(feature = "owner-wifi")]
+    let owner_stacks = radio.stacks;
     // Boot observation is construction scratch. Root and each initialized
     // provider retain their owned exact IDs before the first await; do not
     // retain a second copy in the permanent main task frame.
@@ -51,12 +50,26 @@ async fn main(spawner: Spawner) {
     #[cfg(feature = "target-memory-check")]
     root.measure_local_sampler()
         .expect("target sampler measurement");
-    let uart = Uart::new(p.UART0, UartConfig::default())
-        .expect("Root UART0 must initialize")
-        .with_rx(p.GPIO3)
-        .with_tx(p.GPIO1)
-        .into_async();
-    crate::native_control::serve(&mut root, uart)
-        .await
-        .expect("Root UART management failed");
+    #[cfg(not(feature = "owner-wifi"))]
+    {
+        let mut uart = esp_hal::uart::Uart::new(p.UART0, esp_hal::uart::Config::default())
+            .expect("Root UART0 must initialize")
+            .with_rx(p.GPIO3)
+            .with_tx(p.GPIO1)
+            .into_async();
+        crate::native_control::serve(&mut root, &mut uart)
+            .await
+            .expect("Root UART management failed");
+    }
+    #[cfg(feature = "owner-wifi")]
+    {
+        let mut listener = crate::native_carrier::Listener::new(owner_stacks);
+        loop {
+            let carrier = listener.accept(&mut root).await;
+            let _ = crate::native_control::serve(&mut root, carrier).await;
+            // Lost transport never resets Root, revokes providers, or invents
+            // lifecycle completion. Existing workers retain their exact scope.
+            carrier.abort();
+        }
+    }
 }

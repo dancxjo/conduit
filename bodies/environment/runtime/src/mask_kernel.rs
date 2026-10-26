@@ -22,7 +22,7 @@ impl PreparedMaskKernel {
     /// stay in the ordinary
     /// kernel store; no local handle is substituted for their semantic Types.
     pub fn prepare(planned: &f::PlannedMaskPlot) -> Result<Self, &'static str> {
-        f::PlannedMaskPlot::admit(&planned.mask, &planned.plan).map_err(|_| "mask-plan")?;
+        planned.validate().map_err(|_| "mask-plan")?;
         let [fragment] = planned.plan.fragments.as_slice() else {
             return Err("mask-fragments");
         };
@@ -147,7 +147,9 @@ impl PreparedMaskKernel {
             k::remote_sign_storage_bytes(12).ok_or("mask-signs")?,
         )
         .map_err(|_| "mask-signs")?;
-        let kernel = Kernel::new_with_host_calls(
+        let kernel = Kernel::new_boxed_with_active_counts_and_host_calls(
+            3,
+            6,
             nodes,
             lowered
                 .cords
@@ -164,7 +166,7 @@ impl PreparedMaskKernel {
         )
         .map_err(|_| "mask-kernel")?;
         Ok(Self {
-            kernel: Box::new(kernel),
+            kernel,
             face,
             show,
             interaction,

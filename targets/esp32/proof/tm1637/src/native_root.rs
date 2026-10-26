@@ -10,6 +10,9 @@ mod display_check;
 mod install;
 #[path = "native_lifecycle.rs"]
 mod lifecycle;
+#[cfg(feature = "mask-root")]
+#[path = "native_mask_root.rs"]
+mod mask;
 #[cfg(feature = "target-memory-check")]
 #[path = "native_memory_check.rs"]
 mod memory_check;
@@ -41,7 +44,7 @@ pub struct NativeRoot {
         >,
     >,
     owner_control: crate::native_owner_control::OwnerControl,
-    #[cfg(feature = "display-physical-check")]
+    #[cfg(any(feature = "display-physical-check", feature = "mask-root"))]
     display_reservation: Option<crate::native_owner_reservation::OwnerReservation>,
     owner_reservation: Option<crate::native_owner_reservation::OwnerReservation>,
     pub(crate) assignment_seal: Option<[u8; 32]>,
@@ -151,7 +154,7 @@ impl NativeRoot {
             execution: None,
             native_bindings: None,
             owner_control,
-            #[cfg(feature = "display-physical-check")]
+            #[cfg(any(feature = "display-physical-check", feature = "mask-root"))]
             display_reservation: None,
             owner_reservation: None,
             assignment_seal: None,

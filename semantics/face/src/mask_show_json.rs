@@ -42,20 +42,6 @@ impl PreparedMaskPlanJson {
             bytes: bytes.into_boxed_slice(),
         })
     }
-    /// Called only after the caller decoded and validated this exact wire into
-    /// the supplied model. Retains the admitted representation without deflate.
-    pub(crate) fn retain_verified_wire(
-        planned: &PlannedMaskPlot,
-        bytes: Box<[u8]>,
-    ) -> Result<Self, MaskJsonRefusal> {
-        planned
-            .validate()
-            .map_err(|_| MaskJsonRefusal::InvalidPlan)?;
-        Ok(Self {
-            fingerprint: fingerprint(planned)?,
-            bytes,
-        })
-    }
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
     }
@@ -92,32 +78,40 @@ impl PreparedMaskPlanJson {
         show: &crate::Show,
         maximum_bytes: usize,
     ) -> Result<PreparedMaskShowJson<'_>, MaskJsonRefusal> {
-        if maximum_bytes == 0 {
-            return Err(MaskJsonRefusal::Capacity);
-        }
-        let mut prefix = serde_json::to_vec(&prefix).map_err(|_| MaskJsonRefusal::Json)?;
-        if prefix.pop() != Some(b'}') {
-            return Err(MaskJsonRefusal::Json);
-        }
-        prefix.extend_from_slice(b",\"planned_mask\":");
-        let manifestation = serde_json::to_vec(show).map_err(|_| MaskJsonRefusal::Json)?;
-        let mut suffix = Vec::with_capacity(manifestation.len() + 9);
-        suffix.extend_from_slice(b",\"show\":");
-        suffix.extend_from_slice(&manifestation);
-        suffix.push(b'}');
-        let length = prefix
-            .len()
-            .checked_add(self.bytes.len())
-            .and_then(|n| n.checked_add(suffix.len()))
-            .filter(|n| *n <= maximum_bytes)
-            .ok_or(MaskJsonRefusal::Capacity)?;
-        Ok(PreparedMaskShowJson {
-            prefix: prefix.into_boxed_slice(),
-            plan: &self.bytes,
-            suffix: suffix.into_boxed_slice(),
-            length,
-        })
+        bind_wire_parts(&self.bytes, prefix, show, maximum_bytes)
     }
+}
+pub(crate) fn bind_wire_parts<'a>(
+    wire: &'a [u8],
+    prefix: MaskShowPrefix<'_>,
+    show: &crate::Show,
+    maximum_bytes: usize,
+) -> Result<PreparedMaskShowJson<'a>, MaskJsonRefusal> {
+    if maximum_bytes == 0 {
+        return Err(MaskJsonRefusal::Capacity);
+    }
+    let mut prefix = serde_json::to_vec(&prefix).map_err(|_| MaskJsonRefusal::Json)?;
+    if prefix.pop() != Some(b'}') {
+        return Err(MaskJsonRefusal::Json);
+    }
+    prefix.extend_from_slice(b",\"planned_mask\":");
+    let manifestation = serde_json::to_vec(show).map_err(|_| MaskJsonRefusal::Json)?;
+    let mut suffix = Vec::with_capacity(manifestation.len() + 9);
+    suffix.extend_from_slice(b",\"show\":");
+    suffix.extend_from_slice(&manifestation);
+    suffix.push(b'}');
+    let length = prefix
+        .len()
+        .checked_add(wire.len())
+        .and_then(|n| n.checked_add(suffix.len()))
+        .filter(|n| *n <= maximum_bytes)
+        .ok_or(MaskJsonRefusal::Capacity)?;
+    Ok(PreparedMaskShowJson {
+        prefix: prefix.into_boxed_slice(),
+        plan: wire,
+        suffix: suffix.into_boxed_slice(),
+        length,
+    })
 }
 /// Representation of one immutable Show snapshot. It deliberately retains no
 /// cloned Plan/Face/Show model. Current basis, lifecycle and delivery authority

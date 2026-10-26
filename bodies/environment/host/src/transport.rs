@@ -15,6 +15,16 @@ pub struct Line {
 }
 impl Line {
     pub fn open(path: &str) -> Result<Self> {
+        if let Some(address) = path.strip_prefix("tcp://") {
+            use std::os::fd::{FromRawFd, IntoRawFd};
+            let stream =
+                std::net::TcpStream::connect_timeout(&address.parse()?, Duration::from_secs(10))?;
+            stream.set_nodelay(true)?;
+            stream.set_nonblocking(true)?;
+            // SAFETY: transfer the sole owned descriptor; no stream alias remains.
+            let file = unsafe { File::from_raw_fd(stream.into_raw_fd()) };
+            return Ok(Self { file });
+        }
         let file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
@@ -163,3 +173,7 @@ impl Line {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "transport_tests.rs"]
+mod tests;

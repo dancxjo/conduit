@@ -237,7 +237,7 @@ pub(crate) fn validate_single_host_mask(
         || host.boot_id.as_str().is_empty()
         || host.offer_generation.0 == 0
         || !verify_plan(&planned.plan)
-        || PlannedMaskPlot::admit(&planned.mask, &planned.plan).is_err()
+        || planned.validate().is_err()
     {
         return Err(LocalOwnerMaskRouteError::InvalidMaskPlan);
     }
@@ -322,6 +322,16 @@ pub(crate) fn validate_single_host_mask(
         }
     }
     Ok(())
+}
+
+/// Validate current local realization facts without creating a Body route seal.
+/// Workload admission, current Face, native possession and Show remain separate.
+pub fn validate_local_mask_offer(
+    host: &HostAdvertisement,
+    planned: &PlannedMaskPlot,
+    grants: &[AuthorityGrant],
+) -> Result<(), LocalOwnerMaskRouteError> {
+    validate_local_grants(host, planned, grants)
 }
 
 fn validate_local_grants(

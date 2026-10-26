@@ -12,6 +12,8 @@ pub enum Command {
     OwnerControl,
     DisplayCheckControl,
     DisplayCheckAssignment,
+    MaskPolicy,
+    MaskContext,
     Unsupported,
     TooLarge,
 }
@@ -50,6 +52,10 @@ impl CommandBuffer {
                     Command::DisplayCheckControl
                 } else if bytes == b"display-check-assignment" {
                     Command::DisplayCheckAssignment
+                } else if bytes == b"mask-policy" {
+                    Command::MaskPolicy
+                } else if bytes == b"mask-context" {
+                    Command::MaskContext
                 } else if bytes == b"owner-control" {
                     Command::OwnerControl
                 } else if bytes == b"kernel-prepare" {

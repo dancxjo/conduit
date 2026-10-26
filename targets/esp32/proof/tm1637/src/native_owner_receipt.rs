@@ -11,6 +11,7 @@ pub enum State {
     Observed = 3,
     Retired = 4,
     EvidenceAccepted = 5,
+    MaskContextStaged = 6,
 }
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]

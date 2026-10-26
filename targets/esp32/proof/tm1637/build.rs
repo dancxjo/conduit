@@ -1,5 +1,7 @@
 #[cfg(feature = "body-image-root")]
 mod build_body;
+#[cfg(feature = "mask-root")]
+mod build_mask;
 mod build_owner_key;
 #[path = "../../../../bodies/environment/make/src/network_source.rs"]
 mod network_source;
@@ -31,6 +33,8 @@ fn main() {
             out.join("native-root.map").display()
         );
         build_owner_key::emit(&out);
+        #[cfg(feature = "mask-root")]
+        build_mask::emit(&out);
         std::fs::write(out.join("network-identity.rs"), format!(
             "pub fn identity() -> conduit_core::PlotIdentity {{ conduit_core::PlotIdentity {{ source_document_id: {:?}.into(), checked_plot_id: {:?}.into(), expanded_plot_id: {:?}.into() }} }}", source.source_document_id.as_str(), source.checked_plot_id.as_str(), source.expanded_plot_id.as_str()
         )).unwrap();

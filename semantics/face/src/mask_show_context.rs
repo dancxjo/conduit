@@ -6,12 +6,12 @@ use crate::{
     mask_show::{bind_show_identity, validate_basis},
     mask_show_json::MaskShowPrefix,
     Face, FaceContentId, ManifestationFailure, ManifestationLifecycle, MaskJsonRefusal,
-    MaskShowError, MaskShowId, PlannedMaskPlot, PreparedMaskPlanJson, PreparedMaskShowJson, Show,
+    MaskShowError, MaskShowId, PlannedMaskPlot, PreparedMaskShowJson, Show,
 };
 use alloc::{boxed::Box, string::String};
 use conduit_core::{ActivePlayIdentity, PlanId, PlotIdentity, SignId};
 pub struct PreparedMaskShowContext {
-    plan: PreparedMaskPlanJson,
+    plan: Box<[u8]>,
     mask: PlotIdentity,
     presenter: PreparedPresenterBasis,
 }
@@ -23,7 +23,14 @@ impl PreparedMaskShowContext {
         planned: &PlannedMaskPlot,
         maximum_plan_bytes: usize,
     ) -> Result<Self, MaskJsonRefusal> {
-        let plan = PreparedMaskPlanJson::prepare(planned, maximum_plan_bytes)?;
+        planned
+            .validate()
+            .map_err(|_| MaskJsonRefusal::InvalidPlan)?;
+        let plan = serde_json::to_vec(planned).map_err(|_| MaskJsonRefusal::Json)?;
+        if plan.is_empty() || plan.len() > maximum_plan_bytes {
+            return Err(MaskJsonRefusal::Capacity);
+        }
+        let plan = plan.into_boxed_slice();
         Ok(Self {
             plan,
             mask: planned.mask.plot_identity.clone(),
@@ -38,6 +45,16 @@ impl PreparedMaskShowContext {
         wire: Box<[u8]>,
         maximum_wire_bytes: usize,
         maximum_expanded_bytes: usize,
+    ) -> Result<Self, MaskJsonRefusal> {
+        Self::from_wire_checked(wire, maximum_wire_bytes, maximum_expanded_bytes, |_| true)
+    }
+    /// Cold receipt with additional independent installation checks before rich
+    /// preparation is dropped. Passing this callback is not Body/effect authority.
+    pub fn from_wire_checked(
+        wire: Box<[u8]>,
+        maximum_wire_bytes: usize,
+        maximum_expanded_bytes: usize,
+        check: impl FnOnce(&PlannedMaskPlot) -> bool,
     ) -> Result<Self, MaskJsonRefusal> {
         if wire.is_empty() || wire.len() > maximum_wire_bytes || maximum_expanded_bytes == 0 {
             return Err(MaskJsonRefusal::Capacity);
@@ -56,7 +73,13 @@ impl PreparedMaskShowContext {
         }
         let planned: PlannedMaskPlot =
             serde_json::from_slice(&wire).map_err(|_| MaskJsonRefusal::Json)?;
-        let plan = PreparedMaskPlanJson::retain_verified_wire(&planned, wire)?;
+        planned
+            .validate()
+            .map_err(|_| MaskJsonRefusal::InvalidPlan)?;
+        if !check(&planned) {
+            return Err(MaskJsonRefusal::InvalidPlan);
+        }
+        let plan = wire;
         Ok(Self {
             plan,
             mask: planned.mask.plot_identity.clone(),
@@ -64,7 +87,7 @@ impl PreparedMaskShowContext {
         })
     }
     pub fn plan_wire(&self) -> &[u8] {
-        self.plan.bytes()
+        &self.plan
     }
     pub fn plan_id(&self) -> &PlanId {
         self.presenter.plan_id()
@@ -166,7 +189,7 @@ impl<'a> PreparedMaskOccurrence<'a> {
                 face_id: &self.face_id,
                 face_revision: self.face_revision,
             },
-            self.context.plan.bytes(),
+            &self.context.plan,
             &self.show,
             output,
             serialize,
@@ -175,7 +198,8 @@ impl<'a> PreparedMaskOccurrence<'a> {
     /// Snapshot-only representation. The caller still owns current Face/custody
     /// admission before an effect; historical serialization remains possible.
     pub fn json(&self, maximum_bytes: usize) -> Result<PreparedMaskShowJson<'a>, MaskJsonRefusal> {
-        self.context.plan.bind_parts(
+        crate::mask_show_json::bind_wire_parts(
+            &self.context.plan,
             MaskShowPrefix {
                 show_id: &self.show_id,
                 mask_plot: &self.context.mask,

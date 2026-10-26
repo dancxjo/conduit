@@ -5,6 +5,8 @@ edition = "2021"
 publish = false
 [workspace]
 [features]
+owner-wifi = ["native-root"]
+mask-root = ["native-face-root", "conduit-environment-runtime/mask-renderer"]
 target-memory-check = ["body-image-root", "conduit-planner/indexed-source"]
 body-image-root = ["native-face-root", "conduit-environment-runtime/body-image"]
 native-face-root = ["native-root", "conduit-environment-runtime/face-projection"]
@@ -60,6 +62,7 @@ lto = "fat"
 codegen-units = 1
 
 [build-dependencies]
+conduit-core = { path = "../../../../architecture/core" }
 serde_json = "1"
 conduit-environment-make = { path = "../../../../bodies/environment/make", optional = true }
 conduit-plot = { path = "../../../../architecture/plot", features = ["flat-image"] }

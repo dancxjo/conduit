@@ -1,8 +1,8 @@
 //! Stream exact descriptors while borrowing actual retained output software.
 //! The read-only inspection grants no native possession or start permission.
+use crate::native_carrier::Carrier;
 use crate::{native_control::write_all, native_root::NativeRoot};
 use alloc::vec::Vec;
-use esp_hal::{uart::Uart, Async};
 const GEAR_BYTES: usize = 2048;
 const FRAME_BYTES: usize = 64 * 1024;
 #[derive(serde::Serialize)]
@@ -20,7 +20,7 @@ struct Header<'a> {
     body_installed: bool,
     native_plan_installed: bool,
 }
-pub async fn write(root: &mut NativeRoot, uart: &mut Uart<'_, Async>) -> Result<(), ()> {
+pub async fn write(root: &mut NativeRoot, uart: &mut Carrier<'_>) -> Result<(), ()> {
     let memory = esp_alloc::HEAP.stats();
     if memory.size.saturating_sub(memory.current_usage) < GEAR_BYTES + 8192 {
         return Err(());

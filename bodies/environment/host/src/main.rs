@@ -4,10 +4,11 @@ extern crate alloc;
 mod admission;
 mod display_check;
 mod display_evidence;
+mod execution;
+mod mask;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_display_evidence.rs"]
 #[allow(dead_code)]
 mod native_display_evidence;
-mod execution;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_owner_control.rs"]
 #[allow(dead_code)]
 mod native_owner_control;
@@ -24,8 +25,13 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    let resume = args
+        .iter()
+        .position(|arg| arg.starts_with("--resume="))
+        .map(|index| args.remove(index)["--resume=".len()..].to_owned());
     let display_check = args.last().is_some_and(|a| a == "--display-check");
-    if display_check {
+    let mask_mode = args.last().is_some_and(|a| a == "--mask-prepare");
+    if display_check || mask_mode {
         args.pop();
     }
     if args.len() == 3 && args[1] == "--provision" {
@@ -33,7 +39,7 @@ fn main() -> Result<()> {
     }
     if !(3..=4).contains(&args.len()) {
         return Err(
-            "expected SERIAL_PORT PRIVATE_STATE_DIRECTORY [PUBLICATIONS=1, maximum 960] [--display-check]".into(),
+            "expected SERIAL_PORT PRIVATE_STATE_DIRECTORY [PUBLICATIONS=1, maximum 960] [--display-check|--mask-prepare]".into(),
         );
     }
     let limit: u32 = args.get(3).map_or(Ok(1), |s| s.parse())?;
@@ -61,7 +67,10 @@ fn main() -> Result<()> {
     } else {
         None
     };
-    let mut body = authority.birth(&source, display_source.as_ref())?;
+    let mut body = match resume {
+        Some(path) => authority.resume(std::path::Path::new(&path))?,
+        None => authority.birth(&source, display_source.as_ref())?,
+    };
     let (mut advertisement, device_key) = authority.admit(&mut body, &mut line, &args[1])?;
     let software = line.command("software-offer", "native-software-offer")?;
     if software["host_id"] != serde_json::to_value(&advertisement.host_id)?
@@ -90,6 +99,15 @@ fn main() -> Result<()> {
         .zip(display_policy.as_ref())
         .map(|(source, policy)| crate::display_check::prepare(source, &advertisement, policy))
         .transpose()?;
+    let mask = if mask_mode {
+        let value = line.command("mask-policy", "native-mask-policy")?;
+        advertisement.capabilities.extend(serde_json::from_value::<
+            Vec<conduit_core::CapabilityOffer>,
+        >(value["capabilities"].clone())?);
+        Some(mask::prepare(&advertisement, &value)?)
+    } else {
+        None
+    };
     let prepared = planning::prepare(
         &mut body,
         &authority,
@@ -97,6 +115,7 @@ fn main() -> Result<()> {
         advertisement,
         policy,
         display,
+        mask,
     )?;
     authority.save(&body, "body-prepared.json")?;
     execution::run(
@@ -104,3 +123,6 @@ fn main() -> Result<()> {
     )?;
     Ok(())
 }
+
+#[cfg(test)]
+mod evidence_compact_tests;

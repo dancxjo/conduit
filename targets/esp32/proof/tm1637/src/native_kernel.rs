@@ -44,7 +44,7 @@ pub fn prepare(
 }
 pub async fn report(
     root: &mut crate::native_root::NativeRoot,
-    uart: &mut esp_hal::uart::Uart<'_, esp_hal::Async>,
+    uart: &mut crate::native_carrier::Carrier<'_>,
     output: &mut [u8],
 ) -> Result<(), ()> {
     let result = root.prepare_appliance_kernel();

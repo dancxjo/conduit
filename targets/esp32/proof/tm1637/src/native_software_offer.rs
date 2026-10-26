@@ -1,6 +1,6 @@
 //! Bounded streaming over actual retained readiness; no copied offer catalogue.
+use crate::native_carrier::Carrier;
 use crate::{native_control::write_all, native_root::NativeRoot};
-use esp_hal::{uart::Uart, Async};
 use serde::Serialize;
 #[derive(Serialize)]
 struct Header<'a> {
@@ -17,7 +17,7 @@ struct Header<'a> {
 }
 /// One <=64 KiB reply, bounded by twelve seconds at the existing UART rate.
 /// Root remains the owner throughout the reply; descriptors never start work.
-pub async fn write(root: &NativeRoot, uart: &mut Uart<'_, Async>) -> Result<(), ()> {
+pub async fn write(root: &NativeRoot, uart: &mut Carrier<'_>) -> Result<(), ()> {
     let owner = root.software().ok_or(())?;
     let offers = crate::native_software::offers(owner)?;
     let (host_id, boot_id, offer_generation) = root.offer_scope();

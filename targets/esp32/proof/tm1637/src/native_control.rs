@@ -1,19 +1,20 @@
 //! UART management and autonomous Root setup polling; no Body lifecycle.
 //! Root setup advances independently of UART input through its selected kernel.
+use crate::native_carrier::Carrier;
 use crate::{
     native_command::{Command, CommandBuffer},
     native_root::NativeRoot,
 };
 use embassy_time::{with_timeout, Duration};
-use esp_hal::{uart::Uart, Async};
 const PREFIX: &[u8] = b"\n{\"event\":\"native-root-offer\",\"native_plan_installed\":false,\"image_sha256\":null,\"network_configuration\":\"";
 const REFUSED: &[u8] =
     b"{\"event\":\"native-root-request-refused\",\"native_plan_installed\":false}\n";
 /// UART0 owns GPIO1 TX/GPIO3 RX. Command storage holds at most 64 bytes;
 /// reception has a five-second deadline and each response has two seconds.
-pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Result<(), ()> {
+pub async fn serve(root: &mut NativeRoot, uart: &mut Carrier<'_>) -> Result<(), ()> {
     let mut output = [0; crate::native_admission::MAXIMUM_ENVELOPE_BYTES];
-    offer(root, &mut uart, &mut output).await?;
+    #[cfg(not(feature = "owner-wifi"))]
+    offer(root, uart, &mut output).await?;
     loop {
         let mut byte = [0];
         root.advance_setup().await;
@@ -35,51 +36,69 @@ pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Res
         })
         .await;
         match command {
+            #[cfg(feature = "mask-root")]
+            Ok(Ok(Command::MaskContext)) => {
+                crate::native_mask_wire::receive(root, uart, &mut output).await?
+            }
+            #[cfg(feature = "mask-root")]
+            Ok(Ok(Command::MaskPolicy)) => {
+                let encoded = root.mask_policy(&mut output);
+                with_timeout(Duration::from_secs(2), async {
+                    write_all(uart, b"\n").await?;
+                    match encoded {
+                        Ok(n) => write_all(uart, &output[..n]).await?,
+                        Err(()) => write_all(uart, REFUSED).await?,
+                    }
+                    write_all(uart, b"\n").await
+                })
+                .await
+                .map_err(|_| ())??;
+            }
             #[cfg(feature = "display-physical-check")]
             Ok(Ok(Command::DisplayCheckControl)) => {
-                crate::native_owner_wire::receive_display(root, &mut uart, &mut output).await?
+                crate::native_owner_wire::receive_display(root, uart, &mut output).await?
             }
             #[cfg(feature = "display-physical-check")]
             Ok(Ok(Command::DisplayCheckAssignment)) => {
-                crate::native_assignment::receive_display(root, &mut uart, &mut output).await?
+                crate::native_assignment::receive_display(root, uart, &mut output).await?
             }
             Ok(Ok(Command::OwnerControl)) => {
-                crate::native_owner_wire::receive(root, &mut uart, &mut output).await?
+                crate::native_owner_wire::receive(root, uart, &mut output).await?
             }
             Ok(Ok(Command::KernelPrepare)) => {
-                crate::native_kernel::report(root, &mut uart, &mut output).await?
+                crate::native_kernel::report(root, uart, &mut output).await?
             }
             Ok(Ok(Command::Admission)) => {
                 // Malformed proof requests retire only this exchange, not Root.
-                if crate::native_admission_wire::serve(root, &mut uart, &mut output)
+                if crate::native_admission_wire::serve(root, uart, &mut output)
                     .await
                     .is_err()
                 {
-                    with_timeout(Duration::from_secs(2), write_all(&mut uart, REFUSED))
+                    with_timeout(Duration::from_secs(2), write_all(uart, REFUSED))
                         .await
                         .map_err(|_| ())??;
                 }
             }
             Ok(Ok(Command::AssignmentTransfer)) => {
-                crate::native_assignment::receive(root, &mut uart, &mut output).await?
+                crate::native_assignment::receive(root, uart, &mut output).await?
             }
-            Ok(Ok(Command::Offer)) => offer(root, &mut uart, &mut output).await?,
+            Ok(Ok(Command::Offer)) => offer(root, uart, &mut output).await?,
             Ok(Ok(Command::DisplaySoftwareOffer)) => {
-                if crate::native_display_offer::write(root, &mut uart)
+                if crate::native_display_offer::write(root, uart)
                     .await
                     .is_err()
                 {
-                    with_timeout(Duration::from_secs(2), write_all(&mut uart, REFUSED))
+                    with_timeout(Duration::from_secs(2), write_all(uart, REFUSED))
                         .await
                         .map_err(|_| ())??;
                 }
             }
             Ok(Ok(Command::SoftwareOffer)) => {
-                if crate::native_software_offer::write(root, &mut uart)
+                if crate::native_software_offer::write(root, uart)
                     .await
                     .is_err()
                 {
-                    with_timeout(Duration::from_secs(2), write_all(&mut uart, REFUSED))
+                    with_timeout(Duration::from_secs(2), write_all(uart, REFUSED))
                         .await
                         .map_err(|_| ())??;
                 }
@@ -87,30 +106,26 @@ pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Res
             Ok(Ok(Command::AppliancePolicy)) => {
                 let encoded = crate::native_appliance_policy::encode(root, &mut output);
                 with_timeout(Duration::from_secs(2), async {
-                    write_all(&mut uart, b"\n").await?;
+                    write_all(uart, b"\n").await?;
                     match encoded {
                         Ok(len) => {
-                            write_all(&mut uart, &output[..len]).await?;
-                            write_all(&mut uart, b"\n").await
+                            write_all(uart, &output[..len]).await?;
+                            write_all(uart, b"\n").await
                         }
-                        Err(()) => write_all(&mut uart, REFUSED).await,
+                        Err(()) => write_all(uart, REFUSED).await,
                     }
                 })
                 .await
                 .map_err(|_| ())??;
             }
             Ok(Err(())) => return Err(()),
-            _ => with_timeout(Duration::from_secs(2), write_all(&mut uart, REFUSED))
+            _ => with_timeout(Duration::from_secs(2), write_all(uart, REFUSED))
                 .await
                 .map_err(|_| ())??,
         }
     }
 }
-async fn offer(
-    root: &mut NativeRoot,
-    uart: &mut Uart<'_, Async>,
-    output: &mut [u8],
-) -> Result<(), ()> {
+async fn offer(root: &mut NativeRoot, uart: &mut Carrier<'_>, output: &mut [u8]) -> Result<(), ()> {
     let configuration = root.control_status().as_bytes();
     let (failure_phase, failure_reason) = root.control_failure();
     let (steps, dispatches, receipt) = root.control_progress();
@@ -146,7 +161,7 @@ async fn offer(
     .await
     .map_err(|_| ())?
 }
-pub(super) async fn write_all(uart: &mut Uart<'_, Async>, mut bytes: &[u8]) -> Result<(), ()> {
+pub(super) async fn write_all(uart: &mut Carrier<'_>, mut bytes: &[u8]) -> Result<(), ()> {
     while !bytes.is_empty() {
         let count = uart.write_async(bytes).await.map_err(|_| ())?;
         if count == 0 {

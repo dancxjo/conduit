@@ -1,12 +1,12 @@
 //! Bounded UART carrier for the existing borrowed Body admission documents.
+use crate::native_carrier::Carrier;
 use crate::native_root::NativeRoot;
 use conduit_body::{PicoAdmissionChallenge, PicoAdmissionProof, PICO_ADMISSION_PROTOCOL};
 use embassy_time::{with_timeout, Duration};
-use esp_hal::{uart::Uart, Async};
 
 pub async fn serve(
     root: &mut NativeRoot,
-    uart: &mut Uart<'_, Async>,
+    uart: &mut Carrier<'_>,
     buffer: &mut [u8],
 ) -> Result<(), ()> {
     let length = root.write_admission_offer(buffer)?;

@@ -2,11 +2,11 @@
 use crate::{native_owner_control as owner, native_root::NativeRoot};
 #[path = "native_owner_reply.rs"]
 mod reply;
+use crate::native_carrier::Carrier;
 use embassy_time::{with_timeout, Duration};
-use esp_hal::{uart::Uart, Async};
 const READY: &[u8] =
     b"\n{\"event\":\"native-owner-control-ready\",\"maximum_request_bytes\":2048,\"protocol\":2,\"ingress_credit_bytes\":64}\n";
-async fn read_exact(uart: &mut Uart<'_, Async>, mut bytes: &mut [u8]) -> Result<(), ()> {
+pub(crate) async fn read_exact(uart: &mut Carrier<'_>, mut bytes: &mut [u8]) -> Result<(), ()> {
     while !bytes.is_empty() {
         let count = uart.read_async(bytes).await.map_err(|_| ())?;
         if count == 0 {
@@ -19,7 +19,7 @@ async fn read_exact(uart: &mut Uart<'_, Async>, mut bytes: &mut [u8]) -> Result<
 /// One credit covers at most 64 bytes, below the UART FIFO extent. The owner
 /// cannot overrun ingress while another cooperative task performs finite work.
 /// Credits confer no authority; the complete command is authenticated afterward.
-async fn read_credited(uart: &mut Uart<'_, Async>, mut bytes: &mut [u8]) -> Result<(), ()> {
+pub(crate) async fn read_credited(uart: &mut Carrier<'_>, mut bytes: &mut [u8]) -> Result<(), ()> {
     const CREDIT: &[u8] = b"\n{\"event\":\"native-owner-ingress-credit\",\"maximum_bytes\":64}\n";
     while !bytes.is_empty() {
         crate::native_control::write_all(uart, CREDIT).await?;
@@ -33,7 +33,7 @@ async fn read_credited(uart: &mut Uart<'_, Async>, mut bytes: &mut [u8]) -> Resu
 
 pub async fn receive(
     root: &mut NativeRoot,
-    uart: &mut Uart<'_, Async>,
+    uart: &mut Carrier<'_>,
     buffer: &mut [u8],
 ) -> Result<(), ()> {
     receive_kind(root, uart, buffer, false).await
@@ -41,14 +41,14 @@ pub async fn receive(
 #[cfg(feature = "display-physical-check")]
 pub async fn receive_display(
     root: &mut NativeRoot,
-    uart: &mut Uart<'_, Async>,
+    uart: &mut Carrier<'_>,
     buffer: &mut [u8],
 ) -> Result<(), ()> {
     receive_kind(root, uart, buffer, true).await
 }
 async fn receive_kind(
     root: &mut NativeRoot,
-    uart: &mut Uart<'_, Async>,
+    uart: &mut Carrier<'_>,
     buffer: &mut [u8],
     display: bool,
 ) -> Result<(), ()> {
@@ -213,7 +213,7 @@ fn authenticate<'a>(
 async fn receive_assignment(
     root: &mut NativeRoot,
     permit: crate::native_owner_reservation::PreparationPermit,
-    uart: &mut Uart<'_, Async>,
+    uart: &mut Carrier<'_>,
     buffer: &mut [u8],
 ) -> Result<(), &'static str> {
     use conduit_environment_runtime::appliance::assignment_transfer::MAXIMUM_WIRE_BYTES;

@@ -1,5 +1,6 @@
 //! Bounded UART staging into independently provisioned ordinary runtime tables.
 //! Native ownership, Body/Play and complete runtime admission remain separate.
+use crate::native_carrier::Carrier;
 #[cfg(not(feature = "display-ready-root"))]
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core as c;
@@ -7,11 +8,10 @@ use conduit_core as c;
 use conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance;
 use conduit_environment_runtime::appliance::assignment_transfer as t;
 use embassy_time::{with_timeout, Duration};
-use esp_hal::{uart::Uart, Async};
 
 pub async fn receive(
     root: &mut crate::native_root::NativeRoot,
-    uart: &mut Uart<'_, Async>,
+    uart: &mut Carrier<'_>,
     buffer: &mut [u8],
 ) -> Result<(), ()> {
     receive_kind(root, uart, buffer, false).await
@@ -19,14 +19,14 @@ pub async fn receive(
 #[cfg(feature = "display-physical-check")]
 pub async fn receive_display(
     root: &mut crate::native_root::NativeRoot,
-    uart: &mut Uart<'_, Async>,
+    uart: &mut Carrier<'_>,
     buffer: &mut [u8],
 ) -> Result<(), ()> {
     receive_kind(root, uart, buffer, true).await
 }
 async fn receive_kind(
     root: &mut crate::native_root::NativeRoot,
-    uart: &mut Uart<'_, Async>,
+    uart: &mut Carrier<'_>,
     buffer: &mut [u8],
     display: bool,
 ) -> Result<(), ()> {
@@ -185,7 +185,7 @@ fn admit(
     .map_err(|_| "assignment")
 }
 
-async fn read_exact(uart: &mut Uart<'_, Async>, mut output: &mut [u8]) -> Result<(), ()> {
+async fn read_exact(uart: &mut Carrier<'_>, mut output: &mut [u8]) -> Result<(), ()> {
     while !output.is_empty() {
         let count = uart.read_async(output).await.map_err(|_| ())?;
         if count == 0 {

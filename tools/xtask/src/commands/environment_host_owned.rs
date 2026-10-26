@@ -3,7 +3,24 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     let words = args.iter().map(String::as_str).collect::<Vec<_>>();
     match words.as_slice() {
+        ["host-owned", port, state, limit, "--display-check", resume]
+            if resume.starts_with("--resume=") =>
+        {
+            Some(host(root, &[port, state, limit, resume, "--display-check"]))
+        }
+        ["member-image", key, "--wireless-display-check"] => Some(
+            super::environment_esp32::build_wireless_display(root, Path::new(key)),
+        ),
         ["owner-key", state] => Some(host(root, &["--provision", state])),
+        ["host-owned", port, state, "--mask-prepare"] => {
+            Some(host(root, &[port, state, "--mask-prepare"]))
+        }
+        ["host-owned", port, state, limit, "--mask-prepare"] => {
+            Some(host(root, &[port, state, limit, "--mask-prepare"]))
+        }
+        ["member-image", key, "--mask-prepare"] => Some(
+            super::environment_esp32::build_mask_preparation(root, Path::new(key)),
+        ),
         ["host-owned", port, state, "--display-check"] => {
             Some(host(root, &[port, state, "--display-check"]))
         }

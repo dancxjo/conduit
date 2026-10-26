@@ -159,6 +159,7 @@ pub fn run(
     }
     let mut sequence = 1;
     let mut preparation_attempted = false;
+    let mut mask_staged = false;
     let mut display_preparation_attempted = false;
     let mut display_retired = false;
     let mut body_started = false;
@@ -178,6 +179,17 @@ pub fn run(
                 "{}",
                 serde_json::json!({"event":"native-host-control","operation":format!("{operation:?}"),"reply":exchange.reply})
             );
+            if prepared.mask.is_some() && operation == owner::Operation::Reserve {
+                crate::mask::command(
+                    line,
+                    authority,
+                    &prepared,
+                    &device_key,
+                    &mut sequence,
+                    owner::Operation::Prepare,
+                )?;
+                mask_staged = true;
+            }
             if prepared.display.is_some() {
                 if operation == owner::Operation::Reserve {
                     crate::display_check::command(
@@ -362,6 +374,18 @@ pub fn run(
     // Errors after preparation still require actual quiescence and retirement.
     // A missing receipt leaves the retained Body evidence unresolved.
     let cleanup: Result<()> = {
+        let mask_cleanup = if mask_staged {
+            crate::mask::command(
+                line,
+                authority,
+                &prepared,
+                &device_key,
+                &mut sequence,
+                owner::Operation::Retire,
+            )
+        } else {
+            Ok(())
+        };
         let display_cleanup = if display_preparation_attempted && !display_retired {
             crate::display_check::cleanup(line, authority, &prepared, &device_key, &mut sequence)
         } else {
@@ -385,7 +409,7 @@ pub fn run(
                     owner::Operation::Retire,
                     sequence + 1,
                 )?;
-                if body_started && display_cleanup.is_ok() {
+                if body_started && display_cleanup.is_ok() && mask_cleanup.is_ok() {
                     checked(body.lull(
                         &authority.host.host_id,
                         &authority.host.boot_id,
@@ -396,6 +420,7 @@ pub fn run(
             }
             Ok(())
         })();
+        let display_cleanup = display_cleanup.and(mask_cleanup);
         match (display_cleanup, sampler_cleanup) {
             (Err(a), Err(b)) => Err(format!("display cleanup: {a}; sampler cleanup: {b}").into()),
             (Err(a), _) | (_, Err(a)) => Err(a),

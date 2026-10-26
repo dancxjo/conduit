@@ -147,3 +147,11 @@ success would still require those owners, actual execution and complete
 admission. An allocation fault enters ROM BOOTSEL and retains its bounded fault
 receipt; loading the identical image reports that receipt instead of retrying.
 See [the measured checkpoint](make/TARGET_CHECKPOINT.md).
+
+## Wireless carrier candidate
+
+`cargo xtask prove environment member-image /absolute/private/environment-owner/owner-public.bin --wireless-display-check` builds the same authenticated Root protocol on one TCP carrier (port 4242), listening on the initialized AP and station interfaces. The existing `/network` page and acknowledged network setup Plot own AP-to-station switching; this profile does not add another credential or radio path. The current mailbox is volatile. Automatic captive-portal opening and durable credential Keep realization are not implemented.
+
+The owner accepts `tcp://192.168.4.1:4242` wherever the serial port was supplied. A retained, signed, lulled biography can be continued using a final `--resume=/absolute/path/body-lulled.json` after `--display-check`. The previous owner must have exited with verified retirement; the new owner uses ordinary continuity under a fresh local incarnation and keeps the Body identity. This is preparation for wireless operation, not evidence of network HIL or unattended recovery.
+
+Do not deploy this candidate as an unattended long-distance appliance yet. Carrier interruption currently terminates the attended exchange. Persistent reconnection must reconcile incomplete signed requests rather than blindly replay effects, retain pending evidence under finite pressure, and verify the expected member on both station and fallback AP paths. Saved network configuration requires a finite Body-lifetime Keep backed by actual durable private storage; the existing volatile mailbox cannot advertise that retention horizon.
