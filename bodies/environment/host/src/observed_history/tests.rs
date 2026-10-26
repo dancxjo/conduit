@@ -551,3 +551,117 @@ fn root_signed_epoch_directory_delegates_only_same_body_forms_and_unique_scopes(
     assert!(wire::epoch_cursor(6, 0).is_none());
     assert!(wire::epoch_cursor(0, 961).is_none());
 }
+
+#[test]
+fn epoch_collection_reconnects_with_separate_original_boot_cursors() {
+    let key = SigningKey::from_bytes(&[23; 32]);
+    let scope = [5; 96];
+    let collector =
+        Collector::from_authenticated_scope(scope, &key.verifying_key().to_bytes()).unwrap();
+    let mut old_scope = scope;
+    old_scope[32..64].fill(7);
+    old_scope[64..].fill(9);
+    let forms = collector.forms;
+    let mut directory = [0; wire::DIRECTORY_BYTES];
+    directory[..32].copy_from_slice(&scope[..32]);
+    directory[32] = 2;
+    for (entry, (slot, scope)) in directory[33..299]
+        .as_chunks_mut::<133>()
+        .0
+        .iter_mut()
+        .zip([(0, scope), (3, old_scope)])
+    {
+        entry[0] = slot;
+        entry[1..97].copy_from_slice(&scope);
+        entry[97..129].copy_from_slice(&forms);
+        entry[129..].copy_from_slice(&1u32.to_le_bytes());
+    }
+    let hex = |bytes: &[u8]| {
+        bytes
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    let listing = serde_json::to_vec(
+        &serde_json::json!({"profile":"observed-epochs@1", "directory":hex(&directory),
+        "signature":hex(&key.sign(&wire::directory_transcript(&directory)).to_bytes())}),
+    )
+    .unwrap();
+    let record = |clock| {
+        ObservedRecord {
+            sequence: 1,
+            observed_at_boot_ms: clock,
+            disposition:
+                conduit_environment_runtime::recording::RecordingDisposition::ProviderFailed,
+            quantities: None,
+        }
+        .encode()
+        .unwrap()
+    };
+    let current = record(500);
+    let old = record(90_000);
+    let batches = vec![
+        (wire::DIRECTORY_CURSOR, listing.clone()),
+        (0, signed(&key, scope, forms, 0, 1, &current)),
+        (1, signed(&key, scope, forms, 1, 1, &[])),
+        (
+            wire::epoch_cursor(3, 0).unwrap(),
+            signed(&key, old_scope, forms, 0, 1, &old),
+        ),
+        (
+            wire::epoch_cursor(3, 1).unwrap(),
+            signed(&key, old_scope, forms, 1, 1, &[]),
+        ),
+        (wire::DIRECTORY_CURSOR, listing),
+        (1, signed(&key, scope, forms, 1, 1, &[])),
+        (
+            wire::epoch_cursor(3, 1).unwrap(),
+            signed(&key, old_scope, forms, 1, 1, &[]),
+        ),
+    ];
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let worker = std::thread::spawn(move || {
+        for (cursor, body) in batches {
+            let (mut socket, _) = listener.accept().unwrap();
+            let mut request = Vec::new();
+            while !request.ends_with(b"\r\n\r\n") {
+                let mut byte = [0];
+                socket.read_exact(&mut byte).unwrap();
+                request.push(byte[0]);
+            }
+            assert!(std::str::from_utf8(&request)
+                .unwrap()
+                .starts_with(&format!("GET /history?after={cursor} ")));
+            socket
+                .write_all(b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n")
+                .unwrap();
+            socket.write_all(&body).unwrap();
+        }
+    });
+    let path = std::env::temp_dir().join(format!("conduit-history-epochs-{}", std::process::id()));
+    if path.exists() {
+        std::fs::remove_dir_all(&path).unwrap();
+    }
+    assert_eq!(collector.collect_epochs(address, &path).unwrap(), 2);
+    // Fresh collectors restore fsynced per-scope cursors; no record is relabeled.
+    let restarted =
+        Collector::from_authenticated_scope(scope, &key.verifying_key().to_bytes()).unwrap();
+    assert_eq!(restarted.collect_epochs(address, &path).unwrap(), 2);
+    worker.join().unwrap();
+    let restored = |scope: [u8; 96]| {
+        let name = scope
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        let mut restored =
+            Collector::from_authenticated_scope(scope, &key.verifying_key().to_bytes()).unwrap();
+        restored
+            .restore(&path.join(format!("epoch-{name}")))
+            .unwrap();
+        (restored.after, restored.observed_ms)
+    };
+    assert_eq!(restored(scope), (1, 500));
+    assert_eq!(restored(old_scope), (1, 90_000));
+    std::fs::remove_dir_all(path).unwrap();
+}

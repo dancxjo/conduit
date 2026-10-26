@@ -80,64 +80,44 @@ pub async fn run(
                         );
                     }
                 };
-                #[cfg(feature = "native-face-root")]
-                let serving = async {
-                    let buffers = responses.as_deref_mut().ok_or(())?;
-                    if station {
-                        crate::http_ap::serve_station_with_reading(
-                            stack,
-                            setup.clone(),
-                            false,
-                            reading,
-                            buffers,
-                            ready_callback,
-                        )
-                        .await
-                    } else {
-                        crate::http_ap::serve_acknowledged_with_reading(
-                            stack,
-                            setup.clone(),
-                            setup.is_some(),
-                            reading,
-                            buffers,
-                            ready_callback,
-                        )
-                        .await
-                    }
-                };
                 #[cfg(not(feature = "native-face-root"))]
+                let mut local_responses = [heapless::String::new(), heapless::String::new()];
                 let serving = async {
-                    if station {
-                        let mut responses = [heapless::String::new(), heapless::String::new()];
-                        crate::http_ap::serve_station_with_reading(
-                            stack,
-                            setup.clone(),
-                            false,
-                            None,
-                            &mut responses,
-                            ready_callback,
-                        )
-                        .await
-                    } else {
-                        crate::http_ap::serve_acknowledged(
-                            stack,
-                            setup.clone(),
-                            setup.is_some(),
-                            ready_callback,
-                        )
-                        .await
-                    }
+                    #[cfg(feature = "native-face-root")]
+                    let buffers = responses.as_deref_mut().ok_or(())?;
+                    #[cfg(not(feature = "native-face-root"))]
+                    let buffers = &mut local_responses;
+                    #[cfg(not(feature = "native-face-root"))]
+                    let reading = None;
+                    crate::http_ap::serve_mode_with_reading(
+                        stack,
+                        setup.clone(),
+                        !station && setup.is_some(),
+                        reading,
+                        buffers,
+                        !station,
+                        ready_callback,
+                    )
+                    .await
                 };
                 #[cfg(feature = "network-mdns")]
-                let serving = async {
-                    if station {
-                        let backing = mdns_buffers.as_deref_mut().ok_or(())?;
-                        let _ = select(serving, mdns::run(stack, backing)).await;
-                        Err(())
-                    } else {
-                        serving.await
+                let next = {
+                    let multicast = async {
+                        if station {
+                            let backing = mdns_buffers.as_deref_mut().ok_or(())?;
+                            mdns::run(stack, backing).await
+                        } else {
+                            core::future::pending::<Result<(), ()>>().await
+                        }
+                    };
+                    // Construct the HTTP future once. Neither mode duplicates
+                    // its socket/request frame inside a second async branch.
+                    match select(select(serving, multicast), MAILBOX.next_command()).await {
+                        Either::First(_) => Either::First(()),
+                        Either::Second(command) => Either::Second(command),
                     }
                 };
+                #[cfg(not(feature = "network-mdns"))]
                 let next = select(serving, MAILBOX.next_command()).await;
                 // select owns and has now dropped all socket/request futures.
                 match next {

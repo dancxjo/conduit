@@ -46,8 +46,29 @@ pub async fn serve_acknowledged_with_reading(
     responses: &mut ReadingBuffers,
     ready: impl Fn(ServiceReady),
 ) -> Result<(), ()> {
+    serve_mode_with_reading(stack, setup, connect, reading, responses, true, ready).await
+}
+/// One shared HTTP future for either interface. The DHCP future remains dormant
+/// in station mode; it cannot bind an upstream DHCP socket. Runtime mode avoids
+/// retaining duplicate HTTP request frames across AP/station service changes.
+pub async fn serve_mode_with_reading(
+    stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
+    reading: Option<ReadingProvider>,
+    responses: &mut ReadingBuffers,
+    access_point: bool,
+    ready: impl Fn(ServiceReady),
+) -> Result<(), ()> {
+    let address_service = async {
+        if access_point {
+            dhcp(stack, &ready).await
+        } else {
+            core::future::pending::<Result<(), ()>>().await
+        }
+    };
     let _ = select(
-        dhcp(stack, &ready),
+        address_service,
         serve_station_with_reading(stack, setup, connect, reading, responses, &ready),
     )
     .await;

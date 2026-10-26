@@ -17,6 +17,26 @@ pub(crate) mod history;
 #[path = "native_observed_recovery.rs"]
 mod recovery;
 const WORK_BYTES: usize = 536;
+static BASIS: static_cell::StaticCell<Box<[u8; DESCRIPTOR_BYTES]>> = static_cell::StaticCell::new();
+static WORK: Mutex<CriticalSectionRawMutex, RefCell<Option<Box<[u8; WORK_BYTES]>>>> =
+    Mutex::new(RefCell::new(None));
+fn with_work<R>(
+    action: impl FnOnce(&mut [u8]) -> Result<R, &'static str>,
+) -> Result<R, &'static str> {
+    WORK.lock(|cell| {
+        let mut work = cell.borrow_mut();
+        action(&mut work.as_mut().ok_or("observed-history-workspace")?[..])
+    })
+}
+fn prepare_shared() -> Result<&'static [u8], &'static str> {
+    let contract = ObservationContract::prepare().map_err(|_| "observed-history-contract")?;
+    let basis = observed_record::descriptor(&contract).map_err(|_| "observed-history-forms")?;
+    let basis: &'static Box<[u8; DESCRIPTOR_BYTES]> = BASIS
+        .try_init(Box::new(basis))
+        .ok_or("observed-history-already-owned")?;
+    WORK.lock(|cell| *cell.borrow_mut() = Some(Box::new([0; WORK_BYTES])));
+    Ok(&basis[..])
+}
 static AUTHORIZED_BODY: Mutex<CriticalSectionRawMutex, RefCell<Option<[u8; 32]>>> =
     Mutex::new(RefCell::new(None));
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<Option<State>>> =
@@ -26,12 +46,10 @@ static EPOCHS: Mutex<CriticalSectionRawMutex, RefCell<Option<[State; 5]>>> =
 struct Cold {
     region: Erased<Region>,
     signed: bool,
-    basis: Box<[u8; DESCRIPTOR_BYTES]>,
-    work: Box<[u8; WORK_BYTES]>,
+    basis: &'static [u8],
 }
 struct Active {
     journal: Journal<'static, Region>,
-    work: Box<[u8; WORK_BYTES]>,
     scope: [u8; 96],
     forms: [u8; 32],
     last_sequence: u64,
@@ -45,53 +63,38 @@ enum State {
     Failed,
 }
 #[inline(never)]
-fn open_epoch(region: Region) -> Result<State, &'static str> {
+fn open_epoch(region: Region, basis: &'static [u8]) -> Result<State, &'static str> {
     let signed = conduit_environment_runtime::display_evidence_journal::Storage::capacity(&region)
         == 0x20000;
-    let initial = match Erased::prepare_retained(region) {
-        Ok(region) => {
-            let contract =
-                ObservationContract::prepare().map_err(|_| "observed-history-contract")?;
-            let basis =
-                observed_record::descriptor(&contract).map_err(|_| "observed-history-forms")?;
-            State::Cold(Cold {
-                region,
-                signed,
-                basis: Box::new(basis),
-                work: Box::new([0; WORK_BYTES]),
-            })
-        }
+    match Erased::prepare_retained(region) {
+        Ok(region) => Ok(State::Cold(Cold {
+            region,
+            signed,
+            basis,
+        })),
         Err((region, _)) => {
-            let contract =
-                ObservationContract::prepare().map_err(|_| "observed-history-contract")?;
-            let basis: &'static [u8] = Box::leak(Box::new(
-                observed_record::descriptor(&contract).map_err(|_| "observed-history-forms")?,
-            ));
-            let mut work = Box::new([0; WORK_BYTES]);
-            match recovery::reopen_profile(region, basis, &mut work[..], signed) {
-                Ok((journal, scope, last_sequence)) => State::Active(Active {
+            match with_work(|work| recovery::reopen_profile(region, basis, work, signed)) {
+                Ok((journal, scope, last_sequence)) => Ok(State::Active(Active {
                     journal,
-                    work,
                     scope,
                     forms: Sha256::digest(basis).into(),
                     last_sequence,
                     failed: false,
                     recovered: true,
                     signed,
-                }),
-                // Invalid media is preserved physically; its unique handle is
-                // retired and cannot be erased or reissued by this adapter.
-                Err(_) => State::Failed,
+                })),
+                // Invalid media stays physically intact and is never reissued.
+                Err(_) => Ok(State::Failed),
             }
         }
-    };
-    Ok(initial)
+    }
 }
 /// Five immutable 128 KiB signed epochs admit at most 80 hours at the linked cadence.
 /// Reboot consumes a fresh erased epoch; committed or torn media is never erased.
 pub fn initialize_epochs(region: Region, additional: [Region; 5]) -> Result<(), &'static str> {
-    let mut primary = open_epoch(region)?;
-    let epochs = additional.map(open_epoch);
+    let basis = prepare_shared()?;
+    let mut primary = open_epoch(region, basis)?;
+    let epochs = additional.map(|region| open_epoch(region, basis));
     if epochs.iter().any(Result::is_err) {
         return Err("observed-history-epoch-initialization");
     }
@@ -125,7 +128,8 @@ pub fn initialize_epochs(region: Region, additional: [Region; 5]) -> Result<(), 
     install_epoch(primary)
 }
 pub fn initialize(region: Region) -> Result<(), &'static str> {
-    install_epoch(open_epoch(region)?)
+    let basis = prepare_shared()?;
+    install_epoch(open_epoch(region, basis)?)
 }
 fn install_epoch(initial: State) -> Result<(), &'static str> {
     STATE.lock(|cell| {
@@ -192,18 +196,18 @@ fn bind_scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> Result<(
         if !matches!(state.as_ref(), Some(State::Cold(_))) {
             return Err("observed-history-unavailable");
         }
-        let Some(State::Cold(mut cold)) = state.take() else {
+        let Some(State::Cold(cold)) = state.take() else {
             unreachable!()
         };
         *state = Some(State::Failed);
         let signed = cold.signed;
-        let basis = &Box::leak(cold.basis)[..];
-        let journal =
-            Journal::create_prepared(cold.region, &scope, basis, maximum, &mut cold.work[..])
-                .map_err(|_| "observed-history-header")?;
+        let basis = cold.basis;
+        let journal = with_work(|work| {
+            Journal::create_prepared(cold.region, &scope, basis, maximum, work)
+                .map_err(|_| "observed-history-header")
+        })?;
         *state = Some(State::Active(Active {
             journal,
-            work: cold.work,
             scope,
             forms: Sha256::digest(basis).into(),
             last_sequence: 0,
@@ -254,11 +258,13 @@ pub fn append(snapshot: PublicationSnapshot<'_>, observed_ms: u64) -> Result<(),
         let outcome = if active.last_sequence.checked_add(1) != Some(sequence) {
             Err("observed-history-sequence")
         } else {
-            active
-                .journal
-                .append(record, &mut active.work[..])
-                .map(|_| ())
-                .map_err(|_| "observed-history-commit")
+            with_work(|work| {
+                active
+                    .journal
+                    .append(record, work)
+                    .map(|_| ())
+                    .map_err(|_| "observed-history-commit")
+            })
         };
         if outcome.is_ok() {
             active.last_sequence = sequence;
@@ -381,11 +387,12 @@ fn copy_active(active: &mut Active, after: u32) -> Result<Batch, &'static str> {
         } else {
             observed_record::BYTES
         };
-        match active
-            .journal
-            .replay(&mut cursor, &mut retained[..length], &mut active.work[..])
-            .map_err(|_| "observed-history-read")?
-        {
+        match with_work(|work| {
+            active
+                .journal
+                .replay(&mut cursor, &mut retained[..length], work)
+                .map_err(|_| "observed-history-read")
+        })? {
             None => break,
             Some(n) if n == length => {
                 if active.signed {
