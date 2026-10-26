@@ -91,9 +91,18 @@ fn open_epoch(region: Region, basis: &'static [u8]) -> Result<State, &'static st
 }
 /// Five immutable 128 KiB signed epochs admit at most 80 hours at the linked cadence.
 /// Reboot consumes a fresh erased epoch; committed or torn media is never erased.
-pub fn initialize_epochs(region: Region, additional: [Region; 5]) -> Result<(), &'static str> {
+pub fn initialize_epochs(
+    region: impl Into<Option<Region>>,
+    additional: [Region; 5],
+) -> Result<(), &'static str> {
     let basis = prepare_shared()?;
-    let mut primary = open_epoch(region, basis)?;
+    // An absent legacy region supplies no journal and can never be read/signed.
+    // The existing slot array retains five real signed regions without adding
+    // storage or relabeling any recovered scope.
+    let mut primary = match region.into() {
+        Some(region) => open_epoch(region, basis)?,
+        None => State::Failed,
+    };
     let epochs = additional.map(|region| open_epoch(region, basis));
     if epochs.iter().any(Result::is_err) {
         return Err("observed-history-epoch-initialization");

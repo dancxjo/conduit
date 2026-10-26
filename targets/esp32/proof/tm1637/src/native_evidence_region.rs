@@ -10,13 +10,25 @@ use static_cell::StaticCell;
 // retaining a smaller, disjoint display-evidence region. Other profiles retain
 // their original partition contract; a mismatched table is refused at boot.
 #[cfg(feature = "local-appliance")]
-const EVIDENCE_START: u32 = 0x337000;
+const EVIDENCE_START: u32 = 0x347000;
 #[cfg(feature = "local-appliance")]
 const EVIDENCE_LENGTH: u32 = 0x1000;
 #[cfg(not(feature = "local-appliance"))]
 const EVIDENCE_START: u32 = 0x290000;
 #[cfg(not(feature = "local-appliance"))]
 const EVIDENCE_LENGTH: u32 = 0xa8000;
+#[cfg(feature = "local-appliance")]
+const EPOCHS_START: u32 = 0x348000;
+#[cfg(not(feature = "local-appliance"))]
+const EPOCHS_START: u32 = 0x338000;
+#[cfg(feature = "local-appliance")]
+const NETWORK_START: u32 = 0x3e8000;
+#[cfg(not(feature = "local-appliance"))]
+const NETWORK_START: u32 = 0x3d8000;
+#[cfg(feature = "local-appliance")]
+const BODY_START: u32 = 0x3f0000;
+#[cfg(not(feature = "local-appliance"))]
+const BODY_START: u32 = 0x3e0000;
 type Base = Mutex<CriticalSectionRawMutex, RefCell<FlashStorage<'static>>>;
 static FLASH: StaticCell<Base> = StaticCell::new();
 #[repr(align(4))]
@@ -28,7 +40,8 @@ pub struct Region {
 }
 pub struct Regions {
     pub evidence: Region,
-    pub observations: Region,
+    /// Original CRC-only legacy region is absent in the fresh appliance profile.
+    pub observations: Option<Region>,
     /// Five additional immutable signed Boot epochs; no erase entrance.
     pub observation_epochs: [Region; 5],
     pub credentials: CredentialRegion,
@@ -66,11 +79,11 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
         } else if part.label().starts_with(b"credentials\0") {
             Some((2, 0xd000, 0x2000))
         } else if part.label().starts_with(b"net_recovery\0") {
-            Some((3, 0x3d8000, 0x8000))
+            Some((3, NETWORK_START, 0x8000))
         } else if part.label().starts_with(b"obs_epochs\0") {
-            Some((5, 0x338000, 0xa0000))
+            Some((5, EPOCHS_START, 0xa0000))
         } else if part.label().starts_with(b"body_state\0") {
-            Some((4, 0x3e0000, 0x10000))
+            Some((4, BODY_START, 0x10000))
         } else {
             None
         };
@@ -88,7 +101,12 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
             return Err("evidence-partition-overlap");
         }
     }
-    if counts != [1, 1, 1, 1, 1, 1] {
+    let legacy_count = if cfg!(feature = "local-appliance") {
+        0
+    } else {
+        1
+    };
+    if counts != [1, legacy_count, 1, 1, 1, 1] {
         return Err("evidence-partition-unavailable");
     }
     let base = FLASH
@@ -100,14 +118,17 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
             start: EVIDENCE_START,
             length: EVIDENCE_LENGTH,
         },
-        observations: Region {
+        #[cfg(not(feature = "local-appliance"))]
+        observations: Some(Region {
             base,
             start: 0x3f0000,
             length: 0x10000,
-        },
+        }),
+        #[cfg(feature = "local-appliance")]
+        observations: None,
         observation_epochs: core::array::from_fn(|index| Region {
             base,
-            start: 0x338000 + (index as u32) * 0x20000,
+            start: EPOCHS_START + (index as u32) * 0x20000,
             length: 0x20000,
         }),
         credentials: CredentialRegion(Region {
@@ -117,12 +138,12 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
         }),
         network_recovery: NetworkRegion(Region {
             base,
-            start: 0x3d8000,
+            start: NETWORK_START,
             length: 0x8000,
         }),
         body_state: BodyRegion(Region {
             base,
-            start: 0x3e0000,
+            start: BODY_START,
             length: 0x10000,
         }),
     })
