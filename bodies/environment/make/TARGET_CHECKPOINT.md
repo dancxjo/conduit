@@ -5,7 +5,7 @@ The earlier self-contained ESP32 preparation failed; the current native sampler
 uses the Linux owner. Pico comparative preparation remains separately measured below.
 The bounded native display run now repeats physical pages alongside the sampler
 with acknowledged evidence transfer. Its latest target checkpoint is
-[below](#reusable-physical-output-and-evidence-handoff). Ordinary Mask Plot
+[below](#right-sized-evidence-backing-on-the-physical-esp32). Ordinary Mask Plot
 admission remains open; the pure helper is still explicitly fenced.
 
 ## Linux first host, native ESP32 member
@@ -370,9 +370,10 @@ The corrected pressure run stopped the Linux owner at a verified idle carrier
 boundary for 25 seconds. Its first resumed display receipt showed 37 native
 writes versus 36 before the pause: one pending invocation, not an accumulating
 queue. The same owner process accepted publication four after publication three
-before the pause, and continued without restarting the MCU or Body. The live
-run subsequently reached eight publications and more than 80 native writes,
-with Root usage/peak still 99,600 bytes. It remains active under
+before the pause, and continued without restarting the MCU or Body. That run
+subsequently reached 114 publications and 1,459 native writes with Root usage/peak
+still 99,600 bytes. Signed display/sampler retirement and Body lull completed
+before the smaller image was flashed. Its retained run is
 `~/.local/share/conduit/environment-host-20261025/runs/0be52a98-7a51-49de-84b0-c8a85fbc3dbc/`.
 Body `0835be27b7b5d2c2b167be0fb50c289c86e2da13e0c98e969249cd80c6e925e8`;
 Boot `boot/6d27b5c6b52c1b0629faac9379de5528`.
@@ -384,6 +385,66 @@ SHA-256: `3ce8766def2adca735b22f9cc5bb924ba950666048b6b5b35b9ed3bdc87b7074`.
 Every archived member was checked against its retained manifest. Keep the archive,
 recovery images, current owner state and active run out of cleanup. No raw capture
 or firmware image is added to Git.
+
+
+## Right-sized evidence backing on the physical ESP32
+
+The physical profile now reserves its admitted six remote evidence records
+independently of its 64 ordinary records. The new image retains the existing
+sampler, typed publication, pure timed Mask and ordinary electrical-output
+kernel. It does not install the ordinary Mask role prepared in the CPU proofs.
+The same authenticated current-Boot owner flow starts and releases both workers.
+
+| Combined target phase | Root used | Root peak | Root capacity | SDK used / capacity |
+| --- | ---: | ---: | ---: | ---: |
+| Native sampling and repeated physical display output | 98,208 | 98,208 | 118,768 | 33,408 / 73,728 |
+
+This reclaims exactly **1,392 Root bytes** against the preceding 99,600-byte
+combined image. Seven verified publications and 79 native calls were observed
+without memory growth. SDK observed peak was 34,024 bytes. Application flash is
+**2,581,040 / 4,128,768 bytes**. The pinned build and package/symbol guard retain
+165 runtime packages, 25 reviewed Conduit packages, the local indexed task
+planner, and no Source parsing/checking/expansion symbols.
+
+A 25-second stop of the exact Linux owner at a verified idle carrier boundary
+crossed a sampling interval. Before the pause: 23 native calls and two verified
+publications. First receipt after resume: 24 calls; publication count advanced
+to three in the same process/Body/Boot. The pending page remained in custody,
+rather than allowing unbounded output. Sampling and display updates continue.
+No new human LED observation is claimed.
+
+The first attended startup after flashing timed out and a later read-only offer
+query received no response. Its cause remains unproved; no sample or physical
+write was verified in that attempt. A normal reset and fresh owner
+session with the same ELF passed startup, sampling, output and pressure checks.
+The host now preserves bounded recognized MCU fault/backtrace context in failed
+exchange errors, instead of discarding it while waiting for an event. Ordinary
+non-JSON payloads are not echoed. This diagnostic change does not establish a
+fix for the initial startup failure.
+
+Current live run:
+`~/.local/share/conduit/environment-host-20261025/runs/dc7e26b9-7311-47fc-8d92-88cdaada77f8/`.
+Body `3f0e6d4d6c17929b92ff6d8cb2bcfc67cf41f902f2bebd883d8b46d1144b40b6`;
+Boot `boot/45e44a754ea8e82375156a98cbf93b86`.
+ELF `~/.cache/conduit/esp32-encoded-capacity-candidate-20261025.elf`, SHA-256
+`122b7c74db9d21889a226044e1f57227d8582be44d52a60b0f49555b5e8a6060`.
+
+The immutable three-publication/first-30-display-page prefix, signed provenance,
+exact ELF, flash log and pressure harness/capture have verified external custody:
+`~/.local/share/conduit/evidence-archives/mcu-encoded-capacity-dc7e26b9-20261025-prefix.tar.gz`.
+Archive SHA-256:
+`6549006f68bbc95bc561f19dcbeb3cc0f226b162e032557d239de7816634f0ea`.
+Pressure capture SHA-256:
+`ab81a8fd95d5811ba2e53d2050230377542994e942ba65b273fd673d81ba2e25`.
+This is a live prefix, not evidence of closure/retirement of the current run.
+
+The entire preceding closed run (114 publications), its owner capture and exact
+ELF are also preserved in
+`~/.local/share/conduit/evidence-archives/mcu-output-0be52a98-20261025.tar.gz`,
+SHA-256 `804ec26836b8cb70ceececc6e09aa4c26d39d227a782a7359fd2747c319cc8ed`.
+Every archive member was checked against its retained manifest. Preserve both
+archives, recovery images, current owner state and active run during cleanup.
+Raw evidence, keys and firmware remain outside Git.
 
 
 ## Pico W comparative owned-preparation gate

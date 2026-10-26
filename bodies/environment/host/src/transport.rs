@@ -8,6 +8,8 @@ use std::{
     os::unix::fs::OpenOptionsExt,
     time::{Duration, Instant},
 };
+#[path = "transport_fault.rs"]
+mod fault;
 pub struct Line {
     file: File,
 }
@@ -99,10 +101,12 @@ impl Line {
         Ok(out)
     }
     pub fn event(&mut self, name: &str) -> Result<Value> {
+        let mut faults = fault::RecentFaults::default();
         let deadline = Instant::now() + Duration::from_secs(20);
         let mut bytes = Vec::new();
         for _ in 0..128 * 1024 {
-            self.ready(libc::POLLIN, deadline)?;
+            self.ready(libc::POLLIN, deadline)
+                .map_err(|error| faults.describe(name, error))?;
             let mut byte = [0];
             if self.file.read(&mut byte)? == 0 {
                 return Err("UART closed".into());
@@ -115,6 +119,8 @@ impl Line {
                     if value["event"] == "native-root-request-refused" {
                         return Err("Root refused command".into());
                     }
+                } else {
+                    faults.remember(&bytes);
                 }
                 bytes.clear();
             } else {

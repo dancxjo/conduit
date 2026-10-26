@@ -135,9 +135,8 @@ each retired trace in the existing finite evidence-page codec. Separate tests
 cover pressure before encoding, failure rollback, cancellation and full release.
 The physical display uses the same admitted six remote evidence records as
 before; its fixed log now reserves six physical remote slots instead of 64.
-That changes storage, not evidence retention or delivery authority. The candidate
-must pass the pinned target build and package guard before deployment; no native
-Mask execution is claimed by these CPU proofs.
+That changes storage, not evidence retention or delivery authority. The pinned target build and package guard pass; no native Mask execution is
+claimed by these CPU proofs.
 
 
 The updated Xtensa layout probe measures the ordinary Mask scheduler at 4,880
@@ -145,8 +144,11 @@ bytes and its compact assigned wrapper at 248 bytes. The physical-output
 scheduler is now 4,840 bytes, reclaiming 1,392 bytes from its former backing.
 The pinned physical-check candidate builds and passes the 165-package/25-reviewed
 Conduit package guard, with the local indexed planner present and Source
-parsing/checking/expansion absent. It remains unflashed; the live checkpoint still
-uses the preceding image. Layout reduction is not a measured live-heap result.
+parsing/checking/expansion absent. The image is now deployed: the combined live Root usage/peak is 98,208 bytes,
+1,392 bytes below the preceding image. Sampling, physical output and owner
+pressure checks passed; the initial attended startup timed out before a fresh
+boot succeeded, and its cause remains unproved. See the exact target checkpoint
+for the run scope and verified private archive references.
 
 Native work remains: initialize and bind the actual renderer provider under the
 Body's Mask admission, preserve per-Play/effect and Show lifecycle correlation,
