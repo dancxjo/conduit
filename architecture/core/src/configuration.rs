@@ -57,7 +57,7 @@ pub enum ConfigurationValue {
     U64(#[serde(with = "human_u64")] u64),
     /// Signed fixed-point scalar microunits, matching `value/scalar`.
     I64(#[serde(with = "human_i64")] i64),
-    Text(String),
+    Text(crate::ConfigurationText),
     /// Exact dimensional startup value; the unit remains part of configuration truth.
     Quantity(crate::QuantityConfigurationValue),
     /// Exact finite structured semantic value used by an immutable Gear configuration.

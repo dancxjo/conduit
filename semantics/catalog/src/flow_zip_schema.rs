@@ -80,7 +80,7 @@ pub fn flow_zip_schema_semantic_contract(
             });
         kind.configuration.push(KindConfigurationField {
             key: key.into(),
-            default_value: ConfigurationValue::Text(encode(ty)?),
+            default_value: ConfigurationValue::Text(encode(ty)?.into()),
             rule: KindConfigurationRule::TextBytes {
                 maximum: (FLOW_ZIP_MAXIMUM_SCHEMA_BYTES * 2) as u32,
             },
@@ -206,7 +206,7 @@ mod tests {
             "a".repeat(FLOW_ZIP_MAXIMUM_SCHEMA_BYTES * 2 + 2),
         ] {
             let mut corrupt = configuration.clone();
-            corrupt[0].value = ConfigurationValue::Text(text);
+            corrupt[0].value = ConfigurationValue::Text(text.into());
             assert!(flow_zip_prepared_schemas(&corrupt).is_err());
         }
     }

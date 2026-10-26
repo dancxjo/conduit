@@ -10,6 +10,8 @@ use conduit_core as c;
 #[path = "software_compact_local.rs"]
 mod local;
 
+type LinkedOfferDecoder = fn(&[u8]) -> Result<c::CapabilityOffer, ()>;
+
 struct Operation<'a> {
     node: [u8; 48],
     key: c::AssignedIdentity,
@@ -24,6 +26,11 @@ pub struct CompactOutputSoftware<'a> {
     source: c::PlotIdentity,
     generation: Option<c::OfferGeneration>,
     operations: Vec<Operation<'a>>,
+    #[cfg_attr(
+        not(feature = "local-planning"),
+        allow(dead_code, reason = "decoder is used only for local metadata planning")
+    )]
+    decoder: Option<LinkedOfferDecoder>,
 }
 impl<'a> CompactOutputSoftware<'a> {
     /// Initialize checked computations sequentially and discard their decoded
@@ -93,7 +100,33 @@ impl<'a> CompactOutputSoftware<'a> {
             source,
             generation: None,
             operations,
+            decoder: None,
         })
+    }
+    /// Initialize from linked Make material with exact borrowed metadata.
+    /// # Safety
+    /// The `prepare_make` contract applies. The linked decoder must return the
+    /// complete byte-equivalent offer for every retained wire record. It conveys
+    /// no readiness independently of the initialized operations owned here.
+    pub unsafe fn prepare_linked_make(
+        source: c::PlotIdentity,
+        material: impl IntoIterator<
+            Item = Result<(conduit_plot::CheckedGear, &'a str, &'a [u8]), SoftwareRefusal>,
+        >,
+        host: c::HostId,
+        boot: c::BootId,
+        decoder: fn(&[u8]) -> Result<c::CapabilityOffer, ()>,
+    ) -> Result<Self, SoftwareRefusal> {
+        let mut owner = unsafe { Self::prepare_make(source, material, host, boot) }?;
+        owner.decoder = Some(decoder);
+        Ok(owner)
+    }
+    #[cfg(feature = "local-planning")]
+    fn decode_offer(&self, wire: &[u8]) -> Result<c::CapabilityOffer, SoftwareRefusal> {
+        match self.decoder {
+            Some(decode) => decode(wire).map_err(|_| SoftwareRefusal::Selection),
+            None => serde_json::from_slice(wire).map_err(|_| SoftwareRefusal::Selection),
+        }
     }
     pub fn is_ready(&self) -> bool {
         self.operations.iter().all(|op| op.prepared.is_some())
@@ -245,6 +278,16 @@ impl CompactOutputOffers<'_, '_> {
     }
     pub fn expanded(&self) -> &c::ExpandedPlotId {
         &self.owner.source.expanded_plot_id
+    }
+    #[cfg(feature = "local-planning")]
+    pub fn decoded(
+        &self,
+    ) -> impl Iterator<Item = Result<c::CapabilityOffer, SoftwareRefusal>> + '_ {
+        self.owner
+            .operations
+            .iter()
+            .filter(|op| op.prepared.is_some())
+            .map(|op| self.owner.decode_offer(op.offer))
     }
     pub fn iter(&self) -> impl Iterator<Item = &[u8]> {
         self.owner

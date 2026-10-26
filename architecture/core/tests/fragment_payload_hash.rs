@@ -21,7 +21,7 @@ fn fragment(size: usize) -> PlanFragment {
         },
         Entry {
             key: "text".into(),
-            value: Value::Text("\0é🌡".repeat(size)),
+            value: Value::Text("\0é🌡".repeat(size).into()),
         },
         Entry {
             key: "between".into(),
@@ -102,7 +102,9 @@ fn equal_length_payload_changes_still_change_identity() {
     let Value::Text(text) = &mut changed.placements[0].configuration[1].value else {
         unreachable!()
     };
-    text.replace_range(7 * 1234..7 * 1234 + 1, "x");
+    let mut changed_text = text.as_str().to_owned();
+    changed_text.replace_range(7 * 1234..7 * 1234 + 1, "x");
+    *text = changed_text.into();
     assert_ne!(compute_fragment_id(&changed), expected);
 
     let mut changed = original;

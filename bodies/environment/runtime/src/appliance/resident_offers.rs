@@ -5,6 +5,11 @@ use super::*;
 pub struct ResidentSoftwareOffer<'a> {
     pub(super) node: u16,
     pub(super) json: &'a [u8],
+    #[cfg_attr(
+        not(feature = "local-planning"),
+        allow(dead_code, reason = "linked decoder is used only by local planning")
+    )]
+    decode: Option<fn() -> Result<c::CapabilityOffer, ()>>,
 }
 impl<'a> ResidentSoftwareOffer<'a> {
     /// Retain compiler-produced metadata, never incoming assignment descriptors.
@@ -14,7 +19,35 @@ impl<'a> ResidentSoftwareOffer<'a> {
     /// contain no Host/Boot, native provider, resource or authority facts. This
     /// constructor establishes no readiness and initializes no implementation.
     pub const unsafe fn from_make(node: u16, json: &'a [u8]) -> Self {
-        Self { node, json }
+        Self {
+            node,
+            json,
+            decode: None,
+        }
+    }
+    /// Link a Make-generated decoder whose exact complete result equals `json`.
+    /// # Safety
+    /// The existing `from_make` contract applies to both representations. Make
+    /// must check complete equality, including every default and semantic law.
+    /// Static descriptions establish no initialized software or native readiness.
+    pub const unsafe fn from_linked_make(
+        node: u16,
+        json: &'a [u8],
+        decode: fn() -> Result<c::CapabilityOffer, ()>,
+    ) -> Self {
+        Self {
+            node,
+            json,
+            decode: Some(decode),
+        }
+    }
+    #[cfg(feature = "local-planning")]
+    pub(super) fn decode(&self) -> Result<c::CapabilityOffer, NativePreparationRefusal> {
+        match self.decode {
+            Some(decode) => decode().map_err(|_| NativePreparationRefusal::Configuration),
+            None => serde_json::from_slice(self.json)
+                .map_err(|_| NativePreparationRefusal::Configuration),
+        }
     }
 }
 /// The borrow prevents transferring the corresponding owner while publishing.
@@ -28,6 +61,20 @@ impl<'a, V> ReadyResidentOffers<'a, V> {
     /// Exact JSON array extent, including brackets and separating commas.
     pub fn array_bytes(&self) -> usize {
         self.array_bytes
+    }
+    #[cfg(feature = "local-planning")]
+    pub fn decode_at(&self, index: usize) -> Result<c::CapabilityOffer, NativePreparationRefusal> {
+        self.offers
+            .get(index)
+            .ok_or(NativePreparationRefusal::Configuration)?
+            .decode()
+    }
+    #[cfg(feature = "local-planning")]
+    pub fn decoded(
+        &self,
+    ) -> impl ExactSizeIterator<Item = Result<c::CapabilityOffer, NativePreparationRefusal>> + '_
+    {
+        self.offers.iter().map(ResidentSoftwareOffer::decode)
     }
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &'a [u8]> + '_ {
         self.offers.iter().map(|offer| offer.json)

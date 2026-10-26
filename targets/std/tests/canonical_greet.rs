@@ -86,7 +86,7 @@ fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
         join.configuration,
         [conduit_core::ConfigurationEntry {
             key: "prefix".to_string(),
-            value: ConfigurationValue::Text("Welcome".to_string()),
+            value: ConfigurationValue::Text("Welcome".to_string().into()),
         }]
     );
     assert!(expanded.provenance.iter().any(|row| {

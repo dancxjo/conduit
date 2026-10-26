@@ -21,14 +21,77 @@ const MAXIMUM_GEAR_BYTES: usize = 32 * 1024;
 /// decode or retain its neighbours. No mutable graph is cached in this view.
 pub struct IndexedSourceImage<'a> {
     bytes: &'a [u8],
+    gear_decoder: Option<fn(usize) -> Result<CheckedGear, E>>,
+    configuration_decoder: Option<fn(usize) -> Result<IndexedGearConfiguration, E>>,
     count: usize,
     metadata_start: usize,
     payload_start: usize,
+}
+/// Exact configuration projection of one checked Gear; no execution authority.
+#[derive(serde::Deserialize)]
+pub struct IndexedGearConfiguration {
+    pub gear_id: conduit_core::GearId,
+    pub configuration: Vec<conduit_core::ConfigurationEntry>,
 }
 /// A source header is deliberately distinct from a complete checked expansion.
 pub struct IndexedSourceMetadata {
     source: ExpandedCanonicalPlot,
     gears: usize,
+}
+/// Planning's projection of an already checked Make image. Complete expansion
+/// provenance remains in the authenticated image; this view cannot reconstruct
+/// or masquerade as an ExpandedCanonicalPlot.
+pub struct IndexedPlanningMetadata(PlanningMetadataWire);
+#[derive(serde::Deserialize)]
+struct PlanningMetadataWire {
+    version: u8,
+    source_document_id: conduit_core::SourceDocumentId,
+    checked_plot_id: conduit_core::CheckedPlotId,
+    expanded_plot_id: conduit_core::ExpandedPlotId,
+    name: alloc::string::String,
+    semantic_completion: bool,
+    gears: Vec<CheckedGear>,
+    connections: Vec<crate::CheckedConnection>,
+    provenance: Vec<PlanningOrigin>,
+}
+#[derive(serde::Deserialize)]
+struct PlanningOrigin {
+    gear_id: alloc::string::String,
+    source_span: crate::Span,
+}
+impl IndexedPlanningMetadata {
+    pub fn identity(&self) -> conduit_core::PlotIdentity {
+        conduit_core::PlotIdentity {
+            source_document_id: self.0.source_document_id.clone(),
+            checked_plot_id: self.0.checked_plot_id.clone(),
+            expanded_plot_id: self.0.expanded_plot_id.clone(),
+        }
+    }
+    pub fn name(&self) -> &str {
+        &self.0.name
+    }
+    pub fn completion(&self) -> PlotCompletionPolicy {
+        if self.0.semantic_completion {
+            PlotCompletionPolicy::SemanticCompletion
+        } else {
+            PlotCompletionPolicy::Live
+        }
+    }
+    pub fn connections(&self) -> &[crate::CheckedConnection] {
+        &self.0.connections
+    }
+    /// Transfer decoded Cord preparation data. The complete checked Source
+    /// remains immutable in the Make image and available through `metadata`.
+    pub fn take_connections(&mut self) -> Vec<crate::CheckedConnection> {
+        core::mem::take(&mut self.0.connections)
+    }
+    pub fn source_span(&self, gear: &str) -> Option<crate::Span> {
+        self.0
+            .provenance
+            .iter()
+            .find(|p| p.gear_id == gear)
+            .map(|p| p.source_span)
+    }
 }
 impl IndexedSourceMetadata {
     pub fn identity(&self) -> conduit_core::PlotIdentity {
@@ -184,10 +247,53 @@ impl<'a> IndexedSourceImage<'a> {
         }
         Ok(Self {
             bytes,
+            gear_decoder: None,
+            configuration_decoder: None,
             count,
             metadata_start,
             payload_start,
         })
+    }
+    /// Use exact linked reconstruction rather than copying immutable default
+    /// programs from JSON. The index and identity remain in this Make image.
+    /// # Safety
+    /// The trusted Make owner must verify that every decoder result is exactly
+    /// the complete corresponding Gear in this same independently pinned image.
+    /// A received callback or a matching claimed identity cannot establish this.
+    pub unsafe fn with_make_gear_decoder(
+        mut self,
+        decode: fn(usize) -> Result<CheckedGear, E>,
+    ) -> Self {
+        self.gear_decoder = Some(decode);
+        self
+    }
+    /// Install the exact configuration projection emitted by the same Make.
+    /// # Safety
+    /// Every result must equal the Gear ID and complete configuration in this
+    /// independently pinned image. This must never come from received input.
+    pub unsafe fn with_make_configuration_decoder(
+        mut self,
+        decode: fn(usize) -> Result<IndexedGearConfiguration, E>,
+    ) -> Self {
+        self.configuration_decoder = Some(decode);
+        self
+    }
+    /// Decode only configuration, skipping unrelated port/semantic contracts.
+    pub fn gear_configuration(&self, index: usize) -> Result<IndexedGearConfiguration, E> {
+        if index >= self.count {
+            return Err(E::Representation);
+        }
+        if let Some(decode) = self.configuration_decoder {
+            return decode(index);
+        }
+        let start = word(self.bytes, PREFIX + index * 4)?;
+        let end = word(self.bytes, PREFIX + (index + 1) * 4)?;
+        let mut value: IndexedGearConfiguration = serde_json::from_slice(
+            &self.bytes[self.payload_start + start..self.payload_start + end],
+        )
+        .map_err(|_| E::Representation)?;
+        value.configuration.shrink_to_fit();
+        Ok(value)
     }
     pub fn gear_count(&self) -> usize {
         self.count
@@ -195,6 +301,9 @@ impl<'a> IndexedSourceImage<'a> {
     pub fn gear(&self, index: usize) -> Result<CheckedGear, E> {
         if index >= self.count {
             return Err(E::Representation);
+        }
+        if let Some(decode) = self.gear_decoder {
+            return decode(index);
         }
         let start = word(self.bytes, PREFIX + index * 4)?;
         let end = word(self.bytes, PREFIX + (index + 1) * 4)?;
@@ -222,6 +331,21 @@ impl<'a> IndexedSourceImage<'a> {
             checked_plot_id: identity.checked_plot_id,
             expanded_plot_id: identity.expanded_plot_id,
         })
+    }
+    pub fn planning_metadata(&self) -> Result<IndexedPlanningMetadata, E> {
+        let mut metadata: PlanningMetadataWire =
+            serde_json::from_slice(&self.bytes[self.metadata_start..self.payload_start])
+                .map_err(|_| E::Representation)?;
+        if metadata.version != 1
+            || !metadata.gears.is_empty()
+            || metadata.connections.len() > 64
+            || metadata.provenance.len() != self.count
+        {
+            return Err(E::UnsupportedGraph);
+        }
+        metadata.connections.shrink_to_fit();
+        metadata.provenance.shrink_to_fit();
+        Ok(IndexedPlanningMetadata(metadata))
     }
     pub fn metadata(&self) -> Result<IndexedSourceMetadata, E> {
         let image: Image =

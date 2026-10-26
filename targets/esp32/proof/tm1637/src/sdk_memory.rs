@@ -101,11 +101,6 @@ pub fn initialize() -> NativeSdkReservation {
     // SAFETY: uniquely initialized, disjoint internal static backing, retained
     // for this Boot. SDK regions never enter Root's global allocator.
     unsafe {
-        esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
-            ptr::addr_of_mut!(ROOT).cast(),
-            ROOT_RECLAIMED_BYTES,
-            esp_alloc::MemoryCapability::Internal.into(),
-        ));
         #[cfg(feature = "native-face-root")]
         {
             // Only CPU0 Rust ownership uses this region; C SDK allocations
@@ -124,6 +119,14 @@ pub fn initialize() -> NativeSdkReservation {
                 esp_alloc::MemoryCapability::Internal.into(),
             ));
         }
+        // Fill the existing smaller RTC bank before the larger reclaimed bank.
+        // Late contiguous Plan arrays exceed 8 KiB; leaving RTC until last can
+        // strand enough free bytes across banks despite adequate total space.
+        esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+            ptr::addr_of_mut!(ROOT).cast(),
+            ROOT_RECLAIMED_BYTES,
+            esp_alloc::MemoryCapability::Internal.into(),
+        ));
         SDK_HEAP.add_region(esp_alloc::HeapRegion::new(
             ptr::addr_of_mut!(FIRST).cast(),
             32 * 1024,

@@ -77,7 +77,7 @@ impl Runtime {
             {
                 advertisement.capabilities.push(offer);
             }
-            programs.push(hex.clone());
+            programs.push(hex.to_string());
         }
         advertisement
             .capabilities

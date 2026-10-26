@@ -1,11 +1,13 @@
 //! Borrow reusable checked content, or transfer retiring configuration buffers.
-use alloc::vec::Vec;
+use alloc::{borrow::Cow, vec::Vec};
 mod connection_gear;
 mod gears;
 use conduit_core::{CheckedPlotId, ExpandedPlotId, SourceDocumentId};
 use conduit_plot::{
     CheckedConnection, CheckedGear, CheckedPlot, ExpandedCanonicalPlot, PlotCompletionPolicy,
 };
+#[cfg(test)]
+pub(crate) use connection_gear::minimum_at as minimum_value_bytes;
 pub(crate) use connection_gear::ConnectionGear;
 pub(crate) use gears::PlanningGears;
 
@@ -16,7 +18,7 @@ pub(crate) struct PlanningInput<'a> {
     pub name: &'a str,
     pub completion: PlotCompletionPolicy,
     pub gears: PlanningGears<'a>,
-    pub connections: &'a [CheckedConnection],
+    pub connections: Cow<'a, [CheckedConnection]>,
 }
 
 impl PlanningInput<'_> {
@@ -36,7 +38,7 @@ impl<'a> From<&'a CheckedPlot> for PlanningInput<'a> {
             name: &plot.name,
             completion: plot.completion,
             gears: PlanningGears::borrowed(&plot.gears),
-            connections: &plot.connections,
+            connections: Cow::Borrowed(&plot.connections),
         }
     }
 }
@@ -50,7 +52,7 @@ impl<'a> From<&'a ExpandedCanonicalPlot> for PlanningInput<'a> {
             name: &plot.name,
             completion: plot.completion,
             gears: PlanningGears::borrowed(&plot.gears),
-            connections: &plot.connections,
+            connections: Cow::Borrowed(&plot.connections),
         }
     }
 }

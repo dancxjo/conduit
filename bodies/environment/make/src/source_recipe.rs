@@ -19,6 +19,7 @@ use conduit_environment_runtime::{
 };
 use std::fmt::{self, Write};
 use SourceRecipeRefusal as E;
+pub(crate) mod linked_text;
 #[path = "source_recipe/material.rs"]
 mod material;
 #[path = "source_recipe/records.rs"]
@@ -79,7 +80,7 @@ impl NativeSoftwareSourceRecipe {
                             .map_err(|_| E::Source)
                     })
                     .collect::<Result<Vec<_>, E>>()?;
-                texts.push((requirement.node, requirement.key, text.clone(), bytes));
+                texts.push((requirement.node, requirement.key, text.to_string(), bytes));
                 computations.push(requirement);
             }
         }
@@ -185,6 +186,39 @@ impl NativeSoftwareSourceRecipe {
         )?;
         writeln!(out, "pub fn source_identity() -> c::PlotIdentity {{ c::PlotIdentity {{ source_document_id: {:?}.into(), checked_plot_id: {:?}.into(), expanded_plot_id: {:?}.into() }} }}", self.identity.source_document_id.as_str(), self.identity.checked_plot_id.as_str(), self.identity.expanded_plot_id.as_str())?;
         writeln!(out,"use conduit_environment_runtime::appliance::assigned::{{ResidentComputation, ResidentRoles, ResidentSoftwareOffer, ResidentSoftwareSpec, ResidentSourceIdentity}};")?;
+        // SAFETY: these private bytes are retained directly from the checked
+        // encoder in prepare; callers cannot substitute received image data.
+        let image = unsafe {
+            conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(
+                &self.planning_image,
+            )
+        }
+        .map_err(|_| fmt::Error)?;
+        for index in 0..image.gear_count() {
+            let gear = image.gear(index).map_err(|_| fmt::Error)?;
+            linked_text::write_gear(out, &format!("planning_gear_{index}"), &gear)?;
+            linked_text::write_configuration(
+                out,
+                &format!("planning_configuration_{index}"),
+                &gear,
+            )?;
+        }
+        writeln!(out, "pub fn decode_planning_gear(index: usize) -> Result<conduit_plot::CheckedGear, conduit_plot::flat_image::ImageRefusal> {{ match index {{")?;
+        for index in 0..image.gear_count() {
+            writeln!(out, "{index} => planning_gear_{index}(),")?;
+        }
+        writeln!(
+            out,
+            "_ => Err(conduit_plot::flat_image::ImageRefusal::Representation) }} }}"
+        )?;
+        writeln!(out, "pub fn decode_planning_configuration(index: usize) -> Result<conduit_plot::flat_image::indexed::IndexedGearConfiguration, conduit_plot::flat_image::ImageRefusal> {{ match index {{")?;
+        for index in 0..image.gear_count() {
+            writeln!(out, "{index} => planning_configuration_{index}(),")?;
+        }
+        writeln!(
+            out,
+            "_ => Err(conduit_plot::flat_image::ImageRefusal::Representation) }} }}"
+        )?;
         material::write_material(out, &self.computations, &self.texts, &self.offers)?;
         self.write_computation_records(out)?;
         writeln!(out,"pub fn spec() -> ResidentSoftwareSpec<'static> {{ ResidentSoftwareSpec {{ cadence:cadence(), source: ResidentSourceIdentity {{ expanded_plot_digest: {:?} }}, computations: c::AssignedComputationProfile {{ maximum_text_bytes: {}, maximum_total_text_bytes: {}, requirements: &COMPUTATIONS }},",self.source.expanded_plot_digest,self.largest,self.total)?;

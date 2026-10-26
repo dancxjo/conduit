@@ -101,7 +101,7 @@ impl PlannedUsbLine {
         }) {
             return Err(PlannedLineError::Endpoint);
         }
-        if connection.selected_line.as_ref() != Some(&basis.line) {
+        if connection.selected_line.as_deref() != Some(&basis.line) {
             return Err(PlannedLineError::SelectedLine);
         }
         let exact = SessionBinding::from_planned_connection(

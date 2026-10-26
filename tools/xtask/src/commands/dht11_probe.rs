@@ -87,6 +87,9 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
+    if arguments == ["native-memory-esp32"] {
+        return environment_esp32::build_memory_check(&root);
+    }
     if arguments == ["display-esp32"]
         || arguments == ["native-esp32"]
         || arguments == ["native-body-esp32"]

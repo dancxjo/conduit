@@ -121,7 +121,7 @@ pub fn portable_filter_definition(
         }],
         configuration: vec![KindConfigurationField {
             key: "program".into(),
-            default_value: ConfigurationValue::Text(encoded_program),
+            default_value: ConfigurationValue::Text(encoded_program.into()),
             rule: KindConfigurationRule::TextBytes {
                 maximum: (MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES * 2) as u32,
             },
@@ -175,7 +175,7 @@ fn expression_definition_from_encoding(
         }],
         configuration: vec![KindConfigurationField {
             key: "program".into(),
-            default_value: ConfigurationValue::Text(encoded_program),
+            default_value: ConfigurationValue::Text(encoded_program.into()),
             rule: KindConfigurationRule::TextBytes {
                 maximum: (MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES * 2) as u32,
             },

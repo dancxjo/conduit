@@ -32,6 +32,65 @@ impl DisplaySourceMaterial {
         }
     }
     pub(super) fn write_planning_rust(&self, out: &mut impl Write) -> fmt::Result {
+        // SAFETY: the private image is the exact checked Make output retained
+        // with this module; no received Source or claimed identity is accepted.
+        let image = unsafe {
+            conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(
+                &self.planning_image,
+            )
+        }
+        .map_err(|_| fmt::Error)?;
+        for index in 0..image.gear_count() {
+            writeln!(out, "#[cfg(feature = \"target-memory-check\")]")?;
+            crate::source_recipe::linked_text::write_gear(
+                out,
+                &format!("display_planning_gear_{index}"),
+                &image.gear(index).map_err(|_| fmt::Error)?,
+            )?;
+        }
+        writeln!(out, "#[cfg(feature = \"target-memory-check\")] pub fn decode_planning_gear(index:usize) -> Result<conduit_plot::CheckedGear, conduit_plot::flat_image::ImageRefusal> {{ match index {{")?;
+        for index in 0..image.gear_count() {
+            writeln!(out, "{index} => display_planning_gear_{index}(),")?;
+        }
+        writeln!(
+            out,
+            "_ => Err(conduit_plot::flat_image::ImageRefusal::Representation) }} }}"
+        )?;
+        for index in 0..image.gear_count() {
+            writeln!(out, "#[cfg(feature = \"target-memory-check\")]")?;
+            crate::source_recipe::linked_text::write_configuration(
+                out,
+                &format!("display_planning_configuration_{index}"),
+                &image.gear(index).map_err(|_| fmt::Error)?,
+            )?;
+        }
+        writeln!(out, "#[cfg(feature = \"target-memory-check\")] pub fn decode_planning_configuration(index:usize) -> Result<conduit_plot::flat_image::indexed::IndexedGearConfiguration, conduit_plot::flat_image::ImageRefusal> {{ match index {{")?;
+        for index in 0..image.gear_count() {
+            writeln!(out, "{index} => display_planning_configuration_{index}(),")?;
+        }
+        writeln!(
+            out,
+            "_ => Err(conduit_plot::flat_image::ImageRefusal::Representation) }} }}"
+        )?;
+        for (index, (_, _, wire)) in self.gears.iter().enumerate() {
+            let offer: c::CapabilityOffer = serde_json::from_slice(wire).map_err(|_| fmt::Error)?;
+            crate::source_recipe::linked_text::write_offer(
+                out,
+                &format!("display_offer_{index}"),
+                &offer,
+            )?;
+        }
+        writeln!(
+            out,
+            "pub fn decode_current_offer(bytes:&[u8]) -> Result<c::CapabilityOffer, ()> {{"
+        )?;
+        for (index, (_, _, wire)) in self.gears.iter().enumerate() {
+            writeln!(
+                out,
+                "if bytes == &{wire:?} {{ return display_offer_{index}(); }}"
+            )?;
+        }
+        writeln!(out, "Err(()) }}")?;
         writeln!(out,"#[cfg(feature = \"target-memory-check\")]\npub fn planning_source_image() -> &'static [u8] {{ &{:?} }}",self.planning_image)?;
         writeln!(out,"#[cfg(feature = \"target-memory-check\")]\npub fn planning_source_sha256() -> [u8;32] {{ {:?} }}",c::assigned_plan_payload_digest(&self.planning_image))?;
         writeln!(out,"#[cfg(feature = \"target-memory-check\")]\npub fn planning_boundary() -> Result<conduit_planner::indexed_source::IndexedAuthoringBoundary, ()> {{")?;

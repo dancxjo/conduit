@@ -232,7 +232,7 @@ fn catalogs(
         .unwrap();
     let sink_contract = KindConfigurationField {
         key: "value".into(),
-        default_value: ConfigurationValue::Text(String::new()),
+        default_value: ConfigurationValue::Text(String::new().into()),
         rule: KindConfigurationRule::TextBytes {
             maximum: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES * 2,
         },

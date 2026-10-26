@@ -11,6 +11,9 @@ pub(super) struct Args {
     /// Parent directory; each construction gets a distinct birth-Sign directory.
     #[arg(long, default_value = "target/environment-body")]
     output: PathBuf,
+    /// Retain a fresh construction birth Sign for a separately selected image profile.
+    #[arg(long)]
+    prepare_only: bool,
 }
 
 pub(super) fn run(args: Args, opts: &GlobalOpts) -> Result<(), Box<dyn Error>> {
@@ -35,6 +38,10 @@ pub(super) fn run(args: Args, opts: &GlobalOpts) -> Result<(), Box<dyn Error>> {
     // The scalar Sign and construction directory survive the initialized Host;
     // its offers are never forwarded as availability on the future MCU.
     drop(host);
+    if args.prepare_only {
+        println!("{}", birth.display());
+        return Ok(());
+    }
     let status = Command::new("cargo")
         .current_dir(&root)
         .args(["xtask", "prove", "environment", "native-body-esp32"])

@@ -160,6 +160,6 @@ impl DisplaySourceMaterial {
         }
         writeln!(out, "]; let gears=material.iter().map(|(bytes,key,text,offer)| {{ let mut gear: conduit_plot::CheckedGear=serde_json::from_slice(bytes).map_err(|_| SoftwareRefusal::Initialization)?; gear.configuration=alloc::vec![c::ConfigurationEntry {{ key:(*key).into(),value:c::ConfigurationValue::Text((*text).into()) }}]; Ok((gear,*text,*offer)) }});")?;
         writeln!(out, "// SAFETY: only independently checked, linked Make material supplies all four descriptions.")?;
-        writeln!(out, "unsafe {{ conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware::prepare_make(source,gears,host,boot) }} }}")
+        writeln!(out, "unsafe {{ conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware::prepare_linked_make(source,gears,host,boot,decode_current_offer) }} }}")
     }
 }

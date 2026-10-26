@@ -16,7 +16,7 @@ pub fn default_placements(
     image: &IndexedSourceImage<'_>,
     hosts: &[HostAdvertisement],
 ) -> Result<PlacementChoices, PlannerError> {
-    let metadata = image.metadata().map_err(|e| {
+    let metadata = image.planning_metadata().map_err(|e| {
         PlannerError::InvalidPlotIdentity(alloc::format!("indexed Source metadata: {e:?}"))
     })?;
     crate::functional_compatibility::default_planning_placements(
@@ -34,9 +34,10 @@ pub fn plan_with_connection_limits(
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
-    let metadata = image.metadata().map_err(|e| {
+    let mut metadata = image.planning_metadata().map_err(|e| {
         PlannerError::InvalidPlotIdentity(alloc::format!("indexed Source metadata: {e:?}"))
     })?;
+    let connections = metadata.take_connections();
     let identity = metadata.identity();
     let mut plan = crate::validated_planning::plan_input_with_connection_limits(
         PlanningInput {
@@ -46,7 +47,7 @@ pub fn plan_with_connection_limits(
             name: metadata.name(),
             completion: metadata.completion(),
             gears: PlanningGears::indexed(image),
-            connections: metadata.connections(),
+            connections: alloc::borrow::Cow::Owned(connections),
         },
         hosts,
         placements,
@@ -54,7 +55,9 @@ pub fn plan_with_connection_limits(
         options,
         connection_limits,
     )?;
-    crate::canonical::attach_source_spans(metadata.provenance(), &mut plan)?;
+    crate::canonical::attach_fragment_source_spans_by(&mut plan.fragments, |gear| {
+        metadata.source_span(gear)
+    })?;
     // The indexed Make format explicitly refuses activation, pool and Plot-Back
     // construction. It never omits those facts from an otherwise admitted image.
     Ok(
@@ -71,6 +74,7 @@ mod authoring;
 pub use authoring::IndexedAuthoringBoundary;
 mod compact;
 pub use compact::{
-    plan_compact_authoring_with_connection_limits, plan_compact_with_connection_limits,
-    CompactIndexedPlan,
+    plan_compact_authoring_consuming_with_connection_limits,
+    plan_compact_authoring_with_connection_limits, plan_compact_consuming_with_connection_limits,
+    plan_compact_with_connection_limits, CompactIndexedPlan,
 };

@@ -27,15 +27,19 @@ pub(crate) fn write_material(
         out,
         "];\npub fn computations() -> &'static [ResidentComputation<'static>] {{ &TEXTS }}"
     )?;
+    for (index, (_, json)) in offers.iter().enumerate() {
+        let offer = serde_json::from_slice(json).map_err(|_| fmt::Error)?;
+        super::linked_text::write_offer(out, &format!("decode_offer_{index}"), &offer)?;
+    }
     writeln!(
         out,
         "static OFFERS: [ResidentSoftwareOffer<'static>; {}] = [",
         offers.len()
     )?;
-    for (node, json) in offers {
+    for (index, (node, json)) in offers.iter().enumerate() {
         writeln!(
             out,
-            "unsafe {{ ResidentSoftwareOffer::from_make({node}, &{json:?}) }},"
+            "unsafe {{ ResidentSoftwareOffer::from_linked_make({node}, &{json:?}, decode_offer_{index}) }},"
         )?;
     }
     writeln!(

@@ -109,7 +109,38 @@ pub(crate) fn attach_fore(
     fragments: &mut [conduit_core::PlanFragment],
     boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
 ) -> Result<(), PlannerError> {
-    let mut ports = Vec::new();
+    let count = input_bindings.len() + output_bindings.len();
+    // Preserve all-or-nothing attachment while avoiding a second indexed port
+    // array for the common local fragment. Every port is checked by visit_fore.
+    if fragments.len() == 1 {
+        let mut ports = Vec::with_capacity(count);
+        visit_fore(
+            front,
+            input_bindings,
+            output_bindings,
+            fragments,
+            boundary_limits,
+            |index, port| {
+                debug_assert_eq!(index, 0);
+                ports.push(port);
+                Ok(())
+            },
+        )?;
+        if fragments[0].fore_ports.is_empty() {
+            fragments[0].fore_ports = ports;
+        } else {
+            fragments[0].fore_ports.extend(ports);
+        }
+        fragments[0].fore_ports.sort_by(|left, right| {
+            (left.direction as u8, &left.front_port_id, left.track).cmp(&(
+                right.direction as u8,
+                &right.front_port_id,
+                right.track,
+            ))
+        });
+        return Ok(());
+    }
+    let mut ports = Vec::with_capacity(count);
     visit_fore(
         front,
         input_bindings,

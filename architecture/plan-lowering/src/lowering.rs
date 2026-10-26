@@ -1231,7 +1231,7 @@ fn lower_verified_fragment_for_profile(
             temporal: planned.temporal,
             item_capacity: planned.item_capacity,
             byte_capacity: planned.byte_capacity,
-            selected_line: planned.selected_line.clone(),
+            selected_line: planned.selected_line.as_deref().cloned(),
         });
     }
 

@@ -2,7 +2,7 @@
 use super::*;
 use alloc::collections::BTreeMap;
 #[inline(never)]
-pub(super) fn mark(phase: &str, item: usize) {
+pub(crate) fn mark(phase: &str, item: usize) {
     let root = esp_alloc::HEAP.stats();
     let sdk = crate::sdk_memory::stats();
     let bank_free = core::array::from_fn::<_, 3, _>(|i| {
@@ -26,9 +26,12 @@ impl NativeRoot {
         {
             let software = self.software.as_ref().ok_or("software-owner")?;
             let offers = crate::native_software::offers(software).map_err(|_| "software-offers")?;
-            for (index, bytes) in offers.iter().enumerate() {
+            host.capabilities.reserve_exact(offers.iter().len());
+            for index in 0..offers.iter().len() {
                 mark("before-software-offer", index);
-                let offer = serde_json::from_slice(bytes).map_err(|_| "software-offer-codec")?;
+                let offer = offers
+                    .decode_at(index)
+                    .map_err(|_| "software-offer-codec")?;
                 host.capabilities.push(offer);
                 mark("after-software-offer", index);
             }
@@ -50,7 +53,7 @@ impl NativeRoot {
         )
         .map_err(|_| "selection")?;
         mark("after-indexed-selection", choices.by_gear.len());
-        let metadata = image.metadata().map_err(|_| "source-metadata")?;
+        let metadata = image.planning_metadata().map_err(|_| "source-metadata")?;
         let mut queues = BTreeMap::new();
         for cord in metadata.connections() {
             let mut capacity = 1024;
@@ -78,20 +81,25 @@ impl NativeRoot {
                     .ok_or("offer")?;
                 capacity = capacity.min(offer.limits.max_queue_bytes);
             }
-            queues.insert(
-                (
-                    cord.source_gear_id.clone(),
-                    cord.source_port_id.clone(),
-                    cord.sink_gear_id.clone(),
-                    cord.sink_port_id.clone(),
-                ),
-                conduit_planner::ConnectionQueueLimits {
-                    item_capacity: 1,
-                    byte_capacity: capacity,
-                },
-            );
+            // Omitted entries use the exact same one-item/1024-byte defaults.
+            // Keep only real overrides, rather than clone every Cord identity.
+            if capacity != 1024 {
+                queues.insert(
+                    (
+                        cord.source_gear_id.clone(),
+                        cord.source_port_id.clone(),
+                        cord.sink_gear_id.clone(),
+                        cord.sink_port_id.clone(),
+                    ),
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: capacity,
+                    },
+                );
+            }
         }
         drop(metadata);
+        mark("connection-budget-overrides", queues.len());
         let grants = [
             self.issuer
                 .grant_pulse(self.pulse.as_ref().ok_or("pulse")?.native_identity())
@@ -102,35 +110,35 @@ impl NativeRoot {
         ];
         let empty = BTreeMap::new();
         let lines = BTreeMap::new();
+        let offer_generation = host.offer_generation;
         mark("before-compact-planning", 0);
-        let compact = conduit_planner::indexed_source::plan_compact_with_connection_limits(
-            &image,
-            core::slice::from_ref(&host),
-            &choices,
-            &["conduit.base/local@1".into()],
-            conduit_planner::PlanningOptions {
-                connection_bases: &empty,
-                line_candidates: &lines,
-                connection_item_capacity: 1,
-                connection_byte_capacity: 1024,
-                authority_grants: &grants,
-                protected_resource_grants: &[],
-                line_offers: &[],
-            },
-            &queues,
-        )
-        .map_err(|_| "planning")?;
+        let compact =
+            conduit_planner::indexed_source::plan_compact_consuming_with_connection_limits(
+                &image,
+                alloc::vec![host],
+                &choices,
+                &["conduit.base/local@1".into()],
+                conduit_planner::PlanningOptions {
+                    connection_bases: &empty,
+                    line_candidates: &lines,
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: 1024,
+                    authority_grants: &grants,
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+                &queues,
+            )
+            .map_err(|_| "planning")?;
         mark("compact-plan-live", compact.fragment_count());
+        // Ordinary admission and fingerprinting own all selected metadata.
+        // Their input ledgers are not needed by the final opaque verification.
+        drop((choices, queues, grants, empty, lines));
+        mark("planning-scratch-retired", 0);
         let plan = compact
             .into_verified_metadata()
             .map_err(|_| "verification")?;
         mark("verified-plan-live", plan.fragment_count());
-        // Opaque verification owns the selected metadata now. Retire Source
-        // selection descriptions before the installed Body clones its finite
-        // biography/proposal state; those descriptions are not execution state.
-        let offer_generation = host.offer_generation;
-        drop((host, choices, queues, grants, empty, lines));
-        mark("planning-scratch-retired", 0);
         let metadata = plan.preparation_metadata();
         let plot = conduit_body::ResidentPlot::new(
             metadata.source_document_id.clone(),

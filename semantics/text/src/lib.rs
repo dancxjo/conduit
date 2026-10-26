@@ -150,7 +150,7 @@ pub fn text_literal_semantics() -> TextKindContract {
         outputs: vec![text_port(PortDirection::Output)],
         configuration: vec![TextConfigurationField {
             key: "value",
-            default_value: ConfigurationValue::Text(String::new()),
+            default_value: ConfigurationValue::Text(String::new().into()),
             maximum_text_bytes: MAX_TEXT_BYTES,
         }],
         limits: text_limits(),
@@ -184,7 +184,7 @@ pub fn text_join_semantics() -> TextKindContract {
         outputs: vec![text_port(PortDirection::Output)],
         configuration: vec![TextConfigurationField {
             key: "prefix",
-            default_value: ConfigurationValue::Text(String::new()),
+            default_value: ConfigurationValue::Text(String::new().into()),
             maximum_text_bytes: MAX_TEXT_BYTES,
         }],
         limits: text_limits(),

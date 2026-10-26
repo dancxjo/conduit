@@ -242,20 +242,28 @@ pub(crate) fn attach_fragment_source_spans(
     provenance: &[conduit_plot::ExpandedGearProvenance],
     fragments: &mut [conduit_core::PlanFragment],
 ) -> Result<(), PlannerError> {
+    attach_fragment_source_spans_by(fragments, |gear| {
+        provenance
+            .iter()
+            .find(|entry| entry.gear_id == gear)
+            .map(|entry| entry.source_span)
+    })
+}
+
+pub(crate) fn attach_fragment_source_spans_by(
+    fragments: &mut [conduit_core::PlanFragment],
+    source_span: impl Fn(&str) -> Option<conduit_plot::Span>,
+) -> Result<(), PlannerError> {
     for placement in fragments
         .iter_mut()
         .flat_map(|fragment| &mut fragment.placements)
     {
-        let provenance = provenance
-            .iter()
-            .find(|entry| entry.gear_id == placement.gear_id.as_str())
-            .ok_or_else(|| {
-                PlannerError::InvalidPlotIdentity(format!(
-                    "expanded Gear '{}' has no exact source provenance",
-                    placement.gear_id.as_str()
-                ))
-            })?;
-        let span = provenance.source_span;
+        let span = source_span(placement.gear_id.as_str()).ok_or_else(|| {
+            PlannerError::InvalidPlotIdentity(format!(
+                "expanded Gear '{}' has no exact source provenance",
+                placement.gear_id.as_str()
+            ))
+        })?;
         let span = conduit_core::SourceSpan {
             start: span.start.try_into().map_err(|_| {
                 PlannerError::InvalidPlotIdentity("source span start exceeds u64".into())

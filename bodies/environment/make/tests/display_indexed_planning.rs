@@ -144,6 +144,18 @@ fn indexed_display_preserves_the_rich_plan_and_external_fore_refusals() {
             &queues,
             &boundary_limits,
         );
+        let consuming = indexed::plan_compact_authoring_consuming_with_connection_limits(
+            &image,
+            &boundary,
+            vec![host.clone()],
+            &placements,
+            &bases,
+            options(),
+            &queues,
+            &boundary_limits,
+        )
+        .and_then(|plan| plan.materialize());
+        assert_eq!(consuming, rich, "consuming boundary scenario {change}");
         match (rich, compact) {
             (Ok(rich), Ok(compact)) => {
                 assert_eq!(change, 0);

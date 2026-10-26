@@ -197,7 +197,7 @@ fn external_websocket_listener_contract() -> Kind {
 fn free_configuration(key: &str) -> KindConfigurationField {
     KindConfigurationField {
         key: key.into(),
-        default_value: ConfigurationValue::Text(alloc::string::String::new()),
+        default_value: ConfigurationValue::Text(alloc::string::String::new().into()),
         rule: KindConfigurationRule::Any,
     }
 }

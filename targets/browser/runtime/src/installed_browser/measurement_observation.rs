@@ -80,7 +80,7 @@ fn configuration(placement: &PlannedGear) -> Result<TemporalInstant, String> {
     let instant = TemporalInstant {
         ticks: 1,
         scale: TemporalScale::Milliseconds,
-        clock_basis,
+        clock_basis: clock_basis.to_string(),
         resolution_ticks: 1,
         uncertainty_ticks: 0,
     };

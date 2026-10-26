@@ -63,11 +63,7 @@ impl<'a> PlanningGears<'a> {
         let _ = gear;
         #[cfg(feature = "indexed-source")]
         if let Self::Indexed { connections, .. } = self {
-            connections.push(ConnectionFacts {
-                gear_id: gear.gear_id.clone(),
-                front: gear.checked_front(),
-                resource_ports: gear.resource_ports.clone(),
-            });
+            connections.push(ConnectionFacts::from_checked(gear));
         }
     }
     pub fn connection_gear(&self, id: &GearId) -> Option<ConnectionGear<'_>> {

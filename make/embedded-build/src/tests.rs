@@ -83,7 +83,7 @@ fn current_fragment_generation_rejects_a_reviewed_bound_overflow() {
 fn hosted_text_configuration_is_not_promoted_to_embedded_execution() {
     let mut fragment = sealed_current_fragment();
     fragment.placements[0].configuration[0].value =
-        ConfigurationValue::Text("hosted only".to_owned());
+        ConfigurationValue::Text("hosted only".to_owned().into());
     let identity = PlotIdentity {
         source_document_id: fragment.source_document_id.clone(),
         checked_plot_id: fragment.checked_plot_id.clone(),
@@ -473,7 +473,7 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
             security: LineSecurity::PhysicalPossession,
         },
     };
-    pico_fragment.connections[0].selected_line = Some(admitted.clone());
+    pico_fragment.connections[0].selected_line = Some(Box::new(admitted.clone()));
     pico_fragment.connections[0].admitted_lines = vec![admitted.clone()];
 
     let sink = PlacementId::from("sink");
@@ -501,7 +501,7 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     std_fragment
         .placements
         .retain(|p| p.placement_id.as_str() == "source");
-    std_fragment.connections[0].selected_line = Some(admitted.clone());
+    std_fragment.connections[0].selected_line = Some(Box::new(admitted.clone()));
     std_fragment.connections[0].admitted_lines = vec![admitted];
     std_fragment.startup_dependencies.clear();
     std_fragment.startup_order = vec![PlacementId::from("source")];

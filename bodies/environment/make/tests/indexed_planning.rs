@@ -121,6 +121,18 @@ fn indexed_appliance_preserves_the_complete_plan_and_refusals_without_loading_th
             )
         });
         assert_eq!(indexed, borrowed, "scenario {scenario}");
+        let consuming =
+            conduit_planner::indexed_source::plan_compact_consuming_with_connection_limits(
+                &image,
+                vec![host.clone()],
+                &placements,
+                &bases,
+                options,
+                &connections,
+            )
+            .and_then(|plan| plan.materialize());
+        assert_eq!(consuming, borrowed, "consuming scenario {scenario}");
+
         let (compact, compact_memory) = allocation_probe::observe(|| {
             conduit_planner::indexed_source::plan_compact_with_connection_limits(
                 &image,
@@ -199,7 +211,10 @@ fn indexed_appliance_preserves_the_complete_plan_and_refusals_without_loading_th
                     "{compact_memory:?}"
                 );
                 assert!(
-                    compact_memory.peak_bytes < indexed_memory.peak_bytes,
+                    // Compact preparation retires configuration. The rich path
+                    // now also reuses its Cord array, so its transient peak can
+                    // be lower than compact's one-Gear JSON reconstruction.
+                    compact_memory.retained_bytes() < indexed_memory.retained_bytes(),
                     "compact={compact_memory:?} indexed={indexed_memory:?}"
                 );
                 eprintln!(

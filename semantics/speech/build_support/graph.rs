@@ -129,7 +129,7 @@ pub fn function(
             types,
             programs.len() > 1,
         )?);
-        recorded.push((member, encoded_programs[index].clone()));
+        recorded.push((member, encoded_programs[index].to_string()));
     }
     let mut available = vec![false; programs.len()];
     let mut graph = Vec::new();
@@ -158,7 +158,7 @@ pub fn function(
             } else {
                 ordinals[input]
             },
-            encoded_programs[index].clone(),
+            encoded_programs[index].to_string(),
         ));
         available[index] = true;
     }

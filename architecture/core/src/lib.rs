@@ -3,6 +3,7 @@
 extern crate alloc;
 mod canonical_bytes;
 
+use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -17,6 +18,8 @@ mod capability_offer;
 mod characteristic;
 pub mod claims;
 mod completion;
+mod configuration_text;
+pub use configuration_text::ConfigurationText;
 mod configuration;
 mod consequential_effect;
 mod control_loop;
@@ -665,9 +668,11 @@ pub struct PlannedConnection {
     pub sink_port_id: PortId,
     pub value_kind: KindId,
     /// Resource authority contract and exact admitted source binding. The
-    /// opaque bearer remains local to the issuing capability table.
+    /// opaque bearer remains local to the issuing capability table. Boxed so
+    /// ordinary value Cords do not reserve the complete resource record.
+    /// Serde preserves the original optional-record wire.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resource: Option<PlannedResourceConnection>,
+    pub resource: Option<Box<PlannedResourceConnection>>,
     /// Exact typed semantic abnormal truth promised by the source Fore port.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub abnormal_kind: Option<KindId>,
@@ -678,9 +683,10 @@ pub struct PlannedConnection {
     pub temporal: PortTemporal,
     #[serde(default)]
     pub pressure_policy: DeliveryPressurePolicy,
-    /// Initially selected exact Line. Local Cords have no Line.
+    /// Initially selected exact Line. Local Cords have no Line; boxing avoids
+    /// reserving a remote binding in each local Cord without changing its wire.
     #[serde(default)]
-    pub selected_line: Option<AdmittedLine>,
+    pub selected_line: Option<Box<AdmittedLine>>,
     /// Exact ordered permissible Lines. Runtime may select only from this
     /// immutable set; availability remains outside the plan as Signs.
     #[serde(default)]
@@ -724,7 +730,7 @@ pub struct PlannedForePort {
     /// Exact external Line selected for this Fore, if it crosses a Host.
     /// Availability remains a current Sign and must be checked at use.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selected_line: Option<AdmittedLine>,
+    pub selected_line: Option<Box<AdmittedLine>>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

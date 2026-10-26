@@ -18,7 +18,7 @@ mod local_display_plan;
 mod mask;
 #[cfg(feature = "target-memory-check")]
 #[path = "native_memory_check.rs"]
-mod memory_check;
+pub(crate) mod memory_check;
 #[path = "native_offer.rs"]
 mod offers;
 #[path = "native_setup.rs"]

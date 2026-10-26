@@ -88,7 +88,7 @@ impl RemoteOwnerMaskRouteSeal {
                     && fore.direction == direction
                     && fore.track == conduit_core::ConnectionTrack::Payload
             });
-            matches!(matching.next(), Some(fore) if fore.selected_line.as_ref() == Some(line))
+            matches!(matching.next(), Some(fore) if fore.selected_line.as_deref() == Some(line))
                 && matching.next().is_none()
         };
         if !exact(

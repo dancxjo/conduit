@@ -161,7 +161,7 @@ fn install_fixture(
         offer,
         &entry.key,
         match &entry.value {
-            conduit_core::ConfigurationValue::Text(value) => value.clone(),
+            conduit_core::ConfigurationValue::Text(value) => value.to_string(),
             _ => unreachable!(),
         },
         (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
@@ -212,7 +212,7 @@ fn install_raw_fixture(
         offer,
         &entry.key,
         match &entry.value {
-            conduit_core::ConfigurationValue::Text(value) => value.clone(),
+            conduit_core::ConfigurationValue::Text(value) => value.to_string(),
             _ => unreachable!(),
         },
         512,

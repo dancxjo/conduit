@@ -72,11 +72,11 @@ mod evidence_task;
 #[path = "native_display_fit.rs"]
 pub(crate) mod fit;
 #[cfg(feature = "target-memory-check")]
-#[path = "native_display_source.rs"]
-mod source;
-#[cfg(feature = "target-memory-check")]
 #[path = "native_local_display_kernel.rs"]
 mod local_kernel;
+#[cfg(feature = "target-memory-check")]
+#[path = "native_display_source.rs"]
+mod source;
 #[cfg(feature = "target-memory-check")]
 pub(crate) use source::{planning_boundary, planning_source};
 pub struct NativeDisplay {

@@ -816,3 +816,48 @@ sampler/acknowledged output image remains live and unchanged. Next work is Root
 installation and owner protocol/Body admission, staging complete Plan context
 before sampler/kernel allocations, then one ordinary Mask sample on real pins
 and combined target memory/lifecycle evidence. The timed FaceFore fence remains.
+
+
+## Fresh linked Body and startup metadata, 2026-10-26
+
+The user authorized a fresh Body and full reflash. The original 4 MiB flash and
+prior host state were saved privately before erasure. The fresh linked Body is
+`ae4e6e4b8807832bdd5f9f412836565e567d505036cc92c8bb57bddaf74948b5`.
+Repeated diagnostic boots retain this Body identity and observe new Boots; this
+is linked-image identity evidence, not durable membership/history recovery.
+
+Make now emits complete Gear/offer decoders that retain immutable program text
+in flash. `ConfigurationText` preserves historical JSON/postcard and canonical
+fingerprints while allowing trusted linked static text. Current software offers
+still require initialized retained owners. Original complete image/offer wires
+and independent Source digest checks remain; no received descriptor grants
+readiness. Indexed planning projects Source provenance, retires consumed offer
+metadata after its final selected use, moves single-host connection/placement
+storage, and retains only populated optional state. Complete contracts, authority
+checks and queue limits remain. Optional resource/remote-Line records are boxed
+so ordinary local Cords do not reserve absent payloads; their wire is unchanged.
+
+Physical diagnostic `fore-storage` links an application of 2,530,800 bytes in the
+unchanged 2,621,440-byte partition, with Root 118,768 bytes, SDK 73,728 bytes and
+the existing 36 KiB minimum CPU-stack guard. Its retained verified sampler Plan
+uses 98,264 Root bytes, down from 105,032 before boxing optional records. Display
+selection and ordinary planning now reach final fingerprinting; the diagnostic
+then exhausts a fragmented heap decoding an entire Gear for configuration alone
+(576-byte allocation; 3,452 total free bytes at the panic observation).
+
+The next change projects only the exact Gear identity/configuration for that
+pass and emits its static-text decoder from the same checked Make. It remains
+under target and generated-material verification. These diagnostic images never
+Step either kernel, transfer native possession, start a Body Play, or emit sensor
+readings/display packets. Autonomous timed Mask delivery, reconnect/history,
+AP-to-station recovery and browser/Pi joining remain delivery work.
+
+The configuration-only target reflash (`configuration-projection`, application
+2,537,760 bytes) passes both complete Plan verifications together: 110,704 Root
+bytes used, 8,064 free, 117,252 peak. Its next failure is a Body Wake clone during
+verified proposal (64-byte allocation; 2,844 total free bytes at panic). Generated
+sampler/display configuration projections equal their full Gear records, and the
+focused indexed/display/local-kernel/material tests pass. The full host workspace
+all-targets check passes. Strict full Body-image proof is being rerun after a
+function-pointer type alias fixed its final runtime Clippy type-complexity error.
+This remains preparation-only evidence; neither kernel has started.

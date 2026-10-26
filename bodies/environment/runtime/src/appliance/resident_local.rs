@@ -202,13 +202,11 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
             // Configuration/provenance is checked above. Retire its decoded
             // Source gear before decoding the independently retained offer.
             drop(source);
-            let bytes = offers
+            let descriptor = offers
                 .iter()
                 .find(|o| usize::from(o.node) == node)
-                .ok_or(E::Configuration)?
-                .json;
-            let offer: c::CapabilityOffer =
-                serde_json::from_slice(bytes).map_err(|_| E::Configuration)?;
+                .ok_or(E::Configuration)?;
+            let offer = descriptor.decode()?;
             if gear.limits != offer.limits
                 || gear.kind_id != offer.kind_id
                 || gear.kind_contract_revision != offer.kind_contract_revision

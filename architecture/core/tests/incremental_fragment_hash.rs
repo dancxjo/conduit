@@ -70,7 +70,7 @@ fn placement(prototype: &PlannedGear, index: usize) -> PlannedGear {
     gear.gear_id = format!("gear/{index:03}").into();
     gear.configuration = vec![ConfigurationEntry {
         key: "program".into(),
-        value: ConfigurationValue::Text(format!("{index:03}\0{}", "é".repeat(4096))),
+        value: ConfigurationValue::Text(format!("{index:03}\0{}", "é".repeat(4096)).into()),
     }];
     gear
 }

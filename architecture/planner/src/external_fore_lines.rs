@@ -117,7 +117,7 @@ pub fn bind_external_fore_lines(
                 choice.line_id.as_str()
             )));
         }
-        fore.selected_line = Some(offer.admitted_line());
+        fore.selected_line = Some(alloc::boxed::Box::new(offer.admitted_line()));
     }
     if choices.is_empty() {
         return Ok(selected);

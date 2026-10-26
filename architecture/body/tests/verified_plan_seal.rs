@@ -11,7 +11,7 @@ fn core(label: &str) -> Plan {
     fragment.expanded_plot_id = format!("expanded/{label}").into();
     fragment.placements[0].configuration = vec![ConfigurationEntry {
         key: "program".into(),
-        value: ConfigurationValue::Text("é\0immutable".repeat(64)),
+        value: ConfigurationValue::Text("é\0immutable".repeat(64).into()),
     }];
     fixture::seal(fragment)
 }

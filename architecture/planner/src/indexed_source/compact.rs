@@ -140,7 +140,29 @@ pub fn plan_compact_with_connection_limits<'a>(
 ) -> Result<CompactIndexedPlan<'a>, PlannerError> {
     plan_compact_inputs(
         image,
-        hosts,
+        crate::validated_planning::PlanningHosts::Borrowed(hosts),
+        placements,
+        bases,
+        options,
+        connection_limits,
+        None,
+    )
+}
+/// Consume ephemeral current advertisements, transferring selected descriptions
+/// after ordinary admission instead of retaining a duplicate catalogue. Actual
+/// provider/software owners remain with the caller; descriptions grant no effects.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_compact_consuming_with_connection_limits<'a>(
+    image: &'a IndexedSourceImage<'a>,
+    hosts: Vec<HostAdvertisement>,
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+) -> Result<CompactIndexedPlan<'a>, PlannerError> {
+    plan_compact_inputs(
+        image,
+        crate::validated_planning::PlanningHosts::Owned(hosts),
         placements,
         bases,
         options,
@@ -163,7 +185,29 @@ pub fn plan_compact_authoring_with_connection_limits<'a>(
 ) -> Result<CompactIndexedPlan<'a>, PlannerError> {
     plan_compact_inputs(
         image,
-        hosts,
+        crate::validated_planning::PlanningHosts::Borrowed(hosts),
+        placements,
+        bases,
+        options,
+        connection_limits,
+        Some((boundary, boundary_limits)),
+    )
+}
+/// Consume current advertisements while preserving the same checked external Fore.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_compact_authoring_consuming_with_connection_limits<'a>(
+    image: &'a IndexedSourceImage<'a>,
+    boundary: &super::IndexedAuthoringBoundary,
+    hosts: Vec<HostAdvertisement>,
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+    boundary_limits: &BTreeMap<crate::ForeBoundaryKey, ConnectionQueueLimits>,
+) -> Result<CompactIndexedPlan<'a>, PlannerError> {
+    plan_compact_inputs(
+        image,
+        crate::validated_planning::PlanningHosts::Owned(hosts),
         placements,
         bases,
         options,
@@ -174,7 +218,7 @@ pub fn plan_compact_authoring_with_connection_limits<'a>(
 #[allow(clippy::too_many_arguments)]
 fn plan_compact_inputs<'a>(
     image: &'a IndexedSourceImage<'a>,
-    hosts: &[HostAdvertisement],
+    hosts: crate::validated_planning::PlanningHosts<'_>,
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
@@ -184,13 +228,14 @@ fn plan_compact_inputs<'a>(
         &BTreeMap<crate::ForeBoundaryKey, ConnectionQueueLimits>,
     )>,
 ) -> Result<CompactIndexedPlan<'a>, PlannerError> {
-    let metadata = image.metadata().map_err(|e| {
+    let mut metadata = image.planning_metadata().map_err(|e| {
         PlannerError::InvalidPlotIdentity(alloc::format!("indexed Source metadata: {e:?}"))
     })?;
+    let connections = metadata.take_connections();
     let identity = metadata.identity();
     let completion = crate::plan_completion_policy(metadata.completion());
     let mut retention = ConfigurationRetention::new(true);
-    let mut fragments = crate::validated_planning::plan_fragments_with_connection_limits(
+    let mut fragments = crate::validated_planning::plan_fragments_with_host_inputs(
         PlanningInput {
             source_document_id: &identity.source_document_id,
             checked_plot_id: &identity.checked_plot_id,
@@ -198,7 +243,7 @@ fn plan_compact_inputs<'a>(
             name: metadata.name(),
             completion: metadata.completion(),
             gears: PlanningGears::indexed(image),
-            connections: metadata.connections(),
+            connections: alloc::borrow::Cow::Owned(connections),
         },
         hosts,
         placements,
@@ -207,12 +252,15 @@ fn plan_compact_inputs<'a>(
         connection_limits,
         &mut retention,
     )?;
-    crate::canonical::attach_fragment_source_spans(metadata.provenance(), &mut fragments)?;
+    crate::canonical::attach_fragment_source_spans_by(&mut fragments, |gear| {
+        metadata.source_span(gear)
+    })?;
+    // Source spans are now owned by the fragments. Retire decoded provenance
+    // before attaching Fore or performing the final canonical encoding pass.
+    drop(metadata);
     if let Some((boundary, limits)) = boundary {
         boundary.attach(&identity, &mut fragments, limits)?;
     }
-    // Retire decoded metadata before the final one-Gear canonical encoding pass.
-    drop(metadata);
     let mut compact = CompactIndexedPlan {
         image,
         identity,
@@ -251,7 +299,7 @@ fn source_configuration(
     let index = indices.get(&gear.placement_id).ok_or_else(|| {
         PlannerError::InvalidPlotIdentity("compact placement has no Source index".into())
     })?;
-    let source = image.gear(*index).map_err(|e| {
+    let source = image.gear_configuration(*index).map_err(|e| {
         PlannerError::InvalidPlotIdentity(alloc::format!("indexed configuration: {e:?}"))
     })?;
     if source.gear_id != gear.gear_id {

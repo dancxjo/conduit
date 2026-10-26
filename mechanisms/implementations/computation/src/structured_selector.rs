@@ -53,7 +53,8 @@ pub fn structured_selector_contract(selector: &StructuredSelector, temporal: Por
             default_value: ConfigurationValue::Text(
                 selector
                     .canonical_hex()
-                    .expect("checked selector has finite canonical configuration"),
+                    .expect("checked selector has finite canonical configuration")
+                    .into(),
             ),
             rule: KindConfigurationRule::TextBytes {
                 maximum: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,

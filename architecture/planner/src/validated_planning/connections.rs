@@ -3,12 +3,12 @@ use super::*;
 
 pub(super) fn plan(
     plot: &PlanningInput<'_>,
-    hosts: &[HostAdvertisement],
     planned_gears: &[PlannedGear],
     placement_lookup: &BTreeMap<GearId, PlacementId>,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+    storage: Option<Vec<PlannedConnection>>,
 ) -> Result<Vec<PlannedConnection>, PlannerError> {
     let line_policy = contract::LineMechanismPolicy::new(bases);
     let PlanningOptions {
@@ -20,8 +20,9 @@ pub(super) fn plan(
         ..
     } = options;
     let quantity_contracts = quantity_wire::contracts(planned_gears)?;
-    let mut planned_connections = Vec::<PlannedConnection>::new();
-    for connection in plot.connections {
+    let mut planned_connections =
+        storage.unwrap_or_else(|| Vec::with_capacity(plot.connections.len()));
+    for connection in plot.connections.iter() {
         quantity_wire::validate_connection(connection, &quantity_contracts)?;
         let limits = connection_limits
             .get(&connection_endpoints(connection))
@@ -88,11 +89,8 @@ pub(super) fn plan(
             connection_item_capacity: limits.item_capacity,
             connection_byte_capacity: limits.byte_capacity,
         })?;
-        let source_capability =
-            find_capability(hosts, &source_plan.host_id, &source_plan.capability_id)?;
-        let sink_capability = find_capability(hosts, &sink_plan.host_id, &sink_plan.capability_id)?;
-        if limits.item_capacity > source_capability.limits.max_queue_items
-            || limits.item_capacity > sink_capability.limits.max_queue_items
+        if limits.item_capacity > source_plan.limits.max_queue_items
+            || limits.item_capacity > sink_plan.limits.max_queue_items
         {
             return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
                 "connection from '{}' to '{}' requires item capacity {}",
@@ -101,8 +99,8 @@ pub(super) fn plan(
                 limits.item_capacity
             )));
         }
-        if limits.byte_capacity > source_capability.limits.max_queue_bytes
-            || limits.byte_capacity > sink_capability.limits.max_queue_bytes
+        if limits.byte_capacity > source_plan.limits.max_queue_bytes
+            || limits.byte_capacity > sink_plan.limits.max_queue_bytes
         {
             return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
                 "connection from '{}' to '{}' requires byte capacity {}",
@@ -128,8 +126,8 @@ pub(super) fn plan(
             sink_placement_id: sink_plan.placement_id.clone(),
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
-            resource,
-            abnormal_kind: source_capability
+            resource: resource.map(alloc::boxed::Box::new),
+            abnormal_kind: source_plan
                 .outputs
                 .iter()
                 .find(|port| port.port_id == connection.source_port_id)
@@ -141,7 +139,7 @@ pub(super) fn plan(
             } else {
                 DeliveryPressurePolicy::PreserveOrder
             },
-            selected_line,
+            selected_line: selected_line.map(alloc::boxed::Box::new),
             admitted_lines,
             item_capacity: limits.item_capacity,
             byte_capacity: limits.byte_capacity,

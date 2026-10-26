@@ -11,6 +11,9 @@ use std::{
 pub(super) fn build(root: &Path, native: bool, body: bool) -> Result<(), Box<dyn Error>> {
     build_with_owner(root, native, body, None, None)
 }
+pub(super) fn build_memory_check(root: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, true, None, Some("target-memory-check"))
+}
 pub(super) fn build_member(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
     build_with_owner(root, true, false, Some(key), None)
 }

@@ -1,27 +1,15 @@
 //! Guaranteed minimum value storage, distinct from permitted maximum size.
 use crate::planning_input::ConnectionGear;
 use crate::PlannerError;
-use conduit_core::{CheckedFront, ConnectionTrack, FrontValueLocation, ValueConstraint};
+#[cfg(test)]
+use conduit_core::CheckedFront;
+use conduit_core::{ConnectionTrack, FrontValueLocation};
 use conduit_plot::CheckedConnection;
 
-fn minimum_at(front: &CheckedFront, location: FrontValueLocation) -> u32 {
-    front
-        .value_contracts()
-        .iter()
-        .filter(|bound| bound.location == location)
-        .flat_map(|bound| &bound.contract.constraints)
-        .filter_map(|constraint| match constraint {
-            ValueConstraint::ByteLength { minimum, .. } => Some(*minimum),
-            _ => None,
-        })
-        .max()
-        .unwrap_or_default()
-}
-
-fn required_minimum(
-    source: &CheckedFront,
+fn required_minimum_by(
+    source: impl Fn(FrontValueLocation) -> u32,
     source_port: &conduit_core::PortId,
-    sink: &CheckedFront,
+    sink: impl Fn(FrontValueLocation) -> u32,
     sink_port: &conduit_core::PortId,
     track: ConnectionTrack,
 ) -> u32 {
@@ -32,10 +20,23 @@ fn required_minimum(
         }
         ConnectionTrack::NormalClose | ConnectionTrack::Quiescence => return 0,
     };
-    minimum_at(source, source_location).max(minimum_at(
-        sink,
-        FrontValueLocation::Input(sink_port.clone()),
-    ))
+    source(source_location).max(sink(FrontValueLocation::Input(sink_port.clone())))
+}
+#[cfg(test)]
+fn required_minimum(
+    source: &CheckedFront,
+    source_port: &conduit_core::PortId,
+    sink: &CheckedFront,
+    sink_port: &conduit_core::PortId,
+    track: ConnectionTrack,
+) -> u32 {
+    required_minimum_by(
+        |at| crate::planning_input::minimum_value_bytes(source.value_contracts(), &at),
+        source_port,
+        |at| crate::planning_input::minimum_value_bytes(sink.value_contracts(), &at),
+        sink_port,
+        track,
+    )
 }
 
 pub(crate) fn validate_capacity(
@@ -44,10 +45,10 @@ pub(crate) fn validate_capacity(
     sink: &ConnectionGear<'_>,
     byte_capacity: u32,
 ) -> Result<(), PlannerError> {
-    let required = required_minimum(
-        &source.front(),
+    let required = required_minimum_by(
+        |at| source.minimum_at(&at),
         &connection.source_port_id,
-        &sink.front(),
+        |at| sink.minimum_at(&at),
         &connection.sink_port_id,
         connection.track,
     );
@@ -65,7 +66,9 @@ pub(crate) fn validate_capacity(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{kind_id, port_id, CheckedValueContract, FrontValueContract};
+    use conduit_core::{
+        kind_id, port_id, CheckedValueContract, FrontValueContract, ValueConstraint,
+    };
 
     fn contract(
         location: FrontValueLocation,

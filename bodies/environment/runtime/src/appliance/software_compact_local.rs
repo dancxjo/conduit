@@ -64,7 +64,7 @@ impl CompactOutputSoftware<'_> {
         // Bind the selected routing to the checked Source rather than trusting
         // a caller's claimed Source ID on a different, self-consistent Plan.
         {
-            let source = image.metadata().map_err(|_| E::Source)?;
+            let source = image.planning_metadata().map_err(|_| E::Source)?;
             if selected.connections.len() != source.connections().len() {
                 return Err(E::Selection);
             }
@@ -146,8 +146,7 @@ impl CompactOutputSoftware<'_> {
             }
             // Do not keep a decoded Source gear and advertised schema together.
             drop(source);
-            let offer: c::CapabilityOffer =
-                serde_json::from_slice(op.offer).map_err(|_| E::Selection)?;
+            let offer = self.decode_offer(op.offer)?;
             if gear.limits != offer.limits
                 || gear.kind_id != offer.kind_id
                 || gear.kind_contract_revision != offer.kind_contract_revision

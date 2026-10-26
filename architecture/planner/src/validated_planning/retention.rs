@@ -4,7 +4,7 @@ use super::*;
 pub(crate) struct ConfigurationRetention {
     deferred: bool,
     pub(crate) indices: BTreeMap<PlacementId, usize>,
-    states: BTreeMap<PlacementId, Result<Option<PlannedStateBoundary>, PlannerError>>,
+    states: BTreeMap<PlacementId, Result<PlannedStateBoundary, PlannerError>>,
 }
 impl ConfigurationRetention {
     pub(crate) fn new(deferred: bool) -> Self {
@@ -17,8 +17,18 @@ impl ConfigurationRetention {
     pub(super) fn placement(&mut self, index: usize, gear: &mut PlannedGear) {
         if self.deferred {
             self.indices.insert(gear.placement_id.clone(), index);
-            self.states
-                .insert(gear.placement_id.clone(), planned_keep_state(gear));
+            // Absence is the common state result. Retaining an enum-sized tree
+            // slot for every stateless Gear duplicates preparation bookkeeping.
+            // Actual state and errors remain deferred to their original phase.
+            match planned_keep_state(gear) {
+                Ok(None) => {}
+                Ok(Some(state)) => {
+                    self.states.insert(gear.placement_id.clone(), Ok(state));
+                }
+                Err(error) => {
+                    self.states.insert(gear.placement_id.clone(), Err(error));
+                }
+            }
             gear.configuration = Vec::new();
         }
     }
@@ -27,9 +37,11 @@ impl ConfigurationRetention {
         gear: &PlannedGear,
     ) -> Result<Option<PlannedStateBoundary>, PlannerError> {
         if self.deferred {
-            self.states
-                .remove(&gear.placement_id)
-                .expect("one captured state result per placement")
+            assert!(
+                self.indices.contains_key(&gear.placement_id),
+                "captured placement"
+            );
+            self.states.remove(&gear.placement_id).transpose()
         } else {
             planned_keep_state(gear)
         }

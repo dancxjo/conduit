@@ -60,8 +60,14 @@ pub fn planning_source(
     // SAFETY: these exact bytes and the independent expected digest are linked
     // from this trusted Make build, which checked the complete expansion. No
     // network/UART input or claimed Source identity enters this installation.
-    unsafe { conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(bytes) }
-        .map_err(|_| "body-source-image-representation")
+    unsafe {
+        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(bytes).map(|image| {
+            image
+                .with_make_gear_decoder(material::decode_planning_gear)
+                .with_make_configuration_decoder(material::decode_planning_configuration)
+        })
+    }
+    .map_err(|_| "body-source-image-representation")
 }
 
 #[cfg(feature = "target-memory-check")]
