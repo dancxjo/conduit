@@ -162,7 +162,7 @@ impl NativeRoot {
                 offer_generation,
             )?;
             mark("local-software-admitted", 15);
-            let _tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<
+            let tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<
                 15,
                 14,
                 1,
@@ -172,6 +172,16 @@ impl NativeRoot {
             >::from_verified_lowering(&verified_lowering)
             .map_err(|_| "tables")?;
             mark("local-tables-live", 15);
+            drop(tables);
+            let kernel = crate::native_kernel::prepare_local(
+                &mut self.software,
+                &verified_lowering,
+                &image,
+                (&self.host, &self.boot, offer_generation),
+            )?;
+            mark("local-kernel-live", 15);
+            drop(kernel);
+            mark("local-kernel-retired", 0);
             Ok(())
         })();
         drop(plan);

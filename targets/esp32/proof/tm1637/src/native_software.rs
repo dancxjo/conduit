@@ -82,3 +82,30 @@ pub fn check_local(
         )
         .map_err(|_| "local-software-admission")
 }
+
+#[cfg(feature = "target-memory-check")]
+pub fn bind_local<'a>(
+    software: &mut Option<Box<Software>>,
+    verified: &'a conduit_plan_lowering::local_tables::VerifiedLocalLowering<'a>,
+    image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+    scope: (
+        &conduit_core::HostId,
+        &conduit_core::BootId,
+        conduit_core::OfferGeneration,
+    ),
+) -> Result<
+    conduit_environment_runtime::appliance::assigned::PreparedLocalAppliance<
+        'a,
+        conduit_kernel::HostedValueStore,
+    >,
+    &'static str,
+> {
+    PreparedResidentSoftware::bind_local_retained(
+        software,
+        verified,
+        image,
+        material::offers(),
+        scope,
+    )
+    .map_err(|_| "local-software-binding")
+}

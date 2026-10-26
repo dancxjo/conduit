@@ -9,14 +9,23 @@ use conduit_kernel as k;
 /// and value backing are counted by Root's current heap usage, not allocated again.
 /// Native capability/control admission still needs its own actual proof.
 pub fn requirements() -> Result<(usize, u16), &'static str> {
-    let bytes = usize::try_from(crate::appliance_layout::SIGN_BYTES).map_err(|_| "sign-budget")?;
-    let slots = usize::from(crate::appliance_layout::SIGN_ITEMS)
-        .max(bytes.div_ceil(core::mem::size_of::<k::KernelEvent>()));
+    requirements_for(
+        crate::appliance_layout::SIGN_ITEMS,
+        crate::appliance_layout::SIGN_BYTES,
+        core::mem::size_of::<PreparedAssignedAppliance<k::HostedValueStore>>(),
+    )
+}
+fn requirements_for(
+    sign_items: u16,
+    sign_bytes: u32,
+    transfer: usize,
+) -> Result<(usize, u16), &'static str> {
+    let bytes = usize::try_from(sign_bytes).map_err(|_| "sign-budget")?;
+    let slots = usize::from(sign_items).max(bytes.div_ceil(core::mem::size_of::<k::KernelEvent>()));
     // The transfer destination and scheduler destination are separate stages.
     // assemble() explicitly retires the transfer box before allocating selectors
     // or the scheduler; sign backing coexists with both stages. Existing source
     // boxes remain conservatively included in Root's current usage throughout.
-    let transfer = core::mem::size_of::<PreparedAssignedAppliance<k::HostedValueStore>>();
     let scheduler = core::mem::size_of::<Kernel>()
         + core::mem::size_of::<[Option<PreparedCaptureSelector>; NODES]>();
     let needed =
@@ -41,6 +50,36 @@ pub fn prepare(
     let prepared = PreparedResidentSoftware::bind_boxed_retained(software, assignment)
         .map_err(|_| "software-binding")?;
     assemble(prepared, signs)
+}
+/// Preparation-only local path: no native provider transfer, Step or Body start.
+#[cfg(feature = "target-memory-check")]
+#[inline(never)]
+pub fn prepare_local<'a>(
+    software: &mut Option<Box<crate::native_software::Software>>,
+    verified: &'a conduit_plan_lowering::local_tables::VerifiedLocalLowering<'a>,
+    image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+    scope: (
+        &conduit_core::HostId,
+        &conduit_core::BootId,
+        conduit_core::OfferGeneration,
+    ),
+) -> Result<PreparedKernel, &'static str> {
+    let lowered = verified.lowered();
+    let (needed, slots) = requirements_for(
+        lowered.sign_items,
+        lowered.sign_bytes,
+        core::mem::size_of::<PreparedLocalAppliance<'_, k::HostedValueStore>>(),
+    )?;
+    let memory = esp_alloc::HEAP.stats();
+    if memory.size.saturating_sub(memory.current_usage) < needed {
+        return Err("local-kernel-capacity");
+    }
+    // Exact Source/offer admission happens before transferring pure owners and
+    // before allocating Sign backing, keeping decoding out of that live peak.
+    let prepared = crate::native_software::bind_local(software, verified, image, scope)?;
+    let signs =
+        k::HostedSignLog::new(slots, lowered.sign_bytes).map_err(|_| "local-sign-budget")?;
+    crate::native_kernel_storage::assemble_local(prepared, signs)
 }
 pub async fn report(
     root: &mut crate::native_root::NativeRoot,

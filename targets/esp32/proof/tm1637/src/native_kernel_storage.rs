@@ -52,3 +52,29 @@ pub fn assemble(
         roles: prepared.roles,
     })
 }
+
+#[cfg(feature = "target-memory-check")]
+#[inline(never)]
+pub fn assemble_local(
+    prepared: PreparedLocalAppliance<'_, k::HostedValueStore>,
+    signs: k::HostedSignLog,
+) -> Result<PreparedKernel, &'static str> {
+    let selectors = Box::new(prepared.selectors);
+    let kernel = Kernel::new_boxed_with_active_counts_and_host_calls(
+        NODES,
+        CORDS,
+        prepared.tables.nodes,
+        prepared.tables.cords,
+        prepared.tables.routes,
+        prepared.tables.calls,
+        prepared.drivers,
+        prepared.values,
+        signs,
+    )
+    .map_err(|_| "local-kernel-tables")?;
+    Ok(PreparedKernel {
+        kernel,
+        selectors,
+        roles: prepared.roles,
+    })
+}
