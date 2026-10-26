@@ -117,6 +117,9 @@ impl ServiceDomain {
             .clock_binding
             .as_mut()
             .and_then(|binding| binding.take(self.instance, &context));
+        let samples = super::domain_budget::rip_samples::Capture::arm(
+            self.profile() == ServiceProfile::Draft,
+        );
         // From this call onward entry has been attempted. Any refusal or
         // missing/invalid observation is terminal for every service profile.
         let result = match domain_transition::enter_context_with_receipt(
@@ -132,9 +135,28 @@ impl ServiceDomain {
                 return Err(error);
             }
         };
+        let samples = samples.finish();
         if let Err(error) = result.validate(self.instance, sequence) {
             self.quarantine();
             return Err(error);
+        }
+        if result.rtc() >= 8 && self.profile() == ServiceProfile::Draft {
+            super::serial::early_write(b"CONDUIT_CRECHE_RTC_SAMPLES instance=");
+            super::serial::write_decimal(self.instance);
+            super::serial::early_write(b" sequence=");
+            super::serial::write_decimal(sequence);
+            super::serial::early_write(b" rtc=");
+            super::serial::write_decimal(u64::from(result.rtc()));
+            super::serial::early_write(b" count=");
+            super::serial::write_decimal(samples.count as u64);
+            super::serial::early_write(b" overflow=");
+            super::serial::write_decimal(u64::from(samples.overflow));
+            super::serial::early_write(b" pcs=");
+            for pc in &samples.pcs[..samples.count] {
+                super::serial::write_decimal(*pc);
+                super::serial::early_write(b",");
+            }
+            super::serial::early_write(b"\n");
         }
         self.cost.entries = sequence;
         self.cost.address_space_switches += 2;
