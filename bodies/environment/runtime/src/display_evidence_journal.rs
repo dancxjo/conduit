@@ -25,6 +25,34 @@ pub trait Storage {
     fn read(&mut self, offset: u32, output: &mut [u8]) -> Result<(), Refusal>;
     fn program(&mut self, offset: u32, bytes: &[u8]) -> Result<(), Refusal>;
 }
+/// Unique erased-region custody, verified during preparation. No Clone or
+/// mutable storage entrance can invalidate that check before initialization.
+pub struct Erased<S>(S);
+impl<S: Storage> Erased<S> {
+    pub fn prepare(storage: S) -> Result<Self, Refusal> {
+        Self::prepare_retained(storage).map_err(|(_, error)| error)
+    }
+    /// Failed preparation returns actual storage custody intact for recovery.
+    pub fn prepare_retained(mut storage: S) -> Result<Self, (S, Refusal)> {
+        if storage.capacity() < 112
+            || !storage.capacity().is_multiple_of(4)
+            || storage.capacity() > u32::MAX - WORKSPACE_BYTES as u32
+        {
+            return Err((storage, Refusal::Geometry));
+        }
+        let mut read = [0; 64];
+        for offset in (0..storage.capacity()).step_by(64) {
+            let n = (storage.capacity() - offset).min(64) as usize;
+            if let Err(error) = storage.read(offset, &mut read[..n]) {
+                return Err((storage, error));
+            }
+            if read[..n].iter().any(|b| *b != 255) {
+                return Err((storage, Refusal::Corrupt));
+            }
+        }
+        Ok(Self(storage))
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Committed {
     sequence: u32,
@@ -42,6 +70,7 @@ impl Committed {
         self.extent
     }
 }
+#[derive(Clone, Copy)]
 pub struct Replay {
     offset: u32,
     sequence: u32,
@@ -93,23 +122,33 @@ impl<'a, S: Storage> Journal<'a, S> {
     /// Initialize only a verified erased region. No old evidence is overwritten.
     /// Scope is the canonical fixed digests of Body, Boot and active Play.
     pub fn create(
-        mut storage: S,
+        storage: S,
         scope: &[u8; 96],
         basis: &'a [u8],
         maximum_records: u32,
         work: &mut [u8; WORKSPACE_BYTES],
     ) -> Result<Self, Refusal> {
+        Self::create_prepared(
+            Erased::prepare(storage)?,
+            scope,
+            basis,
+            maximum_records,
+            work,
+        )
+    }
+    /// Preparation has already scanned the erased backing. First publication
+    /// writes only its finite header and record; it never scans the whole flash.
+    pub fn create_prepared(
+        erased: Erased<S>,
+        scope: &[u8; 96],
+        basis: &'a [u8],
+        maximum_records: u32,
+        work: &mut [u8; WORKSPACE_BYTES],
+    ) -> Result<Self, Refusal> {
+        let Erased(mut storage) = erased;
         let end = Self::header_end(basis, maximum_records)?;
-        if storage.capacity() < (end + 8) as u32 || !storage.capacity().is_multiple_of(4) {
+        if storage.capacity() < (end + 8) as u32 {
             return Err(Refusal::Geometry);
-        }
-        let mut read = [0; 64];
-        for offset in (0..storage.capacity()).step_by(64) {
-            let n = (storage.capacity() - offset).min(64) as usize;
-            storage.read(offset, &mut read[..n])?;
-            if read[..n].iter().any(|b| *b != 255) {
-                return Err(Refusal::Corrupt);
-            }
         }
         work[..end + 8].fill(255);
         work[..4].copy_from_slice(b"JEV1");
@@ -218,6 +257,9 @@ impl<'a, S: Storage> Journal<'a, S> {
             journal.cursor += (end + 8) as u32;
         }
         Ok(journal)
+    }
+    pub fn retained_extent(&self) -> u32 {
+        self.cursor
     }
     pub fn committed_count(&self) -> u32 {
         self.count

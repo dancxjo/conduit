@@ -127,6 +127,8 @@ impl NativeDisplay {
             resource_pool_id: "pool/esp32/gpio18-gpio19".into(),
             resource_generation_id: c::ResourceGenerationId("generation/tm1637/1".into()),
             envelope_id: "envelope/esp32/tm1637".into(),
+            // The electrical Back is unchanged. Journal custody belongs to
+            // Root integrity backing and has no GPIO operation entrance.
             artifact_id: "native/esp32-tm1637-root@1".into(),
             implementation_id: "esp32/tm1637-write@1".into(),
             base_implementation_id: "esp32/tm1637-base@1".into(),
@@ -194,6 +196,10 @@ impl NativeDisplay {
         }))
     }
     pub fn native_identity(&self) -> Option<&WriteNativeIdentity> {
+        #[cfg(feature = "local-evidence-store")]
+        if !crate::native_evidence_archive::available() {
+            return None;
+        }
         self.ready.as_ref().map(|owner| owner.native_identity())
     }
     pub fn software_ready(&self) -> bool {
@@ -258,6 +264,10 @@ impl NativeDisplay {
         }
     }
     pub fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
+        #[cfg(feature = "local-evidence-store")]
+        if !crate::native_evidence_archive::available() {
+            return Ok(());
+        }
         let Some(ready) = self.ready.as_ref() else {
             return Ok(());
         };

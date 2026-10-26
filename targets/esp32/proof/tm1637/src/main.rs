@@ -37,6 +37,10 @@ mod native_display;
 #[cfg(feature = "mask-root")]
 #[path = "native_mask_display.rs"]
 mod native_display;
+#[cfg(feature = "local-evidence-store")]
+mod native_evidence_archive;
+#[cfg(feature = "local-evidence-store")]
+mod native_evidence_region;
 #[cfg(all(
     feature = "mask-root",
     any(

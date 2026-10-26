@@ -98,6 +98,9 @@ impl Custody {
         self.accepted = false;
         Ok(true)
     }
+    pub fn retained_bytes(&self) -> Option<&[u8]> {
+        self.pending.map(|_| &self.bytes[..self.length])
+    }
     pub fn copy(
         &self,
         output: &mut [u8],

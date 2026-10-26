@@ -32,6 +32,15 @@ pub(super) fn build_wireless_display(root: &Path, key: &Path) -> Result<(), Box<
         Some("display-physical-check,owner-wifi"),
     )
 }
+pub(super) fn build_local_evidence(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, false, Some(key), Some("local-evidence-store"))?;
+    println!(
+        "Local evidence candidate requires partition table: {}",
+        root.join("targets/esp32/proof/tm1637/evidence-partitions.csv")
+            .display()
+    );
+    Ok(())
+}
 fn build_with_owner(
     root: &Path,
     native: bool,

@@ -199,3 +199,23 @@ fn uncertain_commit_is_recovered_without_claiming_a_second_record() {
         None
     );
 }
+
+#[test]
+fn erased_preparation_failure_retains_old_region_for_recovery() {
+    use conduit_environment_runtime::display_evidence_journal::Erased;
+    let scope = [3; 96];
+    let basis = [0; 1168];
+    let mut work = [0; WORKSPACE_BYTES];
+    let mut journal = Journal::create(nor(), &scope, &basis, 1, &mut work).unwrap();
+    journal.append(&basis, &mut work).unwrap();
+    let media = journal.into_storage();
+    let expected = media.bytes.clone();
+    let (media, error) = match Erased::prepare_retained(media) {
+        Ok(_) => panic!("old custody must not be reused"),
+        Err(pair) => pair,
+    };
+    assert_eq!(error, Refusal::Corrupt);
+    assert_eq!(media.bytes, expected);
+    let recovered = Journal::recover(media, &scope, &basis, 1, &mut work).unwrap();
+    assert_eq!(recovered.committed_count(), 1);
+}

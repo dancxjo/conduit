@@ -88,6 +88,8 @@ impl NativeRoot {
         reservation.check_request(&request, operation)?;
         let state = match operation {
             O::Prepare => {
+                #[cfg(feature = "local-evidence-store")]
+                crate::native_evidence_archive::bind_scope(reservation)?;
                 if self.display.native_bound() || self.display.kernel_prepared() {
                     return Err("display-already-prepared");
                 }
@@ -181,6 +183,8 @@ impl NativeRoot {
             evidence: Option<crate::native_display_evidence::Offer>,
             evidence_signature: Option<&'a [u8]>,
             evidence_bytes: usize,
+            #[cfg(feature = "local-evidence-store")]
+            local_evidence: crate::native_evidence_archive::Status,
         }
         let (page_buffer, output) =
             output.split_at_mut(conduit_environment_runtime::display_evidence::MAXIMUM_BYTES);
@@ -218,6 +222,8 @@ impl NativeRoot {
                 evidence,
                 evidence_signature: evidence_signature.as_ref().map(|s| s.as_slice()),
                 evidence_bytes,
+                #[cfg(feature = "local-evidence-store")]
+                local_evidence: crate::native_evidence_archive::status(),
             },
             output,
         )

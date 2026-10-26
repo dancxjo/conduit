@@ -29,10 +29,24 @@ pub fn publish(invocation: u64, log: &Log) -> Result<Option<EvidenceReference>, 
         if page.pending().is_none() {
             page.publish(invocation, log)?;
         }
-        Ok(page.pending())
+        let pending = page.pending();
+        #[cfg(feature = "local-evidence-store")]
+        if let Some(reference) = pending {
+            crate::native_evidence_archive::append(
+                page.retained_bytes().ok_or("evidence-local-bytes")?,
+            )?;
+            page.accept(reference)?;
+            let accepted = page.release_accepted()?;
+            ACCEPTED.signal(accepted);
+        }
+        Ok(pending)
     })
 }
 pub fn copy(output: &mut [u8]) -> Result<Option<(EvidenceReference, usize)>, &'static str> {
+    #[cfg(feature = "local-evidence-store")]
+    if let Some(page) = crate::native_evidence_archive::copy(output)? {
+        return Ok(Some(page));
+    }
     PAGE.lock(|cell| {
         cell.borrow()
             .as_ref()
@@ -41,6 +55,10 @@ pub fn copy(output: &mut [u8]) -> Result<Option<(EvidenceReference, usize)>, &'s
     })
 }
 pub fn pending() -> bool {
+    #[cfg(feature = "local-evidence-store")]
+    if crate::native_evidence_archive::pending() {
+        return true;
+    }
     PAGE.lock(|cell| {
         cell.borrow()
             .as_ref()
@@ -48,6 +66,10 @@ pub fn pending() -> bool {
     })
 }
 pub fn accept(reference: EvidenceReference) -> Result<(), &'static str> {
+    #[cfg(feature = "local-evidence-store")]
+    if crate::native_evidence_archive::accept(reference).is_ok() {
+        return Ok(());
+    }
     PAGE.lock(|cell| {
         let mut page = cell.borrow_mut();
         let page = page.as_mut().ok_or("display-evidence-unprepared")?;

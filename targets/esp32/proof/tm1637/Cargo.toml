@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [features]
+local-evidence-store = ["display-physical-check", "owner-wifi", "dep:esp-storage", "dep:embedded-storage"]
 owner-wifi = ["native-root"]
 mask-root = ["native-face-root", "conduit-environment-runtime/mask-renderer"]
 target-memory-check = ["body-image-root", "conduit-planner/indexed-source"]
@@ -18,6 +19,8 @@ ap = ["live", "dep:conduit-esp32-network-switch", "dep:conduit-net", "dep:esp-ra
 live = ["capture", "dep:conduit-environment-runtime", "dep:conduit-environment-http", "dep:conduit-seven-segment-mask", "dep:conduit-face", "dep:esp-alloc"]
 capture = ["dep:conduit-esp32-pulse-capture", "dep:conduit-pulse-capture"]
 [dependencies]
+esp-storage = { version = "=0.8.1", features = ["esp32"], optional = true }
+embedded-storage = { version = "=0.3.2", optional = true }
 serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
 embassy-sync = { version = "=0.8.0", default-features = false, optional = true }
 conduit-body = { path = "../../../../architecture/body", optional = true }
