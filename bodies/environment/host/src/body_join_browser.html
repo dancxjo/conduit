@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Join thermometer Body</title><style>body{font:17px system-ui;max-width:44rem;margin:3rem auto;padding:0 1rem;background:#f5f3ed;color:#22332c}input,button{font:inherit;padding:.7rem;margin:.4rem 0}input{width:95%}button{cursor:pointer}pre{white-space:pre-wrap}small{display:block}a{color:#245c46}</style><h1>Join thermometer Body</h1><p>This private local file holds one invitation. The thermometer keeps sampling while this browser joins.</p><label>Thermometer address<input id="endpoint" placeholder="http://conduit-climate-012345abcdef.local"></label><button id="join">Join this Body</button><pre id="status">Ready. Open this file locally; no invitation secret is sent in an HTTP address.</pre><div id="downloads"></div><small>Keep this file private; it retains your continuity secret. The recorder binding contains the signed admission receipt.</small>
+<script id="bootstrap" type="application/json">__PRIVATE_BOOTSTRAP_JSON__</script>
+<script>
+'use strict';
+const bootstrap=JSON.parse(document.querySelector('#bootstrap').textContent),claim=bootstrap.invitation.claim;
+document.querySelector('#bootstrap').textContent='';
+const text=new TextEncoder(),bytes=v=>new Uint8Array(v),hex=v=>Array.from(v,b=>b.toString(16).padStart(2,'0')).join('');
+function le(n,width){if(!Number.isSafeInteger(n)||n<0)throw Error('Invalid bounded counter');let x=BigInt(n),out=new Uint8Array(width);for(let i=0;i<width;i++){out[i]=Number(x&255n);x>>=8n}if(x)throw Error('Counter overflow');return out}
+function cat(...parts){let out=new Uint8Array(parts.reduce((n,p)=>n+p.length,0)),at=0;for(const p of parts){out.set(p,at);at+=p.length}return out}
+function framed(value,width){let b=text.encode(value);return cat(le(b.length,width),b)}
+async function digest(...parts){return new Uint8Array(await crypto.subtle.digest('SHA-256',cat(...parts)))}
+async function proofTranscript(host,boot){return digest(...['spawn-invitation-v1',claim.body_id,claim.invitation_id,host,boot].map(v=>framed(v,4)),le(1,8),bytes(claim.nonce),le(claim.expires_at_millis,8))}
+async function receiptTranscript(r){let c=r.credential;return digest(text.encode('conduit.environment/joined-host@1\0'),...[c.credential_id,c.body_id,c.part_id,c.host_id,c.boot_id,r.producer_host,r.producer_boot,r.invitation_id].map(v=>framed(v,8)),le(c.issued_at_millis,8),le(r.membership_revision,8),le(r.offer_generation,8),bytes(r.producer_key))}
+function same(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i])}
+function download(name,value,label){const a=document.createElement('a');a.textContent=label;a.download=name;a.href=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));a.style.display='block';document.querySelector('#downloads').append(a);return a}
+const storageKey='conduit-body-join:'+claim.invitation_id;
+let pending;
+try{pending=JSON.parse(localStorage.getItem(storageKey)||'null')}catch{}
+const suffix=bootstrap.producer_host.replace(/^esp32\//,'').replace(/[^a-f0-9]/gi,'');
+document.querySelector('#endpoint').value=pending?.endpoint||(suffix?'http://conduit-climate-'+suffix+'.local':'http://192.168.4.1');
+function status(value){document.querySelector('#status').textContent=value}
+async function join(){
+ if(location.protocol!=='file:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')throw Error('Open the private helper locally.');
+ if(!crypto.subtle)throw Error('This browser requires the local helper to run on localhost for WebCrypto.');
+ if(bootstrap.invitation.schema!=='conduit.body/spawn-invitation@1'||bootstrap.invitation.secret.length!==32||bootstrap.root_key.length!==32)throw Error('Invalid private bootstrap');
+ const endpoint=new URL(document.querySelector('#endpoint').value);if(!['http:','https:'].includes(endpoint.protocol)||endpoint.username||endpoint.password||endpoint.pathname!=='/'||endpoint.search||endpoint.hash)throw Error('Use the device origin only');
+ const base=endpoint.origin;
+ if(pending&&pending.endpoint!==base)throw Error('Use the original device address for this pending invitation.');
+ if(!pending){
+  let host='browser/'+crypto.randomUUID(),boot='boot/'+crypto.randomUUID();
+  let prefix=bytes([48,46,2,1,0,48,5,6,3,43,101,112,4,34,4,32]);
+  let key=await crypto.subtle.importKey('pkcs8',cat(prefix,bytes(bootstrap.invitation.secret)),{name:'Ed25519'},false,['sign']);
+  let signature=new Uint8Array(await crypto.subtle.sign('Ed25519',key,await proofTranscript(host,boot)));
+  let request={schema:'conduit.environment/observer-admission@1',invitation_id:claim.invitation_id,body_id:claim.body_id,host_advertisement:{protocol_version:1,host_id:host,boot_id:boot,offer_generation:1,profile:'conduit/environment/browser-observer@1',resources:[],capabilities:[],planner_capabilities:[]},nonce:hex(claim.nonce),signature:hex(signature),membership_admitted:false,plan_created:false,play_created:false};
+  pending={endpoint:base,host,boot,request,ticket:null};localStorage.setItem(storageKey,JSON.stringify(pending));
+ }
+ if(pending.ticket===null){status('Submitting signed proof…');let response=await fetch(base+'/body/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pending.request)});if(response.status!==202)throw Error('Submission HTTP '+response.status);let queued=await response.json();if(queued.schema!=='conduit.environment/body-join-queued@1'||!Number.isSafeInteger(queued.ticket)||queued.ticket<=0)throw Error('Invalid queue receipt');pending.ticket=queued.ticket;localStorage.setItem(storageKey,JSON.stringify(pending))}
+ status('Waiting for durable admission…');
+ let receipt,until=Date.now()+60000;
+ while(Date.now()<until){let response=await fetch(base+'/body/join/result?id='+pending.ticket,{cache:'no-store'});if(response.status===202){await new Promise(r=>setTimeout(r,500));continue}if(response.status!==200)throw Error('Admission HTTP '+response.status);receipt=await response.json();break}
+ if(!receipt)throw Error('Admission is still pending. Retry to recover the same ticket.');
+ const c=receipt.credential;
+ if(receipt.schema!=='conduit.environment/joined-host@1'||!same(receipt.producer_key,bootstrap.root_key)||receipt.producer_host!==bootstrap.producer_host||receipt.producer_boot!==bootstrap.producer_boot||receipt.invitation_id!==claim.invitation_id||c.body_id!==claim.body_id||c.host_id!==pending.host||c.boot_id!==pending.boot||c.issued_at_millis>claim.expires_at_millis||receipt.membership_revision<=0||receipt.offer_generation!==1||receipt.signature.length!==64)throw Error('Receipt scope differs from private invitation');
+ const root=await crypto.subtle.importKey('raw',bytes(bootstrap.root_key),{name:'Ed25519'},false,['verify']);
+ if(!await crypto.subtle.verify('Ed25519',root,bytes(receipt.signature),await receiptTranscript(receipt)))throw Error('Root signature refused');
+ const binding={schema:'conduit.environment/joined-recorder@1',invitation:claim,root_key:bootstrap.root_key,local_host:pending.host,local_boot:pending.boot,receipt};
+ localStorage.setItem(storageKey,JSON.stringify({...pending,receipt}));
+ download('recorder-binding.json',binding,'Save admitted recorder binding');
+ status('Joined this Body. The Root signature and private invitation match. Local measurement continues.');
+}
+document.querySelector('#join').onclick=async()=>{document.querySelector('#join').disabled=true;try{await join()}catch(error){status(error.message+' Retry preserves the same signed proof and ticket.')}finally{document.querySelector('#join').disabled=false}};
+</script></html>
