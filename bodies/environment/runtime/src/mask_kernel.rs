@@ -11,6 +11,11 @@ pub type Kernel =
 #[path = "mask_assigned.rs"]
 mod assigned;
 pub use assigned::*;
+#[cfg(feature = "local-planning")]
+#[path = "mask_local.rs"]
+mod local;
+#[cfg(feature = "local-planning")]
+pub use local::LocalMaskInput;
 pub struct PreparedMaskKernel {
     pub kernel: Box<Kernel>,
     pub face: LoweredForePort,
@@ -27,6 +32,17 @@ impl PreparedMaskKernel {
             return Err("mask-fragments");
         };
         let lowered = lower_plan_fragment(fragment).map_err(|_| "mask-lowering")?;
+        Self::prepare_lowered(fragment, &lowered, |placement| {
+            c::face_data_label(&placement.configuration)
+                .map(|_| ())
+                .map_err(|_| "mask-configuration")
+        })
+    }
+    fn prepare_lowered(
+        fragment: &c::PlanFragment,
+        lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+        mut configuration: impl FnMut(&c::PlannedGear) -> Result<(), &'static str>,
+    ) -> Result<Self, &'static str> {
         if fragment.placements.len() != 3
             || lowered.cords.len() != 6
             || lowered.host_calls.len() != 1
@@ -61,7 +77,7 @@ impl PreparedMaskKernel {
         let mut backs = Vec::with_capacity(3);
         let mut roles = 0;
         for placement in &fragment.placements {
-            c::face_data_label(&placement.configuration).map_err(|_| "mask-configuration")?;
+            configuration(placement)?;
             let role = match placement.kind_id.as_str() {
                 f::FACE_TEE_KIND => 1,
                 f::RENDERER_KIND => 2,

@@ -44,117 +44,222 @@ fn ordinary_mask_reuses_its_kernel_without_resetting_requests_or_discarding_evid
         .collect();
     let prepared =
         conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare(&planned).unwrap();
-    use prepared_session::{OwnedValueBoundary as Boundary, PreparedKernelSession};
-    let boundary = |fore: &conduit_plan_lowering::lowering::LoweredForePort| Boundary {
-        endpoint: fore.endpoint,
-        cord: fore.cord,
-    };
-    let face_fore = boundary(&prepared.face);
-    let show_fore = boundary(&prepared.show);
-    let interaction = boundary(&prepared.interaction);
-    let mut session = PreparedKernelSession::new_with_owned_optional_value_outputs(
-        prepared.kernel,
-        &[face_fore, show_fore, interaction],
-        &[interaction],
-        12,
-    )
-    .unwrap_or_else(|(r, _)| panic!("{r:?}"));
-    let fresh_log = || {
-        k::FixedSignLog::<64, 12>::new_with_remote_storage(
-            (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
+    let local = local_kernel(&source, &planned).unwrap();
+    assert_eq!(prepared.face, local.face);
+    assert_eq!(prepared.show, local.show);
+    assert_eq!(prepared.interaction, local.interaction);
+    let mut traces = Vec::new();
+    for prepared in [prepared, local] {
+        use prepared_session::{OwnedValueBoundary as Boundary, PreparedKernelSession};
+        let boundary = |fore: &conduit_plan_lowering::lowering::LoweredForePort| Boundary {
+            endpoint: fore.endpoint,
+            cord: fore.cord,
+        };
+        let face_fore = boundary(&prepared.face);
+        let show_fore = boundary(&prepared.show);
+        let interaction = boundary(&prepared.interaction);
+        let mut session = PreparedKernelSession::new_with_owned_optional_value_outputs(
+            prepared.kernel,
+            &[face_fore, show_fore, interaction],
+            &[interaction],
             12,
-            k::remote_sign_storage_bytes(12).unwrap(),
         )
-        .unwrap()
-    };
-    let mut evidence = [0; conduit_environment_runtime::display_evidence::MAXIMUM_BYTES];
-    for (sequence, encoder) in encoders.iter().enumerate() {
-        let new_log = fresh_log(); // cold reservation, admitted before Play
-        let (_, memory) = allocation_probe::observe(|| {
-            if sequence > 0 {
-                let retired = session
-                    .begin_next([(); 3], new_log)
-                    .unwrap_or_else(|r| panic!("{:?}", r.reason));
-                // Exact previous signs move to their caller; no silent clear.
-                assert!(!retired.signs.is_empty());
-                let length = conduit_environment_runtime::display_evidence::encode(
-                    (sequence - 1) as u64,
-                    retired.signs.events(),
-                    &retired.signs,
-                    &mut evidence,
-                )
-                .unwrap();
-                let page =
-                    conduit_environment_runtime::display_evidence::Page::parse(&evidence[..length])
-                        .unwrap();
-                assert_eq!(page.invocation(), (sequence - 1) as u64);
-            }
-            session
-                .admit_owned_input_encoded(
-                    face_fore.endpoint,
-                    face_fore.cord,
-                    sequence as u64,
-                    8192,
-                    |out| {
-                        out[..bytes.len()].copy_from_slice(&bytes);
-                        Ok::<_, ()>(bytes.len())
-                    },
-                )
-                .unwrap();
-            session
-                .close_owned_input(face_fore.endpoint, face_fore.cord)
-                .unwrap();
-            let mut drained = false;
-            let mut emitted = false;
-            for _ in 0..64 {
-                let status = session.step().unwrap();
-                if let Some(request) = session.next_host_request() {
-                    assert_eq!(request.request, k::RequestId(sequence as u32));
-                    assert_eq!(
-                        session.kernel().host_value(request.input.value).unwrap(),
-                        bytes
-                    );
-                    let value = session
-                        .store_host_value_encoded(encoder.encoded_bytes(), |out| {
-                            encoder.encode(out)
-                        })
-                        .unwrap();
-                    session
-                        .complete_host_call(
-                            request.node,
-                            request.request,
-                            k::HostCallOutcome {
-                                disposition: k::HostCallDisposition::Completed,
-                                output: Some(k::BoundedValueRef::new(value, 8192).unwrap()),
-                                failure: None,
-                            },
-                        )
-                        .unwrap();
+        .unwrap_or_else(|(r, _)| panic!("{r:?}"));
+        let fresh_log = || {
+            k::FixedSignLog::<64, 12>::new_with_remote_storage(
+                (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
+                12,
+                k::remote_sign_storage_bytes(12).unwrap(),
+            )
+            .unwrap()
+        };
+        let mut evidence = [0; conduit_environment_runtime::display_evidence::MAXIMUM_BYTES];
+        for (sequence, encoder) in encoders.iter().enumerate() {
+            let new_log = fresh_log(); // cold reservation, admitted before Play
+            let (_, memory) = allocation_probe::observe(|| {
+                if sequence > 0 {
+                    let retired = session
+                        .begin_next([(); 3], new_log)
+                        .unwrap_or_else(|r| panic!("{:?}", r.reason));
+                    // Exact previous signs move to their caller; no silent clear.
+                    assert!(!retired.signs.is_empty());
+                    let length = conduit_environment_runtime::display_evidence::encode(
+                        (sequence - 1) as u64,
+                        retired.signs.events(),
+                        &retired.signs,
+                        &mut evidence,
+                    )
+                    .unwrap();
+                    let page = conduit_environment_runtime::display_evidence::Page::parse(
+                        &evidence[..length],
+                    )
+                    .unwrap();
+                    assert_eq!(page.invocation(), (sequence - 1) as u64);
                 }
-                if !emitted {
-                    if let Some(offer) = session
-                        .owned_output(show_fore.endpoint, show_fore.cord)
-                        .unwrap()
-                    {
-                        assert_eq!(offer.sequence, sequence as u64);
+                session
+                    .admit_owned_input_encoded(
+                        face_fore.endpoint,
+                        face_fore.cord,
+                        sequence as u64,
+                        8192,
+                        |out| {
+                            out[..bytes.len()].copy_from_slice(&bytes);
+                            Ok::<_, ()>(bytes.len())
+                        },
+                    )
+                    .unwrap();
+                session
+                    .close_owned_input(face_fore.endpoint, face_fore.cord)
+                    .unwrap();
+                let mut drained = false;
+                let mut emitted = false;
+                for _ in 0..64 {
+                    let status = session.step().unwrap();
+                    if let Some(request) = session.next_host_request() {
+                        assert_eq!(request.request, k::RequestId(sequence as u32));
                         assert_eq!(
-                            session.kernel().host_value(offer.value).unwrap(),
-                            expected[sequence]
+                            session.kernel().host_value(request.input.value).unwrap(),
+                            bytes
                         );
-                        session
-                            .accept_owned_output(offer.endpoint, offer.cord, offer.sequence)
+                        let value = session
+                            .store_host_value_encoded(encoder.encoded_bytes(), |out| {
+                                encoder.encode(out)
+                            })
                             .unwrap();
-                        emitted = true;
+                        session
+                            .complete_host_call(
+                                request.node,
+                                request.request,
+                                k::HostCallOutcome {
+                                    disposition: k::HostCallDisposition::Completed,
+                                    output: Some(k::BoundedValueRef::new(value, 8192).unwrap()),
+                                    failure: None,
+                                },
+                            )
+                            .unwrap();
+                    }
+                    if !emitted {
+                        if let Some(offer) = session
+                            .owned_output(show_fore.endpoint, show_fore.cord)
+                            .unwrap()
+                        {
+                            assert_eq!(offer.sequence, sequence as u64);
+                            assert_eq!(
+                                session.kernel().host_value(offer.value).unwrap(),
+                                expected[sequence]
+                            );
+                            session
+                                .accept_owned_output(offer.endpoint, offer.cord, offer.sequence)
+                                .unwrap();
+                            emitted = true;
+                        }
+                    }
+                    if status == SchedulerStatus::Drained {
+                        drained = true;
+                        break;
                     }
                 }
-                if status == SchedulerStatus::Drained {
-                    drained = true;
-                    break;
-                }
+                assert!(drained && emitted);
+                assert_eq!(session.kernel().values().used_items(), 0);
+            });
+            assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+            traces.push(session.kernel().signs().events().collect::<Vec<_>>());
+        }
+    }
+    assert_eq!(&traces[..4], &traces[4..]);
+}
+
+fn verified(plan: &c::Plan) -> c::VerifiedPlanMetadata {
+    let mut plan = plan.clone();
+    let configurations = plan
+        .fragments
+        .iter_mut()
+        .flat_map(|f| &mut f.placements)
+        .map(|g| {
+            (
+                g.placement_id.clone(),
+                core::mem::take(&mut g.configuration),
+            )
+        })
+        .collect::<std::collections::BTreeMap<_, _>>();
+    c::verify_plan_metadata_with_configurations(plan, |gear| {
+        Ok::<_, ()>(configurations[&gear.placement_id].clone())
+    })
+    .unwrap()
+}
+fn local_kernel(
+    source: &conduit_environment_make::SevenSegmentMaskSource,
+    planned: &f::PlannedMaskPlot,
+) -> Result<conduit_environment_runtime::mask_kernel::PreparedMaskKernel, &'static str> {
+    let material = conduit_environment_make::SevenSegmentMaskMaterial::prepare(source).unwrap();
+    // SAFETY: bytes were just encoded from this independently checked Source.
+    let image = unsafe {
+        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(
+            material.planning_image(),
+        )
+    }
+    .unwrap();
+    let boundary = material.planning_boundary().unwrap();
+    let verified = verified(&planned.plan);
+    let lowered = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
+        &verified,
+        &planned.plan.fragments[0].fragment_id,
+    )
+    .map_err(|_| "test-lowering")?;
+    let host = fixture::host();
+    conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare_local(
+        conduit_environment_runtime::mask_kernel::LocalMaskInput {
+            verified: &lowered,
+            image: &image,
+            boundary: &boundary,
+            role: &planned.mask,
+            scope: (&host.host_id, &host.boot_id, host.offer_generation),
+        },
+    )
+}
+#[test]
+fn local_mask_refuses_wrong_role_source_configuration_fore_and_numeric_contracts() {
+    let source = conduit_environment_make::SevenSegmentMaskSource::compile().unwrap();
+    let planned = source.plan(&fixture::host(), 8192, &[]).unwrap();
+    for failure in [
+        "source",
+        "role",
+        "configuration",
+        "fore",
+        "numeric",
+        "semantic",
+        "cord",
+    ] {
+        let mut wrong = planned.clone();
+        match failure {
+            "source" => wrong.mask.plot_identity.source_document_id = "foreign/source".into(),
+            "role" => wrong.mask.face_input.gear_port_id = "foreign/face".into(),
+            "configuration" => {
+                wrong.plan.fragments[0].placements[0].configuration[0].value =
+                    c::ConfigurationValue::Text("Foreign label".into())
             }
-            assert!(drained && emitted);
-            assert_eq!(session.kernel().values().used_items(), 0);
-        });
-        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+            "fore" => wrong.plan.fragments[0].fore_ports[0].front_port_id = "foreign/fore".into(),
+            "numeric" => wrong.plan.fragments[0].fore_ports[0].byte_capacity = 8193,
+            "semantic" => {
+                wrong.plan.fragments[0].placements[0]
+                    .semantic_contract
+                    .configuration[0]
+                    .default_value = c::ConfigurationValue::Text("Foreign default".into())
+            }
+            "cord" => wrong.plan.fragments[0].connections[0].source_port_id = "foreign/cord".into(),
+            _ => unreachable!(),
+        }
+        wrong.plan = c::seal_plan_with_realization_backs_and_completion(
+            c::PlotIdentity {
+                source_document_id: wrong.plan.source_document_id.clone(),
+                checked_plot_id: wrong.plan.checked_plot_id.clone(),
+                expanded_plot_id: wrong.plan.expanded_plot_id.clone(),
+            },
+            wrong.plan.completion_policy,
+            wrong.plan.realization_backs,
+            wrong.plan.fragments,
+        );
+        assert!(c::verify_plan(&wrong.plan), "{failure}");
+        assert!(local_kernel(&source, &wrong).is_err(), "{failure}");
     }
 }
