@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { verifyBundle } from './receipts.mjs';
+import { requireCheapTrainPolicy } from './train-cheap-policy.mjs';
 import { TARGETS } from './targets.mjs';
 import { candidateAdmission, canonicalCandidateAdmission } from './train-input-admission.mjs';
 
@@ -41,11 +42,16 @@ function requireReady(identity, pr, run, jobs, repository) {
   return candidateAdmission(run, jobs);
 }
 
-export function selectTrainInputs({ repository, base, selections }) {
+function selectInputs({ repository, base, selections }, policy) {
   require(Array.isArray(selections), 'Missing train selection snapshots');
   const inputs = selections.map(snapshot => {
     const identity = { number: snapshot.pr?.number, head: snapshot.pr?.head?.sha };
-    return { ...identity, admission: requireReady(identity, snapshot.pr, snapshot.candidateRun, snapshot.candidateJobs, repository) };
+    const admission = requireReady(identity, snapshot.pr, snapshot.candidateRun, snapshot.candidateJobs, repository);
+    if (admission.tier === 'cheap-input-v1' && policy) {
+      const grant = typeof snapshot.cheapPolicy === 'function' ? snapshot.cheapPolicy() : snapshot.cheapPolicy;
+      requireCheapTrainPolicy(grant, repository);
+    }
+    return { ...identity, admission };
   });
   const selection = identities(repository, base, inputs);
   const selected = { ...selection, branch: `train/${digest(selection)}` };
@@ -55,6 +61,12 @@ export function selectTrainInputs({ repository, base, selections }) {
     source: '0'.repeat(40), tree: '0'.repeat(40), digest: '0'.repeat(64) }, null, 2) + '\n') <= 65536,
   'Train admission manifest exceeds bound');
   return selected;
+}
+
+// Trusted control retains fresh machine policy on every cheap input. There is
+// no exported policy-bypass flag for capture, dispatch, restore or landing.
+export function selectTrainInputs(observation) {
+  return selectInputs(observation, true);
 }
 
 function payload(manifest) {
@@ -78,9 +90,14 @@ export function verifyTrainManifest(manifest) {
 
 // Snapshots must come from the live repository API. Git verifies actual object
 // identity and ancestry; a claimed list of parent hashes is never sufficient.
-function selectedSourceTree({ base, inputs, source, directory }) {
+function selectedSourceTree({ base, inputs, source, directory, sourceEnvironment }) {
   require(sha(source), 'Invalid candidate source');
-  const git = args => execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const execute = (args, extra = {}) => {
+    try { return execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'], ...(sourceEnvironment === undefined ? {} : { env: sourceEnvironment }), ...extra }).trim(); }
+    catch (error) { if (sourceEnvironment !== undefined) throw new Error('Train source Git operation failed'); throw error; }
+  };
+  const git = args => execute(args);
   for (const commit of [base, ...inputs.map(p => p.head), source]) {
     require(git(['rev-parse', '--verify', `${commit}^{commit}`]) === commit, 'Train requires exact commit objects');
     git(['merge-base', '--is-ancestor', commit, source]);
@@ -94,10 +111,10 @@ function selectedSourceTree({ base, inputs, source, directory }) {
   for (const input of inputs) {
     tree = git(['merge-tree', '--write-tree', '--no-messages', combined, input.head]);
     require(sha(tree), 'Train selection has an unresolved merge');
-    combined = execFileSync('git', ['-C', directory, 'commit-tree', tree,
+    combined = execute(['commit-tree', tree,
       '-p', combined, '-p', input.head, '-m', 'Train tree reconstruction'], {
       encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, GIT_AUTHOR_NAME: 'Conduit train', GIT_COMMITTER_NAME: 'Conduit train',
+      env: { ...(sourceEnvironment ?? process.env), GIT_AUTHOR_NAME: 'Conduit train', GIT_COMMITTER_NAME: 'Conduit train',
         GIT_AUTHOR_EMAIL: 'train@example.invalid', GIT_COMMITTER_EMAIL: 'train@example.invalid',
         GIT_AUTHOR_DATE: '2000-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2000-01-01T00:00:00Z' },
     }).trim();
@@ -107,18 +124,29 @@ function selectedSourceTree({ base, inputs, source, directory }) {
   return tree;
 }
 
-export function verifyCapturedTrainSource(manifest, directory = process.cwd()) {
+export function verifyCapturedTrainSource(manifest, directory = process.cwd(), sourceEnvironment) {
   const value = verifyTrainManifest(manifest);
-  require(selectedSourceTree({ ...value, directory }) === value.tree, 'Captured train tree mismatch');
+  require(selectedSourceTree({ ...value, directory, sourceEnvironment }) === value.tree, 'Captured train tree mismatch');
   return value;
 }
 
-export function captureTrain({ repository, base, selections, source, directory = process.cwd() }) {
+export function captureTrain({ repository, base, selections, source, directory = process.cwd(), sourceEnvironment }) {
   const selection = selectTrainInputs({ repository, base, selections });
-  const tree = selectedSourceTree({ ...selection, source, directory });
+  const tree = selectedSourceTree({ ...selection, source, directory, sourceEnvironment });
   const value = { schema: SCHEMA, ...selection,
     source, tree };
   return { ...value, digest: digest(value) };
+}
+
+// Only schedules exhaustive proof. It returns no accepted-product or landing
+// authority and cannot replace verifyTrainRun/verifyTrainProducts.
+export function verifyTrainProofAdmission(manifest, { development, selections }, directory = process.cwd(), sourceEnvironment) {
+  const value = verifyTrainManifest(manifest);
+  require(development === value.base, 'Development advanced; train must be rebuilt');
+  const current = selectInputs({ repository: value.repository, base: development, selections }, false);
+  require(JSON.stringify(current.inputs) === JSON.stringify(value.inputs), 'Train proof input readiness/run/attempt/head/jobs changed');
+  require(selectedSourceTree({ ...value, directory, sourceEnvironment }) === value.tree, 'Train proof source tree differs');
+  return { source: value.source, tree: value.tree, digest: manifest.digest };
 }
 
 // Recheck live inputs immediately before any landing adapter acts. A candidate

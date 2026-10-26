@@ -88,15 +88,26 @@ export async function acquireTrainArtifacts({ manifest, observation, directory,
   return receipt;
 }
 
+// Pin the trusted session's child credentials/cwd. Per-call output options
+// cannot replace them, and later caller mutations do not rotate this command.
+export function createBoundedTrainArtifactCommand({ env, directory } = {}) {
+  const childEnvironment = env === undefined ? undefined : { ...env };
+  return (program, args, options) => boundedCommand(program, args, options,
+    { env: childEnvironment, cwd: directory });
+}
+
 // Byte ceilings apply while downloading, before disk can grow beyond admission.
-async function boundedCommand(program, args, options) {
-  const child = spawn(program, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+async function boundedCommand(program, args, options, { env, cwd } = {}) {
+  const child = spawn(program, args, { stdio: ['ignore', 'pipe', 'pipe'], env, cwd });
   let bytes = 0; let stderr = 0; const chunks = [];
   const timer = setTimeout(() => child.kill('SIGKILL'), options.timeout ?? 60000);
   const completion = new Promise((resolve, reject) => {
     child.once('error', reject);
     child.once('close', status => resolve(status));
   });
+  // Spawn refusal can precede stdout closure; observe its rejection immediately
+  // while preserving the original rejection for the command's awaited result.
+  completion.catch(() => {});
   child.stderr.on('data', chunk => {
     stderr += chunk.length;
     if (stderr > options.maxBuffer) child.kill('SIGKILL');

@@ -28,7 +28,7 @@ test('code-changing PR events run exact proof without restarting on visibility c
   assert.match(job(candidate, 'proof'), /exhaustive: false/);
   assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.sha \}\}/);
   assert.match(job(candidate, 'candidate'), /if: \$\{\{ always\(\) && !cancelled\(\) \}\}/);
-  assert.match(job(candidate, 'candidate'), /needs: proof/);
+  assert.match(job(candidate, 'candidate'), /needs: \[proof, cheap\]/);
   assert.match(job(candidate, 'candidate'), /test "\$RESULT" = success/);
   assert.match(job(ci, 'preflight'), /name: candidate\/quick/);
   assert.match(ci, /exhaustive:\n        type: boolean\n        default: true/);
@@ -68,7 +68,7 @@ test('required candidate accepts healthy drafts and rejects unsuccessful proof',
   const script = job(candidate, 'candidate').split('        run: |\n')[1].replace(/^          /gm, '');
   function passes(draft, result) {
     return spawnSync('bash', ['-e', '-c', script], {
-      env: { ...process.env, DRAFT: draft, RESULT: result },
+      env: { ...process.env, DRAFT: draft, RESULT: result, CHEAP: 'skipped', TIER: '' },
     }).status === 0;
   }
   assert.equal(passes('false', 'success'), true);

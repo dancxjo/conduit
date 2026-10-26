@@ -5,6 +5,8 @@ import { UNIT_SHARDS } from './plan.mjs';
 const fail = reason => { throw new Error(`Candidate admission: ${reason}`); };
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+export const CHEAP_INPUT_SCHEMA = 'conduit.candidate-cheap-input/v1';
+export const CHEAP_INPUT_JOB = 'cheap-input/v1';
 const keys = (value, expected) => value && equal(Object.keys(value).sort(), [...expected].sort());
 
 function classify(jobs, conclusion) {
@@ -14,6 +16,7 @@ function classify(jobs, conclusion) {
     if (!keys(job, ['id', 'name', 'conclusion']) || !positive(job.id) || typeof job.name !== 'string' ||
         !['success', 'failure', 'skipped'].includes(job.conclusion) || ids.has(job.id) || names.has(job.name)) fail('ambiguous or invalid job identity');
     ids.add(job.id); names.set(job.name, job.conclusion);
+    if (job.name === CHEAP_INPUT_JOB && job.conclusion === 'skipped') continue;
     if (['proof / candidate/quick', 'proof / admission', 'proof / complete', 'candidate', 'proof / unit', 'proof / target', 'proof / target / ${{ matrix.id }}'].includes(job.name)) continue;
     const unit = /^proof \/ unit \(([^)]+)\)$/.exec(job.name);
     if (unit && UNIT_SHARDS.includes(unit[1])) { units.add(unit[1]); continue; }
@@ -54,7 +57,27 @@ function classify(jobs, conclusion) {
   return deferred.sort();
 }
 
+function cheapJobs(jobs, conclusion) {
+  if (conclusion !== 'success' || !Array.isArray(jobs) || jobs.length !== 3) fail('cheap input requires successful complete job inventory');
+  const expected = new Map([[CHEAP_INPUT_JOB, 'success'], ['candidate', 'success'], ['proof', 'skipped']]);
+  const ids = new Set();
+  for (const job of jobs) {
+    if (!keys(job, ['id', 'name', 'conclusion']) || !positive(job.id) || ids.has(job.id)
+        || expected.get(job.name) !== job.conclusion) fail('cheap input job identity or result differs');
+    ids.add(job.id); expected.delete(job.name);
+  }
+  if (expected.size) fail('missing cheap input job');
+}
+
 export function canonicalCandidateAdmission(value) {
+  if (value?.schema === CHEAP_INPUT_SCHEMA) {
+    if (!keys(value, ['schema', 'runId', 'runAttempt', 'head', 'conclusion', 'tier', 'jobs', 'deferredNativeProducts'])
+        || !positive(value.runId) || !positive(value.runAttempt) || !/^[a-f0-9]{40}$/.test(value.head ?? '')
+        || value.tier !== 'cheap-input-v1' || !equal(value.deferredNativeProducts, [])) fail('invalid versioned cheap input custody');
+    cheapJobs(value.jobs, value.conclusion);
+    return { schema: CHEAP_INPUT_SCHEMA, runId: value.runId, runAttempt: value.runAttempt, head: value.head,
+      conclusion: value.conclusion, tier: value.tier, jobs: value.jobs.map(job => ({ ...job })).sort((a, b) => a.id - b.id), deferredNativeProducts: [] };
+  }
   if (!keys(value, ['runId', 'runAttempt', 'head', 'conclusion', 'tier', 'jobs', 'deferredNativeProducts']) ||
       !positive(value.runId) || !positive(value.runAttempt) || !/^[a-f0-9]{40}$/.test(value.head ?? '')) fail('missing exact run/attempt/head custody');
   const deferred = classify(value.jobs, value.conclusion);
@@ -73,6 +96,10 @@ export function candidateAdmission(run, inventory) {
     if (job.run_id !== run.id || job.run_attempt !== run.run_attempt || job.head_sha !== run.head_sha || job.status !== 'completed') fail('job run, attempt, head or terminal state differs');
     return { id: job.id, name: job.name, conclusion: job.conclusion };
   });
+  if (jobs.some(job => job.name === CHEAP_INPUT_JOB && job.conclusion !== 'skipped')) {
+    return canonicalCandidateAdmission({ schema: CHEAP_INPUT_SCHEMA, runId: run.id, runAttempt: run.run_attempt,
+      head: run.head_sha, conclusion: run.conclusion, tier: 'cheap-input-v1', jobs, deferredNativeProducts: [] });
+  }
   const deferred = classify(jobs, run.conclusion);
   return canonicalCandidateAdmission({ runId: run.id, runAttempt: run.run_attempt, head: run.head_sha,
     conclusion: run.conclusion, tier: deferred.length ? 'native-deferred' : 'complete-candidate', jobs,

@@ -150,17 +150,42 @@ try {
       output('proof-run', String(adoption?.integrationRun ?? pushRun.id));
       break;
     }
+    case 'train-control': {
+      if (args.length !== 4) throw new Error('usage: train-control <request-file> <external-machine-policy> <private-key-file> <trusted-policy-observer-environment-reference>');
+      const { readTrainControllerRequest, runTrainController } = await import('./train-controller.mjs');
+      const { readMachineWriterConfiguration } = await import('./train-machine-policy.mjs');
+      const request = await readTrainControllerRequest(resolve(args[0]));
+      const config = await readMachineWriterConfiguration(resolve(args[1]), request.targetSource);
+      output('train-controller-result', await runTrainController({ request, config,
+        privateKeyFile: resolve(args[2]), observerEnvironmentReference: args[3] }));
+      break;
+    }
     case 'train-admit': {
       if (args.length !== 1) throw new Error('usage: train-admit <manifest-file>');
-      const { createTrainCommands } = await import('./train-command.mjs');
-      const manifest = await createTrainCommands().prepareDispatch(resolve(args[0]));
-      output('train-manifest-digest', manifest.digest);
+      const { createTrainProofAdmission } = await import('./train-proof-admission.mjs');
+      const proof = await createTrainProofAdmission()(resolve(args[0]));
+      output('train-manifest-digest', proof.digest);
       break;
     }
     case 'train-land': {
-      if (args.length !== 4) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory>');
+      if (args.length !== 8) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory> <external-machine-policy> <app-jwt-environment-reference> <trusted-policy-observer-environment-reference> <target-source-directory>');
       const { createTrainLander } = await import('./train-land.mjs');
-      const receipt = await createTrainLander()(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
+      const { readMachineWriterConfiguration, createTrainCredentialApis } = await import('./train-machine-policy.mjs');
+      const { createTrainCommands } = await import('./train-command.mjs');
+      const { observeCheapTrainPolicy } = await import('./train-cheap-policy.mjs');
+      const { createTrainSessionCommand, createTrainSourceEnvironment, createTrainMetadataApi } = await import('./train-controller.mjs');
+      const directory = resolve(args[7]);
+      const machineWriter = await readMachineWriterConfiguration(resolve(args[4]), directory);
+      const { appIdentityApi, policyObserverApi } = createTrainCredentialApis({ machineWriter,
+        appJwtEnvironmentReference: args[5], policyObserverEnvironmentReference: args[6] });
+      const credentialReferences = [args[5], args[6]];
+      const sourceEnvironment = createTrainSourceEnvironment(process.env, credentialReferences);
+      const command = createTrainSessionCommand({ installationToken: process.env.GH_TOKEN, credentialReferences });
+      const api = createTrainMetadataApi(command, directory);
+      const commands = createTrainCommands({ directory, command, sourceEnvironment,
+        observeCheapPolicy: ({ repository }) => observeCheapTrainPolicy({ config: machineWriter,
+          repository, api, appApi: appIdentityApi, policyApi: policyObserverApi }) });
+      const receipt = await createTrainLander({ directory, command, commands, machineWriter, appIdentityApi, policyObserverApi })(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
       output('train-landed-source', receipt.landedDev);
       output('train-landed-tree', receipt.tree);
       break;
@@ -353,7 +378,7 @@ try {
       await publish(args[0], resolve(args[1] ?? 'target/bundle'));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-control|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
   }
 } catch (error) {
   abandonProductCustody();
