@@ -62,7 +62,9 @@ async function fixture(t) {
     targetSource: f.directory, prs: [1, 2], source: f.source, manifest: f.filename };
   const options = { request, config: machine.config, privateKeyFile: path.join(f.output, 'unused-fixture.pem'),
     observerEnvironmentReference: 'FIXTURE_OBSERVER', environment: { ...process.env,
-      FIXTURE_OBSERVER: 'fixture-owner', GH_TOKEN: 'fixture-human', GITHUB_TOKEN: 'fixture-workflow' },
+      FIXTURE_OBSERVER: 'fixture-owner', GH_TOKEN: 'fixture-human',
+    GIT_DIR: '/fixture/untrusted', GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraHeader',
+    GIT_CONFIG_VALUE_0: 'fixture-header', GIT_SSL_NO_VERIFY: '1', GITHUB_TOKEN: 'fixture-workflow' },
     policyApi, command, session };
   return { ...f, options, request, machine, setJwt: value => { currentJwt = value; },
     sessions: () => sessions, policyReads: () => policyReads,
@@ -173,7 +175,9 @@ test('bounded request loading refuses links and malformed secret-bearing JSON wi
 });
 
 test('child bridge sends scoped token only to gh and exclusive Git push, with generic failures', () => {
-  const environment = { PATH: process.env.PATH, FIXTURE_OBSERVER: 'fixture-owner', GH_TOKEN: 'fixture-human' };
+  const environment = { PATH: process.env.PATH, FIXTURE_OBSERVER: 'fixture-owner', GH_TOKEN: 'fixture-human',
+    GIT_DIR: '/fixture/untrusted', GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraHeader',
+    GIT_CONFIG_VALUE_0: 'fixture-header', GIT_SSL_NO_VERIFY: '1' };
   const seen = [];
   const invoke = createTrainSessionCommand({ installationToken: TOKEN, observerEnvironmentReference: 'FIXTURE_OBSERVER',
     environment, command(program, args, options) { seen.push({ program, args, env: options.env });
@@ -184,6 +188,14 @@ test('child bridge sends scoped token only to gh and exclusive Git push, with ge
     assert.ok(!JSON.stringify(result).includes(TOKEN) && !JSON.stringify(result).includes(JWT));
   }
   assert.ok(!Object.hasOwn(seen[0].env, 'GH_TOKEN'));
+  for (const item of seen.filter(item => item.program === 'git')) {
+    assert.ok(['GIT_DIR', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_0', 'GIT_CONFIG_VALUE_0',
+      'GIT_SSL_NO_VERIFY'].every(name => !Object.hasOwn(item.env, name)));
+    assert.equal(item.env.GIT_CONFIG_GLOBAL, '/dev/null');
+    assert.equal(item.env.GIT_CONFIG_SYSTEM, '/dev/null');
+    assert.equal(item.env.GIT_CONFIG_NOSYSTEM, '1');
+    assert.equal(item.env.GIT_NO_REPLACE_OBJECTS, '1');
+  }
   assert.ok(seen[1].env.GH_TOKEN === TOKEN && seen[2].env.GH_TOKEN === TOKEN);
   assert.ok(seen.every(item => !Object.hasOwn(item.env, 'FIXTURE_OBSERVER') && !item.args.includes(TOKEN)));
   assert.throws(() => invoke('cargo', ['build']), /unsupported/);
