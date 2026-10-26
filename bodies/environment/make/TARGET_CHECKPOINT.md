@@ -61,9 +61,24 @@ Make requires equality with the complete retained original biography, including
 the Crèche name, birth Sign and both plots. This representation cannot resume
 mutable membership history; cold-Boot continuation still requires retained
 evidence and the ordinary recovery path. Seven runtime and six Make tests pass.
-This diagnostic was not flashed. The Linux-owned native thermometer remains on
-its previously tested firmware; fitting flash does not establish combined RAM
-admission, autonomous startup or physical execution.
+The diagnostic was subsequently flashed for a RAM checkpoint. It installed the
+linked Body and admitted the current member, but **failed before planning** while
+retaining decoded software offers. Root began at 58,152 / 118,768 bytes; one
+offer added 34,080 bytes. After offer 6, usage was 115,952 bytes, and decoding
+offer 7 exhausted a 104-byte allocation. This is no combined-kernel RAM result
+or autonomous startup proof. Retained decoded offer schemas are now the next
+measured compiler/planner target, rather than additional startup machinery.
+
+Before that reset, the previous run quiesced and retired normally: all 6,460
+display pages were exported and matched against the recovered flash journal.
+All 345 observation records are retained in the closed raw capture; 333 match
+signed HTTP projections, while the final 12 have raw flash custody only because
+the last HTTP export was missed before entering the bootloader. The immutable
+closed archive preserves this distinction. The tested native image was restored.
+Resuming the same Body reached a real biography-compaction boundary; the Linux
+owner now validates, persists, reads back and fsyncs its immutable segment before
+acknowledging the ordinary archive gate. Corrupt/conflicting or failed storage
+leaves the gate unacknowledged. The same Body resumed with that segment retained.
 
 ## Linux first host, native ESP32 member
 

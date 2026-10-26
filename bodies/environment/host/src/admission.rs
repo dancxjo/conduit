@@ -8,6 +8,8 @@ use std::{
     path::{Path, PathBuf},
     time::Instant,
 };
+#[path = "biography_custody.rs"]
+mod biography_custody;
 pub fn provision(state: &Path) -> Result<()> {
     std::fs::create_dir_all(state)?;
     std::fs::set_permissions(state, std::fs::Permissions::from_mode(0o700))?;
@@ -105,14 +107,12 @@ impl Authority {
         if evidence.body.state != b::BodyState::Lulled {
             return Err("resume requires retained Body lull evidence".into());
         }
-        let body = checked(b::BodyLifecycleSession::resume_here(
+        let mut body = checked(b::BodyLifecycleSession::resume_here(
             evidence,
             &self.host.host_id,
             &self.host.boot_id,
         ))?;
-        if !body.pending_archives().is_empty() {
-            return Err("resume requires explicit archive custody".into());
-        }
+        biography_custody::retain(&mut body, &self.state.join("biography-archives"))?;
         self.save(&body, "body-resumed.json")?;
         Ok(body)
     }
