@@ -3,7 +3,7 @@
 use crate::{observed_history::Collector, Result};
 use std::{net::ToSocketAddrs, path::Path, time::Duration};
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs"]
-mod joined;
+pub(crate) mod joined;
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Binding {

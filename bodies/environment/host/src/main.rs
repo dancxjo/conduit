@@ -2,6 +2,7 @@
 //! Current offers and signed Root custody remain separate from Body lifecycle.
 extern crate alloc;
 mod admission;
+mod body_join;
 mod display_check;
 mod display_evidence;
 mod execution;
@@ -29,6 +30,27 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args
+        .get(1)
+        .is_some_and(|a| a == "--issue-private-invitation" || a == "--join-observer")
+    {
+        if args.len() != 5 {
+            return Err("expected --issue-private-invitation OWNER_STATE SERIAL PRIVATE_OUTPUT or --join-observer PRIVATE_BOOTSTRAP NEW_PRIVATE_STATE HOST:PORT".into());
+        }
+        return if args[1] == "--issue-private-invitation" {
+            body_join::issue(
+                std::path::Path::new(&args[2]),
+                &args[3],
+                std::path::Path::new(&args[4]),
+            )
+        } else {
+            body_join::join(
+                std::path::Path::new(&args[2]),
+                std::path::Path::new(&args[3]),
+                &args[4],
+            )
+        };
+    }
     if args
         .get(1)
         .is_some_and(|argument| argument == "--record-joined")
