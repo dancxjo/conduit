@@ -117,8 +117,7 @@ impl NativeRoot {
             .issuer
             .grant_mask(ready.identity())
             .map_err(|_| "mask-grant")?];
-        let role: conduit_face::MaskPlot =
-            serde_json::from_slice(material::ROLE).map_err(|_| "mask-resident-role")?;
+        let role = material::role().map_err(|_| "mask-resident-role")?;
         let mut prepared = None;
         let mut scope = None;
         let next = self

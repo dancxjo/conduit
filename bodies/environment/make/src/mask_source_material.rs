@@ -66,7 +66,11 @@ impl SevenSegmentMaskMaterial {
         )?;
         let role = serde_json::to_vec(&self.role).map_err(|_| fmt::Error)?;
         writeln!(out, "pub const ROLE: &[u8] = &{role:?};")?;
-        writeln!(out, "pub fn role() -> Result<conduit_face::MaskPlot, ()> {{ serde_json::from_slice(ROLE).map_err(|_| ()) }}")?;
+        writeln!(
+            out,
+            "pub fn role() -> Result<conduit_face::MaskPlot, ()> {{ Ok({}) }}",
+            crate::source_recipe::linked_rust::emit(&self.role)?
+        )?;
         // SAFETY: this immutable original is the private validated Make graph.
         let image =
             unsafe { p::flat_image::indexed::IndexedSourceImage::from_make_image(&self.image) }
@@ -125,8 +129,18 @@ impl SevenSegmentMaskMaterial {
             }
             writeln!(out, "] }}")?;
         }
+        writeln!(
+            out,
+            "pub fn planning_front() -> c::CheckedFront {{ c::CheckedFront::new({}, {}, {}, {}).with_resource_ports({}).with_value_contracts({}) }}",
+            crate::source_recipe::linked_rust::emit(self.front.startup_parameters())?,
+            crate::source_recipe::linked_rust::emit(self.front.inputs())?,
+            crate::source_recipe::linked_rust::emit(self.front.outputs())?,
+            crate::source_recipe::linked_rust::emit(&self.front.shorthand().map(|(a,b)| (a.clone(),b.clone())))?,
+            crate::source_recipe::linked_rust::emit(self.front.resource_ports())?,
+            crate::source_recipe::linked_rust::emit(self.front.value_contracts())?,
+        )?;
         writeln!(out, "pub fn planning_boundary() -> Result<conduit_planner::indexed_source::IndexedAuthoringBoundary, ()> {{")?;
-        writeln!(out, "let front=serde_json::from_slice(FRONT).map_err(|_|())?; let inputs=planning_inputs(); let outputs=planning_outputs();")?;
+        writeln!(out, "let front=planning_front(); let inputs=planning_inputs(); let outputs=planning_outputs();")?;
         writeln!(
             out,
             "// SAFETY: exact private checked Make graph/Fore/provenance, never ingress metadata."
