@@ -4,6 +4,7 @@
 mod draft;
 mod errors;
 mod home;
+mod wire_shape;
 use crate::{
     arch::ServiceDomain,
     protected_region::{DomainBackend, DomainCost, DomainRefusal, DomainReturn},

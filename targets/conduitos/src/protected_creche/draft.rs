@@ -141,6 +141,34 @@ impl CrecheDraft {
         {
             crate::arch::early_write(line.as_bytes());
         }
+        // Diagnostic only: inspect retained exact input after all guest work.
+        // Never change admission, reply handling, authority or retry behavior.
+        let mut shape_line = crate::sign_format::FixedText::new();
+        let shape_result = match super::wire_shape::inspect(&bytes) {
+            Ok(shape) => writeln!(
+                shape_line,
+                "CONDUIT_CRECHE_WIRE_SHAPE {{\"schema\":1,\"instance\":{},\"entry\":{},\"bytes\":{},\"major\":{:?},\"text_bytes\":{},\"key_text_bytes\":{},\"byte_string_bytes\":{},\"empty_arrays\":{},\"u8_array_bins\":{:?},\"u8_elements\":{},\"u8_encoded_bytes\":{}}}",
+                service.instance,
+                after.entries,
+                shape.bytes,
+                shape.major,
+                shape.text_bytes,
+                shape.key_text_bytes,
+                shape.byte_string_bytes,
+                shape.empty_arrays,
+                shape.u8_arrays,
+                shape.u8_elements,
+                shape.u8_encoded_bytes
+            ),
+            Err(error) => writeln!(
+                shape_line,
+                "CONDUIT_CRECHE_WIRE_SHAPE_ERROR instance={} entry={} reason={error:?}",
+                service.instance, after.entries
+            ),
+        };
+        if shape_result.is_ok() {
+            crate::arch::early_write(shape_line.as_bytes());
+        }
         let response = response.map_err(|error| interaction_error("input", error))?;
         self.outcome(response)
             .map_err(|error| interaction_error("outcome", error))
