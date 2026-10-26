@@ -136,34 +136,13 @@ pub fn scene_request_digest(bytes: &[u8]) -> [u8; 32] {
     conduit_core::semantic_digest("conduitos/creche-native-scene-request@1", bytes)
 }
 
-/// Private broker-to-draft transfer, preserving the complete checked Mask Plan.
-/// Binary serde avoids the public JSON Mask Plan's compression/inflate/JSON
-/// roundtrip inside a single finite protected entry. Public JSON is unchanged.
-const INTERACTION_ENCODING: &[u8] = b"CDCI\x01";
+/// Versioned private broker-to-draft transfer of the complete checked Mask Plan.
+/// CDCI2 packs genuine byte sequences while retaining named fields and all typed
+/// constructors. The public JSON representation and authoritative validation
+/// remain unchanged.
 pub fn encode_interaction(value: &InteractionRequest) -> Result<Vec<u8>, Refusal> {
-    let mut bytes = Vec::new();
-    bytes
-        .try_reserve_exact(MAX_BLOB_BYTES as usize)
-        .map_err(|_| Refusal::Capacity)?;
-    bytes.resize(MAX_BLOB_BYTES as usize, 0);
-    bytes[..INTERACTION_ENCODING.len()].copy_from_slice(INTERACTION_ENCODING);
-    let mut remaining = &mut bytes[INTERACTION_ENCODING.len()..];
-    ciborium::ser::into_writer(value, &mut remaining).map_err(|_| Refusal::Capacity)?;
-    let length = MAX_BLOB_BYTES as usize - remaining.len();
-    bytes.truncate(length);
-    Ok(bytes)
+    crate::interaction_codec::encode(value)
 }
 pub fn decode_interaction(bytes: &[u8]) -> Result<InteractionRequest, Refusal> {
-    if bytes.is_empty() || bytes.len() > MAX_BLOB_BYTES as usize {
-        return Err(Refusal::Bounds);
-    }
-    let mut remaining = bytes
-        .strip_prefix(INTERACTION_ENCODING)
-        .ok_or(Refusal::Malformed)?;
-    let value = ciborium::de::from_reader_with_recursion_limit(&mut remaining, 64)
-        .map_err(|_| Refusal::Malformed)?;
-    if !remaining.is_empty() {
-        return Err(Refusal::Malformed);
-    }
-    Ok(value)
+    crate::interaction_codec::decode(bytes)
 }

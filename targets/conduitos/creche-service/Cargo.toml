@@ -31,3 +31,8 @@ opt-level = 3
 opt-level = 3
 [profile.release.package.ciborium-io]
 opt-level = 3
+
+# Canonical Plan/fragment validation hashes complete identities inside the same
+# finite Commit. Optimize software hashing without requiring CPU SHA features.
+[profile.release.package.sha2]
+opt-level = 3
