@@ -66,6 +66,16 @@ impl NativeAdmission {
     pub fn verifying_key(&self) -> [u8; 32] {
         self.key.verifying_key().to_bytes()
     }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn sign_joined_host(
+        &self,
+        admitted: &crate::native_body_join::DurablyAdmittedHost,
+    ) -> Result<[u8; 64], &'static str> {
+        if !self.ready() {
+            return Err("body-join-not-durable");
+        }
+        Ok(self.key.sign(&admitted.transcript()).to_bytes())
+    }
     /// Root supplies this only after exact reservation/lifecycle admission.
     pub fn sign_owner_receipt(&self, receipt: &crate::native_owner_receipt::Receipt) -> [u8; 64] {
         assert!(

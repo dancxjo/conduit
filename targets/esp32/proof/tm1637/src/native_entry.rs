@@ -92,10 +92,27 @@ async fn main(spawner: Spawner) {
         // unrelated remote installation/control interpreter into the image.
         #[cfg(feature = "local-appliance")]
         let mut next_report = embassy_time::Instant::now();
+        #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+        let mut invitation_uart =
+            esp_hal::uart::Uart::new(p.UART0, esp_hal::uart::Config::default())
+                .expect("private invitation UART0")
+                .with_rx(p.GPIO3)
+                .with_tx(p.GPIO1)
+                .into_async();
+        #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+        let mut invitation_bootstrap = crate::native_body_join_uart::Bootstrap::configured()
+            .expect("provisioned owner invitation key");
         loop {
             #[cfg(feature = "local-appliance")]
             {
                 let _ = root.advance_setup().await;
+                #[cfg(feature = "body-persistence")]
+                {
+                    root.advance_join(embassy_time::Instant::now().as_millis());
+                    let _ = invitation_bootstrap
+                        .poll(&mut root, &mut invitation_uart)
+                        .await;
+                }
                 if embassy_time::Instant::now() >= next_report {
                     root.report_local_progress();
                     next_report =

@@ -65,6 +65,7 @@ pub enum ExchangeOutcome {
     Reading,
     ReadingUnavailable,
     History,
+    BodyJoin,
     NetworkPage,
     SubmissionAcknowledged,
     NotFound,
@@ -166,6 +167,40 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
             }
             write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
             Ok(ExchangeOutcome::ReadingUnavailable)
+        }
+        (
+            Some(
+                request @ (NetworkHttpRequest::BodyJoinPage
+                | NetworkHttpRequest::BodyJoinOptions
+                | NetworkHttpRequest::BodyJoin(_)
+                | NetworkHttpRequest::BodyJoinResult { .. }),
+            ),
+            route,
+        ) => {
+            let available = route.as_ref().is_none_or(|route| route.reading_available)
+                && crate::body_join::available();
+            let rendered = if !available {
+                crate::body_join::render(crate::body_join::Reply::Unavailable, response)
+            } else {
+                match request {
+                    NetworkHttpRequest::BodyJoinPage => crate::body_join::page(response),
+                    NetworkHttpRequest::BodyJoinOptions => crate::body_join::preflight(response),
+                    NetworkHttpRequest::BodyJoin(bytes) => crate::body_join::render(
+                        crate::body_join::dispatch(crate::body_join::Action::Submit(bytes)),
+                        response,
+                    ),
+                    NetworkHttpRequest::BodyJoinResult { ticket } => crate::body_join::render(
+                        crate::body_join::dispatch(crate::body_join::Action::Result(ticket)),
+                        response,
+                    ),
+                    _ => false,
+                }
+            };
+            if !rendered {
+                return Err(ExchangeRefusal::Submission(NetworkSetupRefusal::TooLarge));
+            }
+            write(io, response.as_bytes()).await?;
+            Ok(ExchangeOutcome::BodyJoin)
         }
         (Some(NetworkHttpRequest::Page), Some(route)) => {
             render_page_into(route.preparation_only, route.limits, response)?;

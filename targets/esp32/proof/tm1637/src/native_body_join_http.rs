@@ -1,0 +1,187 @@
+//! Untrusted proof mailbox; only the owning Root pump can admit or sign. No
+//! private invitation/continuity secret enters this HTTP state or its responses.
+use alloc::vec::Vec;
+use core::cell::RefCell;
+use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
+use sha2::{Digest, Sha256};
+struct Pending {
+    ticket: u32,
+    digest: [u8; 32],
+    bytes: Vec<u8>,
+}
+struct Completed {
+    ticket: u32,
+    digest: [u8; 32],
+    bytes: Vec<u8>,
+}
+struct State {
+    enabled: bool,
+    next: u32,
+    pending: Option<Pending>,
+    inflight: Option<(u32, [u8; 32])>,
+    completed: Option<Completed>,
+    refused: Option<u32>,
+}
+static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
+    enabled: false,
+    next: 0,
+    pending: None,
+    inflight: None,
+    completed: None,
+    refused: None,
+}));
+/// Public signed material only. Existing responses remain available while the
+/// next request is checked; an invalid proof cannot evict a successful receipt.
+pub(crate) enum ResultReply {
+    Pending(u32),
+    Complete(Vec<u8>),
+    Refused(u32),
+    Unknown,
+    Unavailable,
+}
+pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
+    // Strict scalar/empty-array decoder only; no capability metadata visitors.
+    crate::native_body_join::wire::decode(bytes)?;
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    let mut owned = Vec::new();
+    owned
+        .try_reserve_exact(bytes.len())
+        .map_err(|_| "body-join-memory")?;
+    owned.extend_from_slice(bytes);
+    STATE.lock(|state| {
+        let mut state = state.borrow_mut();
+        if !state.enabled || !crate::native_restart::publication_ready() {
+            return Err("body-join-unavailable");
+        }
+        if let Some(done) = &state.completed {
+            if done.digest == digest {
+                return Ok(done.ticket);
+            }
+        }
+        if let Some(pending) = &state.pending {
+            return if pending.digest == digest {
+                Ok(pending.ticket)
+            } else {
+                Err("body-join-busy")
+            };
+        }
+        if let Some((ticket, current)) = state.inflight {
+            return if current == digest {
+                Ok(ticket)
+            } else {
+                Err("body-join-busy")
+            };
+        }
+        let ticket = state.next.checked_add(1).ok_or("body-join-exhausted")?;
+        state.next = ticket;
+        state.pending = Some(Pending {
+            ticket,
+            digest,
+            bytes: owned,
+        });
+        Ok(ticket)
+    })
+}
+pub(crate) fn result(ticket: u32) -> ResultReply {
+    STATE.lock(|state| {
+        let state = state.borrow();
+        if !state.enabled {
+            return ResultReply::Unavailable;
+        }
+        if let Some(done) = &state.completed {
+            if done.ticket == ticket {
+                let mut bytes = Vec::new();
+                if bytes.try_reserve_exact(done.bytes.len()).is_err() {
+                    return ResultReply::Unavailable;
+                }
+                bytes.extend_from_slice(&done.bytes);
+                return ResultReply::Complete(bytes);
+            }
+        }
+        if state
+            .pending
+            .as_ref()
+            .is_some_and(|pending| pending.ticket == ticket)
+            || state.inflight.is_some_and(|(active, _)| active == ticket)
+        {
+            return ResultReply::Pending(ticket);
+        }
+        if state.refused == Some(ticket) {
+            ResultReply::Refused(ticket)
+        } else {
+            ResultReply::Unknown
+        }
+    })
+}
+impl crate::native_root::NativeRoot {
+    /// Call from Root's ordinary50ms service tick, independently of both local
+    /// workers. Canonical admission and checkpoint complete before receipt release.
+    pub(crate) fn advance_join(&mut self, now_ms: u64) {
+        if !conduit_environment_http::body_join::available() {
+            if self.body_join_scope().is_err() {
+                return;
+            }
+            let _ = conduit_environment_http::body_join::install_provider(response);
+        }
+        let pending = STATE.lock(|state| {
+            let mut state = state.borrow_mut();
+            state.enabled = crate::native_restart::publication_ready();
+            if !state.enabled {
+                return None;
+            }
+            let pending = state.pending.take()?;
+            state.inflight = Some((pending.ticket, pending.digest));
+            Some(pending)
+        });
+        let Some(pending) = pending else {
+            return;
+        };
+        let ticket = pending.ticket;
+        let digest = pending.digest;
+        let result = (|| {
+            let request = crate::native_body_join::wire::decode(&pending.bytes)?;
+            drop(pending);
+            // Reserve response custody before mutating the authoritative Body.
+            let mut bytes = Vec::new();
+            bytes
+                .try_reserve_exact(2048)
+                .map_err(|_| "body-join-memory")?;
+            bytes.resize(2048, 0);
+            let receipt = self.admit_body_observer_request(&request, now_ms)?;
+            let length = serde_json_core::to_slice(&receipt, &mut bytes)
+                .map_err(|_| "body-join-response-capacity")?;
+            bytes.truncate(length);
+            Ok::<_, &'static str>(bytes)
+        })();
+        STATE.lock(|state| {
+            let mut state = state.borrow_mut();
+            state.inflight = None;
+            match result {
+                Ok(bytes) => {
+                    state.completed = Some(Completed {
+                        ticket,
+                        digest,
+                        bytes,
+                    })
+                }
+                Err(_) => state.refused = Some(ticket),
+            }
+        });
+    }
+}
+
+fn response(
+    action: conduit_environment_http::body_join::Action,
+) -> conduit_environment_http::body_join::Reply {
+    use conduit_environment_http::body_join::{Action, Reply};
+    match action {
+        Action::Submit(bytes) => submit(&bytes).map_or(Reply::Unavailable, Reply::Queued),
+        Action::Result(ticket) => match result(ticket) {
+            ResultReply::Pending(ticket) => Reply::Queued(ticket),
+            ResultReply::Complete(bytes) => Reply::Receipt(bytes),
+            ResultReply::Refused(ticket) => Reply::Refused(ticket),
+            ResultReply::Unknown => Reply::Unknown,
+            ResultReply::Unavailable => Reply::Unavailable,
+        },
+    }
+}

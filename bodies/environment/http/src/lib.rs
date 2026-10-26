@@ -8,11 +8,12 @@ use core::cell::RefCell;
 use critical_section::Mutex;
 mod mask;
 pub use mask::{face_response, HttpShowTime, PreparedHttpShow};
-pub mod show_mailbox;
+pub mod body_join;
 pub mod exchange;
-pub mod service_control;
 pub mod network_setup;
+pub mod service_control;
 mod seven_segment;
+pub mod show_mailbox;
 pub use seven_segment::{
     seven_segment_snapshot, seven_segment_snapshot_with_look, seven_segment_snapshot_with_mask,
     SevenSegmentSnapshot, SevenSegmentSnapshotRefusal,

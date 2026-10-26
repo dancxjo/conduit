@@ -14,8 +14,47 @@ use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
 #[path = "native_restart_payload.rs"]
 mod payload;
-static STORE: Mutex<CriticalSectionRawMutex, RefCell<Option<Store>>> =
-    Mutex::new(RefCell::new(None));
+static STORE: Mutex<CriticalSectionRawMutex, RefCell<Slot>> =
+    Mutex::new(RefCell::new(Slot::Uninitialized));
+// Inline static custody preserves the existing heap/stack reserve; boxing
+// would introduce a new fallible startup allocation.
+#[allow(clippy::large_enum_variant)]
+enum Slot {
+    Uninitialized,
+    Available(Store),
+    Borrowed,
+}
+// Move exclusive ownership under a short critical section. Serialization and
+// flash I/O run after interrupts are restored. Readers fail closed while the
+// Store is borrowed; no second initializer or transaction can enter.
+struct StoreLease(Option<Store>);
+impl Drop for StoreLease {
+    fn drop(&mut self) {
+        if let Some(store) = self.0.take() {
+            STORE.lock(|slot| {
+                let mut slot = slot.borrow_mut();
+                debug_assert!(matches!(*slot, Slot::Borrowed));
+                *slot = Slot::Available(store);
+            });
+        }
+    }
+}
+fn with_store<T>(
+    action: impl FnOnce(&mut Store) -> Result<T, &'static str>,
+) -> Result<T, &'static str> {
+    let store = STORE.lock(|slot| {
+        let mut slot = slot.borrow_mut();
+        match core::mem::replace(&mut *slot, Slot::Borrowed) {
+            Slot::Available(store) => Ok(store),
+            prior => {
+                *slot = prior;
+                Err("restart-not-ready")
+            }
+        }
+    })?;
+    let mut lease = StoreLease(Some(store));
+    action(lease.0.as_mut().ok_or("restart-not-ready")?)
+}
 struct Store {
     journal: Checkpoint<BodyRegion>,
     binding: [u8; 32],
@@ -89,10 +128,10 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
     };
     STORE.lock(|slot| {
         let mut slot = slot.borrow_mut();
-        if slot.is_some() {
+        if !matches!(*slot, Slot::Uninitialized) {
             return Err("restart-already-owned");
         }
-        *slot = Some(Store {
+        *slot = Slot::Available(Store {
             journal,
             binding,
             seed,
@@ -109,9 +148,7 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
 /// New entropy is used only when the whole journal is verified erased. Persist
 /// the exact initial biography and key before returning a publishable signer.
 pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static str> {
-    let result = STORE.lock(|slot| {
-        let mut slot = slot.borrow_mut();
-        let store = slot.as_mut().ok_or("restart-not-initialized")?;
+    let result = with_store(|store| {
         if store.failed {
             return Err("restart-failed");
         }
@@ -145,9 +182,7 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
     result
 }
 pub fn take_body() -> Result<RetainedBody, &'static str> {
-    STORE.lock(|slot| {
-        let mut slot = slot.borrow_mut();
-        let store = slot.as_mut().ok_or("restart-not-initialized")?;
+    with_store(|store| {
         if store.failed || store.seed.is_none() {
             return Err("restart-not-ready");
         }
@@ -164,11 +199,7 @@ pub fn checkpoint(
     owner: &mut SealedBodyLifecycleSession,
     verifying_key: &[u8; 32],
 ) -> Result<(), &'static str> {
-    STORE.lock(|slot| {
-        let mut slot = slot.borrow_mut();
-        let store = slot.as_mut().ok_or("restart-not-initialized")?;
-        checkpoint_store(store, owner, verifying_key)
-    })
+    with_store(|store| checkpoint_store(store, owner, verifying_key))
 }
 fn checkpoint_store(
     store: &mut Store,
@@ -228,9 +259,7 @@ fn checkpoint_store(
 pub(crate) fn with_admissions<T>(
     read: impl FnOnce(&AdmissionManager) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
-    STORE.lock(|slot| {
-        let slot = slot.borrow();
-        let store = slot.as_ref().ok_or("restart-not-initialized")?;
+    with_store(|store| {
         if store.failed || !store.ready {
             return Err("restart-not-ready");
         }
@@ -246,9 +275,7 @@ pub(crate) fn admissions_transaction<T>(
         &mut AdmissionManager,
     ) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
-    STORE.lock(|slot| {
-        let mut slot = slot.borrow_mut();
-        let store = slot.as_mut().ok_or("restart-not-initialized")?;
+    with_store(|store| {
         if store.failed || !store.ready {
             return Err("restart-not-ready");
         }
@@ -259,17 +286,14 @@ pub(crate) fn admissions_transaction<T>(
 }
 
 pub fn publication_ready() -> bool {
-    STORE.lock(|slot| {
-        slot.borrow()
-            .as_ref()
-            .is_some_and(|store| store.ready && !store.failed)
-    })
+    STORE.lock(
+        |slot| matches!(&*slot.borrow(), Slot::Available(store) if store.ready && !store.failed),
+    )
 }
 pub fn generation() -> Option<u64> {
-    STORE.lock(|slot| {
-        slot.borrow()
-            .as_ref()
-            .and_then(|store| store.journal.generation())
+    STORE.lock(|slot| match &*slot.borrow() {
+        Slot::Available(store) => store.journal.generation(),
+        _ => None,
     })
 }
 

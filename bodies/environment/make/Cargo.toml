@@ -29,6 +29,7 @@ conduit-time = { path = "../../../semantics/time", default-features = false }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }
 
 [dev-dependencies]
+ed25519-dalek = { version = "2.2", default-features = false }
 serde = { version = "1", features = ["derive"] }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 serde-json-core = { version = "=0.6.0", default-features = false }

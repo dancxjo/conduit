@@ -31,6 +31,12 @@ mod native_authority;
 mod native_body_checkpoint;
 #[cfg(feature = "body-image-root")]
 mod native_body_image;
+#[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+mod native_body_join;
+#[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+mod native_body_join_http;
+#[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+mod native_body_join_uart;
 #[cfg(feature = "native-root")]
 mod native_carrier;
 #[cfg(feature = "native-root")]
@@ -53,6 +59,8 @@ mod native_evidence_archive;
     feature = "observation-store"
 ))]
 mod native_evidence_region;
+#[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+mod native_joined_host_wire;
 #[cfg(feature = "mask-root")]
 mod native_mask_evidence;
 #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]

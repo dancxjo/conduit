@@ -8,6 +8,10 @@ const REQUEST_BYTES: usize = 1024;
 
 pub enum NetworkHttpRequest {
     Page,
+    BodyJoinPage,
+    BodyJoinOptions,
+    BodyJoin(alloc::vec::Vec<u8>),
+    BodyJoinResult { ticket: u32 },
     Reading { json: bool },
     History { after: u32 },
     Join(NetworkSetupInput),
@@ -126,10 +130,46 @@ fn parse(
     } else {
         None
     };
+    let body_join_page =
+        readings && matches!(line, "GET /body/join HTTP/1.0" | "GET /body/join HTTP/1.1");
+    let body_join_post = readings
+        && matches!(
+            line,
+            "POST /body/join HTTP/1.0" | "POST /body/join HTTP/1.1"
+        );
+    let body_join_options = readings
+        && matches!(
+            line,
+            "OPTIONS /body/join HTTP/1.0" | "OPTIONS /body/join HTTP/1.1"
+        );
+    let body_join_ticket = if readings && line.starts_with("GET /body/join/result?id=") {
+        let tail = line
+            .strip_prefix("GET /body/join/result?id=")
+            .ok_or(E::Malformed)?;
+        let (number, version) = tail.split_once(' ').ok_or(E::Malformed)?;
+        if !matches!(version, "HTTP/1.0" | "HTTP/1.1")
+            || number.is_empty()
+            || !number.bytes().all(|b| b.is_ascii_digit())
+            || (number.len() > 1 && number.starts_with('0'))
+        {
+            return Err(E::Malformed);
+        }
+        Some(number.parse::<u32>().map_err(|_| E::TooLarge)?)
+    } else {
+        None
+    };
     let page = match line {
         "GET /network HTTP/1.1" | "GET /network HTTP/1.0" => true,
         "POST /network HTTP/1.1" | "POST /network HTTP/1.0" => false,
-        _ if reading.is_some() || history.is_some() => true,
+        _ if body_join_post => false,
+        _ if reading.is_some()
+            || history.is_some()
+            || body_join_page
+            || body_join_options
+            || body_join_ticket.is_some() =>
+        {
+            true
+        }
         _ => return Err(E::UnsupportedRoute),
     };
     let (mut length, mut content_type) = (None, None);
@@ -174,6 +214,15 @@ fn parse(
         return Err(E::Malformed);
     }
     if page {
+        if body_join_page {
+            return Ok(Some(NetworkHttpRequest::BodyJoinPage));
+        }
+        if body_join_options {
+            return Ok(Some(NetworkHttpRequest::BodyJoinOptions));
+        }
+        if let Some(ticket) = body_join_ticket {
+            return Ok(Some(NetworkHttpRequest::BodyJoinResult { ticket }));
+        }
         if let Some(after) = history {
             return Ok(Some(NetworkHttpRequest::History { after }));
         }
@@ -181,6 +230,15 @@ fn parse(
             Some(json) => NetworkHttpRequest::Reading { json },
             None => NetworkHttpRequest::Page,
         }));
+    }
+    if body_join_post {
+        if !content_type.is_some_and(|value| value.eq_ignore_ascii_case("application/json")) {
+            return Err(E::UnsupportedContentType);
+        }
+        let mut body = alloc::vec::Vec::new();
+        body.try_reserve_exact(length).map_err(|_| E::TooLarge)?;
+        body.extend_from_slice(&bytes[body_start..]);
+        return Ok(Some(NetworkHttpRequest::BodyJoin(body)));
     }
     if !content_type.is_some_and(|v| v.eq_ignore_ascii_case("application/x-www-form-urlencoded")) {
         return Err(E::UnsupportedContentType);
