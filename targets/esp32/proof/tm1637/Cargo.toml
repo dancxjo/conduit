@@ -71,10 +71,6 @@ opt-level = "s"
 lto = "fat"
 codegen-units = 1
 
-# Optimize native control and canonical serialization for the fixed flash budget.
-[profile.release.package.conduit-esp32-tm1637-probe]
-opt-level = "z"
-
 [build-dependencies]
 conduit-core = { path = "../../../../architecture/core" }
 serde_json = "1"
