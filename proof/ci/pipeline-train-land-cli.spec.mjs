@@ -21,7 +21,7 @@ test('landing entrance separates trusted tooling cwd from explicit target data c
     'CONDUIT_TEST_APP_JWT', 'CONDUIT_TEST_POLICY_OBSERVER', target];
   const invoke = argv => spawnSync(process.execPath, [cli, ...argv], {
     cwd: controller, encoding: 'utf8', timeout: 10000,
-    env: { ...process.env, CONDUIT_TEST_APP_JWT: 'fixture-only-jwt',
+    env: { ...process.env, GH_TOKEN: 'fixture-only-installation', CONDUIT_TEST_APP_JWT: 'fixture-only-jwt',
       CONDUIT_TEST_POLICY_OBSERVER: 'fixture-only-observer' },
   });
 

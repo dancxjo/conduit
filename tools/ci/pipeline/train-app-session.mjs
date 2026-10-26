@@ -25,9 +25,10 @@ const CODES = new Set(['configuration-refused', 'private-key-refused', 'clock-re
 export class TrainAppSessionError extends Error {
   constructor(code, revocation = 'not-attempted') {
     code = CODES.has(code) ? code : 'session-failed';
-    super(`Train App session refused (${code}).`);
+    revocation = ['not-attempted', 'succeeded', 'failed'].includes(revocation) ? revocation : 'not-attempted';
+    super(`Train App session refused (${code}; revocation=${revocation}).`);
     this.name = 'TrainAppSessionError'; this.code = code;
-    this.revocation = ['not-attempted', 'succeeded', 'failed'].includes(revocation) ? revocation : 'not-attempted';
+    this.revocation = revocation;
   }
 }
 const refuse = code => { throw new TrainAppSessionError(code); };

@@ -123,10 +123,13 @@ function readOnlyCredentialApi(environmentReference, allowed, label, { command =
       || typeof env[environmentReference] !== 'string' || !env[environmentReference]) fail(`named external ${label} environment reference required`);
   return endpoint => {
     if (!allowed(endpoint)) fail(`unsupported ${label} endpoint`);
+    const childEnvironment = { ...env, GH_TOKEN: env[environmentReference], GH_HOST: 'github.com' };
+    delete childEnvironment[environmentReference];
+    delete childEnvironment.GITHUB_TOKEN;
     let result;
     try {
       result = command('gh', ['api', endpoint], { cwd: directory, encoding: 'utf8', timeout: 60000,
-        maxBuffer: 2 * 1024 ** 2, env: { ...env, GH_TOKEN: env[environmentReference] } });
+        maxBuffer: 2 * 1024 ** 2, env: childEnvironment });
     } catch { fail(`${label} observation failed`); }
     if (result.error || result.status !== 0) fail(`${label} observation failed`);
     try { return JSON.parse(result.stdout); }
@@ -150,6 +153,11 @@ export function createPolicyObserverApi(environmentReference, config, options) {
 export function createTrainCredentialApis({ machineWriter, appJwtEnvironmentReference, policyObserverEnvironmentReference,
   ...options }) {
   if (appJwtEnvironmentReference === policyObserverEnvironmentReference) fail('App JWT and trusted observer require distinct named environment references');
-  return { appIdentityApi: createAppIdentityApi(appJwtEnvironmentReference, options),
-    policyObserverApi: createPolicyObserverApi(policyObserverEnvironmentReference, machineWriter, options) };
+  const original = options.env ?? process.env;
+  const base = { ...original };
+  for (const name of [appJwtEnvironmentReference, policyObserverEnvironmentReference, 'GH_TOKEN', 'GITHUB_TOKEN']) delete base[name];
+  return { appIdentityApi: createAppIdentityApi(appJwtEnvironmentReference,
+    { ...options, env: { ...base, [appJwtEnvironmentReference]: original[appJwtEnvironmentReference] } }),
+  policyObserverApi: createPolicyObserverApi(policyObserverEnvironmentReference, machineWriter,
+    { ...options, env: { ...base, [policyObserverEnvironmentReference]: original[policyObserverEnvironmentReference] } }) };
 }

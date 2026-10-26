@@ -111,11 +111,21 @@ try {
       if (args.length !== 8) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory> <external-machine-policy> <app-jwt-environment-reference> <trusted-policy-observer-environment-reference> <target-source-directory>');
       const { createTrainLander } = await import('./train-land.mjs');
       const { readMachineWriterConfiguration, createTrainCredentialApis } = await import('./train-machine-policy.mjs');
+      const { createTrainCommands } = await import('./train-command.mjs');
+      const { observeCheapTrainPolicy } = await import('./train-cheap-policy.mjs');
+      const { createTrainSessionCommand, createTrainSourceEnvironment, createTrainMetadataApi } = await import('./train-controller.mjs');
       const directory = resolve(args[7]);
       const machineWriter = await readMachineWriterConfiguration(resolve(args[4]), directory);
       const { appIdentityApi, policyObserverApi } = createTrainCredentialApis({ machineWriter,
         appJwtEnvironmentReference: args[5], policyObserverEnvironmentReference: args[6] });
-      const receipt = await createTrainLander({ directory, machineWriter, appIdentityApi, policyObserverApi })(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
+      const credentialReferences = [args[5], args[6]];
+      const sourceEnvironment = createTrainSourceEnvironment(process.env, credentialReferences);
+      const command = createTrainSessionCommand({ installationToken: process.env.GH_TOKEN, credentialReferences });
+      const api = createTrainMetadataApi(command, directory);
+      const commands = createTrainCommands({ directory, command, sourceEnvironment,
+        observeCheapPolicy: ({ repository }) => observeCheapTrainPolicy({ config: machineWriter,
+          repository, api, appApi: appIdentityApi, policyApi: policyObserverApi }) });
+      const receipt = await createTrainLander({ directory, command, commands, machineWriter, appIdentityApi, policyObserverApi })(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
       output('train-landed-source', receipt.landedDev);
       output('train-landed-tree', receipt.tree);
       break;

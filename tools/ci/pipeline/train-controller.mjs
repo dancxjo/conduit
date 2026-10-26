@@ -61,15 +61,19 @@ export async function readTrainControllerRequest(filename) {
 
 // Credentials go only to the fixed trusted child programs. In particular Git
 // reads/merge commands do not inherit the observer, JWT or installation token.
+export function createTrainSourceEnvironment(environment = process.env, credentialReferences = []) {
+  const env = { ...environment };
+  for (const name of ['GH_TOKEN', 'GITHUB_TOKEN', ...credentialReferences]) if (name) delete env[name];
+  return Object.freeze(env);
+}
+
 export function createTrainSessionCommand({ installationToken, observerEnvironmentReference,
-  environment = process.env, command = spawnSync }) {
+  credentialReferences = [], environment = process.env, command = spawnSync }) {
   if (typeof installationToken !== 'string' || !/^[\x21-\x7e]{1,16384}$/.test(installationToken)) fail('scoped installation credential required');
   const inherited = { ...environment };
   const clean = extra => {
-    const env = { ...inherited, ...extra };
-    delete env.GH_TOKEN; delete env.GITHUB_TOKEN;
-    if (observerEnvironmentReference) delete env[observerEnvironmentReference];
-    return env;
+    return { ...createTrainSourceEnvironment({ ...inherited, ...extra },
+      [observerEnvironmentReference, ...credentialReferences]) };
   };
   return (program, args, options = {}) => {
     if (!['gh', 'git'].includes(program) || !Array.isArray(args)
@@ -88,6 +92,16 @@ export function createTrainSessionCommand({ installationToken, observerEnvironme
   };
 }
 
+export function createTrainMetadataApi(command, directory) {
+  return endpoint => {
+    const result = command('gh', ['api', endpoint], { cwd: directory,
+      encoding: 'utf8', timeout: 60000, maxBuffer: 2 * 1024 ** 2 });
+    if (result?.error || result?.signal || result?.status !== 0) fail('credential observation refused');
+    try { return JSON.parse(result.stdout); }
+    catch { fail('credential observation JSON invalid'); }
+  };
+}
+
 export async function runTrainController({ request, config, privateKeyFile, observerEnvironmentReference,
   policyApi, environment = process.env, command = spawnSync, session = withTrainAppSession,
   artifactCommandFactory }) {
@@ -95,26 +109,18 @@ export async function runTrainController({ request, config, privateKeyFile, obse
   validateMachineWriterConfiguration(config, config?.repository);
   config = Object.freeze({ ...config });
   environment = Object.freeze({ ...environment });
+  const sourceEnvironment = createTrainSourceEnvironment(environment, [observerEnvironmentReference]);
   await assertSeparateTrainController(request.targetSource);
   policyApi ??= createPolicyObserverApi(observerEnvironmentReference, config, { env: environment, command });
   return session({ config, privateKeyFile, policyApi, sourceDirectory: request.targetSource,
     callback: async ({ jwt, installationToken }) => {
       const child = createTrainSessionCommand({ installationToken, observerEnvironmentReference, environment, command });
-      const readApi = (endpoint, credential = installationToken) => {
-        let result;
-        const env = { ...environment, GH_TOKEN: credential, GH_HOST: 'github.com' };
-        delete env.GITHUB_TOKEN;
-        if (observerEnvironmentReference) delete env[observerEnvironmentReference];
-        try { result = command('gh', ['api', endpoint], { cwd: request.targetSource, env,
-          encoding: 'utf8', timeout: 60000, maxBuffer: 2 * 1024 ** 2 }); }
-        catch { fail('credential observation failed'); }
-        if (result?.error || result?.signal || result?.status !== 0) fail('credential observation refused');
-        try { return JSON.parse(result.stdout); }
-        catch { fail('credential observation JSON invalid'); }
-      };
+      const readApi = createTrainMetadataApi(child, request.targetSource);
+      const appReadApi = createTrainMetadataApi(createTrainSessionCommand({ installationToken: jwt,
+        observerEnvironmentReference, environment, command }), request.targetSource);
       const appIdentityApi = endpoint => {
         if (endpoint !== 'app' && endpoint !== `app/installations/${config.installationId}`) fail('unsupported App identity endpoint');
-        return readApi(endpoint, jwt);
+        return appReadApi(endpoint);
       };
       const observeCheapPolicy = ({ repository }) => {
         if (repository !== config.repository) fail('repository differs from session');
@@ -123,13 +129,11 @@ export async function runTrainController({ request, config, privateKeyFile, obse
       let artifactCommand;
       if (request.operation === 'acquire') {
         artifactCommandFactory ??= (await import('./train-artifacts.mjs')).createBoundedTrainArtifactCommand;
-        const env = { ...environment, GH_TOKEN: installationToken, GH_HOST: 'github.com' };
-        delete env.GITHUB_TOKEN;
-        if (observerEnvironmentReference) delete env[observerEnvironmentReference];
+        const env = { ...sourceEnvironment, GH_TOKEN: installationToken, GH_HOST: 'github.com' };
         artifactCommand = artifactCommandFactory({ env, directory: request.targetSource });
       }
       const commands = createTrainCommands({ command: child, directory: request.targetSource,
-        artifactCommand, observeCheapPolicy });
+        artifactCommand, observeCheapPolicy, sourceEnvironment });
       switch (request.operation) {
         case 'assemble': return commands.assemble(config.repository, request.prs, request.worktree, request.manifest);
         case 'capture': return commands.capture(config.repository, request.source, request.prs, request.manifest);

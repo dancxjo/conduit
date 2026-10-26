@@ -93,6 +93,7 @@ function safeError(code, revocation) {
   return error => {
     assert.ok(error instanceof TrainAppSessionError, 'typed public session error');
     assert.equal(error.code, code); assert.equal(error.revocation, revocation);
+    assert.ok(error.message.includes(`revocation=${revocation}`), 'CLI-visible error retains cleanup outcome');
     assert.ok(!String(error).includes(TOKEN) && !JSON.stringify(error).includes(TOKEN), 'error excludes credential');
     assert.ok(!String(error).includes('PRIVATE KEY'), 'error excludes key material');
     return true;

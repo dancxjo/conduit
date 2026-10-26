@@ -154,6 +154,20 @@ test('JWT and observer named references are distinct and never use mutation-toke
     assert.throws(() => createTrainCredentialApis({ machineWriter: f.config, appJwtEnvironmentReference: 'JWT', policyObserverEnvironmentReference: reserved, env }));
   }
 });
+test('each credential child receives only its own authority and the fixed GitHub host', () => {
+  const f = machinePolicyFixture(), seen = [];
+  const channels = createTrainCredentialApis({ machineWriter: f.config,
+    appJwtEnvironmentReference: 'JWT', policyObserverEnvironmentReference: 'OBSERVER',
+    env: { JWT: 'fixture-jwt', OBSERVER: 'fixture-owner', GH_TOKEN: 'fixture-machine',
+      GITHUB_TOKEN: 'fixture-actions', GH_HOST: 'untrusted.invalid' },
+    command(program, args, options) {
+      seen.push({ endpoint: args[1], env: options.env }); return { status: 0, stdout: '{}' };
+    } });
+  channels.appIdentityApi('app'); channels.policyObserverApi('user');
+  assert.ok(seen[0].env.GH_TOKEN === 'fixture-jwt' && seen[1].env.GH_TOKEN === 'fixture-owner');
+  assert.ok(seen.every(item => item.env.GH_HOST === 'github.com'
+    && ['JWT', 'OBSERVER', 'GITHUB_TOKEN'].every(name => !Object.hasOwn(item.env, name))));
+});
 for (const mode of ['throw', 'error-result', 'malformed-json']) test(`credential channels sanitize ${mode} errors`, () => {
   const f = machinePolicyFixture(), secret = 'fixture-secret-never-in-error';
   const channels = createTrainCredentialApis({ machineWriter: f.config,
