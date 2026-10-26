@@ -7,7 +7,7 @@ use alloc::boxed::Box;
 use core::cell::RefCell;
 use embassy_executor::Spawner;
 use embassy_sync::{
-    blocking_mutex::{Mutex, raw::CriticalSectionRawMutex},
+    blocking_mutex::{raw::CriticalSectionRawMutex, Mutex},
     signal::Signal,
 };
 use static_cell::StaticCell;
