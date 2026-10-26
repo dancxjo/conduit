@@ -136,3 +136,58 @@ test('shared compatibility policy clears only managed objects and refuses an unk
   const receipt=await clearCompositorCargoCache({cacheRoot,expectedNamespace});assert.equal(receipt.policy.schema,3);assert.equal(receipt.files.length,1);
   assert.deepEqual(await fs.readdir(path.join(cacheRoot,'objects')),[]);
 });
+
+// Minimal policy fixture matching the accepted hosted seed's schema and hashes.
+// Objects remain small disposable test data; no acquired cache or proof is read.
+const acceptedHostedPolicy={schema:3,cacheMode:'audited-dependencies',
+  compatibilitySha256:'74f30367ed1397953c4867f0e5625684fcedcc398c64c5cfbcc3cd311aed63dd',
+  recipeVerifierSha256:'65f8688a5797a828f7772980260d6facba3fff900647dcbb94312d404e21ab52',
+  runnerSha256:'cd7bb0526e4804ee8812dcac908b697c47a4b2a28e8b9a7a79ba9ac60edf0ee9',
+  sandboxArgsSha256:'ee42a8a66b837e65c315e722bdda9e02c18cb15810a615aa847f55d74765da63',
+  runnerSourceSha256:'c5236f5b7056d61b8696d8ba76a58228bf832a0bd87fe42117c4203c88c160fe',
+  bwrapSha256:'e318903862396f96de3df57264e0158682b952fd3fb53ac23d876413e7b30f71',maxCacheBytes:4294967296};
+const policyNamespace=policy=>createHash('sha256').update(JSON.stringify(policy)).digest('hex');
+function hostedClearPolicy(schema) {
+  if(schema===3)return {...acceptedHostedPolicy};
+  const {schema:_schema,cacheMode:_mode,compatibilitySha256:_compatibility,...fields}=acceptedHostedPolicy;
+  return {schema:2,snapshotSha256:'a'.repeat(64),...fields};
+}
+async function hostedClearFixture(t,schema) {
+  const fixture=await managedCacheFixture(t);const policy=hostedClearPolicy(schema);
+  const marker=path.join(fixture.cacheRoot,'policy.json');await fs.writeFile(marker,JSON.stringify(policy));
+  const outside=path.join(fixture.root,'outside-sentinel');await fs.writeFile(outside,'unique task proof');
+  return {...fixture,policy,marker,outside,expectedNamespace:policyNamespace(policy)};
+}
+for(const schema of [2,3]) {
+  test(`hosted schema ${schema} recipe-bound policy clears only disposable managed objects`,async t=>{
+    const f=await hostedClearFixture(t,schema);
+    if(schema===3)assert.equal(f.expectedNamespace,'567ea3e0ff7251623c36bff15f5e2e35e0ce7c3c72d1a2e72bd946ac226b026b');
+    const receipt=await clearCompositorCargoCache(f);
+    assert.deepEqual(receipt.policy,f.policy);assert.equal(receipt.namespace,f.expectedNamespace);
+    assert.equal(receipt.files.length,1);assert.equal(receipt.payloadBytes,Buffer.byteLength('regenerable engine object'));
+    assert.deepEqual(await fs.readdir(path.join(f.cacheRoot,'objects')),[]);
+    assert.deepEqual((await fs.readdir(f.cacheRoot)).sort(),['objects','policy.json']);
+    assert.equal(await fs.readFile(f.marker,'utf8'),JSON.stringify(f.policy));
+    assert.equal(await fs.readFile(f.outside,'utf8'),'unique task proof');
+  });
+  for(const [name,mutate,oldNamespace] of [
+    ['short recipe hash',p=>{p.recipeVerifierSha256='a'.repeat(63);} ],
+    ['uppercase recipe hash',p=>{p.recipeVerifierSha256='A'.repeat(64);} ],
+    ['null recipe hash',p=>{p.recipeVerifierSha256=null;} ],
+    ['array-coerced recipe hash',p=>{p.recipeVerifierSha256=['a'.repeat(64)];} ],
+    ['unknown extra field',p=>{p.extraSha256='a'.repeat(64);} ],
+    ['recipe changed without namespace change',p=>{p.recipeVerifierSha256='f'.repeat(64);},true],
+    ['wrong namespace',()=>{},true],
+  ]) {
+    test(`hosted schema ${schema} refuses ${name} without altering objects or evidence`,async t=>{
+      const f=await hostedClearFixture(t,schema);mutate(f.policy);
+      const text=JSON.stringify(f.policy);await fs.writeFile(f.marker,text);
+      const expectedNamespace=name==='wrong namespace'?'f'.repeat(64):oldNamespace?f.expectedNamespace:policyNamespace(f.policy);
+      await rejected(()=>clearCompositorCargoCache({cacheRoot:f.cacheRoot,expectedNamespace}),'cargo-clear-policy-mismatch');
+      assert.equal(await fs.readFile(f.objectPath,'utf8'),'regenerable engine object');
+      assert.equal(await fs.readFile(f.outside,'utf8'),'unique task proof');
+      assert.equal(await fs.readFile(f.marker,'utf8'),text);
+      assert.deepEqual((await fs.readdir(f.cacheRoot)).sort(),['objects','policy.json']);
+    });
+  }
+}
