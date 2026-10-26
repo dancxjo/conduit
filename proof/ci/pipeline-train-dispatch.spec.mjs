@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, stat } from 'node:fs/promises';
 import test from 'node:test';
 import { commands } from './helpers/train-command-fixture.mjs';
 import { createTrainDispatcher } from '../../tools/ci/pipeline/train-dispatch.mjs';
@@ -23,6 +23,9 @@ async function fixture(t) {
         '-c', 'credential.interactive=false', 'push', '--porcelain', '--no-follow-tags', '--recurse-submodules=no', `--force-with-lease=${fullRef}:`,
         remote, `${f.source}:${fullRef}`]);
       assert.equal(options.env.GIT_TERMINAL_PROMPT, '0');
+      assert.notEqual(options.cwd, f.directory);
+      assert.equal(options.env.GIT_CONFIG_GLOBAL, '/dev/null');
+      assert.equal(options.env.GIT_CONFIG_NOSYSTEM, '1');
       if (state.raceSource) {
         const raced = spawnSync('git', ['push', server, `${state.raceSource}:${fullRef}`], { cwd: f.directory, encoding: 'utf8' });
         assert.equal(raced.status, 0, raced.stderr);
@@ -64,9 +67,13 @@ test('dispatch creates the exact train ref and passes the immutable source guard
   const f = await fixture(t);
   f.git('tag', '-a', 'retained-local-tag', '-m', 'Local tag must not accompany train publication');
   f.git('config', 'push.followTags', 'true');
+  const hookMarker = path.join(f.output, 'source-hook-ran');
+  await writeFile(path.join(f.directory, '.git/hooks/pre-push'),
+    `#!/bin/sh\necho observed > '${hookMarker}'\n`, { mode: 0o700 });
   const result = await f.dispatch(f.filename);
   assert.notEqual(f.serverGit(['rev-parse', '--verify', 'refs/tags/retained-local-tag']).status, 0);
   assert.equal(result.dispatched, true); assert.equal(result.runId, null);
+  await assert.rejects(stat(hookMarker), { code: 'ENOENT' });
   assert.equal(result.manifestDigest, f.manifest.digest);
   assert.equal(f.serverGit(['cat-file', '-t', f.source]).stdout.trim(), 'commit');
   assert.equal(f.serverGit(['rev-parse', f.fullRef]).stdout.trim(), f.source);
@@ -166,7 +173,7 @@ test('Integration guards manual train source before proof while retaining normal
   assert.match(workflow, /train-source:[\s\S]*EXPECTED_SOURCE: \$\{\{ inputs\.train-source \}\}/);
   assert.match(workflow, /ACTUAL_SOURCE: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /run: test "\$EXPECTED_SOURCE" = "\$ACTUAL_SOURCE"/);
-  assert.match(workflow, /proof:\n\s+needs: \[train-source, adoption\]/);
+  assert.match(workflow, /proof:\n\s+permissions:\n\s+contents: read\n\s+actions: read\n\s+needs: \[train-source, adoption\]/);
   assert.match(workflow, /needs\.train-source\.result == 'skipped'/);
   assert.match(workflow, /base: all/);
   assert.match(workflow, /cancel-in-progress: false/);
@@ -199,4 +206,14 @@ test('only Integration earns train-accepted after exhaustive proof or authentica
       GUARD: guard, ADOPTION: adoption, ADOPTED: adopted, RESULT: result } });
     assert.equal(outcome.status === 0, accepted, JSON.stringify({ guard, adoption, adopted, result }));
   }
+});
+
+
+test('legacy default dispatch refuses absent explicit token before reading source or stored authentication', () => {
+  const environment = { ...process.env }; delete environment.GH_TOKEN; delete environment.GITHUB_TOKEN;
+  const script = `import {createTrainDispatcher} from './tools/ci/pipeline/train-dispatch.mjs';
+try { await createTrainDispatcher()('/missing-fixture-manifest'); process.exit(2); }
+catch(error) { process.exit(error.message.includes('scoped installation credential required') ? 0 : 3); }`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], { env: environment, encoding: 'utf8' });
+  assert.equal(result.status, 0);
 });

@@ -91,9 +91,9 @@ test('snapshot preparation refuses recursively copying into its own source',asyn
   assert.deepEqual(await fs.readdir(path.join(source,'src')),[]);
 });
 
-async function managedCacheFixture(t) {
+async function managedCacheFixture(t,{shared=false}={}) {
   const root=await temp(t);const cacheRoot=path.join(root,'cache');await fs.mkdir(cacheRoot);
-  const policy={schema:2,snapshotSha256:'a'.repeat(64),runnerSha256:'b'.repeat(64),sandboxArgsSha256:'c'.repeat(64),runnerSourceSha256:'d'.repeat(64),bwrapSha256:'e'.repeat(64),maxCacheBytes:1024};
+  const policy={schema:shared?3:2,...(shared?{cacheMode:'audited-dependencies',compatibilitySha256:'a'.repeat(64)}:{snapshotSha256:'a'.repeat(64)}),runnerSha256:'b'.repeat(64),sandboxArgsSha256:'c'.repeat(64),runnerSourceSha256:'d'.repeat(64),bwrapSha256:'e'.repeat(64),maxCacheBytes:1024};
   await fs.writeFile(path.join(cacheRoot,'policy.json'),JSON.stringify(policy));
   const object='ab'+'0'.repeat(62);const directory=path.join(cacheRoot,'objects/a/b');await fs.mkdir(directory,{recursive:true});
   const objectPath=path.join(directory,object);await fs.writeFile(objectPath,'regenerable engine object');
@@ -125,4 +125,14 @@ test('interrupted retirement markers fail closed and wrong namespace cannot clea
   await rejected(()=>clearCompositorCargoCache({cacheRoot,expectedNamespace}),'cargo-retirement-interrupted');
   assert.equal(await fs.readFile(objectPath,'utf8'),'regenerable engine object');
   assert.equal(await fs.readFile(path.join(cacheRoot,'retirement.json'),'utf8'),'retained interrupted intent');
+});
+
+test('shared compatibility policy clears only managed objects and refuses an unknown cache mode',async t=>{
+  const {cacheRoot,expectedNamespace,objectPath}=await managedCacheFixture(t,{shared:true});
+  const marker=path.join(cacheRoot,'policy.json');const original=await fs.readFile(marker,'utf8');
+  const unsupported=JSON.parse(original);unsupported.cacheMode='arbitrary-source';await fs.writeFile(marker,JSON.stringify(unsupported));
+  await rejected(()=>clearCompositorCargoCache({cacheRoot,expectedNamespace:createHash('sha256').update(JSON.stringify(unsupported)).digest('hex')}),'cargo-clear-policy-mismatch');
+  assert.equal(await fs.readFile(objectPath,'utf8'),'regenerable engine object');await fs.writeFile(marker,original);
+  const receipt=await clearCompositorCargoCache({cacheRoot,expectedNamespace});assert.equal(receipt.policy.schema,3);assert.equal(receipt.files.length,1);
+  assert.deepEqual(await fs.readdir(path.join(cacheRoot,'objects')),[]);
 });

@@ -1,3 +1,4 @@
+import { requireCaptureLineage } from './history-lineage.mjs';
 import { checkEvidenceRetention } from './evidence-retention.mjs';
 import { readDeliveryStatus } from './delivery-status.mjs';
 import { appendFileSync, mkdirSync, readdirSync, existsSync, readFileSync } from 'node:fs';
@@ -39,6 +40,73 @@ function target(id) {
 const [command, ...args] = process.argv.slice(2);
 try {
   switch (command) {
+    case 'compiler-cache-hosted-restore': {
+      if (args.length !== 3) throw new Error('usage: compiler-cache-hosted-restore <config> <new-acquisition-directory> <new-config>');
+      const { loadHostedProductCacheConfig, writeHostedProductCacheConfig } = await import('./hosted-cache-command.mjs');
+      const { hostedCachePolicy } = await import('../compiler-cache/cargo-sandbox.mjs');
+      const { discoverAcceptedHostedSeeds, createHostedSeedObserver } = await import('./hosted-cache-discovery.mjs');
+      const { acquireHostedCacheSeed } = await import('./hosted-cache-seed.mjs');
+      const configuration = await loadHostedProductCacheConfig(resolve(args[0]));
+      const { policy, namespace } = await hostedCachePolicy(configuration.snapshot, { maxCacheBytes: configuration.maxCacheBytes });
+      const repository = process.env.GITHUB_REPOSITORY;
+      const candidates = await discoverAcceptedHostedSeeds({ repository, namespace, firstOnly: true });
+      let selectedConfig = resolve(args[0]);
+      if (candidates.length) {
+        const acquired = await acquireHostedCacheSeed({ ...candidates[0], policy, namespace, directory: resolve(args[1]) });
+        createHostedSeedObserver({ repository }).accepted(candidates[0].accepted.source);
+        selectedConfig = await writeHostedProductCacheConfig({ schema: 'conduit.hosted-cache-target/v1',
+          snapshotManifest: configuration.snapshotManifest, cacheRoot: acquired.cacheRoot,
+          taskRoot: configuration.taskRoot, cacheMode: configuration.cacheMode,
+          maxCacheBytes: configuration.maxCacheBytes }, resolve(args[2]));
+      }
+      output('hosted-cache-config', selectedConfig);
+      output('hosted-cache-restored', String(candidates.length !== 0));
+      break;
+    }
+    case 'compiler-cache-hosted-seal': {
+      if (args.length !== 2) throw new Error('usage: compiler-cache-hosted-seal <config> <new-seed-directory>');
+      if (process.env.GITHUB_JOB !== 'target' || !/^[1-9][0-9]*$/.test(process.env.GITHUB_RUN_ID ?? '')) throw new Error('Compiler seed requires its actual target job');
+      const { loadHostedProductCacheConfig } = await import('./hosted-cache-command.mjs');
+      const { hostedCachePolicy } = await import('../compiler-cache/cargo-sandbox.mjs');
+      const { createHostedSeedObserver } = await import('./hosted-cache-discovery.mjs');
+      const { sealHostedCacheSeed } = await import('./hosted-cache-seed.mjs');
+      const configuration = await loadHostedProductCacheConfig(resolve(args[0]), { completedTask: true });
+      const { policy, namespace } = await hostedCachePolicy(configuration.snapshot, { maxCacheBytes: configuration.maxCacheBytes });
+      const observed = createHostedSeedObserver({ repository: process.env.GITHUB_REPOSITORY }).api(`actions/runs/${process.env.GITHUB_RUN_ID}`);
+      if (observed.run_attempt !== Number(process.env.GITHUB_RUN_ATTEMPT) || observed.head_sha !== process.env.GITHUB_SHA) throw new Error('Compiler seed run attempt differs from its job');
+      const sealed = await sealHostedCacheSeed({ cacheRoot: configuration.cacheRoot, policy, namespace,
+        source: configuration.snapshot.sourceCommit, tree: configuration.snapshot.sourceTree,
+        run: observed, directory: resolve(args[1]) });
+      output('hosted-seed-name', sealed.name);
+      output('hosted-seed-archive', sealed.archive);
+      break;
+    }
+    case 'compiler-cache-hosted-retire': {
+      if (args.length < 4 || args.length > 103 || args.slice(3).some(value => !/^[1-9][0-9]*$/.test(value))) throw new Error('usage: compiler-cache-hosted-retire <repository> <namespace> <new-receipt-directory> <artifact-id>...');
+      const { retireHostedCacheSeeds } = await import('./hosted-cache-seed.mjs');
+      const retired = await retireHostedCacheSeeds({ repository: args[0], namespace: args[1],
+        directory: resolve(args[2]), artifactIds: args.slice(3).map(Number) });
+      output('hosted-seed-retired-ids', retired.artifacts.map(artifact => artifact.id));
+      break;
+    }
+    case 'compiler-cache-hosted-prepare': {
+      if (args.length !== 7) throw new Error('usage: compiler-cache-hosted-prepare <engine> <toolchain-root> <new-snapshot> <new-manifest> <cache-root> <new-task-root> <new-config>');
+      const [engine, toolchainRoot, destination, manifestFile, cacheRoot, taskRoot, configFile] = args.map(value => resolve(value));
+      const { prepareHostedProductCache } = await import('./hosted-cache-command.mjs');
+      const prepared = await prepareHostedProductCache({ engine, toolchainRoot, destination, manifestFile, cacheRoot, taskRoot, configFile });
+      output('hosted-cache-namespace', prepared.namespace);
+      output('hosted-cache-config', prepared.configFile);
+      output('hosted-cache-policy', prepared.managedPaths[0]);
+      output('hosted-cache-objects', prepared.managedPaths[1]);
+      break;
+    }
+    case 'history-lineage-create': {
+      if (args.length !== 6) throw new Error('usage: history-lineage-create <original-repo> <mapped-repo> <commit-map> <capture-inventory> <immutable-custody> <new-policy-output>');
+      const { prepareCaptureLineagePolicy } = await import('./history-lineage-create.mjs');
+      const [originalDirectory, mappedDirectory, mapFile, capturesFile, custodyFile, outputFile] = args.map(value => resolve(value));
+      output('history-lineage', await prepareCaptureLineagePolicy({ originalDirectory, mappedDirectory, mapFile, capturesFile, custodyFile, outputFile }));
+      break;
+    }
     case 'compiler-cache-proof': {
       if (args.length !== 1) throw new Error('usage: compiler-cache-proof <snapshot-manifest>');
       const specs = readdirSync('proof/ci').filter(name => name.startsWith('compiler-cache') && name.endsWith('.spec.mjs'));
@@ -90,17 +158,71 @@ try {
       output('proof-run', String(adoption?.integrationRun ?? pushRun.id));
       break;
     }
+    case 'train-service': {
+      if ((args.length !== 4 && args.length !== 5) || (args.length === 5 && args[4] !== '--drain')) {
+        throw new Error('usage: train-service <service-configuration> <external-machine-policy> <private-key-file> <trusted-policy-observer-environment-reference> [--drain]');
+      }
+      const { readTrainServiceConfiguration, runTrainServiceTick } = await import('./train-service.mjs');
+      const { selectTrainServiceReadyInputs } = await import('./train-service-session.mjs');
+      const { readMachineWriterConfiguration } = await import('./train-machine-policy.mjs');
+      const configurationFile = resolve(args[0]);
+      const service = await readTrainServiceConfiguration(configurationFile);
+      const config = await readMachineWriterConfiguration(resolve(args[1]), service.sourceObjectStore);
+      output('train-service-result', await runTrainServiceTick({ configurationFile, config,
+        privateKeyFile: resolve(args[2]), observerEnvironmentReference: args[3], maintenance: args.length === 5,
+        selectReady: selectTrainServiceReadyInputs }));
+      break;
+    }
+    case 'train-supervise': {
+      if ((args.length !== 5 && args.length !== 6) || (args.length === 6 && args[5] !== '--drain')) {
+        throw new Error('usage: train-supervise <queue-file> <state-directory> <external-machine-policy> <private-key-file> <trusted-policy-observer-environment-reference> [--drain]');
+      }
+      const { readTrainSupervisorQueue, runTrainSupervisorTick } = await import('./train-supervisor.mjs');
+      const { readMachineWriterConfiguration } = await import('./train-machine-policy.mjs');
+      const queueFile = resolve(args[0]);
+      const queue = await readTrainSupervisorQueue(queueFile);
+      const config = await readMachineWriterConfiguration(resolve(args[2]), queue.targetSource);
+      output('train-supervisor-result', await runTrainSupervisorTick({ queueFile,
+        stateDirectory: resolve(args[1]), config, privateKeyFile: resolve(args[3]),
+        observerEnvironmentReference: args[4], maintenance: args.length === 6 }));
+      break;
+    }
+    case 'train-control': {
+      if (args.length !== 4) throw new Error('usage: train-control <request-file> <external-machine-policy> <private-key-file> <trusted-policy-observer-environment-reference>');
+      const { readTrainControllerRequest, runTrainController } = await import('./train-controller.mjs');
+      const { readMachineWriterConfiguration } = await import('./train-machine-policy.mjs');
+      const request = await readTrainControllerRequest(resolve(args[0]));
+      const config = await readMachineWriterConfiguration(resolve(args[1]), request.targetSource);
+      output('train-controller-result', await runTrainController({ request, config,
+        privateKeyFile: resolve(args[2]), observerEnvironmentReference: args[3] }));
+      break;
+    }
     case 'train-admit': {
       if (args.length !== 1) throw new Error('usage: train-admit <manifest-file>');
-      const { createTrainCommands } = await import('./train-command.mjs');
-      const manifest = await createTrainCommands().prepareDispatch(resolve(args[0]));
-      output('train-manifest-digest', manifest.digest);
+      const { createTrainProofAdmission } = await import('./train-proof-admission.mjs');
+      const proof = await createTrainProofAdmission()(resolve(args[0]));
+      output('train-manifest-digest', proof.digest);
       break;
     }
     case 'train-land': {
-      if (args.length !== 4) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory>');
+      if (args.length !== 8) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory> <external-machine-policy> <app-jwt-environment-reference> <trusted-policy-observer-environment-reference> <target-source-directory>');
       const { createTrainLander } = await import('./train-land.mjs');
-      const receipt = await createTrainLander()(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
+      const { readMachineWriterConfiguration, createTrainCredentialApis } = await import('./train-machine-policy.mjs');
+      const { createTrainCommands } = await import('./train-command.mjs');
+      const { observeCheapTrainPolicy } = await import('./train-cheap-policy.mjs');
+      const { createTrainSessionCommand, createTrainSourceEnvironment, createTrainMetadataApi } = await import('./train-controller.mjs');
+      const directory = resolve(args[7]);
+      const machineWriter = await readMachineWriterConfiguration(resolve(args[4]), directory);
+      const { appIdentityApi, policyObserverApi } = createTrainCredentialApis({ machineWriter,
+        appJwtEnvironmentReference: args[5], policyObserverEnvironmentReference: args[6] });
+      const credentialReferences = [args[5], args[6]];
+      const sourceEnvironment = createTrainSourceEnvironment(process.env, credentialReferences);
+      const command = createTrainSessionCommand({ installationToken: process.env.GH_TOKEN, credentialReferences });
+      const api = createTrainMetadataApi(command, directory);
+      const commands = createTrainCommands({ directory, command, sourceEnvironment,
+        observeCheapPolicy: ({ repository }) => observeCheapTrainPolicy({ config: machineWriter,
+          repository, api, appApi: appIdentityApi, policyApi: policyObserverApi }) });
+      const receipt = await createTrainLander({ directory, command, commands, machineWriter, appIdentityApi, policyObserverApi })(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
       output('train-landed-source', receipt.landedDev);
       output('train-landed-tree', receipt.tree);
       break;
@@ -217,15 +339,15 @@ try {
       if (oneBodyEvidence) {
         // The browser target has a shallow checkout. Verify ancestry here,
         // where CI retains the full history, before any expensive target work.
-        run('git', ['merge-base', '--is-ancestor', oneBodyEvidence.sourceCommit, 'HEAD']);
+        requireCaptureLineage(oneBodyEvidence.sourceCommit, run('git', ['rev-parse', 'HEAD'], true));
       }
       const threeHostDevelopment = oneBodyEvidence ? null : retainedThreeHostDevelopmentEvidence();
       if (threeHostDevelopment) {
-        run('git', ['merge-base', '--is-ancestor', threeHostDevelopment.sourceCommit, 'HEAD']);
+        requireCaptureLineage(threeHostDevelopment.sourceCommit, run('git', ['rev-parse', 'HEAD'], true));
       }
       const directSpokenDevelopment = retainedDirectSpokenDevelopmentEvidence();
       if (directSpokenDevelopment) {
-        run('git', ['merge-base', '--is-ancestor', directSpokenDevelopment.sourceCommit, 'HEAD']);
+        requireCaptureLineage(directSpokenDevelopment.sourceCommit, run('git', ['rev-parse', 'HEAD'], true));
       }
       retainedTodoBrowserDevelopmentEvidence(undefined, run('git', ['rev-parse', 'HEAD'], true));
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
@@ -243,7 +365,8 @@ try {
       run('python3', ['architecture/core/definitions/generate.py', '--check']);
       run('cargo', ['xtask', 'ci', 'standalone-locks', '--locked']);
       // Keep the canonical corpus independent of edits to its Cargo wrapper.
-      // Compile/run that actual std-only Rust test too, without xtask's graph.
+      // Compile/run the actual std-only Rust launcher with real success/failure
+      // probes, without replaying the full corpus or building xtask's graph.
       const specs = readdirSync('proof/ci').filter(name =>
         (name.startsWith('pipeline-') || name.startsWith('compiler-cache')) && name.endsWith('.spec.mjs'))
         .map(name => `proof/ci/${name}`);
@@ -293,10 +416,13 @@ try {
       await publish(args[0], resolve(args[1] ?? 'target/bundle'));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-service|train-supervise|train-control|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
   }
 } catch (error) {
   abandonProductCustody();
+  if (typeof error.result?.stderr === 'string' && error.result.stderr) {
+    console.error(error.result.stderr.slice(-8192));
+  }
   console.error(`FAILED: pipeline/${command}: ${error.message}`);
   process.exitCode = 1;
 }

@@ -445,6 +445,7 @@ Actions to create pull requests.
 ```sh
 cargo xtask ci pipeline setup-ci
 cargo xtask ci pipeline preflight BASE_SHA
+cargo xtask ci pipeline setup-unit
 cargo xtask ci pipeline unit foundation
 cargo xtask ci pipeline scan BASE_SHA HEAD_SHA
 cargo xtask ci pipeline setup conduitos-x86_64
@@ -452,8 +453,13 @@ cargo xtask ci pipeline target conduitos-x86_64 HEAD_SHA
 cargo xtask ci pipeline verify target/bundle HEAD_SHA
 ```
 
-`setup-ci` installs checksum-verified actionlint; target setup installs that
-lane's prerequisites. Missing tools or unavailable physical devices are not
+`setup-ci` installs checksum-verified actionlint. Both `setup-ci` and `setup-unit`
+provision Bubblewrap and the distribution AppArmor profiles, then prove isolated
+namespace setup before the mandatory sandbox wrapper tests run. The unit
+workflow-contract tests execute that corpus too. Package installation and loading
+the distribution profile on restricted hosts may require administrator access;
+neither entrance disables the host restriction or falls back outside the sandbox.
+Target setup installs that lane's prerequisites. Missing tools or unavailable physical devices are not
 successful proof. Artifact retention is fourteen days; expired input requires a
 fresh integration, not fabricated receipts. Behavioral tests cover refusal and
 identity invariants rather than fixing YAML job names or ordering strings.

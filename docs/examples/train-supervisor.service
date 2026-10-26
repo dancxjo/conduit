@@ -1,0 +1,12 @@
+# Inert example. Provision one reviewed host/state root per repository first.
+[Unit]
+Description=Advance one explicitly approved Conduit train batch
+
+[Service]
+Type=oneshot
+WorkingDirectory=/absolute/pinned-trusted-controller
+EnvironmentFile=/private/train/observer.env
+UMask=0077
+ExecStart=/absolute/pinned-cargo +stable xtask ci pipeline train-supervise /private/train/queue.json /private/train/state /private/train/machine.json /private/train/app.pem CONDUIT_TRAIN_POLICY_OBSERVER
+TimeoutStartSec=20min
+# Do not configure Restart=on-failure: ambiguous mutation intents need inspection.

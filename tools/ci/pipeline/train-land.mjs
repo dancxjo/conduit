@@ -1,12 +1,23 @@
 // Land only the exact source already proved and authenticated. Never force or bypass.
 import { spawnSync } from 'node:child_process';
-import { lstat, writeFile } from 'node:fs/promises';
+import { lstat, writeFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createTrainCommands } from './train-command.mjs';
 import { verifyTrainManifest } from './train.mjs';
+import { observeMachineWriterPolicy } from './train-machine-policy.mjs';
 
 const fail = reason => { throw new Error(reason); };
 const positive = value => Number.isSafeInteger(value) && value > 0;
+const inside = (root, directory) => directory === root || directory.startsWith(`${root}${path.sep}`);
+
+// A path fence cannot certify controller trust. Operators must pin/review its
+// complete code separately; proposed source is data/Git cwd, never the launcher.
+export async function assertSeparateTrainController(directory,
+  controllerDirectory = fileURLToPath(new URL('../../../', import.meta.url))) {
+  const [source, controller] = await Promise.all([realpath(directory), realpath(controllerDirectory)]);
+  if (inside(source, controller) || inside(controller, source)) fail('Privileged train landing requires a separately trusted controller checkout');
+}
 
 export function validateLandingProtection(protection, rules) {
   if (!protection || !Array.isArray(rules) || rules.length) fail('Unrecognized branch rules prevent automatic landing');
@@ -32,19 +43,25 @@ export function validateLandingProtection(protection, rules) {
   }
 }
 
-export function createTrainLander({ command = spawnSync, directory = process.cwd(), commands } = {}) {
+export function createTrainLander({ command = spawnSync, directory = process.cwd(), commands,
+  machineWriter, appIdentityApi, policyObserverApi } = {}) {
   commands ??= createTrainCommands({ command, directory });
   const api = (endpoint, body) => {
     const args = ['api', endpoint];
     if (body) args.push('--method', 'PATCH', '--input', '-');
-    const result = command('gh', args, { cwd: directory, encoding: 'utf8', timeout: 60000,
-      maxBuffer: 2 * 1024 ** 2, ...(body ? { input: JSON.stringify(body) } : {}) });
+    let result;
+    try {
+      result = command('gh', args, { cwd: directory, encoding: 'utf8', timeout: 60000,
+        maxBuffer: 2 * 1024 ** 2, ...(body ? { input: JSON.stringify(body) } : {}) });
+    } catch { fail(body ? 'Landing mutation outcome unknown; inspect retained intent' : 'Landing observation failed'); }
     if (result.error || result.status !== 0) fail(body
       ? 'Landing mutation refused or ambiguous; inspect retained intent before any further action'
       : 'Landing observation failed');
-    return JSON.parse(result.stdout);
+    try { return JSON.parse(result.stdout); }
+    catch { fail(body ? 'Landing acknowledgement invalid; inspect retained intent' : 'Landing observation JSON invalid'); }
   };
   return async function land(manifestFile, runId, archives, evidenceDirectory) {
+    await assertSeparateTrainController(directory);
     if (!path.isAbsolute(evidenceDirectory)) fail('Absolute fresh landing evidence directory required');
     try { await lstat(evidenceDirectory); fail('Landing evidence exists; inspect previous intent instead of retrying'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -53,8 +70,14 @@ export function createTrainLander({ command = spawnSync, directory = process.cwd
     if (!positive(Number(runId)) || String(Number(runId)) !== String(runId)) fail('Invalid Integration run ID');
     const base = `repos/${manifest.repository}`;
     const inspect = () => {
-      const protection = api(`${base}/branches/dev/protection`);
-      validateLandingProtection(protection, api(`${base}/rules/branches/dev`));
+      const { identity: writer, protection } = observeMachineWriterPolicy({ config: machineWriter, repository: manifest.repository,
+        api, appApi: appIdentityApi, policyApi: policyObserverApi });
+      // Validate the classic proof gate separately; the observer below admits
+      // exactly the one recognized effective update rule, never arbitrary rules.
+      validateLandingProtection(protection, []);
+      for (const key of ['allow_force_pushes', 'allow_deletions']) {
+        if (protection[key]?.enabled !== false) fail(`Machine landing requires disabled ${key}`);
+      }
       const run = api(`${base}/actions/runs/${runId}`);
       if (run.id !== Number(runId) || !positive(run.run_attempt) || !positive(run.check_suite_id)
           || run.path !== '.github/workflows/integration.yml' || run.event !== 'workflow_dispatch'
@@ -78,7 +101,7 @@ export function createTrainLander({ command = spawnSync, directory = process.cwd
           || check.conclusion !== 'success') fail('train acceptance aggregate does not belong to successful train proof');
       if (api(`${base}/git/ref/heads/${manifest.branch}`).object?.sha !== manifest.source) fail('Remote train ref changed');
       if (api(`${base}/git/commits/${manifest.source}`).tree?.sha !== manifest.tree) fail('Remote source tree differs');
-      return run;
+      return { ...run, machineWriter: writer };
     };
     const before = inspect();
     const restored = await commands.restore(manifestFile, runId, archives, evidenceDirectory);
@@ -87,12 +110,13 @@ export function createTrainLander({ command = spawnSync, directory = process.cwd
         || restored.runAttempt !== before.run_attempt) fail('Restored evidence differs from admitted train');
     const after = inspect();
     if (after.run_attempt !== before.run_attempt) fail('Integration attempt changed during restoration');
+    if (JSON.stringify(after.machineWriter) !== JSON.stringify(before.machineWriter)) fail('Machine writer changed during restoration');
     const refreshed = await commands.prepareDispatch(manifestFile);
     if (refreshed.digest !== manifest.digest) fail('Train admission changed before landing');
     if (api(`${base}/git/ref/heads/dev`).object?.sha !== manifest.base) fail('Development changed before landing');
     const intent = { schema: 'conduit.train-landing-intent/v1', repository: manifest.repository,
       manifestDigest: manifest.digest, priorDev: manifest.base, source: manifest.source, tree: manifest.tree,
-      runId: before.id, runAttempt: before.run_attempt, force: false };
+      runId: before.id, runAttempt: before.run_attempt, machineWriter: before.machineWriter, force: false };
     await writeFile(path.join(evidenceDirectory, 'landing-intent.json'), `${JSON.stringify(intent, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
     const updated = api(`${base}/git/refs/heads/dev`, { sha: manifest.source, force: false });
     if (updated.ref !== 'refs/heads/dev' || updated.object?.sha !== manifest.source) fail('Landing acknowledgement ambiguous; inspect retained intent');

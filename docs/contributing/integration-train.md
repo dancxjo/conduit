@@ -150,7 +150,8 @@ Land the exact proven source with authenticated archives and a fresh evidence
 directory:
 
 ```sh
-cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing
+cd /absolute/trusted-controller
+cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing /absolute/reviewed-machine-policy.json CONDUIT_TRAIN_APP_JWT CONDUIT_TRAIN_POLICY_OBSERVER /absolute/proposed-source
 ```
 
 Landing restores and validates all products, refreshes source/PR admission,
@@ -163,13 +164,25 @@ the acknowledged source/tree and writes a separate landing receipt. A concurrent
 development update outside that source cannot be fast-forwarded over. This is
 a graph guard, not a strict compare-and-swap to the captured base.
 
+Landing additionally requires the [dedicated machine writer contract](train-machine-writer.md):
+an active exact-dev repository update ruleset whose sole bypass actor is a
+reviewed dedicated Integration App, independent of the classic proof gate.
+The external configuration and separate App JWT/installation/trusted observer credential channels
+must be supplied explicitly. Missing real identities keep activation off.
+Run the privileged command from a separately pinned trusted controller checkout;
+the explicit proposed-source argument controls only Git and data operations.
+The proposed source must
+never provide the executed controller or build its tooling with these credentials.
+
 There is no forced update, protection override, PR-merge fallback or automatic
 mutation retry. Existing evidence and ambiguous outcomes require inspection.
 The existing dev policy requires a PR and exempts administrators; that policy
 cannot authorize this direct landing path. Before live train landing, an
-explicit machine-owned branch-policy migration must require the distinct Actions-owned
+explicit branch-policy migration must require the distinct Actions-owned
 `train-accepted` check, require its enforcement for administrators, and replace the
-PR requirement with exact train admission. This command refuses the old policy
+PR requirement with exact train admission. Exact-proof protection alone does not
+establish exclusive machine writer authority; the separate update ruleset above
+must also be installed and verified. This command refuses the old policy
 and does not change it itself. A server rejection remains terminal. A returned landing receipt is not stable publication.
 
 Integration now earns the protected `train-accepted` context from its exhaustive
@@ -219,10 +232,48 @@ activate it.
 
 CI-only changes to the exact standard-library Rust workflow contract and Python
 train restorer use preflight proof instead of compiling the full xtask dependency
-graph twice. Preflight directly compiles and executes that real Rust test with
-a private bounded output and explicit manifest directory. It also retains the
-independent canonical Node corpus, so editing the Rust wrapper cannot remove
-that proof. Other Rust/Python paths keep normal conservative package admission.
+graph twice. Preflight executes the complete canonical Node corpus once,
+independently of its Cargo wrapper. It then compiles the unchanged real Rust
+launcher and executes it against bounded real passing and failing Node tests.
+The private native launcher proxy verifies the complete canonical argument set,
+working directory, exactly one invocation and failure propagation. Missing or
+changed arguments, a skipped launch or ignored failure refuse. This verifies
+the actual Rust launcher without replaying all semantic tests. Ordinary Cargo
+execution of that Rust test still runs the complete Node corpus. Private outputs
+and time bounds remain enforced, and editing the wrapper cannot remove the
+independent full-corpus proof. Other Rust/Python paths keep normal conservative package admission.
 The prior hosted run recorded230seconds of lint compilation and564seconds of
 test compilation for these two tooling entrances; future hosted timings must
 measure the improvement rather than assume those costs disappear.
+
+Linux hosted compiler objects travel in separate, bounded seed artifacts. They
+never replace a product archive, task target directory, or current-source Hello
+proof. Preparation writes a fresh external configuration and snapshot. Seed
+selection examines at most eight successful dev Integration acceptances, verifies
+current dev ancestry, and delegates adopted train custody to the same exact-tree
+adoption verifier used for products. The selected original producer's exact run
+attempt, artifact API digest, namespace policy, inventory and object hashes must
+all match. Missing or expired compatible seeds give an explicit cold build;
+invalid selected custody refuses instead of silently choosing another producer.
+
+The Linux target uses private build/proof outputs and seals only compiler objects
+after successful current-source proof. A producer may upload its seed before its
+whole Integration finishes; discovery admits it only after exhaustive successful
+dev acceptance. Candidate and unaccepted manual train artifacts are ineligible.
+The workflow requests only read access for acquisition and uploads a separate
+`compiler-cache-hosted-linux-*` artifact with fourteen-day retention. There is no
+shared Cargo target restore for this lane.
+
+`compiler-cache-hosted-retire` requires explicit artifact IDs and verifies each
+managed namespace and producer before deletion, records durable intent, and
+requires absent readback. It does not claim to clear the whole namespace or all
+GitHub artifacts. Local audited cache clearing remains separate and preserves
+private task outputs. Remote transfer, snapshot preparation and full-history
+checkout costs must be included in hosted performance measurements; local cache
+hits alone do not prove a net pipeline speed improvement.
+
+The exact `tools/ci/pipeline/hosted-cache-seed.py` helper is also covered by
+preflight rather than rebuilding xtask's Rust dependency graph. The seed corpus
+executes that real Python helper for archive sealing/extraction and malformed
+archive refusals. This exception does not cover adjacent Python files, compiler
+profile JSON/TOML, product Rust, or runtime dependencies.

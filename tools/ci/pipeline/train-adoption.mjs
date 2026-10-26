@@ -24,7 +24,7 @@ with zipfile.ZipFile(io.BytesIO(raw)) as z:
  sys.stdout.buffer.write(data)
 `;
 
-export async function discoverTrainAdoption({ pushRun, repository, directory = process.cwd(), command = spawnSync }) {
+export async function discoverTrainAdoption({ pushRun, repository, directory = process.cwd(), command = spawnSync, sourceEnvironment }) {
   if (typeof repository !== 'string' || !/^[\w.-]+\/[\w.-]+$/.test(repository)
       || !positive(pushRun?.id) || !positive(pushRun.run_attempt) || !sha(pushRun.head_sha)) fail('Invalid dev push observation');
   const base = `repos/${repository}`;
@@ -99,7 +99,7 @@ export async function discoverTrainAdoption({ pushRun, repository, directory = p
   const manifest = JSON.parse(json);
   verifyTrainManifest(manifest);
   if (manifest.repository !== repository || manifest.source !== source || manifest.branch !== run.head_branch) fail('Authenticated manifest differs from manual proof');
-  verifyCapturedTrainSource(manifest, directory);
+  verifyCapturedTrainSource(manifest, directory, sourceEnvironment);
   if (api(`${base}/git/commits/${source}`).tree?.sha !== manifest.tree) fail('Accepted source tree differs from train manifest');
   const latest = observeLatest();
   const current = validateManual(api(`${base}/actions/runs/${run.id}`));
