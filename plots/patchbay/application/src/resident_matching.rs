@@ -1,10 +1,12 @@
 //! Complete contribution comparison using the same emitter in finite chunks.
+mod lookup;
 use super::{graph_face, PatchbayApplicationPort};
 use alloc::{format, vec::Vec};
 use conduit_body::BodyId;
 use conduit_face::{
     Face, FaceContributionBasis, FaceFragment, FaceFragmentError, FaceRelationshipKind,
 };
+use lookup::Lookup;
 
 impl PatchbayApplicationPort {
     /// Compare authoritative projection without retaining a second whole graph.
@@ -40,6 +42,38 @@ impl PatchbayApplicationPort {
         let Some(index) = self.selected_plot else {
             return Ok(true);
         };
+        // Search the immutable complete Face by borrowed keys, then compare
+        // full records. The emitter remains unordered and authoritative.
+        let subjects_lookup = face.map(|f| {
+            Lookup::new(
+                &f.subjects,
+                |v| &v.identity,
+                conduit_face::MAX_FACE_SUBJECTS,
+            )
+        });
+        let relationships_lookup = face.map(|f| {
+            Lookup::new(
+                &f.relationships,
+                |v| &v.source,
+                conduit_face::MAX_FACE_RELATIONSHIPS,
+            )
+        });
+        let properties_lookup = face.map(|f| {
+            Lookup::new(
+                &f.properties,
+                |v| &v.subject,
+                conduit_face::MAX_FACE_PROPERTIES,
+            )
+        });
+        let text_lookup =
+            face.map(|f| Lookup::new(&f.text, |v| &v.subject, conduit_face::MAX_FACE_TEXT_ITEMS));
+        let disclosures_lookup = face.map(|f| {
+            Lookup::new(
+                &f.disclosures,
+                |v| &v.subject,
+                conduit_face::MAX_FACE_DISCLOSURES,
+            )
+        });
         let mut counts = [
             base.relationships.len(),
             base.properties.len(),
@@ -148,20 +182,25 @@ impl PatchbayApplicationPort {
                 }
                 let new_subjects = &content.subjects[checked_subjects..];
                 let matches = face.is_none_or(|face| {
-                    new_subjects.iter().all(|item| face.subjects.contains(item))
+                    new_subjects
+                        .iter()
+                        .all(|item| subjects_lookup.as_ref().unwrap().contains(item))
                         && content
                             .relationships
                             .iter()
-                            .all(|item| face.relationships.contains(item))
+                            .all(|item| relationships_lookup.as_ref().unwrap().contains(item))
                         && content
                             .properties
                             .iter()
-                            .all(|item| face.properties.contains(item))
-                        && content.texts.iter().all(|item| face.text.contains(item))
+                            .all(|item| properties_lookup.as_ref().unwrap().contains(item))
+                        && content
+                            .texts
+                            .iter()
+                            .all(|item| text_lookup.as_ref().unwrap().contains(item))
                         && content
                             .disclosures
                             .iter()
-                            .all(|item| face.disclosures.contains(item))
+                            .all(|item| disclosures_lookup.as_ref().unwrap().contains(item))
                         && face
                             .actions
                             .iter()

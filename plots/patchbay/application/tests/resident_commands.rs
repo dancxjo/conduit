@@ -355,6 +355,48 @@ fn chunked_contribution_matches_full_projection_and_rejects_changed_facts() {
     let (port, body, basis) = setup();
     check_chunked_projection(&port, &body, &basis);
 }
+
+#[test]
+#[ignore = "bounded whole-function CPU measurement, not protected-entry acceptance"]
+fn complete_contribution_cpu_screen() {
+    let (port, body, basis) = setup();
+    let full = face(&port, &body, &basis);
+    let start = std::time::Instant::now();
+    for _ in 0..1000 {
+        assert!(port.matches_face_contribution(
+            std::hint::black_box(&full),
+            basis.clone(),
+            &body,
+            true
+        ));
+    }
+    println!(
+        "complete_contribution turns=1000 subjects={} properties={} elapsed_ns={}",
+        full.subjects.len(),
+        full.properties.len(),
+        start.elapsed().as_nanos()
+    );
+}
+
+#[test]
+fn contribution_membership_does_not_depend_on_order_or_duplicate_position() {
+    let (port, body, basis) = setup();
+    let mut full = face(&port, &body, &basis);
+    full.subjects.reverse();
+    full.relationships.reverse();
+    full.properties.reverse();
+    full.text.reverse();
+    full.disclosures.reverse();
+    assert!(port.matches_face_contribution(&full, basis.clone(), &body, true));
+    // A colliding key must not hide either an exact record or its altered peer.
+    let mut changed = full.properties.last().unwrap().clone();
+    changed.value = FacePropertyValue::Text("different complete fact".into());
+    full.properties.insert(0, changed.clone());
+    assert!(port.matches_face_contribution(&full, basis.clone(), &body, true));
+    let expected = full.properties.last().unwrap().clone();
+    full.properties.retain(|p| p != &expected);
+    assert!(!port.matches_face_contribution(&full, basis, &body, true));
+}
 fn check_chunked_projection(
     port: &PatchbayApplicationPort,
     body: &BodyId,
