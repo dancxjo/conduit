@@ -85,6 +85,42 @@ test('PR scopes use the actual merge-preview parent, including admission', () =>
   assert.match(job(ci, 'admission'), /BASE: \$\{\{ needs\.preflight\.outputs\.base \}\}/);
 });
 
+test('Integration earns its distinct protected context only with successful exhaustive proof', () => {
+  const gate = job(integration, 'train-accepted');
+  assert.match(gate, /if: \$\{\{ always\(\) \}\}/);
+  assert.match(gate, /needs: \[train-source, adoption, proof\]/);
+  const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
+  for (const guard of ['success', 'skipped', 'failure', 'cancelled', '']) {
+    for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
+      const observed = spawnSync('bash', ['-e', '-c', script], {
+        env: { ...process.env, GUARD: guard, RESULT: result, ADOPTION: 'skipped', ADOPTED: '' },
+      }).status === 0;
+      assert.equal(observed, ['success', 'skipped'].includes(guard) && result === 'success',
+        `guard=${guard} proof=${result}`);
+    }
+  }
+});
+
+test('accepted train proof replaces dev rebuild only after successful adoption', () => {
+  const gate = job(integration, 'train-accepted');
+  const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
+  for (const adoption of ['success', 'failure', 'cancelled', 'skipped', '']) {
+    for (const adopted of ['true', 'false', '', 'unknown']) {
+      for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
+        const observed = spawnSync('bash', ['-e', '-c', script], {
+          env: { ...process.env, GUARD: 'skipped', ADOPTION: adoption, ADOPTED: adopted, RESULT: result },
+        }).status === 0;
+        const reused = adoption === 'success' && adopted === 'true' && result === 'skipped';
+        const rebuilt = result === 'success' && adopted !== 'true' &&
+          (adoption === 'skipped' || (adoption === 'success' && adopted === 'false'));
+        assert.equal(observed, reused || rebuilt, `${adoption}/${adopted}/${result}`);
+      }
+    }
+  }
+  assert.match(job(integration, 'proof'), /needs\.adoption\.outputs\.adopted == 'false'/);
+  assert.match(job(integration, 'adoption'), /train-adoption "\$RUN_ID"/);
+});
+
 
 test('diagnostic runtime measurements run on demand without occupying every Candidate', () => {
   const measurements = readFileSync('.github/workflows/runtime-performance.yml', 'utf8');

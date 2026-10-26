@@ -3,14 +3,123 @@ on:
   push:
     branches: [dev]
   workflow_dispatch:
+    inputs:
+      train-source:
+        description: Exact source required for a train dispatch
+        required: false
+        default: ''
+        type: string
+      train-manifest:
+        description: Captured ready selection and exact source/tree manifest
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: read
 concurrency:
   group: integration
   cancel-in-progress: false
 jobs:
+  train-source:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'train/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      digest: ${{ steps.admit.outputs.train-manifest-digest }}
+    steps:
+      - name: Require the captured train source before expensive proof
+        env:
+          EXPECTED_SOURCE: ${{ inputs.train-source }}
+          ACTUAL_SOURCE: ${{ github.sha }}
+        run: test "$EXPECTED_SOURCE" = "$ACTUAL_SOURCE"
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Reproduce live admission and selected merge tree
+        id: admit
+        env:
+          TRAIN_MANIFEST: ${{ inputs.train-manifest }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$TRAIN_MANIFEST" > "$RUNNER_TEMP/train-manifest.json"
+          node tools/ci/pipeline/cli.mjs train-admit "$RUNNER_TEMP/train-manifest.json"
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: train-manifest
+          path: ${{ runner.temp }}/train-manifest.json
+          if-no-files-found: error
+          retention-days: 14
+  adoption:
+    if: github.event_name == 'push' && github.ref_name == 'dev'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+    outputs:
+      adopted: ${{ steps.adopt.outputs.adopted }}
+      proof-run: ${{ steps.adopt.outputs.proof-run }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Discover exact accepted train proof
+        id: adopt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: node tools/ci/pipeline/cli.mjs train-adoption "$RUN_ID"
   proof:
+    needs: [train-source, adoption]
+    if: >-
+      ${{ !cancelled() &&
+        (needs.train-source.result == 'success' || needs.train-source.result == 'skipped') &&
+        (needs.adoption.result == 'skipped' ||
+          (needs.adoption.result == 'success' && needs.adoption.outputs.adopted == 'false')) }}
     uses: ./.github/workflows/ci.yml
     with:
       sha: ${{ github.sha }}
       base: all
+      train-manifest-digest: ${{ needs.train-source.outputs.digest }}
+  train-accepted:
+    # The protected branch's required context must be earned by this exact
+    # exhaustive source proof, including a refused or cancelled train guard.
+    if: ${{ always() }}
+    needs: [train-source, adoption, proof]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require successful exhaustive source proof
+        env:
+          GUARD: ${{ needs.train-source.result }}
+          ADOPTION: ${{ needs.adoption.result }}
+          ADOPTED: ${{ needs.adoption.outputs.adopted }}
+          RESULT: ${{ needs.proof.result }}
+        run: |
+          case "$GUARD" in success|skipped) ;; *) exit 1 ;; esac
+          if test "$ADOPTED" = true; then
+            test "$ADOPTION" = success
+            test "$RESULT" = skipped
+          else
+            case "$ADOPTION" in
+              skipped) ;;
+              success) test "$ADOPTED" = false ;;
+              *) exit 1 ;;
+            esac
+            test "$RESULT" = success
+          fi
