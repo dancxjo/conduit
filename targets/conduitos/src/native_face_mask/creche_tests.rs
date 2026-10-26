@@ -327,10 +327,10 @@ fn protected_creche_exact_inventory_boolean_and_snapshot_round_trip() {
             show: show.clone(),
             input: correlation.interaction.clone(),
         };
-        let encoded =
-            data::encode(&request).expect("full checked Show fits unchanged protected input bound");
+        let encoded = data::encode_interaction(&request)
+            .expect("full checked Show fits unchanged protected input bound");
         let decoded: data::InteractionRequest =
-            data::decode(&encoded).expect("typed request codec round trip");
+            data::decode_interaction(&encoded).expect("typed private request codec round trip");
         assert_eq!(decoded.input, request.input);
         assert_eq!(
             input(
