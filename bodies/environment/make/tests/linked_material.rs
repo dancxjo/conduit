@@ -77,6 +77,10 @@ opt-level = 1
     assert_eq!(effects.get(), 0);
     let mut generated = String::from("extern crate alloc;\n");
     recipe.write_source_rust(&mut generated).unwrap();
+    assert!(
+        !generated.contains("serde_json::from"),
+        "native sampler callbacks must contain no JSON decoder"
+    );
     let display_source = conduit_environment_make::DisplayOutputSource::compile().unwrap();
     let display_material =
         conduit_environment_make::DisplaySourceMaterial::prepare(&display_source).unwrap();

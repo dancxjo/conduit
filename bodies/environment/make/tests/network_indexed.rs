@@ -351,6 +351,7 @@ conduit-plot = {{path={:?},features=["flat-image"]}}
 conduit-planner = {{path={:?},features=["indexed-source"]}}
 conduit-plan-lowering = {{path={:?}}}
 conduit-net = {{path={:?}}}
+conduit-face = {{path={:?}}}
 serde_json = "1"
 [profile.dev.build-override]
 opt-level = 1
@@ -359,7 +360,8 @@ opt-level = 1
             path("architecture/plot"),
             path("architecture/planner"),
             path("architecture/plan-lowering"),
-            path("semantics/net")
+            path("semantics/net"),
+            path("semantics/face")
         ),
     )
     .unwrap();
@@ -398,14 +400,94 @@ opt-level = 1
         path("bodies/environment/make/src/network_planning.rs")
     );
     material.write_rust(&mut rust).unwrap();
+    rust.push_str("}\n");
+    let sampler = conduit_environment_make::compile_appliance_source().unwrap();
+    let mask = conduit_environment_make::SevenSegmentMaskSource::compile().unwrap();
+    for (name, source) in [
+        ("sampler", &sampler.expanded),
+        ("mask", &mask.plot.expanded),
+    ] {
+        let material = conduit_environment_make::NetworkSourceMaterial::prepare(source).unwrap();
+        let mut generated = String::new();
+        material.write_rust(&mut generated).unwrap();
+        assert!(
+            !generated.contains("serde_json"),
+            "native Gear/config callbacks must contain no JSON decoder"
+        );
+        rust.push_str(&format!("mod {name} {{\n{generated}\n}}\n"));
+        fs::write(
+            directory.join(format!("{name}-image.bin")),
+            material.planning_image(),
+        )
+        .unwrap();
+        fs::write(
+            directory.join(format!("{name}-gears.json")),
+            serde_json::to_vec(&source.gears).unwrap(),
+        )
+        .unwrap();
+    }
+    let actual_mask = conduit_environment_make::SevenSegmentMaskMaterial::prepare(&mask).unwrap();
+    let mut generated = String::new();
+    actual_mask.write_rust(&mut generated).unwrap();
+    assert!(!generated.contains("serde_json::from"));
+    rust.push_str(&format!("mod ordinary_mask {{\n{generated}\n}}\n"));
+    fs::write(
+        directory.join("mask-inputs.json"),
+        serde_json::to_vec(
+            &mask
+                .plot
+                .input_bindings
+                .iter()
+                .map(|b| format!("{b:?}"))
+                .collect::<Vec<_>>(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    fs::write(
+        directory.join("mask-outputs.json"),
+        serde_json::to_vec(
+            &mask
+                .plot
+                .output_bindings
+                .iter()
+                .map(|b| format!("{b:?}"))
+                .collect::<Vec<_>>(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
     rust.push_str(r#"
-}
 fn main() {
     use conduit_plot::flat_image::indexed::IndexedSourceImage;
+    let expected_role:conduit_face::MaskPlot=serde_json::from_slice(ordinary_mask::ROLE).unwrap();
+    assert_eq!(ordinary_mask::role().unwrap(),expected_role);
+    let expected_front:conduit_core::CheckedFront=serde_json::from_slice(ordinary_mask::FRONT).unwrap();
+    assert_eq!(ordinary_mask::planning_front(),expected_front);
+    let inputs:Vec<String>=serde_json::from_slice(include_bytes!("../mask-inputs.json")).unwrap();
+    let outputs:Vec<String>=serde_json::from_slice(include_bytes!("../mask-outputs.json")).unwrap();
+    assert_eq!(ordinary_mask::planning_inputs().iter().map(|b|format!("{b:?}")).collect::<Vec<_>>(),inputs);
+    assert_eq!(ordinary_mask::planning_outputs().iter().map(|b|format!("{b:?}")).collect::<Vec<_>>(),outputs);
+    let boundary=ordinary_mask::planning_boundary().unwrap();
+    assert_eq!(boundary.bindings().count(),inputs.len()+outputs.len());
     // SAFETY: this CPU fixture encoded the same checked Source above.
     let image = unsafe { IndexedSourceImage::from_make_image(include_bytes!("../image.bin")).unwrap()
         .with_make_gear_decoder(material::decode_planning_gear)
         .with_make_configuration_decoder(material::decode_planning_configuration) };
+    for (image,expected) in [
+        (unsafe {IndexedSourceImage::from_make_image(include_bytes!("../sampler-image.bin")).unwrap().with_make_gear_decoder(sampler::decode_planning_gear).with_make_configuration_decoder(sampler::decode_planning_configuration)},include_bytes!("../sampler-gears.json").as_slice()),
+        (unsafe {IndexedSourceImage::from_make_image(include_bytes!("../mask-image.bin")).unwrap().with_make_gear_decoder(mask::decode_planning_gear).with_make_configuration_decoder(mask::decode_planning_configuration)},include_bytes!("../mask-gears.json").as_slice()),
+    ] {
+        let expected:Vec<conduit_plot::CheckedGear>=serde_json::from_slice(expected).unwrap();
+        for (index,gear) in expected.iter().enumerate() {
+            assert_eq!(image.gear(index).unwrap(),*gear);
+            let configuration=image.gear_configuration(index).unwrap();
+            assert_eq!(configuration.gear_id,gear.gear_id);
+            assert_eq!(configuration.configuration,gear.configuration);
+        }
+        assert!(image.gear(expected.len()).is_err());
+        assert!(image.gear_configuration(expected.len()).is_err());
+    }
     let gears: Vec<conduit_plot::CheckedGear> = serde_json::from_slice(include_bytes!("../gears.json")).unwrap();
     for (index, gear) in gears.iter().enumerate() {
         assert_eq!(&image.gear(index).unwrap(),gear);

@@ -11,6 +11,7 @@ path = "src/main.rs"
 [workspace]
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
 conduit-body = { path = "../../../architecture/body" }
 conduit-birth-plot = { path = "../../../plots/birth" }
 conduit-core = { path = "../../../architecture/core" }

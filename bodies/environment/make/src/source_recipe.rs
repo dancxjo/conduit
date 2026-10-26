@@ -20,6 +20,10 @@ use conduit_environment_runtime::{
 use std::fmt::{self, Write};
 use SourceRecipeRefusal as E;
 pub(crate) mod linked_text;
+#[path = "source_recipe/linked_rust.rs"]
+pub(crate) mod linked_rust;
+#[path = "source_recipe/linked_value.rs"]
+mod linked_value;
 #[path = "source_recipe/material.rs"]
 mod material;
 #[path = "source_recipe/records.rs"]
