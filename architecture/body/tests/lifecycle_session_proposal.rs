@@ -428,3 +428,193 @@ fn stale_prepared_proposal_cannot_publish_after_membership_or_wake_changes() {
     assert_eq!(changed.evidence(), &before);
     assert!(changed.realization().is_none());
 }
+
+#[test]
+fn refused_invitation_at_membership_compaction_boundary_preserves_play_and_archives() {
+    use conduit_body::{AdmissionManager, SpawnAdmissionProof, SpawnInvitationSecret};
+    let (session, mut partition, host, boot) = fixture();
+    let mut evidence = session.evidence().clone();
+    let part = evidence.membership.parts[0].part_id.clone();
+    while evidence.records.len() < conduit_body::MAX_BODY_BIOGRAPHY_RECORDS - 5 {
+        let sequence = evidence.last_sequence() + 1;
+        let mut membership = evidence.membership.clone();
+        let change = membership
+            .observe_present(
+                &evidence.body_id,
+                membership.revision,
+                &part,
+                AuthenticatedHostObservation {
+                    host_id: host.clone(),
+                    boot_id: boot.clone(),
+                    offer_generation: OfferGeneration(sequence),
+                    proof_id: MembershipProofId::bind("pressure/current-root").unwrap(),
+                    sequence,
+                },
+                format!("pressure/presence/{sequence}").into(),
+            )
+            .unwrap();
+        evidence
+            .append_membership_events(membership, &[(change, sequence)])
+            .unwrap();
+    }
+    let generation = evidence.membership.parts[0]
+        .current
+        .as_ref()
+        .unwrap()
+        .offer_generation;
+    let mut fragment = core_fixture::fragment();
+    fragment.source_document_id = partition.plot.source_document_id.clone();
+    fragment.checked_plot_id = partition.plot.checked_plot_id.clone();
+    fragment.expanded_plot_id = "expanded/work".into();
+    fragment.host_id = host.clone();
+    fragment.boot_id = boot.clone();
+    fragment.offer_generation = generation;
+    for placement in &mut fragment.placements {
+        placement.host_id = host.clone();
+        placement.boot_id = boot.clone();
+    }
+    partition.plan = core_fixture::seal(fragment);
+    let mut session = BodyLifecycleSession::open_admitted(evidence, &host, &boot).unwrap();
+    session.propose(vec![partition], &host, &boot).unwrap();
+    let current = session.realization().unwrap();
+    let play = conduit_body::BodyPlayIdentity::bind(&current.plan, 1);
+    let started = current
+        .wake
+        .body_plan_ready(
+            &current.plan,
+            conduit_core::bind_sign(&host, &boot, Some(&play.active_play_id), 0).sign_id,
+        )
+        .unwrap()
+        .body_play_started(
+            &current.plan,
+            &play,
+            conduit_core::bind_sign(&host, &boot, Some(&play.active_play_id), 1).sign_id,
+        )
+        .unwrap();
+    session.started(&host, &boot, play, started).unwrap();
+    let mut manager = AdmissionManager::new(session.evidence().body_id.clone()).unwrap();
+    // Proposal/start reserve five biography records. One actual successful
+    // observer admission fills the remaining records while this Play runs.
+    let warm_secret = SpawnInvitationSecret::from_csprng_bytes([81; 32]).unwrap();
+    let warm_claim = session
+        .issue_invitation(
+            &mut manager,
+            warm_secret.clone(),
+            [82; 32],
+            1,
+            100,
+            &host,
+            &boot,
+        )
+        .unwrap();
+    let warm_advertisement = conduit_core::HostAdvertisement {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: "host/warm-observer".into(),
+        boot_id: "boot/warm-observer".into(),
+        offer_generation: OfferGeneration(1),
+        profile: "profile/observer".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    let warm_proof = SpawnAdmissionProof {
+        invitation_id: warm_claim.invitation_id.clone(),
+        body_id: warm_claim.body_id.clone(),
+        host_id: warm_advertisement.host_id.clone(),
+        boot_id: warm_advertisement.boot_id.clone(),
+        nonce: warm_claim.nonce,
+        signature: warm_secret.sign(&warm_claim.signing_transcript(
+            &warm_advertisement.host_id,
+            &warm_advertisement.boot_id,
+            warm_advertisement.offer_generation,
+        )),
+    };
+    session
+        .admit_invited_host(
+            &mut manager,
+            &warm_advertisement,
+            &warm_proof,
+            2,
+            &host,
+            &boot,
+        )
+        .unwrap();
+    assert_eq!(
+        session.evidence().records.len(),
+        conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
+    );
+    let secret = SpawnInvitationSecret::from_csprng_bytes([91; 32]).unwrap();
+    let claim = session
+        .issue_invitation(
+            &mut manager,
+            secret.clone(),
+            [92; 32],
+            10,
+            100,
+            &host,
+            &boot,
+        )
+        .unwrap();
+    let advertisement = conduit_core::HostAdvertisement {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: "host/observer".into(),
+        boot_id: "boot/observer".into(),
+        offer_generation: OfferGeneration(1),
+        profile: "profile/observer".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    let proof = SpawnAdmissionProof {
+        invitation_id: claim.invitation_id.clone(),
+        body_id: claim.body_id.clone(),
+        host_id: advertisement.host_id.clone(),
+        boot_id: advertisement.boot_id.clone(),
+        nonce: claim.nonce,
+        signature: secret.sign(&claim.signing_transcript(
+            &advertisement.host_id,
+            &advertisement.boot_id,
+            advertisement.offer_generation,
+        )),
+    };
+    let before = session.evidence().clone();
+    let archives = session.pending_archives().to_vec();
+    let realization = session.realization().unwrap().clone();
+    let admissions = manager.clone();
+    for failure in 0..5 {
+        let mut wrong = proof.clone();
+        let mut now = 11;
+        match failure {
+            0 => wrong.signature[0] ^= 1,
+            1 => wrong.nonce[0] ^= 1,
+            2 => wrong.host_id = "host/foreign".into(),
+            3 => wrong.boot_id = "boot/foreign".into(),
+            _ => now = 101,
+        }
+        assert!(session
+            .admit_invited_host(&mut manager, &advertisement, &wrong, now, &host, &boot)
+            .is_err());
+        assert_eq!(session.evidence(), &before);
+        assert_eq!(session.pending_archives(), archives);
+        assert_eq!(session.realization(), Some(&realization));
+        assert_eq!(manager, admissions);
+    }
+    session
+        .admit_invited_host(&mut manager, &advertisement, &proof, 11, &host, &boot)
+        .unwrap();
+    assert_eq!(session.pending_archives().len(), archives.len() + 1);
+    assert_eq!(session.realization(), Some(&realization));
+    assert_eq!(
+        session.evidence().membership.parts.len(),
+        before.membership.parts.len() + 1
+    );
+    session.evidence().validate().unwrap();
+    session
+        .pending_archives()
+        .last()
+        .unwrap()
+        .validate_as_head_of(session.evidence())
+        .unwrap();
+}

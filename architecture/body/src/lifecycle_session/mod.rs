@@ -401,26 +401,37 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
     }
 
     fn make_membership_room(&mut self, events: usize) -> Result<(), BodyLifecycleSessionError> {
-        if self.evidence.membership.events.len().saturating_add(events)
-            <= crate::MAX_MEMBERSHIP_EVENTS
-            && self.evidence.records.len().saturating_add(events)
-                <= crate::MAX_BODY_BIOGRAPHY_RECORDS
+        if let Some(segment) =
+            prepare_membership_room(&mut self.evidence, self.pending_archives.len(), events)?
         {
-            return Ok(());
+            self.pending_archives.push(segment);
         }
-        if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
-            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
-        }
-        let segment = self
-            .evidence
-            .seal_membership_history()
-            .map_err(BodyLifecycleSessionError::Biography)?
-            .ok_or(BodyLifecycleSessionError::Biography(
-                BodyBiographyError::CapacityExhausted,
-            ))?;
-        self.pending_archives.push(segment);
         Ok(())
     }
+}
+
+/// Prepare compaction against privately owned evidence; returned archive custody
+/// is published only together with a successful membership transaction.
+fn prepare_membership_room(
+    evidence: &mut BodyBiographyEvidence,
+    pending_archives: usize,
+    events: usize,
+) -> Result<Option<BodyBiographyArchiveSegment>, BodyLifecycleSessionError> {
+    if evidence.membership.events.len().saturating_add(events) <= crate::MAX_MEMBERSHIP_EVENTS
+        && evidence.records.len().saturating_add(events) <= crate::MAX_BODY_BIOGRAPHY_RECORDS
+    {
+        return Ok(None);
+    }
+    if pending_archives >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+        return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+    }
+    evidence
+        .seal_membership_history()
+        .map_err(BodyLifecycleSessionError::Biography)?
+        .map(Some)
+        .ok_or(BodyLifecycleSessionError::Biography(
+            BodyBiographyError::CapacityExhausted,
+        ))
 }
 
 fn sign(host: &HostId, boot: &BootId, sequence: u64) -> SignId {

@@ -45,8 +45,15 @@ impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
         authority_boot: &BootId,
     ) -> Result<MembershipCredential, BodyLifecycleSessionError> {
         self.require_host(authority_host, authority_boot)?;
-        self.make_membership_room(2)?;
-        let first_sequence = self.next_sequence()?;
+        // Stage only mutable biography and a possible new archive. The actual
+        // realization (and its rich/sealed Plans) never needs to be cloned.
+        let mut evidence = self.evidence.clone();
+        let archive =
+            super::prepare_membership_room(&mut evidence, self.pending_archives.len(), 2)?;
+        let first_sequence = evidence
+            .last_sequence()
+            .checked_add(1)
+            .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
         let second_sequence = first_sequence
             .checked_add(1)
             .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
@@ -55,7 +62,7 @@ impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
             host_attached: sign(authority_host, authority_boot, second_sequence),
             candidate_admitted: sign(authority_host, authority_boot, second_sequence),
         };
-        let mut membership = self.evidence.membership.clone();
+        let mut membership = evidence.membership.clone();
         let mut next_admissions = admissions.clone();
         let prior_events = membership.events.len();
         let credential = next_admissions
@@ -71,11 +78,13 @@ impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
                 BodyBiographyError::InvalidEvidence,
             ));
         }
-        let mut evidence = self.evidence.clone();
         evidence
             .append_membership_events(membership, &events)
             .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
+        if let Some(archive) = archive {
+            self.pending_archives.push(archive);
+        }
         *admissions = next_admissions;
         Ok(credential)
     }
