@@ -152,3 +152,183 @@ fn ordinary_selected_refusal_retains_provider_then_exact_transfer_and_retirement
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }
+
+#[test]
+fn verified_selected_refusals_retain_actual_pins_then_dispatch_exactly_once() {
+    use conduit_plan_lowering::selected_operation::SelectedVerifiedOperationPlan;
+    let state = Rc::new(State::default());
+    let mut slot = Some(installation::ready(state.clone()));
+    let identity = slot.as_ref().unwrap().native_identity().clone();
+    let address = slot.as_ref().unwrap() as *const _;
+    let contract = WriteContract::prepare().unwrap();
+    for mutation in 0..7 {
+        let (mut fragment, _, mut active, placement) = selected();
+        match mutation {
+            2 => fragment.placements[0].artifact_id = "artifact/foreign".into(),
+            3 => fragment.placements[0].execution_profile_id = "profile/foreign".into(),
+            4 => fragment.placements[0].inputs[0].port_id = port_id("foreign"),
+            _ => (),
+        }
+        if (2..=4).contains(&mutation) {
+            (fragment, _, active, _) = reseal(fragment, placement.clone());
+        }
+        let mut lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).unwrap();
+        let mut scope = fixture::scope();
+        scope.capability_id = WRITE_CAPABILITY.into();
+        scope.authority_contract_id = WRITE_AUTHORITY.into();
+        let (table, handle, mut claim) = fixture::authorization(scope, &fragment, &active);
+        match mutation {
+            0 => active.boot_id = "boot/foreign".into(),
+            1 => claim.resource_generation_id = ResourceGenerationId("foreign/generation".into()),
+            5 => lowered.host_calls[0].binding.maximum_output_bytes = 1,
+            _ => (),
+        }
+        let id = fragment.fragment_id.clone();
+        let mut plan = seal_plan(
+            PlotIdentity {
+                source_document_id: fragment.source_document_id.clone(),
+                checked_plot_id: fragment.checked_plot_id.clone(),
+                expanded_plot_id: fragment.expanded_plot_id.clone(),
+            },
+            vec![fragment],
+        );
+        if mutation == 6 {
+            plan.fragments[0].placements[0]
+                .configuration
+                .push(ConfigurationEntry {
+                    key: "foreign".into(),
+                    value: ConfigurationValue::U64(1),
+                });
+            plan = seal_plan(
+                PlotIdentity {
+                    source_document_id: plan.source_document_id,
+                    checked_plot_id: plan.checked_plot_id,
+                    expanded_plot_id: plan.expanded_plot_id,
+                },
+                plan.fragments,
+            );
+            active = bind_active_play(
+                &plan.plan_id,
+                &plan.fragments[0].host_id,
+                &plan.fragments[0].boot_id,
+                0,
+            );
+            lowered =
+                conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+        }
+        let (table, handle, claim) = if mutation == 6 {
+            let mut scope = fixture::scope();
+            scope.capability_id = WRITE_CAPABILITY.into();
+            scope.authority_contract_id = WRITE_AUTHORITY.into();
+            fixture::authorization(scope, &plan.fragments[0], &active)
+        } else {
+            (table, handle, claim)
+        };
+        let configs = plan.fragments[0].placements[0].configuration.clone();
+        for gear in &mut plan.fragments[0].placements {
+            gear.configuration.clear();
+        }
+        let metadata =
+            verify_plan_metadata_with_configurations(plan, |_| Ok::<_, ()>(configs.clone()))
+                .unwrap();
+        let fragment_id = if mutation == 6 {
+            &metadata.preparation_metadata().fragments[0].fragment_id
+        } else {
+            &id
+        };
+        assert!(
+            matches!(
+                ReadyWriteBase::bind_verified_retained(
+                    &mut slot,
+                    table,
+                    handle,
+                    claim,
+                    &contract,
+                    SelectedVerifiedOperationPlan {
+                        plan: &metadata,
+                        fragment_id,
+                        lowered: &lowered,
+                        active: &active,
+                        placement_id: &placement
+                    }
+                ),
+                Err(WriteCallRefusal::WrongBinding)
+            ),
+            "mutation {mutation}"
+        );
+        assert_eq!(slot.as_ref().unwrap() as *const _, address);
+        assert_eq!(slot.as_ref().unwrap().native_identity(), &identity);
+        assert_eq!(state.edges.get(), 0);
+    }
+    let (fragment, lowered, active, placement) = selected();
+    let mut scope = fixture::scope();
+    scope.capability_id = WRITE_CAPABILITY.into();
+    scope.authority_contract_id = WRITE_AUTHORITY.into();
+    let (table, handle, claim) = fixture::authorization(scope, &fragment, &active);
+    let plan = seal_plan(
+        PlotIdentity {
+            source_document_id: fragment.source_document_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
+        },
+        vec![fragment],
+    );
+    let metadata = verify_plan_metadata_with_configurations(plan, |_| Ok::<_, ()>(vec![])).unwrap();
+    let selected = || SelectedVerifiedOperationPlan {
+        plan: &metadata,
+        fragment_id: &metadata.preparation_metadata().fragments[0].fragment_id,
+        lowered: &lowered,
+        active: &active,
+        placement_id: &placement,
+    };
+    assert_eq!(
+        slot.as_ref()
+            .unwrap()
+            .check_verified(&table, &claim, &contract, selected())
+            .unwrap(),
+        lowered.nodes[0].node
+    );
+    assert_eq!(state.edges.get(), 0);
+    let mut bound = ReadyWriteBase::bind_verified_retained(
+        &mut slot,
+        table,
+        handle,
+        claim,
+        &contract,
+        selected(),
+    )
+    .unwrap();
+    assert!(slot.is_none());
+    assert_eq!(state.edges.get(), 0);
+    let packets = encoded();
+    let ((), memory) = allocation_probe::observe(|| {
+        bound
+            .invoke(
+                lowered.nodes[0].node,
+                HostCallId(0),
+                RequestId(0),
+                &packets,
+                || false,
+            )
+            .unwrap();
+        assert!(state.edges.get() > 0);
+        let edges = state.edges.get();
+        assert_eq!(
+            bound.invoke(
+                lowered.nodes[0].node,
+                HostCallId(0),
+                RequestId(0),
+                &packets,
+                || false
+            ),
+            Err(WriteCallRefusal::StaleRequest)
+        );
+        assert_eq!(state.edges.get(), edges);
+        bound.revoke(lowered.nodes[0].node, HostCallId(0)).unwrap();
+        let mut bound = Some(bound);
+        let (provider, attachment) = WriteHostCall::retire_retained(&mut bound).unwrap();
+        assert!(Rc::ptr_eq(&provider.0, &state));
+        assert_eq!(attachment.generation, 7);
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}

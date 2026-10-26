@@ -20,23 +20,7 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
             .iter()
             .find(|gear| &gear.placement_id == selection.placement_id)
             .ok_or(WriteCallRefusal::WrongBinding)?;
-        let base = gear.base.as_ref().ok_or(WriteCallRefusal::WrongBinding)?;
-        let identity = &owner.identity;
-        if gear.artifact_id != identity.artifact_id
-            || gear.execution_profile_id.as_str() != WRITE_EXECUTION_PROFILE
-            || gear.capability_id.as_str() != WRITE_CAPABILITY
-            || base.base_id != identity.base_id
-            || base.implementation_id != identity.base_implementation_id
-            || base.mechanism_family.as_str() != WRITE_ATTACHMENT_CLASS
-            || base.enforcement_class != BaseEnforcementClass::Cooperative
-            || !gear.authority.iter().any(|authority| {
-                authority.contract_id.as_str() == WRITE_AUTHORITY
-                    && authority.host_call_contract_id.as_str() == WRITE_CALL
-                    && authority.subject_kind.as_str() == WRITE_KIND
-            })
-        {
-            return Err(WriteCallRefusal::WrongBinding);
-        }
+        owner.check_selected_native(gear)?;
         let prepared = WriteHostCall::<P>::prepare_selected(
             &table,
             &claim,
@@ -53,5 +37,28 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
             owner.provider,
             prepared,
         ))
+    }
+    pub(super) fn check_selected_native(
+        &self,
+        gear: &conduit_core::PlannedGear,
+    ) -> Result<(), WriteCallRefusal<P::Error>> {
+        let base = gear.base.as_ref().ok_or(WriteCallRefusal::WrongBinding)?;
+        let identity = &self.identity;
+        if gear.artifact_id != identity.artifact_id
+            || gear.execution_profile_id.as_str() != WRITE_EXECUTION_PROFILE
+            || gear.capability_id.as_str() != WRITE_CAPABILITY
+            || base.base_id != identity.base_id
+            || base.implementation_id != identity.base_implementation_id
+            || base.mechanism_family.as_str() != WRITE_ATTACHMENT_CLASS
+            || base.enforcement_class != BaseEnforcementClass::Cooperative
+            || !gear.authority.iter().any(|authority| {
+                authority.contract_id.as_str() == WRITE_AUTHORITY
+                    && authority.host_call_contract_id.as_str() == WRITE_CALL
+                    && authority.subject_kind.as_str() == WRITE_KIND
+            })
+        {
+            return Err(WriteCallRefusal::WrongBinding);
+        }
+        Ok(())
     }
 }
