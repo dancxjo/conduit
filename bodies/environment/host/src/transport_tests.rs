@@ -30,3 +30,50 @@ fn tcp_carrier_preserves_fragmented_events_and_binary_frames() {
     line.credited(&[3, 0, 255, 4]).unwrap();
     peer.join().unwrap();
 }
+
+#[test]
+fn tcp_reopen_discards_partial_framing_without_replaying_the_lost_command() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let peer = std::thread::spawn(move || {
+        let (mut first, _) = listener.accept().unwrap();
+        let mut bytes = [0; 8];
+        first.read_exact(&mut bytes).unwrap();
+        assert_eq!(&bytes, b"inspect\n");
+        first.write_all(b"{\"event\":\"lost").unwrap();
+        drop(first);
+        let (mut second, _) = listener.accept().unwrap();
+        let mut bytes = [0; 6];
+        second.read_exact(&mut bytes).unwrap();
+        assert_eq!(&bytes, b"offer\n");
+        second
+            .write_all(b"{\"event\":\"offer\",\"fresh\":true}\n")
+            .unwrap();
+    });
+    let mut line = Line::open(&format!("tcp://{address}")).unwrap();
+    let error = line.command("inspect", "inspection").unwrap_err();
+    assert!(super::is_recoverable(error.as_ref()));
+    line.reconnect().unwrap();
+    assert_eq!(line.command("offer", "offer").unwrap()["fresh"], true);
+    peer.join().unwrap();
+}
+
+#[test]
+fn filesystem_or_protocol_failures_do_not_become_carrier_retries() {
+    let filesystem: Box<dyn std::error::Error> =
+        std::io::Error::new(std::io::ErrorKind::TimedOut, "filesystem timeout").into();
+    assert!(!super::is_recoverable(filesystem.as_ref()));
+    let protocol: Box<dyn std::error::Error> = "invalid Root signature".into();
+    assert!(!super::is_recoverable(protocol.as_ref()));
+    let timeout = super::error::timeout();
+    let mut context = super::fault::RecentFaults::default();
+    assert!(super::is_recoverable(
+        context.describe("inspect", timeout).as_ref()
+    ));
+    context.remember(b"panicked at source.rs:4: memory allocation of");
+    assert!(!super::is_recoverable(
+        context
+            .describe("inspect", super::error::timeout())
+            .as_ref()
+    ));
+}

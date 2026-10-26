@@ -17,6 +17,8 @@ mod native_owner_control;
 mod native_owner_receipt;
 mod observation;
 mod observed_history;
+mod owner_exchange;
+mod owner_reconnect;
 mod planning;
 mod transport;
 use std::{error::Error, fmt::Debug, path::PathBuf};
@@ -30,6 +32,11 @@ fn main() -> Result<()> {
         .iter()
         .position(|arg| arg.starts_with("--resume="))
         .map(|index| args.remove(index)["--resume=".len()..].to_owned());
+    let history_peer = args
+        .iter()
+        .position(|arg| arg.starts_with("--history-peer="))
+        .map(|index| args.remove(index)["--history-peer=".len()..].parse::<std::net::SocketAddr>())
+        .transpose()?;
     let display_check = args.last().is_some_and(|a| a == "--display-check");
     let mask_mode = args.last().is_some_and(|a| a == "--mask-prepare");
     if display_check || mask_mode {
@@ -40,7 +47,7 @@ fn main() -> Result<()> {
     }
     if !(3..=4).contains(&args.len()) {
         return Err(
-            "expected SERIAL_PORT PRIVATE_STATE_DIRECTORY [PUBLICATIONS=1, maximum 960] [--display-check|--mask-prepare]".into(),
+            "expected SERIAL_PORT PRIVATE_STATE_DIRECTORY [PUBLICATIONS=1, maximum 960] [--display-check|--mask-prepare] [--history-peer=IP:PORT]".into(),
         );
     }
     let limit: u32 = args.get(3).map_or(Ok(1), |s| s.parse())?;
@@ -120,7 +127,13 @@ fn main() -> Result<()> {
     )?;
     authority.save(&body, "body-prepared.json")?;
     execution::run(
-        &mut line, &authority, &mut body, prepared, device_key, limit,
+        &mut line,
+        &authority,
+        &mut body,
+        prepared,
+        device_key,
+        limit,
+        history_peer,
     )?;
     Ok(())
 }

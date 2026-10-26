@@ -35,8 +35,8 @@ impl RecentFaults {
         event: &str,
         error: Box<dyn std::error::Error>,
     ) -> Box<dyn std::error::Error> {
-        if self.lines.is_empty() {
-            format!("{error} while waiting for {event}").into()
+        let message = if self.lines.is_empty() {
+            format!("{error} while waiting for {event}")
         } else {
             format!(
                 "{error} while waiting for {event}; MCU fault: {}",
@@ -46,9 +46,34 @@ impl RecentFaults {
                     .collect::<Vec<_>>()
                     .join(" | ")
             )
-            .into()
-        }
+        };
+        Box::new(Context {
+            message,
+            error,
+            mcu_fault: !self.lines.is_empty(),
+        })
     }
+}
+#[derive(Debug)]
+struct Context {
+    message: String,
+    error: Box<dyn std::error::Error>,
+    mcu_fault: bool,
+}
+impl std::fmt::Display for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+impl std::error::Error for Context {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(self.error.as_ref())
+    }
+}
+pub(super) fn is_mcu_fault(error: &(dyn std::error::Error + 'static)) -> bool {
+    error
+        .downcast_ref::<Context>()
+        .is_some_and(|context| context.mcu_fault)
 }
 #[cfg(test)]
 mod tests {

@@ -8,22 +8,30 @@ use std::{
     os::unix::fs::OpenOptionsExt,
     time::{Duration, Instant},
 };
+#[path = "transport_error.rs"]
+mod error;
 #[path = "transport_fault.rs"]
 mod fault;
+pub use error::retryable as is_recoverable;
 pub struct Line {
     file: File,
+    endpoint: Option<std::net::SocketAddr>,
 }
 impl Line {
     pub fn open(path: &str) -> Result<Self> {
         if let Some(address) = path.strip_prefix("tcp://") {
             use std::os::fd::{FromRawFd, IntoRawFd};
-            let stream =
-                std::net::TcpStream::connect_timeout(&address.parse()?, Duration::from_secs(10))?;
-            stream.set_nodelay(true)?;
-            stream.set_nonblocking(true)?;
+            let endpoint = address.parse()?;
+            let stream = std::net::TcpStream::connect_timeout(&endpoint, Duration::from_secs(10))
+                .map_err(error::io)?;
+            stream.set_nodelay(true).map_err(error::io)?;
+            stream.set_nonblocking(true).map_err(error::io)?;
             // SAFETY: transfer the sole owned descriptor; no stream alias remains.
             let file = unsafe { File::from_raw_fd(stream.into_raw_fd()) };
-            return Ok(Self { file });
+            return Ok(Self {
+                file,
+                endpoint: Some(endpoint),
+            });
         }
         let file = std::fs::OpenOptions::new()
             .read(true)
@@ -48,7 +56,24 @@ impl Line {
                 return Err(std::io::Error::last_os_error().into());
             }
         }
-        Ok(Self { file })
+        Ok(Self {
+            file,
+            endpoint: None,
+        })
+    }
+    pub fn can_reconnect(&self) -> bool {
+        self.endpoint.is_some()
+    }
+    /// Reopen only this explicitly selected TCP peer. The management owner must
+    /// separately admit retry lifetime and authenticate the retained Body scope.
+    pub fn reconnect(&mut self) -> Result<()> {
+        let endpoint = self.endpoint.ok_or("UART has no implicit reconnect")?;
+        let fd = std::os::fd::OwnedFd::from(self.file.try_clone().map_err(error::io)?);
+        // Close the failed carrier in both directions so Root can retire its
+        // partial framing and accept another one; resident workers are separate.
+        let _ = std::net::TcpStream::from(fd).shutdown(std::net::Shutdown::Both);
+        *self = Self::open(&format!("tcp://{endpoint}"))?;
+        Ok(())
     }
     /// Read-only HTTP replay uses the already selected TCP peer, never an
     /// ambient hostname or another Body member. UART has no implied HTTP line.
@@ -62,7 +87,7 @@ impl Line {
         loop {
             let remaining = deadline
                 .checked_duration_since(Instant::now())
-                .ok_or("UART deadline")?;
+                .ok_or_else(error::timeout)?;
             let mut fd = libc::pollfd {
                 fd: self.file.as_raw_fd(),
                 events: event,
@@ -80,7 +105,11 @@ impl Line {
                 continue;
             }
             if n <= 0 || fd.revents & event == 0 {
-                return Err("UART timeout or disconnected carrier".into());
+                return Err(if n == 0 {
+                    error::timeout()
+                } else {
+                    error::closed("owner carrier disconnected")
+                });
             }
             return Ok(());
         }
@@ -89,9 +118,9 @@ impl Line {
         let deadline = Instant::now() + Duration::from_secs(3);
         while !bytes.is_empty() {
             self.ready(libc::POLLOUT, deadline)?;
-            let n = self.file.write(bytes)?;
+            let n = self.file.write(bytes).map_err(error::io)?;
             if n == 0 {
-                return Err("UART write disconnected".into());
+                return Err(error::closed("owner carrier write disconnected"));
             }
             bytes = &bytes[n..];
         }
@@ -110,9 +139,9 @@ impl Line {
         let deadline = Instant::now() + Duration::from_secs(15);
         while at < size {
             self.ready(libc::POLLIN, deadline)?;
-            let n = self.file.read(&mut out[at..])?;
+            let n = self.file.read(&mut out[at..]).map_err(error::io)?;
             if n == 0 {
-                return Err("UART read disconnected".into());
+                return Err(error::closed("owner carrier read disconnected"));
             }
             at += n;
         }
@@ -126,8 +155,8 @@ impl Line {
             self.ready(libc::POLLIN, deadline)
                 .map_err(|error| faults.describe(name, error))?;
             let mut byte = [0];
-            if self.file.read(&mut byte)? == 0 {
-                return Err("UART closed".into());
+            if self.file.read(&mut byte).map_err(error::io)? == 0 {
+                return Err(error::closed("owner carrier closed"));
             }
             if byte[0] == b'\n' {
                 if let Ok(value) = serde_json::from_slice::<Value>(&bytes) {
@@ -157,7 +186,7 @@ impl Line {
         for _ in 0..8192 {
             self.ready(libc::POLLIN, deadline)?;
             let mut byte = [0];
-            self.file.read_exact(&mut byte)?;
+            self.file.read_exact(&mut byte).map_err(error::io)?;
             if byte[0] == b'\n' {
                 if let Ok(value) = serde_json::from_slice(&bytes) {
                     return Ok(value);

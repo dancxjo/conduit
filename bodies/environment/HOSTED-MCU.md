@@ -154,7 +154,7 @@ See [the measured checkpoint](make/TARGET_CHECKPOINT.md).
 
 The owner accepts `tcp://192.168.4.1:4242` wherever the serial port was supplied. A retained, signed, lulled biography can be continued using a final `--resume=/absolute/path/body-lulled.json` after `--display-check`. The previous owner must have exited with verified retirement; the new owner uses ordinary continuity under a fresh local incarnation and keeps the Body identity. This is preparation for wireless operation, not evidence of network HIL or unattended recovery.
 
-Do not deploy this candidate as an unattended long-distance appliance yet. Carrier interruption currently terminates the attended exchange. Persistent reconnection must reconcile incomplete signed requests rather than blindly replay effects, retain pending evidence under finite pressure, and verify the expected member on both station and fallback AP paths. Saved network configuration requires a finite Body-lifetime Keep backed by actual durable private storage; the existing volatile mailbox cannot advertise that retention horizon.
+Do not deploy this candidate as an unattended long-distance appliance yet. The running-job TCP inspection loop can now reopen its explicitly selected peer after a carrier loss, using its retained request counter and a fresh signed inspection of the same Body/Boot/Play. It never retries Prepare/Start/Release blindly. Process recovery, station-to-fallback-AP discovery, and new-Boot continuation still need their separate ownership and admission paths. Saved network configuration requires a finite Body-lifetime Keep backed by actual durable private storage; the existing volatile mailbox cannot advertise that retention horizon.
 
 The experimental `member-image OWNER_PUBLIC_KEY --local-evidence-check` profile now binds the journal to an actual dedicated ESP32 partition. Its required layout is `targets/esp32/proof/tm1637/evidence-partitions.csv`: the application ends before `0x290000`, and the remaining space is split into a `0x160000`-byte display-evidence region and a separate 64 KiB observation-outbox region. The adapter checks the actual table, bounds every read/program operation, and exposes no erase or general application storage entrance. Pre-Play preparation owns and verifies erased backing; a local commit and media readback release the kernel page. Remote acceptance advances only the export cursor. A prior nonempty journal is retained and makes this writer unavailable pending explicit recovery; it is never silently erased.
 
@@ -220,3 +220,61 @@ was deployed. The proof harness now takes its durable log watermark only after
 the owner is confirmed stopped, avoiding a concurrent-prefix race. These
 corrections are part of the tested path rather than a claim that the failed
 run succeeded.
+
+
+## Management-carrier recovery
+
+The attended owner distinguishes byte-carrier failures from filesystem errors,
+protocol refusals, invalid signatures and recognized MCU fault diagnostics.
+Only the running-job inspection loop retries transport loss. Its admitted job
+deadline bounds retry lifetime and attempts, with two-to-thirty-second backoff.
+Reopening discards partial framing and retains the same selected TCP endpoint;
+it neither replans nor starts the MCU again. The local next request counter was
+already consumed before transmission, so unsigned peer metadata cannot advance
+it. A conflicting counter or another Host/Boot requires explicit reconciliation.
+A valid signed publication under the admitted key and exact reservation is
+required before declaring recovery.
+
+A lost display acceptance reply is resolved by another signed inspection. If
+acceptance was applied, export continues with the next page; otherwise the same
+verified page remains offered. Local file custody precedes every acceptance.
+This is not a blind retry of an uncertain operation.
+
+For a management relay or an explicitly separate reading connection, the owner
+accepts `--history-peer=IP:PORT`. It selects only a read-only HTTP destination;
+the existing Body/Boot/Play/Form/key checks still apply. Ordinary TCP ownership
+continues to use the selected peer's port 80 when this option is omitted.
+
+The physical proof entrance, requiring a prepared fresh MCU Boot and a lulled
+biography, is:
+
+```sh
+cargo xtask prove environment owner-carrier-outage tcp://MCU_ADDRESS:4242 /absolute/private/owner /absolute/prior-run/body-lulled.json /absolute/new-proof-output
+```
+
+This attended fixture requires Python's `cryptography` module. It verifies and
+drops an actual `EvidenceAccepted` reply, blocks its transparent management
+relay for 150 seconds, and checks recovery without lifecycle replay. Its
+one-shot fault selector has a regression check. It retains the owner and relay
+after the proof so the appliance can continue; explicitly stop the actual owner
+when retiring that job. This is not an installed background service.
+
+The first real connection-loss experiment found that the relay kept injecting
+loss. The controller nevertheless reconnected twice under the same MCU Boot.
+The faulty relay was replaced without restarting that owner or MCU, and the
+retained run was independently checked through this read-only entrance:
+
+```sh
+cargo xtask prove environment verify-carrier-recovery PID RUN_DIRECTORY OWNER_LOG DROPPED_RECEIPT_JSON
+```
+
+That check verified the actually dropped receipt against its exact retained
+page/command and admitted key, contiguous signed history through sample 17,
+continued signed sampler publications, the original 129-page display prefix,
+and no repeated Reserve/Prepare/Start/Release. The original automated relay
+harness is retained as a failed fixture run; its corrected one-shot source has
+CPU conformance, not another claim of clean automated HIL. The actual native
+appliance and its owner remain running through the repaired transparent relay.
+Graceful member departure policy, owner-process restart, Wi-Fi association
+recovery, mDNS discovery/AP fallback and autonomous new-Boot operation remain
+unfinished.

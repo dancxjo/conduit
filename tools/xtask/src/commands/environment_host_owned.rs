@@ -3,6 +3,16 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     let words = args.iter().map(String::as_str).collect::<Vec<_>>();
     match words.as_slice() {
+        ["verify-carrier-recovery", pid, run, log, dropped] => Some(super::execute(
+            Command::new("python3")
+                .current_dir(root)
+                .arg(root.join("bodies/environment/host/proof/carrier_recovery_verify.py"))
+                .args([pid, run, log, dropped])
+                .env("PYTHONDONTWRITEBYTECODE", "1"),
+        )),
+        ["owner-carrier-outage", upstream, state, resume, output] => {
+            Some(carrier_outage(root, upstream, state, resume, output))
+        }
         ["observation-history-outage", pid, run, url] => Some(super::execute(
             Command::new("python3")
                 .current_dir(root)
@@ -18,6 +28,22 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         ["member-image", key, "--local-evidence-check"] => Some(
             super::environment_esp32::build_local_evidence(root, Path::new(key)),
         ),
+        ["host-owned", port, state, limit, "--display-check", resume, history]
+            if resume.starts_with("--resume=") && history.starts_with("--history-peer=") =>
+        {
+            Some(host(
+                root,
+                &[port, state, limit, resume, history, "--display-check"],
+            ))
+        }
+        ["host-owned", port, state, limit, "--display-check", history]
+            if history.starts_with("--history-peer=") =>
+        {
+            Some(host(
+                root,
+                &[port, state, limit, history, "--display-check"],
+            ))
+        }
         ["host-owned", port, state, limit, "--display-check", resume]
             if resume.starts_with("--resume=") =>
         {
@@ -95,4 +121,39 @@ fn pico(root: &Path, birth: &str) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("elf2uf2-rs").arg(&elf).arg(&uf2))?;
     println!("Pico memory checkpoint: {}", uf2.display());
     Ok(())
+}
+
+fn carrier_outage(
+    root: &Path,
+    upstream: &str,
+    state: &str,
+    resume: &str,
+    output: &str,
+) -> Result<(), Box<dyn Error>> {
+    super::execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .args([
+                "build",
+                "--locked",
+                "--manifest-path",
+                "bodies/environment/host/Cargo.toml",
+            ])
+            .env("CARGO_TARGET_DIR", root.join("target")),
+    )?;
+    super::execute(
+        Command::new("python3")
+            .current_dir(root)
+            .arg(root.join("bodies/environment/host/proof/acceptance_loss_test.py"))
+            .env("PYTHONDONTWRITEBYTECODE", "1"),
+    )?;
+    super::execute(
+        Command::new("python3")
+            .current_dir(root)
+            .arg(root.join("bodies/environment/host/proof/carrier_outage.py"))
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .args([upstream, state, resume])
+            .arg(root.join("target/debug/conduit-environment-host"))
+            .arg(output),
+    )
 }
