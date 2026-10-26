@@ -12,13 +12,16 @@ export const ACTIONLINT = Object.freeze({
   sha256: '023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757',
 });
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+function setupPreflightRuntime() {
+  // The quick job and the unit workflow-contract tests both execute the
+  // mandatory compiler-cache wrapper/refusal corpus.
+  apt('bubblewrap', 'apparmor-profiles');
+  setupHostedSandbox();
+}
 export async function setupCi() {
   const started = performance.now();
   if (process.platform !== 'linux' || process.arch !== 'x64') throw new Error('CI validation tools require Linux x64');
-  // Preflight executes the actual compiler-cache wrapper/refusal corpus too.
-  // Provision its namespace boundary here, not only in the hosted product job.
-  apt('bubblewrap', 'apparmor-profiles');
-  setupHostedSandbox();
+  setupPreflightRuntime();
   const directory = join(cacheRoot(), 'actionlint', ACTIONLINT.version);
   const archive = join(directory, ACTIONLINT.archive);
   mkdirSync(directory, { recursive: true });
@@ -58,4 +61,5 @@ export async function setupCi() {
 export function setupUnit() {
   if (process.platform !== 'linux') throw new Error('unit runner requires Linux');
   apt(...COMMON_APT);
+  setupPreflightRuntime();
 }
