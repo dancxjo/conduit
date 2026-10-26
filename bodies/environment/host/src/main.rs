@@ -126,3 +126,5 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod evidence_compact_tests;
+#[cfg(test)]
+mod evidence_journal_tests;
