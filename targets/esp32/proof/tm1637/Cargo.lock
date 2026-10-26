@@ -285,6 +285,7 @@ dependencies = [
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
+ "serde_json",
 ]
 
 [[package]]

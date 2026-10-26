@@ -3,8 +3,8 @@ use super::*;
 
 #[derive(Clone, Copy)]
 pub struct ResidentSoftwareOffer<'a> {
-    node: u16,
-    json: &'a [u8],
+    pub(super) node: u16,
+    pub(super) json: &'a [u8],
 }
 impl<'a> ResidentSoftwareOffer<'a> {
     /// Retain compiler-produced metadata, never incoming assignment descriptors.

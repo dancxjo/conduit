@@ -1,4 +1,6 @@
 //! The same fresh Host/authority and exact Source, through two representations.
+#[path = "indexed_support/local_binding.rs"]
+mod local_binding;
 use conduit_core as c;
 use conduit_environment_make::NativeSoftwareSourceRecipe;
 use conduit_environment_runtime::{

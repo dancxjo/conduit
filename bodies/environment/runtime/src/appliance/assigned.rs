@@ -15,6 +15,8 @@ mod resident_offers;
 #[path = "resident_software.rs"]
 mod resident_software;
 pub use resident_offers::{ReadyResidentOffers, ResidentSoftwareOffer};
+#[cfg(feature = "local-planning")]
+pub use resident_software::PreparedLocalAppliance;
 pub use resident_software::PreparedResidentSoftware;
 
 pub const NODES: usize = 15;
@@ -119,6 +121,8 @@ impl ResidentAppliance<'_> {
 #[derive(Debug, PartialEq, Eq)]
 pub enum NativePreparationRefusal {
     Tables(AssignedKernelRefusal),
+    #[cfg(feature = "local-planning")]
+    LocalTables(conduit_plan_lowering::local_tables::LocalTableRefusal),
     Roles,
     Configuration,
     Initialization,

@@ -127,6 +127,7 @@ impl NativeRoot {
         // Opaque verification owns the selected metadata now. Retire Source
         // selection descriptions before the installed Body clones its finite
         // biography/proposal state; those descriptions are not execution state.
+        let offer_generation = host.offer_generation;
         drop((host, choices, queues, grants, empty, lines));
         mark("planning-scratch-retired", 0);
         let metadata = plan.preparation_metadata();
@@ -152,6 +153,15 @@ impl NativeRoot {
                 conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(&plan, id)
                     .map_err(|_| "lowering")?;
             mark("lowered-live", verified_lowering.lowered().nodes.len());
+            crate::native_software::check_local(
+                self.software.as_ref().ok_or("software-owner")?,
+                &verified_lowering,
+                &image,
+                &self.host,
+                &self.boot,
+                offer_generation,
+            )?;
+            mark("local-software-admitted", 15);
             let _tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<
                 15,
                 14,

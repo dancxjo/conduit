@@ -175,6 +175,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "serde",
+ "serde_json",
  "sha2",
 ]
 

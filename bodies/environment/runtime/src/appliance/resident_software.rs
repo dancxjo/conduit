@@ -1,8 +1,13 @@
 //! Initialized software retained before planning, with no native possession.
 use super::*;
 use alloc::{boxed::Box, vec::Vec};
+#[cfg(feature = "local-planning")]
+#[path = "resident_local.rs"]
+mod local;
 #[path = "resident_transfer.rs"]
 mod transfer;
+#[cfg(feature = "local-planning")]
+pub use local::PreparedLocalAppliance;
 
 #[derive(PartialEq, Eq)]
 pub(super) struct Construction {
@@ -10,7 +15,7 @@ pub(super) struct Construction {
     pub(super) computations: [c::AssignedComputationRequirement; NODES - 8],
     pub(super) count: u64,
     pub(super) period_ms: u64,
-    source: ResidentSourceIdentity,
+    pub(super) source: ResidentSourceIdentity,
 }
 impl Construction {
     pub(super) fn prepare(

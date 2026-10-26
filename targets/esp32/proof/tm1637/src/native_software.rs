@@ -63,3 +63,22 @@ pub fn planning_source(
     unsafe { conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(bytes) }
         .map_err(|_| "body-source-image-representation")
 }
+
+#[cfg(feature = "target-memory-check")]
+pub fn check_local(
+    software: &Software,
+    verified: &conduit_plan_lowering::local_tables::VerifiedLocalLowering<'_>,
+    image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+    host: &conduit_core::HostId,
+    boot: &conduit_core::BootId,
+    generation: conduit_core::OfferGeneration,
+) -> Result<(), &'static str> {
+    software
+        .check_local(
+            verified,
+            image,
+            material::offers(),
+            (host, boot, generation),
+        )
+        .map_err(|_| "local-software-admission")
+}

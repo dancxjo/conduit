@@ -37,6 +37,9 @@ impl<'a> VerifiedLocalLowering<'a> {
     pub fn lowered(&self) -> &LoweredPlanFragment {
         &self.lowered
     }
+    pub fn preparation_scope(&self) -> (&VerifiedPlanMetadata, &LoweredPlanFragment) {
+        (self.plan, &self.lowered)
+    }
 }
 /// No assigned wire identity is fabricated. Exact Plan and lowering stay borrowed
 /// throughout preparation, retaining resource, sign and terminal obligations.
