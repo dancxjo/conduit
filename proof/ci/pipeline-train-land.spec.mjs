@@ -4,16 +4,19 @@ import { mkdir, readFile, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { fixture } from './helpers/train-fixture.mjs';
 import { createTrainLander } from '../../tools/ci/pipeline/train-land.mjs';
+import { machinePolicyFixture } from './helpers/train-machine-policy-fixture.mjs';
 
-async function setup(t) {
+async function setup(t, { configured = true, identity = true } = {}) {
   const f = await fixture(t);
   const run = { ...f.observation.run, run_attempt: 1, check_suite_id: 777 };
+  const machine = machinePolicyFixture(f.manifest.repository);
   const protection = { required_status_checks: { contexts: ['train-accepted'], checks: [{ context: 'train-accepted', app_id: 15368 }], strict: false },
-    required_pull_request_reviews: null, enforce_admins: { enabled: true } };
+    required_pull_request_reviews: null, enforce_admins: { enabled: true },
+    allow_force_pushes: { enabled: false }, allow_deletions: { enabled: false } };
   const check = { name: 'train-accepted', app: { id: 15368 }, head_sha: f.source,
     check_suite: { id: 777 }, status: 'completed', conclusion: 'success' };
   const inventory = { total_count: 1, workflow_runs: [run] };
-  const state = { dev: f.base, rules: [], head: f.source, tree: f.manifest.tree, reject: false,
+  const state = { dev: f.base, rules: machine.branchRules, head: f.source, tree: f.manifest.tree, reject: false,
     ambiguous: false, postAdvance: false, prepares: 0, mutations: 0, restores: 0 };
   const evidence = path.join(f.directory, 'landing-evidence');
   const commands = {
@@ -35,7 +38,9 @@ async function setup(t) {
       if (state.ambiguous) return { status: 1, stderr: 'Network failed after update' };
       value = { ref: 'refs/heads/dev', object: { sha: f.source } };
     } else if (endpoint.endsWith('/branches/dev/protection')) value = protection;
-    else if (endpoint.endsWith('/rules/branches/dev')) value = state.rules;
+    else if (endpoint.includes('/rules/branches/dev')) value = state.rules;
+    else if (endpoint.endsWith('/rulesets/404')) value = machine.ruleset;
+    else if (endpoint === 'installation/repositories?per_page=100') value = machine.repositories;
     else if (endpoint.includes('/workflows/integration.yml/runs?')) value = inventory;
     else if (endpoint.includes('/actions/runs/')) value = run;
     else if (endpoint.includes('/check-suites/')) value = { total_count: 1, check_runs: [check] };
@@ -45,8 +50,10 @@ async function setup(t) {
     else throw new Error(`Unexpected endpoint ${endpoint}`);
     return { status: 0, stdout: JSON.stringify(value) };
   };
-  const land = createTrainLander({ command, commands, directory: f.directory });
-  return { ...f, run, protection, check, inventory, state, evidence,
+  const appIdentityApi = endpoint => endpoint === 'app' ? machine.app : machine.installation;
+  const land = createTrainLander({ command, commands, directory: f.directory,
+    machineWriter: configured ? machine.config : undefined, appIdentityApi: identity ? appIdentityApi : undefined });
+  return { ...f, run, protection, check, inventory, state, evidence, machine,
     land: () => land('manifest.json', run.id, 'archives', evidence) };
 }
 
@@ -56,7 +63,14 @@ test('lands exactly authenticated source through one non-forced protected ref up
   assert.equal(f.state.restores, 1); assert.equal(f.state.prepares, 2);
   const intent = JSON.parse(await readFile(path.join(f.evidence, 'landing-intent.json'), 'utf8'));
   assert.equal(intent.force, false); assert.equal(intent.priorDev, f.base);
+  assert.equal(intent.machineWriter.appId, f.machine.config.appId);
+  assert.equal(intent.machineWriter.rulesetId, f.machine.config.rulesetId);
   await assert.rejects(f.land(), /previous intent/); assert.equal(f.state.mutations, 1);
+});
+for (const options of [{ configured: false }, { identity: false }]) test(`refuses missing machine setup ${JSON.stringify(options)}`, async t => {
+  const f = await setup(t, options);
+  await assert.rejects(f.land(), /Machine writer policy/);
+  assert.equal(f.state.mutations, 0); assert.equal(f.state.restores, 0);
 });
 for (const [name, mutate] of [
   ['newer failed Integration', f => { f.inventory.workflow_runs.push({ ...f.run, id: 999, conclusion: 'failure' }); f.inventory.total_count++; }],
@@ -74,6 +88,11 @@ for (const [name, mutate] of [
   ['review requirement', f => { f.protection.required_pull_request_reviews = { required_approving_review_count: 1 }; }],
   ['administrator check bypass', f => { f.protection.enforce_admins.enabled = false; }],
   ['unknown administrator enforcement', f => { delete f.protection.enforce_admins; }],
+  ['disabled machine activation', f => { f.machine.config.enabled = false; }],
+  ['stale machine identity', f => { f.machine.app.id++; }],
+  ['machine proof bypass', f => { f.machine.ruleset.rules.push({ type: 'required_status_checks' }); }],
+  ['force push permission', f => { f.protection.allow_force_pushes.enabled = true; }],
+  ['branch deletion permission', f => { f.protection.allow_deletions.enabled = true; }],
   ['unknown required check', f => { f.protection.required_status_checks.contexts.push('security'); }],
   ['ruleset requirement', f => { f.state.rules.push({ type: 'pull_request' }); }],
   ['unknown branch requirement', f => { f.protection.unknown_gate = { enabled: true }; }],
@@ -91,6 +110,14 @@ for (const name of ['reject', 'ambiguous', 'postAdvance']) test(`retains intent 
 test('refuses a changed run attempt during authenticated restoration', async t => {
   const f = await setup(t); f.state.onRestore = () => { f.run.run_attempt++; };
   await assert.rejects(f.land(), /Restored evidence differs|attempt changed/);
+  assert.equal(f.state.mutations, 0);
+  await assert.rejects(lstat(path.join(f.evidence, 'landing-intent.json')), { code: 'ENOENT' });
+});
+
+test('refuses writer policy changes during restoration before writing an intent', async t => {
+  const f = await setup(t);
+  f.state.onRestore = () => { f.machine.ruleset.bypass_actors.push({ actor_type: 'User', actor_id: 55, bypass_mode: 'always' }); };
+  await assert.rejects(f.land(), /exact active dev-only update ruleset differs/);
   assert.equal(f.state.mutations, 0);
   await assert.rejects(lstat(path.join(f.evidence, 'landing-intent.json')), { code: 'ENOENT' });
 });

@@ -4,6 +4,7 @@ import { lstat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createTrainCommands } from './train-command.mjs';
 import { verifyTrainManifest } from './train.mjs';
+import { observeMachineWriterPolicy } from './train-machine-policy.mjs';
 
 const fail = reason => { throw new Error(reason); };
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -32,7 +33,8 @@ export function validateLandingProtection(protection, rules) {
   }
 }
 
-export function createTrainLander({ command = spawnSync, directory = process.cwd(), commands } = {}) {
+export function createTrainLander({ command = spawnSync, directory = process.cwd(), commands,
+  machineWriter, appIdentityApi } = {}) {
   commands ??= createTrainCommands({ command, directory });
   const api = (endpoint, body) => {
     const args = ['api', endpoint];
@@ -54,7 +56,14 @@ export function createTrainLander({ command = spawnSync, directory = process.cwd
     const base = `repos/${manifest.repository}`;
     const inspect = () => {
       const protection = api(`${base}/branches/dev/protection`);
-      validateLandingProtection(protection, api(`${base}/rules/branches/dev`));
+      // Validate the classic proof gate separately; the observer below admits
+      // exactly the one recognized effective update rule, never arbitrary rules.
+      validateLandingProtection(protection, []);
+      for (const key of ['allow_force_pushes', 'allow_deletions']) {
+        if (protection[key]?.enabled !== false) fail(`Machine landing requires disabled ${key}`);
+      }
+      const writer = observeMachineWriterPolicy({ config: machineWriter, repository: manifest.repository,
+        api, appApi: appIdentityApi });
       const run = api(`${base}/actions/runs/${runId}`);
       if (run.id !== Number(runId) || !positive(run.run_attempt) || !positive(run.check_suite_id)
           || run.path !== '.github/workflows/integration.yml' || run.event !== 'workflow_dispatch'
@@ -78,7 +87,7 @@ export function createTrainLander({ command = spawnSync, directory = process.cwd
           || check.conclusion !== 'success') fail('train acceptance aggregate does not belong to successful train proof');
       if (api(`${base}/git/ref/heads/${manifest.branch}`).object?.sha !== manifest.source) fail('Remote train ref changed');
       if (api(`${base}/git/commits/${manifest.source}`).tree?.sha !== manifest.tree) fail('Remote source tree differs');
-      return run;
+      return { ...run, machineWriter: writer };
     };
     const before = inspect();
     const restored = await commands.restore(manifestFile, runId, archives, evidenceDirectory);
@@ -87,12 +96,13 @@ export function createTrainLander({ command = spawnSync, directory = process.cwd
         || restored.runAttempt !== before.run_attempt) fail('Restored evidence differs from admitted train');
     const after = inspect();
     if (after.run_attempt !== before.run_attempt) fail('Integration attempt changed during restoration');
+    if (JSON.stringify(after.machineWriter) !== JSON.stringify(before.machineWriter)) fail('Machine writer changed during restoration');
     const refreshed = await commands.prepareDispatch(manifestFile);
     if (refreshed.digest !== manifest.digest) fail('Train admission changed before landing');
     if (api(`${base}/git/ref/heads/dev`).object?.sha !== manifest.base) fail('Development changed before landing');
     const intent = { schema: 'conduit.train-landing-intent/v1', repository: manifest.repository,
       manifestDigest: manifest.digest, priorDev: manifest.base, source: manifest.source, tree: manifest.tree,
-      runId: before.id, runAttempt: before.run_attempt, force: false };
+      runId: before.id, runAttempt: before.run_attempt, machineWriter: before.machineWriter, force: false };
     await writeFile(path.join(evidenceDirectory, 'landing-intent.json'), `${JSON.stringify(intent, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
     const updated = api(`${base}/git/refs/heads/dev`, { sha: manifest.source, force: false });
     if (updated.ref !== 'refs/heads/dev' || updated.object?.sha !== manifest.source) fail('Landing acknowledgement ambiguous; inspect retained intent');

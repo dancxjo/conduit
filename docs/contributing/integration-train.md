@@ -150,7 +150,7 @@ Land the exact proven source with authenticated archives and a fresh evidence
 directory:
 
 ```sh
-cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing
+cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing /absolute/reviewed-machine-policy.json CONDUIT_TRAIN_APP_JWT
 ```
 
 Landing restores and validates all products, refreshes source/PR admission,
@@ -163,13 +163,21 @@ the acknowledged source/tree and writes a separate landing receipt. A concurrent
 development update outside that source cannot be fast-forwarded over. This is
 a graph guard, not a strict compare-and-swap to the captured base.
 
+Landing additionally requires the [dedicated machine writer contract](train-machine-writer.md):
+an active exact-dev repository update ruleset whose sole bypass actor is a
+reviewed dedicated Integration App, independent of the classic proof gate.
+The external configuration and separate App JWT/installation credential channels
+must be supplied explicitly. Missing real identities keep activation off.
+
 There is no forced update, protection override, PR-merge fallback or automatic
 mutation retry. Existing evidence and ambiguous outcomes require inspection.
 The existing dev policy requires a PR and exempts administrators; that policy
 cannot authorize this direct landing path. Before live train landing, an
-explicit machine-owned branch-policy migration must require the distinct Actions-owned
+explicit branch-policy migration must require the distinct Actions-owned
 `train-accepted` check, require its enforcement for administrators, and replace the
-PR requirement with exact train admission. This command refuses the old policy
+PR requirement with exact train admission. Exact-proof protection alone does not
+establish exclusive machine writer authority; the separate update ruleset above
+must also be installed and verified. This command refuses the old policy
 and does not change it itself. A server rejection remains terminal. A returned landing receipt is not stable publication.
 
 Integration now earns the protected `train-accepted` context from its exhaustive
