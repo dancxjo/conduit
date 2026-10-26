@@ -115,3 +115,37 @@ pub fn decode(
     validate(&retained.evidence, &retained.archives)?;
     Ok(retained)
 }
+
+#[path = "native_restart_json.rs"]
+pub(crate) mod json;
+#[derive(Debug)]
+pub enum StreamRefusal<E> {
+    Sink(E),
+    Invalid,
+}
+/// Serialize the entire canonical envelope without a document allocation.
+/// The caller owns bounded staging and must not publish before journal commit.
+pub fn stream<E>(
+    evidence: &BodyBiographyEvidence,
+    archives: &[BodyBiographyArchiveSegment],
+    pending: &[BodyBiographyArchiveSegment],
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(), StreamRefusal<E>> {
+    validate_chain(evidence, archives, pending).map_err(|_| StreamRefusal::Invalid)?;
+    let snapshot = Snapshot {
+        schema: SCHEMA,
+        evidence,
+        archives: Archives(archives, pending),
+    };
+    let mut failure = None;
+    let result = json::stream(&snapshot, &mut |bytes: &[u8]| {
+        sink(bytes).map_err(|error| {
+            failure = Some(error);
+            json::CodecError::Sink
+        })
+    });
+    if let Some(error) = failure {
+        return Err(StreamRefusal::Sink(error));
+    }
+    result.map_err(|_| StreamRefusal::Invalid)
+}

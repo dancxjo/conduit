@@ -124,7 +124,23 @@ fn full_mutable_two_plot_body_and_original_seed_resume_after_interrupted_play() 
     let media = Media(Rc::new(RefCell::new(vec![255; 65536])));
     let mut journal = checkpoint::Checkpoint::open(media.clone()).unwrap();
     assert_eq!(journal.payload_length(&binding).unwrap(), None);
-    journal.save(&binding, &[7; 32], &bytes).unwrap();
+    let (_, memory) = allocation_probe::observe(|| {
+        journal
+            .save_streamed(&binding, &[7; 32], |sink| {
+                payload::stream(owner.evidence(), &[], owner.pending_archives(), sink).map_err(
+                    |error| match error {
+                        payload::StreamRefusal::Sink(error) => error,
+                        payload::StreamRefusal::Invalid => checkpoint::Refusal::Corrupt,
+                    },
+                )
+            })
+            .unwrap();
+    });
+    println!(
+        "playing checkpoint peak={} allocated={}",
+        memory.peak_bytes, memory.requested_bytes
+    );
+    assert!(memory.peak_bytes < 4096);
     drop(journal);
     drop(owner);
     let mut journal = checkpoint::Checkpoint::open(media.clone()).unwrap();
@@ -248,4 +264,194 @@ fn archival_history_is_in_the_same_complete_transaction_and_cannot_be_dropped() 
     let mut corrupt: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     corrupt["archives"][0]["digest"][0] = 0.into();
     assert!(payload::decode(&serde_json::to_vec(&corrupt).unwrap(), &evidence.body_id).is_err());
+}
+
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+use payload::json as streamed_json;
+#[test]
+fn streamed_serde_json_preserves_all_scalar_variant_escape_and_key_bytes() {
+    #[derive(serde::Serialize)]
+    enum Variant {
+        Unit,
+        Newtype(u128),
+        Tuple(i64, String),
+        Record { text: String, optional: Option<u8> },
+    }
+    #[derive(serde::Serialize)]
+    struct Scalar<'a> {
+        signed: (i8, i16, i32, i64, i128),
+        unsigned: (u8, u16, u32, u64, u128),
+        floats: &'a [f64],
+        boolean: bool,
+        character: char,
+        unit: (),
+        text: String,
+        variants: Vec<Variant>,
+        keys: std::collections::BTreeMap<i128, bool>,
+    }
+    let floats = [
+        0.0,
+        -0.0,
+        1.0,
+        1e-12,
+        1e100,
+        f64::MIN,
+        f64::MAX,
+        f64::MIN_POSITIVE,
+        f64::INFINITY,
+        f64::NAN,
+    ];
+    let value = Scalar {
+        signed: (i8::MIN, i16::MIN, i32::MIN, i64::MIN, i128::MIN),
+        unsigned: (u8::MAX, u16::MAX, u32::MAX, u64::MAX, u128::MAX),
+        floats: &floats,
+        boolean: true,
+        character: '🦉',
+        unit: (),
+        text: (0..32)
+            .map(char::from)
+            .chain(" \"\\\né🦉".chars())
+            .collect(),
+        variants: vec![
+            Variant::Unit,
+            Variant::Newtype(u128::MAX),
+            Variant::Tuple(-1, "tuple".into()),
+            Variant::Record {
+                text: "record".into(),
+                optional: Some(7),
+            },
+        ],
+        keys: [(i128::MIN, true), (i128::MAX, false)]
+            .into_iter()
+            .collect(),
+    };
+    fn check(value: &impl serde::Serialize) {
+        let expected = serde_json::to_vec(value).unwrap();
+        let mut actual = Vec::new();
+        streamed_json::stream(value, &mut |bytes: &[u8]| {
+            actual.extend_from_slice(bytes);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(actual, expected);
+        let (_, memory) = allocation_probe::observe(|| {
+            streamed_json::stream(value, &mut |_: &[u8]| Ok(())).unwrap()
+        });
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    }
+    check(&value);
+    let (_, _, advertisement) = installed();
+    let body = conduit_body::Body::born(
+        "manager/source".into(),
+        "manager/checked".into(),
+        1,
+        "manager/born".into(),
+    )
+    .unwrap();
+    let mut manager = conduit_body::AdmissionManager::new(body.body_id.clone()).unwrap();
+    let invitation = manager
+        .issue_spawn_invitation(
+            conduit_body::SpawnInvitationSecret::from_csprng_bytes([11; 32]).unwrap(),
+            [12; 32],
+            10,
+            100,
+        )
+        .unwrap();
+    check(&manager);
+    let proof = conduit_body::SpawnAdmissionProof {
+        invitation_id: invitation.invitation_id.clone(),
+        body_id: invitation.body_id.clone(),
+        host_id: advertisement.host_id.clone(),
+        boot_id: advertisement.boot_id.clone(),
+        nonce: invitation.nonce,
+        signature: invitation.secret.sign(&invitation.signing_transcript(
+            &advertisement.host_id,
+            &advertisement.boot_id,
+            advertisement.offer_generation,
+        )),
+    };
+    let mut membership = conduit_body::BodyMembership::new(body.body_id).unwrap();
+    manager
+        .complete_spawn(
+            &mut membership,
+            &advertisement,
+            &proof,
+            11,
+            conduit_body::AdmissionSigns {
+                part_admitted: "manager/part".into(),
+                host_attached: "manager/host".into(),
+                candidate_admitted: "manager/candidate".into(),
+            },
+        )
+        .unwrap();
+    check(&manager);
+    let mut bits = 17u64;
+    let floats: Vec<f64> = (0..1024)
+        .map(|_| {
+            bits = bits.wrapping_mul(6364136223846793005).wrapping_add(1);
+            f64::from_bits(bits)
+        })
+        .collect();
+    check(&floats);
+    let bad: std::collections::BTreeMap<Vec<u8>, u8> = [(vec![1], 2)].into_iter().collect();
+    assert!(serde_json::to_vec(&bad).is_err());
+    assert!(streamed_json::stream(&bad, &mut |_: &[u8]| Ok(())).is_err());
+    assert!(
+        streamed_json::stream(&value, &mut |_: &[u8]| Err(streamed_json::CodecError::Sink))
+            .is_err()
+    );
+}
+#[test]
+fn streamed_full_envelope_matches_canonical_bytes_with_bounded_memory_and_readback() {
+    use sha2::{Digest, Sha256};
+    let (owner, _, _) = installed();
+    let mut actual = Vec::new();
+    payload::stream(owner.evidence(), &[], &[], &mut |bytes: &[u8]| {
+        actual.extend_from_slice(bytes);
+        Ok::<_, ()>(())
+    })
+    .unwrap();
+    let expected = payload::encode(owner.evidence(), &[], &[]).unwrap();
+    assert_eq!(actual, expected);
+    let (_, stream_memory) = allocation_probe::observe(|| {
+        payload::stream(owner.evidence(), &[], &[], &mut |_: &[u8]| Ok::<_, ()>(())).unwrap()
+    });
+    let (_, buffer_memory) =
+        allocation_probe::observe(|| payload::encode(owner.evidence(), &[], &[]).unwrap());
+    println!(
+        "restart stream peak={} allocated={} vs buffer peak={}",
+        stream_memory.peak_bytes, stream_memory.requested_bytes, buffer_memory.peak_bytes
+    );
+    assert!(stream_memory.peak_bytes < buffer_memory.peak_bytes);
+    let media = Media(Rc::new(RefCell::new(vec![255; 65536])));
+    let binding: [u8; 32] = Sha256::digest(owner.evidence().body_id.as_str().as_bytes()).into();
+    let mut journal = checkpoint::Checkpoint::open(media).unwrap();
+    journal
+        .save_streamed(&binding, &[7; 32], |sink| {
+            payload::stream(owner.evidence(), &[], &[], sink).map_err(|error| match error {
+                payload::StreamRefusal::Sink(error) => error,
+                payload::StreamRefusal::Invalid => checkpoint::Refusal::Corrupt,
+            })
+        })
+        .unwrap();
+    let mut readback = vec![0; expected.len()];
+    let mut seed = [0; 32];
+    journal.load(&binding, &mut seed, &mut readback).unwrap();
+    assert_eq!(readback, expected);
+    assert_eq!(seed, [7; 32]);
+    // A changed second pass can leave only an uncommitted bank, preserving the
+    // previous complete Body and original signer even if lengths still match.
+    let mut pass = 0;
+    assert!(journal
+        .save_streamed(&binding, &[8; 32], |sink| {
+            pass += 1;
+            sink(if pass == 1 { b"first" } else { b"other" })
+        })
+        .is_err());
+    journal.load(&binding, &mut seed, &mut readback).unwrap();
+    assert_eq!(seed, [7; 32]);
+    assert_eq!(readback, expected);
 }

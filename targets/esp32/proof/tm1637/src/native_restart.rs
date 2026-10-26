@@ -1,6 +1,9 @@
 //! Exclusive Root restart custody. Initialize before selecting or publishing a
 //! signing key. No corrupt/nonempty journal is treated as a fresh installation.
-use crate::{native_body_checkpoint::Checkpoint, native_evidence_region::BodyRegion};
+use crate::{
+    native_body_checkpoint::{Checkpoint, Refusal},
+    native_evidence_region::BodyRegion,
+};
 use alloc::vec::Vec;
 use conduit_body::{
     BodyBiographyArchiveSegment, BodyBiographyEvidence, SealedBodyLifecycleSession,
@@ -97,10 +100,11 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
             return Err("restart-entropy");
         }
         let evidence = store.evidence.as_ref().ok_or("restart-body-missing")?;
-        let bytes = payload::encode(evidence, &store.archives, &[])?;
         store
             .journal
-            .save(&store.binding, &entropy, &bytes)
+            .save_streamed(&store.binding, &entropy, |sink| {
+                payload::stream(evidence, &store.archives, &[], sink).map_err(stream_refusal)
+            })
             .map_err(|_| {
                 store.failed = true;
                 "restart-initial-commit"
@@ -151,10 +155,17 @@ pub fn checkpoint(
         if body_binding != store.binding {
             return Err("restart-body-binding");
         }
-        let bytes = payload::encode(owner.evidence(), &store.archives, owner.pending_archives())?;
         store
             .journal
-            .save(&store.binding, seed, &bytes)
+            .save_streamed(&store.binding, seed, |sink| {
+                payload::stream(
+                    owner.evidence(),
+                    &store.archives,
+                    owner.pending_archives(),
+                    sink,
+                )
+                .map_err(stream_refusal)
+            })
             .map_err(|_| {
                 store.failed = true;
                 "restart-checkpoint-commit"
@@ -189,4 +200,11 @@ pub fn generation() -> Option<u64> {
             .as_ref()
             .and_then(|store| store.journal.generation())
     })
+}
+
+fn stream_refusal(error: payload::StreamRefusal<Refusal>) -> Refusal {
+    match error {
+        payload::StreamRefusal::Sink(error) => error,
+        payload::StreamRefusal::Invalid => Refusal::Corrupt,
+    }
 }

@@ -113,15 +113,34 @@ impl<S: Storage> Checkpoint<S> {
         seed: &[u8; 32],
         evidence: &[u8],
     ) -> Result<(), Refusal> {
-        if evidence.is_empty() || evidence.len() > (BANK - HEADER) as usize {
+        self.save_streamed(binding, seed, |sink| sink(evidence))
+    }
+    /// Two deterministic passes over immutable complete evidence: preflight
+    /// extent/digest before touching flash; then program through 128 bytes.
+    /// A differing second pass or any failed write cannot publish a commit.
+    pub fn save_streamed(
+        &mut self,
+        binding: &[u8; 32],
+        seed: &[u8; 32],
+        mut emit: impl FnMut(&mut dyn FnMut(&[u8]) -> Result<(), Refusal>) -> Result<(), Refusal>,
+    ) -> Result<(), Refusal> {
+        if *seed == [0; 32] || self.retained.is_some_and(|r| &r.binding != binding) {
+            return Err(Refusal::Corrupt);
+        }
+        let mut length = 0usize;
+        let mut expected = Sha256::new();
+        emit(&mut |bytes| {
+            length = length
+                .checked_add(bytes.len())
+                .filter(|n| *n <= (BANK - HEADER) as usize)
+                .ok_or(Refusal::Capacity)?;
+            expected.update(bytes);
+            Ok(())
+        })?;
+        if length == 0 {
             return Err(Refusal::Capacity);
         }
-        if *seed == [0; 32] {
-            return Err(Refusal::Corrupt);
-        }
-        if self.retained.is_some_and(|r| &r.binding != binding) {
-            return Err(Refusal::Corrupt);
-        }
+        let expected: [u8; 32] = expected.finalize().into();
         let generation = match self.retained {
             Some(r) => r.generation.checked_add(1).ok_or(Refusal::Generation)?,
             None => 1,
@@ -130,35 +149,89 @@ impl<S: Storage> Checkpoint<S> {
         let mut header = [255; HEADER as usize];
         header[..8].copy_from_slice(MAGIC);
         header[8..16].copy_from_slice(&generation.to_le_bytes());
-        header[16..20].copy_from_slice(&(evidence.len() as u32).to_le_bytes());
+        header[16..20].copy_from_slice(&(length as u32).to_le_bytes());
         header[24..56].copy_from_slice(binding);
         header[56..88].copy_from_slice(seed);
-        let mut hash = Sha256::new();
-        hash.update(&header[..120]);
-        hash.update(evidence);
-        header[120..152].copy_from_slice(&hash.finalize());
         let base = u32::from(bank) * BANK;
         self.storage.erase_bank(bank)?;
-        self.storage.program(base, &header[..152])?;
-        for (i, chunk) in evidence.chunks(128).enumerate() {
-            let mut aligned = [255; 128];
-            aligned[..chunk.len()].copy_from_slice(chunk);
-            let n = (chunk.len() + 3) & !3;
-            self.storage
-                .program(base + HEADER + i as u32 * 128, &aligned[..n])?;
+        self.storage.program(base, &header[..120])?;
+        let mut program = Program {
+            storage: &mut self.storage,
+            base,
+            block: [255; 128],
+            used: 0,
+            written: 0,
+            count: 0,
+            length,
+            payload: Sha256::new(),
+            whole: Sha256::new(),
+        };
+        program.whole.update(&header[..120]);
+        emit(&mut |bytes| program.push(bytes))?;
+        if program.count != length
+            || <[u8; 32]>::from(program.payload.clone().finalize()) != expected
+        {
+            return Err(Refusal::Corrupt);
         }
+        program.flush()?;
+        header[120..152].copy_from_slice(&program.whole.finalize());
+        self.storage.program(base + 120, &header[120..152])?;
         let mut readback = [0; 160];
         self.storage.read(base, &mut readback)?;
         if readback != header || digest(&mut self.storage, bank, &readback)? != header[120..152] {
             return Err(Refusal::Corrupt);
         }
         self.storage.program(base + 152, COMMIT)?;
-        let retained = inspect(&mut self.storage, bank)?.ok_or(Refusal::Corrupt)?;
-        self.retained = Some(retained);
+        self.retained = Some(inspect(&mut self.storage, bank)?.ok_or(Refusal::Corrupt)?);
         header[56..88].fill(0);
         Ok(())
     }
 }
+struct Program<'a, S> {
+    storage: &'a mut S,
+    base: u32,
+    block: [u8; 128],
+    used: usize,
+    written: u32,
+    count: usize,
+    length: usize,
+    payload: Sha256,
+    whole: Sha256,
+}
+impl<S: Storage> Program<'_, S> {
+    fn push(&mut self, mut bytes: &[u8]) -> Result<(), Refusal> {
+        self.count = self
+            .count
+            .checked_add(bytes.len())
+            .filter(|n| *n <= self.length)
+            .ok_or(Refusal::Capacity)?;
+        self.payload.update(bytes);
+        self.whole.update(bytes);
+        while !bytes.is_empty() {
+            let n = (self.block.len() - self.used).min(bytes.len());
+            self.block[self.used..self.used + n].copy_from_slice(&bytes[..n]);
+            self.used += n;
+            bytes = &bytes[n..];
+            if self.used == self.block.len() {
+                self.flush()?;
+            }
+        }
+        Ok(())
+    }
+    fn flush(&mut self) -> Result<(), Refusal> {
+        if self.used == 0 {
+            return Ok(());
+        }
+        let n = (self.used + 3) & !3;
+        self.storage
+            .program(self.base + HEADER + self.written, &self.block[..n])?;
+        self.written += n as u32;
+        self.used = 0;
+        self.block.fill(255);
+        Ok(())
+    }
+}
+
 fn digest<S: Storage>(storage: &mut S, bank: u8, header: &[u8; 160]) -> Result<[u8; 32], Refusal> {
     let length = u32::from_le_bytes(header[16..20].try_into().unwrap());
     if length == 0 || length > BANK - HEADER {
