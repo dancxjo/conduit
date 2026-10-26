@@ -18,6 +18,7 @@ static USER_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 
 mod entry;
 mod fault_pc;
+pub(super) mod rip_samples;
 pub(super) use entry::{ApplicationRemaining, EntryBudget, EntryIdentity, NativeEntryReceipt};
 
 pub(super) struct Budget {
