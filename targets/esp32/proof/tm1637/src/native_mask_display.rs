@@ -6,8 +6,20 @@ use conduit_core as c;
 use conduit_environment_runtime::{display_mask::PreparedDisplayMask, mask_renderer as r};
 use conduit_seven_segment_mask::{DigitWiring, SevenSegmentLook, Tm1637Profile, WireBit};
 use esp_hal::gpio::Pin;
+#[path = "native_mask_session.rs"]
+mod session;
+#[path = "native_mask_task.rs"]
+pub mod task;
+#[path = "native_mask_worker.rs"]
+mod worker;
+pub use session::{FaceScope, FixedKernel, NativeMaskSession, Preparation as LocalPreparation};
+pub use worker::{EvidenceSink, Lease, LeaseSource, MAXIMUM_CHILDREN, PERIOD_MS};
 pub struct NativeDisplay {
     ready: Option<r::ReadyRenderer<DisplayPins<'static>>>,
+    local: Option<Box<NativeMaskSession>>,
+    local_issued: bool,
+    registered: bool,
+    local_context_bytes: Option<usize>,
     context: Option<Box<conduit_face::PreparedMaskShowContext>>,
     kernel: Option<conduit_environment_runtime::mask_kernel::PreparedMaskKernel>,
 }
@@ -64,18 +76,50 @@ impl NativeDisplay {
         }?;
         Ok(Box::new(Self {
             ready: Some(ready),
+            local: None,
+            local_issued: false,
+            registered: false,
+            local_context_bytes: None,
             context: None,
             kernel: None,
         }))
     }
     pub fn native_bound(&self) -> bool {
-        false
+        self.local_issued
+    }
+    pub fn retain_local(&mut self, preparation: LocalPreparation) -> Result<(), &'static str> {
+        if self.local_issued
+            || self.local.is_some()
+            || self.context.is_some()
+            || self.kernel.is_some()
+        {
+            return Err("mask-already-prepared");
+        }
+        let bytes = preparation.context.plan_wire().len();
+        self.local = Some(NativeMaskSession::prepare(&mut self.ready, preparation)?);
+        self.local_context_bytes = Some(bytes);
+        self.local_issued = true;
+        Ok(())
+    }
+    pub fn take_local(&mut self) -> Result<Box<NativeMaskSession>, &'static str> {
+        self.local.take().ok_or("mask-local-unavailable")
+    }
+    pub fn mark_local_task_registered(&mut self) -> Result<(), &'static str> {
+        if !self.local_issued || self.local.is_some() || self.registered {
+            return Err("mask-task-registration");
+        }
+        self.registered = true;
+        Ok(())
     }
     pub fn task_registered(&self) -> bool {
-        false
+        self.registered
     }
     pub fn context_bytes(&self) -> Option<usize> {
-        None
+        self.local_context_bytes.or_else(|| {
+            self.context
+                .as_ref()
+                .map(|context| context.plan_wire().len())
+        })
     }
     pub fn retain_preparation(
         &mut self,
@@ -108,7 +152,7 @@ impl NativeDisplay {
         self.ready.as_ref()
     }
     pub fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
-        if self.kernel.is_some() {
+        if self.kernel.is_some() || self.local_issued {
             return Ok(());
         }
         if let Some(ready) = self.ready.as_ref() {
@@ -117,7 +161,7 @@ impl NativeDisplay {
         Ok(())
     }
     pub fn append_software_offers(&self, host: &mut c::HostAdvertisement) {
-        if self.kernel.is_some() {
+        if self.kernel.is_some() || self.local_issued {
             return;
         }
         // These stateless routing/closure factories are the same compiled Backs
@@ -145,7 +189,7 @@ impl NativeDisplay {
             ));
     }
     pub fn context_staged(&self) -> bool {
-        self.context.is_some()
+        self.context.is_some() || self.local_issued
     }
     // The old raw-WRITE inspection entrance is explicitly unavailable in this
     // mode; it must not produce a WRITE grant for the renderer's pin owner.
@@ -164,7 +208,7 @@ impl NativeDisplay {
         false
     }
     pub fn kernel_prepared(&self) -> bool {
-        self.kernel.is_some()
+        self.kernel.is_some() || self.local_issued
     }
     pub fn current_software_offers(
         &mut self,
