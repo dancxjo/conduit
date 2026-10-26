@@ -37,6 +37,45 @@ impl PreparedMaskShowContext {
             presenter: PreparedPresenterBasis::from_admitted_mask(planned),
         })
     }
+    /// Prepare the same complete lossless context from opaque Core verification.
+    /// Configurations are supplied and checked one placement at a time; no whole
+    /// rich Mask Plan is rebuilt. Codec scratch, expanded JSON/compressor storage
+    /// and caller stack still require separate finite preparation admission.
+    /// This grants no current Host/Face/provider/Body route or delivery authority.
+    pub fn prepare_verified<F, E>(
+        mask: &crate::MaskPlot,
+        plan: &conduit_core::VerifiedPlanMetadata,
+        configuration: F,
+        maximum_plan_bytes: usize,
+    ) -> Result<Self, MaskJsonRefusal>
+    where
+        F: FnMut(
+            &conduit_core::PlannedGear,
+        ) -> Result<alloc::vec::Vec<conduit_core::ConfigurationEntry>, E>,
+    {
+        if maximum_plan_bytes == 0 {
+            return Err(MaskJsonRefusal::Capacity);
+        }
+        crate::mask_plot::validate_verified_mask(mask, plan)
+            .map_err(|_| MaskJsonRefusal::InvalidPlan)?;
+        let placement = plan
+            .preparation_metadata()
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|placement| placement.gear_id == mask.show_output.gear_id)
+            .ok_or(MaskJsonRefusal::InvalidPlan)?;
+        let view = plan.serialize_with_configurations(configuration);
+        let wire = crate::mask_plot::wire::json_mask_wire(mask, plan.plan_id(), &view)?;
+        if wire.is_empty() || wire.len() > maximum_plan_bytes {
+            return Err(MaskJsonRefusal::Capacity);
+        }
+        Ok(Self {
+            plan: wire.into_boxed_slice(),
+            mask: mask.plot_identity.clone(),
+            presenter: PreparedPresenterBasis::from_admitted_placement(plan.plan_id(), placement),
+        })
+    }
     /// Bounded cold receipt of complete lossless Plan wire. Checks the expanded
     /// extent before decompression, then validates the complete decoded Plan.
     /// Keeps the accepted wire verbatim; it never recompresses or retains the

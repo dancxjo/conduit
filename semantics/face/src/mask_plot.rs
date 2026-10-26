@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{FACE_INTERACTION_VALUE_KIND, FACE_VALUE_KIND, SHOW_VALUE_KIND};
 
-mod wire;
+pub(crate) mod wire;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -138,8 +138,22 @@ impl PlannedMaskPlot {
 }
 
 fn validate_plan(mask: &MaskPlot, plan: &Plan) -> Result<(), MaskPlotError> {
-    if !conduit_core::verify_plan(plan)
-        || plan.source_document_id != mask.plot_identity.source_document_id
+    if !conduit_core::verify_plan(plan) {
+        return Err(MaskPlotError::StalePlan);
+    }
+    validate_verified_boundaries(mask, plan)
+}
+
+/// Core verification owns full configuration/seal validation; boundary checks
+/// inspect its immutable metadata without treating that metadata as a full Plan.
+pub(crate) fn validate_verified_mask(
+    mask: &MaskPlot,
+    plan: &conduit_core::VerifiedPlanMetadata,
+) -> Result<(), MaskPlotError> {
+    validate_verified_boundaries(mask, plan.preparation_metadata())
+}
+fn validate_verified_boundaries(mask: &MaskPlot, plan: &Plan) -> Result<(), MaskPlotError> {
+    if plan.source_document_id != mask.plot_identity.source_document_id
         || plan.checked_plot_id != mask.plot_identity.checked_plot_id
         || plan.expanded_plot_id != mask.plot_identity.expanded_plot_id
     {

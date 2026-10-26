@@ -49,31 +49,53 @@ impl Serialize for PlannedMaskPlot {
             }
             .serialize(serializer);
         }
-        let bytes = serde_json::to_vec(&self.plan).map_err(S::Error::custom)?;
-        if bytes.is_empty() || bytes.len() > MAX_EXPANDED_BYTES {
-            return Err(S::Error::custom("expanded Mask Plan capacity"));
-        }
-        let compressed = compress_to_vec_zlib(&bytes, 6);
-        if compressed.len() > MAX_COMPRESSED_BYTES {
-            return Err(S::Error::custom("compressed Mask Plan capacity"));
-        }
-        let mut zlib_hex = String::with_capacity(compressed.len() * 2);
-        const DIGITS: &[u8] = b"0123456789abcdef";
-        for byte in compressed {
-            zlib_hex.push(DIGITS[usize::from(byte >> 4)] as char);
-            zlib_hex.push(DIGITS[usize::from(byte & 15)] as char);
-        }
-        JsonMask {
-            mask: self.mask.clone(),
-            plan: JsonPlan {
-                encoding: ENCODING.into(),
-                plan_id: self.plan.plan_id.clone(),
-                expanded_bytes: bytes.len(),
-                zlib_hex,
-            },
-        }
-        .serialize(serializer)
+        json_mask(&self.mask, &self.plan.plan_id, &self.plan)
+            .map_err(|_| S::Error::custom("Mask Plan encoding or capacity"))?
+            .serialize(serializer)
     }
+}
+
+/// Same canonical lossless envelope, supplied by any exact complete Plan view.
+/// This stays private: verification and role admission are caller obligations.
+pub(crate) fn json_mask_wire(
+    mask: &MaskPlot,
+    plan_id: &PlanId,
+    plan: &impl Serialize,
+) -> Result<Vec<u8>, crate::MaskJsonRefusal> {
+    let envelope = json_mask(mask, plan_id, plan)?;
+    serde_json::to_vec(&envelope).map_err(|_| crate::MaskJsonRefusal::Json)
+}
+fn json_mask(
+    mask: &MaskPlot,
+    plan_id: &PlanId,
+    plan: &impl Serialize,
+) -> Result<JsonMask, crate::MaskJsonRefusal> {
+    use crate::MaskJsonRefusal as E;
+    let bytes = serde_json::to_vec(plan).map_err(|_| E::InvalidPlan)?;
+    if bytes.is_empty() || bytes.len() > MAX_EXPANDED_BYTES {
+        return Err(E::Capacity);
+    }
+    let expanded_bytes = bytes.len();
+    let compressed = compress_to_vec_zlib(&bytes, 6);
+    drop(bytes);
+    if compressed.len() > MAX_COMPRESSED_BYTES {
+        return Err(E::Capacity);
+    }
+    let mut zlib_hex = String::with_capacity(compressed.len() * 2);
+    const DIGITS: &[u8] = b"0123456789abcdef";
+    for byte in compressed {
+        zlib_hex.push(DIGITS[usize::from(byte >> 4)] as char);
+        zlib_hex.push(DIGITS[usize::from(byte & 15)] as char);
+    }
+    Ok(JsonMask {
+        mask: mask.clone(),
+        plan: JsonPlan {
+            encoding: ENCODING.into(),
+            plan_id: plan_id.clone(),
+            expanded_bytes,
+            zlib_hex,
+        },
+    })
 }
 
 impl<'de> Deserialize<'de> for PlannedMaskPlot {

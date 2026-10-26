@@ -70,9 +70,13 @@ impl PreparedPresenterBasis {
     /// Caller validated the complete ordinary Mask Plan before retaining this
     /// subset. Its complete configuration remains in the immutable wire cache.
     pub(crate) fn from_admitted_mask(planned: &crate::PlannedMaskPlot) -> Self {
-        let placement = planned.show_placement();
+        Self::from_admitted_placement(&planned.plan.plan_id, planned.show_placement())
+    }
+    /// Only a fully admitted ordinary role and complete verified Plan may supply
+    /// these fields; their IDs alone establish no native/Body/route authority.
+    pub(crate) fn from_admitted_placement(plan_id: &PlanId, placement: &PlannedGear) -> Self {
         Self {
-            plan_id: planned.plan.plan_id.clone(),
+            plan_id: plan_id.clone(),
             placement_id: placement.placement_id.clone(),
             capability_id: placement.capability_id.clone(),
             implementation_id: placement.implementation_id.clone(),
