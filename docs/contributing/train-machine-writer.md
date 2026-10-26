@@ -121,14 +121,16 @@ bypass, checked against the owner-observed sole-App policy. Missing, never,
 PR-only or exempt values refuse. It is not inferred from the JWT, a role name,
 or a public App identity. Live acceptance must capture these actual responses.
 
-After setup and activation, run the privileged entrance from the clean proposed
-source working directory, executing only a separately pinned trusted controller:
+After setup and activation, run the supported entrance from the separately
+pinned trusted controller checkout. Pass the clean proposed source directory
+as data; its Cargo configuration and tooling must not execute with credentials:
 
 ```sh
-node /absolute/trusted-controller/tools/ci/pipeline/cli.mjs train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing /absolute/reviewed-machine-policy.json CONDUIT_TRAIN_APP_JWT CONDUIT_TRAIN_POLICY_OBSERVER
+cd /absolute/trusted-controller
+cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing /absolute/reviewed-machine-policy.json CONDUIT_TRAIN_APP_JWT CONDUIT_TRAIN_POLICY_OBSERVER /absolute/proposed-source
 ```
 
-The final two arguments are distinct variable names, never credential values;
+The two credential references are distinct variable names, never credential values;
 neither may be `GH_TOKEN` or `GITHUB_TOKEN`. The external JSON
 contains public reviewed identities, never credentials. The command does not
 register/install an App, mint tokens or edit protection/rulesets. Missing
