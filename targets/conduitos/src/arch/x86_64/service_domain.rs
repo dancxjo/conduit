@@ -118,7 +118,7 @@ impl ServiceDomain {
             .as_mut()
             .and_then(|binding| binding.take(self.instance, &context));
         let samples = super::domain_budget::rip_samples::Capture::arm(
-            self.profile() == ServiceProfile::Draft,
+            self.profile() == ServiceProfile::Application,
         );
         // From this call onward entry has been attempted. Any refusal or
         // missing/invalid observation is terminal for every service profile.
@@ -140,8 +140,8 @@ impl ServiceDomain {
             self.quarantine();
             return Err(error);
         }
-        if result.rtc() >= 8 && self.profile() == ServiceProfile::Draft {
-            super::serial::early_write(b"CONDUIT_CRECHE_RTC_SAMPLES instance=");
+        if result.rtc() >= 8 && self.profile() == ServiceProfile::Application {
+            super::serial::early_write(b"CONDUIT_APPLICATION_RTC_SAMPLES instance=");
             super::serial::write_decimal(self.instance);
             super::serial::early_write(b" sequence=");
             super::serial::write_decimal(sequence);
