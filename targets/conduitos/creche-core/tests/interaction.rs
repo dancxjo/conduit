@@ -248,3 +248,6 @@ fn public_json_mask_transport_stays_lossless_compressed_and_distinct() {
     assert_eq!(decoded.show, input.show);
     assert!(data::decode_interaction(&json).is_err());
 }
+
+#[path = "interaction/transport.rs"]
+mod transport;
