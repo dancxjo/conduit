@@ -6,6 +6,17 @@ use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use esp_storage::FlashStorage;
 use static_cell::StaticCell;
+// The autonomous appliance preserves the full signed history geometry while
+// retaining a smaller, disjoint display-evidence region. Other profiles retain
+// their original partition contract; a mismatched table is refused at boot.
+#[cfg(feature = "local-appliance")]
+const EVIDENCE_START: u32 = 0x330000;
+#[cfg(feature = "local-appliance")]
+const EVIDENCE_LENGTH: u32 = 0x8000;
+#[cfg(not(feature = "local-appliance"))]
+const EVIDENCE_START: u32 = 0x290000;
+#[cfg(not(feature = "local-appliance"))]
+const EVIDENCE_LENGTH: u32 = 0xa8000;
 type Base = Mutex<CriticalSectionRawMutex, RefCell<FlashStorage<'static>>>;
 static FLASH: StaticCell<Base> = StaticCell::new();
 #[repr(align(4))]
@@ -49,7 +60,7 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
             .checked_add(part.len())
             .ok_or("evidence-partition-overflow")?;
         let expected = if part.label().starts_with(b"evidence\0") {
-            Some((0, 0x290000, 0xa8000))
+            Some((0, EVIDENCE_START, EVIDENCE_LENGTH))
         } else if part.label().starts_with(b"observations\0") {
             Some((1, 0x3f0000, 0x10000))
         } else if part.label().starts_with(b"credentials\0") {
@@ -73,7 +84,7 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
                 return Err("evidence-partition-geometry");
             }
             counts[index] += 1;
-        } else if (start < 0x400000 && end > 0x290000) || (start < 0xf000 && end > 0xd000) {
+        } else if (start < 0x400000 && end > EVIDENCE_START) || (start < 0xf000 && end > 0xd000) {
             return Err("evidence-partition-overlap");
         }
     }
@@ -86,8 +97,8 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
     Ok(Regions {
         evidence: Region {
             base,
-            start: 0x290000,
-            length: 0xa8000,
+            start: EVIDENCE_START,
+            length: EVIDENCE_LENGTH,
         },
         observations: Region {
             base,
