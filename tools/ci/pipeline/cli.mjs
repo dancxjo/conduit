@@ -158,6 +158,35 @@ try {
       output('proof-run', String(adoption?.integrationRun ?? pushRun.id));
       break;
     }
+    case 'train-service': {
+      if ((args.length !== 4 && args.length !== 5) || (args.length === 5 && args[4] !== '--drain')) {
+        throw new Error('usage: train-service <service-configuration> <external-machine-policy> <private-key-file> <trusted-policy-observer-environment-reference> [--drain]');
+      }
+      const { readTrainServiceConfiguration, runTrainServiceTick } = await import('./train-service.mjs');
+      const { selectTrainServiceReadyInputs } = await import('./train-service-session.mjs');
+      const { readMachineWriterConfiguration } = await import('./train-machine-policy.mjs');
+      const configurationFile = resolve(args[0]);
+      const service = await readTrainServiceConfiguration(configurationFile);
+      const config = await readMachineWriterConfiguration(resolve(args[1]), service.sourceObjectStore);
+      output('train-service-result', await runTrainServiceTick({ configurationFile, config,
+        privateKeyFile: resolve(args[2]), observerEnvironmentReference: args[3], maintenance: args.length === 5,
+        selectReady: selectTrainServiceReadyInputs }));
+      break;
+    }
+    case 'train-supervise': {
+      if ((args.length !== 5 && args.length !== 6) || (args.length === 6 && args[5] !== '--drain')) {
+        throw new Error('usage: train-supervise <queue-file> <state-directory> <external-machine-policy> <private-key-file> <trusted-policy-observer-environment-reference> [--drain]');
+      }
+      const { readTrainSupervisorQueue, runTrainSupervisorTick } = await import('./train-supervisor.mjs');
+      const { readMachineWriterConfiguration } = await import('./train-machine-policy.mjs');
+      const queueFile = resolve(args[0]);
+      const queue = await readTrainSupervisorQueue(queueFile);
+      const config = await readMachineWriterConfiguration(resolve(args[2]), queue.targetSource);
+      output('train-supervisor-result', await runTrainSupervisorTick({ queueFile,
+        stateDirectory: resolve(args[1]), config, privateKeyFile: resolve(args[3]),
+        observerEnvironmentReference: args[4], maintenance: args.length === 6 }));
+      break;
+    }
     case 'train-control': {
       if (args.length !== 4) throw new Error('usage: train-control <request-file> <external-machine-policy> <private-key-file> <trusted-policy-observer-environment-reference>');
       const { readTrainControllerRequest, runTrainController } = await import('./train-controller.mjs');
@@ -387,7 +416,7 @@ try {
       await publish(args[0], resolve(args[1] ?? 'target/bundle'));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-control|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-service|train-supervise|train-control|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
   }
 } catch (error) {
   abandonProductCustody();
