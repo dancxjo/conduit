@@ -19,7 +19,8 @@ const defaultMetadata = endpoint => {
 };
 
 export async function restoreTrainArtifacts({ manifest, observation, acquisition, directory,
-  metadata = defaultMetadata, targets = TARGETS, validate = verifyTrainRun }) {
+  metadata = defaultMetadata, sourceEnvironment, targets = TARGETS, validate = verifyTrainRun }) {
+  if (sourceEnvironment !== undefined && metadata === defaultMetadata) fail('Explicit authenticated artifact metadata required');
   const verified = validate(manifest, observation);
   const initial = observation.run;
   if (!positive(initial.run_attempt) || !positive(initial.repository?.id)
@@ -83,8 +84,11 @@ export async function restoreTrainArtifacts({ manifest, observation, acquisition
     const stage = path.join(directory, item.name);
     const result = spawnSync('python3', [fileURLToPath(new URL('./train-restore.py', import.meta.url)),
       path.join(acquisition, item.archive), target, stage, String(Math.min(8 * 1024 ** 3, 32 * 1024 ** 3 - expanded))],
-    { encoding: 'utf8', maxBuffer: 65536, timeout: 10 * 60 * 1000 });
-    if (result.error || result.status !== 0) fail(`Safe artifact restoration refused: ${result.stderr ?? result.error?.message}`);
+    { ...(sourceEnvironment === undefined ? {} : { env: sourceEnvironment }), encoding: 'utf8', maxBuffer: 65536, timeout: 10 * 60 * 1000 });
+    if (result.error || result.status !== 0) {
+      if (sourceEnvironment !== undefined) fail('Safe artifact restoration refused');
+      fail(`Safe artifact restoration refused: ${result.stderr ?? result.error?.message}`);
+    }
     const restored = JSON.parse(result.stdout);
     expanded += restored.bytes;
     if (!Number.isSafeInteger(restored.bytes) || restored.bytes < 0 || expanded > 32 * 1024 ** 3) fail('Expanded train exceeds bound');

@@ -90,9 +90,14 @@ export function verifyTrainManifest(manifest) {
 
 // Snapshots must come from the live repository API. Git verifies actual object
 // identity and ancestry; a claimed list of parent hashes is never sufficient.
-function selectedSourceTree({ base, inputs, source, directory }) {
+function selectedSourceTree({ base, inputs, source, directory, sourceEnvironment }) {
   require(sha(source), 'Invalid candidate source');
-  const git = args => execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const execute = (args, extra = {}) => {
+    try { return execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'], ...(sourceEnvironment === undefined ? {} : { env: sourceEnvironment }), ...extra }).trim(); }
+    catch (error) { if (sourceEnvironment !== undefined) throw new Error('Train source Git operation failed'); throw error; }
+  };
+  const git = args => execute(args);
   for (const commit of [base, ...inputs.map(p => p.head), source]) {
     require(git(['rev-parse', '--verify', `${commit}^{commit}`]) === commit, 'Train requires exact commit objects');
     git(['merge-base', '--is-ancestor', commit, source]);
@@ -106,10 +111,10 @@ function selectedSourceTree({ base, inputs, source, directory }) {
   for (const input of inputs) {
     tree = git(['merge-tree', '--write-tree', '--no-messages', combined, input.head]);
     require(sha(tree), 'Train selection has an unresolved merge');
-    combined = execFileSync('git', ['-C', directory, 'commit-tree', tree,
+    combined = execute(['commit-tree', tree,
       '-p', combined, '-p', input.head, '-m', 'Train tree reconstruction'], {
       encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, GIT_AUTHOR_NAME: 'Conduit train', GIT_COMMITTER_NAME: 'Conduit train',
+      env: { ...(sourceEnvironment ?? process.env), GIT_AUTHOR_NAME: 'Conduit train', GIT_COMMITTER_NAME: 'Conduit train',
         GIT_AUTHOR_EMAIL: 'train@example.invalid', GIT_COMMITTER_EMAIL: 'train@example.invalid',
         GIT_AUTHOR_DATE: '2000-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2000-01-01T00:00:00Z' },
     }).trim();
@@ -119,15 +124,15 @@ function selectedSourceTree({ base, inputs, source, directory }) {
   return tree;
 }
 
-export function verifyCapturedTrainSource(manifest, directory = process.cwd()) {
+export function verifyCapturedTrainSource(manifest, directory = process.cwd(), sourceEnvironment) {
   const value = verifyTrainManifest(manifest);
-  require(selectedSourceTree({ ...value, directory }) === value.tree, 'Captured train tree mismatch');
+  require(selectedSourceTree({ ...value, directory, sourceEnvironment }) === value.tree, 'Captured train tree mismatch');
   return value;
 }
 
-export function captureTrain({ repository, base, selections, source, directory = process.cwd() }) {
+export function captureTrain({ repository, base, selections, source, directory = process.cwd(), sourceEnvironment }) {
   const selection = selectTrainInputs({ repository, base, selections });
-  const tree = selectedSourceTree({ ...selection, source, directory });
+  const tree = selectedSourceTree({ ...selection, source, directory, sourceEnvironment });
   const value = { schema: SCHEMA, ...selection,
     source, tree };
   return { ...value, digest: digest(value) };
@@ -135,12 +140,12 @@ export function captureTrain({ repository, base, selections, source, directory =
 
 // Only schedules exhaustive proof. It returns no accepted-product or landing
 // authority and cannot replace verifyTrainRun/verifyTrainProducts.
-export function verifyTrainProofAdmission(manifest, { development, selections }, directory = process.cwd()) {
+export function verifyTrainProofAdmission(manifest, { development, selections }, directory = process.cwd(), sourceEnvironment) {
   const value = verifyTrainManifest(manifest);
   require(development === value.base, 'Development advanced; train must be rebuilt');
   const current = selectInputs({ repository: value.repository, base: development, selections }, false);
   require(JSON.stringify(current.inputs) === JSON.stringify(value.inputs), 'Train proof input readiness/run/attempt/head/jobs changed');
-  require(selectedSourceTree({ ...value, directory }) === value.tree, 'Train proof source tree differs');
+  require(selectedSourceTree({ ...value, directory, sourceEnvironment }) === value.tree, 'Train proof source tree differs');
   return { source: value.source, tree: value.tree, digest: manifest.digest };
 }
 
