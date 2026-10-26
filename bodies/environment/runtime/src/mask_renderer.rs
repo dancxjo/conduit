@@ -182,4 +182,70 @@ impl<P: OpenDrain> ReadyRenderer<P> {
             state: RendererState::Ready,
         })
     }
+    /// Bind actual pins to exact locally verified Mask selection. Fore pins and
+    /// configuration come from independently retained checked Source. Root must
+    /// separately admit the current Body/Face/Mask route and held-start release.
+    pub fn bind_verified_retained(
+        owner: &mut Option<Self>,
+        table: c::BaseCapabilityTable,
+        handle: c::BaseCapabilityHandle,
+        claim: c::BaseOperationClaim,
+        configuration: &[c::ConfigurationEntry],
+        selected: conduit_plan_lowering::selected_operation::SelectedVerifiedForeOperationPlan<'_>,
+    ) -> Result<RendererCall<P>, &'static str> {
+        let ready = owner.as_ref().ok_or("renderer-unavailable")?;
+        let identity = &ready.identity;
+        let b = ready.bounds;
+        if claim.host_id != identity.host_id
+            || claim.boot_id != identity.boot_id
+            || claim.base_instance_id != identity.provider_instance_id
+            || claim.base_provider_generation != identity.provider_generation
+            || claim.resource_pool_id != identity.resource_pool_id
+            || claim.resource_generation_id != identity.resource_generation_id
+            || claim.envelope_id != identity.envelope_id
+            || claim.implementation_id != identity.implementation_id
+            || claim.parameter_bytes != b.face_bytes
+            || claim.work_units != 1
+        {
+            return Err("renderer-native-identity");
+        }
+        let mut inspections = table.inspections();
+        let scope = &inspections.next().ok_or("renderer-possession")?.scope;
+        // One presentation and, if acknowledged, one explicit withdrawal.
+        if inspections.next().is_some()
+            || scope.maximum_in_flight != 1
+            || scope.maximum_parameter_bytes != b.face_bytes
+            || scope.maximum_result_bytes != b.show_bytes
+            || scope.maximum_work_units != 1
+            || scope.maximum_operations != 2
+        {
+            return Err("renderer-possession-bound");
+        }
+        drop(inspections);
+        let active = selected.operation.active.clone();
+        let node = conduit_plan_lowering::selected_operation::bind_selected_verified_configured_fore_operation(
+            &table, &claim,
+            SelectedOperationContract {
+                kind: &ready.realization_contract(), call: CALL,
+                input_bytes: b.face_bytes, output_bytes: b.show_bytes,
+                resource_bytes: b.resource_bytes,
+            }, configuration,
+            AssignedNativeIdentity {
+                capability: CAPABILITY, execution_profile: PROFILE,
+                artifact: identity.artifact_id.as_str(), base: identity.base_id.as_str(),
+                base_implementation: identity.base_implementation_id.as_str(),
+                mechanism: ATTACHMENT, authority: AUTHORITY, resource_class: ATTACHMENT,
+            }, selected,
+        ).map_err(|_| "renderer-selected-binding")?;
+        let ready = owner.take().expect("preflighted renderer owner");
+        Ok(RendererCall {
+            ready,
+            table,
+            handle,
+            claim,
+            active,
+            node,
+            state: RendererState::Ready,
+        })
+    }
 }

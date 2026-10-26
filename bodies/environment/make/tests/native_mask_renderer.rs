@@ -401,3 +401,196 @@ fn readiness_and_prepared_face_cannot_move_to_another_boot_or_semantic_value() {
     assert_eq!(call.state(), RendererState::Cancelled);
     assert!(RendererCall::retire_retained(&mut Some(call)).is_ok());
 }
+
+#[test]
+fn local_verified_renderer_checks_fore_configuration_and_possession_before_transfer() {
+    use conduit_plan_lowering::selected_operation::*;
+    let pins = Rc::new(native::Pins::default());
+    let ready = native::ready(pins.clone());
+    let planned = planned(&ready);
+    let mut metadata = planned.plan.clone();
+    let fragment_id = metadata.fragments[0].fragment_id.clone();
+    let fore = metadata.fragments[0].fore_ports.clone();
+    let configurations: std::collections::BTreeMap<_, _> = metadata
+        .fragments
+        .iter_mut()
+        .flat_map(|fragment| &mut fragment.placements)
+        .map(|gear| {
+            (
+                gear.placement_id.clone(),
+                core::mem::take(&mut gear.configuration),
+            )
+        })
+        .collect();
+    let verified = c::verify_plan_metadata_with_configurations(metadata, |gear| {
+        Ok::<_, ()>(configurations[&gear.placement_id].clone())
+    })
+    .unwrap();
+    let lowered = conduit_plan_lowering::lowering::lower_verified_plan_metadata_fragment(
+        &verified,
+        &fragment_id,
+    )
+    .unwrap();
+    let gear = planned.show_placement();
+    let active = c::bind_active_play(
+        verified.plan_id(),
+        &ready.identity().host_id,
+        &ready.identity().boot_id,
+        1,
+    );
+    let mut kind = f::renderer_kind();
+    kind.limits = c::CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: 8192,
+    };
+    for failure in [
+        "profile",
+        "artifact",
+        "base",
+        "mechanism",
+        "authority",
+        "class",
+        "limits",
+    ] {
+        let (table, _, claim) = native::issue(&ready, &active);
+        let id = ready.identity();
+        let mut expected_kind = kind.clone();
+        if failure == "limits" {
+            expected_kind.limits.max_queue_bytes -= 1;
+        }
+        let result = bind_selected_verified_configured_fore_operation(
+            &table,
+            &claim,
+            SelectedOperationContract {
+                kind: &expected_kind,
+                call: CALL,
+                input_bytes: 8192,
+                output_bytes: 8192,
+                resource_bytes: 64,
+            },
+            &gear.configuration,
+            conduit_plan_lowering::selected_assigned_operation::AssignedNativeIdentity {
+                capability: CAPABILITY,
+                execution_profile: if failure == "profile" {
+                    "foreign/profile"
+                } else {
+                    PROFILE
+                },
+                artifact: if failure == "artifact" {
+                    "foreign/artifact"
+                } else {
+                    id.artifact_id.as_str()
+                },
+                base: if failure == "base" {
+                    "foreign/base"
+                } else {
+                    id.base_id.as_str()
+                },
+                base_implementation: id.base_implementation_id.as_str(),
+                mechanism: if failure == "mechanism" {
+                    "foreign/mechanism"
+                } else {
+                    ATTACHMENT
+                },
+                authority: if failure == "authority" {
+                    "foreign/authority"
+                } else {
+                    AUTHORITY
+                },
+                resource_class: if failure == "class" {
+                    "foreign/class"
+                } else {
+                    ATTACHMENT
+                },
+            },
+            SelectedVerifiedForeOperationPlan {
+                fore: &fore,
+                operation: SelectedVerifiedOperationPlan {
+                    plan: &verified,
+                    fragment_id: &fragment_id,
+                    lowered: &lowered,
+                    active: &active,
+                    placement_id: &gear.placement_id,
+                },
+            },
+        );
+        assert!(result.is_err(), "{failure}");
+        assert_eq!(pins.edges.get(), 0);
+    }
+    let mut owner = Some(ready);
+    for failure in [
+        "fore",
+        "configuration",
+        "lowering",
+        "play",
+        "resource",
+        "boot",
+        "envelope",
+        "parameter-budget",
+        "generation",
+        "revoked",
+        "",
+    ] {
+        let (mut table, handle, mut claim) = native::issue(owner.as_ref().unwrap(), &active);
+        let mut wrong_fore = fore.clone();
+        let mut wrong_lowered = lowered.clone();
+        let mut wrong_active = active.clone();
+        if failure == "fore" {
+            wrong_fore[0].byte_capacity -= 1;
+        }
+        if failure == "lowering" {
+            wrong_lowered.fore_ports[0].byte_capacity -= 1;
+        }
+        if failure == "play" {
+            wrong_active.play_sequence += 1;
+        }
+        if failure == "resource" {
+            claim.resource_pool_id = "foreign/pool".into();
+        }
+        if failure == "boot" {
+            claim.boot_id = "foreign/boot".into();
+        }
+        if failure == "envelope" {
+            claim.envelope_id = "foreign/envelope".into();
+        }
+        if failure == "parameter-budget" {
+            claim.parameter_bytes -= 1;
+        }
+        if failure == "generation" {
+            claim.base_provider_generation += 1;
+        }
+        if failure == "revoked" {
+            table.revoke(&handle).unwrap();
+        }
+        let result = ReadyRenderer::bind_verified_retained(
+            &mut owner,
+            table,
+            handle,
+            claim,
+            if failure == "configuration" {
+                &[]
+            } else {
+                &gear.configuration
+            },
+            SelectedVerifiedForeOperationPlan {
+                fore: &wrong_fore,
+                operation: SelectedVerifiedOperationPlan {
+                    plan: &verified,
+                    fragment_id: &fragment_id,
+                    lowered: &wrong_lowered,
+                    active: &wrong_active,
+                    placement_id: &gear.placement_id,
+                },
+            },
+        );
+        assert_eq!(pins.edges.get(), 0);
+        if failure.is_empty() {
+            assert!(result.is_ok());
+            assert!(owner.is_none());
+        } else {
+            assert!(result.is_err(), "{failure}");
+            assert!(owner.is_some(), "{failure}");
+        }
+    }
+}

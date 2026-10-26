@@ -7,8 +7,9 @@ use conduit_kernel::{HostCallId, NodeId, PortId};
 mod binding;
 mod verified;
 pub use verified::{
-    bind_selected_verified_configured_operation, bind_selected_verified_operation,
-    bind_selected_verified_operation_for_subject, SelectedVerifiedOperationPlan,
+    bind_selected_verified_configured_fore_operation, bind_selected_verified_configured_operation,
+    bind_selected_verified_operation, bind_selected_verified_operation_for_subject,
+    SelectedVerifiedForeOperationPlan, SelectedVerifiedOperationPlan,
 };
 
 pub struct SelectedOperationContract<'a> {
