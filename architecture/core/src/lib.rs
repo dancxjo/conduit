@@ -65,7 +65,7 @@ mod plan_metadata;
 mod plan_verification;
 pub use plan_metadata::{
     verify_plan_metadata_with_configurations, PlanMetadataRefusal, VerifiedFragmentMetadata,
-    VerifiedPlanMetadata,
+    VerifiedPlanMetadata, VerifiedPlanSerialization,
 };
 mod planned_gear;
 mod resource_acquisition;

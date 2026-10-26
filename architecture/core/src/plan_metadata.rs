@@ -1,6 +1,8 @@
 //! Verified read-only lowering material with separately encoded configuration.
 //! This is local verification evidence, never resource possession or Play authority.
 use super::*;
+mod serialization;
+pub use serialization::VerifiedPlanSerialization;
 #[derive(Debug, PartialEq, Eq)]
 pub enum PlanMetadataRefusal<E> {
     UnsupportedActivations,
