@@ -219,3 +219,105 @@ fn erased_preparation_failure_retains_old_region_for_recovery() {
     let recovered = Journal::recover(media, &scope, &basis, 1, &mut work).unwrap();
     assert_eq!(recovered.committed_count(), 1);
 }
+
+#[test]
+fn small_typed_record_workspace_is_exact_and_short_buffers_preserve_custody() {
+    let scope = [9; 96];
+    let basis = [0; 21];
+    let mut work = [0; 136];
+    let mut journal = Journal::create(nor(), &scope, &basis, 960, &mut work).unwrap();
+    let mut record = [0; 21];
+    record[0] = 1;
+    assert_eq!(
+        journal.append(&record, &mut [0; 23]),
+        Err(Refusal::Capacity)
+    );
+    assert_eq!(journal.committed_count(), 0);
+    journal.append(&record, &mut work).unwrap();
+    let media = journal.into_storage();
+    let mut journal = Journal::recover(media, &scope, &basis, 960, &mut work).unwrap();
+    let mut cursor = journal.replay_cursor();
+    let mut output = [0; 21];
+    assert_eq!(
+        journal.replay(&mut cursor, &mut output, &mut [0; 7]),
+        Err(Refusal::Capacity)
+    );
+    assert_eq!(
+        journal.replay(&mut cursor, &mut output, &mut work).unwrap(),
+        Some(21)
+    );
+    assert_eq!(output, record);
+}
+
+#[test]
+fn overnight_observations_fit_and_replay_without_a_remote_consumer() {
+    use conduit_environment_runtime::observed_record::{self, ObservedRecord};
+    use conduit_environment_runtime::recording::RecordingDisposition;
+    let contract =
+        conduit_environment_runtime::observation::ObservationContract::prepare().unwrap();
+    let basis = observed_record::descriptor(&contract).unwrap();
+    let scope = [7; 96];
+    let media = Nor {
+        bytes: vec![255; 65536],
+        remaining: None,
+    };
+    let mut work = [0; 536];
+    let mut journal = Journal::create(media, &scope, &basis, 960, &mut work).unwrap();
+    for sequence in 1..=960 {
+        let record = ObservedRecord {
+            sequence,
+            observed_at_boot_ms: sequence * 60000,
+            disposition: RecordingDisposition::Available,
+            quantities: Some((
+                conduit_core::Quantity::new(20, conduit_core::Unit::Celsius),
+                conduit_core::Quantity::new(59, conduit_core::Unit::Percent),
+            )),
+        }
+        .encode()
+        .unwrap();
+        journal.append(&record, &mut work).unwrap();
+    }
+    assert_eq!(journal.committed_count(), 960);
+    let media = journal.into_storage();
+    let mut recovered = Journal::recover(media, &scope, &basis, 960, &mut work).unwrap();
+    let mut indexed = recovered.replay_cursor_at(959).unwrap();
+    let mut last = [0; observed_record::BYTES];
+    recovered
+        .replay(&mut indexed, &mut last, &mut work)
+        .unwrap();
+    assert_eq!(ObservedRecord::decode(&last).unwrap().sequence, 960);
+    assert!(recovered.replay_cursor_at(961).is_err());
+    let mut cursor = recovered.replay_cursor();
+    let mut output = [0; observed_record::BYTES];
+    for sequence in 1..=960 {
+        assert_eq!(
+            recovered
+                .replay(&mut cursor, &mut output, &mut work)
+                .unwrap(),
+            Some(observed_record::BYTES)
+        );
+        let record = ObservedRecord::decode(&output).unwrap();
+        assert_eq!(record.sequence, sequence);
+        assert_eq!(record.observed_at_boot_ms, sequence * 60000);
+    }
+    assert_eq!(
+        recovered
+            .replay(&mut cursor, &mut output, &mut work)
+            .unwrap(),
+        None
+    );
+}
+
+#[test]
+fn indexed_replay_refuses_mixed_record_geometry() {
+    let basis = [0; 21];
+    let mut work = [0; WORKSPACE_BYTES];
+    let mut journal = Journal::create(nor(), &[5; 96], &basis, 5, &mut work).unwrap();
+    journal.append(&basis, &mut work).unwrap();
+    journal.append(&[1; 100], &mut work).unwrap();
+    journal.append(&basis, &mut work).unwrap();
+    assert!(journal.replay_cursor_at(1).is_err());
+    let media = journal.into_storage();
+    let recovered = Journal::recover(media, &[5; 96], &basis, 5, &mut work).unwrap();
+    assert!(recovered.replay_cursor_at(1).is_err());
+}

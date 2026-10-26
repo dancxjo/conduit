@@ -13,7 +13,14 @@ async fn main(spawner: Spawner) {
     let interrupts = SoftwareInterruptControl::new(p.SW_INTERRUPT);
     esp_rtos::start(timer.timer0, interrupts.software_interrupt0);
     #[cfg(feature = "local-evidence-store")]
-    crate::native_evidence_archive::initialize(p.FLASH).expect("dedicated evidence backing");
+    {
+        let regions =
+            crate::native_evidence_region::prepare(p.FLASH).expect("dedicated evidence backing");
+        crate::native_evidence_archive::initialize(regions.evidence)
+            .expect("display evidence backing");
+        crate::native_observed_archive::initialize(regions.observations)
+            .expect("observed publication backing");
+    }
     let sensor = conduit_esp32_pulse_capture::Esp32PulseCapture::new(p.GPIO27);
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let radio = crate::network::start(spawner, p.WIFI, seed);

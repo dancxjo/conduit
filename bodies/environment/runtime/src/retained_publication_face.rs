@@ -67,6 +67,14 @@ impl RetainedPublicationFace {
         snapshot: PublicationSnapshot<'_>,
         committed_ms: u64,
     ) -> Result<(), RetainedPublicationRefusal> {
+        self.publish_observed(snapshot, committed_ms, committed_ms)
+    }
+    pub fn publish_observed(
+        &mut self,
+        snapshot: PublicationSnapshot<'_>,
+        committed_ms: u64,
+        now: u64,
+    ) -> Result<(), RetainedPublicationRefusal> {
         use RetainedPublicationRefusal as E;
         let expected = self
             .last_sequence
@@ -83,9 +91,44 @@ impl RetainedPublicationFace {
             .validate_value(snapshot.canonical)
             .map_err(E::Structured)?;
         self.face
-            .publish_result(snapshot.channel.index(), snapshot.canonical, committed_ms)
+            .publish_result_at(
+                snapshot.channel.index(),
+                snapshot.canonical,
+                committed_ms,
+                now,
+            )
             .map_err(E::Publication)?;
         self.last_sequence = snapshot.sequence;
+        Ok(())
+    }
+    /// The caller independently verifies and retains the exact producer scope,
+    /// Forms and signature. Projection replay does not synthesize a full raw
+    /// canonical publication receipt or grant authority from claimed IDs.
+    pub fn publish_projected(
+        &mut self,
+        record: &crate::observed_record::ObservedRecord,
+        now: u64,
+    ) -> Result<(), RetainedPublicationRefusal> {
+        use RetainedPublicationRefusal as E;
+        let expected = self
+            .last_sequence
+            .checked_add(1)
+            .ok_or(E::SequenceExhausted)?;
+        if record.sequence != expected {
+            return Err(E::Sequence {
+                expected,
+                actual: record.sequence,
+            });
+        }
+        self.face
+            .publish_at(
+                record.quantities,
+                record.sensor_status(),
+                record.observed_at_boot_ms,
+                now,
+            )
+            .map_err(E::Publication)?;
+        self.last_sequence = record.sequence;
         Ok(())
     }
     pub fn last_source_sequence(&self) -> u64 {

@@ -3,6 +3,12 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     let words = args.iter().map(String::as_str).collect::<Vec<_>>();
     match words.as_slice() {
+        ["observation-history-outage", pid, run, url] => Some(super::execute(
+            Command::new("python3")
+                .current_dir(root)
+                .arg(root.join("bodies/environment/host/proof/local_evidence_outage.py"))
+                .args(["--history", pid, run, url]),
+        )),
         ["local-evidence-outage", pid, run, url] => Some(super::execute(
             Command::new("python3")
                 .current_dir(root)

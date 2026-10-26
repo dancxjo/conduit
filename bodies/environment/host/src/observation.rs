@@ -96,7 +96,7 @@ fn commit_observed<'a>(
     if observed_ms < committed_ms {
         return Err("observation precedes its commit clock".into());
     }
-    checked(face.publish(snapshot, committed_ms))?;
+    checked(face.publish_observed(snapshot, committed_ms, observed_ms))?;
     // Both clocks are signed in the same MCU Boot domain. Age belongs to the
     // Face; a delayed carrier does not erase an otherwise valid measurement.
     checked(face.at(observed_ms))

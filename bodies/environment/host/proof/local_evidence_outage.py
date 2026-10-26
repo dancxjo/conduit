@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 from pathlib import Path
 
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--history", action="store_true", help="also prove missed observation replay over a 150-second pause")
 parser.add_argument("pid", type=int)
 parser.add_argument("run", type=Path)
 parser.add_argument("reading_url")
@@ -32,7 +33,12 @@ def rows():
  return [json.loads(s) for s in complete.splitlines() if s]
 def reading():
  with urllib.request.urlopen(args.reading_url, timeout=4) as response:return json.load(response)
-before=reading();prior=rows();last_seq=max(r['request']['sequence'] for r in prior)
+def history(after=0):
+ endpoint=args.reading_url.rsplit('/',1)[0]+f'/history?after={after}'
+ with urllib.request.urlopen(endpoint, timeout=4) as response:return json.load(response)
+before=reading()
+history_before=history()['committed'] if args.history else None
+prior=rows();last_seq=max(r['request']['sequence'] for r in prior)
 latest=max(prior,key=lambda r:r['request']['sequence'])['reply']
 calls=latest['worker']['native_calls'];commits=latest['local_evidence']['committed']
 previous=proc.joinpath('wchan').read_text().strip();deadline=time.monotonic()+5
@@ -54,11 +60,30 @@ try:
  while '\nState:\tT' not in proc.joinpath('status').read_text():
   if time.monotonic()>deadline:raise RuntimeError('Owner did not stop')
   time.sleep(.001)
- time.sleep(45)
+ # Capture the final durable prefix only after STOP has taken effect. The
+ # earlier HTTP/log reads raced a still-running owner and are not a watermark.
+ stopped_rows=rows()
+ last_seq=max(r['request']['sequence'] for r in stopped_rows)
+ stopped_latest=max(stopped_rows,key=lambda r:r['request']['sequence'])['reply']
+ calls=stopped_latest['worker']['native_calls'];commits=stopped_latest['local_evidence']['committed']
+ if args.history:history_before=history()['committed']
+ print(json.dumps({'event':'outage-stopped-baseline','sequence':last_seq,'native_calls':calls,'committed':commits,'history_committed':history_before}),flush=True)
+ time.sleep(50 if args.history else 45)
  mid=reading();print(json.dumps({'event':'outage-midpoint','sample':mid['sequence'],'age_ms':mid['age_ms'],'owner_stopped':'\nState:\tT' in proc.joinpath('status').read_text()}),flush=True)
- time.sleep(45)
+ time.sleep(50 if args.history else 45)
+ if args.history:
+  second=reading();print(json.dumps({'event':'history-outage-second-minute','sample':second['sequence'],'owner_stopped':'\nState:\tT' in proc.joinpath('status').read_text()}),flush=True)
+  time.sleep(50)
  after=reading();assert after['sequence']>before['sequence'],(before,after)
  assert '\nState:\tT' in proc.joinpath('status').read_text()
+ if args.history:
+  history_after=history(history_before)
+  assert history_after['committed']>=history_before+2,history_after
+  records=bytes.fromhex(history_after['records'])
+  assert len(records)>=42
+  missed=[int.from_bytes(records[i:i+8],'little') for i in range(0,len(records),21)]
+  assert missed==list(range(history_before+1,history_before+1+len(missed)))
+  print(json.dumps({'event':'history-outage-retained','before':history_before,'after':history_after['committed'],'missed_sequences':missed}),flush=True)
  print(json.dumps({'event':'outage-before-resume','sample':after['sequence'],'age_ms':after['age_ms'],'owner_stopped':True,'utc':time.time()}),flush=True)
 finally:
  signal.pidfd_send_signal(owner, signal.SIGCONT)
@@ -78,6 +103,14 @@ while time.monotonic()<deadline:
    # Acceptance follows the controller's signature verification and fsync.
    for invocation in range(commits, target):
     assert len(list((run / 'display-evidence').glob(f'{invocation:020d}-*.bin'))) == 1
+   if args.history:
+    retained=[]
+    for path in run.glob('observed-history-*.json'):
+     document=json.loads(path.read_bytes());payload=bytes.fromhex(document['records'])
+     retained.extend(int.from_bytes(payload[i:i+8],'little') for i in range(0,len(payload),21))
+    required=set(range(history_before+1,history_after['committed']+1))
+    if not required.issubset(retained):time.sleep(1);continue
+    print(json.dumps({'event':'history-outage-export-verified','required_sequences':sorted(required),'retained_sequences':sorted(set(retained))}),flush=True)
    print(json.dumps({'event':'outage-proof-passed','native_calls_before':calls,'native_calls_after':first['worker']['native_calls'],'committed_before':commits,'first_reply':local,'latest':latest['local_evidence'],'owner_alive':True}),flush=True)
    break
  time.sleep(1)

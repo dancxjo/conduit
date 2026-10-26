@@ -13,7 +13,22 @@ use static_cell::StaticCell;
 mod http;
 #[path = "native_face_scope.rs"]
 mod scope;
-pub use http::response as http_response;
+pub fn http_response(
+    now_ms: u64,
+    json: bool,
+    after: Option<u32>,
+) -> Option<heapless::String<2048>> {
+    if let Some(after) = after {
+        #[cfg(feature = "local-evidence-store")]
+        return crate::native_observed_http::response(after);
+        #[cfg(not(feature = "local-evidence-store"))]
+        {
+            let _ = after;
+            return None;
+        }
+    }
+    http::response(now_ms, json)
+}
 const CONTROL_RESERVE: usize = 8192;
 const PREPARATION_BYTES: usize = 4608;
 static SLOT: StaticCell<Box<LocalPublicationFace>> = StaticCell::new();
@@ -50,6 +65,8 @@ pub fn prepare(
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
     }
+    #[cfg(feature = "local-evidence-store")]
+    crate::native_observed_archive::bind(reservation)?;
     let identity = crate::native_software::source_identity();
     let (_, cadence) = crate::native_software::source_facts();
     for text in [
@@ -118,6 +135,15 @@ impl Publisher {
             self.reader.withdraw_http();
             return;
         }
+        #[cfg(feature = "local-evidence-store")]
+        let _ = crate::native_observed_archive::append(
+            PublicationSnapshot {
+                channel: snapshot.channel,
+                sequence: snapshot.sequence,
+                canonical: snapshot.canonical,
+            },
+            committed_ms,
+        );
         self.publish_http(committed_ms);
     }
     // Keep Mask preparation scratch out of the deeper quantity validation call

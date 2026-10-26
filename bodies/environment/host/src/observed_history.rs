@@ -1,0 +1,223 @@
+//! Verify a bounded native observation projection before durable owner custody.
+//! This is an outgoing publication replay profile, not a general Body store.
+use crate::{checked, planning::Prepared, Result};
+use conduit_environment_runtime::observed_record::{self, ObservedRecord};
+use ed25519_dalek::{Signature, VerifyingKey};
+use serde::Deserialize;
+use sha2::{Digest, Sha256};
+use std::{
+    fs::{File, OpenOptions},
+    io::{Read, Write},
+    net::{SocketAddr, TcpStream},
+    os::unix::fs::{DirBuilderExt, OpenOptionsExt},
+    path::Path,
+    time::Duration,
+};
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_observed_wire.rs"]
+mod wire;
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Batch {
+    profile: String,
+    scope: String,
+    forms: String,
+    after: u32,
+    committed: u32,
+    records: String,
+    signature: String,
+}
+fn hex(text: &str) -> Result<Vec<u8>> {
+    if !text.len().is_multiple_of(2)
+        || !text
+            .bytes()
+            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+    {
+        return Err("history hex encoding".into());
+    }
+    text.as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|pair| Ok(u8::from_str_radix(std::str::from_utf8(pair)?, 16)?))
+        .collect()
+}
+pub struct Collector {
+    scope: [u8; 96],
+    forms: [u8; 32],
+    key: VerifyingKey,
+    pub after: u32,
+    observed_ms: u64,
+}
+impl Collector {
+    pub fn new(prepared: &Prepared, key: &[u8; 32]) -> Result<Self> {
+        let mut scope = [0; 96];
+        for (out, text) in scope.as_chunks_mut::<32>().0.iter_mut().zip([
+            prepared.body_plan.body_id.as_str(),
+            prepared.active.boot_id.as_str(),
+            prepared.active.active_play_id.as_str(),
+        ]) {
+            out.copy_from_slice(&Sha256::digest(text.as_bytes()));
+        }
+        let contract =
+            checked(conduit_environment_runtime::observation::ObservationContract::prepare())?;
+        let forms = Sha256::digest(checked(observed_record::descriptor(&contract))?).into();
+        Ok(Self {
+            scope,
+            forms,
+            key: checked(VerifyingKey::from_bytes(key))?,
+            after: 0,
+            observed_ms: 0,
+        })
+    }
+    fn validate(&self, bytes: &[u8]) -> Result<(u32, u64)> {
+        if bytes.len() > 2048 {
+            return Err("history batch bound".into());
+        }
+        let batch: Batch = serde_json::from_slice(bytes)?;
+        let records = hex(&batch.records)?;
+        if batch.profile != "observed-history@1"
+            || hex(&batch.scope)? != self.scope
+            || hex(&batch.forms)? != self.forms
+            || batch.after != self.after
+            || batch.committed > 960
+            || batch.committed < self.after
+            || records.len() > 4 * observed_record::BYTES
+            || !records.len().is_multiple_of(observed_record::BYTES)
+        {
+            return Err("history scope, cursor or extent".into());
+        }
+        let expected = ((batch.committed - self.after).min(4) as usize) * observed_record::BYTES;
+        if records.len() != expected {
+            return Err("history omitted committed records".into());
+        }
+        checked(self.key.verify_strict(
+            &wire::transcript(
+                &self.scope,
+                &self.forms,
+                self.after,
+                batch.committed,
+                &records,
+            ),
+            &checked(Signature::from_slice(&hex(&batch.signature)?))?,
+        ))?;
+        let mut after = self.after;
+        let mut observed_ms = self.observed_ms;
+        for bytes in records.as_chunks::<{ observed_record::BYTES }>().0 {
+            let record = checked(ObservedRecord::decode(bytes))?;
+            after += 1;
+            if record.sequence != u64::from(after) || record.observed_at_boot_ms < observed_ms {
+                return Err("history sequence or Boot clock".into());
+            }
+            observed_ms = record.observed_at_boot_ms;
+        }
+        Ok((after, observed_ms))
+    }
+    /// Revalidate durable batches from the beginning before filling a Face gap.
+    /// These are projections with original observation clocks, not raw receipts.
+    pub fn replay_gap(
+        &self,
+        directory: &Path,
+        face: &mut conduit_environment_runtime::retained_publication_face::RetainedPublicationFace,
+        before: u64,
+        now: u64,
+    ) -> Result<()> {
+        let mut replay = Self {
+            scope: self.scope,
+            forms: self.forms,
+            key: self.key,
+            after: 0,
+            observed_ms: 0,
+        };
+        let mut paths = std::fs::read_dir(directory)?
+            .map(|entry| entry.map(|entry| entry.path()))
+            .collect::<std::io::Result<Vec<_>>>()?;
+        paths.retain(|path| {
+            path.file_name()
+                .is_some_and(|name| name.to_string_lossy().starts_with("observed-history-"))
+        });
+        paths.sort();
+        for path in paths {
+            let bytes = std::fs::read(path)?;
+            let (after, clock) = replay.validate(&bytes)?;
+            let batch: Batch = serde_json::from_slice(&bytes)?;
+            let records = hex(&batch.records)?;
+            for bytes in records.as_chunks::<{ observed_record::BYTES }>().0 {
+                let record = checked(ObservedRecord::decode(bytes))?;
+                if record.sequence >= before {
+                    return Ok(());
+                }
+                if record.sequence > face.last_source_sequence() {
+                    checked(face.publish_projected(&record, now))?;
+                }
+            }
+            replay.after = after;
+            replay.observed_ms = clock;
+        }
+        Ok(())
+    }
+    pub fn collect(&mut self, address: SocketAddr, directory: &Path) -> Result<()> {
+        // At most 240 batches cover the admitted 960-publication lifetime.
+        for _ in 0..240 {
+            let bytes = fetch(address, self.after)?;
+            let (after, observed_ms) = self.validate(&bytes)?;
+            if after == self.after {
+                return Ok(());
+            }
+            std::fs::DirBuilder::new()
+                .recursive(true)
+                .mode(0o700)
+                .create(directory)?;
+            let path = directory.join(format!(
+                "observed-history-{:04}-{after:04}.json",
+                self.after
+            ));
+            match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(&path)
+            {
+                Ok(mut output) => {
+                    output.write_all(&bytes)?;
+                    output.sync_all()?;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                    if std::fs::read(path)? != bytes {
+                        return Err("history custody differs".into());
+                    }
+                }
+                Err(error) => return Err(error.into()),
+            }
+            File::open(directory)?.sync_all()?;
+            // Advance only after file and directory custody is durable.
+            self.after = after;
+            self.observed_ms = observed_ms;
+        }
+        Ok(())
+    }
+}
+fn fetch(address: SocketAddr, after: u32) -> Result<Vec<u8>> {
+    let mut socket = TcpStream::connect_timeout(&address, Duration::from_secs(3))?;
+    socket.set_read_timeout(Some(Duration::from_secs(3)))?;
+    socket.set_write_timeout(Some(Duration::from_secs(3)))?;
+    write!(
+        socket,
+        "GET /history?after={after} HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n",
+        address.ip()
+    )?;
+    let mut bytes = Vec::new();
+    socket.take(2049).read_to_end(&mut bytes)?;
+    if bytes.len() > 2048 {
+        return Err("history HTTP extent".into());
+    }
+    let boundary = bytes
+        .windows(4)
+        .position(|v| v == b"\r\n\r\n")
+        .ok_or("history HTTP framing")?;
+    if !bytes.starts_with(b"HTTP/1.0 200 OK\r\n") {
+        return Err("history unavailable".into());
+    }
+    Ok(bytes[boundary + 4..].to_vec())
+}
+#[cfg(test)]
+mod tests;

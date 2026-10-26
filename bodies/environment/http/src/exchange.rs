@@ -5,7 +5,7 @@ use embedded_io_async::{Read, Write};
 use zeroize::Zeroizing;
 
 /// Trusted Root's synchronous bounded Mask entry; a callback is not authority.
-pub type ReadingProvider = fn(u64, bool) -> Option<heapless::String<2048>>;
+pub type ReadingProvider = fn(u64, bool, Option<u32>) -> Option<heapless::String<2048>>;
 
 pub struct NetworkSetupRoute<'a> {
     mailbox: &'a mut NetworkSetupMailbox,
@@ -64,6 +64,7 @@ pub enum ExchangeRefusal {
 pub enum ExchangeOutcome {
     Reading,
     ReadingUnavailable,
+    History,
     NetworkPage,
     SubmissionAcknowledged,
     NotFound,
@@ -102,6 +103,17 @@ pub async fn exchange_buffered<T: Read + Write>(
     route: Option<NetworkSetupRoute<'_>>,
     response: &mut heapless::String<2048>,
     mut reading: impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
+) -> Result<ExchangeOutcome, ExchangeRefusal> {
+    exchange_buffered_with_history(io, now, route, response, &mut reading, |_| None).await
+}
+/// Independently installed read-only replay; bootstrap routes still deny it.
+pub async fn exchange_buffered_with_history<T: Read + Write>(
+    io: &mut T,
+    now: impl Fn() -> u64,
+    route: Option<NetworkSetupRoute<'_>>,
+    response: &mut heapless::String<2048>,
+    mut reading: impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
+    mut history: impl FnMut(u32) -> Option<heapless::String<2048>>,
 ) -> Result<ExchangeOutcome, ExchangeRefusal> {
     let limits = route
         .as_ref()
@@ -143,6 +155,17 @@ pub async fn exchange_buffered<T: Read + Write>(
                 write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
                 Ok(ExchangeOutcome::ReadingUnavailable)
             }
+        }
+        (Some(NetworkHttpRequest::History { after }), route) => {
+            response.clear();
+            if route.as_ref().is_none_or(|r| r.reading_available)
+                && render_history_into(&mut history, after, response)
+            {
+                write(io, response.as_bytes()).await?;
+                return Ok(ExchangeOutcome::History);
+            }
+            write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
+            Ok(ExchangeOutcome::ReadingUnavailable)
         }
         (Some(NetworkHttpRequest::Page), Some(route)) => {
             render_page_into(route.preparation_only, route.limits, response)?;
@@ -212,6 +235,20 @@ fn render_into(
     output.clear();
     if let Some(response) = reading(now, json) {
         *output = response;
+        true
+    } else {
+        false
+    }
+}
+
+#[inline(never)]
+fn render_history_into(
+    history: &mut impl FnMut(u32) -> Option<heapless::String<2048>>,
+    after: u32,
+    output: &mut heapless::String<2048>,
+) -> bool {
+    if let Some(value) = history(after) {
+        *output = value;
         true
     } else {
         false

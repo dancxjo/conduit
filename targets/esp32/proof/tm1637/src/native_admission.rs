@@ -19,6 +19,8 @@ impl NativeAdmission {
             return Err(());
         }
         let key = SigningKey::from_bytes(&seed);
+        #[cfg(feature = "local-evidence-store")]
+        crate::native_observed_http::install(key.clone())?;
         seed.fill(0);
         Ok(Self { key })
     }

@@ -41,6 +41,12 @@ mod native_display;
 mod native_evidence_archive;
 #[cfg(feature = "local-evidence-store")]
 mod native_evidence_region;
+#[cfg(feature = "local-evidence-store")]
+mod native_observed_archive;
+#[cfg(feature = "local-evidence-store")]
+mod native_observed_http;
+#[cfg(feature = "local-evidence-store")]
+mod native_observed_wire;
 #[cfg(all(
     feature = "mask-root",
     any(

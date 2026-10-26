@@ -50,6 +50,14 @@ impl Line {
         }
         Ok(Self { file })
     }
+    /// Read-only HTTP replay uses the already selected TCP peer, never an
+    /// ambient hostname or another Body member. UART has no implied HTTP line.
+    pub fn http_peer(&self) -> Option<std::net::SocketAddr> {
+        let fd = std::os::fd::OwnedFd::from(self.file.try_clone().ok()?);
+        let mut address = std::net::TcpStream::from(fd).peer_addr().ok()?;
+        address.set_port(80);
+        Some(address)
+    }
     fn ready(&self, event: i16, deadline: Instant) -> Result<()> {
         loop {
             let remaining = deadline

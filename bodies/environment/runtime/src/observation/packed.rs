@@ -54,8 +54,16 @@ impl PreparedObservationQuantityForms {
             )
             .map_err(|_| R::MalformedCanonicalEncoding.into())
         };
-        let temperature = forms::DeviceDht11TemperatureForm::encode(quantity("temperature")?)?;
-        let humidity = forms::DeviceDht11HumidityForm::encode(quantity("humidity")?)?;
+        Self::pack_quantities(quantity("temperature")?, quantity("humidity")?)
+    }
+    /// Representation only. Callers must hold the independently validated
+    /// observation/producer scope; encoding quantities confers no provenance.
+    pub fn pack_quantities(
+        temperature: Quantity,
+        humidity: Quantity,
+    ) -> Result<[u8; 4], ObservationRefusal> {
+        let temperature = forms::DeviceDht11TemperatureForm::encode(temperature)?;
+        let humidity = forms::DeviceDht11HumidityForm::encode(humidity)?;
         Ok([temperature[0], temperature[1], humidity[0], humidity[1]])
     }
 
@@ -65,10 +73,18 @@ impl PreparedObservationQuantityForms {
         if packed.len() != Self::PACKED_BYTES {
             return Err(conduit_core::QuantityFormRefusal::WrongLength.into());
         }
-        let temperature = forms::DeviceDht11TemperatureForm::decode(&packed[..2])?;
-        let humidity = forms::DeviceDht11HumidityForm::decode(&packed[2..])?;
+        let (temperature, humidity) = Self::unpack_quantities(packed)?;
         self.observation
             .quantities(temperature, humidity)
             .map_err(Into::into)
+    }
+    pub fn unpack_quantities(packed: &[u8]) -> Result<(Quantity, Quantity), ObservationRefusal> {
+        if packed.len() != Self::PACKED_BYTES {
+            return Err(conduit_core::QuantityFormRefusal::WrongLength.into());
+        }
+        Ok((
+            forms::DeviceDht11TemperatureForm::decode(&packed[..2])?,
+            forms::DeviceDht11HumidityForm::decode(&packed[2..])?,
+        ))
     }
 }

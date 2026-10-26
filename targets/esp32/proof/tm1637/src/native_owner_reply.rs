@@ -37,6 +37,8 @@ struct Reply<'a> {
     kernel_additional_preparation_bound: Option<usize>,
     #[cfg(feature = "display-ready-root")]
     display_worker: Option<crate::native_display::DisplayTaskStatus>,
+    #[cfg(feature = "local-evidence-store")]
+    observation_history: crate::native_observed_archive::Status,
     capability_possession_issued: bool,
     acknowledgement: Option<&'a crate::native_owner_receipt::Receipt>,
     acknowledgement_signature: Option<&'a [u8]>,
@@ -139,6 +141,8 @@ pub(super) fn encode(
         kernel_additional_preparation_bound: root.kernel_preparation_bound(),
         #[cfg(feature = "display-ready-root")]
         display_worker: root.display_task_status(),
+        #[cfg(feature = "local-evidence-store")]
+        observation_history: crate::native_observed_archive::status(),
         capability_possession_issued: root.native_possession_prepared(),
         publication_bytes,
         acknowledgement: acknowledgement.as_ref(),

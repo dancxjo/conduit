@@ -141,6 +141,8 @@ pub fn run(
     limit: u32,
 ) -> Result<()> {
     let mut face = crate::observation::prepare(&prepared)?;
+    let mut history = crate::observed_history::Collector::new(&prepared, &device_key)?;
+    let history_peer = line.http_peer();
     // Signal handlers only request cancellation; signed native cleanup stays
     // in the ordinary owner flow, with its existing finite carrier deadlines.
     unsafe {
@@ -281,6 +283,7 @@ pub fn run(
         let deadline = Instant::now() + Duration::from_secs(u64::from(limit) * 60 + 30);
         let mut observed = false;
         let mut publications = 0;
+        let mut retained_sequence = 0;
         let mut output = std::fs::File::create(authority.state.join("native-observations.ndjson"))?;
         while Instant::now() < deadline && !STOP.load(Ordering::Relaxed) {
             if prepared.display.is_some() {
@@ -335,12 +338,47 @@ pub fn run(
                 let evidence = serde_json::json!({"body":body.evidence().body_id,"host":prepared.active.host_id,"boot":prepared.active.boot_id,
                 "plan":prepared.active.plan_id,"play":prepared.active.active_play_id,"receipt":receipt,
                 "request":exchange.request,"root_key":device_key,"root_signature":exchange.reply["acknowledgement_signature"],"canonical_bytes":exchange.publication,"delivery_round_trip_ms":before.elapsed().as_millis()});
-                writeln!(output, "{evidence}")?;
-                output.sync_all()?;
+                if snapshot.sequence > retained_sequence {
+                    writeln!(output, "{evidence}")?;
+                    output.sync_all()?;
+                    retained_sequence = snapshot.sequence;
+                }
                 println!(
                     "{}",
                     serde_json::json!({"event":"verified-native-publication","channel":snapshot.channel,"sequence":snapshot.sequence,"bytes":snapshot.bytes,"heap":exchange.reply["heap_telemetry"],"face":exchange.reply["face"]})
                 );
+                if !exchange.reply["observation_history"].is_null() {
+                    if let Some(peer) = history_peer {
+                        match history.collect(peer, &authority.state) {
+                            Ok(()) => println!(
+                                "{}",
+                                serde_json::json!({"event":"verified-observation-history", "through_sequence":history.after})
+                            ),
+                            Err(error) => eprintln!(
+                                "observation history remains on MCU; collection deferred: {error}"
+                            ),
+                        }
+                    }
+                }
+                if snapshot.sequence > face.last_source_sequence() + 1 {
+                    if let Err(error) = history.replay_gap(
+                        &authority.state,
+                        &mut face,
+                        snapshot.sequence,
+                        snapshot.observed_millis,
+                    ) {
+                        eprintln!("Face gap remains pending signed history: {error}");
+                    }
+                    if snapshot.sequence > face.last_source_sequence() + 1 {
+                        crate::observation::age(
+                            &mut face,
+                            snapshot.observed_millis,
+                            &authority.state,
+                        )?;
+                        std::thread::sleep(Duration::from_secs(1));
+                        continue;
+                    }
+                }
                 // A timeout or unavailable result proves execution, but does not
                 // establish that this physical sensor produced a measurement.
                 observed |= crate::observation::publish(
@@ -352,7 +390,7 @@ pub fn run(
                     snapshot.observed_millis,
                     &authority.state,
                 )?;
-                publications += 1;
+                publications = face.last_source_sequence().try_into()?;
                 if publications == limit {
                     break;
                 }

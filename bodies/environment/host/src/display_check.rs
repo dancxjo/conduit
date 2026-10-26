@@ -342,7 +342,9 @@ fn drain_evidence(
     key: &[u8; 32],
     sequence: &mut u64,
 ) -> Result<()> {
-    for _ in 0..3 {
+    // A local journal may contain the entire admitted display lifetime after
+    // an outage. Drain that finite bound, not the old one-page RAM assumption.
+    for _ in 0..=19_201 {
         let reply = command(
             line,
             authority,

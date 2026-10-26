@@ -156,10 +156,67 @@ The owner accepts `tcp://192.168.4.1:4242` wherever the serial port was supplied
 
 Do not deploy this candidate as an unattended long-distance appliance yet. Carrier interruption currently terminates the attended exchange. Persistent reconnection must reconcile incomplete signed requests rather than blindly replay effects, retain pending evidence under finite pressure, and verify the expected member on both station and fallback AP paths. Saved network configuration requires a finite Body-lifetime Keep backed by actual durable private storage; the existing volatile mailbox cannot advertise that retention horizon.
 
-The experimental `member-image OWNER_PUBLIC_KEY --local-evidence-check` profile now binds the journal to an actual dedicated ESP32 partition. Its required layout is `targets/esp32/proof/tm1637/evidence-partitions.csv`: the application ends before `0x290000`, and the remaining 1.5 MB is private Root evidence backing. The adapter checks the actual table, bounds every read/program operation, and exposes no erase or general application storage entrance. Pre-Play preparation owns and verifies erased backing; a local commit and media readback release the kernel page. Remote acceptance advances only the export cursor. A prior nonempty journal is retained and makes this writer unavailable pending explicit recovery; it is never silently erased.
+The experimental `member-image OWNER_PUBLIC_KEY --local-evidence-check` profile now binds the journal to an actual dedicated ESP32 partition. Its required layout is `targets/esp32/proof/tm1637/evidence-partitions.csv`: the application ends before `0x290000`, and the remaining space is split into a `0x160000`-byte display-evidence region and a separate 64 KiB observation-outbox region. The adapter checks the actual table, bounds every read/program operation, and exposes no erase or general application storage entrance. Pre-Play preparation owns and verifies erased backing; a local commit and media readback release the kernel page. Remote acceptance advances only the export cursor. A prior nonempty journal is retained and makes this writer unavailable pending explicit recovery; it is never silently erased.
 
 One physical run retained the same Body over Wi-Fi and stopped the Linux owner application for 90 seconds at a verified idle boundary. The MCU advanced from 42 to 72 display writes, committed 30 pages locally without remote acceptance, and advanced its sensor sample. The original owner resumed and accepted the backlog. A concurrent log-reader partial-line error was corrected by validating the completed records from that same pause, not by repeating the outage. The candidate links at about 2.58 MB within its 2.62 MB application partition; measured Root use is 102,576 of 118,768 bytes. These are this run's measurements, not a general bound for arbitrary workloads.
 
-This still uses the explicitly fenced physical-check Face Fore rather than an installed ordinary timed Mask Plot. Temperature-history retention on the MCU, automatic connection recovery, credential retention, general Body-lifetime Keep backing, and new-Boot continuation remain incomplete. The running image has actual local display-evidence custody; those broader appliance behaviors are not implied.
+This still uses the explicitly fenced physical-check Face Fore rather than an installed ordinary timed Mask Plot. Automatic connection recovery, credential retention, general Body-lifetime Keep backing, and new-Boot continuation remain incomplete. These broader appliance behaviors are not implied by local evidence custody.
 
 The repeatable attended proof entrance is `cargo xtask prove environment local-evidence-outage PID RUN_DIRECTORY http://MCU_ADDRESS/reading`, against a running 960-publication owner in this profile. It verifies the actual owner and its open run file, pauses only at an idle boundary, resumes through a pidfd in `finally`, reads only complete log records, and checks signed-controller acceptance plus retained page files. Its 90-second pause proves unavailable-owner progress, not cold Boot or network reconnection.
+
+
+## Finite observation replay
+
+The same experimental `--local-evidence-check` image also retains an outgoing
+observation projection independently of the Linux owner. It uses the existing
+temperature, humidity and recording-disposition Forms: 21 bytes per observation,
+with sequence and **producer-observed Boot milliseconds**, not an invented
+sensor acquisition timestamp. The immutable journal descriptor binds the checked
+observation Type, all three Forms and that clock meaning. Each append commits
+and reads back before being counted; no remote acknowledgement gates sampling
+or display. Retention admits the existing 960-observation lifetime, not an
+unbounded recording session. A CPU recovery test retains and replays all 960
+records in 64 KiB with 536 bytes of journal workspace.
+
+`GET /history?after=N` exports at most four records from that committed prefix.
+The actual admitted MCU key signs a versioned transcript binding the
+Body/Boot/active-Play scope, representation descriptor digest, requested cursor,
+committed count and exact record bytes. This read-only route grants neither
+membership nor storage authority. Bootstrap routes cannot export it. The Linux
+owner on the selected TCP peer verifies those facts, exact sequence continuity,
+and the observation clock, then syncs each batch and directory before advancing
+its local collection cursor. Failure leaves the MCU's retained records intact.
+This projection does not replace the full signed canonical publication evidence.
+
+The outbox is Root publication custody, **not** a general application store or
+Body-lifetime Keep implementation. It never erases or overwrites a previous
+Boot's data; automatic previous-Boot recovery and autonomous Body wake remain
+unfinished. Do not assume the appliance can restart without another host yet.
+
+The attended proof entrance is
+`cargo xtask prove environment observation-history-outage PID RUN_DIRECTORY http://MCU_ADDRESS/reading`.
+It pauses the exact current owner for 150 seconds, verifies continued sensor and
+display progress plus at least two retained observation sequences, resumes the
+owner in `finally`, and checks that the verifying owner saves the missed history
+and accepts the display-evidence backlog. This covers unavailable-owner progress
+within one Play, not network reconnection, a power cycle or a new Boot.
+
+
+On 26 October 2026, the corrected physical profile retained the same Body
+through a 150-second stopped-owner check. During the pause its sensor sequence
+advanced from 1 to 4, and display calls/local commitments advanced from 15 to
+64 while remote acceptance stayed at 15. After resume, the owner verified and
+synced missing observation sequences 2, 3 and 4, advanced its existing Face
+without resetting the MCU, and accepted the original display backlog. Replayed
+observations keep their original Boot observation times; replay arrival only
+advances freshness evaluation. The linked image uses 2,594,800 of 2,621,440 app
+bytes and preserves the 36 KiB stack floor; measured Root use/peak is
+103,536 of 118,768 bytes in this workload.
+
+The first deployment exposed a strict-sequence controller bug and the old
+three-page cleanup assumption. That run was explicitly recovered, including
+all 60 display pages and four signed observations, before the corrected image
+was deployed. The proof harness now takes its durable log watermark only after
+the owner is confirmed stopped, avoiding a concurrent-prefix race. These
+corrections are part of the tested path rather than a claim that the failed
+run succeeded.

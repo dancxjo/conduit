@@ -412,3 +412,54 @@ fn retained_response_backing_is_reused_without_leaking_a_previous_reading() {
         }
     }
 }
+
+#[test]
+fn history_is_explicitly_installed_and_bootstrap_cannot_export_it() {
+    for bootstrap in [false, true] {
+        let mut socket = Socket::new(b"GET /history?after=37 HTTP/1.1\r\n\r\n");
+        let mut mailbox = NetworkSetupMailbox::new(1);
+        let route = if bootstrap {
+            NetworkSetupRoute::bootstrap_control(&mut mailbox, limits())
+        } else {
+            NetworkSetupRoute::new(&mut mailbox, limits())
+        }
+        .unwrap();
+        let mut output = heapless::String::new();
+        let mut called = false;
+        let outcome = poll(exchange_buffered_with_history(
+            &mut socket,
+            || 0,
+            Some(route),
+            &mut output,
+            |_, _| None,
+            |after| {
+                assert_eq!(after, 37);
+                called = true;
+                Some(heapless::String::try_from("HTTP/1.0 200 OK\r\n\r\nfixture").unwrap())
+            },
+        ));
+        assert_eq!(called, !bootstrap);
+        assert!(
+            matches!(outcome, Poll::Ready(Ok(value)) if value == if bootstrap { ExchangeOutcome::ReadingUnavailable } else { ExchangeOutcome::History })
+        );
+    }
+    for request in [
+        &b"GET /history?after=01 HTTP/1.1\r\n\r\n"[..],
+        &b"GET /history?after=1&extra=2 HTTP/1.1\r\n\r\n"[..],
+        &b"GET /history?after=4294967296 HTTP/1.1\r\n\r\n"[..],
+        &b"GET /history?after= HTTP/1.1\r\n\r\n"[..],
+        &b"GET /history?after=-1 HTTP/1.1\r\n\r\n"[..],
+    ] {
+        let mut socket = Socket::new(request);
+        let outcome = poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None));
+        assert!(matches!(
+            outcome,
+            Poll::Ready(Err(ExchangeRefusal::Framing(_)))
+        ));
+    }
+    let mut socket = Socket::new(b"GET /history?after=0 HTTP/1.1\r\n\r\n");
+    assert!(matches!(
+        poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+        Poll::Ready(Ok(ExchangeOutcome::ReadingUnavailable))
+    ));
+}

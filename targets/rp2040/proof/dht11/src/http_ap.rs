@@ -186,14 +186,20 @@ async fn exchange(
     } else {
         None
     };
-    let selected =
-        reading.unwrap_or(|now, json| Some(conduit_environment_http::response(now, json)));
-    conduit_environment_http::exchange::exchange_buffered(
+    let selected = reading.unwrap_or(|now, json, after| {
+        if after.is_some() {
+            None
+        } else {
+            Some(conduit_environment_http::response(now, json))
+        }
+    });
+    conduit_environment_http::exchange::exchange_buffered_with_history(
         socket,
         || Instant::now().as_millis(),
         route,
         response,
-        selected,
+        |now, json| selected(now, json, None),
+        |after| selected(Instant::now().as_millis(), true, Some(after)),
     )
     .await
     .map(|_| ())

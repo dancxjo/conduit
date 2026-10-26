@@ -9,6 +9,7 @@ const REQUEST_BYTES: usize = 1024;
 pub enum NetworkHttpRequest {
     Page,
     Reading { json: bool },
+    History { after: u32 },
     Join(NetworkSetupInput),
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,10 +110,26 @@ fn parse(
         "GET /reading HTTP/1.1" | "GET /reading HTTP/1.0" if readings => Some(true),
         _ => None,
     };
+    let history = if readings && line.starts_with("GET /history?after=") {
+        let tail = line
+            .strip_prefix("GET /history?after=")
+            .ok_or(E::Malformed)?;
+        let (number, version) = tail.split_once(' ').ok_or(E::Malformed)?;
+        if !matches!(version, "HTTP/1.0" | "HTTP/1.1")
+            || number.is_empty()
+            || !number.bytes().all(|b| b.is_ascii_digit())
+            || (number.len() > 1 && number.starts_with('0'))
+        {
+            return Err(E::Malformed);
+        }
+        Some(number.parse::<u32>().map_err(|_| E::TooLarge)?)
+    } else {
+        None
+    };
     let page = match line {
         "GET /network HTTP/1.1" | "GET /network HTTP/1.0" => true,
         "POST /network HTTP/1.1" | "POST /network HTTP/1.0" => false,
-        _ if reading.is_some() => true,
+        _ if reading.is_some() || history.is_some() => true,
         _ => return Err(E::UnsupportedRoute),
     };
     let (mut length, mut content_type) = (None, None);
@@ -157,6 +174,9 @@ fn parse(
         return Err(E::Malformed);
     }
     if page {
+        if let Some(after) = history {
+            return Ok(Some(NetworkHttpRequest::History { after }));
+        }
         return Ok(Some(match reading {
             Some(json) => NetworkHttpRequest::Reading { json },
             None => NetworkHttpRequest::Page,

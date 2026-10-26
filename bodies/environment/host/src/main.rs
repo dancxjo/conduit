@@ -16,6 +16,7 @@ mod native_owner_control;
 #[allow(dead_code)]
 mod native_owner_receipt;
 mod observation;
+mod observed_history;
 mod planning;
 mod transport;
 use std::{error::Error, fmt::Debug, path::PathBuf};
@@ -128,3 +129,5 @@ fn main() -> Result<()> {
 mod evidence_compact_tests;
 #[cfg(test)]
 mod evidence_journal_tests;
+#[cfg(test)]
+mod observed_record_tests;

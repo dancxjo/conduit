@@ -83,6 +83,7 @@ pub struct Journal<'a, S> {
     count: u32,
     maximum_records: u32,
     torn: bool,
+    stride: Option<u32>,
 }
 fn aligned(n: usize) -> usize {
     (n + 3) & !3
@@ -126,7 +127,7 @@ impl<'a, S: Storage> Journal<'a, S> {
         scope: &[u8; 96],
         basis: &'a [u8],
         maximum_records: u32,
-        work: &mut [u8; WORKSPACE_BYTES],
+        work: &mut [u8],
     ) -> Result<Self, Refusal> {
         Self::create_prepared(
             Erased::prepare(storage)?,
@@ -143,12 +144,15 @@ impl<'a, S: Storage> Journal<'a, S> {
         scope: &[u8; 96],
         basis: &'a [u8],
         maximum_records: u32,
-        work: &mut [u8; WORKSPACE_BYTES],
+        work: &mut [u8],
     ) -> Result<Self, Refusal> {
         let Erased(mut storage) = erased;
         let end = Self::header_end(basis, maximum_records)?;
         if storage.capacity() < (end + 8) as u32 {
             return Err(Refusal::Geometry);
+        }
+        if work.len() < end + 8 {
+            return Err(Refusal::Capacity);
         }
         work[..end + 8].fill(255);
         work[..4].copy_from_slice(b"JEV1");
@@ -168,6 +172,7 @@ impl<'a, S: Storage> Journal<'a, S> {
             count: 0,
             maximum_records,
             torn: false,
+            stride: None,
         })
     }
     fn header_end(basis: &[u8], maximum_records: u32) -> Result<usize, Refusal> {
@@ -186,7 +191,7 @@ impl<'a, S: Storage> Journal<'a, S> {
         scope: &[u8; 96],
         basis: &'a [u8],
         maximum_records: u32,
-        work: &mut [u8; WORKSPACE_BYTES],
+        work: &mut [u8],
     ) -> Result<Self, Refusal> {
         let end = Self::header_end(basis, maximum_records)?;
         if storage.capacity() < (end + 8) as u32
@@ -194,6 +199,9 @@ impl<'a, S: Storage> Journal<'a, S> {
             || storage.capacity() > u32::MAX - WORKSPACE_BYTES as u32
         {
             return Err(Refusal::Geometry);
+        }
+        if work.len() < end + 8 {
+            return Err(Refusal::Capacity);
         }
         storage.read(0, &mut work[..end + 8])?;
         if !valid(work, end) {
@@ -215,6 +223,7 @@ impl<'a, S: Storage> Journal<'a, S> {
             count: 0,
             maximum_records,
             torn: false,
+            stride: None,
         };
         while journal.cursor + 8 <= journal.storage.capacity() {
             journal.storage.read(journal.cursor, &mut work[..8])?;
@@ -242,6 +251,9 @@ impl<'a, S: Storage> Journal<'a, S> {
                 journal.torn = true;
                 break;
             }
+            if work.len() < end + 8 {
+                return Err(Refusal::Capacity);
+            }
             journal.storage.read(journal.cursor, &mut work[..end + 8])?;
             if work[end + 4..end + 8] != COMMIT {
                 journal.torn = true;
@@ -250,6 +262,7 @@ impl<'a, S: Storage> Journal<'a, S> {
             if !valid(work, end) || u32_at(work, 4) != journal.count {
                 return Err(Refusal::Corrupt);
             }
+            journal.track_extent((end + 8) as u32);
             journal.count = journal.count.checked_add(1).ok_or(Refusal::Capacity)?;
             if journal.count > maximum_records {
                 return Err(Refusal::Capacity);
@@ -267,11 +280,7 @@ impl<'a, S: Storage> Journal<'a, S> {
     pub fn interrupted_tail(&self) -> bool {
         self.torn
     }
-    pub fn append(
-        &mut self,
-        page: &[u8],
-        work: &mut [u8; WORKSPACE_BYTES],
-    ) -> Result<Committed, Refusal> {
+    pub fn append(&mut self, page: &[u8], work: &mut [u8]) -> Result<Committed, Refusal> {
         if self.torn {
             return Err(Refusal::Torn);
         }
@@ -280,6 +289,9 @@ impl<'a, S: Storage> Journal<'a, S> {
         if self.count == self.maximum_records
             || self.cursor.saturating_add((end + 8) as u32) > self.storage.capacity()
         {
+            return Err(Refusal::Capacity);
+        }
+        if work.len() < end + 8 {
             return Err(Refusal::Capacity);
         }
         work[..end + 8].fill(255);
@@ -300,10 +312,44 @@ impl<'a, S: Storage> Journal<'a, S> {
             offset: self.cursor,
             extent: (end + 8) as u32,
         };
+        self.track_extent(committed.extent);
         self.count += 1;
         self.cursor += committed.extent;
         self.torn = false;
         Ok(committed)
+    }
+    fn track_extent(&mut self, extent: u32) {
+        if self.count == 0 {
+            self.stride = Some(extent);
+        } else if self.stride != Some(extent) {
+            self.stride = None;
+        }
+    }
+    /// Indexed replay is admitted only when the complete committed prefix has
+    /// one verified physical record extent. Mixed-size journals must replay in
+    /// order; callers never supply a raw offset or assume a representation size.
+    pub fn replay_cursor_at(&self, sequence: u32) -> Result<Replay, Refusal> {
+        if sequence > self.count {
+            return Err(Refusal::Geometry);
+        }
+        if sequence == 0 {
+            return Ok(self.replay_cursor());
+        }
+        if sequence == self.count {
+            return Ok(Replay {
+                offset: self.cursor,
+                sequence,
+            });
+        }
+        let offset = self
+            .stride
+            .and_then(|stride| stride.checked_mul(sequence))
+            .and_then(|offset| self.first.checked_add(offset))
+            .ok_or(Refusal::Geometry)?;
+        if offset >= self.cursor {
+            return Err(Refusal::Geometry);
+        }
+        Ok(Replay { offset, sequence })
     }
     pub fn replay_cursor(&self) -> Replay {
         Replay {
@@ -317,7 +363,7 @@ impl<'a, S: Storage> Journal<'a, S> {
         &mut self,
         cursor: &mut Replay,
         output: &mut [u8],
-        work: &mut [u8; WORKSPACE_BYTES],
+        work: &mut [u8],
     ) -> Result<Option<usize>, Refusal> {
         if cursor.offset == self.cursor && cursor.sequence == self.count {
             return Ok(None);
@@ -327,6 +373,9 @@ impl<'a, S: Storage> Journal<'a, S> {
             || cursor.sequence >= self.count
         {
             return Err(Refusal::Geometry);
+        }
+        if work.len() < 8 {
+            return Err(Refusal::Capacity);
         }
         self.storage.read(cursor.offset, &mut work[..8])?;
         let n = usize::from(u16::from_le_bytes([work[2], work[3]]));
@@ -338,6 +387,9 @@ impl<'a, S: Storage> Journal<'a, S> {
             || cursor.offset.saturating_add((end + 8) as u32) > self.cursor
         {
             return Err(Refusal::Corrupt);
+        }
+        if work.len() < end + 8 {
+            return Err(Refusal::Capacity);
         }
         self.storage.read(cursor.offset, &mut work[..end + 8])?;
         if !valid(work, end) {

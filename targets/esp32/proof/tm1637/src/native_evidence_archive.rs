@@ -31,8 +31,8 @@ enum State {
     Failed,
 }
 #[inline(never)]
-pub fn initialize(flash: esp_hal::peripherals::FLASH<'static>) -> Result<(), &'static str> {
-    let state = match Erased::prepare_retained(Region::prepare(flash)?) {
+pub fn initialize(region: Region) -> Result<(), &'static str> {
+    let state = match Erased::prepare_retained(region) {
         Ok(region) => State::Cold(Cold {
             region,
             basis: Box::new([0; wire::MAXIMUM_BYTES]),
@@ -88,7 +88,7 @@ pub fn append(page: &[u8]) -> Result<(), &'static str> {
                 &scope,
                 basis,
                 crate::native_display::CONSTRUCTION_FRAMES + 1,
-                &mut cold.work,
+                &mut cold.work[..],
             )
             .map_err(|_| "evidence-local-header")?;
             let cursor = journal.replay_cursor();
@@ -105,7 +105,7 @@ pub fn append(page: &[u8]) -> Result<(), &'static str> {
         };
         active
             .journal
-            .append(page, &mut active.work)
+            .append(page, &mut active.work[..])
             .map_err(|_| "evidence-local-commit")?;
         Ok(())
     })
@@ -119,7 +119,7 @@ pub fn copy(output: &mut [u8]) -> Result<Option<(EvidenceReference, usize)>, &'s
         let mut next = active.cursor;
         let Some(n) = active
             .journal
-            .replay(&mut next, output, &mut active.work)
+            .replay(&mut next, output, &mut active.work[..])
             .map_err(|_| "evidence-local-read")?
         else {
             return Ok(None);
