@@ -255,7 +255,7 @@ fn received_wire_is_bounded_and_fully_validated_without_recompression() {
     decoded.validate(&face).unwrap();
     let mut malformed: serde_json::Value = serde_json::from_slice(&wire).unwrap();
     malformed["plan"]["expanded_bytes"] = 32769.into();
-    malformed["plan"]["zlib_hex"] = "not hex".into();
+    malformed["plan"]["zlib_base64"] = "not base64".into();
     let oversized = serde_json::to_vec(&malformed).unwrap();
     let (result, refusal_memory) = allocation_probe::observe(|| {
         f::PreparedMaskShowContext::from_wire(oversized.clone().into_boxed_slice(), 8192, 32768)

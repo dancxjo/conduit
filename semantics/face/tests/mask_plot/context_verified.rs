@@ -255,3 +255,117 @@ fn verified_context_avoids_reconstructing_the_whole_rich_mask() {
         streamed.plan_wire().len()
     );
 }
+
+#[test]
+fn small_verified_context_has_finite_cold_peak_and_rechecks_second_pass_configuration() {
+    let planned = planned(32);
+    let (verified, entries) = separate(&planned);
+    let mut calls = 0;
+    let (context, memory) = allocation_probe::observe(|| {
+        PreparedMaskShowContext::prepare_verified(
+            &planned.mask,
+            &verified,
+            |gear| {
+                calls += 1;
+                Ok::<_, ()>(entries[&gear.placement_id].clone())
+            },
+            8192,
+        )
+        .unwrap()
+    });
+    assert_eq!(calls, 2 * entries.len());
+    for maximum in [context.plan_wire().len(), context.plan_wire().len() - 1] {
+        let bounded = PreparedMaskShowContext::prepare_verified(
+            &planned.mask,
+            &verified,
+            |gear| Ok::<_, ()>(entries[&gear.placement_id].clone()),
+            maximum,
+        );
+        if maximum == context.plan_wire().len() {
+            assert_eq!(bounded.unwrap().plan_wire(), context.plan_wire());
+        } else {
+            assert!(matches!(bounded, Err(MaskJsonRefusal::Capacity)));
+        }
+    }
+
+    assert_eq!(
+        serde_json::from_slice::<PlannedMaskPlot>(context.plan_wire()).unwrap(),
+        planned
+    );
+    assert!(memory.peak_bytes < 40 * 1024, "{memory:?}");
+    assert!(PreparedMaskShowContext::codec_workspace_bytes() < 30 * 1024);
+    eprintln!(
+        "small_verified_context_peak={} workspace_bound={} retained={}",
+        memory.peak_bytes,
+        PreparedMaskShowContext::codec_workspace_bytes(),
+        context.plan_wire().len()
+    );
+    let mut calls = 0;
+    let changed = PreparedMaskShowContext::prepare_verified(
+        &planned.mask,
+        &verified,
+        |gear| {
+            calls += 1;
+            Ok::<_, ()>(if calls > entries.len() {
+                vec![]
+            } else {
+                entries[&gear.placement_id].clone()
+            })
+        },
+        8192,
+    );
+    assert!(matches!(changed, Err(MaskJsonRefusal::InvalidPlan)));
+    assert!(calls > entries.len());
+}
+
+#[test]
+fn disjoint_borrowed_scratch_preserves_wire_and_slot_canaries_with_lower_heap_peak() {
+    let planned = planned(32);
+    let (verified, entries) = separate(&planned);
+    let (normal, normal_memory) = allocation_probe::observe(|| {
+        PreparedMaskShowContext::prepare_verified(
+            &planned.mask,
+            &verified,
+            |gear| Ok::<_, ()>(entries[&gear.placement_id].clone()),
+            8192,
+        )
+        .unwrap()
+    });
+    let mut first = vec![0xa5u8; 8192 + 16];
+    let mut second = vec![0x5au8; 8192 + 16];
+    let (borrowed, memory) = {
+        let mut scratch = [&mut first[8..8200], &mut second[8..8200]];
+        let result = allocation_probe::observe(|| {
+            PreparedMaskShowContext::prepare_verified_with_workspace(
+                &planned.mask,
+                &verified,
+                |gear| Ok::<_, ()>(entries[&gear.placement_id].clone()),
+                8192,
+                &mut scratch,
+            )
+            .unwrap()
+        });
+        assert_eq!((scratch[0].len(), scratch[1].len()), (8192, 8192));
+        result
+    };
+    assert_eq!(borrowed.plan_wire(), normal.plan_wire());
+    assert!(first[..8]
+        .iter()
+        .chain(&first[8200..])
+        .all(|&byte| byte == 0xa5));
+    assert!(second[..8]
+        .iter()
+        .chain(&second[8200..])
+        .all(|&byte| byte == 0x5a));
+    assert!(
+        memory.peak_bytes + 15 * 1024 < normal_memory.peak_bytes,
+        "borrowed={memory:?}; normal={normal_memory:?}"
+    );
+    assert!(memory.peak_bytes < 22 * 1024, "{memory:?}");
+    eprintln!(
+        "borrowed_scratch_context_peak={} normal_peak={} retained={}",
+        memory.peak_bytes,
+        normal_memory.peak_bytes,
+        borrowed.plan_wire().len()
+    );
+}

@@ -16,6 +16,13 @@ pub struct PreparedMaskShowContext {
     presenter: PreparedPresenterBasis,
 }
 impl PreparedMaskShowContext {
+    /// Dictionary/history and encoder state for complete lossless Plan encoding.
+    /// Output capacity, one supplied placement/configuration, allocator overhead
+    /// and caller stack remain separate cold preparation admission obligations.
+    pub const fn codec_workspace_bytes() -> usize {
+        crate::mask_plot::wire::CODEC_WORKSPACE_BYTES
+    }
+
     /// Cold preparation verifies the complete Plan and retains its lossless wire.
     /// The rich Plan may be dropped afterward. This does not admit current Host,
     /// Face, provider, Body route or actual delivery.
@@ -26,7 +33,12 @@ impl PreparedMaskShowContext {
         planned
             .validate()
             .map_err(|_| MaskJsonRefusal::InvalidPlan)?;
-        let plan = serde_json::to_vec(planned).map_err(|_| MaskJsonRefusal::Json)?;
+        let plan = crate::mask_plot::wire::json_mask_wire_bounded(
+            &planned.mask,
+            &planned.plan.plan_id,
+            &planned.plan,
+            maximum_plan_bytes,
+        )?;
         if plan.is_empty() || plan.len() > maximum_plan_bytes {
             return Err(MaskJsonRefusal::Capacity);
         }
@@ -39,14 +51,37 @@ impl PreparedMaskShowContext {
     }
     /// Prepare the same complete lossless context from opaque Core verification.
     /// Configurations are supplied and checked one placement at a time; no whole
-    /// rich Mask Plan is rebuilt. Codec scratch, expanded JSON/compressor storage
-    /// and caller stack still require separate finite preparation admission.
+    /// rich Mask Plan is rebuilt. Bounded codec workspace, output backing and
+    /// caller stack still require separate finite preparation admission.
     /// This grants no current Host/Face/provider/Body route or delivery authority.
     pub fn prepare_verified<F, E>(
         mask: &crate::MaskPlot,
         plan: &conduit_core::VerifiedPlanMetadata,
         configuration: F,
         maximum_plan_bytes: usize,
+    ) -> Result<Self, MaskJsonRefusal>
+    where
+        F: FnMut(
+            &conduit_core::PlannedGear,
+        ) -> Result<alloc::vec::Vec<conduit_core::ConfigurationEntry>, E>,
+    {
+        Self::prepare_verified_with_workspace(
+            mask,
+            plan,
+            configuration,
+            maximum_plan_bytes,
+            &mut [],
+        )
+    }
+    /// Borrow exclusively owned cold scratch. No Value handle or authority is
+    /// created. The caller must keep these empty stores unavailable to kernels
+    /// and wipe scratch after success/refusal; both passes reuse the same bytes.
+    pub fn prepare_verified_with_workspace<F, E>(
+        mask: &crate::MaskPlot,
+        plan: &conduit_core::VerifiedPlanMetadata,
+        configuration: F,
+        maximum_plan_bytes: usize,
+        workspace: &mut [&mut [u8]],
     ) -> Result<Self, MaskJsonRefusal>
     where
         F: FnMut(
@@ -66,7 +101,13 @@ impl PreparedMaskShowContext {
             .find(|placement| placement.gear_id == mask.show_output.gear_id)
             .ok_or(MaskJsonRefusal::InvalidPlan)?;
         let view = plan.serialize_with_configurations(configuration);
-        let wire = crate::mask_plot::wire::json_mask_wire(mask, plan.plan_id(), &view)?;
+        let wire = crate::mask_plot::wire::json_mask_wire_bounded_with_workspace(
+            mask,
+            plan.plan_id(),
+            &view,
+            maximum_plan_bytes,
+            workspace,
+        )?;
         if wire.is_empty() || wire.len() > maximum_plan_bytes {
             return Err(MaskJsonRefusal::Capacity);
         }

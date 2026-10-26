@@ -1,4 +1,5 @@
 //! Native binder and real wire engine with fake electrical pins. No HIL claim.
+extern crate alloc;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
 #[path = "support/mask.rs"]
@@ -69,6 +70,42 @@ fn real_renderer_binding_acknowledges_show_then_explicitly_blanks_before_retirem
             })
             .unwrap()
         });
+        if failure.is_none() {
+            let prepared = f::MaskShow::prepared(
+                &planned,
+                &face,
+                active.clone(),
+                "environment".into(),
+                "fixture/display".into(),
+                "fixture/prepared".into(),
+            )
+            .unwrap();
+            let available = prepared
+                .transition(f::ManifestationLifecycle::Available, "fixture/ack".into())
+                .unwrap();
+            let closed = available
+                .transition(f::ManifestationLifecycle::Closed, "fixture/closed".into())
+                .unwrap();
+            let failed = available
+                .fail(
+                    f::ManifestationFailure::DeliveryFailed,
+                    "fixture/failed".into(),
+                )
+                .unwrap();
+            for show in [&prepared, &available, &closed, &failed] {
+                let bytes = serde_json::to_vec(show).unwrap();
+                assert!(
+                    bytes.len() <= 8192,
+                    "native {:?} Show exceeds8192: {}",
+                    show.show.lifecycle,
+                    bytes.len()
+                );
+                assert_eq!(
+                    serde_json::from_slice::<f::MaskShow>(&bytes).unwrap(),
+                    *show
+                );
+            }
+        }
         drop(planned);
         drop(face);
         let mut out = vec![0; 8192];
@@ -150,7 +187,8 @@ fn real_renderer_binding_acknowledges_show_then_explicitly_blanks_before_retirem
             assert!(call
                 .closed_encoded(&mut presentation, "fixture/closed".into(), &mut out, encode)
                 .is_err());
-            let mut closed_wire = vec![0; serde_json::to_vec(&closed_probe).unwrap().len()];
+            assert!(serde_json::to_vec(&closed_probe).unwrap().len() <= 8192);
+            let mut closed_wire = vec![0; 8192];
             pins.nack.set(failure == Some("withdraw-nack"));
             let mut slot = Some(call);
             assert!(RendererCall::retire_retained(&mut slot).is_err());
@@ -595,5 +633,8 @@ fn local_verified_renderer_checks_fore_configuration_and_possession_before_trans
     }
 }
 
-#[path = "native_mask_renderer_invocation.rs"]
+#[path = "native_mask_renderer/invocation.rs"]
 mod invocation_tests;
+
+#[path = "native_mask_renderer/leases.rs"]
+mod lease_tests;

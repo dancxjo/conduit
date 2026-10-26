@@ -31,7 +31,7 @@ fn complete_canonical_bytes_round_trip_without_changing_the_plan() {
     let encoded = serde_json::to_value(&planned).unwrap();
     assert_eq!(
         encoded["plan"]["encoding"],
-        "conduit.face/mask-plan-deflate-json@1"
+        "conduit.face/mask-plan-deflate-json@2"
     );
     assert_eq!(
         encoded["plan"]["plan_id"],
@@ -42,27 +42,34 @@ fn complete_canonical_bytes_round_trip_without_changing_the_plan() {
 }
 
 #[test]
-fn malformed_version_hex_length_identity_and_streams_refuse() {
+fn malformed_version_base64_length_identity_and_streams_refuse() {
     let original = serde_json::to_value(fixture()).unwrap();
-    for mutation in 0..10 {
+    for mutation in 0..15 {
         let mut encoded = original.clone();
         match mutation {
             0 => encoded["plan"]["encoding"] = json!("unknown@1"),
             1 => encoded["plan"]["expanded_bytes"] = json!(0),
-            2 => encoded["plan"]["zlib_hex"] = json!("zz"),
+            2 => encoded["plan"]["zlib_base64"] = json!("?==="),
             3 => encoded["plan"]["expanded_bytes"] = json!(256 * 1024 + 1),
-            4 => encoded["plan"]["zlib_hex"] = json!("0"),
-            5 => encoded["plan"]["zlib_hex"] = json!("00"),
+            4 => encoded["plan"]["zlib_base64"] = json!("AAA"),
+            5 => encoded["plan"]["zlib_base64"] = json!("AA=="),
             6 => encoded["plan"]["plan_id"] = json!("plan/forged"),
             7 => {
-                let hex = encoded["plan"]["zlib_hex"].as_str().unwrap().to_string() + "00";
-                encoded["plan"]["zlib_hex"] = json!(hex);
+                let hex = encoded["plan"]["zlib_base64"].as_str().unwrap().to_string() + "AAAA";
+                encoded["plan"]["zlib_base64"] = json!(hex);
             }
             8 => {
-                let hex = encoded["plan"]["zlib_hex"].as_str().unwrap();
-                encoded["plan"]["zlib_hex"] = json!(&hex[..hex.len() - 2]);
+                let hex = encoded["plan"]["zlib_base64"].as_str().unwrap();
+                encoded["plan"]["zlib_base64"] = json!(&hex[..hex.len() - 4]);
             }
             9 => encoded["plan"]["expanded_bytes"] = json!(1),
+            10 => encoded["plan"]["zlib_hex"] = json!("00"),
+            11 => encoded["plan"]["encoding"] = json!("conduit.face/mask-plan-deflate-json@1"),
+            12 => encoded["plan"]["zlib_base64"] = json!("AB=="),
+            13 => encoded["plan"]["zlib_base64"] = json!("Zm 9v"),
+            14 => {
+                encoded["plan"]["zlib_base64"] = json!("A".repeat((64usize * 1024).div_ceil(3) * 4 + 4))
+            }
             _ => unreachable!(),
         }
         assert!(
@@ -84,4 +91,32 @@ fn oversized_expanded_source_and_legacy_unversioned_json_refuse() {
         .clone();
     planned.plan.fragments[0].placements[0].configuration = vec![entry; 128];
     assert!(serde_json::to_vec(&planned).is_err());
+}
+
+#[test]
+fn existing_miniz_deflate_streams_remain_lossless_and_accepted() {
+    let planned = fixture();
+    let mut encoded = serde_json::to_value(&planned).unwrap();
+    let bytes = serde_json::to_vec(&planned.plan).unwrap();
+    let compressed = miniz_oxide::deflate::compress_to_vec_zlib(&bytes, 6);
+    let hex: String = compressed
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    encoded["plan"]
+        .as_object_mut()
+        .unwrap()
+        .remove("zlib_base64");
+    encoded["plan"]["encoding"] = json!("conduit.face/mask-plan-deflate-json@1");
+    encoded["plan"]["zlib_hex"] = json!(hex);
+    for suffix in ["00", "zz"] {
+        let mut trailing = encoded.clone();
+        trailing["plan"]["zlib_hex"] =
+            json!(trailing["plan"]["zlib_hex"].as_str().unwrap().to_owned() + suffix);
+        assert!(serde_json::from_value::<PlannedMaskPlot>(trailing).is_err());
+    }
+    assert_eq!(
+        serde_json::from_value::<PlannedMaskPlot>(encoded).unwrap(),
+        planned
+    );
 }
