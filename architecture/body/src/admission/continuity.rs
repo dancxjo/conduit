@@ -322,6 +322,16 @@ impl VerifiedAdmittedMessage {
     }
 }
 impl AdmissionManager {
+    /// Revoke every unfinished Boot-clock challenge when its issuing authority
+    /// restarts. Continuity keys and completed receipts remain intact; old
+    /// proofs cannot regain validity when the monotonic clock starts again.
+    /// The caller must durably retain this change before accepting new proofs.
+    pub fn retire_unfinished_challenges(&mut self) {
+        self.pending.clear();
+        self.invitations.clear();
+        self.pending_returns.clear();
+    }
+
     /// Authenticate only against the manager's retained canonical continuity
     /// key and the exact current admitted membership. IDs or a caller-supplied
     /// key cannot construct this evidence. This read-only operation leaves an

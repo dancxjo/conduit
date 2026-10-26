@@ -1,7 +1,7 @@
 //! Complete private restart envelope; no pristine-body replacement or lost
 //! archive segment can satisfy its canonical continuation checks.
 use alloc::{string::String, vec::Vec};
-use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence};
+use conduit_body::{AdmissionManager, BodyBiographyArchiveSegment, BodyBiographyEvidence};
 use serde::{Deserialize, Serialize};
 pub const SCHEMA: &str = "conduit.environment/root-restart@1";
 pub const MAX_BYTES: usize = 32768 - 160;
@@ -11,12 +11,16 @@ pub struct Retained {
     pub schema: String,
     pub evidence: BodyBiographyEvidence,
     pub archives: Vec<BodyBiographyArchiveSegment>,
+    #[serde(default)]
+    pub admissions: Option<AdmissionManager>,
 }
 #[derive(Serialize)]
 struct Snapshot<'a> {
     schema: &'static str,
     evidence: &'a BodyBiographyEvidence,
     archives: Archives<'a>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    admissions: Option<&'a AdmissionManager>,
 }
 struct Archives<'a>(
     &'a [BodyBiographyArchiveSegment],
@@ -81,6 +85,7 @@ pub fn encode(
         schema: SCHEMA,
         evidence,
         archives: Archives(archives, pending),
+        admissions: None,
     };
     let mut size = 2048;
     loop {
@@ -113,6 +118,13 @@ pub fn decode(
         return Err("restart-body-binding");
     }
     validate(&retained.evidence, &retained.archives)?;
+    if retained
+        .admissions
+        .as_ref()
+        .is_some_and(|manager| manager.body_id != retained.evidence.body_id)
+    {
+        return Err("restart-admission-body");
+    }
     Ok(retained)
 }
 
@@ -131,11 +143,25 @@ pub fn stream<E>(
     pending: &[BodyBiographyArchiveSegment],
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(), StreamRefusal<E>> {
+    stream_with_admissions(evidence, archives, pending, None, sink)
+}
+
+pub fn stream_with_admissions<E>(
+    evidence: &BodyBiographyEvidence,
+    archives: &[BodyBiographyArchiveSegment],
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: Option<&AdmissionManager>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(), StreamRefusal<E>> {
     validate_chain(evidence, archives, pending).map_err(|_| StreamRefusal::Invalid)?;
+    if admissions.is_some_and(|manager| manager.body_id != evidence.body_id) {
+        return Err(StreamRefusal::Invalid);
+    }
     let snapshot = Snapshot {
         schema: SCHEMA,
         evidence,
         archives: Archives(archives, pending),
+        admissions,
     };
     let mut failure = None;
     let result = json::stream(&snapshot, &mut |bytes: &[u8]| {

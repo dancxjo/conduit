@@ -455,3 +455,143 @@ fn streamed_full_envelope_matches_canonical_bytes_with_bounded_memory_and_readba
     assert_eq!(seed, [7; 32]);
     assert_eq!(readback, expected);
 }
+
+#[test]
+fn complete_admission_custody_is_in_the_same_streamed_checkpoint() {
+    use conduit_body::{AdmissionManager, SpawnInvitationSecret};
+    let (owner, _, _) = installed();
+    let mut manager = AdmissionManager::new(owner.evidence().body_id.clone()).unwrap();
+    manager
+        .issue_spawn_invitation(
+            SpawnInvitationSecret::from_csprng_bytes([41; 32]).unwrap(),
+            [42; 32],
+            10,
+            100,
+        )
+        .unwrap();
+    let mut bytes = Vec::new();
+    payload::stream_with_admissions(
+        owner.evidence(),
+        &[],
+        &[],
+        Some(&manager),
+        &mut |part: &[u8]| {
+            bytes.extend_from_slice(part);
+            Ok::<_, ()>(())
+        },
+    )
+    .unwrap();
+    let retained = payload::decode(&bytes, &owner.evidence().body_id).unwrap();
+    assert_eq!(retained.admissions, Some(manager.clone()));
+    let expected = serde_json::json!({"schema":payload::SCHEMA,"evidence":owner.evidence(),"archives":[],"admissions":manager});
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&bytes).unwrap(),
+        expected
+    );
+    let mut wrong = manager;
+    wrong.body_id = conduit_body::Body::born(
+        "source/foreign".into(),
+        "checked/foreign".into(),
+        1,
+        "sign/foreign".into(),
+    )
+    .unwrap()
+    .body_id;
+    assert!(payload::stream_with_admissions(
+        owner.evidence(),
+        &[],
+        &[],
+        Some(&wrong),
+        &mut |_: &[u8]| Ok::<_, ()>(())
+    )
+    .is_err());
+}
+
+#[test]
+fn invitation_observer_admission_preserves_existing_local_wake_plan_and_play() {
+    use conduit_body::{AdmissionManager, SpawnAdmissionProof, SpawnInvitationSecret};
+    let (mut owner, plans, host) = installed();
+    owner.propose(plans, &host.host_id, &host.boot_id).unwrap();
+    let realization = owner.realization().unwrap();
+    assert!(realization.plan.body_time_requirement().is_none());
+    let play = conduit_body::BodyPlayIdentity::bind(&realization.plan, 1);
+    let wake = realization
+        .wake
+        .body_plan_ready(
+            &realization.plan,
+            c::bind_sign(&host.host_id, &host.boot_id, Some(&play.active_play_id), 0).sign_id,
+        )
+        .unwrap()
+        .body_play_started(
+            &realization.plan,
+            &play,
+            c::bind_sign(&host.host_id, &host.boot_id, Some(&play.active_play_id), 1).sign_id,
+        )
+        .unwrap();
+    owner
+        .started(&host.host_id, &host.boot_id, play, wake)
+        .unwrap();
+    let original = owner.realization().unwrap().clone();
+    let root_presence = owner.evidence().membership.parts.clone();
+    let mut manager = AdmissionManager::new(owner.evidence().body_id.clone()).unwrap();
+    let secret = SpawnInvitationSecret::from_csprng_bytes([51; 32]).unwrap();
+    let claim = owner
+        .issue_invitation(
+            &mut manager,
+            secret.clone(),
+            [52; 32],
+            10,
+            100,
+            &host.host_id,
+            &host.boot_id,
+        )
+        .unwrap();
+    let mut observer = host.clone();
+    observer.host_id = "host/recorder".into();
+    observer.boot_id = "boot/recorder".into();
+    let proof = SpawnAdmissionProof {
+        invitation_id: claim.invitation_id.clone(),
+        body_id: claim.body_id.clone(),
+        host_id: observer.host_id.clone(),
+        boot_id: observer.boot_id.clone(),
+        nonce: claim.nonce,
+        signature: secret.sign(&claim.signing_transcript(
+            &observer.host_id,
+            &observer.boot_id,
+            observer.offer_generation,
+        )),
+    };
+    owner
+        .admit_invited_host(
+            &mut manager,
+            &observer,
+            &proof,
+            11,
+            &host.host_id,
+            &host.boot_id,
+        )
+        .unwrap();
+    assert_eq!(owner.realization(), Some(&original));
+    assert_eq!(
+        &owner.evidence().membership.parts[..root_presence.len()],
+        root_presence
+    );
+    assert_eq!(
+        owner.evidence().membership.parts.len(),
+        root_presence.len() + 1
+    );
+    owner.evidence().validate().unwrap();
+    let retained = owner.evidence().clone();
+    assert!(owner
+        .admit_invited_host(
+            &mut manager,
+            &observer,
+            &proof,
+            12,
+            &host.host_id,
+            &host.boot_id
+        )
+        .is_err());
+    assert_eq!(owner.evidence(), &retained);
+    assert_eq!(owner.realization(), Some(&original));
+}

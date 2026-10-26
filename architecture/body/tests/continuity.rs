@@ -326,3 +326,60 @@ fn current_member_message_requires_retained_key_exact_membership_and_signed_tran
         )
         .is_err());
 }
+
+#[test]
+fn reboot_challenge_retirement_preserves_continuity_and_consumed_receipts() {
+    let (mut manager, membership, key) = admitted();
+    let invitation = manager
+        .issue_spawn_invitation(
+            conduit_body::SpawnInvitationSecret::from_csprng_bytes([81; 32]).unwrap(),
+            [82; 32],
+            100,
+            200,
+        )
+        .unwrap();
+    let receipts = manager.receipts.clone();
+    manager.retire_unfinished_challenges();
+    assert_eq!(manager.receipts, receipts);
+    let current = membership.parts[0].current.as_ref().unwrap();
+    let transcript = [83; 32];
+    manager
+        .verify_admitted_message(
+            &membership,
+            &membership.parts[0].part_id,
+            &current.host_id,
+            &current.boot_id,
+            &transcript,
+            &key.sign(&transcript).to_bytes(),
+        )
+        .unwrap();
+    let mut next = membership.clone();
+    let host = advertisement("boot/old", 1);
+    let proof = conduit_body::SpawnAdmissionProof {
+        invitation_id: invitation.invitation_id.clone(),
+        body_id: invitation.body_id.clone(),
+        host_id: host.host_id.clone(),
+        boot_id: host.boot_id.clone(),
+        nonce: invitation.nonce,
+        signature: invitation.secret.sign(&invitation.signing_transcript(
+            &host.host_id,
+            &host.boot_id,
+            host.offer_generation,
+        )),
+    };
+    assert_eq!(
+        manager.complete_spawn(
+            &mut next,
+            &host,
+            &proof,
+            101,
+            AdmissionSigns {
+                part_admitted: "sign/retired-part".into(),
+                host_attached: "sign/retired-host".into(),
+                candidate_admitted: "sign/retired-candidate".into(),
+            }
+        ),
+        Err(AdmissionRefusal::UnknownInvitation)
+    );
+    assert_eq!(next, membership);
+}
