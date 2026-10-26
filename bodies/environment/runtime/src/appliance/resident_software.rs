@@ -7,7 +7,7 @@ mod local;
 #[path = "resident_transfer.rs"]
 mod transfer;
 #[cfg(feature = "local-planning")]
-pub use local::PreparedLocalAppliance;
+pub use local::{PreparedDirectLocalAppliance, PreparedLocalAppliance};
 
 #[derive(PartialEq, Eq)]
 pub(super) struct Construction {

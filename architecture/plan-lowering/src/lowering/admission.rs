@@ -14,7 +14,7 @@ pub(super) fn validate_fragment(
 
 /// The caller verified the complete Plan, including activation commitments.
 /// Fragment-only verification cannot reconstruct an activation-bearing PlanId.
-pub(super) fn validate_verified_fragment(
+pub(crate) fn validate_verified_fragment(
     fragment: &PlanFragment,
     profile: KernelStorageProfile,
 ) -> Result<(), LoweringError> {

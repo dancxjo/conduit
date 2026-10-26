@@ -332,6 +332,20 @@ impl<'a> IndexedSourceImage<'a> {
             expanded_plot_id: identity.expanded_plot_id,
         })
     }
+    /// Visit exact checked Cords sequentially without retaining expansion
+    /// provenance or a Cord vector. Root has already authenticated this Make
+    /// image; callbacks are inspection only and may run before a later decode
+    /// refusal. At most one complete Cord is live during this visit.
+    pub fn visit_connections(
+        &self,
+        mut visit: impl FnMut(&crate::CheckedConnection),
+    ) -> Result<usize, E> {
+        connection_visit::visit(
+            &self.bytes[self.metadata_start..self.payload_start],
+            self.count,
+            &mut visit,
+        )
+    }
     pub fn planning_metadata(&self) -> Result<IndexedPlanningMetadata, E> {
         let mut metadata: PlanningMetadataWire =
             serde_json::from_slice(&self.bytes[self.metadata_start..self.payload_start])
@@ -402,4 +416,117 @@ fn word(bytes: &[u8], at: usize) -> Result<usize, E> {
             .unwrap(),
     ))
     .map_err(|_| E::Oversized)
+}
+
+mod connection_visit {
+    use super::*;
+    use core::fmt;
+    use serde::de::{self, DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor};
+    #[derive(serde::Deserialize)]
+    #[serde(field_identifier, rename_all = "snake_case")]
+    enum Field {
+        Version,
+        Gears,
+        Connections,
+        Provenance,
+        #[serde(other)]
+        Other,
+    }
+    struct CountSeed;
+    impl<'de> DeserializeSeed<'de> for CountSeed {
+        type Value = usize;
+        fn deserialize<D: de::Deserializer<'de>>(self, d: D) -> Result<usize, D::Error> {
+            struct Count;
+            impl<'de> Visitor<'de> for Count {
+                type Value = usize;
+                fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                    f.write_str("finite metadata array")
+                }
+                fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<usize, A::Error> {
+                    let mut count = 0;
+                    while seq.next_element::<IgnoredAny>()?.is_some() {
+                        count += 1;
+                        if count > MAXIMUM_GEARS {
+                            return Err(de::Error::custom("metadata array capacity"));
+                        }
+                    }
+                    Ok(count)
+                }
+            }
+            d.deserialize_seq(Count)
+        }
+    }
+    struct Cords<'a, F>(&'a mut F);
+    impl<'de, F: FnMut(&crate::CheckedConnection)> DeserializeSeed<'de> for Cords<'_, F> {
+        type Value = usize;
+        fn deserialize<D: de::Deserializer<'de>>(self, d: D) -> Result<usize, D::Error> {
+            d.deserialize_seq(self)
+        }
+    }
+    impl<'de, F: FnMut(&crate::CheckedConnection)> Visitor<'de> for Cords<'_, F> {
+        type Value = usize;
+        fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str("finite checked Cords")
+        }
+        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<usize, A::Error> {
+            let mut count = 0;
+            while let Some(cord) = seq.next_element::<crate::CheckedConnection>()? {
+                count += 1;
+                if count > 64 {
+                    return Err(de::Error::custom("Cord capacity"));
+                }
+                (self.0)(&cord);
+            }
+            Ok(count)
+        }
+    }
+    pub(super) fn visit(
+        bytes: &[u8],
+        gears: usize,
+        callback: &mut impl FnMut(&crate::CheckedConnection),
+    ) -> Result<usize, E> {
+        struct Metadata<'a, F> {
+            gears: usize,
+            callback: &'a mut F,
+        }
+        impl<'de, F: FnMut(&crate::CheckedConnection)> Visitor<'de> for Metadata<'_, F> {
+            type Value = usize;
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("checked indexed metadata")
+            }
+            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<usize, A::Error> {
+                let (mut version, mut empty, mut cords, mut origins) = (None, None, None, None);
+                while let Some(field) = map.next_key::<Field>()? {
+                    match field {
+                        Field::Version if version.is_none() => {
+                            version = Some(map.next_value::<u8>()?)
+                        }
+                        Field::Gears if empty.is_none() => {
+                            empty = Some(map.next_value_seed(CountSeed)?)
+                        }
+                        Field::Connections if cords.is_none() => {
+                            cords = Some(map.next_value_seed(Cords(self.callback))?)
+                        }
+                        Field::Provenance if origins.is_none() => {
+                            origins = Some(map.next_value_seed(CountSeed)?)
+                        }
+                        Field::Other => {
+                            map.next_value::<IgnoredAny>()?;
+                        }
+                        _ => return Err(de::Error::custom("duplicate indexed metadata field")),
+                    }
+                }
+                if version != Some(1) || empty != Some(0) || origins != Some(self.gears) {
+                    return Err(de::Error::custom("indexed metadata scope"));
+                }
+                cords.ok_or_else(|| de::Error::custom("missing checked Cords"))
+            }
+        }
+        let mut decoder = serde_json::Deserializer::from_slice(bytes);
+        let count =
+            serde::Deserializer::deserialize_map(&mut decoder, Metadata { gears, callback })
+                .map_err(|_| E::Representation)?;
+        decoder.end().map_err(|_| E::Representation)?;
+        Ok(count)
+    }
 }

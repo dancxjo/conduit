@@ -1,11 +1,20 @@
 //! Bind retained software to one locally verified fragment. This establishes no
 //! native possession, memory admission, Body start or permission to execute.
 use super::*;
-use conduit_plan_lowering::local_tables::{VerifiedLocalKernelTables, VerifiedLocalLowering};
+use conduit_plan_lowering::local_tables::{
+    DirectLocalKernelTables, VerifiedLocalKernelTables, VerifiedLocalLowering,
+};
 use conduit_plot::flat_image::indexed::IndexedSourceImage;
 
 pub struct PreparedLocalAppliance<'a, V> {
     pub tables: VerifiedLocalKernelTables<'a, NODES, CORDS, PORTS, NODES, CORDS, NODES>,
+    pub drivers: [ApplianceBack; NODES],
+    pub selectors: [Option<PreparedCaptureSelector>; NODES],
+    pub values: V,
+    pub roles: ResidentRoles,
+}
+pub struct PreparedDirectLocalAppliance<'a, V> {
+    pub tables: DirectLocalKernelTables<'a, NODES, CORDS, PORTS, NODES, CORDS, NODES>,
     pub drivers: [ApplianceBack; NODES],
     pub selectors: [Option<PreparedCaptureSelector>; NODES],
     pub values: V,
@@ -22,14 +31,49 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         offers: &[ResidentSoftwareOffer<'_>],
         scope: (&c::HostId, &c::BootId, c::OfferGeneration),
     ) -> Result<(), NativePreparationRefusal> {
+        let lowered = verified.lowered();
+        if lowered.nodes.len() != NODES {
+            return Err(NativePreparationRefusal::Configuration);
+        }
+        self.check_local_scope(
+            verified.preparation_scope().0,
+            &lowered.identity.fragment_id,
+            |placement| lowered.identity.node_for_placement(placement),
+            image,
+            offers,
+            scope,
+        )
+    }
+    pub fn check_local_direct(
+        &self,
+        tables: &DirectLocalKernelTables<'_, NODES, CORDS, PORTS, NODES, CORDS, NODES>,
+        image: &IndexedSourceImage<'_>,
+        offers: &[ResidentSoftwareOffer<'_>],
+        scope: (&c::HostId, &c::BootId, c::OfferGeneration),
+    ) -> Result<(), NativePreparationRefusal> {
+        let (plan, fragment) = tables.preparation_scope();
+        self.check_local_scope(
+            plan,
+            &fragment.fragment_id,
+            |placement| tables.node_for_placement(placement),
+            image,
+            offers,
+            scope,
+        )
+    }
+    fn check_local_scope(
+        &self,
+        plan: &c::VerifiedPlanMetadata,
+        fragment_id: &c::FragmentId,
+        node_for: impl Fn(&c::PlacementId) -> Option<k::NodeId>,
+        image: &IndexedSourceImage<'_>,
+        offers: &[ResidentSoftwareOffer<'_>],
+        scope: (&c::HostId, &c::BootId, c::OfferGeneration),
+    ) -> Result<(), NativePreparationRefusal> {
         use NativePreparationRefusal as E;
         let (host, boot, generation) = scope;
-        let lowered = verified.lowered();
-        let (plan, _) = verified.preparation_scope();
         let metadata = plan.preparation_metadata();
-        let fragment = plan
-            .fragment(&lowered.identity.fragment_id)
-            .ok_or(E::Configuration)?;
+        let fragment = plan.fragment(fragment_id).ok_or(E::Configuration)?;
         let selected = fragment.lowering_metadata();
         let identity = image.identity().map_err(|_| E::Configuration)?;
         if ResidentSourceIdentity::from_expanded(&identity.expanded_plot_id)
@@ -43,40 +87,41 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
             || generation.0 == 0
             || image.gear_count() != NODES
             || selected.placements.len() != NODES
-            || lowered.nodes.len() != NODES
             || self.drivers.iter().any(Option::is_none)
         {
             return Err(E::Configuration);
         }
         {
-            let source = image.metadata().map_err(|_| E::Configuration)?;
-            if selected.connections.len() != source.connections().len() {
+            let mut mismatch = false;
+            let count = image
+                .visit_connections(|cord| {
+                    let matches = selected
+                        .connections
+                        .iter()
+                        .filter(|selected_cord| {
+                            let gear_id = |placement: &c::PlacementId| {
+                                selected
+                                    .placements
+                                    .iter()
+                                    .find(|gear| &gear.placement_id == placement)
+                                    .map(|gear| &gear.gear_id)
+                            };
+                            gear_id(&selected_cord.source_placement_id)
+                                == Some(&cord.source_gear_id)
+                                && gear_id(&selected_cord.sink_placement_id)
+                                    == Some(&cord.sink_gear_id)
+                                && selected_cord.source_port_id == cord.source_port_id
+                                && selected_cord.sink_port_id == cord.sink_port_id
+                                && selected_cord.value_kind == cord.value_kind
+                                && selected_cord.track == cord.track
+                                && selected_cord.temporal == cord.temporal
+                        })
+                        .count();
+                    mismatch |= matches != 1;
+                })
+                .map_err(|_| E::Configuration)?;
+            if mismatch || count != selected.connections.len() {
                 return Err(E::Configuration);
-            }
-            for cord in source.connections() {
-                let matches = selected
-                    .connections
-                    .iter()
-                    .filter(|selected_cord| {
-                        let gear_id = |placement: &c::PlacementId| {
-                            selected
-                                .placements
-                                .iter()
-                                .find(|gear| &gear.placement_id == placement)
-                                .map(|gear| &gear.gear_id)
-                        };
-                        gear_id(&selected_cord.source_placement_id) == Some(&cord.source_gear_id)
-                            && gear_id(&selected_cord.sink_placement_id) == Some(&cord.sink_gear_id)
-                            && selected_cord.source_port_id == cord.source_port_id
-                            && selected_cord.sink_port_id == cord.sink_port_id
-                            && selected_cord.value_kind == cord.value_kind
-                            && selected_cord.track == cord.track
-                            && selected_cord.temporal == cord.temporal
-                    })
-                    .count();
-                if matches != 1 {
-                    return Err(E::Configuration);
-                }
             }
         }
         // Validate descriptors against this actual initialized owner before using
@@ -113,8 +158,7 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
                 .iter()
                 .find(|g| g.gear_id == source.gear_id)
                 .ok_or(E::Configuration)?;
-            if lowered.identity.node_for_placement(&gear.placement_id)
-                != Some(k::NodeId(node as u16))
+            if node_for(&gear.placement_id) != Some(k::NodeId(node as u16))
                 || gear.kind_id != source.kind_id
                 || gear.host_id != *host
                 || gear.boot_id != *boot
@@ -230,6 +274,32 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
             }
         }
         Ok(())
+    }
+    /// Direct fixed-table admission keeps the exact verified Plan borrowed and
+    /// transfers initialized software only after every source/owner check passes.
+    pub fn bind_local_direct_retained<'a>(
+        slot: &mut Option<Box<Self>>,
+        tables: DirectLocalKernelTables<'a, NODES, CORDS, PORTS, NODES, CORDS, NODES>,
+        image: &IndexedSourceImage<'_>,
+        offers: &[ResidentSoftwareOffer<'_>],
+        scope: (&c::HostId, &c::BootId, c::OfferGeneration),
+    ) -> Result<PreparedDirectLocalAppliance<'a, V>, NativePreparationRefusal> {
+        slot.as_ref()
+            .ok_or(NativePreparationRefusal::Initialization)?
+            .check_local_direct(&tables, image, offers, scope)?;
+        let Self {
+            construction,
+            drivers,
+            selectors,
+            values,
+        } = *slot.take().expect("preflighted local software");
+        Ok(PreparedDirectLocalAppliance {
+            tables,
+            drivers: (*drivers).map(|d| d.expect("preflighted complete drivers")),
+            selectors: *selectors,
+            values,
+            roles: construction.roles,
+        })
     }
     /// Every refusal precedes transfer. No evaluator/value store is rebuilt.
     /// Caller must admit this finite destination plus table preparation scratch.

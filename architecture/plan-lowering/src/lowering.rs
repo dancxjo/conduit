@@ -16,7 +16,7 @@ use conduit_kernel::{
     SignExpectationId, SignExpectationTarget,
 };
 
-mod admission;
+pub(crate) mod admission;
 mod metadata;
 pub use metadata::{
     lower_verified_plan_metadata_fragment, lower_verified_plan_metadata_fragment_for_profile,
@@ -46,7 +46,9 @@ pub use shared_pool::{
     PoolObservationLoweringError,
 };
 
-fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> AssignedPressurePolicy {
+pub(crate) fn lower_pressure_policy(
+    policy: conduit_core::DeliveryPressurePolicy,
+) -> AssignedPressurePolicy {
     match policy {
         conduit_core::DeliveryPressurePolicy::PreserveOrder => {
             AssignedPressurePolicy::PreserveOrder
@@ -57,7 +59,7 @@ fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> Assign
     }
 }
 
-fn lower_connection_track(
+pub(crate) fn lower_connection_track(
     track: conduit_core::ConnectionTrack,
 ) -> conduit_kernel::scheduler::AssignedConnectionTrack {
     match track {
@@ -82,20 +84,36 @@ fn source_contract_matches(
     value_kind: &KindId,
     temporal: PortTemporal,
 ) -> bool {
+    source_contract_fields_match(
+        &descriptor.value_kind,
+        descriptor.abnormal_kind.as_ref(),
+        descriptor.temporal,
+        track,
+        value_kind,
+        temporal,
+    )
+}
+
+pub(crate) fn source_contract_fields_match(
+    port_kind: &KindId,
+    abnormal_kind: Option<&KindId>,
+    port_temporal: PortTemporal,
+    track: ConnectionTrack,
+    value_kind: &KindId,
+    temporal: PortTemporal,
+) -> bool {
     match track {
         ConnectionTrack::AbnormalTerminal => {
-            temporal == PortTemporal::Value && descriptor.abnormal_kind.as_ref() == Some(value_kind)
+            temporal == PortTemporal::Value && abnormal_kind == Some(value_kind)
         }
-        ConnectionTrack::Payload => {
-            descriptor.value_kind == *value_kind && descriptor.temporal == temporal
-        }
+        ConnectionTrack::Payload => port_kind == value_kind && port_temporal == temporal,
         ConnectionTrack::NormalClose => {
-            descriptor.temporal == (PortTemporal::Flow { closes: true })
+            port_temporal == (PortTemporal::Flow { closes: true })
                 && value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                 && temporal == PortTemporal::Value
         }
         ConnectionTrack::Quiescence => {
-            matches!(descriptor.temporal, PortTemporal::Flow { .. })
+            matches!(port_temporal, PortTemporal::Flow { .. })
                 && value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                 && temporal == PortTemporal::Value
         }
@@ -1382,7 +1400,7 @@ fn lower_verified_fragment_for_profile(
     })
 }
 
-fn admitted_maximum_value_bytes(semantic_bound: Option<u32>, byte_capacity: u32) -> u32 {
+pub(crate) fn admitted_maximum_value_bytes(semantic_bound: Option<u32>, byte_capacity: u32) -> u32 {
     semantic_bound.unwrap_or(byte_capacity).min(byte_capacity)
 }
 

@@ -4,7 +4,8 @@ use super::*;
 use conduit_environment_runtime::appliance::assigned::{
     NativePreparationRefusal, PreparedResidentSoftware,
 };
-use conduit_plan_lowering::local_tables::VerifiedLocalLowering;
+use conduit_plan_lowering::local_tables::{DirectLocalKernelTables, VerifiedLocalLowering};
+type DirectTables<'a> = DirectLocalKernelTables<'a, 15, 14, 1, 15, 14, 15>;
 #[path = "../../../runtime/tests/support/verified_metadata.rs"]
 mod verified_metadata;
 
@@ -21,6 +22,24 @@ fn local_verified_binding_preserves_owners_on_refusal_and_transfers_once() {
         )
     }
     .unwrap();
+    let mut visited = 0;
+    let (count, streamed) = allocation_probe::observe(|| {
+        image
+            .visit_connections(|cord| {
+                assert_eq!(cord, &source.expanded.connections[visited]);
+                visited += 1;
+            })
+            .unwrap()
+    });
+    assert_eq!(count, 14);
+    assert_eq!(visited, 14);
+    assert_eq!(streamed.retained_bytes(), 0);
+    let (_, projected) = allocation_probe::observe(|| image.planning_metadata().unwrap());
+    assert!(streamed.peak_bytes < projected.peak_bytes);
+    eprintln!(
+        "sampler Cord inspection peak={} projected_metadata_peak={}",
+        streamed.peak_bytes, projected.peak_bytes
+    );
     let mut slot = Some(Box::new(
         PreparedResidentSoftware::prepare_source(
             &recipe.spec(),
@@ -73,6 +92,50 @@ fn local_verified_binding_preserves_owners_on_refusal_and_transfers_once() {
         .unwrap()
         .check_local(&lowered, &image, &offers, scope)
         .unwrap();
+    let (tables, table_memory) =
+        allocation_probe::observe(|| DirectTables::prepare(&plan, id).unwrap());
+    assert_eq!(
+        (
+            table_memory.allocations,
+            table_memory.reallocations,
+            table_memory.peak_bytes
+        ),
+        (0, 0, 0)
+    );
+    let ordinary = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<
+        15,
+        14,
+        1,
+        15,
+        14,
+        15,
+    >::from_verified_lowering(&lowered)
+    .unwrap();
+    assert_eq!(*tables.nodes(), ordinary.nodes);
+    assert_eq!(*tables.cords(), ordinary.cords);
+    assert_eq!(tables.startup_order(), ordinary.startup_order());
+    assert_eq!(
+        tables.cord_value_slots(),
+        lowered.lowered().cord_value_slots
+    );
+    assert_eq!(
+        tables.cord_value_bytes(),
+        lowered.lowered().cord_value_bytes
+    );
+    assert_eq!(tables.sign_items(), lowered.lowered().sign_items);
+    assert_eq!(tables.sign_bytes(), lowered.lowered().sign_bytes);
+    for node in 0..15 {
+        let route = |routes: &conduit_kernel::FixedRoutes<15, 14>| {
+            routes
+                .route(conduit_kernel::NodeId(node), conduit_kernel::PortId(0))
+                .map(|r| r.collect::<Vec<_>>())
+        };
+        assert_eq!(route(tables.routes()), route(&ordinary.routes));
+    }
+    slot.as_ref()
+        .unwrap()
+        .check_local_direct(&tables, &image, &offers, scope)
+        .unwrap();
     for change in 0..3 {
         let mut h = host.host_id.clone();
         let mut b = host.boot_id.clone();
@@ -85,6 +148,15 @@ fn local_verified_binding_preserves_owners_on_refusal_and_transfers_once() {
         assert!(PreparedResidentSoftware::bind_local_retained(
             &mut slot,
             &lowered,
+            &image,
+            &offers,
+            (&h, &b, g)
+        )
+        .is_err());
+        assert!(slot.is_some());
+        assert!(PreparedResidentSoftware::bind_local_direct_retained(
+            &mut slot,
+            DirectTables::prepare(&plan, id).unwrap(),
             &image,
             &offers,
             (&h, &b, g)
@@ -136,15 +208,32 @@ fn local_verified_binding_preserves_owners_on_refusal_and_transfers_once() {
         )
         .is_err());
         assert!(slot.is_some());
+        let bad_tables = DirectTables::prepare(
+            &verified,
+            &verified.preparation_metadata().fragments[0].fragment_id,
+        )
+        .unwrap();
+        assert!(PreparedResidentSoftware::bind_local_direct_retained(
+            &mut slot, bad_tables, &image, &offers, scope
+        )
+        .is_err());
+        assert!(slot.is_some());
     }
-    let prepared =
-        PreparedResidentSoftware::bind_local_retained(&mut slot, &lowered, &image, &offers, scope)
-            .unwrap();
+    let prepared = PreparedResidentSoftware::bind_local_direct_retained(
+        &mut slot, tables, &image, &offers, scope,
+    )
+    .unwrap();
     assert!(slot.is_none());
     assert_eq!(prepared.roles, recipe.spec().roles);
-    assert!(prepared.tables.calls.is_sealed());
+    assert!(prepared.tables.calls().is_sealed());
     assert!(matches!(
-        PreparedResidentSoftware::bind_local_retained(&mut slot, &lowered, &image, &offers, scope),
+        PreparedResidentSoftware::bind_local_direct_retained(
+            &mut slot,
+            DirectTables::prepare(&plan, id).unwrap(),
+            &image,
+            &offers,
+            scope
+        ),
         Err(NativePreparationRefusal::Initialization)
     ));
     let sign_bytes = lowered.lowered().sign_bytes;
@@ -157,9 +246,10 @@ fn local_verified_binding_preserves_owners_on_refusal_and_transfers_once() {
     let signs = conduit_kernel::HostedSignLog::new(sign_slots, sign_bytes).unwrap();
     // The transfer destination feeds the existing scheduler directly. Construction
     // performs no Step and cannot exercise the separately retained pulse provider.
+    let tables = prepared.tables.into_parts();
     let _kernel = conduit_kernel::scheduler::FixedScheduler::<_, _, _, 15, 14, 1, 14, 15, 14, 15, 15>::new_boxed_with_active_counts_and_host_calls(
-        15, 14, prepared.tables.nodes, prepared.tables.cords, prepared.tables.routes,
-        prepared.tables.calls, prepared.drivers, prepared.values, signs,
+        15, 14, tables.nodes, tables.cords, tables.routes,
+        tables.calls, prepared.drivers, prepared.values, signs,
     ).unwrap();
     assert_eq!(effects.get(), 0);
 }

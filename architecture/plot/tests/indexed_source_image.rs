@@ -93,3 +93,26 @@ fn encode_refuses_empty_or_oversized_graphs_and_changed_provenance() {
     changed.provenance_digest.push('0');
     assert_eq!(encode(&changed), Err(ImageRefusal::Provenance));
 }
+
+#[test]
+fn cord_visit_preserves_complete_records_without_retaining_provenance_or_vectors() {
+    let source = source();
+    let bytes = encode(&source).unwrap();
+    let image = view(&bytes).unwrap();
+    let mut expected = 0;
+    let (count, memory) = allocation_probe::observe(|| {
+        image
+            .visit_connections(|cord| {
+                assert_eq!(cord, &source.connections[expected]);
+                expected += 1;
+            })
+            .unwrap()
+    });
+    assert_eq!(count, source.connections.len());
+    assert_eq!(expected, count);
+    assert_eq!(memory.retained_bytes(), 0);
+    let (_, rich) = allocation_probe::observe(|| image.metadata().unwrap());
+    assert!(memory.peak_bytes < rich.peak_bytes);
+    let (_, projected) = allocation_probe::observe(|| image.planning_metadata().unwrap());
+    assert!(memory.peak_bytes <= projected.peak_bytes);
+}
