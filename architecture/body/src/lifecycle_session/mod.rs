@@ -355,15 +355,18 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
             .ok_or(BodyLifecycleSessionError::SequenceExhausted)
     }
 
+    fn has_lifecycle_room(&self, body_signs: usize, wakes: usize) -> bool {
+        self.evidence.body.sign_ids.len().saturating_add(body_signs) <= crate::MAX_BODY_SIGNS
+            && self.evidence.wakes.len().saturating_add(wakes) <= crate::MAX_BODY_BIOGRAPHY_WAKES
+            && self.evidence.records.len().saturating_add(5) <= crate::MAX_BODY_BIOGRAPHY_RECORDS
+    }
+
     fn make_lifecycle_room(
         &mut self,
         body_signs: usize,
         wakes: usize,
     ) -> Result<(), BodyLifecycleSessionError> {
-        while self.evidence.body.sign_ids.len().saturating_add(body_signs) > crate::MAX_BODY_SIGNS
-            || self.evidence.wakes.len().saturating_add(wakes) > crate::MAX_BODY_BIOGRAPHY_WAKES
-            || self.evidence.records.len().saturating_add(5) > crate::MAX_BODY_BIOGRAPHY_RECORDS
-        {
+        while !self.has_lifecycle_room(body_signs, wakes) {
             if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
                 return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
             }

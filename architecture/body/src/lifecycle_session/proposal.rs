@@ -128,16 +128,31 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
         }
         self.require_host(host, boot)?;
         validate(self, &input)?;
-        let mut next = self.clone();
-        // Reserve Woke and the eventual retained lull before publishing either.
-        next.make_lifecycle_room(2, 1)?;
-        let sequence = next.next_sequence()?;
-        let prepared = next
-            .evidence
-            .body
-            .prepare_wake(sequence, sign(host, boot, sequence))
-            .map_err(BodyLifecycleSessionError::Lifecycle)?;
-        let plan = retain(prepared.wake(), input)?;
+        // When no history must be archived, sealing reads the unchanged Body.
+        // Retire its temporary views before cloning the publication candidate.
+        // The archive path retains its original preflight/refusal order.
+        let (mut next, sequence, prepared, plan) = if self.has_lifecycle_room(2, 1) {
+            let sequence = self.next_sequence()?;
+            let prepared = self
+                .evidence
+                .body
+                .prepare_wake(sequence, sign(host, boot, sequence))
+                .map_err(BodyLifecycleSessionError::Lifecycle)?;
+            let plan = retain(prepared.wake(), input)?;
+            (self.clone(), sequence, prepared, plan)
+        } else {
+            let mut next = self.clone();
+            // Reserve Woke and the eventual retained lull before publishing either.
+            next.make_lifecycle_room(2, 1)?;
+            let sequence = next.next_sequence()?;
+            let prepared = next
+                .evidence
+                .body
+                .prepare_wake(sequence, sign(host, boot, sequence))
+                .map_err(BodyLifecycleSessionError::Lifecycle)?;
+            let plan = retain(prepared.wake(), input)?;
+            (next, sequence, prepared, plan)
+        };
         let wake = next
             .evidence
             .append_prepared_wake_unpublished(prepared, sequence)
