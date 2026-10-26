@@ -26,13 +26,11 @@ impl<'a> Json<'a> {
         }
         Ok(())
     }
-    #[inline(never)]
     fn string(&mut self, value: &str) -> Result<(), CodecError> {
         self.encoder.write(b"\"")?;
         escape(self.encoder, value)?;
         self.encoder.write(b"\"")
     }
-    #[inline(never)]
     fn compound(
         self,
         opening: &[u8],
@@ -52,7 +50,6 @@ impl<'a> Json<'a> {
         })
     }
 }
-#[inline(never)]
 fn escape(encoder: &mut dyn JsonSink, value: &str) -> Result<(), CodecError> {
     let bytes = value.as_bytes();
     let mut start = 0;
@@ -96,7 +93,6 @@ pub(super) struct Compound<'a> {
     variant: bool,
 }
 impl Compound<'_> {
-    #[inline(never)]
     fn comma(&mut self) -> Result<(), CodecError> {
         if self.first {
             self.first = false;
@@ -133,7 +129,6 @@ impl Compound<'_> {
             key: false,
         })
     }
-    #[inline(never)]
     fn finish(self) -> Result<(), CodecError> {
         if self.pending_key {
             return Err(CodecError::Invalid);
