@@ -115,57 +115,16 @@ impl MaskPlot {
 
 impl PlannedMaskPlot {
     pub fn admit(mask: &MaskPlot, plan: &Plan) -> Result<Self, MaskPlotError> {
-        if !conduit_core::verify_plan(plan)
-            || plan.source_document_id != mask.plot_identity.source_document_id
-            || plan.checked_plot_id != mask.plot_identity.checked_plot_id
-            || plan.expanded_plot_id != mask.plot_identity.expanded_plot_id
-        {
-            return Err(MaskPlotError::StalePlan);
-        }
-        for (boundary, direction, value_kind, temporal) in [
-            (
-                &mask.face_input,
-                PortDirection::Input,
-                FACE_VALUE_KIND,
-                PortTemporal::Value,
-            ),
-            (
-                &mask.interaction_output,
-                PortDirection::Output,
-                FACE_INTERACTION_VALUE_KIND,
-                PortTemporal::Flow { closes: true },
-            ),
-            (
-                &mask.show_output,
-                PortDirection::Output,
-                SHOW_VALUE_KIND,
-                PortTemporal::Value,
-            ),
-        ] {
-            if !plan.fragments.iter().any(|fragment| {
-                let Some(placement) = fragment
-                    .placements
-                    .iter()
-                    .find(|placement| placement.gear_id == boundary.gear_id)
-                else {
-                    return false;
-                };
-                fragment.fore_ports.iter().any(|port| {
-                    port.front_port_id == boundary.front_port_id
-                        && port.direction == direction
-                        && port.placement_id == placement.placement_id
-                        && port.gear_port_id == boundary.gear_port_id
-                        && port.value_kind.as_str() == value_kind
-                        && port.temporal == temporal
-                })
-            }) {
-                return Err(MaskPlotError::MissingPlannedBoundary);
-            }
-        }
+        validate_plan(mask, plan)?;
         Ok(Self {
             mask: mask.clone(),
             plan: plan.clone(),
         })
+    }
+
+    /// Validate the complete ordinary role and Plan without cloning either.
+    pub fn validate(&self) -> Result<(), MaskPlotError> {
+        validate_plan(&self.mask, &self.plan)
     }
 
     pub fn show_placement(&self) -> &conduit_core::PlannedGear {
@@ -176,6 +135,57 @@ impl PlannedMaskPlot {
             .find(|placement| placement.gear_id == self.mask.show_output.gear_id)
             .expect("admitted Mask Plot retains its planned Show boundary")
     }
+}
+
+fn validate_plan(mask: &MaskPlot, plan: &Plan) -> Result<(), MaskPlotError> {
+    if !conduit_core::verify_plan(plan)
+        || plan.source_document_id != mask.plot_identity.source_document_id
+        || plan.checked_plot_id != mask.plot_identity.checked_plot_id
+        || plan.expanded_plot_id != mask.plot_identity.expanded_plot_id
+    {
+        return Err(MaskPlotError::StalePlan);
+    }
+    for (boundary, direction, value_kind, temporal) in [
+        (
+            &mask.face_input,
+            PortDirection::Input,
+            FACE_VALUE_KIND,
+            PortTemporal::Value,
+        ),
+        (
+            &mask.interaction_output,
+            PortDirection::Output,
+            FACE_INTERACTION_VALUE_KIND,
+            PortTemporal::Flow { closes: true },
+        ),
+        (
+            &mask.show_output,
+            PortDirection::Output,
+            SHOW_VALUE_KIND,
+            PortTemporal::Value,
+        ),
+    ] {
+        if !plan.fragments.iter().any(|fragment| {
+            let Some(placement) = fragment
+                .placements
+                .iter()
+                .find(|placement| placement.gear_id == boundary.gear_id)
+            else {
+                return false;
+            };
+            fragment.fore_ports.iter().any(|port| {
+                port.front_port_id == boundary.front_port_id
+                    && port.direction == direction
+                    && port.placement_id == placement.placement_id
+                    && port.gear_port_id == boundary.gear_port_id
+                    && port.value_kind.as_str() == value_kind
+                    && port.temporal == temporal
+            })
+        }) {
+            return Err(MaskPlotError::MissingPlannedBoundary);
+        }
+    }
+    Ok(())
 }
 
 #[cfg(feature = "plot-catalog")]

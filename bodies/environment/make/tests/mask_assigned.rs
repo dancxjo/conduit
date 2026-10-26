@@ -16,6 +16,8 @@ struct Material {
     roles: [MaskRole; 3],
     counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
     scope: AssignedMaskScope,
+    context: conduit_face::PreparedMaskShowContext,
+    active: c::ActivePlayIdentity,
     face: Vec<u8>,
     show: Vec<u8>,
 }
@@ -69,6 +71,13 @@ impl Material {
             fragment: c::AssignedIdentity::from_text(fragment.fragment_id.as_str()),
         };
         let face = fixture::face();
+        let active = c::bind_active_play(&planned.plan.plan_id, &host.host_id, &host.boot_id, 1);
+        let context = conduit_face::PreparedMaskShowContext::from_wire(
+            serde_json::to_vec(&planned).unwrap().into_boxed_slice(),
+            8192,
+            32768,
+        )
+        .unwrap();
         let show = conduit_face::MaskShow::prepared(
             &planned,
             &face,
@@ -88,6 +97,8 @@ impl Material {
             roles,
             counts,
             scope,
+            context,
+            active,
             face,
             show,
         }
@@ -187,6 +198,22 @@ fn compact_mask_prepares_without_rich_plan_and_executes_the_ordinary_graph() {
     let material = Material::new();
     let records = material.records();
     let profile = material.profile();
+    let face_model = fixture::face();
+    let occurrence = material
+        .context
+        .prepared_show(
+            &face_model,
+            material.active.clone(),
+            "environment".into(),
+            "fixture/display".into(),
+            "fixture/prepared".into(),
+        )
+        .unwrap();
+    drop(face_model);
+    assert_eq!(
+        c::AssignedIdentity::from_text(material.context.plan_id().as_str()),
+        material.scope.plan
+    );
     let (mut prepared, memory) = allocation_probe::observe(|| {
         PreparedAssignedMaskKernel::prepare(
             AssignedMaskInput {
@@ -250,8 +277,10 @@ fn compact_mask_prepares_without_rich_plan_and_executes_the_ordinary_graph() {
                 let value = prepared
                     .kernel
                     .store_host_value_encoded(profile.show_bytes as usize, |out| {
-                        out[..show.len()].copy_from_slice(show);
-                        Ok::<_, ()>(show.len())
+                        occurrence.encode_json_with(out, |part, buffer| {
+                            serde_json_core::to_slice(&part, buffer)
+                                .map_err(|_| conduit_face::MaskJsonRefusal::Json)
+                        })
                     })
                     .unwrap();
                 prepared

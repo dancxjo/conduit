@@ -29,7 +29,8 @@ impl PreparedMaskPlanJson {
         if maximum_bytes == 0 {
             return Err(MaskJsonRefusal::Capacity);
         }
-        PlannedMaskPlot::admit(&planned.mask, &planned.plan)
+        planned
+            .validate()
             .map_err(|_| MaskJsonRefusal::InvalidPlan)?;
         let fingerprint = fingerprint(planned)?;
         let bytes = serde_json::to_vec(planned).map_err(|_| MaskJsonRefusal::Json)?;
@@ -39,6 +40,20 @@ impl PreparedMaskPlanJson {
         Ok(Self {
             fingerprint,
             bytes: bytes.into_boxed_slice(),
+        })
+    }
+    /// Called only after the caller decoded and validated this exact wire into
+    /// the supplied model. Retains the admitted representation without deflate.
+    pub(crate) fn retain_verified_wire(
+        planned: &PlannedMaskPlot,
+        bytes: Box<[u8]>,
+    ) -> Result<Self, MaskJsonRefusal> {
+        planned
+            .validate()
+            .map_err(|_| MaskJsonRefusal::InvalidPlan)?;
+        Ok(Self {
+            fingerprint: fingerprint(planned)?,
+            bytes,
         })
     }
     pub fn bytes(&self) -> &[u8] {
@@ -58,29 +73,34 @@ impl PreparedMaskPlanJson {
         if fingerprint(&show.planned_mask)? != self.fingerprint {
             return Err(MaskJsonRefusal::DifferentPlan);
         }
-        #[derive(Serialize)]
-        struct Prefix<'a> {
-            show_id: &'a crate::MaskShowId,
-            mask_plot: &'a conduit_core::PlotIdentity,
-            face_plot: &'a Option<conduit_core::PlotIdentity>,
-            face_plan_id: &'a Option<conduit_core::PlanId>,
-            face_id: &'a crate::FaceContentId,
-            face_revision: u64,
+        self.bind_parts(
+            MaskShowPrefix {
+                show_id: &show.show_id,
+                mask_plot: &show.mask_plot,
+                face_plot: &show.face_plot,
+                face_plan_id: &show.face_plan_id,
+                face_id: &show.face_id,
+                face_revision: show.face_revision,
+            },
+            &show.show,
+            maximum_bytes,
+        )
+    }
+    pub(crate) fn bind_parts(
+        &self,
+        prefix: MaskShowPrefix<'_>,
+        show: &crate::Show,
+        maximum_bytes: usize,
+    ) -> Result<PreparedMaskShowJson<'_>, MaskJsonRefusal> {
+        if maximum_bytes == 0 {
+            return Err(MaskJsonRefusal::Capacity);
         }
-        let mut prefix = serde_json::to_vec(&Prefix {
-            show_id: &show.show_id,
-            mask_plot: &show.mask_plot,
-            face_plot: &show.face_plot,
-            face_plan_id: &show.face_plan_id,
-            face_id: &show.face_id,
-            face_revision: show.face_revision,
-        })
-        .map_err(|_| MaskJsonRefusal::Json)?;
+        let mut prefix = serde_json::to_vec(&prefix).map_err(|_| MaskJsonRefusal::Json)?;
         if prefix.pop() != Some(b'}') {
             return Err(MaskJsonRefusal::Json);
         }
         prefix.extend_from_slice(b",\"planned_mask\":");
-        let manifestation = serde_json::to_vec(&show.show).map_err(|_| MaskJsonRefusal::Json)?;
+        let manifestation = serde_json::to_vec(show).map_err(|_| MaskJsonRefusal::Json)?;
         let mut suffix = Vec::with_capacity(manifestation.len() + 9);
         suffix.extend_from_slice(b",\"show\":");
         suffix.extend_from_slice(&manifestation);
@@ -125,6 +145,15 @@ impl PreparedMaskShowJson<'_> {
         }
         Ok(self.length)
     }
+}
+#[derive(Serialize)]
+pub(crate) struct MaskShowPrefix<'a> {
+    pub(crate) show_id: &'a crate::MaskShowId,
+    pub(crate) mask_plot: &'a conduit_core::PlotIdentity,
+    pub(crate) face_plot: &'a Option<conduit_core::PlotIdentity>,
+    pub(crate) face_plan_id: &'a Option<conduit_core::PlanId>,
+    pub(crate) face_id: &'a crate::FaceContentId,
+    pub(crate) face_revision: u64,
 }
 fn fingerprint(planned: &PlannedMaskPlot) -> Result<[u8; 32], MaskJsonRefusal> {
     // Serialize the complete semantic members without invoking the outer Plan

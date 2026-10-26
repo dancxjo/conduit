@@ -29,6 +29,7 @@ conduit-time = { path = "../../../semantics/time", default-features = false }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }
 
 [dev-dependencies]
+serde-json-core = { version = "=0.6.0", default-features = false }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["plot-catalog", "host-call"] }

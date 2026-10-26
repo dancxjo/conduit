@@ -6,6 +6,11 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         (
             "bodies/environment/make/Cargo.toml",
             "--test",
+            "mask_show_context",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
             "mask_assigned",
         ),
         (

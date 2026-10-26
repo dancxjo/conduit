@@ -647,3 +647,36 @@ Capture SHA-256:
 The full recovery image was restored and its device MD5 reverified as
 `4f8db50b72e16cfc70e19e41bdeeabc5`. The next decision remains the target's RAM
 requirement versus a larger compiler/runtime change, not more component APIs.
+
+## Compact ordinary Mask Show context, 2026-10-25
+
+CPU-only preparation now retains complete verified Mask Plan wire plus selected
+presenter identity, instead of cloning the rich Plan into each Show. Existing
+manifestation identity and lifecycle code is shared with the rich constructor.
+The complete canonical representation, including Body/Wake, escaped text and
+Prepared/Available/Closed/Failed metadata, remains byte-identical. These metadata
+states alone establish neither native possession nor physical delivery.
+
+For the three-node fixture, received-wire preparation retains 4,863 heap bytes
+and peaks at 43,632, including the input copy. It checks declared expanded extent
+before decompression and preserves accepted wire verbatim without recompression.
+Temporary model allocation/stack still needs admission; this fixture measurement
+is not a general bound for all Plans or a target measurement. The host-side
+compression constructor still peaks at 274,950 and must not be used on the MCU.
+A Show occurrence with Body/Wake retains 2,320 bytes and peaks at 2,872.
+
+The occurrence can serialize directly into the kernel's private admitted value
+slot through the Host's existing bounded JSON codec, without metadata vectors
+or an intermediate value buffer. Both canonical serde_json and the target's
+serde-json-core codec reproduce exact canonical bytes with no allocation in the
+measured encodes. Failed/short encodes yield no publishable length. The assigned
+Mask CPU proof now creates this occurrence after dropping rich preparation and
+encodes it through the shared transactional value-store admission path.
+
+`cargo xtask prove environment display-output` and the owning Face manifestation,
+Mask and cross-Mask lifecycle tests pass. The new codec dependency is test-only;
+no production codec dependency was added. This change was not flashed. The
+acknowledged physical checkpoint remains running, with its timed FaceFore fence
+intact. Next native work must bind an actually possessed renderer, admit the
+Body route/current Face and Look, replace/share the old output realization, and
+measure combined target memory before claiming an ordinary physical Mask.

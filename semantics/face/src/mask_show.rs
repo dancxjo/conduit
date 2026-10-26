@@ -168,7 +168,9 @@ impl MaskShow {
     }
 }
 
-fn validate_basis(face: &Face) -> Result<(Option<PlotIdentity>, Option<PlanId>), MaskShowError> {
+pub(crate) fn validate_basis(
+    face: &Face,
+) -> Result<(Option<PlotIdentity>, Option<PlanId>), MaskShowError> {
     let checked = ValidatedFace::new(face).map_err(|_| MaskShowError::StaleFace)?;
     Ok(validated_basis(&checked))
 }
@@ -193,10 +195,23 @@ fn validated_basis(face: &ValidatedFace<'_>) -> (Option<PlotIdentity>, Option<Pl
 }
 
 fn bind_show(planned_mask: &PlannedMaskPlot, face: &Face, show: &Show) -> MaskShowId {
+    bind_show_identity(
+        &planned_mask.mask.plot_identity,
+        &planned_mask.plan.plan_id,
+        face,
+        show,
+    )
+}
+pub(crate) fn bind_show_identity(
+    mask: &PlotIdentity,
+    plan: &PlanId,
+    face: &Face,
+    show: &Show,
+) -> MaskShowId {
     let canonical = format!(
         "conduit.face/mask-plot-show@1\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
-        planned_mask.mask.plot_identity.checked_plot_id.as_str(),
-        planned_mask.mask.plot_identity.expanded_plot_id.as_str(),
+        mask.checked_plot_id.as_str(),
+        mask.expanded_plot_id.as_str(),
         face.basis
             .checked_plot_id
             .as_ref()
@@ -207,7 +222,7 @@ fn bind_show(planned_mask: &PlannedMaskPlot, face: &Face, show: &Show) -> MaskSh
             .map_or("<none>", |id| id.as_str()),
         face.identity.as_str(),
         face.revision,
-        planned_mask.plan.plan_id.as_str(),
+        plan.as_str(),
         show.manifestation_id.as_str(),
     );
     let digest = Sha256::digest(canonical.as_bytes());
