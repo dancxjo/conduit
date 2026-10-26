@@ -328,7 +328,8 @@ try {
       run('python3', ['architecture/core/definitions/generate.py', '--check']);
       run('cargo', ['xtask', 'ci', 'standalone-locks', '--locked']);
       // Keep the canonical corpus independent of edits to its Cargo wrapper.
-      // Compile/run that actual std-only Rust test too, without xtask's graph.
+      // Compile/run the actual std-only Rust launcher with real success/failure
+      // probes, without replaying the full corpus or building xtask's graph.
       const specs = readdirSync('proof/ci').filter(name =>
         (name.startsWith('pipeline-') || name.startsWith('compiler-cache')) && name.endsWith('.spec.mjs'))
         .map(name => `proof/ci/${name}`);
