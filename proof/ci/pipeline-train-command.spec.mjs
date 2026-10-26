@@ -218,3 +218,44 @@ test('oversized complete admission receipts refuse before any assembly Git mutat
   assert.equal(gitCalls, 0);
   await assert.rejects(readFile(f.filename), /ENOENT/);
 });
+
+
+test('fresh machine assembly needs no ambient Git identity and bounds child operations', async t => {
+  const f = await commands(t);
+  f.git('remote', 'add', 'origin', f.directory);
+  f.git('config', '--unset-all', 'user.name');
+  f.git('config', '--unset-all', 'user.email');
+  const sourceEnvironment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+  Object.assign(sourceEnvironment, { GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', GIT_TERMINAL_PROMPT: '0' });
+  let gitCalls = 0;
+  const api = createTrainCommands({ directory: f.directory, sourceEnvironment, command(program, args, options) {
+    assert.equal(options.timeout, 60000);
+    if (program === 'git') gitCalls++;
+    return f.command(program, args, options);
+  } });
+  const worktree = path.join(f.output, 'identity-free');
+  const manifest = await api.assemble('example/conduit', [1, 2], worktree, f.filename);
+  assert.equal(manifest.tree, f.manifest.tree);
+  assert.equal(f.git('-C', worktree, 'show', '-s', '--format=%an <%ae>|%cn <%ce>', manifest.source),
+    'Conduit train <train@example.invalid>|Conduit train <train@example.invalid>');
+  assert.ok(gitCalls > 0);
+});
+
+test('timed-out assembly preserves its worktree and never writes an accepted manifest', async t => {
+  const f = await commands(t);
+  f.git('remote', 'add', 'origin', f.directory);
+  let merges = 0;
+  const api = createTrainCommands({ directory: f.directory, command(program, args, options) {
+    if (program === 'git' && args.includes('merge')) {
+      merges++;
+      assert.equal(options.timeout, 60000);
+      return { status: null, signal: 'SIGTERM', error: Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' }) };
+    }
+    return f.command(program, args, options);
+  } });
+  const worktree = path.join(f.output, 'timeout-retained');
+  await assert.rejects(api.assemble('example/conduit', [1, 2], worktree, f.filename), /retained train\//);
+  assert.equal(merges, 1);
+  assert.equal(f.git('-C', worktree, 'rev-parse', 'HEAD'), f.base);
+  await assert.rejects(readFile(f.filename), /ENOENT/);
+});
