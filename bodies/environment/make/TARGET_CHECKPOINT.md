@@ -8,6 +8,37 @@ with acknowledged evidence transfer. Its latest target checkpoint is
 [below](#right-sized-evidence-backing-on-the-physical-esp32). Ordinary Mask Plot
 admission remains open; the pure helper is still explicitly fenced.
 
+## Local startup boundary — 2026-10-26
+
+Local preparation now has Core-verified Body proposal, lean retained-software
+admission, one owned lowering, ordinary kernel assembly, and a producer Face
+constructor that does not fabricate a remote-owner reservation. The local Face
+checks the installed proposal, current admitted Host/Boot, exact fragment and
+selected Plan before retaining the same first-class observation Face. Body and
+Wake IDs remain typed through this path. Preparation creates neither native
+possession nor Body startup evidence.
+
+Inspection of the generated installed biography exposed a decisive remaining
+boundary: its workset contains **both sampling and display**, while the current
+local diagnostic supplies only a sampling Plan. Ordinary Body admission refuses
+this with `MissingPlot`, now reported as `body-workset-incomplete`. A focused CPU
+regression checks that refusal leaves evidence and the unpublished realization
+unchanged. Do not remove the display plot or weaken workset validation to make
+this checkpoint appear complete. The next local proposal needs a real display
+Plan from actual initialized offers and its ordinary Mask/Fore contracts.
+
+The diagnostic instruments simultaneous Body, Face and sampler-kernel
+preparation, but those later stages are **not reached by the current default
+image** and have no on-device combined-memory result. The latest linked
+Face-enabled diagnostic is 2,623,776 bytes against the existing 2,621,440-byte
+application partition; image construction correctly refuses the 2,336-byte
+overflow. Its linker stack reserve is 56,916 bytes. A bounded typed bootstrap
+report replaced an allocated JSON map, saving 4,624 bytes in that comparison;
+keeping local IDs typed saved a further 624 bytes. These are packaging results,
+not a standalone-appliance or physical-output claim. No partition was enlarged
+and this diagnostic was not flashed. The Linux-owned native thermometer remains
+on its previously tested firmware.
+
 ## Linux first host, native ESP32 member
 
 The attended owner in `bodies/environment/host` used the actual Linux machine

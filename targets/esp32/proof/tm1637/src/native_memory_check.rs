@@ -1,6 +1,7 @@
 //! Delivery checkpoint diagnostic, never a claim of a started appliance.
 use super::*;
 use alloc::collections::BTreeMap;
+#[inline(never)]
 fn mark(phase: &str, item: usize) {
     let root = esp_alloc::HEAP.stats();
     let sdk = crate::sdk_memory::stats();
@@ -145,7 +146,14 @@ impl NativeRoot {
                 &self.host,
                 &self.boot,
             )
-            .map_err(|_| "body-verified-proposal")?;
+            .map_err(|error| match error {
+                conduit_body::BodyLifecycleSessionError::PlanSeal(
+                    conduit_body::BodyPlanSealRefusal::Invalid(
+                        conduit_body::BodyPlanError::MissingPlot,
+                    ),
+                ) => "body-workset-incomplete",
+                _ => "body-verified-proposal",
+            })?;
         mark("body-local-proposal-live", 1);
         let preparation = (|| -> Result<(), &'static str> {
             let id = &plan.preparation_metadata().fragments[0].fragment_id;
@@ -162,6 +170,18 @@ impl NativeRoot {
                 offer_generation,
             )?;
             mark("local-software-admitted", 15);
+            let active = self
+                .issuer
+                .reserve_verified_play(&plan, id)
+                .map_err(|_| "local-play-identity")?;
+            let (publisher, reader) = crate::native_face::prepare_local(
+                self.body.as_ref().ok_or("body-owner")?,
+                &plan,
+                id,
+                &active,
+            )?;
+            self.face_reader = Some(reader);
+            mark("local-face-live", 1);
             let tables = conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<
                 15,
                 14,
@@ -179,8 +199,9 @@ impl NativeRoot {
                 &image,
                 (&self.host, &self.boot, offer_generation),
             )?;
-            mark("local-kernel-live", 15);
+            mark("local-kernel-face-live", 15);
             drop(kernel);
+            drop(publisher);
             mark("local-kernel-retired", 0);
             Ok(())
         })();

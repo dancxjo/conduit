@@ -11,6 +11,9 @@ use conduit_face::{Face, FaceBasis, FacePropertyValue};
 use static_cell::StaticCell;
 #[path = "native_face_http.rs"]
 mod http;
+#[cfg(feature = "body-image-root")]
+#[path = "native_local_face_scope.rs"]
+mod local_scope;
 #[path = "native_face_scope.rs"]
 mod scope;
 pub fn http_response(
@@ -65,31 +68,70 @@ pub fn prepare(
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
     }
+    let body: conduit_body::BodyId = scope::identity(&reservation.body)?;
+    let wake: conduit_body::WakeId = scope::identity(&reservation.wake)?;
     #[cfg(feature = "local-evidence-store")]
     crate::native_observed_archive::bind(reservation)?;
+    prepare_scope(&body, &wake, &reservation.active)
+}
+/// Prepare publication custody for the exact installed local proposal. This
+/// does not start the Body or authorize polling the producer's kernel.
+#[cfg(feature = "body-image-root")]
+pub fn prepare_local(
+    body: &conduit_body::SealedBodyLifecycleSession,
+    plan: &conduit_core::VerifiedPlanMetadata,
+    fragment: &conduit_core::FragmentId,
+    active: &conduit_core::ActivePlayIdentity,
+) -> Result<(Publisher, &'static Reader), &'static str> {
+    let source = crate::native_software::source_identity();
+    let metadata = plan.preparation_metadata();
+    if metadata.source_document_id != source.source_document_id
+        || metadata.checked_plot_id != source.checked_plot_id
+        || metadata.expanded_plot_id != source.expanded_plot_id
+    {
+        return Err("local-face-source");
+    }
+    let (body_id, wake_id) = local_scope::check(body, plan, fragment, active)?;
+    let stats = esp_alloc::HEAP.stats();
+    if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
+        return Err("face-preparation-capacity");
+    }
+    #[cfg(feature = "local-evidence-store")]
+    crate::native_observed_archive::bind_local(body_id.as_str(), active)?;
+    prepare_scope(body_id, wake_id, active)
+}
+fn prepare_scope(
+    body: &conduit_body::BodyId,
+    wake: &conduit_body::WakeId,
+    active: &conduit_core::ActivePlayIdentity,
+) -> Result<(Publisher, &'static Reader), &'static str> {
+    let stats = esp_alloc::HEAP.stats();
+    if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
+        return Err("face-preparation-capacity");
+    }
     let identity = crate::native_software::source_identity();
     let (_, cadence) = crate::native_software::source_facts();
     for text in [
         identity.source_document_id.as_str(),
         identity.checked_plot_id.as_str(),
         identity.expanded_plot_id.as_str(),
-        reservation.body.as_str(),
-        reservation.wake.as_str(),
-        reservation.active.plan_id.as_str(),
-        reservation.active.active_play_id.as_str(),
+        body.as_str(),
+        wake.as_str(),
+        active.plan_id.as_str(),
+        active.active_play_id.as_str(),
     ] {
         if text.len() != 64 || !text.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err("face-scope-bound");
         }
     }
     let basis = FaceBasis {
-        body_id: Some(scope::identity(&reservation.body)?),
-        wake_id: Some(scope::identity(&reservation.wake)?),
+        body_id: Some(body.clone()),
+        wake_id: Some(wake.clone()),
         source_document_id: Some(identity.source_document_id),
         checked_plot_id: Some(identity.checked_plot_id),
         expanded_plot_id: Some(identity.expanded_plot_id),
-        plan_id: Some(reservation.active.plan_id.clone()),
-        active_play_id: Some(reservation.active.active_play_id.clone()),
+        plan_id: Some(active.plan_id.clone()),
+        active_play_id: Some(active.active_play_id.clone()),
         sign_ids: alloc::vec![],
     };
     let count = cadence.count.try_into().map_err(|_| "face-count")?;

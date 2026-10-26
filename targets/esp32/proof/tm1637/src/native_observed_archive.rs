@@ -63,6 +63,18 @@ pub fn initialize(region: Region) -> Result<(), &'static str> {
 /// All record/work capacity is fixed before the first publication.
 #[inline(never)]
 pub fn bind(reservation: &OwnerReservation) -> Result<(), &'static str> {
+    bind_scope(&reservation.body, &reservation.active)
+}
+/// Root supplies this only after the installed local Body/fragment scope passes
+/// admission. This binds outgoing custody, never membership or native authority.
+#[cfg(feature = "body-image-root")]
+pub(crate) fn bind_local(
+    body: &str,
+    active: &conduit_core::ActivePlayIdentity,
+) -> Result<(), &'static str> {
+    bind_scope(body, active)
+}
+fn bind_scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> Result<(), &'static str> {
     let (_, cadence) = crate::native_software::source_facts();
     let maximum: u32 = cadence
         .count
@@ -73,9 +85,9 @@ pub fn bind(reservation: &OwnerReservation) -> Result<(), &'static str> {
     }
     let mut scope = [0; 96];
     for (out, text) in scope.chunks_exact_mut(32).zip([
-        reservation.body.as_str(),
-        reservation.active.boot_id.as_str(),
-        reservation.active.active_play_id.as_str(),
+        body,
+        active.boot_id.as_str(),
+        active.active_play_id.as_str(),
     ]) {
         out.copy_from_slice(&Sha256::digest(text.as_bytes()));
     }
