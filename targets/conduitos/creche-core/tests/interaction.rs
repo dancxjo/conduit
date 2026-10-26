@@ -71,7 +71,7 @@ fn wire_roundtrip(input: &InteractionRequest) -> InteractionRequest {
 }
 
 #[test]
-fn packed_transfer_preserves_the_complete_reference_plan_and_canonical_checks() {
+fn deployed_transfer_matches_the_complete_reference_plan_and_canonical_checks() {
     let (_, input) = fixture();
     let mut original = b"CDCI\x01".to_vec();
     ciborium::ser::into_writer(&input, &mut original).unwrap();
@@ -80,19 +80,19 @@ fn packed_transfer_preserves_the_complete_reference_plan_and_canonical_checks() 
         ciborium::de::from_reader_with_recursion_limit(&mut remaining, 64).unwrap();
     assert!(remaining.is_empty());
 
-    let packed = data::encode_interaction(&input).unwrap();
-    assert_eq!(&packed[..5], b"CDCI\x02");
-    // This minimal fixture contains only a one-byte zero argument: packing
-    // preserves its two-byte width; real Mask configuration arrays shrink.
-    assert!(packed.len() <= original.len());
-    let decoded = data::decode_interaction(&packed).unwrap();
+    let encoded = data::encode_interaction(&input).unwrap();
+    assert_eq!(&encoded[..5], b"CDCI\x01");
+    assert_eq!(encoded, original);
+    let decoded = data::decode_interaction(&encoded).unwrap();
     assert_eq!(decoded.revision, reference.revision);
     assert_eq!(decoded.basis, reference.basis);
     assert_eq!(decoded.show, reference.show);
     assert_eq!(decoded.input, reference.input);
     assert!(conduit_core::verify_plan(&reference.show.planned_mask.plan));
     assert!(conduit_core::verify_plan(&decoded.show.planned_mask.plan));
-    assert!(data::decode_interaction(&original).is_err());
+    let mut unsupported_version = original;
+    unsupported_version[4] = 2;
+    assert!(data::decode_interaction(&unsupported_version).is_err());
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn binary_transfer_does_not_accept_corruption_foreign_plan_or_stale_input() {
 }
 
 #[test]
-fn packed_transfer_still_invokes_the_structured_configuration_constructor() {
+fn deployed_transfer_still_invokes_the_structured_configuration_constructor() {
     use conduit_core::{
         ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue, StructuredInfoType,
         StructuredInfoValue, TEXT_INFO_ID, kind_id,
@@ -251,3 +251,6 @@ fn public_json_mask_transport_stays_lossless_compressed_and_distinct() {
 
 #[path = "interaction/transport.rs"]
 mod transport;
+
+#[path = "interaction/codec.rs"]
+mod codec;

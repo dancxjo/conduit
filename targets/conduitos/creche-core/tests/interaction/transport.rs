@@ -118,11 +118,13 @@ fn final_write_is_only_preparation_and_transfer_changes_cannot_change_owned_inpu
 #[test]
 fn completed_malformed_input_defers_error_to_commit_and_blocks_other_operations() {
     let (mut state, mut transfer, input) = initialized();
+    let mut malformed = data::encode_interaction(&input).unwrap();
+    malformed.pop();
     begin_and_write(
         &mut state,
         &mut transfer,
         InputKind::FaceInteraction,
-        b"invalid private encoding",
+        &malformed,
     );
     let guards = [
         Request::Begin {
