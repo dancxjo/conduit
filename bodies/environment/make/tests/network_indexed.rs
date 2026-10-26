@@ -27,6 +27,71 @@ impl CredentialSource for Inert {
         panic!("planning cannot consume secrets")
     }
 }
+// Compile the exact native projection against exclusively retained inert owners.
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_network_offer.rs"]
+mod native_projection;
+struct NativeRoot {
+    host: c::HostId,
+    boot: c::BootId,
+    offer_generation: u64,
+    credentials: Option<credential_installation::ReadyCredentialBase<Inert>>,
+    play: SignOffer,
+    network: JoinOffer,
+}
+struct SignOffer;
+impl SignOffer {
+    fn append_offer(&self, host: &mut c::HostAdvertisement) {
+        host.capabilities.push(network_attachment_sign_local_offer(
+            "fixture/sign".into(),
+            "fixture/sign-implementation".into(),
+            "fixture/artifact".into(),
+        ));
+    }
+}
+struct JoinOffer(Option<ReadyNetworkJoinBase<Inert>>);
+impl JoinOffer {
+    fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
+        if let Some(owner) = &self.0 {
+            owner.append_to_advertisement(host).map_err(|_| ())?;
+        }
+        Ok(())
+    }
+}
+impl conduit_monotonic_wait::MonotonicWaitProvider for Inert {
+    async fn wait(&mut self, _: u64) -> Result<(), conduit_monotonic_wait::WaitProviderFailure> {
+        panic!("planning cannot run unrelated timer")
+    }
+}
+fn unrelated_wait(
+    host: &c::HostAdvertisement,
+) -> conduit_monotonic_wait::ReadyMonotonicWaitBase<Inert> {
+    use conduit_monotonic_wait::*;
+    // SAFETY: exclusively owned CPU fixture; its effect panics above.
+    unsafe {
+        ReadyMonotonicWaitBase::new(
+            WaitNativeIdentity {
+                host_id: host.host_id.clone(),
+                boot_id: host.boot_id.clone(),
+                base_id: "fixture/wait-base".into(),
+                provider_instance_id: "fixture/wait-instance".into(),
+                provider_generation: 1,
+                resource_pool_id: "fixture/wait-pool".into(),
+                resource_generation_id: c::ResourceGenerationId("fixture/wait-generation".into()),
+                envelope_id: "fixture/wait-envelope".into(),
+                artifact_id: "fixture/wait-artifact".into(),
+                implementation_id: "fixture/wait-implementation".into(),
+                base_implementation_id: "fixture/wait-base-implementation".into(),
+            },
+            WaitAttachment {
+                generation: 1,
+                resource_bytes: 64,
+                maximum_duration_ms: 1000,
+            },
+            Inert,
+        )
+        .unwrap()
+    }
+}
 fn identity(role: &str) -> NetworkNativeIdentity {
     NetworkNativeIdentity {
         host: "fixture/host".into(),
@@ -60,7 +125,7 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
         host_id: "fixture/host".into(),
         boot_id: "fixture/boot".into(),
         offer_generation: c::OfferGeneration(1),
-        profile: "fixture/network".into(),
+        profile: "environment/esp32-native-root@1".into(),
         bases: vec![],
         resources: vec![],
         capabilities: vec![],
@@ -74,15 +139,29 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
                 .unwrap(),
         )
     };
-    join.append_to_advertisement(&mut host).unwrap();
     credentials.append_to_advertisement(&mut host).unwrap();
     host.capabilities.push(network_attachment_sign_local_offer(
         "fixture/sign".into(),
         "fixture/sign-implementation".into(),
         "fixture/artifact".into(),
     ));
+    join.append_to_advertisement(&mut host).unwrap();
     host.bases.sort_by(|a, b| a.base_id.cmp(&b.base_id));
     host.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+    let mut root = NativeRoot {
+        host: host.host_id.clone(),
+        boot: host.boot_id.clone(),
+        offer_generation: host.offer_generation.0,
+        credentials: Some(credentials),
+        play: SignOffer,
+        network: JoinOffer(Some(join)),
+    };
+    let projected = root.network_advertisement().unwrap();
+    assert_eq!(host, projected);
+    root.boot = "wrong/boot".into();
+    assert!(root.network_advertisement().is_err());
+    root.boot = host.boot_id.clone();
+
     let grants = [
         c::AuthorityGrant {
             grant_id: "grant/credentials".into(),
@@ -113,6 +192,88 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
         &expected, &source, &host, &bases, &grants,
     )
     .unwrap();
+    let mut full = projected.clone();
+    unrelated_wait(&full)
+        .append_to_advertisement(&mut full)
+        .unwrap();
+    full.bases.sort_by(|a, b| a.base_id.cmp(&b.base_id));
+    full.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+    for drop_kind in 0..3 {
+        let mut narrow = projected.clone();
+        let mut broad = full.clone();
+        for advertisement in [&mut narrow, &mut broad] {
+            if drop_kind == 0 {
+                advertisement
+                    .capabilities
+                    .retain(|offer| offer.capability_id.as_str() != JOIN_CAPABILITY);
+            }
+            if drop_kind == 1 {
+                advertisement
+                    .resources
+                    .retain(|offer| offer.pool_id.as_str() != "fixture/resource/join");
+            }
+        }
+        let authority = if drop_kind == 2 { &[][..] } else { &grants[..] };
+        let narrow = planning::PreparedNetworkSetup::from_indexed_for_identity(
+            &expected, &image, &narrow, &bases, authority,
+        )
+        .err()
+        .unwrap();
+        let broad = planning::PreparedNetworkSetup::from_indexed_for_identity(
+            &expected, &image, &broad, &bases, authority,
+        )
+        .err()
+        .unwrap();
+        assert_eq!(narrow.code(), broad.code());
+    }
+    let (_, scoped_allocation) =
+        allocation_probe::observe(|| root.network_advertisement().unwrap());
+    let (_, complete_allocation) = allocation_probe::observe(|| {
+        let mut ad = root.network_advertisement().unwrap();
+        unrelated_wait(&ad)
+            .append_to_advertisement(&mut ad)
+            .unwrap();
+        ad
+    });
+    assert!(scoped_allocation.retained_bytes() < complete_allocation.retained_bytes());
+    println!("CPU current-offer projection retained={} versus network+oneunrelatedtimer={} (not target admission)",scoped_allocation.retained_bytes(),complete_allocation.retained_bytes());
+    let full_plan = planning::PreparedNetworkSetup::from_indexed_for_identity(
+        &expected, &image, &full, &bases, &grants,
+    )
+    .unwrap();
+    assert_eq!(full_plan.plan(), owned.plan());
+    assert_eq!(full_plan.lowered(), owned.lowered());
+    // Exact retained owner identities remain untouched, including generations.
+    assert_eq!(
+        root.credentials.as_ref().unwrap().native_identity(),
+        &identity("credentials")
+    );
+    assert_eq!(
+        root.network.0.as_ref().unwrap().native_identity(),
+        &identity("join")
+    );
+    for base in &projected.bases {
+        assert_eq!(
+            full.bases.iter().find(|b| b.base_id == base.base_id),
+            Some(base)
+        );
+    }
+    // Complete and scoped projections retain the same selected resource facts.
+    for resource in &projected.resources {
+        assert_eq!(
+            full.resources
+                .iter()
+                .find(|r| r.pool_id == resource.pool_id),
+            Some(resource)
+        );
+    }
+    let retained = root.credentials.take();
+    let absent = root.network_advertisement().unwrap();
+    assert!(planning::PreparedNetworkSetup::from_indexed_for_identity(
+        &expected, &image, &absent, &bases, &grants
+    )
+    .is_err());
+    root.credentials = retained;
     let (indexed, allocation) = allocation_probe::observe(|| {
         planning::PreparedNetworkSetup::from_indexed_for_identity(
             &expected, &image, &host, &bases, &grants,
