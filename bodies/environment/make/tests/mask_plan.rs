@@ -6,87 +6,9 @@ static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core as c;
 use conduit_environment_make::SevenSegmentMaskSource;
 use conduit_face as f;
-fn host() -> c::HostAdvertisement {
-    let limits = c::CapabilityLimits {
-        max_active_instances: 1,
-        max_queue_items: 1,
-        max_queue_bytes: 8192,
-    };
-    let implementation = || c::ImplementationOffer {
-        execution_profile_id: "fixture/seven-segment".into(),
-        implementation_id: "fixture/seven-segment".into(),
-        artifact_id: "fixture/seven-segment".into(),
-    };
-    c::HostAdvertisement {
-        protocol_version: c::PROTOCOL_VERSION,
-        host_id: "fixture/mask-host".into(),
-        boot_id: "fixture/mask-boot".into(),
-        offer_generation: c::OfferGeneration(1),
-        profile: "fixture/mask".into(),
-        bases: vec![],
-        planner_capabilities: vec![],
-        resources: vec![c::resource_offer("fixture/display", "fixture/display", 1)],
-        capabilities: vec![
-            f::face_tee_offer("fixture/tee".into(), implementation(), limits.clone()),
-            f::face_interaction_close_offer(
-                "fixture/interaction".into(),
-                implementation(),
-                limits.clone(),
-            ),
-            f::renderer_offer(f::RendererRealizationOffer {
-                capability_id: "fixture/render".into(),
-                execution_profile_id: "fixture/seven-segment".into(),
-                implementation_id: "fixture/seven-segment".into(),
-                artifact_id: "fixture/seven-segment".into(),
-                host_call: c::HostCallRequirement {
-                    contract_id: "fixture/present".into(),
-                    target_kind: Some(c::kind_id("fixture/display")),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: 8192,
-                    maximum_output_bytes: 8192,
-                },
-                resource_requirement: c::resource_requirement("fixture/display", 1),
-                limits,
-            }),
-        ],
-    }
-}
-fn face() -> f::Face {
-    use conduit_environment_runtime::{
-        observation::{ObservationContract, PreparedSourceFrameDecoder},
-        publication::{PublicationChannel, PublicationSnapshot},
-        retained_publication_face::RetainedPublicationFace,
-    };
-    let contract = ObservationContract::prepare().unwrap();
-    let mut decoder = PreparedSourceFrameDecoder::prepare(&contract).unwrap();
-    let bytes = decoder.decode(5, [53, 0, 20, 2, 75]).unwrap();
-    let mut owner = RetainedPublicationFace::prepare(
-        f::FaceBasis {
-            body_id: None,
-            wake_id: None,
-            source_document_id: Some("a".repeat(64).into()),
-            checked_plot_id: Some("b".repeat(64).into()),
-            expanded_plot_id: Some("c".repeat(64).into()),
-            plan_id: Some("d".repeat(64).into()),
-            active_play_id: Some("e".repeat(64).into()),
-            sign_ids: vec![],
-        },
-        960,
-        120000,
-    )
-    .unwrap();
-    owner
-        .publish(
-            PublicationSnapshot {
-                sequence: 1,
-                channel: PublicationChannel::Reading,
-                canonical: bytes,
-            },
-            1000,
-        )
-        .unwrap();
-    owner.current().clone()
-}
+#[path = "support/mask.rs"]
+mod fixture;
+use fixture::{face, host};
 #[test]
 fn ordinary_mask_requires_current_renderer_and_resource_then_exposes_its_memory_cost() {
     let source = SevenSegmentMaskSource::compile().unwrap();
@@ -214,4 +136,180 @@ fn prepared_mask_json_preserves_complete_wire_without_encoding_allocations() {
         encoder_memory.retained_bytes(),
         encoding_memory.peak_bytes
     );
+}
+
+#[test]
+fn ordinary_mask_plays_with_two_shared_value_slots_and_preserves_egress_pressure() {
+    use conduit_environment_runtime::mask_kernel::PreparedMaskKernel;
+    use conduit_kernel::{self as k, scheduler::SchedulerStatus, ValueStorage};
+    for cancel_at in [None, Some(0), Some(4), Some(12), Some(30)] {
+        let source = SevenSegmentMaskSource::compile().unwrap();
+        let host = host();
+        let planned = source.plan(&host, 8192, &[]).unwrap();
+        let face = face();
+        let active = c::bind_active_play(&planned.plan.plan_id, &host.host_id, &host.boot_id, 1);
+        // CPU renderer service returns a Prepared Show. No physical effect or
+        // Available claim is made by these metadata-only providers.
+        let show = f::MaskShow::prepared(
+            &planned,
+            &face,
+            active,
+            "environment".into(),
+            "fixture/display".into(),
+            "fixture/prepared".into(),
+        )
+        .unwrap();
+        let expected = serde_json::to_vec(&show).unwrap();
+        let face_wire = serde_json::to_vec(&face).unwrap();
+        let cache = f::PreparedMaskPlanJson::prepare(&planned, 8192).unwrap();
+        let encoder = cache.bind(&show, 8192).unwrap();
+        let mut output = vec![0; encoder.encoded_bytes()];
+        let (mut prepared, preparation) =
+            allocation_probe::observe(|| PreparedMaskKernel::prepare(&planned).unwrap());
+        let backing = prepared.kernel.values().reserved_storage_bytes();
+        let mut calls = 0;
+        let mut peak_items = 0;
+        let mut held = None;
+        let mut delivered = false;
+        let mut drained = false;
+        let ((), play_memory) = allocation_probe::observe(|| {
+            prepared
+                .kernel
+                .admit_remote_input(prepared.face.endpoint, prepared.face.cord, 0, &face_wire)
+                .unwrap();
+            prepared
+                .kernel
+                .close_remote_input(prepared.face.endpoint, prepared.face.cord)
+                .unwrap();
+            for step in 0..96 {
+                if cancel_at == Some(step) {
+                    prepared.kernel.cancel().unwrap();
+                    assert_eq!(prepared.kernel.values().used_items(), 0);
+                    return;
+                }
+                let status = prepared.kernel.step().unwrap();
+                if let Some(request) = prepared.kernel.next_host_request() {
+                    assert_eq!(
+                        prepared.kernel.host_value(request.input.value).unwrap(),
+                        face_wire
+                    );
+                    assert_eq!(calls, 0);
+                    calls += 1;
+                    encoder.encode(&mut output).unwrap();
+                    let value = prepared.kernel.store_host_value(&output).unwrap();
+                    prepared
+                        .kernel
+                        .complete_host_call(
+                            request.node,
+                            request.request,
+                            k::HostCallOutcome {
+                                disposition: k::HostCallDisposition::Completed,
+                                output: Some(k::BoundedValueRef::new(value, 8192).unwrap()),
+                                failure: None,
+                            },
+                        )
+                        .unwrap();
+                }
+                peak_items = peak_items.max(prepared.kernel.values().used_items());
+                if !delivered {
+                    if held.is_none() || step == 32 {
+                        if let Some(offer) = prepared
+                            .kernel
+                            .remote_egress_offer(prepared.show.endpoint, prepared.show.cord)
+                            .unwrap()
+                        {
+                            if let Some(prior) = held {
+                                assert_eq!(offer, prior);
+                            }
+                            held = Some(offer);
+                        }
+                    }
+                    if let Some(offer) = held {
+                        assert_eq!(prepared.kernel.host_value(offer.value).unwrap(), expected);
+                        if step < 32 {
+                            assert_ne!(status, SchedulerStatus::Drained);
+                        } else {
+                            prepared
+                                .kernel
+                                .remote_egress_accept(offer.endpoint, offer.cord, offer.sequence)
+                                .unwrap();
+                            prepared
+                                .kernel
+                                .remote_egress_delivered(offer.endpoint, offer.cord, offer.sequence)
+                                .unwrap();
+                            delivered = true;
+                        }
+                    }
+                }
+                if status == SchedulerStatus::Drained {
+                    drained = true;
+                    break;
+                }
+            }
+        });
+        assert_eq!((play_memory.allocations, play_memory.reallocations), (0, 0));
+        assert!(peak_items <= 2);
+        if cancel_at.is_none() {
+            assert!(drained);
+            assert!(held.is_some());
+            assert_eq!(calls, 1);
+            assert_eq!(prepared.kernel.values().used_items(), 0);
+            println!("Ordinary Mask kernel retained={} preparation peak={} backing={} peak live values={} Play allocation peak={}",preparation.retained_bytes(),preparation.peak_bytes,backing,peak_items,play_memory.peak_bytes);
+        }
+    }
+}
+
+#[test]
+fn renderer_failure_emits_no_show_and_cancellation_releases_its_face() {
+    use conduit_environment_runtime::mask_kernel::PreparedMaskKernel;
+    use conduit_kernel::{self as k, scheduler::SchedulerError, ValueStorage};
+    let source = SevenSegmentMaskSource::compile().unwrap();
+    let planned = source.plan(&host(), 8192, &[]).unwrap();
+    let mut prepared = PreparedMaskKernel::prepare(&planned).unwrap();
+    let bytes = serde_json::to_vec(&face()).unwrap();
+    prepared
+        .kernel
+        .admit_remote_input(prepared.face.endpoint, prepared.face.cord, 0, &bytes)
+        .unwrap();
+    prepared
+        .kernel
+        .close_remote_input(prepared.face.endpoint, prepared.face.cord)
+        .unwrap();
+    let mut failed = false;
+    for _ in 0..48 {
+        match prepared.kernel.step() {
+            Err(SchedulerError::BackFailed(_)) => {
+                failed = true;
+                break;
+            }
+            result => {
+                result.unwrap();
+            }
+        }
+        if let Some(request) = prepared.kernel.next_host_request() {
+            prepared
+                .kernel
+                .complete_host_call(
+                    request.node,
+                    request.request,
+                    k::HostCallOutcome {
+                        disposition: k::HostCallDisposition::Failed,
+                        output: None,
+                        failure: Some(k::Failure {
+                            code: k::FailureCode::HostCallFailed,
+                            detail: 1,
+                        }),
+                    },
+                )
+                .unwrap();
+        }
+    }
+    assert!(failed);
+    assert!(prepared
+        .kernel
+        .remote_egress_offer(prepared.show.endpoint, prepared.show.cord)
+        .unwrap()
+        .is_none());
+    prepared.kernel.cancel().unwrap();
+    assert_eq!(prepared.kernel.values().used_items(), 0);
 }

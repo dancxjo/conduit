@@ -34,5 +34,5 @@ conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["plot-catalog", "host-call"] }
 conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait" }
 conduit-network-join-call = { path = "../../../mechanisms/io/network-join" }
-conduit-environment-runtime = { path = "../runtime", features = ["display-session", "face-projection"] }
+conduit-environment-runtime = { path = "../runtime", features = ["display-session", "face-projection", "mask-kernel"] }
 sha2 = { version = "0.10", default-features = false }

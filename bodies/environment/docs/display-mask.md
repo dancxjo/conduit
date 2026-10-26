@@ -50,3 +50,41 @@ result rather than its temporary heap. It belongs off the tight execution path.
 Encoding neither validates a current Face nor acknowledges delivery: ordinary
 owner admission, Plan/Play correlation, lifecycle and actual output acceptance
 remain required. This codec is not yet installed as the MCU's ordinary Mask.
+
+## Ordinary shared-kernel realization
+
+The opt-in `mask-kernel` runtime feature prepares the existing three-node
+tee/renderer/read-only interaction Mask from its verified ordinary Plan. It
+checks the exact port contracts and one-item bounds, lowers the routing and Host
+Call, and uses the existing scheduler. It initializes no renderer or electrical
+provider and grants no authority. The CPU renderer fixture returns a Prepared
+Show; it cannot establish physical delivery or an Available Show.
+
+Face fan-out shares one retained value. The renderer's pending Host Call retains
+that value until completion; its result needs a second slot. Show fan-out shares
+that second value between interaction closure and egress. With 8 KiB Plan
+ceilings, value backing is 16,448 bytes on the CPU. The full prepared kernel and
+Fore metadata retain 22,739 bytes, peaking at 33,674 during cold preparation.
+Play allocates nothing. Tests cover held egress, exact output bytes, cancellation
+at multiple phases, renderer failure without Show, and complete value release.
+
+The Backs explicitly support the existing prepared-session owner. Reuse preserves
+renderer RequestId and output sequence generations, accepts no reset of current
+custody, and transfers the preceding invocation's exact signs. Four successive
+Play identities are tested without allocations inside Play/rearm; each fresh
+bounded evidence log is reserved before that measurement. Read-only interaction
+emits no values and closes normally. This is not MCU session admission.
+
+An internal Xtensa ABI probe of these exact types measured a 6,128-byte scheduler
+and a 748-byte prepared wrapper (which includes its pointer, not the pointed-to
+scheduler). The existing four-node electrical-output scheduler is 6,232 bytes.
+The probe intentionally used rejected constant-array sizes to expose compiler
+layouts; it did not produce, flash or validate a new running image. Even the
+new scheduler plus 16,384 payload bytes exceeds the current image's 19,168 bytes
+of Root headroom, before slot metadata, remote signs and renderer context.
+
+Consequently, the ordinary Mask must replace the current output realization or
+share admitted storage with it; simply adding a second prepared subsystem cannot
+fit. Target preparation must consume the existing compact assigned records rather
+than retain the full rich Plan/Show models. The running sampler and physical
+output checkpoint remain unchanged while that admission work is incomplete.

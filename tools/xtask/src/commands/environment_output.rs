@@ -4,6 +4,11 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     for (manifest, selector, test) in [
         ("bodies/environment/make/Cargo.toml", "--test", "mask_plan"),
         (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "mask_session",
+        ),
+        (
             "architecture/plot/Cargo.toml",
             "--test",
             "compact_scalar_children",

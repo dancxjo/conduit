@@ -12,6 +12,8 @@ mod canonical_storage;
 pub mod construction;
 #[cfg(feature = "display-mask")]
 pub mod display_mask;
+#[cfg(feature = "mask-kernel")]
+pub mod mask_kernel;
 #[cfg(feature = "display-output")]
 pub mod display_output;
 pub mod display_packets;
