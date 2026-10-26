@@ -15,7 +15,9 @@ mod browser_admission;
 mod continuity;
 mod flow;
 mod membership;
+mod prepared_proposal;
 mod proposal;
+pub use prepared_proposal::PreparedVerifiedBodyProposal;
 mod workload;
 
 /// An exact current proposal and its optional admitted play, never a scheduler.

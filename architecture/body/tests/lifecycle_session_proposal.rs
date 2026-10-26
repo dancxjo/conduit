@@ -345,3 +345,86 @@ fn verified_seal_failure_does_not_publish_compaction_or_wake() {
     assert_eq!(owner.pending_archives(), pending);
     assert!(owner.realization().is_none());
 }
+
+#[test]
+fn prepared_verified_proposal_retires_input_plans_before_atomic_publication() {
+    use conduit_body::{SealedBodyLifecycleSession, VerifiedBodyPlotPlan};
+    let (rich, partition, host, boot) = fixture();
+    let mut direct =
+        SealedBodyLifecycleSession::open_admitted(rich.evidence().clone(), &host, &boot).unwrap();
+    let mut staged = direct.clone();
+    let token = conduit_core::verify_plan_metadata_with_configurations(partition.plan, |_| {
+        Ok::<_, ()>(vec![])
+    })
+    .unwrap();
+    let inputs = [VerifiedBodyPlotPlan {
+        plot: partition.plot,
+        plan: &token,
+    }];
+    let before = staged.evidence().clone();
+    let prepared = staged
+        .prepare_verified_proposal(&inputs, &[], None, &host, &boot)
+        .unwrap();
+    assert_eq!(staged.evidence(), &before);
+    assert!(staged.realization().is_none());
+    direct
+        .propose_verified(&inputs, &[], None, &host, &boot)
+        .unwrap();
+    drop(token);
+    staged.commit_verified_proposal(prepared).unwrap();
+    assert_eq!(staged.evidence(), direct.evidence());
+    assert_eq!(staged.realization(), direct.realization());
+    assert_eq!(
+        postcard::to_allocvec(staged.evidence()).unwrap(),
+        postcard::to_allocvec(direct.evidence()).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_vec(staged.evidence()).unwrap(),
+        serde_json::to_vec(direct.evidence()).unwrap()
+    );
+}
+
+#[test]
+fn stale_prepared_proposal_cannot_publish_after_membership_or_wake_changes() {
+    use conduit_body::{SealedBodyLifecycleSession, VerifiedBodyPlotPlan};
+    let (rich, partition, host, boot) = fixture();
+    let initial =
+        SealedBodyLifecycleSession::open_admitted(rich.evidence().clone(), &host, &boot).unwrap();
+    let token = conduit_core::verify_plan_metadata_with_configurations(partition.plan, |_| {
+        Ok::<_, ()>(vec![])
+    })
+    .unwrap();
+    let inputs = [VerifiedBodyPlotPlan {
+        plot: partition.plot,
+        plan: &token,
+    }];
+    let mut changed = initial.clone();
+    let pending = changed
+        .prepare_verified_proposal(&inputs, &[], None, &host, &boot)
+        .unwrap();
+    changed
+        .observe_host_lost(&host, &boot, &host, &boot)
+        .unwrap();
+    let before = changed.evidence().clone();
+    assert_eq!(
+        changed.commit_verified_proposal(pending),
+        Err(BodyLifecycleSessionError::StaleHost)
+    );
+    assert_eq!(changed.evidence(), &before);
+    assert!(changed.realization().is_none());
+    let mut changed = initial;
+    let pending = changed
+        .prepare_verified_proposal(&inputs, &[], None, &host, &boot)
+        .unwrap();
+    changed
+        .propose_verified(&inputs, &[], None, &host, &boot)
+        .unwrap();
+    changed.lull(&host, &boot, None).unwrap();
+    let before = changed.evidence().clone();
+    assert_eq!(
+        changed.commit_verified_proposal(pending),
+        Err(BodyLifecycleSessionError::StaleWorkload)
+    );
+    assert_eq!(changed.evidence(), &before);
+    assert!(changed.realization().is_none());
+}

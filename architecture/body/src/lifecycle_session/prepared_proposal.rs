@@ -1,0 +1,113 @@
+//! Private preparation custody lets callers retire verified Plot metadata before
+//! the atomic biography publication. This is not a Body start or execution grant.
+use super::*;
+use crate::{VerifiedBodyMaskTopology, VerifiedBodyPlotPlan};
+use sha2::{Digest, Sha256};
+
+pub struct PreparedVerifiedBodyProposal {
+    expected: [u8; 32],
+    sequence: u64,
+    host: HostId,
+    boot: BootId,
+    wake: crate::lifecycle::PreparedBodyWake,
+    plan: BodyPlanSeal,
+}
+struct StateHash(Sha256);
+impl postcard::ser_flavors::Flavor for StateHash {
+    type Output = [u8; 32];
+    fn try_push(&mut self, byte: u8) -> postcard::Result<()> {
+        self.0.update([byte]);
+        Ok(())
+    }
+    fn finalize(self) -> postcard::Result<Self::Output> {
+        Ok(self.0.finalize().into())
+    }
+}
+impl SealedBodyLifecycleSession {
+    fn proposal_state_hash(&self) -> Result<[u8; 32], BodyLifecycleSessionError> {
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.body/prepared-proposal-state@1");
+        postcard::serialize_with_flavor(
+            &(&self.evidence, &self.foreground, &self.pending_archives),
+            StateHash(hash),
+        )
+        .map_err(|_| BodyLifecycleSessionError::Biography(BodyBiographyError::InvalidEvidence))
+    }
+    /// Complete unchanged ordinary local proposal validation, retaining only an
+    /// opaque Wake/Plan seal. The returned value cannot deserialize or execute.
+    /// Pending archival custody must be resolved before this preparation path.
+    pub fn prepare_verified_proposal(
+        &self,
+        plots: &[VerifiedBodyPlotPlan<'_>],
+        masks: &[VerifiedBodyMaskTopology<'_>],
+        body_time: Option<conduit_core::BodyTimeRequirement>,
+        host: &HostId,
+        boot: &BootId,
+    ) -> Result<PreparedVerifiedBodyProposal, BodyLifecycleSessionError> {
+        self.require_mutable()?;
+        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+            return Err(BodyLifecycleSessionError::NotLulled);
+        }
+        self.require_host(host, boot)?;
+        for plan in plots
+            .iter()
+            .map(|p| p.plan)
+            .chain(masks.iter().flat_map(|m| m.chains.iter().map(|c| c.plan)))
+        {
+            for fragment in &plan.preparation_metadata().fragments {
+                self.require_host(&fragment.host_id, &fragment.boot_id)?;
+            }
+        }
+        if !self.has_lifecycle_room(2, 1) {
+            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+        }
+        let sequence = self.next_sequence()?;
+        let wake = self
+            .evidence
+            .body
+            .prepare_wake(sequence, super::sign(host, boot, sequence))
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
+        let plan = BodyPlanSeal::capture_verified(wake.wake(), plots, masks, body_time)
+            .map_err(BodyLifecycleSessionError::PlanSeal)?;
+        Ok(PreparedVerifiedBodyProposal {
+            expected: self.proposal_state_hash()?,
+            sequence,
+            host: host.clone(),
+            boot: boot.clone(),
+            wake,
+            plan,
+        })
+    }
+    /// Publish only against the exact unchanged complete lifecycle state. All
+    /// failure is confined to the same unpublished candidate as ordinary propose.
+    pub fn commit_verified_proposal(
+        &mut self,
+        prepared: PreparedVerifiedBodyProposal,
+    ) -> Result<&BodyLifecycleRealization<BodyPlanSeal>, BodyLifecycleSessionError> {
+        self.require_mutable()?;
+        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+            return Err(BodyLifecycleSessionError::NotLulled);
+        }
+        self.require_host(&prepared.host, &prepared.boot)?;
+        if self.next_sequence()? != prepared.sequence
+            || self.proposal_state_hash()? != prepared.expected
+        {
+            return Err(BodyLifecycleSessionError::StaleWorkload);
+        }
+        let mut next = self.clone();
+        let wake = next
+            .evidence
+            .append_prepared_wake_unpublished(prepared.wake, prepared.sequence)
+            .map_err(BodyLifecycleSessionError::Biography)?;
+        next.realization = Some(BodyLifecycleRealization {
+            wake,
+            plan: prepared.plan,
+            play: None,
+        });
+        *self = next;
+        Ok(self
+            .realization
+            .as_ref()
+            .expect("published checked proposal"))
+    }
+}
