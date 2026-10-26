@@ -1,13 +1,23 @@
 // Land only the exact source already proved and authenticated. Never force or bypass.
 import { spawnSync } from 'node:child_process';
-import { lstat, writeFile } from 'node:fs/promises';
+import { lstat, writeFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createTrainCommands } from './train-command.mjs';
 import { verifyTrainManifest } from './train.mjs';
 import { observeMachineWriterPolicy } from './train-machine-policy.mjs';
 
 const fail = reason => { throw new Error(reason); };
 const positive = value => Number.isSafeInteger(value) && value > 0;
+const inside = (root, directory) => directory === root || directory.startsWith(`${root}${path.sep}`);
+
+// A path fence cannot certify controller trust. Operators must pin/review its
+// complete code separately; proposed source is data/Git cwd, never the launcher.
+export async function assertSeparateTrainController(directory,
+  controllerDirectory = fileURLToPath(new URL('../../../', import.meta.url))) {
+  const [source, controller] = await Promise.all([realpath(directory), realpath(controllerDirectory)]);
+  if (inside(source, controller) || inside(controller, source)) fail('Privileged train landing requires a separately trusted controller checkout');
+}
 
 export function validateLandingProtection(protection, rules) {
   if (!protection || !Array.isArray(rules) || rules.length) fail('Unrecognized branch rules prevent automatic landing');
@@ -34,19 +44,24 @@ export function validateLandingProtection(protection, rules) {
 }
 
 export function createTrainLander({ command = spawnSync, directory = process.cwd(), commands,
-  machineWriter, appIdentityApi } = {}) {
+  machineWriter, appIdentityApi, policyObserverApi } = {}) {
   commands ??= createTrainCommands({ command, directory });
   const api = (endpoint, body) => {
     const args = ['api', endpoint];
     if (body) args.push('--method', 'PATCH', '--input', '-');
-    const result = command('gh', args, { cwd: directory, encoding: 'utf8', timeout: 60000,
-      maxBuffer: 2 * 1024 ** 2, ...(body ? { input: JSON.stringify(body) } : {}) });
+    let result;
+    try {
+      result = command('gh', args, { cwd: directory, encoding: 'utf8', timeout: 60000,
+        maxBuffer: 2 * 1024 ** 2, ...(body ? { input: JSON.stringify(body) } : {}) });
+    } catch { fail(body ? 'Landing mutation outcome unknown; inspect retained intent' : 'Landing observation failed'); }
     if (result.error || result.status !== 0) fail(body
       ? 'Landing mutation refused or ambiguous; inspect retained intent before any further action'
       : 'Landing observation failed');
-    return JSON.parse(result.stdout);
+    try { return JSON.parse(result.stdout); }
+    catch { fail(body ? 'Landing acknowledgement invalid; inspect retained intent' : 'Landing observation JSON invalid'); }
   };
   return async function land(manifestFile, runId, archives, evidenceDirectory) {
+    await assertSeparateTrainController(directory);
     if (!path.isAbsolute(evidenceDirectory)) fail('Absolute fresh landing evidence directory required');
     try { await lstat(evidenceDirectory); fail('Landing evidence exists; inspect previous intent instead of retrying'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -55,15 +70,14 @@ export function createTrainLander({ command = spawnSync, directory = process.cwd
     if (!positive(Number(runId)) || String(Number(runId)) !== String(runId)) fail('Invalid Integration run ID');
     const base = `repos/${manifest.repository}`;
     const inspect = () => {
-      const protection = api(`${base}/branches/dev/protection`);
+      const { identity: writer, protection } = observeMachineWriterPolicy({ config: machineWriter, repository: manifest.repository,
+        api, appApi: appIdentityApi, policyApi: policyObserverApi });
       // Validate the classic proof gate separately; the observer below admits
       // exactly the one recognized effective update rule, never arbitrary rules.
       validateLandingProtection(protection, []);
       for (const key of ['allow_force_pushes', 'allow_deletions']) {
         if (protection[key]?.enabled !== false) fail(`Machine landing requires disabled ${key}`);
       }
-      const writer = observeMachineWriterPolicy({ config: machineWriter, repository: manifest.repository,
-        api, appApi: appIdentityApi });
       const run = api(`${base}/actions/runs/${runId}`);
       if (run.id !== Number(runId) || !positive(run.run_attempt) || !positive(run.check_suite_id)
           || run.path !== '.github/workflows/integration.yml' || run.event !== 'workflow_dispatch'

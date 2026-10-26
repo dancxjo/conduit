@@ -52,8 +52,12 @@ contain the repository owner or a compromised App custodian.
 The reviewable [App manifest](../../tools/ci/pipeline/train-app-manifest.json)
 requests contents:write for train refs, actions:write for dispatch, checks:read,
 pull_requests:read, metadata:read and administration:read for observation.
-Administration write, check/status write, workflow write and other grants are
-absent. The App is private, requests no user OAuth grant, subscribes to no
+It also requests workflows:write, because exact proved train trees can change
+workflow files: the [ref update API](https://docs.github.com/en/rest/git/refs#update-a-reference)
+documents that permission alongside contents:write for those updates. This is
+authority to land the exact authenticated tree, not permission for PR code to
+use credentials. Administration write, check/status write and unrelated grants
+are absent. The App is private, requests no user OAuth grant, subscribes to no
 events, and disables webhook delivery. The inactive hook URL names the
 repository, not a deployed webhook service. If webhooks become necessary, they
 require their own reviewed service/secret contract before activation.
@@ -67,6 +71,9 @@ change neither generates nor stores them.
 Copy [the disabled identity example](../../tools/ci/pipeline/train-machine-writer.example.json)
 to an absolute external file. Fill repository ID, actual App ID/slug, selected
 installation ID and actual ruleset ID from separately authenticated observations.
+Pin the personal repository owner's actual login and numeric user ID for the
+separate trusted policy observer; an arbitrary administrator or role is not
+accepted by this narrow contract.
 The fixture identities in tests are invented and must never be used for setup.
 GitHub Actions app15368, a connector's unexplained installation ID, a bot
 username and a human PAT are not substitutes for this dedicated App identity.
@@ -75,7 +82,7 @@ installation have been reviewed and read back exactly.
 
 ## Authentication and supported landing
 
-The trusted controller supplies two independent existing credentials:
+The trusted controller supplies three independent existing credentials:
 
 - `GH_TOKEN`: a short-lived installation token restricted to the selected
   repository and the reviewed permissions; the installation-only repositories
@@ -83,6 +90,13 @@ The trusted controller supplies two independent existing credentials:
 - A separately named environment variable containing a short-lived App JWT:
   it is used only for `GET /app` and `GET /app/installations/{id}`. App JWTs and
   installation tokens are distinct; no minting is implemented here.
+- A different named environment variable containing the trusted policy observer
+  credential. Its `GET /user` response must match the pinned personal repository
+  owner login and numeric ID. It must have visibility of the complete ruleset
+  bypass list. Its client can only GET that identity, the exact configured
+  ruleset, dev protection, dev branch rules and the exact
+  `CONDUIT_PR_ADMISSION_TIER` repository variable. It cannot mutate policy or
+  refs, enumerate other variables or substitute for the installation token.
 
 [App identity endpoints](https://docs.github.com/en/rest/apps/apps#get-the-authenticated-app)
 require App JWT authentication. [Installation repositories](https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation)
@@ -91,36 +105,71 @@ these channels. Classic protection observation requires Administration:read,
 which ordinary workflow `GITHUB_TOKEN` permissions do not offer. Never pass an
 administrative or App private credential into PR-authored scripts.
 
-After the separate setup and activation, the supported entrance is:
+GitHub [ruleset observation](https://docs.github.com/en/rest/repos/rules#get-a-repository-ruleset)
+can omit `bypass_actors` unless the requesting actor has write access to the
+ruleset. Administration:read on the App is not treated as a guarantee of full
+bypass visibility, and is never escalated to write. The separately supplied
+owner observer must obtain the complete list; an omitted list refuses.
+Ordinary branch-rule enumeration reports active rules independently of their
+source and excludes evaluate/disabled rulesets, so the specific ruleset's
+conditions/enforcement are checked as well.
+
+The installation token independently reads the configured repository ruleset
+and must receive the documented `current_user_can_bypass: "always"` value.
+That request-specific field is a snapshot of the mutation token's effective
+bypass, checked against the owner-observed sole-App policy. Missing, never,
+PR-only or exempt values refuse. It is not inferred from the JWT, a role name,
+or a public App identity. Live acceptance must capture these actual responses.
+
+After setup and activation, run the privileged entrance from the clean proposed
+source working directory, executing only a separately pinned trusted controller:
 
 ```sh
-cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing /absolute/reviewed-machine-policy.json CONDUIT_TRAIN_APP_JWT
+node /absolute/trusted-controller/tools/ci/pipeline/cli.mjs train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing /absolute/reviewed-machine-policy.json CONDUIT_TRAIN_APP_JWT CONDUIT_TRAIN_POLICY_OBSERVER
 ```
 
-The final argument is a variable name, never the JWT value. The external JSON
+The final two arguments are distinct variable names, never credential values;
+neither may be `GH_TOKEN` or `GITHUB_TOKEN`. The external JSON
 contains public reviewed identities, never credentials. The command does not
 register/install an App, mint tokens or edit protection/rulesets. Missing
 identities, channels, permissions or live rules refuse. App/installation identity
-and both server gates are observed before and after product restoration. Their
+and observer identities and both server gates are observed before and after product restoration. Their
 public identities are retained in the landing intent and result. A server
 rejection or ambiguous write remains terminal, with no forced update, human
 fallback or mutation retry.
 
-The identity observations do not cryptographically pair an arbitrary supplied
-installation token with the JWT before a write: the installation-only API
-rejects human tokens, and the independent server update rule ultimately permits
-only the configured App. A token from another installed App must be denied by
-that server gate. Keep token issuance in the trusted App controller; live
-acceptance must include wrong-token refusal and actual correct-App landing.
+The command refuses controller and proposed-source directories that coincide
+or contain each other, including through symlinks. That path fence does not
+establish trust: the operator must separately review and pin the complete
+controller tree and its runtime before supplying credentials. Source assertions
+check Git/data identity only. Never invoke proposed PR Cargo/xtask scripts or its
+copy of the CLI with these credentials. Module imports resolve from the trusted
+controller while data/Git operations use the proposed source working directory.
+An issuer/session controller and its authenticated trust handoff are still
+separate setup work; this change does not provide them.
+
+The installation-only repositories API rejects human tokens. The independent
+server update gate is the final actor enforcement in addition to the observed
+request-specific bypass. Keep token issuance in the trusted App controller;
+live acceptance must include wrong-token refusal and actual correct-App landing.
 
 App-triggered pushes can emit the dev push Integration needed for adoption;
 ordinary `GITHUB_TOKEN` pushes suppress push-triggered runs. A manual dispatch
-is not equivalent to accepted dev push proof. If the minimal manifest cannot
-perform an actual supported ref update for a workflow-changing train, stop and
-review the exact required permission separately; do not add privileges or switch
-to a human token automatically.
+is not equivalent to accepted dev push proof. No identity channel can mint tokens,
+register the App, or switch to another credential automatically.
 
 ## Activation proof still required
+
+Compatibility remains intentionally fail-closed. GitHub's
+[official OpenAPI schema](https://github.com/github/rest-api-description/blob/main/descriptions/api.github.com/api.github.com.json)
+makes an update rule's `parameters` object optional, with
+`update_allows_fetch_and_merge` required if that object exists. This validator
+currently requires an explicit false value in both rule observations; a valid
+API response omitting parameters will refuse and needs a separately reviewed
+compatibility decision based on actual policy readback. The App response schema
+also does not require `slug`, although documented registered-App examples include
+it; this contract requires the reviewed slug rather than inferring identity.
+Fixture success does not establish those live response shapes.
 
 Bootstrap the trusted code through the old ordinary PR route while its existing
 checks remain intact. Capture old protection/rules and an explicit reviewed

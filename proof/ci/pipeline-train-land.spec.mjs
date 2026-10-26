@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, readFile, lstat } from 'node:fs/promises';
+import { mkdir, readFile, lstat, mkdtemp, rm, symlink } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { fixture } from './helpers/train-fixture.mjs';
-import { createTrainLander } from '../../tools/ci/pipeline/train-land.mjs';
+import { createTrainLander, assertSeparateTrainController } from '../../tools/ci/pipeline/train-land.mjs';
 import { machinePolicyFixture } from './helpers/train-machine-policy-fixture.mjs';
 
-async function setup(t, { configured = true, identity = true } = {}) {
+async function setup(t, { configured = true, identity = true, observer = true } = {}) {
   const f = await fixture(t);
   const run = { ...f.observation.run, run_attempt: 1, check_suite_id: 777 };
   const machine = machinePolicyFixture(f.manifest.repository);
@@ -39,7 +40,7 @@ async function setup(t, { configured = true, identity = true } = {}) {
       value = { ref: 'refs/heads/dev', object: { sha: f.source } };
     } else if (endpoint.endsWith('/branches/dev/protection')) value = protection;
     else if (endpoint.includes('/rules/branches/dev')) value = state.rules;
-    else if (endpoint.endsWith('/rulesets/404')) value = machine.ruleset;
+    else if (endpoint.endsWith('/rulesets/404')) value = machine.machineRuleset;
     else if (endpoint === 'installation/repositories?per_page=100') value = machine.repositories;
     else if (endpoint.includes('/workflows/integration.yml/runs?')) value = inventory;
     else if (endpoint.includes('/actions/runs/')) value = run;
@@ -51,8 +52,16 @@ async function setup(t, { configured = true, identity = true } = {}) {
     return { status: 0, stdout: JSON.stringify(value) };
   };
   const appIdentityApi = endpoint => endpoint === 'app' ? machine.app : machine.installation;
+  const policyObserverApi = endpoint => {
+    if (endpoint === 'user') return machine.observerUser;
+    if (endpoint.endsWith('/rulesets/404')) return machine.ruleset;
+    if (endpoint.endsWith('/branches/dev/protection')) return protection;
+    if (endpoint.endsWith('/rules/branches/dev?per_page=100')) return state.rules;
+    throw new Error(`Unexpected observer endpoint ${endpoint}`);
+  };
   const land = createTrainLander({ command, commands, directory: f.directory,
-    machineWriter: configured ? machine.config : undefined, appIdentityApi: identity ? appIdentityApi : undefined });
+    machineWriter: configured ? machine.config : undefined, appIdentityApi: identity ? appIdentityApi : undefined,
+    policyObserverApi: observer ? policyObserverApi : undefined });
   return { ...f, run, protection, check, inventory, state, evidence, machine,
     land: () => land('manifest.json', run.id, 'archives', evidence) };
 }
@@ -67,7 +76,7 @@ test('lands exactly authenticated source through one non-forced protected ref up
   assert.equal(intent.machineWriter.rulesetId, f.machine.config.rulesetId);
   await assert.rejects(f.land(), /previous intent/); assert.equal(f.state.mutations, 1);
 });
-for (const options of [{ configured: false }, { identity: false }]) test(`refuses missing machine setup ${JSON.stringify(options)}`, async t => {
+for (const options of [{ configured: false }, { identity: false }, { observer: false }]) test(`refuses missing machine setup ${JSON.stringify(options)}`, async t => {
   const f = await setup(t, options);
   await assert.rejects(f.land(), /Machine writer policy/);
   assert.equal(f.state.mutations, 0); assert.equal(f.state.restores, 0);
@@ -90,6 +99,9 @@ for (const [name, mutate] of [
   ['unknown administrator enforcement', f => { delete f.protection.enforce_admins; }],
   ['disabled machine activation', f => { f.machine.config.enabled = false; }],
   ['stale machine identity', f => { f.machine.app.id++; }],
+  ['wrong observer identity', f => { f.machine.observerUser.id++; }],
+  ['hidden bypass list', f => { delete f.machine.ruleset.bypass_actors; }],
+  ['unproven mutation token authority', f => { f.machine.machineRuleset.current_user_can_bypass = 'never'; }],
   ['machine proof bypass', f => { f.machine.ruleset.rules.push({ type: 'required_status_checks' }); }],
   ['force push permission', f => { f.protection.allow_force_pushes.enabled = true; }],
   ['branch deletion permission', f => { f.protection.allow_deletions.enabled = true; }],
@@ -120,4 +132,16 @@ test('refuses writer policy changes during restoration before writing an intent'
   await assert.rejects(f.land(), /exact active dev-only update ruleset differs/);
   assert.equal(f.state.mutations, 0);
   await assert.rejects(lstat(path.join(f.evidence, 'landing-intent.json')), { code: 'ENOENT' });
+});
+
+test('privileged controller and proposed source must be disjoint even through symlinks', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'separate-controller-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const controller = path.join(root, 'controller'), source = path.join(root, 'source');
+  await mkdir(controller); await mkdir(source); await mkdir(path.join(controller, 'nested'));
+  await assertSeparateTrainController(source, controller);
+  await assert.rejects(assertSeparateTrainController(controller, controller), /separately trusted/);
+  await assert.rejects(assertSeparateTrainController(path.join(controller, 'nested'), controller), /separately trusted/);
+  const alias = path.join(root, 'alias'); await symlink(controller, alias);
+  await assert.rejects(assertSeparateTrainController(alias, controller), /separately trusted/);
 });

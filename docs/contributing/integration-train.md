@@ -150,7 +150,7 @@ Land the exact proven source with authenticated archives and a fresh evidence
 directory:
 
 ```sh
-cargo xtask ci pipeline train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing /absolute/reviewed-machine-policy.json CONDUIT_TRAIN_APP_JWT
+node /absolute/trusted-controller/tools/ci/pipeline/cli.mjs train-land /absolute/train.json INTEGRATION_RUN_ID /absolute/archives /absolute/new-landing /absolute/reviewed-machine-policy.json CONDUIT_TRAIN_APP_JWT CONDUIT_TRAIN_POLICY_OBSERVER
 ```
 
 Landing restores and validates all products, refreshes source/PR admission,
@@ -166,8 +166,11 @@ a graph guard, not a strict compare-and-swap to the captured base.
 Landing additionally requires the [dedicated machine writer contract](train-machine-writer.md):
 an active exact-dev repository update ruleset whose sole bypass actor is a
 reviewed dedicated Integration App, independent of the classic proof gate.
-The external configuration and separate App JWT/installation credential channels
+The external configuration and separate App JWT/installation/trusted observer credential channels
 must be supplied explicitly. Missing real identities keep activation off.
+Run the privileged command with the proposed source as its working directory,
+using a separately pinned trusted controller checkout. The proposed source must
+never provide the executed controller or build its tooling with these credentials.
 
 There is no forced update, protection override, PR-merge fallback or automatic
 mutation retry. Existing evidence and ambiguous outcomes require inspection.

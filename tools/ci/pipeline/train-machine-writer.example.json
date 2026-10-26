@@ -7,5 +7,7 @@
   "appSlug": null,
   "installationId": null,
   "rulesetId": null,
+  "observerLogin": "dancxjo",
+  "observerId": null,
   "rulesetName": "conduit-dev-machine-writer"
 }

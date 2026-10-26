@@ -98,12 +98,13 @@ try {
       break;
     }
     case 'train-land': {
-      if (args.length !== 6) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory> <external-machine-policy> <app-jwt-environment-reference>');
+      if (args.length !== 7) throw new Error('usage: train-land <manifest-file> <integration-run-id> <archive-directory> <new-evidence-directory> <external-machine-policy> <app-jwt-environment-reference> <trusted-policy-observer-environment-reference>');
       const { createTrainLander } = await import('./train-land.mjs');
-      const { readMachineWriterConfiguration, createAppIdentityApi } = await import('./train-machine-policy.mjs');
+      const { readMachineWriterConfiguration, createTrainCredentialApis } = await import('./train-machine-policy.mjs');
       const machineWriter = await readMachineWriterConfiguration(resolve(args[4]));
-      const appIdentityApi = createAppIdentityApi(args[5]);
-      const receipt = await createTrainLander({ machineWriter, appIdentityApi })(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
+      const { appIdentityApi, policyObserverApi } = createTrainCredentialApis({ machineWriter,
+        appJwtEnvironmentReference: args[5], policyObserverEnvironmentReference: args[6] });
+      const receipt = await createTrainLander({ machineWriter, appIdentityApi, policyObserverApi })(resolve(args[0]), args[1], resolve(args[2]), resolve(args[3]));
       output('train-landed-source', receipt.landedDev);
       output('train-landed-tree', receipt.tree);
       break;
