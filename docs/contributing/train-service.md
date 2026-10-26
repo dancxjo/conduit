@@ -59,8 +59,11 @@ or waiting selection is throttled for at least five minutes.
 
 A systemd service may use `Type=oneshot`, `UMask=0077`, a pinned trusted working
 directory, and the supported `cargo +stable xtask ci pipeline train-service`
-entrance. Its timer should use `OnUnitInactiveSec=5min`; do not add a shell polling/restart loop or automatic retry on
-failure. Supply only external configuration/key paths and the observer variable
+entrance. Inert [service](../examples/train-service.service) and
+[timer](../examples/train-service.timer) examples supply this repeated-batch
+entry; replace their absolute placeholders with reviewed deployment paths.
+Its timer should use `OnUnitInactiveSec=5min`; do not add a shell polling/restart
+loop or automatic retry on failure. Supply only external configuration/key paths and the observer variable
 **name**, never credentials in arguments. These are deployment examples, not
 instructions to activate machine policy or cheap admission.
 
