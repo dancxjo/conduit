@@ -89,11 +89,13 @@ impl<'a> Json<'a> {
         }
         Ok(())
     }
+    #[inline(never)]
     fn string(&mut self, value: &str) -> Result<(), CodecError> {
         self.encoder.write(b"\"")?;
         escape(self.encoder, value)?;
         self.encoder.write(b"\"")
     }
+    #[inline(never)]
     fn compound(
         self,
         opening: &[u8],
@@ -113,6 +115,7 @@ impl<'a> Json<'a> {
         })
     }
 }
+#[inline(never)]
 fn escape(encoder: &mut dyn Sink, value: &str) -> Result<(), CodecError> {
     let bytes = value.as_bytes();
     let mut start = 0;
@@ -156,6 +159,7 @@ struct Compound<'a> {
     variant: bool,
 }
 impl Compound<'_> {
+    #[inline(never)]
     fn comma(&mut self) -> Result<(), CodecError> {
         if self.first {
             self.first = false;
@@ -171,23 +175,28 @@ impl Compound<'_> {
             key: false,
         })
     }
-    fn field<T: ?Sized + Serialize>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<(), CodecError> {
+    #[inline(never)]
+    fn field_prefix(&mut self, key: &'static str) -> Result<(), CodecError> {
         self.comma()?;
         Json {
             encoder: self.encoder,
             key: true,
         }
         .string(key)?;
-        self.encoder.write(b":")?;
+        self.encoder.write(b":")
+    }
+    fn field<T: ?Sized + Serialize>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<(), CodecError> {
+        self.field_prefix(key)?;
         value.serialize(Json {
             encoder: self.encoder,
             key: false,
         })
     }
+    #[inline(never)]
     fn finish(self) -> Result<(), CodecError> {
         if self.pending_key {
             return Err(CodecError::Invalid);
