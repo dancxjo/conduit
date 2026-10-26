@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { apt, command } from './targets/common.mjs';
 import { COMMON_APT, cacheRoot } from './acquisition/tools.mjs';
 import { recordOperation, recordTool } from './acquisition/metrics.mjs';
+import { setupHostedSandbox } from './targets/hosted-sandbox.mjs';
 
 export const ACTIONLINT = Object.freeze({
   version: '1.7.7',
@@ -14,6 +15,10 @@ export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 export async function setupCi() {
   const started = performance.now();
   if (process.platform !== 'linux' || process.arch !== 'x64') throw new Error('CI validation tools require Linux x64');
+  // Preflight executes the actual compiler-cache wrapper/refusal corpus too.
+  // Provision its namespace boundary here, not only in the hosted product job.
+  apt('bubblewrap', 'apparmor-profiles');
+  setupHostedSandbox();
   const directory = join(cacheRoot(), 'actionlint', ACTIONLINT.version);
   const archive = join(directory, ACTIONLINT.archive);
   mkdirSync(directory, { recursive: true });

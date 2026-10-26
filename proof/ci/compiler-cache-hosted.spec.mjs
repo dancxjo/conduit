@@ -30,7 +30,12 @@ test('actual sandbox wrapper bypasses hidden macro consumers, caches plain crate
     '--ro-bind','/usr/bin/dash','/bin/sh','--ro-bind','/lib64/ld-linux-x86-64.so.2','/lib64/ld-linux-x86-64.so.2',
     '--ro-bind','/usr/lib/x86_64-linux-gnu/libc.so.6','/lib/x86_64-linux-gnu/libc.so.6',
     '--bind',path.join(root,'task'),'/task','--ro-bind',path.join(root,'closure'),'/closure','--ro-bind',path.join(root,'engine'),'/engine'];
-  const run=(name,compilerArgs)=>spawnSync('/usr/bin/bwrap',[...args,'--setenv','CARGO_PKG_NAME',name,'/bin/sh','/task/wrapper','/task/compiler',...compilerArgs],{encoding:'utf8'});
+  const run=(name,compilerArgs)=>{
+    const result=spawnSync('/usr/bin/bwrap',[...args,'--setenv','CARGO_PKG_NAME',name,'/bin/sh','/task/wrapper','/task/compiler',...compilerArgs],{encoding:'utf8',timeout:15000});
+    assert.ifError(result.error);
+    assert.equal(result.signal,null,`sandbox terminated by ${result.signal}: ${result.stderr}`);
+    return result;
+  };
   for(const name of ['consumer','derive','reexport']){
     const result=run(name,['--extern','ordinary=/task/ordinary.rlib']);assert.equal(result.status,0,result.stderr);assert.equal(result.stdout,'direct\n');
   }
