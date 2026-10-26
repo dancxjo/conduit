@@ -1,46 +1,79 @@
-name: Measure tool acquisition
+name: Qualify single-corpus cheap preflight
 on:
   workflow_dispatch:
     inputs:
       targets:
-        description: 'all, or comma-separated pipeline target IDs (also preflight,unit)'
+        description: 'Qualification only; no Candidate or Integration acceptance'
         type: string
-        default: 'unit,preflight,conduitos-ia32,browser,rp2040,avr,esp32-c3,esp32-s3'
+        default: preflight
         required: true
 permissions:
   contents: read
-env:
-  SOURCE_SHA: ${{ github.sha }}
-  RUSTUP_TOOLCHAIN: 1.98.1
-  CARGO_INCREMENTAL: 0
-  CARGO_PROFILE_DEV_DEBUG: 0
-  CARGO_PROFILE_TEST_DEBUG: 0
+concurrency:
+  group: cheap-shape-qualification-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  select:
+  proof:
+    # Repository configuration is deliberately unset until independent machine
+    # writer and full combined-proof gates have been verified live.
+    if: ${{ false }}
+    uses: ./.github/workflows/ci.yml
+    with:
+      exhaustive: false
+      # Prove the exact merge preview, including current dev CI tooling.
+      sha: ${{ github.sha }}
+      base: 472983c309cbcfe57a563507c669ac8c36d9a14d
+  cheap:
+    name: cheap-input/v1
+    if: ${{ true }}
     runs-on: ubuntu-24.04
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ env.SOURCE_SHA }}
+          ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt,clippy
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
-      - id: matrix
+      - name: Resolve qualification-only base
+        id: base
         env:
-          SELECTION: ${{ inputs.targets }}
-        run: echo "matrix=$(node tools/ci/pipeline/acquisition/compare.mjs matrix "$SELECTION")" >> "$GITHUB_OUTPUT"
-  measure:
-    needs: [select]
-    strategy:
-      fail-fast: false
-      # Finish each cold/warm pair before admitting a new wave of cache keys.
-      max-parallel: 2
-      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
-    uses: ./.github/workflows/acquisition-pair.yml
-    with:
-      target: ${{ matrix.id }}
-      runner: ${{ matrix.runner }}
-      source_sha: ${{ github.sha }}
+          SHA: ${{ github.sha }}
+          BASE: 472983c309cbcfe57a563507c669ac8c36d9a14d
+        run: |
+          test "$(git show -s --format=%P "$SHA" | wc -w)" -eq 1
+          proof_base=$(git rev-parse "$SHA^1")
+          test "$BASE" = "$proof_base"
+          printf 'sha=%s\n' "$proof_base" >> "$GITHUB_OUTPUT"
+      - name: Install pinned CI validation tools
+        run: node tools/ci/pipeline/cli.mjs setup-ci
+      - name: Run actual formatting, repository, CI and refusal corpus
+        env:
+          BASE: ${{ steps.base.outputs.sha }}
+          CONDUIT_CHECKOUT_SHA: ${{ github.sha }}
+        # Includes actual Rust launcher passing/failing probes and standalone lock
+        # checks. Only duplicate package/unit/product admission is deferred.
+        run: node tools/ci/pipeline/cli.mjs preflight "$BASE"
+  candidate:
+    if: ${{ always() && !cancelled() }}
+    needs: [proof, cheap]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require successful candidate proof
+        env:
+          RESULT: ${{ needs.proof.result }}
+          CHEAP: ${{ needs.cheap.result }}
+          TIER: cheap-input-v1
+        run: |
+          if test "$TIER" = cheap-input-v1; then
+            test "$CHEAP" = success
+            test "$RESULT" = skipped
+          else
+            test "$RESULT" = success
+            test "$CHEAP" = skipped
+          fi
