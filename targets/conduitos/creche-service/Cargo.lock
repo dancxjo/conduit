@@ -185,16 +185,26 @@ dependencies = [
 name = "conduitos-creche-core"
 version = "0.1.0"
 dependencies = [
- "ciborium",
  "conduit-birth-plot",
  "conduit-body",
  "conduit-core",
  "conduit-face",
  "conduit-home-model",
  "conduit-human",
+ "conduitos-creche-interaction-codec",
  "serde",
  "serde-json-core",
  "serde_json",
+]
+
+[[package]]
+name = "conduitos-creche-interaction-codec"
+version = "0.1.0"
+dependencies = [
+ "ciborium",
+ "conduit-birth-plot",
+ "conduit-face",
+ "serde",
 ]
 
 [[package]]

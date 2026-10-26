@@ -2939,9 +2939,20 @@ dependencies = [
  "conduit-human",
  "conduit-planner",
  "conduit-plot",
+ "conduitos-creche-interaction-codec",
  "serde",
  "serde-json-core",
  "serde_json",
+]
+
+[[package]]
+name = "conduitos-creche-interaction-codec"
+version = "0.1.0"
+dependencies = [
+ "ciborium",
+ "conduit-birth-plot",
+ "conduit-face",
+ "serde",
 ]
 
 [[package]]

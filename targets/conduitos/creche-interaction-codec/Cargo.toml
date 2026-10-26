@@ -1,0 +1,11 @@
+[package]
+name = "conduitos-creche-interaction-codec"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit-birth-plot = { path = "../../../plots/birth" }
+conduit-face = { path = "../../../semantics/face" }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+ciborium = { version = "0.2.2", default-features = false }

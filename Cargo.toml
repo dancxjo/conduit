@@ -88,6 +88,7 @@ members = [
 	"targets/conduitos",
 	"targets/conduitos/compositor-core",
 	"targets/conduitos/creche-core",
+	"targets/conduitos/creche-interaction-codec",
 	"targets/conduitos/runtime-core",
 	"targets/conduitos/mask-core",
 	"targets/conduitos/tls-core",

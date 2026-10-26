@@ -3,7 +3,7 @@ mod codec;
 pub use codec::{decode_request, decode_response, encode_request, encode_response};
 pub const EXCHANGE_BYTES: usize = 4096;
 pub const TRANSFER_BYTES: u32 = 16 * 1024;
-pub const MAX_BLOB_BYTES: u32 = 128 * 1024;
+pub const MAX_BLOB_BYTES: u32 = conduitos_creche_interaction_codec::MAX_BLOB_BYTES;
 pub const HEADER_BYTES: usize = 32;
 pub const VERSION: u16 = 5;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

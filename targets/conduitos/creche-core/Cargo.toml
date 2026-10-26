@@ -13,8 +13,10 @@ serde_json = { version = "1", default-features = false, features = ["alloc"] }
 serde-json-core = {version="0.6",default-features=false}
 conduit-human = { path = "../../../semantics/human" }
 conduit-home-model = { path = "../../../semantics/home" }
-ciborium = { version = "0.2.2", default-features = false }
+conduitos-creche-interaction-codec = { path = "../creche-interaction-codec" }
+
 
 [dev-dependencies]
+ciborium = { version = "0.2.2", default-features = false }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }

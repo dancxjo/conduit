@@ -2,7 +2,7 @@
 use super::wire::{MAX_BLOB_BYTES, Refusal};
 use alloc::{string::String, vec::Vec};
 use conduit_birth_plot::{BirthFaceBasis, BirthPlotChoice};
-use conduit_face::{FaceInteraction, MaskShow, SemanticApplicationView};
+use conduit_face::SemanticApplicationView;
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -18,14 +18,7 @@ pub struct FaceRequest {
     pub revision: u32,
     pub basis: BirthFaceBasis,
 }
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct InteractionRequest {
-    pub revision: u32,
-    pub basis: BirthFaceBasis,
-    pub show: MaskShow,
-    pub input: FaceInteraction,
-}
+pub use conduitos_creche_interaction_codec::InteractionRequest;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DraftSnapshot {
@@ -139,31 +132,17 @@ pub fn scene_request_digest(bytes: &[u8]) -> [u8; 32] {
 /// Private broker-to-draft transfer, preserving the complete checked Mask Plan.
 /// Binary serde avoids the public JSON Mask Plan's compression/inflate/JSON
 /// roundtrip inside a single finite protected entry. Public JSON is unchanged.
-const INTERACTION_ENCODING: &[u8] = b"CDCI\x01";
 pub fn encode_interaction(value: &InteractionRequest) -> Result<Vec<u8>, Refusal> {
-    let mut bytes = Vec::new();
-    bytes
-        .try_reserve_exact(MAX_BLOB_BYTES as usize)
-        .map_err(|_| Refusal::Capacity)?;
-    bytes.resize(MAX_BLOB_BYTES as usize, 0);
-    bytes[..INTERACTION_ENCODING.len()].copy_from_slice(INTERACTION_ENCODING);
-    let mut remaining = &mut bytes[INTERACTION_ENCODING.len()..];
-    ciborium::ser::into_writer(value, &mut remaining).map_err(|_| Refusal::Capacity)?;
-    let length = MAX_BLOB_BYTES as usize - remaining.len();
-    bytes.truncate(length);
-    Ok(bytes)
+    conduitos_creche_interaction_codec::encode(value).map_err(codec_error)
 }
 pub fn decode_interaction(bytes: &[u8]) -> Result<InteractionRequest, Refusal> {
-    if bytes.is_empty() || bytes.len() > MAX_BLOB_BYTES as usize {
-        return Err(Refusal::Bounds);
+    conduitos_creche_interaction_codec::decode(bytes).map_err(codec_error)
+}
+fn codec_error(error: conduitos_creche_interaction_codec::Error) -> Refusal {
+    use conduitos_creche_interaction_codec::Error;
+    match error {
+        Error::Bounds => Refusal::Bounds,
+        Error::Capacity => Refusal::Capacity,
+        Error::Malformed => Refusal::Malformed,
     }
-    let mut remaining = bytes
-        .strip_prefix(INTERACTION_ENCODING)
-        .ok_or(Refusal::Malformed)?;
-    let value = ciborium::de::from_reader_with_recursion_limit(&mut remaining, 64)
-        .map_err(|_| Refusal::Malformed)?;
-    if !remaining.is_empty() {
-        return Err(Refusal::Malformed);
-    }
-    Ok(value)
 }
