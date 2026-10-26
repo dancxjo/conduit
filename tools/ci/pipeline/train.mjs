@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { verifyBundle } from './receipts.mjs';
+import { requireCheapTrainPolicy } from './train-cheap-policy.mjs';
 import { TARGETS } from './targets.mjs';
 import { candidateAdmission, canonicalCandidateAdmission } from './train-input-admission.mjs';
 
@@ -45,7 +46,12 @@ export function selectTrainInputs({ repository, base, selections }) {
   require(Array.isArray(selections), 'Missing train selection snapshots');
   const inputs = selections.map(snapshot => {
     const identity = { number: snapshot.pr?.number, head: snapshot.pr?.head?.sha };
-    return { ...identity, admission: requireReady(identity, snapshot.pr, snapshot.candidateRun, snapshot.candidateJobs, repository) };
+    const admission = requireReady(identity, snapshot.pr, snapshot.candidateRun, snapshot.candidateJobs, repository);
+    if (admission.tier === 'cheap-input-v1') {
+      const grant = typeof snapshot.cheapPolicy === 'function' ? snapshot.cheapPolicy() : snapshot.cheapPolicy;
+      requireCheapTrainPolicy(grant, repository);
+    }
+    return { ...identity, admission };
   });
   const selection = identities(repository, base, inputs);
   const selected = { ...selection, branch: `train/${digest(selection)}` };

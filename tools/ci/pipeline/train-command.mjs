@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { lstat, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { captureTrain, selectTrainInputs, verifyTrainManifest, verifyTrainProducts } from './train.mjs';
+import { candidateAdmission } from './train-input-admission.mjs';
 import { assertSourceCheckout } from './source.mjs';
 
 const fail = message => { throw new Error(message); };
@@ -13,7 +14,7 @@ const number = value => {
   return Number(value);
 };
 
-export function createTrainCommands({ command = spawnSync, directory = process.cwd(), artifactCommand } = {}) {
+export function createTrainCommands({ command = spawnSync, directory = process.cwd(), artifactCommand, observeCheapPolicy } = {}) {
   const invoke = (program, args) => {
     const result = command(program, args, { cwd: directory, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024,
       ...(program === 'gh' ? { timeout: 60000 } : {}) });
@@ -57,7 +58,11 @@ export function createTrainCommands({ command = spawnSync, directory = process.c
         .sort((a, b) => number(b.id) - number(a.id))[0];
       if (!finalLatest || finalLatest.id !== after.id || finalLatest.run_attempt !== after.run_attempt ||
           finalLatest.status !== after.status || finalLatest.conclusion !== after.conclusion) fail('Latest Candidate changed while observing jobs');
-      return { pr, candidateRun: after, candidateJobs: jobs };
+      const cheap = jobs.jobs.some(job => job.name === 'cheap-input/v1' && job.conclusion !== 'skipped');
+      if (cheap) candidateAdmission(after, jobs); // Refuse bad jobs before external policy observation.
+      if (cheap && typeof observeCheapPolicy !== 'function') fail('Fresh external cheap policy observer required');
+      return { pr, candidateRun: after, candidateJobs: jobs,
+        ...(cheap ? { cheapPolicy: () => observeCheapPolicy({ repository }) } : {}) };
     });
   };
   const loadManifest = async filename => {
