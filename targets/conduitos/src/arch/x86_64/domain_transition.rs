@@ -228,6 +228,7 @@ extern "C" fn conduitos_ordinary_timer_handler(user: u64, budget: u64, saved: *c
     let sampled = unsafe { super::irq_envelope::before_handler(saved, user, budget) };
     #[cfg(feature = "ordinary-domain-proof")]
     super::super::domain_context_probe::observe_irq();
+    let rtc_before = domain_budget::user_interrupts().0;
     let disposition = if budget != 0 {
         u64::from(domain_budget::interrupt(
             user & 3 == 3 && ACTIVE.load(Ordering::Acquire),
@@ -240,6 +241,13 @@ extern "C" fn conduitos_ordinary_timer_handler(user: u64, budget: u64, saved: *c
         super::irq::conduitos_timer_irq_handler();
         0
     };
+    if budget != 0
+        && user & 3 == 3
+        && ACTIVE.load(Ordering::Acquire)
+        && domain_budget::user_interrupts().0 > rtc_before
+    {
+        unsafe { domain_budget::rip_samples::observe(saved) };
+    }
     if disposition != 0 && budget != 0 && user & 3 == 3 && ACTIVE.load(Ordering::Acquire) {
         unsafe { domain_budget::observe_fault_pc(saved) };
     }
