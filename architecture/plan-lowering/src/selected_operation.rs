@@ -5,6 +5,11 @@ use conduit_core::{
 };
 use conduit_kernel::{HostCallId, NodeId, PortId};
 mod binding;
+mod direct;
+pub use direct::{
+    bind_selected_direct_configured_operation, bind_selected_direct_operation,
+    bind_selected_direct_operation_for_subject, SelectedDirectOperationPlan,
+};
 mod verified;
 pub use verified::{
     bind_selected_verified_configured_fore_operation, bind_selected_verified_configured_operation,
@@ -91,9 +96,19 @@ fn check_scope(
     claim: &BaseOperationClaim,
     selection: &SelectedOperationPlan<'_>,
 ) -> Result<(), SelectedCallRefusal> {
-    let fragment = selection.fragment;
-    let lowered = selection.lowered;
-    let active = selection.active;
+    check_plan_scope(claim, selection.fragment, selection.active)?;
+    if selection.lowered.identity.plan_id != selection.fragment.plan_id
+        || selection.lowered.identity.fragment_id != selection.fragment.fragment_id
+    {
+        return Err(SelectedCallRefusal::WrongBinding);
+    }
+    Ok(())
+}
+fn check_plan_scope(
+    claim: &BaseOperationClaim,
+    fragment: &PlanFragment,
+    active: &ActivePlayIdentity,
+) -> Result<(), SelectedCallRefusal> {
     if fragment.plan_id != claim.plan_id
         || fragment.host_id != claim.host_id
         || fragment.boot_id != claim.boot_id
@@ -107,8 +122,6 @@ fn check_scope(
             &claim.boot_id,
             active.play_sequence,
         ) != *active
-        || lowered.identity.plan_id != fragment.plan_id
-        || lowered.identity.fragment_id != fragment.fragment_id
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }

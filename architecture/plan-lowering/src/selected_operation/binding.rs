@@ -15,6 +15,78 @@ pub(super) fn bind_fields(
         placement_id,
     } = selection;
     let expected = definition.kind;
+    let gear = checked_gear(
+        table,
+        claim,
+        &definition,
+        subject,
+        fragment,
+        placement_id,
+        configuration_matches,
+    )?;
+    let required = &gear.host_calls[0];
+    let mut nodes = lowered
+        .nodes
+        .iter()
+        .filter(|node| &node.placement_id == placement_id);
+    let node = nodes.next().ok_or(SelectedCallRefusal::WrongBinding)?;
+    if nodes.next().is_some()
+        || !lowered
+            .identity
+            .placements
+            .contains(&(node.node, placement_id.clone()))
+        || expected.inputs.len() > 1
+        || expected.outputs.len() > 1
+        || node.inputs.len() != expected.inputs.len()
+        || node.outputs.len() != expected.outputs.len()
+        || node
+            .inputs
+            .iter()
+            .zip(&expected.inputs)
+            .any(|(port, expected)| {
+                port.port != PortId(0) || port.value_kind != expected.value_kind
+            })
+        || node
+            .outputs
+            .iter()
+            .zip(&expected.outputs)
+            .any(|(port, expected)| {
+                port.port != PortId(0) || port.value_kind != expected.value_kind
+            })
+    {
+        return Err(SelectedCallRefusal::WrongBinding);
+    }
+    let mut calls = lowered
+        .host_calls
+        .iter()
+        .filter(|call| call.node == node.node);
+    let call = calls.next().ok_or(SelectedCallRefusal::WrongBinding)?;
+    if calls.next().is_some()
+        || call.call != HostCallId(0)
+        || call.binding.call != call.call
+        || call.contract_id != required.contract_id
+        || call.target_kind != required.target_kind
+        || call.maximum_in_flight != 1
+        || call.binding.maximum_input_bytes != definition.input_bytes
+        || call.binding.maximum_output_bytes != definition.output_bytes
+    {
+        return Err(SelectedCallRefusal::WrongBinding);
+    }
+    Ok(node.node)
+}
+
+/// Exact immutable contract, grant and current possession checks shared by rich
+/// lowering and the opaque direct projection. No provider or lease is moved.
+pub(super) fn checked_gear<'a>(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    definition: &SelectedOperationContract<'_>,
+    subject: &conduit_core::KindId,
+    fragment: &'a PlanFragment,
+    placement_id: &PlacementId,
+    configuration_matches: impl FnOnce(&conduit_core::PlannedGear) -> bool,
+) -> Result<&'a conduit_core::PlannedGear, SelectedCallRefusal> {
+    let expected = definition.kind;
     let mut matches = fragment
         .placements
         .iter()
@@ -76,52 +148,5 @@ pub(super) fn bind_fields(
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }
-    let mut nodes = lowered
-        .nodes
-        .iter()
-        .filter(|node| &node.placement_id == placement_id);
-    let node = nodes.next().ok_or(SelectedCallRefusal::WrongBinding)?;
-    if nodes.next().is_some()
-        || !lowered
-            .identity
-            .placements
-            .contains(&(node.node, placement_id.clone()))
-        || expected.inputs.len() > 1
-        || expected.outputs.len() > 1
-        || node.inputs.len() != expected.inputs.len()
-        || node.outputs.len() != expected.outputs.len()
-        || node
-            .inputs
-            .iter()
-            .zip(&expected.inputs)
-            .any(|(port, expected)| {
-                port.port != PortId(0) || port.value_kind != expected.value_kind
-            })
-        || node
-            .outputs
-            .iter()
-            .zip(&expected.outputs)
-            .any(|(port, expected)| {
-                port.port != PortId(0) || port.value_kind != expected.value_kind
-            })
-    {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    let mut calls = lowered
-        .host_calls
-        .iter()
-        .filter(|call| call.node == node.node);
-    let call = calls.next().ok_or(SelectedCallRefusal::WrongBinding)?;
-    if calls.next().is_some()
-        || call.call != HostCallId(0)
-        || call.binding.call != call.call
-        || call.contract_id != required.contract_id
-        || call.target_kind != required.target_kind
-        || call.maximum_in_flight != 1
-        || call.binding.maximum_input_bytes != definition.input_bytes
-        || call.binding.maximum_output_bytes != definition.output_bytes
-    {
-        return Err(SelectedCallRefusal::WrongBinding);
-    }
-    Ok(node.node)
+    Ok(gear)
 }

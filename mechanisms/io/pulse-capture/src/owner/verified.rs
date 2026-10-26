@@ -29,3 +29,48 @@ pub(crate) fn prepare_verified(
         codec: PreparedPulseCodec::prepare(contract).map_err(PulseCallRefusal::Canonical)?,
     })
 }
+
+pub(crate) fn prepare_direct<
+    const N: usize,
+    const C: usize,
+    const PORTS: usize,
+    const R: usize,
+    const T: usize,
+    const H: usize,
+>(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    attachment: PulseAttachment,
+    contract: &PulseReadContract,
+    selected: conduit_plan_lowering::selected_operation::SelectedDirectOperationPlan<
+        '_,
+        N,
+        C,
+        PORTS,
+        R,
+        T,
+        H,
+    >,
+) -> Result<PreparedAssignedPulse, PulseCallRefusal> {
+    check_possession(table, claim, attachment)?;
+    let node = conduit_plan_lowering::selected_operation::bind_selected_direct_operation(
+        table,
+        claim,
+        SelectedOperationContract {
+            kind: contract.kind(),
+            call: PULSE_READ_CALL,
+            input_bytes: PULSE_READ_MAXIMUM_BYTES,
+            output_bytes: PULSE_READ_MAXIMUM_BYTES,
+            resource_bytes: attachment.resource_bytes,
+        },
+        selected,
+    )
+    .map_err(|reason| match reason {
+        SelectedCallRefusal::WrongBinding => PulseCallRefusal::WrongBinding,
+        SelectedCallRefusal::Possession => PulseCallRefusal::Possession,
+    })?;
+    Ok(PreparedAssignedPulse {
+        node,
+        codec: PreparedPulseCodec::prepare(contract).map_err(PulseCallRefusal::Canonical)?,
+    })
+}

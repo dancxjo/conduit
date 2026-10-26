@@ -81,13 +81,17 @@ fn only_retained_native_slot_projects_its_exact_resource_and_zero_result_offer()
 }
 #[test]
 fn retained_slot_survives_binding_refusal_and_transfers_only_after_complete_preflight() {
-    retained_transfer(false);
+    retained_transfer(0);
 }
 #[test]
 fn verified_slot_survives_binding_refusal_and_transfers_only_after_complete_preflight() {
-    retained_transfer(true);
+    retained_transfer(1);
 }
-fn retained_transfer(verified: bool) {
+#[test]
+fn direct_slot_survives_binding_refusal_and_transfers_only_after_complete_preflight() {
+    retained_transfer(2);
+}
+fn retained_transfer(verified: u8) {
     let state = Rc::new(State::default());
     let mut slot = Some(ready(state.clone()));
     let (mut fragment, _, _, placement) = fixture::selected();
@@ -240,7 +244,7 @@ fn retained_transfer(verified: bool) {
 }
 
 fn bind_variant(
-    verified: bool,
+    verified: u8,
     slot: &mut Option<ReadyMonotonicWaitBase<Provider>>,
     table: BaseCapabilityTable,
     handle: BaseCapabilityHandle,
@@ -248,7 +252,7 @@ fn bind_variant(
     configuration: &[ConfigurationEntry],
     selection: SelectedOperationPlan<'_>,
 ) -> Result<MonotonicWaitHostCall<Provider>, WaitCallRefusal> {
-    if !verified {
+    if verified == 0 {
         return ReadyMonotonicWaitBase::bind_selected_retained(
             slot,
             table,
@@ -282,6 +286,21 @@ fn bind_variant(
         )
     })
     .unwrap();
+    if verified == 2 {
+        let tables=conduit_plan_lowering::local_tables::DirectLocalKernelTables::<1,0,1,1,0,1>::prepare(&plan,&fragment.fragment_id).unwrap();
+        return ReadyMonotonicWaitBase::bind_direct_retained(
+            slot,
+            table,
+            handle,
+            claim,
+            configuration,
+            conduit_plan_lowering::selected_operation::SelectedDirectOperationPlan {
+                tables: &tables,
+                active: selection.active,
+                placement_id: selection.placement_id,
+            },
+        );
+    }
     ReadyMonotonicWaitBase::bind_verified_retained(
         slot,
         table,

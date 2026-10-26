@@ -1,7 +1,8 @@
 //! Retained timer transfer from the ordinary Core-verified Plan scope.
 use super::*;
 use conduit_plan_lowering::selected_operation::{
-    bind_selected_verified_configured_operation, SelectedCallRefusal, SelectedOperationContract,
+    bind_selected_direct_configured_operation, bind_selected_verified_configured_operation,
+    SelectedCallRefusal, SelectedDirectOperationPlan, SelectedOperationContract,
     SelectedVerifiedOperationPlan,
 };
 impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
@@ -58,6 +59,79 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .as_ref()
             .ok_or(WaitCallRefusal::Possession)?
             .check_verified(&table, &claim, configuration, selected)?;
+        let owner = slot.take().expect("preflighted retained timer");
+        Ok(MonotonicWaitHostCall::from_bound(
+            table,
+            handle,
+            claim,
+            owner.attachment,
+            owner.provider,
+            node,
+        ))
+    }
+    /// Check all native identities, attachment bounds and independently retained
+    /// Source configuration without taking the timer or invoking a wait.
+    pub fn check_direct<
+        const N: usize,
+        const C: usize,
+        const PORTS: usize,
+        const R: usize,
+        const T: usize,
+        const H: usize,
+    >(
+        &self,
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedDirectOperationPlan<'_, N, C, PORTS, R, T, H>,
+    ) -> Result<conduit_kernel::NodeId, WaitCallRefusal> {
+        let (_, fragment) = selected.tables.preparation_scope();
+        let gear = fragment
+            .placements
+            .iter()
+            .find(|gear| &gear.placement_id == selected.placement_id)
+            .ok_or(WaitCallRefusal::WrongBinding)?;
+        self.check_native(claim, gear)?;
+        let kind = crate::owner::checked_contract(table, claim, self.attachment, configuration)?;
+        bind_selected_direct_configured_operation(
+            table,
+            claim,
+            SelectedOperationContract {
+                kind: &kind,
+                call: WAIT_HOST_CALL_CONTRACT,
+                input_bytes: PARAMETER_BYTES,
+                output_bytes: 0,
+                resource_bytes: self.attachment.resource_bytes,
+            },
+            configuration,
+            selected,
+        )
+        .map_err(|error| match error {
+            SelectedCallRefusal::WrongBinding => WaitCallRefusal::WrongBinding,
+            SelectedCallRefusal::Possession => WaitCallRefusal::Possession,
+        })
+    }
+    /// Refusals preserve the initialized slot. Authority must be locally issued;
+    /// expected configuration comes from independently checked resident Source.
+    pub fn bind_direct_retained<
+        const N: usize,
+        const C: usize,
+        const PORTS: usize,
+        const R: usize,
+        const T: usize,
+        const H: usize,
+    >(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedDirectOperationPlan<'_, N, C, PORTS, R, T, H>,
+    ) -> Result<MonotonicWaitHostCall<P>, WaitCallRefusal> {
+        let node = slot
+            .as_ref()
+            .ok_or(WaitCallRefusal::Possession)?
+            .check_direct(&table, &claim, configuration, selected)?;
         let owner = slot.take().expect("preflighted retained timer");
         Ok(MonotonicWaitHostCall::from_bound(
             table,
