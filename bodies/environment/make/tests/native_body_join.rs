@@ -1,5 +1,7 @@
 //! Actual Root custody/join producer on simulated flash; no hardware or public
 //! authenticated Line is established by this CPU proof.
+// Embedded profile flags do not exist in this CPU fixture crate.
+#![allow(unexpected_cfgs)]
 extern crate alloc;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_body_checkpoint.rs"]
 #[allow(dead_code)] // Compatibility byte-slice API is covered by native_restart tests.
@@ -210,7 +212,7 @@ fn usb_bootstrap_requires_pinned_owner_fresh_root_scope_and_consumable_nonce() {
     assert!(Gate::new(None).is_err());
     assert!(gate.challenge([0; 32], 100).is_err());
     gate.challenge([73; 32], 100).unwrap();
-    assert_eq!(gate.next_sequence(),Some(1));
+    assert_eq!(gate.next_sequence(), Some(1));
     let mut request = Request {
         schema: PROFILE.into(),
         host: "host/root".into(),

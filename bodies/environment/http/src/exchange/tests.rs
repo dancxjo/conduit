@@ -463,3 +463,54 @@ fn history_is_explicitly_installed_and_bootstrap_cannot_export_it() {
         Poll::Ready(Ok(ExchangeOutcome::ReadingUnavailable))
     ));
 }
+
+#[test]
+fn body_join_transport_is_explicit_bounded_and_serves_only_queued_public_material() {
+    use crate::body_join::{self, Action, Reply};
+    let mut unavailable = Socket::new(b"GET /body/join HTTP/1.1\r\n\r\n");
+    assert_eq!(
+        poll(exchange_with_reading(
+            &mut unavailable,
+            || 0,
+            None,
+            |_, _| None
+        )),
+        Poll::Ready(Ok(ExchangeOutcome::BodyJoin))
+    );
+    assert!(
+        core::str::from_utf8(&unavailable.output[..unavailable.written])
+            .unwrap()
+            .starts_with("HTTP/1.1 503")
+    );
+    body_join::install_provider(|action| match action {
+        Action::Submit(bytes) => {
+            assert_eq!(bytes, b"{}");
+            Reply::Queued(7)
+        }
+        Action::Result(7) => {
+            Reply::Receipt(alloc::vec::Vec::from(&b"{\"signed_fixture\":true}"[..]))
+        }
+        Action::Result(_) => Reply::Unknown,
+    })
+    .unwrap();
+    for (request,status,contains) in [
+        (&b"POST /body/join HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}"[..],"202 Accepted","body-join-queued@1"),
+        (&b"GET /body/join/result?id=7 HTTP/1.1\r\n\r\n"[..],"200 OK","signed_fixture"),
+        (&b"OPTIONS /body/join HTTP/1.1\r\nOrigin: null\r\nAccess-Control-Request-Method: POST\r\n\r\n"[..],"204 No Content","Access-Control-Allow-Headers: Content-Type"),
+        (&b"GET /body/join HTTP/1.1\r\n\r\n"[..],"200 OK","private USB invitation"),
+    ] {
+        let mut socket=Socket::new(request);
+        assert_eq!(poll(exchange_with_reading(&mut socket,||0,None,|_,_|None)),Poll::Ready(Ok(ExchangeOutcome::BodyJoin)));
+        let output=core::str::from_utf8(&socket.output[..socket.written]).unwrap();assert!(output.contains(status));assert!(output.contains(contains));assert!(!output.contains("invitation.secret"));
+    }
+    for request in [
+        &b"GET /body/join/result?id=07 HTTP/1.1\r\n\r\n"[..],
+        &b"POST /body/join HTTP/1.1\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\n{}"[..],
+    ] {
+        let mut socket = Socket::new(request);
+        assert!(matches!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Err(_))
+        ));
+    }
+}

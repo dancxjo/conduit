@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Join thermometer Body</title><style>body{font:17px system-ui;max-width:44rem;margin:3rem auto;padding:0 1rem;background:#f5f3ed;color:#22332c}input,button{font:inherit;padding:.7rem;margin:.4rem 0}input{width:95%}button{cursor:pointer}pre{white-space:pre-wrap}small{display:block}a{color:#245c46}</style><h1>Join thermometer Body</h1><p>This private local file holds one invitation. The thermometer keeps sampling while this browser joins.</p><label>Thermometer address<input id="endpoint" placeholder="http://conduit-climate-012345abcdef.local"></label><button id="join">Join this Body</button><pre id="status">Ready. Open this file locally; no invitation secret is sent in an HTTP address.</pre><div id="downloads"></div><small>Keep this file private; it retains your continuity secret. The recorder binding contains the signed admission receipt.</small>
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Join thermometer Body</title><style>body{font:17px system-ui;max-width:44rem;margin:3rem auto;padding:0 1rem;background:#f5f3ed;color:#22332c}input,button{font:inherit;padding:.7rem;margin:.4rem 0}input{width:95%}button{cursor:pointer}pre{white-space:pre-wrap}small{display:block}a{color:#245c46}</style><h1>Join thermometer Body</h1><p>This private local file holds one invitation. The thermometer keeps sampling while this browser joins.</p><label>Local joining proxy<input id="endpoint" placeholder="http://127.0.0.1:8787"></label><p>On this browser's machine, run <code id="proxy-command"></code>. The loopback proxy forwards signed proofs; this browser verifies the private Root pin.</p><button id="join">Join this Body</button><pre id="status">Ready. Open this file locally; no invitation secret is sent in an HTTP address.</pre><div id="downloads"></div><small>Keep this file private; it retains your continuity secret. The recorder binding contains the signed admission receipt.</small>
 <script id="bootstrap" type="application/json">__PRIVATE_BOOTSTRAP_JSON__</script>
 <script>
 'use strict';
@@ -17,15 +17,16 @@ const storageKey='conduit-body-join:'+claim.invitation_id;
 let pending;
 try{pending=JSON.parse(localStorage.getItem(storageKey)||'null')}catch{}
 const suffix=bootstrap.producer_host.replace(/^esp32\//,'').replace(/[^a-f0-9]/gi,'');
-document.querySelector('#endpoint').value=pending?.endpoint||(suffix?'http://conduit-climate-'+suffix+'.local':'http://192.168.4.1');
+document.querySelector('#endpoint').value=pending?.endpoint||'http://127.0.0.1:8787';
+document.querySelector('#proxy-command').textContent='conduit-environment-host --browser-join-proxy '+(suffix?'conduit-climate-'+suffix+'.local:80':'192.168.4.1:80')+' 8787';
 function status(value){document.querySelector('#status').textContent=value}
 async function join(){
  if(location.protocol!=='file:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')throw Error('Open the private helper locally.');
  if(!crypto.subtle)throw Error('This browser requires the local helper to run on localhost for WebCrypto.');
  if(bootstrap.invitation.schema!=='conduit.body/spawn-invitation@1'||bootstrap.invitation.secret.length!==32||bootstrap.root_key.length!==32)throw Error('Invalid private bootstrap');
- const endpoint=new URL(document.querySelector('#endpoint').value);if(!['http:','https:'].includes(endpoint.protocol)||endpoint.username||endpoint.password||endpoint.pathname!=='/'||endpoint.search||endpoint.hash)throw Error('Use the device origin only');
+ const endpoint=new URL(document.querySelector('#endpoint').value);if(endpoint.protocol!=='http:'||!['127.0.0.1','localhost'].includes(endpoint.hostname)||endpoint.username||endpoint.password||endpoint.pathname!=='/'||endpoint.search||endpoint.hash)throw Error('Use the local loopback proxy origin only');
  const base=endpoint.origin;
- if(pending&&pending.endpoint!==base)throw Error('Use the original device address for this pending invitation.');
+ if(pending&&pending.endpoint!==base)throw Error('Use the original loopback proxy address for this pending invitation.');
  if(!pending){
   let host='browser/'+crypto.randomUUID(),boot='boot/'+crypto.randomUUID();
   let prefix=bytes([48,46,2,1,0,48,5,6,3,43,101,112,4,34,4,32]);
