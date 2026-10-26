@@ -5,6 +5,7 @@ mod admission;
 mod display_check;
 mod display_evidence;
 mod execution;
+mod local_recorder;
 mod mask;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_display_evidence.rs"]
 #[allow(dead_code)]
@@ -28,6 +29,26 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args
+        .get(1)
+        .is_some_and(|argument| argument == "--record-joined")
+    {
+        let once = args.last().is_some_and(|argument| argument == "--once");
+        if once {
+            args.pop();
+        }
+        if args.len() != 5 {
+            return Err(
+                "expected --record-joined PRIVATE_BINDING PRIVATE_STATE HOST:PORT [--once]".into(),
+            );
+        }
+        return local_recorder::run_joined(
+            std::path::Path::new(&args[2]),
+            &args[4],
+            std::path::Path::new(&args[3]),
+            once,
+        );
+    }
     let resume = args
         .iter()
         .position(|arg| arg.starts_with("--resume="))

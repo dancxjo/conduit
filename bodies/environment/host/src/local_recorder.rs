@@ -1,0 +1,271 @@
+//! Foreground recorder loop. Caller supplies an already admitted collector;
+//! resolving a peer address or reading a signed directory grants no membership.
+use crate::{observed_history::Collector, Result};
+use std::{net::ToSocketAddrs, path::Path, time::Duration};
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs"]
+mod joined;
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Binding {
+    schema: String,
+    invitation: conduit_body::SpawnInvitationClaim,
+    root_key: [u8; 32],
+    local_host: conduit_core::HostId,
+    local_boot: conduit_core::BootId,
+    receipt: joined::JoinedHostReceipt,
+}
+fn private_metadata(path: &Path, directory: bool) -> Result<()> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = std::fs::symlink_metadata(path)?;
+    // SAFETY: geteuid only observes this process's actual local identity.
+    let uid = unsafe { libc::geteuid() };
+    if metadata.uid() != uid
+        || metadata.mode() & 0o077 != 0
+        || (directory && !metadata.is_dir())
+        || (!directory && !metadata.is_file())
+    {
+        return Err("recorder state requires current-owner private directories/files".into());
+    }
+    Ok(())
+}
+fn admitted_collector(path: &Path) -> Result<Collector> {
+    use std::{io::Read, os::unix::fs::OpenOptionsExt};
+    private_metadata(path.parent().ok_or("recorder binding parent")?, true)?;
+    private_metadata(path, false)?;
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(path)?;
+    let mut bytes = Vec::new();
+    file.take(16_385).read_to_end(&mut bytes)?;
+    if bytes.len() > 16_384 {
+        return Err("joined recorder binding extent".into());
+    }
+    let binding: Binding = serde_json::from_slice(&bytes)?;
+    crate::checked(binding.receipt.verify(&binding.root_key))?;
+    let credential = &binding.receipt.credential;
+    if binding.schema != "conduit.environment/joined-recorder@1"
+        || binding.invitation.invitation_id != binding.receipt.invitation_id
+        || binding.invitation.body_id != credential.body_id
+        || binding.invitation.nonce == [0; 32]
+        || credential.issued_at_millis > binding.invitation.expires_at_millis
+        || binding.local_host != credential.host_id
+        || binding.local_boot != credential.boot_id
+    {
+        return Err("joined recorder invitation/credential scope".into());
+    }
+    use sha2::{Digest, Sha256};
+    let mut scope = [0; 96];
+    scope[..32].copy_from_slice(&Sha256::digest(credential.body_id.as_str().as_bytes()));
+    // The verified durable admission receipt supplies actual same-Body custody;
+    // Root-signed epoch discovery supplies each original Boot/Play separately.
+    Collector::from_authenticated_scope(scope, &binding.root_key)
+}
+/// Only a private binding saved by successful invitation admission may enter
+/// this command. A producer response cannot replace its pinned Root key.
+pub fn run_joined(binding: &Path, peer: &str, directory: &Path, once: bool) -> Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    let collector = admitted_collector(binding)?;
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(directory)?;
+    private_metadata(directory, true)?;
+    run(collector, peer, directory, once)
+}
+#[derive(Default)]
+struct Backoff {
+    failures: u8,
+}
+impl Backoff {
+    fn failed(&mut self) -> Duration {
+        let seconds = [1, 2, 4, 8, 16, 30][usize::from(self.failures.min(5))];
+        self.failures = self.failures.saturating_add(1);
+        Duration::from_secs(seconds)
+    }
+    fn succeeded(&mut self) {
+        self.failures = 0;
+    }
+}
+fn collect(collector: &Collector, peer: &str, directory: &Path) -> Result<usize> {
+    // Resolve afresh after DHCP/link interruptions. Address resolution remains
+    // transport selection; every directory and batch verifies the pinned key.
+    let addresses = peer.to_socket_addrs()?;
+    let mut failure = None;
+    for address in addresses.filter(|address| address.is_ipv4()).take(8) {
+        match collector.collect_epochs(address, directory) {
+            Ok(epochs) => return Ok(epochs),
+            Err(error) => failure = Some(error),
+        }
+    }
+    Err(failure.unwrap_or_else(|| "recorder peer has no bounded IPv4 route".into()))
+}
+/// Run in the foreground for systemd or an ordinary private host service.
+/// SIGTERM/default process termination leaves only complete fsynced batch files;
+/// a subsequent invocation restores each original Boot's durable cursor.
+pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Result<()> {
+    if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\n', '\r']) {
+        return Err("recorder peer must be HOST:PORT".into());
+    }
+    let mut backoff = Backoff::default();
+    let mut connected = false;
+    loop {
+        match collect(&collector, peer, directory) {
+            Ok(epochs) => {
+                if !connected {
+                    eprintln!("recorder connected; {epochs} authenticated epochs available");
+                }
+                connected = true;
+                backoff.succeeded();
+                if once {
+                    return Ok(());
+                }
+                std::thread::sleep(Duration::from_secs(30));
+            }
+            Err(error) => {
+                if once {
+                    return Err(error);
+                }
+                if connected || backoff.failures == 0 {
+                    eprintln!(
+                        "recorder unavailable; retained readings remain on producer: {error}"
+                    );
+                }
+                connected = false;
+                std::thread::sleep(backoff.failed());
+            }
+        }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn retry_delay_is_bounded_and_only_success_resets_it() {
+        let mut backoff = Backoff::default();
+        for expected in [1, 2, 4, 8, 16, 30, 30, 30] {
+            assert_eq!(backoff.failed(), Duration::from_secs(expected));
+        }
+        for _ in 0..1024 {
+            assert_eq!(backoff.failed(), Duration::from_secs(30));
+        }
+        backoff.succeeded();
+        assert_eq!(backoff.failed(), Duration::from_secs(1));
+    }
+    // CPU keys/credentials only; this fixture admits no real Host or Body.
+    fn receipt() -> (ed25519_dalek::SigningKey, joined::JoinedHostReceipt) {
+        use ed25519_dalek::Signer;
+        let key = ed25519_dalek::SigningKey::from_bytes(&[41; 32]);
+        let credential: conduit_body::MembershipCredential =
+            serde_json::from_value(serde_json::json!({
+                "credential_id":"01".repeat(32), "body_id":"02".repeat(32),
+                "part_id":"03".repeat(32), "host_id":"04".repeat(32),
+                "boot_id":"05".repeat(32), "issued_at_millis":123,
+            }))
+            .unwrap();
+        let mut receipt = joined::JoinedHostReceipt {
+            schema: joined::PROFILE.into(),
+            credential,
+            membership_revision: 2,
+            producer_host: "06".repeat(32).into(),
+            producer_boot: "07".repeat(32).into(),
+            producer_key: key.verifying_key().to_bytes(),
+            invitation_id: serde_json::from_value(serde_json::json!("08".repeat(32))).unwrap(),
+            offer_generation: conduit_core::OfferGeneration(1),
+            signature: Vec::new(),
+        };
+        receipt.signature = key
+            .sign(&joined::transcript(&receipt.scope()))
+            .to_bytes()
+            .to_vec();
+        (key, receipt)
+    }
+    #[test]
+    fn joined_receipt_transcript_authenticates_every_admission_field() {
+        let (key, receipt) = receipt();
+        let root = key.verifying_key().to_bytes();
+        assert!(receipt.verify(&root).is_ok());
+        let baseline = serde_json::to_value(&receipt).unwrap();
+        for pointer in [
+            "/credential/credential_id",
+            "/credential/body_id",
+            "/credential/part_id",
+            "/credential/host_id",
+            "/credential/boot_id",
+            "/producer_host",
+            "/producer_boot",
+            "/invitation_id",
+        ] {
+            let mut value = baseline.clone();
+            *value.pointer_mut(pointer).unwrap() = serde_json::json!("09".repeat(32));
+            let altered: joined::JoinedHostReceipt = serde_json::from_value(value).unwrap();
+            assert!(altered.verify(&root).is_err(), "{pointer}");
+        }
+        for pointer in [
+            "/credential/issued_at_millis",
+            "/membership_revision",
+            "/offer_generation",
+        ] {
+            let mut value = baseline.clone();
+            *value.pointer_mut(pointer).unwrap() = serde_json::json!(333);
+            let altered: joined::JoinedHostReceipt = serde_json::from_value(value).unwrap();
+            assert!(altered.verify(&root).is_err(), "{pointer}");
+        }
+        assert!(receipt
+            .verify(
+                &ed25519_dalek::SigningKey::from_bytes(&[42; 32])
+                    .verifying_key()
+                    .to_bytes()
+            )
+            .is_err());
+    }
+    #[test]
+    fn recorder_loads_only_private_exact_invitation_admission_binding() {
+        use std::io::Write;
+        use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
+        let (key, receipt) = receipt();
+        let directory =
+            std::env::temp_dir().join(format!("conduit-joined-recorder-{}", std::process::id()));
+        if directory.exists() {
+            std::fs::remove_dir_all(&directory).unwrap();
+        }
+        std::fs::DirBuilder::new()
+            .mode(0o700)
+            .create(&directory)
+            .unwrap();
+        let path = directory.join("joined.json");
+        let mut binding = serde_json::json!({
+            "schema":"conduit.environment/joined-recorder@1",
+            "invitation":{"invitation_id":receipt.invitation_id,"body_id":receipt.credential.body_id,
+                "nonce":vec![3;32], "expires_at_millis":999},
+            "root_key":key.verifying_key().to_bytes(),
+            "local_host":receipt.credential.host_id,"local_boot":receipt.credential.boot_id,
+            "receipt":receipt,
+        });
+        let write = |value: &serde_json::Value| {
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .truncate(true)
+                .write(true)
+                .mode(0o600)
+                .open(&path)
+                .unwrap();
+            file.write_all(&serde_json::to_vec(value).unwrap()).unwrap();
+        };
+        write(&binding);
+        assert!(admitted_collector(&path).is_ok());
+        binding["local_boot"] = serde_json::json!("09".repeat(32));
+        write(&binding);
+        assert!(admitted_collector(&path).is_err());
+        binding["local_boot"] = binding["receipt"]["credential"]["boot_id"].clone();
+        binding["invitation"]["expires_at_millis"] = serde_json::json!(1);
+        write(&binding);
+        assert!(admitted_collector(&path).is_err());
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(admitted_collector(&path).is_err());
+        let link = directory.join("link.json");
+        std::os::unix::fs::symlink(&path, &link).unwrap();
+        assert!(admitted_collector(&link).is_err());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+}
