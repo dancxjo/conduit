@@ -53,6 +53,10 @@ rulesets, change required checks, or enable the variable. A controller must
 refresh policy again on capture, dispatch and verification; full exact combined
 product proof remains mandatory afterward.
 
+The [trusted controller command](train-controller.md) wires the observer and
+short-lived App session to explicit capture/dispatch/acquisition/landing
+operations. Its existence does not activate this tier or establish live gates.
+
 ## Read-only scheduling and trusted control
 
 Hosted `train-admit` uses `createTrainProofAdmission`, a narrow read-only API.

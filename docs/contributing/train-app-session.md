@@ -4,7 +4,8 @@
 for separately trusted controller code. It is a prerequisite for the dedicated
 writer contract in [guard PR #6502](https://github.com/dancxjo/conduit/pull/6502),
 not App registration, live installation setup, an activated service, or hosted
-train acceptance. No CLI, dispatcher, lander or PR workflow is wired to it here.
+train acceptance. The [trusted controller command](train-controller.md) composes
+it with explicit operations; no PR workflow receives its credentials.
 
 The library entry is `withTrainAppSession({config, privateKeyFile, policyApi,
 callback, sourceDirectory, transport?, clock?, timeoutMs?})`. The disabled

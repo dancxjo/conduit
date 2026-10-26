@@ -147,8 +147,10 @@ controller tree and its runtime before supplying credentials. Source assertions
 check Git/data identity only. Never invoke proposed PR Cargo/xtask scripts or its
 copy of the CLI with these credentials. Module imports resolve from the trusted
 controller while data/Git operations use the proposed source working directory.
-An issuer/session controller and its authenticated trust handoff are still
-separate setup work; this change does not provide them.
+The [session helper and trusted controller command](train-controller.md) provide
+the scoped credential lifecycle. Their deployment and authenticated trust
+handoff still require separate setup; source implementation does not establish
+controller trust or a live installation.
 
 The installation-only repositories API rejects human tokens. The independent
 server update gate is the final actor enforcement in addition to the observed

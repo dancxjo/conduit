@@ -90,6 +90,16 @@ try {
       output('proof-run', String(adoption?.integrationRun ?? pushRun.id));
       break;
     }
+    case 'train-control': {
+      if (args.length !== 4) throw new Error('usage: train-control <request-file> <external-machine-policy> <private-key-file> <trusted-policy-observer-environment-reference>');
+      const { readTrainControllerRequest, runTrainController } = await import('./train-controller.mjs');
+      const { readMachineWriterConfiguration } = await import('./train-machine-policy.mjs');
+      const request = await readTrainControllerRequest(resolve(args[0]));
+      const config = await readMachineWriterConfiguration(resolve(args[1]), request.targetSource);
+      output('train-controller-result', await runTrainController({ request, config,
+        privateKeyFile: resolve(args[2]), observerEnvironmentReference: args[3] }));
+      break;
+    }
     case 'train-admit': {
       if (args.length !== 1) throw new Error('usage: train-admit <manifest-file>');
       const { createTrainProofAdmission } = await import('./train-proof-admission.mjs');
@@ -298,7 +308,7 @@ try {
       await publish(args[0], resolve(args[1] ?? 'target/bundle'));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish|train-control|train-assemble|train-capture|train-dispatch|train-acquire|train-restore|train-land|train-verify>');
   }
 } catch (error) {
   abandonProductCustody();
