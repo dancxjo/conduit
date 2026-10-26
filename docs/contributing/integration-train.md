@@ -232,10 +232,16 @@ activate it.
 
 CI-only changes to the exact standard-library Rust workflow contract and Python
 train restorer use preflight proof instead of compiling the full xtask dependency
-graph twice. Preflight directly compiles and executes that real Rust test with
-a private bounded output and explicit manifest directory. It also retains the
-independent canonical Node corpus, so editing the Rust wrapper cannot remove
-that proof. Other Rust/Python paths keep normal conservative package admission.
+graph twice. Preflight executes the complete canonical Node corpus once,
+independently of its Cargo wrapper. It then compiles the unchanged real Rust
+launcher and executes it against bounded real passing and failing Node tests.
+The private native launcher proxy verifies the complete canonical argument set,
+working directory, exactly one invocation and failure propagation. Missing or
+changed arguments, a skipped launch or ignored failure refuse. This verifies
+the actual Rust launcher without replaying all semantic tests. Ordinary Cargo
+execution of that Rust test still runs the complete Node corpus. Private outputs
+and time bounds remain enforced, and editing the wrapper cannot remove the
+independent full-corpus proof. Other Rust/Python paths keep normal conservative package admission.
 The prior hosted run recorded230seconds of lint compilation and564seconds of
 test compilation for these two tooling entrances; future hosted timings must
 measure the improvement rather than assume those costs disappear.
