@@ -28,6 +28,9 @@ pub enum Refusal {
     Show(conduit_seven_segment_mask::ShowPreparationRefusal),
 }
 impl PreparedDisplayMask {
+    pub fn brightness(&self) -> u8 {
+        self.brightness
+    }
     pub fn prepare(
         profile: Tm1637Profile,
         look: SevenSegmentLook,

@@ -3,6 +3,11 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     for (manifest, selector, test) in [
         ("mechanisms/io/tm1637/Cargo.toml", "--test", "owner"),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "native_mask_renderer",
+        ),
         ("bodies/environment/make/Cargo.toml", "--test", "mask_plan"),
         (
             "bodies/environment/make/Cargo.toml",

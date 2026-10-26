@@ -187,6 +187,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
  "serde-json-core",
@@ -207,6 +208,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
 ]
@@ -405,6 +407,15 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "serde",
+]
+
+[[package]]
+name = "conduit-seven-segment-mask"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
 ]
 
 [[package]]

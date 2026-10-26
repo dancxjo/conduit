@@ -699,3 +699,48 @@ was exhausted. Removing 65 superseded test executables freed 1,569,595,384 bytes
 the active owner, firmware, keys, recovery and retained evidence were preserved.
 The subsequent focused entrance passed. The two configured-Fore tests and strict
 native-owner Clippy also passed after the final test addition. No flash occurred.
+
+## Owned ordinary Mask renderer, 2026-10-25
+
+The optional `mask-renderer` runtime now owns its initialized electrical provider
+and projects a separate canonical `face/renderer` Back through the Base registry.
+It does not reuse WRITE Kind authority. Root must identify its exact immutable
+Mask/Look and checked packet material, admit the current Body route and transfer
+exclusive initialized pins. Readiness projects only into the matching Host/Boot;
+configured assigned-Fore admission checks the native Base, resources, grant,
+opaque capability and exact Play before transferring custody.
+
+Cold preparation validates/pins the exact Face value, resolves the existing
+quantity-aware Mask/Look and authored packet expression, and prepares correlated
+Show metadata. Dispatch checks the actual Host Call input without parsing or
+copying it. A private verified-input token allows the shared kernel to reserve
+its other value slot. Available bytes remain private until electrical ACK and
+capability completion; encoding failure, NACK and cancellation publish no Show.
+One admitted presentation plus one explicit withdrawal bounds the lifetime.
+Withdrawal blanks/disables through the same Source packet program before
+revocation; failed cleanup cannot produce Closed metadata or restore readiness.
+Terminal Closed metadata is owner control data after Play, not a second Fore
+result, and its output slice requires separate explicit admission.
+
+The actual ordinary three-node Mask kernel now exercises this renderer and the
+real wire engine with fake electrical pins. CPU proofs cover output pressure,
+zero-allocation dispatch and withdrawal, input/basis substitution, wrong native
+resource generation, NACK/cancellation during both delivery and cleanup, and
+retirement custody. No physical readiness, Body route or hardware effect is
+claimed for these fixture pins. Rich Plan/Face models can be dropped before Play.
+The fixture retains 4,946 heap bytes for renderer preparation (28,048 peak),
+5,230 for the complete native Show context (44,976 received-wire preparation
+peak), and 2,579 for presentation metadata/material (4,375 preparation peak).
+These exclude native table/claim/kernel/transport storage, caller stack and
+allocator overhead. Available Show wire is 7,709 bytes; terminal Closed wire is
+8,327 and uses a separately sized owner buffer. They are fixture extents, not
+universal bounds or measured target heap totals.
+
+The focused display-output entrance and strict native-renderer/owning-runtime
+Clippy pass. An Xtensa release `check` with the renderer feature also passes;
+it compiles the code but does not install it in Root, link a new deployed image,
+measure combined target memory, or establish physical Mask delivery. The existing
+sampler/acknowledged output image remains live and unchanged. Next work is Root
+installation and owner protocol/Body admission, staging complete Plan context
+before sampler/kernel allocations, then one ordinary Mask sample on real pins
+and combined target memory/lifecycle evidence. The timed FaceFore fence remains.

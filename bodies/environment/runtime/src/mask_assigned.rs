@@ -262,10 +262,7 @@ fn admit(
         Some(binding)
             if binding.host == scope.host
                 && binding.boot == scope.boot
-                && profile.resources == [binding.resource] =>
-        {
-            ()
-        }
+                && profile.resources == [binding.resource] => {}
         _ => return Err(E::Shape),
     }
     // The shared constructor will validate the final tables before publishing a
