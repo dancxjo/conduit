@@ -2906,6 +2906,8 @@ dependencies = [
 name = "conduitos-application-core"
 version = "0.1.0"
 dependencies = [
+ "ciborium",
+ "ciborium-ll",
  "conduit-body",
  "conduit-core",
  "conduit-face",

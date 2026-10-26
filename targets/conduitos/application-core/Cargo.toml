@@ -17,6 +17,8 @@ serde = { version = "1", default-features = false, features = ["derive", "alloc"
 serde_json = { version = "1", default-features = false, features = ["alloc", "float_roundtrip"] }
 serde-json-core = { version = "0.6", default-features = false }
 miniz_oxide = { version = "0.8.9", default-features = false, features = ["with-alloc"] }
+ciborium = { version = "0.2", default-features = false }
+ciborium-ll = { version = "0.2", default-features = false }
 
 [[test]]
 name = "private_heap"
