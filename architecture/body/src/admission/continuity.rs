@@ -287,3 +287,95 @@ impl AdmissionManager {
         Ok(credential)
     }
 }
+
+/// Exact signature evidence from an already admitted, currently present Part.
+/// This is not a grant, current execution permission, or a deserializable trust
+/// record. Consumers must still bind their fresh nonce, purpose and endpoint to
+/// `transcript` and recheck current membership before using the observation.
+#[derive(Debug, PartialEq, Eq)]
+pub struct VerifiedAdmittedMessage {
+    body_id: BodyId,
+    part_id: PartId,
+    host_id: HostId,
+    boot_id: BootId,
+    membership_revision: crate::BodyMembershipRevision,
+    transcript: [u8; 32],
+}
+impl VerifiedAdmittedMessage {
+    pub fn body_id(&self) -> &BodyId {
+        &self.body_id
+    }
+    pub fn part_id(&self) -> &PartId {
+        &self.part_id
+    }
+    pub fn host_id(&self) -> &HostId {
+        &self.host_id
+    }
+    pub fn boot_id(&self) -> &BootId {
+        &self.boot_id
+    }
+    pub fn membership_revision(&self) -> crate::BodyMembershipRevision {
+        self.membership_revision
+    }
+    pub fn transcript(&self) -> &[u8; 32] {
+        &self.transcript
+    }
+}
+impl AdmissionManager {
+    /// Authenticate only against the manager's retained canonical continuity
+    /// key and the exact current admitted membership. IDs or a caller-supplied
+    /// key cannot construct this evidence. This read-only operation leaves an
+    /// existing local Wake/Plan/Play untouched, including during execution.
+    #[allow(clippy::too_many_arguments)]
+    pub fn verify_admitted_message(
+        &self,
+        membership: &BodyMembership,
+        part_id: &PartId,
+        host_id: &HostId,
+        boot_id: &BootId,
+        transcript: &[u8; 32],
+        signature: &[u8; ADMISSION_SIGNATURE_BYTES],
+    ) -> Result<VerifiedAdmittedMessage, AdmissionRefusal> {
+        if membership.body_id != self.body_id {
+            return Err(AdmissionRefusal::WrongBody);
+        }
+        membership
+            .validate()
+            .map_err(AdmissionRefusal::Membership)?;
+        let part = membership
+            .parts
+            .iter()
+            .find(|part| &part.part_id == part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if part.state != crate::MembershipState::Admitted {
+            return Err(AdmissionRefusal::CandidateNotEligible);
+        }
+        let current = part
+            .current
+            .as_ref()
+            .ok_or(AdmissionRefusal::CandidateNotEligible)?;
+        if &current.host_id != host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        if &current.boot_id != boot_id {
+            return Err(AdmissionRefusal::StaleBoot);
+        }
+        let key = self
+            .continuity_keys
+            .iter()
+            .find(|record| &record.part_id == part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if &key.host_id != host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        verify_signature(key.verifying_key, transcript, *signature)?;
+        Ok(VerifiedAdmittedMessage {
+            body_id: self.body_id.clone(),
+            part_id: part_id.clone(),
+            host_id: host_id.clone(),
+            boot_id: boot_id.clone(),
+            membership_revision: membership.revision,
+            transcript: *transcript,
+        })
+    }
+}

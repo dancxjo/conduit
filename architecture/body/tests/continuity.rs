@@ -233,3 +233,96 @@ fn revoked_part_returns_only_as_an_inert_candidate() {
     );
     assert!(!membership.parts[0].is_present());
 }
+
+#[test]
+fn current_member_message_requires_retained_key_exact_membership_and_signed_transcript() {
+    let (manager, mut membership, key) = admitted();
+    let retained_manager = manager.clone();
+    let retained_membership = membership.clone();
+    let part = membership.parts[0].part_id.clone();
+    let host = HostId::from("host/durable-browser");
+    let boot = BootId::from("boot/old");
+    let transcript = [91; 32];
+    let signature = key.sign(&transcript).to_bytes();
+    let verified = manager
+        .verify_admitted_message(&membership, &part, &host, &boot, &transcript, &signature)
+        .unwrap();
+    assert_eq!(verified.body_id(), &membership.body_id);
+    assert_eq!(verified.part_id(), &part);
+    assert_eq!(verified.host_id(), &host);
+    assert_eq!(verified.boot_id(), &boot);
+    assert_eq!(verified.membership_revision(), membership.revision);
+    assert_eq!(verified.transcript(), &transcript);
+    for (claimed_host, claimed_boot, message, signed) in [
+        (
+            HostId::from("host/foreign"),
+            boot.clone(),
+            transcript,
+            signature,
+        ),
+        (
+            host.clone(),
+            BootId::from("boot/stale"),
+            transcript,
+            signature,
+        ),
+        (host.clone(), boot.clone(), [92; 32], signature),
+        (
+            host.clone(),
+            boot.clone(),
+            transcript,
+            SigningKey::from_bytes(&[93; 32])
+                .sign(&transcript)
+                .to_bytes(),
+        ),
+    ] {
+        assert!(manager
+            .verify_admitted_message(
+                &membership,
+                &part,
+                &claimed_host,
+                &claimed_boot,
+                &message,
+                &signed
+            )
+            .is_err());
+    }
+    let mut foreign = membership.clone();
+    foreign.body_id = Body::born(
+        "source/foreign".into(),
+        "checked/foreign".into(),
+        1,
+        "sign/foreign".into(),
+    )
+    .unwrap()
+    .body_id;
+    assert!(manager
+        .verify_admitted_message(&foreign, &part, &host, &boot, &transcript, &signature)
+        .is_err());
+    assert_eq!(manager, retained_manager);
+    assert_eq!(membership, retained_membership);
+    membership
+        .observe_offline(
+            &membership.body_id.clone(),
+            membership.revision,
+            &part,
+            &boot,
+            "sign/message-offline".into(),
+        )
+        .unwrap();
+    assert!(manager
+        .verify_admitted_message(&membership, &part, &host, &boot, &transcript, &signature)
+        .is_err());
+    // A matching caller-held key cannot establish custody in a fresh manager.
+    let empty = AdmissionManager::new(membership.body_id.clone()).unwrap();
+    assert!(empty
+        .verify_admitted_message(
+            &retained_membership,
+            &part,
+            &host,
+            &boot,
+            &transcript,
+            &signature
+        )
+        .is_err());
+}

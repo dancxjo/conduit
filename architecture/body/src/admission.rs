@@ -16,7 +16,7 @@ mod documents;
 mod invitation;
 
 use continuity::{ContinuityKeyRecord, PendingReturn};
-pub use continuity::{PartReturnChallenge, PartReturnProof};
+pub use continuity::{PartReturnChallenge, PartReturnProof, VerifiedAdmittedMessage};
 pub use documents::{
     supported_routed_admission_response_schema, AdmissionDocumentRefusal, PortableAdmissionReceipt,
     PortableInvitation, PortableSpawnAdmissionRequest, RoutedAdmissionRequest,
