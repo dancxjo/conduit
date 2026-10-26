@@ -27,6 +27,7 @@ is not itself evidence that every target implements it.
 
 - [Owner face routes](owner-face-routes.md)
 - [Body lifecycle boundaries](body-lifecycle-waists.md)
+- [Body purpose and fulfillment](body-purpose-and-fulfillment.md): optional obligations and evidence-derived readiness, not retirement authority
 - [Durable continuity](durable-continuity.md)
 - [Optional pre-play hold](pre-play-hold.md)
 - [Bounded addressable resources](resources.md)

@@ -1,4 +1,4 @@
-//! Bounded volatile compiler support. Aligned words reduce private-state setup
+//! Bounded compiler support. Aligned stores reduce private-state setup
 //! work without reading or writing outside the caller's exact byte interval.
 // MaybeUninit<usize> has no padding and preserves every byte's initializedness
 // and provenance, including partially initialized compiler-generated objects.
@@ -14,9 +14,9 @@ const WORD: usize = core::mem::size_of::<usize>();
 /// unless the destination starts at or before the source.
 pub(crate) unsafe fn copy_forward(destination: *mut u8, source: *const u8, length: usize) {
     let mut offset = 0;
-    while offset < length
-        && ((destination as usize + offset) | (source as usize + offset)) & (WORD - 1) != 0
-    {
+    // Different source/destination residues never become aligned together.
+    // Align stores only; each complete source word is read without alignment.
+    while offset < length && (destination as usize + offset) & (WORD - 1) != 0 {
         unsafe {
             destination
                 .add(offset)
@@ -25,6 +25,11 @@ pub(crate) unsafe fn copy_forward(destination: *mut u8, source: *const u8, lengt
         }
         offset += 1;
     }
+    // read_unaligned accepts this complete in-bounds MaybeUninit word even
+    // when source padding is uninitialized. The aligned volatile store keeps
+    // compiler support from becoming a recursive memcpy call; generated-code
+    // probes cover each admitted native architecture. No byte outside the
+    // requested interval is accessed. Forward overlap retains read-before-write.
     while length - offset >= WORD {
         unsafe {
             destination
@@ -34,7 +39,7 @@ pub(crate) unsafe fn copy_forward(destination: *mut u8, source: *const u8, lengt
                     source
                         .add(offset)
                         .cast::<MaybeUninit<usize>>()
-                        .read_volatile(),
+                        .read_unaligned(),
                 );
         }
         offset += WORD;
@@ -156,6 +161,84 @@ mod tests {
                         );
                     }
                     assert_eq!(actual, expected);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn unaligned_partial_objects_preserve_initialized_bytes_and_canaries() {
+        #[repr(align(16))]
+        struct Bytes([MaybeUninit<u8>; 384]);
+        for source_offset in 16..24 {
+            for destination_offset in 16..24 {
+                for length in (0..=96).chain([127, 128, 255, 256]) {
+                    let mut source = Bytes([MaybeUninit::uninit(); 384]);
+                    let mut destination = Bytes([MaybeUninit::new(0xa5); 384]);
+                    for index in (0..length).filter(|index| index % 7 == 0) {
+                        source.0[source_offset + index].write(index as u8);
+                    }
+                    unsafe {
+                        copy_forward(
+                            destination.0.as_mut_ptr().add(destination_offset).cast(),
+                            source.0.as_ptr().add(source_offset).cast(),
+                            length,
+                        );
+                    }
+                    for index in (0..length).filter(|index| index % 7 == 0) {
+                        assert_eq!(
+                            unsafe { destination.0[destination_offset + index].assume_init() },
+                            index as u8
+                        );
+                    }
+                    // Never inspect copied uninitialized bytes. Only known
+                    // initialized bytes and untouched canaries are observed.
+                    for index in (0..destination_offset).chain(destination_offset + length..384) {
+                        assert_eq!(unsafe { destination.0[index].assume_init() }, 0xa5);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn unaligned_object_copy_retains_pointer_fields_and_uninitialized_padding() {
+        #[repr(C)]
+        struct Object {
+            tag: u8,
+            pointer: *const u8,
+        }
+        #[repr(align(16))]
+        struct Bytes([MaybeUninit<u8>; 96]);
+        let target = 0x5au8;
+        for source_offset in 16..24 {
+            for destination_offset in 16..24 {
+                let mut source = Bytes([MaybeUninit::uninit(); 96]);
+                let mut destination = Bytes([MaybeUninit::new(0xa5); 96]);
+                let object = source
+                    .0
+                    .as_mut_ptr()
+                    .wrapping_add(source_offset)
+                    .cast::<Object>();
+                // Only fields are initialized. Padding is copied as object
+                // representation and never interpreted as an initialized u8.
+                unsafe {
+                    core::ptr::addr_of_mut!((*object).tag).write_unaligned(7);
+                    core::ptr::addr_of_mut!((*object).pointer).write_unaligned(&target);
+                    copy_forward(
+                        destination.0.as_mut_ptr().add(destination_offset).cast(),
+                        object.cast(),
+                        core::mem::size_of::<Object>(),
+                    );
+                    let copied = destination
+                        .0
+                        .as_ptr()
+                        .add(destination_offset)
+                        .cast::<Object>()
+                        .read_unaligned();
+                    assert_eq!(copied.tag, 7);
+                    assert_eq!(copied.pointer, &target as *const u8);
+                    assert_eq!(*copied.pointer, target);
                 }
             }
         }

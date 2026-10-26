@@ -2930,12 +2930,15 @@ version = "0.1.0"
 name = "conduitos-creche-core"
 version = "0.1.0"
 dependencies = [
+ "ciborium",
  "conduit-birth-plot",
  "conduit-body",
  "conduit-core",
  "conduit-face",
  "conduit-home-model",
  "conduit-human",
+ "conduit-planner",
+ "conduit-plot",
  "serde",
  "serde-json-core",
  "serde_json",

@@ -108,18 +108,40 @@ impl CrecheDraft {
         show: &MaskShow,
         input: &FaceInteraction,
     ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
-        let bytes = encode(&InteractionRequest {
+        let bytes = conduitos_creche_core::data::encode_interaction(&InteractionRequest {
             revision: self.revision(),
             basis: basis.clone(),
             show: show.clone(),
             input: input.clone(),
         })
-        .map_err(|error| interaction_error("encode", error))?;
-        let response = self
-            .service
-            .get_mut()
-            .input(InputKind::FaceInteraction, &bytes)
-            .map_err(|error| interaction_error("input", error))?;
+        .map_err(|error| interaction_error("encode", TransportError::Refused(error)))?;
+        let service = self.service.get_mut();
+        let before = service.cost();
+        let response = service.input(InputKind::FaceInteraction, &bytes);
+        let after = service.cost();
+        let source_timer = after
+            .source_timer_interrupts
+            .saturating_sub(before.source_timer_interrupts);
+        let rtc = after
+            .interrupt_entries
+            .saturating_sub(before.interrupt_entries)
+            .saturating_sub(source_timer);
+        // Report admitted work already counted by the protected domain. This
+        // observation cannot extend an entry, retry input, or disclose payload.
+        use core::fmt::Write;
+        let mut line = crate::sign_format::FixedText::new();
+        if writeln!(
+            line,
+            "CONDUIT_CRECHE_INTERACTION_COST entries={} rtc={} source_timer={}",
+            after.entries.saturating_sub(before.entries),
+            rtc,
+            source_timer,
+        )
+        .is_ok()
+        {
+            crate::arch::early_write(line.as_bytes());
+        }
+        let response = response.map_err(|error| interaction_error("input", error))?;
         self.outcome(response)
             .map_err(|error| interaction_error("outcome", error))
     }

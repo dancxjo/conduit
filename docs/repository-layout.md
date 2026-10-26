@@ -70,6 +70,33 @@ These are distinct responsibilities, not a replacement support dump.
 
 Architecture and semantics should not depend on products, concrete targets, or proof packages. Products and bodies compose lower owners; plots describe meaning. Targets realize lower contracts and admitted product requirements. Proof may depend on what it proves. A fixed proof fact required by production is a boundary defect, not evidence that proof is a reusable runtime library. These are review rules, not a forced global Cargo DAG or permission for speculative extraction.
 
+## Documentation placement and retention
+
+The root [README](../README.md) is the short invitation and first runnable
+entrance, not a second canon or status ledger. The repository-owned `wiki/`
+Markdown supplies the published handbook, with example-driven learning and
+the current checked language reference.
+
+Within `docs/`:
+
+- [`conduit-canon.md`](conduit-canon.md) holds durable project intent;
+- [`architecture/`](architecture/README.md) holds current semantic and
+  implementation contracts;
+- [`design/`](design/README.md) records scoped proposals;
+- [`performance/`](performance/README.md) records bounded optimization
+  contracts and measurements;
+- [`audits/`](audits/README.md) holds point-in-time investigation records;
+- [`history/`](history/README.md) preserves retired designs and accepted
+  milestone evidence;
+- target-owned READMEs explain their specific realization, build and proof
+  entrance.
+
+The [documentation policy](documentation-policy.md) owns evidence wording and
+cross-linking. Do not overwrite historical commands and measurements with
+modern syntax; give readers a current contextual entrance and retain their
+original checkpoint scope. Do not treat `docs/audits/` as a second live
+roadmap.
+
 ## Entrances and guardrails
 
 Use `conduit ...` for public product workflows and `cargo xtask ...` for repository development, validation, demonstrations, and hardware proof. Moving xtask beneath `tools/` and Playwright beneath `proof/browser/` changes no public command. Internal shell, Node and Cargo package commands are implementation details of those entrances.
