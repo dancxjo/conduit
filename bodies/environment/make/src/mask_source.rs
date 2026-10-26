@@ -8,6 +8,10 @@ use conduit_planner::{
 };
 use conduit_plot as p;
 use std::collections::BTreeMap;
+#[path = "mask_source_material.rs"]
+mod material;
+pub use material::SevenSegmentMaskMaterial;
+
 pub struct SevenSegmentMaskSource {
     pub plot: p::ExpandedAuthoringPlot,
     pub role: f::MaskPlot,

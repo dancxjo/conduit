@@ -17,4 +17,4 @@ pub use conduit_environment_runtime::construction::compile_default as compile_ap
 pub use network_source::compile_network_setup;
 
 mod mask_source;
-pub use mask_source::SevenSegmentMaskSource;
+pub use mask_source::{SevenSegmentMaskMaterial, SevenSegmentMaskSource};
