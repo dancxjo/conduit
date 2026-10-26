@@ -10,6 +10,7 @@ import { runTrainController, createTrainSessionCommand, createTrainMetadataApi, 
 import { withTrainAppSession, TrainAppSessionError } from './train-app-session.mjs';
 import { createPolicyObserverApi, validateMachineWriterConfiguration } from './train-machine-policy.mjs';
 import { verifyTrainManifest } from './train.mjs';
+import { observeSupervisorDownstream } from './train-supervisor-downstream-session.mjs';
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const absolute = value => typeof value === 'string' && value.length <= 4096 && !/[\0\r\n]/.test(value)
@@ -126,7 +127,8 @@ async function observe({ queue, train, config, privateKeyFile, observerEnvironme
 }
 export async function runTrainSupervisorTick({ queueFile, stateDirectory, config, privateKeyFile,
   observerEnvironmentReference, maintenance = false, environment = process.env, command = spawnSync,
-  controller = runTrainController, observer = observe, identity = trainSupervisorRuntimeIdentity, session = withTrainAppSession, clock = Date.now }) {
+  controller = runTrainController, observer = observe, downstreamObserver = observeSupervisorDownstream,
+  identity = trainSupervisorRuntimeIdentity, session = withTrainAppSession, clock = Date.now }) {
   const now = clock(); if (!Number.isSafeInteger(now) || now < 0) fail('invalid observation clock');
   const queue = await readTrainSupervisorQueue(queueFile);
   validateMachineWriterConfiguration(config, queue.repository);
@@ -140,9 +142,9 @@ export async function runTrainSupervisorTick({ queueFile, stateDirectory, config
     if (state.schema !== 'conduit.train-supervisor-journal/v1' || state.repository !== queue.repository
         || state.queueDigest !== queueDigest || state.configurationDigest !== configurationDigest
         || state.runtimeDigest !== runtimeDigest || !Number.isSafeInteger(state.sequence) || state.sequence < 0
-        || !['new', 'assembled', 'awaiting-run', 'proof-ready', 'acquired', 'awaiting-downstream', 'intent', 'blocked'].includes(state.stage)) fail('journal identity changed; inspect recovery');
-    if (['assembled', 'awaiting-run', 'proof-ready', 'acquired', 'awaiting-downstream'].includes(state.stage) && !state.train) fail('journal train identity missing');
-    if (['proof-ready', 'acquired'].includes(state.stage) && (!positive(state.binding?.id) || !positive(state.binding?.attempt))) fail('journal run identity missing');
+        || !['new', 'assembled', 'awaiting-run', 'proof-ready', 'acquired', 'awaiting-downstream', 'complete', 'intent', 'blocked'].includes(state.stage)) fail('journal identity changed; inspect recovery');
+    if (['assembled', 'awaiting-run', 'proof-ready', 'acquired', 'awaiting-downstream', 'complete'].includes(state.stage) && !state.train) fail('journal train identity missing');
+    if (['proof-ready', 'acquired', 'awaiting-downstream', 'complete'].includes(state.stage) && (!positive(state.binding?.id) || !positive(state.binding?.attempt))) fail('journal run identity missing');
     if (state.nextObservationAt !== undefined && (!Number.isSafeInteger(state.nextObservationAt) || state.nextObservationAt < 0)) fail('journal clock invalid');
     if (state.train && (!/^[a-f0-9]{40}$/.test(state.train.source ?? '') || !/^[a-f0-9]{40}$/.test(state.train.tree ?? '')
         || !/^train\/[a-f0-9]{64}$/.test(state.train.branch ?? '') || !/^[a-f0-9]{64}$/.test(state.train.digest ?? ''))) fail('journal train identity invalid');
@@ -152,11 +154,36 @@ export async function runTrainSupervisorTick({ queueFile, stateDirectory, config
       ...(state.gate ? { gate: state.gate } : {}), ...(state.sessionFailure ? { sessionFailure: state.sessionFailure } : {}) });
     const save = async changes => { state = { ...state, ...changes, sequence: state.sequence + 1 }; await store.write(state); };
     if (state.stage === 'intent' || state.stage === 'blocked') return { ...status(), inspectionRequired: true };
-    if (state.stage === 'awaiting-downstream') return { ...status(), inspectionRequired: true,
-      gate: 'Authenticate actual dev-push adoption and publication; no completion claimed' };
     if (state.stage !== 'new') {
       const manifest = await readSupervisorJson(queue.manifest, 65536); verifyTrainManifest(manifest);
       if (!state.train || manifest.repository !== queue.repository || ['source', 'tree', 'branch', 'digest'].some(key => manifest[key] !== state.train[key])) fail('recorded manifest changed');
+    }
+    if (state.stage === 'complete') return { ...status(), complete: true, publication: state.downstreamBinding };
+    if (state.stage === 'awaiting-downstream') {
+      if (state.nextObservationAt && now < state.nextObservationAt) return { ...status(), observationDeferred: true };
+      let observation;
+      try { observation = await downstreamObserver({ queue, train: state.train, config, privateKeyFile,
+        observerEnvironmentReference, environment, command, proofBinding: state.binding,
+        binding: state.downstreamBinding, session }); }
+      catch (error) {
+        await save({ stage: 'blocked', gate: 'downstream-session-refused', sessionFailure: {
+          code: error instanceof TrainAppSessionError ? error.code : 'unclassified-observer-failure',
+          revocation: error instanceof TrainAppSessionError ? error.revocation : 'unknown' } });
+        return { ...status(), inspectionRequired: true };
+      }
+      if (!['waiting', 'failed', 'refused', 'complete'].includes(observation?.kind)) fail('unknown downstream observation');
+      if (observation.kind === 'complete' && (!observation.binding
+          || observation.binding.repository !== queue.repository || observation.binding.repositoryId !== config.repositoryId
+          || observation.binding.source !== state.train.source || observation.binding.tree !== state.train.tree
+          || observation.binding.manifestDigest !== state.train.digest
+          || observation.binding.proofRunId !== state.binding.id || observation.binding.proofRunAttempt !== state.binding.attempt
+          || !['acceptanceRunId', 'acceptanceRunAttempt', 'publicationRunId', 'publicationRunAttempt', 'publicationReceiptArtifactId']
+            .every(key => positive(observation.binding[key])))) fail('downstream completion lacks exact custody');
+      await save({ nextObservationAt: now + 300000,
+        ...(observation.binding ? { downstreamBinding: observation.binding } : {}),
+        ...(observation.kind === 'complete' ? { stage: 'complete', gate: null } : {}),
+        ...(['failed', 'refused'].includes(observation.kind) ? { stage: 'blocked', gate: `downstream-${observation.kind}` } : {}) });
+      return { ...status(), ...(state.stage === 'complete' ? { complete: true, publication: state.downstreamBinding } : {}) };
     }
     if (state.stage === 'awaiting-run') {
       if (state.nextObservationAt && now < state.nextObservationAt) return { ...status(), observationDeferred: true };

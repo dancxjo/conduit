@@ -81,15 +81,27 @@ until its landing/downstream boundary, then stop the timer and settle actual
 publication before freezing writers. Do not describe `--drain` as automatic
 completion of an accepted train.
 
-After an acknowledged landing, the journal remains `awaiting-downstream` with
-an explicit operator-recoverable gate. It does not claim complete train success.
-The existing real dev-push Integration/adoption and publication workflows must
-still be authenticated. Automated downstream observation and a reviewed
-multi-batch dequeue/recovery lifecycle remain follow-on work. Never delete or
-rewrite a journal to silently skip those gates or recycle a batch. For recovery,
-stop the timer, retain journal/lock/evidence, inspect exact remote refs/run
-attempts and outcomes, and record a separate reviewed recovery decision. PID
-absence alone is not permission to unlink a crash lock or replay an operation.
+After an acknowledged landing, the journal remains `awaiting-downstream` until
+read-only short sessions authenticate the exact dev-push Integration, adopted
+manual proof and published release. The published manifest's source, tree,
+acceptance/proof run attempts and digest must match. A separate immutable Actions
+artifact `publication-receipt-<attempt>` binds that release manifest's bytes to
+its exact successful Publish workflow run and attempt. This receipt is uploaded
+after Pages handling; it never changes the stable release manifest or its
+resumable asset hashes. Old workflows without this receipt remain unproven.
+
+The observer examines a bounded recent Publish window until it pins an exact
+run; missing coverage demands inspection. Later observations use the pinned
+run directly and reject changed attempts. Completion records authenticated
+release/workflow custody, not independent product extraction or live Pages
+availability. The publisher's existing product and site verifiers retain those
+proof obligations. A reviewed multi-batch dequeue/recovery lifecycle remains
+follow-on work; this command owns one explicitly approved batch.
+
+Never delete or rewrite a journal to silently skip gates or recycle a batch.
+For recovery, stop the timer, retain journal/lock/evidence, inspect exact remote
+refs/run attempts and outcomes, and record a separate reviewed recovery decision.
+PID absence alone is not permission to unlink a crash lock or replay an operation.
 
 The service/timer examples are inert templates. Replace every path with pinned
 external controller/state/key/config paths. The external owner-only environment

@@ -31,7 +31,7 @@ async function setup(t) {
     return { landedDev: f.source, tree: f.manifest.tree, manifestDigest: f.manifest.digest, runId: 123, runAttempt: 1 };
   };
   return { ...f, directory, queue, saveQueue, options, controller, calls,
-    tick: overrides => runTrainSupervisorTick({ ...options, controller, identity: async () => 'a'.repeat(64), clock: () => now += 300001, ...overrides }) };
+    tick: overrides => runTrainSupervisorTick({ ...options, controller, downstreamObserver: async () => ({ kind: 'waiting' }), identity: async () => 'a'.repeat(64), clock: () => now += 300001, ...overrides }) };
 }
 test('finite ticks progress once through explicit operations and never claim downstream completion', async t => {
   const f = await setup(t); const observer = async () => ({ kind: 'success', binding: { id: 123, attempt: 1 } });
@@ -39,7 +39,7 @@ test('finite ticks progress once through explicit operations and never claim dow
     assert.equal((await f.tick({ observer })).stage, stage);
   }
   assert.deepEqual(f.calls, ['assemble', 'dispatch', 'acquire', 'land']);
-  const result = await f.tick({ observer }); assert.equal(result.stage, 'awaiting-downstream'); assert.equal(result.inspectionRequired, true);
+  const result = await f.tick({ observer }); assert.equal(result.stage, 'awaiting-downstream'); assert.equal(result.complete, undefined);
   assert.equal(f.calls.length, 4);
 });
 test('waiting only observes; failures and attempts cannot redispatch', async t => {
@@ -203,4 +203,18 @@ test('read cadence refuses immediate repeated observation without opening a sess
   await f.tick({ clock: () => 900000, observer });
   assert.equal((await f.tick({ clock: () => 900001, observer })).observationDeferred, true);
   assert.equal(calls, 1);
+});
+
+
+test('downstream completion requires exact accepted publication custody and never repeats landing', async t => {
+  const f = await setup(t), observer = async () => ({ kind: 'success', binding: { id: 123, attempt: 1 } });
+  for (let n = 0; n < 5; n++) await f.tick({ observer });
+  const binding = { repository: f.queue.repository, repositoryId: f.options.config.repositoryId,
+    source: f.manifest.source, tree: f.manifest.tree, manifestDigest: f.manifest.digest,
+    proofRunId: 123, proofRunAttempt: 1, acceptanceRunId: 456, acceptanceRunAttempt: 1,
+    publicationRunId: 789, publicationRunAttempt: 1, publicationReceiptArtifactId: 8 };
+  await assert.rejects(f.tick({ downstreamObserver: async () => ({ kind: 'complete', binding: { ...binding, source: 'f'.repeat(40) } }) }), /exact custody/);
+  assert.equal((await f.tick({ downstreamObserver: async () => ({ kind: 'complete', binding }) })).stage, 'complete');
+  assert.equal((await f.tick({ downstreamObserver: async () => { throw new Error('must not reobserve terminal batch'); } })).complete, true);
+  assert.deepEqual(f.calls, ['assemble', 'dispatch', 'acquire', 'land']);
 });
