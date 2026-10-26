@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
+import { join } from 'node:path';
 import { fixture } from './helpers/train-fixture.mjs';
 import { discoverTrainAdoption } from '../../tools/ci/pipeline/train-adoption.mjs';
 
@@ -51,7 +53,7 @@ sys.stdout.buffer.write(b.getvalue())`;
     return { status: 0, stdout: JSON.stringify(value) };
   };
   return { ...f, pushRun, run, state, checks, artifact: () => artifact, makeZip,
-    adopt: () => discoverTrainAdoption({ pushRun, repository, directory: f.directory, command }) };
+    adopt: (directory = f.directory) => discoverTrainAdoption({ pushRun, repository, directory, command }) };
 }
 
 test('adopts authenticated exact manual proof after source accepted on dev', async t => {
@@ -101,4 +103,20 @@ test('rehashed foreign tree still fails actual Git reconstruction', async t => {
   altered.digest = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
   f.makeZip(altered);
   await assert.rejects(f.adopt(), /tree|source/i);
+});
+
+async function shallow(t) {
+  const f = await setup(t), directory = join(f.directory, 'shallow-copy');
+  const result = spawnSync('git', ['clone', '--depth=1', '--no-local', pathToFileURL(f.directory).href, directory], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(spawnSync('git', ['rev-parse', '--is-shallow-repository'], { cwd: directory, encoding: 'utf8' }).stdout.trim(), 'true');
+  return { ...f, directory };
+}
+test('real shallow accepted checkout discovers absent train without needing ancestors', async t => {
+  const f = await shallow(t); f.state.inventory = [];
+  assert.equal(await f.adopt(f.directory), null);
+});
+test('train appearing after shallow-depth observation refuses instead of skipping reconstruction', async t => {
+  const f = await shallow(t);
+  await assert.rejects(f.adopt(f.directory), /commit|ancestor|merge|source|Git|git/i);
 });

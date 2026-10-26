@@ -70,14 +70,33 @@ jobs:
       adopted: ${{ steps.adopt.outputs.adopted }}
       proof-run: ${{ steps.adopt.outputs.proof-run }}
     steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-          persist-credentials: false
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
+      - name: Select history required for adoption discovery
+        id: history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/integration.yml/runs?head_sha=$GITHUB_SHA&event=workflow_dispatch&per_page=100" > "$RUNNER_TEMP/adoption-inventory.json"
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const inventory = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/adoption-inventory.json`, 'utf8'));
+          const count = inventory.total_count;
+          if (!Number.isSafeInteger(count) || count < 0 || !Array.isArray(inventory.workflow_runs)
+              || inventory.workflow_runs.length !== Math.min(count, 100)) {
+            throw new Error('Incomplete adoption history inventory');
+          }
+          // This selects checkout depth only. The unchanged adoption verifier
+          // reobserves the inventory and reconstructs every selected merge tree.
+          // Any manual run requires full history, even an unrelated/failed run.
+          appendFileSync(process.env.GITHUB_OUTPUT, `depth=${count === 0 ? 1 : 0}\n`);
+          NODE
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: ${{ steps.history.outputs.depth }}
+          persist-credentials: false
       - name: Discover exact accepted train proof
         id: adopt
         env:
