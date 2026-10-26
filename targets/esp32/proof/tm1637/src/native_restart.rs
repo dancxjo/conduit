@@ -14,6 +14,9 @@ use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
 #[path = "native_restart_payload.rs"]
 mod payload;
+// Awake CPU-only custody: no DMA or deep-sleep persistence is claimed.
+#[allow(unexpected_cfgs)] // Native profile is absent from the CPU proof crate.
+#[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
 static STORE: Mutex<CriticalSectionRawMutex, RefCell<Slot>> =
     Mutex::new(RefCell::new(Slot::Uninitialized));
 // Inline static custody preserves the existing heap/stack reserve; boxing
