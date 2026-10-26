@@ -123,3 +123,21 @@ test('changed admission between ready selection and assembly blocks before dispa
  assert.equal(result.gate,'assembled-selection-changed');
  assert.equal((await f.tick()).inspectionRequired,true);assert.deepEqual(f.operations,['assemble']);
 });
+
+
+test('pending accepted-dev observation waits without mutation or tight selection polling',async t=>{
+ const f=await setup(t);let calls=0;const now=Date.parse('2026-10-26T00:00:00Z');
+ const selectReady=async()=>{calls++;return {kind:'waiting',development:{source:'a'.repeat(40),runId:7,runAttempt:1,status:'in_progress'}};};
+ assert.equal((await f.tick({selectReady,clock:()=>now})).waiting,true);
+ assert.equal((await f.tick({selectReady,clock:()=>now})).observationDeferred,true);
+ assert.equal(calls,1);assert.deepEqual(f.operations,[]);
+ assert.equal((await f.tick({clock:()=>now+300001})).stage,'selected');
+});
+test('unexpected core refusal is retained instead of automatically retried',async t=>{
+ const f=await setup(t);await f.tick();let calls=0;
+ const supervisor=async()=>{calls++;throw new Error('fixture unknown core outcome');};
+ assert.equal((await f.tick({supervisor})).gate,'core-tick-refused');
+ assert.equal((await f.tick({supervisor})).inspectionRequired,true);
+ assert.equal(calls,1);assert.deepEqual(f.operations,[]);
+ assert.ok((await f.journal()).current,'current batch and evidence remain retained');
+});

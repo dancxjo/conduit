@@ -60,10 +60,13 @@ export async function runTrainServiceTick({configurationFile,config,privateKeyFi
   if (!/^[a-f0-9]{64}$/.test(runtime ?? '')) fail('runtime identity invalid');
   const configurationDigest = hash({service,config});
   return withTrainServiceStore(service.serviceRoot,async store => {
+    const now=clock();
+    if (!Number.isSafeInteger(now) || now<0) fail('invalid service clock');
     let state = await store.read();
     if (!state) state = {schema:'conduit.train-service-journal/v1',repository:service.repository,configurationDigest,runtime,completed:[],current:null,sequence:0};
     if (state.schema !== 'conduit.train-service-journal/v1' || state.repository !== service.repository || state.configurationDigest !== configurationDigest || state.runtime !== runtime
         || !Number.isSafeInteger(state.sequence) || state.sequence<0 || !Array.isArray(state.completed) || state.completed.length>service.maxBatches
+        || (state.nextReadyAt !== undefined && (!Number.isSafeInteger(state.nextReadyAt) || state.nextReadyAt<0))
         || state.completed.some((batch,index)=>!batch || !/^[a-f0-9]{64}$/.test(batch.selectionDigest ?? '')
           || batch.batchRoot !== path.join(service.serviceRoot,`batch-${String(index+1).padStart(3,'0')}-${batch.selectionDigest}`)
           || !/^[a-f0-9]{64}$/.test(batch.queueDigest ?? '') || batch.completion?.complete !== true)) fail('journal binding changed; inspect recovery');
@@ -73,11 +76,15 @@ export async function runTrainServiceTick({configurationFile,config,privateKeyFi
     if (!state.current) {
       if (maintenance) return result({paused:true});
       if (state.completed.length >= service.maxBatches) return result({capacityReached:true,inspectionRequired:true});
+      if (state.nextReadyAt && now<state.nextReadyAt) return result({observationDeferred:true});
       if (typeof selectReady !== 'function') fail('trusted short-session selector required');
       let selected;
       try { selected=await selectReady({service,config,privateKeyFile,observerEnvironmentReference,environment,command}); }
       catch { await save({blocked:'selection-session-refused'}); return result({inspectionRequired:true,gate:state.blocked}); }
-      if (selected?.kind === 'idle') return result({idle:true});
+      if (selected?.kind === 'idle' || selected?.kind === 'waiting') {
+        await save({nextReadyAt:now+300000});
+        return result(selected.kind==='idle' ? {idle:true} : {waiting:true,development:selected.development});
+      }
       if (selected?.kind !== 'selected') { await save({blocked:'selection-refused'}); return result({inspectionRequired:true,gate:state.blocked}); }
       const digest = validateSelection(selected,service);
       if (state.completed.some(batch=>batch.selectionDigest===digest)) fail('completed selection cannot be replayed');
@@ -99,8 +106,10 @@ export async function runTrainServiceTick({configurationFile,config,privateKeyFi
         || hash(batch.queue)!==batch.queueDigest || batch.selectionDigest!==validateSelection({kind:'selected',selection:batch.selection,development:batch.development},service)) fail('batch binding changed');
     const queueFile=path.join(batch.batchRoot,'queue.json');
     if (hash(await readSupervisorJson(queueFile,32768)) !== batch.queueDigest) fail('private queue changed');
-    const observation=await supervisor({queueFile,stateDirectory:path.join(batch.batchRoot,'core'),config,privateKeyFile,
-      observerEnvironmentReference,environment,command,maintenance,clock});
+    let observation;
+    try { observation=await supervisor({queueFile,stateDirectory:path.join(batch.batchRoot,'core'),config,privateKeyFile,
+      observerEnvironmentReference,environment,command,maintenance,clock}); }
+    catch { await save({blocked:'core-tick-refused'}); return result({inspectionRequired:true,gate:state.blocked}); }
     if (observation?.source) {
       const manifest=await readSupervisorJson(batch.queue.manifest,65536);
       verifyTrainManifest(manifest);

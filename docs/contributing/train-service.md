@@ -1,7 +1,7 @@
 # Repeated train batches on a trusted host
 
 The host service runs one finite tick per invocation. Its supported command is
-wired by the integration owner; it uses the existing supervisor and controller,
+available through `cargo +stable xtask ci pipeline train-service`; it uses the existing supervisor and controller,
 not an alternative landing authority. Neither this source proposal nor fixture
 proof establishes a deployed service or a live accepted App train.
 
@@ -47,10 +47,19 @@ refuses rather than silently migrating it.
 Deploy from an immutable clean trusted controller checkout and pinned Node
 runtime. Keep RSA keys and the separately named observer environment credential
 outside source and outputs, using the existing controller credential contract.
+Run the supported entry from the pinned trusted controller:
+
+```sh
+cargo +stable xtask ci pipeline train-service /private/train/service.json /private/train/machine.json /private/train/app.pem CONDUIT_TRAIN_POLICY_OBSERVER
+```
+
+Append `--drain` for maintenance. Pending or missing current-dev Integration waits
+without admitting inputs; a completed failed dev proof stops for repair. Idle
+or waiting selection is throttled for at least five minutes.
+
 A systemd service may use `Type=oneshot`, `UMask=0077`, a pinned trusted working
 directory, and the supported `cargo +stable xtask ci pipeline train-service`
-entrance once integrated. Its timer should use `OnUnitInactiveSec=5min` and
-`Persistent=true`; do not add a shell polling/restart loop or automatic retry on
+entrance. Its timer should use `OnUnitInactiveSec=5min`; do not add a shell polling/restart loop or automatic retry on
 failure. Supply only external configuration/key paths and the observer variable
 **name**, never credentials in arguments. These are deployment examples, not
 instructions to activate machine policy or cheap admission.
