@@ -63,6 +63,8 @@ fn complete_five_and_sixteen_unicode_faces_cross_matching_collection_storage() {
             let producer = mask.publication().unwrap();
             let renderer = mask.render_receipt().unwrap();
             assert_eq!(producer.encoded_bytes as usize, bytes.len());
+            assert_eq!(renderer.renderer_input_bytes as usize, bytes.len());
+            assert!(renderer.renderer_show_value_bytes > 0);
             assert_eq!(
                 producer
                     .collection_storage

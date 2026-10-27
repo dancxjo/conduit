@@ -89,6 +89,10 @@ pub struct NativeMaskPlayReceipt {
     pub active_play_id: conduit_core::ActivePlayId,
     pub face_id: String,
     pub face_revision: u64,
+    /// Exact pending present input, checked against the complete encoded Face.
+    pub renderer_input_bytes: u32,
+    /// Exact result value retained through completed renderer/Show delivery.
+    pub renderer_show_value_bytes: u32,
     pub show_value_id: String,
     pub scanout_frame_sequence: u64,
     pub scanout_pixels_written: u32,

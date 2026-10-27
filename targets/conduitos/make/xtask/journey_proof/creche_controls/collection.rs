@@ -27,6 +27,10 @@ pub(super) fn receipt(serial: &str) -> Result<Value, ConduitosError> {
         if encoded.len() > collection
             || envelope > collection + 32 * 1024
             || producer["encoded_bytes"] != encoded.len()
+            || renderer["renderer_input_bytes"] != encoded.len()
+            || !renderer["renderer_show_value_bytes"]
+                .as_u64()
+                .is_some_and(|n| n > 0 && n <= collection as u64)
             || producer["value_sha256"] != digest
             || [producer, renderer].iter().any(|r| {
                 r["face_id"] != face.identity.as_str()

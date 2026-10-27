@@ -23,6 +23,10 @@ own bound. A byte count from a different Source revision is not admission.
 | Complete Face observer | 288 KiB, selected only with matching completed Collection producer and renderer receipts |
 | Native geometry | Existing 48 commands, 192 bytes per command text, 20 rows/page, eight compositor surfaces |
 
+The renderer receipt separately measures its exact pending present input and
+completed Show result bytes. The input is checked against the complete encoded
+Face; the smaller Show result is not a replacement Face measurement.
+
 Value payload reservations exclude scheduler objects, Plans, semantic Face heaps,
 serializer temporaries, and compositor surfaces. Actual producer and renderer
 receipts report their backing capacities and inline objects separately. The
