@@ -450,15 +450,15 @@ fn v2_packed_tokens_exact_spelling_and_legacy_v1_are_preserved() {
 }
 
 #[test]
-fn v3_far_window_continuation_is_lossless_bounded_and_legacy_readable() {
-    for version in *b"12" {
+fn v4_far_window_continuation_is_lossless_bounded_and_legacy_readable() {
+    for version in *b"123" {
         let mut legacy = b"BDYLZ000".to_vec();
         legacy[7] = version;
         legacy.extend_from_slice(&[2, b'x', 255, 255, 1, 0, 0, 0]);
         assert_eq!(decode(&legacy, 1, 131072).unwrap(), b"x");
     }
     let mut random = 0x7265_6e65u32;
-    let mut data = (0..1536)
+    let mut data = (0..1280)
         .map(|_| {
             random ^= random << 13;
             random ^= random >> 17;
@@ -469,7 +469,7 @@ fn v3_far_window_continuation_is_lossless_bounded_and_legacy_readable() {
     let first = data[..65].to_vec();
     data.extend_from_slice(&first);
     let frame = encode(&data, 1).0;
-    assert_eq!(&frame[..8], b"BDYLZ003");
+    assert_eq!(&frame[..8], b"BDYLZ004");
     assert!(frame.windows(2).any(|w| w == [65, 254]));
     for width in [1, 2, 7, 65, 127, 128] {
         assert_eq!(encode(&data, width).0, frame);
@@ -525,4 +525,76 @@ fn v3_far_match_fields_and_encoder_capacity_are_exactly_checked() {
     let mut encoder = codec::Encoder::new(|_: &[u8]| Ok(()), 100, 8);
     encoder.write(b"a").unwrap();
     assert_eq!(encoder.finish(), Err(codec::Error::Capacity));
+}
+
+#[test]
+fn v4_exact_hex_cache_survives_distance_eviction_and_all_chunk_boundaries() {
+    let mut data = Vec::new();
+    let mut random = 0x1234_5678u32;
+    let mut ids = Vec::new();
+    for _ in 0..25 {
+        let mut id = String::new();
+        for _ in 0..32 {
+            random ^= random << 13;
+            random ^= random >> 17;
+            random ^= random << 5;
+            use core::fmt::Write;
+            write!(&mut id, "{:02x}", random as u8).unwrap();
+        }
+        ids.push(id);
+    }
+    for id in &ids {
+        data.extend_from_slice(id.as_bytes());
+        data.extend_from_slice(&[b'X'; 1500]);
+        data.extend_from_slice(id.as_bytes());
+        data.push(b'Z');
+    }
+    // Old and recent entries cross the 20-entry FIFO; every output byte remains
+    // exact whether represented by a cache hit, a fresh packed run, or a match.
+    for id in &ids {
+        data.extend_from_slice(id.as_bytes());
+        data.push(b'Z');
+    }
+    let frame = encode(&data, 1).0;
+    assert!(frame
+        .windows(2)
+        .any(|w| w[1] == 0xfd && (0x80..0x94).contains(&w[0])));
+    for width in [1, 2, 7, 65, 127, 128] {
+        assert_eq!(encode(&data, width).0, frame);
+        assert_eq!(decode(&frame, width, data.len()).unwrap(), data);
+    }
+    for index in [0, 19, 20, 31] {
+        let bad = [
+            b"BDYLZ004".as_slice(),
+            &[3, 0x80 | index, 0xfd, 0xff, 0xff, 64, 0, 0, 0],
+        ]
+        .concat();
+        assert!(decode(&bad, 1, 131072).is_err());
+    }
+    let mut legacy = frame;
+    legacy[7] = b'3';
+    assert!(decode(&legacy, 1, 131072).is_err());
+}
+
+#[test]
+fn v4_decimal_runs_reuse_only_the_existing_expansion_capacity() {
+    for count in [17u8, 21] {
+        let mut frame = b"BDYLZ004".to_vec();
+        frame.extend_from_slice(&[3, count, 0xfc]);
+        frame.extend_from_slice(&vec![0; usize::from(count)]);
+        frame.extend_from_slice(&[0xff, 0xff]);
+        frame.extend_from_slice(&(u32::from(count) * 2 - 1).to_le_bytes());
+        assert_eq!(
+            decode(&frame, 1, 131072).unwrap(),
+            vec![b"0".as_slice(); usize::from(count)].join(&b',')
+        );
+        for cut in 0..frame.len() {
+            assert!(decode(&frame[..cut], 7, 131072).is_err());
+        }
+        let mut legacy = frame.clone();
+        legacy[7] = b'3';
+        assert!(decode(&legacy, 1, 131072).is_err());
+        frame[11..11 + usize::from(count)].fill(255);
+        assert!(decode(&frame, 1, 131072).is_err());
+    }
 }
