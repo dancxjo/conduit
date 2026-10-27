@@ -141,13 +141,11 @@ fn bootsel_control_requires_explicit_kind_exact_current_build_and_fresh_sequence
 
 #[test]
 fn sensor_status_is_an_explicit_empty_control_request_independent_of_join() {
-    let mut decoder = Decoder::new();
-    decoder
-        .accept(&header(SENSOR_STATUS, 1, 0).unwrap())
-        .unwrap();
-    assert_eq!(decoder.frame().unwrap().kind, SENSOR_STATUS);
-    let mut invalid = Decoder::new();
-    assert!(invalid
-        .accept(&header(SENSOR_STATUS, 2, 1).unwrap())
-        .is_err());
+    for kind in [SENSOR_STATUS, SENSOR_DIAGNOSTIC] {
+        let mut decoder = Decoder::new();
+        decoder.accept(&header(kind, 1, 0).unwrap()).unwrap();
+        assert_eq!(decoder.frame().unwrap().kind, kind);
+        let mut invalid = Decoder::new();
+        assert!(invalid.accept(&header(kind, 2, 1).unwrap()).is_err());
+    }
 }

@@ -112,3 +112,13 @@ Successful readings include `temperature_centi_celsius`,
 `pressure_centi_pascal`, and `humidity_percent_q10` (`null` for BMP unsupported).
 The broader INFORMATION response bound is now512 bytes; sensor JSON uses a
 fixed384-byte formatter. No provisioning or signed-history format changed.
+
+When uninitialized, the diagnostic probes 0x76 then 0x77 once each, with a
+100 ms deadline per initialization. It moves the same exclusive I2C bus between
+attempts. Only a supported chip ID plus validated calibration/configuration
+makes a sensor ready. `address` reports the selected attempt, not proof that
+anything acknowledged it. Kind7 (`SENSOR_DIAGNOSTIC`, empty payload) retains the
+actual driver initialization errors for both addresses, measurement errors,
+TM1637 failure (including Nack packet/byte), and released digital line levels
+before transmission and after cleanup. These levels are not voltage readings.
+Both status controls remain available without an ESP Wi-Fi association.

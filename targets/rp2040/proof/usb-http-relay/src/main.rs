@@ -258,6 +258,10 @@ async fn main(spawner: Spawner) {
                     }
                     Err("bootsel-ack-failed")
                 }
+                protocol::SENSOR_DIAGNOSTIC => match environment::diagnostic() {
+                    Ok(text) => send(&mut class, protocol::INFORMATION, id, text.as_bytes()).await,
+                    Err(e) => Err(e),
+                },
                 protocol::SENSOR_STATUS => match environment::status() {
                     Ok(text) => send(&mut class, protocol::INFORMATION, id, text.as_bytes()).await,
                     Err(e) => Err(e),

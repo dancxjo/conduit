@@ -94,6 +94,12 @@ class Proof(unittest.TestCase):
         for kind, data in [(r.BOOTSEL_CHALLENGE,b"z"*64),(r.BOOTSEL_ACK,build)]:
             self.assertRaises(r.RelayError,r.Relay(Stream(frame(kind,1,data))).exchange,r.BOOTSEL_QUERY)
 
+    def test_sensor_diagnostics_do_not_require_wifi_association(self):
+        for kind in (r.SENSOR_STATUS,r.SENSOR_DIAGNOSTIC):
+            stream=Stream(frame(r.INFORMATION,1,b'{"role":"conduit.pico-usb-http-relay@1","status":"sensor-failed"}'))
+            self.assertEqual(r.Relay(stream).exchange(kind)["status"],"sensor-failed")
+            self.assertEqual(bytes(stream.outgoing),frame(kind,1,b""))
+
 
 if __name__ == "__main__":
     unittest.main()

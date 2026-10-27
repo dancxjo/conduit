@@ -14,8 +14,15 @@ use embassy_rp::{
 };
 use embassy_time::{with_timeout, Delay, Duration, Instant, Timer};
 bind_interrupts!(struct SensorIrqs { I2C1_IRQ => i2c::InterruptHandler<I2C1>; });
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Snapshot {
+    address: u8,
+    primary_init: heapless::String<64>,
+    secondary_init: heapless::String<64>,
+    measurement: heapless::String<64>,
+    display_error: heapless::String<64>,
+    levels: (bool, bool),
+    before: (bool, bool),
     samples: u64,
     attempts: u64,
     frames: u64,
@@ -26,6 +33,13 @@ struct Snapshot {
     display: &'static str,
 }
 static SNAPSHOT: Mutex<RefCell<Snapshot>> = Mutex::new(RefCell::new(Snapshot {
+    address: 0x76,
+    primary_init: heapless::String::new(),
+    secondary_init: heapless::String::new(),
+    measurement: heapless::String::new(),
+    display_error: heapless::String::new(),
+    levels: (false, false),
+    before: (false, false),
     samples: 0,
     attempts: 0,
     frames: 0,
@@ -39,7 +53,7 @@ fn update(f: impl FnOnce(&mut Snapshot)) {
     critical_section::with(|cs| f(&mut SNAPSHOT.borrow(cs).borrow_mut()));
 }
 pub fn status() -> Result<heapless::String<384>, &'static str> {
-    let s = critical_section::with(|cs| *SNAPSHOT.borrow(cs).borrow());
+    let s = critical_section::with(|cs| SNAPSHOT.borrow(cs).borrow().clone());
     let mut out = heapless::String::new();
     let (_, peak) = crate::heap::usage();
     let (chip, id) = match s.chip {
@@ -47,7 +61,7 @@ pub fn status() -> Result<heapless::String<384>, &'static str> {
         Some(Chip::Bmp280) => ("bmp280", "88"),
         None => ("uninitialized", "null"),
     };
-    write!(&mut out,"{{\"role\":\"{}\",\"chip\":\"{}\",\"chip_id\":{},\"address\":118,\"samples\":{},\"attempts\":{},\"frames\":{},\"acks\":{},\"heap_peak\":{},\"status\":\"{}\",\"display\":\"{}\"",crate::protocol::ROLE,chip,id,s.samples,s.attempts,s.frames,s.acks,peak,s.error,s.display).map_err(|_|"sensor-status-capacity")?;
+    write!(&mut out,"{{\"role\":\"{}\",\"chip\":\"{}\",\"chip_id\":{},\"address\":{},\"samples\":{},\"attempts\":{},\"frames\":{},\"acks\":{},\"heap_peak\":{},\"status\":\"{}\",\"display\":\"{}\"",crate::protocol::ROLE,chip,id,s.address,s.samples,s.attempts,s.frames,s.acks,peak,s.error,s.display).map_err(|_|"sensor-status-capacity")?;
     if let Some(r) = s.reading {
         let mut rh = heapless::String::<16>::new();
         match r.humidity {
@@ -58,6 +72,37 @@ pub fn status() -> Result<heapless::String<384>, &'static str> {
         write!(&mut out,",\"temperature_centi_celsius\":{},\"pressure_centi_pascal\":{},\"humidity_percent_q10\":{}",r.temperature_centi_celsius,r.pressure_centi_pascal,rh).map_err(|_|"sensor-status-capacity")?;
     }
     out.push('}').map_err(|_| "sensor-status-capacity")?;
+    Ok(out)
+}
+fn describe<T, E: core::fmt::Debug>(
+    value: &Result<Result<T, E>, embassy_time::TimeoutError>,
+) -> heapless::String<64> {
+    let mut out = heapless::String::new();
+    match value {
+        Ok(Ok(_)) => out.push_str("ok").unwrap(),
+        Ok(Err(e)) => {
+            let _ = write!(&mut out, "{e:?}");
+        }
+        Err(_) => out.push_str("deadline-100ms").unwrap(),
+    };
+    out
+}
+fn describe_wire<E: core::fmt::Debug>(
+    value: &Result<(), conduit_tm1637_wire::Failure<E>>,
+) -> heapless::String<64> {
+    let mut out = heapless::String::new();
+    match value {
+        Ok(()) => out.push_str("ok-9-acks").unwrap(),
+        Err(e) => {
+            let _ = write!(&mut out, "{e:?}");
+        }
+    };
+    out
+}
+pub fn diagnostic() -> Result<heapless::String<512>, &'static str> {
+    let s = critical_section::with(|cs| SNAPSHOT.borrow(cs).borrow().clone());
+    let mut out = heapless::String::new();
+    write!(&mut out,"{{\"role\":\"{}\",\"primary_0x76\":\"{}\",\"secondary_0x77\":\"{}\",\"measure\":\"{}\",\"display_error\":\"{}\",\"idle_clock_high\":{},\"idle_data_high\":{},\"after_clock_high\":{},\"after_data_high\":{}}}",crate::protocol::ROLE,s.primary_init,s.secondary_init,s.measurement,s.display_error,s.before.0,s.before.1,s.levels.0,s.levels.1).map_err(|_|"diagnostic-capacity")?;
     Ok(out)
 }
 #[embassy_executor::task]
@@ -81,19 +126,35 @@ pub async fn run(
     loop {
         if last_sample.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
             update(|s| s.attempts = s.attempts.saturating_add(1));
-            let initialized = if sensor.chip().is_none() {
-                matches!(
-                    with_timeout(Duration::from_millis(100), sensor.initialize(&mut delay)).await,
-                    Ok(Ok(_))
-                )
-            } else {
-                true
-            };
+            let mut initialized = sensor.chip().is_some();
+            if !initialized {
+                // Move the same actual bus owner; never duplicate an I2C peripheral.
+                sensor = Sensor::new(sensor.into_inner(), Address::Primary);
+                let first =
+                    with_timeout(Duration::from_millis(100), sensor.initialize(&mut delay)).await;
+                update(|s| {
+                    s.primary_init = describe(&first);
+                    s.secondary_init.clear();
+                    s.address = 0x76;
+                });
+                initialized = matches!(first, Ok(Ok(_)));
+                if !initialized {
+                    sensor = Sensor::new(sensor.into_inner(), Address::Secondary);
+                    let second =
+                        with_timeout(Duration::from_millis(100), sensor.initialize(&mut delay))
+                            .await;
+                    update(|s| {
+                        s.secondary_init = describe(&second);
+                        s.address = 0x77;
+                    });
+                    initialized = matches!(second, Ok(Ok(_)));
+                }
+            }
             let reading = if initialized {
-                with_timeout(Duration::from_millis(100), sensor.measure(&mut delay))
-                    .await
-                    .ok()
-                    .and_then(Result::ok)
+                let measured =
+                    with_timeout(Duration::from_millis(100), sensor.measure(&mut delay)).await;
+                update(|s| s.measurement = describe(&measured));
+                measured.ok().and_then(Result::ok)
             } else {
                 None
             };
@@ -116,7 +177,7 @@ pub async fn run(
                 });
             }
         }
-        let s = critical_section::with(|cs| *SNAPSHOT.borrow(cs).borrow());
+        let s = critical_section::with(|cs| SNAPSHOT.borrow(cs).borrow().clone());
         let registers = match s.reading {
             Some(r) => crate::environment_show::render(
                 r,
@@ -135,6 +196,7 @@ pub async fn run(
             registers[4],
             registers[5],
         ];
+        let before = pins.levels();
         let result = transmit(
             &mut pins,
             &[
@@ -144,7 +206,11 @@ pub async fn run(
             ],
             || false,
         );
+        let levels = pins.levels();
         update(|s| {
+            s.levels = levels;
+            s.before = before;
+            s.display_error = describe_wire(&result);
             s.frames = s.frames.saturating_add(1);
             if result.is_ok() {
                 s.acks = s.acks.saturating_add(1);
