@@ -38,6 +38,13 @@ impl NativeRoot {
         &mut self,
         window: Option<&WorkspacePermit<'_>>,
     ) -> &'static [u8] {
+        self.prepare_network_configuration_mode(window, true)
+    }
+    fn prepare_network_configuration_mode(
+        &mut self,
+        window: Option<&WorkspacePermit<'_>>,
+        release: bool,
+    ) -> &'static [u8] {
         if self.network.retirement.is_some() {
             return b"retirement-evidence-pending";
         }
@@ -66,7 +73,7 @@ impl NativeRoot {
                 match crate::native_credentials::prepare_configuration(&self.credential_writer) {
                     Ok(configuration) => configuration,
                     Err("credential-unavailable" | "credential-not-acknowledged") => {
-                        return b"waiting"
+                        return b"waiting";
                     }
                     Err(_) => return b"refused",
                 };
@@ -113,7 +120,7 @@ impl NativeRoot {
                 self.network.ready_slot(),
                 &mut self.issuer,
             );
-            if result.is_ok() && window.is_none() {
+            if result.is_ok() && window.is_none() && release {
                 self.play.release_held()
             } else {
                 result
@@ -131,7 +138,7 @@ impl NativeRoot {
                     return b"planning-refused";
                 }
             };
-            let result = if window.is_some() {
+            let result = if window.is_some() || !release {
                 self.play.install_verified_owned_held(
                     prepared,
                     &mut self.credentials,
@@ -158,11 +165,15 @@ impl NativeRoot {
             if !window.held() || memory.size.saturating_sub(memory.current_usage) < 8192 + 8192 {
                 return b"installed-held-pressure";
             }
-            if self.play.release_held().is_err() {
+            if release && self.play.release_held().is_err() {
                 return b"installed-held-release-refused";
             }
         }
-        b"installed"
+        if release {
+            b"installed"
+        } else {
+            b"installed-held"
+        }
     }
     #[cfg(feature = "local-appliance")]
     fn advance_network_workspace(&mut self) {
@@ -238,7 +249,17 @@ impl NativeRoot {
     /// availability; a receipt from an old successful join is insufficient.
     pub async fn advance_setup(&mut self) {
         #[cfg(feature = "network-workspace-check")]
-        self.check_network_workspace();
+        {
+            self.check_network_workspace();
+            // This diagnostic may retain selected affine owners and a kernel,
+            // but never releases, Steps, runs or restores that held selection.
+            return;
+        }
+        #[cfg(not(feature = "network-workspace-check"))]
+        self.advance_setup_enabled().await;
+    }
+    #[cfg(not(feature = "network-workspace-check"))]
+    async fn advance_setup_enabled(&mut self) {
         if self.network.retirement.is_some() {
             let _ = self.finish_network_retirement();
             return;

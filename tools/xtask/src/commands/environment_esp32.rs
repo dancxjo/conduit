@@ -60,7 +60,7 @@ pub(super) fn build_flat_network_appliance(root: &Path, key: &Path) -> Result<()
 }
 pub(super) fn build_network_workspace_check(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
     build_with_owner(root, true, false, Some(key), Some("network-workspace-check"))?;
-    println!("Passive retired Mask workspace observation; network construction remains gated");
+    println!("Held network construction measurement from acknowledged setup; radio execution remains gated");
     Ok(())
 }
 /// Physical owner maintenance preserves data partitions and does not start a
