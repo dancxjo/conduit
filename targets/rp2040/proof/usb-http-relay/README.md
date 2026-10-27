@@ -90,14 +90,18 @@ GP6 SDA / GP7 SCL, with 100 ms whole-operation deadlines. It samples every
 reading and require reinitialization; BMP280 humidity is explicitly unsupported.
 The common EnvironmentalReading adapter preserves exact centi-Celsius,
 centi-Pascal and Q10-percent values. The shared environmental Face contains
-pressure; the existing shared Mask alternates whole-degree Fahrenheit and RH
-on GP3 CLK / GP4 DIO every 2 seconds. Pressure has no invented display page.
+pressure; the shared environmental Mask cycles whole-degree Fahrenheit,
+humidity (`H 44`, or `H100`) and whole hectopascals (`1012`)
+on GP3 CLK / GP4 DIO every 2 seconds. A BMP280 skips unsupported humidity.
+Humidity and pressure use no colon or decimal points.
 Failed or unsupported values use the existing unavailable glyphs.
 
 This is a hardware diagnostic composition of shared Face/Look, not an installed
 Body/Plan: its Face has no Body, Wake, Source, Plan or active Play identity.
 Ordinary Face preparation uses a fixed 48 KiB heap. Sampling and display do not
 wait for a host. The USB transport and exact-build BOOTSEL remain separate.
+The recovery build identity includes the shared Face, measurement and Look
+sources as well as the target sources, so presentation updates change it.
 Control kind6 (`SENSOR_STATUS`, empty payload) returns JSON before Wi-Fi JOIN:
 
 ```python

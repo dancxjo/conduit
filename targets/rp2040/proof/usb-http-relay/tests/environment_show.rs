@@ -15,20 +15,29 @@ fn actual_bosch_coordinates_use_common_face_and_whole_degree_look() {
     let rh = show::render(bme, 1, 2000).unwrap();
     assert_ne!(temp, rh);
     assert_eq!(temp[1] & 0x80, 0, "whole temperature has no colon");
-    assert_ne!(rh[1] & 0x80, 0, "shared rH:44 Look owns colon");
+    assert_eq!(rh, [0x76, 0, 0x66, 0x66, 0, 0], "H 44, no colon");
+    let pressure_page = [0x06, 0x3f, 0x06, 0x4f, 0, 0]; // 1013 hPa
+    assert_eq!(show::render(bme, 1, 4000).unwrap(), pressure_page);
+    assert_eq!(show::render(bme, 1, 6000).unwrap(), temp);
+    assert_eq!(
+        show::render(reading(Humidity::PercentQ10(100 * 1024)), 1, 2000).unwrap(),
+        [0x76, 0x06, 0x3f, 0x3f, 0, 0]
+    );
     let bmp = reading(Humidity::Unavailable(HumidityUnavailable::UnsupportedChip));
     assert_eq!(show::render(bmp, 2, 0).unwrap(), temp);
     assert_eq!(
         show::render(bmp, 2, 2000).unwrap(),
-        [0x40, 0x40, 0x40, 0x40, 0, 0]
+        pressure_page,
+        "BMP skips unsupported humidity and shows actual pressure"
     );
     let mut pressure = bme;
     pressure.pressure_centi_pascal = 9000000;
     assert_eq!(
         show::render(pressure, 3, 0).unwrap(),
         temp,
-        "pressure is a Face quantity, not a fabricated display page"
+        "pressure does not change the temperature page"
     );
+    assert_ne!(show::render(pressure, 3, 4000).unwrap(), pressure_page);
     assert_eq!(
         show::render(bme, 1, 30000).unwrap(),
         [0x40, 0x40, 0x40, 0x40, 0, 0]

@@ -19,6 +19,56 @@ fn main() {
         sources.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
         sources.extend_from_slice(&bytes);
     }
+    // Local path dependencies have no content digest in Cargo.lock. Include
+    // their shared presentation sources so a changed Face/Look cannot retain
+    // the previous firmware's recovery identity.
+    fn collect(path: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(path).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                collect(&path, files);
+            } else if matches!(
+                path.extension().and_then(|x| x.to_str()),
+                Some("rs" | "conduit")
+            ) || path.file_name().is_some_and(|x| x == "Cargo.toml")
+            {
+                files.push(path);
+            }
+        }
+    }
+    let mut presentation = Vec::new();
+    for file in [
+        "../../../../plots/seven-segment-mask/Cargo.toml",
+        "../../../../plots/seven-segment-mask/build.rs",
+        "../../../../plots/seven-segment-mask/main.conduit",
+        "../../../../plots/seven-segment-mask/types.conduit",
+        "../../../../bodies/environment/face/Cargo.toml",
+        "../../../../bodies/environment/face/build.rs",
+        "../../../../bodies/environment/face/main.conduit",
+        "../../../../bodies/environment/measurement/Cargo.toml",
+    ] {
+        if std::path::Path::new(file).is_file() {
+            println!("cargo:rerun-if-changed={file}");
+            presentation.push(std::path::PathBuf::from(file));
+        }
+    }
+    for directory in [
+        "../../../../plots/seven-segment-mask/src",
+        "../../../../bodies/environment/face/src",
+        "../../../../bodies/environment/measurement/src",
+    ] {
+        println!("cargo:rerun-if-changed={directory}");
+        collect(std::path::Path::new(directory), &mut presentation);
+    }
+    presentation.sort();
+    for path in presentation {
+        let name = path.to_str().unwrap().as_bytes();
+        sources.extend_from_slice(&(name.len() as u64).to_le_bytes());
+        sources.extend_from_slice(name);
+        let bytes = std::fs::read(path).unwrap();
+        sources.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+        sources.extend_from_slice(&bytes);
+    }
     let assets = "../../firmware/assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab";
     let mut files = std::fs::read_dir(assets)
         .unwrap()

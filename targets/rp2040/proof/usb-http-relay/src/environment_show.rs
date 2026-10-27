@@ -6,7 +6,7 @@ use conduit_bosch_env::{Humidity, Reading};
 use conduit_environment_face::{contribution_reading, EnvironmentalReading, SensorStatus};
 use conduit_face::{Face, FaceBasis, FaceContributionBasis};
 use conduit_seven_segment_mask::{
-    DigitWiring, PreparedEnvironmentFace, SevenSegmentLook, TimedSevenSegmentMask, Tm1637Profile,
+    DigitWiring, PreparedEnvironmentalFace, SevenSegmentLook, TimedEnvironmentalMask, Tm1637Profile,
 };
 fn profile() -> Tm1637Profile {
     Tm1637Profile {
@@ -56,8 +56,8 @@ pub fn render(reading: Reading, revision: u64, elapsed: u64) -> Result<[u8; 6], 
         fragment.text,
     )
     .map_err(|_| ())?;
-    let projected = PreparedEnvironmentFace::prepare(&face, "environment").map_err(|_| ())?;
-    let mask = TimedSevenSegmentMask::prepare(
+    let projected = PreparedEnvironmentalFace::prepare(&face, "environment").map_err(|_| ())?;
+    let mask = TimedEnvironmentalMask::prepare(
         SevenSegmentLook::fahrenheit().with_whole_degrees(),
         2000,
         30_000,
