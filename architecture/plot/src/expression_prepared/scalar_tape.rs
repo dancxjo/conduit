@@ -7,8 +7,8 @@ pub(super) struct ScalarTape {
     scratch: ScratchProfile,
 }
 
-// Bound before Play. Four monomorphized loops limit both scratch initialization
-// and code growth; the largest profile retains the original 128-slot ceiling.
+// Bound before Play. Four small wrappers retain their fixed scratch profiles;
+// one shared interpreter avoids duplicating the loop for each array length.
 #[derive(Clone, Copy)]
 enum ScratchProfile {
     Tiny,
@@ -175,6 +175,18 @@ impl ScalarTape {
         input_kind: Option<PrimitiveInfoKind>,
     ) -> Result<PrimitiveValue<'a>, Refusal> {
         let mut slots: [Option<PrimitiveValue<'a>>; SLOTS] = core::array::from_fn(|_| None);
+        self.evaluate_in_slots(input, input_kind, &mut slots)
+    }
+    // The caller retains the exact admitted array and owns its initialization
+    // and cleanup. Only the instruction loop is shared; no scratch is allocated
+    // here, and a returned value borrows the tape/input rather than this slice.
+    #[inline(never)]
+    fn evaluate_in_slots<'a>(
+        &'a self,
+        input: &'a [u8],
+        input_kind: Option<PrimitiveInfoKind>,
+        slots: &mut [Option<PrimitiveValue<'a>>],
+    ) -> Result<PrimitiveValue<'a>, Refusal> {
         let mut pc = 0;
         while pc < self.instructions.len() {
             let instruction = &self.instructions[pc];
