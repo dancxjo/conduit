@@ -12,6 +12,8 @@ use std::{
 mod error;
 #[path = "transport_fault.rs"]
 mod fault;
+#[path = "transport_timing.rs"]
+mod timing;
 pub use error::retryable as is_recoverable;
 pub struct Line {
     file: File,
@@ -214,6 +216,7 @@ impl Line {
             self.file.read_exact(&mut byte).map_err(error::io)?;
             if byte[0] == b'\n' {
                 if let Ok(value) = serde_json::from_slice::<Value>(&bytes) {
+                    timing::observe(&value);
                     if value["event"] == "body-join-refused"
                         || value["event"] == "native-root-request-refused"
                     {
