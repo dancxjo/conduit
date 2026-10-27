@@ -86,6 +86,26 @@ impl NativeAdmission {
         }
         Ok(self.key.sign(&observer.transcript()).to_bytes())
     }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn sign_return_challenge(
+        &self,
+        draft: &crate::native_body_join::returning::DurableChallenge,
+    ) -> Result<[u8; 64], &'static str> {
+        if !self.ready() {
+            return Err("body-return-not-durable");
+        }
+        Ok(self.key.sign(&draft.transcript()).to_bytes())
+    }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn sign_returned_observer(
+        &self,
+        draft: &crate::native_body_join::returning::DurableReturn,
+    ) -> Result<[u8; 64], &'static str> {
+        if !self.ready() {
+            return Err("body-return-not-durable");
+        }
+        Ok(self.key.sign(&draft.transcript()).to_bytes())
+    }
     /// Cold biography custody endorsement is separate from current-Boot
     /// membership and execution. Only the typed verified ACK draft is signable.
     #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]

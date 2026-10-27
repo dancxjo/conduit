@@ -135,6 +135,38 @@ impl NativeRoot {
         let signature = self.admission.sign_current_observer(&verified)?;
         Ok(verified.signed(signature))
     }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn begin_body_observer_return(
+        &mut self,
+        request: &crate::native_body_join::return_wire::Begin,
+        nonce: [u8; 32],
+        now: u64,
+    ) -> Result<crate::native_body_join::returning::Challenge, &'static str> {
+        let (host, boot, _) = self.offer_scope();
+        let (host, boot) = (host.clone(), boot.clone());
+        let key = self.admission.verifying_key();
+        let body = self.body.as_mut().ok_or("body-return-not-installed")?;
+        let draft = crate::native_body_join::returning::begin(
+            body, &key, &host, &boot, request, nonce, now,
+        )?;
+        let signature = self.admission.sign_return_challenge(&draft)?;
+        Ok(draft.signed(signature))
+    }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn complete_body_observer_return(
+        &mut self,
+        request: &crate::native_body_join::return_wire::Complete,
+        now: u64,
+    ) -> Result<crate::native_body_join::recovery::Receipt, &'static str> {
+        let (host, boot, _) = self.offer_scope();
+        let (host, boot) = (host.clone(), boot.clone());
+        let key = self.admission.verifying_key();
+        let body = self.body.as_mut().ok_or("body-return-not-installed")?;
+        let draft =
+            crate::native_body_join::returning::complete(body, &key, &host, &boot, request, now)?;
+        let signature = self.admission.sign_returned_observer(&draft)?;
+        Ok(draft.signed(signature))
+    }
     pub fn body_installed(&self) -> bool {
         #[cfg(feature = "body-image-root")]
         {

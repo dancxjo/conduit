@@ -151,6 +151,16 @@ impl crate::native_root::NativeRoot {
                 .map_err(|_| "body-join-memory")?;
             bytes.resize(2048, 0);
             let length = match request {
+                crate::native_body_join::Command::ReturnChallenge(request) => {
+                    let mut nonce = [0; 32];
+                    crate::native_body_join_uart::entropy(&mut nonce)?;
+                    let challenge = self.begin_body_observer_return(&request, nonce, now_ms)?;
+                    serde_json_core::to_slice(&challenge, &mut bytes)
+                }
+                crate::native_body_join::Command::Return(request) => {
+                    let receipt = self.complete_body_observer_return(&request, now_ms)?;
+                    serde_json_core::to_slice(&receipt, &mut bytes)
+                }
                 crate::native_body_join::Command::Admission(request) => {
                     let receipt = self.admit_body_observer_request(&request, now_ms)?;
                     serde_json_core::to_slice(&receipt, &mut bytes)

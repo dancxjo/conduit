@@ -146,7 +146,7 @@ impl Bootstrap {
         result
     }
 }
-fn entropy(bytes: &mut [u8]) -> Result<(), &'static str> {
+pub(crate) fn entropy(bytes: &mut [u8]) -> Result<(), &'static str> {
     esp_hal::rng::Trng::try_new()
         .map_err(|_| "body-join-entropy")?
         .read(bytes);

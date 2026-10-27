@@ -85,6 +85,30 @@ impl AdmissionManager {
         Ok(())
     }
 
+    /// Retire only an expired exact-scope pending return; no unexpired or
+    /// exhausted challenge is changed. Same authority-clock/durability custody
+    /// obligations as retire_expired_return apply.
+    pub fn retire_expired_return_for(
+        &mut self,
+        membership: &BodyMembership,
+        part_id: &PartId,
+        advertisement: &HostAdvertisement,
+        now_millis: u64,
+    ) -> Result<(), AdmissionRefusal> {
+        let pending = self
+            .pending_returns
+            .iter()
+            .find(|p| &p.challenge.part_id == part_id)
+            .ok_or(AdmissionRefusal::UnknownAdmission)?;
+        let issued = pending.challenge.issued_at_millis;
+        // Validate exact detached membership/Host/Boot/generation and attempt cap
+        // at the original issue instant, without changing the challenge.
+        let challenge = self
+            .pending_return_challenge(membership, part_id, advertisement, issued)?
+            .ok_or(AdmissionRefusal::UnknownAdmission)?;
+        self.retire_expired_return(&challenge.admission_id, now_millis)
+    }
+
     pub fn begin_return(
         &mut self,
         membership: &BodyMembership,

@@ -14,6 +14,8 @@ mod native_joined_host_wire;
 #[allow(dead_code)] // Legacy envelope helpers are covered by native_restart tests.
 mod native_restart;
 use native_body_join::recovery;
+#[path = "native_body_join/returning.rs"]
+mod returning;
 mod native_evidence_region {
     use crate::native_body_checkpoint::{Refusal, Storage};
     use std::sync::{Arc, Mutex};
@@ -365,6 +367,9 @@ fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock
         Ok(())
     })
     .unwrap();
+    owner = returning::prove(
+        owner, &root_key, &host, &observer, &receipt, &secret, &signer, &media,
+    );
     // No private bootstrap can leave the issuer after failed persistence.
     media.0.lock().unwrap().1 = false;
     assert!(native_body_join::issue(

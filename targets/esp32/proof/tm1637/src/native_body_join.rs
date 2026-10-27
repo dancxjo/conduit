@@ -7,15 +7,27 @@ use crate::native_restart::payload::wire as biography_wire;
 pub(crate) mod biography_acceptance;
 #[path = "native_joined_host_recovery.rs"]
 pub(crate) mod recovery;
+#[path = "native_body_return_wire.rs"]
+pub(crate) mod return_wire;
+#[path = "native_body_return.rs"]
+pub(crate) mod returning;
 #[path = "native_body_join_wire.rs"]
 pub(crate) mod wire;
 pub(crate) enum Command {
+    ReturnChallenge(return_wire::Begin),
+    Return(return_wire::Complete),
     Admission(conduit_body::PortableSpawnAdmissionRequest),
     Recovery(recovery::Request),
 }
 pub(crate) fn decode_command(bytes: &[u8]) -> Result<Command, &'static str> {
     if bytes.len() > 1024 {
         return Err("body-join-request-capacity");
+    }
+    if let Ok(request) = return_wire::begin(bytes) {
+        return Ok(Command::ReturnChallenge(request));
+    }
+    if let Ok(request) = return_wire::complete(bytes) {
+        return Ok(Command::Return(request));
     }
     if let Ok(request) = serde_json::from_slice::<recovery::Request>(bytes) {
         if request.schema != recovery::REQUEST

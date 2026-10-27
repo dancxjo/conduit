@@ -24,7 +24,7 @@ struct Request {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Advertisement {
+pub(crate) struct Advertisement {
     protocol_version: u16,
     host_id: HostId,
     boot_id: BootId,
@@ -37,7 +37,7 @@ struct Advertisement {
     #[serde(default)]
     planner_capabilities: EmptyArray,
 }
-struct Bytes<const N: usize>([u8; N]);
+pub(crate) struct Bytes<const N: usize>(pub(crate) [u8; N]);
 impl<'de, const N: usize> Deserialize<'de> for Bytes<N> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct BytesVisitor<const N: usize>;
@@ -115,20 +115,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<PortableSpawnAdmissionRequest, &'st
     }
     let request: Request =
         serde_json::from_slice(bytes).map_err(|_| "body-join-request-encoding")?;
-    let Advertisement {
-        protocol_version,
-        host_id,
-        boot_id,
-        offer_generation,
-        profile,
-        bases: EmptyArray,
-        resources: EmptyArray,
-        capabilities: EmptyArray,
-        planner_capabilities: EmptyArray,
-    } = request.host_advertisement;
-    if protocol_version != conduit_core::PROTOCOL_VERSION || offer_generation.0 == 0 {
-        return Err("body-join-observer-protocol");
-    }
+    let advertisement = request.host_advertisement.into_host()?;
     let request = PortableSpawnAdmissionRequest {
         schema: if request.schema == OBSERVER_PROFILE {
             String::from(conduit_body::SPAWN_ADMISSION_REQUEST_SCHEMA)
@@ -137,17 +124,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<PortableSpawnAdmissionRequest, &'st
         },
         invitation_id: request.invitation_id,
         body_id: request.body_id,
-        host_advertisement: HostAdvertisement {
-            protocol_version: conduit_core::PROTOCOL_VERSION,
-            host_id,
-            boot_id,
-            offer_generation,
-            profile,
-            bases: Vec::new(),
-            resources: Vec::new(),
-            capabilities: Vec::new(),
-            planner_capabilities: Vec::new(),
-        },
+        host_advertisement: advertisement,
         nonce: request.nonce.0,
         signature: request.signature.0.to_vec(),
         membership_admitted: request.membership_admitted,
@@ -158,4 +135,34 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<PortableSpawnAdmissionRequest, &'st
         .admission_proof()
         .map_err(|_| "body-join-request-proof")?;
     Ok(request)
+}
+
+impl Advertisement {
+    pub(crate) fn into_host(self) -> Result<HostAdvertisement, &'static str> {
+        let Advertisement {
+            protocol_version,
+            host_id,
+            boot_id,
+            offer_generation,
+            profile,
+            bases: EmptyArray,
+            resources: EmptyArray,
+            capabilities: EmptyArray,
+            planner_capabilities: EmptyArray,
+        } = self;
+        if protocol_version != conduit_core::PROTOCOL_VERSION || offer_generation.0 == 0 {
+            return Err("body-join-observer-protocol");
+        }
+        Ok(HostAdvertisement {
+            protocol_version,
+            host_id,
+            boot_id,
+            offer_generation,
+            profile,
+            bases: Vec::new(),
+            resources: Vec::new(),
+            capabilities: Vec::new(),
+            planner_capabilities: Vec::new(),
+        })
+    }
 }
