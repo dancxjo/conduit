@@ -300,6 +300,11 @@ impl NativeRoot {
                 Some(crate::native_software::prepare().map_err(|_| "local-software-preparation")?);
             mark("cold-software-owner-prepared-after-body-park", 15);
         }
+        let kernel_backing = crate::native_kernel_storage::preclaim_local_backing()?;
+        mark(
+            "local-sampler-kernel-backing-held",
+            core::mem::size_of::<crate::native_kernel::Kernel>(),
+        );
         let sample = self.prepare_local_sampler_plan()?;
         let sampler = self.prepare_local_sampler_parts(&sample, execute)?;
         let metadata = sample.preparation_metadata();
@@ -327,6 +332,7 @@ impl NativeRoot {
         self.plan_local_mask_from_sampler(
             prepared_sample,
             sampler,
+            kernel_backing,
             execute,
             #[cfg(feature = "local-appliance")]
             parked,
@@ -341,6 +347,7 @@ impl NativeRoot {
         &mut self,
         sample: conduit_body::PreparedVerifiedBodyPlotPlan,
         sampler: alloc::boxed::Box<PreparedSamplerParts>,
+        kernel_backing: crate::native_kernel_storage::KernelBacking,
         execute: bool,
         #[cfg(feature = "local-appliance")] mut parked: crate::native_restart::ParkedBody,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
@@ -379,7 +386,7 @@ impl NativeRoot {
             &self.host,
             &self.boot,
         )?;
-        let sampler = Self::prepare_local_sampler_kernel(sampler)?;
+        let sampler = Self::prepare_local_sampler_kernel(sampler, kernel_backing)?;
         self.assemble_local_plots(sampler, mask_parts, mask_values, context, retained)
     }
     #[inline(never)]
@@ -765,6 +772,7 @@ impl NativeRoot {
     #[inline(never)]
     fn prepare_local_sampler_kernel(
         sampler: alloc::boxed::Box<PreparedSamplerParts>,
+        backing: crate::native_kernel_storage::KernelBacking,
     ) -> Result<alloc::boxed::Box<PreparedSamplerKernel>, &'static str> {
         let PreparedSamplerParts {
             sampler_parts,
@@ -772,7 +780,8 @@ impl NativeRoot {
             active,
             fragment,
         } = *sampler;
-        let kernel = crate::native_kernel::prepare_local_direct(sampler_parts)?;
+        let kernel =
+            crate::native_kernel::prepare_local_direct_with_backing(sampler_parts, Some(backing))?;
         mark("ordinary-mask-sampler-kernel-live", 15);
         Ok(alloc::boxed::Box::new(PreparedSamplerKernel {
             kernel,

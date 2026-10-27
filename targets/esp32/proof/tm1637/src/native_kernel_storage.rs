@@ -24,6 +24,20 @@ pub struct PreparedKernel {
     pub(crate) selectors: Box<[Option<PreparedCaptureSelector>; NODES]>,
     pub(crate) roles: ResidentRoles,
 }
+pub type KernelBacking = Box<core::mem::MaybeUninit<Kernel>>;
+/// Fallible reservation before cold metadata fragments the Root heap. Nothing
+/// is initialized or callable until checked numeric material is transferred.
+pub fn preclaim_local_backing() -> Result<KernelBacking, &'static str> {
+    let layout = core::alloc::Layout::new::<Kernel>();
+    // SAFETY: the global allocator receives the exact nonzero Kernel layout;
+    // Box subsequently owns that allocation, without reading its uninitialized data.
+    let pointer = unsafe { alloc::alloc::alloc(layout) }.cast::<core::mem::MaybeUninit<Kernel>>();
+    if pointer.is_null() {
+        return Err("local-kernel-backing-capacity");
+    }
+    // SAFETY: the non-null pointer is uniquely owned and has Box's exact layout.
+    Ok(unsafe { Box::from_raw(pointer) })
+}
 /// Settled original scheduler storage, not freshly initialized software. No
 /// constructor can claim native possession or authorize another invocation.
 pub struct RetiredKernelMaterial(PreparedKernel);
@@ -167,8 +181,18 @@ pub fn assemble_local_direct(
     prepared: LocalKernelParts,
     signs: k::HostedSignLog,
 ) -> Result<PreparedKernel, &'static str> {
+    assemble_local_direct_with_backing(prepared, signs, None)
+}
+#[cfg(feature = "target-mask-memory-check")]
+#[inline(never)]
+pub fn assemble_local_direct_with_backing(
+    prepared: LocalKernelParts,
+    signs: k::HostedSignLog,
+    backing: Option<KernelBacking>,
+) -> Result<PreparedKernel, &'static str> {
     let selectors = Box::new(prepared.selectors);
-    let kernel = Kernel::new_boxed_with_active_counts_and_host_calls(
+    let kernel = Kernel::new_boxed_with_storage_and_active_counts_and_host_calls(
+        backing,
         NODES,
         CORDS,
         prepared.nodes,

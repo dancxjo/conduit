@@ -20,14 +20,25 @@ fn requirements_for(
     sign_bytes: u32,
     transfer: usize,
 ) -> Result<(usize, u16), &'static str> {
+    requirements_for_storage(sign_items, sign_bytes, transfer, false)
+}
+fn requirements_for_storage(
+    sign_items: u16,
+    sign_bytes: u32,
+    transfer: usize,
+    preclaimed: bool,
+) -> Result<(usize, u16), &'static str> {
     let bytes = usize::try_from(sign_bytes).map_err(|_| "sign-budget")?;
     let slots = usize::from(sign_items).max(bytes.div_ceil(core::mem::size_of::<k::KernelEvent>()));
     // The transfer destination and scheduler destination are separate stages.
     // assemble() explicitly retires the transfer box before allocating selectors
     // or the scheduler; sign backing coexists with both stages. Existing source
     // boxes remain conservatively included in Root's current usage throughout.
-    let scheduler = core::mem::size_of::<Kernel>()
-        + core::mem::size_of::<[Option<PreparedCaptureSelector>; NODES]>();
+    let scheduler = if preclaimed {
+        0
+    } else {
+        core::mem::size_of::<Kernel>()
+    } + core::mem::size_of::<[Option<PreparedCaptureSelector>; NODES]>();
     let needed =
         transfer.max(scheduler) + slots * core::mem::size_of::<Option<k::KernelEvent>>() + 8192; // Explicit Root preparation/control headroom; not effect authority.
     Ok((needed, slots.try_into().map_err(|_| "sign-budget")?))
@@ -96,14 +107,27 @@ pub fn local_parts_requirements(
 pub fn prepare_local_direct(
     prepared: crate::native_kernel_storage::LocalKernelParts,
 ) -> Result<PreparedKernel, &'static str> {
+    prepare_local_direct_with_backing(prepared, None)
+}
+#[cfg(feature = "target-mask-memory-check")]
+#[inline(never)]
+pub fn prepare_local_direct_with_backing(
+    prepared: crate::native_kernel_storage::LocalKernelParts,
+    backing: Option<crate::native_kernel_storage::KernelBacking>,
+) -> Result<PreparedKernel, &'static str> {
     let sign_bytes = prepared.sign_bytes;
-    let (needed, slots) = local_parts_requirements(&prepared)?;
+    let (needed, slots) = requirements_for_storage(
+        prepared.sign_items,
+        prepared.sign_bytes,
+        core::mem::size_of::<crate::native_kernel_storage::LocalKernelParts>(),
+        backing.is_some(),
+    )?;
     let memory = esp_alloc::HEAP.stats();
     if memory.size.saturating_sub(memory.current_usage) < needed {
         return Err("local-kernel-capacity");
     }
     let signs = k::HostedSignLog::new(slots, sign_bytes).map_err(|_| "local-sign-budget")?;
-    crate::native_kernel_storage::assemble_local_direct(prepared, signs)
+    crate::native_kernel_storage::assemble_local_direct_with_backing(prepared, signs, backing)
 }
 pub async fn report(
     root: &mut crate::native_root::NativeRoot,

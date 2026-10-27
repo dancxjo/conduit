@@ -187,3 +187,84 @@ fn boxed_preparation_initializes_completion_count() {
     assert_eq!(scheduler.completed_count(), 1);
     assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
 }
+
+#[cfg(feature = "alloc")]
+#[test]
+fn preclaimed_box_keeps_its_address_and_requires_ordinary_execution() {
+    type Scheduler =
+        FixedScheduler<Tail, ObservedValues<4>, FixedSignLog<16>, 1, 0, 1, 1, 1, 0, 0, 1>;
+    let backing = alloc::boxed::Box::<Scheduler>::new_uninit();
+    let address = backing.as_ptr();
+    let mut routes = FixedRoutes::<1, 0>::new(1);
+    routes.seal().unwrap();
+    let mut bindings = FixedHostCallBindings::<0>::new(1);
+    bindings.seal().unwrap();
+    let mut scheduler = Scheduler::new_boxed_with_storage_and_active_counts_and_host_calls(
+        Some(backing),
+        1,
+        0,
+        [NodeSpec {
+            input_cords: [None],
+            maximum_step_fuel: 8,
+        }],
+        [],
+        routes,
+        bindings,
+        [Tail {
+            calls: 0,
+            complete: true,
+        }],
+        ObservedValues::<4>::new(),
+        FixedSignLog::<16>::new(16 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(alloc::boxed::Box::as_ptr(&scheduler), address);
+    assert_eq!(scheduler.drivers[0].calls, 0);
+    assert_eq!(scheduler.completed_count(), 0);
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    assert_eq!(scheduler.drivers[0].calls, 1);
+    assert_eq!(scheduler.completed_count(), 1);
+    assert!(scheduler.try_retire().is_ok());
+}
+
+#[cfg(feature = "alloc")]
+#[test]
+fn preclaimed_memory_does_not_admit_invalid_capacity_or_unsealed_routes() {
+    type Scheduler =
+        FixedScheduler<Tail, ObservedValues<4>, FixedSignLog<16>, 1, 0, 1, 1, 1, 0, 0, 1>;
+    for invalid_capacity in [false, true] {
+        let mut routes = FixedRoutes::<1, 0>::new(1);
+        if invalid_capacity {
+            routes.seal().unwrap();
+        }
+        let mut bindings = FixedHostCallBindings::<0>::new(1);
+        bindings.seal().unwrap();
+        let result = Scheduler::new_boxed_with_storage_and_active_counts_and_host_calls(
+            Some(alloc::boxed::Box::<Scheduler>::new_uninit()),
+            if invalid_capacity { 2 } else { 1 },
+            0,
+            [NodeSpec {
+                input_cords: [None],
+                maximum_step_fuel: 8,
+            }],
+            [],
+            routes,
+            bindings,
+            [Tail {
+                calls: 0,
+                complete: true,
+            }],
+            ObservedValues::<4>::new(),
+            FixedSignLog::<16>::new(16 * core::mem::size_of::<crate::KernelEvent>() as u32)
+                .unwrap(),
+        );
+        assert_eq!(
+            result.err(),
+            Some(if invalid_capacity {
+                SchedulerError::InvalidActiveCapacity
+            } else {
+                SchedulerError::InvalidPlan
+            })
+        );
+    }
+}

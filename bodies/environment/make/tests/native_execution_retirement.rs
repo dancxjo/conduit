@@ -282,18 +282,26 @@ fn fixture() -> Fixture {
     let slots = usize::from(lowered.sign_items)
         .max((lowered.sign_bytes as usize).div_ceil(core::mem::size_of::<k::KernelEvent>()));
     let signs = k::HostedSignLog::new(slots.try_into().unwrap(), lowered.sign_bytes).unwrap();
-    let kernel = native_kernel_storage::Kernel::new_boxed_with_active_counts_and_host_calls(
-        NODES,
-        CORDS,
-        prepared.tables.nodes,
-        prepared.tables.cords,
-        prepared.tables.routes,
-        prepared.tables.calls,
-        prepared.drivers,
-        prepared.values,
-        signs,
-    )
-    .unwrap();
+    let backing = native_kernel_storage::preclaim_local_backing().unwrap();
+    let backing_address = backing.as_ptr();
+    let kernel =
+        native_kernel_storage::Kernel::new_boxed_with_storage_and_active_counts_and_host_calls(
+            Some(backing),
+            NODES,
+            CORDS,
+            prepared.tables.nodes,
+            prepared.tables.cords,
+            prepared.tables.routes,
+            prepared.tables.calls,
+            prepared.drivers,
+            prepared.values,
+            signs,
+        )
+        .unwrap();
+    assert_eq!(
+        &*kernel as *const native_kernel_storage::Kernel,
+        backing_address
+    );
     let mut storage = Some(native_kernel_storage::PreparedKernel {
         kernel,
         selectors: Box::new(prepared.selectors),
