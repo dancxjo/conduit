@@ -133,7 +133,7 @@ pub(crate) fn acknowledge(request: &wire::Request<'_>) -> Result<u8, &'static st
                     }
                 };
                 // `accepted` was constructed above from this exact immutable
-                // journal and canonical persisted admitted-message verification.
+                // journal and canonical persisted retained-custody verification.
                 let erased = match custody.begin(&accepted, work, verify, |storage, bytes| {
                     if storage.identity() == identity && bytes == &accepted {
                         Ok(())

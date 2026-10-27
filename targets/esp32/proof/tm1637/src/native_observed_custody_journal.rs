@@ -1,4 +1,4 @@
-//! CPU prototype only; deliberately not linked into firmware or a public route.
+//! Affine reclamation transactions for actual immutable observation epochs.
 //! Media transactions do not establish membership or a closed journal. Trusted
 //! callers must verify those separately before `begin`; recovery additionally
 //! verifies the retained Root endorsement against independently restored keys.

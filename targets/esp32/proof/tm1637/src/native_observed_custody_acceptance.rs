@@ -1,4 +1,4 @@
-//! Unlinked typed custody vertical. The native archive must retain this module
+//! Typed immutable-epoch custody. The native archive retains this module
 //! as a child so only its actual frozen journal can construct an offer draft.
 //! Neither a network offer nor a decoded ACK constructs admitted/erase custody.
 #[path = "native_observed_custody_wire.rs"]
