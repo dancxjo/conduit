@@ -227,37 +227,30 @@ pub fn assemble_local_direct(
 pub fn assemble_local_direct_with_backing(
     prepared: LocalKernelParts,
     signs: k::HostedSignLog,
-    backing: Option<KernelBacking>,
+    mut backing: Option<KernelBacking>,
 ) -> Result<PreparedKernel, &'static str> {
-    assemble_local_direct_with_backing_retained(prepared, signs, backing)
-        .map_err(|(_, _, _, reason)| reason)
+    assemble_local_direct_with_backing_retained(&mut Some(prepared), &mut Some(signs), &mut backing)
 }
-/// Every refusal returns the actual software, values, evidence and backing.
+/// Refusal leaves actual software, values, evidence and backing in place.
 /// Fresh allocation supplies memory only; it cannot restart an old execution.
 #[cfg(feature = "target-mask-memory-check")]
-#[inline(never)]
-#[allow(clippy::result_large_err, clippy::type_complexity)] // Cold affine refusal preserves all inputs without allocating.
+// Keep affine preparation in its outlined caller so large numeric material
+// shares stack slots instead of accumulating across nested transfer frames.
+#[inline(always)]
 pub fn assemble_local_direct_with_backing_retained(
-    prepared: LocalKernelParts,
-    signs: k::HostedSignLog,
-    mut backing: Option<KernelBacking>,
-) -> Result<
-    PreparedKernel,
-    (
-        LocalKernelParts,
-        k::HostedSignLog,
-        Option<KernelBacking>,
-        &'static str,
-    ),
-> {
-    if let Err(reason) = prepared.validate_topology() {
-        return Err((prepared, signs, backing, reason));
+    prepared: &mut Option<LocalKernelParts>,
+    signs: &mut Option<k::HostedSignLog>,
+    backing: &mut Option<KernelBacking>,
+) -> Result<PreparedKernel, &'static str> {
+    prepared
+        .as_ref()
+        .ok_or("local-kernel-parts-missing")?
+        .validate_topology()?;
+    if signs.is_none() {
+        return Err("local-kernel-signs-missing");
     }
     if backing.is_none() {
-        match preclaim_local_backing() {
-            Ok(storage) => backing = Some(storage),
-            Err(reason) => return Err((prepared, signs, backing, reason)),
-        }
+        *backing = Some(preclaim_local_backing()?);
     }
     type Selectors = [Option<PreparedCaptureSelector>; NODES];
     let layout = core::alloc::Layout::new::<Selectors>();
@@ -266,12 +259,18 @@ pub fn assemble_local_direct_with_backing_retained(
     let pointer =
         unsafe { alloc::alloc::alloc(layout) }.cast::<core::mem::MaybeUninit<Selectors>>();
     if pointer.is_null() {
-        return Err((prepared, signs, backing, "local-selector-backing-capacity"));
+        return Err("local-selector-backing-capacity");
     }
+    let prepared = prepared
+        .take()
+        .expect("exclusively preflighted local material");
+    let signs = signs
+        .take()
+        .expect("exclusively preflighted local evidence");
     // SAFETY: the allocation is non-null, aligned, uniquely owned and uninitialized.
     let selectors = Box::write(unsafe { Box::from_raw(pointer) }, prepared.selectors);
     let kernel = Kernel::new_boxed_with_storage_and_active_counts_and_host_calls(
-        backing,
+        backing.take(),
         NODES,
         CORDS,
         prepared.nodes,
