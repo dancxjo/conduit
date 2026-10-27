@@ -170,7 +170,7 @@ fn joined_recorder_process_helper() {
     run_joined(Path::new(&binding), &peer, Path::new(&history), true).unwrap();
 }
 
-fn canonical_admission(
+pub(super) fn canonical_admission(
     directory: &Path,
 ) -> (
     ed25519_dalek::SigningKey,

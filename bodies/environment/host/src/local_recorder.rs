@@ -2,6 +2,9 @@
 //! resolving a peer address or reading a signed directory grants no membership.
 use crate::{observed_history::Collector, Result};
 use std::{net::ToSocketAddrs, path::Path, time::Duration};
+#[cfg(test)]
+#[path = "local_recorder/custody_journal_prototype.rs"]
+mod custody_journal_prototype;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs"]
 pub(crate) mod joined;
 #[derive(serde::Deserialize)]
