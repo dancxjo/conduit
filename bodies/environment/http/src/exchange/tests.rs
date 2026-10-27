@@ -514,3 +514,58 @@ fn body_join_transport_is_explicit_bounded_and_serves_only_queued_public_materia
         ));
     }
 }
+
+#[test]
+fn acknowledged_input_remains_private_until_outer_connection_custody_is_retired() {
+    let request = post();
+    let mut channel = NetworkSetupChannel::new(1);
+    let (writer, mut reader) = channel.split();
+    let mut socket = Socket::new(request.as_bytes());
+    let Poll::Ready(mut custody) = poll(writer.lock()) else {
+        panic!("fresh channel must lock")
+    };
+    let route = NetworkSetupRoute::new(&mut custody, limits()).unwrap();
+    assert_eq!(
+        poll(exchange(&mut socket, || 0, Some(route))),
+        Poll::Ready(Ok(ExchangeOutcome::SubmissionAcknowledged))
+    );
+    // The exchange is complete and its response is acknowledged, but the real
+    // outer connection owner retains custody across its separate close flush.
+    assert_eq!(
+        reader.has_acknowledged(),
+        Err(NetworkSetupReadRefusal::Busy)
+    );
+    socket.pending_flush = true;
+    {
+        let mut closing = core::pin::pin!(socket.flush());
+        assert!(closing
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+            .is_pending());
+        assert_eq!(
+            reader.prepare_acknowledged(|_| ()),
+            Err(NetworkSetupReadRefusal::Busy)
+        );
+        assert_eq!(
+            reader.take_acknowledged(&mut [0; 167]),
+            Err(NetworkSetupReadRefusal::Busy)
+        );
+        // A bounded close timeout drops this pending operation. It does not
+        // itself release the still-retained outer mailbox custody.
+    }
+    assert_eq!(
+        reader.has_acknowledged(),
+        Err(NetworkSetupReadRefusal::Busy)
+    );
+    drop(custody);
+    assert_eq!(reader.has_acknowledged(), Ok(true));
+    let mut output = [0; 167];
+    let length = reader.take_acknowledged(&mut output).unwrap();
+    assert_eq!(
+        conduit_net::decode_network_join_request(&output[..length])
+            .unwrap()
+            .ssid,
+        b"Fixture LAN"
+    );
+    output.fill(0);
+}

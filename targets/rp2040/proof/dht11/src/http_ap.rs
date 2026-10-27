@@ -1,7 +1,7 @@
 //! Fixed-capacity DHCP and HTTP service over the existing AP network base.
 use conduit_environment_http::{
     exchange::{NetworkSetupRoute, ReadingProvider},
-    network_setup::{NetworkSetupLimits, NetworkSetupWriter},
+    network_setup::{NetworkSetupLimits, NetworkSetupMailbox, NetworkSetupWriter},
 };
 use conduit_rp2040_network_realization::{answer_appliance_dhcp, DhcpLeasePool};
 use core::{
@@ -163,30 +163,50 @@ async fn http(
         };
         result.map_err(|_| ())?;
         {
-            let _ = with_timeout(
-                Duration::from_secs(5),
-                exchange(&mut socket, setup.as_ref(), connect, reading, response),
-            )
-            .await;
+            let deadline = Instant::now() + Duration::from_secs(5);
+            // Custody outlives the cancellable exchange AND the bounded close.
+            // Root's try_lock cannot consume a just-flushed submission while
+            // its accepted HTTP connection is still finishing. On exchange
+            // timeout PendingNetworkResponse still cancels unflushed input.
+            let mut custody = match setup.as_ref() {
+                Some(writer) => with_timeout(
+                    deadline.saturating_duration_since(Instant::now()),
+                    writer.lock(),
+                )
+                .await
+                .ok(),
+                None => None,
+            };
+            if setup.is_none() || custody.is_some() {
+                let _ = with_timeout(
+                    deadline.saturating_duration_since(Instant::now()),
+                    exchange(
+                        &mut socket,
+                        custody.as_deref_mut(),
+                        connect,
+                        reading,
+                        response,
+                    ),
+                )
+                .await;
+            }
             socket.close();
             let _ = with_timeout(Duration::from_secs(1), socket.flush()).await;
+            // Finish retirement even when graceful close times out before
+            // exposing acknowledged input to another task or reader.
+            socket.abort();
+            drop(custody);
         }
-        socket.abort();
     }
 }
 async fn exchange(
     socket: &mut TcpSocket<'_>,
-    setup: Option<&NetworkSetupWriter<'static>>,
+    mailbox: Option<&mut NetworkSetupMailbox>,
     connect: bool,
     reading: Option<ReadingProvider>,
     response: &mut heapless::String<2048>,
 ) -> Result<(), ()> {
-    let mut guard = if let Some(writer) = setup {
-        Some(writer.lock().await)
-    } else {
-        None
-    };
-    let route = if let Some(mailbox) = guard.as_deref_mut() {
+    let route = if let Some(mailbox) = mailbox {
         let route = if connect && reading.is_some() {
             NetworkSetupRoute::new
         } else if connect {
