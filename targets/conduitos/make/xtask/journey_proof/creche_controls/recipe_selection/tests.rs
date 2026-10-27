@@ -5,7 +5,7 @@ fn fixture() -> (Value, Value, Value, Value) {
     let boot = json!({"host_id":"host","boot_id":"boot","offer_generation":1});
     let before = json!({"observation_sequence":1,"play_sequence":1,"face":{"identity":"face","revision":1},"show":{"show_id":"old-show","mask_plan_id":"old-plan"}});
     let fresh = json!({"observation_sequence":2,"play_sequence":2,"face":{"identity":"face","revision":1},"show":{"host_id":"host","boot_id":"boot","offer_generation":1,"show_id":"new-show","mask_plan_id":"new-plan","mask_active_play_id":"play","manifestation_id":"manifestation","manifestation":{"placement_id":"placement"},"mask_plot":{"source_document_id":"document"}}});
-    let configuration = json!({"root":choice.root,"invocation_path":[choice.root,"component"],"implementation_id":custody::PRESENTER,"execution_profile_id":"conduitos/bounded-mask@1","placement_id":"placement",
+    let configuration = json!({"root":choice.root,"invocation_path":[choice.root,"component"],"implementation_id":custody::PRESENTER,"execution_profile_id":"conduitos/bounded-collection-mask@1","placement_id":"placement",
         "component":{"source_document_id":"document","checked_plot_id":"component-checked","fore_id":"fore"},"recipe_canonical_bytes":2313,"recipe_canonical_sha256":"a".repeat(64),"layout_canonical_bytes":1763,"layout_canonical_sha256":"b".repeat(64)});
     let expression = json!({"outcome":"Selected","platform_forced_colors":false,"accessibility_overrides":{"forced_colors":false,"reduced_motion":true,"text_scale":false},
         "expression":{"version":2,"typography":"editorial","density":choice.density,"palette":"phosphor","text_scale_percent":choice.scale,"identity":choice.identity,"motion":"none"}});
@@ -18,6 +18,9 @@ fn fixture() -> (Value, Value, Value, Value) {
 fn foreign_boot_stale_show_and_wrong_configuration_refuse() {
     let (r, before, fresh, boot) = fixture();
     assert!(fields(&r, &before, &fresh, &boot, CHOICES[0]).is_ok());
+    let mut standard = r.clone();
+    standard["configuration"]["execution_profile_id"] = json!("conduitos/bounded-mask@1");
+    assert!(fields(&standard, &before, &fresh, &boot, CHOICES[0]).is_err());
     let mut retired = r.clone();
     retired["expression"]["expression"]["version"] = json!(1);
     assert!(fields(&retired, &before, &fresh, &boot, CHOICES[0]).is_err());
