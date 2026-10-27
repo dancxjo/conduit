@@ -96,8 +96,8 @@ pub(crate) fn inspect<S: Storage + WholeEpoch>(
         root: key.to_bytes(),
     })
 }
-/// Created only from the actual immutable journal and canonical opaque current
-/// admitted-message verification. Root's signer must require its exact key.
+/// Created only from the actual immutable journal and canonical opaque retained
+/// admitted-custody verification. Root's signer must require its exact key.
 pub(crate) struct AcceptedDraft {
     bytes: [u8; 416],
     root: [u8; 32],
@@ -131,20 +131,18 @@ pub(crate) fn verify_ack(
         .iter()
         .find(|part| part.part_id.as_str() == request.part)
         .ok_or("custody member")?;
-    let current = part.current.as_ref().ok_or("custody presence")?;
-    if current.host_id.as_str() != request.host || current.boot_id.as_str() != request.boot {
-        return Err("custody current incarnation");
+    // Durable files survive a producer restart that canonically detaches
+    // presence. Receipt data alone is not authority: the distinct canonical
+    // verifier below checks latest credential, admitted state and private key.
+    let credential = manager
+        .latest_completed_credential(&part.part_id)
+        .ok_or("custody retained credential")?;
+    if credential.host_id.as_str() != request.host || credential.boot_id.as_str() != request.boot {
+        return Err("custody retained incarnation");
     }
     let transcript = request.transcript();
     let verified = manager
-        .verify_admitted_message(
-            membership,
-            &part.part_id,
-            &current.host_id,
-            &current.boot_id,
-            &transcript,
-            &request.signature.0,
-        )
+        .verify_retained_custody_message(membership, credential, &transcript, &request.signature.0)
         .map_err(|_| "custody admitted signature")?;
     let mut bytes = [0; 416];
     bytes[..32].copy_from_slice(&draft.offer.region.0);

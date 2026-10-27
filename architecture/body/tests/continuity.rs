@@ -383,3 +383,205 @@ fn reboot_challenge_retirement_preserves_continuity_and_consumed_receipts() {
     );
     assert_eq!(next, membership);
 }
+
+#[test]
+fn retained_custody_survives_detachment_and_restart_without_restoring_presence() {
+    let (mut manager, mut membership, key) = admitted();
+    let credential = manager.receipts.last().unwrap().credential.clone();
+    membership
+        .observe_offline(
+            &membership.body_id.clone(),
+            membership.revision,
+            &credential.part_id,
+            &credential.boot_id,
+            "sign/custody-offline".into(),
+        )
+        .unwrap();
+    manager.retire_unfinished_challenges();
+    // Actual durable manager/membership serialization preserves keys and completed
+    // credentials while presence remains absent; no synthetic observe_present.
+    let bytes = serde_json::to_vec(&(&manager, &membership)).unwrap();
+    let (manager, membership): (AdmissionManager, BodyMembership) =
+        serde_json::from_slice(&bytes).unwrap();
+    let transcript = [81; 32];
+    let signature = key.sign(&transcript).to_bytes();
+    assert!(manager
+        .verify_admitted_message(
+            &membership,
+            &credential.part_id,
+            &credential.host_id,
+            &credential.boot_id,
+            &transcript,
+            &signature,
+        )
+        .is_err());
+    let verified = manager
+        .verify_retained_custody_message(&membership, &credential, &transcript, &signature)
+        .unwrap();
+    assert_eq!(verified.credential(), &credential);
+    assert_eq!(verified.body_id(), &membership.body_id);
+    assert_eq!(verified.part_id(), &credential.part_id);
+    assert_eq!(verified.host_id(), &credential.host_id);
+    assert_eq!(verified.boot_id(), &credential.boot_id);
+    assert_eq!(verified.membership_revision(), membership.revision);
+    assert_eq!(verified.transcript(), &transcript);
+    assert!(membership.parts[0].current.is_none());
+    assert_eq!(serde_json::to_vec(&(&manager, &membership)).unwrap(), bytes);
+}
+
+#[test]
+fn retained_custody_refuses_foreign_forged_missing_and_revoked_credentials() {
+    let (manager, mut membership, key) = admitted();
+    let credential = manager.receipts.last().unwrap().credential.clone();
+    let transcript = [82; 32];
+    let signature = key.sign(&transcript).to_bytes();
+    for mutation in 0..8 {
+        let mut changed = credential.clone();
+        let mut message = transcript;
+        let mut signed = signature;
+        match mutation {
+            0 => {
+                changed.body_id = Body::born(
+                    "foreign/source".into(),
+                    "foreign/checked".into(),
+                    9,
+                    "foreign/sign".into(),
+                )
+                .unwrap()
+                .body_id
+            }
+            1 => changed.host_id = "foreign/host".into(),
+            2 => changed.boot_id = "foreign/boot".into(),
+            3 => {
+                changed.credential_id =
+                    serde_json::from_value(serde_json::json!("foreign/credential")).unwrap()
+            }
+            4 => changed.issued_at_millis += 1,
+            5 => message[0] ^= 1,
+            6 => signed[0] ^= 1,
+            7 => signed = SigningKey::from_bytes(&[83; 32]).sign(&message).to_bytes(),
+            _ => unreachable!(),
+        }
+        assert!(
+            manager
+                .verify_retained_custody_message(&membership, &changed, &message, &signed)
+                .is_err(),
+            "mutation {mutation}"
+        );
+    }
+    let mut missing = manager.clone();
+    missing.receipts.clear();
+    assert!(missing
+        .verify_retained_custody_message(&membership, &credential, &transcript, &signature)
+        .is_err());
+    let fresh = AdmissionManager::new(membership.body_id.clone()).unwrap();
+    assert!(fresh
+        .verify_retained_custody_message(&membership, &credential, &transcript, &signature)
+        .is_err());
+    let mut receipts_without_key = fresh;
+    receipts_without_key.receipts = manager.receipts.clone();
+    assert!(
+        receipts_without_key
+            .verify_retained_custody_message(&membership, &credential, &transcript, &signature)
+            .is_err(),
+        "matching public receipts must not replace the private continuity key"
+    );
+    membership
+        .revoke(
+            &membership.body_id.clone(),
+            membership.revision,
+            &credential.part_id,
+            "sign/custody-revoked".into(),
+        )
+        .unwrap();
+    assert!(manager
+        .verify_retained_custody_message(&membership, &credential, &transcript, &signature)
+        .is_err());
+}
+
+#[test]
+fn retained_custody_fences_old_boot_after_canonical_return_and_later_detachment() {
+    let (mut manager, mut membership, key) = admitted();
+    let old = manager.receipts.last().unwrap().credential.clone();
+    membership
+        .observe_offline(
+            &membership.body_id.clone(),
+            membership.revision,
+            &old.part_id,
+            &old.boot_id,
+            "sign/custody-lost".into(),
+        )
+        .unwrap();
+    let returned = advertisement("boot/custody-next", 1);
+    let challenge = manager
+        .begin_return(&membership, &old.part_id, &returned, [84; 32], 2100, 3100)
+        .unwrap();
+    let latest = manager
+        .complete_return(
+            &mut membership,
+            &returned,
+            &return_proof(&challenge, &key),
+            2101,
+            "sign/custody-return".into(),
+        )
+        .unwrap();
+    let restored: AdmissionManager =
+        serde_json::from_slice(&serde_json::to_vec(&manager).unwrap()).unwrap();
+    assert_eq!(
+        restored.receipts, manager.receipts,
+        "completed receipt append order survives durable replay"
+    );
+    let manager = restored;
+    let transcript = [85; 32];
+    let signature = key.sign(&transcript).to_bytes();
+    assert_eq!(
+        manager.latest_completed_credential(&old.part_id),
+        Some(&latest)
+    );
+    assert_eq!(
+        manager.verify_retained_custody_message(&membership, &old, &transcript, &signature),
+        Err(AdmissionRefusal::StaleBoot)
+    );
+    manager
+        .verify_retained_custody_message(&membership, &latest, &transcript, &signature)
+        .unwrap();
+    membership
+        .observe_offline(
+            &membership.body_id.clone(),
+            membership.revision,
+            &latest.part_id,
+            &latest.boot_id,
+            "sign/custody-next-lost".into(),
+        )
+        .unwrap();
+    assert_eq!(
+        manager.verify_retained_custody_message(&membership, &old, &transcript, &signature),
+        Err(AdmissionRefusal::StaleBoot)
+    );
+    manager
+        .verify_retained_custody_message(&membership, &latest, &transcript, &signature)
+        .unwrap();
+    // Even a signed credential is not enough if live membership has a different
+    // incarnation than the completed receipt retained by this manager.
+    let mut inconsistent = membership.clone();
+    inconsistent
+        .observe_present(
+            &inconsistent.body_id.clone(),
+            inconsistent.revision,
+            &latest.part_id,
+            conduit_body::AuthenticatedHostObservation {
+                host_id: latest.host_id.clone(),
+                boot_id: "boot/not-in-completed-receipt".into(),
+                offer_generation: OfferGeneration(2),
+                proof_id: conduit_body::MembershipProofId::bind("proof/custody-other-presence")
+                    .unwrap(),
+                sequence: inconsistent.revision.0 + 1,
+            },
+            "sign/custody-other-presence".into(),
+        )
+        .unwrap();
+    assert_eq!(
+        manager.verify_retained_custody_message(&inconsistent, &latest, &transcript, &signature),
+        Err(AdmissionRefusal::StaleBoot)
+    );
+}

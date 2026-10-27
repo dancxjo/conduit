@@ -265,6 +265,44 @@ fn actual_cold_service_keeps_admitted_durable_erase_authority_and_error_custody(
         &std::fs::read(directory.join("canonical-body-checkpoint.json")).unwrap(),
     )
     .unwrap();
+    // Reproduce a real producer restart: canonical resume_here detaches the
+    // observer's ephemeral presence while preserving its admitted relationship
+    // and completed continuity credential. Persist this exact offline state.
+    let recovered = conduit_body::SealedBodyLifecycleSession::resume_here(
+        evidence,
+        &receipt.producer_host,
+        &"producer/boot-after-restart".into(),
+    )
+    .unwrap();
+    let evidence = recovered.evidence().clone();
+    let observer = evidence
+        .membership
+        .parts
+        .iter()
+        .find(|part| part.part_id == receipt.credential.part_id)
+        .unwrap();
+    assert!(observer.current.is_none());
+    let transcript = [97; 32];
+    let secret = conduit_body::SpawnInvitationSecret::from_csprng_bytes([22; 32]).unwrap();
+    let signature = secret.sign(&transcript);
+    assert!(manager
+        .verify_admitted_message(
+            &evidence.membership,
+            &receipt.credential.part_id,
+            &receipt.credential.host_id,
+            &receipt.credential.boot_id,
+            &transcript,
+            &signature
+        )
+        .is_err());
+    manager
+        .verify_retained_custody_message(
+            &evidence.membership,
+            &receipt.credential,
+            &transcript,
+            &signature,
+        )
+        .unwrap();
     let media = Arc::new(StdMutex::new((vec![255; 65536], true)));
     let mut journal =
         native_body_checkpoint::Checkpoint::open(native_evidence_region::BodyRegion {

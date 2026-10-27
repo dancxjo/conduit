@@ -389,3 +389,111 @@ impl AdmissionManager {
         })
     }
 }
+
+/// Signature evidence for read-only durable custody by the latest completed
+/// credential of a still-admitted Part. Offline custody is not current presence,
+/// a return, a fresh incarnation, or execution permission. Consumers must bind
+/// their exact custody purpose/content to `transcript`; this witness has no
+/// public constructor or deserialization entrance.
+#[derive(Debug, PartialEq, Eq)]
+pub struct VerifiedRetainedCustodyMessage {
+    credential: MembershipCredential,
+    membership_revision: crate::BodyMembershipRevision,
+    transcript: [u8; 32],
+}
+impl VerifiedRetainedCustodyMessage {
+    pub fn credential(&self) -> &MembershipCredential {
+        &self.credential
+    }
+    pub fn body_id(&self) -> &BodyId {
+        &self.credential.body_id
+    }
+    pub fn part_id(&self) -> &PartId {
+        &self.credential.part_id
+    }
+    pub fn host_id(&self) -> &HostId {
+        &self.credential.host_id
+    }
+    pub fn boot_id(&self) -> &BootId {
+        &self.credential.boot_id
+    }
+    pub fn membership_revision(&self) -> crate::BodyMembershipRevision {
+        self.membership_revision
+    }
+    pub fn transcript(&self) -> &[u8; 32] {
+        &self.transcript
+    }
+}
+impl AdmissionManager {
+    /// Observe the latest completed credential in this manager's bounded receipt
+    /// log. This is data only: it proves neither current presence nor a signature.
+    pub fn latest_completed_credential(&self, part_id: &PartId) -> Option<&MembershipCredential> {
+        self.receipts
+            .iter()
+            .rev()
+            .find(|receipt| &receipt.credential.part_id == part_id)
+            .map(|receipt| &receipt.credential)
+    }
+
+    /// Authenticate a custody-only transcript using the retained continuity key
+    /// and exact latest completed credential. A detached admitted Part may retain
+    /// durable files while the producer restarts. Revocation, replacement and a
+    /// later admitted Boot still fence its old credential. This operation never
+    /// observes a Host as present or changes admission/return/lifecycle state.
+    pub fn verify_retained_custody_message(
+        &self,
+        membership: &BodyMembership,
+        credential: &MembershipCredential,
+        transcript: &[u8; 32],
+        signature: &[u8; ADMISSION_SIGNATURE_BYTES],
+    ) -> Result<VerifiedRetainedCustodyMessage, AdmissionRefusal> {
+        if membership.body_id != self.body_id || credential.body_id != self.body_id {
+            return Err(AdmissionRefusal::WrongBody);
+        }
+        membership
+            .validate()
+            .map_err(AdmissionRefusal::Membership)?;
+        let part = membership
+            .parts
+            .iter()
+            .find(|part| part.part_id == credential.part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if part.state != crate::MembershipState::Admitted {
+            return Err(AdmissionRefusal::CandidateNotEligible);
+        }
+        let latest = self
+            .latest_completed_credential(&credential.part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if latest.host_id != credential.host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        if latest.boot_id != credential.boot_id {
+            return Err(AdmissionRefusal::StaleBoot);
+        }
+        if latest != credential {
+            return Err(AdmissionRefusal::InvalidProof);
+        }
+        if let Some(current) = &part.current {
+            if current.host_id != credential.host_id {
+                return Err(AdmissionRefusal::WrongHost);
+            }
+            if current.boot_id != credential.boot_id {
+                return Err(AdmissionRefusal::StaleBoot);
+            }
+        }
+        let key = self
+            .continuity_keys
+            .iter()
+            .find(|record| record.part_id == credential.part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if key.host_id != credential.host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        verify_signature(key.verifying_key, transcript, *signature)?;
+        Ok(VerifiedRetainedCustodyMessage {
+            credential: credential.clone(),
+            membership_revision: membership.revision,
+            transcript: *transcript,
+        })
+    }
+}
