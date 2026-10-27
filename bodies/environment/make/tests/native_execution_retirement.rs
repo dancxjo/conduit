@@ -868,3 +868,6 @@ fn compact_operation_plus_full_ready_seal_reduces_actual_owner_inline_layout() {
 
 #[path = "native_execution_retirement/reusable_backing.rs"]
 mod reusable_backing;
+
+#[path = "native_execution_retirement/network_constructor.rs"]
+mod network_constructor;

@@ -23,3 +23,6 @@ mod owner;
 pub mod recovery_evidence;
 pub use contract::{AttachmentRecord, NetworkJoinProvider, PreparedJoinContract};
 pub use owner::{AssignedJoinSelection, JoinCallRefusal, NetworkJoinHostCall};
+
+mod pair;
+pub use pair::*;

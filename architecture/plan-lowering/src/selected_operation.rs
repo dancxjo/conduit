@@ -27,6 +27,15 @@ pub struct SelectedOperationContract<'a> {
     pub resource_bytes: u64,
 }
 
+/// Complete independently supplied native definition; descriptive, never a grant.
+pub struct SelectedOperationContractRef<'a> {
+    pub kind: conduit_core::KindDefinitionRef<'a>,
+    pub semantic_contract: &'a conduit_core::KindSemanticContract,
+    pub call: &'a str,
+    pub input_bytes: u32,
+    pub output_bytes: u32,
+    pub resource_bytes: u64,
+}
 pub struct SelectedOperationPlan<'a> {
     pub fragment: &'a PlanFragment,
     pub lowered: &'a LoweredPlanFragment,
@@ -111,9 +120,24 @@ fn check_plan_scope(
     fragment: &PlanFragment,
     active: &ActivePlayIdentity,
 ) -> Result<(), SelectedCallRefusal> {
-    if fragment.plan_id != claim.plan_id
-        || fragment.host_id != claim.host_id
-        || fragment.boot_id != claim.boot_id
+    check_plan_scope_ref(
+        claim,
+        fragment.plan_id.as_str(),
+        fragment.host_id.as_str(),
+        fragment.boot_id.as_str(),
+        active,
+    )
+}
+fn check_plan_scope_ref(
+    claim: &BaseOperationClaim,
+    plan: &str,
+    host: &str,
+    boot: &str,
+    active: &ActivePlayIdentity,
+) -> Result<(), SelectedCallRefusal> {
+    if plan != claim.plan_id.as_str()
+        || host != claim.host_id.as_str()
+        || boot != claim.boot_id.as_str()
         || active.plan_id != claim.plan_id
         || active.host_id != claim.host_id
         || active.boot_id != claim.boot_id
@@ -162,3 +186,6 @@ pub(crate) fn matching_scope<'a>(
     }
     Ok(scope)
 }
+
+mod flat;
+pub use flat::{bind_selected_flat_direct_operation_for_subject, SelectedFlatDirectOperationPlan};

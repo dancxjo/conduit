@@ -88,6 +88,21 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
     }
     /// Add exactly the retained provider to the matching current Host/Boot.
     /// Preparation may allocate; this performs no radio configuration or join.
+    pub(crate) fn into_checked_call(
+        self,
+        operation: conduit_core::BoundBaseOperation,
+        node: conduit_kernel::NodeId,
+    ) -> NetworkJoinHostCall<P> {
+        NetworkJoinHostCall::bound_operation(
+            operation,
+            self.provider,
+            self.attachment_generation,
+            node,
+        )
+    }
+    pub(crate) fn attachment_generation(&self) -> u64 {
+        self.attachment_generation
+    }
     pub fn append_to_advertisement(
         &self,
         advertisement: &mut HostAdvertisement,
@@ -200,6 +215,7 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
             contract,
             selected,
         )?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(JoinCallRefusal::Capability)?;
         let ready = slot.take().expect("validated uniquely borrowed owner slot");
         Ok(NetworkJoinHostCall::bound(
             table,
@@ -216,24 +232,32 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
         gear: &PlannedGear,
         contract: &PreparedJoinContract,
     ) -> Result<(), JoinCallRefusal> {
-        let base = gear.base.as_ref().ok_or(JoinCallRefusal::WrongBinding)?;
+        self.check_selected_native_ref(claim, gear.into(), &contract.kind().limits)
+    }
+    pub(crate) fn check_selected_native_ref(
+        &self,
+        claim: &BaseOperationClaim,
+        gear: conduit_core::PlannedGearRef<'_>,
+        limits: &CapabilityLimits,
+    ) -> Result<(), JoinCallRefusal> {
+        let base = gear.base.ok_or(JoinCallRefusal::WrongBinding)?;
         let i = &self.identity;
         if !self.claim_matches(claim)
-            || gear.artifact_id != i.artifact
-            || gear.implementation_id != i.implementation
-            || gear.execution_profile_id.as_str() != NETWORK_JOIN_EXECUTION_PROFILE
-            || gear.capability_id.as_str() != JOIN_CAPABILITY
-            || gear.limits != contract.kind().limits
-            || base.base_id != i.base
-            || base.provider_instance_id != i.instance
+            || gear.artifact_id != i.artifact.as_str()
+            || gear.implementation_id != i.implementation.as_str()
+            || gear.execution_profile_id != NETWORK_JOIN_EXECUTION_PROFILE
+            || gear.capability_id != JOIN_CAPABILITY
+            || gear.limits != limits
+            || base.base_id != i.base.as_str()
+            || base.provider_instance_id != i.instance.as_str()
             || base.provider_generation != i.provider_generation
-            || base.implementation_id != i.base_implementation
-            || base.mechanism_family.as_str() != JOIN_BASE_KIND
+            || base.implementation_id != i.base_implementation.as_str()
+            || base.mechanism_family != JOIN_BASE_KIND
             || base.enforcement_class != BaseEnforcementClass::Cooperative
             || !gear.authority.iter().any(|a| {
-                a.contract_id.as_str() == NETWORK_CONFIG_AUTHORITY
-                    && a.host_call_contract_id.as_str() == NETWORK_JOIN_HOST_CALL
-                    && a.subject_kind.as_str() == NETWORK_CONFIG_SUBJECT
+                a.contract_id == NETWORK_CONFIG_AUTHORITY
+                    && a.host_call_contract_id == NETWORK_JOIN_HOST_CALL
+                    && a.subject_kind == NETWORK_CONFIG_SUBJECT
             })
         {
             return Err(JoinCallRefusal::WrongBinding);
@@ -274,6 +298,7 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
             contract,
             selected,
         )?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(JoinCallRefusal::Capability)?;
         let ready = slot.take().expect("validated unique initialized owner");
         Ok(NetworkJoinHostCall::bound(
             table,

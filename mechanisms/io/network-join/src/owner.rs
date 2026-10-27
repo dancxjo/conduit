@@ -31,9 +31,7 @@ pub struct AssignedJoinSelection<'a> {
     pub plan: SelectedAssignedOperationPlan<'a>,
 }
 pub struct NetworkJoinHostCall<P> {
-    table: BaseCapabilityTable,
-    handle: BaseCapabilityHandle,
-    claim: BaseOperationClaim,
+    operation: BoundBaseOperation,
     provider: P,
     node: NodeId,
     generation: u64,
@@ -58,6 +56,7 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
         selected: SelectedOperationPlan<'_>,
     ) -> Result<Self, JoinCallRefusal> {
         let node = Self::validate_selected(&table, &claim, generation, contract, selected)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(JoinCallRefusal::Capability)?;
         Ok(Self::bound(
             table, handle, claim, provider, generation, node,
         ))
@@ -131,6 +130,48 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
             .map_err(JoinCallRefusal::Binding)?;
         Ok(node)
     }
+    pub(crate) fn validate_flat_direct(
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        generation: u64,
+        contract: &CheckedNetworkContract,
+        selected: conduit_plan_lowering::selected_operation::SelectedFlatDirectOperationPlan<
+            '_,
+            3,
+            2,
+            1,
+            3,
+            2,
+            3,
+        >,
+    ) -> Result<NodeId, JoinCallRefusal> {
+        Self::check_possession(table, claim, generation)?;
+        let view = selected.tables.preparation_scope().view();
+        let gear = view
+            .placements
+            .iter()
+            .find(|g| g.placement_id == selected.placement_id)
+            .ok_or(JoinCallRefusal::WrongBinding)?;
+        let mut resources = gear.resources.iter();
+        let resource = resources.next().ok_or(JoinCallRefusal::WrongBinding)?;
+        if resources.next().is_some() {
+            return Err(JoinCallRefusal::WrongBinding);
+        };
+        if resource.class_id != WIFI_STATION_RESOURCE_CLASS || resource.units != 1 {
+            return Err(JoinCallRefusal::WrongBinding);
+        }
+        let node =
+            conduit_plan_lowering::selected_operation::bind_selected_flat_direct_operation_for_subject(
+                table,
+                claim,
+                conduit_plan_lowering::selected_operation::SelectedOperationContractRef{kind:contract.kind(),semantic_contract:contract.semantic_contract(),call:NETWORK_JOIN_HOST_CALL,input_bytes:MAXIMUM_JOIN_INPUT_BYTES,output_bytes:MAXIMUM_JOIN_OUTPUT_BYTES,resource_bytes:1},
+                NETWORK_CONFIG_SUBJECT,
+                &[],
+                selected,
+            )
+            .map_err(JoinCallRefusal::Binding)?;
+        Ok(node)
+    }
 
     /// # Safety
     /// Same ownership, admission and cleanup requirements as `bind_selected`.
@@ -157,6 +198,7 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
             selection.plan,
         )
         .map_err(JoinCallRefusal::Binding)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(JoinCallRefusal::Capability)?;
         Ok(Self::bound(
             table, handle, claim, provider, generation, node,
         ))
@@ -169,10 +211,22 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
         generation: u64,
         node: NodeId,
     ) -> Self {
+        Self::bound_operation(
+            BoundBaseOperation::bind(table, handle, claim)
+                .unwrap_or_else(|_| panic!("preflighted actual bearer")),
+            provider,
+            generation,
+            node,
+        )
+    }
+    pub(crate) fn bound_operation(
+        operation: BoundBaseOperation,
+        provider: P,
+        generation: u64,
+        node: NodeId,
+    ) -> Self {
         Self {
-            table,
-            handle,
-            claim,
+            operation,
             provider,
             generation,
             node,
@@ -215,21 +269,21 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
         }
         let request = decode_network_join_request(input).map_err(JoinCallRefusal::Request)?;
         let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
+            .operation
+            .authorize()
             .map_err(JoinCallRefusal::Capability)?;
         self.invoked = true;
         self.cleanup_required = true;
         self.output = None;
         // Provider future is created after this guard: it drops/quiesces first.
-        let lease = crate::lease::Pending::new(&mut self.table, &mut self.handle, lease);
+        let lease = crate::lease::Pending::new(&mut self.operation, lease);
         let result = match self.provider.join(request).await {
             Ok(record) => {
                 let info =
                     decode_network_attachment(record.bytes()).map_err(JoinCallRefusal::Request)?;
-                if info.host_id != self.claim.host_id.as_str()
-                    || info.boot_id != self.claim.boot_id.as_str()
-                    || info.resource_pool_id != self.claim.resource_pool_id.as_str()
+                if info.host_id != lease.scope().host_id.as_str()
+                    || info.boot_id != lease.scope().boot_id.as_str()
+                    || info.resource_pool_id != lease.scope().resource_pool_id.as_str()
                     || info.generation != self.generation
                 {
                     Err(JoinCallRefusal::InvalidAttachment)
@@ -280,15 +334,10 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
     }
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), JoinCallRefusal> {
         self.check_binding(node, call)?;
-        self.table
-            .revoke(&self.handle)
-            .map_err(JoinCallRefusal::Capability)
+        self.operation.revoke().map_err(JoinCallRefusal::Capability)
     }
     pub fn inspection(&self) -> &CapabilityInspection {
-        self.table
-            .inspections()
-            .next()
-            .expect("single admitted capability")
+        self.operation.inspection()
     }
     /// Read-only observation of the actual retained native owner. This cannot
     /// invoke, replace or rearm the selected provider or manufacture attachment.

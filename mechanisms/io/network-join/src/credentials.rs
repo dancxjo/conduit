@@ -58,9 +58,7 @@ pub enum CredentialCallRefusal {
     InvalidOutput,
 }
 pub struct NetworkCredentialsHostCall<P> {
-    table: BaseCapabilityTable,
-    handle: BaseCapabilityHandle,
-    claim: BaseOperationClaim,
+    operation: BoundBaseOperation,
     source: P,
     node: NodeId,
     invoked: bool,
@@ -80,6 +78,8 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
         selected: SelectedOperationPlan<'_>,
     ) -> Result<Self, CredentialCallRefusal> {
         let node = Self::validate_selected(&table, &claim, contract, selected)?;
+        BoundBaseOperation::check(&table, &handle, &claim)
+            .map_err(CredentialCallRefusal::Capability)?;
         Ok(Self::bound(table, handle, claim, source, node))
     }
     pub(crate) fn validate_selected(
@@ -149,6 +149,49 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
             .map_err(CredentialCallRefusal::Binding)?;
         Ok(node)
     }
+    pub(crate) fn validate_flat_direct(
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        contract: &CheckedNetworkContract,
+        selected: conduit_plan_lowering::selected_operation::SelectedFlatDirectOperationPlan<
+            '_,
+            3,
+            2,
+            1,
+            3,
+            2,
+            3,
+        >,
+    ) -> Result<NodeId, CredentialCallRefusal> {
+        Self::check_possession(table, claim)?;
+        let view = selected.tables.preparation_scope().view();
+        let gear = view
+            .placements
+            .iter()
+            .find(|g| g.placement_id == selected.placement_id)
+            .ok_or(CredentialCallRefusal::WrongRequest)?;
+        let mut resources = gear.resources.iter();
+        let resource = resources
+            .next()
+            .ok_or(CredentialCallRefusal::WrongRequest)?;
+        if resources.next().is_some() {
+            return Err(CredentialCallRefusal::WrongRequest);
+        };
+        if resource.class_id != CREDENTIAL_RESOURCE_CLASS || resource.units != 1 {
+            return Err(CredentialCallRefusal::WrongRequest);
+        }
+        let node =
+            conduit_plan_lowering::selected_operation::bind_selected_flat_direct_operation_for_subject(
+                table,
+                claim,
+                conduit_plan_lowering::selected_operation::SelectedOperationContractRef{kind:contract.kind(),semantic_contract:contract.semantic_contract(),call:NETWORK_CREDENTIALS_HOST_CALL,input_bytes:1,output_bytes:MAXIMUM_JOIN_INPUT_BYTES,resource_bytes:MAXIMUM_JOIN_INPUT_BYTES.into()},
+                NETWORK_CREDENTIALS_SUBJECT,
+                &[],
+                selected,
+            )
+            .map_err(CredentialCallRefusal::Binding)?;
+        Ok(node)
+    }
     pub(crate) fn bound(
         table: BaseCapabilityTable,
         handle: BaseCapabilityHandle,
@@ -156,10 +199,16 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
         source: P,
         node: NodeId,
     ) -> Self {
+        Self::bound_operation(
+            BoundBaseOperation::bind(table, handle, claim)
+                .unwrap_or_else(|_| panic!("preflighted actual bearer")),
+            source,
+            node,
+        )
+    }
+    pub(crate) fn bound_operation(operation: BoundBaseOperation, source: P, node: NodeId) -> Self {
         Self {
-            table,
-            handle,
-            claim,
+            operation,
             source,
             node,
             invoked: false,
@@ -209,14 +258,9 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
             selected,
         )
         .map_err(CredentialCallRefusal::Binding)?;
-        Ok(Self {
-            table,
-            handle,
-            claim,
-            source,
-            node,
-            invoked: false,
-        })
+        BoundBaseOperation::check(&table, &handle, &claim)
+            .map_err(CredentialCallRefusal::Capability)?;
+        Ok(Self::bound(table, handle, claim, source, node))
     }
     /// Output is caller-owned admitted secret storage. Root must erase it after
     /// custody passes to the selected join call, including failure/cancellation.
@@ -240,11 +284,11 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
             return Err(CredentialCallRefusal::OutputCapacity);
         }
         let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
+            .operation
+            .authorize()
             .map_err(CredentialCallRefusal::Capability)?;
         self.invoked = true;
-        let lease = crate::lease::Pending::new(&mut self.table, &mut self.handle, lease);
+        let lease = crate::lease::Pending::new(&mut self.operation, lease);
         let result = self
             .source
             .take_acknowledged(&mut output[..MAXIMUM_JOIN_INPUT_BYTES as usize])
@@ -263,15 +307,13 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
         result
     }
     pub fn revoke(&mut self) -> Result<(), CredentialCallRefusal> {
-        self.table
-            .revoke(&self.handle)
+        self.operation
+            .revoke()
             .map_err(CredentialCallRefusal::Capability)
     }
     pub fn retirement_ready(&self) -> bool {
-        let mut entries = self.table.inspections();
-        entries.next().is_some_and(|entry| {
-            entry.lifecycle == CapabilityLifecycle::Revoked && entry.in_flight_operations == 0
-        }) && entries.next().is_none()
+        let entry = self.operation.inspection();
+        entry.lifecycle == CapabilityLifecycle::Revoked && entry.in_flight_operations == 0
     }
     /// Recover the actual private source after its exact selected capability
     /// was revoked. Invocation counters are not reset by returning custody.

@@ -54,6 +54,13 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
     pub fn native_identity(&self) -> &NetworkNativeIdentity {
         &self.identity
     }
+    pub(crate) fn into_checked_call(
+        self,
+        operation: conduit_core::BoundBaseOperation,
+        node: conduit_kernel::NodeId,
+    ) -> NetworkCredentialsHostCall<P> {
+        NetworkCredentialsHostCall::bound_operation(operation, self.source, node)
+    }
     pub fn append_to_advertisement(
         &self,
         advertisement: &mut HostAdvertisement,
@@ -168,6 +175,8 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
         ready.check_selected_native(&claim, gear, contract)?;
         let node =
             NetworkCredentialsHostCall::<P>::validate_selected(&table, &claim, contract, selected)?;
+        BoundBaseOperation::check(&table, &handle, &claim)
+            .map_err(CredentialCallRefusal::Capability)?;
         let ready = slot.take().expect("validated uniquely borrowed owner slot");
         Ok(NetworkCredentialsHostCall::bound(
             table,
@@ -183,27 +192,32 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
         gear: &PlannedGear,
         contract: &PreparedCredentialContract,
     ) -> Result<(), CredentialCallRefusal> {
-        let base = gear
-            .base
-            .as_ref()
-            .ok_or(CredentialCallRefusal::WrongRequest)?;
+        self.check_selected_native_ref(claim, gear.into(), &contract.kind().limits)
+    }
+    pub(crate) fn check_selected_native_ref(
+        &self,
+        claim: &BaseOperationClaim,
+        gear: conduit_core::PlannedGearRef<'_>,
+        limits: &CapabilityLimits,
+    ) -> Result<(), CredentialCallRefusal> {
+        let base = gear.base.ok_or(CredentialCallRefusal::WrongRequest)?;
         let i = &self.identity;
         if !self.claim_matches(claim)
-            || gear.artifact_id != i.artifact
-            || gear.implementation_id != i.implementation
-            || gear.execution_profile_id.as_str() != CREDENTIAL_EXECUTION_PROFILE
-            || gear.capability_id.as_str() != CREDENTIAL_CAPABILITY
-            || gear.limits != contract.kind().limits
-            || base.base_id != i.base
-            || base.provider_instance_id != i.instance
+            || gear.artifact_id != i.artifact.as_str()
+            || gear.implementation_id != i.implementation.as_str()
+            || gear.execution_profile_id != CREDENTIAL_EXECUTION_PROFILE
+            || gear.capability_id != CREDENTIAL_CAPABILITY
+            || gear.limits != limits
+            || base.base_id != i.base.as_str()
+            || base.provider_instance_id != i.instance.as_str()
             || base.provider_generation != i.provider_generation
-            || base.implementation_id != i.base_implementation
-            || base.mechanism_family.as_str() != CREDENTIAL_BASE_KIND
+            || base.implementation_id != i.base_implementation.as_str()
+            || base.mechanism_family != CREDENTIAL_BASE_KIND
             || base.enforcement_class != BaseEnforcementClass::Cooperative
             || !gear.authority.iter().any(|a| {
-                a.contract_id.as_str() == NETWORK_CREDENTIALS_AUTHORITY
-                    && a.host_call_contract_id.as_str() == NETWORK_CREDENTIALS_HOST_CALL
-                    && a.subject_kind.as_str() == NETWORK_CREDENTIALS_SUBJECT
+                a.contract_id == NETWORK_CREDENTIALS_AUTHORITY
+                    && a.host_call_contract_id == NETWORK_CREDENTIALS_HOST_CALL
+                    && a.subject_kind == NETWORK_CREDENTIALS_SUBJECT
             })
         {
             return Err(CredentialCallRefusal::WrongRequest);
@@ -241,6 +255,8 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
         ready.check_selected_native(&claim, gear, contract)?;
         let node =
             NetworkCredentialsHostCall::<P>::validate_direct(&table, &claim, contract, selected)?;
+        BoundBaseOperation::check(&table, &handle, &claim)
+            .map_err(CredentialCallRefusal::Capability)?;
         let ready = slot.take().expect("validated unique initialized owner");
         Ok(NetworkCredentialsHostCall::bound(
             table,
