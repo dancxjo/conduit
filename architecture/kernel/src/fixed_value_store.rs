@@ -3,7 +3,7 @@ use crate::{StorageError, ValueRef, ValueStorage};
 
 #[derive(Clone, Copy)]
 pub(crate) struct FixedValueSlot<const MAX_VALUE_BYTES: usize> {
-    pub(crate) generation: u16,
+    pub(crate) generation: u32,
     pub(crate) references: u16,
     pub(crate) len: u32,
     pub(crate) bytes: [u8; MAX_VALUE_BYTES],
@@ -113,7 +113,7 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> FixedValueStore<SLOTS, MA
                     *probes += 1;
                 }
             })
-            .find(|(_, slot)| slot.references == 0 && slot.generation != u16::MAX)
+            .find(|(_, slot)| slot.references == 0 && slot.generation != u32::MAX)
             .ok_or(if self.has_retired_slots {
                 StorageError::GenerationExhausted
             } else {
@@ -194,6 +194,20 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
         Ok(&slot.bytes[..usize::try_from(slot.len).map_err(|_| StorageError::StaleReference)?])
     }
 
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError> {
+        let entry = self
+            .slots
+            .get(usize::from(slot))
+            .ok_or(StorageError::StaleReference)?;
+        let value = ValueRef {
+            slot,
+            generation,
+            byte_len: entry.len,
+        };
+        self.slot(value)?;
+        Ok(value)
+    }
+
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
         Ok(self.slot(value)?.references)
     }
@@ -215,7 +229,7 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
             slot.len = 0;
             self.used_items -= 1;
             self.used_bytes -= len;
-            if self.slots[usize::from(value.slot)].generation == u16::MAX {
+            if self.slots[usize::from(value.slot)].generation == u32::MAX {
                 self.has_retired_slots = true;
             } else {
                 self.free_search_start = self.free_search_start.min(usize::from(value.slot));
@@ -226,7 +240,7 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
 
     fn clear(&mut self) {
         for slot in &mut self.slots {
-            self.has_retired_slots |= slot.generation == u16::MAX;
+            self.has_retired_slots |= slot.generation == u32::MAX;
             slot.references = 0;
             slot.len = 0;
         }
@@ -259,6 +273,9 @@ impl<const S: usize, const M: usize> ValueStorage for &mut FixedValueStore<S, M>
     }
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
         (**self).get(value)
+    }
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError> {
+        (**self).resolve_identity(slot, generation)
     }
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
         (**self).reference_count(value)

@@ -146,7 +146,7 @@ fn logical_pressure_and_retired_generations_refuse_before_buffer_transfer() {
         .restore_owned_compact_f32(&owner, &mut pending, &mut first)
         .unwrap();
     for index in &owner.slots {
-        values.slots[usize::from(*index)].generation = u16::MAX;
+        values.slots[usize::from(*index)].generation = u32::MAX;
     }
     assert!(matches!(
         values.swap_owned_compact_f32(&owner, &mut second),
@@ -255,13 +255,13 @@ fn retired_owned_slots_do_not_turn_generic_pressure_into_generation_exhaustion()
         .unwrap()
         .remove(0);
     for index in &owner.slots {
-        values.slots[usize::from(*index)].generation = u16::MAX;
+        values.slots[usize::from(*index)].generation = u32::MAX;
     }
     values.has_retired_slots = true;
     let canonical = values.store(&[1; 24]).unwrap();
     assert_eq!(values.store(&[2]), Err(StorageError::ItemCapacityExceeded));
     values.release(canonical).unwrap();
-    values.slots[usize::from(canonical.slot)].generation = u16::MAX;
+    values.slots[usize::from(canonical.slot)].generation = u32::MAX;
     assert_eq!(values.store(&[2]), Err(StorageError::GenerationExhausted));
 }
 

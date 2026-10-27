@@ -91,7 +91,7 @@ pub enum SignExpectationTarget {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ValueRef {
     pub slot: u16,
-    pub generation: u16,
+    pub generation: u32,
     pub byte_len: u32,
 }
 
@@ -422,6 +422,10 @@ pub trait ValueStorage {
     fn used_bytes(&self) -> u32;
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
+    /// Reconstruct a live store-local identity with its canonical logical length.
+    /// Implementations must refuse stale generations and vacant/retired slots;
+    /// compact physical representations must return their logical byte bounds.
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError>;
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError>;
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;

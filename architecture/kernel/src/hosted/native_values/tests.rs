@@ -56,8 +56,8 @@ fn native_admission_respects_heterogeneous_capacity_live_bytes_and_retirement() 
     assert_eq!(store.used_bytes(), 9);
     store.release(word).unwrap();
     store.release(bit).unwrap();
-    store.slots[1].generation = u16::MAX;
-    store.slots[2].generation = u16::MAX;
+    store.slots[1].generation = u32::MAX;
+    store.slots[2].generation = u32::MAX;
     assert_eq!(store.native_u64_available(), (0, 9));
     assert_eq!(
         store.store_native_u64(11),

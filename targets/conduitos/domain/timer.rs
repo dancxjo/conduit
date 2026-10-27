@@ -103,7 +103,7 @@ pub unsafe fn execute(frame: &mut TextFrame) -> ! {
                     frame.timer_node = u32::from(request.node.0);
                     frame.timer_request = request.request.0;
                     frame.timer_slot = u32::from(request.input.value.slot);
-                    frame.timer_generation = u32::from(request.input.value.generation);
+                    frame.timer_generation = request.input.value.generation;
                     frame.timer_value_bytes = request.input.value.byte_len;
                     frame.timer_admitted_bytes = request.input.admitted_bytes;
                     frame.timer_kind = if timer { 1 } else { 2 };

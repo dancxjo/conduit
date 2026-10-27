@@ -2,7 +2,7 @@
 use super::*;
 use conduit_kernel::{BoundedValueRef, RequestId};
 
-fn event(request: u32, generation: u16) -> CompletedInputEvent {
+fn event(request: u32, generation: u32) -> CompletedInputEvent {
     CompletedInputEvent {
         descriptor: 0,
         realization: InputRealization::RawKeyboard,

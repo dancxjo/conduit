@@ -60,7 +60,7 @@ impl HostedValueStore {
             .filter(|(index, slot)| {
                 !self.is_owned_compact(*index)
                     && slot.references == 0
-                    && slot.generation != u16::MAX
+                    && slot.generation != u32::MAX
                     && slot.bytes.capacity() >= logical_size
             })
             .count();

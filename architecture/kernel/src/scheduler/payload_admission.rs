@@ -78,7 +78,9 @@ where
             return Ok(0);
         }
         let slot = queue_slot(spec, state.head, state.len - 1);
-        let newest = self.queue_slots[slot].ok_or(SchedulerError::InvalidPlan)?;
+        let newest = self.queue_slots[slot]
+            .ok_or(SchedulerError::InvalidPlan)?
+            .resolve(&self.values)?;
         Ok(spec
             .byte_capacity
             .saturating_sub(state.queued_bytes.saturating_sub(newest.byte_len)))

@@ -105,8 +105,16 @@ fn new_body(planned: &f::PlannedMaskPlot) -> b::SealedBodyLifecycleSession {
     session
 }
 fn start(body: &mut b::SealedBodyLifecycleSession, host: &c::HostId, boot: &c::BootId) {
+    start_at(body, host, boot, 1)
+}
+fn start_at(
+    body: &mut b::SealedBodyLifecycleSession,
+    host: &c::HostId,
+    boot: &c::BootId,
+    sequence: u64,
+) {
     let current = body.realization().unwrap();
-    let play = b::BodyPlayIdentity::bind(&current.plan, 1);
+    let play = b::BodyPlayIdentity::bind(&current.plan, sequence);
     let sign = |sequence| c::bind_sign(host, boot, Some(&play.active_play_id), sequence).sign_id;
     let wake = current
         .wake
@@ -124,13 +132,25 @@ fn prepare(
     PreparedRendererInvocation,
     production::MaskScopeGuard,
 ) {
+    prepare_at(ready, planned, 0)
+}
+fn prepare_at(
+    ready: &ReadyRenderer<native::Provider>,
+    planned: &f::PlannedMaskPlot,
+    sequence_base: u64,
+) -> (
+    RootIssuer,
+    production::MaskLeaseIssuer,
+    PreparedRendererInvocation,
+    production::MaskScopeGuard,
+) {
     let mut issuer = RootIssuer {
         host: ready.identity().host_id.clone(),
         boot: ready.identity().boot_id.clone(),
         key: [91; 32],
         display_issued: false,
         reserved_display_play: None,
-        last_play_sequence: 0,
+        last_play_sequence: sequence_base,
         display_generation: 0,
         issued_display_play: None,
     };
@@ -152,7 +172,12 @@ fn prepare(
         Ok::<_, ()>(configurations[&gear.placement_id].clone())
     })
     .unwrap();
-    let active = c::bind_active_play(verified.plan_id(), &issuer.host, &issuer.boot, 1);
+    let active = c::bind_active_play(
+        verified.plan_id(),
+        &issuer.host,
+        &issuer.boot,
+        sequence_base + 1,
+    );
     let gear = planned.show_placement();
     let source = conduit_environment_make::SevenSegmentMaskSource::compile().unwrap();
     let material = conduit_environment_make::SevenSegmentMaskMaterial::prepare(&source).unwrap();
@@ -332,16 +357,49 @@ fn parent_deadline_revocation_and_global_child_range_are_finite() {
 
 #[test]
 fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_body() {
+    let values = Box::leak(Box::new(
+        conduit_kernel::FixedValueStore::<2, 8192>::new(16384).unwrap(),
+    ));
+    let _ = run_complete_native_mask(values, 0, None);
+}
+#[test]
+fn returned_mask_store_supports_two_complete_16_hour_plays_without_reviving_old_refs() {
+    let values = Box::leak(Box::new(
+        conduit_kernel::FixedValueStore::<2, 8192>::new(16384).unwrap(),
+    ));
+    let (values, stale) = run_complete_native_mask(values, 0, None);
+    let (values, _) = run_complete_native_mask(values, 19200, Some(stale));
+    use conduit_kernel::ValueStorage;
+    assert_eq!(values.used_items(), 0);
+    assert!(values
+        .resolve_identity(stale.slot, stale.generation)
+        .is_err());
+    let first = values.store(&[0]).unwrap();
+    let second = values.store(&[0]).unwrap();
+    assert!(first.generation > 76_800);
+    assert!(second.generation > 38_400);
+    println!("native_two_mask_plays children=38400 first_next_generation={} second_next_generation={} stale_refused=true physical=false",first.generation,second.generation);
+    values.release(first).unwrap();
+    values.release(second).unwrap();
+}
+fn run_complete_native_mask(
+    values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+    sequence_base: u64,
+    prior_stale: Option<conduit_kernel::ValueRef>,
+) -> (
+    &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+    conduit_kernel::ValueRef,
+) {
     use crate::{mask_session as ms, native_display::EvidenceSink};
     use b::BodyPlanEvidence;
     use conduit_environment_runtime::mask_kernel::PreparedMaskKernel;
-    use conduit_kernel::{self as k, scheduler::SchedulerStatus};
+    use conduit_kernel::{self as k, scheduler::SchedulerStatus, ValueStorage};
     let pins = Rc::new(native::Pins::default());
     let ready = native::ready(pins.clone());
     let planned = planned(&ready);
-    let (mut root, leases, capsule, guard) = prepare(&ready, &planned);
+    let (mut root, leases, capsule, guard) = prepare_at(&ready, &planned, sequence_base);
     let mut body = new_body(&planned);
-    start(&mut body, &root.host, &root.boot);
+    start_at(&mut body, &root.host, &root.boot, sequence_base + 1);
     let mut metadata = planned.plan.clone();
     let mut configs = std::collections::BTreeMap::new();
     for gear in &mut metadata.fragments[0].placements {
@@ -390,9 +448,13 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
         None,
     )
     .unwrap();
-    let initial = c::bind_active_play(&planned.plan.plan_id, &root.host, &root.boot, 1);
+    let initial = c::bind_active_play(
+        &planned.plan.plan_id,
+        &root.host,
+        &root.boot,
+        sequence_base + 1,
+    );
     let context = f::PreparedMaskShowContext::prepare(&planned, 8192).unwrap();
-    let values = Box::leak(Box::new(k::FixedValueStore::<2, 8192>::new(16384).unwrap()));
     let kernel = PreparedMaskKernel::prepare_parts(&planned)
         .unwrap()
         .finish_with_fixed_storage(values)
@@ -427,6 +489,7 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
     assert!(leases.fresh_for_task());
     leases.activate(&body, 1000).unwrap();
     let face = fixture::face();
+    let mut stale = None;
     for index in 0..19200 {
         let now = 1000 + index * 3000;
         let (active, table, handle, claim) =
@@ -486,6 +549,15 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
         for _ in 0..96 {
             let status = session.session.step().unwrap();
             if let Some(request) = session.session.next_host_request() {
+                stale.get_or_insert(request.input.value);
+                if let Some(old) = prior_stale {
+                    assert!(session
+                        .session
+                        .kernel()
+                        .values()
+                        .resolve_identity(old.slot, old.generation)
+                        .is_err());
+                }
                 let call = session.call.as_mut().unwrap();
                 let verified = call
                     .verify_input(
@@ -610,7 +682,7 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
                 .unwrap_or_else(|_| panic!("exact finite child rearm"));
         }
     }
-    assert_eq!(evidence.completion(), (19200, Some(19200)));
+    assert_eq!(evidence.completion(), (19200, Some(sequence_base + 19200)));
     assert!(session.session.retirement_ready());
     let (s, l, e, _) = session
         .retire_completed(leases, evidence)
@@ -658,9 +730,9 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
     let (retired, memory) =
         allocation_probe::observe(|| session.retire_completed(leases, evidence).ok().unwrap());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
-    assert_eq!(root.last_play_sequence, 19200);
+    assert_eq!(root.last_play_sequence, sequence_base + 19200);
     let generation = root.display_generation;
-    let wrong = c::bind_active_play(&initial.plan_id, &root.host, &root.boot, 2);
+    let wrong = c::bind_active_play(&initial.plan_id, &root.host, &root.boot, sequence_base + 2);
     assert!(root.finish_mask_play(&body, &wrong, &retired).is_err());
     assert!(root
         .finish_mask_play(&new_body(&planned), &initial, &retired)
@@ -671,7 +743,7 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
     assert!(root.display_issued);
     root.finish_mask_play(&body, &initial, &retired).unwrap();
     assert!(!root.display_issued);
-    assert_eq!(root.last_play_sequence, 19200);
+    assert_eq!(root.last_play_sequence, sequence_base + 19200);
     assert_eq!(root.display_generation, generation);
     assert!(root.finish_mask_play(&body, &initial, &retired).is_err());
     let returned = retired.into_parts();
@@ -689,5 +761,6 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
     ));
     assert_eq!(pins.released.get(), [true, true]);
     assert!(pins.edges.get() > 19200 * 200);
-    println!("native_completed_mask_cpu children=19200 completeClosed=19200 sequence_next=19201 retirement_allocations=0 physical=false");
+    println!("native_completed_mask_cpu children=19200 completeClosed=19200 retirement_allocations=0 physical=false");
+    (returned.kernel.values, stale.unwrap())
 }

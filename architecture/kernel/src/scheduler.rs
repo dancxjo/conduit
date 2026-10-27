@@ -4,6 +4,8 @@ mod host_call_back;
 mod host_dispatch;
 mod host_input_ownership;
 mod host_values;
+mod stored_value;
+use stored_value::{StoredHostOutcome, StoredValueKey};
 mod remote_input;
 #[cfg(feature = "alloc")]
 pub use remote_input::HostEncodingRefusal;
@@ -339,7 +341,7 @@ struct PendingHostCall {
     dispatched: bool,
     cancellation_requested: bool,
     cancellation_dispatched: bool,
-    completion: Option<HostCallOutcome>,
+    completion: Option<StoredHostOutcome>,
 }
 
 pub trait StepBack<const PORTS: usize> {
@@ -1021,7 +1023,7 @@ pub struct FixedScheduler<
     values: S,
     signs: E,
     cords: [CordState; CORDS],
-    queue_slots: [Option<ValueRef>; QUEUE_SLOTS],
+    queue_slots: [Option<StoredValueKey>; QUEUE_SLOTS],
     ready: ReadySet<NODES>,
     completed: [bool; NODES],
     cursor: usize,
@@ -1870,6 +1872,7 @@ where
             }
             self.values.get(output.value)?;
         }
+        let stored_outcome = StoredHostOutcome::checked(outcome, &self.values)?;
         self.ensure_sign_capacity(1)?;
         if pending.cancellation_requested && !pending.cancellation_dispatched {
             self.undispatched_cancellation_count -= 1;
@@ -1880,7 +1883,7 @@ where
         self.pending_host_calls[slot]
             .as_mut()
             .ok_or(SchedulerError::HostCallCompletionRejected)?
-            .completion = Some(outcome);
+            .completion = Some(stored_outcome);
         self.set_ready(usize::from(pending.request.node.0), true);
         self.signs.record(
             pending.request.node,
@@ -1948,11 +1951,19 @@ where
             counts.context_pending_slots += 1;
             self.scan_counts.set(counts);
         }
-        let host_completion = pending.and_then(|pending| {
-            pending
-                .completion
-                .map(|outcome| (pending.request.request, outcome))
-        });
+        let host_completion = pending
+            .map(|pending| {
+                pending
+                    .completion
+                    .map(|outcome| {
+                        outcome
+                            .resolve(&self.values)
+                            .map(|outcome| (pending.request.request, outcome))
+                    })
+                    .transpose()
+            })
+            .transpose()?
+            .flatten();
         for (port, cord) in self.node_specs[node]
             .input_cords
             .iter()
@@ -2832,17 +2843,18 @@ where
                 counts.consumed_completion_slots += 1;
                 self.scan_counts.set(counts);
             }
-            let pending = self.pending_host_calls[slot]
-                .take()
-                .ok_or(SchedulerError::InvalidHostCallAccess)?;
+            let pending =
+                self.pending_host_calls[slot].ok_or(SchedulerError::InvalidHostCallAccess)?;
+            let completion = pending
+                .completion
+                .ok_or(SchedulerError::InvalidHostCallAccess)?
+                .resolve(&self.values)?;
+            self.pending_host_calls[slot] = None;
             self.pending_host_count -= 1;
             self.host_slot_search_start = self.host_slot_search_start.min(slot);
             self.pending_host_slots[node] = None;
             let retains_input = self.drivers[node]
                 .retains_host_call_input(pending.request.request, pending.request.input.value);
-            let completion = pending
-                .completion
-                .ok_or(SchedulerError::InvalidHostCallAccess)?;
             (
                 (pending.owns_input
                     && !retains_input
@@ -3070,12 +3082,16 @@ where
         });
         let available_host_value = completed_pending
             .and_then(|pending| pending.completion)
+            .map(|outcome| outcome.resolve(&self.values))
+            .transpose()?
             .and_then(|outcome| outcome.output)
             .map(|output| output.value);
         let consumed_host_value = if consumed_host_completion {
             completed_pending
                 .ok_or(SchedulerError::InvalidHostCallAccess)?
                 .completion
+                .map(|outcome| outcome.resolve(&self.values))
+                .transpose()?
                 .and_then(|outcome| outcome.output)
                 .map(|output| output.value)
         } else {
@@ -3529,13 +3545,14 @@ where
         if state.len == 0 {
             return Ok(None);
         }
-        let slot = queue_slot(spec, state.head, 0);
         self.queue_slots
-            .get(slot)
+            .get(queue_slot(spec, state.head, 0))
             .copied()
-            .ok_or(SchedulerError::InvalidPlan)
+            .ok_or(SchedulerError::InvalidPlan)?
+            .map(|key| key.resolve(&self.values))
+            .transpose()
+            .map_err(Into::into)
     }
-
     fn pop(&mut self, cord: usize) -> Result<ValueRef, SchedulerError> {
         let spec = self.cord_specs[cord];
         let state = &mut self.cords[cord];
@@ -3544,15 +3561,16 @@ where
         }
         let slot = queue_slot(spec, state.head, 0);
         let value = self.queue_slots[slot]
-            .take()
-            .ok_or(SchedulerError::InvalidPlan)?;
+            .ok_or(SchedulerError::InvalidPlan)?
+            .resolve(&self.values)?;
+        self.queue_slots[slot] = None;
         state.head = (state.head + 1) % spec.item_capacity;
         state.len -= 1;
         state.queued_bytes -= value.byte_len;
         Ok(value)
     }
-
     fn push(&mut self, cord: usize, value: ValueRef) -> Result<Option<ValueRef>, SchedulerError> {
+        let key = StoredValueKey::checked(value, &self.values)?;
         let spec = self.cord_specs[cord];
         let state = &mut self.cords[cord];
         if state.len >= spec.item_capacity {
@@ -3561,15 +3579,15 @@ where
             }
             let slot = queue_slot(spec, state.head, state.len - 1);
             let superseded = self.queue_slots[slot]
-                .replace(value)
-                .ok_or(SchedulerError::InvalidPlan)?;
+                .ok_or(SchedulerError::InvalidPlan)?
+                .resolve(&self.values)?;
             let remaining = spec
                 .byte_capacity
                 .saturating_sub(state.queued_bytes.saturating_sub(superseded.byte_len));
             if value.byte_len > remaining {
-                self.queue_slots[slot] = Some(superseded);
                 return Err(SchedulerError::QueueByteCapacityExceeded);
             }
+            self.queue_slots[slot] = Some(key);
             state.queued_bytes = state
                 .queued_bytes
                 .saturating_sub(superseded.byte_len)
@@ -3580,7 +3598,7 @@ where
         if self.queue_slots[slot].is_some() {
             return Err(SchedulerError::InvalidPlan);
         }
-        self.queue_slots[slot] = Some(value);
+        self.queue_slots[slot] = Some(key);
         state.len += 1;
         state.queued_bytes += value.byte_len;
         Ok(None)
