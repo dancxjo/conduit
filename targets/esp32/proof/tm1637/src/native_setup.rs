@@ -2,6 +2,9 @@
 //! queued until native custody releases it or an independent workspace is admitted.
 //! Recovery always retires selected ownership and commits evidence before retry.
 use super::NativeRoot;
+#[cfg(feature = "network-workspace-check")]
+#[path = "native_setup_workspace_check.rs"]
+mod workspace_check;
 #[cfg(feature = "local-appliance")]
 use crate::native_display::task::WorkspacePermit;
 use crate::native_network::recovery::Action;
@@ -234,11 +237,13 @@ impl NativeRoot {
     /// Independent control polling. Current interface/service evidence controls
     /// availability; a receipt from an old successful join is insufficient.
     pub async fn advance_setup(&mut self) {
+        #[cfg(feature = "network-workspace-check")]
+        self.check_network_workspace();
         if self.network.retirement.is_some() {
             let _ = self.finish_network_retirement();
             return;
         }
-        #[cfg(feature = "local-appliance")]
+        #[cfg(all(feature = "local-appliance", not(feature = "network-workspace-check")))]
         self.advance_network_workspace();
         self.prepare_network_configuration();
         self.play.run().await;

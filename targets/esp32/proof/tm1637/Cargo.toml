@@ -21,6 +21,7 @@ local-appliance = ["target-mask-native-check", "body-persistence", "observation-
 # Qualification profile for the borrowed network constructor. Its workspace
 # admission remains disabled until native whole-construction proof passes.
 flat-network-appliance = ["local-appliance"]
+network-workspace-check = ["flat-network-appliance"]
 # Typed cold biography custody is optional in the full autonomous appliance.
 biography-service = ["local-appliance"]
 # Recovery image: serve custody without resuming the linked Body or creating a Boot.
