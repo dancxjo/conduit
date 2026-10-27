@@ -283,7 +283,7 @@ fn decode_checkpoint(
     custody: Option<&ArchiveCustody>,
 ) -> Result<
     (
-        payload::archive::Resident,
+        Box<payload::archive::Resident>,
         crate::native_body_checkpoint::SourceSnapshot,
     ),
     &'static str,
@@ -358,7 +358,19 @@ fn decode_checkpoint(
                 if custody.is_some_and(|c| c.span != resident.span) {
                     return Err("restart-custody-span");
                 }
-                Ok(resident)
+                // Journal's generic result must stay pointer-sized while it
+                // validates complete source consumption and snapshot custody.
+                // Reserve exactly the Box layout; refusal publishes nothing.
+                let layout = core::alloc::Layout::new::<payload::archive::Resident>();
+                // SAFETY: Resident has a nonzero exact Box layout, and no
+                // reference escapes before the allocation is initialized.
+                let pointer = unsafe { alloc::alloc::alloc(layout) }
+                    .cast::<core::mem::MaybeUninit<payload::archive::Resident>>();
+                if pointer.is_null() {
+                    return Err("restart-resident-backing-capacity");
+                }
+                // SAFETY: the unique allocation is non-null with this layout.
+                Ok(Box::write(unsafe { Box::from_raw(pointer) }, resident))
             })
             .map_err(|error| {
                 refusal = Some(error);
