@@ -135,7 +135,7 @@ fn fahrenheit_look_changes_expression_without_changing_face_quantity() {
             )
             .show
         ),
-        " 59H"
+        "H 59"
     );
     assert_eq!(
         text(
@@ -213,7 +213,7 @@ fn rounding_sign_precision_fitting_and_overflow_are_explicit() {
             )
             .show
         ),
-        " 60H"
+        "H 60"
     );
 }
 
@@ -484,10 +484,10 @@ fn timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime() {
     for (elapsed, expected) in [
         (0, "67:6F"),
         (2999, "67:6F"),
-        (3000, " 59H"),
-        (5999, " 59H"),
+        (3000, "H 59"),
+        (5999, "H 59"),
         (6000, "67:6F"),
-        (9000, " 59H"),
+        (9000, "H 59"),
         (12000, "----"),
     ] {
         let show = mask.render(&view, elapsed, &profile).unwrap();
@@ -515,12 +515,17 @@ fn whole_degree_environment_layout_rounds_and_keeps_three_digit_values() {
         assert!(!output.show.colon());
         assert_eq!(output.show.decimal_points(), &[false; 4]);
     }
-    for (humidity, expected) in [("44%", "rH:44"), ("5%", "rH:05"), ("99.5%", "H100")] {
+    for (humidity, expected) in [
+        ("44%", "H 44"),
+        ("5%", "H 05"),
+        ("0%", "H 00"),
+        ("99.5%", "H100"),
+    ] {
         let face = face("20°C", humidity, true, true);
         let view = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
-        assert_eq!(
-            text(&render(&view, SevenSegmentSelection::Humidity, &look).show),
-            expected
-        );
+        let output = render(&view, SevenSegmentSelection::Humidity, &look);
+        assert_eq!(text(&output.show), expected);
+        assert!(!output.show.colon());
+        assert_eq!(output.show.decimal_points(), &[false; 4]);
     }
 }

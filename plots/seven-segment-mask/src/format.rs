@@ -21,6 +21,7 @@ pub enum MaskDisposition {
     Temperature { decimal_places: u8 },
     Humidity,
     Clock,
+    PressureHectopascal,
     Unavailable(MaskUnavailable),
 }
 pub struct RenderedShow<'a> {
@@ -172,49 +173,27 @@ fn temperature(
 }
 fn humidity(
     value: Quantity,
-    look: &SevenSegmentLook,
+    _look: &SevenSegmentLook,
 ) -> Result<(SevenSegmentShow, MaskDisposition), MaskUnavailable> {
-    if matches!(
-        look.temperature_format(),
-        super::SevenSegmentTemperatureFormat::WholeDegrees
-    ) {
-        let whole = rounded(value, Unit::Percent, 0)?;
-        if (0..=99).contains(&whole) {
-            return Ok((
-                SevenSegmentShow::from_parts(
-                    [
-                        pattern(0x50),
-                        pattern(0x76),
-                        pattern(NUMERALS[(whole / 10) as usize]),
-                        pattern(NUMERALS[(whole % 10) as usize]),
-                    ],
-                    [false; 4],
-                    true,
-                ),
-                MaskDisposition::Humidity,
-            ));
-        }
-        if whole == 100 {
-            return Ok((
-                SevenSegmentShow::from_parts(
-                    [
-                        pattern(0x76),
-                        pattern(NUMERALS[1]),
-                        pattern(NUMERALS[0]),
-                        pattern(NUMERALS[0]),
-                    ],
-                    [false; 4],
-                    false,
-                ),
-                MaskDisposition::Humidity,
-            ));
-        }
+    let whole = rounded(value, Unit::Percent, 0)?;
+    if !(0..=100).contains(&whole) {
+        return Err(MaskUnavailable::Overflow);
     }
     Ok((
-        number(rounded(value, Unit::Percent, 0)?, 0, 0x76)?,
+        SevenSegmentShow::from_parts(
+            [
+                pattern(0x76), // H
+                pattern(if whole == 100 { NUMERALS[1] } else { 0 }),
+                pattern(NUMERALS[((whole / 10) % 10) as usize]),
+                pattern(NUMERALS[(whole % 10) as usize]),
+            ],
+            [false; 4],
+            false,
+        ),
         MaskDisposition::Humidity,
     ))
 }
+
 fn clock(
     face: &PreparedEnvironmentFace<'_>,
 ) -> Result<(SevenSegmentShow, MaskDisposition), MaskUnavailable> {

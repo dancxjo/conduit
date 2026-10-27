@@ -49,7 +49,11 @@ pub use generated::{
     SevenSegmentSelection, SevenSegmentShow, SevenSegmentTemperatureFormat,
     SevenSegmentTemperatureUnit,
 };
+mod environmental;
 mod format;
+pub use environmental::{
+    PreparedEnvironmentalFace, PreparedEnvironmentalShow, TimedEnvironmentalMask,
+};
 mod prepared_show;
 mod projection;
 mod rounding;
