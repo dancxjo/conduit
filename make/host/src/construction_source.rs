@@ -9,8 +9,8 @@ use serde_json::{Map, Number, Value};
 use std::fmt::Write as _;
 
 use crate::{
-    ConfigurationBase, ConfigurationDiagnostic, ConfigurationTarget, HostBounds, HostConfiguration,
-    ResourceBudget,
+    ConfigurationBase, ConfigurationBus, ConfigurationDevice, ConfigurationDiagnostic,
+    ConfigurationTarget, HostBounds, HostConfiguration, ResourceBudget,
 };
 
 pub fn parse_host_configuration_conduit(
@@ -29,9 +29,15 @@ pub fn parse_host_configuration_conduit(
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     let resources = repeated::<ResourceBudget>(&declarations, "need")
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
+    let buses = repeated::<ConfigurationBus>(&declarations, "bus")
+        .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
+    let devices = repeated::<ConfigurationDevice>(&declarations, "device")
+        .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     reject_unknown(
         &declarations,
-        &["schema", "target", "limits", "base", "need"],
+        &[
+            "schema", "target", "limits", "base", "need", "bus", "device",
+        ],
     )
     .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     Ok(HostConfiguration {
@@ -41,6 +47,8 @@ pub fn parse_host_configuration_conduit(
         bases,
         resources,
         limits,
+        buses,
+        devices,
     })
 }
 
@@ -54,6 +62,8 @@ pub fn canonical_host_configuration_conduit(
     canonical
         .resources
         .sort_by(|left, right| left.id.cmp(&right.id));
+    canonical.buses.sort_by(|a, b| a.id().cmp(b.id()));
+    canonical.devices.sort_by(|a, b| a.id().cmp(b.id()));
     let mut source = String::new();
     writeln!(&mut source, "host {} {{", canonical.name).map_err(|error| {
         ConfigurationDiagnostic::Encode {
@@ -137,6 +147,14 @@ pub fn canonical_host_configuration_conduit(
             detail: error.to_string(),
         })?;
     }
+    crate::configuration::write_attachment_conduit(
+        &mut source,
+        &canonical.buses,
+        &canonical.devices,
+    )
+    .map_err(|e| ConfigurationDiagnostic::Encode {
+        detail: e.to_string(),
+    })?;
     let limits = &canonical.limits;
     writeln!(
         &mut source,

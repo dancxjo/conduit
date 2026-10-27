@@ -1,0 +1,33 @@
+[package]
+name = "conduit-pico-environment-usb"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[workspace]
+[dependencies]
+conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
+conduit-ht16k33 = { path = "../../../../mechanisms/io/ht16k33" }
+conduit-environment-face = { path = "../../../../bodies/environment/face" }
+conduit-face = { path = "../../../../semantics/face", default-features = false }
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
+linked_list_allocator = { version = "0.10.6", default-features = false }
+critical-section = "1.2"
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.6"
+panic-halt = "1.0.0"
+static_cell = "2"
+heapless = "0.8"
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["platform-cortex-m", "executor-thread"] }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["critical-section-impl", "rp2040", "time-driver"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+[build-dependencies]
+conduit-host-make = { path = "../../../../make/host" }
+conduit-host-rp2040 = { path = "../../make" }
+sha2 = "0.10"
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+[profile.release.build-override]
+opt-level = 1
