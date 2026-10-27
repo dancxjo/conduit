@@ -33,6 +33,7 @@ mod mask;
 pub(crate) mod memory_check;
 #[path = "native_network_offer.rs"]
 mod network_offer;
+#[cfg(not(feature = "flat-network-appliance"))]
 #[path = "native_network_plan.rs"]
 mod network_plan;
 #[path = "native_offer.rs"]
@@ -128,6 +129,7 @@ impl NativeRoot {
             appliance_kernel: None,
             admission,
             admission_freshness: 0,
+            #[cfg(not(feature = "flat-network-appliance"))]
             network_preparation: None,
             network_source: network_source_identity,
             credentials: Some(credentials),
@@ -318,6 +320,11 @@ impl NativeRoot {
         if self.play.attempted() {
             return self.play.status();
         }
+        #[cfg(feature = "flat-network-appliance")]
+        {
+            "awaiting-current-offers"
+        }
+        #[cfg(not(feature = "flat-network-appliance"))]
         match &self.network_preparation {
             None => "unprepared",
             Some(Err(error)) => error.code(),

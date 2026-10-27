@@ -26,6 +26,7 @@ pub struct NativeRoot {
     appliance_kernel: Option<crate::native_kernel::PreparedKernel>,
     admission: crate::native_admission::NativeAdmission,
     admission_freshness: u64,
+    #[cfg(not(feature = "flat-network-appliance"))]
     network_preparation: Option<
         Result<
             crate::network_planning::PreparedVerifiedNetworkSetup,

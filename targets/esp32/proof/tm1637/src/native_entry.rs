@@ -115,6 +115,10 @@ async fn main(spawner: Spawner) {
         root.start_preparation_service(spawner)
             .await
             .expect("Root preparation service must start");
+        // The flat qualification constructs its checked plan from the actual
+        // ready owners when joining. Do not also construct the legacy owned
+        // network preparation, which that profile never consumes.
+        #[cfg(not(feature = "flat-network-appliance"))]
         root.prepare_network_plan()
             .expect("current initialized Root advertisement");
         #[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
