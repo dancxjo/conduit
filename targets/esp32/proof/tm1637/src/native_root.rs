@@ -25,6 +25,8 @@ mod mask;
 #[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
 #[path = "native_memory_check.rs"]
 pub(crate) mod memory_check;
+#[path = "native_network_offer.rs"]
+mod network_offer;
 #[path = "native_offer.rs"]
 mod offers;
 #[path = "native_setup.rs"]
@@ -89,6 +91,8 @@ pub struct NativeRoot {
     local_mask_scope: Option<crate::native_authority::MaskScopeGuard>,
     #[cfg(feature = "mask-root")]
     local_mask_worker: Option<crate::native_display::task::Handle>,
+    #[cfg(feature = "local-appliance")]
+    pending_network_workspace: Option<setup::PendingWorkspace>,
     contract: PulseReadContract,
     wait: Option<conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>>,
     host: c::HostId,
@@ -196,6 +200,8 @@ impl NativeRoot {
             local_mask_scope: None,
             #[cfg(feature = "mask-root")]
             local_mask_worker: None,
+            #[cfg(feature = "local-appliance")]
+            pending_network_workspace: None,
             contract: PulseReadContract::prepare().unwrap(),
             wait: Some(wait),
             host,
@@ -397,7 +403,7 @@ impl NativeRoot {
     /// separate. Each call replaces preparation against this same actual Boot.
     pub fn prepare_network_plan(&mut self) -> Result<(), ()> {
         self.network_preparation = None;
-        let host = self.advertisement()?;
+        let host = self.network_advertisement()?;
         let local_bases = [c::BaseImplementationId::from("conduit.base/local@1")];
         let grants = match (self.network.ready(), self.credentials.as_ref()) {
             (Some(join), Some(source)) => Some([

@@ -2,6 +2,7 @@
 //! not Body start; activation and the exclusive release handle are separate.
 use super::session::NativeMaskSession;
 use super::worker::workspace;
+pub(crate) use workspace::{Permit as WorkspacePermit, Request as WorkspaceRequest};
 static WORKSPACE: workspace::Gate = workspace::Gate::new();
 use crate::native_authority::{MaskLeaseIssuer, MaskScopeGuard};
 use crate::native_mask_evidence::Consumer;
