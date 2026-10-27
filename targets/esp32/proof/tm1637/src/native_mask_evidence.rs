@@ -30,16 +30,31 @@ pub fn status() -> Status {
 pub struct Consumer {
     next: u64,
     last_sequence: Option<u64>,
-    page: [u8; wire::MAXIMUM_BYTES],
+    page: [u8; wire::packed::MAXIMUM_BYTES],
+    packed_length: usize,
     length: usize,
     chain: [u8; 32],
 }
 impl Consumer {
+    pub(crate) fn completion(&self) -> (u64, Option<u64>) {
+        (self.next, self.last_sequence)
+    }
+    /// Recover the complete original canonical page; packing changes storage
+    /// only, never the event quota, digest chain, or accepted evidence bytes.
+    pub fn canonical_page(&self, output: &mut [u8]) -> Result<usize, &'static str> {
+        let length = wire::packed::decode(&self.page[..self.packed_length], output)
+            .map_err(|_| "mask-consumer-packed-page")?;
+        if length != self.length {
+            return Err("mask-consumer-page-length");
+        }
+        Ok(length)
+    }
     pub fn new() -> Self {
         Self {
             next: 0,
             last_sequence: None,
-            page: [0; wire::MAXIMUM_BYTES],
+            page: [0; wire::packed::MAXIMUM_BYTES],
+            packed_length: 0,
             length: 0,
             chain: [0; 32],
         }
@@ -81,6 +96,9 @@ impl crate::native_display::EvidenceSink for Consumer {
         {
             return Err("mask-consumer-not-terminal");
         }
+        let mut packed = [0; wire::packed::MAXIMUM_BYTES];
+        let packed_length = wire::packed::encode(&page[..length], &mut packed)
+            .map_err(|_| "mask-consumer-packed-page")?;
         let closed_digest: [u8; 32] = Sha256::digest(closed).into();
         let mut hash = Sha256::new();
         hash.update(b"conduit.environment/transient-mask-consumption@1");
@@ -91,7 +109,8 @@ impl crate::native_display::EvidenceSink for Consumer {
         hash.update(closed_digest);
         hash.update(&page[..length]);
         let chain = hash.finalize().into();
-        self.page = page;
+        self.page = packed;
+        self.packed_length = packed_length;
         self.length = length;
         self.chain = chain;
         self.next = next;
