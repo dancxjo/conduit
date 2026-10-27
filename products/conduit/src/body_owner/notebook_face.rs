@@ -13,6 +13,56 @@ pub(crate) enum NotebookAction {
 }
 
 impl Owner {
+    /// Declare the checked edit intent before a Play can offer it. This lets an
+    /// admitted presentation Host prepare its bounded refresh route while idle;
+    /// no document contribution or executable action is invented here.
+    pub(crate) fn project_notebook_idle_face(&self) -> Result<Face, String> {
+        let face = self.project_face(None)?;
+        let Some(resident) = self
+            .resident
+            .as_ref()
+            .filter(|_| self.resident_name.as_deref() == Some("notebook/transition"))
+        else {
+            return Ok(face);
+        };
+        let mut actions = face.actions.clone();
+        actions.push(FaceAction {
+            identity: "notebook.replace".into(),
+            intent: "notebook/replace@1".into(),
+            target: format!("plot/{}", resident.checked_plot_id.as_str()),
+            name: "Replace text".into(),
+            arguments: vec![FaceActionArgument::text(
+                "text".into(),
+                "Document text".into(),
+                0,
+                256,
+            )
+            .map_err(debug)?],
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Unavailable {
+                reason_code: "notebook-edit-encounter-idle".into(),
+                explanation: "Start the notebook before editing.".into(),
+            },
+        });
+        let revised = Face::new_with_semantics_and_temporal(
+            face.revision,
+            face.basis,
+            face.subjects,
+            face.relationships,
+            face.properties,
+            face.text,
+            actions,
+            face.disclosures,
+            face.temporal_references,
+            face.temporal_facts,
+        )
+        .and_then(|value| value.with_composition(face.composition))
+        .and_then(|value| value.with_interaction_context(face.interaction_context))
+        .map_err(debug)?;
+        revised.validate().map_err(debug)?;
+        Ok(revised)
+    }
+
     pub(crate) fn project_notebook_face(&self) -> Result<Face, String> {
         let document = self.notebook.as_ref().ok_or("notebook is not open")?;
         let current = TextDocument::decode(&document.current).map_err(debug)?;
