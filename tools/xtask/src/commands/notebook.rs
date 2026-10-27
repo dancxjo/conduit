@@ -9,6 +9,7 @@ pub fn run(
     opts: &GlobalOpts,
     handbook: Option<&std::path::Path>,
     output: Option<&std::path::Path>,
+    native_build: Option<&std::path::Path>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     run_suite(
@@ -39,6 +40,12 @@ pub fn run(
         run_suite(
             &[
                 Step::new(
+                    "notebook.native-record-framing",
+                    "Check exact native serial records across a partial growing-file tail",
+                    "node",
+                    &["--test", "proof/notebook/native-records.test.mjs"],
+                ),
+                Step::new(
                     "notebook.product-binary",
                     "Build the optimized product executable within the installed image bound",
                     "cargo",
@@ -65,13 +72,20 @@ pub fn run(
                 handbook.display(),
                 output.display()
             );
+            if let Some(build) = native_build {
+                println!("with native build {} and current xtask", build.display());
+            }
         } else {
-            let status = std::process::Command::new("node")
+            let mut command = std::process::Command::new("node");
+            command
                 .args(["proof/notebook/browser.mjs", "target/release/conduit"])
                 .arg(handbook)
                 .arg(output)
-                .current_dir(&root)
-                .status()?;
+                .current_dir(&root);
+            if let Some(build) = native_build {
+                command.arg(build).arg(std::env::current_exe()?);
+            }
+            let status = command.status()?;
             if !status.success() {
                 return Err(format!("notebook browser proof failed: {status}").into());
             }

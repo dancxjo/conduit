@@ -14,6 +14,9 @@ pub enum ProveCommand {
         /// New evidence directory for the optional browser proof.
         #[arg(long, requires = "handbook")]
         output: Option<std::path::PathBuf>,
+        /// Existing canonical ConduitOS build for correlated live QMP acceptance.
+        #[arg(long, requires = "handbook")]
+        native_build: Option<std::path::PathBuf>,
     },
     /// Retain release evaluator and production shared-pool selection baselines.
     RuntimePerformance {

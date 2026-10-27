@@ -1,3 +1,4 @@
+import { prepareNative } from './native.mjs';
 // Candidate live-browser proof through installed owner commands and the packaged
 // Handbook. No Body, Face, Show or document state is constructed by this driver.
 import assert from 'node:assert/strict';
@@ -11,11 +12,23 @@ import { setTimeout as pause } from 'node:timers/promises';
 import { chromium } from '../browser/node_modules/@playwright/test/index.mjs';
 import { startStaticProduct } from '../browser/static-product-server.mjs';
 
-const [binaryArg, handbookArg, outputArg] = process.argv.slice(2);
+const [binaryArg, handbookArg, outputArg, nativeBuild, xtaskArg] = process.argv.slice(2);
 assert.ok(binaryArg && handbookArg && outputArg,
   'usage: browser.mjs NATIVE-RELEASE HANDBOOK-PACKAGE NEW-EVIDENCE-DIRECTORY');
 const output = path.resolve(outputArg), handbook = path.resolve(handbookArg);
 assert.equal(existsSync(output), false, 'preserve existing proof evidence');
+let sourceCommit = null;
+if (nativeBuild) {
+  const head = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
+  const status = spawnSync('git', ['status', '--porcelain', '--untracked-files=normal'], { encoding: 'utf8' });
+  assert.equal(head.status, 0); assert.equal(status.status, 0);
+  assert.equal(status.stdout, '', 'correlated native acceptance requires clean source');
+  sourceCommit = head.stdout.trim();
+  const guest = JSON.parse(await readFile(path.join(path.resolve(nativeBuild), 'build-manifest.json'), 'utf8'));
+  const bundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/browser-bundle-release.json'), 'utf8'));
+  assert.equal(guest.source_identity, sourceCommit, 'native image must match current source');
+  assert.equal(bundle.source_identity, `commit:${sourceCommit}`, 'browser runtime must match current source');
+}
 await mkdir(output, { recursive: true });
 const privateRoot = await mkdtemp('/tmp/conduit-notebook-browser-');
 const state = path.join(privateRoot, 'state'), storage = path.join(privateRoot, 'storage');
@@ -27,7 +40,7 @@ const name = 'conduit-linux-x86_64', binary = path.join(output, name);
 await writeFile(binary, bytes, { mode: 0o755 });
 const file = { path: name, bytes: bytes.length, sha256: sha(bytes) };
 const manifest = { schema: 'conduit.release/host-bundle@1',
-  source_identity: `candidate-notebook-browser:${file.sha256}`,
+  source_identity: sourceCommit ? `commit:${sourceCommit}` : `candidate-notebook-browser:${file.sha256}`,
   bundle_sha256: sha(Buffer.from(`conduit.release/host-bundle-content@1\0${name}\0${file.sha256}\n`)), files: [file] };
 await writeFile(path.join(output, 'release.json'), JSON.stringify(manifest, null, 2));
 let sequence = 0;
@@ -38,7 +51,7 @@ function call(exe, args, input) {
   assert.equal(result.status, 0, `${args.join(' ')}: ${result.stderr}`);
   return result.stdout;
 }
-let installed, service, server, browser, storageFailure;
+let installed, service, server, browser, storageFailure, native;
 const services = [], contexts = [], errors = [];
 const owner = args => call(installed, args);
 const notebook = args => JSON.parse(owner(['body', 'notebook', '--state-dir', state, ...args]));
@@ -78,6 +91,11 @@ async function enter(context, bodyId) {
   await page.getByLabel('Owner window URL').fill(window.url);
   await page.getByRole('button', { name: 'Join this Body', exact: true }).click();
   await page.waitForFunction(() => globalThis.__conduitOwnerParticipation?.presence() === 'available', null, { timeout: 20_000 });
+  if (nativeBuild && !native) {
+    assert.ok(xtaskArg, 'native acceptance requires the supported xtask executable');
+    native = await prepareNative({ installed, state, bodyId, build: path.resolve(nativeBuild), privateRoot, output, stop, xtask: path.resolve(xtaskArg) });
+    await native.wear(page);
+  }
   owner(['body', 'start', '--state-dir', state]);
   const readyUntil = Date.now() + 15_000;
   let editReady = false;
@@ -153,12 +171,20 @@ try {
   await first.page.getByRole('button', { name: 'Attempt retired edit', exact: true }).click();
   await first.page.waitForFunction(() => globalThis.__notebookStale);
   const stale = await first.page.evaluate(() => globalThis.__notebookStale);
-  assert.equal(stale.refused, true); assert.equal(stale.trusted, true);
+  assert.equal(stale.refused, true); assert.equal(stale.trusted, true); assert.equal(stale.code, 'StaleShow');
   assert.deepEqual(await readFile(path.join(state, 'body/owner-execution.json')), execution);
   assert.equal(notebook(['show']).text, 'I was here. Again.');
-  await first.page.locator('[data-owner-action="notebook.replace"]').getByLabel('Document text').fill('I was here. Again. Unsaved.');
+  let committedText = 'I was here. Again.', committedRevision = 2;
+  if (native) {
+    await native.edit(first.page, 'native was here', after);
+    await first.page.locator('[data-owner-action="notebook.save"]').getByRole('button', { name: 'Save', exact: true }).click();
+    await first.page.waitForFunction(() => globalThis.__conduitOwnerParticipation.face()?.subjects?.some(s => s.identity === 'notebook/save-status' && s.text.includes('Saved')));
+    committedText = 'native was here'; committedRevision = 3;
+  }
+  const unsavedText = `${committedText} Unsaved.`;
+  await first.page.locator('[data-owner-action="notebook.replace"]').getByLabel('Document text').fill(unsavedText);
   await first.page.locator('[data-owner-action="notebook.replace"]').getByRole('button', { name: 'Replace text', exact: true }).click();
-  await waitText(first.page, 'I was here. Again. Unsaved.');
+  await waitText(first.page, unsavedText);
   const selectionBeforeFailure = await readFile(path.join(state, 'body/notebook-commit.json'));
   await chmod(storage, 0o500);
   try {
@@ -166,31 +192,39 @@ try {
     await first.page.waitForFunction(() => globalThis.__conduitOwnerParticipation.face()?.subjects
       ?.some(subject => subject.identity === 'notebook/save-status' && subject.text.includes('Save failed. Current text preserved.')));
     storageFailure = { draft: notebook(['show']), face: await view(first.page), committed_selection_sha256: sha(selectionBeforeFailure) };
-    assert.equal(notebook(['show']).revision, 3);
-    assert.equal(notebook(['show']).text, 'I was here. Again. Unsaved.');
+    assert.equal(notebook(['show']).revision, committedRevision + 1);
+    assert.equal(notebook(['show']).text, unsavedText);
     assert.deepEqual(await readFile(path.join(state, 'body/notebook-commit.json')), selectionBeforeFailure);
     await first.page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'notebook-save-failed.png') });
   } finally { await chmod(storage, 0o700); }
+  if (native) {
+    await native.close();
+    const retained = notebook(['show']);
+    assert.equal(retained.body_id, bodyId); assert.equal(retained.text, unsavedText);
+    assert.equal(retained.revision, committedRevision + 1);
+  }
   await stop(service); service = null;
   await first.page.waitForFunction(() => globalThis.__conduitOwnerParticipation.presence() !== 'available', null, { timeout: 15_000 });
   const secondBoot = await startService();
   assert.notEqual(firstBoot.boot_id, secondBoot.boot_id);
-  assert.equal(notebook(['show']).text, 'I was here. Again.');
+  assert.equal(notebook(['show']).text, committedText);
+  assert.equal(notebook(['show']).revision, committedRevision);
   const replacement = await browser.newContext({ viewport: { width: 1280, height: 900 } }); contexts.push(replacement);
   const second = await enter(replacement, bodyId);
   assert.notEqual(first.identity.hostId, second.identity.hostId);
-  await waitText(second.page, 'I was here. Again.');
+  await waitText(second.page, committedText);
   await second.page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'notebook-replacement-host.png') });
   await writeFile(path.join(output, 'proof.json'), JSON.stringify({ schema: 'conduit.notebook/browser-proof@1',
-    proof_class: 'candidate-live-browser', body_id: bodyId, native_executable_sha256: file.sha256,
+    proof_class: native ? 'candidate-live-browser-and-qmp' : 'candidate-live-browser', source_commit: sourceCommit, body_id: bodyId, native_executable_sha256: file.sha256,
     first_boot: firstBoot, second_boot: secondBoot, first_browser_host: first.identity, replacement_browser_host: second.identity,
     before, after, storage_failure: storageFailure, replacement: await view(second.page), stale,
-    chrome_version: browser.version(), scope: 'Actual packaged browser render, typed edit and Save; new presentation Host and owner process recover the same committed Body. Native/QEMU acceptance is separate.' }, null, 2));
+    chrome_version: browser.version(), native_proof: native ? 'native/proof.json' : null, scope: native ? 'Actual packaged browser and canonical ConduitOS QMP Masks edit the same Body, refuse an obsolete cross-Mask Show, and recover the committed revision after process replacement.' : 'Actual packaged browser render, typed edit and Save; new presentation Host and owner process recover the same committed Body.' }, null, 2));
   assert.deepEqual(errors, [], 'browser or owner errors');
   console.log(`Verified notebook browser proof: ${output}`);
 } finally {
   await writeFile(path.join(output, 'commands.json'), JSON.stringify(commands, null, 2));
   await writeFile(path.join(output, 'errors.json'), JSON.stringify(errors, null, 2));
+  if (native) await native.close();
   if (browser) await browser.close();
   for (const child of services) await stop(child);
   if (server) await stop(server.child);

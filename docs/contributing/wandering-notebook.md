@@ -59,7 +59,20 @@ static --application targets/browser/handbook/handbook.application.template.json
 The proof uses a fresh private installation and records candidate evidence
 under ignored output. It does not touch an existing user installation.
 
-Native ConduitOS acceptance and source-bound final release evidence remain
-separate work. A browser result alone does not establish guest execution,
+Correlated ConduitOS acceptance requires a clean checkout and a native image
+and BrowserBundle built from that same commit. First build the canonical guest with
+`cargo xtask make conduitos live x86_64 --locked`, then add
+`--native-build target/conduitos/live/x86_64-pc` to the browser proof command.
+It admits and wears the native Mask while idle, edits in the browser, explicitly
+doffs the browser, refreshes ConduitOS through F5, submits a native text edit,
+and returns to the browser for Save. Every injected key waits for the guest's
+own focus/redraw observation; the driver never retries a semantic action.
+The resulting native proof binds the current Face and acknowledged Show to an
+independent owner read and checks a browser Show made obsolete by the native edit.
+QEMU, `nc`, OpenSSL, a private IPv4 interface, and ordinary Linux file permissions
+are required. All invitation secrets and provisioned media stay in a private
+fixture directory that the driver removes on completion.
+
+Source-bound final release evidence remains separate from these candidate runs. A browser result alone does not establish guest execution,
 physical hardware, automatic replication, or stable publication. The optional
 self-editing Source Check milestone is outside this notebook slice.
