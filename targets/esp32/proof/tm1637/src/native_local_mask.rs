@@ -43,7 +43,6 @@ struct PreparedLocalPlots {
     publisher: crate::native_face::Publisher,
     active: c::ActivePlayIdentity,
     fragment: c::FragmentId,
-    mask: crate::native_display::LocalPreparation,
     leases: crate::native_authority::MaskLeaseIssuer,
 }
 
@@ -94,12 +93,12 @@ impl NativeRoot {
             publisher,
             active,
             fragment,
-            mask,
             leases,
         } = *prepared;
+        mark("local-handoff-received", 2);
         #[cfg(feature = "body-persistence")]
         self.checkpoint_body()?;
-        self.display.retain_local(mask)?;
+        mark("local-proposal-checkpointed", 2);
         let mut session = Some(self.display.take_local()?);
         let mut leases = Some(alloc::boxed::Box::new(leases));
         let mut evidence = Some(alloc::boxed::Box::new(
@@ -111,6 +110,7 @@ impl NativeRoot {
             &mut evidence,
             self.worker_spawner.ok_or("local-worker-executor")?,
         )?);
+        mark("local-mask-task-prepared", 1);
         self.display.mark_local_task_registered()?;
         let mask_worker = self.local_mask_worker.as_ref().ok_or("local-mask-worker")?;
         embassy_time::with_timeout(
@@ -300,11 +300,6 @@ impl NativeRoot {
                 Some(crate::native_software::prepare().map_err(|_| "local-software-preparation")?);
             mark("cold-software-owner-prepared-after-body-park", 15);
         }
-        let kernel_backing = crate::native_kernel_storage::preclaim_local_backing()?;
-        mark(
-            "local-sampler-kernel-backing-held",
-            core::mem::size_of::<crate::native_kernel::Kernel>(),
-        );
         let sample = self.prepare_local_sampler_plan()?;
         let sampler = self.prepare_local_sampler_parts(&sample, execute)?;
         let metadata = sample.preparation_metadata();
@@ -329,6 +324,11 @@ impl NativeRoot {
         drop(input);
         drop(sample);
         mark("ordinary-mask-sampler-plan-retired", 15);
+        let kernel_backing = crate::native_kernel_storage::preclaim_local_backing()?;
+        mark(
+            "local-sampler-kernel-backing-held",
+            core::mem::size_of::<crate::native_kernel::Kernel>(),
+        );
         self.plan_local_mask_from_sampler(
             prepared_sample,
             sampler,
@@ -422,6 +422,8 @@ impl NativeRoot {
             let pulse = &placements[usize::from(resident.roles.pulse.0)].placement_id;
             let wait = &placements[usize::from(resident.roles.tick.0)].placement_id;
             mark("before-local-sampler-native-binding", 2);
+            let contract = conduit_pulse_capture::PulseReadContract::prepare()
+                .map_err(|_| "local-pulse-contract")?;
             Some(self.issuer.bind_direct_native(
                 &mut self.pulse,
                 &mut self.wait,
@@ -431,7 +433,7 @@ impl NativeRoot {
                     cadence: &resident.cadence,
                     pulse,
                     wait,
-                    contract: &self.contract,
+                    contract: &contract,
                 },
             )?)
         } else {
@@ -790,6 +792,9 @@ impl NativeRoot {
         mut retained: alloc::boxed::Box<Option<RetainedMask>>,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
         mark("ordinary-mask-numeric-assembly-entered", 1);
+        // Reserve the outgoing handoff while retired planning storage is still
+        // contiguous, before Face/session allocations divide that free space.
+        let handoff = alloc::boxed::Box::<PreparedLocalPlots>::new_uninit();
         let PreparedSamplerKernel {
             kernel: sampler_kernel,
             native,
@@ -835,15 +840,21 @@ impl NativeRoot {
                 },
                 reader: self.face_reader.ok_or("local-mask-face-reader")?,
             };
-            return Ok(Some(alloc::boxed::Box::new(PreparedLocalPlots {
-                sampler: Some(sampler_kernel),
-                native,
-                publisher,
-                active,
-                fragment,
-                mask,
-                leases,
-            })));
+            // Transfer the actual Mask owner before boxing the smaller handoff.
+            // Retaining both full preparations fragments the last control space.
+            self.display.retain_local(mask)?;
+            mark("ordinary-mask-session-retained", 1);
+            return Ok(Some(alloc::boxed::Box::write(
+                handoff,
+                PreparedLocalPlots {
+                    sampler: Some(sampler_kernel),
+                    native,
+                    publisher,
+                    active,
+                    fragment,
+                    leases,
+                },
+            )));
         }
         drop((sampler_kernel, publisher, mask_kernel, context, native));
         self.body
