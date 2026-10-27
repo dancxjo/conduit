@@ -171,6 +171,7 @@ impl NativeRoot {
         Ok(())
     }
     #[cfg(feature = "local-appliance")]
+    #[inline(never)]
     pub fn report_local_progress(&self) {
         #[derive(serde::Serialize)]
         struct Report {

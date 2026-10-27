@@ -4,6 +4,24 @@ use embassy_executor::Spawner;
 use esp_hal::{
     clock::CpuClock, interrupt::software::SoftwareInterruptControl, timer::timg::TimerGroup,
 };
+// An async function's inline attribute governs its constructor, not the poll
+// implementation that LLVM can merge into main's permanent ancestor frame.
+// Poll the same pinned future through an explicit boundary, without allocation,
+// another task, or any change to its waker and readiness ordering.
+#[cfg(feature = "local-appliance")]
+#[inline(never)]
+fn poll_outlined<F: core::future::Future>(
+    future: core::pin::Pin<&mut F>,
+    context: &mut core::task::Context<'_>,
+) -> core::task::Poll<F::Output> {
+    future.poll(context)
+}
+#[cfg(feature = "local-appliance")]
+async fn await_outlined<F: core::future::Future>(future: F) -> F::Output {
+    let mut future = core::pin::pin!(future);
+    core::future::poll_fn(|context| poll_outlined(future.as_mut(), context)).await
+}
+
 #[esp_rtos::main]
 async fn main(spawner: Spawner) {
     let p = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
@@ -81,7 +99,7 @@ async fn main(spawner: Spawner) {
         root.measure_local_sampler()
             .expect("target sampler measurement");
         #[cfg(feature = "local-appliance")]
-        root.start_local_appliance()
+        await_outlined(root.start_local_appliance())
             .await
             .expect("autonomous local plots");
         #[cfg(all(feature = "target-mask-memory-check", not(feature = "local-appliance")))]
@@ -110,16 +128,17 @@ async fn main(spawner: Spawner) {
                 // and history readers run independently; emergency cancellation
                 // remains a separate scoped entrance.
                 if !root.local_renewal_pending() {
-                    let _ = root.advance_setup().await;
+                    let _ = await_outlined(root.advance_setup()).await;
                     #[cfg(feature = "body-persistence")]
                     {
                         root.advance_join(embassy_time::Instant::now().as_millis());
-                        let _ = invitation_bootstrap
-                            .poll(&mut root, &mut invitation_uart)
-                            .await;
+                        let _ = await_outlined(
+                            invitation_bootstrap.poll(&mut root, &mut invitation_uart),
+                        )
+                        .await;
                     }
                 }
-                let _ = root.advance_local_renewal().await;
+                let _ = await_outlined(root.advance_local_renewal()).await;
                 if embassy_time::Instant::now() >= next_report {
                     root.report_local_progress();
                     next_report =

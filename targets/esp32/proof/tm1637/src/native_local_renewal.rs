@@ -279,6 +279,18 @@ impl NativeRoot {
         &mut self,
         state: &mut Renewal,
     ) -> Result<(), &'static str> {
+        if !self.advance_local_retirement_phase(state)? {
+            self.advance_returned_local_preparation(state).await?;
+        }
+        Ok(())
+    }
+    // Keep affine retirement payload temporaries out of replacement preparation's
+    // async ancestor frame. Exactly one phase still advances per service tick.
+    #[inline(never)]
+    fn advance_local_retirement_phase(
+        &mut self,
+        state: &mut Renewal,
+    ) -> Result<bool, &'static str> {
         match state.phase {
             Phase::RetireSampler => {
                 let worker = self.worker.take().ok_or("renewal-sampler-handle")?;
@@ -402,9 +414,9 @@ impl NativeRoot {
                 }
                 state.phase = Phase::Reclaim;
             }
-            _ => self.advance_returned_local_preparation(state).await?,
+            _ => return Ok(false),
         }
-        Ok(())
+        Ok(true)
     }
 }
 
