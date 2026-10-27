@@ -59,6 +59,66 @@ fn cdc(driver: usb::Driver<'static, USB>) -> (UsbDevice<'static, usb::Driver<'st
     let class = CdcAcmClass::new(&mut builder, CDC.init(State::new()), 64);
     (builder.build(), class)
 }
+// Explicit bench observation; this cannot join a network or create Body evidence.
+async fn mdns(
+    class: &mut Cdc,
+    stack: Stack<'static>,
+    id: u32,
+    payload: &[u8],
+) -> Result<(), &'static str> {
+    use embassy_net::{
+        udp::{PacketMetadata, UdpSocket},
+        IpAddress, IpEndpoint,
+    };
+    let mac = test_ap::selected_peer().ok_or("mdns-test-ap-required")?;
+    let query = protocol::bench_mdns::Query::parse(payload, mac)?;
+    let mut rx_meta = [PacketMetadata::EMPTY; 1];
+    let mut tx_meta = [PacketMetadata::EMPTY; 1];
+    let mut rx = [0; 512];
+    let mut tx = [0; 512];
+    let mut packet = [0; 512];
+    let mut socket = UdpSocket::new(stack, &mut rx_meta, &mut rx, &mut tx_meta, &mut tx);
+    socket.bind(0).map_err(|_| "mdns-bind")?;
+    let length = query.packet(&mut packet);
+    let result = with_timeout(Duration::from_secs(3), async {
+        socket
+            .send_to(
+                &packet[..length],
+                IpEndpoint::new(IpAddress::Ipv4(Ipv4Address::new(224, 0, 0, 251)), 5353),
+            )
+            .await
+            .map_err(|_| "mdns-send")?;
+        for _ in 0..16 {
+            let (length, metadata) = socket
+                .recv_from(&mut packet)
+                .await
+                .map_err(|_| "mdns-receive")?;
+            let IpAddress::Ipv4(source) = metadata.endpoint.addr;
+            if query
+                .answer(
+                    &packet[..length],
+                    source.octets(),
+                    metadata.endpoint.port,
+                    [192, 168, 4, 2],
+                )
+                .is_ok()
+            {
+                return Ok(());
+            }
+        }
+        Err("mdns-packet-limit")
+    })
+    .await
+    .map_err(|_| "mdns-timeout")?;
+    result?;
+    let mut nonce: heapless::String<16> = heapless::String::new();
+    for byte in query.nonce {
+        write!(&mut nonce, "{byte:02x}").map_err(|_| "mdns-status-capacity")?;
+    }
+    let mut text: heapless::String<512> = heapless::String::new();
+    write!(&mut text,"{{\"role\":\"{}\",\"observation\":\"legacy-mdns-a\",\"nonce\":\"{}\",\"query_id\":{},\"hostname\":\"{}\",\"address\":[192,168,4,2],\"source\":[192,168,4,2],\"source_port\":5353}}",protocol::ROLE,nonce,query.id(),query.host).map_err(|_|"mdns-status-capacity")?;
+    send(class, protocol::INFORMATION, id, text.as_bytes()).await
+}
 async fn packet(class: &mut Cdc, bytes: &[u8]) -> Result<(), &'static str> {
     if !class.dtr() {
         return Err("usb-disconnected");
@@ -271,6 +331,7 @@ async fn main(spawner: Spawner) {
                     Err(e) => Err(e),
                 },
                 protocol::STATUS => status(&mut class, id, stack).await,
+                protocol::MDNS_QUERY => mdns(&mut class, stack, id, frame.payload).await,
                 protocol::TEST_AP_START => match protocol::test_peer_mac(frame.payload) {
                     Ok(peer) => match test_ap::start(&mut control, stack, peer).await {
                         Ok(()) => status(&mut class, id, stack).await,

@@ -168,5 +168,23 @@ class Proof(unittest.TestCase):
             self.assertEqual(bytes(stream.outgoing),frame(kind,1,b""))
 
 
+
+class MdnsProof(unittest.TestCase):
+    def test_explicit_query_correlates_nonce_host_source_and_address(self):
+        import json
+        nonce = bytes.fromhex("1234567890abcdef")
+        host = "conduit-climate-b0a732286178.local"
+        reply = {"role":r.ROLE,"observation":"legacy-mdns-a","nonce":nonce.hex(),"query_id":0x1234,"hostname":host,"address":[192,168,4,2],"source":[192,168,4,2],"source_port":5353}
+        stream = Stream(frame(r.INFORMATION,1,json.dumps(reply).encode()))
+        self.assertEqual(r.Relay(stream).observe_mdns(host,nonce),reply)
+        self.assertEqual(bytes(stream.outgoing),frame(r.MDNS_QUERY,1,nonce+host.encode()))
+        for key,value in [("nonce","00"*8),("hostname",host+".evil"),("query_id",1),("source",[192,168,4,3]),("address",[192,168,4,3]),("source_port",53),("observation","fixture")]:
+            altered = dict(reply);altered[key]=value
+            self.assertRaises(r.RelayError,r.Relay(Stream(frame(r.INFORMATION,1,json.dumps(altered).encode()))).observe_mdns,host,nonce)
+        for name in ("outside.local",host.upper(),host+".evil"):
+            stream=Stream(b"")
+            self.assertRaises(r.RelayError,r.Relay(stream).observe_mdns,name,nonce)
+            self.assertEqual(bytes(stream.outgoing),b"")
+
 if __name__ == "__main__":
     unittest.main()

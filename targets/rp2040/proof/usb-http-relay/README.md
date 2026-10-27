@@ -165,3 +165,28 @@ Reversed roles are selected only after all9 actual byte ACKs; otherwise it
 releases both and restores normal roles. Kind7 reports the selected GPIO roles
 and both normal/reversed errors. This performs no GPIO scan or synthetic ACK.
 If both roles fail, stop electrical experiments and retain sensor/relay testing.
+
+Explicit isolated bench AP now uses WPA2: SSID `Conduit-Relay-Test`, public
+bench-only passphrase `conduit-bench-test`. This is not a private user credential.
+`--test-ap start --test-peer-mac <ESP station MAC>` retains the selected peer,
+serves DHCP only to that MAC and fixes its address at `192.168.4.2`. Normal relay
+client mode and its `192.168.4.1` HTTP peer remain unchanged.
+
+After the selected ESP has actually joined, query its station hostname with:
+
+```sh
+python3 relay.py --port <Pico CDC> --mdns-hostname conduit-climate-<12 lowercase MAC hex>.local
+```
+
+USB command 10 carries a fresh 8-byte nonce followed by the exact hostname. It is
+accepted only in explicit, serving bench AP mode and only for its selected MAC's
+hostname (including conflict suffix `-2` or `-3`). One legacy-unicast mDNS A/IN
+query is sent to `224.0.0.251:5353` from an ephemeral port. Observation is bounded
+to 3 seconds and 16 received datagrams. Success requires the matching DNS ID and
+question, an authoritative untruncated response, exact A owner/address, positive
+TTL, and source `192.168.4.2:5353`. The USB reply echoes nonce, query ID, hostname,
+address and source, which the client rechecks. No cached or fixture answer is
+reported on timeout/refusal. This observes the actual ESP's legacy mDNS response;
+it does not test unsolicited announcements or multicast-listener interoperability,
+and DNS correlation provides no cryptographic authentication, Body membership or
+durable history evidence. The command never joins, starts an AP or replays HTTP.

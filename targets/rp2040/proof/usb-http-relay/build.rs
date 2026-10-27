@@ -12,6 +12,7 @@ fn main() {
         "src/environment_show.rs",
         "src/heap.rs",
         "src/test_ap.rs",
+        "src/bench_mdns.rs",
         "../../firmware/pico-w-signal/src/radio.rs",
         "../../firmware/pico-w-signal/memory.x",
     ] {

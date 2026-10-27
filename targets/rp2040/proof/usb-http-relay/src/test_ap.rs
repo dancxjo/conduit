@@ -10,6 +10,11 @@ use embassy_time::{with_timeout, Duration, Timer};
 use portable_atomic::{AtomicBool, AtomicU32, Ordering};
 
 pub const SSID: &str = "Conduit-Relay-Test";
+/// Public, isolated bench credential; never a user network credential.
+pub const PASSPHRASE: &str = "conduit-bench-test";
+pub fn selected_peer() -> Option<[u8; 6]> {
+    (active() && serving()).then(|| critical_section::with(|cs| PEER.borrow(cs).get()))
+}
 static AP_CUSTODY: AtomicBool = AtomicBool::new(false);
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static SERVING: AtomicBool = AtomicBool::new(false);
@@ -65,9 +70,12 @@ pub async fn start(
     // An interrupted radio command retains AP custody for explicit stop/retry;
     // it must not silently resume upstream DHCP after an ambiguous transition.
     AP_CUSTODY.store(true, Ordering::Release);
-    with_timeout(Duration::from_secs(10), control.start_ap_open(SSID, 6))
-        .await
-        .map_err(|_| "test-ap-radio-timeout")?;
+    with_timeout(
+        Duration::from_secs(10),
+        control.start_ap_wpa2(SSID, PASSPHRASE, 6),
+    )
+    .await
+    .map_err(|_| "test-ap-radio-timeout")?;
     critical_section::with(|cs| PEER.borrow(cs).set(peer));
     ENABLED.store(true, Ordering::Release);
     with_timeout(Duration::from_secs(2), async {
@@ -132,7 +140,7 @@ pub async fn run(stack: Stack<'static>) -> ! {
                     break;
                 }
                 // Keep the selected MCU at the stable .2 address even if
-                // unrelated clients discover this open bench network.
+                // unrelated clients join this public-credential bench network.
                 if request.get(28..34) != Some(peer.as_slice()) {
                     continue;
                 }

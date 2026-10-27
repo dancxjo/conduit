@@ -177,3 +177,24 @@ fn sensor_status_is_an_explicit_empty_control_request_independent_of_join() {
         assert!(invalid.accept(&header(kind, 2, 1).unwrap()).is_err());
     }
 }
+
+#[test]
+fn mdns_observation_is_explicit_bounded_and_uses_fresh_usb_sequence() {
+    for length in [9, 56] {
+        let mut decoder = Decoder::new();
+        decoder
+            .accept(&header(MDNS_QUERY, 1, length).unwrap())
+            .unwrap();
+        decoder.accept(&vec![0; length]).unwrap();
+        assert_eq!(decoder.frame().unwrap().kind, MDNS_QUERY);
+    }
+    for length in [0, 8, 57, MAX_REQUEST] {
+        let mut decoder = Decoder::new();
+        assert!(decoder
+            .accept(&header(MDNS_QUERY, 1, length).unwrap())
+            .is_err());
+    }
+    let mut session = Session::default();
+    session.admit(1).unwrap();
+    assert!(session.admit(1).is_err());
+}

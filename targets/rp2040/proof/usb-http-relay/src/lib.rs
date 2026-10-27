@@ -22,6 +22,8 @@ pub const SENSOR_STATUS: u8 = 6;
 pub const SENSOR_DIAGNOSTIC: u8 = 7;
 pub const TEST_AP_START: u8 = 8;
 pub const TEST_AP_STOP: u8 = 9;
+pub const MDNS_QUERY: u8 = 10;
+pub mod bench_mdns;
 pub const DATA: u8 = 128;
 pub const DONE: u8 = 129;
 pub const ERROR: u8 = 130;
@@ -87,11 +89,12 @@ impl Decoder {
                     JOIN if (2..=97).contains(&length) => {}
                     REQUEST if (1..=MAX_REQUEST).contains(&length) => {}
                     TEST_AP_START if length == 6 => {}
+                    MDNS_QUERY if (9..=56).contains(&length) => {}
                     STATUS | BOOTSEL_QUERY | SENSOR_STATUS | SENSOR_DIAGNOSTIC | TEST_AP_STOP
                         if length == 0 => {}
                     BOOTSEL_REQUEST if length == 64 => {}
                     JOIN | REQUEST | STATUS | BOOTSEL_QUERY | BOOTSEL_REQUEST | SENSOR_STATUS
-                    | SENSOR_DIAGNOSTIC | TEST_AP_START | TEST_AP_STOP => {
+                    | SENSOR_DIAGNOSTIC | TEST_AP_START | TEST_AP_STOP | MDNS_QUERY => {
                         return Err(Refusal::Capacity)
                     }
                     _ => return Err(Refusal::Kind),

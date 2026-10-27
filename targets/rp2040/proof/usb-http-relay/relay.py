@@ -15,7 +15,7 @@ HEADER = struct.Struct("<4sBBIH")
 ROLE = "conduit.pico-usb-http-relay@1"
 MAX_REQUEST, MAX_RESPONSE, CHUNK = 8192, 65536, 512
 JOIN, REQUEST, STATUS, SENSOR_STATUS, SENSOR_DIAGNOSTIC = 1, 2, 3, 6, 7
-TEST_AP_START, TEST_AP_STOP = 8, 9
+TEST_AP_START, TEST_AP_STOP, MDNS_QUERY = 8, 9, 10
 DATA, DONE, ERROR, INFORMATION = 128, 129, 130, 131
 BOOTSEL_QUERY, BOOTSEL_REQUEST, BOOTSEL_CHALLENGE, BOOTSEL_ACK = 4, 5, 132, 133
 
@@ -81,7 +81,7 @@ class Relay:
                         # Firmware errors are fixed codes, never echoed request data.
                         raise RelayError(data.decode("ascii", "replace"))
                     if response == INFORMATION:
-                        if kind not in (STATUS, JOIN, SENSOR_STATUS, SENSOR_DIAGNOSTIC, TEST_AP_START, TEST_AP_STOP) or result:
+                        if kind not in (STATUS, JOIN, SENSOR_STATUS, SENSOR_DIAGNOSTIC, TEST_AP_START, TEST_AP_STOP, MDNS_QUERY) or result:
                             raise RelayError("unexpected information reply")
                         try:
                             status = json.loads(data)
@@ -120,6 +120,27 @@ class Relay:
                 and status.get("peer") == "192.168.4.2:80"):
             raise RelayError("bench AP did not acknowledge its serving mode")
         return status
+
+    def observe_mdns(self, hostname, nonce=None):
+        """Explicit bench-only DNS observation; no join or HTTP command replay."""
+        import re
+        import secrets
+        if not re.fullmatch(r"conduit-climate-[0-9a-f]{12}(?:-[23])?\.local", hostname):
+            raise RelayError("expected selected MCU hostname")
+        nonce = secrets.token_bytes(8) if nonce is None else nonce
+        if not isinstance(nonce, bytes) or len(nonce) != 8 or nonce == bytes(8):
+            raise RelayError("invalid mDNS nonce")
+        query_id = max(1, int.from_bytes(nonce[:2], "big"))
+        reply = self.exchange(MDNS_QUERY, nonce + hostname.encode("ascii"), timeout=5)
+        if (reply.get("observation") != "legacy-mdns-a"
+                or reply.get("nonce") != nonce.hex()
+                or reply.get("query_id") != query_id
+                or reply.get("hostname") != hostname
+                or reply.get("address") != [192, 168, 4, 2]
+                or reply.get("source") != [192, 168, 4, 2]
+                or reply.get("source_port") != 5353):
+            raise RelayError("mDNS observation scope")
+        return reply
 
     def join(self, ssid, password=b""):
         ssid = ssid.encode("utf-8")
@@ -269,7 +290,18 @@ def main():
     parser.add_argument("--test-ap", choices=("start", "stop"), help="explicit bench AP transition; never selected by HTTP reconnect")
     parser.add_argument("--test-ap-proxy", action="store_true", help="use an already-started bench AP; never join or start one implicitly")
     parser.add_argument("--test-peer-mac", help="selected MCU station MAC; required only with --test-ap start")
+    parser.add_argument("--mdns-hostname", help="explicit bench mDNS A observation; exact selected MCU .local hostname")
     args = parser.parse_args()
+    if args.mdns_hostname:
+        if args.test_ap or args.test_peer_mac or args.bootsel_build or args.ssid or args.test_ap_proxy or args.ask_password:
+            parser.error("--mdns-hostname is a separate USB command")
+        import serial
+        with serial.Serial(args.port, 115200, timeout=0.2, write_timeout=2) as stream:
+            stream.dtr = False
+            time.sleep(0.65)
+            stream.dtr = True
+            print(json.dumps(Relay(stream).observe_mdns(args.mdns_hostname)))
+        return
     if args.test_ap_proxy and (args.ssid or args.ask_password or args.bootsel_build):
         parser.error("--test-ap-proxy is separate from join and BOOTSEL")
     if args.test_ap:
