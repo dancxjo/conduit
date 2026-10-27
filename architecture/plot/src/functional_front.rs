@@ -28,12 +28,7 @@ impl CheckedGear {
     /// a merely front-compatible offer for another Kind is not a Back for this
     /// Gear.
     pub fn accepts_realization(&self, offer: &conduit_core::CapabilityOffer) -> bool {
-        self.kind_id == offer.kind_id
-            && self.accepts_callable_front(offer)
-            && self.accepts_semantic_contract(offer)
-            && (self.kind_contract_revision == offer.kind_contract_revision
-                || self.kind_contract_revision.as_str()
-                    == conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT)
+        crate::CheckedGearRef::from(self).accepts_realization_ref(offer.into())
     }
 
     /// Exact Kind law and configuration-schema equality, excluding the finite

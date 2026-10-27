@@ -139,6 +139,15 @@ pub struct CapabilityOfferRef<'a> {
     pub authority_requirements: AuthorityRequirementRefs<'a>,
     pub limits: &'a CapabilityLimits,
 }
+impl CapabilityOfferRef<'_> {
+    /// The same semantic State retention gate for owned and borrowed offers.
+    pub fn validate_state_retention(self) -> Result<(), StateRetentionSupportError> {
+        if self.state_retention.is_some() && self.kind_id != crate::STATE_VALUE_KIND {
+            return Err(StateRetentionSupportError::WrongSemanticKind);
+        }
+        Ok(())
+    }
+}
 impl<'a> From<&'a CapabilityOffer> for CapabilityOfferRef<'a> {
     fn from(v: &'a CapabilityOffer) -> Self {
         Self {

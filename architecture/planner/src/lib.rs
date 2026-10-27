@@ -44,9 +44,9 @@ use alloc::collections::{BTreeMap, BTreeSet};
 use completion::plan_completion_policy;
 use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan_with_completion, AdmittedLine, AuthorityBinding,
-    AuthorityGrant, BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId,
-    DeliveryPressurePolicy, ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement,
-    HostId, LineAvailability, LineId, LineOffer, PlacementId, Plan, PlanFragment, PlanId,
+    AuthorityGrant, BaseImplementationId, CancellationPolicy, CapabilityId, DeliveryPressurePolicy,
+    ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement, HostId,
+    LineAvailability, LineId, LineOffer, PlacementId, Plan, PlanFragment, PlanId,
     PlannedConnection, PlannedGear, PlannedStateBoundary, ResourcePoolId, StateContinuation,
     StateId, StateLifetime, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
     DEFAULT_CONNECTION_ITEM_CAPACITY,
@@ -57,6 +57,8 @@ use sha2::{Digest, Sha256};
 mod accelerator;
 mod advice;
 mod body_envelope;
+#[cfg(feature = "indexed-source")]
+pub mod borrowed_local;
 mod canonical;
 mod characteristic_policy;
 mod characteristic_sealing;
@@ -461,7 +463,7 @@ fn planned_keep_state(
             placement.gear_id.as_str()
         )));
     };
-    let lifetime = state_lifetime(duration, &placement.gear_id)?;
+    let lifetime = state_lifetime(duration, placement.gear_id.as_str())?;
     let maximum = placement
         .configuration
         .iter()
@@ -553,46 +555,10 @@ fn validate_keep_retention(
     gear: &CheckedGear,
     capability: &conduit_core::CapabilityOffer,
 ) -> Result<(), PlannerError> {
-    capability.validate_state_retention().map_err(|_| {
-        PlannerError::InvalidStateContract(format!(
-            "capability '{}' attaches State retention to non-State Kind '{}'",
-            capability.capability_id.as_str(),
-            capability.kind_id.as_str()
-        ))
-    })?;
-    let Some(duration) = gear
-        .configuration
-        .iter()
-        .find(|entry| entry.key == "retained-duration")
-    else {
-        return Ok(());
-    };
-    let conduit_core::ConfigurationValue::Text(duration) = &duration.value else {
-        return Err(PlannerError::InvalidStateContract(format!(
-            "gear '{}' retained duration is not canonical text",
-            gear.gear_id.as_str()
-        )));
-    };
-    let required = state_lifetime(duration, &gear.gear_id)?;
-    if capability
-        .state_retention
-        .is_none_or(|support| !support.supports(required))
-    {
-        return Err(PlannerError::StateRetentionUnsupported(format!(
-            "gear '{}' requires {:?}, but capability '{}' supports at most {}",
-            gear.gear_id.as_str(),
-            required,
-            capability.capability_id.as_str(),
-            capability
-                .state_retention
-                .map(|support| format!("{:?}", support.maximum_lifetime))
-                .unwrap_or_else(|| "no keep duration".to_string())
-        )));
-    }
-    Ok(())
+    validate_keep_retention_ref(gear.into(), capability.into())
 }
 
-fn state_lifetime(duration: &str, gear_id: &GearId) -> Result<StateLifetime, PlannerError> {
+fn state_lifetime(duration: &str, gear_id: &str) -> Result<StateLifetime, PlannerError> {
     match duration {
         "step" => Ok(StateLifetime::Step),
         "play" => Ok(StateLifetime::Play),
@@ -601,8 +567,7 @@ fn state_lifetime(duration: &str, gear_id: &GearId) -> Result<StateLifetime, Pla
         "body" => Ok(StateLifetime::Body),
         _ => Err(PlannerError::InvalidStateContract(format!(
             "gear '{}' has unknown retained duration '{}'",
-            gear_id.as_str(),
-            duration
+            gear_id, duration
         ))),
     }
 }
@@ -713,15 +678,10 @@ pub(crate) fn validate_operation_capability_ref(
 }
 
 fn validate_authority_grants(grants: &[AuthorityGrant]) -> Result<(), PlannerError> {
-    if grants.iter().any(|grant| {
-        grant.grant_id.as_str().is_empty()
-            || grant.contract_id.as_str().is_empty()
-            || grant.host_call_contract_id.as_str().is_empty()
-            || grant.subject_kind.as_str().is_empty()
-            || grant.host_id.as_str().is_empty()
-            || grant.boot_id.as_str().is_empty()
-            || grant.capability_id.as_str().is_empty()
-    }) {
+    if grants
+        .iter()
+        .any(|grant| invalid_grant_scope_ref(grant.into()))
+    {
         return Err(PlannerError::InvalidAuthorityContract(
             "grants must have non-empty immutable scope identities".to_string(),
         ));
@@ -796,21 +756,10 @@ fn selected_base_provider(
     capability: &conduit_core::CapabilityOffer,
     _resources: &[conduit_core::ResourceBinding],
 ) -> Result<Option<conduit_core::BaseProviderBinding>, PlannerError> {
-    let mut owners = host
-        .bases
-        .iter()
-        .filter(|base| base.capability_ids.contains(&capability.capability_id));
-    let Some(owner) = owners.next() else {
-        return Ok(None);
-    };
-    if owners.next().is_some() {
-        return Err(PlannerError::InvalidResourceContract(format!(
-            "capability '{}' has ambiguous Base provenance on host '{}'",
-            capability.capability_id.as_str(),
-            host.host_id.as_str()
-        )));
-    }
-    Ok(Some(owner.binding()))
+    Ok(
+        selected_base_provider_index_ref(host.into(), capability.into())?
+            .map(|index| host.bases[index].binding()),
+    )
 }
 
 fn find_capability<'a>(
@@ -1049,3 +998,198 @@ pub mod indexed_source;
 
 #[cfg(test)]
 mod offer_ref_tests;
+
+pub(crate) fn validate_queue_limits_ref(
+    source: conduit_core::PlannedGearRef<'_>,
+    sink: conduit_core::PlannedGearRef<'_>,
+    items: u16,
+    bytes: u32,
+) -> Result<(), PlannerError> {
+    if items > source.limits.max_queue_items || items > sink.limits.max_queue_items {
+        return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
+            "connection from '{}' to '{}' requires item capacity {}",
+            source.gear_id, sink.gear_id, items
+        )));
+    }
+    if bytes > source.limits.max_queue_bytes || bytes > sink.limits.max_queue_bytes {
+        return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
+            "connection from '{}' to '{}' requires byte capacity {}",
+            source.gear_id, sink.gear_id, bytes
+        )));
+    }
+    Ok(())
+}
+
+fn invalid_grant_scope_ref(g: conduit_core::AuthorityGrantRef<'_>) -> bool {
+    [
+        g.grant_id,
+        g.contract_id,
+        g.host_call_contract_id,
+        g.subject_kind,
+        g.host_id,
+        g.boot_id,
+        g.capability_id,
+    ]
+    .iter()
+    .any(|v| v.is_empty())
+}
+
+fn validate_instance_count_ref(
+    offer: conduit_core::CapabilityOfferRef<'_>,
+    count: u16,
+) -> Result<(), PlannerError> {
+    if count > offer.limits.max_active_instances {
+        return Err(PlannerError::CapabilityInstanceLimitExceeded(format!(
+            "capability '{}' exceeds max {}",
+            offer.capability_id, offer.limits.max_active_instances
+        )));
+    }
+    Ok(())
+}
+
+fn selected_base_provider_index_ref(
+    host: conduit_core::HostAdvertisementRef<'_>,
+    capability: conduit_core::CapabilityOfferRef<'_>,
+) -> Result<Option<usize>, PlannerError> {
+    let mut owners = host
+        .bases
+        .iter()
+        .enumerate()
+        .filter(|(_, base)| base.capability_ids.contains(capability.capability_id));
+    let Some((index, _)) = owners.next() else {
+        return Ok(None);
+    };
+    if owners.next().is_some() {
+        return Err(PlannerError::InvalidResourceContract(format!(
+            "capability '{}' has ambiguous Base provenance on host '{}'",
+            capability.capability_id, host.host_id
+        )));
+    }
+    Ok(Some(index))
+}
+
+fn placement_identity_ref(
+    plot: &str,
+    gear: &str,
+    host: &str,
+    capability: &str,
+) -> conduit_core::PlacementId {
+    crate::hash_string(&format!("placement:{plot}:{gear}:{host}:{capability}")).into()
+}
+
+fn connection_identity_ref(
+    plot: &str,
+    connection: conduit_plot::CheckedConnectionRef<'_>,
+) -> conduit_core::ConnectionId {
+    crate::hash_string(&format!(
+        "connection:{}:{}:{}:{}:{}:{}:{}:{}",
+        plot,
+        connection.source_gear_id,
+        connection.source_port_id,
+        connection.sink_gear_id,
+        connection.sink_port_id,
+        connection.value_kind,
+        connection.track.as_str(),
+        connection.temporal.as_str()
+    ))
+    .into()
+}
+
+fn compare_authority_bindings_ref(
+    a: conduit_core::AuthorityBindingRef<'_>,
+    b: conduit_core::AuthorityBindingRef<'_>,
+) -> core::cmp::Ordering {
+    (
+        a.grant_id,
+        a.contract_id,
+        a.host_call_contract_id,
+        a.subject_kind,
+        a.host_id,
+        a.boot_id,
+        a.capability_id,
+    )
+        .cmp(&(
+            b.grant_id,
+            b.contract_id,
+            b.host_call_contract_id,
+            b.subject_kind,
+            b.host_id,
+            b.boot_id,
+            b.capability_id,
+        ))
+}
+
+fn resolve_authority_grant_index(
+    host: conduit_core::HostAdvertisementRef<'_>,
+    capability: conduit_core::CapabilityOfferRef<'_>,
+    requirement: conduit_core::AuthorityRequirementRef<'_>,
+    grants: conduit_core::AuthorityGrantRefs<'_>,
+) -> Result<usize, PlannerError> {
+    let mut matches = grants.iter().enumerate().filter(|(_, grant)| {
+        grant.contract_id == requirement.contract_id
+            && grant.host_call_contract_id == requirement.host_call_contract_id
+            && grant.subject_kind == requirement.subject_kind
+            && grant.host_id == host.host_id
+            && grant.boot_id == host.boot_id
+            && grant.capability_id == capability.capability_id
+    });
+    let Some((index, _)) = matches.next() else {
+        return Err(PlannerError::AuthorityGrantMissing(format!(
+            "capability '{}' requires '{}' for subject '{}' on host '{}' boot '{}'",
+            capability.capability_id,
+            requirement.contract_id,
+            requirement.subject_kind,
+            host.host_id,
+            host.boot_id,
+        )));
+    };
+    if matches.next().is_some() {
+        return Err(PlannerError::AuthorityGrantAmbiguous(format!(
+            "multiple grants satisfy capability '{}' requirement '{}'",
+            capability.capability_id, requirement.contract_id,
+        )));
+    }
+    Ok(index)
+}
+
+fn validate_keep_retention_ref(
+    gear: conduit_plot::CheckedGearRef<'_>,
+    capability: conduit_core::CapabilityOfferRef<'_>,
+) -> Result<(), PlannerError> {
+    capability.validate_state_retention().map_err(|_| {
+        PlannerError::InvalidStateContract(format!(
+            "capability '{}' attaches State retention to non-State Kind '{}'",
+            capability.capability_id, capability.kind_id
+        ))
+    })?;
+    let Some(duration) = gear
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "retained-duration")
+    else {
+        return Ok(());
+    };
+    let conduit_core::ConfigurationValue::Text(duration) = &duration.value else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained duration is not canonical text",
+            gear.gear_id
+        )));
+    };
+    let required = state_lifetime(duration, gear.gear_id)?;
+    if capability
+        .state_retention
+        .is_none_or(|support| !support.supports(required))
+    {
+        return Err(PlannerError::StateRetentionUnsupported(format!(
+            "gear '{}' requires {:?}, but capability '{}' supports at most {}",
+            gear.gear_id,
+            required,
+            capability.capability_id,
+            capability
+                .state_retention
+                .map(|support| format!("{:?}", support.maximum_lifetime))
+                .unwrap_or_else(|| "no keep duration".to_string())
+        )));
+    }
+    Ok(())
+}

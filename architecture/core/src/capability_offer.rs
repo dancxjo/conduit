@@ -724,10 +724,7 @@ impl BackOfferBuilder {
 
 impl CapabilityOffer {
     pub fn validate_state_retention(&self) -> Result<(), StateRetentionSupportError> {
-        if self.state_retention.is_some() && self.kind_id.as_str() != crate::STATE_VALUE_KIND {
-            return Err(StateRetentionSupportError::WrongSemanticKind);
-        }
-        Ok(())
+        crate::CapabilityOfferRef::from(self).validate_state_retention()
     }
 
     pub fn with_state_retention(
@@ -1292,6 +1289,27 @@ mod tests {
             maximum_lifetime: crate::StateLifetime::Body,
         };
         let ordinary = BackOfferBuilder::new(contract(), realization("ordinary")).build();
+        for (kind, state) in [
+            (crate::STATE_VALUE_KIND, true),
+            ("fixture/not-state", false),
+        ] {
+            for retained in [false, true] {
+                let expected = if retained && !state {
+                    Err(StateRetentionSupportError::WrongSemanticKind)
+                } else {
+                    Ok(())
+                };
+                let mut owned = ordinary.clone();
+                owned.kind_id = kind.into();
+                owned.state_retention = retained.then_some(support);
+                let mut borrowed = crate::CapabilityOfferRef::from(&ordinary);
+                borrowed.kind_id = kind;
+                borrowed.state_retention = retained.then_some(&support);
+                assert_eq!(owned.validate_state_retention(), expected);
+                assert_eq!(borrowed.validate_state_retention(), expected);
+            }
+        }
+
         assert_eq!(
             ordinary.clone().with_state_retention(support),
             Err(StateRetentionSupportError::WrongSemanticKind)

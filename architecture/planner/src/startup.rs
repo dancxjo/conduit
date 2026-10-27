@@ -35,10 +35,12 @@ pub(crate) fn startup_order(
             .find(|candidate| {
                 autonomous.contains(*candidate)
                     || connections.iter().all(|connection| {
-                        connection.source_placement_id == connection.sink_placement_id
-                            || is_delayed(connection, &delayed)
-                            || &connection.source_placement_id != *candidate
-                            || !remaining.contains(&connection.sink_placement_id)
+                        candidate_dependency_allows_ref(
+                            candidate.as_str(),
+                            connection.into(),
+                            is_delayed(connection, &delayed),
+                            remaining.contains(&connection.sink_placement_id),
+                        )
                     })
             })
             .cloned();
@@ -52,16 +54,7 @@ pub(crate) fn startup_order(
 }
 
 fn starts_from_admitted_host_input(placement: &PlannedGear) -> bool {
-    placement.host_calls.iter().any(|operation| {
-        operation.maximum_input_bytes == 0
-            && operation.maximum_output_bytes > 0
-            && operation.target_kind.as_ref().is_some_and(|target| {
-                placement
-                    .outputs
-                    .iter()
-                    .any(|output| output.value_kind == *target)
-            })
-    })
+    starts_from_admitted_host_input_ref(placement.into())
 }
 
 fn delay_inputs(placements: &[PlannedGear]) -> Result<BTreeMap<PlacementId, PortId>, PlannerError> {
@@ -133,8 +126,7 @@ pub(crate) fn startup_dependencies(
     Ok(connections
         .iter()
         .filter(|connection| {
-            connection.source_placement_id != connection.sink_placement_id
-                && !is_delayed(connection, &delayed)
+            dependency_required_ref((*connection).into(), is_delayed(connection, &delayed))
         })
         .map(|connection| StartupDependency {
             prerequisite_placement_id: connection.sink_placement_id.clone(),
@@ -147,3 +139,95 @@ pub(crate) fn startup_dependencies(
 
 #[cfg(test)]
 mod tests;
+
+// Shared eligibility predicate: rich BTreeSet orchestration stays unchanged.
+#[cfg(feature = "indexed-source")]
+pub(crate) fn candidate_ready_ref(
+    candidate: &str,
+    autonomous: bool,
+    connections: conduit_core::PlannedConnectionRefs<'_>,
+    mut remaining: impl FnMut(&str) -> bool,
+    mut delayed: impl FnMut(conduit_core::PlannedConnectionRef<'_>) -> bool,
+) -> bool {
+    autonomous
+        || connections.iter().all(|connection| {
+            candidate_dependency_allows_ref(
+                candidate,
+                connection,
+                delayed(connection),
+                remaining(connection.sink_placement_id),
+            )
+        })
+}
+pub(crate) fn starts_from_admitted_host_input_ref(p: conduit_core::PlannedGearRef<'_>) -> bool {
+    p.host_calls.iter().any(|c| {
+        c.maximum_input_bytes == 0
+            && c.maximum_output_bytes > 0
+            && c.target_kind
+                .is_some_and(|target| p.outputs.iter().any(|port| port.value_kind == target))
+    })
+}
+#[cfg(feature = "indexed-source")]
+pub(crate) fn plain_startup_order_ref<'a>(
+    placements: &[conduit_core::PlannedGearRef<'a>],
+    connections: &[conduit_core::PlannedConnectionRef<'a>],
+) -> Result<Option<alloc::vec::Vec<&'a str>>, crate::PlannerError> {
+    let mut remaining = placements
+        .iter()
+        .map(|p| p.placement_id)
+        .collect::<alloc::vec::Vec<_>>();
+    remaining.sort();
+    remaining.dedup();
+    let mut result = alloc::vec::Vec::with_capacity(remaining.len());
+    while !remaining.is_empty() {
+        let next = remaining.iter().position(|id| {
+            candidate_ready_ref(
+                id,
+                placements
+                    .iter()
+                    .any(|p| p.placement_id == *id && starts_from_admitted_host_input_ref(*p)),
+                conduit_core::PlannedConnectionRefs::Borrowed(connections),
+                |sink| remaining.binary_search(&sink).is_ok(),
+                |_| false,
+            )
+        });
+        let Some(next) = next else { return Ok(None) };
+        result.push(remaining.remove(next));
+    }
+    Ok(Some(result))
+}
+#[cfg(feature = "indexed-source")]
+pub(crate) fn plain_startup_dependencies_ref<'a>(
+    connections: &[conduit_core::PlannedConnectionRef<'a>],
+) -> alloc::vec::Vec<conduit_core::StartupDependencyRef<'a>> {
+    let mut dependencies = connections
+        .iter()
+        .filter(|c| dependency_required_ref(**c, false))
+        .map(|c| conduit_core::StartupDependencyRef {
+            prerequisite_placement_id: c.sink_placement_id,
+            dependent_placement_id: c.source_placement_id,
+        })
+        .collect::<alloc::vec::Vec<_>>();
+    dependencies.sort_by_key(|d| (d.prerequisite_placement_id, d.dependent_placement_id));
+    dependencies.dedup_by_key(|d| (d.prerequisite_placement_id, d.dependent_placement_id));
+    dependencies
+}
+
+fn dependency_required_ref(
+    connection: conduit_core::PlannedConnectionRef<'_>,
+    delayed: bool,
+) -> bool {
+    connection.source_placement_id != connection.sink_placement_id && !delayed
+}
+
+fn candidate_dependency_allows_ref(
+    candidate: &str,
+    connection: conduit_core::PlannedConnectionRef<'_>,
+    delayed: bool,
+    sink_remaining: bool,
+) -> bool {
+    connection.source_placement_id == connection.sink_placement_id
+        || delayed
+        || connection.source_placement_id != candidate
+        || !sink_remaining
+}

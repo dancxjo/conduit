@@ -4,6 +4,8 @@ extern crate alloc;
 mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+#[path = "network_indexed/borrowed.rs"]
+mod borrowed;
 #[path = "../src/network_planning.rs"]
 #[allow(dead_code)]
 mod planning;
@@ -192,6 +194,7 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
         &expected, &source, &host, &bases, &grants,
     )
     .unwrap();
+    borrowed::assert_plan(&source, &host, &bases, &grants, owned.plan());
     let mut full = projected.clone();
     unrelated_wait(&full)
         .append_to_advertisement(&mut full)

@@ -89,38 +89,17 @@ pub(super) fn plan(
             connection_item_capacity: limits.item_capacity,
             connection_byte_capacity: limits.byte_capacity,
         })?;
-        if limits.item_capacity > source_plan.limits.max_queue_items
-            || limits.item_capacity > sink_plan.limits.max_queue_items
-        {
-            return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
-                "connection from '{}' to '{}' requires item capacity {}",
-                source_plan.gear_id.as_str(),
-                sink_plan.gear_id.as_str(),
-                limits.item_capacity
-            )));
-        }
-        if limits.byte_capacity > source_plan.limits.max_queue_bytes
-            || limits.byte_capacity > sink_plan.limits.max_queue_bytes
-        {
-            return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
-                "connection from '{}' to '{}' requires byte capacity {}",
-                source_plan.gear_id.as_str(),
-                sink_plan.gear_id.as_str(),
-                limits.byte_capacity
-            )));
-        }
+        crate::validate_queue_limits_ref(
+            source_plan.into(),
+            sink_plan.into(),
+            limits.item_capacity,
+            limits.byte_capacity,
+        )?;
         planned_connections.push(PlannedConnection {
-            connection_id: ConnectionId::from(hash_string(&format!(
-                "connection:{}:{}:{}:{}:{}:{}:{}:{}",
+            connection_id: connection_identity_ref(
                 plot.checked_plot_id.as_str(),
-                connection.source_gear_id.as_str(),
-                connection.source_port_id.as_str(),
-                connection.sink_gear_id.as_str(),
-                connection.sink_port_id.as_str(),
-                connection.value_kind.as_str(),
-                connection.track.as_str(),
-                connection.temporal.as_str(),
-            ))),
+                connection.into(),
+            ),
             source_placement_id: source_plan.placement_id.clone(),
             source_port_id: connection.source_port_id.clone(),
             sink_placement_id: sink_plan.placement_id.clone(),

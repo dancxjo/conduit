@@ -215,13 +215,7 @@ pub(crate) fn plan_fragments_with_host_inputs(
             .entry((host.host_id.clone(), capability.capability_id.clone()))
             .or_insert(0);
         *count += 1;
-        if *count > capability.limits.max_active_instances {
-            return Err(PlannerError::CapabilityInstanceLimitExceeded(format!(
-                "capability '{}' exceeds max {}",
-                capability.capability_id.as_str(),
-                capability.limits.max_active_instances
-            )));
-        }
+        validate_instance_count_ref(capability.into(), *count)?;
 
         let resource_bindings = resource_binding::bind_resources(
             host,
@@ -239,31 +233,13 @@ pub(crate) fn plan_fragments_with_host_inputs(
 
         let mut authority_bindings = Vec::with_capacity(capability.authority_requirements.len());
         for requirement in &capability.authority_requirements {
-            let mut matches = authority_grants.iter().filter(|grant| {
-                grant.contract_id == requirement.contract_id
-                    && grant.host_call_contract_id == requirement.host_call_contract_id
-                    && grant.subject_kind == requirement.subject_kind
-                    && grant.host_id == host.host_id
-                    && grant.boot_id == host.boot_id
-                    && grant.capability_id == capability.capability_id
-            });
-            let Some(grant) = matches.next() else {
-                return Err(PlannerError::AuthorityGrantMissing(format!(
-                    "capability '{}' requires '{}' for subject '{}' on host '{}' boot '{}'",
-                    capability.capability_id.as_str(),
-                    requirement.contract_id.as_str(),
-                    requirement.subject_kind.as_str(),
-                    host.host_id.as_str(),
-                    host.boot_id.as_str()
-                )));
-            };
-            if matches.next().is_some() {
-                return Err(PlannerError::AuthorityGrantAmbiguous(format!(
-                    "multiple grants satisfy capability '{}' requirement '{}'",
-                    capability.capability_id.as_str(),
-                    requirement.contract_id.as_str()
-                )));
-            }
+            let grant_index = resolve_authority_grant_index(
+                host.into(),
+                capability.into(),
+                requirement.into(),
+                conduit_core::AuthorityGrantRefs::Owned(authority_grants),
+            )?;
+            let grant = &authority_grants[grant_index];
             authority_bindings.push(AuthorityBinding {
                 grant_id: grant.grant_id.clone(),
                 contract_id: grant.contract_id.clone(),
@@ -274,15 +250,14 @@ pub(crate) fn plan_fragments_with_host_inputs(
                 capability_id: grant.capability_id.clone(),
             });
         }
-        authority_bindings.sort();
+        authority_bindings.sort_by(|a, b| compare_authority_bindings_ref(a.into(), b.into()));
 
-        let placement_id = PlacementId::from(hash_string(&format!(
-            "placement:{}:{}:{}:{}",
+        let placement_id = placement_identity_ref(
             plot.checked_plot_id.as_str(),
             gear.gear_id.as_str(),
             host.host_id.as_str(),
-            capability.capability_id.as_str()
-        )));
+            capability.capability_id.as_str(),
+        );
         placement_lookup.insert(gear.gear_id.clone(), placement_id.clone());
         let scope = (
             host.host_id.clone(),

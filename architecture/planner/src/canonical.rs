@@ -258,37 +258,10 @@ pub(crate) fn attach_fragment_source_spans_by(
         .iter_mut()
         .flat_map(|fragment| &mut fragment.placements)
     {
-        let span = source_span(placement.gear_id.as_str()).ok_or_else(|| {
-            PlannerError::InvalidPlotIdentity(format!(
-                "expanded Gear '{}' has no exact source provenance",
-                placement.gear_id.as_str()
-            ))
-        })?;
-        let span = conduit_core::SourceSpan {
-            start: span.start.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span start exceeds u64".into())
-            })?,
-            end: span.end.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span end exceeds u64".into())
-            })?,
-            line: span.line.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span line exceeds u64".into())
-            })?,
-            column: span.column.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span column exceeds u64".into())
-            })?,
-            end_line: span.end_line.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span end line exceeds u64".into())
-            })?,
-            end_column: span.end_column.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span end column exceeds u64".into())
-            })?,
-        };
-        if !span.is_valid() {
-            return Err(PlannerError::InvalidPlotIdentity(
-                "expanded Gear source span is invalid".into(),
-            ));
-        }
+        let span = checked_source_span_ref(
+            placement.gear_id.as_str(),
+            source_span(placement.gear_id.as_str()),
+        )?;
         placement.source_span = Some(span);
     }
     Ok(())
@@ -317,3 +290,42 @@ pub(crate) fn expanded_planning_plot(plot: &ExpandedCanonicalPlot) -> CheckedPlo
 
 #[cfg(test)]
 mod borrowed_default_tests;
+
+pub(crate) fn checked_source_span_ref(
+    gear: &str,
+    source_span: Option<conduit_plot::Span>,
+) -> Result<conduit_core::SourceSpan, PlannerError> {
+    let span = source_span.ok_or_else(|| {
+        PlannerError::InvalidPlotIdentity(format!(
+            "expanded Gear '{}' has no exact source provenance",
+            gear
+        ))
+    })?;
+    let span = conduit_core::SourceSpan {
+        start: span.start.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span start exceeds u64".into())
+        })?,
+        end: span
+            .end
+            .try_into()
+            .map_err(|_| PlannerError::InvalidPlotIdentity("source span end exceeds u64".into()))?,
+        line: span.line.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span line exceeds u64".into())
+        })?,
+        column: span.column.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span column exceeds u64".into())
+        })?,
+        end_line: span.end_line.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span end line exceeds u64".into())
+        })?,
+        end_column: span.end_column.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span end column exceeds u64".into())
+        })?,
+    };
+    if !span.is_valid() {
+        return Err(PlannerError::InvalidPlotIdentity(
+            "expanded Gear source span is invalid".into(),
+        ));
+    }
+    Ok(span)
+}

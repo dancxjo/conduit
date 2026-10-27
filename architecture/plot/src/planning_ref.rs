@@ -77,6 +77,15 @@ pub struct LinkedPlanningFactsRef<'a> {
 }
 
 impl CheckedGearRef<'_> {
+    /// The complete ordinary realization predicate, without owning its facts.
+    pub fn accepts_realization_ref(self, offer: c::CapabilityOfferRef<'_>) -> bool {
+        self.kind_id == offer.kind_id
+            && self.accepts_callable_front(offer)
+            && self.accepts_semantic_contract(offer)
+            && (self.kind_contract_revision == offer.kind_contract_revision
+                || self.kind_contract_revision == c::STRUCTURAL_POLYMORPHIC_CONTRACT)
+    }
+
     /// The same callable Front predicate for borrowed and owned descriptions.
     pub fn accepts_callable_front(self, offer: c::CapabilityOfferRef<'_>) -> bool {
         let offered_shorthand =
