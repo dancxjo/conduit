@@ -1,0 +1,10 @@
+plot notebook/load (
+    >> selected: &Text <= 116B
+    value: Text <= 4KiB >>
+    failed: data/load-text-terminal@ff523b61dc5d92d3547903df737494fa74567db1a70581be1b70b9ea7048bb6e <= 1B >>
+) {
+    load: data/load/text
+    selected >> load.data
+    load.value >> value
+    load.value! >> failed
+}

@@ -199,7 +199,28 @@ fn seal_fore(
                 conduit_core::ConnectionTrack::Payload => {
                     internal.value_kind == descriptor.value_kind
                         && internal.temporal == descriptor.temporal
-                        && internal.abnormal_kind == descriptor.abnormal_kind
+                        && (internal.abnormal_kind == descriptor.abnormal_kind
+                            || (direction == conduit_core::PortDirection::Output
+                                && descriptor.abnormal_kind.is_none()
+                                && internal.abnormal_kind.as_ref().is_some_and(|kind| {
+                                    // A wrapper may expose success and its typed
+                                    // abnormal terminal through distinct Fores.
+                                    // The exact same internal Port must supply
+                                    // the separately declared terminal output.
+                                    plot.output_bindings.iter().any(|terminal| {
+                                        terminal.gear_id == binding.gear_id
+                                            && terminal.gear_port_id == binding.gear_port_id
+                                            && terminal.track
+                                                == conduit_core::ConnectionTrack::AbnormalTerminal
+                                            && plot.front.outputs().iter().any(|output| {
+                                                output.port_id == terminal.front_port_id
+                                                    && &output.value_kind == kind
+                                                    && output.temporal
+                                                        == conduit_core::PortTemporal::Value
+                                                    && output.abnormal_kind.is_none()
+                                            })
+                                    })
+                                })))
                 }
                 conduit_core::ConnectionTrack::AbnormalTerminal => {
                     internal.abnormal_kind.as_ref() == Some(&descriptor.value_kind)

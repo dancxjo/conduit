@@ -247,6 +247,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::text_upper_offer(),
             conduit_std_offers::text_join_offer(),
             conduit_std_offers::text_edit_document_std_offer(),
+            conduit_std_offers::text_apply_edit_offer(),
             conduit_std_offers::text_edit_std_offer(),
             conduit_std_offers::text_submit_lines_std_offer(),
             conduit_std_offers::text_morse_offer(),

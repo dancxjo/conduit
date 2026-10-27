@@ -12,7 +12,7 @@ pub(crate) use controller::run_service_window;
 pub(crate) use controller::{
     clock_interval_action, is_clock_control_intent, BrowserAdmittedSnapshot,
     BrowserCarrierLineEvidence, BrowserWindowAuthorization, ClockAction, DirectSpokenStart,
-    LlmSpokenStart, Owner, RunWorker, ThermostatWorker, TodoWaitingWorker,
+    LlmSpokenStart, NotebookWaitingWorker, Owner, RunWorker, ThermostatWorker, TodoWaitingWorker,
     CLOCK_RUN_MAXIMUM_MILLIS,
 };
 use serde::Deserialize;
@@ -38,6 +38,10 @@ pub(crate) fn resume_service(
         owner.set_resident_plot_name(&checked)?;
     }
     owner.restore_execution(root)?;
+    #[cfg(target_os = "linux")]
+    if owner.recover_notebook_on_startup(root)? {
+        return Ok(owner);
+    }
     if owner.has_retained_verified_todo_read() {
         let selected = super::selected_todo_checkpoint(root)?
             .ok_or("Todo re-encounter has no selected checkpoint")?;

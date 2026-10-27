@@ -1,5 +1,29 @@
 use super::*;
 
+#[test]
+fn recovered_document_preserves_revision_and_rejects_old_mask_edits() {
+    let mut state = BoundedTextState::from_document(
+        32,
+        TextDocument {
+            revision: 41,
+            text: "I was here. é".as_bytes(),
+        },
+    )
+    .unwrap();
+    assert_eq!(state.revision(), 41);
+    assert_eq!(state.current(), "I was here. é".as_bytes());
+    assert_eq!(
+        state.replace(edit(0, 0, 0, "stale")),
+        Err(TextEditRefusal::StaleRevision)
+    );
+    assert_eq!(state.current(), "I was here. é".as_bytes());
+    assert_eq!(
+        state.replace(edit(41, 12, 13, "😀")).unwrap(),
+        "I was here. 😀".as_bytes()
+    );
+    assert_eq!(state.revision(), 42);
+}
+
 fn edit(base_revision: u64, start: u32, end: u32, text: &str) -> TextEdit<'_> {
     TextEdit {
         base_revision,
@@ -136,4 +160,42 @@ fn semantic_editor_loop_checks_with_exact_ports_and_required_label() {
         &startup
     )
     .is_err());
+}
+
+#[test]
+fn pure_document_transition_preserves_the_input_and_shares_revisioned_utf8_editing() {
+    let mut document = [0; MAXIMUM_TEXT_DOCUMENT_BYTES as usize];
+    let size = TextDocument {
+        revision: 41,
+        text: "café".as_bytes(),
+    }
+    .encode_into(&mut document)
+    .unwrap();
+    let original = document;
+    let mut proposal = [0; MAXIMUM_TEXT_EDIT_BYTES as usize];
+    let edit_size = edit(41, 3, 4, "😀").encode_into(&mut proposal).unwrap();
+    let mut candidate = [0; MAXIMUM_TEXT_DOCUMENT_BYTES as usize];
+    let candidate_size =
+        apply_document_edit(&document[..size], &proposal[..edit_size], &mut candidate).unwrap();
+    assert_eq!(
+        TextDocument::decode(&candidate[..candidate_size]).unwrap(),
+        TextDocument {
+            revision: 42,
+            text: "caf😀".as_bytes()
+        }
+    );
+    assert_eq!(document, original);
+    let stale_size = edit(40, 0, 0, "stale").encode_into(&mut proposal).unwrap();
+    let before = candidate;
+    assert_eq!(
+        apply_document_edit(&document[..size], &proposal[..stale_size], &mut candidate),
+        Err(TextEditRefusal::StaleRevision)
+    );
+    assert_eq!(candidate, before);
+    assert_eq!(document, original);
+    assert_eq!(
+        apply_document_edit(&document[..size], &proposal[..15], &mut candidate),
+        Err(TextEditRefusal::InvalidEncoding)
+    );
+    assert_eq!(candidate, before);
 }

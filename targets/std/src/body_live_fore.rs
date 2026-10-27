@@ -12,8 +12,11 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod document;
 mod numerical;
 mod parsec;
+mod submission;
+mod waiting;
 
 pub const MAX_LIVE_FORE_SLOTS: usize = 8;
 
@@ -59,6 +62,7 @@ struct QueueState {
     play_terminal: bool,
     play_started: bool,
     started_at: Option<Instant>,
+    idle_stop: Option<crate::RunControlRequestId>,
 }
 
 impl BodyLiveForeQueue {
@@ -125,6 +129,7 @@ impl BodyLiveForeQueue {
                 play_terminal: false,
                 play_started: false,
                 started_at: None,
+                idle_stop: None,
             })),
         })
     }
@@ -199,6 +204,7 @@ impl BodyLiveForeQueue {
                 play_terminal: false,
                 play_started: false,
                 started_at: None,
+                idle_stop: None,
             })),
         })
     }
@@ -297,53 +303,15 @@ impl BodyLiveForeQueue {
                 play_terminal: false,
                 play_started: false,
                 started_at: None,
+                idle_stop: None,
             })),
         })
     }
 
-    pub fn submit(&self, canonical: &[u8]) -> Result<BodyLiveForeAdmission, String> {
-        if self.control.stop_requested() {
-            return Err("live Fore Play is cancelling".into());
-        }
-        if canonical.len() > self.port.byte_capacity as usize {
-            return Err("live Fore value exceeds its sealed byte bound".into());
-        }
-        if let Some(contract) = &self.port.value_contract {
-            contract
-                .validate(canonical)
-                .map_err(|error| format!("live Fore value contract: {error:?}"))?;
-        } else {
-            conduit_core::validate_primitive_info(self.port.value_kind.as_str(), canonical)
-                .map_err(|error| format!("live Fore value kind: {error:?}"))?;
-        }
-        if self.initial.is_some() {
-            conduit_todo_plot::TodoCommand::decode_info(canonical)
-                .map_err(|error| format!("waiting checkpoint command: {error:?}"))?;
-        }
-        let mut state = self.state.lock().expect("live Fore queue lock poisoned");
-        if self.initial.is_some() && !state.play_started {
-            return Err("waiting checkpoint command requires a started Body Play".into());
-        }
-        if state.close_requested || state.kernel_closed || state.play_terminal {
-            return Err("live Fore input is closed".into());
-        }
-        if state.submitted == self.maximum_items {
-            return Err("live Fore selected item bound is exhausted".into());
-        }
-        let Some(index) = state.free.pop() else {
-            return Ok(BodyLiveForeAdmission::Full);
-        };
-        let sequence = u64::from(state.submitted);
-        state.slots[index].clear();
-        state.slots[index].extend_from_slice(canonical);
-        state.queued.push_back(index);
-        state.submitted += 1;
-        drop(state);
-        self.control.signal_activity();
-        Ok(BodyLiveForeAdmission::Accepted { sequence })
-    }
-
     pub fn close(&self) -> Result<(), String> {
+        if self.port.temporal == (PortTemporal::Flow { closes: false }) {
+            return Err("nonclosing live Fore requires explicit Play cancellation".into());
+        }
         let mut state = self.state.lock().expect("live Fore queue lock poisoned");
         if state.close_requested || state.play_terminal {
             return Err("live Fore was already closed".into());
@@ -429,34 +397,6 @@ impl BodyLiveForeQueue {
 
     pub(crate) fn observed_generation(&self) -> u64 {
         self.control.activity_generation()
-    }
-
-    pub(crate) fn wait_if_empty(&self, observed: u64) -> Result<(), String> {
-        let state = self.state.lock().expect("live Fore queue lock poisoned");
-        if !state.queued.is_empty() || state.close_requested {
-            return Ok(());
-        }
-        let remaining = self.wait_timeout.map(|timeout| {
-            timeout.saturating_sub(state.started_at.expect("waiting Play started").elapsed())
-        });
-        drop(state);
-        if let Some(remaining) = remaining {
-            let timed_out = self
-                .control
-                .wait_for_activity_or_stop_for(observed, remaining);
-            if timed_out {
-                let state = self.state.lock().expect("live Fore queue lock poisoned");
-                if state.queued.is_empty()
-                    && !state.close_requested
-                    && !self.control.stop_requested()
-                {
-                    return Err("waiting checkpoint command timed out without an effect".into());
-                }
-            }
-        } else {
-            self.control.wait_for_activity_or_stop(observed);
-        }
-        Ok(())
     }
 
     pub(crate) fn with_front<R>(&self, f: impl FnOnce(Option<(u64, &[u8])>, bool) -> R) -> R {

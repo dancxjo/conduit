@@ -29,6 +29,8 @@ pub struct ResourceVersionIdentity([u8; RESOURCE_REFERENCE_DIGEST_BYTES]);
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResourceExtent {
     pub bytes: u64,
+    /// An item extent when this content exposes that dimension. `None` is a
+    /// byte-only reference, not permission to assume an unknown item count.
     pub items: Option<u64>,
 }
 

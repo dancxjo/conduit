@@ -98,3 +98,20 @@ mod tests {
         }
     }
 }
+
+pub const TEXT_APPLY_EDIT_IMPLEMENTATION: &str = "std/kernel-text-apply-edit@1";
+pub fn text_apply_edit_offer() -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::text_apply_edit_semantic_contract(),
+        Back {
+            capability_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
+            execution_profile_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
+            implementation_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
+            artifact_id: "conduit-std-host/text-apply-edit@1".into(),
+            host_calls: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
+}

@@ -96,6 +96,8 @@ fn reusable_ordered_event_intervals_plan_and_execute_through_one_kernel_play() {
     let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             advertisement: &advertisement,
             playback: None,
             midi_input: None,
