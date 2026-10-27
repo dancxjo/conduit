@@ -1,7 +1,8 @@
 # MCU delivery checkpoints — 2026-10-25
 
-**The latest successful ESP32 boot checkpoint is MCU-owned preparation.** It
-has not started sampling or presenting the ordinary Mask. Historical attended
+**The latest ESP32 hardware checkpoint commits the ordinary two-Plot Body
+proposal.** It has not started sampling or presenting the ordinary Mask.
+Historical attended
 Linux-owned sampler and raw display proofs below remain separate from this new
 startup path. The current RAM boundary is recorded first.
 
@@ -970,3 +971,44 @@ sampler planning at 96,620 Root heap bytes retained, 107,340 peak, from the
 unchanged 118,768-byte Root heap. Its next failure is a CPU stack guard during
 native pulse binding, with 19,172 Root bytes still free. This is a failed startup;
 it establishes no running sampler, Mask effect, network or joining acceptance.
+
+
+The subsequent `autonomous-atomic-publication` image is 3,309,184 bytes and was
+flashed without erasing this Body. Streaming authenticated checkpoint decoding
+removes the whole input buffer; a compact verified sampler seal lets its full
+Plan retire before Mask planning. Both verified Plans and complete Show context
+now prepare, and the 28,889-byte retained checkpoint restores with 15,532 Root
+heap bytes free. Failure-atomic Wake publication no longer clones the whole
+biography: focused 15-Boot CPU proof measures 6,088 bytes for commit and 10,234
+for start, versus 29,075 for one biography clone. All 212 Body tests and strict
+Clippy pass. On hardware the next failure is an explicit CPU stack guard inside
+complete wake-history validation during proposal commit, with 14,792 heap bytes
+still free. Neither worker has started; no autonomous operation is claimed.
+
+
+The `autonomous-shallow-commit` image (3,309,360 bytes) moves canonical commit
+outside numeric assembly. It physically commits the proposal: 109,396 Root
+bytes retained, 112,488 peak, 9,372 free. A separate non-resetting 40-second UART
+observation receives no further output or reboot. Workers still do not start.
+The preserved checkpoint is now 30,540 bytes. An exact canonical CPU sizing
+fixture predicts 33,107 bytes after start against the 32,608-byte payload limit;
+inline membership archives increase that size rather than solving it. A private
+complete flash backup was taken before any checkpoint-format migration. This
+candidate is failed startup evidence, not autonomous execution acceptance.
+
+
+Lossless streamed checkpoint compression preserves the full native JSON and
+legacy compatibility under the existing authenticated commit-last journal.
+The exact 17-Boot fixture shrinks 30,540 bytes to 11,967, with no codec heap
+allocation; 35 focused tests, strict Clippy and 1,193 interrupted-write cases
+pass. Hardware resumes the same Body and Root custody after migration.
+
+`autonomous-binding-frames` (3,323,728 bytes) was captured for 90 seconds. It
+passes actual direct sampler/native binding, both verified Plans, proposal
+preparation and complete Show context. The compressed checkpoint is 14,193
+bytes; the full retained biography exceeds the measured restore admission
+budget at 46,344 free Root bytes. Startup explicitly refuses
+`restart-memory-capacity` before DTO allocation. This is safe refusal, not
+worker execution. Complete-history compression expands durable capacity but
+does not bound resident biography RAM; nonresident archive custody remains a
+prerequisite for sustainable restart and later network construction.
