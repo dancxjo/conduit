@@ -110,21 +110,20 @@ impl NativeRoot {
             }
         };
         let result = if window.is_some() {
-            self.play.install_held(
-                &prepared,
+            self.play.install_owned_held(
+                prepared,
                 &mut self.credentials,
                 self.network.ready_slot(),
                 &mut self.issuer,
             )
         } else {
-            self.play.install(
-                &prepared,
+            self.play.install_owned(
+                prepared,
                 &mut self.credentials,
                 self.network.ready_slot(),
                 &mut self.issuer,
             )
         };
-        drop(prepared);
         self.network.mark_selected();
         self.offer_generation = selected_generation;
         if result.is_err() {
