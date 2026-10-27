@@ -1,6 +1,6 @@
 //! Common admission checks before allocating numeric lowering tables.
 use super::{KernelStorageProfile, LoweringError};
-use conduit_core::{mandatory_sign_storage_requirement, verify_plan_fragment, PlanFragment};
+use conduit_core::{mandatory_sign_storage_requirement_ref, verify_plan_fragment, PlanFragment};
 
 pub(super) fn validate_fragment(
     fragment: &PlanFragment,
@@ -18,8 +18,22 @@ pub(crate) fn validate_verified_fragment(
     fragment: &PlanFragment,
     profile: KernelStorageProfile,
 ) -> Result<(), LoweringError> {
+    validate_verified_fragment_facts(
+        fragment.into(),
+        conduit_core::PlannedGearRefs::Owned(&fragment.placements),
+        fragment.into(),
+        profile,
+    )
+}
+
+pub(crate) fn validate_verified_fragment_facts(
+    header: conduit_core::FragmentFingerprintHeaderRef<'_>,
+    placements: conduit_core::PlannedGearRefs<'_>,
+    tail: conduit_core::FragmentFingerprintTailRef<'_>,
+    profile: KernelStorageProfile,
+) -> Result<(), LoweringError> {
     // No current lowering profile installs native resumable continuations.
-    if let Some(region) = fragment.execution_regions.iter().find(|region| {
+    if let Some(region) = header.execution_regions.iter().find(|region| {
         matches!(
             region.scheduling,
             conduit_core::ExecutionScheduling::ProtectedPreemptibleStep { .. }
@@ -30,7 +44,7 @@ pub(crate) fn validate_verified_fragment(
         ));
     }
     if !profile.supports_partitioned_regions() {
-        if let Some(region) = fragment
+        if let Some(region) = header
             .execution_regions
             .iter()
             .find(|r| r.scheduling.is_partitioned())
@@ -41,21 +55,17 @@ pub(crate) fn validate_verified_fragment(
         }
     }
     // Fresh initialization profiles must never silently reset retained State.
-    if let Some(state) = fragment
-        .states
-        .iter()
-        .find(|state| state.retained.is_some())
-    {
+    if let Some(state) = tail.states.iter().find(|state| state.retained.is_some()) {
         if !profile.supports_owned_state_continuity() {
             return Err(LoweringError::UnsupportedState(state.state_id.clone()));
         }
     }
-    if let Some(state) = fragment.states.first() {
+    if let Some(state) = tail.states.first() {
         let Some((instances, bytes)) = profile.state_storage() else {
             return Err(LoweringError::UnsupportedState(state.state_id.clone()));
         };
-        if fragment.states.len() > usize::from(instances)
-            || fragment
+        if tail.states.len() > usize::from(instances)
+            || tail
                 .states
                 .iter()
                 .any(|state| state.maximum_value_bytes > bytes)
@@ -66,12 +76,12 @@ pub(crate) fn validate_verified_fragment(
     // A host admitted only as a dynamic shared-pool realization still owns a
     // real Plan fragment and fixed pool/session state even though it has no
     // statically placed Gear yet.
-    if fragment.placements.is_empty() && fragment.shared_pools.is_empty() {
+    if placements.is_empty() && tail.shared_pools.is_empty() {
         return Err(LoweringError::EmptyFragment);
     }
-    let mut expected = mandatory_sign_storage_requirement(&fragment.expected_sign)
+    let mut expected = mandatory_sign_storage_requirement_ref(tail.expected_sign)
         .ok_or(LoweringError::SignBudgetInvalid)?;
-    let state = conduit_core::state_resource_budget(&fragment.states)
+    let state = conduit_core::state_resource_budget(tail.states)
         .map_err(|_| LoweringError::SignBudgetInvalid)?
         .sign_storage;
     expected.item_capacity = expected
@@ -82,7 +92,7 @@ pub(crate) fn validate_verified_fragment(
         .byte_capacity
         .checked_add(state.byte_capacity)
         .ok_or(LoweringError::SignBudgetInvalid)?;
-    if expected != fragment.sign_storage_budget {
+    if expected != *tail.sign_storage_budget {
         return Err(LoweringError::SignBudgetInvalid);
     }
     Ok(())

@@ -172,7 +172,14 @@ struct ExecutionTrace {
     calls: Vec<(u16, Vec<u8>, Vec<u8>)>,
     signs: Vec<k::KernelEvent>,
 }
+#[test]
+fn borrowed_core_numeric_consumer_matches_actual_source_owners_and_full_trace() {
+    assert_eq!(execute(false), execute_profile(true, true));
+}
 fn execute(direct: bool) -> ExecutionTrace {
+    execute_profile(direct, false)
+}
+fn execute_profile(direct: bool, flat: bool) -> ExecutionTrace {
     let mut f = fixture();
     // SAFETY: freshly checked canonical Source encoded above.
     let image =
@@ -318,14 +325,53 @@ fn execute(direct: bool) -> ExecutionTrace {
     .unwrap();
     assert_eq!(f.effects.get(), 0);
     assert!(f.credentials.is_none() && f.join.is_none());
-    let parts = net::PreparedNetworkKernelParts::from_direct(tables).unwrap();
-    let mut kernel = if direct {
-        parts.finish().unwrap()
+    let parts = if flat {
+        // Actual native owners above still passed the existing independently
+        // Source-pinned Root/claim/selection gates for this exact same Plan.
+        // The new Core token supplies numeric lowering, never owner authority.
+        let _ = tables.into_parts();
+        let ((parts, scope_bytes, tables_bytes), cost) = allocation_probe::observe(|| {
+            let scope = c::FlatPlanRef::from_plan(rich.plan())
+                .unwrap()
+                .verify()
+                .unwrap();
+            let tables = net::NetworkControlFlatDirectTables::prepare(&scope).unwrap();
+            assert_eq!(
+                net::PreparedNetworkKernelParts::check_flat_direct(&tables).unwrap(),
+                roles
+            );
+            let scope_bytes = core::mem::size_of_val(&scope);
+            let tables_bytes = core::mem::size_of_val(&tables);
+            (
+                net::PreparedNetworkKernelParts::from_flat_direct(tables).unwrap(),
+                scope_bytes,
+                tables_bytes,
+            )
+        });
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        println!("network borrowed Core verification+numeric+profile CPU heap peak={} retained={} scope-inline={} tables-inline={} (excludes planner/owners; no target admission)",cost.peak_bytes,cost.retained_bytes(),scope_bytes,tables_bytes);
+        parts
     } else {
-        net::PreparedNetworkKernel::prepare(&rich.plan().fragments[0], rich.lowered()).unwrap()
+        net::PreparedNetworkKernelParts::from_direct(tables).unwrap()
     };
-    drop(verified);
-    drop(rich);
+    let mut kernel = if flat {
+        // Full fixed kernel and Sign backing materialize only after retirement.
+        drop(verified);
+        drop(rich);
+        let (kernel, cost) = allocation_probe::observe(|| parts.finish().unwrap());
+        assert_eq!(cost.retained_bytes(), net::CONTROL_SIGN_BACKING_BYTES);
+        println!("network post-metadata-retirement kernel CPU heap peak={} retained={} unchanged128event Signbacking={}",cost.peak_bytes,cost.retained_bytes(),net::CONTROL_SIGN_BACKING_BYTES);
+        kernel
+    } else {
+        let kernel = if direct {
+            parts.finish().unwrap()
+        } else {
+            net::PreparedNetworkKernel::prepare(&rich.plan().fragments[0], rich.lowered()).unwrap()
+        };
+        drop(verified);
+        drop(rich);
+        kernel
+    };
     let mut trace = Vec::new();
     let mut drained = false;
     for _ in 0..100 {
@@ -654,4 +700,95 @@ fn verified_root_scope_refuses_foreign_boot_fragment_and_unreserved_play() {
         )
         .is_err());
     assert_eq!(f.effects.get(), 0);
+}
+
+#[test]
+fn borrowed_network_profile_refusals_match_rich_without_running_any_owner() {
+    let f = fixture();
+    // SAFETY: this fixture just checked and encoded the complete actual Source.
+    let image =
+        unsafe { conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(&f.bytes) }
+            .unwrap();
+    let original = planning::PreparedNetworkSetup::from_indexed_for_identity(
+        &f.identity,
+        &image,
+        &f.host,
+        &f.bases,
+        &f.grants,
+    )
+    .unwrap();
+    for case in 0..7 {
+        let mut fragment = original.plan().fragments[0].clone();
+        match case {
+            0 => fragment
+                .placements
+                .iter_mut()
+                .find(|g| !g.resources.is_empty())
+                .unwrap()
+                .resources
+                .clear(),
+            1 => fragment.placements[0].kind_id = "forged-role".into(),
+            2 => fragment.placements[0]
+                .configuration
+                .push(c::ConfigurationEntry {
+                    key: "forged-config".into(),
+                    value: c::ConfigurationValue::U64(1),
+                }),
+            3 => fragment.connections[0].item_capacity = 9,
+            4 => fragment.connections[0].byte_capacity = 8 * 167 + 1,
+            5 => {
+                fragment.expected_sign = vec![c::ExpectedSign::PlanTerminal; 129];
+                fragment.sign_storage_budget =
+                    c::mandatory_sign_storage_requirement(&fragment.expected_sign).unwrap();
+            }
+            _ => fragment.placements[0].host_calls.clear(),
+        }
+        // These are structural/profile counterexamples, not admitted Source
+        // changes. They never reach Root issuance, owner binding or Step.
+        let full = c::seal_plan_with_completion(
+            c::PlotIdentity {
+                source_document_id: fragment.source_document_id.clone(),
+                checked_plot_id: fragment.checked_plot_id.clone(),
+                expanded_plot_id: fragment.expanded_plot_id.clone(),
+            },
+            fragment.completion_policy,
+            vec![fragment],
+        );
+        let mut bare = full.clone();
+        for gear in &mut bare.fragments[0].placements {
+            gear.configuration.clear();
+        }
+        let rich = c::verify_plan_metadata_with_configurations(bare, |gear| {
+            Ok::<_, ()>(
+                full.fragments[0]
+                    .placements
+                    .iter()
+                    .find(|g| g.placement_id == gear.placement_id)
+                    .unwrap()
+                    .configuration
+                    .clone(),
+            )
+        })
+        .unwrap();
+        let id = &rich.preparation_metadata().fragments[0].fragment_id;
+        let expected = net::NetworkControlDirectTables::prepare(&rich, id)
+            .map_err(|e| format!("{e:?}"))
+            .and_then(|tables| {
+                net::PreparedNetworkKernelParts::check_direct(&tables)
+                    .map(|_| ())
+                    .map_err(|e| format!("{e:?}"))
+            });
+        let verified = c::FlatPlanRef::from_plan(&full).unwrap().verify().unwrap();
+        let actual = net::NetworkControlFlatDirectTables::prepare(&verified)
+            .map_err(|e| format!("{e:?}"))
+            .and_then(|tables| {
+                net::PreparedNetworkKernelParts::check_flat_direct(&tables)
+                    .map(|_| ())
+                    .map_err(|e| format!("{e:?}"))
+            });
+        assert!(expected.is_err(), "case {case}");
+        assert_eq!(actual, expected, "case {case}");
+        assert_eq!(f.effects.get(), 0);
+        assert!(f.credentials.is_some() && f.join.is_some());
+    }
 }

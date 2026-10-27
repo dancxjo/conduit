@@ -219,58 +219,23 @@ impl PreparedNetworkKernelParts {
     pub fn check_direct(
         tables: &NetworkControlDirectTables<'_>,
     ) -> Result<NetworkControlRoles, ControlKernelRefusal> {
-        use ControlKernelRefusal as E;
         let (plan, fragment) = tables.preparation_scope();
-        if !fragment.execution_regions.is_empty()
-            || fragment
-                .placements
-                .iter()
-                .map(|g| g.resources.len())
-                .sum::<usize>()
-                != 2
-            || fragment.placements.iter().any(|g| g.host_calls.len() != 1)
-        {
-            return Err(E::Shape);
-        }
-        if tables.cord_value_slots() > 8
-            || tables.cord_value_bytes() > 8 * 167
-            || tables.sign_items() > 128
-            || tables.sign_bytes() > (128 * core::mem::size_of::<k::KernelEvent>()) as u32
-        {
-            return Err(E::Storage);
-        }
-        let view = plan.fragment(&fragment.fragment_id).ok_or(E::Identity)?;
-        if fragment
+        let view = plan
+            .fragment(&fragment.fragment_id)
+            .ok_or(ControlKernelRefusal::Identity)?;
+        let empty = fragment
             .placements
             .iter()
-            .any(|g| !view.configuration_matches(&g.placement_id, &[]))
-        {
-            return Err(E::Shape);
-        }
-        let find = |kind: &str| {
-            let mut nodes = fragment
-                .placements
-                .iter()
-                .enumerate()
-                .filter(|(_, g)| g.kind_id.as_str() == kind);
-            let node = nodes.next().ok_or(E::Shape)?.0;
-            if nodes.next().is_some() {
-                return Err(E::Shape);
-            }
-            Ok(k::NodeId(node as u16))
-        };
-        let roles = NetworkControlRoles {
-            credentials: find(conduit_net::NETWORK_CREDENTIALS_OPERATION)?,
-            join: find(conduit_net::NETWORK_JOIN_OPERATION)?,
-            attachment_sign: find(conduit_net::NETWORK_ATTACHMENT_SIGN_OPERATION)?,
-        };
-        if roles.credentials == roles.join
-            || roles.join == roles.attachment_sign
-            || roles.credentials == roles.attachment_sign
-        {
-            return Err(E::Shape);
-        }
-        Ok(roles)
+            .all(|g| view.configuration_matches(&g.placement_id, &[]));
+        check_direct_profile(
+            conduit_core::PlannedGearRefs::Owned(&fragment.placements),
+            &fragment.execution_regions,
+            tables.cord_value_slots(),
+            tables.cord_value_bytes(),
+            tables.sign_items(),
+            tables.sign_bytes(),
+            empty,
+        )
     }
     pub fn from_direct(
         tables: NetworkControlDirectTables<'_>,
@@ -318,4 +283,88 @@ impl PreparedNetworkKernelParts {
         .map_err(|_| E::Tables)?;
         Ok(PreparedNetworkKernel { kernel, roles })
     }
+}
+
+/// Complete opaque borrowed Core scope, with identical fixed numeric lowering.
+pub type NetworkControlFlatDirectTables<'a> =
+    conduit_plan_lowering::local_tables::FlatDirectLocalKernelTables<'a, 3, 2, 1, 3, 2, 3>;
+impl PreparedNetworkKernelParts {
+    pub fn check_flat_direct(
+        tables: &NetworkControlFlatDirectTables<'_>,
+    ) -> Result<NetworkControlRoles, ControlKernelRefusal> {
+        let view = tables.preparation_scope().view();
+        check_direct_profile(
+            view.placements,
+            view.header.execution_regions,
+            tables.cord_value_slots(),
+            tables.cord_value_bytes(),
+            tables.sign_items(),
+            tables.sign_bytes(),
+            view.placements.iter().all(|g| g.configuration.is_empty()),
+        )
+    }
+    pub fn from_flat_direct(
+        tables: NetworkControlFlatDirectTables<'_>,
+    ) -> Result<Self, ControlKernelRefusal> {
+        let roles = Self::check_flat_direct(&tables)?;
+        let parts = tables.into_parts();
+        Ok(Self {
+            nodes: parts.nodes,
+            cords: parts.cords,
+            routes: parts.routes,
+            bindings: parts.calls,
+            roles,
+        })
+    }
+}
+
+fn check_direct_profile(
+    placements: conduit_core::PlannedGearRefs<'_>,
+    regions: &[conduit_core::ExecutionRegion],
+    slots: u16,
+    bytes: u32,
+    sign_items: u16,
+    sign_bytes: u32,
+    configurations_empty: bool,
+) -> Result<NetworkControlRoles, ControlKernelRefusal> {
+    use ControlKernelRefusal as E;
+    if !regions.is_empty()
+        || placements.iter().map(|g| g.resources.len()).sum::<usize>() != 2
+        || placements.iter().any(|g| g.host_calls.len() != 1)
+    {
+        return Err(E::Shape);
+    }
+    if slots > 8
+        || bytes > 8 * 167
+        || sign_items > 128
+        || sign_bytes > (128 * core::mem::size_of::<k::KernelEvent>()) as u32
+    {
+        return Err(E::Storage);
+    }
+    if !configurations_empty {
+        return Err(E::Shape);
+    }
+    let find = |kind: &str| {
+        let mut nodes = placements
+            .iter()
+            .enumerate()
+            .filter(|(_, g)| g.kind_id == kind);
+        let node = nodes.next().ok_or(E::Shape)?.0;
+        if nodes.next().is_some() {
+            return Err(E::Shape);
+        }
+        Ok(k::NodeId(node as u16))
+    };
+    let roles = NetworkControlRoles {
+        credentials: find(conduit_net::NETWORK_CREDENTIALS_OPERATION)?,
+        join: find(conduit_net::NETWORK_JOIN_OPERATION)?,
+        attachment_sign: find(conduit_net::NETWORK_ATTACHMENT_SIGN_OPERATION)?,
+    };
+    if roles.credentials == roles.join
+        || roles.join == roles.attachment_sign
+        || roles.credentials == roles.attachment_sign
+    {
+        return Err(E::Shape);
+    }
+    Ok(roles)
 }

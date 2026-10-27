@@ -643,14 +643,20 @@ pub struct MandatorySignReport {
 }
 
 pub fn mandatory_sign_storage_requirement(sign: &[ExpectedSign]) -> Option<SignStorageBudget> {
+    mandatory_sign_storage_requirement_ref(ExpectedSignRefs::Owned(sign))
+}
+/// Exact existing Sign storage law over immutable owned or borrowed records.
+pub fn mandatory_sign_storage_requirement_ref(
+    sign: ExpectedSignRefs<'_>,
+) -> Option<SignStorageBudget> {
     let item_capacity = u16::try_from(sign.len()).ok()?;
     let mut byte_capacity = 0u32;
-    for item in sign {
+    for item in sign.iter() {
         let identity = match item {
-            ExpectedSign::PlanFragmentReceived | ExpectedSign::PlanTerminal => None,
-            ExpectedSign::PlacementPrepared(placement_id)
-            | ExpectedSign::PlacementTerminal(placement_id) => Some(placement_id.as_str()),
-            ExpectedSign::ConnectionTerminal(connection_id) => Some(connection_id.as_str()),
+            ExpectedSignRef::PlanFragmentReceived | ExpectedSignRef::PlanTerminal => None,
+            ExpectedSignRef::PlacementPrepared(placement_id)
+            | ExpectedSignRef::PlacementTerminal(placement_id) => Some(placement_id),
+            ExpectedSignRef::ConnectionTerminal(connection_id) => Some(connection_id),
         };
         let identity_bytes = match identity {
             Some(value) => u32::try_from(value.len()).ok()?,

@@ -104,6 +104,23 @@ pub(crate) fn source_contract_fields_match(
     value_kind: &KindId,
     temporal: PortTemporal,
 ) -> bool {
+    source_contract_fields_match_ref(
+        port_kind.as_str(),
+        abnormal_kind.map(|id| id.as_str()),
+        port_temporal,
+        track,
+        value_kind.as_str(),
+        temporal,
+    )
+}
+pub(crate) fn source_contract_fields_match_ref(
+    port_kind: &str,
+    abnormal_kind: Option<&str>,
+    port_temporal: PortTemporal,
+    track: ConnectionTrack,
+    value_kind: &str,
+    temporal: PortTemporal,
+) -> bool {
     match track {
         ConnectionTrack::AbnormalTerminal => {
             temporal == PortTemporal::Value && abnormal_kind == Some(value_kind)
@@ -111,12 +128,12 @@ pub(crate) fn source_contract_fields_match(
         ConnectionTrack::Payload => port_kind == value_kind && port_temporal == temporal,
         ConnectionTrack::NormalClose => {
             port_temporal == (PortTemporal::Flow { closes: true })
-                && value_kind.as_str() == conduit_core::EMPTY_INFO_ID
+                && value_kind == conduit_core::EMPTY_INFO_ID
                 && temporal == PortTemporal::Value
         }
         ConnectionTrack::Quiescence => {
             matches!(port_temporal, PortTemporal::Flow { .. })
-                && value_kind.as_str() == conduit_core::EMPTY_INFO_ID
+                && value_kind == conduit_core::EMPTY_INFO_ID
                 && temporal == PortTemporal::Value
         }
     }

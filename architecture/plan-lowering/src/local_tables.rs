@@ -237,4 +237,4 @@ impl<
 
 #[path = "local_tables_direct.rs"]
 mod direct;
-pub use direct::{DirectLocalKernelParts, DirectLocalKernelTables};
+pub use direct::{DirectLocalKernelParts, DirectLocalKernelTables, FlatDirectLocalKernelTables};

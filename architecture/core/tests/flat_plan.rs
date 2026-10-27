@@ -170,6 +170,10 @@ fn rich_streamed_configuration_callback_remains_authoritative() {
         g.configuration.clear();
     }
     assert!(!verify_plan(&metadata));
+    assert!(matches!(
+        FlatPlanRef::from_plan(&metadata).unwrap().verify(),
+        Err(FlatPlanRefusal::InvalidPlan)
+    ));
     let verified = verify_plan_metadata_with_configurations(metadata.clone(), |g| {
         Ok::<_, ()>(
             if g.placement_id == p.fragments[0].placements[0].placement_id {
