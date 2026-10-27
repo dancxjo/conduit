@@ -480,7 +480,7 @@ fn copy_checked(after: u32, expected: Option<&[u8; 96]>) -> Result<Batch, &'stat
         primary
     })
 }
-fn copy_active(active: &mut Active, after: u32) -> Result<Batch, &'static str> {
+fn copy_active(active: &mut Active<Region>, after: u32) -> Result<Batch, &'static str> {
     if active.recovered
         && (!active.signed
             || !AUTHORIZED_BODY

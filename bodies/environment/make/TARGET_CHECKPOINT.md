@@ -68,8 +68,31 @@ and BMP temperature/pressure with humidity explicitly unsupported. The portable
 Bosch driver is separate from measurement semantics. Pressure uses a real
 Quantity, not a Pico-specific text field; derived altitude needs reference
 pressure. Shared model/Face and actual Pico sensor/display composition are in
-progress. The attached Pico's GP6/7 sensor and GP3/4 TM1637 have not yet been
-physically exercised by this relay image.
+progress. The actual Pico BME280 at 0x76 now reports chip ID 0x60 and successful
+readings through the shared measurement/Face adapter, including real pressure.
+The same image reaches the ESP over radio and USB while that sensor runs. The
+GP3/4 display fails its first-command acknowledgement with normal and reversed
+clock/data roles, weak pulls and bounded slow timing; normal roles are restored.
+The owner deferred replacement hardware until morning. No Pico display or
+native Body execution is claimed from this diagnostic image.
+
+## Returned-store generation and whole-image follow-up
+
+The kernel keeps complete public reference lengths, widens generations to u32,
+and compacts only internal queue/completion identities. It resolves logical
+length through checked actual storage, including compact/numeric profiles. The
+protected runtime wire is explicitly version 2; old version 1 is refused. Two
+actual 19,200-child native Mask sessions completed using the same affine returned
+store, accepting every Closed event and allocating zero during normal retirement.
+Old references stayed refused; the next generations were 76,801 and 38,401.
+These are full native-session CPU proofs, not Root's pending Lull/Wake loop.
+
+Full ESP32 `wider-generation-fit-fixed` compilation succeeds after fixing the
+history wrapper's missing concrete Active<Region> type argument. Its application
+is 3,355,744 / 3,371,008 bytes (15,264 spare), and the linker preserves the 36 KiB
+stack floor. The exact Xtensa sampler/Mask kernels are 9,144 / 4,152 bytes. The
+Root heap, SDK arena and child guards remain unchanged. This candidate has not
+been flashed; whole live RAM admission and automatic renewal remain unproven.
 
 ## Signed local history and reset follow-up
 
