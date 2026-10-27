@@ -460,14 +460,23 @@ impl NativeRoot {
             &mut parked,
         )?;
         #[cfg(feature = "local-appliance")]
-        {
-            let key = self.restart_verifying_key();
-            self.body = Some(crate::native_restart::restore_parked(
-                parked, &self.host, &self.boot, &key,
-            )?);
-            mark("cold-body-custody-restored", 1);
-        }
+        self.restore_local_mask_body(parked)?;
         self.finish_local_mask_stage(stage, sampler, kernel_backing, execute)
+    }
+    // Replay and its owned Body return temporaries must not enlarge the
+    // coordinator that also surrounds the later numeric assembly stack.
+    #[cfg(feature = "local-appliance")]
+    #[inline(never)]
+    fn restore_local_mask_body(
+        &mut self,
+        parked: crate::native_restart::ParkedBody,
+    ) -> Result<(), &'static str> {
+        let key = self.restart_verifying_key();
+        self.body = Some(crate::native_restart::restore_parked(
+            parked, &self.host, &self.boot, &key,
+        )?);
+        mark("cold-body-custody-restored", 1);
+        Ok(())
     }
     #[inline(never)]
     fn prepare_local_mask_stage(
