@@ -49,7 +49,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     if (focused) this.#pendingFocus = focused;
     this.#disabled = Boolean(value);
     this.setAttribute('aria-busy', String(this.#disabled));
-    for (const control of this.#surface.querySelectorAll('button, input, select')) {
+    for (const control of this.#surface.querySelectorAll('button, input, select, textarea')) {
       control.disabled = this.#disabled || control.dataset.unavailable === 'true';
     }
   }

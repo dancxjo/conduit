@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { expect, test } from '@playwright/test';
 
 // Renderer fixture only: the callback is not a Body/action receipt.
@@ -11,7 +10,6 @@ const view = {
   actions: [{ identity: 'fixture/complete', target: 'fixture/task', name: 'Complete task',
     availability: 'available', disclosure: 'CurrentAction', arguments: [] }],
 };
-
 
 test('typed current text opens a multiline editor and submits only an explicit replacement', async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
@@ -27,6 +25,12 @@ test('typed current text opens a multiline editor and submits only an explicit r
     globalThis.calls = [];
     element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
     document.body.replaceChildren(element);
+    const { assertOwnerFaceReachability } = await import('/targets/browser/handbook/owner-face-reachability.mjs');
+    assertOwnerFaceReachability(element, view);
+    element.disabled = true;
+    assertOwnerFaceReachability(element, { ...view, interactions_admitted: false });
+    if (!element.shadowRoot.querySelector('textarea').disabled) throw new Error('Unavailable editor remains enabled');
+    element.disabled = false;
   }, document);
   const face = page.locator('conduit-owner-face');
   const field = face.getByLabel('Document text');
@@ -35,6 +39,7 @@ test('typed current text opens a multiline editor and submits only an explicit r
   await field.fill('Still here.\nOn another line.');
   expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
   await face.getByRole('button', { name: 'Replace text', exact: true }).click();
+  await expect(field).toBeDisabled();
   expect(await page.evaluate(() => globalThis.calls[0].arguments)).toEqual([
     { name: 'text', value: 'Still here.\nOn another line.' },
   ]);
