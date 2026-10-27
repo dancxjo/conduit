@@ -51,6 +51,38 @@ all 19,200 child cycles. Automatic re-admission after that finite Play still
 needs Root integration and renewed Face custody; this is not a 16-hour target
 continuity result.
 
+## Signed local history and reset follow-up
+
+The first physical history audit found five valid but empty journal headers:
+preparation had spent one entire epoch per diagnostic Boot before any reading.
+The repaired path binds scope without writing, then starts its journal only
+when the first canonical reading arrives. It can seal verified empty headers
+and use their erased suffix without erasing or relabeling previous bytes.
+
+The `durable-first-reading-face-handoff` image is 3,339,344 / 3,371,008 bytes.
+Its physical flash backup contains six available temperature/humidity records;
+the opt-in `private_physical_history` fixture verifies every actual Root signature,
+full scope, canonical Forms, contiguous sequence and monotonic Boot clock.
+Both Body banks authenticate; the Root seed and Body identity match the prior
+backup, and all five original 536-byte headers remain byte-exact. A subsequent
+reset of the same image again started both local Plots and committed three new
+readings (848 bytes, no archive failure) in the new current scope. Verification
+of the old six plus this new Boot together is still pending a second export.
+
+The initial finite run remains 960 samples / 19,200 Mask cycles. Actual CPU
+retirement returned the exclusive Mask value store with slot generations
+38,400 and 19,200. Its current 16-bit generations cannot sustain a second full
+identical Play. Generation reset is not permitted; continuous renewal remains
+an explicit unresolved requirement alongside the remaining Root orchestration.
+
+The owner is supplying a Pico W with a BME280/BMP280 breakout and another
+TM1637 display instead of a second Wi-Fi adapter. The host's existing Wi-Fi
+must remain connected to the Internet. A bounded USB-to-ESP32-AP transport via
+Pico W is being prepared; no Pico bridge, sensor execution, or membership proof
+is claimed before connection and testing. Assigned external pins are display
+CLK GP3 / DIO GP4 and sensor I2C SDA GP6 / SCL GP7. Display supply voltage still
+requires confirmation before direct GPIO wiring or power.
+
 ## Historical preparation checkpoints
 
 **The latest ESP32 hardware checkpoint commits the ordinary two-Plot Body
