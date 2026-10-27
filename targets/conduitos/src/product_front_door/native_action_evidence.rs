@@ -60,8 +60,8 @@ pub(super) fn face_with_storage(
         &crate::native_mask_play::NativeMaskPlayReceipt,
     )>,
 ) -> Result<(), &'static str> {
-    if let Some((producer, renderer)) = storage {
-        if producer.face_id != face.identity.as_str()
+    if let Some((producer, renderer)) = storage
+        && (producer.face_id != face.identity.as_str()
             || producer.face_revision != face.revision
             || renderer.face_id != face.identity.as_str()
             || renderer.face_revision != face.revision
@@ -69,10 +69,9 @@ pub(super) fn face_with_storage(
             || renderer.active_play_id != show.show.active_play_id
             || producer.host_id != show.show.host_id
             || producer.offer_generation != show.show.offer_generation
-            || producer.boot_id != show.show.boot_id
-        {
-            return Err("native-action-evidence-stale-storage");
-        }
+            || producer.boot_id != show.show.boot_id)
+    {
+        return Err("native-action-evidence-stale-storage");
     }
     // Observation envelope follows explicitly admitted storage, never incoming size.
     let limit = if storage.is_some_and(|(producer, renderer)| {
