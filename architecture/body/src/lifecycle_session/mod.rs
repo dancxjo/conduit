@@ -17,7 +17,7 @@ mod flow;
 mod membership;
 mod prepared_proposal;
 mod proposal;
-pub use prepared_proposal::PreparedVerifiedBodyProposal;
+pub use prepared_proposal::{PreparedVerifiedBodyProposal, VerifiedBodyProposalContext};
 mod workload;
 
 /// An exact current proposal and its optional admitted play, never a scheduler.

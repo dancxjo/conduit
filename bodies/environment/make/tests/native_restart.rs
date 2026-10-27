@@ -636,6 +636,7 @@ fn invitation_observer_admission_preserves_existing_local_wake_plan_and_play() {
 #[test]
 fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_play_history() {
     let (body, plans, host) = installed();
+    let cold_plans = plans.clone();
     restart::initialize(
         native_evidence_region::test_empty(),
         body.evidence().clone(),
@@ -702,7 +703,7 @@ fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_p
     let before = owner.as_ref().unwrap().evidence().clone();
     let manager =
         restart::with_admissions(|manager| Ok(serde_json::to_vec(manager).unwrap())).unwrap();
-    let (token, memory) = allocation_probe::observe(|| {
+    let (mut token, memory) = allocation_probe::observe(|| {
         restart::park_box(&mut owner, &key, &host.host_id, &host.boot_id).unwrap()
     });
     println!(
@@ -719,6 +720,28 @@ fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_p
     assert!(restart::take_body().is_err());
     assert!(restart::with_admissions(|_| Ok(())).is_err());
     let generation = restart::generation();
+    let verified = cold_plans
+        .into_iter()
+        .map(|partition| {
+            (
+                partition.plot,
+                c::verify_plan_metadata_with_configurations(partition.plan, |_| {
+                    Ok::<_, ()>(vec![])
+                })
+                .unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let inputs = verified
+        .iter()
+        .map(|(plot, plan)| conduit_body::VerifiedBodyPlotPlan {
+            plot: plot.clone(),
+            plan,
+        })
+        .collect::<Vec<_>>();
+    let proposal = token.prepare_verified_proposal(&inputs, &[]).unwrap();
+    drop(inputs);
+    drop(verified);
     let mut restored = restart::restore_parked(token, &host.host_id, &host.boot_id, &key).unwrap();
     assert!(restart::publication_ready());
     assert_eq!(restart::generation(), generation);
@@ -728,5 +751,7 @@ fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_p
         restart::with_admissions(|manager| Ok(serde_json::to_vec(manager).unwrap())).unwrap(),
         manager
     );
+    restored.commit_verified_proposal(proposal).unwrap();
+    restored.evidence().validate().unwrap();
     restart::checkpoint(&mut restored, &key).unwrap();
 }

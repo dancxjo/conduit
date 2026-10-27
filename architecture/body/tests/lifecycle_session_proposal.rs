@@ -618,3 +618,102 @@ fn refused_invitation_at_membership_compaction_boundary_preserves_play_and_archi
         .validate_as_head_of(session.evidence())
         .unwrap();
 }
+
+#[test]
+fn cold_proposal_context_releases_owner_and_verified_inputs_before_exact_commit() {
+    use conduit_body::{SealedBodyLifecycleSession, VerifiedBodyPlotPlan};
+    let (rich, partition, host, boot) = fixture();
+    let owner =
+        SealedBodyLifecycleSession::open_admitted(rich.evidence().clone(), &host, &boot).unwrap();
+    let evidence = owner.evidence().clone();
+    let context = owner
+        .prepare_verified_proposal_context(&host, &boot)
+        .unwrap();
+    drop(owner);
+    let verified = conduit_core::verify_plan_metadata_with_configurations(partition.plan, |_| {
+        Ok::<_, ()>(vec![])
+    })
+    .unwrap();
+    let inputs = [VerifiedBodyPlotPlan {
+        plot: partition.plot,
+        plan: &verified,
+    }];
+    let prepared = context.prepare_verified(&inputs, &[], None).unwrap();
+    let mut expected =
+        SealedBodyLifecycleSession::open_admitted(evidence.clone(), &host, &boot).unwrap();
+    expected
+        .propose_verified(&inputs, &[], None, &host, &boot)
+        .unwrap();
+    drop(verified);
+    let mut restored = SealedBodyLifecycleSession::open_admitted(evidence, &host, &boot).unwrap();
+    restored.commit_verified_proposal(prepared).unwrap();
+    assert_eq!(restored.evidence(), expected.evidence());
+    assert_eq!(restored.realization(), expected.realization());
+    assert_eq!(
+        postcard::to_allocvec(restored.evidence()).unwrap(),
+        postcard::to_allocvec(expected.evidence()).unwrap()
+    );
+}
+
+#[test]
+fn cold_proposal_context_keeps_membership_seal_and_complete_state_refusals() {
+    use conduit_body::{SealedBodyLifecycleSession, VerifiedBodyPlotPlan};
+    let (rich, partition, host, boot) = fixture();
+    let initial =
+        SealedBodyLifecycleSession::open_admitted(rich.evidence().clone(), &host, &boot).unwrap();
+    assert!(matches!(
+        initial.prepare_verified_proposal_context(&host, &"stale".into()),
+        Err(BodyLifecycleSessionError::StaleHost)
+    ));
+    let mut foreign = partition.plan.fragments[0].clone();
+    foreign.host_id = "foreign".into();
+    for placement in &mut foreign.placements {
+        placement.host_id = foreign.host_id.clone();
+    }
+    let foreign =
+        conduit_core::verify_plan_metadata_with_configurations(core_fixture::seal(foreign), |_| {
+            Ok::<_, ()>(vec![])
+        })
+        .unwrap();
+    let foreign_input = [VerifiedBodyPlotPlan {
+        plot: partition.plot.clone(),
+        plan: &foreign,
+    }];
+    assert!(matches!(
+        initial
+            .prepare_verified_proposal_context(&host, &boot)
+            .unwrap()
+            .prepare_verified(&foreign_input, &[], None),
+        Err(BodyLifecycleSessionError::StaleHost)
+    ));
+    assert!(initial
+        .prepare_verified_proposal_context(&host, &boot)
+        .unwrap()
+        .prepare_verified(&[], &[], None)
+        .is_err());
+    let verified = conduit_core::verify_plan_metadata_with_configurations(partition.plan, |_| {
+        Ok::<_, ()>(vec![])
+    })
+    .unwrap();
+    let inputs = [VerifiedBodyPlotPlan {
+        plot: partition.plot,
+        plan: &verified,
+    }];
+    let prepared = initial
+        .prepare_verified_proposal_context(&host, &boot)
+        .unwrap()
+        .prepare_verified(&inputs, &[], None)
+        .unwrap();
+    let mut changed = initial;
+    changed
+        .propose_verified(&inputs, &[], None, &host, &boot)
+        .unwrap();
+    changed.lull(&host, &boot, None).unwrap();
+    let evidence = changed.evidence().clone();
+    assert!(matches!(
+        changed.commit_verified_proposal(prepared),
+        Err(BodyLifecycleSessionError::StaleWorkload)
+    ));
+    assert_eq!(changed.evidence(), &evidence);
+    assert!(changed.realization().is_none());
+}

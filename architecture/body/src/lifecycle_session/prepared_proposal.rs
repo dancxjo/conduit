@@ -12,6 +12,53 @@ pub struct PreparedVerifiedBodyProposal {
     wake: crate::lifecycle::PreparedBodyWake,
     plan: BodyPlanSeal,
 }
+/// Immutable cold preparation custody from one exact complete lifecycle state.
+/// It cannot publish, deserialize, clone, admit a Host or grant execution.
+pub struct VerifiedBodyProposalContext {
+    expected: [u8; 32],
+    sequence: u64,
+    host: HostId,
+    boot: BootId,
+    wake: crate::lifecycle::PreparedBodyWake,
+    admitted: alloc::vec::Vec<(HostId, BootId)>,
+}
+impl VerifiedBodyProposalContext {
+    /// Check every actual verified fragment against the captured membership,
+    /// then seal the complete ordinary Body workset/Mask topology. Publication
+    /// still requires the unchanged full-state fence on the original owner.
+    pub fn prepare_verified(
+        self,
+        plots: &[VerifiedBodyPlotPlan<'_>],
+        masks: &[VerifiedBodyMaskTopology<'_>],
+        body_time: Option<conduit_core::BodyTimeRequirement>,
+    ) -> Result<PreparedVerifiedBodyProposal, BodyLifecycleSessionError> {
+        for plan in plots
+            .iter()
+            .map(|p| p.plan)
+            .chain(masks.iter().flat_map(|m| m.chains.iter().map(|c| c.plan)))
+        {
+            for fragment in &plan.preparation_metadata().fragments {
+                if !self
+                    .admitted
+                    .iter()
+                    .any(|(host, boot)| host == &fragment.host_id && boot == &fragment.boot_id)
+                {
+                    return Err(BodyLifecycleSessionError::StaleHost);
+                }
+            }
+        }
+        let plan = BodyPlanSeal::capture_verified(self.wake.wake(), plots, masks, body_time)
+            .map_err(BodyLifecycleSessionError::PlanSeal)?;
+        Ok(PreparedVerifiedBodyProposal {
+            expected: self.expected,
+            sequence: self.sequence,
+            host: self.host,
+            boot: self.boot,
+            wake: self.wake,
+            plan,
+        })
+    }
+}
 struct StateHash(Sha256);
 impl postcard::ser_flavors::Flavor for StateHash {
     type Output = [u8; 32];
@@ -24,6 +71,46 @@ impl postcard::ser_flavors::Flavor for StateHash {
     }
 }
 impl SealedBodyLifecycleSession {
+    /// Capture only the immutable ordinary proposal preconditions and exact
+    /// full-state hash, so complete biography custody can be parked while Core
+    /// verifies Plans. No lifecycle mutation or archival acknowledgement occurs.
+    pub fn prepare_verified_proposal_context(
+        &self,
+        host: &HostId,
+        boot: &BootId,
+    ) -> Result<VerifiedBodyProposalContext, BodyLifecycleSessionError> {
+        self.require_mutable()?;
+        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+            return Err(BodyLifecycleSessionError::NotLulled);
+        }
+        self.require_host(host, boot)?;
+        if !self.has_lifecycle_room(2, 1) {
+            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+        }
+        let sequence = self.next_sequence()?;
+        let wake = self
+            .evidence
+            .body
+            .prepare_wake(sequence, super::sign(host, boot, sequence))
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
+        let admitted = self
+            .evidence
+            .membership
+            .parts
+            .iter()
+            .filter(|part| part.state == MembershipState::Admitted)
+            .filter_map(|part| part.current.as_ref())
+            .map(|current| (current.host_id.clone(), current.boot_id.clone()))
+            .collect();
+        Ok(VerifiedBodyProposalContext {
+            expected: self.proposal_state_hash()?,
+            sequence,
+            host: host.clone(),
+            boot: boot.clone(),
+            wake,
+            admitted,
+        })
+    }
     fn proposal_state_hash(&self) -> Result<[u8; 32], BodyLifecycleSessionError> {
         let mut hash = Sha256::new();
         hash.update(b"conduit.body/prepared-proposal-state@1");

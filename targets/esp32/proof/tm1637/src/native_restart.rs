@@ -76,6 +76,7 @@ pub struct RetainedBody {
 }
 /// Cold, unpublished custody only. No Clone/Deserialize or caller construction.
 pub struct ParkedBody {
+    proposal: Option<conduit_body::VerifiedBodyProposalContext>,
     generation: u64,
     body_id: conduit_body::BodyId,
     foreground: Option<conduit_body::ResidentPlot>,
@@ -83,6 +84,19 @@ pub struct ParkedBody {
     key: [u8; 32],
     host: conduit_core::HostId,
     boot: conduit_core::BootId,
+}
+impl ParkedBody {
+    pub fn prepare_verified_proposal(
+        &mut self,
+        plots: &[conduit_body::VerifiedBodyPlotPlan<'_>],
+        masks: &[conduit_body::VerifiedBodyMaskTopology<'_>],
+    ) -> Result<conduit_body::PreparedVerifiedBodyProposal, &'static str> {
+        self.proposal
+            .take()
+            .ok_or("restart-proposal-already-prepared")?
+            .prepare_verified(plots, masks, None)
+            .map_err(|_| "restart-proposal")
+    }
 }
 /// Commit complete custody before releasing any RAM. Every refusal leaves the
 /// caller's actual owner installed; an executing/realized Body cannot be parked.
@@ -128,6 +142,10 @@ fn park_store(
         return Err("restart-park-pending");
     }
     let token = ParkedBody {
+        proposal: Some(
+            body.prepare_verified_proposal_context(host, boot)
+                .map_err(|_| "restart-proposal-context")?,
+        ),
         generation: store.journal.generation().ok_or("restart-generation")?,
         body_id: body.evidence().body_id.clone(),
         foreground: body.foreground().cloned(),
@@ -190,6 +208,8 @@ fn restore_store(
         .payload_length(&store.binding)
         .map_err(|_| "restart-restore-binding")?
         .ok_or("restart-missing")?;
+    #[cfg(all(target_os = "none", feature = "local-appliance"))]
+    crate::native_root::memory_check::mark("cold-body-restore-payload", length);
     let mut bytes = PrivateBytes(Vec::new());
     bytes
         .0
@@ -216,6 +236,8 @@ fn restore_store(
     // duplicate signing seed before canonical opening/Box allocation peaks.
     drop(bytes);
     drop(seed);
+    #[cfg(all(target_os = "none", feature = "local-appliance"))]
+    crate::native_root::memory_check::mark("cold-body-restore-decoded", length);
     if <[u8; 32]>::from(Sha256::digest(
         retained.evidence.body_id.as_str().as_bytes(),
     )) != store.binding

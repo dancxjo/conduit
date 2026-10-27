@@ -268,7 +268,7 @@ impl NativeRoot {
         // complete immutable result crosses this synchronous ownership handoff;
         // no plan, authority, or metadata is omitted.
         #[cfg(feature = "local-appliance")]
-        let parked = {
+        let mut parked = {
             let key = self.restart_verifying_key();
             let parked =
                 crate::native_restart::park_box(&mut self.body, &key, &self.host, &self.boot)?;
@@ -284,15 +284,23 @@ impl NativeRoot {
             core::mem::size_of_val(mask_values),
         );
         let mask = self.prepare_local_mask_plan()?;
-        #[cfg(feature = "local-appliance")]
-        {
-            let key = self.restart_verifying_key();
-            self.body = Some(crate::native_restart::restore_parked(
-                parked, &self.host, &self.boot, &key,
-            )?);
-            mark("cold-body-custody-restored", 1);
-        }
-        self.assemble_local_plots(sample, sampler, mask, mask_values, execute)
+        let proposal = self.prepare_local_body_proposal(
+            &sample,
+            &mask,
+            #[cfg(feature = "local-appliance")]
+            &mut parked,
+        )?;
+        drop(sample);
+        mark("ordinary-mask-sampler-plan-retired", 15);
+        self.assemble_local_plots(
+            proposal,
+            sampler,
+            mask,
+            mask_values,
+            execute,
+            #[cfg(feature = "local-appliance")]
+            parked,
+        )
     }
     #[inline(never)]
     fn prepare_local_sampler_parts(
@@ -380,27 +388,12 @@ impl NativeRoot {
         }))
     }
     #[inline(never)]
-    fn assemble_local_plots(
-        &mut self,
-        sample: c::VerifiedPlanMetadata,
-        sampler: alloc::boxed::Box<PreparedSamplerParts>,
-        mask: c::VerifiedPlanMetadata,
-        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
-        execute: bool,
-    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
-        // Drop the temporary numeric bundle's allocation before any kernel
-        // allocation; its actual owned drivers/leases move into this assembly.
-        let sampler = {
-            let boxed = sampler;
-            *boxed
-        };
-        let PreparedSamplerParts {
-            sampler_parts,
-            native,
-            active,
-            fragment,
-        } = sampler;
-        let generation = c::OfferGeneration(self.offer_generation);
+    fn prepare_local_body_proposal(
+        &self,
+        sample: &c::VerifiedPlanMetadata,
+        mask: &c::VerifiedPlanMetadata,
+        #[cfg(feature = "local-appliance")] parked: &mut crate::native_restart::ParkedBody,
+    ) -> Result<conduit_body::PreparedVerifiedBodyProposal, &'static str> {
         let role = material::role().map_err(|_| "local-mask-role")?;
         let resident = |plan: &c::VerifiedPlanMetadata| {
             let metadata = plan.preparation_metadata();
@@ -422,39 +415,72 @@ impl NativeRoot {
             placement(&role.show_output.gear_id)?,
             placement(&role.interaction_output.gear_id)?
         ];
-        let proposal = self
-            .body
-            .as_ref()
-            .ok_or("body-owner")?
-            .prepare_verified_proposal(
-                &[
-                    conduit_body::VerifiedBodyPlotPlan {
-                        plot: resident(&sample),
-                        plan: &sample,
-                    },
-                    conduit_body::VerifiedBodyPlotPlan {
-                        plot: resident(&mask),
-                        plan: &mask,
-                    },
-                ],
-                &[conduit_body::VerifiedBodyMaskTopology {
-                    face: conduit_body::BodyFaceSelector {
-                        plot: None,
-                        source_placement_id: None,
-                    },
-                    chains: alloc::vec![conduit_body::VerifiedBodyMaskChain {
-                        plan: &mask,
-                        stage_placement_ids: stages
-                    }],
+        let prepare = |plots: &[conduit_body::VerifiedBodyPlotPlan<'_>],
+                       masks: &[conduit_body::VerifiedBodyMaskTopology<'_>]| {
+            #[cfg(feature = "local-appliance")]
+            {
+                parked.prepare_verified_proposal(plots, masks)
+            }
+            #[cfg(not(feature = "local-appliance"))]
+            {
+                self.body
+                    .as_ref()
+                    .ok_or("body-owner")?
+                    .prepare_verified_proposal(plots, masks, None, &self.host, &self.boot)
+                    .map_err(|_| "local-mask-body-proposal")
+            }
+        };
+        #[allow(unused_mut)] // Only the parked profile consumes a mutable capsule.
+        let mut prepare = prepare;
+        let proposal = prepare(
+            &[
+                conduit_body::VerifiedBodyPlotPlan {
+                    plot: resident(sample),
+                    plan: sample,
+                },
+                conduit_body::VerifiedBodyPlotPlan {
+                    plot: resident(mask),
+                    plan: mask,
+                },
+            ],
+            &[conduit_body::VerifiedBodyMaskTopology {
+                face: conduit_body::BodyFaceSelector {
+                    plot: None,
+                    source_placement_id: None,
+                },
+                chains: alloc::vec![conduit_body::VerifiedBodyMaskChain {
+                    plan: &mask,
+                    stage_placement_ids: stages
                 }],
-                None,
-                &self.host,
-                &self.boot,
-            )
-            .map_err(|_| "local-mask-body-proposal")?;
+            }],
+        )?;
         mark("ordinary-mask-body-proposal-prepared", 2);
-        drop(sample);
-        mark("ordinary-mask-sampler-plan-retired", 15);
+        Ok(proposal)
+    }
+    #[inline(never)]
+    fn assemble_local_plots(
+        &mut self,
+        proposal: conduit_body::PreparedVerifiedBodyProposal,
+        sampler: alloc::boxed::Box<PreparedSamplerParts>,
+        mask: c::VerifiedPlanMetadata,
+        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+        execute: bool,
+        #[cfg(feature = "local-appliance")] parked: crate::native_restart::ParkedBody,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        // Drop the temporary numeric bundle's allocation before any kernel
+        // allocation; its actual owned drivers/leases move into this assembly.
+        let sampler = {
+            let boxed = sampler;
+            *boxed
+        };
+        let PreparedSamplerParts {
+            sampler_parts,
+            native,
+            active,
+            fragment,
+        } = sampler;
+        let generation = c::OfferGeneration(self.offer_generation);
+        let role = material::role().map_err(|_| "local-mask-role")?;
         let context = if execute || cfg!(feature = "target-mask-native-check") {
             // The codec bounds output before allocation and drops dictionaries
             // before final envelope assembly. This independently pinned small
@@ -497,6 +523,14 @@ impl NativeRoot {
         } else {
             None
         };
+        #[cfg(feature = "local-appliance")]
+        {
+            let key = self.restart_verifying_key();
+            self.body = Some(crate::native_restart::restore_parked(
+                parked, &self.host, &self.boot, &key,
+            )?);
+            mark("cold-body-custody-restored", 1);
+        }
         self.body
             .as_mut()
             .ok_or("body-owner")?
