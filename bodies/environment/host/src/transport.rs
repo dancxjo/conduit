@@ -168,8 +168,11 @@ impl Line {
         Ok(out)
     }
     pub fn event(&mut self, name: &str) -> Result<Value> {
+        self.event_with_timeout(name, Duration::from_secs(20))
+    }
+    pub(crate) fn event_with_timeout(&mut self, name: &str, timeout: Duration) -> Result<Value> {
         let mut faults = fault::RecentFaults::default();
-        let deadline = Instant::now() + Duration::from_secs(20);
+        let deadline = Instant::now() + timeout;
         let mut bytes = Vec::new();
         for _ in 0..128 * 1024 {
             self.ready(libc::POLLIN, deadline)

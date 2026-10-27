@@ -101,7 +101,10 @@ impl Carrier for crate::transport::Line {
         self.physical_paced_text(text)
     }
     fn event(&mut self, name: &str) -> Result<serde_json::Value> {
-        crate::transport::Line::event(self, name)
+        // Cold custody can verify several complete 960-record epochs before
+        // its durable erase/readback reply. Keep the ordinary carrier deadline
+        // unchanged while giving this finite maintenance operation its own bound.
+        self.event_with_timeout(name, std::time::Duration::from_secs(600))
     }
 }
 /// A recorder, rather than the physical biography owner, signs custody of one
