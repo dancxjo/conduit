@@ -1,6 +1,55 @@
 use super::*;
 use crate::{BodyState, Wake, WakeLifecycleEvent};
 
+// Restore only fields changed by a Wake transaction; retained history is never copied.
+struct WakeTransaction<'a> {
+    evidence: &'a mut BodyBiographyEvidence,
+    body: Option<Body>,
+    state: Option<BodyState>,
+    wake: Option<(usize, Wake)>,
+    wakes: usize,
+    records: usize,
+    signs: usize,
+    events: usize,
+    committed: bool,
+}
+
+impl<'a> WakeTransaction<'a> {
+    fn new(evidence: &'a mut BodyBiographyEvidence) -> Self {
+        Self {
+            wakes: evidence.wakes.len(),
+            records: evidence.records.len(),
+            signs: evidence.body.sign_ids.len(),
+            events: evidence.body.events.len(),
+            evidence,
+            body: None,
+            state: None,
+            wake: None,
+            committed: false,
+        }
+    }
+}
+impl Drop for WakeTransaction<'_> {
+    fn drop(&mut self) {
+        if self.committed {
+            return;
+        }
+        self.evidence.records.truncate(self.records);
+        self.evidence.wakes.truncate(self.wakes);
+        if let Some((index, wake)) = self.wake.take() {
+            self.evidence.wakes[index] = wake;
+        }
+        if let Some(body) = self.body.take() {
+            self.evidence.body = body;
+        }
+        if let Some(state) = self.state.take() {
+            self.evidence.body.state = state;
+            self.evidence.body.sign_ids.truncate(self.signs);
+            self.evidence.body.events.truncate(self.events);
+        }
+    }
+}
+
 impl BodyBiographyEvidence {
     /// Seal and remove one oldest completed Wake from the active window.
     /// The caller must durably retain the returned segment before committing
@@ -187,15 +236,12 @@ impl BodyBiographyEvidence {
         if first_sequence <= self.last_sequence() {
             return Err(BodyBiographyError::InvalidSequence);
         }
-        let mut candidate = self.clone();
-        candidate.body = body;
-        if let Some(index) = position {
-            candidate.wakes[index] = wake;
-        } else {
-            candidate.wakes.push(wake);
-        }
+        let mut records = Vec::new();
+        records
+            .try_reserve_exact(additions.len())
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
         for (offset, (sign_id, kind)) in additions.into_iter().enumerate() {
-            candidate.records.push(BodyBiographyRecord {
+            records.push(BodyBiographyRecord {
                 sequence: first_sequence
                     .checked_add(offset as u64)
                     .ok_or(BodyBiographyError::InvalidSequence)?,
@@ -203,15 +249,33 @@ impl BodyBiographyEvidence {
                 kind,
             });
         }
-        candidate.validate()?;
-        *self = candidate;
+        self.records
+            .try_reserve(records.len())
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        if position.is_none() {
+            self.wakes
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        }
+        let mut transaction = WakeTransaction::new(self);
+        transaction.body = Some(core::mem::replace(&mut transaction.evidence.body, body));
+        if let Some(index) = position {
+            transaction.wake = Some((
+                index,
+                core::mem::replace(&mut transaction.evidence.wakes[index], wake),
+            ));
+        } else {
+            transaction.evidence.wakes.push(wake);
+        }
+        transaction.evidence.records.extend(records);
+        transaction.evidence.validate()?;
+        transaction.committed = true;
         Ok(())
     }
 
     /// Commit a fresh Wake only inside an unpublished owner transaction. The
     /// token was checked against this unchanged Body before Plan retention.
-    /// Unlike the general public extension entrance, failure may mutate this
-    /// private candidate; its owner must discard the entire candidate on error.
+    /// Refusals restore all changed fields without copying retained history.
     pub(crate) fn append_prepared_wake_unpublished(
         &mut self,
         prepared: crate::lifecycle::PreparedBodyWake,
@@ -236,9 +300,26 @@ impl BodyBiographyEvidence {
         }
         let sign_id = wake.sign_ids[0].clone();
         let wake_id = wake.wake_id.clone();
-        let wake = self.body.commit_wake_unpublished(prepared);
-        self.wakes.push(wake.clone());
-        self.records.push(BodyBiographyRecord {
+        let retained = wake.clone();
+        self.wakes
+            .try_reserve(1)
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        self.records
+            .try_reserve(1)
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        self.body
+            .sign_ids
+            .try_reserve(1)
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        self.body
+            .events
+            .try_reserve(1)
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        let mut transaction = WakeTransaction::new(self);
+        transaction.state = Some(transaction.evidence.body.state.clone());
+        let wake = transaction.evidence.body.commit_wake_unpublished(prepared);
+        transaction.evidence.wakes.push(retained);
+        transaction.evidence.records.push(BodyBiographyRecord {
             sequence: first_sequence,
             sign_id,
             kind: BodyBiographyRecordKind::WakeEvent {
@@ -246,7 +327,8 @@ impl BodyBiographyEvidence {
                 event_index: 0,
             },
         });
-        self.validate()?;
+        transaction.evidence.validate()?;
+        transaction.committed = true;
         Ok(wake)
     }
 

@@ -592,6 +592,7 @@ impl NativeRoot {
         } = sampler;
         let generation = c::OfferGeneration(self.offer_generation);
         let role = material::role().map_err(|_| "local-mask-role")?;
+        mark("before-ordinary-mask-body-proposal-commit", 2);
         self.body
             .as_mut()
             .ok_or("body-owner")?

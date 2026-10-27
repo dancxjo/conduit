@@ -165,15 +165,10 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
         if expected != wake_at_start {
             return Err(BodyLifecycleSessionError::StalePlay);
         }
-        let mut evidence = self.evidence.clone();
-        evidence
-            .append_wake(
-                evidence.body.clone(),
-                expected.clone(),
-                self.next_sequence()?,
-            )
+        let sequence = self.next_sequence()?;
+        self.evidence
+            .append_wake(self.evidence.body.clone(), expected.clone(), sequence)
             .map_err(BodyLifecycleSessionError::Biography)?;
-        self.evidence = evidence;
         let realization = self.realization.as_mut().expect("validated realization");
         realization.wake = expected;
         realization.play = Some(play);

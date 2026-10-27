@@ -95,6 +95,7 @@ pub struct NativeRoot {
     boot: c::BootId,
 }
 impl NativeRoot {
+    #[inline(never)]
     pub fn prepare(
         sensor: Esp32PulseCapture<'static>,
         radio: crate::network::Radio,

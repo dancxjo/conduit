@@ -224,17 +224,15 @@ impl SealedBodyLifecycleSession {
         {
             return Err(BodyLifecycleSessionError::StaleWorkload);
         }
-        let mut next = self.clone();
-        let wake = next
+        let wake = self
             .evidence
             .append_prepared_wake_unpublished(prepared.wake, prepared.sequence)
             .map_err(BodyLifecycleSessionError::Biography)?;
-        next.realization = Some(BodyLifecycleRealization {
+        self.realization = Some(BodyLifecycleRealization {
             wake,
             plan: prepared.plan,
             play: None,
         });
-        *self = next;
         Ok(self
             .realization
             .as_ref()
