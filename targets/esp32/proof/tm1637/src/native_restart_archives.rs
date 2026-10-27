@@ -1,7 +1,7 @@
 //! Private validated archive summaries and exact JSON spans. A summary alone
 //! grants no custody: the native Store pairs it with an affine journal snapshot.
 use super::{profile, Retained, SCHEMA};
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_body::*;
 use serde::{
     de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor},
@@ -109,7 +109,7 @@ pub(crate) struct Resident {
 }
 // Parsed custody remains private until the shallower post-decode signature
 // boundary succeeds. Neither this wrapper nor its contents can authorize restore.
-pub(super) struct PendingResident(Resident);
+pub(super) struct PendingResident(Box<Resident>);
 impl PendingResident {
     #[inline(never)]
     pub(super) fn validate_receipts(
@@ -117,6 +117,14 @@ impl PendingResident {
         body: &BodyId,
         key: Option<&ed25519_dalek::VerifyingKey>,
     ) -> Result<Resident, &'static str> {
+        self.validate_boxed(body, key).map(|resident| *resident)
+    }
+    #[inline(never)]
+    pub(super) fn validate_boxed(
+        self,
+        body: &BodyId,
+        key: Option<&ed25519_dalek::VerifyingKey>,
+    ) -> Result<Box<Resident>, &'static str> {
         let mut resident = self.0;
         resident.validation = Some(super::rewrite::ValidatedReceipts::verify(
             body,
@@ -550,19 +558,41 @@ pub(super) fn decode_with_prefix(
     if observer.segments != local_count || expected_local.is_some_and(|n| n != local_count) {
         return Err("restart-local-count");
     }
-    Ok(PendingResident(Resident {
-        validation: None,
-        proof: None,
-        layouts,
-        retained: Retained {
-            schema,
-            evidence,
-            archives: Vec::new(),
-            admissions,
+    // Allocate the final backing here so callers never retain another large
+    // by-value Resident while this bounded parser is active.
+    let layout = core::alloc::Layout::new::<Resident>();
+    // SAFETY: this nonzero exact layout is initialized before any publication.
+    let pointer = unsafe { alloc::alloc::alloc(layout) }.cast::<core::mem::MaybeUninit<Resident>>();
+    if pointer.is_null() {
+        return Err("restart-resident-backing-capacity");
+    }
+    // Finish the fallible span before creating an owning allocation.
+    let span = match observer.finish() {
+        Ok(span) => span,
+        Err(error) => {
+            // SAFETY: pointer is the unique uninitialized allocation above.
+            unsafe { alloc::alloc::dealloc(pointer.cast(), layout) };
+            return Err(error);
+        }
+    };
+    // SAFETY: pointer is non-null, uniquely owned and has the exact Box layout.
+    let backing = unsafe { Box::from_raw(pointer) };
+    Ok(PendingResident(Box::write(
+        backing,
+        Resident {
+            validation: None,
+            proof: None,
+            layouts,
+            retained: Retained {
+                schema,
+                evidence,
+                archives: Vec::new(),
+                admissions,
+            },
+            summary,
+            prefix,
+            local_count,
+            span,
         },
-        summary,
-        prefix,
-        local_count,
-        span: observer.finish()?,
-    }))
+    )))
 }

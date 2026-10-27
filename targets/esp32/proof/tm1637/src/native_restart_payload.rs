@@ -231,6 +231,21 @@ pub(crate) fn decode_resident_with_prefix(
     })?;
     pending.validate_receipts(body, Some(&key))
 }
+/// Native restore entrance: preserve pointer-sized custody across parser and
+/// journal frames; signatures still run only after complete bounded decoding.
+#[inline(never)]
+pub(crate) fn decode_resident_boxed_with_prefix(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    body: &conduit_body::BodyId,
+    root: &[u8; 32],
+    custody: Option<archive::Custody<'_>>,
+) -> Result<alloc::boxed::Box<archive::Resident>, &'static str> {
+    let key = ed25519_dalek::VerifyingKey::from_bytes(root).map_err(|_| "restart-root-key")?;
+    let pending = with_plain(read, |plain| {
+        archive::decode_with_prefix(plain, body, Some(&key), custody)
+    })?;
+    pending.validate_boxed(body, Some(&key))
+}
 /// Export only the archive array from an already validated affine snapshot.
 /// Output is provisional until the caller's authenticated read_snapshot returns
 /// successfully. Always consume the complete source, including private suffix

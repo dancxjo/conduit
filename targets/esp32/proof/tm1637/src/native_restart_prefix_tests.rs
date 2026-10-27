@@ -276,11 +276,58 @@ fn valid_layout_cannot_hide_forged_prefix_at_post_eof_receipt_boundary() {
         format!("{{\"schema\":{},\"evidence\":{},\"biography_prefix\":{},\"archives\":[],\"admissions\":null,\"observation_layouts\":{}}}", value["schema"], value["evidence"], value["biography_prefix"], value["observation_layouts"]).into_bytes()
     };
     let valid = encode(&prefix);
-    let resident = decode_resident_with_prefix(reader(&valid), body, &root, None).unwrap();
+    let (resident, ordinary_memory) = crate::allocation_probe::observe(|| {
+        decode_resident_with_prefix(reader(&valid), body, &root, None).unwrap()
+    });
+    let (boxed, boxed_memory) = crate::allocation_probe::observe(|| {
+        decode_resident_boxed_with_prefix(reader(&valid), body, &root, None).unwrap()
+    });
+    assert_eq!(boxed_memory.allocations, ordinary_memory.allocations);
+    assert_eq!(
+        boxed_memory.retained_bytes(),
+        ordinary_memory.retained_bytes() + core::mem::size_of::<archive::Resident>()
+    );
+    println!(
+        "boxed decode final backing={} allocations={} peak={} retained={}",
+        core::mem::size_of::<archive::Resident>(),
+        boxed_memory.allocations,
+        boxed_memory.peak_bytes,
+        boxed_memory.retained_bytes()
+    );
+    assert_eq!(boxed.summary, resident.summary);
+    assert!(boxed.layouts == resident.layouts);
+    assert_eq!(
+        serde_json::to_vec(&boxed.prefix).unwrap(),
+        serde_json::to_vec(&resident.prefix).unwrap()
+    );
+    assert_eq!(boxed.retained.evidence, resident.retained.evidence);
+    for cut in [0, 1, valid.len() / 2, valid.len() - 1] {
+        assert!(
+            decode_resident_boxed_with_prefix(reader(&valid[..cut]), body, &root, None).is_err()
+        );
+    }
+    let mut trailing = valid.clone();
+    trailing.push(b'x');
+    assert!(decode_resident_boxed_with_prefix(reader(&trailing), body, &root, None).is_err());
+    assert!(decode_resident_boxed_with_prefix(
+        reader(&valid),
+        body,
+        &SigningKey::from_bytes(&[62; 32]).verifying_key().to_bytes(),
+        None
+    )
+    .is_err());
+    assert!(decode_resident_boxed_with_prefix(
+        reader(&valid),
+        &serde_json::from_str::<BodyId>("\"body/foreign\"").unwrap(),
+        &root,
+        None
+    )
+    .is_err());
     let mut forged = prefix.clone();
     forged.signature.0[0] ^= 1;
     let bytes = encode(&forged);
     assert!(decode_resident_with_prefix(reader(&bytes), body, &root, None).is_err());
+    assert!(decode_resident_boxed_with_prefix(reader(&bytes), body, &root, None).is_err());
     // Even an exact retained transcript comparison cannot replace crypto.
     let custody = archive::Custody {
         summary: &resident.summary,
