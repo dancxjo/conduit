@@ -154,3 +154,195 @@ fn foreign_receipt_and_live_owner_cannot_discharge_snapshot() {
         assert_eq!(store.custody.as_ref().unwrap().local_count, 1);
     }
 }
+
+/// Actual private media content proof only. Receipt signing here is an explicit
+/// CPU fixture; it is neither a real host custody ACK nor physical migration.
+#[test]
+#[ignore = "requires explicit private backup and Body inputs; never prints private material"]
+fn private_backup_prefix_migration_preserves_exact_canonical_custody() {
+    let path =
+        std::env::var_os("CONDUIT_PRIVATE_BODY_BACKUP").expect("private backup path required");
+    let body: conduit_body::BodyId = serde_json::from_value(serde_json::Value::String(
+        std::env::var("CONDUIT_PRIVATE_BODY_ID").expect("private Body input required"),
+    ))
+    .expect("Body input encoding");
+    let binding: [u8; 32] = Sha256::digest(body.as_str().as_bytes()).into();
+    let mut flash = std::fs::read(path).expect("private backup read");
+    assert!(
+        flash.len() == 4 * 1024 * 1024,
+        "expected complete 4 MiB backup"
+    );
+    let mut region = crate::native_evidence_region::test_empty();
+    crate::native_body_checkpoint::Storage::program(&mut region, 0, &flash[0x3f0000..0x400000])
+        .expect("copy exact Body banks");
+    flash.fill(0);
+    let mut journal = Checkpoint::open(region).expect("actual backup journal");
+    let before_generation = journal.generation().expect("retained generation");
+    let before_bytes = journal
+        .payload_length(&binding)
+        .expect("retained binding")
+        .expect("retained bytes");
+    let mut private_seed = PrivateSeed([0; 32]);
+    let (resident, source) =
+        decode_checkpoint(&mut journal, &binding, &body, &mut private_seed.0, None)
+            .expect("actual authenticated backup decode");
+    let key = ed25519_dalek::SigningKey::from_bytes(&private_seed.0);
+    let root = key.verifying_key().to_bytes();
+    let evidence = resident.retained.evidence;
+    let original_manager = resident.retained.admissions;
+    let mut admissions = original_manager.clone();
+    if let Some(manager) = admissions.as_mut() {
+        manager.retire_unfinished_challenges();
+    }
+    let mut store = Store {
+        journal,
+        binding,
+        seed: Some(private_seed.0),
+        evidence: Some(evidence.clone()),
+        archives: Vec::new(),
+        custody: Some(ArchiveCustody {
+            source,
+            summary: resident.summary,
+            prefix: resident.prefix,
+            local_count: resident.local_count,
+            span: resident.span,
+        }),
+        admissions,
+        parked: false,
+        pristine: false,
+        failed: false,
+        ready: false,
+    };
+    let draft = prepare_store(&mut store).expect("actual snapshot offer");
+    let mut exported = Vec::new();
+    export_store(&mut store, &draft, &mut |bytes| {
+        exported.extend_from_slice(bytes);
+        Ok(())
+    })
+    .expect("actual archive export");
+    let archives: Vec<BodyBiographyArchiveSegment> =
+        serde_json::from_slice(&exported).expect("canonical exported archives");
+    let mut exported_summary = Summary::default();
+    for segment in &archives {
+        exported_summary
+            .append(&body, segment)
+            .expect("actual archive chain");
+    }
+    assert!(
+        archives
+            .windows(2)
+            .any(|pair| pair[1].records.last().unwrap().sequence
+                < pair[0].records.last().unwrap().sequence),
+        "private fixture exercises canonical category ordering rather than global record order"
+    );
+    assert!(
+        exported_summary == draft.offer().end,
+        "all actual archive ordinals/digests preserved"
+    );
+    assert!(
+        <[u8; 32]>::from(Sha256::digest(&exported)) == draft.offer().stream.0,
+        "actual array digest preserved"
+    );
+    assert!(
+        draft.offer().base.count == 0,
+        "fixture expects original complete local chain"
+    );
+    let mut receipt = payload::wire::Receipt {
+        body: body.clone(),
+        summary: draft.offer().end.clone(),
+        offer: Hex(draft.offer().transcript(&root)),
+        consumer: payload::wire::Consumer::Owner { key: Hex([9; 32]) },
+        acknowledged: Hex([10; 32]),
+        signature: Hex([0; 64]),
+    };
+    receipt.signature = Hex(key.sign(&receipt.transcript(&root)).to_bytes());
+    retain_store_receipt(&mut store, receipt.clone()).expect("actual CPU format migration");
+    let after_bytes = store
+        .journal
+        .payload_length(&binding)
+        .expect("migrated binding")
+        .expect("migrated bytes");
+    assert!(
+        after_bytes < before_bytes,
+        "migration must free actual archive capacity"
+    );
+    assert!(
+        store.journal.generation() == Some(before_generation + 1),
+        "one exact migration generation"
+    );
+    assert!(
+        store.seed == Some(private_seed.0),
+        "private Root identity unchanged"
+    );
+    assert!(
+        store.evidence.as_ref() == Some(&evidence),
+        "exact active evidence retained"
+    );
+    let mut reopened_seed = PrivateSeed([0; 32]);
+    let (reopened, _) = decode_checkpoint(
+        &mut store.journal,
+        &binding,
+        &body,
+        &mut reopened_seed.0,
+        None,
+    )
+    .expect("offline migrated restart");
+    assert!(reopened_seed.0 == private_seed.0, "offline key continuity");
+    assert!(
+        reopened.retained.evidence == evidence,
+        "offline exact biography continuity"
+    );
+    assert!(
+        reopened.retained.admissions == original_manager,
+        "snapshot admission manager is not RAM-retired replacement"
+    );
+    assert!(
+        reopened.local_count == 0 && reopened.summary.count == archives.len() as u64,
+        "external prefix/local count distinction"
+    );
+    assert!(
+        reopened
+            .prefix
+            .as_ref()
+            .is_some_and(|p| p.signature == receipt.signature && p.summary == exported_summary),
+        "offline exact endorsed chain prefix"
+    );
+    let current = evidence
+        .membership
+        .parts
+        .iter()
+        .find_map(|part| part.current.as_ref())
+        .expect("existing admitted producer incarnation");
+    let cpu_boot: conduit_core::BootId = "boot/private-biography-migration-cpu".into();
+    let mut owner =
+        SealedBodyLifecycleSession::resume_here(evidence.clone(), &current.host_id, &cpu_boot)
+            .expect("canonical new Boot recovery of interrupted Wake");
+    let expected_next = owner.evidence().clone();
+    let pending_next = owner.pending_archives().len() as u64;
+    checkpoint_store(&mut store, &mut owner, &root)
+        .expect("ordinary checkpoint preserves external prefix");
+    let (continued, _) = decode_checkpoint(
+        &mut store.journal,
+        &binding,
+        &body,
+        &mut reopened_seed.0,
+        None,
+    )
+    .expect("ordinary checkpoint offline readback");
+    assert!(
+        continued.retained.evidence == expected_next && continued.local_count == pending_next,
+        "ordinary active evidence/local archive continuity"
+    );
+    assert!(
+        continued
+            .prefix
+            .as_ref()
+            .is_some_and(|p| p.signature == receipt.signature),
+        "ordinary checkpoint keeps prefix witness"
+    );
+    assert!(
+        reopened_seed.0 == private_seed.0,
+        "ordinary checkpoint keeps key"
+    );
+    println!("private_backup_migration: generation_before={before_generation} encoded_before={before_bytes} encoded_after={after_bytes} archives={} local_after=0 exact_body_key_evidence_manager=true fixture_receipt_only=true",archives.len());
+}

@@ -74,9 +74,9 @@ impl Summary {
             return Err("biography chain");
         }
         let record = segment.records.last().ok_or("biography empty segment")?;
-        if record.sequence < self.last_sequence {
-            return Err("biography sequence");
-        }
+        // Canonical segments compact different evidence categories. Ordinal
+        // and predecessor digest order the archive chain; record sequences are
+        // ordered within each validated segment, not across all categories.
         self.count = segment.ordinal;
         self.head = Some(Hex(segment.digest));
         self.last_sequence = record.sequence;
