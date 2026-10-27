@@ -10,6 +10,7 @@ const ALLOWED: &[&str] = &[
     "conduit-core",
     "conduit-environment-face",
     "conduit-environment-http",
+    "conduit-environment-measurement",
     "conduit-environment-runtime",
     "conduit-esp32-network-switch",
     "conduit-esp32-pulse-capture",
@@ -108,7 +109,13 @@ pub(super) fn check_linked(nm: &Path, image: &Path) -> Result<(), Box<dyn Error>
 }
 
 fn validate_symbols(symbols: &str) -> Result<(), Box<dyn Error>> {
-    if !symbols.contains("conduit_planner::indexed_source::plan_with_connection_limits") {
+    if ![
+        "conduit_planner::indexed_source::plan_with_connection_limits",
+        "conduit_planner::indexed_source::compact::plan_compact_consuming_with_connection_limits",
+    ]
+    .iter()
+    .any(|planner| symbols.contains(planner))
+    {
         return Err("member image lost its local indexed task planner".into());
     }
     for authoring in [
@@ -142,6 +149,7 @@ mod tests {
     fn linked_check_keeps_task_planning_without_source_authoring() {
         let planner = "conduit_planner::indexed_source::plan_with_connection_limits";
         validate_symbols(planner).unwrap();
+        validate_symbols("conduit_planner::indexed_source::compact::plan_compact_consuming_with_connection_limits").unwrap();
         assert!(validate_symbols("").is_err());
         assert!(
             validate_symbols(&format!("{planner}\nconduit_plot::parse_syntax_document")).is_err()

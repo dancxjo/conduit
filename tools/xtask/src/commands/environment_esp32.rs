@@ -44,6 +44,15 @@ pub(super) fn build_local_evidence(root: &Path, key: &Path) -> Result<(), Box<dy
     );
     Ok(())
 }
+pub(super) fn build_local_appliance(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, false, Some(key), Some("local-appliance"))?;
+    println!(
+        "Local appliance candidate requires partition table: {}",
+        root.join("targets/esp32/proof/tm1637/local-appliance-partitions.csv")
+            .display()
+    );
+    Ok(())
+}
 fn build_with_owner(
     root: &Path,
     native: bool,
@@ -88,6 +97,13 @@ fn build_with_owner(
     if native {
         command.args(["--features", selected_profile]);
     }
+    if selected_profile == "local-appliance" {
+        command.args([
+            "--config",
+            "profile.release.package.conduit-planner.debug=1",
+        ]);
+        command.env("ESP_BACKTRACE_CONFIG_BACKTRACE_FRAMES", "40");
+    }
     if let Some(key) = key {
         command.env(
             "CONDUIT_ENVIRONMENT_OWNER_PUBLIC_KEY_FILE",
@@ -99,6 +115,18 @@ fn build_with_owner(
         // scarce internal RAM. Keep control flow in flash instead; this does
         // not change the allocator partition or the admitted CPU stack floor.
         command.args(["--", "-C", "llvm-args=-switch-to-lookup=false"]);
+        if selected_profile == "local-appliance" {
+            // Bound code duplication in the combined sampler/Mask image. This
+            // retains the complete planners, history and allocator partition.
+            command.args([
+                "-C",
+                "opt-level=s",
+                "-C",
+                "llvm-args=-inline-threshold=10",
+                "-C",
+                "llvm-args=-inlinehint-threshold=10",
+            ]);
+        }
     }
     super::execute(&mut command)?;
     if native {

@@ -455,6 +455,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-time",
+ "sha2",
 ]
 
 [[package]]
@@ -521,6 +522,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
+ "sha2",
 ]
 
 [[package]]

@@ -12,9 +12,19 @@ pub type Software = PreparedResidentSoftware<conduit_kernel::HostedValueStore>;
 #[inline(never)]
 pub fn prepare() -> Result<Box<Software>, ()> {
     let values = conduit_environment_runtime::appliance::prepare_value_storage().map_err(|_| ())?;
-    Software::prepare_source(&material::spec(), material::computations(), values)
+    prepare_with_returned_values(values).map_err(|_| ())
+}
+/// Fresh Source-compiled finite software on the actual returned value backing.
+/// Every preparation refusal retains that backing for the Root owner. No old
+/// Back, provider budget, slot generation or Body Play is reset here.
+#[cold]
+#[inline(never)]
+pub fn prepare_with_returned_values(
+    values: conduit_kernel::HostedValueStore,
+) -> Result<Box<Software>, ((), conduit_kernel::HostedValueStore)> {
+    Software::prepare_source_retained(&material::spec(), material::computations(), values)
         .map(Box::new)
-        .map_err(|_| ())
+        .map_err(|(_, values)| ((), values))
 }
 pub fn offers(
     software: &Software,

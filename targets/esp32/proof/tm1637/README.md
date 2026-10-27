@@ -36,6 +36,17 @@ and any independent/shared colon mapping still require separate verification.
 Production integration must admit the actual electrical work and resource
 ownership before calling this provider from a planned display operation.
 
+The separate autonomous sampler/Mask profile is built with
+`cargo +stable xtask prove environment local-appliance-image <owner-public-key-file>`.
+Supply the authenticated birth Sign through
+`CONDUIT_ENVIRONMENT_BODY_BIRTH_SIGN`; retain the existing Body checkpoint and
+archive partitions when updating an installed appliance. This command builds
+and checks packaging; it does not flash. The combined profile uses the pinned
+ESP toolchain, size optimization, fat LTO and an inlining threshold of ten for
+both ordinary and hinted calls. The physical image with the shared `H 44` /
+`H100` humidity Look occupies 3,318,048 of 3,371,008 app bytes with this recipe.
+Its Root heap, SDK heap, stack floor and five history epochs are unchanged.
+
 
 The replacement ESP32 revision 3.1/4 MB board was flashed with the expanded
 annunciator probe. Serial ACKs establish accepted writes, not visible dot/colon
