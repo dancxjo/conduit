@@ -696,6 +696,7 @@ fn stream_refusal(error: payload::StreamRefusal<Refusal>) -> Refusal {
     match error {
         payload::StreamRefusal::Sink(error) => error,
         payload::StreamRefusal::Invalid => Refusal::Corrupt,
+        payload::StreamRefusal::Capacity => Refusal::Capacity,
     }
 }
 #[cfg(test)]

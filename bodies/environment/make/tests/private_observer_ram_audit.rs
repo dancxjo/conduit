@@ -31,10 +31,27 @@ mod native_evidence_region {
             65536
         }
         fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), Refusal> {
+            if !at.is_multiple_of(4)
+                || !out.len().is_multiple_of(4)
+                || at as usize + out.len() > 65536
+            {
+                eprintln!("CPU BodyRegion read geometry at={at} len={}", out.len());
+                return Err(Refusal::Geometry);
+            }
             out.copy_from_slice(&self.0.lock().unwrap().0[at as usize..at as usize + out.len()]);
             Ok(())
         }
         fn program(&mut self, at: u32, bytes: &[u8]) -> Result<(), Refusal> {
+            if !at.is_multiple_of(4)
+                || !bytes.len().is_multiple_of(4)
+                || at as usize + bytes.len() > 65536
+            {
+                eprintln!(
+                    "CPU BodyRegion program geometry at={at} len={}",
+                    bytes.len()
+                );
+                return Err(Refusal::Geometry);
+            }
             let mut state = self.0.lock().unwrap();
             if !state.1 {
                 return Err(Refusal::Storage);
@@ -248,6 +265,11 @@ fn observer_resident_ram_audit() {
         plain.extend_from_slice(&chunk[..n]);
     }
     drop(decoder);
+    println!(
+        "CPU private plain_bytes={} encoded_bytes={}",
+        plain.len(),
+        encoded.len()
+    );
     let value: serde_json::Value = ok(serde_json::from_slice(&plain), "private envelope");
     let body_id = ok(
         serde_json::from_value(value["evidence"]["body_id"].clone()),
@@ -312,6 +334,17 @@ fn observer_resident_ram_audit() {
         native_restart::checkpoint(&mut owner, &root_key),
         "cold checkpoint",
     );
+    if std::env::var_os("THERMO_STARTUP_ONLY").is_some() {
+        let state = media.0.lock().unwrap();
+        let lengths = [0usize, 32768]
+            .map(|at| u32::from_le_bytes(state.0[at + 16..at + 20].try_into().unwrap()));
+        println!(
+            "CPU private startup checkpoint success generation={:?} encoded_lengths={:?}",
+            native_restart::generation(),
+            lengths
+        );
+        return;
+    }
     let active = std::env::var_os("THERMO_AUDIT_ACTIVE").is_some();
     if active {
         let plans = owner

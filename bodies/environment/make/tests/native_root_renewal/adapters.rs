@@ -261,6 +261,12 @@ mod native_evidence_region {
             at: u32,
             out: &mut [u8],
         ) -> Result<(), super::native_body_checkpoint::Refusal> {
+            if !at.is_multiple_of(4)
+                || !out.len().is_multiple_of(4)
+                || at as usize + out.len() > 65536
+            {
+                return Err(super::native_body_checkpoint::Refusal::Geometry);
+            }
             out.copy_from_slice(
                 &self.media.lock().unwrap().0[at as usize..at as usize + out.len()],
             );
@@ -271,6 +277,12 @@ mod native_evidence_region {
             at: u32,
             input: &[u8],
         ) -> Result<(), super::native_body_checkpoint::Refusal> {
+            if !at.is_multiple_of(4)
+                || !input.len().is_multiple_of(4)
+                || at as usize + input.len() > 65536
+            {
+                return Err(super::native_body_checkpoint::Refusal::Geometry);
+            }
             let mut state = self.media.lock().unwrap();
             if !state.1 || state.2 == Some(0) {
                 return Err(super::native_body_checkpoint::Refusal::Storage);

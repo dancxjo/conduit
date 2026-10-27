@@ -102,7 +102,7 @@ fn malformed_tokens_truncation_footer_and_trailing_input_are_refused() {
     }
     for at in (0..8).chain(encoded.len() - 4..encoded.len()) {
         let mut bad = encoded.clone();
-        bad[at] ^= 1;
+        bad[at] = if at == 7 { b'0' } else { bad[at] ^ 1 };
         assert!(decode(&bad, 1, 131072).is_err());
     }
     let mut trailing = encoded.clone();
@@ -447,4 +447,82 @@ fn v2_packed_tokens_exact_spelling_and_legacy_v1_are_preserved() {
     let mut old_packed = b"BDYLZ001".to_vec();
     old_packed.extend_from_slice(&[1, 4, 252]);
     assert!(decode(&old_packed, 1, 131072).is_err());
+}
+
+#[test]
+fn v3_far_window_continuation_is_lossless_bounded_and_legacy_readable() {
+    for version in *b"12" {
+        let mut legacy = b"BDYLZ000".to_vec();
+        legacy[7] = version;
+        legacy.extend_from_slice(&[2, b'x', 255, 255, 1, 0, 0, 0]);
+        assert_eq!(decode(&legacy, 1, 131072).unwrap(), b"x");
+    }
+    let mut random = 0x7265_6e65u32;
+    let mut data = (0..1536)
+        .map(|_| {
+            random ^= random << 13;
+            random ^= random >> 17;
+            random ^= random << 5;
+            random as u8
+        })
+        .collect::<Vec<_>>();
+    let first = data[..65].to_vec();
+    data.extend_from_slice(&first);
+    let frame = encode(&data, 1).0;
+    assert_eq!(&frame[..8], b"BDYLZ003");
+    assert!(frame.windows(2).any(|w| w == [65, 254]));
+    for width in [1, 2, 7, 65, 127, 128] {
+        assert_eq!(encode(&data, width).0, frame);
+        assert_eq!(decode(&frame, width, data.len()).unwrap(), data);
+    }
+    let mut old = frame.clone();
+    old[7] = b'2';
+    assert!(decode(&old, 1, 131072).is_err());
+    for cut in 0..frame.len() {
+        assert!(decode(&frame[..cut], 128, 131072).is_err());
+    }
+}
+
+#[test]
+fn v3_far_match_fields_and_encoder_capacity_are_exactly_checked() {
+    fn far_frame(length: u8, distance: u16) -> Vec<u8> {
+        let mut frame = b"BDYLZ003".to_vec();
+        for _ in 0..256 {
+            frame.extend_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8]);
+        }
+        frame.push(3); // far match, then EOS, remaining flag bits must be zero.
+        frame.extend_from_slice(&(0xfe00 | u16::from(length)).to_le_bytes());
+        frame.extend_from_slice(&distance.to_le_bytes());
+        frame.extend_from_slice(&0xffffu16.to_le_bytes());
+        frame.extend_from_slice(&(2048 + u32::from(length)).to_le_bytes());
+        frame
+    }
+    for length in [3, 65] {
+        for distance in [1025, 2048] {
+            let frame = far_frame(length, distance);
+            let decoded = decode(&frame, 1, 131072).unwrap();
+            assert_eq!(decoded.len(), 2048 + usize::from(length));
+            for at in 2048..decoded.len() {
+                assert_eq!(decoded[at], decoded[at - usize::from(distance)]);
+            }
+        }
+    }
+    for (length, distance) in [
+        (0, 1025),
+        (2, 1025),
+        (66, 1025),
+        (255, 1025),
+        (3, 0),
+        (3, 1),
+        (3, 1024),
+        (3, 2049),
+        (3, 65535),
+    ] {
+        assert!(decode(&far_frame(length, distance), 1, 131072).is_err());
+    }
+    let mut encoder = codec::Encoder::new(|_: &[u8]| Ok(()), 2, 100);
+    assert_eq!(encoder.write(b"abc"), Err(codec::Error::Capacity));
+    let mut encoder = codec::Encoder::new(|_: &[u8]| Ok(()), 100, 8);
+    encoder.write(b"a").unwrap();
+    assert_eq!(encoder.finish(), Err(codec::Error::Capacity));
 }

@@ -1,12 +1,16 @@
 //! Bounded lossless framing for authenticated private restart JSON. This codec
 //! provides no authentication: the existing journal hashes the complete frame.
 use core::fmt;
-pub const MAGIC: &[u8; 8] = b"BDYLZ002";
-const WINDOW: usize = 1024;
+pub const MAGIC: &[u8; 8] = b"BDYLZ003";
+const WINDOW: usize = 2048;
+const NEAR_WINDOW: usize = 1024;
 const MATCH: usize = 65;
 const EOS: u16 = 0xffff;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Error;
+pub enum Error {
+    Invalid,
+    Capacity,
+}
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("restart compression refused")
@@ -65,11 +69,14 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
         }
     }
     fn emit(&mut self, bytes: &[u8]) -> Result<(), Error> {
-        let next = self.encoded.checked_add(bytes.len()).ok_or(Error)?;
+        let next = self
+            .encoded
+            .checked_add(bytes.len())
+            .ok_or(Error::Invalid)?;
         if next > self.max_encoded {
-            return Err(Error);
+            return Err(Error::Capacity);
         }
-        (self.write)(bytes).map_err(|_| Error)?;
+        (self.write)(bytes).map_err(|_| Error::Invalid)?;
         self.encoded = next;
         Ok(())
     }
@@ -82,11 +89,14 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
     }
     fn flush_group(&mut self) -> Result<(), Error> {
         // Split field borrowing without copying private bytes onto another frame.
-        let next = self.encoded.checked_add(self.group_len).ok_or(Error)?;
+        let next = self
+            .encoded
+            .checked_add(self.group_len)
+            .ok_or(Error::Invalid)?;
         if next > self.max_encoded {
-            return Err(Error);
+            return Err(Error::Capacity);
         }
-        (self.write)(&self.group[..self.group_len]).map_err(|_| Error)?;
+        (self.write)(&self.group[..self.group_len]).map_err(|_| Error::Invalid)?;
         self.encoded = next;
         wipe(&mut self.group);
         self.group_len = 1;
@@ -124,6 +134,8 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
     fn consume(&mut self) -> Result<(), Error> {
         let mut best = 0;
         let mut best_distance = 0;
+        let mut near = 0;
+        let mut near_distance = 0;
         for distance in 1..=self.consumed.min(WINDOW) {
             let mut length = 0;
             while length < self.look_len {
@@ -137,6 +149,10 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
                 }
                 length += 1;
             }
+            if distance <= NEAR_WINDOW && length > near {
+                near = length;
+                near_distance = distance;
+            }
             if length > best {
                 best = length;
                 best_distance = distance;
@@ -145,8 +161,14 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
                 break;
             }
         }
-        let ordinary_used = if best >= 3 { best } else { 1 };
-        let ordinary_cost = if best >= 3 { 2 } else { 1 };
+        let mut ordinary_used = if near >= 3 { near } else { 1 };
+        let mut ordinary_cost = if near >= 3 { 2 } else { 1 };
+        let mut ordinary_distance = near_distance;
+        if best_distance > NEAR_WINDOW && best >= 3 && best * ordinary_cost > ordinary_used * 4 {
+            ordinary_used = best;
+            ordinary_cost = 4;
+            ordinary_distance = best_distance;
+        }
         let mut packed = [0u8; 32];
         let mut packed_len = 0;
         let mut packed_used = 0;
@@ -213,18 +235,26 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
             at += 1;
         }
         wipe(&mut numbers);
-        let used =
-            if packed_used != 0 && packed_used * ordinary_cost > ordinary_used * (packed_len + 2) {
-                self.packed_token(packed_word, &packed[..packed_len])?;
-                packed_used
-            } else if best >= 3 {
-                let word = (((best - 3) as u16) << 10) | (best_distance - 1) as u16;
-                self.token(Some(word), 0)?;
-                best
+        let used = if packed_used != 0
+            && packed_used * ordinary_cost > ordinary_used * (packed_len + 2)
+        {
+            self.packed_token(packed_word, &packed[..packed_len])?;
+            packed_used
+        } else if ordinary_used >= 3 {
+            if ordinary_distance > NEAR_WINDOW {
+                self.packed_token(
+                    0xfe00 | ordinary_used as u16,
+                    &(ordinary_distance as u16).to_le_bytes(),
+                )?;
             } else {
-                self.token(None, self.look[0])?;
-                1
-            };
+                let word = (((ordinary_used - 3) as u16) << 10) | (ordinary_distance - 1) as u16;
+                self.token(Some(word), 0)?;
+            }
+            ordinary_used
+        } else {
+            self.token(None, self.look[0])?;
+            1
+        };
         wipe(&mut packed);
         for byte in &self.look[..used] {
             self.history[self.consumed % WINDOW] = *byte;
@@ -237,9 +267,9 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
     }
     fn write_inner(&mut self, bytes: &[u8]) -> Result<(), Error> {
         self.begin()?;
-        self.plain = self.plain.checked_add(bytes.len()).ok_or(Error)?;
+        self.plain = self.plain.checked_add(bytes.len()).ok_or(Error::Invalid)?;
         if self.plain > self.max_plain || self.plain > u32::MAX as usize {
-            return Err(Error);
+            return Err(Error::Capacity);
         }
         for byte in bytes {
             self.look[self.look_len] = *byte;
@@ -252,7 +282,7 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
     }
     pub fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
         if self.terminal {
-            return Err(Error);
+            return Err(Error::Invalid);
         }
         let result = self.write_inner(bytes);
         if result.is_err() {
@@ -262,7 +292,7 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
     }
     pub fn finish(&mut self) -> Result<Lengths, Error> {
         if self.terminal {
-            return Err(Error);
+            return Err(Error::Invalid);
         }
         self.terminal = true;
         self.begin()?;
@@ -297,7 +327,7 @@ pub struct Decoder<R> {
     begun: bool,
     done: bool,
     failed: bool,
-    v2: bool,
+    version: u8,
     expansion: [u8; 64],
     expansion_at: usize,
     expansion_len: usize,
@@ -328,7 +358,7 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
             begun: false,
             done: false,
             failed: false,
-            v2: false,
+            version: 0,
             expansion: [0; 64],
             expansion_at: 0,
             expansion_len: 0,
@@ -337,13 +367,13 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
     fn byte(&mut self) -> Result<Option<u8>, Error> {
         if self.position == self.available {
             wipe(&mut self.input);
-            let count = (self.read)(&mut self.input).map_err(|_| Error)?;
+            let count = (self.read)(&mut self.input).map_err(|_| Error::Invalid)?;
             if count > self.input.len() {
-                return Err(Error);
+                return Err(Error::Invalid);
             }
-            self.encoded = self.encoded.checked_add(count).ok_or(Error)?;
+            self.encoded = self.encoded.checked_add(count).ok_or(Error::Invalid)?;
             if self.encoded > self.max_encoded {
-                return Err(Error);
+                return Err(Error::Invalid);
             }
             self.available = count;
             self.position = 0;
@@ -356,19 +386,20 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
         Ok(Some(byte))
     }
     fn required(&mut self) -> Result<u8, Error> {
-        self.byte()?.ok_or(Error)
+        self.byte()?.ok_or(Error::Invalid)
     }
     fn begin(&mut self) -> Result<(), Error> {
         if !self.begun {
             for byte in &MAGIC[..7] {
                 if self.required()? != *byte {
-                    return Err(Error);
+                    return Err(Error::Invalid);
                 }
             }
-            self.v2 = match self.required()? {
-                b'1' => false,
-                b'2' => true,
-                _ => return Err(Error),
+            self.version = match self.required()? {
+                b'1' => 1,
+                b'2' => 2,
+                b'3' => 3,
+                _ => return Err(Error::Invalid),
             };
             self.begun = true;
         }
@@ -398,7 +429,7 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
         let word = u16::from_le_bytes([self.required()?, self.required()?]);
         if word == EOS {
             if self.flag_index < 8 && self.flags >> self.flag_index != 0 {
-                return Err(Error);
+                return Err(Error::Invalid);
             }
             let length = u32::from_le_bytes([
                 self.required()?,
@@ -407,18 +438,18 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
                 self.required()?,
             ]) as usize;
             if length != self.produced || self.byte()?.is_some() {
-                return Err(Error);
+                return Err(Error::Invalid);
             }
             self.done = true;
             return Ok(None);
         }
-        if self.v2 && (word & 0xff00 == 0xfc00 || word & 0xff00 == 0xfd00) {
+        if self.version >= 2 && (word & 0xff00 == 0xfc00 || word & 0xff00 == 0xfd00) {
             let count = usize::from(word & 255);
             self.expansion_at = 0;
             self.expansion_len = 0;
             if word & 0xff00 == 0xfd00 {
                 if !(8..=32).contains(&count) {
-                    return Err(Error);
+                    return Err(Error::Invalid);
                 }
                 for _ in 0..count {
                     let b = self.required()?;
@@ -430,7 +461,7 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
                 }
             } else {
                 if !(4..=16).contains(&count) {
-                    return Err(Error);
+                    return Err(Error::Invalid);
                 }
                 for i in 0..count {
                     let b = self.required()?;
@@ -447,18 +478,38 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
                     }
                 }
             }
-            if self.produced.checked_add(self.expansion_len).ok_or(Error)? > self.max_plain {
-                return Err(Error);
+            if self
+                .produced
+                .checked_add(self.expansion_len)
+                .ok_or(Error::Invalid)?
+                > self.max_plain
+            {
+                return Err(Error::Invalid);
             }
             return self.next_plain();
         }
-        let length = usize::from(word >> 10) + 3;
-        let distance = usize::from(word & 1023) + 1;
-        if length > MATCH || distance > self.produced.min(WINDOW) {
-            return Err(Error);
+        let (length, distance) = if self.version >= 3 && word & 0xff00 == 0xfe00 {
+            let length = usize::from(word & 255);
+            let distance = usize::from(u16::from_le_bytes([self.required()?, self.required()?]));
+            if !(3..=MATCH).contains(&length) || !(NEAR_WINDOW + 1..=WINDOW).contains(&distance) {
+                return Err(Error::Invalid);
+            }
+            (length, distance)
+        } else {
+            (usize::from(word >> 10) + 3, usize::from(word & 1023) + 1)
+        };
+        if length > MATCH
+            || distance
+                > self.produced.min(if self.version >= 3 {
+                    WINDOW
+                } else {
+                    NEAR_WINDOW
+                })
+        {
+            return Err(Error::Invalid);
         }
-        if self.produced.checked_add(length).ok_or(Error)? > self.max_plain {
-            return Err(Error);
+        if self.produced.checked_add(length).ok_or(Error::Invalid)? > self.max_plain {
+            return Err(Error::Invalid);
         }
         self.distance = distance;
         self.remaining = length;
@@ -475,7 +526,7 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
                 break;
             };
             if self.produced >= self.max_plain {
-                return Err(Error);
+                return Err(Error::Invalid);
             }
             self.history[self.produced % WINDOW] = byte;
             self.produced += 1;
@@ -486,7 +537,7 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
     }
     pub fn read(&mut self, output: &mut [u8; 128]) -> Result<usize, Error> {
         if self.failed {
-            return Err(Error);
+            return Err(Error::Invalid);
         }
         let result = self.read_inner(output);
         if result.is_err() {

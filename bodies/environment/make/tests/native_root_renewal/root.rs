@@ -1,20 +1,20 @@
 use super::*;
 use conduit_pulse_capture::{installation::*, owner::*};
 include!("../../../../../targets/esp32/proof/tm1637/src/native_root_state.rs");
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_body_root.rs"]
+mod body;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_mask.rs"]
 mod local_mask;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_renewal.rs"]
 mod local_renewal;
-#[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_sampler_run.rs"]
-mod local_sampler_run;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_sampler_plan.rs"]
 mod local_sampler_plan;
-#[path = "../../../../../targets/esp32/proof/tm1637/src/native_root_policy.rs"]
-mod policy;
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_sampler_run.rs"]
+mod local_sampler_run;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_offer.rs"]
 mod offers;
-#[path = "../../../../../targets/esp32/proof/tm1637/src/native_body_root.rs"]
-mod body;
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_root_policy.rs"]
+mod policy;
 mod mask {
     pub(super) mod material {
         include!(concat!(env!("OUT_DIR"), "/mask-source.rs"));
@@ -25,6 +25,9 @@ mod memory_check;
 mod setup {
     pub struct PendingWorkspace;
 }
+
+#[path = "private.rs"]
+mod private;
 
 fn initial_evidence(host: &c::HostId, boot: &c::BootId) -> conduit_body::BodyBiographyEvidence {
     use conduit_body::*;
@@ -84,21 +87,41 @@ fn bootstrap(
     std::rc::Rc<std::cell::Cell<usize>>,
 ) {
     use conduit_monotonic_wait::*;
+    let private = private::load();
+    let private_host = private
+        .as_ref()
+        .map(|(_, _, host)| Box::leak(host.as_str().to_owned().into_boxed_str()) as &'static str);
     let observed = boot::ObservedBoot {
-        host: "esp32/cpu-renewal",
+        host: private_host.unwrap_or("esp32/cpu-renewal"),
         boot: "boot/00000000000000000000000000000001",
     };
     let (host, boot) = observed.ids();
     let host: c::HostId = host.into();
     let boot: c::BootId = boot.into();
-    let media = native_evidence_region::test_empty();
-    native_restart::initialize(media.clone(), initial_evidence(&host, &boot)).unwrap();
+    let is_private = private.is_some();
+    let (media, evidence) = match private {
+        Some((media, evidence, _)) => (media, evidence),
+        None => (
+            native_evidence_region::test_empty(),
+            initial_evidence(&host, &boot),
+        ),
+    };
+    native_restart::initialize(media.clone(), evidence).unwrap();
     let mut admission = native_admission::NativeAdmission::new([7; 32]).unwrap();
     let restored = native_restart::take_body().unwrap();
-    let mut body = Box::new(
+    let mut body = Box::new(if is_private {
+        conduit_body::SealedBodyLifecycleSession::resume_here(restored.evidence, &host, &boot)
+            .unwrap()
+    } else {
         conduit_body::SealedBodyLifecycleSession::open_admitted(restored.evidence, &host, &boot)
-            .unwrap(),
-    );
+            .unwrap()
+    });
+    if is_private {
+        while body.seal_terminal_wake_for_checkpoint().unwrap() {
+            native_restart::checkpoint(&mut body, &admission.verifying_key()).unwrap();
+        }
+        body.seal_membership_history_for_checkpoint().unwrap();
+    }
     native_restart::checkpoint(&mut body, &admission.verifying_key()).unwrap();
     native_observed_archive::initialize_epochs(
         None,
@@ -406,46 +429,70 @@ pub(super) fn prove_two_handoffs() {
     assert!(!mask.task_active && mask.completed == native_display::MAXIMUM_CHILDREN);
     assert!(mask.failure.is_none() && mask.cleanup_refusal.is_none());
     assert!(root.local_history_custody.is_none());
+    if std::env::var_os("THERMO_PRIVATE_FLASH").is_some() {
+        private::validate_final(
+            media.clone(),
+            &original_body,
+            &root.admission.verifying_key(),
+        );
+    }
     std::println!("ROOT_CPU_TWO_HANDOFFS reads={} MaskChildren={} fixed_generation={} store_generation={} checkpoint_generation={:?}",effects.get(),3*native_display::MAXIMUM_CHILDREN,fixed_generation,store_generation,native_restart::generation());
 }
 
 pub(super) fn prove_storage_policy() {
-    let executor=manual_clock::Executor::new();
-    let (mut root,media,_)=bootstrap(&executor);
-    let evidence=root.body.as_ref().unwrap().evidence().clone();
-    let generation=native_restart::generation().unwrap();
-    media.media.lock().unwrap().1=false;
-    assert_eq!(root.checkpoint_body(),Err("restart-checkpoint-storage"));
-    assert_eq!(root.body.as_ref().unwrap().evidence(),&evidence);
+    let executor = manual_clock::Executor::new();
+    let (mut root, media, _) = bootstrap(&executor);
+    let evidence = root.body.as_ref().unwrap().evidence().clone();
+    let generation = native_restart::generation().unwrap();
+    media.media.lock().unwrap().1 = false;
+    assert_eq!(root.checkpoint_body(), Err("restart-checkpoint-storage"));
+    assert_eq!(root.body.as_ref().unwrap().evidence(), &evidence);
     assert!(!native_restart::publication_ready());
-    assert_eq!(native_restart::with_admissions(|_|Ok(())),Err("restart-not-ready"));
-    media.media.lock().unwrap().1=true;
+    assert_eq!(
+        native_restart::with_admissions(|_| Ok(())),
+        Err("restart-not-ready")
+    );
+    media.media.lock().unwrap().1 = true;
     root.checkpoint_body().unwrap();
-    assert_eq!(native_restart::generation(),Some(generation+1));
+    assert_eq!(native_restart::generation(), Some(generation + 1));
     assert!(native_restart::publication_ready());
-    assert!(native_restart::with_admissions(|_|Ok(())).is_ok());
-    let mut state=media.media.lock().unwrap();
-    let current=native_restart::generation().unwrap();
-    let bank=(0..2).find(|bank|u64::from_le_bytes(state.0[bank*32768+8..bank*32768+16].try_into().unwrap())==current).unwrap();
-    let at=bank*32768+160+12;
-    let original=state.0[at];
-    state.0[at]^=1; // Explicit simulated media bit corruption, never a journal write.
+    assert!(native_restart::with_admissions(|_| Ok(())).is_ok());
+    let mut state = media.media.lock().unwrap();
+    let current = native_restart::generation().unwrap();
+    let bank = (0..2)
+        .find(|bank| {
+            u64::from_le_bytes(
+                state.0[bank * 32768 + 8..bank * 32768 + 16]
+                    .try_into()
+                    .unwrap(),
+            ) == current
+        })
+        .unwrap();
+    let at = bank * 32768 + 160 + 12;
+    let original = state.0[at];
+    state.0[at] ^= 1; // Explicit simulated media bit corruption, never a journal write.
     drop(state);
-    assert_eq!(root.checkpoint_body(),Err("restart-checkpoint-commit"));
+    assert_eq!(root.checkpoint_body(), Err("restart-checkpoint-commit"));
     assert!(!native_restart::publication_ready());
-    media.media.lock().unwrap().0[at]=original;
-    assert_eq!(root.checkpoint_body(),Err("restart-failed"));
-    assert_eq!(root.body.as_ref().unwrap().evidence(),&evidence);
+    media.media.lock().unwrap().0[at] = original;
+    assert_eq!(root.checkpoint_body(), Err("restart-failed"));
+    assert_eq!(root.body.as_ref().unwrap().evidence(), &evidence);
 }
 
 pub(super) fn prove_fresh_journal_failure_latches() {
-    let host:c::HostId="esp32/cpu-fresh-failure".into();
-    let boot:c::BootId="boot/00000000000000000000000000000002".into();
-    let media=native_evidence_region::test_empty();
-    native_restart::initialize(media.clone(),initial_evidence(&host,&boot)).unwrap();
-    media.media.lock().unwrap().1=false;
-    assert_eq!(native_restart::select_signer_seed([7;32]),Err("restart-initial-commit"));
-    media.media.lock().unwrap().1=true;
-    assert_eq!(native_restart::select_signer_seed([7;32]),Err("restart-failed"));
+    let host: c::HostId = "esp32/cpu-fresh-failure".into();
+    let boot: c::BootId = "boot/00000000000000000000000000000002".into();
+    let media = native_evidence_region::test_empty();
+    native_restart::initialize(media.clone(), initial_evidence(&host, &boot)).unwrap();
+    media.media.lock().unwrap().1 = false;
+    assert_eq!(
+        native_restart::select_signer_seed([7; 32]),
+        Err("restart-initial-commit")
+    );
+    media.media.lock().unwrap().1 = true;
+    assert_eq!(
+        native_restart::select_signer_seed([7; 32]),
+        Err("restart-failed")
+    );
     assert!(!native_restart::publication_ready());
 }

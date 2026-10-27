@@ -285,6 +285,7 @@ pub(crate) mod json;
 pub enum StreamRefusal<E> {
     Sink(E),
     Invalid,
+    Capacity,
 }
 /// Serialize the entire canonical envelope without a document allocation.
 /// The caller owns bounded staging and must not publish before journal commit.
@@ -337,6 +338,7 @@ pub fn stream_compressed_with_admissions<E>(
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(), StreamRefusal<E>> {
     let mut failure = None;
+    let mut capacity = false;
     let result = {
         let mut encoder = compress::Encoder::new(
             |bytes: &[u8]| {
@@ -352,18 +354,30 @@ pub fn stream_compressed_with_admissions<E>(
             archives,
             pending,
             admissions,
-            &mut |bytes: &[u8]| encoder.write(bytes),
+            &mut |bytes: &[u8]| {
+                encoder.write(bytes).map_err(|error| {
+                    capacity |= error == compress::Error::Capacity;
+                })
+            },
         );
         if result.is_err() {
             Err(())
         } else {
-            encoder.finish().map(|_| ()).map_err(|_| ())
+            encoder.finish().map(|_| ()).map_err(|error| {
+                capacity |= error == compress::Error::Capacity;
+            })
         }
     };
     if let Some(error) = failure {
         return Err(StreamRefusal::Sink(error));
     }
-    result.map_err(|_| StreamRefusal::Invalid)
+    result.map_err(|_| {
+        if capacity {
+            StreamRefusal::Capacity
+        } else {
+            StreamRefusal::Invalid
+        }
+    })
 }
 
 /// Rewrite current truth while preserving the exact prior authenticated archive
@@ -392,6 +406,7 @@ pub(crate) fn stream_rewrite<E>(
         .validate_head(evidence)
         .map_err(|_| StreamRefusal::Invalid)?;
     let mut failure = None;
+    let mut capacity = false;
     let mut observer = archive::SpanObserver::default();
     let result = (|| {
         let mut encoder = compress::Encoder::new(
@@ -405,7 +420,9 @@ pub(crate) fn stream_rewrite<E>(
         );
         let mut plain = |bytes: &[u8]| -> Result<(), ()> {
             observer.push(bytes)?;
-            encoder.write(bytes).map_err(|_| ())
+            encoder.write(bytes).map_err(|error| {
+                capacity |= error == compress::Error::Capacity;
+            })
         };
         plain(b"{\"schema\":")?;
         json::stream(&SCHEMA, &mut |bytes: &[u8]| {
@@ -466,13 +483,21 @@ pub(crate) fn stream_rewrite<E>(
         })
         .map_err(|_| ())?;
         plain(b"}")?;
-        encoder.finish().map_err(|_| ())?;
+        encoder.finish().map_err(|error| {
+            capacity |= error == compress::Error::Capacity;
+        })?;
         Ok::<_, ()>(())
     })();
     if let Some(error) = failure {
         return Err(StreamRefusal::Sink(error));
     }
-    result.map_err(|_| StreamRefusal::Invalid)?;
+    result.map_err(|_| {
+        if capacity {
+            StreamRefusal::Capacity
+        } else {
+            StreamRefusal::Invalid
+        }
+    })?;
     Ok((
         summary,
         observer.finish().map_err(|_| StreamRefusal::Invalid)?,
