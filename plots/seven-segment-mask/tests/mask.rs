@@ -81,6 +81,8 @@ fn text(show: &SevenSegmentShow) -> String {
             0x39 => 'C',
             0x71 => 'F',
             0x76 => 'H',
+            0x50 => 'r',
+            0x63 => '°',
             0x40 => '-',
             _ => char::from(
                 b'0' + numerals
@@ -491,5 +493,34 @@ fn timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime() {
         let show = mask.render(&view, elapsed, &profile).unwrap();
         assert_eq!(text(&show.show), expected);
         assert_eq!(show.face_content_id, face.identity.as_str());
+    }
+}
+
+#[test]
+fn whole_degree_environment_layout_rounds_and_keeps_three_digit_values() {
+    let look = SevenSegmentLook::fahrenheit().with_whole_degrees();
+    for (temperature, expected) in [
+        ("19.8°C", "68°F"),
+        ("72.4°F", "72°F"),
+        ("72.5°F", "73°F"),
+        ("99.5°F", "100°"),
+        ("122°F", "122°"),
+        ("-9.5°F", "-10°"),
+        ("-100°F", "----"),
+    ] {
+        let face = face(temperature, "44%", true, true);
+        let view = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
+        let output = render(&view, SevenSegmentSelection::Temperature, &look);
+        assert_eq!(text(&output.show), expected, "{temperature}");
+        assert!(!output.show.colon());
+        assert_eq!(output.show.decimal_points(), &[false; 4]);
+    }
+    for (humidity, expected) in [("44%", "rH:44"), ("5%", "rH:05"), ("99.5%", "H100")] {
+        let face = face("20°C", humidity, true, true);
+        let view = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
+        assert_eq!(
+            text(&render(&view, SevenSegmentSelection::Humidity, &look).show),
+            expected
+        );
     }
 }

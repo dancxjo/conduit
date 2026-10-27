@@ -52,7 +52,7 @@ impl NativeDisplay {
                 decimal_points: [None; 4],
                 colon: Some(WireBit { address: 1, bit: 7 }),
             },
-            SevenSegmentLook::fahrenheit().with_colon_fraction(),
+            SevenSegmentLook::fahrenheit().with_whole_degrees(),
             3000,
             120000,
             3,

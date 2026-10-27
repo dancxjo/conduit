@@ -24,7 +24,12 @@ mod generated {
             Self {
                 temperature_unit: SevenSegmentTemperatureUnit::Fahrenheit,
                 fraction_marker: SevenSegmentFractionMarker::DecimalPoint,
+                temperature_format: SevenSegmentTemperatureFormat::Fractional,
             }
+        }
+        pub const fn with_whole_degrees(mut self) -> Self {
+            self.temperature_format = SevenSegmentTemperatureFormat::WholeDegrees;
+            self
         }
         pub const fn with_colon_fraction(mut self) -> Self {
             self.fraction_marker = SevenSegmentFractionMarker::Colon;
@@ -34,13 +39,15 @@ mod generated {
             Self {
                 temperature_unit: SevenSegmentTemperatureUnit::Celsius,
                 fraction_marker: SevenSegmentFractionMarker::DecimalPoint,
+                temperature_format: SevenSegmentTemperatureFormat::Fractional,
             }
         }
     }
 }
 pub use generated::{
     SegmentPattern, SegmentPatternForm, SevenSegmentFractionMarker, SevenSegmentLook,
-    SevenSegmentSelection, SevenSegmentShow, SevenSegmentTemperatureUnit,
+    SevenSegmentSelection, SevenSegmentShow, SevenSegmentTemperatureFormat,
+    SevenSegmentTemperatureUnit,
 };
 mod format;
 mod prepared_show;
