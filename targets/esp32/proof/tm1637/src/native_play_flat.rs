@@ -80,9 +80,14 @@ impl NativePlay {
                 capabilities: c::CapabilityOfferRefs::Borrowed(&[]),
                 planner_capabilities: &[],
             };
+            // Keep the affine checked owners in the Ready-pair scope, while both
+            // temporary-description callbacks return only unit. No Plan borrow
+            // enters this slot, and neither callback can publish the owners.
+            let mut selected = None;
+            let mut planned = Err(());
             owners
                 .with_advertisement(header, &attachment, |owners, host| {
-                    conduit_planner::borrowed_local::with_linked_local_plan(
+                    planned = conduit_planner::borrowed_local::with_linked_local_plan(
                         image,
                         host,
                         &bases,
@@ -90,12 +95,21 @@ impl NativePlay {
                         1,
                         conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
                         |scope| {
-                            check_linked_scope(owners, scope, issuer, pins, &mut active, custody)
+                            selected = Some(check_linked_scope(
+                                owners,
+                                scope,
+                                issuer,
+                                pins,
+                                &mut active,
+                                custody,
+                            ));
                         },
                     )
-                    .map_err(|_| ())?
+                    .map_err(|_| ());
                 })
-                .map_err(|_| ())?
+                .map_err(|_| ())?;
+            planned?;
+            selected.ok_or(())?
         });
         // No Plan, owner projection, grants, or borrowed lowering survives this
         // point. The unchanged full kernel storage is allocated only afterward.
