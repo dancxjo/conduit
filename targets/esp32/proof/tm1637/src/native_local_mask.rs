@@ -33,6 +33,14 @@ pub(super) struct PreparedSamplerKernel {
     active: c::ActivePlayIdentity,
     fragment: c::FragmentId,
 }
+// Owned preparation crosses the cold replay boundary without retaining its
+// planning/Show temporaries on the decoder's ancestor stack.
+struct PreparedMaskStage {
+    mask: c::VerifiedPlanMetadata,
+    proposal: conduit_body::PreparedVerifiedBodyProposal,
+    mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+    context: Option<conduit_face::PreparedMaskShowContext>,
+}
 pub(super) struct RetainedMask {
     leases: crate::native_authority::MaskLeaseIssuer,
     invocation: conduit_environment_runtime::mask_renderer::PreparedRendererInvocation,
@@ -445,6 +453,29 @@ impl NativeRoot {
         execute: bool,
         #[cfg(feature = "local-appliance")] mut parked: crate::native_restart::ParkedBody,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        let stage = self.prepare_local_mask_stage(
+            sample,
+            execute,
+            #[cfg(feature = "local-appliance")]
+            &mut parked,
+        )?;
+        #[cfg(feature = "local-appliance")]
+        {
+            let key = self.restart_verifying_key();
+            self.body = Some(crate::native_restart::restore_parked(
+                parked, &self.host, &self.boot, &key,
+            )?);
+            mark("cold-body-custody-restored", 1);
+        }
+        self.finish_local_mask_stage(stage, sampler, kernel_backing, execute)
+    }
+    #[inline(never)]
+    fn prepare_local_mask_stage(
+        &mut self,
+        sample: conduit_body::PreparedVerifiedBodyPlotPlan,
+        execute: bool,
+        #[cfg(feature = "local-appliance")] parked: &mut crate::native_restart::ParkedBody,
+    ) -> Result<alloc::boxed::Box<PreparedMaskStage>, &'static str> {
         mark("ordinary-mask-software-construction-held", 15);
         let mask_values = take_fixed_values()?;
         mark(
@@ -456,19 +487,32 @@ impl NativeRoot {
             &sample,
             &mask,
             #[cfg(feature = "local-appliance")]
-            &mut parked,
+            parked,
         )?;
         drop(sample);
         mark("ordinary-mask-sampler-seal-retired", 15);
         let context = Self::prepare_local_show_context(&mask, mask_values, execute)?;
-        #[cfg(feature = "local-appliance")]
-        {
-            let key = self.restart_verifying_key();
-            self.body = Some(crate::native_restart::restore_parked(
-                parked, &self.host, &self.boot, &key,
-            )?);
-            mark("cold-body-custody-restored", 1);
-        }
+        Ok(alloc::boxed::Box::new(PreparedMaskStage {
+            mask,
+            proposal,
+            mask_values,
+            context,
+        }))
+    }
+    #[inline(never)]
+    fn finish_local_mask_stage(
+        &mut self,
+        stage: alloc::boxed::Box<PreparedMaskStage>,
+        sampler: alloc::boxed::Box<PreparedSamplerParts>,
+        kernel_backing: crate::native_kernel_storage::KernelBacking,
+        execute: bool,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        let PreparedMaskStage {
+            mask,
+            proposal,
+            mask_values,
+            context,
+        } = *stage;
         // Full biography replay must finish before the large numeric assembly
         // frame exists, just as streamed restoration and Show preparation do.
         self.commit_local_body_proposal(proposal)?;
