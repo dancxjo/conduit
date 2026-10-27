@@ -303,6 +303,22 @@ impl Projection {
                     name: label.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));
+                if *multiplicity == ChoiceMultiplicity::Independent {
+                    // Describe this exact visible typed ChoiceGroup. A query
+                    // does not make its visible count the full draft inventory.
+                    self.properties.extend([
+                        FaceProperty {
+                            subject: subject.clone(),
+                            name: "choice-multiplicity".into(),
+                            value: FacePropertyValue::Text("independent".into()),
+                        },
+                        FaceProperty {
+                            subject: subject.clone(),
+                            name: "item-count".into(),
+                            value: FacePropertyValue::Count(options.len() as u64),
+                        },
+                    ]);
+                }
                 for (index, option) in options.iter().enumerate() {
                     let id = format!("{subject}/{index}");
                     self.subjects.push(FaceSubject {
@@ -334,6 +350,11 @@ impl Projection {
                     // either Boolean. It is semantic action association, not
                     // an instruction to any Mask to draw a particular control.
                     if *multiplicity == ChoiceMultiplicity::Independent {
+                        self.properties.push(FaceProperty {
+                            subject: id.clone(),
+                            name: "order".into(),
+                            value: FacePropertyValue::Count(index as u64),
+                        });
                         self.properties.push(FaceProperty {
                             subject: id.clone(),
                             name: "boolean-change-action".into(),

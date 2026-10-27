@@ -11,7 +11,8 @@ const UNITS: usize = HEAP_BYTES / UNIT;
 const CURSOR: usize = METADATA + 8192;
 const BITMAP: usize = METADATA + 12288;
 const _: () = assert!(12288 + UNITS.div_ceil(64) * 8 <= HEADER_BYTES);
-struct PrivateHeap;
+pub(crate) struct PrivateHeap;
+#[cfg(target_os = "none")]
 #[global_allocator]
 static HEAP: PrivateHeap = PrivateHeap;
 fn rounded(layout: Layout) -> Option<usize> {

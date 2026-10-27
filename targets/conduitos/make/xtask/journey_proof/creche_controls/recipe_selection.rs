@@ -200,7 +200,7 @@ fn fields(
         || config["root"] != choice.root
         || config["invocation_path"] != json!([choice.root, "component"])
         || config["implementation_id"] != custody::PRESENTER
-        || config["execution_profile_id"] != "conduitos/bounded-mask@1"
+        || config["execution_profile_id"] != "conduitos/bounded-collection-mask@1"
         || config["placement_id"] != show["manifestation"]["placement_id"]
         || ["source_document_id", "checked_plot_id", "fore_id"]
             .iter()

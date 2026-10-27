@@ -1,4 +1,5 @@
-//! Whole public projection goldens captured before preparation optimizations.
+//! Whole public projection goldens, including the checked collection facts.
+//! The thirty-case digest retains complete ordered widget and Face bytes.
 use conduit_birth_plot::{
     BirthDraft, BirthDraftRefusal, BirthFaceBasis, BirthPlotChoice, BirthWidgetFace,
 };
@@ -151,6 +152,6 @@ fn whole_widget_and_portable_face_keep_canonical_projection_bytes() {
     let actual = format!("{:x}", digest.finalize());
     assert_eq!(
         actual,
-        "3113eeb04c191be0583cadaf52ce8902a36146dee6c019ddac8fafe158deb2a0"
+        "cfd3fbc7c89dc481bcc91218c95c4ca3bf478d7452c4176f1a59e55031f8bc3f"
     );
 }

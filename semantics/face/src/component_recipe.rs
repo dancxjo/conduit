@@ -11,6 +11,7 @@ use conduit_plot::rust_binding::NativeRustBinding;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ComponentRecipeRefusal {
+    Collection(crate::CollectionFactsRefusal),
     Encoding,
     EmptyRegions,
     DuplicateRegion,
@@ -71,6 +72,30 @@ pub fn prepare_component_recipe(
                     face.actions.iter().any(|action| {
                         &action.identity == identity && action.target == subject.identity
                     })
+                }
+                ComponentSubjectSelector::Collection(binding) => {
+                    if subject.role != FaceRole::Collection {
+                        false
+                    } else {
+                        let mode = crate::collection_facts::multiplicity(face, &subject.identity)
+                            .map_err(ComponentRecipeRefusal::Collection)?;
+                        let name = match mode {
+                            None => "information",
+                            Some(crate::ChoiceMultiplicity::Exclusive) => "exclusive",
+                            Some(crate::ChoiceMultiplicity::Independent) => "independent",
+                        };
+                        if name == binding.mode() {
+                            crate::collection_facts::validate_collection(
+                                face,
+                                &subject.identity,
+                                usize::from(*binding.maximum_items()),
+                            )
+                            .map_err(ComponentRecipeRefusal::Collection)?;
+                            true
+                        } else {
+                            false
+                        }
+                    }
                 }
                 ComponentSubjectSelector::Role(role) => {
                     existing_role_name(&subject.role) == Some(role.as_str())

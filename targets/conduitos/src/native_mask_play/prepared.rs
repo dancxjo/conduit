@@ -215,6 +215,8 @@ impl PreparedNativeMaskPlay {
             }
         }
         let request = pending.ok_or(NativeMaskPlayError::Kernel)?;
+        let renderer_input_bytes = face_bytes.len() as u32;
+        let renderer_show_value_bytes = show_bytes.len() as u32;
         Ok(Self {
             scheduler,
             request,
@@ -233,6 +235,8 @@ impl PreparedNativeMaskPlay {
                 active_play_id: active.active_play_id,
                 face_id: face.identity.as_str().into(),
                 face_revision: face.revision,
+                renderer_input_bytes,
+                renderer_show_value_bytes,
                 show_value_id,
                 scanout_frame_sequence: 0,
                 scanout_pixels_written: 0,
