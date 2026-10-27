@@ -7,7 +7,10 @@ mod contract;
 pub mod installation;
 #[cfg(feature = "host-call")]
 pub mod owner;
-pub use codec::{PreparedPulseCodec, PulseCodecRefusal};
+pub use codec::{
+    PreparedPulseCodec, PulseCodecRefusal, PULSE_READ_CANONICAL_REQUEST_BYTES,
+    PULSE_READ_CANONICAL_RESULT_BYTES,
+};
 pub use contract::{PulseReadContract, PULSE_READ_CALL, PULSE_READ_KIND, PULSE_READ_MAXIMUM_BYTES};
 
 pub const MAXIMUM_OCTETS: usize = 8;

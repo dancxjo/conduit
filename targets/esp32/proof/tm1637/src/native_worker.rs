@@ -21,7 +21,7 @@ use embassy_futures::{
 };
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 
-const PULSE_BYTES: usize = conduit_pulse_capture::PULSE_READ_MAXIMUM_BYTES as usize;
+const PULSE_BYTES: usize = conduit_pulse_capture::PULSE_READ_CANONICAL_REQUEST_BYTES;
 const WAIT_BYTES: usize = conduit_monotonic_wait::PARAMETER_BYTES as usize;
 struct Queues {
     pulse: Channel<NoopRawMutex, Invocation<PULSE_BYTES>, 1>,

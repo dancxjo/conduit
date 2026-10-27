@@ -19,6 +19,9 @@ impl From<StructuredInfoRefusal> for PulseCodecRefusal {
         Self::Canonical(value)
     }
 }
+// Complete checked Source Type bounds for private transport copies only.
+// Public native admission/capability envelopes remain PULSE_READ_MAXIMUM_BYTES.
+include!(concat!(env!("OUT_DIR"), "/canonical_bounds.rs"));
 pub struct PreparedPulseCodec {
     request: PreparedStructuredValueValidator,
     octets: [Composer; 8],

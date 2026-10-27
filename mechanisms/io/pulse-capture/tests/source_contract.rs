@@ -216,3 +216,87 @@ fn the_source_read_graph_preserves_electrical_outcomes_on_distinct_ports() {
         1
     );
 }
+
+#[test]
+fn linked_copy_bounds_cover_full_request_and_result_types() {
+    use conduit_core::{PreparedStructuredComposer as Composer, StructuredInfoTypeShape};
+    let contract = PulseReadContract::prepare().unwrap();
+    assert_eq!(PULSE_READ_MAXIMUM_BYTES, 1024);
+    assert_eq!(
+        conduit_plot::maximum_prepared_canonical_value_bytes(contract.request_type()).unwrap()
+            as usize,
+        PULSE_READ_CANONICAL_REQUEST_BYTES
+    );
+    assert_eq!(
+        conduit_plot::maximum_prepared_canonical_value_bytes(contract.result_type()).unwrap()
+            as usize,
+        PULSE_READ_CANONICAL_RESULT_BYTES
+    );
+    let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
+        panic!("request record")
+    };
+    let mut children = Vec::new();
+    for field in fields {
+        let bytes: &[u8] = match field.name() {
+            "hold_low_us" | "capture_timeout_us" => &[255; 4],
+            "sample_after_rise_us" => &[255; 2],
+            "skip_high_pulses" => &[255],
+            "octets" => &[8],
+            _ => panic!("unexpected Source field"),
+        };
+        let mut composer = Composer::new(field.value_type(), 64).unwrap();
+        children.push(composer.leaf(bytes).unwrap().to_vec());
+    }
+    let children: Vec<_> = children
+        .iter()
+        .map(|bytes| validate(bytes).unwrap())
+        .collect();
+    let mut composer = Composer::new(contract.request_type(), 1024).unwrap();
+    let input = composer.record(&children).unwrap();
+    assert_eq!(input.len(), PULSE_READ_CANONICAL_REQUEST_BYTES);
+    let mut codec = PreparedPulseCodec::prepare(&contract).unwrap();
+    codec
+        .request(
+            input,
+            PulseReadLimits {
+                maximum_hold_low_us: u32::MAX,
+                maximum_skipped_pulses: u8::MAX,
+                minimum_sample_offset_us: 1,
+                maximum_sample_offset_us: u16::MAX,
+                maximum_octets: 8,
+                maximum_capture_timeout_us: u32::MAX,
+            },
+        )
+        .unwrap();
+    let mut largest = 0;
+    for length in 0..=8 {
+        for value in 0..=255 {
+            let bytes = vec![value; length];
+            for disposition in [
+                PulseReadDisposition::Complete,
+                PulseReadDisposition::TimedOut,
+            ] {
+                if length == 0 && disposition == PulseReadDisposition::Complete {
+                    continue;
+                }
+                let capture = PulseReadCapture::from_complete_octets(disposition, &bytes).unwrap();
+                let encoded = codec.result(capture).unwrap();
+                assert!(encoded.len() <= PULSE_READ_CANONICAL_RESULT_BYTES);
+                validate(encoded).unwrap();
+                largest = largest.max(encoded.len());
+            }
+        }
+    }
+    assert_eq!(largest, PULSE_READ_CANONICAL_RESULT_BYTES);
+    assert!(codec.geometry_refused().unwrap().len() <= PULSE_READ_CANONICAL_RESULT_BYTES);
+    assert!(
+        codec
+            .result(
+                PulseReadCapture::from_complete_octets(PulseReadDisposition::ProviderFailed, &[])
+                    .unwrap()
+            )
+            .unwrap()
+            .len()
+            <= PULSE_READ_CANONICAL_RESULT_BYTES
+    );
+}

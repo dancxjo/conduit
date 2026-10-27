@@ -10,7 +10,9 @@ use conduit_monotonic_wait::{
     MonotonicWaitHostCall, MonotonicWaitProvider, WaitCallRefusal, WaitProviderFailure,
 };
 use conduit_pulse_capture::owner::{PulseHostCall, PulseReadProvider};
-const PULSE_BYTES: usize = conduit_pulse_capture::PULSE_READ_MAXIMUM_BYTES as usize;
+const PULSE_BYTES: usize = conduit_pulse_capture::PULSE_READ_CANONICAL_REQUEST_BYTES;
+const REPLY_BYTES: usize = conduit_pulse_capture::PULSE_READ_CANONICAL_RESULT_BYTES;
+const PULSE_MAXIMUM_BYTES: usize = conduit_pulse_capture::PULSE_READ_MAXIMUM_BYTES as usize;
 const WAIT_BYTES: usize = conduit_monotonic_wait::PARAMETER_BYTES as usize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,27 +40,50 @@ pub enum Dispatch {
 }
 pub struct Reply {
     request: HostCallRequest,
-    bytes: [u8; PULSE_BYTES],
+    bytes: [u8; REPLY_BYTES],
     length: Option<usize>,
     failure: Option<k::Failure>,
 }
 fn parameters<const N: usize>(
     kernel: &Kernel,
     request: HostCallRequest,
+    maximum_bytes: usize,
 ) -> Result<Invocation<N>, k::Failure> {
     let input = kernel
         .host_value(request.input.value)
         .map_err(|_| fail(k::FailureCode::InvalidInput, 1))?;
-    if input.len() > N {
+    copy_parameters(request, input, maximum_bytes)
+}
+fn copy_parameters<const N: usize>(
+    request: HostCallRequest,
+    input: &[u8],
+    maximum_bytes: usize,
+) -> Result<Invocation<N>, k::Failure> {
+    if input.len() > maximum_bytes {
         return Err(fail(k::FailureCode::InvalidInput, 2));
     }
     let mut bytes = [0; N];
-    bytes[..input.len()].copy_from_slice(input);
+    // Over-Type-bound input preserves its original refusal without retaining
+    // unused public-envelope padding in each invocation queue and future.
+    if input.len() <= N {
+        bytes[..input.len()].copy_from_slice(input);
+    }
     Ok(Invocation {
         request,
         bytes,
         length: input.len(),
     })
+}
+#[cfg(test)]
+pub(crate) fn test_pulse_input(
+    request: HostCallRequest,
+    input: &[u8],
+) -> Result<Invocation<PULSE_BYTES>, k::Failure> {
+    copy_parameters(request, input, PULSE_MAXIMUM_BYTES)
+}
+#[cfg(test)]
+pub(crate) fn test_reply_failure(reply: &Reply) -> Option<k::Failure> {
+    reply.failure
 }
 /// Copies only a native call's finitely admitted input. The kernel keeps its
 /// own pending input pinned until correlated completion or cancellation.
@@ -67,7 +92,7 @@ pub fn next(storage: &mut PreparedKernel) -> Result<Dispatch, k::Failure> {
         return Ok(Dispatch::None);
     };
     if request.node == storage.roles.pulse {
-        return match parameters(&storage.kernel, request) {
+        return match parameters(&storage.kernel, request, PULSE_MAXIMUM_BYTES) {
             Ok(input) => Ok(Dispatch::Pulse(input)),
             Err(reason) => {
                 complete(&mut storage.kernel, request, Err(reason)).map(Dispatch::Software)
@@ -75,7 +100,7 @@ pub fn next(storage: &mut PreparedKernel) -> Result<Dispatch, k::Failure> {
         };
     }
     if request.node == storage.roles.tick {
-        return match parameters(&storage.kernel, request) {
+        return match parameters(&storage.kernel, request, WAIT_BYTES) {
             Ok(input) => Ok(Dispatch::Wait(input)),
             Err(reason) => {
                 complete(&mut storage.kernel, request, Err(reason)).map(Dispatch::Software)
@@ -100,12 +125,12 @@ pub fn next(storage: &mut PreparedKernel) -> Result<Dispatch, k::Failure> {
 fn reply(request: HostCallRequest, result: Result<Option<&[u8]>, k::Failure>) -> Reply {
     let mut reply = Reply {
         request,
-        bytes: [0; PULSE_BYTES],
+        bytes: [0; REPLY_BYTES],
         length: None,
         failure: None,
     };
     match result {
-        Ok(Some(bytes)) if bytes.len() <= PULSE_BYTES => {
+        Ok(Some(bytes)) if bytes.len() <= REPLY_BYTES => {
             reply.bytes[..bytes.len()].copy_from_slice(bytes);
             reply.length = Some(bytes.len());
         }
@@ -120,6 +145,11 @@ pub async fn pulse<P: PulseReadProvider>(
     input: Invocation<PULSE_BYTES>,
 ) -> Reply {
     let request = input.request;
+    if input.length > PULSE_BYTES {
+        // The original canonical decoder rejects before authorizing a lease,
+        // incrementing request sequence, or touching the electrical provider.
+        return reply(request, Err(fail(k::FailureCode::HostCallDenied, 7)));
+    }
     let result = owner
         .invoke(
             request.node,

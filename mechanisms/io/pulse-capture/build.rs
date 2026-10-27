@@ -8,6 +8,7 @@ fn main() {
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let mut bounds = String::new();
     for (name, file) in [
         ("PulseReadRequest", "request.type"),
         ("PulseReadCapture", "capture.type"),
@@ -23,5 +24,22 @@ fn main() {
             "pulse ABI acquired additional laws"
         );
         fs::write(out.join(file), ty.value_type.canonical_bytes().unwrap()).unwrap();
+        if name != "PulseReadCapture" {
+            let maximum =
+                conduit_plot::maximum_prepared_canonical_value_bytes(&ty.value_type).unwrap();
+            assert!(
+                maximum <= 1024,
+                "pulse canonical Type exceeds public Host Call ceiling"
+            );
+            let suffix = if name == "PulseReadRequest" {
+                "REQUEST"
+            } else {
+                "RESULT"
+            };
+            bounds.push_str(&format!(
+                "pub const PULSE_READ_CANONICAL_{suffix}_BYTES: usize = {maximum};\n"
+            ));
+        }
     }
+    fs::write(out.join("canonical_bounds.rs"), bounds).unwrap();
 }

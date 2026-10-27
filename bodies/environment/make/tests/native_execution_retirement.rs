@@ -307,7 +307,21 @@ fn fixture() -> Fixture {
         selectors: Box::new(prepared.selectors),
         roles: prepared.roles,
     });
-    let execution = Some(DeviceExecution::boxed_retained(&mut storage, &mut native).unwrap());
+    let (execution, memory) = allocation_probe::observe(|| {
+        Some(DeviceExecution::boxed_retained(&mut storage, &mut native).unwrap())
+    });
+    assert_eq!(
+        memory.retained_bytes(),
+        core::mem::size_of::<DeviceExecution>()
+    );
+    assert_eq!((memory.allocations, memory.reallocations), (1, 0));
+    println!(
+        "native_execution_layout pointer_bits={} inline={} construction_heap={} peak={}",
+        usize::BITS,
+        core::mem::size_of::<DeviceExecution>(),
+        memory.retained_bytes(),
+        memory.peak_bytes
+    );
     Fixture {
         execution,
         active,
@@ -517,4 +531,64 @@ fn abandoned_started_execution_must_quiesce_before_returning_material() {
     let returned = DeviceExecution::retire_with_material_retained(&mut f.execution).unwrap();
     assert!(returned.material.into_parts().execution.cancelled);
     assert_eq!((f.effects.get(), f.waits.get()), effects);
+}
+
+#[test]
+fn over_type_bound_pulse_input_preserves_denial_and_owner_custody() {
+    use core::{
+        future::Future,
+        task::{Context, Poll, Waker},
+    };
+    fn ready<T>(future: impl Future<Output = T>) -> T {
+        let mut future = core::pin::pin!(future);
+        match future
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+        {
+            Poll::Ready(result) => result,
+            Poll::Pending => panic!("immediate refusal"),
+        }
+    }
+    let mut f = fixture();
+    let execution = f.execution.as_mut().unwrap();
+    let request = k::scheduler::HostCallRequest {
+        node: execution.storage.roles.pulse,
+        call: k::HostCallId(0),
+        request: k::RequestId(0),
+        input: k::BoundedValueRef::new(
+            k::ValueRef {
+                slot: 0,
+                generation: 0,
+                byte_len: 1,
+            },
+            1,
+        )
+        .unwrap(),
+    };
+    for length in conduit_pulse_capture::PULSE_READ_CANONICAL_REQUEST_BYTES + 1..=1024 {
+        let bytes = vec![0xff; length];
+        let before = execution.native.pulse.inspection().clone();
+        assert!(ready(execution.native.pulse.invoke(
+            request.node,
+            request.call,
+            request.request,
+            &bytes
+        ))
+        .is_err());
+        let input = native_service::test_pulse_input(request, &bytes)
+            .ok()
+            .unwrap();
+        let reply = ready(native_service::pulse(&mut execution.native.pulse, input));
+        let failure = native_service::test_reply_failure(&reply).unwrap();
+        assert_eq!(failure.code, k::FailureCode::HostCallDenied);
+        assert_eq!(execution.native.pulse.inspection(), &before);
+        assert_eq!(f.effects.get(), 0);
+    }
+    assert!(native_service::test_pulse_input(request, &[0; 1025]).is_err());
+    assert_eq!(run(execution).exit, native_worker::Exit::Drained);
+    assert_eq!(
+        f.effects.get(),
+        3,
+        "invalid requests must not spend next request or capability budget"
+    );
 }
