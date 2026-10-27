@@ -1,3 +1,4 @@
+use crate::postcard_hash::PostcardSha256 as ArchiveHash;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -484,21 +485,6 @@ impl Drop for MembershipSeal<'_> {
         if let Some(compaction) = self.old_compaction.take() {
             self.evidence.compaction = compaction;
         }
-    }
-}
-struct ArchiveHash(Sha256);
-impl postcard::ser_flavors::Flavor for ArchiveHash {
-    type Output = [u8; 32];
-    fn try_push(&mut self, byte: u8) -> postcard::Result<()> {
-        self.0.update([byte]);
-        Ok(())
-    }
-    fn try_extend(&mut self, bytes: &[u8]) -> postcard::Result<()> {
-        self.0.update(bytes);
-        Ok(())
-    }
-    fn finalize(self) -> postcard::Result<Self::Output> {
-        Ok(self.0.finalize().into())
     }
 }
 fn digest(payload: &ArchivePayload<'_>) -> Result<[u8; 32], BodyBiographyError> {

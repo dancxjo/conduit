@@ -47,6 +47,7 @@ mod offers;
 #[cfg(feature = "authenticated-admission")]
 mod pico_admission;
 mod planning_session;
+mod postcard_hash;
 mod presence;
 mod provenance;
 mod rendezvous;

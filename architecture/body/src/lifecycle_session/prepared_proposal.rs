@@ -1,6 +1,7 @@
 //! Private preparation custody lets callers retire verified Plot metadata before
 //! the atomic biography publication. This is not a Body start or execution grant.
 use super::*;
+use crate::postcard_hash::PostcardSha256 as StateHash;
 use crate::{VerifiedBodyMaskTopology, VerifiedBodyPlotPlan};
 use sha2::{Digest, Sha256};
 
@@ -120,17 +121,6 @@ impl VerifiedBodyProposalContext {
             wake: self.wake,
             plan,
         })
-    }
-}
-struct StateHash(Sha256);
-impl postcard::ser_flavors::Flavor for StateHash {
-    type Output = [u8; 32];
-    fn try_push(&mut self, byte: u8) -> postcard::Result<()> {
-        self.0.update([byte]);
-        Ok(())
-    }
-    fn finalize(self) -> postcard::Result<Self::Output> {
-        Ok(self.0.finalize().into())
     }
 }
 impl SealedBodyLifecycleSession {
