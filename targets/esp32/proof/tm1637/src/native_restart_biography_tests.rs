@@ -346,3 +346,161 @@ fn private_backup_prefix_migration_preserves_exact_canonical_custody() {
     );
     println!("private_backup_migration: generation_before={before_generation} encoded_before={before_bytes} encoded_after={after_bytes} archives={} local_after=0 exact_body_key_evidence_manager=true fixture_receipt_only=true",archives.len());
 }
+
+/// Read-only content proof of the actual physical offload. Unlike the earlier
+/// CPU migration fixture, this never constructs or signs an endorsement.
+#[test]
+#[ignore = "requires actual before/after physical backups and private custody files"]
+fn private_physical_offload_preserves_actual_receipt_and_complete_archives() {
+    let body: conduit_body::BodyId = serde_json::from_value(serde_json::Value::String(
+        std::env::var("CONDUIT_PRIVATE_BODY_ID").expect("private Body input required"),
+    ))
+    .expect("Body input encoding");
+    let before_path =
+        std::env::var_os("CONDUIT_PRIVATE_BODY_BEFORE").expect("physical before backup required");
+    let after_path =
+        std::env::var_os("CONDUIT_PRIVATE_BODY_AFTER").expect("physical after backup required");
+    let directory = std::path::PathBuf::from(
+        std::env::var_os("CONDUIT_PRIVATE_CUSTODY_DIRECTORY")
+            .expect("actual private archive files required"),
+    );
+    let owner_path = std::env::var_os("CONDUIT_PRIVATE_OWNER_PUBLIC")
+        .expect("configured owner public key required");
+    let binding: [u8; 32] = Sha256::digest(body.as_str().as_bytes()).into();
+    let load = |path: std::ffi::OsString| {
+        let mut bytes = std::fs::read(path).expect("physical backup read");
+        let banks = match bytes.len() {
+            0x400000 => &bytes[0x3f0000..0x400000],
+            0x10000 => &bytes[..],
+            _ => panic!("expected complete flash or exact Body banks"),
+        };
+        let mut region = crate::native_evidence_region::test_empty();
+        crate::native_body_checkpoint::Storage::program(&mut region, 0, banks)
+            .expect("copy physical banks");
+        bytes.fill(0);
+        let mut journal = Checkpoint::open(region).expect("physical bank authentication");
+        let generation = journal.generation().expect("physical generation");
+        let length = journal
+            .payload_length(&binding)
+            .expect("physical Body binding")
+            .expect("physical payload");
+        let mut seed = PrivateSeed([0; 32]);
+        let (resident, source) =
+            decode_checkpoint(&mut journal, &binding, &body, &mut seed.0, None)
+                .expect("physical canonical cold decode");
+        (journal, generation, length, seed, resident, source)
+    };
+    let (before_journal, before_generation, before_bytes, before_seed, before, source) =
+        load(before_path);
+    let (_after_journal, after_generation, after_bytes, after_seed, after, _) = load(after_path);
+    assert!(
+        after_generation == before_generation + 1,
+        "compare exact storage-only offload, not later Boot checkpoints"
+    );
+    assert!(
+        before_seed.0 == after_seed.0,
+        "physical Root private identity preserved"
+    );
+    assert!(
+        before.retained.evidence == after.retained.evidence,
+        "exact active canonical evidence preserved"
+    );
+    assert!(
+        before.retained.admissions == after.retained.admissions,
+        "exact original admission manager preserved"
+    );
+    assert!(
+        before.prefix.is_none() && before.local_count > 0,
+        "original complete local archive chain"
+    );
+    assert!(
+        after.local_count == 0 && after.summary == before.summary,
+        "all original archives became endorsed external prefix"
+    );
+    assert!(
+        after_bytes < before_bytes,
+        "actual physical capacity recovered"
+    );
+    let root = ed25519_dalek::SigningKey::from_bytes(&after_seed.0).verifying_key();
+    let receipt = after
+        .prefix
+        .as_ref()
+        .expect("actual persisted physical receipt");
+    receipt
+        .verify(&body, &root)
+        .expect("actual physical Root endorsement");
+    assert!(
+        receipt.summary == cumulative(&before.summary),
+        "actual persisted complete prefix summary"
+    );
+    let owner = std::fs::read(owner_path).expect("configured public owner key");
+    assert!(owner.len() == 32, "owner public key extent");
+    assert!(
+        matches!(&receipt.consumer,payload::wire::Consumer::Owner{key} if key.0==<[u8;32]>::from(Sha256::digest(&owner))),
+        "actual receipt records physical owner role, not admitted membership"
+    );
+    let mut store = Store {
+        journal: before_journal,
+        binding,
+        seed: Some(before_seed.0),
+        evidence: Some(before.retained.evidence),
+        archives: Vec::new(),
+        custody: Some(ArchiveCustody {
+            source,
+            summary: before.summary,
+            prefix: before.prefix,
+            local_count: before.local_count,
+            span: before.span,
+        }),
+        admissions: before.retained.admissions,
+        parked: false,
+        pristine: false,
+        failed: false,
+        ready: false,
+    };
+    let draft = prepare_store(&mut store).expect("recompute exact original physical offer");
+    assert!(
+        draft.offer().transcript(&root.to_bytes()) == receipt.offer.0,
+        "actual receipt names authenticated original snapshot"
+    );
+    let mut exported = Vec::new();
+    export_store(&mut store, &draft, &mut |bytes| {
+        exported.extend_from_slice(bytes);
+        Ok(())
+    })
+    .expect("exact original archive stream");
+    let archives: Vec<BodyBiographyArchiveSegment> =
+        serde_json::from_slice(&exported).expect("actual original canonical archives");
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let manifest: payload::wire::Offer = serde_json::from_slice(
+        &std::fs::read(directory.join(format!("offer-{}.json", hex(&receipt.offer.0))))
+            .expect("actual saved host manifest"),
+    )
+    .expect("actual manifest encoding");
+    assert!(
+        manifest
+            .verify(&body, &root)
+            .expect("host manifest pinned Root")
+            == receipt.offer.0,
+        "host retained exact physical offer"
+    );
+    assert!(
+        manifest.stream.0 == <[u8; 32]>::from(Sha256::digest(&exported)),
+        "host manifest exact source array digest"
+    );
+    for segment in &archives {
+        let saved: BodyBiographyArchiveSegment = serde_json::from_slice(
+            &std::fs::read(directory.join(format!("{}.json", hex(&segment.digest))))
+                .expect("actual saved host archive"),
+        )
+        .expect("host canonical archive encoding");
+        saved
+            .validate()
+            .expect("actual saved archive canonical validation");
+        assert!(
+            saved == *segment,
+            "every host archive matches original physical bytes semantically"
+        );
+    }
+    println!("physical_offload_content: generation_before={before_generation} generation_after={after_generation} encoded_before={before_bytes} encoded_after={after_bytes} archives={} actual_owner_receipt_and_host_files=true exact_body_key_evidence_manager=true",archives.len());
+}
