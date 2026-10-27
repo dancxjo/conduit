@@ -99,30 +99,51 @@ impl NativeRoot {
             return b"refused";
         }
         self.offer_generation = selected_generation - 1;
-        if self.prepare_network_plan().is_err() {
-            return b"refused";
-        }
-        let prepared = match self.network_preparation.take() {
-            Some(Ok(prepared)) => prepared,
-            refusal => {
-                self.network_preparation = refusal;
-                return b"planning-refused";
+        #[cfg(feature = "local-appliance")]
+        let result = {
+            let image = crate::native_source::load();
+            let result = self.play.install_linked_held(
+                &image,
+                &self.network_source,
+                c::OfferGeneration(self.offer_generation),
+                &mut self.credentials,
+                self.network.ready_slot(),
+                &mut self.issuer,
+            );
+            if result.is_ok() && window.is_none() {
+                self.play.release_held()
+            } else {
+                result
             }
         };
-        let result = if window.is_some() {
-            self.play.install_verified_owned_held(
-                prepared,
-                &mut self.credentials,
-                self.network.ready_slot(),
-                &mut self.issuer,
-            )
-        } else {
-            self.play.install_verified_owned(
-                prepared,
-                &mut self.credentials,
-                self.network.ready_slot(),
-                &mut self.issuer,
-            )
+        #[cfg(not(feature = "local-appliance"))]
+        let result = {
+            if self.prepare_network_plan().is_err() {
+                return b"refused";
+            }
+            let prepared = match self.network_preparation.take() {
+                Some(Ok(prepared)) => prepared,
+                refusal => {
+                    self.network_preparation = refusal;
+                    return b"planning-refused";
+                }
+            };
+            let result = if window.is_some() {
+                self.play.install_verified_owned_held(
+                    prepared,
+                    &mut self.credentials,
+                    self.network.ready_slot(),
+                    &mut self.issuer,
+                )
+            } else {
+                self.play.install_verified_owned(
+                    prepared,
+                    &mut self.credentials,
+                    self.network.ready_slot(),
+                    &mut self.issuer,
+                )
+            };
+            result
         };
         self.network.mark_selected();
         self.offer_generation = selected_generation;

@@ -30,6 +30,11 @@ pub(crate) enum Error {
 /// cannot address another epoch or any Body/key/network/credential partition.
 pub(crate) trait WholeEpoch {
     fn identity(&self) -> [u8; 32];
+    /// Offset of the journal view inside this actual whole physical epoch.
+    /// Trusted region adapters override this after sealing empty prefixes.
+    fn data_offset(&self) -> usize {
+        0
+    }
     fn read(&mut self, at: usize, out: &mut [u8]) -> Result<(), Error>;
     fn program_marker(&mut self, bank: u8, at: usize, bytes: &[u8]) -> Result<(), Error>;
     fn erase_marker(&mut self, bank: u8) -> Result<(), Error>;
@@ -70,6 +75,8 @@ fn checksum(bytes: &[u8]) -> u32 {
 fn bank_at(bank: u8) -> usize {
     DATA + usize::from(bank) * SECTOR
 }
+#[path = "native_observed_layout.rs"]
+pub(crate) mod layout;
 impl<S: WholeEpoch> Custody<S> {
     /// Never turns unknown/torn first-format metadata into fresh writable media.
     #[allow(clippy::result_large_err)]
@@ -163,6 +170,68 @@ impl<S: WholeEpoch> Custody<S> {
             Ok(latest) => Ok(Self { storage, latest }),
             Err(error) => Err((storage, error)),
         }
+    }
+    /// A prior durable layout witness can recognize interrupted FIRST metadata
+    /// formatting only. Existing committed corruption never takes this path.
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn open_established(
+        storage: S,
+        witness: layout::EstablishedLayout,
+        work: &mut [u8; WORK],
+        verify: impl Fn(&[u8; ACCEPTANCE]) -> bool,
+    ) -> Result<Self, (S, Error)> {
+        if !witness.matches(&storage) {
+            return Err((storage, Error::Region));
+        }
+        match Self::open(storage, work, verify) {
+            Err((mut storage, Error::UnknownMetadata)) => {
+                match Self::first_format_footprint(&mut storage) {
+                    Ok(()) => Ok(Self {
+                        storage,
+                        latest: None,
+                    }),
+                    Err(error) => Err((storage, error)),
+                }
+            }
+            other => other,
+        }
+    }
+    // First publication can touch only bank zero, generation one, Reclaiming.
+    // A durable layout receipt cannot reset counters or reinterpret later torn
+    // metadata as a new journal. Only programmed expected bytes or erased bytes
+    // are accepted in the fixed header and physical-region binding.
+    fn first_format_footprint(storage: &mut S) -> Result<(), Error> {
+        let mut chunk = [0; 64];
+        for (bank, start) in [(0, RECORD), (1, 0)] {
+            for at in (start..SECTOR).step_by(64) {
+                let n = (SECTOR - at).min(64);
+                storage.read(bank_at(bank) + at, &mut chunk[..n])?;
+                if chunk[..n].iter().any(|byte| *byte != 255) {
+                    return Err(Error::UnknownMetadata);
+                }
+            }
+        }
+        let mut expected = [0; 24];
+        expected[..8].copy_from_slice(MAGIC);
+        expected[8..16].copy_from_slice(&1u64.to_le_bytes());
+        expected[16..20].copy_from_slice(&(Phase::Reclaiming as u32).to_le_bytes());
+        storage.read(bank_at(0), &mut chunk[..24])?;
+        if chunk[..24]
+            .iter()
+            .zip(expected)
+            .any(|(actual, expected)| *actual != 255 && *actual != expected)
+        {
+            return Err(Error::UnknownMetadata);
+        }
+        storage.read(bank_at(0) + PAYLOAD, &mut chunk[..32])?;
+        if chunk[..32]
+            .iter()
+            .zip(storage.identity())
+            .any(|(actual, expected)| *actual != 255 && *actual != expected)
+        {
+            return Err(Error::Region);
+        }
+        Ok(())
     }
     /// Trusted closure must consume/check actual immutable journal custody,
     /// exact signed scope/forms/count/content, and opaque admitted-message proof.
