@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 [workspace]
+[features]
+default = []
+# Compatibility cfg selects the existing finite CYW43 network initializer.
+wifi = ["appliance-hil-client", "dep:cyw43", "dep:cyw43-pio", "dep:embassy-net", "dep:aligned", "dep:embassy-sync", "dep:conduit-net"]
+appliance-hil-client = []
 [dependencies]
 conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
 conduit-ht16k33 = { path = "../../../../mechanisms/io/ht16k33" }
@@ -21,6 +26,12 @@ embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "1
 embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["critical-section-impl", "rp2040", "time-driver"] }
 embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
 embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+aligned = { version = "0.4.3", optional = true }
+conduit-net = { path = "../../../../semantics/net", optional = true }
+cyw43 = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
+cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["dhcpv4", "medium-ethernet", "proto-ipv4"], optional = true }
 [build-dependencies]
 conduit-host-make = { path = "../../../../make/host" }
 conduit-host-rp2040 = { path = "../../make" }

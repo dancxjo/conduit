@@ -18,7 +18,10 @@ fn collect(root: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 fn main() {
-    let profile = PathBuf::from("../../profiles/pico-environment-usb.host.conduit");
+    println!("cargo:rerun-if-env-changed=CONDUIT_HOST_CONFIGURATION");
+    let profile = env::var_os("CONDUIT_HOST_CONFIGURATION")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("../../profiles/pico-environment-usb.host.conduit"));
     let source = fs::read_to_string(&profile).unwrap();
     let packages =
         conduit_host_make::MakePackageSet::compose(&[&conduit_host_rp2040::Rp2040MakePackage])
@@ -28,6 +31,11 @@ fn main() {
         conduit_host_make::parse_host_configuration_conduit(&source).expect("Host Conduitese");
     let checked = conduit_host_make::check_host_configuration(configuration, &catalog, &packages)
         .expect("checked Host configuration");
+    assert_eq!(
+        checked.configuration().target.machine == "pico-w",
+        env::var_os("CARGO_FEATURE_WIFI").is_some(),
+        "checked Pico W Host requires wifi feature; plain Pico must omit it"
+    );
     let generated =
         conduit_host_rp2040::environment_usb_rust(&checked).expect("RP2040 physical bindings");
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
@@ -80,6 +88,24 @@ fn main() {
         optional.push(Path::new(directory).join("build.rs"));
     }
     files.push("Cargo.lock".into());
+    if env::var_os("CARGO_FEATURE_WIFI").is_some() {
+        files.push("../../firmware/pico-w-signal/src/radio.rs".into());
+        collect(Path::new("../../../../semantics/net/src"), &mut files);
+        files.push("../../../../semantics/net/Cargo.toml".into());
+        for name in [
+            "43439A0.bin",
+            "nvram_rp2040.bin",
+            "43439A0_clm.bin",
+            "LICENSE-permissive-binary-license-1.0.txt",
+        ] {
+            files.push(
+                Path::new(
+                    "../../firmware/assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab",
+                )
+                .join(name),
+            );
+        }
+    }
     files.sort();
     let mut hash = Sha256::new();
     hash.update(generated.as_bytes());

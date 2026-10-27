@@ -80,6 +80,12 @@ pub fn environment_usb_rust(checked: &CheckedHostConfiguration) -> Result<String
     if sensor == display {
         return Err("I2C device address collision".into());
     }
+    let wifi = c.target.machine == "pico-w";
+    let role = if wifi {
+        "conduit.environment-wifi-carrier@1"
+    } else {
+        "conduit.environment-usb@1"
+    };
     let heap = c.limits.heap_arena_bytes;
     if !(32768..=98304).contains(&heap) {
         return Err("USB diagnostic heap outside supported32..96KiB".into());
@@ -87,6 +93,8 @@ pub fn environment_usb_rust(checked: &CheckedHostConfiguration) -> Result<String
     Ok(format!(
         r#"pub const CONFIGURATION_ID:&str={:?};
 pub const HEAP_BYTES:usize={heap};
+pub const WIFI_ALLOWED:bool={wifi};
+pub const ROLE:&str={role:?};
 pub const FREQUENCY:u32={frequency_hz};
 pub const SENSOR_ADDRESS:u8={sensor};
 pub const DISPLAY_ADDRESS:u8={display};

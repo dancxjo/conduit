@@ -1,4 +1,4 @@
-//! USB-only autonomous environmental diagnostic; old radio relay is separate.
+//! Autonomous environmental diagnostic with an opt-in checked Pico W carrier.
 #![no_std]
 #![no_main]
 use embassy_executor::Spawner;
@@ -13,6 +13,8 @@ use static_cell::StaticCell;
 mod environment;
 mod environment_show;
 mod heap;
+#[cfg(feature = "wifi")]
+mod wifi;
 #[allow(dead_code)]
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
@@ -23,7 +25,10 @@ mod config {
 #[allow(dead_code, unused_attributes)]
 mod protocol;
 type Cdc = CdcAcmClass<'static, usb::Driver<'static, USB>>;
+#[cfg(not(feature = "wifi"))]
 embassy_rp::bind_interrupts!(struct UsbIrqs{USBCTRL_IRQ=>usb::InterruptHandler<USB>;});
+#[cfg(feature = "wifi")]
+use wifi::UsbIrqs;
 static DEVICE: StaticCell<[u8; 256]> = StaticCell::new();
 static CONFIG: StaticCell<[u8; 256]> = StaticCell::new();
 static BOS: StaticCell<[u8; 256]> = StaticCell::new();
@@ -74,6 +79,13 @@ async fn main(spawner: Spawner) {
     }
     let p = embassy_rp::init(Default::default());
     config::start_environment!(spawner, p);
+    #[cfg(feature = "wifi")]
+    spawner.spawn(
+        wifi::run(
+            spawner, p.PIO0, p.DMA_CH0, p.DMA_CH1, p.PIN_23, p.PIN_24, p.PIN_25, p.PIN_29,
+        )
+        .unwrap(),
+    );
     let (device, mut class) = cdc(usb::Driver::new(p.USB, UsbIrqs));
     spawner.spawn(usb_task(device).unwrap());
     let mut decoder = protocol::Decoder::new();
@@ -142,7 +154,31 @@ async fn main(spawner: Spawner) {
                     embassy_rp::rom_data::reset_to_usb_boot(0, 0);
                 }
             }
-            protocol::STATUS | protocol::SENSOR_STATUS | protocol::SENSOR_DIAGNOSTIC => {
+            #[cfg(feature = "wifi")]
+            protocol::JOIN => match wifi::configure(frame.payload).await {
+                Ok(()) => {
+                    if let Ok(status) = wifi::status() {
+                        let _ =
+                            send(&mut class, protocol::INFORMATION, id, status.as_bytes()).await;
+                    }
+                }
+                Err(reason) => {
+                    let _ = send(&mut class, protocol::ERROR, id, reason.as_bytes()).await;
+                }
+            },
+            #[cfg(feature = "wifi")]
+            protocol::STATUS => {
+                if let Ok(status) = wifi::status() {
+                    let _ = send(&mut class, protocol::INFORMATION, id, status.as_bytes()).await;
+                }
+            }
+            #[cfg(not(feature = "wifi"))]
+            protocol::STATUS => {
+                if let Ok(status) = environment::status() {
+                    let _ = send(&mut class, protocol::INFORMATION, id, status.as_bytes()).await;
+                }
+            }
+            protocol::SENSOR_STATUS | protocol::SENSOR_DIAGNOSTIC => {
                 if let Ok(status) = environment::status() {
                     let _ = send(&mut class, protocol::INFORMATION, id, status.as_bytes()).await;
                 }

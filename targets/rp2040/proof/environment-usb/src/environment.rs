@@ -41,7 +41,7 @@ pub fn status() -> Result<heapless::String<1024>, ()> {
         Some(conduit_bosch_env::Chip::Bmp280) => 88,
         None => 0,
     };
-    write!(&mut out,"{{\"role\":\"conduit.environment-usb@1\",\"build\":\"{}\",\"configuration\":\"{}\",\"sensor_address\":{},\"display_address\":{},\"samples\":{},\"attempts\":{},\"frames\":{},\"acks\":{},\"heap_peak\":{},\"sensor_error\":{},\"display_error\":{},\"body_member\":false",crate::protocol::BUILD_ID,config::CONFIGURATION_ID,config::SENSOR_ADDRESS,config::DISPLAY_ADDRESS,s.samples,s.attempts,s.frames,s.acks,peak,s.sensor_error,s.display_error).map_err(|_|())?;
+    write!(&mut out,"{{\"role\":\"{}\",\"build\":\"{}\",\"configuration\":\"{}\",\"sensor_address\":{},\"display_address\":{},\"samples\":{},\"attempts\":{},\"frames\":{},\"acks\":{},\"heap_peak\":{},\"sensor_error\":{},\"display_error\":{},\"body_member\":false",config::ROLE,crate::protocol::BUILD_ID,config::CONFIGURATION_ID,config::SENSOR_ADDRESS,config::DISPLAY_ADDRESS,s.samples,s.attempts,s.frames,s.acks,peak,s.sensor_error,s.display_error).map_err(|_|())?;
     write!(&mut out, ",\"chip_id\":{chip_id}").map_err(|_| ())?;
     if let Some(r) = s.reading {
         write!(&mut out,",\"temperature_centi_celsius\":{},\"pressure_centi_pascal\":{},\"humidity_percent_q10\":",r.temperature_centi_celsius,r.pressure_centi_pascal).map_err(|_|())?;

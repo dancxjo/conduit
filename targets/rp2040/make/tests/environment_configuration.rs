@@ -120,3 +120,17 @@ fn old_empty_attachment_configurations_keep_their_legacy_identity_encoding() {
         checked(&canonical).unwrap().configuration_id()
     );
 }
+
+#[test]
+fn pico_w_wireless_permission_is_checked_target_bound_not_a_usb_alias() {
+    let plain = checked(SOURCE).unwrap();
+    let source = include_str!("../../profiles/pico-w-environment-usb.host.conduit");
+    let wireless = checked(source).unwrap();
+    assert_ne!(plain.configuration_id(), wireless.configuration_id());
+    let plain = conduit_host_rp2040::environment_usb_rust(&plain).unwrap();
+    let wireless = conduit_host_rp2040::environment_usb_rust(&wireless).unwrap();
+    assert!(plain.contains("WIFI_ALLOWED:bool=false"));
+    assert!(wireless.contains("WIFI_ALLOWED:bool=true"));
+    assert!(wireless.contains("conduit.environment-wifi-carrier@1"));
+    assert!(wireless.contains("$p.I2C1,$p.PIN_7,$p.PIN_6"));
+}
