@@ -71,17 +71,23 @@ fn a_ready_capability_does_not_replace_authority_or_missing_implementations() {
 #[test]
 fn authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel() {
     for scenario in 0..=6 {
-        run(scenario, false);
+        run(scenario, false, false);
     }
 }
 #[test]
 fn full_authored_overnight_workload_drains_with_a_small_value_store() {
     // Deterministic CPU clock completions; no physical sixteen-hour claim.
     for scenario in 0..=6 {
-        run(scenario, true);
+        run(scenario, true, false);
     }
 }
-fn run(scenario: usize, overnight: bool) {
+#[test]
+fn source_node_publications_preserve_all_seven_full_overnight_trajectories() {
+    for scenario in 0..=6 {
+        run(scenario, true, true);
+    }
+}
+fn run(scenario: usize, overnight: bool, source_profile: bool) {
     let source = if overnight {
         conduit_environment_runtime::construction::compile_default().unwrap()
     } else {
@@ -300,6 +306,8 @@ fn run(scenario: usize, overnight: bool) {
             .unwrap();
         let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
         let mut drivers: [Option<Driver>; N] = core::array::from_fn(|_| None);
+        let source_order =
+            conduit_environment_runtime::publication::PublicationSequence::prepare(count);
         for placement in &plan.fragments[0].startup_order {
             let i = usize::from(lowered.identity.node_for_placement(placement).unwrap().0);
             let gear = plan.fragments[0]
@@ -316,7 +324,18 @@ fn run(scenario: usize, overnight: bool) {
                     .take_verified(&metadata, &plan.fragments[0].fragment_id, placement)
                     .unwrap();
                 selectors[i] = prepared.selector;
-                prepared.driver
+                if source_profile {
+                    if let Some(channel) = Channel::ALL
+                        .into_iter()
+                        .find(|channel| channel.kind_id() == gear.kind_id.as_str())
+                    {
+                        Driver::source_publication(&conduit_environment_runtime::publication::PublicationContract::prepare(channel).unwrap(), count.try_into().unwrap(), source_order.clone()).unwrap()
+                    } else {
+                        prepared.driver
+                    }
+                } else {
+                    prepared.driver
+                }
             });
         }
         (drivers.map(Option::unwrap), selectors, values)
@@ -395,21 +414,17 @@ fn run(scenario: usize, overnight: bool) {
         _ => Channel::GeometryRefusal,
     };
     for driver in kernel.drivers() {
-        if let Driver::Publication(back) = driver {
-            if let Some(snapshot) = back.snapshot() {
-                assert_eq!(snapshot.channel, expected);
-                assert_eq!(snapshot.sequence, count);
-                c::validate_canonical_structured_value(snapshot.canonical).unwrap();
-            }
-        }
+        driver.with_publication_snapshot(|snapshot| {
+            assert_eq!(snapshot.channel, expected);
+            assert_eq!(snapshot.sequence, count);
+            c::validate_canonical_structured_value(snapshot.canonical).unwrap();
+        });
     }
     assert_eq!(
         kernel
             .drivers()
             .iter()
-            .filter(
-                |driver| matches!(driver,Driver::Publication(back) if back.snapshot().is_some())
-            )
+            .filter(|driver| driver.publication_sequence().is_some())
             .count(),
         1
     );

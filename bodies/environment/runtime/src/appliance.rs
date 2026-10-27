@@ -1,7 +1,10 @@
 //! Portable production driver set for the authored environmental appliance.
 //! All scheduling, routing, commit and Host Call state remain in the kernel.
 use crate::{
-    publication::{PublicationBack, PublicationContract, PublicationSequence},
+    publication::{
+        PublicationBack, PublicationContract, PublicationSequence, PublicationSnapshot,
+        SourcePublicationBack,
+    },
     CaptureBack,
 };
 use alloc::boxed::Box;
@@ -18,8 +21,37 @@ pub enum ApplianceBack {
     Tick(conduit_time::TickBack),
     Trigger(conduit_time::TickTriggerBack),
     Publication(Box<PublicationBack>),
+    SourcePublication(Box<SourcePublicationBack>),
 }
 impl ApplianceBack {
+    /// Exact linked-Type profile; only immutable framing leaves resident RAM.
+    pub fn source_publication(
+        contract: &PublicationContract,
+        maximum_events: u32,
+        sequence: PublicationSequence,
+    ) -> Result<Self, conduit_core::StructuredInfoRefusal> {
+        Ok(Self::SourcePublication(Box::new(
+            SourcePublicationBack::prepare(contract, maximum_events, sequence)?,
+        )))
+    }
+    pub fn publication_sequence(&self) -> Option<u64> {
+        match self {
+            Self::Publication(back) => back.snapshot().map(|s| s.sequence),
+            Self::SourcePublication(back) => (back.sequence() != 0).then_some(back.sequence()),
+            _ => None,
+        }
+    }
+    /// The callback finishes before any reconstructed canonical scratch expires.
+    pub fn with_publication_snapshot<R>(
+        &self,
+        consume: impl FnOnce(PublicationSnapshot<'_>) -> R,
+    ) -> Option<R> {
+        match self {
+            Self::Publication(back) => back.snapshot().map(consume),
+            Self::SourcePublication(back) => back.with_snapshot(consume),
+            _ => None,
+        }
+    }
     /// Box only during admission; spare enum capacity is not replicated across
     /// every expression and selector node in an MCU's fixed driver table.
     pub fn publication(
@@ -41,6 +73,7 @@ impl<const P: usize> StepBack<P> for ApplianceBack {
             Self::Tick(b) => b.step(io, input),
             Self::Trigger(b) => b.step(io, input),
             Self::Publication(b) => b.step(io, input),
+            Self::SourcePublication(b) => b.step(io, input),
         }
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
@@ -55,6 +88,7 @@ impl<const P: usize> StepBack<P> for ApplianceBack {
             Self::Tick(b) => <conduit_time::TickBack as StepBack<P>>::step_committed(b),
             Self::Trigger(b) => <conduit_time::TickTriggerBack as StepBack<P>>::step_committed(b),
             Self::Publication(b) => <PublicationBack as StepBack<P>>::step_committed(b),
+            Self::SourcePublication(b) => <SourcePublicationBack as StepBack<P>>::step_committed(b),
         }
     }
     fn cancel(&mut self) {
@@ -63,6 +97,7 @@ impl<const P: usize> StepBack<P> for ApplianceBack {
             Self::Tick(b) => <conduit_time::TickBack as StepBack<P>>::cancel(b),
             Self::Trigger(b) => <conduit_time::TickTriggerBack as StepBack<P>>::cancel(b),
             Self::Publication(b) => <PublicationBack as StepBack<P>>::cancel(b),
+            Self::SourcePublication(b) => <SourcePublicationBack as StepBack<P>>::cancel(b),
         }
     }
 }

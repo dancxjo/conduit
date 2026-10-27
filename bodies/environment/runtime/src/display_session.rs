@@ -36,7 +36,10 @@ impl<const P: usize> ReusableStepBack<P> for ApplianceBack {
             Self::Native(back) => {
                 <CaptureBack as ReusableStepBack<P>>::preflight_next(back, next, values)
             }
-            Self::Tick(_) | Self::Trigger(_) | Self::Publication(_) => false,
+            Self::Tick(_)
+            | Self::Trigger(_)
+            | Self::Publication(_)
+            | Self::SourcePublication(_) => false,
         }
     }
     fn begin_next(&mut self, next: ()) {

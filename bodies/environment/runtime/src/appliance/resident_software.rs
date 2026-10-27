@@ -243,7 +243,7 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         let order = PublicationSequence::prepare(count);
         for (node, channel) in roles.publications.into_iter().zip(PublicationChannel::ALL) {
             drivers[usize::from(node.0)] = Some(
-                ApplianceBack::publication(
+                ApplianceBack::source_publication(
                     &PublicationContract::prepare(channel).map_err(init)?,
                     maximum,
                     order.clone(),

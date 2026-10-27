@@ -6,10 +6,7 @@ use crate::{
     native_service::{self as service, Dispatch, Invocation, Reply},
 };
 use alloc::boxed::Box;
-use conduit_environment_runtime::{
-    appliance::ApplianceBack,
-    publication::{PublicationSink, PublicationSnapshot},
-};
+use conduit_environment_runtime::publication::{PublicationSink, PublicationSnapshot};
 use conduit_kernel::{self as k, scheduler::SchedulerStatus};
 use conduit_monotonic_wait::MonotonicWaitProvider;
 use conduit_pulse_capture::owner::PulseReadProvider;
@@ -283,20 +280,25 @@ async fn pump(
         let iteration = advance(storage, queues, progress);
         if iteration.is_ok() {
             for driver in storage.kernel.drivers() {
-                if let ApplianceBack::Publication(back) = driver {
-                    if let Some(snapshot) = back.snapshot() {
-                        if snapshot.sequence > progress.publications {
-                            // No further Step can overwrite this borrowed
-                            // publication while the separately admitted sink is
-                            // pending. Cancellation drops this wait normally.
-                            if let Err(reason) =
-                                core::future::poll_fn(|cx| observer.poll_publication(snapshot, cx))
-                                    .await
-                            {
-                                return Exit::Failed(reason);
-                            }
-                            progress.publications = snapshot.sequence;
+                if let Some(sequence) = driver.publication_sequence() {
+                    if sequence > progress.publications {
+                        // Each synchronous poll reconstructs identical bytes.
+                        // No scratch borrow or buffer survives into Pending.
+                        let result = core::future::poll_fn(|cx| {
+                            driver
+                                .with_publication_snapshot(|snapshot| {
+                                    observer.poll_publication(snapshot, cx)
+                                })
+                                .unwrap_or(core::task::Poll::Ready(Err(failure(
+                                    k::FailureCode::InvalidLifecycle,
+                                    28,
+                                ))))
+                        })
+                        .await;
+                        if let Err(reason) = result {
+                            return Exit::Failed(reason);
                         }
+                        progress.publications = sequence;
                     }
                 }
             }

@@ -592,3 +592,112 @@ fn over_type_bound_pulse_input_preserves_denial_and_owner_custody() {
         "invalid requests must not spend next request or capability budget"
     );
 }
+
+#[test]
+fn node_only_native_sink_pending_preserves_full_bytes_and_cancellation() {
+    use conduit_environment_runtime::publication::{PublicationSink, PublicationSnapshot};
+    use core::{
+        future::Future,
+        task::{Context, Poll, Waker},
+    };
+    struct Sink {
+        bytes: [u8; 2274],
+        length: usize,
+        sequence: u64,
+        repeated: bool,
+        effects: Rc<Cell<usize>>,
+        held_effects: usize,
+        accepted: usize,
+        forever: bool,
+    }
+    impl PublicationSink for Sink {
+        fn poll_publication(
+            &mut self,
+            snapshot: PublicationSnapshot<'_>,
+            cx: &mut Context<'_>,
+        ) -> Poll<Result<(), k::Failure>> {
+            if !self.repeated {
+                self.bytes[..snapshot.canonical.len()].copy_from_slice(snapshot.canonical);
+                self.length = snapshot.canonical.len();
+                self.sequence = snapshot.sequence;
+                self.held_effects = self.effects.get();
+                self.repeated = true;
+                cx.waker().wake_by_ref();
+                return Poll::Pending;
+            }
+            assert_eq!(snapshot.sequence, self.sequence);
+            assert_eq!(snapshot.canonical, &self.bytes[..self.length]);
+            assert_eq!(
+                self.effects.get(),
+                self.held_effects,
+                "kernel advanced while publication Pending"
+            );
+            if self.forever {
+                return Poll::Pending;
+            }
+            self.accepted += 1;
+            self.repeated = false;
+            Poll::Ready(Ok(()))
+        }
+    }
+    for cancel in [false, true] {
+        let mut f = fixture();
+        let cancelled = Cell::new(false);
+        let mut sink = Sink {
+            bytes: [0; 2274],
+            length: 0,
+            sequence: 0,
+            repeated: false,
+            effects: f.effects.clone(),
+            held_effects: 0,
+            accepted: 0,
+            forever: cancel,
+        };
+        let execution = f.execution.as_mut().unwrap();
+        assert_eq!(
+            execution
+                .storage
+                .kernel
+                .drivers()
+                .iter()
+                .filter(|driver| matches!(driver, ApplianceBack::SourcePublication(_)))
+                .count(),
+            4
+        );
+        let (_, memory) = allocation_probe::observe(|| {
+            let stop = core::future::poll_fn(|_| {
+                if cancelled.get() {
+                    Poll::Ready(())
+                } else {
+                    Poll::Pending
+                }
+            });
+            let mut future = core::pin::pin!(execution.run_with_sink(stop, &mut sink));
+            let mut cx = Context::from_waker(Waker::noop());
+            for _ in 0..10000 {
+                if let Poll::Ready(outcome) = future.as_mut().poll(&mut cx) {
+                    assert_eq!(
+                        outcome.exit,
+                        if cancel {
+                            native_worker::Exit::Cancelled
+                        } else {
+                            native_worker::Exit::Drained
+                        }
+                    );
+                    return;
+                }
+                if cancel && f.effects.get() != 0 {
+                    cancelled.set(true);
+                }
+            }
+            panic!("finite sink fixture did not terminate");
+        });
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+        if cancel {
+            assert_eq!(sink.accepted, 0);
+        } else {
+            assert_eq!(sink.accepted, 3);
+            assert_eq!(f.effects.get(), 3);
+        }
+    }
+}
