@@ -118,15 +118,16 @@ fn build_with_owner(
         if selected_profile == "local-appliance" {
             // Bound code duplication in the combined sampler/Mask image. This
             // retains the complete planners, history and allocator partition.
+            // Do not enable the experimental LLVM IR outliner: on this pinned
+            // Xtensa toolchain it reverses an array slice bounds check, causing
+            // the physical flash reader to panic before Body recovery.
             command.args([
                 "-C",
                 "opt-level=s",
                 "-C",
-                "llvm-args=-inline-threshold=10",
+                "llvm-args=-inline-threshold=0",
                 "-C",
-                "llvm-args=-inlinehint-threshold=10",
-                "-C",
-                "llvm-args=-ir-outliner",
+                "llvm-args=-inlinehint-threshold=0",
                 "-Z",
                 "location-detail=none",
             ]);
