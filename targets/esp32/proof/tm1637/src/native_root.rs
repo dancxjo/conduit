@@ -180,11 +180,11 @@ impl NativeRoot {
             issuer,
             play: crate::native_play::NativePlay::new(),
             offer_generation: 1,
-            #[cfg(not(feature = "display-ready-root"))]
+            #[cfg(all(not(feature = "display-ready-root"), not(feature = "local-appliance")))]
             software: Some(
                 crate::native_software::prepare().expect("initialized resident software"),
             ),
-            #[cfg(feature = "display-ready-root")]
+            #[cfg(any(feature = "display-ready-root", feature = "local-appliance"))]
             software: None,
             credential_writer,
             assignment: None,

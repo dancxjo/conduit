@@ -275,6 +275,18 @@ impl NativeRoot {
             mark("cold-body-custody-parked", 1);
             parked
         };
+        // Resume/checkpoint complete Body history before creating software's
+        // actual empty value backing. Only this unpublished appliance path
+        // defers construction; no software offer exists until its owner does.
+        #[cfg(feature = "local-appliance")]
+        {
+            if self.software.is_some() {
+                return Err("local-software-already-prepared");
+            }
+            self.software =
+                Some(crate::native_software::prepare().map_err(|_| "local-software-preparation")?);
+            mark("cold-software-owner-prepared-after-body-park", 15);
+        }
         let sample = self.prepare_local_sampler_plan()?;
         let sampler = self.prepare_local_sampler_parts(&sample, execute)?;
         let metadata = sample.preparation_metadata();
