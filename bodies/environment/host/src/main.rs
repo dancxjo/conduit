@@ -2,8 +2,15 @@
 //! Current offers and signed Root custody remain separate from Body lifecycle.
 extern crate alloc;
 mod admission;
+#[allow(dead_code, clippy::duplicate_mod)]
+// Shared membership/producer proof APIs accompany the typed owner route.
+mod biography_custody_remote;
+mod biography_owner_client;
 mod body_join;
 mod body_join_proxy;
+mod native_body_join {
+    pub(crate) use crate::body_join::owner;
+}
 mod display_check;
 mod display_evidence;
 mod execution;
@@ -34,6 +41,20 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args.get(1).is_some_and(|a| a == "--offload-biography") {
+        if args.len() != 6 {
+            return Err(
+                "expected --offload-biography OWNER_STATE SERIAL PRIVATE_STORE PRIVATE_PIN_JSON"
+                    .into(),
+            );
+        }
+        return biography_owner_client::run(
+            std::path::Path::new(&args[2]),
+            &args[3],
+            std::path::Path::new(&args[4]),
+            std::path::Path::new(&args[5]),
+        );
+    }
     if args.get(1).is_some_and(|a| a == "--browser-join-proxy") {
         if !(3..=4).contains(&args.len()) {
             return Err(

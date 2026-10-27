@@ -13,7 +13,7 @@ use std::{
 };
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs"]
 #[allow(dead_code)]
-mod owner;
+pub(crate) mod owner;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Bootstrap {
