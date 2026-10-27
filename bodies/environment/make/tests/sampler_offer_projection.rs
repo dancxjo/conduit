@@ -5,7 +5,7 @@ use conduit_core as c;
 use conduit_monotonic_wait::*;
 use conduit_net::{NetworkJoinRequest, StationAttemptFailure, StationFailure};
 use conduit_network_join_call::{credential_installation, installation::*, *};
-use conduit_pulse_capture::{installation::ReadyPulseBase, PulseReadContract};
+use conduit_pulse_capture::installation::ReadyPulseBase;
 use std::collections::BTreeMap;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
@@ -20,8 +20,23 @@ mod plan {
     reason = "only exclusively retained inert electrical pins are reused"
 )]
 mod display_fixture;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_display_native_offer.rs"]
+mod display_projection;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_sampler_offer.rs"]
 mod projection;
+struct DisplayOwner {
+    ready: conduit_tm1637_wire::installation::ReadyWriteBase<display_fixture::NoPins>,
+}
+impl DisplayOwner {
+    fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
+        self.ready
+            .append_to_advertisement(
+                host,
+                &conduit_tm1637_wire::WriteContract::prepare().map_err(|_| ())?,
+            )
+            .map_err(|_| ())
+    }
+}
 fn renderer(
     root: &NativeRoot,
 ) -> conduit_environment_runtime::mask_renderer::ReadyRenderer<display_fixture::NoPins> {
@@ -101,7 +116,7 @@ struct NativeRoot {
     offer_generation: u64,
     pulse: Option<ReadyPulseBase<pulse::Provider>>,
     wait: Option<ReadyMonotonicWaitBase<Inert>>,
-    contract: PulseReadContract,
+    display: DisplayOwner,
 }
 fn root() -> (NativeRoot, std::rc::Rc<std::cell::Cell<usize>>) {
     let (pulse, effects) = pulse::ready(0);
@@ -134,12 +149,14 @@ fn root() -> (NativeRoot, std::rc::Rc<std::cell::Cell<usize>>) {
     };
     (
         NativeRoot {
+            display: DisplayOwner {
+                ready: display_fixture::ready(&id.host_id, &id.boot_id),
+            },
             host: id.host_id.clone(),
             boot: id.boot_id.clone(),
             offer_generation: 7,
             pulse: Some(pulse),
             wait: Some(wait),
-            contract: PulseReadContract::prepare().unwrap(),
         },
         effects,
     )
@@ -342,5 +359,171 @@ fn sampler_projection_preserves_exact_plan_and_missing_authority_resource_refusa
         root.pulse.as_ref().unwrap().native_identity(),
         &pulse::identity()
     );
+    assert_eq!(effects.get(), 0);
+}
+
+#[test]
+fn display_projection_preserves_exact_offers_and_ordinary_plan_without_unused_metadata() {
+    use conduit_environment_make::{DisplayOutputSource, DisplaySourceMaterial};
+    let (mut root, effects) = root();
+    // These real initialized inert owners model the unrelated providers discarded
+    // by the former full-Root bootstrap. No claim or provider operation occurs.
+    let (credentials, join) = unsafe {
+        (
+            credential_installation::ReadyCredentialBase::new(
+                network_id(&root, "credentials"),
+                Inert,
+            )
+            .unwrap(),
+            ReadyNetworkJoinBase::new(network_id(&root, "network"), 1, Inert).unwrap(),
+        )
+    };
+    let renderer = renderer(&root);
+    let (projected, scoped_memory) =
+        allocation_probe::observe(|| root.display_native_advertisement().unwrap());
+    let (baseline, old_memory) = allocation_probe::observe(|| {
+        let mut full = root.sampler_native_advertisement().unwrap();
+        credentials.append_to_advertisement(&mut full).unwrap();
+        renderer.append_to_advertisement(&mut full).unwrap();
+        join.append_to_advertisement(&mut full).unwrap();
+        full.capabilities
+            .push(conduit_net::network_attachment_sign_local_offer(
+                "fixture/network-sign".into(),
+                "fixture/network-sign-implementation".into(),
+                "fixture/network-sign-artifact".into(),
+            ));
+        full.bases = vec![];
+        full.resources = vec![];
+        full.capabilities = vec![];
+        root.display.append_to_advertisement(&mut full).unwrap();
+        full.bases.sort_by(|a, b| a.base_id.cmp(&b.base_id));
+        full.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+        full
+    });
+    assert_eq!(projected, baseline);
+    assert!(old_memory.peak_bytes > scoped_memory.peak_bytes);
+    println!(
+        "display bootstrap CPU scoped peak={} retained={}, old full/discard peak={} retained={}",
+        scoped_memory.peak_bytes,
+        scoped_memory.retained_bytes(),
+        old_memory.peak_bytes,
+        old_memory.retained_bytes()
+    );
+    let source = DisplayOutputSource::compile().unwrap();
+    let material = DisplaySourceMaterial::prepare(&source).unwrap();
+    let mut software = material
+        .prepare_compact(root.host.clone(), root.boot.clone())
+        .unwrap();
+    let mut hosts = [projected, baseline];
+    for host in &mut hosts {
+        host.capabilities.extend(
+            software
+                .current_offers(&root.host, &root.boot, host.offer_generation)
+                .unwrap()
+                .iter()
+                .map(|b| serde_json::from_slice::<c::CapabilityOffer>(b).unwrap()),
+        );
+    }
+    let grant = c::AuthorityGrant {
+        grant_id: "fixture/display".into(),
+        contract_id: conduit_tm1637_wire::installation::WRITE_AUTHORITY.into(),
+        host_call_contract_id: conduit_tm1637_wire::WRITE_CALL.into(),
+        subject_kind: c::kind_id(conduit_tm1637_wire::WRITE_KIND),
+        host_id: root.host.clone(),
+        boot_id: root.boot.clone(),
+        capability_id: conduit_tm1637_wire::installation::WRITE_CAPABILITY.into(),
+    };
+    let run = |host: &c::HostAdvertisement, grants: &[c::AuthorityGrant]| {
+        let choices = conduit_planner::default_expanded_placements(
+            &source.plot.expanded,
+            std::slice::from_ref(host),
+        )?;
+        let queues = source
+            .plot
+            .expanded
+            .connections
+            .iter()
+            .map(|cord| {
+                (
+                    (
+                        cord.source_gear_id.clone(),
+                        cord.source_port_id.clone(),
+                        cord.sink_gear_id.clone(),
+                        cord.sink_port_id.clone(),
+                    ),
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: conduit_tm1637_wire::MAXIMUM_BYTES,
+                    },
+                )
+            })
+            .collect();
+        let mut fore = BTreeMap::new();
+        for (direction, bindings, bytes) in [
+            (
+                c::PortDirection::Input,
+                &source.plot.input_bindings,
+                conduit_tm1637_wire::MAXIMUM_BYTES,
+            ),
+            (c::PortDirection::Output, &source.plot.output_bindings, 64),
+        ] {
+            for binding in bindings {
+                fore.insert(
+                    conduit_planner::ForeBoundaryKey {
+                        direction,
+                        front_port_id: binding.front_port_id.clone(),
+                        track: binding.track,
+                    },
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: bytes,
+                    },
+                );
+            }
+        }
+        let empty = BTreeMap::new();
+        let lines = BTreeMap::new();
+        conduit_planner::plan_expanded_authoring_with_connection_limits(
+            &source.plot,
+            std::slice::from_ref(host),
+            &choices,
+            &["conduit.base/local@1".into(), "fixture/base".into()],
+            conduit_planner::PlanningOptions {
+                connection_bases: &empty,
+                line_candidates: &lines,
+                connection_item_capacity: 1,
+                connection_byte_capacity: conduit_tm1637_wire::MAXIMUM_BYTES,
+                authority_grants: grants,
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &queues,
+            &fore,
+        )
+    };
+    let grants = [grant];
+    assert_eq!(
+        run(&hosts[0], &grants).unwrap(),
+        run(&hosts[1], &grants).unwrap()
+    );
+    for variant in 0..3 {
+        let mut changed = hosts.clone();
+        for host in &mut changed {
+            match variant {
+                0 => host.resources.clear(),
+                1 => host
+                    .capabilities
+                    .retain(|o| o.kind_id.as_str() != conduit_tm1637_wire::WRITE_KIND),
+                _ => (),
+            }
+        }
+        let authority = if variant == 2 { &[][..] } else { &grants[..] };
+        assert_eq!(
+            format!("{:?}", run(&changed[0], authority).unwrap_err()),
+            format!("{:?}", run(&changed[1], authority).unwrap_err())
+        );
+    }
+    root.boot = "stale/boot".into();
+    assert!(root.display_native_advertisement().is_err());
     assert_eq!(effects.get(), 0);
 }

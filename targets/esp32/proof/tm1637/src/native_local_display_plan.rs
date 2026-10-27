@@ -6,14 +6,10 @@ impl NativeRoot {
     pub fn prepare_local_display_plan(&mut self) -> Result<c::VerifiedPlanMetadata, &'static str> {
         let image = crate::native_display::planning_source()?;
         let boundary = crate::native_display::planning_boundary()?;
-        let mut host = self.advertisement().map_err(|_| "display-native-offers")?;
-        // Project this task's native offer from the actual retained display
-        // owner. Other initialized Root providers remain owned and available.
-        host.capabilities = alloc::vec::Vec::new();
-        host.resources = alloc::vec::Vec::new();
-        host.bases = alloc::vec::Vec::new();
-        self.display
-            .append_to_advertisement(&mut host)
+        // Project only the actual retained output owner. Do not first decode
+        // unrelated Root providers merely to discard those same offers here.
+        let mut host = self
+            .display_native_advertisement()
             .map_err(|_| "display-native-offer")?;
         super::memory_check::mark("display-native-offers", host.capabilities.len());
         {

@@ -6,6 +6,8 @@ mod body;
 #[cfg(feature = "display-physical-check")]
 #[path = "native_display_check.rs"]
 mod display_check;
+#[path = "native_display_native_offer.rs"]
+mod display_offers;
 #[path = "native_install.rs"]
 mod install;
 #[path = "native_lifecycle.rs"]
