@@ -25,7 +25,36 @@ pub struct NativeNetwork {
     pub(crate) recovery: recovery::Recovery,
     pub(crate) retirement: Option<alloc::boxed::Box<crate::native_play::RetiredNetworkControl>>,
 }
+/// Observed driver/runner state, separate from service readiness or RF proof.
+#[derive(serde::Serialize)]
+pub struct Inspection {
+    pub runner_polls: [u32; 2],
+    pub ap_link: Option<bool>,
+    pub station_link: Option<bool>,
+    pub ap_configured: Option<bool>,
+    pub station_configured: Option<bool>,
+    pub ap_mac: Option<[u8; 6]>,
+    pub channel: Option<u8>,
+}
 impl NativeNetwork {
+    pub fn inspect(&self) -> Inspection {
+        let stacks = self.stacks();
+        Inspection {
+            runner_polls: crate::network::runner_polls(),
+            ap_link: stacks.map(|(ap, _)| ap.is_link_up()),
+            station_link: stacks.map(|(_, station)| station.is_link_up()),
+            ap_configured: stacks.map(|(ap, _)| ap.is_config_up()),
+            station_configured: stacks.map(|(_, station)| station.is_config_up()),
+            ap_mac: stacks.and_then(|(ap, _)| match ap.hardware_address() {
+                embassy_net::HardwareAddress::Ethernet(mac) => Some(mac),
+                _ => None,
+            }),
+            channel: self
+                .radio
+                .as_ref()
+                .and_then(|radio| radio.controller.channel().ok().map(|(primary, _)| primary)),
+        }
+    }
     pub fn new(radio: crate::network::Radio, sdk: crate::sdk_memory::NativeSdkReservation) -> Self {
         assert_eq!(sdk.bytes(), crate::sdk_memory::SDK_BYTES);
         Self {

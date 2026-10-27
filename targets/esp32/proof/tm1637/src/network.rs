@@ -1,8 +1,17 @@
 //! Attended AP/HTTP bench. No native Host/Body installation is asserted.
+use core::{
+    future::Future,
+    sync::atomic::{AtomicU32, Ordering},
+};
 use embassy_executor::Spawner;
 use embassy_net::{Config, Ipv4Address, Ipv4Cidr, Stack, StackResources, StaticConfigV4};
 use esp_radio::wifi::{ap::AccessPointConfig, Config as WifiConfig, ControllerConfig, CountryInfo};
 use static_cell::StaticCell;
+static RUNNER_POLLS: [AtomicU32; 2] = [AtomicU32::new(0), AtomicU32::new(0)];
+/// Inspection only: counts actual polls of each retained interface runner.
+pub fn runner_polls() -> [u32; 2] {
+    core::array::from_fn(|index| RUNNER_POLLS[index].load(Ordering::Relaxed))
+}
 static AP_RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
 #[cfg(not(all(feature = "network-mdns", feature = "owner-wifi")))]
 static STATION_RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
@@ -20,8 +29,16 @@ pub struct Radio {
     pub ap_config: AccessPointConfig,
 }
 #[embassy_executor::task(pool_size = 2)]
-async fn runner(mut runner: embassy_net::Runner<'static, esp_radio::wifi::Interface<'static>>) {
-    runner.run().await
+async fn runner(
+    mut runner: embassy_net::Runner<'static, esp_radio::wifi::Interface<'static>>,
+    index: u8,
+) {
+    let mut running = core::pin::pin!(runner.run());
+    core::future::poll_fn(|context| {
+        RUNNER_POLLS[usize::from(index)].fetch_add(1, Ordering::Relaxed);
+        running.as_mut().poll(context)
+    })
+    .await
 }
 pub fn start(spawner: Spawner, wifi: esp_hal::peripherals::WIFI<'static>, seed: u64) -> Radio {
     let ap = AccessPointConfig::default()
@@ -49,7 +66,7 @@ pub fn start(spawner: Spawner, wifi: esp_hal::peripherals::WIFI<'static>, seed: 
         AP_RESOURCES.init(StackResources::new()),
         seed,
     );
-    spawner.spawn(runner(net_runner).unwrap());
+    spawner.spawn(runner(net_runner, 0).unwrap());
     // No station address is configured until a selected switch operation enables
     // DHCP. Both interface runners remain owned across radio mode changes.
     let (station_stack, station_runner) = embassy_net::new(
@@ -58,7 +75,7 @@ pub fn start(spawner: Spawner, wifi: esp_hal::peripherals::WIFI<'static>, seed: 
         STATION_RESOURCES.init(StackResources::new()),
         seed.rotate_left(32),
     );
-    spawner.spawn(runner(station_runner).unwrap());
+    spawner.spawn(runner(station_runner, 1).unwrap());
     #[cfg(not(feature = "native-root"))]
     spawner.spawn(crate::services::run((stack, station_stack), None).unwrap());
     Radio {
