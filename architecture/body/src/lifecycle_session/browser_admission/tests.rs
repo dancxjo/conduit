@@ -213,3 +213,252 @@ fn pending_realization_refuses_browser_admission_without_resetting_it() {
     );
     assert_eq!(session.realization, before);
 }
+
+fn detached_observer() -> (
+    BodyLifecycleSession,
+    AdmissionManager,
+    MembershipCredential,
+    SigningKey,
+) {
+    let mut s = session();
+    let (mut m, mut i, p, k) = pending(&s);
+    let c = s
+        .admit_ambient_host(&mut m, &mut i, &p, 110, &host(), &boot())
+        .unwrap();
+    s.observe_host_lost(&c.host_id, &c.boot_id, &host(), &boot())
+        .unwrap();
+    (s, m, c, k)
+}
+fn start_local(s: &mut BodyLifecycleSession) {
+    let plans = s
+        .evidence
+        .body
+        .workset
+        .plots()
+        .iter()
+        .map(|plot| crate::BodyPlotPlan {
+            plot: plot.clone(),
+            plan: conduit_core::seal_plan(
+                conduit_core::PlotIdentity {
+                    source_document_id: plot.source_document_id.clone(),
+                    checked_plot_id: plot.checked_plot_id.clone(),
+                    expanded_plot_id: "expanded/test".into(),
+                },
+                vec![],
+            ),
+        })
+        .collect();
+    s.propose(plans, &host(), &boot()).unwrap();
+    let current = s.realization.as_ref().unwrap();
+    let play = crate::BodyPlayIdentity::bind(&current.plan, 1);
+    let sign = |n| conduit_core::bind_sign(&host(), &boot(), Some(&play.active_play_id), n).sign_id;
+    let wake = current
+        .wake
+        .body_plan_ready(&current.plan, sign(0))
+        .unwrap()
+        .body_play_started(&current.plan, &play, sign(1))
+        .unwrap();
+    s.started(&host(), &boot(), play, wake).unwrap();
+}
+fn return_proof(challenge: &crate::PartReturnChallenge, key: &SigningKey) -> PartReturnProof {
+    PartReturnProof {
+        admission_id: challenge.admission_id.clone(),
+        body_id: challenge.body_id.clone(),
+        part_id: challenge.part_id.clone(),
+        host_id: challenge.host_id.clone(),
+        boot_id: challenge.boot_id.clone(),
+        nonce: challenge.nonce,
+        signature: key.sign(&challenge.signing_transcript()).to_bytes(),
+    }
+}
+#[test]
+fn observer_return_preserves_started_play_and_is_consumed_once() {
+    let (mut s, mut m, c, key) = detached_observer();
+    start_local(&mut s);
+    let realized = s.realization.clone();
+    let body = s.evidence.body.clone();
+    let foreground = s.foreground.clone();
+    let fresh = advertisement("boot/browser/fresh");
+    let challenge = s
+        .issue_observer_return(
+            &mut m,
+            &c.part_id,
+            &fresh,
+            [19; 32],
+            120,
+            200,
+            &host(),
+            &boot(),
+        )
+        .unwrap();
+    let proof = return_proof(&challenge, &key);
+    let returned = s
+        .admit_returning_observer(&mut m, &fresh, &proof, 130, &host(), &boot())
+        .unwrap();
+    assert_eq!(returned.part_id, c.part_id);
+    assert_eq!(returned.boot_id, fresh.boot_id);
+    assert_eq!(s.realization, realized);
+    assert_eq!(s.evidence.body, body);
+    assert_eq!(s.foreground, foreground);
+    s.evidence.validate().unwrap();
+    let before = s.evidence.clone();
+    let manager = m.clone();
+    assert!(s
+        .admit_returning_observer(&mut m, &fresh, &proof, 131, &host(), &boot())
+        .is_err());
+    assert_eq!(s.evidence, before);
+    assert_eq!(m, manager);
+}
+#[test]
+fn observer_return_refusals_are_atomic_during_play() {
+    let (mut s, mut m, c, key) = detached_observer();
+    start_local(&mut s);
+    let fresh = advertisement("boot/browser/fresh");
+    let challenge = s
+        .issue_observer_return(
+            &mut m,
+            &c.part_id,
+            &fresh,
+            [19; 32],
+            120,
+            200,
+            &host(),
+            &boot(),
+        )
+        .unwrap();
+    let valid = return_proof(&challenge, &key);
+    for case in 0..5 {
+        let mut proof = valid.clone();
+        let mut ad = fresh.clone();
+        let mut now = 130;
+        let mut authority = boot();
+        match case {
+            0 => proof.signature[0] ^= 1,
+            1 => ad.boot_id = "boot/stale".into(),
+            2 => ad.host_id = "host/wrong".into(),
+            3 => now = 201,
+            _ => authority = "boot/stale".into(),
+        }
+        let before = s.evidence.clone();
+        let manager = m.clone();
+        let realized = s.realization.clone();
+        assert!(s
+            .admit_returning_observer(&mut m, &ad, &proof, now, &host(), &authority)
+            .is_err());
+        assert_eq!(s.evidence, before);
+        assert_eq!(m, manager);
+        assert_eq!(s.realization, realized);
+    }
+    // A capability-bearing return must stay on the ordinary lifecycle path.
+    // A resource-bearing advertisement is rejected by the observer path.
+    let mut executable = fresh.clone();
+    executable.resources.push(conduit_core::ResourceOffer {
+        pool_id: "pool/test".into(),
+        class_id: "class/test".into(),
+        capacity_units: 1,
+        compute: None,
+        content: None,
+    });
+    let before = s.evidence.clone();
+    let manager = m.clone();
+    assert!(s
+        .admit_returning_observer(&mut m, &executable, &valid, 130, &host(), &boot())
+        .is_err());
+    assert!(s
+        .issue_observer_return(
+            &mut m,
+            &c.part_id,
+            &executable,
+            [20; 32],
+            130,
+            200,
+            &host(),
+            &boot()
+        )
+        .is_err());
+    assert_eq!(s.evidence, before);
+    assert_eq!(m, manager);
+}
+
+#[test]
+fn pending_return_lookup_and_expiry_are_exact_without_resetting_attempts() {
+    let (s, mut m, c, key) = detached_observer();
+    let fresh = advertisement("boot/browser/fresh");
+    assert_eq!(
+        m.pending_return_challenge(&s.evidence.membership, &c.part_id, &fresh, 120)
+            .unwrap(),
+        None
+    );
+    let challenge = s
+        .issue_observer_return(
+            &mut m,
+            &c.part_id,
+            &fresh,
+            [19; 32],
+            120,
+            200,
+            &host(),
+            &boot(),
+        )
+        .unwrap();
+    let retained = m.clone();
+    assert_eq!(
+        m.pending_return_challenge(&s.evidence.membership, &c.part_id, &fresh, 150)
+            .unwrap(),
+        Some(challenge.clone())
+    );
+    assert_eq!(m, retained);
+    for change in 0..3 {
+        let mut ad = fresh.clone();
+        match change {
+            0 => ad.boot_id = "boot/wrong".into(),
+            1 => ad.host_id = "host/wrong".into(),
+            _ => ad.offer_generation = OfferGeneration(2),
+        };
+        assert!(m
+            .pending_return_challenge(&s.evidence.membership, &c.part_id, &ad, 150)
+            .is_err());
+        assert_eq!(m, retained);
+    }
+    assert!(m
+        .retire_expired_return(&challenge.admission_id, 200)
+        .is_err());
+    assert_eq!(m, retained);
+    assert!(m
+        .pending_return_challenge(&s.evidence.membership, &c.part_id, &fresh, 201)
+        .is_err());
+    assert_eq!(m, retained);
+    m.retire_expired_return(&challenge.admission_id, 201)
+        .unwrap();
+    let replacement = s
+        .issue_observer_return(
+            &mut m,
+            &c.part_id,
+            &fresh,
+            [20; 32],
+            202,
+            300,
+            &host(),
+            &boot(),
+        )
+        .unwrap();
+    assert_ne!(challenge.admission_id, replacement.admission_id);
+    assert_ne!(challenge.nonce, replacement.nonce);
+    // Canonical manager counts bad proofs. Lookup and expiry cannot reset a cap.
+    let mut bad = return_proof(&replacement, &key);
+    bad.signature[0] ^= 1;
+    let mut membership = s.evidence.membership.clone();
+    for _ in 0..crate::admission::MAX_ADMISSION_ATTEMPTS {
+        assert!(m
+            .complete_return(&mut membership, &fresh, &bad, 220, "sign/attempt".into())
+            .is_err());
+    }
+    let exhausted = m.clone();
+    assert!(m
+        .pending_return_challenge(&membership, &c.part_id, &fresh, 230)
+        .is_err());
+    assert!(m
+        .retire_expired_return(&replacement.admission_id, 301)
+        .is_err());
+    assert_eq!(m, exhausted);
+}

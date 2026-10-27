@@ -16,6 +16,8 @@ mod checkpoint_history;
 mod continuity;
 mod flow;
 mod membership;
+#[cfg(feature = "authenticated-admission")]
+mod observer_return;
 mod prepared_proposal;
 mod proposal;
 pub use prepared_proposal::{PreparedVerifiedBodyProposal, VerifiedBodyProposalContext};

@@ -1,3 +1,6 @@
+#[path = "return_challenge.rs"]
+mod return_challenge;
+
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, SignId};
 use serde::{Deserialize, Serialize};
 
@@ -114,75 +117,6 @@ impl AdmissionManager {
             host_id,
             verifying_key,
         });
-    }
-
-    pub fn begin_return(
-        &mut self,
-        membership: &BodyMembership,
-        part_id: &PartId,
-        advertisement: &HostAdvertisement,
-        nonce: [u8; 32],
-        now_millis: u64,
-        expires_at_millis: u64,
-    ) -> Result<PartReturnChallenge, AdmissionRefusal> {
-        self.validate_expiry(nonce, now_millis, expires_at_millis)?;
-        if membership.body_id != self.body_id {
-            return Err(AdmissionRefusal::WrongBody);
-        }
-        if self.pending_returns.len() == MAX_PENDING_ADMISSIONS {
-            return Err(AdmissionRefusal::PendingCapacityExhausted);
-        }
-        let part = membership
-            .parts
-            .iter()
-            .find(|part| &part.part_id == part_id)
-            .ok_or(AdmissionRefusal::Membership(
-                crate::MembershipRefusal::UnknownPart,
-            ))?;
-        if part.state != crate::MembershipState::Admitted || part.current.is_some() {
-            return Err(AdmissionRefusal::CandidateNotEligible);
-        }
-        let key = self
-            .continuity_keys
-            .iter()
-            .find(|record| &record.part_id == part_id)
-            .ok_or(AdmissionRefusal::InvalidProof)?;
-        if key.host_id != advertisement.host_id {
-            return Err(AdmissionRefusal::WrongHost);
-        }
-        if self
-            .pending_returns
-            .iter()
-            .any(|pending| pending.challenge.part_id == *part_id)
-        {
-            return Err(AdmissionRefusal::Replay);
-        }
-        let admission_id = AdmissionId::bound(crate::identity::bind_identity(
-            "part-return",
-            &[
-                self.body_id.as_str(),
-                part_id.as_str(),
-                advertisement.host_id.as_str(),
-                advertisement.boot_id.as_str(),
-            ],
-            now_millis,
-        ));
-        let challenge = PartReturnChallenge {
-            admission_id,
-            body_id: self.body_id.clone(),
-            part_id: part_id.clone(),
-            host_id: advertisement.host_id.clone(),
-            boot_id: advertisement.boot_id.clone(),
-            offer_generation: advertisement.offer_generation,
-            nonce,
-            issued_at_millis: now_millis,
-            expires_at_millis,
-        };
-        self.pending_returns.push(PendingReturn {
-            challenge: challenge.clone(),
-            attempts: 0,
-        });
-        Ok(challenge)
     }
 
     pub fn complete_return(
