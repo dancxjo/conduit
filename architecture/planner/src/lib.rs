@@ -620,90 +620,85 @@ fn validate_operation_capability(
     gear: &CheckedGear,
     capability: &conduit_core::CapabilityOffer,
 ) -> Result<(), PlannerError> {
+    validate_operation_capability_ref(gear.into(), capability.into())
+}
+
+pub(crate) fn validate_operation_capability_ref(
+    gear: conduit_plot::CheckedGearRef<'_>,
+    capability: conduit_core::CapabilityOfferRef<'_>,
+) -> Result<(), PlannerError> {
     if capability.kind_id != gear.kind_id {
         return Err(PlannerError::WrongSemanticKind(format!(
             "gear '{}' Kind differs from capability '{}' Kind",
-            gear.gear_id.as_str(),
-            capability.capability_id.as_str()
+            gear.gear_id,
+            capability.capability_id
         )));
     }
     if !gear.accepts_callable_front(capability) {
         return Err(PlannerError::IncompatibleCheckedFront(format!(
             "gear '{}' front differs from capability '{}' front",
-            gear.gear_id.as_str(),
-            capability.capability_id.as_str()
+            gear.gear_id,
+            capability.capability_id
         )));
     }
     if !gear.accepts_semantic_contract(capability) {
         return Err(PlannerError::WrongKindContractRevision(format!(
             "gear '{}' semantic laws or configuration contract differ from capability '{}'",
-            gear.gear_id.as_str(),
-            capability.capability_id.as_str()
+            gear.gear_id,
+            capability.capability_id
         )));
     }
-    if gear.kind_contract_revision.as_str() != conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT
+    if gear.kind_contract_revision != conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT
         && capability.kind_contract_revision != gear.kind_contract_revision
     {
         return Err(PlannerError::WrongKindContractRevision(format!(
             "gear '{}' semantic contract differs from capability '{}'",
-            gear.gear_id.as_str(),
-            capability.capability_id.as_str()
+            gear.gear_id,
+            capability.capability_id
         )));
     }
     if capability.host_calls.iter().any(|requirement| {
-        requirement.contract_id.as_str().is_empty()
+        requirement.contract_id.is_empty()
             || requirement
                 .target_kind
-                .as_ref()
-                .is_some_and(|target| target.as_str().is_empty())
+                .is_some_and(|target| target.is_empty())
             || requirement.maximum_in_flight == 0
-    }) || capability
-        .host_calls
-        .windows(2)
-        .any(|pair| pair[0] >= pair[1])
+    }) || capability.host_calls.iter().zip(capability.host_calls.iter().skip(1)).any(|(left, right)| left >= right)
     {
         return Err(PlannerError::InvalidHostCallRequirement(format!(
             "capability '{}' requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds",
-            capability.capability_id.as_str()
+            capability.capability_id
         )));
     }
     if capability.resource_requirements.iter().any(|requirement| {
-        requirement.class_id.as_str().is_empty()
+        requirement.class_id.is_empty()
             || requirement.units == 0
             || requirement
                 .compute
-                .as_ref()
                 .is_some_and(|compute| !compute.is_valid_for_units(requirement.units))
             || requirement
                 .protected_role
-                .as_ref()
-                .is_some_and(|role| role.as_str().is_empty())
-    }) || capability
-        .resource_requirements
-        .windows(2)
-        .any(|pair| pair[0] >= pair[1])
+                .is_some_and(|role| role.is_empty())
+    }) || capability.resource_requirements.iter().zip(capability.resource_requirements.iter().skip(1)).any(|(left, right)| left >= right)
     {
         return Err(PlannerError::InvalidResourceContract(format!(
             "capability '{}' requirements must have non-empty classes and protected roles, positive units, and unique canonical ordering",
-            capability.capability_id.as_str()
+            capability.capability_id
         )));
     }
     if capability.authority_requirements.iter().any(|requirement| {
-        requirement.contract_id.as_str().is_empty()
-            || requirement.host_call_contract_id.as_str().is_empty()
-            || requirement.subject_kind.as_str().is_empty()
+        requirement.contract_id.is_empty()
+            || requirement.host_call_contract_id.is_empty()
+            || requirement.subject_kind.is_empty()
             || !capability.host_calls.iter().any(|host_call| {
                 host_call.contract_id == requirement.host_call_contract_id
-                    && host_call.target_kind.as_ref() == Some(&requirement.subject_kind)
+                    && host_call.target_kind == Some(requirement.subject_kind)
             })
-    }) || capability
-        .authority_requirements
-        .windows(2)
-        .any(|pair| pair[0] >= pair[1])
+    }) || capability.authority_requirements.iter().zip(capability.authority_requirements.iter().skip(1)).any(|(left, right)| left >= right)
     {
         return Err(PlannerError::InvalidAuthorityContract(format!(
             "capability '{}' authority requirements must bind a declared targeted Host Call with non-empty identities and unique canonical ordering",
-            capability.capability_id.as_str()
+            capability.capability_id
         )));
     }
     Ok(())
@@ -1037,3 +1032,6 @@ mod language_coverage_tests;
 
 #[cfg(feature = "indexed-source")]
 pub mod indexed_source;
+
+#[cfg(test)]
+mod offer_ref_tests;

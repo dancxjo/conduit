@@ -25,6 +25,8 @@ mod consequential_effect;
 mod control_loop;
 mod deadline;
 mod delivery;
+mod offer_ref;
+pub use offer_ref::*;
 mod descriptor_ref;
 pub use descriptor_ref::{
     HostCallRequirementRef, HostCallRequirementRefs, PortDescriptorRef, PortDescriptorRefs,

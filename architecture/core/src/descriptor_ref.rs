@@ -21,6 +21,17 @@ impl<'a> From<&'a PortDescriptor> for PortDescriptorRef<'a> {
         }
     }
 }
+impl From<PortDescriptorRef<'_>> for PortDescriptor {
+    fn from(port: PortDescriptorRef<'_>) -> Self {
+        Self {
+            port_id: port.port_id.into(),
+            value_kind: port.value_kind.into(),
+            direction: port.direction,
+            temporal: port.temporal,
+            abnormal_kind: port.abnormal_kind.map(Into::into),
+        }
+    }
+}
 #[derive(Clone, Copy)]
 pub enum PortDescriptorRefs<'a> {
     Owned(&'a [PortDescriptor]),
@@ -67,7 +78,7 @@ impl<'a> PortDescriptorRefs<'a> {
         })
     }
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HostCallRequirementRef<'a> {
     pub contract_id: &'a str,
     pub target_kind: Option<&'a str>,
