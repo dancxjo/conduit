@@ -14,6 +14,7 @@ conduit-kernel = { path = "../../../architecture/kernel", optional = true }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional = true }
 
 [build-dependencies]
+conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]

@@ -61,7 +61,7 @@ impl PreparedPulseCodec {
         // Array construction is fallible during preparation; never while playing.
         let mut octets = alloc::vec::Vec::with_capacity(8);
         for _ in 0..8 {
-            octets.push(Composer::new(element, 64)?);
+            octets.push(Composer::new(element, PULSE_READ_CANONICAL_OCTET_BYTES)?);
         }
         Ok(Self {
             request: PreparedStructuredValueValidator::new(
@@ -71,11 +71,14 @@ impl PreparedPulseCodec {
             octets: octets
                 .try_into()
                 .map_err(|_| StructuredInfoRefusal::WrongType)?,
-            length: Composer::new(field(&contract.capture, "length")?, 64)?,
-            wire: Composer::new(wire_type, 256)?,
-            capture: Composer::new(&contract.capture, 512)?,
-            empty: Composer::new(empty_type, 64)?,
-            result: Composer::new(&contract.result, PULSE_READ_MAXIMUM_BYTES as usize)?,
+            length: Composer::new(
+                field(&contract.capture, "length")?,
+                PULSE_READ_CANONICAL_LENGTH_BYTES,
+            )?,
+            wire: Composer::new(wire_type, PULSE_READ_CANONICAL_WIRE_BYTES)?,
+            capture: Composer::new(&contract.capture, PULSE_READ_CANONICAL_CAPTURE_BYTES)?,
+            empty: Composer::new(empty_type, PULSE_READ_CANONICAL_EMPTY_BYTES)?,
+            result: Composer::new(&contract.result, PULSE_READ_CANONICAL_RESULT_BYTES)?,
         })
     }
     pub fn request(
