@@ -4,7 +4,7 @@ use super::{profile, Retained, SCHEMA};
 use alloc::{string::String, vec::Vec};
 use conduit_body::*;
 use serde::{
-    de::{self, SeqAccess, Visitor},
+    de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
 
@@ -90,30 +90,144 @@ impl<'de> Deserialize<'de> for Summary {
         d.deserialize_seq(Archives)
     }
 }
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct CheckedEnvelope {
-    schema: String,
-    #[serde(deserialize_with = "profile::deserialize_evidence")]
-    evidence: BodyBiographyEvidence,
-    archives: Summary,
-    #[serde(default)]
-    admissions: Option<AdmissionManager>,
-}
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct CustodiedEnvelope {
-    schema: String,
-    #[serde(deserialize_with = "profile::deserialize_evidence")]
-    evidence: BodyBiographyEvidence,
-    archives: de::IgnoredAny,
-    #[serde(default)]
-    admissions: Option<AdmissionManager>,
+/// Borrowed already authenticated source metadata for parked restoration. It is
+/// not reconstructible from incoming JSON: the owning Store pins its snapshot.
+pub(crate) struct Custody<'a> {
+    pub summary: &'a Summary,
+    pub prefix: Option<&'a super::wire::Receipt>,
+    pub local_count: u64,
 }
 pub(crate) struct Resident {
     pub retained: Retained,
     pub summary: Summary,
+    pub prefix: Option<super::wire::Receipt>,
+    pub local_count: u64,
     pub span: Span,
+}
+struct Evidence(BodyBiographyEvidence);
+impl<'de> Deserialize<'de> for Evidence {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        profile::deserialize_evidence(d).map(Self)
+    }
+}
+struct Suffix(Summary);
+impl<'de> Visitor<'de> for Suffix {
+    type Value = Summary;
+    fn expecting(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("archive suffix after authenticated prefix")
+    }
+    fn visit_seq<A: SeqAccess<'de>>(mut self, mut sequence: A) -> Result<Summary, A::Error> {
+        while let Some(OneArchive(segment)) = sequence.next_element()? {
+            self.0.append(&segment).map_err(de::Error::custom)?;
+        }
+        Ok(self.0)
+    }
+}
+impl<'de> DeserializeSeed<'de> for Suffix {
+    type Value = Summary;
+    fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<Summary, D::Error> {
+        d.deserialize_seq(self)
+    }
+}
+fn prefix_summary(body: &BodyId, prefix: &super::wire::Receipt) -> Summary {
+    Summary {
+        count: prefix.summary.count,
+        body: Some(body.clone()),
+        head: prefix.summary.head.map(|v| v.0),
+        last_sequence: prefix.summary.last_sequence,
+        last_sign: prefix.summary.last_sign.clone().map(Into::into),
+    }
+}
+struct Envelope<'a> {
+    body: &'a BodyId,
+    key: Option<&'a ed25519_dalek::VerifyingKey>,
+    custody: Option<Custody<'a>>,
+}
+struct Decoded {
+    schema: String,
+    evidence: BodyBiographyEvidence,
+    admissions: Option<AdmissionManager>,
+    summary: Summary,
+    prefix: Option<super::wire::Receipt>,
+}
+impl<'de> DeserializeSeed<'de> for Envelope<'_> {
+    type Value = Decoded;
+    fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<Decoded, D::Error> {
+        d.deserialize_map(self)
+    }
+}
+impl<'de> Visitor<'de> for Envelope<'_> {
+    type Value = Decoded;
+    fn expecting(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("complete restart envelope with authenticated archive custody")
+    }
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Decoded, A::Error> {
+        let (mut schema, mut evidence, mut summary, mut prefix, mut admissions) =
+            (None, None, None, None, None);
+        let mut admissions_seen = false;
+        while let Some(field) = map.next_key::<String>()? {
+            match field.as_str() {
+                "schema" if schema.is_none() => schema = Some(map.next_value::<String>()?),
+                "evidence" if evidence.is_none() => {
+                    evidence = Some(map.next_value::<Evidence>()?.0)
+                }
+                "biography_prefix" if prefix.is_none() => {
+                    if summary.is_some() {
+                        return Err(de::Error::custom("prefix must precede archive suffix"));
+                    }
+                    let receipt = map.next_value::<super::wire::Receipt>()?;
+                    let key = self
+                        .key
+                        .ok_or_else(|| de::Error::custom("prefix requires pinned Root"))?;
+                    receipt.verify(self.body, key).map_err(de::Error::custom)?;
+                    prefix = Some(receipt);
+                }
+                "archives" if summary.is_none() => {
+                    summary = Some(if let Some(custody) = self.custody.as_ref() {
+                        let _: de::IgnoredAny = map.next_value()?;
+                        custody.summary.clone()
+                    } else {
+                        let initial = prefix
+                            .as_ref()
+                            .map_or_else(Summary::default, |p| prefix_summary(self.body, p));
+                        map.next_value_seed(Suffix(initial))?
+                    });
+                }
+                "admissions" if !admissions_seen => {
+                    admissions_seen = true;
+                    admissions = map.next_value::<Option<AdmissionManager>>()?;
+                }
+                _ => return Err(de::Error::custom("unknown or duplicate restart field")),
+            }
+        }
+        let schema = schema.ok_or_else(|| de::Error::custom("restart schema missing"))?;
+        if (schema == SCHEMA && prefix.is_some())
+            || (schema == super::SCHEMA_V2 && prefix.is_none())
+            || (schema != SCHEMA && schema != super::SCHEMA_V2)
+        {
+            return Err(de::Error::custom("restart schema/prefix mismatch"));
+        }
+        if let Some(custody) = self.custody.as_ref() {
+            let same = match (prefix.as_ref(), custody.prefix, self.key) {
+                (None, None, _) => true,
+                (Some(actual), Some(expected), Some(key)) => {
+                    actual.transcript(&key.to_bytes()) == expected.transcript(&key.to_bytes())
+                        && actual.signature == expected.signature
+                }
+                _ => false,
+            };
+            if !same {
+                return Err(de::Error::custom("restart retained prefix changed"));
+            }
+        }
+        Ok(Decoded {
+            schema,
+            evidence: evidence.ok_or_else(|| de::Error::custom("restart evidence missing"))?,
+            admissions,
+            summary: summary.ok_or_else(|| de::Error::custom("restart archives missing"))?,
+            prefix,
+        })
+    }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Span {
@@ -323,6 +437,25 @@ pub(crate) fn decode(
     expected_body: &BodyId,
     custody: Option<&Summary>,
 ) -> Result<Resident, &'static str> {
+    decode_with_prefix(
+        read,
+        expected_body,
+        None,
+        custody.map(|summary| Custody {
+            summary,
+            prefix: None,
+            local_count: summary.count,
+        }),
+    )
+}
+#[inline(never)]
+pub(crate) fn decode_with_prefix(
+    read: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    expected_body: &BodyId,
+    key: Option<&ed25519_dalek::VerifyingKey>,
+    custody: Option<Custody<'_>>,
+) -> Result<Resident, &'static str> {
+    let expected_local = custody.as_ref().map(|c| c.local_count);
     let mut observer = SpanObserver::default();
     let mut observed = |chunk: &mut [u8; 128]| {
         let n = read(chunk)?;
@@ -332,29 +465,24 @@ pub(crate) fn decode(
         observer.push(&chunk[..n])?;
         Ok(n)
     };
-    let (schema, evidence, admissions, summary) = if let Some(summary) = custody {
-        let envelope: CustodiedEnvelope =
-            super::read_json::from_reader(&mut observed, super::MAX_PLAIN_BYTES)
-                .map_err(|_| "restart-encoding")?;
-        let _ = envelope.archives;
-        (
-            envelope.schema,
-            envelope.evidence,
-            envelope.admissions,
-            summary.clone(),
-        )
-    } else {
-        let envelope: CheckedEnvelope =
-            super::read_json::from_reader(&mut observed, super::MAX_PLAIN_BYTES)
-                .map_err(|_| "restart-encoding")?;
-        (
-            envelope.schema,
-            envelope.evidence,
-            envelope.admissions,
-            envelope.archives,
-        )
-    };
-    if schema != SCHEMA || &evidence.body_id != expected_body {
+    let decoded = super::read_json::from_reader_seed(
+        &mut observed,
+        super::MAX_PLAIN_BYTES,
+        Envelope {
+            body: expected_body,
+            key,
+            custody,
+        },
+    )
+    .map_err(|_| "restart-encoding")?;
+    let Decoded {
+        schema,
+        evidence,
+        admissions,
+        summary,
+        prefix,
+    } = decoded;
+    if &evidence.body_id != expected_body {
         return Err("restart-body-binding");
     }
     profile::ensure_no_holds(&evidence, &[])?;
@@ -366,6 +494,13 @@ pub(crate) fn decode(
     {
         return Err("restart-admission-body");
     }
+    let local_count = summary
+        .count
+        .checked_sub(prefix.as_ref().map_or(0, |p| p.summary.count))
+        .ok_or("restart-local-count")?;
+    if observer.segments != local_count || expected_local.is_some_and(|n| n != local_count) {
+        return Err("restart-local-count");
+    }
     Ok(Resident {
         retained: Retained {
             schema,
@@ -374,6 +509,8 @@ pub(crate) fn decode(
             admissions,
         },
         summary,
+        prefix,
+        local_count,
         span: observer.finish()?,
     })
 }

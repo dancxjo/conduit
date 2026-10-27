@@ -288,6 +288,24 @@ pub fn from_reader<T: DeserializeOwned>(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     limit: usize,
 ) -> Result<T, Error> {
+    struct Owned<T>(core::marker::PhantomData<T>);
+    impl<'de, T: DeserializeOwned> DeserializeSeed<'de> for Owned<T> {
+        type Value = T;
+        fn deserialize<D: de::Deserializer<'de>>(self, decoder: D) -> Result<T, D::Error> {
+            T::deserialize(decoder)
+        }
+    }
+    from_reader_seed(read, limit, Owned(core::marker::PhantomData))
+}
+/// Same bounded reader/EOF contract with caller-owned validation context.
+pub(crate) fn from_reader_seed<T, S>(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    limit: usize,
+    seed: S,
+) -> Result<T, Error>
+where
+    S: for<'de> DeserializeSeed<'de, Value = T>,
+{
     let mut decoder = Decoder {
         read,
         input: [0; 128],
@@ -298,7 +316,7 @@ pub fn from_reader<T: DeserializeOwned>(
         eof: false,
         depth: 0,
     };
-    let value = T::deserialize(&mut decoder)?;
+    let value = seed.deserialize(&mut decoder)?;
     if decoder.whitespace()?.is_some() {
         return Err(Error);
     }

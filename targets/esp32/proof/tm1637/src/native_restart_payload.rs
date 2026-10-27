@@ -13,6 +13,9 @@ mod profile;
 mod read_json;
 pub const MAX_PLAIN_BYTES: usize = 128 * 1024;
 pub const SCHEMA: &str = "conduit.environment/root-restart@1";
+pub(crate) const SCHEMA_V2: &str = "conduit.environment/root-restart@2";
+#[path = "native_biography_custody_wire.rs"]
+pub(crate) mod wire;
 pub const MAX_BYTES: usize = 32768 - 160;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -206,6 +209,19 @@ pub(crate) fn decode_resident(
     custody: Option<&archive::Summary>,
 ) -> Result<archive::Resident, &'static str> {
     with_plain(read, |plain| archive::decode(plain, body, custody))
+}
+/// Context-bound decoder. Root supplies the key derived from its first fully
+/// authenticated seed read and compares the second seed before publication.
+pub(crate) fn decode_resident_with_prefix(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    body: &conduit_body::BodyId,
+    root: &[u8; 32],
+    custody: Option<archive::Custody<'_>>,
+) -> Result<archive::Resident, &'static str> {
+    let key = ed25519_dalek::VerifyingKey::from_bytes(root).map_err(|_| "restart-root-key")?;
+    with_plain(read, |plain| {
+        archive::decode_with_prefix(plain, body, Some(&key), custody)
+    })
 }
 /// Export only the archive array from an already validated affine snapshot.
 /// Output is provisional until the caller's authenticated read_snapshot returns
@@ -448,6 +464,85 @@ pub(crate) fn stream_rewrite<E>(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
+    stream_rewrite_inner(
+        evidence,
+        pending,
+        admissions,
+        previous,
+        previous_span,
+        None,
+        previous.count,
+        None,
+        read,
+        sink,
+    )
+}
+/// Rewrite a verified external prefix and its exact locally retained suffix.
+/// To offload all local archives, the Store supplies its newly Root-endorsed
+/// receipt for the existing complete summary and local_count=0. The original
+/// source is still consumed completely; only its archive bytes are omitted.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn stream_rewrite_with_prefix<E>(
+    evidence: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: &AdmissionManager,
+    previous: &archive::Summary,
+    previous_span: archive::Span,
+    prefix: Option<&wire::Receipt>,
+    previous_local_count: u64,
+    root: &[u8; 32],
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
+    stream_rewrite_inner(
+        evidence,
+        pending,
+        admissions,
+        previous,
+        previous_span,
+        prefix,
+        previous_local_count,
+        Some(root),
+        read,
+        sink,
+    )
+}
+#[allow(clippy::too_many_arguments)]
+fn stream_rewrite_inner<E>(
+    evidence: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: &AdmissionManager,
+    previous: &archive::Summary,
+    previous_span: archive::Span,
+    prefix: Option<&wire::Receipt>,
+    previous_local_count: u64,
+    root: Option<&[u8; 32]>,
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
+    if previous
+        .count
+        .checked_sub(prefix.map_or(0, |p| p.summary.count))
+        != Some(previous_local_count)
+    {
+        return Err(StreamRefusal::Invalid);
+    }
+    if let Some(prefix) = prefix {
+        let key = ed25519_dalek::VerifyingKey::from_bytes(root.ok_or(StreamRefusal::Invalid)?)
+            .map_err(|_| StreamRefusal::Invalid)?;
+        prefix
+            .verify(&evidence.body_id, &key)
+            .map_err(|_| StreamRefusal::Invalid)?;
+        if previous_local_count == 0
+            && (previous.body.as_ref() != Some(&prefix.body)
+                || previous.head != prefix.summary.head.map(|h| h.0)
+                || previous.last_sequence != prefix.summary.last_sequence
+                || previous.last_sign.as_ref().map(|s| s.as_str())
+                    != prefix.summary.last_sign.as_deref())
+        {
+            return Err(StreamRefusal::Invalid);
+        }
+    }
     evidence.validate().map_err(|_| StreamRefusal::Invalid)?;
     profile::ensure_no_holds(evidence, pending).map_err(|_| StreamRefusal::Invalid)?;
     if admissions.body_id != evidence.body_id {
@@ -482,9 +577,10 @@ pub(crate) fn stream_rewrite<E>(
             })
         };
         plain(b"{\"schema\":")?;
-        json::stream(&SCHEMA, &mut |bytes: &[u8]| {
-            plain(bytes).map_err(|_| json::CodecError::Sink)
-        })
+        json::stream(
+            &if prefix.is_some() { SCHEMA_V2 } else { SCHEMA },
+            &mut |bytes: &[u8]| plain(bytes).map_err(|_| json::CodecError::Sink),
+        )
         .map_err(|_| ())?;
         plain(b",\"evidence\":")?;
         json::stream(
@@ -492,6 +588,13 @@ pub(crate) fn stream_rewrite<E>(
             &mut |bytes: &[u8]| plain(bytes).map_err(|_| json::CodecError::Sink),
         )
         .map_err(|_| ())?;
+        if let Some(prefix) = prefix {
+            plain(b",\"biography_prefix\":")?;
+            json::stream(prefix, &mut |bytes: &[u8]| {
+                plain(bytes).map_err(|_| json::CodecError::Sink)
+            })
+            .map_err(|_| ())?;
+        }
         plain(b",\"archives\":[")?;
         with_plain(read, |source| {
             let mut offset = 0usize;
@@ -507,7 +610,7 @@ pub(crate) fn stream_rewrite<E>(
                     }
                     let start = offset.max(previous_span.start);
                     let end = (offset + n).min(previous_span.end);
-                    if previous.count != 0 && start < end {
+                    if previous_local_count != 0 && start < end {
                         plain(&chunk[start - offset..end - offset])
                             .map_err(|_| "restart-source-write")?;
                     }
@@ -522,7 +625,7 @@ pub(crate) fn stream_rewrite<E>(
             result
         })
         .map_err(|_| ())?;
-        let mut comma = previous.count != 0;
+        let mut comma = previous_local_count != 0;
         for segment in pending {
             if comma {
                 plain(b",")?;
@@ -555,6 +658,13 @@ pub(crate) fn stream_rewrite<E>(
             StreamRefusal::Invalid
         }
     })?;
+    if observer.segments
+        != previous_local_count
+            .checked_add(pending.len() as u64)
+            .ok_or(StreamRefusal::Invalid)?
+    {
+        return Err(StreamRefusal::Invalid);
+    }
     Ok((
         summary,
         observer.finish().map_err(|_| StreamRefusal::Invalid)?,
@@ -606,3 +716,7 @@ pub(crate) fn resident_extent(
         result
     })
 }
+
+#[cfg(test)]
+#[path = "native_restart_prefix_tests.rs"]
+mod prefix_tests;
