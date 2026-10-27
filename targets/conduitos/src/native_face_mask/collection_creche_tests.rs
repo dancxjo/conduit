@@ -29,8 +29,8 @@ fn deep() -> BirthDraft {
                 title: alloc::format!("界{} {i}", "é".repeat(20)),
                 search_text: "界".repeat(500),
                 plot: conduit_body::ResidentPlot::new(
-                    alloc::format!("source/{i}/{}", "界".repeat(60)).into(),
-                    alloc::format!("checked/{i}/{}", "界".repeat(60)).into(),
+                    alloc::format!("source/{i}/{}", "界".repeat(15)).into(),
+                    alloc::format!("checked/{i}/{}", "界".repeat(15)).into(),
                 ),
                 selected: i % 2 == 0,
                 refusal: None,
