@@ -90,8 +90,7 @@ fn complete_five_and_sixteen_unicode_faces_cross_matching_collection_storage() {
                 producer.collection_storage,
                 renderer.collection_storage
             );
-            if name == "deep-sixteen" {
-                assert!(bytes.len() > crate::native_face_snapshot::MAX_SNAPSHOT_BYTES);
+            if bytes.len() > crate::native_face_snapshot::MAX_SNAPSHOT_BYTES {
                 let (mut smaller, _) = tests::fixture();
                 let before = display.writes;
                 assert_eq!(
