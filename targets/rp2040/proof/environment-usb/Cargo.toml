@@ -31,7 +31,7 @@ conduit-net = { path = "../../../../semantics/net", optional = true }
 cyw43 = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
 cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
-embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["dhcpv4", "medium-ethernet", "proto-ipv4"], optional = true }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp", "udp"], optional = true }
 [build-dependencies]
 conduit-host-make = { path = "../../../../make/host" }
 conduit-host-rp2040 = { path = "../../make" }

@@ -237,3 +237,21 @@ fn explicit_join_extent_accepts_shared_network_request_without_changing_relay_de
     decoder.accept(&wire).unwrap();
     assert_eq!(decoder.frame().unwrap().payload, request);
 }
+
+#[test]
+fn selected_peer_command_requires_explicit_decoder_opt_in_and_exact_extent() {
+    let wire = frame(SELECT_PEER, 1, &[10, 0, 0, 12]);
+    assert_eq!(Decoder::new().accept(&wire), Err(Refusal::Kind));
+    let mut green = Decoder::with_join_limit(167).unwrap().with_selected_peer();
+    green.accept(&wire).unwrap();
+    assert_eq!(green.frame().unwrap().payload, [10, 0, 0, 12]);
+    for length in [0, 3, 5, 128] {
+        green.reset();
+        assert_eq!(
+            green.accept(&frame(SELECT_PEER, 2, &vec![0; length])),
+            Err(Refusal::Capacity)
+        );
+    }
+    green.reset();
+    green.accept(&wire).unwrap();
+}

@@ -6,19 +6,63 @@ use embassy_rp::{peripherals::*, Peri};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use embassy_time::{with_timeout, Duration};
 use static_cell::StaticCell;
+#[path = "wifi_mdns.rs"]
+mod mdns;
+#[path = "wifi_peer.rs"]
+mod peer;
 #[path = "../../../firmware/pico-w-signal/src/radio.rs"]
 #[allow(unexpected_cfgs, dead_code)]
 mod radio;
+#[path = "wifi_transport.rs"]
+mod transport;
+use peer::Attachment;
 pub use radio::UsbIrq as UsbIrqs;
 const MAX: usize = conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize;
-struct Request {
+struct JoinRequest {
     bytes: [u8; MAX],
     length: usize,
 }
-impl Drop for Request {
+impl Drop for JoinRequest {
     fn drop(&mut self) {
         crate::protocol::wipe(&mut self.bytes)
     }
+}
+enum Request {
+    Join(JoinRequest),
+    Peer([u8; 4]),
+    Http(transport::Transfer),
+    Mdns(mdns::Observation),
+}
+static ATTACHMENT: critical_section::Mutex<RefCell<Option<Attachment>>> =
+    critical_section::Mutex::new(RefCell::new(None));
+fn with_attachment<T>(f: impl FnOnce(&mut Attachment) -> T) -> T {
+    critical_section::with(|cs| {
+        f(ATTACHMENT
+            .borrow(cs)
+            .borrow_mut()
+            .get_or_insert_with(Attachment::default))
+    })
+}
+fn attachment_snapshot() -> Attachment {
+    with_attachment(|a| *a)
+}
+pub async fn select_peer(bytes: &[u8]) -> Result<(), &'static str> {
+    if !critical_section::with(|cs| STATUS.borrow(cs).borrow().ready) {
+        return Err("radio-not-ready");
+    }
+
+    let address = bytes.try_into().map_err(|_| "peer-address-length")?;
+    RESULT.reset();
+    REQUEST.signal(Request::Peer(address));
+    with_timeout(Duration::from_secs(8), RESULT.wait())
+        .await
+        .map_err(|_| "peer-selection-timeout")?
+}
+pub async fn http(cdc: &mut crate::Cdc, id: u32, bytes: &[u8]) -> Result<(), &'static str> {
+    transport::receive(cdc, id, bytes).await
+}
+pub async fn mdns(cdc: &mut crate::Cdc, id: u32, bytes: &[u8]) -> Result<(), &'static str> {
+    mdns::receive(cdc, id, bytes).await
 }
 static REQUEST: Signal<CriticalSectionRawMutex, Request> = Signal::new();
 static RESULT: Signal<CriticalSectionRawMutex, Result<(), &'static str>> = Signal::new();
@@ -50,6 +94,7 @@ fn update(ready: bool, stack: Option<Stack<'static>>, error: Option<&'static str
 }
 pub fn status() -> Result<heapless::String<512>, ()> {
     let s = critical_section::with(|cs| *STATUS.borrow(cs).borrow());
+    let attachment = attachment_snapshot();
     let mut out = heapless::String::new();
     write!(&mut out,"{{\"role\":\"{}\",\"build\":\"{}\",\"configuration\":\"{}\",\"body_member\":false,\"radio_ready\":{},\"link_up\":{},\"ip\":",crate::config::ROLE,crate::protocol::BUILD_ID,crate::config::CONFIGURATION_ID,s.ready,s.link).map_err(|_|())?;
     if let Some(ip) = s.ip {
@@ -59,7 +104,9 @@ pub fn status() -> Result<heapless::String<512>, ()> {
     }
     write!(
         &mut out,
-        ",\"radio_error\":{}{}{} }}",
+        ",\"attachment_generation\":{},\"peer_ready\":{},\"radio_error\":{}{}{} }}",
+        attachment.generation,
+        attachment.ready(),
         if s.error.is_some() { "\"" } else { "" },
         s.error.unwrap_or("null"),
         if s.error.is_some() { "\"" } else { "" }
@@ -74,13 +121,13 @@ pub async fn configure(encoded: &[u8]) -> Result<(), &'static str> {
     let selected =
         conduit_net::decode_network_join_request(encoded).map_err(|_| "invalid-network-request")?;
     core::str::from_utf8(selected.credential).map_err(|_| "unsupported-network-credential")?;
-    let mut request = Request {
+    let mut request = JoinRequest {
         bytes: [0; MAX],
         length: encoded.len(),
     };
     request.bytes[..encoded.len()].copy_from_slice(encoded);
     RESULT.reset();
-    REQUEST.signal(request);
+    REQUEST.signal(Request::Join(request));
     with_timeout(Duration::from_secs(50), RESULT.wait())
         .await
         .map_err(|_| "radio-request-timeout")?
@@ -114,8 +161,11 @@ pub async fn run(
         update(false, None, Some("radio-initialization-failed"));
         loop {
             let request = REQUEST.wait().await;
-            drop(request);
-            RESULT.signal(Err("radio-initialization-failed"));
+            match request {
+                Request::Http(transfer) => transport::unavailable(transfer).await,
+                Request::Mdns(request) => mdns::unavailable(request),
+                _ => RESULT.signal(Err("radio-initialization-failed")),
+            }
         }
     };
     // Nonsecret network transaction entropy; this is not a membership seed.
@@ -128,6 +178,7 @@ pub async fn run(
     );
     spawner.spawn(network(runner).unwrap());
     update(true, Some(stack), None);
+    spawner.spawn(monitor(stack).unwrap());
     loop {
         let request = match with_timeout(Duration::from_millis(250), REQUEST.wait()).await {
             Ok(r) => r,
@@ -137,10 +188,31 @@ pub async fn run(
                 continue;
             }
         };
-        let result = join(&mut control, stack, &request.bytes[..request.length]).await;
-        drop(request);
-        update(true, Some(stack), result.as_ref().err().copied());
-        RESULT.signal(result);
+        match request {
+            Request::Join(request) => {
+                let retired = with_attachment(|a| a.invalidate());
+                let result = match retired {
+                    Ok(()) => join(&mut control, stack, &request.bytes[..request.length]).await,
+                    Err(e) => Err(e),
+                };
+                drop(request);
+                let _ = with_attachment(|a| a.observe(transport::current(stack)));
+                update(true, Some(stack), result.as_ref().err().copied());
+                RESULT.signal(result);
+            }
+            Request::Peer(address) => {
+                let result = with_attachment(|a| {
+                    a.observe(transport::current(stack))?;
+                    a.select(address)
+                });
+                RESULT.signal(result);
+            }
+            Request::Mdns(request) => mdns::serve(stack, request).await,
+            Request::Http(transfer) => {
+                let _ = with_attachment(|a| a.observe(transport::current(stack)));
+                transport::serve(stack, &attachment_snapshot(), transfer).await;
+            }
+        }
     }
 }
 async fn join(
@@ -168,4 +240,14 @@ async fn join(
         .await
         .map_err(|_| "radio-dhcp-timeout")?;
     Ok(())
+}
+
+#[embassy_executor::task]
+async fn monitor(stack: Stack<'static>) -> ! {
+    loop {
+        let observed = with_attachment(|a| a.observe(transport::current(stack)));
+        let old = critical_section::with(|cs| STATUS.borrow(cs).borrow().error);
+        update(observed.is_ok(), Some(stack), observed.err().or(old));
+        embassy_time::Timer::after_millis(50).await;
+    }
 }

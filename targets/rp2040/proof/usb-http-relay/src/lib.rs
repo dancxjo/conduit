@@ -23,6 +23,8 @@ pub const SENSOR_DIAGNOSTIC: u8 = 7;
 pub const TEST_AP_START: u8 = 8;
 pub const TEST_AP_STOP: u8 = 9;
 pub const MDNS_QUERY: u8 = 10;
+/// Explicit opt-in fixed-port IPv4 carrier peer selection.
+pub const SELECT_PEER: u8 = 11;
 pub mod bench_mdns;
 pub const DATA: u8 = 128;
 pub const DONE: u8 = 129;
@@ -51,6 +53,7 @@ pub struct Decoder {
     used: usize,
     expected: Option<usize>,
     join_limit: usize,
+    selected_peer: bool,
 }
 impl Default for Decoder {
     fn default() -> Self {
@@ -64,6 +67,7 @@ impl Decoder {
             used: 0,
             expected: None,
             join_limit: 97,
+            selected_peer: false,
         }
     }
     /// Explicit caller-selected JOIN framing extent. The default relay keeps
@@ -75,6 +79,12 @@ impl Decoder {
         let mut decoder = Self::new();
         decoder.join_limit = join_limit;
         Ok(decoder)
+    }
+    /// Permit fixed four-byte selected-peer command framing for this carrier.
+    /// Legacy relay construction continues to reject the command as unknown.
+    pub const fn with_selected_peer(mut self) -> Self {
+        self.selected_peer = true;
+        self
     }
     pub fn reset(&mut self) {
         wipe(&mut self.bytes);
@@ -99,6 +109,8 @@ impl Decoder {
                 let length = u16::from_le_bytes([self.bytes[10], self.bytes[11]]) as usize;
                 match self.bytes[5] {
                     JOIN if (2..=self.join_limit).contains(&length) => {}
+                    SELECT_PEER if self.selected_peer && length == 4 => {}
+                    SELECT_PEER if self.selected_peer => return Err(Refusal::Capacity),
                     REQUEST if (1..=MAX_REQUEST).contains(&length) => {}
                     TEST_AP_START if length == 6 => {}
                     MDNS_QUERY if (9..=56).contains(&length) => {}

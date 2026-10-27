@@ -91,7 +91,8 @@ async fn main(spawner: Spawner) {
     #[cfg(feature = "wifi")]
     let mut decoder =
         protocol::Decoder::with_join_limit(conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize)
-            .expect("shared bounded NetworkJoinRequest");
+            .expect("shared bounded NetworkJoinRequest")
+            .with_selected_peer();
     #[cfg(not(feature = "wifi"))]
     let mut decoder = protocol::Decoder::new();
     let mut session = protocol::Session::default();
@@ -157,6 +158,30 @@ async fn main(spawner: Spawner) {
                     protocol::wipe(&mut input);
                     Timer::after_millis(100).await;
                     embassy_rp::rom_data::reset_to_usb_boot(0, 0);
+                }
+            }
+            #[cfg(feature = "wifi")]
+            protocol::MDNS_QUERY => {
+                if let Err(reason) = wifi::mdns(&mut class, id, frame.payload).await {
+                    let _ = send(&mut class, protocol::ERROR, id, reason.as_bytes()).await;
+                }
+            }
+            #[cfg(feature = "wifi")]
+            protocol::SELECT_PEER => match wifi::select_peer(frame.payload).await {
+                Ok(()) => {
+                    if let Ok(status) = wifi::status() {
+                        let _ =
+                            send(&mut class, protocol::INFORMATION, id, status.as_bytes()).await;
+                    }
+                }
+                Err(reason) => {
+                    let _ = send(&mut class, protocol::ERROR, id, reason.as_bytes()).await;
+                }
+            },
+            #[cfg(feature = "wifi")]
+            protocol::REQUEST => {
+                if let Err(reason) = wifi::http(&mut class, id, frame.payload).await {
+                    let _ = send(&mut class, protocol::ERROR, id, reason.as_bytes()).await;
                 }
             }
             #[cfg(feature = "wifi")]
