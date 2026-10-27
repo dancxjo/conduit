@@ -23,6 +23,7 @@ pub struct IndexedSourceImage<'a> {
     bytes: &'a [u8],
     gear_decoder: Option<fn(usize) -> Result<CheckedGear, E>>,
     configuration_decoder: Option<fn(usize) -> Result<IndexedGearConfiguration, E>>,
+    planning_facts: Option<fn() -> Result<crate::LinkedPlanningFactsRef<'static>, E>>,
     count: usize,
     metadata_start: usize,
     payload_start: usize,
@@ -247,6 +248,7 @@ impl<'a> IndexedSourceImage<'a> {
         }
         Ok(Self {
             bytes,
+            planning_facts: None,
             gear_decoder: None,
             configuration_decoder: None,
             count,
@@ -277,6 +279,22 @@ impl<'a> IndexedSourceImage<'a> {
     ) -> Self {
         self.configuration_decoder = Some(decode);
         self
+    }
+    /// Install complete immutable planning facts emitted by the same Make.
+    /// # Safety
+    /// All fields, ordering and origins must exactly match this independently
+    /// pinned image. A received callback or claimed IDs cannot establish this.
+    pub unsafe fn with_make_planning_facts(
+        mut self,
+        facts: fn() -> Result<crate::LinkedPlanningFactsRef<'static>, E>,
+    ) -> Self {
+        self.planning_facts = Some(facts);
+        self
+    }
+    /// Borrow complete linked facts, or explicitly refuse an unsupported image.
+    /// This description does not verify a Plan or authorize effects.
+    pub fn linked_planning_facts(&self) -> Result<crate::LinkedPlanningFactsRef<'static>, E> {
+        self.planning_facts.ok_or(E::UnsupportedGraph)?()
     }
     /// Decode only configuration, skipping unrelated port/semantic contracts.
     pub fn gear_configuration(&self, index: usize) -> Result<IndexedGearConfiguration, E> {

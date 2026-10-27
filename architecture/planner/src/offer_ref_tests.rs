@@ -166,3 +166,132 @@ fn operation_descriptors_preserve_complete_historical_refusals() {
         }
     }
 }
+
+fn historical_validate_host_resources(host: &HostAdvertisement) -> Result<(), PlannerError> {
+    if host.resources.iter().any(|resource| {
+        resource.pool_id.as_str().is_empty()
+            || resource.class_id.as_str().is_empty()
+            || resource.capacity_units == 0
+            || resource
+                .compute
+                .as_ref()
+                .is_some_and(|compute| !compute.is_valid_for_capacity(resource.capacity_units))
+    }) || host
+        .resources
+        .windows(2)
+        .any(|pair| pair[0].pool_id >= pair[1].pool_id)
+    {
+        return Err(PlannerError::InvalidResourceContract(format!(
+            "host '{}' pools must have non-empty identities, positive capacity, and unique pool-id ordering",
+            host.host_id.as_str()
+        )));
+    }
+    for base in &host.bases {
+        if base.lifecycle != conduit_core::BaseLifecycle::Ready
+            || base.base_id.as_str().is_empty()
+            || base.provider_instance_id.as_str().is_empty()
+            || base.provider_generation == 0
+            || base.implementation_id.as_str().is_empty()
+            || base.mechanism_family.as_str().is_empty()
+            || base.capability_ids.is_empty() && base.resource_pool_ids.is_empty()
+            || base.capability_ids.iter().any(|id| {
+                !host
+                    .capabilities
+                    .iter()
+                    .any(|offer| offer.capability_id == *id)
+            })
+            || base
+                .resource_pool_ids
+                .iter()
+                .any(|id| !host.resources.iter().any(|offer| offer.pool_id == *id))
+        {
+            return Err(PlannerError::InvalidResourceContract(format!(
+                "host '{}' has invalid current Base provenance",
+                host.host_id.as_str()
+            )));
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn current_host_description_preserves_historical_provenance_refusals() {
+    use conduit_core as c;
+    for mutation in 0..13 {
+        let mut host = tests::host();
+        host.resources = vec![c::ResourceOffer {
+            pool_id: "pool".into(),
+            class_id: "class".into(),
+            capacity_units: 1,
+            compute: None,
+            content: None,
+        }];
+        host.bases = vec![c::BaseProviderAdvertisement {
+            base_id: "base".into(),
+            provider_instance_id: "instance".into(),
+            provider_generation: 1,
+            implementation_id: "implementation".into(),
+            mechanism_family: "family".into(),
+            enforcement_class: c::BaseEnforcementClass::Cooperative,
+            lifecycle: c::BaseLifecycle::Ready,
+            capability_ids: host
+                .capabilities
+                .iter()
+                .map(|v| v.capability_id.clone())
+                .collect(),
+            resource_pool_ids: vec!["pool".into()],
+        }];
+        match mutation {
+            1 => host.resources[0].pool_id = "".into(),
+            2 => host.resources[0].class_id = "".into(),
+            3 => host.resources[0].capacity_units = 0,
+            4 => host.resources.push(host.resources[0].clone()),
+            5 => host.bases[0].lifecycle = c::BaseLifecycle::Lost,
+            6 => host.bases[0].provider_generation = 0,
+            7 => host.bases[0].base_id = "".into(),
+            8 => host.bases[0].provider_instance_id = "".into(),
+            9 => host.bases[0].implementation_id = "".into(),
+            10 => host.bases[0].mechanism_family = "".into(),
+            11 => host.bases[0].capability_ids.push("absent".into()),
+            12 => {
+                host.resources[0].capacity_units = 0;
+                host.bases[0].provider_generation = 0;
+            }
+            _ => {}
+        }
+        let resources: Vec<_> = host.resources.iter().map(Into::into).collect();
+        let capabilities: Vec<_> = host.capabilities.iter().map(Into::into).collect();
+        let ids: Vec<_> = host.bases[0]
+            .capability_ids
+            .iter()
+            .map(|v| v.as_str())
+            .collect();
+        let pools: Vec<_> = host.bases[0]
+            .resource_pool_ids
+            .iter()
+            .map(|v| v.as_str())
+            .collect();
+        let bases = [c::BaseProviderAdvertisementRef {
+            capability_ids: c::CapabilityIdRefs::Borrowed(&ids),
+            resource_pool_ids: c::ResourcePoolIdRefs::Borrowed(&pools),
+            ..(&host.bases[0]).into()
+        }];
+        let borrowed = c::HostAdvertisementRef {
+            resources: c::ResourceOfferRefs::Borrowed(&resources),
+            capabilities: c::CapabilityOfferRefs::Borrowed(&capabilities),
+            bases: c::BaseProviderAdvertisementRefs::Borrowed(&bases),
+            ..(&host).into()
+        };
+        let expected = historical_validate_host_resources(&host);
+        assert_eq!(
+            validate_host_resources(&host),
+            expected,
+            "owned mutation {mutation}"
+        );
+        assert_eq!(
+            validate_host_resources_ref(borrowed),
+            expected,
+            "borrowed mutation {mutation}"
+        );
+    }
+}

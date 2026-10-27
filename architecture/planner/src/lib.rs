@@ -630,22 +630,19 @@ pub(crate) fn validate_operation_capability_ref(
     if capability.kind_id != gear.kind_id {
         return Err(PlannerError::WrongSemanticKind(format!(
             "gear '{}' Kind differs from capability '{}' Kind",
-            gear.gear_id,
-            capability.capability_id
+            gear.gear_id, capability.capability_id
         )));
     }
     if !gear.accepts_callable_front(capability) {
         return Err(PlannerError::IncompatibleCheckedFront(format!(
             "gear '{}' front differs from capability '{}' front",
-            gear.gear_id,
-            capability.capability_id
+            gear.gear_id, capability.capability_id
         )));
     }
     if !gear.accepts_semantic_contract(capability) {
         return Err(PlannerError::WrongKindContractRevision(format!(
             "gear '{}' semantic laws or configuration contract differ from capability '{}'",
-            gear.gear_id,
-            capability.capability_id
+            gear.gear_id, capability.capability_id
         )));
     }
     if gear.kind_contract_revision != conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT
@@ -653,8 +650,7 @@ pub(crate) fn validate_operation_capability_ref(
     {
         return Err(PlannerError::WrongKindContractRevision(format!(
             "gear '{}' semantic contract differs from capability '{}'",
-            gear.gear_id,
-            capability.capability_id
+            gear.gear_id, capability.capability_id
         )));
     }
     if capability.host_calls.iter().any(|requirement| {
@@ -663,7 +659,11 @@ pub(crate) fn validate_operation_capability_ref(
                 .target_kind
                 .is_some_and(|target| target.is_empty())
             || requirement.maximum_in_flight == 0
-    }) || capability.host_calls.iter().zip(capability.host_calls.iter().skip(1)).any(|(left, right)| left >= right)
+    }) || capability
+        .host_calls
+        .iter()
+        .zip(capability.host_calls.iter().skip(1))
+        .any(|(left, right)| left >= right)
     {
         return Err(PlannerError::InvalidHostCallRequirement(format!(
             "capability '{}' requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds",
@@ -679,7 +679,11 @@ pub(crate) fn validate_operation_capability_ref(
             || requirement
                 .protected_role
                 .is_some_and(|role| role.is_empty())
-    }) || capability.resource_requirements.iter().zip(capability.resource_requirements.iter().skip(1)).any(|(left, right)| left >= right)
+    }) || capability
+        .resource_requirements
+        .iter()
+        .zip(capability.resource_requirements.iter().skip(1))
+        .any(|(left, right)| left >= right)
     {
         return Err(PlannerError::InvalidResourceContract(format!(
             "capability '{}' requirements must have non-empty classes and protected roles, positive units, and unique canonical ordering",
@@ -694,7 +698,11 @@ pub(crate) fn validate_operation_capability_ref(
                 host_call.contract_id == requirement.host_call_contract_id
                     && host_call.target_kind == Some(requirement.subject_kind)
             })
-    }) || capability.authority_requirements.iter().zip(capability.authority_requirements.iter().skip(1)).any(|(left, right)| left >= right)
+    }) || capability
+        .authority_requirements
+        .iter()
+        .zip(capability.authority_requirements.iter().skip(1))
+        .any(|(left, right)| left >= right)
     {
         return Err(PlannerError::InvalidAuthorityContract(format!(
             "capability '{}' authority requirements must bind a declared targeted Host Call with non-empty identities and unique canonical ordering",
@@ -731,46 +739,52 @@ fn validate_authority_grants(grants: &[AuthorityGrant]) -> Result<(), PlannerErr
 }
 
 fn validate_host_resources(host: &HostAdvertisement) -> Result<(), PlannerError> {
+    validate_host_resources_ref(host.into())
+}
+
+fn validate_host_resources_ref(
+    host: conduit_core::HostAdvertisementRef<'_>,
+) -> Result<(), PlannerError> {
     if host.resources.iter().any(|resource| {
-        resource.pool_id.as_str().is_empty()
-            || resource.class_id.as_str().is_empty()
+        resource.pool_id.is_empty()
+            || resource.class_id.is_empty()
             || resource.capacity_units == 0
             || resource
                 .compute
-                .as_ref()
                 .is_some_and(|compute| !compute.is_valid_for_capacity(resource.capacity_units))
     }) || host
         .resources
-        .windows(2)
-        .any(|pair| pair[0].pool_id >= pair[1].pool_id)
+        .iter()
+        .zip(host.resources.iter().skip(1))
+        .any(|(left, right)| left.pool_id >= right.pool_id)
     {
         return Err(PlannerError::InvalidResourceContract(format!(
             "host '{}' pools must have non-empty identities, positive capacity, and unique pool-id ordering",
-            host.host_id.as_str()
+            host.host_id
         )));
     }
-    for base in &host.bases {
+    for base in host.bases.iter() {
         if base.lifecycle != conduit_core::BaseLifecycle::Ready
-            || base.base_id.as_str().is_empty()
-            || base.provider_instance_id.as_str().is_empty()
+            || base.base_id.is_empty()
+            || base.provider_instance_id.is_empty()
             || base.provider_generation == 0
-            || base.implementation_id.as_str().is_empty()
-            || base.mechanism_family.as_str().is_empty()
+            || base.implementation_id.is_empty()
+            || base.mechanism_family.is_empty()
             || base.capability_ids.is_empty() && base.resource_pool_ids.is_empty()
             || base.capability_ids.iter().any(|id| {
                 !host
                     .capabilities
                     .iter()
-                    .any(|offer| offer.capability_id == *id)
+                    .any(|offer| offer.capability_id == id)
             })
             || base
                 .resource_pool_ids
                 .iter()
-                .any(|id| !host.resources.iter().any(|offer| offer.pool_id == *id))
+                .any(|id| !host.resources.iter().any(|offer| offer.pool_id == id))
         {
             return Err(PlannerError::InvalidResourceContract(format!(
                 "host '{}' has invalid current Base provenance",
-                host.host_id.as_str()
+                host.host_id
             )));
         }
     }

@@ -359,3 +359,93 @@ impl KindDefinitionRef<'_> {
         }
     }
 }
+
+/// Complete descriptive authority grant; only actual Root possession can issue
+/// a finite executable table. This view cannot authorize an effect.
+#[derive(Clone, Copy)]
+pub struct AuthorityGrantRef<'a> {
+    pub grant_id: &'a str,
+    pub contract_id: &'a str,
+    pub host_call_contract_id: &'a str,
+    pub subject_kind: &'a str,
+    pub host_id: &'a str,
+    pub boot_id: &'a str,
+    pub capability_id: &'a str,
+}
+impl<'a> From<&'a AuthorityGrant> for AuthorityGrantRef<'a> {
+    fn from(grant: &'a AuthorityGrant) -> Self {
+        Self {
+            grant_id: grant.grant_id.as_str(),
+            contract_id: grant.contract_id.as_str(),
+            host_call_contract_id: grant.host_call_contract_id.as_str(),
+            subject_kind: grant.subject_kind.as_str(),
+            host_id: grant.host_id.as_str(),
+            boot_id: grant.boot_id.as_str(),
+            capability_id: grant.capability_id.as_str(),
+        }
+    }
+}
+impl<'a> From<AuthorityGrantRef<'a>> for AuthorityBindingRef<'a> {
+    fn from(grant: AuthorityGrantRef<'a>) -> Self {
+        Self {
+            grant_id: grant.grant_id,
+            contract_id: grant.contract_id,
+            host_call_contract_id: grant.host_call_contract_id,
+            subject_kind: grant.subject_kind,
+            host_id: grant.host_id,
+            boot_id: grant.boot_id,
+            capability_id: grant.capability_id,
+        }
+    }
+}
+#[derive(Clone, Copy)]
+pub enum AuthorityGrantRefs<'a> {
+    Owned(&'a [AuthorityGrant]),
+    Borrowed(&'a [AuthorityGrantRef<'a>]),
+}
+impl<'a> AuthorityGrantRefs<'a> {
+    pub fn len(self) -> usize {
+        match self {
+            Self::Owned(v) => v.len(),
+            Self::Borrowed(v) => v.len(),
+        }
+    }
+    pub fn is_empty(self) -> bool {
+        self.len() == 0
+    }
+    pub fn iter(self) -> impl ExactSizeIterator<Item = AuthorityGrantRef<'a>> {
+        (0..self.len()).map(move |i| match self {
+            Self::Owned(v) => (&v[i]).into(),
+            Self::Borrowed(v) => v[i],
+        })
+    }
+}
+/// Full current descriptive entry. Validation remains the ordinary registry's
+/// non-authorizing identity/count/projection predicates, shared with rich input.
+#[derive(Clone, Copy)]
+pub struct BaseProviderEntryRef<'a> {
+    pub base_id: &'a str,
+    pub provider_instance_id: &'a str,
+    pub provider_generation: u64,
+    pub implementation_id: &'a str,
+    pub mechanism_family: &'a str,
+    pub enforcement_class: BaseEnforcementClass,
+    pub lifecycle: BaseLifecycle,
+    pub capabilities: CapabilityOfferRefs<'a>,
+    pub resources: ResourceOfferRefs<'a>,
+}
+impl<'a> From<&'a BaseProviderEntry> for BaseProviderEntryRef<'a> {
+    fn from(entry: &'a BaseProviderEntry) -> Self {
+        Self {
+            base_id: entry.base_id.as_str(),
+            provider_instance_id: entry.provider_instance_id.as_str(),
+            provider_generation: entry.provider_generation,
+            implementation_id: entry.implementation_id.as_str(),
+            mechanism_family: entry.mechanism_family.as_str(),
+            enforcement_class: entry.enforcement_class,
+            lifecycle: entry.lifecycle,
+            capabilities: CapabilityOfferRefs::Owned(&entry.capabilities),
+            resources: ResourceOfferRefs::Owned(&entry.resources),
+        }
+    }
+}
