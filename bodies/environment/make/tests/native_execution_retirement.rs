@@ -734,6 +734,22 @@ fn actual_retired_pair_refuses_partial_forgery_then_enters_distinct_verified_pla
         native_worker::Exit::Drained
     );
     let retired = DeviceExecution::retire_with_material_retained(&mut first.execution).unwrap();
+    let (settled_scope, receipt_memory) = allocation_probe::observe(|| retired.scope_receipt());
+    assert_eq!(
+        (receipt_memory.allocations, receipt_memory.reallocations),
+        (0, 0)
+    );
+    assert!(settled_scope.matches_active(&first.active));
+    for field in 0..4 {
+        let mut wrong = first.active.clone();
+        match field {
+            0 => wrong.host_id.0.push_str("/foreign"),
+            1 => wrong.boot_id.0.push_str("/foreign"),
+            2 => wrong.plan_id.0.push_str("/foreign"),
+            _ => wrong.active_play_id.0.push_str("/foreign"),
+        }
+        assert!(!settled_scope.matches_active(&wrong));
+    }
     first
         .issuer
         .finish_native_play(&first.active, &retired.providers)
@@ -785,6 +801,8 @@ fn actual_retired_pair_refuses_partial_forgery_then_enters_distinct_verified_pla
         Some(values),
     );
     assert_ne!(next.active.active_play_id, old_active.active_play_id);
+    assert!(settled_scope.matches_active(&old_active));
+    assert!(!settled_scope.matches_active(&next.active));
     assert_eq!(next.pulse_identity.provider_generation, 2);
     assert_eq!(next.wait_identity.provider_generation, 2);
     assert_eq!(

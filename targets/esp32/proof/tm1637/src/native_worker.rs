@@ -71,6 +71,29 @@ pub struct Execution<P, W> {
 pub struct RetiredExecution<P, W> {
     pub providers: RetiredProviders<P, W>,
     pub material: crate::native_kernel_storage::RetiredKernelMaterial,
+    settled_scope: [u8; 32],
+}
+/// Historical proof of actual kernel, queue and native-owner quiescence.
+/// Its private constructor is reached only by consuming execution retirement.
+/// This grants no new invocation or Body transition and survives separately
+/// admitted reattachment of the returned physical providers.
+pub struct SettledExecutionScope {
+    scope: [u8; 32],
+}
+impl SettledExecutionScope {
+    pub fn matches_active(&self, active: &conduit_core::ActivePlayIdentity) -> bool {
+        crate::native_retirement::matches_retired_scope(&self.scope, active)
+    }
+}
+impl<P, W> RetiredExecution<P, W> {
+    /// Copy only the immutable past-settlement fact, never a provider or claim.
+    /// Archive rotation independently checks installed fresh scope and fences
+    /// replay against its actual current outgoing epoch.
+    pub fn scope_receipt(&self) -> SettledExecutionScope {
+        SettledExecutionScope {
+            scope: self.settled_scope,
+        }
+    }
 }
 impl<P: PulseReadProvider, W: MonotonicWaitProvider> Execution<P, W> {
     fn new(storage: PreparedKernel, native: NativeBindings<P, W>) -> Self {
@@ -148,9 +171,11 @@ impl<P: PulseReadProvider, W: MonotonicWaitProvider> Execution<P, W> {
         let mut wait = Some(native.wait);
         let providers = RetiredProviders::retire_pair(&mut pulse, &mut wait)
             .expect("exclusively preflighted native retirement");
+        let settled_scope = providers.scope_fingerprint();
         Ok(RetiredExecution {
             providers,
             material,
+            settled_scope,
         })
     }
     /// Size the exact unpolled invocation type, including its control/observer.

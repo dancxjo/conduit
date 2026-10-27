@@ -215,9 +215,9 @@ pub(crate) fn rotate_local(
     fresh: &conduit_core::ActivePlayIdentity,
     generation: conduit_core::OfferGeneration,
     old: &conduit_core::ActivePlayIdentity,
-    retired: &crate::native_task::Retired,
+    retired: &crate::native_worker::SettledExecutionScope,
 ) -> Result<(), &'static str> {
-    if !retired.execution.providers.matches_active(old)
+    if !retired.matches_active(old)
         || old.host_id != fresh.host_id
         || old.boot_id != fresh.boot_id
         || fresh.play_sequence <= old.play_sequence

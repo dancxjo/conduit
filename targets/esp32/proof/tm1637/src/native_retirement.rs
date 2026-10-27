@@ -11,13 +11,10 @@ pub struct RetiredProviders<P, W> {
 }
 impl<P, W> RetiredProviders<P, W> {
     pub fn matches_active(&self, active: &conduit_core::ActivePlayIdentity) -> bool {
+        matches_retired_scope(&self.play_scope, active)
+    }
+    pub(crate) fn scope_fingerprint(&self) -> [u8; 32] {
         self.play_scope
-            == play_scope([
-                active.host_id.as_str(),
-                active.boot_id.as_str(),
-                active.plan_id.as_str(),
-                active.active_play_id.as_str(),
-            ])
     }
     pub fn attachment_generations(&self) -> [u64; 2] {
         [
@@ -31,6 +28,15 @@ impl<P, W> RetiredProviders<P, W> {
             self.wait.provider_generation(),
         ]
     }
+}
+pub(crate) fn matches_retired_scope(scope: &[u8; 32], active: &c::ActivePlayIdentity) -> bool {
+    *scope
+        == play_scope([
+            active.host_id.as_str(),
+            active.boot_id.as_str(),
+            active.plan_id.as_str(),
+            active.active_play_id.as_str(),
+        ])
 }
 fn play_scope(ids: [&str; 4]) -> [u8; 32] {
     use sha2::{Digest, Sha256};
