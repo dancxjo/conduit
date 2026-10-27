@@ -8,8 +8,11 @@ use std::{
     os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
     path::Path,
 };
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs"]
+pub(crate) mod acceptance;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_biography_custody_wire.rs"]
 pub(crate) mod wire;
+use self::wire as biography_wire;
 
 pub(crate) struct VerifiedDurableBiography {
     root: [u8; 32],

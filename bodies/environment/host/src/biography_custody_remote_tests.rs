@@ -226,7 +226,7 @@ fn canonical_admitted_ack_and_independently_pinned_receipt() {
     let signature = secret.sign(&token.signing_transcript(&credential).unwrap());
     let bytes = token.encode_ack(&credential, signature).unwrap();
     let mut request: wire::Request = serde_json::from_slice(&bytes).unwrap();
-    let draft = wire::verify_ack(
+    let draft = acceptance::verify_ack(
         &offer,
         &root,
         &manager,
@@ -244,7 +244,7 @@ fn canonical_admitted_ack_and_independently_pinned_receipt() {
     tampered.summary.count += 1;
     assert!(tampered.verify(&offer.body, &root).is_err());
     request.signature.0[0] ^= 1;
-    assert!(wire::verify_ack(
+    assert!(acceptance::verify_ack(
         &offer,
         &root,
         &manager,
@@ -254,7 +254,7 @@ fn canonical_admitted_ack_and_independently_pinned_receipt() {
     .is_err());
     request.signature.0[0] ^= 1;
     request.boot = "stale/boot".into();
-    assert!(wire::verify_ack(
+    assert!(acceptance::verify_ack(
         &offer,
         &root,
         &manager,
@@ -361,7 +361,7 @@ fn owner_bootstrap_is_typed_scope_bound_and_cold_receipt_pins_root() {
             101
         )
         .is_err());
-    let accepted = wire::accept_owner(&offered, &root, proof).unwrap();
+    let accepted = acceptance::accept_owner(&offered, &root, proof).unwrap();
     let signature = rootkey.sign(&accepted.transcript()).to_bytes();
     let receipt = accepted.signed(signature);
     receipt.verify(&offered.body, &root).unwrap();
