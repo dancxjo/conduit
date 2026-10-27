@@ -55,7 +55,7 @@ pub(super) fn build_local_appliance(root: &Path, key: &Path) -> Result<(), Box<d
 }
 pub(super) fn build_flat_network_appliance(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
     build_with_owner(root, true, false, Some(key), Some("flat-network-appliance"))?;
-    println!("Flat network construction candidate; native workspace admission remains gated");
+    println!("Flat network candidate uses the measured retired-Mask workspace bound; physical join and recovery still require proof");
     Ok(())
 }
 pub(super) fn build_network_workspace_check(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {

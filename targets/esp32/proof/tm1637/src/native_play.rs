@@ -85,6 +85,11 @@ impl NativePlay {
             && crate::services::MAILBOX.observed_state()
                 == Some(conduit_environment_http::service_control::ServiceState::StationReady)
     }
+    pub fn station_address(&self) -> Option<[u8; 4]> {
+        self.join.as_ref().and_then(|join| {
+            join.observe_provider(|provider| provider.station_address())
+        })
+    }
     pub fn attempted(&self) -> bool {
         self.attempted
     }

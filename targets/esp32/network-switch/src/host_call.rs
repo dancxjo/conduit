@@ -101,6 +101,13 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
     pub fn station_link_and_address_up(&self) -> bool {
         self.radio.station_stack.is_link_up() && self.radio.station_stack.config_v4().is_some()
     }
+    /// Current address of this actual interface; never an attachment receipt or
+    /// a claim that application services or a Body peer have been verified.
+    pub fn station_address(&self) -> Option<[u8; 4]> {
+        self.radio.station_stack.is_link_up().then(|| ())?;
+        self.radio.station_stack.config_v4()
+            .map(|config| config.address.address().octets())
+    }
     /// Return restored AP ownership without rearming this spent attempt.
     /// Root must retire selected possession before calling this on a provider
     /// reclaimed through NetworkJoinHostCall::retire_retained, then prepare a

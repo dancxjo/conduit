@@ -91,7 +91,10 @@ pub async fn run(
                     let reading = None;
                     crate::http_ap::serve_mode_with_reading(
                         stack,
-                        setup.clone(),
+                        // Credential ingress belongs to the AP. Installing its
+                        // preparation-only route on a station denies otherwise
+                        // admitted reading/history providers as bootstrap data.
+                        if station { None } else { setup.clone() },
                         !station && setup.is_some(),
                         reading,
                         buffers,

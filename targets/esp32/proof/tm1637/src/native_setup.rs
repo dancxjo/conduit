@@ -22,11 +22,18 @@ pub(super) struct PendingWorkspace {
     request: crate::native_display::task::WorkspaceRequest<'static>,
     deadline_ms: u64,
 }
-// Deliberately absent until target peak, fragmentation and duration are proven.
-// CPU allocation measurements cannot authorize concurrent native construction.
+// The fixed linked appliance was measured under actual retired Mask custody:
+// 7,564 retained bytes / 44,776us, with an 8KiB contiguous allocation still
+// available afterward. Round construction plus the existing 16KiB post-install
+// reserve up to 24KiB. This admits only that pinned construction path; the rich
+// planner has no corresponding target bound. The post-install check below and
+// actual affine ownership checks remain mandatory before releasing the kernel.
 #[cfg(feature = "local-appliance")]
 fn independent_workspace_minimum() -> Option<usize> {
-    None
+    #[cfg(feature = "flat-network-appliance")]
+    { Some(24 * 1024) }
+    #[cfg(not(feature = "flat-network-appliance"))]
+    { None }
 }
 impl NativeRoot {
     /// Preparation never consumes the selected source or changes radio mode.
