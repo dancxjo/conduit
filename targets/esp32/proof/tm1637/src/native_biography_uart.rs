@@ -259,8 +259,19 @@ pub(crate) async fn serve_cold(
             match result {
                 Ok(true) => return Ok(()),
                 Ok(false) => {}
-                Err(_) if observed_command => {
-                    blocking_write(uart, b"\n{\"event\":\"native-root-request-refused\"}\n")?
+                Err(reason) if observed_command => {
+                    #[derive(serde::Serialize)]
+                    struct Refused {
+                        event: &'static str,
+                        reason: &'static str,
+                    }
+                    json(
+                        uart,
+                        &Refused {
+                            event: "native-root-request-refused",
+                            reason,
+                        },
+                    )?;
                 }
                 Err(_) => blocking_write(uart, b"\n{\"event\":\"biography-refused\"}\n")?,
             }

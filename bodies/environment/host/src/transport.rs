@@ -184,7 +184,8 @@ impl Line {
                         return Ok(value);
                     }
                     if value["event"] == "native-root-request-refused" {
-                        return Err("Root refused command".into());
+                        let reason = value["reason"].as_str().unwrap_or("unspecified");
+                        return Err(format!("Root refused command: {reason}").into());
                     }
                 } else {
                     faults.remember(&bytes);
