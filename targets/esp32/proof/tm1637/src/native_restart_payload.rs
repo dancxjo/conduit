@@ -207,6 +207,63 @@ pub(crate) fn decode_resident(
 ) -> Result<archive::Resident, &'static str> {
     with_plain(read, |plain| archive::decode(plain, body, custody))
 }
+/// Export only the archive array from an already validated affine snapshot.
+/// Output is provisional until the caller's authenticated read_snapshot returns
+/// successfully. Always consume the complete source, including private suffix
+/// bytes, so a truncated or changed checkpoint cannot become a custody offer.
+pub(crate) fn export_archive_array<E>(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    span: archive::Span,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(), StreamRefusal<E>> {
+    let mut failure = None;
+    let result = with_plain(read, |source| {
+        let mut observer = archive::SpanObserver::default();
+        let mut offset = 0usize;
+        let mut chunk = [0; 128];
+        let result = (|| {
+            sink(b"[").map_err(|error| {
+                failure = Some(error);
+                "restart-export-sink"
+            })?;
+            loop {
+                let n = source(&mut chunk).map_err(|_| "restart-export-read")?;
+                if n > chunk.len() {
+                    return Err("restart-export-read");
+                }
+                if n == 0 {
+                    break;
+                }
+                observer
+                    .push(&chunk[..n])
+                    .map_err(|_| "restart-export-span")?;
+                let end_offset = offset.checked_add(n).ok_or("restart-export-length")?;
+                let start = offset.max(span.start);
+                let end = end_offset.min(span.end);
+                if start < end {
+                    sink(&chunk[start - offset..end - offset]).map_err(|error| {
+                        failure = Some(error);
+                        "restart-export-sink"
+                    })?;
+                }
+                offset = end_offset;
+            }
+            if observer.finish()? != span {
+                return Err("restart-export-span");
+            }
+            sink(b"]").map_err(|error| {
+                failure = Some(error);
+                "restart-export-sink"
+            })
+        })();
+        chunk.fill(0);
+        result
+    });
+    if let Some(error) = failure {
+        return Err(StreamRefusal::Sink(error));
+    }
+    result.map_err(|_| StreamRefusal::Invalid)
+}
 pub fn decode_streamed(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     expected_body: &conduit_body::BodyId,

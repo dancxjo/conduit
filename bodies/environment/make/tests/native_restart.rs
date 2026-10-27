@@ -168,6 +168,7 @@ fn full_mutable_two_plot_body_and_original_seed_resume_after_interrupted_play() 
                     |error| match error {
                         payload::StreamRefusal::Sink(error) => error,
                         payload::StreamRefusal::Invalid => checkpoint::Refusal::Corrupt,
+                        payload::StreamRefusal::Capacity => checkpoint::Refusal::Capacity,
                     },
                 )
             })
@@ -471,6 +472,7 @@ fn streamed_full_envelope_matches_canonical_bytes_with_bounded_memory_and_readba
             payload::stream(owner.evidence(), &[], &[], sink).map_err(|error| match error {
                 payload::StreamRefusal::Sink(error) => error,
                 payload::StreamRefusal::Invalid => checkpoint::Refusal::Corrupt,
+                payload::StreamRefusal::Capacity => checkpoint::Refusal::Capacity,
             })
         })
         .unwrap();
@@ -1130,4 +1132,64 @@ fn resident_preflight_measures_largest_archive_without_allocating_or_decoding_hi
         assert_eq!(extent.active, text.len() - inside.len());
         assert_eq!(at, text.len());
     }
+}
+
+#[test]
+fn archive_export_excludes_private_fields_and_consumes_the_complete_source() {
+    let inside = r#" {"text":"private-looking ] } archive string"}, {"ordinal":2} "#;
+    let prefix = r#"{"evidence":{"secret":"never-export"},"archives":["#;
+    let text = format!("{prefix}{inside}],\"admissions\":{{\"secret\":\"never-export-either\"}}}}");
+    let span = payload::archive::Span {
+        start: prefix.len(),
+        end: prefix.len() + inside.len(),
+    };
+    for width in [1, 7, 127, 128] {
+        let mut at = 0;
+        let mut exported = Vec::new();
+        payload::export_archive_array(
+            |out| {
+                let n = width.min(text.len() - at);
+                out[..n].copy_from_slice(&text.as_bytes()[at..at + n]);
+                at += n;
+                Ok(n)
+            },
+            span,
+            &mut |bytes| {
+                exported.extend_from_slice(bytes);
+                Ok::<_, ()>(())
+            },
+        )
+        .unwrap();
+        assert_eq!(exported, format!("[{inside}]").as_bytes());
+        assert_eq!(at, text.len());
+    }
+    // Even damage strictly after the exported array must refuse the export.
+    for cut in span.end + 1..text.len() {
+        let mut at = 0;
+        assert!(payload::export_archive_array(
+            |out| {
+                let n = 7.min(cut - at);
+                out[..n].copy_from_slice(&text.as_bytes()[at..at + n]);
+                at += n;
+                Ok(n)
+            },
+            span,
+            &mut |_| Ok::<_, ()>(())
+        )
+        .is_err());
+    }
+    let mut at = 0;
+    assert!(matches!(
+        payload::export_archive_array(
+            |out| {
+                let n = 128.min(text.len() - at);
+                out[..n].copy_from_slice(&text.as_bytes()[at..at + n]);
+                at += n;
+                Ok(n)
+            },
+            span,
+            &mut |_| Err(42)
+        ),
+        Err(payload::StreamRefusal::Sink(42))
+    ));
 }
