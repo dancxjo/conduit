@@ -84,6 +84,7 @@ impl NativePlay {
             // temporary-description callbacks return only unit. No Plan borrow
             // enters this slot, and neither callback can publish the owners.
             let mut selected = None;
+            let mut checked = Err(());
             let mut planned = Err(());
             owners
                 .with_advertisement(header, &attachment, |owners, host| {
@@ -95,21 +96,23 @@ impl NativePlay {
                         1,
                         conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
                         |scope| {
-                            selected = Some(check_linked_scope(
+                            checked = check_linked_scope(
                                 owners,
                                 scope,
                                 issuer,
                                 pins,
                                 &mut active,
                                 custody,
-                            ));
+                                &mut selected,
+                            );
                         },
                     )
                     .map_err(|_| ());
                 })
                 .map_err(|_| ())?;
             planned?;
-            selected.ok_or(())?
+            checked?;
+            selected.ok_or(())
         });
         // No Plan, owner projection, grants, or borrowed lowering survives this
         // point. The unchanged full kernel storage is allocated only afterward.
@@ -142,13 +145,11 @@ fn check_linked_scope<'owner>(
     pins: (&str, &str, &str),
     active: &mut Option<c::ActivePlayIdentity>,
     custody: &mut IssuedCustody,
-) -> Result<
-    (
+    selected: &mut Option<(
         n::PreparedNetworkPairBindings<'owner>,
         n::PreparedNetworkKernelParts,
-    ),
-    (),
-> {
+    )>,
+) -> Result<(), ()> {
     let tables = n::NetworkControlFlatDirectTables::prepare(scope.verified()).map_err(|_| ())?;
     let roles = n::PreparedNetworkKernelParts::check_flat_direct(&tables).map_err(|_| ())?;
     let view = scope.verified().view();
@@ -232,7 +233,10 @@ fn check_linked_scope<'owner>(
         }
     };
     match n::PreparedNetworkKernelParts::from_flat_direct(tables) {
-        Ok(parts) => Ok((checked, parts)),
+        Ok(parts) => {
+            *selected = Some((checked, parts));
+            Ok(())
+        }
         Err(_) => {
             let (first, second) = checked.into_operations();
             *custody = IssuedCustody::Both(first, second);
