@@ -1,8 +1,11 @@
 //! Root-private two-bank custody. Bytes must be the complete canonical mutable
 //! Body evidence, validated by the lifecycle owner before use. This layer adds
 //! crash consistency, not membership, recovery transitions, or archive ACKs.
+#[path = "native_checkpoint_timing.rs"]
+pub(crate) mod timing;
 use core::cell::RefCell;
 use sha2::{Digest, Sha256};
+use timing::Stage;
 const BANK: u32 = 0x8000;
 const HEADER: u32 = 160;
 const MAGIC: &[u8; 8] = b"BDYCST01";
@@ -370,7 +373,7 @@ impl<S: Storage> Checkpoint<S> {
         seed: &[u8; 32],
         mut emit: impl FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
     ) -> Result<SourceSnapshot, Refusal> {
-        self.rewrite_streamed_outlined(snapshot, binding, seed, &mut emit)
+        self.rewrite_streamed_outlined(snapshot, binding, seed, &mut emit, &mut |_| {})
             .map(RewriteCompletion::into_source)
     }
     pub(crate) fn rewrite_streamed_attested(
@@ -380,7 +383,17 @@ impl<S: Storage> Checkpoint<S> {
         seed: &[u8; 32],
         mut emit: impl FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
     ) -> Result<RewriteCompletion, Refusal> {
-        self.rewrite_streamed_outlined(snapshot, binding, seed, &mut emit)
+        self.rewrite_streamed_outlined(snapshot, binding, seed, &mut emit, &mut |_| {})
+    }
+    pub(crate) fn rewrite_streamed_observed(
+        &mut self,
+        snapshot: &SourceSnapshot,
+        binding: &[u8; 32],
+        seed: &[u8; 32],
+        mut emit: impl FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
+        observe: &mut dyn FnMut(Stage),
+    ) -> Result<RewriteCompletion, Refusal> {
+        self.rewrite_streamed_outlined(snapshot, binding, seed, &mut emit, observe)
     }
     // Keep one physical transaction implementation for ordinary checkpoints and
     // cold biography migration; callback identity cannot change its guarantees.
@@ -391,10 +404,12 @@ impl<S: Storage> Checkpoint<S> {
         binding: &[u8; 32],
         seed: &[u8; 32],
         emit: &mut dyn FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
+        observe: &mut dyn FnMut(Stage),
     ) -> Result<RewriteCompletion, Refusal> {
         if *seed == [0; 32] || binding != snapshot.binding() {
             return Err(Refusal::Corrupt);
         }
+        observe(Stage::SourceOne);
         let (length, expected, retains_seed) = {
             let (source, old_seed) = self.snapshot_reader_with_seed(snapshot)?;
             let retains_seed = old_seed.0 == *seed;
@@ -415,7 +430,9 @@ impl<S: Storage> Checkpoint<S> {
                     writing: false,
                 }),
             };
+            observe(Stage::Measure);
             emit(&io)?;
+            observe(Stage::FinishOne);
             let state = io.state.into_inner();
             state.source.finish()?;
             (
@@ -439,8 +456,11 @@ impl<S: Storage> Checkpoint<S> {
         header.0[16..20].copy_from_slice(&(length as u32).to_le_bytes());
         header.0[24..56].copy_from_slice(binding);
         header.0[56..88].copy_from_slice(seed);
+        observe(Stage::Erase);
         self.storage.erase_bank(bank)?;
+        observe(Stage::Header);
         self.storage.program(base, &header.0[..120])?;
+        observe(Stage::SourceTwo);
         let mut program = {
             let source = self.snapshot_reader(snapshot)?;
             let mut program = Program {
@@ -461,7 +481,9 @@ impl<S: Storage> Checkpoint<S> {
                     writing: true,
                 }),
             };
+            observe(Stage::Write);
             emit(&io)?;
+            observe(Stage::FinishTwo);
             let state = io.state.into_inner();
             state.source.finish()?;
             state.program
@@ -471,9 +493,11 @@ impl<S: Storage> Checkpoint<S> {
         {
             return Err(Refusal::Corrupt);
         }
+        observe(Stage::Flush);
         program.flush(&mut self.storage)?;
         header.0[120..152].copy_from_slice(&program.whole.clone().finalize());
         self.storage.program(base + 120, &header.0[120..152])?;
+        observe(Stage::Readback);
         let mut readback = PrivateHeader([0; 160]);
         self.storage.read(base, &mut readback.0)?;
         if readback.0 != header.0
@@ -481,7 +505,9 @@ impl<S: Storage> Checkpoint<S> {
         {
             return Err(Refusal::Corrupt);
         }
+        observe(Stage::Commit);
         self.storage.program(base + 152, COMMIT)?;
+        observe(Stage::Inspect);
         let retained = inspect(&mut self.storage, bank)?.ok_or(Refusal::Corrupt)?;
         self.retained = Some(retained);
         Ok(RewriteCompletion {

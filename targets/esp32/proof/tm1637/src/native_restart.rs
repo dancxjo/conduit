@@ -1,5 +1,6 @@
 //! Exclusive Root restart custody. Initialize before selecting or publishing a
 //! signing key. No corrupt/nonempty journal is treated as a fresh installation.
+use crate::native_body_checkpoint::timing::{Stage as TimingStage, Timings};
 use crate::{
     native_body_checkpoint::{Checkpoint, Refusal},
     native_evidence_region::BodyRegion,
@@ -534,6 +535,15 @@ fn checkpoint_store(
     owner: &mut SealedBodyLifecycleSession,
     verifying_key: &[u8; 32],
 ) -> Result<(), &'static str> {
+    checkpoint_store_timed(store, owner, verifying_key, &mut Timings::new(false))
+}
+fn checkpoint_store_timed(
+    store: &mut Store,
+    owner: &mut SealedBodyLifecycleSession,
+    verifying_key: &[u8; 32],
+    timings: &mut Timings,
+) -> Result<(), &'static str> {
+    timings.enter(TimingStage::SignerScope);
     store.ready = false;
     if store.failed || store.parked {
         return Err("restart-failed");
@@ -551,6 +561,7 @@ fn checkpoint_store(
     if body_binding != store.binding {
         return Err("restart-body-binding");
     }
+    timings.enter(TimingStage::Prepare);
     let next_custody = if let Some(previous) = store.custody.as_ref() {
         let prepared = previous
             .proof
@@ -577,46 +588,52 @@ fn checkpoint_store(
         let mut metadata = None;
         let completion = store
             .journal
-            .rewrite_streamed_attested(&previous.source, &store.binding, seed, |io| {
-                // Preserve typed journal read faults through the bounded codec
-                // callback; transport failure is not malformed canonical data.
-                let mut read_refusal = None;
-                let emitted = if let Some(prepared) = &prepared {
-                    prepared.emit(
-                        |out| {
-                            io.read_source(out).map_err(|error| {
-                                read_refusal = Some(error);
-                            })
-                        },
-                        &mut |bytes| io.write(bytes),
-                    )
-                } else {
-                    payload::stream_rewrite_with_layout(
-                        owner.evidence(),
-                        owner.pending_archives(),
-                        store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
-                        &previous.summary,
-                        previous.span,
-                        previous.prefix.as_ref(),
-                        previous.local_count,
-                        verifying_key,
-                        &previous.layouts,
-                        |out| {
-                            io.read_source(out).map_err(|error| {
-                                read_refusal = Some(error);
-                            })
-                        },
-                        &mut |bytes| io.write(bytes),
-                    )
-                };
-                let next = emitted
-                    .map_err(|error| read_refusal.unwrap_or_else(|| stream_refusal(error)))?;
-                if metadata.as_ref().is_some_and(|prior| prior != &next) {
-                    return Err(Refusal::Corrupt);
-                }
-                metadata = Some(next);
-                Ok(())
-            })
+            .rewrite_streamed_observed(
+                &previous.source,
+                &store.binding,
+                seed,
+                |io| {
+                    // Preserve typed journal read faults through the bounded codec
+                    // callback; transport failure is not malformed canonical data.
+                    let mut read_refusal = None;
+                    let emitted = if let Some(prepared) = &prepared {
+                        prepared.emit(
+                            |out| {
+                                io.read_source(out).map_err(|error| {
+                                    read_refusal = Some(error);
+                                })
+                            },
+                            &mut |bytes| io.write(bytes),
+                        )
+                    } else {
+                        payload::stream_rewrite_with_layout(
+                            owner.evidence(),
+                            owner.pending_archives(),
+                            store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
+                            &previous.summary,
+                            previous.span,
+                            previous.prefix.as_ref(),
+                            previous.local_count,
+                            verifying_key,
+                            &previous.layouts,
+                            |out| {
+                                io.read_source(out).map_err(|error| {
+                                    read_refusal = Some(error);
+                                })
+                            },
+                            &mut |bytes| io.write(bytes),
+                        )
+                    };
+                    let next = emitted
+                        .map_err(|error| read_refusal.unwrap_or_else(|| stream_refusal(error)))?;
+                    if metadata.as_ref().is_some_and(|prior| prior != &next) {
+                        return Err(Refusal::Corrupt);
+                    }
+                    metadata = Some(next);
+                    Ok(())
+                },
+                &mut |stage| timings.enter(stage),
+            )
             .map_err(|error| {
                 if error == Refusal::Storage {
                     // Exclusive live custody still pins the original committed
@@ -632,6 +649,7 @@ fn checkpoint_store(
                 }
             })?;
         let (summary, span) = metadata.ok_or("restart-checkpoint-metadata")?;
+        timings.enter(TimingStage::Carry);
         let (source, proof) = if let Some(prepared) = &prepared {
             let (source, proof) = prepared.committed(completion).inspect_err(|_| {
                 store.failed = true;
@@ -699,6 +717,7 @@ fn checkpoint_store(
             local_count: resident.local_count,
         }
     };
+    timings.enter(TimingStage::Acknowledge);
     store.custody = Some(next_custody);
     // save hashes physical readback and commits the marker last. Only those
     // exact, validated archive bytes can now discharge the owner's pending head.
@@ -743,7 +762,12 @@ pub(crate) fn admissions_transaction<T>(
         &mut AdmissionManager,
     ) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
-    with_store(|store| {
+    let mut timings = Timings::new(cfg!(all(
+        target_os = "none",
+        feature = "target-mask-native-check"
+    )));
+    timings.enter(TimingStage::Mutation);
+    let result = with_store(|store| {
         if store.failed || store.parked || !store.ready {
             return Err("restart-not-ready");
         }
@@ -754,6 +778,7 @@ pub(crate) fn admissions_transaction<T>(
                 .as_mut()
                 .ok_or("restart-admissions-missing")?,
         )?;
+        timings.enter(TimingStage::MembershipSeal);
         // Mutation is now private pending custody; a staging failure must fence
         // publication just like a failed checkpoint, rather than expose it.
         store.ready = false;
@@ -768,9 +793,11 @@ pub(crate) fn admissions_transaction<T>(
                 .seal_started_membership_history_for_checkpoint()
                 .map_err(|_| "restart-active-membership-seal")?;
         }
-        checkpoint_store(store, owner, verifying_key)?;
+        checkpoint_store_timed(store, owner, verifying_key, &mut timings)?;
         Ok(result)
-    })
+    });
+    timings.report(result.is_ok());
+    result
 }
 
 pub fn publication_ready() -> bool {

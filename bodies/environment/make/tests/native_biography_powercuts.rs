@@ -333,3 +333,60 @@ fn applied_commit_error_and_postcommit_read_faults_keep_recoverable_custody() {
         assert_eq!(reopened(media.bytes.borrow().clone(), &f), 2);
     }
 }
+
+#[test]
+fn observing_finite_checkpoint_phases_preserves_exact_flash_bytes() {
+    let f = setup();
+    let ordinary = RcCutMedia::new(f.original.clone());
+    let observed = RcCutMedia::new(f.original.clone());
+    let mut a = Checkpoint::open(ordinary.clone()).unwrap();
+    let mut b = Checkpoint::open(observed.clone()).unwrap();
+    let (resident_a, source_a) = loaded(&mut a, &f);
+    let (resident_b, source_b) = loaded(&mut b, &f);
+    rewrite(&mut a, &source_a, &resident_a, &f).unwrap();
+    let mut stages = Vec::new();
+    b.rewrite_streamed_observed(
+        &source_b,
+        &f.binding,
+        &f.seed,
+        |io| {
+            payload::stream_rewrite_with_prefix(
+                &f.evidence,
+                &[],
+                &f.manager,
+                &resident_b.summary,
+                resident_b.span,
+                Some(&f.receipt),
+                0,
+                &f.root,
+                |out| io.read_source(out).map_err(|_| ()),
+                &mut |bytes| io.write(bytes),
+            )
+            .map(|_| ())
+            .map_err(|_| Refusal::Corrupt)
+        },
+        &mut |stage| stages.push(stage as usize),
+    )
+    .unwrap();
+    use checkpoint::timing::Stage;
+    assert_eq!(
+        stages,
+        [
+            Stage::SourceOne,
+            Stage::Measure,
+            Stage::FinishOne,
+            Stage::Erase,
+            Stage::Header,
+            Stage::SourceTwo,
+            Stage::Write,
+            Stage::FinishTwo,
+            Stage::Flush,
+            Stage::Readback,
+            Stage::Commit,
+            Stage::Inspect
+        ]
+        .map(|s| s as usize)
+    );
+    assert_eq!(*ordinary.bytes.borrow(), *observed.bytes.borrow());
+    assert_eq!(reopened(observed.bytes.borrow().clone(), &f), 2);
+}
