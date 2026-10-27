@@ -62,6 +62,8 @@ impl<
         const H: usize,
     > DirectLocalKernelTables<'a, N, C, P, R, T, H>
 {
+    // Retire numeric construction temporaries before resident/native checks.
+    #[inline(never)]
     pub fn prepare(plan: &'a c::VerifiedPlanMetadata, id: &c::FragmentId) -> Result<Self, E> {
         // Borrow directly from the opaque verified owner; no cloned identity map.
         let fragment = plan

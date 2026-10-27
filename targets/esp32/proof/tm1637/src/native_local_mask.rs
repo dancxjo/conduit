@@ -368,8 +368,9 @@ impl NativeRoot {
         // Full biography replay must finish before the large numeric assembly
         // frame exists, just as streamed restoration and Show preparation do.
         self.commit_local_body_proposal(proposal)?;
-        let retained = self.prepare_local_mask_custody(&mask, execute)?;
-        self.assemble_local_plots(sampler, mask, mask_values, context, retained)
+        let mut retained = None;
+        self.prepare_local_mask_custody(&mask, execute, &mut retained)?;
+        self.assemble_local_plots(sampler, mask, mask_values, context, &mut retained)
     }
     #[inline(never)]
     fn prepare_local_sampler_parts(
@@ -377,11 +378,14 @@ impl NativeRoot {
         sample: &c::VerifiedPlanMetadata,
         execute: bool,
     ) -> Result<alloc::boxed::Box<PreparedSamplerParts>, &'static str> {
+        mark("ordinary-mask-sampler-binding-entered", 15);
         let sample_image = crate::native_software::planning_source()?;
         let generation = c::OfferGeneration(self.offer_generation);
         let fragment = &sample.preparation_metadata().fragments[0].fragment_id;
+        mark("before-local-sampler-direct-projection", 15);
         let tables = crate::native_software::DirectTables::prepare(sample, fragment)
             .map_err(|_| "local-sampler-tables")?;
+        mark("local-sampler-direct-projection-live", 15);
         crate::native_software::check_local_direct(
             self.software.as_ref().ok_or("software-owner")?,
             &tables,
@@ -400,6 +404,7 @@ impl NativeRoot {
             let placements = &sample.preparation_metadata().fragments[0].placements;
             let pulse = &placements[usize::from(resident.roles.pulse.0)].placement_id;
             let wait = &placements[usize::from(resident.roles.tick.0)].placement_id;
+            mark("before-local-sampler-native-binding", 2);
             Some(self.issuer.bind_direct_native(
                 &mut self.pulse,
                 &mut self.wait,
@@ -606,7 +611,8 @@ impl NativeRoot {
         &mut self,
         mask: &c::VerifiedPlanMetadata,
         execute: bool,
-    ) -> Result<Option<RetainedMask>, &'static str> {
+        retained_out: &mut Option<RetainedMask>,
+    ) -> Result<(), &'static str> {
         let role = material::role().map_err(|_| "local-mask-role")?;
         let retained = if execute {
             mark("before-local-mask-route-admission", 1);
@@ -709,7 +715,8 @@ impl NativeRoot {
         } else {
             None
         };
-        Ok(retained)
+        *retained_out = retained;
+        Ok(())
     }
     #[inline(never)]
     fn assemble_local_plots(
@@ -718,7 +725,7 @@ impl NativeRoot {
         mask: c::VerifiedPlanMetadata,
         mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
         context: Option<conduit_face::PreparedMaskShowContext>,
-        retained: Option<RetainedMask>,
+        retained: &mut Option<RetainedMask>,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
         mark("ordinary-mask-numeric-assembly-entered", 1);
         let PreparedSamplerParts {
@@ -775,7 +782,7 @@ impl NativeRoot {
             routes,
             wardrobe,
             wake,
-        }) = retained
+        }) = retained.take()
         {
             let mask = crate::native_display::LocalPreparation {
                 context: context.ok_or("local-mask-context-unavailable")?,
