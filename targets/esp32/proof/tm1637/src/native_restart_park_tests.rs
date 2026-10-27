@@ -65,7 +65,7 @@ fn park_restores_exact_same_boot_evidence_archives_and_unretired_admissions() {
     let evidence = owner.as_ref().unwrap().evidence().clone();
     let archives = store.archives.clone();
     let manager = serde_json::to_vec(store.admissions.as_ref().unwrap()).unwrap();
-    let token = park_store(&mut store, &mut owner, &key, &host.host_id, &host.boot_id).unwrap();
+    let mut token = park_store(&mut store, &mut owner, &key, &host.host_id, &host.boot_id).unwrap();
     assert!(owner.is_none());
     assert!(store.parked);
     assert!(!store.ready);
@@ -77,7 +77,8 @@ fn park_restores_exact_same_boot_evidence_archives_and_unretired_admissions() {
         SealedBodyLifecycleSession::open_admitted(evidence.clone(), &host.host_id, &host.boot_id)
             .unwrap();
     assert!(checkpoint_store(&mut store, &mut unrelated, &key).is_err());
-    let restored = restore_store(&mut store, token, &host.host_id, &host.boot_id, &key).unwrap();
+    let restored =
+        restore_store(&mut store, &mut token, &host.host_id, &host.boot_id, &key).unwrap();
     assert_eq!(restored.evidence(), &evidence);
     assert_eq!(restored.foreground(), Some(&foreground));
     assert!(restored.pending_archives().is_empty());
@@ -116,7 +117,7 @@ fn parked_token_rejects_generation_binding_key_and_current_host_boot_changes() {
             _ => token.body_id = serde_json::from_str("\"foreign-body\"").unwrap(),
         }
         let generation = store.journal.generation();
-        assert!(restore_store(&mut store, token, &host.host_id, &host.boot_id, &key).is_err());
+        assert!(restore_store(&mut store, &mut token, &host.host_id, &host.boot_id, &key).is_err());
         assert!(store.parked);
         assert!(!store.ready);
         assert!(store.admissions.is_none());
@@ -144,6 +145,72 @@ fn park_refusal_preserves_installed_owner_and_all_custody() {
         manager
     );
     assert!(store.journal.generation().is_none());
+}
+
+#[test]
+fn retained_restore_keeps_actual_token_and_context_through_early_and_decoded_refusals() {
+    let (mut store, mut owner, host, key) = fixture();
+    let evidence = owner.as_ref().unwrap().evidence().clone();
+    let mut token =
+        Some(park_store(&mut store, &mut owner, &key, &host.host_id, &host.boot_id).unwrap());
+    let address = token.as_ref().unwrap() as *const ParkedBody;
+    let context = token.as_ref().unwrap().proposal.as_ref().unwrap()
+        as *const conduit_body::VerifiedBodyProposalContext;
+    let generation = store.journal.generation();
+    for fault in 0..4 {
+        let mut attempted_host = host.host_id.clone();
+        let mut attempted_boot = host.boot_id.clone();
+        let mut attempted_key = key;
+        match fault {
+            0 => attempted_host = "foreign-host".into(),
+            1 => attempted_boot = "foreign-boot".into(),
+            2 => attempted_key[0] ^= 1,
+            // Pass scope checks and authenticated decoding, then reject an
+            // inconsistent retained private key before publishing any Store.
+            _ => store.seed = Some([8; 32]),
+        }
+        let result = restore_store_retained(
+            &mut store,
+            &mut token,
+            &attempted_host,
+            &attempted_boot,
+            &attempted_key,
+        );
+        assert_eq!(
+            result.err(),
+            Some(if fault == 3 {
+                "restart-restore-key"
+            } else {
+                "restart-restore-scope"
+            })
+        );
+        assert_eq!(token.as_ref().unwrap() as *const ParkedBody, address);
+        assert_eq!(
+            token.as_ref().unwrap().proposal.as_ref().unwrap()
+                as *const conduit_body::VerifiedBodyProposalContext,
+            context
+        );
+        assert_eq!(store.journal.generation(), generation);
+        assert!(store.parked);
+        assert!(!store.ready);
+        assert!(store.admissions.is_none());
+        assert!(owner.is_none());
+        store.seed = Some([7; 32]);
+    }
+    let restored =
+        restore_store_retained(&mut store, &mut token, &host.host_id, &host.boot_id, &key).unwrap();
+    assert!(token.is_none());
+    assert_eq!(restored.evidence(), &evidence);
+    assert_eq!(store.journal.generation(), generation);
+    assert!(!store.parked);
+    assert!(store.ready);
+    assert!(store.admissions.is_some());
+    assert_eq!(
+        restore_store_retained(&mut store, &mut token, &host.host_id, &host.boot_id, &key,).err(),
+        Some("restart-parked-missing")
+    );
+    assert!(store.ready);
+    assert_eq!(restored.evidence(), &evidence);
 }
 
 #[test]
@@ -207,9 +274,9 @@ fn archived_boot_history_stays_exact_on_flash_and_out_of_cold_resident_memory() 
     assert_eq!(durable.evidence, active);
     assert_eq!(durable.archives, [first_archives[0].clone(), archived]);
     drop(durable);
-    let token = park_store(&mut store, &mut owner, &key, &host.host_id, &host.boot_id).unwrap();
+    let mut token = park_store(&mut store, &mut owner, &key, &host.host_id, &host.boot_id).unwrap();
     let (restored, memory) = allocation_probe::observe(|| {
-        restore_store(&mut store, token, &host.host_id, &host.boot_id, &key).unwrap()
+        restore_store(&mut store, &mut token, &host.host_id, &host.boot_id, &key).unwrap()
     });
     println!(
         "custodied cold restore peak={} retained={}",
