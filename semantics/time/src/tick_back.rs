@@ -92,7 +92,42 @@ impl<const PORTS: usize> StepBack<PORTS> for TickBack {
     }
 }
 
+/// Actual cached references returned by a settled Tick Back. This is neither a
+/// native-provider retirement receipt nor permission to start another Play.
+pub struct RetiredTickValues {
+    values: Vec<ValueRef>,
+    waits: Vec<ValueRef>,
+}
+impl RetiredTickValues {
+    /// Preserve both original reference vectors without allocation. The caller
+    /// owns release of each retained reference through its actual value store.
+    pub fn into_parts(self) -> (Vec<ValueRef>, Vec<ValueRef>) {
+        (self.values, self.waits)
+    }
+}
+
 impl TickBack {
+    /// Consume a completed or cancelled Back and return its actual cached refs.
+    /// Refusal returns the whole Back unchanged. Before releasing these refs,
+    /// the owner must separately settle its kernel and outstanding Host Calls;
+    /// cancelling a Back alone does not establish that external quiescence.
+    /// No counter, reference generation or native budget is reset here.
+    pub fn retire_retained_values(self) -> Result<RetiredTickValues, Self> {
+        let completed = self.pending.is_none()
+            && if self.recurring {
+                self.limit == Some(self.sequence)
+            } else {
+                self.next == self.values.len()
+            };
+        if !self.cancelled && !completed {
+            return Err(self);
+        }
+        Ok(RetiredTickValues {
+            values: self.values,
+            waits: self.waits,
+        })
+    }
+
     fn request_wait_step<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> bool {
         if self.limit == Some(self.sequence) {
             return false;
