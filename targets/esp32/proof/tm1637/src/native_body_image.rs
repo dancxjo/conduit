@@ -69,11 +69,11 @@ pub fn load(
         // Move old membership history into durable archive custody while cold
         // software is still absent. The exact segment is acknowledged only by
         // the following verified journal commit; no history is discarded.
-        if owner.evidence().membership.events.len() >= 8 {
-            owner
-                .seal_membership_history_for_checkpoint()
-                .map_err(|_| "body-image-membership-archive")?;
-        }
+        // Keep the active resident suffix independent of how many previous
+        // diagnostic or power-cycle Boots happened before this one.
+        owner
+            .seal_membership_history_for_checkpoint()
+            .map_err(|_| "body-image-membership-archive")?;
         crate::native_restart::checkpoint(&mut owner, &root.restart_verifying_key())?;
     }
     #[cfg(feature = "body-persistence")]

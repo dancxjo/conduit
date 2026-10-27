@@ -77,6 +77,10 @@ impl NativeRoot {
             return Err("local-sampler-kernel");
         }
         let spawner = self.worker_spawner.ok_or("worker-executor-unavailable")?;
+        super::memory_check::mark(
+            "before-local-sampler-execution-context",
+            core::mem::size_of::<DeviceExecution>(),
+        );
         let memory = esp_alloc::HEAP.stats();
         if memory.size.saturating_sub(memory.current_usage)
             < core::mem::size_of::<DeviceExecution>() + 8192
