@@ -212,10 +212,45 @@ fn network_http_refuses_ambiguous_framing_and_secret_query_routes() {
         Some(NetworkHttpRequest::Page)
     ));
     let mut request = NetworkRequestBuffer::default();
-    request.append(&[b'x'; 512]).unwrap();
+    request.append(&[b'x'; 1024]).unwrap();
     assert_eq!(request.take(limits()).err(), Some(E::TooLarge));
     let mut request = NetworkRequestBuffer::default();
     assert_eq!(request.append(&[b'x'; 1025]), Err(E::TooLarge));
+}
+
+#[test]
+fn browser_headers_share_the_existing_total_request_bound() {
+    let body = "ssid=Test+LAN&password=sample%26value%2B";
+    let wire = std::format!(
+        "POST /network HTTP/1.1\r\nHost: 192.168.4.1\r\nUser-Agent: {}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n{}",
+        "a".repeat(600), body.len(), body
+    );
+    assert!(wire.len() < 1024);
+    let mut request = NetworkRequestBuffer::default();
+    for byte in &wire.as_bytes()[..wire.len() - 1] {
+        request.append(core::slice::from_ref(byte)).unwrap();
+        assert!(request.take(limits()).unwrap().is_none());
+    }
+    request.append(&wire.as_bytes()[wire.len() - 1..]).unwrap();
+    let NetworkHttpRequest::Join(input) = request.take(limits()).unwrap().unwrap() else {
+        panic!("complete browser form must be admitted");
+    };
+    let mut encoded = [0; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
+    let mut mailbox = NetworkSetupMailbox::new(1);
+    PendingNetworkResponse::prepare(&mut mailbox, input)
+        .unwrap().response_flushed().unwrap();
+    let n = mailbox.take_acknowledged(&mut encoded).unwrap();
+    let selected = conduit_net::decode_network_join_request(&encoded[..n]).unwrap();
+    assert_eq!(selected.ssid, b"Test LAN");
+    assert_eq!(selected.credential, b"sample&value+");
+
+    let prefix = "GET /network HTTP/1.1\r\nX-Padding: ";
+    let at_limit = std::format!("{}{}\r\n\r\n", prefix, "a".repeat(1024 - prefix.len() - 4));
+    let mut request = NetworkRequestBuffer::default();
+    request.append(at_limit.as_bytes()).unwrap();
+    assert!(matches!(request.take(limits()).unwrap(), Some(NetworkHttpRequest::Page)));
+    let mut request = NetworkRequestBuffer::default();
+    assert_eq!(request.append(&[b'a'; 1025]), Err(NetworkHttpRefusal::TooLarge));
 }
 
 #[test]

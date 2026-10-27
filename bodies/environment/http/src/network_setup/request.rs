@@ -3,8 +3,10 @@
 use super::{NetworkSetupInput, NetworkSetupLimits, NetworkSetupRefusal};
 use zeroize::Zeroize;
 
-const HEADER_BYTES: usize = 512;
 const REQUEST_BYTES: usize = 1024;
+// Headers share the already admitted request buffer. A separate 512-byte cap
+// refused ordinary browser requests despite sufficient total request capacity.
+const HEADER_BYTES: usize = REQUEST_BYTES;
 
 pub enum NetworkHttpRequest {
     Page,
