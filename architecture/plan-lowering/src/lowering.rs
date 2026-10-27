@@ -21,7 +21,9 @@ mod metadata;
 pub use metadata::{
     lower_verified_plan_metadata_fragment, lower_verified_plan_metadata_fragment_for_profile,
 };
+mod fore_operation;
 mod fore_value;
+pub use fore_operation::VerifiedForeOperationProjection;
 pub use fore_value::{ForeValueRefusal, LoweredForePort};
 mod fusion;
 mod fusion_dag;
@@ -1156,26 +1158,12 @@ fn lower_verified_fragment_for_profile(
             LoweringError::UnknownConnectionPort(ConnectionId::from(planned.front_port_id.as_str()))
         })?;
         let descriptor = &ports[usize::from(port.0)];
-        let descriptor_matches = match planned.track {
-            ConnectionTrack::Payload => {
-                descriptor.value_kind == planned.value_kind
-                    && descriptor.temporal == planned.temporal
-            }
-            ConnectionTrack::AbnormalTerminal => {
-                descriptor.abnormal_kind.as_ref() == Some(&planned.value_kind)
-                    && planned.temporal == PortTemporal::Value
-            }
-            ConnectionTrack::NormalClose => {
-                descriptor.temporal == (PortTemporal::Flow { closes: true })
-                    && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
-                    && planned.temporal == PortTemporal::Value
-            }
-            ConnectionTrack::Quiescence => {
-                matches!(descriptor.temporal, PortTemporal::Flow { .. })
-                    && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
-                    && planned.temporal == PortTemporal::Value
-            }
-        };
+        let descriptor_matches = fore_value::fields_match(
+            &descriptor.value_kind,
+            descriptor.abnormal_kind.as_ref(),
+            descriptor.temporal,
+            planned,
+        );
         if !descriptor_matches {
             return Err(LoweringError::ConnectionContractMismatch(
                 ConnectionId::from(planned.front_port_id.as_str()),

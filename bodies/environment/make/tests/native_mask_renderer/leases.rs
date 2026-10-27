@@ -2,7 +2,6 @@
 //! canonical started Body; pins remain deterministic CPU providers.
 use super::*;
 use conduit_body as b;
-use conduit_plan_lowering::selected_operation::*;
 struct RootIssuer {
     host: c::HostId,
     boot: c::BootId,
@@ -32,6 +31,7 @@ impl RootIssuer {
         })
     }
 }
+#[allow(unexpected_cfgs, dead_code)] // Included target cfg and compatible rich API are exercised separately.
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_mask_lease.rs"]
 mod production;
 fn new_body(planned: &f::PlannedMaskPlot) -> b::SealedBodyLifecycleSession {
@@ -152,25 +152,30 @@ fn prepare(
         Ok::<_, ()>(configurations[&gear.placement_id].clone())
     })
     .unwrap();
-    let lowering = conduit_plan_lowering::lowering::lower_verified_plan_metadata_fragment(
-        &verified, &fragment,
-    )
-    .unwrap();
     let active = c::bind_active_play(verified.plan_id(), &issuer.host, &issuer.boot, 1);
     let gear = planned.show_placement();
+    let source = conduit_environment_make::SevenSegmentMaskSource::compile().unwrap();
+    let material = conduit_environment_make::SevenSegmentMaskMaterial::prepare(&source).unwrap();
+    // SAFETY: exact checked Make image assembled above, not incoming metadata.
+    let image = unsafe {
+        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(
+            material.planning_image(),
+        )
+    }
+    .unwrap();
+    let configuration =
+        RendererSourceConfiguration::prepare(&image, &source.role.plot_identity, &gear.gear_id)
+            .unwrap();
     let (leases, capsule, guard) = issuer
-        .prepare_mask_leases(
+        .prepare_mask_leases_direct(
             ready,
-            &gear.configuration,
-            SelectedVerifiedForeOperationPlan {
+            &configuration,
+            DirectRendererSelection {
+                plan: &verified,
+                fragment_id: &fragment,
+                active: &active,
+                placement_id: &gear.placement_id,
                 fore: &fore,
-                operation: SelectedVerifiedOperationPlan {
-                    plan: &verified,
-                    fragment_id: &fragment,
-                    lowered: &lowering,
-                    active: &active,
-                    placement_id: &gear.placement_id,
-                },
             },
         )
         .unwrap();

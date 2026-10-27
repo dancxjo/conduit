@@ -14,7 +14,6 @@ pub(super) fn bind_fields(
         active: _,
         placement_id,
     } = selection;
-    let expected = definition.kind;
     let gear = checked_gear(
         table,
         claim,
@@ -24,7 +23,6 @@ pub(super) fn bind_fields(
         placement_id,
         configuration_matches,
     )?;
-    let required = &gear.host_calls[0];
     let mut nodes = lowered
         .nodes
         .iter()
@@ -35,24 +33,6 @@ pub(super) fn bind_fields(
             .identity
             .placements
             .contains(&(node.node, placement_id.clone()))
-        || expected.inputs.len() > 1
-        || expected.outputs.len() > 1
-        || node.inputs.len() != expected.inputs.len()
-        || node.outputs.len() != expected.outputs.len()
-        || node
-            .inputs
-            .iter()
-            .zip(&expected.inputs)
-            .any(|(port, expected)| {
-                port.port != PortId(0) || port.value_kind != expected.value_kind
-            })
-        || node
-            .outputs
-            .iter()
-            .zip(&expected.outputs)
-            .any(|(port, expected)| {
-                port.port != PortId(0) || port.value_kind != expected.value_kind
-            })
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }
@@ -61,17 +41,10 @@ pub(super) fn bind_fields(
         .iter()
         .filter(|call| call.node == node.node);
     let call = calls.next().ok_or(SelectedCallRefusal::WrongBinding)?;
-    if calls.next().is_some()
-        || call.call != HostCallId(0)
-        || call.binding.call != call.call
-        || call.contract_id != required.contract_id
-        || call.target_kind != required.target_kind
-        || call.maximum_in_flight != 1
-        || call.binding.maximum_input_bytes != definition.input_bytes
-        || call.binding.maximum_output_bytes != definition.output_bytes
-    {
+    if calls.next().is_some() {
         return Err(SelectedCallRefusal::WrongBinding);
     }
+    checked_numeric(gear, node, call, &definition)?;
     Ok(node.node)
 }
 
@@ -149,4 +122,45 @@ pub(super) fn checked_gear<'a>(
         return Err(SelectedCallRefusal::WrongBinding);
     }
     Ok(gear)
+}
+
+/// Same ordinary selected numeric checks for rich and immutable direct projections.
+pub(super) fn checked_numeric(
+    gear: &conduit_core::PlannedGear,
+    node: &crate::lowering::LoweredNode,
+    call: &crate::lowering::LoweredHostCall,
+    definition: &SelectedOperationContract<'_>,
+) -> Result<(), SelectedCallRefusal> {
+    let expected = definition.kind;
+    let required = &gear.host_calls[0];
+    if expected.inputs.len() > 1
+        || expected.outputs.len() > 1
+        || node.inputs.len() != expected.inputs.len()
+        || node.outputs.len() != expected.outputs.len()
+        || node
+            .inputs
+            .iter()
+            .zip(&expected.inputs)
+            .any(|(port, expected)| {
+                port.port != PortId(0) || port.value_kind != expected.value_kind
+            })
+        || node
+            .outputs
+            .iter()
+            .zip(&expected.outputs)
+            .any(|(port, expected)| {
+                port.port != PortId(0) || port.value_kind != expected.value_kind
+            })
+        || call.node != node.node
+        || call.call != HostCallId(0)
+        || call.binding.call != call.call
+        || call.contract_id != required.contract_id
+        || call.target_kind != required.target_kind
+        || call.maximum_in_flight != 1
+        || call.binding.maximum_input_bytes != definition.input_bytes
+        || call.binding.maximum_output_bytes != definition.output_bytes
+    {
+        return Err(SelectedCallRefusal::WrongBinding);
+    }
+    Ok(())
 }

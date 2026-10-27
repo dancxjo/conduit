@@ -81,27 +81,50 @@ pub fn bind_selected_verified_configured_fore_operation(
     native: crate::selected_assigned_operation::AssignedNativeIdentity<'_>,
     selection: SelectedVerifiedForeOperationPlan<'_>,
 ) -> Result<NodeId, SelectedCallRefusal> {
-    use conduit_core::BaseEnforcementClass;
-    let wrong = || SelectedCallRefusal::WrongBinding;
     let view = selection
         .operation
         .plan
         .fragment(selection.operation.fragment_id)
-        .ok_or_else(wrong)?;
-    let fragment = view.lowering_metadata();
-    if fragment.fore_ports != selection.fore
-        || selection.fore.is_empty()
-        || selection
-            .fore
-            .iter()
-            .any(|fore| fore.selected_line.is_some())
+        .ok_or(SelectedCallRefusal::WrongBinding)?;
+    check_fore_native(
+        table,
+        claim,
+        &definition,
+        native,
+        view.lowering_metadata(),
+        selection.fore,
+        selection.operation.placement_id,
+    )?;
+    bind_selected_verified_configured_operation(
+        table,
+        claim,
+        definition,
+        configuration,
+        selection.operation,
+    )
+}
+
+fn check_fore_native(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    definition: &SelectedOperationContract<'_>,
+    native: crate::selected_assigned_operation::AssignedNativeIdentity<'_>,
+    fragment: &PlanFragment,
+    fore: &[conduit_core::PlannedForePort],
+    placement: &PlacementId,
+) -> Result<(), SelectedCallRefusal> {
+    use conduit_core::BaseEnforcementClass;
+    let wrong = || SelectedCallRefusal::WrongBinding;
+    if fragment.fore_ports != fore
+        || fore.is_empty()
+        || fore.iter().any(|fore| fore.selected_line.is_some())
     {
         return Err(wrong());
     }
     let gear = fragment
         .placements
         .iter()
-        .find(|gear| &gear.placement_id == selection.operation.placement_id)
+        .find(|gear| &gear.placement_id == placement)
         .ok_or_else(wrong)?;
     let base = gear.base.as_ref().ok_or_else(wrong)?;
     let scope = matching_scope(table, claim)?;
@@ -123,11 +146,46 @@ pub fn bind_selected_verified_configured_fore_operation(
     {
         return Err(wrong());
     }
-    bind_selected_verified_configured_operation(
+    Ok(())
+}
+/// Direct selected operation: no caller-provided numeric projection enters.
+pub struct SelectedProjectedForeOperationPlan<'a, 'p> {
+    pub projection: &'a crate::lowering::VerifiedForeOperationProjection<'p>,
+    pub active: &'a ActivePlayIdentity,
+}
+pub fn bind_selected_projected_configured_fore_operation(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[conduit_core::ConfigurationEntry],
+    native: crate::selected_assigned_operation::AssignedNativeIdentity<'_>,
+    selection: SelectedProjectedForeOperationPlan<'_, '_>,
+) -> Result<NodeId, SelectedCallRefusal> {
+    let projection = selection.projection;
+    let fragment = projection.fragment;
+    check_plan_scope(claim, fragment, selection.active)?;
+    check_fore_native(
         table,
         claim,
-        definition,
-        configuration,
-        selection.operation,
-    )
+        &definition,
+        native,
+        fragment,
+        projection.fore(),
+        &projection.node.placement_id,
+    )?;
+    let view = projection
+        .plan
+        .fragment(&fragment.fragment_id)
+        .ok_or(SelectedCallRefusal::WrongBinding)?;
+    let gear = binding::checked_gear(
+        table,
+        claim,
+        &definition,
+        &definition.kind.kind_id,
+        fragment,
+        &projection.node.placement_id,
+        |gear| view.configuration_matches(&gear.placement_id, configuration),
+    )?;
+    binding::checked_numeric(gear, &projection.node, &projection.call, &definition)?;
+    Ok(projection.node.node)
 }

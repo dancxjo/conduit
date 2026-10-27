@@ -638,3 +638,6 @@ mod invocation_tests;
 
 #[path = "native_mask_renderer/leases.rs"]
 mod lease_tests;
+
+#[path = "native_mask_renderer/direct_projection.rs"]
+mod direct_projection_tests;

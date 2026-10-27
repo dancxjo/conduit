@@ -203,3 +203,117 @@ fn same_scope(a: &c::BaseCapabilityScope, b: &c::BaseCapabilityScope) -> bool {
         && a.maximum_in_flight == b.maximum_in_flight
         && a.maximum_operations == b.maximum_operations
 }
+
+/// Independently checked linked Source configuration. Private fields prevent a
+/// claimed Source/placement ID from becoming expected executable configuration.
+#[cfg(feature = "local-planning")]
+pub struct RendererSourceConfiguration {
+    source: c::PlotIdentity,
+    gear: c::GearId,
+    entries: Vec<c::ConfigurationEntry>,
+}
+#[cfg(feature = "local-planning")]
+impl RendererSourceConfiguration {
+    pub fn prepare(
+        image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+        expected: &c::PlotIdentity,
+        gear: &c::GearId,
+    ) -> Result<Self, &'static str> {
+        if image.identity().map_err(|_| "renderer-source")? != *expected {
+            return Err("renderer-source");
+        }
+        let mut selected = None;
+        for index in 0..image.gear_count() {
+            let (id, kind) = image.gear_identity(index).map_err(|_| "renderer-source")?;
+            if &id != gear {
+                continue;
+            }
+            if kind.as_str() != f::RENDERER_KIND {
+                return Err("renderer-source-kind");
+            }
+            let configuration = image
+                .gear_configuration(index)
+                .map_err(|_| "renderer-source")?;
+            if configuration.gear_id != id || selected.replace(configuration).is_some() {
+                return Err("renderer-source-gear");
+            }
+        }
+        let selected = selected.ok_or("renderer-source-gear")?;
+        if selected.configuration.len() != 1 || c::face_data_label(&selected.configuration).is_err()
+        {
+            return Err("renderer-source-configuration");
+        }
+        Ok(Self {
+            source: expected.clone(),
+            gear: gear.clone(),
+            entries: selected.configuration,
+        })
+    }
+}
+#[cfg(feature = "local-planning")]
+pub struct DirectRendererSelection<'a> {
+    pub plan: &'a c::VerifiedPlanMetadata,
+    pub fragment_id: &'a c::FragmentId,
+    pub active: &'a c::ActivePlayIdentity,
+    pub placement_id: &'a c::PlacementId,
+    pub fore: &'a [c::PlannedForePort],
+}
+#[cfg(feature = "local-planning")]
+impl<P: OpenDrain> ReadyRenderer<P> {
+    pub fn prepare_direct_invocation(
+        &self,
+        table: &c::BaseCapabilityTable,
+        claim: &c::BaseOperationClaim,
+        configuration: &RendererSourceConfiguration,
+        selected: DirectRendererSelection<'_>,
+    ) -> Result<PreparedRendererInvocation, &'static str> {
+        Self::check_possession(self, table, claim)?;
+        let fragment = selected
+            .plan
+            .fragment(selected.fragment_id)
+            .ok_or("renderer-selected-binding")?;
+        if !fragment
+            .lowering_metadata()
+            .placements
+            .iter()
+            .any(|g| &g.placement_id == selected.placement_id && g.gear_id == configuration.gear)
+        {
+            return Err("renderer-selected-binding");
+        }
+        let projection = conduit_plan_lowering::lowering::VerifiedForeOperationProjection::prepare(
+            selected.plan,
+            selected.fragment_id,
+            &configuration.source,
+            selected.fore,
+            selected.placement_id,
+        )
+        .map_err(|_| "renderer-selected-binding")?;
+        let identity = &self.identity;
+        let b = self.bounds;
+        conduit_plan_lowering::selected_operation::bind_selected_projected_configured_fore_operation(
+            table,claim,
+            SelectedOperationContract{kind:&self.realization_contract(),call:CALL,input_bytes:b.face_bytes,output_bytes:b.show_bytes,resource_bytes:b.resource_bytes},
+            &configuration.entries,
+            AssignedNativeIdentity{capability:CAPABILITY,execution_profile:PROFILE,artifact:identity.artifact_id.as_str(),base:identity.base_id.as_str(),base_implementation:identity.base_implementation_id.as_str(),mechanism:ATTACHMENT,authority:AUTHORITY,resource_class:ATTACHMENT},
+            conduit_plan_lowering::selected_operation::SelectedProjectedForeOperationPlan{projection:&projection,active:selected.active},
+        ).map_err(|_|"renderer-selected-binding")?;
+        let inspection = table.inspections().next().ok_or("renderer-possession")?;
+        if inspection.completed_operations != 0 {
+            return Err("renderer-invocation-spent");
+        }
+        let (node, call) = projection.into_numeric();
+        Ok(PreparedRendererInvocation {
+            identity: self.identity.clone(),
+            bounds: self.bounds,
+            scope: inspection.scope.clone(),
+            initial: selected.active.clone(),
+            last: None,
+            bound: false,
+            node,
+            call,
+            configuration: configuration.entries.clone(),
+            fore: selected.fore.to_vec(),
+            contract: self.realization_contract(),
+        })
+    }
+}

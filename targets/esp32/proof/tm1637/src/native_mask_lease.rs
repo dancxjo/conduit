@@ -59,6 +59,45 @@ impl RootIssuer {
         &'static str,
     > {
         let active = selected.operation.active;
+        self.prepare_mask_leases_with(owner, active, |table, claim| {
+            owner.prepare_verified_invocation(table, claim, configuration, selected)
+        })
+    }
+    #[cfg(any(feature = "target-mask-memory-check", test))]
+    pub fn prepare_mask_leases_direct<P: OpenDrain>(
+        &mut self,
+        owner: &r::ReadyRenderer<P>,
+        configuration: &r::RendererSourceConfiguration,
+        selected: r::DirectRendererSelection<'_>,
+    ) -> Result<
+        (
+            MaskLeaseIssuer,
+            r::PreparedRendererInvocation,
+            MaskScopeGuard,
+        ),
+        &'static str,
+    > {
+        let active = selected.active;
+        self.prepare_mask_leases_with(owner, active, |table, claim| {
+            owner.prepare_direct_invocation(table, claim, configuration, selected)
+        })
+    }
+    fn prepare_mask_leases_with<P: OpenDrain>(
+        &mut self,
+        owner: &r::ReadyRenderer<P>,
+        active: &c::ActivePlayIdentity,
+        prepare: impl FnOnce(
+            &c::BaseCapabilityTable,
+            &c::BaseOperationClaim,
+        ) -> Result<r::PreparedRendererInvocation, &'static str>,
+    ) -> Result<
+        (
+            MaskLeaseIssuer,
+            r::PreparedRendererInvocation,
+            MaskScopeGuard,
+        ),
+        &'static str,
+    > {
         let native = owner.identity();
         if self.display_issued
             || self.reserved_display_play.is_some()
@@ -97,8 +136,7 @@ impl RootIssuer {
         let first = leases.issue()?;
         // Exact actual native/Fore/configuration/ordinary numeric checks run
         // before consuming Root's range or publishing this private issuer.
-        let capsule =
-            owner.prepare_verified_invocation(&first.1, &first.3, configuration, selected)?;
+        let capsule = prepare(&first.1, &first.3)?;
         leases.pending = None;
         leases.first = Some(first);
         self.last_play_sequence = end - 1;

@@ -49,6 +49,8 @@ pub use delivery::{
     VerifiedPresentation,
 };
 pub use invocation::PreparedRendererInvocation;
+#[cfg(feature = "local-planning")]
+pub use invocation::{DirectRendererSelection, RendererSourceConfiguration};
 impl<P: OpenDrain> ReadyRenderer<P> {
     /// # Safety
     /// Root must transfer the exact initialized pins named by identity, retain
@@ -218,6 +220,30 @@ impl<P: OpenDrain> ReadyRenderer<P> {
         configuration: &[c::ConfigurationEntry],
         selected: conduit_plan_lowering::selected_operation::SelectedVerifiedForeOperationPlan<'_>,
     ) -> Result<NodeId, &'static str> {
+        Self::check_possession(ready, table, claim)?;
+        let identity = &ready.identity;
+        let b = ready.bounds;
+        let node = conduit_plan_lowering::selected_operation::bind_selected_verified_configured_fore_operation(
+            table, claim,
+            SelectedOperationContract {
+                kind: &ready.realization_contract(), call: CALL,
+                input_bytes: b.face_bytes, output_bytes: b.show_bytes,
+                resource_bytes: b.resource_bytes,
+            }, configuration,
+            AssignedNativeIdentity {
+                capability: CAPABILITY, execution_profile: PROFILE,
+                artifact: identity.artifact_id.as_str(), base: identity.base_id.as_str(),
+                base_implementation: identity.base_implementation_id.as_str(),
+                mechanism: ATTACHMENT, authority: AUTHORITY, resource_class: ATTACHMENT,
+            }, selected,
+        ).map_err(|_| "renderer-selected-binding")?;
+        Ok(node)
+    }
+    fn check_possession(
+        ready: &Self,
+        table: &c::BaseCapabilityTable,
+        claim: &c::BaseOperationClaim,
+    ) -> Result<(), &'static str> {
         let identity = &ready.identity;
         let b = ready.bounds;
         if claim.host_id != identity.host_id
@@ -246,20 +272,6 @@ impl<P: OpenDrain> ReadyRenderer<P> {
             return Err("renderer-possession-bound");
         }
         drop(inspections);
-        let node = conduit_plan_lowering::selected_operation::bind_selected_verified_configured_fore_operation(
-            table, claim,
-            SelectedOperationContract {
-                kind: &ready.realization_contract(), call: CALL,
-                input_bytes: b.face_bytes, output_bytes: b.show_bytes,
-                resource_bytes: b.resource_bytes,
-            }, configuration,
-            AssignedNativeIdentity {
-                capability: CAPABILITY, execution_profile: PROFILE,
-                artifact: identity.artifact_id.as_str(), base: identity.base_id.as_str(),
-                base_implementation: identity.base_implementation_id.as_str(),
-                mechanism: ATTACHMENT, authority: AUTHORITY, resource_class: ATTACHMENT,
-            }, selected,
-        ).map_err(|_| "renderer-selected-binding")?;
-        Ok(node)
+        Ok(())
     }
 }

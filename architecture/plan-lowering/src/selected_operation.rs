@@ -12,9 +12,11 @@ pub use direct::{
 };
 mod verified;
 pub use verified::{
+    bind_selected_projected_configured_fore_operation,
     bind_selected_verified_configured_fore_operation, bind_selected_verified_configured_operation,
     bind_selected_verified_operation, bind_selected_verified_operation_for_subject,
-    SelectedVerifiedForeOperationPlan, SelectedVerifiedOperationPlan,
+    SelectedProjectedForeOperationPlan, SelectedVerifiedForeOperationPlan,
+    SelectedVerifiedOperationPlan,
 };
 
 pub struct SelectedOperationContract<'a> {
