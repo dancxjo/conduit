@@ -2,6 +2,14 @@
 //! is established here. The native endpoint is fixed to 192.168.4.1:80.
 #![no_std]
 pub const ROLE: &str = "conduit.pico-usb-http-relay@1";
+pub const BUILD_ID: &str = env!("CONDUIT_RELAY_BUILD_ID");
+pub const BOOTSEL_QUERY: u8 = 4;
+pub const BOOTSEL_REQUEST: u8 = 5;
+pub const BOOTSEL_CHALLENGE: u8 = 132;
+pub const BOOTSEL_ACK: u8 = 133;
+pub fn bootsel_matches(payload: &[u8]) -> bool {
+    payload == BUILD_ID.as_bytes()
+}
 pub const HEADER: usize = 12;
 pub const MAX_REQUEST: usize = 8192;
 pub const MAX_RESPONSE: usize = 65536;
@@ -73,8 +81,11 @@ impl Decoder {
                 match self.bytes[5] {
                     JOIN if (2..=97).contains(&length) => {}
                     REQUEST if (1..=MAX_REQUEST).contains(&length) => {}
-                    STATUS if length == 0 => {}
-                    JOIN | REQUEST | STATUS => return Err(Refusal::Capacity),
+                    STATUS | BOOTSEL_QUERY if length == 0 => {}
+                    BOOTSEL_REQUEST if length == 64 => {}
+                    JOIN | REQUEST | STATUS | BOOTSEL_QUERY | BOOTSEL_REQUEST => {
+                        return Err(Refusal::Capacity)
+                    }
                     _ => return Err(Refusal::Kind),
                 }
                 self.expected = Some(HEADER + length);

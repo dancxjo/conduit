@@ -61,3 +61,22 @@ at `mechanisms/io/bosch-env` supplies hardware readings, not admission authority
 A future combined image must initialize the actual sensor and display, then use
 existing shared Source/Body admission and leases; it must not invent Pico-only
 observations or membership. GP6/7 are reserved for I2C1 and GP3/4 for TM1637.
+
+## Developer reboot / BOOTSEL
+
+The relay preserves the prior native firmware's explicit exact-build
+query/challenge/request/acknowledgement recovery sequence, carried in its own
+framed USB protocol (kinds 4/5 and 132/133). The 64-character SHA256 identity is
+computed from the firmware sources, lockfile, linker layout and reused radio
+assets. A wrong build, malformed payload or stale sequence cannot reboot it.
+The device acknowledges the exact build, wipes its command buffers, waits
+100 ms, then calls the RP2040 ROM USB boot entry. No HTTP route invokes this.
+No Wi-Fi association is required:
+
+```sh
+/usr/bin/python3 targets/rp2040/proof/usb-http-relay/relay.py --port /dev/ttyACM0 --bootsel-build EXACT_64_HEX_BUILD_ID
+```
+
+Use the identity recorded with the exact ELF/UF2 build, rather than automatically
+accepting any device challenge. The firmware does not implement implicit
+1200-baud reset. Older relay images without this control need manual BOOTSEL.

@@ -225,6 +225,32 @@ async fn main(spawner: Spawner) {
             Err("stale-request")
         } else {
             match frame.kind {
+                protocol::BOOTSEL_QUERY => {
+                    send(
+                        &mut class,
+                        protocol::BOOTSEL_CHALLENGE,
+                        id,
+                        protocol::BUILD_ID.as_bytes(),
+                    )
+                    .await
+                }
+                protocol::BOOTSEL_REQUEST if protocol::bootsel_matches(frame.payload) => {
+                    if send(
+                        &mut class,
+                        protocol::BOOTSEL_ACK,
+                        id,
+                        protocol::BUILD_ID.as_bytes(),
+                    )
+                    .await
+                    .is_ok()
+                    {
+                        decoder.reset();
+                        protocol::wipe(&mut input);
+                        Timer::after(Duration::from_millis(100)).await;
+                        embassy_rp::rom_data::reset_to_usb_boot(0, 0);
+                    }
+                    Err("bootsel-ack-failed")
+                }
                 protocol::STATUS => status(&mut class, id, stack).await,
                 protocol::JOIN => match protocol::credentials(frame.payload) {
                     Err(_) => Err("invalid-credentials"),

@@ -83,6 +83,17 @@ class Proof(unittest.TestCase):
         self.assertEqual(calls,[b"POST first",b"GET second"])
         connection.shutdown()
 
+    def test_bootsel_is_explicit_and_bound_to_exact_challenged_build(self):
+        build = b"a" * 64
+        stream = Stream(frame(r.BOOTSEL_CHALLENGE,1,build)+frame(r.BOOTSEL_ACK,2,build))
+        self.assertEqual(r.Relay(stream).reboot_bootsel(build), build)
+        self.assertEqual(bytes(stream.outgoing), frame(r.BOOTSEL_QUERY,1,b"")+frame(r.BOOTSEL_REQUEST,2,build))
+        stream = Stream(frame(r.BOOTSEL_CHALLENGE,1,b"b"*64))
+        self.assertRaises(r.RelayError,r.Relay(stream).reboot_bootsel,build)
+        self.assertEqual(bytes(stream.outgoing),frame(r.BOOTSEL_QUERY,1,b""))
+        for kind, data in [(r.BOOTSEL_CHALLENGE,b"z"*64),(r.BOOTSEL_ACK,build)]:
+            self.assertRaises(r.RelayError,r.Relay(Stream(frame(kind,1,data))).exchange,r.BOOTSEL_QUERY)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -112,3 +112,29 @@ fn fixed_peer_admission_rejects_other_networks_routers_and_special_addresses() {
         assert!(!peer_network(ip, prefix, gateway));
     }
 }
+
+#[test]
+fn bootsel_control_requires_explicit_kind_exact_current_build_and_fresh_sequence() {
+    assert_eq!(BUILD_ID.len(), 64);
+    assert!(BUILD_ID
+        .bytes()
+        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()));
+    assert!(bootsel_matches(BUILD_ID.as_bytes()));
+    let mut wrong = *BUILD_ID.as_bytes().first_chunk::<64>().unwrap();
+    wrong[0] = if wrong[0] == b'0' { b'1' } else { b'0' };
+    assert!(!bootsel_matches(&wrong));
+    assert!(!bootsel_matches(&BUILD_ID.as_bytes()[..63]));
+    for (kind, payload) in [
+        (BOOTSEL_QUERY, &b""[..]),
+        (BOOTSEL_REQUEST, BUILD_ID.as_bytes()),
+    ] {
+        let mut d = Decoder::new();
+        d.accept(&header(kind, 1, payload.len()).unwrap()).unwrap();
+        d.accept(payload).unwrap();
+        assert_eq!(d.frame().unwrap().kind, kind);
+    }
+    let mut session = Session::default();
+    session.admit(1).unwrap();
+    assert!(session.admit(1).is_err());
+    session.admit(2).unwrap();
+}

@@ -16,6 +16,7 @@ ROLE = "conduit.pico-usb-http-relay@1"
 MAX_REQUEST, MAX_RESPONSE, CHUNK = 8192, 65536, 512
 JOIN, REQUEST, STATUS = 1, 2, 3
 DATA, DONE, ERROR, INFORMATION = 128, 129, 130, 131
+BOOTSEL_QUERY, BOOTSEL_REQUEST, BOOTSEL_CHALLENGE, BOOTSEL_ACK = 4, 5, 132, 133
 
 
 class RelayError(Exception):
@@ -64,10 +65,17 @@ class Relay:
                     )
                     if magic != b"CPBR" or version != 1 or response_id != identity:
                         raise RelayError("USB response scope")
-                    limit = {DATA: CHUNK, DONE: 4, INFORMATION: 256, ERROR: 128}.get(response)
+                    limit = {DATA: CHUNK, DONE: 4, INFORMATION: 256, ERROR: 128, BOOTSEL_CHALLENGE: 64, BOOTSEL_ACK: 64}.get(response)
                     if limit is None or length > limit:
                         raise RelayError("USB response frame capacity")
                     data = self._read(length, deadline)
+                    if response in (BOOTSEL_CHALLENGE, BOOTSEL_ACK):
+                        expected = BOOTSEL_CHALLENGE if kind == BOOTSEL_QUERY else BOOTSEL_ACK if kind == BOOTSEL_REQUEST else None
+                        if response != expected or length != 64 or any(c not in b"0123456789abcdef" for c in data):
+                            raise RelayError("invalid BOOTSEL build scope")
+                        if kind == BOOTSEL_REQUEST and data != payload:
+                            raise RelayError("BOOTSEL acknowledgement build mismatch")
+                        return data
                     if response == ERROR:
                         # Firmware errors are fixed codes, never echoed request data.
                         raise RelayError(data.decode("ascii", "replace"))
@@ -93,6 +101,15 @@ class Relay:
                         return bytes(result)
             finally:
                 wire[:] = b"\0" * len(wire)
+
+    def reboot_bootsel(self, expected_build):
+        """Explicit developer action, never called by HTTP forwarding/reconnect."""
+        if len(expected_build) != 64:
+            raise RelayError("expected exact build identity")
+        actual = self.exchange(BOOTSEL_QUERY)
+        if actual != expected_build:
+            raise RelayError("BOOTSEL challenge build mismatch")
+        return self.exchange(BOOTSEL_REQUEST, actual)
 
     def join(self, ssid, password=b""):
         ssid = ssid.encode("utf-8")
@@ -215,10 +232,22 @@ def handler(relay):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", required=True, help="explicit Pico relay CDC device, never the ESP UART")
-    parser.add_argument("--ssid", required=True, help="actual ESP access-point SSID")
+    parser.add_argument("--ssid", help="actual ESP access-point SSID")
     parser.add_argument("--ask-password", action="store_true", help="prompt without writing credentials to disk")
     parser.add_argument("--http-port", type=int, default=8766)
+    parser.add_argument("--bootsel-build", help="explicitly reboot only the exact 64-hex firmware build; no Wi-Fi join")
     args = parser.parse_args()
+    if args.bootsel_build:
+        import serial
+        with serial.Serial(args.port, 115200, timeout=0.2, write_timeout=2) as stream:
+            stream.dtr = False
+            time.sleep(0.1)
+            stream.dtr = True
+            Relay(stream).reboot_bootsel(args.bootsel_build.encode("ascii"))
+        print("Exact-build BOOTSEL acknowledged")
+        return
+    if not args.ssid:
+        parser.error("--ssid is required for HTTP proxy mode")
     password = bytearray()
     if args.ask_password:
         import getpass
