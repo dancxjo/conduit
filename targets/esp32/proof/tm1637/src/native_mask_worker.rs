@@ -268,6 +268,12 @@ impl NativeMaskSession {
                     )
                     .map_err(|_| "mask-completion")?;
             }
+            // A drained session has already closed its owned Fore interface.
+            // The Available output must have been accepted on an earlier Step.
+            if status == SchedulerStatus::Drained {
+                drained = true;
+                break;
+            }
             if let Some(offer) = session
                 .owned_output(self.show.endpoint, self.show.cord)
                 .map_err(|_| "mask-show-offer")?
@@ -288,10 +294,6 @@ impl NativeMaskSession {
                     .accept_owned_output(offer.endpoint, offer.cord, offer.sequence)
                     .map_err(|_| "mask-show-accept")?;
                 emitted = true;
-            }
-            if status == SchedulerStatus::Drained {
-                drained = true;
-                break;
             }
         }
         if !drained || !emitted {
