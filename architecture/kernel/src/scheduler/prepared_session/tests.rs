@@ -187,3 +187,81 @@ fn lost_resident_pin_refuses_before_reset_and_preserves_old_evidence() {
     assert_eq!(session.kernel().drivers()[0].begins, 0);
     assert_eq!(session.kernel().signs().len(), count);
 }
+
+#[test]
+fn normal_retirement_returns_exact_drivers_backing_and_evidence() {
+    let mut session = specimen(false);
+    drain(&mut session);
+    let resident = session.kernel().drivers()[0].resident.unwrap();
+    let events = session
+        .kernel()
+        .signs()
+        .events()
+        .collect::<alloc::vec::Vec<_>>();
+    let decisions = session.kernel.decisions;
+    let invocations = session.kernel.logical_invocations;
+    let retired = session
+        .try_retire()
+        .unwrap_or_else(|_| panic!("normal retirement"));
+    assert_eq!(
+        retired.signs.events().collect::<alloc::vec::Vec<_>>(),
+        events
+    );
+    assert_eq!(retired.values.get(resident).unwrap(), &[1, 2, 3]);
+    assert_eq!(retired.drivers[0].resident, Some(resident));
+    assert!(retired.drivers.iter().all(|driver| driver.finished));
+    assert_eq!(retired.decisions, decisions);
+    assert_eq!(retired.logical_invocations, invocations);
+    assert!(!retired.cancelled);
+}
+
+#[test]
+fn retirement_refusal_returns_original_live_or_failed_session_unchanged() {
+    let mut cases = alloc::vec![
+        specimen(false),
+        specimen(false),
+        specimen(true),
+        specimen(false)
+    ];
+    cases[1].step().unwrap(); // Only one of two nodes completed.
+    assert!(cases[2].step().is_err());
+    cases[3].cancel().unwrap();
+    for session in cases {
+        let address = session.kernel() as *const _ as usize;
+        let events = session
+            .kernel()
+            .signs()
+            .events()
+            .collect::<alloc::vec::Vec<_>>();
+        let used = session.kernel().values().used_bytes();
+        let refused = session.try_retire().err().expect("not normally drained");
+        assert_eq!(refused.kernel() as *const _ as usize, address);
+        assert_eq!(
+            refused
+                .kernel()
+                .signs()
+                .events()
+                .collect::<alloc::vec::Vec<_>>(),
+            events
+        );
+        assert_eq!(refused.kernel().values().used_bytes(), used);
+    }
+}
+
+#[test]
+fn retirement_after_rearm_requires_new_normal_drain() {
+    let mut session = specimen(false);
+    drain(&mut session);
+    session
+        .begin_next([true, true], log())
+        .unwrap_or_else(|_| panic!("rearm"));
+    let mut session = session
+        .try_retire()
+        .err()
+        .expect("fresh successor is active custody");
+    drain(&mut session);
+    let retired = session
+        .try_retire()
+        .unwrap_or_else(|_| panic!("fresh drain"));
+    assert!(retired.drivers.iter().all(|driver| driver.begins == 1));
+}

@@ -351,3 +351,37 @@ fn optional_output_acknowledges_actual_sequence_and_faults_on_invocation_number(
     }
     panic!("missing output")
 }
+
+#[test]
+fn retirement_preserves_unaccepted_output_and_then_returns_settled_storage() {
+    let mut s = session();
+    s.admit_owned_input(IN.endpoint, IN.cord, 0, &[7]).unwrap();
+    s.close_owned_input(IN.endpoint, IN.cord).unwrap();
+    let offer = loop {
+        s.step().unwrap();
+        if let Some(offer) = s.owned_output(OUT.endpoint, OUT.cord).unwrap() {
+            break offer;
+        }
+    };
+    let address = s.kernel() as *const _ as usize;
+    let mut s = s
+        .try_retire()
+        .err()
+        .expect("unaccepted output remains owned");
+    assert_eq!(s.kernel() as *const _ as usize, address);
+    assert_eq!(
+        s.owned_output(OUT.endpoint, OUT.cord).unwrap().unwrap(),
+        offer
+    );
+    s.accept_owned_output(OUT.endpoint, OUT.cord, offer.sequence)
+        .unwrap();
+    for _ in 0..8 {
+        if s.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    let retired = s.try_retire().unwrap_or_else(|_| panic!("settled drain"));
+    assert_eq!(retired.values.used_items(), 0);
+    assert!(retired.drivers[0].finished);
+    assert!(!retired.signs.is_empty());
+}

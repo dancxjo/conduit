@@ -372,13 +372,17 @@ impl NativeMaskSession {
         self.session
             .discard_host_value(*value)
             .map_err(|_| "mask-closed-release")?;
-        let retired = self
-            .session
-            .begin_next([(); 3], Self::fresh_log()?)
-            .map_err(|_| "mask-rearm")?;
-        // The exact log was consumed above. Transfer, then release this owned
-        // old log; neither cancellation nor unacknowledged output reaches here.
-        drop(retired);
+        if self.index + 1 < MAXIMUM_CHILDREN {
+            let retired = self
+                .session
+                .begin_next([(); 3], Self::fresh_log()?)
+                .map_err(|_| "mask-rearm")?;
+            // The exact log was consumed above. Transfer, then release this owned
+            // old log; neither cancellation nor unacknowledged output reaches here.
+            drop(retired);
+        }
+        // The final accepted child stays normally drained. A future consuming
+        // retirement may return its storage; no unused successor is rearmed.
         self.pending = None;
         self.index = self
             .index

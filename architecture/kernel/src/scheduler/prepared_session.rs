@@ -304,11 +304,27 @@ where
         self.phase = Phase::Prepared;
         Ok(old)
     }
-    fn preflight(&self, next: &[D::Next; N], signs: &E) -> Result<(), SessionRefusal> {
-        let kernel = &self.kernel;
-        if self.remote_sign_reservation != 0 && self.owned_value_index >= u64::MAX - 1 {
-            return Err(SessionRefusal::InvocationExhausted);
+    /// Return the actual drivers, value backing and exact evidence only after
+    /// normal drain with all adapter/Host Call ownership settled. This grants
+    /// no new invocation, Body scope or replacement native claim. Every refusal
+    /// returns the unchanged session, including its original kernel allocation.
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal preserves exclusive session ownership"
+    )]
+    pub fn try_retire(self) -> Result<super::RetiredExecution<D, S, E, N>, Self> {
+        if self.check_drained().is_err() {
+            return Err(self);
         }
+        // check_drained includes every FixedScheduler::try_retire condition.
+        // No mutation or callback occurs between preflight and transfer.
+        match (*self.kernel).try_retire() {
+            Ok(retired) => Ok(retired),
+            Err(_) => unreachable!("preflighted normal session retirement"),
+        }
+    }
+    fn check_drained(&self) -> Result<(), SessionRefusal> {
+        let kernel = &self.kernel;
         if self.phase != Phase::Drained
             || kernel.cancelled
             || !kernel.completed[..kernel.active_nodes]
@@ -351,6 +367,14 @@ where
         {
             return Err(SessionRefusal::OutstandingOwnership);
         }
+        Ok(())
+    }
+    fn preflight(&self, next: &[D::Next; N], signs: &E) -> Result<(), SessionRefusal> {
+        if self.remote_sign_reservation != 0 && self.owned_value_index >= u64::MAX - 1 {
+            return Err(SessionRefusal::InvocationExhausted);
+        }
+        self.check_drained()?;
+        let kernel = &self.kernel;
         if !signs.is_empty()
             || signs.item_capacity() != kernel.signs.item_capacity()
             || signs.byte_capacity() != kernel.signs.byte_capacity()
