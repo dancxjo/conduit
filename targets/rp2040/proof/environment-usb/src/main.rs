@@ -88,6 +88,11 @@ async fn main(spawner: Spawner) {
     );
     let (device, mut class) = cdc(usb::Driver::new(p.USB, UsbIrqs));
     spawner.spawn(usb_task(device).unwrap());
+    #[cfg(feature = "wifi")]
+    let mut decoder =
+        protocol::Decoder::with_join_limit(conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize)
+            .expect("shared bounded NetworkJoinRequest");
+    #[cfg(not(feature = "wifi"))]
     let mut decoder = protocol::Decoder::new();
     let mut session = protocol::Session::default();
     let mut input = [0u8; 64];

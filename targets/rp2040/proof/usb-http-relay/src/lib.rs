@@ -50,6 +50,7 @@ pub struct Decoder {
     bytes: [u8; HEADER + MAX_REQUEST],
     used: usize,
     expected: Option<usize>,
+    join_limit: usize,
 }
 impl Default for Decoder {
     fn default() -> Self {
@@ -62,7 +63,18 @@ impl Decoder {
             bytes: [0; HEADER + MAX_REQUEST],
             used: 0,
             expected: None,
+            join_limit: 97,
         }
+    }
+    /// Explicit caller-selected JOIN framing extent. The default relay keeps
+    /// its existing97-byte carrier; semantic credential validation is separate.
+    pub const fn with_join_limit(join_limit: usize) -> Result<Self, Refusal> {
+        if join_limit < 2 || join_limit > MAX_REQUEST {
+            return Err(Refusal::Capacity);
+        }
+        let mut decoder = Self::new();
+        decoder.join_limit = join_limit;
+        Ok(decoder)
     }
     pub fn reset(&mut self) {
         wipe(&mut self.bytes);
@@ -86,7 +98,7 @@ impl Decoder {
                 }
                 let length = u16::from_le_bytes([self.bytes[10], self.bytes[11]]) as usize;
                 match self.bytes[5] {
-                    JOIN if (2..=97).contains(&length) => {}
+                    JOIN if (2..=self.join_limit).contains(&length) => {}
                     REQUEST if (1..=MAX_REQUEST).contains(&length) => {}
                     TEST_AP_START if length == 6 => {}
                     MDNS_QUERY if (9..=56).contains(&length) => {}

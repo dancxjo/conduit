@@ -198,3 +198,42 @@ fn mdns_observation_is_explicit_bounded_and_uses_fresh_usb_sequence() {
     session.admit(1).unwrap();
     assert!(session.admit(1).is_err());
 }
+
+#[test]
+fn explicit_join_extent_accepts_shared_network_request_without_changing_relay_default() {
+    // Canonical CNJ1: max32-byte SSID +max63-byte policy WPA passphrase +7header.
+    let mut request = b"CNJ1\x01\x20\x3f".to_vec();
+    request.extend_from_slice(&[b's'; 32]);
+    request.extend_from_slice(&[b'p'; 63]);
+    assert_eq!(request.len(), 102);
+    let wire = frame(JOIN, 19, &request);
+    assert_eq!(Decoder::new().accept(&wire), Err(Refusal::Capacity));
+    let mut decoder = Decoder::with_join_limit(167).unwrap();
+    for chunk in wire.chunks(11) {
+        decoder.accept(chunk).unwrap();
+    }
+    assert_eq!(decoder.frame().unwrap().payload, request);
+    decoder.reset();
+    decoder.accept(&frame(JOIN, 20, &[0; 167])).unwrap();
+    decoder.reset();
+    assert_eq!(
+        decoder.accept(&frame(JOIN, 21, &[0; 168])),
+        Err(Refusal::Capacity)
+    );
+    for invalid in [0, 1, MAX_REQUEST + 1] {
+        assert!(matches!(
+            Decoder::with_join_limit(invalid),
+            Err(Refusal::Capacity)
+        ));
+    }
+    for index in [0, 4, 5] {
+        let mut corrupt = wire.clone();
+        corrupt[index] = 255;
+        let mut decoder = Decoder::with_join_limit(167).unwrap();
+        assert!(decoder.accept(&corrupt).is_err());
+    }
+    // Reset erases payload and preserves the selected finite framing bound.
+    decoder.reset();
+    decoder.accept(&wire).unwrap();
+    assert_eq!(decoder.frame().unwrap().payload, request);
+}
