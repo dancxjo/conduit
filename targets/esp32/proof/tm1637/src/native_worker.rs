@@ -69,6 +69,12 @@ pub struct Execution<P, W> {
     begun: bool,
     retired: Option<Result<(), k::Failure>>,
 }
+/// Actual returned providers and the original settled software/value/evidence
+/// backing. Nothing here grants a next Play or reinitializes old finite Backs.
+pub struct RetiredExecution<P, W> {
+    pub providers: RetiredProviders<P, W>,
+    pub material: crate::native_kernel_storage::RetiredKernelMaterial,
+}
 impl<P: PulseReadProvider, W: MonotonicWaitProvider> Execution<P, W> {
     fn new(storage: PreparedKernel, native: NativeBindings<P, W>) -> Self {
         Self {
@@ -115,16 +121,40 @@ impl<P: PulseReadProvider, W: MonotonicWaitProvider> Execution<P, W> {
     pub fn retire_retained(
         execution: &mut Option<Box<Self>>,
     ) -> Result<RetiredProviders<P, W>, &'static str> {
+        Ok(Self::retire_with_material_retained(execution)?.providers)
+    }
+    /// Preserve all terminal execution material. Every refusal precedes any
+    /// transfer and returns the entire original execution through its slot.
+    #[inline(never)]
+    pub fn retire_with_material_retained(
+        execution: &mut Option<Box<Self>>,
+    ) -> Result<RetiredExecution<P, W>, &'static str> {
         let current = execution.as_ref().ok_or("execution-unavailable")?;
         if current.retired != Some(Ok(())) {
             return Err("execution-cleanup-unconfirmed");
         }
+        if !current.queues.pulse.is_empty()
+            || !current.queues.wait.is_empty()
+            || !current.queues.replies.is_empty()
+            || !current.storage.retirement_ready()
+        {
+            return Err("execution-kernel-not-settled");
+        }
         crate::native_retirement::check_pair(&current.native.pulse, &current.native.wait)?;
-        let Self { native, .. } = *execution.take().expect("preflighted execution");
+        let Self {
+            native, storage, ..
+        } = *execution.take().expect("preflighted execution");
+        let material = storage
+            .try_retire()
+            .unwrap_or_else(|_| unreachable!("exclusively preflighted kernel retirement"));
         let mut pulse = Some(native.pulse);
         let mut wait = Some(native.wait);
-        Ok(RetiredProviders::retire_pair(&mut pulse, &mut wait)
-            .expect("exclusively preflighted native retirement"))
+        let providers = RetiredProviders::retire_pair(&mut pulse, &mut wait)
+            .expect("exclusively preflighted native retirement");
+        Ok(RetiredExecution {
+            providers,
+            material,
+        })
     }
     /// Size the exact unpolled invocation type, including its control/observer.
     /// The actual task pool and enclosing task frame remain separate admission.

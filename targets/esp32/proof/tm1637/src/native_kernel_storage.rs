@@ -24,6 +24,55 @@ pub struct PreparedKernel {
     pub(crate) selectors: Box<[Option<PreparedCaptureSelector>; NODES]>,
     pub(crate) roles: ResidentRoles,
 }
+/// Settled original scheduler storage, not freshly initialized software. No
+/// constructor can claim native possession or authorize another invocation.
+pub struct RetiredKernelMaterial(PreparedKernel);
+pub struct RetiredKernelParts {
+    pub execution:
+        k::scheduler::RetiredExecution<ApplianceBack, k::HostedValueStore, k::HostedSignLog, NODES>,
+    pub selectors: Box<[Option<PreparedCaptureSelector>; NODES]>,
+    pub roles: ResidentRoles,
+}
+impl RetiredKernelMaterial {
+    pub fn kernel(&self) -> &Kernel {
+        &self.0.kernel
+    }
+    pub fn selectors(&self) -> &[Option<PreparedCaptureSelector>; NODES] {
+        &self.0.selectors
+    }
+    pub fn roles(&self) -> ResidentRoles {
+        self.0.roles
+    }
+    /// Consuming inspection/return only. Old drivers retain their terminal state;
+    /// a new run still needs independently verified Source/configuration and claims.
+    pub fn into_parts(self) -> RetiredKernelParts {
+        let PreparedKernel {
+            kernel,
+            selectors,
+            roles,
+        } = self.0;
+        let execution = match (*kernel).try_retire() {
+            Ok(execution) => execution,
+            Err(_) => unreachable!("exclusive preflighted retired kernel"),
+        };
+        RetiredKernelParts {
+            execution,
+            selectors,
+            roles,
+        }
+    }
+}
+impl PreparedKernel {
+    pub fn retirement_ready(&self) -> bool {
+        self.kernel.can_retire()
+    }
+    pub fn try_retire(self) -> Result<RetiredKernelMaterial, Self> {
+        if !self.retirement_ready() {
+            return Err(self);
+        }
+        Ok(RetiredKernelMaterial(self))
+    }
+}
 #[inline(never)]
 pub fn assemble(
     prepared: Box<PreparedAssignedAppliance<k::HostedValueStore>>,

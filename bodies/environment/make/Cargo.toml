@@ -30,6 +30,7 @@ conduit-time = { path = "../../../semantics/time", default-features = false }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }
 
 [dev-dependencies]
+embassy-futures = "=0.1.2"
 ed25519-dalek = { version = "2.2", default-features = false }
 serde = { version = "1", features = ["derive"] }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
