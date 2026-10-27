@@ -198,7 +198,7 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
         }
         let sequence = self.next_sequence()?;
         self.evidence
-            .append_wake(self.evidence.body.clone(), expected.clone(), sequence)
+            .append_unchanged_body_wake(wake_at_start, sequence)
             .map_err(BodyLifecycleSessionError::Biography)?;
         let realization = self.realization.as_mut().expect("validated realization");
         realization.wake = expected;

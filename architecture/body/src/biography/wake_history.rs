@@ -164,7 +164,28 @@ impl BodyBiographyEvidence {
         wake: Wake,
         first_sequence: u64,
     ) -> Result<(), BodyBiographyError> {
+        self.append_wake_with_body(Some(body), wake, first_sequence)
+    }
+
+    /// Retain a Wake extension while the current Body remains unchanged. Full
+    /// canonical validation and rollback are shared with `append_wake`; the
+    /// resident Body is borrowed instead of cloned and replaced.
+    pub fn append_unchanged_body_wake(
+        &mut self,
+        wake: Wake,
+        first_sequence: u64,
+    ) -> Result<(), BodyBiographyError> {
+        self.append_wake_with_body(None, wake, first_sequence)
+    }
+
+    fn append_wake_with_body(
+        &mut self,
+        replacement_body: Option<Body>,
+        wake: Wake,
+        first_sequence: u64,
+    ) -> Result<(), BodyBiographyError> {
         self.validate()?;
+        let body = replacement_body.as_ref().unwrap_or(&self.body);
         if body.body_id != self.body_id || wake.body_id != self.body_id {
             return Err(BodyBiographyError::WrongBody);
         }
@@ -258,7 +279,9 @@ impl BodyBiographyEvidence {
                 .map_err(|_| BodyBiographyError::CapacityExhausted)?;
         }
         let mut transaction = WakeTransaction::new(self);
-        transaction.body = Some(core::mem::replace(&mut transaction.evidence.body, body));
+        if let Some(body) = replacement_body {
+            transaction.body = Some(core::mem::replace(&mut transaction.evidence.body, body));
+        }
         if let Some(index) = position {
             transaction.wake = Some((
                 index,

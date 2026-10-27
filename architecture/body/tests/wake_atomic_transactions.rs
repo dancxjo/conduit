@@ -265,6 +265,72 @@ fn fourteen_and_fifteen_boot_commits_keep_old_history_and_avoid_whole_clone_peak
             started.peak_bytes < clone.retained_bytes(),
             "start cloned whole biography: {started:?}"
         );
+        assert!(
+            started.peak_bytes < 8192,
+            "CPU fixture start scratch exceeds one control reserve: {started:?}"
+        );
         assert_eq!(owner.evidence().membership, cloned.membership);
+    }
+}
+
+#[test]
+fn unchanged_body_wake_matches_replacement_and_rolls_back_late_refusals() {
+    for invalid in [false, true] {
+        let (mut owner, host, boot) = fixture(14);
+        owner
+            .commit_verified_proposal(proposal(&owner, &host, &boot))
+            .unwrap();
+        let (_, mut wake) = start(&owner, &host, &boot);
+        let mut evidence = owner.evidence().clone();
+        let mut reference = evidence.clone();
+        if invalid {
+            wake.workset = BodyWorkset::one(ResidentPlot::new(
+                "source/other".into(),
+                "checked/other".into(),
+            ))
+            .unwrap();
+            wake.validate().unwrap();
+        }
+        let before = evidence.clone();
+        let history = history_pointer(&evidence);
+        let body_pointer = evidence.body.body_id.as_str().as_ptr();
+        let events_pointer = evidence.body.events.as_ptr();
+        let sequence = evidence.last_sequence() + 1;
+        let expected = reference.append_wake(reference.body.clone(), wake.clone(), sequence);
+        let actual = evidence.append_unchanged_body_wake(wake, sequence);
+        assert_eq!(actual, expected);
+        assert_eq!(evidence.body.body_id.as_str().as_ptr(), body_pointer);
+        assert_eq!(evidence.body.events.as_ptr(), events_pointer);
+        if invalid {
+            assert_unchanged(&evidence, &before, history);
+        } else {
+            assert_eq!(evidence, reference);
+            evidence.validate().unwrap();
+            let before = evidence.clone();
+            let wake = evidence.wakes.last().unwrap().clone();
+            assert_eq!(
+                evidence.append_unchanged_body_wake(wake, sequence + 2),
+                Err(BodyBiographyError::DuplicateEvidence)
+            );
+            assert_unchanged(&evidence, &before, history);
+        }
+    }
+}
+#[test]
+fn unchanged_body_wake_sequence_refusals_preserve_exact_custody() {
+    let (mut owner, host, boot) = fixture(14);
+    owner
+        .commit_verified_proposal(proposal(&owner, &host, &boot))
+        .unwrap();
+    let (_, wake) = start(&owner, &host, &boot);
+    for sequence in [owner.evidence().last_sequence(), u64::MAX] {
+        let mut evidence = owner.evidence().clone();
+        let before = evidence.clone();
+        let pointer = history_pointer(&evidence);
+        assert_eq!(
+            evidence.append_unchanged_body_wake(wake.clone(), sequence),
+            Err(BodyBiographyError::InvalidSequence)
+        );
+        assert_unchanged(&evidence, &before, pointer);
     }
 }
