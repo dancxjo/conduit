@@ -11,8 +11,13 @@
 //! AP restoration plus affine owner/evidence retirement and complete that round
 //! renewal. A scan, elapsed timer or missing outcome cannot silently renew it.
 mod policy;
+mod private_wire;
 mod profiles;
 pub use policy::*;
+pub use private_wire::*;
 pub use profiles::*;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod private_wire_tests;
