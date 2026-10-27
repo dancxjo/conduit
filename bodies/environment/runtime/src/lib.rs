@@ -73,6 +73,20 @@ impl CaptureBack {
             PreparedExpressionBack::prepare_with_temporal(program, temporal)?,
         )))
     }
+    /// # Safety
+    /// Complete independently authenticated checked Make origin and exact
+    /// Source/configuration binding are required; digests alone are not proof.
+    pub unsafe fn expression_from_linked_make(
+        material: &'static [u8],
+        program_digest: [u8; 32],
+        bounds: (u32, u32),
+        temporal: PortTemporal,
+    ) -> Result<Self, String> {
+        // SAFETY: this wrapper preserves the caller's installed-Make contract.
+        Ok(Self::Expression(Box::new(unsafe {
+            PreparedExpressionBack::from_linked_make(material, program_digest, bounds, temporal)
+        }?)))
+    }
     pub fn selector(maximum_input_bytes: u32) -> Self {
         Self::Selector(StructuredSelectorBack::new(maximum_input_bytes))
     }

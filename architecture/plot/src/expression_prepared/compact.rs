@@ -56,9 +56,9 @@ impl PreparedPortableExpressionEvaluator {
 }
 
 pub(super) struct ScalarChild {
-    tape: scalar_tape::ScalarTape,
-    output: Vec<u8>,
-    input_kind: Option<PrimitiveInfoKind>,
+    pub(super) tape: scalar_tape::ScalarTape,
+    pub(super) output: Vec<u8>,
+    pub(super) input_kind: Option<PrimitiveInfoKind>,
 }
 impl ScalarChild {
     /// The caller has already admitted the child, lowered its whole root and

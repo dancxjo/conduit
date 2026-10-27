@@ -9,6 +9,8 @@ use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
 mod compact;
+mod linked;
+pub use linked::MakeExpressionMaterial;
 mod equality;
 mod evaluate;
 mod fixed_projection;
@@ -107,6 +109,10 @@ struct ProgramView<'a> {
 }
 
 enum PreparedRoot {
+    LinkedLiteral {
+        kind: PrimitiveInfoKind,
+        bytes: &'static [u8],
+    },
     ScalarTape {
         tape: scalar_tape::ScalarTape,
         nominal_type: Option<Vec<u8>>,
@@ -397,6 +403,13 @@ impl PreparedPortableExpressionEvaluator {
         };
         self.output.clear();
         match &mut self.root {
+            PreparedRoot::LinkedLiteral { kind, bytes } => {
+                let value = PrimitiveValue::borrowed(*kind, bytes)?;
+                if value.length > self.output.capacity() {
+                    return Err(Refusal::InvalidProgram);
+                }
+                self.output.extend_from_slice(value.as_slice());
+            }
             PreparedRoot::Primitive { node, nominal_type } => {
                 let value = evaluate_node(node, primitive_bytes, primitive_input)?;
                 if let Some(value_type) = nominal_type {
@@ -433,6 +446,7 @@ impl PreparedPortableExpressionEvaluator {
     // admitted prefix without retaining another identical schema byte buffer.
     fn output_type_prefix(&self) -> Option<&[u8]> {
         match &self.root {
+            PreparedRoot::LinkedLiteral { .. } => None,
             PreparedRoot::Primitive { nominal_type, .. }
             | PreparedRoot::ScalarTape { nominal_type, .. } => nominal_type.as_deref(),
             PreparedRoot::Structured(root) => Some(root.type_prefix()),

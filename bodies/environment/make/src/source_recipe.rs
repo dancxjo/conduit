@@ -19,9 +19,9 @@ use conduit_environment_runtime::{
 };
 use std::fmt::{self, Write};
 use SourceRecipeRefusal as E;
-pub(crate) mod linked_text;
 #[path = "source_recipe/linked_rust.rs"]
 pub(crate) mod linked_rust;
+pub(crate) mod linked_text;
 #[path = "source_recipe/linked_value.rs"]
 mod linked_value;
 #[path = "source_recipe/material.rs"]
@@ -223,7 +223,13 @@ impl NativeSoftwareSourceRecipe {
             out,
             "_ => Err(conduit_plot::flat_image::ImageRefusal::Representation) }} }}"
         )?;
-        material::write_material(out, &self.computations, &self.texts, &self.offers)?;
+        material::write_material(
+            out,
+            self.source,
+            &self.computations,
+            &self.texts,
+            &self.offers,
+        )?;
         self.write_computation_records(out)?;
         writeln!(out,"pub fn spec() -> ResidentSoftwareSpec<'static> {{ ResidentSoftwareSpec {{ cadence:cadence(), source: ResidentSourceIdentity {{ expanded_plot_digest: {:?} }}, computations: c::AssignedComputationProfile {{ maximum_text_bytes: {}, maximum_total_text_bytes: {}, requirements: &COMPUTATIONS }},",self.source.expanded_plot_digest,self.largest,self.total)?;
         let r = self.roles;

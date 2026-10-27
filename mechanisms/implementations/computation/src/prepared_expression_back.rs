@@ -65,6 +65,44 @@ impl PreparedExpressionBack {
         back.flow = matches!(temporal, PortTemporal::Flow { closes: true });
         Ok(back)
     }
+    /// Initialize only pure mutable lifecycle state from exact installed Make
+    /// material. No offer, current Host, assignment or runtime authority exists.
+    /// # Safety
+    /// Caller authenticates complete checked Make origin and actual canonical
+    /// Source/configuration binding, including the expected bounds and digest.
+    pub unsafe fn from_linked_make(
+        material: &'static [u8],
+        program_digest: [u8; 32],
+        bounds: (u32, u32),
+        temporal: PortTemporal,
+    ) -> Result<Self, String> {
+        if !matches!(
+            temporal,
+            PortTemporal::Value | PortTemporal::Flow { closes: true }
+        ) {
+            return Err("computational expression requires Value or closing Flow".into());
+        }
+        // SAFETY: the caller supplies the complete installed-Make provenance.
+        let evaluator = unsafe {
+            PreparedPortableExpressionEvaluator::from_linked_make_with_bounds(
+                material,
+                program_digest,
+                bounds,
+            )
+        }
+        .map_err(|e| format!("prepare linked expression: {e:?}"))?;
+        Ok(Self {
+            evaluator,
+            maximum_input_bytes: bounds.0,
+            maximum_output_bytes: bounds.1,
+            staged: false,
+            staged_complete: false,
+            complete: false,
+            flow: matches!(temporal, PortTemporal::Flow { closes: true }),
+            cancelled: false,
+            committed_values: 0,
+        })
+    }
     pub fn output_capacity(&self) -> usize {
         self.evaluator.output_capacity()
     }

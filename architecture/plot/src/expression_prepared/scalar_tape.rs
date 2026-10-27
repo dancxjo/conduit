@@ -2,22 +2,23 @@
 use super::*;
 const MAXIMUM_INSTRUCTIONS: usize = 128;
 pub(super) struct ScalarTape {
-    instructions: Vec<Instruction>,
-    result: usize,
-    scratch: ScratchProfile,
+    pub(super) instructions: Vec<Instruction>,
+    pub(super) linked: Option<(&'static [u8], &'static [u8])>,
+    pub(super) result: usize,
+    pub(super) scratch: ScratchProfile,
 }
 
 // Bound before Play. Four small wrappers retain their fixed scratch profiles;
 // one shared interpreter avoids duplicating the loop for each array length.
 #[derive(Clone, Copy)]
-enum ScratchProfile {
+pub(super) enum ScratchProfile {
     Tiny,
     Small,
     Medium,
     Maximum,
 }
 impl ScratchProfile {
-    fn prepare(instructions: usize) -> Self {
+    pub(super) fn prepare(instructions: usize) -> Self {
         match instructions {
             0..=4 => Self::Tiny,
             5..=8 => Self::Small,
@@ -34,14 +35,14 @@ impl ScratchProfile {
         }
     }
 }
-struct Instruction {
-    kind: PrimitiveInfoKind,
-    destination: usize,
-    operation: Operation,
+pub(super) struct Instruction<B = Vec<u8>> {
+    pub(super) kind: PrimitiveInfoKind,
+    pub(super) destination: usize,
+    pub(super) operation: Operation<B>,
 }
-enum Operation {
+pub(super) enum Operation<B = Vec<u8>> {
     Input,
-    Literal(Vec<u8>),
+    Literal(B),
     ProjectedInput { start: u32, length: u32 },
     Unary(UnaryOperator, usize),
     Widen(usize),
@@ -70,6 +71,7 @@ impl ScalarTape {
     pub(super) fn prepare(root: &PreparedNode) -> Result<Self, Refusal> {
         let mut tape = Self {
             instructions: Vec::new(),
+            linked: None,
             result: 0,
             scratch: ScratchProfile::Maximum,
         };
@@ -147,7 +149,8 @@ impl ScalarTape {
         self.push(node.kind, operation)
     }
     pub(super) fn instruction_count(&self) -> usize {
-        self.instructions.len()
+        self.linked
+            .map_or(self.instructions.len(), |(r, _)| r.len() / 24)
     }
     pub(super) fn scratch_bytes(&self) -> usize {
         core::mem::size_of::<Option<PrimitiveValue<'static>>>() * self.scratch.slots()
@@ -188,8 +191,8 @@ impl ScalarTape {
         slots: &mut [Option<PrimitiveValue<'a>>],
     ) -> Result<PrimitiveValue<'a>, Refusal> {
         let mut pc = 0;
-        while pc < self.instructions.len() {
-            let instruction = &self.instructions[pc];
+        while pc < self.instruction_count() {
+            let instruction = self.instruction(pc)?;
             let get = |index: usize| {
                 slots
                     .get(index)
@@ -350,5 +353,33 @@ pub(super) fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Res
             .iter()
             .try_for_each(|(_, value)| require_intrinsic_node_types(value)),
         _ => Ok(()),
+    }
+}
+
+impl ScalarTape {
+    fn instruction(&self, pc: usize) -> Result<Instruction<&[u8]>, Refusal> {
+        if let Some((records, literals)) = self.linked {
+            return super::linked::scalar_instruction(records, literals, pc);
+        }
+        let i = self.instructions.get(pc).ok_or(Refusal::InvalidProgram)?;
+        let operation = match &i.operation {
+            Operation::Input => Operation::Input,
+            Operation::Literal(b) => Operation::Literal(b.as_slice()),
+            Operation::ProjectedInput { start, length } => Operation::ProjectedInput {
+                start: *start,
+                length: *length,
+            },
+            Operation::Unary(a, b) => Operation::Unary(*a, *b),
+            Operation::Widen(a) => Operation::Widen(*a),
+            Operation::Binary(a, b, c, d) => Operation::Binary(*a, *b, *c, *d),
+            Operation::BranchFalse(a, b) => Operation::BranchFalse(*a, *b),
+            Operation::Jump(a) => Operation::Jump(*a),
+            Operation::Move(a) => Operation::Move(*a),
+        };
+        Ok(Instruction {
+            kind: i.kind,
+            destination: i.destination,
+            operation,
+        })
     }
 }

@@ -15,9 +15,9 @@ mod resident_offers;
 #[path = "resident_software.rs"]
 mod resident_software;
 pub use resident_offers::{ReadyResidentOffers, ResidentSoftwareOffer};
-pub use resident_software::PreparedResidentSoftware;
 #[cfg(feature = "local-planning")]
 pub use resident_software::{PreparedDirectLocalAppliance, PreparedLocalAppliance};
+pub use resident_software::{PreparedResidentSoftware, ResidentExpressionMaterial};
 
 pub const NODES: usize = 15;
 pub const CORDS: usize = 14;

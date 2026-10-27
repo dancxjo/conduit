@@ -2,20 +2,20 @@
 
 use super::{PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::{borrow::Cow, boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 #[path = "structured_tape.rs"]
-mod tape;
+pub(super) mod tape;
 
 pub(super) struct PreparedStructuredExpression {
-    type_prefix: Vec<u8>,
-    shape: PreparedShape,
+    pub(super) type_prefix: Cow<'static, [u8]>,
+    pub(super) shape: PreparedShape,
 }
 
-enum PreparedShape {
+pub(super) enum PreparedShape {
     Tape(Box<tape::StructuredTape>),
     Input,
-    Constant(Vec<u8>),
+    Constant(Cow<'static, [u8]>),
     Selected(Box<super::member_selection::PreparedMemberSelection>),
     SequenceSelected(Box<super::sequence_selection::PreparedSequenceSelection>),
     Record(Vec<PreparedField>),
@@ -31,17 +31,17 @@ enum PreparedShape {
     },
 }
 
-struct PreparedField {
+pub(super) struct PreparedField {
     name: String,
     value: PreparedChild,
 }
 
-struct PreparedChild {
-    output: ChildOutput,
-    evaluator: ChildEvaluator,
+pub(super) struct PreparedChild {
+    pub(super) output: ChildOutput,
+    pub(super) evaluator: ChildEvaluator,
 }
-enum ChildEvaluator {
-    Constant { encoded: Vec<u8> },
+pub(super) enum ChildEvaluator {
+    Constant { encoded: Cow<'static, [u8]> },
     Dynamic(Box<PreparedPortableExpressionEvaluator>),
     Scalar(Box<super::compact::ScalarChild>),
 }
@@ -55,7 +55,7 @@ impl ChildEvaluator {
             let Self::Dynamic(evaluator) = core::mem::replace(
                 self,
                 Self::Constant {
-                    encoded: Vec::new(),
+                    encoded: Cow::Owned(Vec::new()),
                 },
             ) else {
                 unreachable!("preflighted dynamic child")
@@ -85,7 +85,7 @@ impl ChildEvaluator {
         }
     }
 }
-enum ChildOutput {
+pub(super) enum ChildOutput {
     Leaf,
     Structured,
 }
@@ -131,7 +131,8 @@ impl PreparedStructuredExpression {
                 type_prefix: program
                     .output_type
                     .canonical_bytes()
-                    .map_err(|_| Refusal::InvalidProgram)?,
+                    .map_err(|_| Refusal::InvalidProgram)?
+                    .into(),
                 shape: PreparedShape::Tape(Box::new(tape)),
             });
         }
@@ -149,7 +150,7 @@ impl PreparedStructuredExpression {
                     output_type: program.output_type.clone(),
                     root: program.root.clone(),
                 };
-                PreparedShape::Constant(constant.evaluate(&[])?)
+                PreparedShape::Constant(constant.evaluate(&[])?.into())
             }
             PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(Box::new(
                 super::member_selection::prepare(program.root, program.input_type, prepared_input)?,
@@ -241,7 +242,8 @@ impl PreparedStructuredExpression {
             type_prefix: program
                 .output_type
                 .canonical_bytes()
-                .map_err(|_| Refusal::InvalidProgram)?,
+                .map_err(|_| Refusal::InvalidProgram)?
+                .into(),
             shape,
         })
     }
@@ -417,7 +419,9 @@ fn constant_child(node: &PortableExpressionNode) -> Option<ChildEvaluator> {
         }
         _ => return None,
     };
-    Some(ChildEvaluator::Constant { encoded })
+    Some(ChildEvaluator::Constant {
+        encoded: encoded.into(),
+    })
 }
 
 fn push_text(output: &mut Vec<u8>, value: &str) -> Result<(), Refusal> {

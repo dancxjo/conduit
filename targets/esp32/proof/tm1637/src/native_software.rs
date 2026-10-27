@@ -39,12 +39,18 @@ pub fn prepare_with_returned_values_checked(
         conduit_kernel::HostedValueStore,
     ),
 > {
-    Software::prepare_source_with_static_selectors_retained(
-        &material::spec(),
-        material::computations(),
-        material::selector_schemas(),
-        values,
-    )
+    // SAFETY: every descriptor, complete material image, canonical configuration
+    // and independent digest is emitted by this same checked Make build. No
+    // UART/network data or claimed Source identity supplies this installation.
+    unsafe {
+        Software::prepare_source_with_linked_make_retained(
+            &material::spec(),
+            material::computations(),
+            material::selector_schemas(),
+            material::expression_materials(),
+            values,
+        )
+    }
     .map(Box::new)
 }
 pub fn offers(

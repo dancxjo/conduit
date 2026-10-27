@@ -1,8 +1,11 @@
 //! Emit only independently checked portable construction data.
 use std::fmt::{self, Write};
+#[path = "expression_material.rs"]
+mod expression;
 
 pub(crate) fn write_material(
     out: &mut impl Write,
+    source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity,
     computations: &[conduit_core::AssignedComputationRequirement],
     texts: &[(u16, conduit_core::AssignedIdentity, String, Vec<u8>)],
     offers: &[(u16, Vec<u8>)],
@@ -47,6 +50,7 @@ pub(crate) fn write_material(
         "];\npub fn offers() -> &'static [ResidentSoftwareOffer<'static>] {{ &OFFERS }}"
     )?;
     write_selector_schemas(out, computations, texts)?;
+    expression::write(out, source, computations, texts)?;
     Ok(())
 }
 
