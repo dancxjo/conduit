@@ -9,6 +9,8 @@ use embassy_sync::{
     signal::Signal,
 };
 use static_cell::StaticCell;
+#[path = "native_task_terminal.rs"]
+mod terminal;
 
 struct Slot {
     execution: RefCell<Option<Box<DeviceExecution>>>,
@@ -61,29 +63,30 @@ const PROJECTION_BYTES: usize = 4096;
 #[cfg(not(feature = "local-appliance"))]
 static mut CANONICAL: core::mem::MaybeUninit<[u8; PROJECTION_BYTES]> =
     core::mem::MaybeUninit::uninit();
+const EMPTY_STATUS: Status = Status {
+    phase: "unregistered",
+    context_bytes: 0,
+    held_future_bytes: 0,
+    task_active: false,
+    source_sequence: 0,
+    publication_sequence: 0,
+    publication_channel: None,
+    publication_bytes: 0,
+    committed_millis: None,
+    projection_refused: false,
+    progress_current: true,
+    steps: 0,
+    submitted: [0; 2],
+    completed: [0; 2],
+    failure: None,
+    cleanup_failure: false,
+    native_live: false,
+    native_lifecycles: None,
+    native_in_flight: None,
+};
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
     cancel_requested: false,
-    status: Status {
-        phase: "unregistered",
-        context_bytes: 0,
-        held_future_bytes: 0,
-        task_active: false,
-        source_sequence: 0,
-        publication_sequence: 0,
-        publication_channel: None,
-        publication_bytes: 0,
-        committed_millis: None,
-        projection_refused: false,
-        progress_current: true,
-        steps: 0,
-        submitted: [0; 2],
-        completed: [0; 2],
-        failure: None,
-        cleanup_failure: false,
-        native_live: false,
-        native_lifecycles: None,
-        native_in_flight: None,
-    },
+    status: EMPTY_STATUS,
 }));
 fn update(f: impl FnOnce(&mut State)) {
     STATE.lock(|state| f(&mut state.borrow_mut()));
@@ -155,7 +158,15 @@ impl Handle {
         &'static str,
     > {
         let status = self.status();
-        if status.phase != "quiesced" || status.task_active {
+        if !terminal::retirement_ready(
+            status.phase,
+            status.task_active,
+            status.progress_current,
+            status.failure.is_some(),
+            status.cleanup_failure,
+            status.native_lifecycles,
+            status.native_in_flight,
+        ) {
             return Err("worker-not-quiesced");
         }
         let providers = DeviceExecution::retire_retained(&mut self.slot.execution.borrow_mut())?;
@@ -164,6 +175,44 @@ impl Handle {
             state.status.context_bytes = 0;
         });
         Ok(providers)
+    }
+    /// Reuse only this exclusively held slot after actual kernel/provider
+    /// retirement. The caller supplies a separately admitted fresh execution;
+    /// this does not rearm the old scheduler or grant a new Body Play. Consuming
+    /// the handle prevents a prior registration from commanding its successor.
+    pub fn prepare_next(
+        self,
+        execution: &mut Option<Box<DeviceExecution>>,
+        spawner: Spawner,
+        #[cfg(feature = "native-face-root")] publisher: &mut Option<crate::native_face::Publisher>,
+    ) -> Result<Self, (Self, &'static str)> {
+        let status = self.status();
+        if status.phase != "retired" || status.task_active || self.slot.execution.borrow().is_some()
+        {
+            return Err((self, "worker-slot-not-retired"));
+        }
+        #[cfg(feature = "native-face-root")]
+        if self.slot.publisher.borrow().is_some() || publisher.is_none() {
+            return Err((self, "worker-publisher-retained"));
+        }
+        if execution.is_none() {
+            return Err((self, "execution-context-unavailable"));
+        }
+        match register(
+            self.slot,
+            execution,
+            spawner,
+            #[cfg(feature = "native-face-root")]
+            publisher,
+        ) {
+            Ok(next) => Ok(next),
+            Err(reason) => {
+                // The failed registration returned the incoming execution and
+                // never polled it. Keep the exclusive slot retryable by its owner.
+                update(|state| state.status.phase = "retired");
+                Err((self, reason))
+            }
+        }
     }
     /// This appliance delivers canonical readings through its actual Face and
     /// signed history consumers; it does not also retain the legacy UART copy.
@@ -211,10 +260,33 @@ pub fn prepare(
             publisher: RefCell::new(None),
         })
         .ok_or("worker-slot-already-used")?;
+    #[cfg(feature = "native-face-root")]
+    let mut publisher = Some(publisher);
+    register(
+        slot,
+        execution,
+        spawner,
+        #[cfg(feature = "native-face-root")]
+        &mut publisher,
+    )
+}
+fn register(
+    slot: &'static Slot,
+    execution: &mut Option<Box<DeviceExecution>>,
+    spawner: Spawner,
+    #[cfg(feature = "native-face-root")] publisher: &mut Option<crate::native_face::Publisher>,
+) -> Result<Handle, &'static str> {
+    // Root and this task share one executor. The old future has returned before
+    // retirement is observable. Discard prior signals only at this new exclusive
+    // registration; no old command or ready acknowledgement crosses the boundary.
+    COMMAND.reset();
+    READY.reset();
     slot.execution.replace(execution.take());
     #[cfg(feature = "native-face-root")]
-    slot.publisher.replace(Some(publisher));
+    slot.publisher.replace(publisher.take());
     update(|state| {
+        state.cancel_requested = false;
+        state.status = EMPTY_STATUS;
         state.status.phase = "registering";
         state.status.task_active = true;
         state.status.context_bytes = core::mem::size_of::<DeviceExecution>();
@@ -228,7 +300,9 @@ pub fn prepare(
         Err(_) => {
             *execution = slot.execution.borrow_mut().take();
             #[cfg(feature = "native-face-root")]
-            drop(slot.publisher.borrow_mut().take());
+            {
+                *publisher = slot.publisher.borrow_mut().take();
+            }
             update(|state| {
                 state.status.phase = "registration-refused";
                 state.status.task_active = false;
@@ -357,9 +431,9 @@ async fn held(slot: &'static Slot) {
     // Publish terminal custody and return without another await. Management and
     // this worker share one executor, so Root cannot observe task_active=false
     // until this poll has returned and the executor has released registration.
-    // The StaticCell remains one-use and the task pool's static bytes remain
-    // reserved. Only authenticated retirement may consume the retained kernel;
-    // task completion grants neither provider custody nor a new Play.
+    // Static slot and task-pool backing remain reserved. Only exact retirement
+    // may consume the retained kernel; a later registration consumes the exclusive
+    // handle and independently prepared owners. Completion grants no new Play.
     slot.execution.replace(Some(execution));
     update(|state| state.status.task_active = false);
 }
