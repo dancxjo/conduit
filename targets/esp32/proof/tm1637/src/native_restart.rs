@@ -4,7 +4,7 @@ use crate::{
     native_body_checkpoint::{Checkpoint, Refusal},
     native_evidence_region::BodyRegion,
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use conduit_body::{
     AdmissionManager, BodyBiographyArchiveSegment, BodyBiographyEvidence,
     SealedBodyLifecycleSession,
@@ -13,7 +13,7 @@ use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
 #[path = "native_restart_payload.rs"]
-mod payload;
+pub(crate) mod payload;
 // Awake CPU-only custody: no DMA or deep-sleep persistence is claimed.
 #[allow(unexpected_cfgs)] // Native profile is absent from the CPU proof crate.
 #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
@@ -64,7 +64,8 @@ struct Store {
     seed: Option<[u8; 32]>,
     evidence: Option<BodyBiographyEvidence>,
     archives: Vec<BodyBiographyArchiveSegment>,
-    admissions: AdmissionManager,
+    admissions: Option<AdmissionManager>,
+    parked: bool,
     pristine: bool,
     failed: bool,
     ready: bool,
@@ -73,6 +74,173 @@ pub struct RetainedBody {
     pub evidence: BodyBiographyEvidence,
     pub pristine: bool,
 }
+/// Cold, unpublished custody only. No Clone/Deserialize or caller construction.
+pub struct ParkedBody {
+    generation: u64,
+    body_id: conduit_body::BodyId,
+    foreground: Option<conduit_body::ResidentPlot>,
+    binding: [u8; 32],
+    key: [u8; 32],
+    host: conduit_core::HostId,
+    boot: conduit_core::BootId,
+}
+/// Commit complete custody before releasing any RAM. Every refusal leaves the
+/// caller's actual owner installed; an executing/realized Body cannot be parked.
+pub fn park_box(
+    owner: &mut Option<Box<SealedBodyLifecycleSession>>,
+    key: &[u8; 32],
+    host: &conduit_core::HostId,
+    boot: &conduit_core::BootId,
+) -> Result<ParkedBody, &'static str> {
+    with_store(|store| park_store(store, owner, key, host, boot))
+}
+fn park_store(
+    store: &mut Store,
+    owner: &mut Option<Box<SealedBodyLifecycleSession>>,
+    key: &[u8; 32],
+    host: &conduit_core::HostId,
+    boot: &conduit_core::BootId,
+) -> Result<ParkedBody, &'static str> {
+    let body = owner.as_mut().ok_or("restart-body-missing")?;
+    if store.parked
+        || store.failed
+        || !store.ready
+        || body.evidence().body.state != conduit_body::BodyState::Lulled
+        || body.realization().is_some()
+    {
+        return Err("restart-park-state");
+    }
+    // Validate the exact current admitted Root without cloning biography.
+    body.evidence()
+        .membership
+        .parts
+        .iter()
+        .find(|part| {
+            part.state == conduit_body::MembershipState::Admitted
+                && part
+                    .current
+                    .as_ref()
+                    .is_some_and(|current| &current.host_id == host && &current.boot_id == boot)
+        })
+        .ok_or("restart-park-scope")?;
+    checkpoint_store(store, body, key)?;
+    if !body.pending_archives().is_empty() {
+        return Err("restart-park-pending");
+    }
+    let token = ParkedBody {
+        generation: store.journal.generation().ok_or("restart-generation")?,
+        body_id: body.evidence().body_id.clone(),
+        foreground: body.foreground().cloned(),
+        binding: store.binding,
+        key: *key,
+        host: host.clone(),
+        boot: boot.clone(),
+    };
+    store.parked = true;
+    store.ready = false;
+    store.evidence = None;
+    store.archives = Vec::new();
+    store.admissions = None;
+    drop(owner.take());
+    Ok(token)
+}
+
+struct PrivateBytes(Vec<u8>);
+impl Drop for PrivateBytes {
+    fn drop(&mut self) {
+        self.0.fill(0);
+    }
+}
+struct PrivateSeed([u8; 32]);
+impl Drop for PrivateSeed {
+    fn drop(&mut self) {
+        self.0.fill(0);
+    }
+}
+/// Reopen the already admitted SAME Boot; no interrupted-Wake reconciliation,
+/// membership mutation, challenge retirement, new key or journal write occurs.
+pub fn restore_parked(
+    token: ParkedBody,
+    host: &conduit_core::HostId,
+    boot: &conduit_core::BootId,
+    key: &[u8; 32],
+) -> Result<Box<SealedBodyLifecycleSession>, &'static str> {
+    with_store(|store| restore_store(store, token, host, boot, key))
+}
+fn restore_store(
+    store: &mut Store,
+    token: ParkedBody,
+    host: &conduit_core::HostId,
+    boot: &conduit_core::BootId,
+    key: &[u8; 32],
+) -> Result<Box<SealedBodyLifecycleSession>, &'static str> {
+    if !store.parked
+        || store.failed
+        || store.ready
+        || token.generation != store.journal.generation().ok_or("restart-generation")?
+        || token.binding != store.binding
+        || &token.key != key
+        || &token.host != host
+        || &token.boot != boot
+    {
+        return Err("restart-restore-scope");
+    }
+    let length = store
+        .journal
+        .payload_length(&store.binding)
+        .map_err(|_| "restart-restore-binding")?
+        .ok_or("restart-missing")?;
+    let mut bytes = PrivateBytes(Vec::new());
+    bytes
+        .0
+        .try_reserve_exact(length)
+        .map_err(|_| "restart-memory")?;
+    bytes.0.resize(length, 0);
+    let mut seed = PrivateSeed([0; 32]);
+    let loaded = store
+        .journal
+        .load(&store.binding, &mut seed.0, &mut bytes.0)
+        .map_err(|_| "restart-restore-load")?
+        .ok_or("restart-missing")?;
+    if loaded != length
+        || store.seed.as_ref() != Some(&seed.0)
+        || ed25519_dalek::SigningKey::from_bytes(&seed.0)
+            .verifying_key()
+            .as_bytes()
+            != key
+    {
+        return Err("restart-restore-key");
+    }
+    let retained = payload::decode(&bytes.0, &token.body_id)?;
+    // The authenticated decoder owns every field. Retire private JSON and the
+    // duplicate signing seed before canonical opening/Box allocation peaks.
+    drop(bytes);
+    drop(seed);
+    if <[u8; 32]>::from(Sha256::digest(
+        retained.evidence.body_id.as_str().as_bytes(),
+    )) != store.binding
+    {
+        return Err("restart-restore-binding");
+    }
+    let admissions = retained.admissions.ok_or("restart-admissions-missing")?;
+    let mut body = SealedBodyLifecycleSession::open_admitted(retained.evidence, host, boot)
+        .map_err(|_| "restart-restore-admitted")?;
+    if let Some(plot) = token.foreground.as_ref() {
+        body.select_plot(plot)
+            .map_err(|_| "restart-restore-foreground")?;
+    }
+    if body.evidence().body.state != conduit_body::BodyState::Lulled || body.realization().is_some()
+    {
+        return Err("restart-restore-state");
+    }
+    let body = Box::new(body);
+    store.archives = retained.archives;
+    store.admissions = Some(admissions);
+    store.parked = false;
+    store.ready = true;
+    Ok(body)
+}
+
 pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result<(), &'static str> {
     compiled
         .validate()
@@ -140,7 +308,8 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
             seed,
             evidence: Some(evidence),
             archives,
-            admissions,
+            admissions: Some(admissions),
+            parked: false,
             pristine,
             failed: false,
             ready: false,
@@ -152,7 +321,7 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
 /// the exact initial biography and key before returning a publishable signer.
 pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static str> {
     let result = with_store(|store| {
-        if store.failed {
+        if store.failed || store.parked {
             return Err("restart-failed");
         }
         if let Some(seed) = store.seed {
@@ -169,7 +338,7 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
                     evidence,
                     &store.archives,
                     &[],
-                    Some(&store.admissions),
+                    Some(store.admissions.as_ref().ok_or(Refusal::Corrupt)?),
                     sink,
                 )
                 .map_err(stream_refusal)
@@ -186,7 +355,7 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
 }
 pub fn take_body() -> Result<RetainedBody, &'static str> {
     with_store(|store| {
-        if store.failed || store.seed.is_none() {
+        if store.failed || store.parked || store.seed.is_none() {
             return Err("restart-not-ready");
         }
         Ok(RetainedBody {
@@ -210,7 +379,7 @@ fn checkpoint_store(
     verifying_key: &[u8; 32],
 ) -> Result<(), &'static str> {
     store.ready = false;
-    if store.failed {
+    if store.failed || store.parked {
         return Err("restart-failed");
     }
     let seed = store.seed.as_ref().ok_or("restart-key-missing")?;
@@ -233,7 +402,7 @@ fn checkpoint_store(
                 owner.evidence(),
                 &store.archives,
                 owner.pending_archives(),
-                Some(&store.admissions),
+                Some(store.admissions.as_ref().ok_or(Refusal::Corrupt)?),
                 sink,
             )
             .map_err(stream_refusal)
@@ -263,10 +432,15 @@ pub(crate) fn with_admissions<T>(
     read: impl FnOnce(&AdmissionManager) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
     with_store(|store| {
-        if store.failed || !store.ready {
+        if store.failed || store.parked || !store.ready {
             return Err("restart-not-ready");
         }
-        read(&store.admissions)
+        read(
+            store
+                .admissions
+                .as_ref()
+                .ok_or("restart-admissions-missing")?,
+        )
     })
 }
 /// Root-only transaction: no result leaves before complete durable readback.
@@ -279,10 +453,16 @@ pub(crate) fn admissions_transaction<T>(
     ) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
     with_store(|store| {
-        if store.failed || !store.ready {
+        if store.failed || store.parked || !store.ready {
             return Err("restart-not-ready");
         }
-        let result = mutate(owner, &mut store.admissions)?;
+        let result = mutate(
+            owner,
+            store
+                .admissions
+                .as_mut()
+                .ok_or("restart-admissions-missing")?,
+        )?;
         checkpoint_store(store, owner, verifying_key)?;
         Ok(result)
     })
@@ -290,7 +470,7 @@ pub(crate) fn admissions_transaction<T>(
 
 pub fn publication_ready() -> bool {
     STORE.lock(
-        |slot| matches!(&*slot.borrow(), Slot::Available(store) if store.ready && !store.failed),
+        |slot| matches!(&*slot.borrow(), Slot::Available(store) if store.ready && !store.failed && !store.parked),
     )
 }
 pub fn generation() -> Option<u64> {
@@ -306,3 +486,6 @@ fn stream_refusal(error: payload::StreamRefusal<Refusal>) -> Refusal {
         payload::StreamRefusal::Invalid => Refusal::Corrupt,
     }
 }
+#[cfg(test)]
+#[path = "native_restart_park_tests.rs"]
+mod park_tests;

@@ -1,12 +1,49 @@
 //! CPU restart custody: actual canonical Body lifecycle with explicit stand-in
 //! Core Plans. This supplies no native execution, flash or same-Body join proof.
+#![allow(unexpected_cfgs)]
 extern crate alloc;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_body_checkpoint.rs"]
 mod checkpoint;
+use checkpoint as native_body_checkpoint;
+mod native_evidence_region {
+    pub struct BodyRegion(pub Vec<u8>);
+    pub fn test_empty() -> BodyRegion {
+        BodyRegion(vec![255; 65536])
+    }
+    impl super::checkpoint::Storage for BodyRegion {
+        fn capacity(&self) -> u32 {
+            self.0.len() as u32
+        }
+        fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), super::checkpoint::Refusal> {
+            out.copy_from_slice(
+                self.0
+                    .get(at as usize..at as usize + out.len())
+                    .ok_or(super::checkpoint::Refusal::Storage)?,
+            );
+            Ok(())
+        }
+        fn program(&mut self, at: u32, bytes: &[u8]) -> Result<(), super::checkpoint::Refusal> {
+            for (old, new) in self.0[at as usize..at as usize + bytes.len()]
+                .iter_mut()
+                .zip(bytes)
+            {
+                assert_eq!(*old & new, *new);
+                *old &= new;
+            }
+            Ok(())
+        }
+        fn erase_bank(&mut self, bank: u8) -> Result<(), super::checkpoint::Refusal> {
+            self.0[usize::from(bank) * 32768..(usize::from(bank) + 1) * 32768].fill(255);
+            Ok(())
+        }
+    }
+}
 #[path = "../../../../architecture/core/tests/common/sealed_state.rs"]
 mod core_fixture;
-#[path = "../../../../targets/esp32/proof/tm1637/src/native_restart_payload.rs"]
-mod payload;
+use restart::payload;
+#[allow(dead_code)]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_restart.rs"]
+mod restart;
 use conduit_body::{BodyPlotPlan, SealedBodyLifecycleSession};
 use conduit_core as c;
 use std::{cell::RefCell, rc::Rc};
@@ -594,4 +631,102 @@ fn invitation_observer_admission_preserves_existing_local_wake_plan_and_play() {
         .is_err());
     assert_eq!(owner.evidence(), &retained);
     assert_eq!(owner.realization(), Some(&original));
+}
+
+#[test]
+fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_play_history() {
+    let (body, plans, host) = installed();
+    restart::initialize(
+        native_evidence_region::test_empty(),
+        body.evidence().clone(),
+    )
+    .unwrap();
+    let seed = restart::select_signer_seed([71; 32]).unwrap();
+    let key = ed25519_dalek::SigningKey::from_bytes(&seed)
+        .verifying_key()
+        .to_bytes();
+    drop(restart::take_body().unwrap());
+    let mut owner = Some(Box::new(body));
+    restart::checkpoint(owner.as_mut().unwrap(), &key).unwrap();
+    owner
+        .as_mut()
+        .unwrap()
+        .propose(plans, &host.host_id, &host.boot_id)
+        .unwrap();
+    let current = owner.as_ref().unwrap().realization().unwrap();
+    let play = conduit_body::BodyPlayIdentity::bind(&current.plan, 1);
+    let wake = current
+        .wake
+        .body_plan_ready(
+            &current.plan,
+            c::bind_sign(&host.host_id, &host.boot_id, Some(&play.active_play_id), 0).sign_id,
+        )
+        .unwrap()
+        .body_play_started(
+            &current.plan,
+            &play,
+            c::bind_sign(&host.host_id, &host.boot_id, Some(&play.active_play_id), 1).sign_id,
+        )
+        .unwrap();
+    owner
+        .as_mut()
+        .unwrap()
+        .started(&host.host_id, &host.boot_id, play, wake)
+        .unwrap();
+    let playing = owner.as_ref().unwrap().evidence().clone();
+    let realization = owner.as_ref().unwrap().realization().cloned();
+    assert!(restart::park_box(&mut owner, &key, &host.host_id, &host.boot_id).is_err());
+    assert_eq!(owner.as_ref().unwrap().evidence(), &playing);
+    assert_eq!(owner.as_ref().unwrap().realization(), realization.as_ref());
+    owner
+        .as_mut()
+        .unwrap()
+        .lull(
+            &host.host_id,
+            &host.boot_id,
+            realization.as_ref().unwrap().play.as_ref(),
+        )
+        .unwrap();
+    restart::admissions_transaction(owner.as_mut().unwrap(), &key, |_, manager| {
+        manager
+            .issue_spawn_invitation(
+                conduit_body::SpawnInvitationSecret::from_csprng_bytes([72; 32]).unwrap(),
+                [73; 32],
+                10,
+                100,
+            )
+            .map_err(|_| "test-invitation")?;
+        Ok(())
+    })
+    .unwrap();
+    let before = owner.as_ref().unwrap().evidence().clone();
+    let manager =
+        restart::with_admissions(|manager| Ok(serde_json::to_vec(manager).unwrap())).unwrap();
+    let (token, memory) = allocation_probe::observe(|| {
+        restart::park_box(&mut owner, &key, &host.host_id, &host.boot_id).unwrap()
+    });
+    println!(
+        "park allocations={} deallocations={} peak={}",
+        memory.allocations, memory.deallocations, memory.peak_bytes
+    );
+    assert!(
+        memory.deallocations > memory.allocations,
+        "parking must free retained allocations"
+    );
+    assert!(owner.is_none());
+    assert!(!restart::publication_ready());
+    assert!(restart::select_signer_seed([74; 32]).is_err());
+    assert!(restart::take_body().is_err());
+    assert!(restart::with_admissions(|_| Ok(())).is_err());
+    let generation = restart::generation();
+    let mut restored = restart::restore_parked(token, &host.host_id, &host.boot_id, &key).unwrap();
+    assert!(restart::publication_ready());
+    assert_eq!(restart::generation(), generation);
+    assert_eq!(restored.evidence(), &before);
+    assert!(restored.realization().is_none());
+    assert_eq!(
+        restart::with_admissions(|manager| Ok(serde_json::to_vec(manager).unwrap())).unwrap(),
+        manager
+    );
+    restart::checkpoint(&mut restored, &key).unwrap();
 }

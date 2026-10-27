@@ -18,6 +18,9 @@ mod native_evidence_region {
     use std::sync::{Arc, Mutex};
     #[derive(Clone)]
     pub struct BodyRegion(pub Arc<Mutex<(Vec<u8>, bool)>>);
+    pub fn test_empty() -> BodyRegion {
+        BodyRegion(Arc::new(Mutex::new((vec![255; 65536], true))))
+    }
     impl Storage for BodyRegion {
         fn capacity(&self) -> u32 {
             65536
