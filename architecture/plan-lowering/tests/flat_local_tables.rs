@@ -25,7 +25,33 @@ fn same_tables_routes_and_full_budgets_without_heap_or_alleged_scope() {
     let id = &rich.preparation_metadata().fragments[0].fragment_id;
     let rich = Rich::prepare(&rich, id).unwrap();
     let f = &p.fragments[0];
-    let gears: Vec<_> = f.placements.iter().map(Into::into).collect();
+    let inputs: Vec<Vec<c::PortDescriptorRef<'_>>> = f
+        .placements
+        .iter()
+        .map(|gear| gear.inputs.iter().map(Into::into).collect())
+        .collect();
+    let outputs: Vec<Vec<c::PortDescriptorRef<'_>>> = f
+        .placements
+        .iter()
+        .map(|gear| gear.outputs.iter().map(Into::into).collect())
+        .collect();
+    let calls: Vec<Vec<c::HostCallRequirementRef<'_>>> = f
+        .placements
+        .iter()
+        .map(|gear| gear.host_calls.iter().map(Into::into).collect())
+        .collect();
+    let gears: Vec<_> = f
+        .placements
+        .iter()
+        .enumerate()
+        .map(|(index, gear)| {
+            let mut view = c::PlannedGearRef::from(gear);
+            view.inputs = c::PortDescriptorRefs::Borrowed(&inputs[index]);
+            view.outputs = c::PortDescriptorRefs::Borrowed(&outputs[index]);
+            view.host_calls = c::HostCallRequirementRefs::Borrowed(&calls[index]);
+            view
+        })
+        .collect();
     let cords: Vec<_> = f.connections.iter().map(Into::into).collect();
     let signs: Vec<_> = f.expected_sign.iter().map(Into::into).collect();
     let mut input = c::FlatPlanRef::from_plan(&p).unwrap();

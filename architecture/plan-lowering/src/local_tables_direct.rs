@@ -259,7 +259,7 @@ fn prepare_parts<
             }
             for (i, port) in ports.iter().enumerate() {
                 if port.direction != direction
-                    || ports[..i].iter().any(|p| p.port_id == port.port_id)
+                    || ports.iter().take(i).any(|p| p.port_id == port.port_id)
                 {
                     return Err(E::Lowering);
                 }
@@ -315,27 +315,24 @@ fn prepare_parts<
         let source_port = source
             .outputs
             .iter()
-            .position(|p| p.port_id.as_str() == connection.source_port_id)
+            .position(|p| p.port_id == connection.source_port_id)
             .ok_or(E::Lowering)?;
         let sink_port = sink
             .inputs
             .iter()
-            .position(|p| p.port_id.as_str() == connection.sink_port_id)
+            .position(|p| p.port_id == connection.sink_port_id)
             .ok_or(E::Lowering)?;
-        let source_descriptor = &source.outputs[source_port];
-        let sink_descriptor = &sink.inputs[sink_port];
+        let source_descriptor = source.outputs.get(source_port).ok_or(E::Lowering)?;
+        let sink_descriptor = sink.inputs.get(sink_port).ok_or(E::Lowering)?;
         let source_matches = crate::lowering::source_contract_fields_match_ref(
-            source_descriptor.value_kind.as_str(),
-            source_descriptor
-                .abnormal_kind
-                .as_ref()
-                .map(|id| id.as_str()),
+            source_descriptor.value_kind,
+            source_descriptor.abnormal_kind,
             source_descriptor.temporal,
             connection.track,
             connection.value_kind,
             connection.temporal,
         );
-        let sink_matches = sink_descriptor.value_kind.as_str() == connection.value_kind
+        let sink_matches = sink_descriptor.value_kind == connection.value_kind
             && (sink_descriptor.temporal == connection.temporal
                 || matches!(
                     (connection.temporal, sink_descriptor.temporal),

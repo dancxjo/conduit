@@ -41,8 +41,8 @@ pub(super) fn push_placement(canonical: &mut impl CanonicalSink, gear: crate::Pl
     canonical.extend_from_slice(&gear.limits.max_active_instances.to_le_bytes());
     canonical.extend_from_slice(&gear.limits.max_queue_items.to_le_bytes());
     push_u32(canonical, gear.limits.max_queue_bytes);
-    push_ports(canonical, gear.inputs);
-    push_ports(canonical, gear.outputs);
+    push_ports_ref(canonical, gear.inputs);
+    push_ports_ref(canonical, gear.outputs);
     push_semantic_contract(canonical, gear.semantic_contract);
     push_u32(canonical, gear.terminal_transductions.len() as u32);
     for profile in gear.terminal_transductions {
@@ -50,12 +50,12 @@ pub(super) fn push_placement(canonical: &mut impl CanonicalSink, gear: crate::Pl
         push_terminal_transduction(canonical, profile);
     }
     push_u32(canonical, gear.host_calls.len() as u32);
-    for requirement in gear.host_calls {
-        push_string(canonical, requirement.contract_id.as_str());
-        match &requirement.target_kind {
+    for requirement in gear.host_calls.iter() {
+        push_string(canonical, requirement.contract_id);
+        match requirement.target_kind {
             Some(target_kind) => {
                 canonical.push(1);
-                push_string(canonical, target_kind.as_str());
+                push_string(canonical, target_kind);
             }
             None => canonical.push(0),
         }

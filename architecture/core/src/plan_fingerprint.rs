@@ -300,14 +300,14 @@ fn push_activation_front(
     );
 }
 
-fn push_ports(
-    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
-    ports: &[PortDescriptor],
-) {
+fn push_ports(canonical: &mut impl CanonicalSink, ports: &[PortDescriptor]) {
+    push_ports_ref(canonical, crate::PortDescriptorRefs::Owned(ports));
+}
+fn push_ports_ref(canonical: &mut impl CanonicalSink, ports: crate::PortDescriptorRefs<'_>) {
     push_u32(canonical, ports.len() as u32);
-    for port in ports {
-        push_string(canonical, port.port_id.as_str());
-        push_string(canonical, port.value_kind.as_str());
+    for port in ports.iter() {
+        push_string(canonical, port.port_id);
+        push_string(canonical, port.value_kind);
         canonical.push(match port.direction {
             PortDirection::Input => 0,
             PortDirection::Output => 1,
@@ -318,10 +318,10 @@ fn push_ports(
             PortTemporal::Flow { closes: true } => 2,
             PortTemporal::Current => 3,
         });
-        match &port.abnormal_kind {
+        match port.abnormal_kind {
             Some(kind) => {
                 canonical.push(1);
-                push_string(canonical, kind.as_str());
+                push_string(canonical, kind);
             }
             None => canonical.push(0),
         }

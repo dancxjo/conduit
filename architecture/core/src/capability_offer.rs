@@ -480,14 +480,25 @@ pub(crate) fn validate_terminal_transduction_ports(
     outputs: &[PortDescriptor],
     profile: &crate::TerminalTransductionProfile,
 ) -> Result<(), KindValidationError> {
+    validate_terminal_transduction_ports_ref(
+        crate::PortDescriptorRefs::Owned(inputs),
+        crate::PortDescriptorRefs::Owned(outputs),
+        profile,
+    )
+}
+pub(crate) fn validate_terminal_transduction_ports_ref(
+    inputs: crate::PortDescriptorRefs<'_>,
+    outputs: crate::PortDescriptorRefs<'_>,
+    profile: &crate::TerminalTransductionProfile,
+) -> Result<(), KindValidationError> {
     use crate::{AbnormalTerminalTransduction, CancellationTransduction, NormalCloseTransduction};
     let input = inputs
         .iter()
-        .find(|port| port.port_id == profile.input_port_id)
+        .find(|port| port.port_id == profile.input_port_id.as_str())
         .ok_or(KindValidationError::UnknownTerminalTransductionInput)?;
     let output = outputs
         .iter()
-        .find(|port| port.port_id == profile.output_port_id)
+        .find(|port| port.port_id == profile.output_port_id.as_str())
         .ok_or(KindValidationError::UnknownTerminalTransductionOutput)?;
     if !matches!(&profile.normal_close, NormalCloseTransduction::NotAccepted)
         && (!matches!(input.temporal, crate::PortTemporal::Flow { closes: true })
@@ -540,12 +551,12 @@ pub(crate) fn validate_terminal_transduction_ports(
     if let CancellationTransduction::Request { disposition_kind } = &profile.cancellation {
         let cancellation_inputs = inputs
             .iter()
-            .filter(|port| port.value_kind.as_str() == crate::CANCELLATION_REQUEST_INFO_ID)
+            .filter(|port| port.value_kind == crate::CANCELLATION_REQUEST_INFO_ID)
             .count();
         if cancellation_inputs != 1 {
             return Err(KindValidationError::CancellationControlMismatch);
         }
-        if output.abnormal_kind.as_ref() != Some(disposition_kind) {
+        if output.abnormal_kind != Some(disposition_kind.as_str()) {
             return Err(KindValidationError::CancellationDispositionMismatch);
         }
     }

@@ -180,7 +180,7 @@ pub(crate) fn verify_commitments(
 pub(crate) fn verify_terminal_ports(placements: PlannedGearRefs<'_>) -> bool {
     placements.iter().all(|v| {
         v.terminal_transductions.iter().all(|profile| {
-            crate::capability_offer::validate_terminal_transduction_ports(
+            crate::capability_offer::validate_terminal_transduction_ports_ref(
                 v.inputs, v.outputs, profile,
             )
             .is_ok()

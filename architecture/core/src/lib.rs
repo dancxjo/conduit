@@ -25,6 +25,10 @@ mod consequential_effect;
 mod control_loop;
 mod deadline;
 mod delivery;
+mod descriptor_ref;
+pub use descriptor_ref::{
+    HostCallRequirementRef, HostCallRequirementRefs, PortDescriptorRef, PortDescriptorRefs,
+};
 mod device;
 mod exact_numeric;
 mod execution;
