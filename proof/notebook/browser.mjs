@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as pause } from 'node:timers/promises';
 import { chromium } from '../browser/node_modules/@playwright/test/index.mjs';
@@ -38,7 +38,7 @@ function call(exe, args, input) {
   assert.equal(result.status, 0, `${args.join(' ')}: ${result.stderr}`);
   return result.stdout;
 }
-let installed, service, server, browser;
+let installed, service, server, browser, storageFailure;
 const services = [], contexts = [], errors = [];
 const owner = args => call(installed, args);
 const notebook = args => JSON.parse(owner(['body', 'notebook', '--state-dir', state, ...args]));
@@ -83,7 +83,11 @@ async function enter(context, bodyId) {
     const view = globalThis.__conduitOwnerParticipation?.face();
     return view?.show_state === 'available' && view.interactions_admitted
       && view.actions?.some(action => action.identity === 'notebook.replace' && action.availability === 'available');
-  }, null, { timeout: 20_000 });
+  }, null, { timeout: 20_000 }).catch(async error => {
+    await writeFile(path.join(output, 'failed-browser-state.json'), JSON.stringify(await page.evaluate(() => ({ face: globalThis.__conduitOwnerParticipation.face(), presence: globalThis.__conduitOwnerParticipation.presence(), text: document.body.innerText })), null, 2));
+    await page.screenshot({ path: path.join(output, 'failed-browser.png'), fullPage: true });
+    throw error;
+  });
   return { page, identity };
 }
 async function view(page) { return page.evaluate(() => globalThis.__conduitOwnerParticipation.face()); }
@@ -99,6 +103,7 @@ try {
   installed = JSON.parse(await readFile(path.join(state, 'installation.json'))).product_executable;
   const born = owner(['body', 'own', path.resolve('plots/notebook/main.conduit'), '--state-dir', state, '--name', 'Thoughts'], '');
   const bodyId = JSON.parse(born.trim().split('\n')[0]).biography.body_id;
+  assert.notEqual(process.getuid?.(), 0, 'filesystem refusal proof requires ordinary Linux file permissions');
   const firstBoot = await startService();
   notebook(['new']);
   notebook(['replace', '--revision', '0', '--text', 'I was here.']);
@@ -111,6 +116,8 @@ try {
   const before = await view(first.page);
   await first.page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'notebook-before.png') });
   const edit = first.page.locator('[data-owner-action="notebook.replace"]');
+  assert.equal(await edit.getByLabel('Document text').inputValue(), 'I was here.');
+  assert.equal(await edit.getByLabel('Document text').evaluate(node => node.tagName), 'TEXTAREA');
   await edit.getByLabel('Document text').fill('I was here. Again.');
   await edit.getByRole('button', { name: 'Replace text', exact: true }).click();
   await waitText(first.page, 'I was here. Again.');
@@ -140,6 +147,21 @@ try {
   assert.equal(stale.refused, true); assert.equal(stale.trusted, true);
   assert.deepEqual(await readFile(path.join(state, 'body/owner-execution.json')), execution);
   assert.equal(notebook(['show']).text, 'I was here. Again.');
+  await first.page.locator('[data-owner-action="notebook.replace"]').getByLabel('Document text').fill('I was here. Again. Unsaved.');
+  await first.page.locator('[data-owner-action="notebook.replace"]').getByRole('button', { name: 'Replace text', exact: true }).click();
+  await waitText(first.page, 'I was here. Again. Unsaved.');
+  const selectionBeforeFailure = await readFile(path.join(state, 'body/notebook-commit.json'));
+  await chmod(storage, 0o500);
+  try {
+    await first.page.locator('[data-owner-action="notebook.save"]').getByRole('button', { name: 'Save', exact: true }).click();
+    await first.page.waitForFunction(() => globalThis.__conduitOwnerParticipation.face()?.subjects
+      ?.some(subject => subject.identity === 'notebook/save-status' && subject.text.includes('Save failed. Current text preserved.')));
+    storageFailure = { draft: notebook(['show']), face: await view(first.page), committed_selection_sha256: sha(selectionBeforeFailure) };
+    assert.equal(notebook(['show']).revision, 3);
+    assert.equal(notebook(['show']).text, 'I was here. Again. Unsaved.');
+    assert.deepEqual(await readFile(path.join(state, 'body/notebook-commit.json')), selectionBeforeFailure);
+    await first.page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'notebook-save-failed.png') });
+  } finally { await chmod(storage, 0o700); }
   await stop(service); service = null;
   await first.page.waitForFunction(() => globalThis.__conduitOwnerParticipation.presence() !== 'available', null, { timeout: 15_000 });
   const secondBoot = await startService();
@@ -153,7 +175,7 @@ try {
   await writeFile(path.join(output, 'proof.json'), JSON.stringify({ schema: 'conduit.notebook/browser-proof@1',
     proof_class: 'candidate-live-browser', body_id: bodyId, native_executable_sha256: file.sha256,
     first_boot: firstBoot, second_boot: secondBoot, first_browser_host: first.identity, replacement_browser_host: second.identity,
-    before, after, replacement: await view(second.page), stale,
+    before, after, storage_failure: storageFailure, replacement: await view(second.page), stale,
     chrome_version: browser.version(), scope: 'Actual packaged browser render, typed edit and Save; new presentation Host and owner process recover the same committed Body. Native/QEMU acceptance is separate.' }, null, 2));
   assert.deepEqual(errors, [], 'browser or owner errors');
   console.log(`Verified notebook browser proof: ${output}`);
