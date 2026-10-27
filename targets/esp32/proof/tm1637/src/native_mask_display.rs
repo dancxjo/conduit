@@ -88,17 +88,49 @@ impl NativeDisplay {
         self.local_issued
     }
     pub fn retain_local(&mut self, preparation: LocalPreparation) -> Result<(), &'static str> {
+        self.retain_local_retained(preparation)
+            .map_err(|(_, reason)| reason)
+    }
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn retain_local_retained(
+        &mut self,
+        preparation: LocalPreparation,
+    ) -> Result<(), (LocalPreparation, &'static str)> {
         if self.local_issued
             || self.local.is_some()
             || self.context.is_some()
             || self.kernel.is_some()
         {
-            return Err("mask-already-prepared");
+            return Err((preparation, "mask-already-prepared"));
         }
         let bytes = preparation.context.plan_wire().len();
-        self.local = Some(NativeMaskSession::prepare(&mut self.ready, preparation)?);
+        let session = NativeMaskSession::prepare_retained(&mut self.ready, preparation)?;
+        self.local = Some(session);
         self.local_context_bytes = Some(bytes);
         self.local_issued = true;
+        Ok(())
+    }
+    /// Root calls only after consuming normal completed retirement and finishing
+    /// the exact old issuer scope. This returns actual electrical custody; it
+    /// does not alter renderer identity/generation or issue replacement work.
+    pub(crate) fn retain_returned_renderer(
+        &mut self,
+        renderer: &mut Option<r::ReadyRenderer<DisplayPins<'static>>>,
+    ) -> Result<(), &'static str> {
+        if !self.local_issued
+            || !self.registered
+            || self.ready.is_some()
+            || self.local.is_some()
+            || self.context.is_some()
+            || self.kernel.is_some()
+            || renderer.is_none()
+        {
+            return Err("mask-returned-renderer-state");
+        }
+        self.ready = renderer.take();
+        self.local_issued = false;
+        self.registered = false;
+        self.local_context_bytes = None;
         Ok(())
     }
     pub fn take_local(&mut self) -> Result<Box<NativeMaskSession>, &'static str> {

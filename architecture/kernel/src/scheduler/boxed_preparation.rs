@@ -32,6 +32,37 @@ where
     S: ValueStorage,
     E: SignSink,
 {
+    /// Read-only form of the exact boxed-construction topology checks. This
+    /// reserves no storage, transfers no owner and grants no execution scope.
+    pub fn check_boxed_active_topology(
+        active_nodes: usize,
+        active_cords: usize,
+        node_specs: &[NodeSpec<PORTS>; NODES],
+        cord_specs: &[CordSpec; CORDS],
+        routes: &FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+        host_bindings: &FixedHostCallBindings<HOST_BINDING_SLOTS>,
+    ) -> Result<(), SchedulerError> {
+        validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
+        if PORTS == 0
+            || QUEUE_SLOTS == 0
+            || !routes.is_sealed()
+            || PENDING_REQUESTS == 0
+            || !host_bindings.is_sealed()
+        {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        routes.validate_active_prefix(active_nodes, active_cords)?;
+        host_bindings.validate_active_nodes(active_nodes)?;
+        validate_plan::<NODES, CORDS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS>(
+            active_nodes,
+            active_cords,
+            node_specs,
+            cord_specs,
+            routes,
+        )?;
+        Ok(())
+    }
+
     /// Prepare the same fixed scheduler in allocated storage without carrying
     /// a large scheduler value through intermediate Result return frames.
     /// All allocation and topology validation happen before execution.
@@ -76,23 +107,13 @@ where
         values: S,
         signs: E,
     ) -> Result<alloc::boxed::Box<Self>, SchedulerError> {
-        validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
-        if PORTS == 0
-            || QUEUE_SLOTS == 0
-            || !routes.is_sealed()
-            || PENDING_REQUESTS == 0
-            || !host_bindings.is_sealed()
-        {
-            return Err(SchedulerError::InvalidPlan);
-        }
-        routes.validate_active_prefix(active_nodes, active_cords)?;
-        host_bindings.validate_active_nodes(active_nodes)?;
-        validate_plan::<NODES, CORDS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS>(
+        Self::check_boxed_active_topology(
             active_nodes,
             active_cords,
             &node_specs,
             &cord_specs,
             &routes,
+            &host_bindings,
         )?;
         let storage = storage.unwrap_or_else(alloc::boxed::Box::<Self>::new_uninit);
         Ok(alloc::boxed::Box::write(

@@ -466,23 +466,36 @@ fn run_complete_native_mask(
     let (face_publisher, face_reader) = face_owner.claim().unwrap();
     let reader = face_reader.lease();
     let mut owner = Some(ready);
-    let mut session = ms::NativeMaskSession::prepare(
-        &mut owner,
-        ms::Preparation {
-            context,
-            kernel,
-            invocation: capsule,
-            routes,
-            wardrobe,
-            producer: ms::FaceScope {
-                producer: planned.mask.plot_identity.clone(),
-                active: initial.clone(),
-                wake: current.wake.wake_id.clone(),
-            },
-            reader,
+    let mut input = ms::Preparation {
+        context,
+        kernel,
+        invocation: capsule,
+        routes,
+        wardrobe,
+        producer: ms::FaceScope {
+            producer: planned.mask.plot_identity.clone(),
+            active: initial.clone(),
+            wake: current.wake.wake_id.clone(),
         },
-    )
-    .unwrap();
+        reader,
+    };
+    let fixed_address = &**input.kernel.kernel.values() as *const _ as usize;
+    let original_face = input.kernel.face.clone();
+    input.kernel.face.cord = conduit_kernel::CordId(u16::MAX);
+    let (mut input, reason) = ms::NativeMaskSession::prepare_retained(&mut owner, input)
+        .err()
+        .expect("deep owned-boundary refusal must retain actual kernel and fixedref");
+    assert_eq!(reason, "mask-session");
+    assert!(owner.is_some());
+    assert_eq!(
+        &**input.kernel.kernel.values() as *const _ as usize,
+        fixed_address
+    );
+    assert_eq!(pins.edges.get(), 0);
+    input.kernel.face = original_face;
+    let mut session = ms::NativeMaskSession::prepare_retained(&mut owner, input)
+        .ok()
+        .expect("same returned actual renderer and repaired original input");
     let mut leases = Box::new(leases);
     let mut evidence = Box::new(crate::native_mask_evidence::Consumer::new());
     assert!(session.fresh_for_task());

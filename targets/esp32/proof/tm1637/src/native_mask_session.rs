@@ -52,11 +52,18 @@ impl NativeMaskSession {
         owner: &mut Option<NativeReady>,
         input: Preparation,
     ) -> Result<Box<Self>, &'static str> {
-        let selected = input
-            .wardrobe
-            .selected
-            .as_ref()
-            .ok_or("mask-no-worn-route")?;
+        Self::prepare_retained(owner, input).map_err(|(_, reason)| reason)
+    }
+    /// Preserve the complete incoming fixed storage/context and actual renderer
+    /// on every refusal. This prepares no effect or replacement Play authority.
+    #[allow(clippy::result_large_err)]
+    pub fn prepare_retained(
+        owner: &mut Option<NativeReady>,
+        input: Preparation,
+    ) -> Result<Box<Self>, (Preparation, &'static str)> {
+        let Some(selected) = input.wardrobe.selected.as_ref() else {
+            return Err((input, "mask-no-worn-route"));
+        };
         if owner.is_none()
             || input.routes.body_id() != &input.wardrobe.scoped_wardrobe.body_id
             || input.wardrobe.active_plan_id != *input.routes.plan_id()
@@ -68,7 +75,7 @@ impl NativeMaskSession {
                     && route.plan_id == selected.plan_id
             })
         {
-            return Err("mask-current-route");
+            return Err((input, "mask-current-route"));
         }
         let m::PreparedMaskKernel {
             kernel,
@@ -81,13 +88,33 @@ impl NativeMaskSession {
                 endpoint: fore.endpoint,
                 cord: fore.cord,
             };
-        let session = Session::new_with_owned_optional_value_outputs(
+        let session = match Session::new_with_owned_optional_value_outputs(
             kernel,
             &[boundary(&face), boundary(&show), boundary(&interaction)],
             &[boundary(&interaction)],
             12,
-        )
-        .map_err(|_| "mask-session")?;
+        ) {
+            Ok(session) => session,
+            Err((_, kernel)) => {
+                return Err((
+                    Preparation {
+                        kernel: m::PreparedMaskKernel {
+                            kernel,
+                            face,
+                            show,
+                            interaction,
+                        },
+                        context: input.context,
+                        invocation: input.invocation,
+                        routes: input.routes,
+                        wardrobe: input.wardrobe,
+                        producer: input.producer,
+                        reader: input.reader,
+                    },
+                    "mask-session",
+                ));
+            }
+        };
         Ok(Box::new(Self {
             ready: owner.take(),
             call: None,

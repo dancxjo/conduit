@@ -141,7 +141,7 @@ fn run_kernel<V: k::CanonicalEncodedValueStorage>(
                     sequence as u64,
                     8192,
                     |out| {
-                        out[..bytes.len()].copy_from_slice(&bytes);
+                        out[..bytes.len()].copy_from_slice(bytes);
                         Ok::<_, ()>(bytes.len())
                     },
                 )
@@ -357,4 +357,39 @@ fn mask_value_backing_requires_exact_sealed_slot_capacities() {
             Err("mask-values")
         ));
     }
+}
+
+#[test]
+fn retained_fixed_construction_refuses_without_losing_original_storage_or_generations() {
+    let source = conduit_environment_make::SevenSegmentMaskSource::compile().unwrap();
+    let planned = source.plan(&fixture::host(), 8192, &[]).unwrap();
+    let parts = local_kernel_parts(&source, &planned).unwrap();
+    let mut backing = Box::new(k::FixedValueStore::<2, 8192>::new(16384).unwrap());
+    let address = &*backing as *const _ as usize;
+    let previous = backing.store(&[7, 8, 9]).unwrap();
+    let (parts, values, reason) = match parts.finish_with_fixed_storage_retained(&mut backing) {
+        Err(refused) => refused,
+        Ok(_) => panic!("occupied actual backing must refuse"),
+    };
+    assert_eq!(reason, "mask-values");
+    assert_eq!(&*values as *const _ as usize, address);
+    assert_eq!(values.get(previous).unwrap(), &[7, 8, 9]);
+    values.release(previous).unwrap();
+    let prepared = match parts.finish_with_fixed_storage_retained(values) {
+        Ok(prepared) => prepared,
+        Err(_) => panic!("same returned empty backing and checked tables"),
+    };
+    assert_eq!(&**prepared.kernel.values() as *const _ as usize, address);
+    assert!(prepared.kernel.values().get(previous).is_err());
+    let mut kernel = prepared.kernel;
+    let mut reused = false;
+    for _ in 0..2 {
+        let fresh = kernel.store_host_value(&[10]).unwrap();
+        if fresh.slot == previous.slot {
+            assert!(fresh.generation > previous.generation);
+            reused = true;
+        }
+    }
+    assert!(reused);
+    assert!(kernel.values().get(previous).is_err());
 }

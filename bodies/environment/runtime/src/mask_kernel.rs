@@ -255,6 +255,92 @@ impl PreparedMaskKernelParts {
         }
         self.finish_with_values(values)
     }
+    /// Transfer the actual exclusive fixed store only after every fallible
+    /// topology, Sign budget and allocation preflight. Refusal retains both
+    /// the complete checked material and the original storage reference.
+    #[allow(clippy::result_large_err, clippy::type_complexity)]
+    pub fn finish_with_fixed_storage_retained<'a>(
+        self,
+        values: &'a mut k::FixedValueStore<2, 8192>,
+    ) -> Result<
+        PreparedMaskKernel<&'a mut k::FixedValueStore<2, 8192>>,
+        (Self, &'a mut k::FixedValueStore<2, 8192>, &'static str),
+    > {
+        use k::ValueStorage;
+        if self.face.byte_capacity != 8192
+            || self.show.byte_capacity != 8192
+            || values.byte_capacity() != 16384
+            || values.used_items() != 0
+            || values.used_bytes() != 0
+        {
+            return Err((self, values, "mask-values"));
+        }
+        if Kernel::<&mut k::FixedValueStore<2, 8192>>::check_boxed_active_topology(
+            3,
+            6,
+            &self.nodes,
+            &self.cords,
+            &self.routes,
+            &self.calls,
+        )
+        .is_err()
+        {
+            return Err((self, values, "mask-kernel"));
+        }
+        let remote_bytes = match k::remote_sign_storage_bytes(12) {
+            Some(bytes) => bytes,
+            None => return Err((self, values, "mask-signs")),
+        };
+        let signs = match k::FixedSignLog::new_with_remote_storage(
+            (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
+            12,
+            remote_bytes,
+        ) {
+            Ok(signs) => signs,
+            Err(_) => return Err((self, values, "mask-signs")),
+        };
+        let layout = core::alloc::Layout::new::<Kernel<&mut k::FixedValueStore<2, 8192>>>();
+        // SAFETY: reserve the exact scheduler layout before transferring the
+        // sole store reference; no initialized value is read from this memory.
+        let pointer = unsafe { alloc::alloc::alloc(layout) }
+            .cast::<core::mem::MaybeUninit<Kernel<&mut k::FixedValueStore<2, 8192>>>>();
+        if pointer.is_null() {
+            return Err((self, values, "mask-kernel-capacity"));
+        }
+        // SAFETY: nonnull exact-layout uniquely owned allocation from above.
+        let backing = unsafe { Box::from_raw(pointer) };
+        let Self {
+            nodes,
+            cords,
+            routes,
+            calls,
+            backs,
+            face,
+            show,
+            interaction,
+        } = self;
+        // Exact tables were preflighted above and have remained exclusively
+        // owned/unchanged. Supplied backing makes construction allocation-free.
+        let kernel = Kernel::new_boxed_with_storage_and_active_counts_and_host_calls(
+            Some(backing),
+            3,
+            6,
+            nodes,
+            cords,
+            routes,
+            calls,
+            backs,
+            values,
+            signs,
+        )
+        .unwrap_or_else(|_| unreachable!("unchanged preflighted Mask topology"));
+        Ok(PreparedMaskKernel {
+            kernel,
+            face,
+            show,
+            interaction,
+        })
+    }
     pub fn required_fixed_heap_bytes(&self) -> usize {
         core::mem::size_of::<Kernel<&mut k::FixedValueStore<2, 8192>>>()
     }
