@@ -1,5 +1,7 @@
 //! Bounded lossless framing for authenticated private restart JSON. This codec
 //! provides no authentication: the existing journal hashes the complete frame.
+#[path = "native_restart_matcher.rs"]
+mod matcher;
 use core::fmt;
 pub const MAGIC: &[u8; 8] = b"BDYLZ004";
 const WINDOW: usize = 2048;
@@ -187,35 +189,8 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
         Ok(())
     }
     fn consume(&mut self) -> Result<(), Error> {
-        let mut best = 0;
-        let mut best_distance = 0;
-        let mut near = 0;
-        let mut near_distance = 0;
-        for distance in 1..=self.consumed.min(V4_HISTORY) {
-            let mut length = 0;
-            while length < self.look_len {
-                let byte = if length >= distance {
-                    self.look[length - distance]
-                } else {
-                    self.history[(self.consumed + length - distance) % V4_HISTORY]
-                };
-                if byte != self.look[length] {
-                    break;
-                }
-                length += 1;
-            }
-            if distance <= NEAR_WINDOW && length > near {
-                near = length;
-                near_distance = distance;
-            }
-            if length > best {
-                best = length;
-                best_distance = distance;
-            }
-            if best == self.look_len {
-                break;
-            }
-        }
+        let (best, best_distance, near, near_distance) =
+            matcher::longest(&self.history, &self.look, self.look_len, self.consumed);
         let mut ordinary_used = if near >= 3 { near } else { 1 };
         let mut ordinary_cost = if near >= 3 { 2 } else { 1 };
         let mut ordinary_distance = near_distance;
@@ -225,26 +200,14 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
             ordinary_distance = best_distance;
         }
         if (3..=16).contains(&ordinary_used) && self.look_len > ordinary_used + 2 {
-            let mut lazy = false;
-            for distance in 1..=(self.consumed + 1).min(V4_HISTORY) {
-                let mut length = 0;
-                while length + 1 < self.look_len {
-                    let byte = if length + 1 >= distance {
-                        self.look[length + 1 - distance]
-                    } else {
-                        self.history[(self.consumed + 1 + length - distance) % V4_HISTORY]
-                    };
-                    if byte != self.look[length + 1] {
-                        break;
-                    }
-                    length += 1;
-                }
-                let cost = if distance <= NEAR_WINDOW { 2 } else { 4 };
-                if length >= 3 && (length + 1) * ordinary_cost > ordinary_used * (cost + 1) {
-                    lazy = true;
-                    break;
-                }
-            }
+            let lazy = matcher::lazy(
+                &self.history,
+                &self.look,
+                self.look_len,
+                self.consumed,
+                ordinary_used,
+                ordinary_cost,
+            );
             if lazy {
                 ordinary_used = 1;
                 ordinary_cost = 1;
