@@ -22,6 +22,10 @@ pub(crate) struct Active<S> {
 pub(crate) enum State<S> {
     Cold(Cold<S>),
     Active(Active<S>),
+    #[cfg(all(feature = "local-appliance", target_os = "none"))]
+    Pending(super::custody_journal::Custody<S>),
+    #[cfg(all(feature = "local-appliance", target_os = "none"))]
+    FrozenRegion(S),
     Failed,
 }
 

@@ -39,6 +39,11 @@ async fn main(spawner: Spawner) {
     {
         let regions =
             crate::native_evidence_region::prepare(p.FLASH).expect("dedicated evidence backing");
+        // Authenticate the retained Body and its layout receipts before any
+        // observation epoch can be considered reusable after a power cut.
+        #[cfg(feature = "body-persistence")]
+        crate::native_body_image::initialize_restart(regions.body_state)
+            .expect("Body restart backing");
         #[cfg(feature = "local-evidence-store")]
         crate::native_evidence_archive::initialize(regions.evidence)
             .expect("display evidence backing");
@@ -54,9 +59,6 @@ async fn main(spawner: Spawner) {
         #[cfg(feature = "network-credential-store")]
         crate::native_play::journal::initialize(regions.network_recovery)
             .expect("network recovery backing");
-        #[cfg(feature = "body-persistence")]
-        crate::native_body_image::initialize_restart(regions.body_state)
-            .expect("Body restart backing");
     }
     let sensor = conduit_esp32_pulse_capture::Esp32PulseCapture::new(p.GPIO27);
     let seed = u64::from(esp_hal::rng::Rng::new().random());

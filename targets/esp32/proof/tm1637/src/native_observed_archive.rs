@@ -12,6 +12,16 @@ use conduit_environment_runtime::{
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
+#[cfg(all(feature = "biography-maintenance", target_os = "none"))]
+#[path = "native_observed_cold.rs"]
+pub(crate) mod cold;
+#[path = "native_observed_custody_acceptance.rs"]
+pub(crate) mod custody_acceptance;
+#[cfg(all(feature = "local-appliance", target_os = "none"))]
+#[path = "native_observed_custody_boot.rs"]
+mod custody_boot;
+#[path = "native_observed_custody_journal.rs"]
+pub(crate) mod custody_journal;
 #[path = "native_local_history.rs"]
 pub(crate) mod history;
 #[path = "native_observed_recovery.rs"]
@@ -20,13 +30,22 @@ const WORK_BYTES: usize = 536;
 static BASIS: static_cell::StaticCell<Box<[u8; DESCRIPTOR_BYTES]>> = static_cell::StaticCell::new();
 static WORK: Mutex<CriticalSectionRawMutex, RefCell<Option<Box<[u8; WORK_BYTES]>>>> =
     Mutex::new(RefCell::new(None));
+struct WorkLease(Option<Box<[u8; WORK_BYTES]>>);
+impl Drop for WorkLease {
+    fn drop(&mut self) {
+        if let Some(work) = self.0.take() {
+            WORK.lock(|cell| *cell.borrow_mut() = Some(work));
+        }
+    }
+}
 fn with_work<R>(
     action: impl FnOnce(&mut [u8]) -> Result<R, &'static str>,
 ) -> Result<R, &'static str> {
-    WORK.lock(|cell| {
-        let mut work = cell.borrow_mut();
-        action(&mut work.as_mut().ok_or("observed-history-workspace")?[..])
-    })
+    let work = WORK
+        .lock(|cell| cell.borrow_mut().take())
+        .ok_or("observed-history-workspace")?;
+    let mut lease = WorkLease(Some(work));
+    action(&mut lease.0.as_mut().ok_or("observed-history-workspace")?[..])
 }
 fn prepare_shared() -> Result<&'static [u8], &'static str> {
     let contract = ObservationContract::prepare().map_err(|_| "observed-history-contract")?;
@@ -52,12 +71,40 @@ static EPOCHS: Mutex<CriticalSectionRawMutex, RefCell<Option<[State; 5]>>> =
 #[path = "native_observed_state.rs"]
 mod state;
 use state::{Active, Cold};
-type State = state::State<Region>;
+#[cfg(all(feature = "local-appliance", target_os = "none"))]
+type ArchiveRegion = crate::native_evidence_region::ObservationEpoch;
+#[cfg(not(all(feature = "local-appliance", target_os = "none")))]
+type ArchiveRegion = Region;
+type State = state::State<ArchiveRegion>;
 #[inline(never)]
 fn open_epoch(region: Region, basis: &'static [u8]) -> Result<State, &'static str> {
+    let signed = conduit_environment_runtime::display_evidence_journal::Storage::capacity(&region)
+        == 0x20000;
+    // The native appliance has only exact signed epochs. Its checked adapter
+    // reserves the final two sectors for custody metadata, independently of
+    // whether an old empty-header prefix was sealed.
+    #[cfg(all(feature = "local-appliance", target_os = "none"))]
+    let region = region
+        .into_observation_epoch()
+        .map_err(|_| "observed-history-epoch-geometry")?;
+    #[cfg(all(feature = "local-appliance", target_os = "none"))]
+    let prepared = with_work(|work| {
+        let work = work.try_into().map_err(|_| "observed-custody-workspace")?;
+        custody_boot::prepare(region, work)
+    });
+    #[cfg(all(feature = "local-appliance", target_os = "none"))]
+    let region = match prepared {
+        // Invalid custody metadata refuses this epoch without stopping local
+        // measurement or treating the old data as blank storage.
+        Err(_) => return Ok(State::Failed),
+        Ok(prepared) => match prepared {
+            custody_journal::Opened::Retained(region) => region,
+            custody_journal::Opened::Erased(region) => ArchiveRegion::from_reclaimed(region),
+            custody_journal::Opened::PendingReclaim(custody) => return Ok(State::Pending(custody)),
+        },
+    };
     let mut capacity =
         conduit_environment_runtime::display_evidence_journal::Storage::capacity(&region);
-    let signed = capacity == 0x20000;
     match Erased::prepare_retained(region) {
         Ok(region) => Ok(State::Cold(Cold {
             region,
@@ -483,7 +530,7 @@ fn copy_checked(after: u32, expected: Option<&[u8; 96]>) -> Result<Batch, &'stat
         primary
     })
 }
-fn copy_active(active: &mut Active<Region>, after: u32) -> Result<Batch, &'static str> {
+fn copy_active(active: &mut Active<ArchiveRegion>, after: u32) -> Result<Batch, &'static str> {
     if active.recovered
         && (!active.signed
             || !AUTHORIZED_BODY

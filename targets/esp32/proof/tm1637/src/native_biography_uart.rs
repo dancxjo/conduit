@@ -101,6 +101,8 @@ pub(crate) async fn serve_cold(
         .try_reserve_exact(MAX_COMMAND)
         .map_err(|_| "biography-command-memory")?;
     let mut deadline = Instant::now() + Duration::from_secs(2);
+    #[cfg(feature = "biography-maintenance")]
+    crate::native_observed_archive::cold::resume_pending()?;
     blocking_write(uart, b"\n{\"event\":\"biography-window\"}\n")?;
     while Instant::now() < deadline {
         let mut input = [0; 32];
@@ -127,7 +129,7 @@ pub(crate) async fn serve_cold(
                 continue;
             }
             if *byte != b'\n' {
-                if !command.is_empty() || *byte == b'B' {
+                if !command.is_empty() || *byte == b'B' || *byte == b'O' {
                     command.push(*byte);
                 }
                 continue;
@@ -136,6 +138,55 @@ pub(crate) async fn serve_cold(
                 continue;
             }
             let result = (|| -> Result<bool, &'static str> {
+                #[cfg(feature = "biography-maintenance")]
+                {
+                    use crate::native_observed_archive::{cold, custody_acceptance::wire};
+                    if let Some(slot) = command.strip_prefix(b"OBS? ") {
+                        if slot.len() != 1 || !(b'0'..=b'5').contains(&slot[0]) {
+                            return Err("observed-cold-slot");
+                        }
+                        let slot = slot[0] - b'0';
+                        #[derive(serde::Serialize)]
+                        struct Offered {
+                            event: &'static str,
+                            slot: u8,
+                            offer: wire::Offer<'static>,
+                        }
+                        json(
+                            uart,
+                            &Offered {
+                                event: "observed-custody-offer",
+                                slot,
+                                offer: cold::offer(slot)?,
+                            },
+                        )?;
+                        deadline = Instant::now() + Duration::from_secs(60);
+                        return Ok(false);
+                    }
+                    if let Some(bytes) = command.strip_prefix(b"OBS ACK ") {
+                        let request: wire::Request<'_> =
+                            serde_json::from_slice(bytes).map_err(|_| "observed-cold-request")?;
+                        let slot = cold::acknowledge(&request)?;
+                        #[derive(serde::Serialize)]
+                        struct Reclaimed {
+                            event: &'static str,
+                            slot: u8,
+                            offer: wire::Hex<32>,
+                            reclaimed: bool,
+                        }
+                        json(
+                            uart,
+                            &Reclaimed {
+                                event: "observed-custody-reclaimed",
+                                slot,
+                                offer: request.offer,
+                                reclaimed: true,
+                            },
+                        )?;
+                        deadline = Instant::now() + Duration::from_secs(60);
+                        return Ok(false);
+                    }
+                }
                 if command == b"BIO CANCEL" {
                     return Ok(true);
                 }
@@ -202,11 +253,15 @@ pub(crate) async fn serve_cold(
                 deadline = Instant::now() + Duration::from_secs(60);
                 Ok(false)
             })();
+            let observed_command = command.starts_with(b"OBS");
             command.fill(0);
             command.clear();
             match result {
                 Ok(true) => return Ok(()),
                 Ok(false) => {}
+                Err(_) if observed_command => {
+                    blocking_write(uart, b"\n{\"event\":\"native-root-request-refused\"}\n")?
+                }
                 Err(_) => blocking_write(uart, b"\n{\"event\":\"biography-refused\"}\n")?,
             }
         }
