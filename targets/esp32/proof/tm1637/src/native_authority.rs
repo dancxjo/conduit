@@ -219,18 +219,34 @@ impl RootIssuer {
         native: &NetworkNativeIdentity,
         operation: Operation,
     ) -> Result<c::AuthorityGrant, ()> {
+        let g = self.grant_ref(native, operation)?;
+        Ok(c::AuthorityGrant {
+            grant_id: g.grant_id.into(),
+            contract_id: g.contract_id.into(),
+            host_call_contract_id: g.host_call_contract_id.into(),
+            subject_kind: g.subject_kind.into(),
+            host_id: g.host_id.into(),
+            boot_id: g.boot_id.into(),
+            capability_id: g.capability_id.into(),
+        })
+    }
+    pub fn grant_ref<'a>(
+        &self,
+        native: &'a NetworkNativeIdentity,
+        operation: Operation,
+    ) -> Result<c::AuthorityGrantRef<'a>, ()> {
         if native.host != self.host || native.boot != self.boot {
             return Err(());
         }
         let (id, authority, call, subject, cap, _, _, _) = operation.facts();
-        Ok(c::AuthorityGrant {
-            grant_id: id.into(),
-            contract_id: authority.into(),
-            host_call_contract_id: call.into(),
-            subject_kind: subject.into(),
-            host_id: self.host.clone(),
-            boot_id: self.boot.clone(),
-            capability_id: cap.into(),
+        Ok(c::AuthorityGrantRef {
+            grant_id: id,
+            contract_id: authority,
+            host_call_contract_id: call,
+            subject_kind: subject,
+            host_id: native.host.as_str(),
+            boot_id: native.boot.as_str(),
+            capability_id: cap,
         })
     }
     pub fn issue(
@@ -266,15 +282,41 @@ impl RootIssuer {
         ),
         (),
     > {
+        self.issue_network_scope(
+            native,
+            operation,
+            fragment.plan_id.as_str(),
+            fragment.host_id.as_str(),
+            fragment.boot_id.as_str(),
+            active,
+        )
+    }
+    fn issue_network_scope(
+        &mut self,
+        native: &NetworkNativeIdentity,
+        operation: Operation,
+        plan: &str,
+        host: &str,
+        boot: &str,
+        active: &c::ActivePlayIdentity,
+    ) -> Result<
+        (
+            c::BaseCapabilityTable,
+            c::BaseCapabilityHandle,
+            c::BaseOperationClaim,
+        ),
+        (),
+    > {
         let grant = self.grant(native, operation)?;
         let (_, _, call, subject, cap, input, output, index) = operation.facts();
         if self.issued[index]
-            || fragment.host_id != self.host
-            || fragment.boot_id != self.boot
+            || host != self.host.as_str()
+            || boot != self.boot.as_str()
+            || plan != active.plan_id.as_str()
             || self.reserved_play.as_deref() != Some(active)
             || *active
                 != c::bind_active_play(
-                    &fragment.plan_id,
+                    &active.plan_id,
                     &self.host,
                     &self.boot,
                     active.play_sequence,
@@ -300,7 +342,7 @@ impl RootIssuer {
             boot_id: self.boot.clone(),
             base_instance_id: native.instance.clone(),
             base_provider_generation: native.provider_generation,
-            plan_id: fragment.plan_id.clone(),
+            plan_id: active.plan_id.clone(),
             active_play_id: active.active_play_id.clone(),
             authority_grant_id: grant.grant_id.clone(),
             authority_contract_id: grant.contract_id.clone(),
