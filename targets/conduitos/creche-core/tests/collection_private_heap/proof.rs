@@ -3,6 +3,9 @@ use std::{
     alloc::{GlobalAlloc, Layout, System},
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
+// The standalone harness executes the allocator, not its embedded #[test]
+// helpers; those run separately in private_heap_bitmap's ordinary harness.
+#[allow(dead_code)]
 #[path = "../../../creche-service/allocator.rs"]
 mod allocator;
 static ACTIVE: AtomicBool = AtomicBool::new(false);
