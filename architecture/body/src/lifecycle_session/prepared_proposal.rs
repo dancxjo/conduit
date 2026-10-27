@@ -23,6 +23,36 @@ pub struct VerifiedBodyProposalContext {
     admitted: alloc::vec::Vec<(HostId, BootId)>,
 }
 impl VerifiedBodyProposalContext {
+    fn require_verified_hosts(
+        &self,
+        plan: &conduit_core::VerifiedPlanMetadata,
+    ) -> Result<(), BodyLifecycleSessionError> {
+        for fragment in &plan.preparation_metadata().fragments {
+            if !self
+                .admitted
+                .iter()
+                .any(|(host, boot)| host == &fragment.host_id && boot == &fragment.boot_id)
+            {
+                return Err(BodyLifecycleSessionError::StaleHost);
+            }
+        }
+        Ok(())
+    }
+    /// Retain one verified Plot's exact Core fingerprint and finite Body-facing
+    /// facts so its rich preparation metadata may retire before other planning.
+    pub fn prepare_plot(
+        &self,
+        plot: &VerifiedBodyPlotPlan<'_>,
+    ) -> Result<crate::PreparedVerifiedBodyPlotPlan, BodyLifecycleSessionError> {
+        self.require_verified_hosts(plot.plan)?;
+        if !self.wake.wake().workset.contains(&plot.plot) {
+            return Err(BodyLifecycleSessionError::PlanSeal(
+                crate::BodyPlanSealRefusal::Invalid(crate::BodyPlanError::UnexpectedPlot),
+            ));
+        }
+        crate::PreparedVerifiedBodyPlotPlan::capture(self.expected, plot)
+            .map_err(BodyLifecycleSessionError::PlanSeal)
+    }
     /// Check every actual verified fragment against the captured membership,
     /// then seal the complete ordinary Body workset/Mask topology. Publication
     /// still requires the unchanged full-state fence on the original owner.
@@ -32,23 +62,36 @@ impl VerifiedBodyProposalContext {
         masks: &[VerifiedBodyMaskTopology<'_>],
         body_time: Option<conduit_core::BodyTimeRequirement>,
     ) -> Result<PreparedVerifiedBodyProposal, BodyLifecycleSessionError> {
+        self.prepare_verified_with_prepared(&[], plots, masks, body_time)
+    }
+    pub fn prepare_verified_with_prepared(
+        self,
+        prepared: &[crate::PreparedVerifiedBodyPlotPlan],
+        plots: &[VerifiedBodyPlotPlan<'_>],
+        masks: &[VerifiedBodyMaskTopology<'_>],
+        body_time: Option<conduit_core::BodyTimeRequirement>,
+    ) -> Result<PreparedVerifiedBodyProposal, BodyLifecycleSessionError> {
+        if prepared
+            .iter()
+            .any(|plot| !plot.matches_context(&self.expected))
+        {
+            return Err(BodyLifecycleSessionError::StaleWorkload);
+        }
         for plan in plots
             .iter()
             .map(|p| p.plan)
             .chain(masks.iter().flat_map(|m| m.chains.iter().map(|c| c.plan)))
         {
-            for fragment in &plan.preparation_metadata().fragments {
-                if !self
-                    .admitted
-                    .iter()
-                    .any(|(host, boot)| host == &fragment.host_id && boot == &fragment.boot_id)
-                {
-                    return Err(BodyLifecycleSessionError::StaleHost);
-                }
-            }
+            self.require_verified_hosts(plan)?;
         }
-        let plan = BodyPlanSeal::capture_verified(self.wake.wake(), plots, masks, body_time)
-            .map_err(BodyLifecycleSessionError::PlanSeal)?;
+        let plan = BodyPlanSeal::capture_prepared_verified(
+            self.wake.wake(),
+            prepared,
+            plots,
+            masks,
+            body_time,
+        )
+        .map_err(BodyLifecycleSessionError::PlanSeal)?;
         Ok(PreparedVerifiedBodyProposal {
             expected: self.expected,
             sequence: self.sequence,

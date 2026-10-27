@@ -87,6 +87,16 @@ pub struct ParkedBody {
     boot: conduit_core::BootId,
 }
 impl ParkedBody {
+    pub fn prepare_verified_plot(
+        &self,
+        plot: &conduit_body::VerifiedBodyPlotPlan<'_>,
+    ) -> Result<conduit_body::PreparedVerifiedBodyPlotPlan, &'static str> {
+        self.proposal
+            .as_ref()
+            .ok_or("restart-proposal-already-prepared")?
+            .prepare_plot(plot)
+            .map_err(|_| "restart-plot-proposal")
+    }
     /// Reserve the actual complete checkpoint input before later cold owners
     /// fragment the heap. It stays private, bounded by the committed length,
     /// and is consumed directly by restore rather than copied or reallocated.
@@ -134,10 +144,18 @@ impl ParkedBody {
         plots: &[conduit_body::VerifiedBodyPlotPlan<'_>],
         masks: &[conduit_body::VerifiedBodyMaskTopology<'_>],
     ) -> Result<conduit_body::PreparedVerifiedBodyProposal, &'static str> {
+        self.prepare_verified_proposal_with_prepared(&[], plots, masks)
+    }
+    pub fn prepare_verified_proposal_with_prepared(
+        &mut self,
+        prepared: &[conduit_body::PreparedVerifiedBodyPlotPlan],
+        plots: &[conduit_body::VerifiedBodyPlotPlan<'_>],
+        masks: &[conduit_body::VerifiedBodyMaskTopology<'_>],
+    ) -> Result<conduit_body::PreparedVerifiedBodyProposal, &'static str> {
         self.proposal
             .take()
             .ok_or("restart-proposal-already-prepared")?
-            .prepare_verified(plots, masks, None)
+            .prepare_verified_with_prepared(prepared, plots, masks, None)
             .map_err(|_| "restart-proposal")
     }
 }

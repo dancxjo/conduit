@@ -15,14 +15,7 @@ pub(super) fn validate_mask_views<'a>(
             (Some(plot), Some(source)) => {
                 workset.contains(plot)
                     && plots.clone().any(|partition| {
-                        partition.plot == plot
-                            && partition
-                                .plan
-                                .metadata()
-                                .fragments
-                                .iter()
-                                .flat_map(|fragment| &fragment.placements)
-                                .any(|placement| &placement.placement_id == source)
+                        partition.plot == plot && partition.plan.has_placement(source)
                     })
             }
             _ => false,

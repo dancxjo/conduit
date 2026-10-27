@@ -717,3 +717,70 @@ fn cold_proposal_context_keeps_membership_seal_and_complete_state_refusals() {
     assert_eq!(changed.evidence(), &evidence);
     assert!(changed.realization().is_none());
 }
+
+#[test]
+fn incremental_verified_plot_seal_retires_core_metadata_before_complete_proposal() {
+    use conduit_body::{SealedBodyLifecycleSession, VerifiedBodyPlotPlan};
+    let (rich, partition, host, boot) = fixture();
+    let evidence = rich.evidence().clone();
+    let owner = SealedBodyLifecycleSession::open_admitted(evidence.clone(), &host, &boot).unwrap();
+    let context = owner
+        .prepare_verified_proposal_context(&host, &boot)
+        .unwrap();
+    let verified = conduit_core::verify_plan_metadata_with_configurations(partition.plan, |_| {
+        Ok::<_, ()>(vec![])
+    })
+    .unwrap();
+    let input = VerifiedBodyPlotPlan {
+        plot: partition.plot,
+        plan: &verified,
+    };
+    let prepared = context.prepare_plot(&input).unwrap();
+    let mut expected = owner.clone();
+    expected
+        .propose_verified(core::slice::from_ref(&input), &[], None, &host, &boot)
+        .unwrap();
+    drop(input);
+    drop(verified);
+    drop(owner);
+    let proposal = context
+        .prepare_verified_with_prepared(core::slice::from_ref(&prepared), &[], &[], None)
+        .unwrap();
+    drop(prepared);
+    let mut restored = SealedBodyLifecycleSession::open_admitted(evidence, &host, &boot).unwrap();
+    restored.commit_verified_proposal(proposal).unwrap();
+    assert_eq!(restored.evidence(), expected.evidence());
+    assert_eq!(restored.realization(), expected.realization());
+}
+
+#[test]
+fn incremental_plot_seal_cannot_cross_complete_body_state_contexts() {
+    use conduit_body::{SealedBodyLifecycleSession, VerifiedBodyPlotPlan};
+    let (rich, partition, host, boot) = fixture();
+    let owner =
+        SealedBodyLifecycleSession::open_admitted(rich.evidence().clone(), &host, &boot).unwrap();
+    let context = owner
+        .prepare_verified_proposal_context(&host, &boot)
+        .unwrap();
+    let verified = conduit_core::verify_plan_metadata_with_configurations(partition.plan, |_| {
+        Ok::<_, ()>(vec![])
+    })
+    .unwrap();
+    let prepared = context
+        .prepare_plot(&VerifiedBodyPlotPlan {
+            plot: partition.plot,
+            plan: &verified,
+        })
+        .unwrap();
+    let mut evidence = owner.evidence().clone();
+    evidence.friendly_name.push_str(" changed");
+    let other = SealedBodyLifecycleSession::open_admitted(evidence, &host, &boot).unwrap();
+    assert!(matches!(
+        other
+            .prepare_verified_proposal_context(&host, &boot)
+            .unwrap()
+            .prepare_verified_with_prepared(&[prepared], &[], &[], None),
+        Err(BodyLifecycleSessionError::StaleWorkload)
+    ));
+    assert!(other.realization().is_none());
+}

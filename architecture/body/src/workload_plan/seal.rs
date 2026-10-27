@@ -90,6 +90,51 @@ pub struct BodyPlotPlanSeal {
     plan_id: PlanId,
     fragments: Vec<BodyFragmentSeal>,
 }
+/// Context-bound cold Plot evidence from an actual immutable Core verification.
+/// No caller construction, Deserialize or execution material is available.
+pub struct PreparedVerifiedBodyPlotPlan {
+    context: [u8; 32],
+    plot: crate::ResidentPlot,
+    seal: BodyPlotPlanSeal,
+    placements: Vec<PlacementId>,
+}
+impl PreparedVerifiedBodyPlotPlan {
+    pub(crate) fn capture(
+        context: [u8; 32],
+        input: &super::verified_inputs::VerifiedBodyPlotPlan<'_>,
+    ) -> Result<Self, BodyPlanSealRefusal> {
+        let metadata = input.plan.preparation_metadata();
+        if metadata.source_document_id != input.plot.source_document_id
+            || metadata.checked_plot_id != input.plot.checked_plot_id
+        {
+            return Err(BodyPlanSealRefusal::Invalid(BodyPlanError::InvalidPlan));
+        }
+        preflight_core_plans(core::iter::once(metadata))?;
+        Ok(Self {
+            context,
+            plot: input.plot.clone(),
+            seal: capture_core(metadata),
+            placements: metadata
+                .fragments
+                .iter()
+                .flat_map(|f| &f.placements)
+                .map(|p| p.placement_id.clone())
+                .collect(),
+        })
+    }
+    pub(crate) fn matches_context(&self, context: &[u8; 32]) -> bool {
+        &self.context == context
+    }
+    pub(super) fn plot(&self) -> &crate::ResidentPlot {
+        &self.plot
+    }
+    pub(super) fn seal(&self) -> &BodyPlotPlanSeal {
+        &self.seal
+    }
+    pub(super) fn has_placement(&self, placement: &PlacementId) -> bool {
+        self.placements.contains(placement)
+    }
+}
 impl BodyPlotPlanSeal {
     pub fn identity(&self) -> &PlotIdentity {
         &self.identity
@@ -229,7 +274,7 @@ impl BodyPlanEvidence for BodyPlanSeal {
         Ok(())
     }
 }
-fn capture_core(plan: &Plan) -> BodyPlotPlanSeal {
+pub(super) fn capture_core(plan: &Plan) -> BodyPlotPlanSeal {
     BodyPlotPlanSeal {
         identity: PlotIdentity {
             source_document_id: plan.source_document_id.clone(),
@@ -253,17 +298,25 @@ fn capture_core(plan: &Plan) -> BodyPlotPlanSeal {
 fn preflight_core_plans<'a>(
     cores: impl Iterator<Item = &'a Plan>,
 ) -> Result<(), BodyPlanSealRefusal> {
+    preflight_core_scopes(cores.map(|core| {
+        (
+            core.fragments.len(),
+            !core.activations.is_empty() || !core.activation_preparations.is_empty(),
+        )
+    }))
+}
+fn preflight_core_scopes(
+    cores: impl Iterator<Item = (usize, bool)>,
+) -> Result<(), BodyPlanSealRefusal> {
     use BodyPlanSealRefusal as E;
     let mut plans = 0usize;
     let mut fragments = 0usize;
-    for core in cores {
-        if !core.activations.is_empty() || !core.activation_preparations.is_empty() {
+    for (count, nested) in cores {
+        if nested {
             return Err(E::NestedExecution);
         }
         plans = plans.checked_add(1).ok_or(E::Capacity)?;
-        fragments = fragments
-            .checked_add(core.fragments.len())
-            .ok_or(E::Capacity)?;
+        fragments = fragments.checked_add(count).ok_or(E::Capacity)?;
         if plans > MAX_BODY_SEAL_PLANS || fragments > MAX_BODY_SEAL_FRAGMENTS {
             return Err(E::Capacity);
         }

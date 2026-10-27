@@ -720,8 +720,19 @@ fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_p
     assert!(restart::take_body().is_err());
     assert!(restart::with_admissions(|_| Ok(())).is_err());
     let generation = restart::generation();
+    let mut cold_plans = cold_plans.into_iter();
+    let first = cold_plans.next().unwrap();
+    let first_plan =
+        c::verify_plan_metadata_with_configurations(first.plan, |_| Ok::<_, ()>(vec![])).unwrap();
+    let prepared = token
+        .prepare_verified_plot(&conduit_body::VerifiedBodyPlotPlan {
+            plot: first.plot,
+            plan: &first_plan,
+        })
+        .unwrap();
+    drop(first_plan);
+    // The first full Core Plan is gone before the remaining Plot is verified.
     let verified = cold_plans
-        .into_iter()
         .map(|partition| {
             (
                 partition.plot,
@@ -739,9 +750,12 @@ fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_p
             plan,
         })
         .collect::<Vec<_>>();
-    let proposal = token.prepare_verified_proposal(&inputs, &[]).unwrap();
+    let proposal = token
+        .prepare_verified_proposal_with_prepared(core::slice::from_ref(&prepared), &inputs, &[])
+        .unwrap();
     drop(inputs);
     drop(verified);
+    drop(prepared);
     let length = token.reserve_restore_workspace().unwrap();
     assert!(length > 0);
     let (again, reserve) = allocation_probe::observe(|| token.reserve_restore_workspace().unwrap());

@@ -19,6 +19,15 @@ impl BodyPlanSeal {
         mask_topologies: &[VerifiedBodyMaskTopology<'_>],
         body_time_requirement: Option<BodyTimeRequirement>,
     ) -> Result<Self, BodyPlanSealRefusal> {
+        Self::capture_prepared_verified(wake, &[], plots, mask_topologies, body_time_requirement)
+    }
+    pub(crate) fn capture_prepared_verified(
+        wake: &Wake,
+        prepared: &[PreparedVerifiedBodyPlotPlan],
+        plots: &[VerifiedBodyPlotPlan<'_>],
+        mask_topologies: &[VerifiedBodyMaskTopology<'_>],
+        body_time_requirement: Option<BodyTimeRequirement>,
+    ) -> Result<Self, BodyPlanSealRefusal> {
         use BodyPlanError as E;
         let invalid = BodyPlanSealRefusal::Invalid;
         validate_body_time_requirement(&wake.body_id, body_time_requirement.as_ref())
@@ -29,10 +38,18 @@ impl BodyPlanSeal {
         if wake.workset.is_empty() {
             return Err(invalid(E::EmptyWorkset));
         }
-        if plots.len() > MAX_BODY_PLOTS {
+        if plots
+            .len()
+            .checked_add(prepared.len())
+            .is_none_or(|count| count > MAX_BODY_PLOTS)
+        {
             return Err(invalid(E::PlotCapacityExceeded));
         }
-        let mut plots: Vec<_> = plots.iter().map(PlotRef::verified).collect();
+        let mut plots: Vec<_> = plots
+            .iter()
+            .map(PlotRef::verified)
+            .chain(prepared.iter().map(PlotRef::prepared))
+            .collect();
         plots.sort_by(|a, b| a.plot.cmp(b.plot));
         if plots.windows(2).any(|p| p[0].plot >= p[1].plot) {
             return Err(invalid(E::DuplicatePlot));
@@ -41,11 +58,7 @@ impl BodyPlanSeal {
             if !wake.workset.contains(partition.plot) {
                 return Err(invalid(E::UnexpectedPlot));
             }
-            let plan = partition.plan.metadata();
-            if !partition.plan.valid()
-                || plan.source_document_id != partition.plot.source_document_id
-                || plan.checked_plot_id != partition.plot.checked_plot_id
-            {
+            if !partition.plan.valid() || !partition.plan.identity_matches(partition.plot) {
                 return Err(invalid(E::InvalidPlan));
             }
         }
@@ -65,14 +78,15 @@ impl BodyPlanSeal {
         .map_err(invalid)?;
         let mut masks: Vec<_> = mask_topologies.iter().map(MaskRef::verified).collect();
         masks.sort_by(|a, b| a.face.cmp(b.face));
-        preflight_core_plans(
-            plots.iter().map(|p| p.plan.metadata()).chain(
-                masks
-                    .iter()
-                    .flat_map(|m| m.chains())
-                    .map(|c| c.plan.metadata()),
-            ),
-        )?;
+        preflight_core_scopes(plots.iter().map(|p| p.plan.scope()).chain(
+            masks.iter().flat_map(|m| m.chains()).map(|c| {
+                let p = c.plan.metadata();
+                (
+                    p.fragments.len(),
+                    !p.activations.is_empty() || !p.activation_preparations.is_empty(),
+                )
+            }),
+        ))?;
         let plan_id = bind_body_plan_views(
             &wake.body_id,
             &wake.wake_id,
@@ -87,10 +101,7 @@ impl BodyPlanSeal {
             plan_id,
             workload_revision: wake.workload_revision,
             workset: wake.workset.clone(),
-            plots: plots
-                .iter()
-                .map(|p| capture_core(p.plan.metadata()))
-                .collect(),
+            plots: plots.iter().map(|p| p.plan.capture()).collect(),
             masks: masks
                 .iter()
                 .map(|m| BodyMaskTopologySeal {

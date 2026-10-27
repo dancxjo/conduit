@@ -17,7 +17,7 @@ pub(super) fn bind_body_plan_views<'a>(
     for plot in plots {
         push(&mut hash, plot.plot.source_document_id.as_str());
         push(&mut hash, plot.plot.checked_plot_id.as_str());
-        push(&mut hash, plot.plan.metadata().plan_id.as_str());
+        push(&mut hash, plot.plan.plan_id().as_str());
     }
     hash.update((mask_topologies.len() as u32).to_le_bytes());
     for topology in mask_topologies {

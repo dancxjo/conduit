@@ -277,8 +277,30 @@ impl NativeRoot {
         };
         let sample = self.prepare_local_sampler_plan()?;
         let sampler = self.prepare_local_sampler_parts(&sample, execute)?;
+        let metadata = sample.preparation_metadata();
+        let input = conduit_body::VerifiedBodyPlotPlan {
+            plot: conduit_body::ResidentPlot::new(
+                metadata.source_document_id.clone(),
+                metadata.checked_plot_id.clone(),
+            ),
+            plan: &sample,
+        };
+        #[cfg(feature = "local-appliance")]
+        let prepared_sample = parked.prepare_verified_plot(&input)?;
+        #[cfg(not(feature = "local-appliance"))]
+        let prepared_sample = self
+            .body
+            .as_ref()
+            .ok_or("body-owner")?
+            .prepare_verified_proposal_context(&self.host, &self.boot)
+            .map_err(|_| "local-sampler-proposal-context")?
+            .prepare_plot(&input)
+            .map_err(|_| "local-sampler-proposal-seal")?;
+        drop(input);
+        drop(sample);
+        mark("ordinary-mask-sampler-plan-retired", 15);
         self.plan_local_mask_from_sampler(
-            sample,
+            prepared_sample,
             sampler,
             execute,
             #[cfg(feature = "local-appliance")]
@@ -291,7 +313,7 @@ impl NativeRoot {
     #[inline(never)]
     fn plan_local_mask_from_sampler(
         &mut self,
-        sample: c::VerifiedPlanMetadata,
+        sample: conduit_body::PreparedVerifiedBodyPlotPlan,
         sampler: alloc::boxed::Box<PreparedSamplerParts>,
         execute: bool,
         #[cfg(feature = "local-appliance")] mut parked: crate::native_restart::ParkedBody,
@@ -300,6 +322,11 @@ impl NativeRoot {
             let boxed = sampler;
             *boxed
         };
+        #[cfg(feature = "local-appliance")]
+        {
+            let length = parked.reserve_restore_workspace()?;
+            mark("cold-body-restore-workspace-reserved", length);
+        }
         mark("ordinary-mask-software-construction-retired", 15);
         let mask_values = take_fixed_values()?;
         mark(
@@ -314,7 +341,7 @@ impl NativeRoot {
             &mut parked,
         )?;
         drop(sample);
-        mark("ordinary-mask-sampler-plan-retired", 15);
+        mark("ordinary-mask-sampler-seal-retired", 15);
         self.assemble_local_plots(
             proposal,
             sampler,
@@ -413,7 +440,7 @@ impl NativeRoot {
     #[inline(never)]
     fn prepare_local_body_proposal(
         &self,
-        sample: &c::VerifiedPlanMetadata,
+        sample: &conduit_body::PreparedVerifiedBodyPlotPlan,
         mask: &c::VerifiedPlanMetadata,
         #[cfg(feature = "local-appliance")] parked: &mut crate::native_restart::ParkedBody,
     ) -> Result<conduit_body::PreparedVerifiedBodyProposal, &'static str> {
@@ -442,30 +469,36 @@ impl NativeRoot {
                        masks: &[conduit_body::VerifiedBodyMaskTopology<'_>]| {
             #[cfg(feature = "local-appliance")]
             {
-                parked.prepare_verified_proposal(plots, masks)
+                parked.prepare_verified_proposal_with_prepared(
+                    core::slice::from_ref(sample),
+                    plots,
+                    masks,
+                )
             }
             #[cfg(not(feature = "local-appliance"))]
             {
                 self.body
                     .as_ref()
                     .ok_or("body-owner")?
-                    .prepare_verified_proposal(plots, masks, None, &self.host, &self.boot)
+                    .prepare_verified_proposal_context(&self.host, &self.boot)
+                    .and_then(|context| {
+                        context.prepare_verified_with_prepared(
+                            core::slice::from_ref(sample),
+                            plots,
+                            masks,
+                            None,
+                        )
+                    })
                     .map_err(|_| "local-mask-body-proposal")
             }
         };
         #[allow(unused_mut)] // Only the parked profile consumes a mutable capsule.
         let mut prepare = prepare;
         let proposal = prepare(
-            &[
-                conduit_body::VerifiedBodyPlotPlan {
-                    plot: resident(sample),
-                    plan: sample,
-                },
-                conduit_body::VerifiedBodyPlotPlan {
-                    plot: resident(mask),
-                    plan: mask,
-                },
-            ],
+            &[conduit_body::VerifiedBodyPlotPlan {
+                plot: resident(mask),
+                plan: mask,
+            }],
             &[conduit_body::VerifiedBodyMaskTopology {
                 face: conduit_body::BodyFaceSelector {
                     plot: None,
@@ -488,7 +521,7 @@ impl NativeRoot {
         mask: c::VerifiedPlanMetadata,
         mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
         execute: bool,
-        #[cfg(feature = "local-appliance")] mut parked: crate::native_restart::ParkedBody,
+        #[cfg(feature = "local-appliance")] parked: crate::native_restart::ParkedBody,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
         let PreparedSamplerParts {
             sampler_parts,
@@ -496,11 +529,6 @@ impl NativeRoot {
             active,
             fragment,
         } = sampler;
-        #[cfg(feature = "local-appliance")]
-        {
-            let length = parked.reserve_restore_workspace()?;
-            mark("cold-body-restore-workspace-reserved", length);
-        }
         let generation = c::OfferGeneration(self.offer_generation);
         let role = material::role().map_err(|_| "local-mask-role")?;
         let context = if execute || cfg!(feature = "target-mask-native-check") {
