@@ -1,4 +1,5 @@
 use alloc::string::String;
+use portable_atomic_util::Arc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -9,11 +10,11 @@ pub const MAX_LIFECYCLE_ID_BYTES: usize = 256;
 macro_rules! identity {
     ($name:ident) => {
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-        pub struct $name(String);
+        pub struct $name(Arc<str>);
 
         impl $name {
             pub(crate) fn bound(value: String) -> Self {
-                Self(value)
+                Self(Arc::from(value))
             }
             pub fn as_str(&self) -> &str {
                 &self.0
@@ -101,4 +102,46 @@ pub(crate) fn bind_identity(domain: &str, values: &[&str], sequence: u64) -> Str
         let _ = write!(output, "{byte:02x}");
     }
     output
+}
+
+#[cfg(test)]
+mod immutable_id_tests {
+    extern crate std;
+    use super::*;
+    #[test]
+    fn clones_share_immutable_bytes_and_keep_thread_contracts() {
+        fn send_sync<T: Send + Sync>() {}
+        send_sync::<BodyId>();
+        send_sync::<PartId>();
+        send_sync::<MembershipProofId>();
+        let original = BodyId::bound(String::from("body/shared-id"));
+        let cloned = original.clone();
+        assert!(Arc::ptr_eq(&original.0, &cloned.0));
+        assert_eq!(original, cloned);
+        assert_eq!(original.as_str(), "body/shared-id");
+        use core::hash::{Hash, Hasher};
+        fn hash(value: &impl Hash) -> u64 {
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            value.hash(&mut h);
+            h.finish()
+        }
+        assert_eq!(hash(&original), hash(&String::from(original.as_str())));
+        assert!(BodyId::bound(String::from("a")) < BodyId::bound(String::from("b")));
+    }
+    #[test]
+    fn immutable_id_json_and_postcard_keep_exact_string_wire() {
+        let value = BodyId::bound(String::from("body/wire-parity"));
+        assert_eq!(
+            serde_json::to_vec(&value).unwrap(),
+            serde_json::to_vec(value.as_str()).unwrap()
+        );
+        assert_eq!(
+            postcard::to_allocvec(&value).unwrap(),
+            postcard::to_allocvec(value.as_str()).unwrap()
+        );
+        let decoded: BodyId = serde_json::from_slice(&serde_json::to_vec(&value).unwrap()).unwrap();
+        assert_eq!(decoded, value);
+        // Wire decoding alone does not intern independently encoded identities.
+        assert!(!Arc::ptr_eq(&decoded.0, &value.0));
+    }
 }

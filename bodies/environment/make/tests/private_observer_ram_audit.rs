@@ -203,8 +203,9 @@ fn observer_resident_ram_audit() {
         "private canonical biography",
     );
     drop(encoded);
+    println!("CPU64 decoded_absolute_live={}", MEM.with(|m| m.get().live));
     ok(
-        native_restart::initialize(media, retained.evidence),
+        native_restart::initialize(media.clone(), retained.evidence),
         "private store initialize",
     );
     drop(retained.archives);
@@ -262,6 +263,10 @@ fn observer_resident_ram_audit() {
         owner.evidence().membership.events.capacity(),
         owner.evidence().records.len(),
         owner.evidence().records.capacity()
+    );
+    println!(
+        "CPU64 baseline_absolute_live={}",
+        MEM.with(|m| m.get().live)
     );
     resident_components("baseline", &owner);
     let baseline_members = owner.evidence().membership.parts.len();
@@ -337,6 +342,10 @@ fn observer_resident_ram_audit() {
         );
     });
     println!("CPU64 after_membership_seal delta={} peak={} total_server_delta={} members={}/{} member_events={}/{} records={}/{}",seal_delta,seal_peak,invitation_server+admit_server+seal_delta,owner.evidence().membership.parts.len(),owner.evidence().membership.parts.capacity(),owner.evidence().membership.events.len(),owner.evidence().membership.events.capacity(),owner.evidence().records.len(),owner.evidence().records.capacity());
+    println!(
+        "CPU64 sealed_observer_absolute_live={}",
+        MEM.with(|m| m.get().live)
+    );
     resident_components("sealed_observer", &owner);
     let (_, check_delta, check_peak) = measure(|| {
         ok(
@@ -351,6 +360,64 @@ fn observer_resident_ram_audit() {
     let body_binding: [u8; 32] =
         Sha256::digest(owner.evidence().body_id.as_str().as_bytes()).into();
     assert!(body_binding == binding);
+    // Reopen actual authenticated checkpoint bytes and verify exact canonical
+    // evidence/admission wire plus consumed-invitation replay after restart.
+    let expected_evidence = ok(
+        serde_json::to_vec(owner.evidence()),
+        "expected evidence wire",
+    );
+    let expected_admissions = ok(
+        native_restart::with_admissions(|m| serde_json::to_vec(m).map_err(|_| "admission wire")),
+        "expected admissions wire",
+    );
+    let mut reopened = ok(
+        native_body_checkpoint::Checkpoint::open(media),
+        "checkpoint reopen",
+    );
+    let length =
+        ok(reopened.payload_length(&binding), "reopen binding").expect("committed checkpoint");
+    let mut encoded = vec![0; length];
+    let mut reopened_seed = [0; 32];
+    ok(
+        reopened.load(&binding, &mut reopened_seed, &mut encoded),
+        "reopened payload",
+    );
+    assert!(reopened_seed == selected, "Root seed continuity");
+    reopened_seed.fill(0);
+    let retained = ok(
+        native_restart::payload::decode(&encoded, &owner.evidence().body_id),
+        "reopened canonical payload",
+    );
+    assert!(
+        ok(
+            serde_json::to_vec(&retained.evidence),
+            "reopened evidence wire"
+        ) == expected_evidence,
+        "exact evidence wire"
+    );
+    let mut admissions = retained.admissions.expect("retained admissions");
+    assert!(
+        ok(serde_json::to_vec(&admissions), "reopened admissions wire") == expected_admissions,
+        "exact admission wire"
+    );
+    let mut membership = retained.evidence.membership;
+    let signs = conduit_body::AdmissionSigns {
+        part_admitted: c::bind_sign(&host, &boot, None, 100).sign_id,
+        host_attached: c::bind_sign(&host, &boot, None, 101).sign_id,
+        candidate_admitted: c::bind_sign(&host, &boot, None, 102).sign_id,
+    };
+    let replay = admissions.complete_spawn(
+        &mut membership,
+        &request.host_advertisement,
+        &request.admission_proof().unwrap(),
+        12,
+        signs,
+    );
+    assert!(
+        matches!(replay, Err(conduit_body::AdmissionRefusal::Replay)),
+        "replay after checkpoint reopen"
+    );
+    println!("CPU64 checkpoint_reopened=true exact_evidence_wire=true exact_admission_wire=true consumed_invitation_replay_refused=true Root_seed_continuity=true");
 }
 
 // Exact owned clone allocation isolates metadata payload from spare capacities.
@@ -371,4 +438,19 @@ fn resident_components(label: &str, owner: &conduit_body::SealedBodyLifecycleSes
         "private component audit",
     );
     println!("CPU64 components label={label} parts_clone_bytes={parts} checkpoint_clone_bytes={checkpoint} body_clone_bytes={body} records_clone_bytes={records} admissions_clone_bytes={admissions}");
+}
+#[test]
+fn immutable_body_id_unique_and_clone_allocation_cost() {
+    let text = format!("body/{}", "a".repeat(64));
+    let wire = serde_json::to_vec(&text).unwrap();
+    let (plain, plain_heap, _) = measure(|| text.clone());
+    let (identity, shared_heap, _) =
+        measure(|| serde_json::from_slice::<conduit_body::BodyId>(&wire).unwrap());
+    let (cloned, clone_heap, _) = measure(|| identity.clone());
+    assert_eq!(identity, cloned);
+    assert_eq!(clone_heap, 0);
+    let original_total = plain_heap + core::mem::size_of::<String>() as isize;
+    let shared_total = shared_heap + core::mem::size_of::<conduit_body::BodyId>() as isize;
+    println!("CPU64 unique_id_text_bytes={} String_total={} shared_id_total={} unique_overhead={} clone_heap={} decoded_independently=true",text.len(),original_total,shared_total,shared_total-original_total,clone_heap);
+    drop((plain, identity, cloned));
 }
