@@ -193,7 +193,7 @@ pub fn issue(state: &Path, serial: &str, output: &Path) -> Result<()> {
         .sign(&request.transcript())
         .to_bytes()
         .to_vec();
-    line.text(&format!("JOIN {}", serde_json::to_string(&request)?))?;
+    line.physical_paced_text(&format!("JOIN {}", serde_json::to_string(&request)?))?;
     let mut bootstrap: Bootstrap =
         serde_json::from_value(line.schema_document(conduit_body::INVITATION_SCHEMA)?)?;
     let result = (|| {

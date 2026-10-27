@@ -130,6 +130,26 @@ impl Line {
         self.write(text.as_bytes())?;
         self.write(b"\n")
     }
+    /// Physical invitation ingress is serviced in bounded firmware ticks.
+    /// Keep each burst below that receiver's budget without reopening the UART.
+    pub fn physical_paced_text(&mut self, text: &str) -> Result<()> {
+        if self.endpoint.is_some() {
+            return Err("paced invitation requires physical USB UART".into());
+        }
+        if text.len() > 1024 || text.contains(['\r', '\n']) {
+            return Err("paced invitation command bound".into());
+        }
+        let mut frame = [0u8; 1025];
+        frame[..text.len()].copy_from_slice(text.as_bytes());
+        frame[text.len()] = b'\n';
+        for (index, chunk) in frame[..=text.len()].chunks(32).enumerate() {
+            if index != 0 {
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            self.write(chunk)?;
+        }
+        Ok(())
+    }
     pub fn exact(&mut self, size: usize) -> Result<Vec<u8>> {
         if size > 64 * 1024 {
             return Err("UART reply bound".into());
@@ -241,3 +261,53 @@ impl Line {
 #[cfg(test)]
 #[path = "transport_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod paced_tests {
+    use super::*;
+    use std::os::unix::net::UnixStream;
+    fn pair(endpoint: Option<std::net::SocketAddr>) -> (Line, UnixStream) {
+        let (left, right) = UnixStream::pair().unwrap();
+        let file = File::from(std::os::fd::OwnedFd::from(left));
+        (Line { file, endpoint }, right)
+    }
+    #[test]
+    fn paced_refuses_before_emitting_any_bytes() {
+        for (endpoint, text) in [
+            (Some("127.0.0.1:1".parse().unwrap()), "JOIN ok".to_owned()),
+            (None, "x".repeat(1025)),
+            (None, "JOIN ok\nJOIN?".to_owned()),
+            (None, "JOIN\rno".to_owned()),
+        ] {
+            let (mut line, mut peer) = pair(endpoint);
+            peer.set_nonblocking(true).unwrap();
+            assert!(line.physical_paced_text(&text).is_err());
+            assert_eq!(
+                peer.read(&mut [0; 1]).unwrap_err().kind(),
+                std::io::ErrorKind::WouldBlock
+            );
+        }
+    }
+    #[test]
+    fn paced_preserves_exact_frame_and_spaces_bursts() {
+        let (mut line, mut peer) = pair(None);
+        let text = "x".repeat(64);
+        let began = Instant::now();
+        line.physical_paced_text(&text).unwrap();
+        assert!(began.elapsed() >= Duration::from_millis(200));
+        let mut received = [0; 65];
+        peer.read_exact(&mut received).unwrap();
+        assert_eq!(&received[..64], text.as_bytes());
+        assert_eq!(received[64], b'\n');
+    }
+    #[test]
+    fn paced_accepts_maximum_command_without_truncation() {
+        let (mut line, mut peer) = pair(None);
+        let text = "x".repeat(1024);
+        line.physical_paced_text(&text).unwrap();
+        let mut received = [0; 1025];
+        peer.read_exact(&mut received).unwrap();
+        assert_eq!(&received[..1024], text.as_bytes());
+        assert_eq!(received[1024], b'\n');
+    }
+}
