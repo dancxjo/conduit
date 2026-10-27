@@ -50,6 +50,9 @@ struct Cold {
     region: Erased<Region>,
     signed: bool,
     basis: &'static [u8],
+    scope: Option<[u8; 96]>,
+    capacity: u32,
+    maximum_requested: u32,
 }
 struct Active {
     journal: Journal<'static, Region>,
@@ -59,6 +62,7 @@ struct Active {
     failed: bool,
     recovered: bool,
     signed: bool,
+    maximum_records: u32,
 }
 enum State {
     Cold(Cold),
@@ -67,15 +71,46 @@ enum State {
 }
 #[inline(never)]
 fn open_epoch(region: Region, basis: &'static [u8]) -> Result<State, &'static str> {
-    let signed = conduit_environment_runtime::display_evidence_journal::Storage::capacity(&region)
-        == 0x20000;
+    let mut capacity =
+        conduit_environment_runtime::display_evidence_journal::Storage::capacity(&region);
+    let signed = capacity == 0x20000;
     match Erased::prepare_retained(region) {
         Ok(region) => Ok(State::Cold(Cold {
             region,
             signed,
             basis,
+            scope: None,
+            capacity,
+            maximum_requested: 0,
         })),
-        Err((region, _)) => {
+        Err((mut region, _)) => {
+            if signed {
+                if let Ok((prefix, erased)) =
+                    with_work(|work| recovery::retained_header_prefix(&mut region, basis, work))
+                {
+                    if prefix > 0 {
+                        region = match region.seal_prefix(prefix) {
+                            Ok(region) => region,
+                            Err(_) => return Ok(State::Failed),
+                        };
+                        capacity -= prefix;
+                    }
+                    if erased {
+                        return Erased::prepare_retained(region)
+                            .map(|region| {
+                                State::Cold(Cold {
+                                    region,
+                                    signed,
+                                    basis,
+                                    scope: None,
+                                    capacity,
+                                    maximum_requested: 0,
+                                })
+                            })
+                            .map_err(|_| "observed-history-empty-suffix");
+                    }
+                }
+            }
             match with_work(|work| recovery::reopen_profile(region, basis, work, signed)) {
                 Ok((journal, scope, last_sequence)) => Ok(State::Active(Active {
                     journal,
@@ -85,6 +120,9 @@ fn open_epoch(region: Region, basis: &'static [u8]) -> Result<State, &'static st
                     failed: false,
                     recovered: true,
                     signed,
+                    maximum_records: ((capacity.saturating_sub(536))
+                        / if signed { 104 } else { 40 })
+                    .min(960),
                 })),
                 // Invalid media stays physically intact and is never reissued.
                 Err(_) => Ok(State::Failed),
@@ -93,7 +131,9 @@ fn open_epoch(region: Region, basis: &'static [u8]) -> Result<State, &'static st
     }
 }
 /// Five immutable 128 KiB signed epochs admit at most 80 hours at the linked cadence.
-/// Reboot consumes a fresh erased epoch; committed or torn media is never erased.
+/// Binding consumes no media. Empty committed headers can be sealed and their
+/// verified erased suffix reused; nonempty or torn media is never erased.
+/// Each suffix admits only the readings that fit its remaining physical extent.
 pub fn initialize_epochs(
     region: impl Into<Option<Region>>,
     additional: [Region; 5],
@@ -208,25 +248,11 @@ fn bind_scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> Result<(
         if !matches!(state.as_ref(), Some(State::Cold(_))) {
             return Err("observed-history-unavailable");
         }
-        let Some(State::Cold(cold)) = state.take() else {
+        let Some(State::Cold(cold)) = state.as_mut() else {
             unreachable!()
         };
-        *state = Some(State::Failed);
-        let signed = cold.signed;
-        let basis = cold.basis;
-        let journal = with_work(|work| {
-            Journal::create_prepared(cold.region, &scope, basis, maximum, work)
-                .map_err(|_| "observed-history-header")
-        })?;
-        *state = Some(State::Active(Active {
-            journal,
-            scope,
-            forms: Sha256::digest(basis).into(),
-            last_sequence: 0,
-            failed: false,
-            recovered: false,
-            signed,
-        }));
+        cold.scope = Some(scope);
+        cold.maximum_requested = maximum;
         Ok(())
     })
 }
@@ -248,6 +274,38 @@ pub fn append(snapshot: PublicationSnapshot<'_>, observed_ms: u64) -> Result<(),
     let sequence = u64::from_le_bytes(record[..8].try_into().unwrap());
     STATE.lock(|cell| {
         let mut state = cell.borrow_mut();
+        if matches!(state.as_ref(), Some(State::Cold(cold)) if cold.scope.is_some()) {
+            let Some(State::Cold(cold)) = state.take() else {
+                unreachable!()
+            };
+            *state = Some(State::Failed);
+            let scope = cold.scope.ok_or("observed-history-scope")?;
+            if sequence != 1 {
+                return Err("observed-history-sequence");
+            }
+            // Signed records use the raw codec: 85 payload + 2 codec bytes,
+            // four-byte padding, 8-byte prefix and 8-byte commit = 104 bytes.
+            let capacity = cold.capacity;
+            let stride = if cold.signed { 104 } else { 40 };
+            let maximum = ((capacity.saturating_sub(536)) / stride).min(cold.maximum_requested);
+            if maximum == 0 {
+                return Err("observed-history-capacity");
+            }
+            let journal = with_work(|work| {
+                Journal::create_prepared(cold.region, &scope, cold.basis, maximum, work)
+                    .map_err(|_| "observed-history-header")
+            })?;
+            *state = Some(State::Active(Active {
+                journal,
+                scope,
+                forms: Sha256::digest(cold.basis).into(),
+                last_sequence: 0,
+                failed: false,
+                recovered: false,
+                signed: cold.signed,
+                maximum_records: maximum,
+            }));
+        }
         let Some(State::Active(active)) = state.as_mut() else {
             return Err("observed-history-unavailable");
         };
@@ -294,6 +352,7 @@ pub struct Status {
     scope_ready: bool,
     failed: bool,
     recovered_read_only: bool,
+    maximum_records: u32,
 }
 pub fn status() -> Status {
     STATE.lock(|cell| match cell.borrow().as_ref() {
@@ -304,14 +363,22 @@ pub fn status() -> Status {
             scope_ready: !active.recovered,
             failed: active.failed,
             recovered_read_only: active.recovered,
+            maximum_records: active.maximum_records,
         },
-        Some(State::Cold(_)) => Status {
+        Some(State::Cold(cold)) => Status {
             committed: 0,
             retained_bytes: 0,
             last_sequence: 0,
-            scope_ready: false,
+            scope_ready: cold.scope.is_some(),
             failed: false,
             recovered_read_only: false,
+            maximum_records: ((cold.capacity.saturating_sub(536))
+                / if cold.signed { 104 } else { 40 })
+            .min(if cold.scope.is_some() {
+                cold.maximum_requested
+            } else {
+                960
+            }),
         },
         _ => Status {
             committed: 0,
@@ -320,6 +387,7 @@ pub fn status() -> Status {
             scope_ready: false,
             failed: true,
             recovered_read_only: false,
+            maximum_records: 0,
         },
     })
 }

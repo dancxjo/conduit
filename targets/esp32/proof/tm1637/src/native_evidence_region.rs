@@ -149,6 +149,16 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
     })
 }
 impl Region {
+    /// Consume the old mutable entrance. Prefix bytes remain physically sealed;
+    /// only the checked disjoint suffix can subsequently be programmed.
+    pub(crate) fn seal_prefix(mut self, length: u32) -> Result<Self, Self> {
+        if !length.is_multiple_of(4) || length >= self.length {
+            return Err(self);
+        }
+        self.start += length;
+        self.length -= length;
+        Ok(self)
+    }
     fn bound(&self, at: u32, n: usize) -> Result<u32, Refusal> {
         let n = u32::try_from(n).map_err(|_| Refusal::Geometry)?;
         if !at.is_multiple_of(4)

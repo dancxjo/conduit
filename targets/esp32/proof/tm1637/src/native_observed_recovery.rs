@@ -49,3 +49,78 @@ pub fn reopen_profile<'a, S: Storage>(
     }
     Ok((journal, scope, sequence))
 }
+
+/// Find reusable erased backing after complete, empty committed headers only.
+/// Every previous byte remains sealed; any record, torn header, or dirty tail
+/// refuses this recovery path. This grants no authority over an old scope.
+pub fn empty_header_prefix<S: Storage>(
+    storage: &mut S,
+    basis: &[u8],
+    work: &mut [u8],
+) -> Result<u32, &'static str> {
+    let (prefix, erased) = retained_header_prefix(storage, basis, work)?;
+    if !erased {
+        return Err("observed-history-not-empty");
+    }
+    Ok(prefix)
+}
+
+/// Locate the final scope after sealed empty headers. A nonempty final journal
+/// remains read-only under its original scope; only an erased tail is reusable.
+pub fn retained_header_prefix<S: Storage>(
+    storage: &mut S,
+    basis: &[u8],
+    work: &mut [u8],
+) -> Result<(u32, bool), &'static str> {
+    struct Suffix<'a, S> {
+        storage: &'a mut S,
+        start: u32,
+    }
+    impl<S: Storage> Storage for Suffix<'_, S> {
+        fn capacity(&self) -> u32 {
+            self.storage.capacity() - self.start
+        }
+        fn read(
+            &mut self,
+            at: u32,
+            out: &mut [u8],
+        ) -> Result<(), conduit_environment_runtime::display_evidence_journal::Refusal> {
+            self.storage.read(self.start + at, out)
+        }
+        fn program(
+            &mut self,
+            _: u32,
+            _: &[u8],
+        ) -> Result<(), conduit_environment_runtime::display_evidence_journal::Refusal> {
+            Err(conduit_environment_runtime::display_evidence_journal::Refusal::Media)
+        }
+    }
+    let mut start = 0;
+    loop {
+        let mut bytes = [0; 64];
+        let mut erased = true;
+        for at in (start..storage.capacity()).step_by(64) {
+            let n = (storage.capacity() - at).min(64) as usize;
+            storage
+                .read(at, &mut bytes[..n])
+                .map_err(|_| "observed-history-read")?;
+            if bytes[..n].iter().any(|byte| *byte != 255) {
+                erased = false;
+                break;
+            }
+        }
+        if erased {
+            return Ok((start, true));
+        }
+        let tail = Suffix { storage, start };
+        let (journal, _, sequence) = reopen_profile(tail, basis, work, true)?;
+        if journal.committed_count() != 0 || sequence != 0 {
+            return Ok((start, false));
+        }
+        let used = journal.retained_extent();
+        if used == 0 {
+            return Err("observed-history-empty-header");
+        }
+        start = start.checked_add(used).ok_or("observed-history-capacity")?;
+    }
+}
