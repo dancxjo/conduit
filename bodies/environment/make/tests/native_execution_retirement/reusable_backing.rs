@@ -28,3 +28,28 @@ fn original_terminal_value_backing_is_emptied_without_resetting_generations_or_s
     assert!(reused_original_slot);
     assert!(values.get(original).is_err());
 }
+
+#[test]
+fn direct_retired_material_returns_original_backing_and_complete_signs_without_driver_return() {
+    let mut f = fixture();
+    assert_eq!(
+        run(f.execution.as_mut().unwrap()).exit,
+        native_worker::Exit::Drained
+    );
+    let retired = DeviceExecution::retire_with_material_retained(&mut f.execution).unwrap();
+    let expected = retired
+        .material
+        .kernel()
+        .signs()
+        .events()
+        .collect::<Vec<_>>();
+    let capacity = retired.material.kernel().values().item_capacity();
+    let ((mut values, signs), memory) =
+        allocation_probe::observe(|| retired.material.into_reusable_backing());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert_eq!(values.item_capacity(), capacity);
+    assert_eq!((values.used_items(), values.used_bytes()), (0, 0));
+    assert_eq!(signs.events().collect::<Vec<_>>(), expected);
+    let fresh = values.store(&[93]).unwrap();
+    assert!(fresh.generation > 0);
+}

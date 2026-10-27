@@ -99,6 +99,23 @@ where
                 .any(|cord| cord.len != 0 || cord.offered_remote_sequence.is_some())
     }
 
+    /// Return only the original value and Sign backing after the same complete
+    /// retirement gate, dropping the terminal drivers in their original Box.
+    /// This is not a replacement execution or authority grant. Refusal retains
+    /// the exact Box and all of its owners, without allocating.
+    #[cfg(feature = "alloc")]
+    pub fn try_retire_backing(
+        self: alloc::boxed::Box<Self>,
+    ) -> Result<(S, E), alloc::boxed::Box<Self>> {
+        if !self.can_retire() {
+            return Err(self);
+        }
+        // Do not bind a giant driver array in a temporary return value. The
+        // remaining fields are dropped normally, including every original Back.
+        let Self { values, signs, .. } = *self;
+        Ok((values, signs))
+    }
+
     /// Refuses active/quiescent execution and outstanding queue/host ownership.
     /// Refusal returns the exact original scheduler so execution may continue.
     #[allow(

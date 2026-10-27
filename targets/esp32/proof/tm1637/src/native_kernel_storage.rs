@@ -85,6 +85,25 @@ impl RetiredKernelMaterial {
     pub fn roles(&self) -> ResidentRoles {
         self.0.roles
     }
+    /// Reclaim only backing after actual terminal material was accepted by
+    /// Root. Unlike into_parts this never returns a full driver array by value.
+    /// This does not accept terminal Signs or admit a successor on its own.
+    pub fn into_reusable_backing(self) -> (k::HostedValueStore, k::HostedSignLog) {
+        use k::ValueStorage;
+        let PreparedKernel {
+            kernel,
+            selectors,
+            roles: _,
+        } = self.0;
+        let (mut values, signs) = match kernel.try_retire_backing() {
+            Ok(backing) => backing,
+            Err(_) => unreachable!("exclusive preflighted retired kernel"),
+        };
+        drop(selectors);
+        values.clear();
+        (values, signs)
+    }
+
     /// Consuming inspection/return only. Old drivers retain their terminal state;
     /// a new run still needs independently verified Source/configuration and claims.
     pub fn into_parts(self) -> RetiredKernelParts {
