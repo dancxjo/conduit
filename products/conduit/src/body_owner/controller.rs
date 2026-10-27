@@ -76,6 +76,10 @@ pub(crate) use thermostat_worker::ThermostatWorker;
 #[allow(dead_code)]
 #[path = "commons_encounter.rs"]
 mod commons_encounter;
+#[path = "notebook.rs"]
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+mod notebook;
+pub(crate) use notebook::NotebookWaitingWorker;
 #[path = "todo_face.rs"]
 mod todo_face;
 #[path = "todo_next.rs"]
@@ -206,6 +210,8 @@ pub(crate) struct Owner {
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
+    /// Canonical document projection adopted from completed notebook Source steps.
+    notebook: Option<notebook::NotebookDocument>,
     /// Bounded display cache from an exact selected read Host Call and both
     /// terminal Signs. It is never a reducer or a source of authority.
     todo_verified: Option<(
@@ -310,6 +316,7 @@ impl Owner {
             thermostat_live: None,
             todo_live: None,
             todo_verified: None,
+            notebook: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -339,6 +346,7 @@ impl Owner {
             thermostat_live: None,
             todo_live: None,
             todo_verified: None,
+            notebook: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
@@ -413,6 +421,9 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
+        if self.has_open_notebook() && self.current_play_id().is_some() {
+            return self.project_notebook_face();
+        }
         if let Some(live) = &self.thermostat_live {
             return self.project_thermostat_face(live);
         }

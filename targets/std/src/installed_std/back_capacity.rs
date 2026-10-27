@@ -10,6 +10,7 @@ impl InstalledBack {
             Self::Numerical(back) => back.retained_capacity_bytes(),
             Self::NearQuantity(back) => back.retained_capacity_bytes(),
             Self::IeeeBinary64(back) => back.retained_capacity_bytes(),
+            Self::TextApplyEdit(back) => back.allocation_capacity(),
             Self::DistanceFrequency(_) => 0,
             Self::KeyboardInput(_) => 0,
             Self::ButtonInput(operation) => operation.allocation_capacity(),

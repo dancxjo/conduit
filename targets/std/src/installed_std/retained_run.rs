@@ -32,6 +32,8 @@ pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
+    #[cfg(target_os = "linux")]
+    pub selected_text_file: Option<&'a crate::text_file::SelectedTextFileResidence>,
     pub advertisement: &'a HostAdvertisement,
     pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
     pub midi_input: Option<&'a crate::hosted_midi::HostedRawMidiSelection>,

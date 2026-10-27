@@ -182,6 +182,7 @@ mod test_support;
 mod test_text_source;
 #[cfg(test)]
 mod test_timing_sink;
+mod text_apply_edit_back;
 mod text_backs;
 #[cfg(test)]
 mod text_backs_tests;
@@ -290,6 +291,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         durable_state,
     } = lifecycle;
     let InstalledRunHost {
+        #[cfg(target_os = "linux")]
+        selected_text_file,
         advertisement,
         playback,
         midi_input,
@@ -676,6 +679,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         fragment,
         &lowered.identity,
         &active_play,
+        #[cfg(target_os = "linux")]
+        selected_text_file,
     )?;
     let mut model_work_output =
         Vec::with_capacity(conduit_ai::MODEL_WORK_MAXIMUM_OUTPUT_BYTES as usize);
@@ -1466,72 +1471,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete bounded template storage: {error:?}"))?;
                 continue;
             }
-            if matches!(
-                contract.as_str(),
-                conduit_std_offers::DATA_SAVE_TEXT_HOST_CALL
-                    | conduit_std_offers::DATA_LOAD_TEXT_HOST_CALL
-            ) {
-                let operation = if contract.as_str() == conduit_std_offers::DATA_SAVE_TEXT_HOST_CALL
-                {
-                    data_text_back::DataTextOperation::Save
-                } else {
-                    data_text_back::DataTextOperation::Load
-                };
+            if let Some(operation) = data_text_host::operation_for_contract(contract) {
                 let completion = data_text_hosts.execute(request.node, operation, input);
-                let (disposition, output, failure) = match completion {
-                    data_text_host::DataTextCompletion::Output(encoded) => {
-                        let value = scheduler.store_host_value(encoded).map_err(|error| {
-                            format!("store bounded data Text output: {error:?}")
-                        })?;
-                        (
-                            HostCallDisposition::Completed,
-                            Some(
-                                BoundedValueRef::new(
-                                    value,
-                                    lowered_operation.binding.maximum_output_bytes,
-                                )
-                                .map_err(|error| format!("bound data Text output: {error:?}"))?,
-                            ),
-                            None,
-                        )
-                    }
-                    data_text_host::DataTextCompletion::SaveTerminal(terminal) => (
-                        HostCallDisposition::Denied,
-                        None,
-                        Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostCallDenied,
-                            detail: u16::from(terminal.encode()[0]),
-                        }),
-                    ),
-                    data_text_host::DataTextCompletion::LoadTerminal(terminal) => (
-                        HostCallDisposition::Denied,
-                        None,
-                        Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostCallDenied,
-                            detail: u16::from(terminal.encode()[0]),
-                        }),
-                    ),
-                    data_text_host::DataTextCompletion::Failed(detail) => (
-                        HostCallDisposition::Failed,
-                        None,
-                        Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostCallFailed,
-                            detail,
-                        }),
-                    ),
-                };
                 host_calls.record(request)?;
-                scheduler
-                    .complete_host_call(
-                        request.node,
-                        request.request,
-                        HostCallOutcome {
-                            disposition,
-                            output,
-                            failure,
-                        },
-                    )
-                    .map_err(|error| format!("complete data Text operation: {error:?}"))?;
+                data_text_host::complete(&mut scheduler, lowered_operation, request, completion)?;
                 continue;
             }
             if contract.as_str() == conduit_std_offers::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL {

@@ -142,6 +142,7 @@ pub(super) enum InstalledBack {
     TextJoin(TextTransformBack),
     TextFace(TextFaceBack),
     TextState(TextStateBack),
+    TextApplyEdit(super::text_apply_edit_back::TextApplyEditBack),
     StateCount(StateCountBack),
     StateToggle(StateToggleBack),
     CountFace(CountFaceBack),

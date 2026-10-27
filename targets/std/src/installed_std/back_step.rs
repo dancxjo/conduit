@@ -263,6 +263,7 @@ installed_step_dispatch!(
     TextJoin,
     TextFace,
     TextState,
+    TextApplyEdit,
     StateCount,
     StateToggle,
     CountFace,

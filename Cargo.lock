@@ -2167,6 +2167,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-linux-snapshot-store"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-resource-snapshot",
+ "libc",
+]
+
+[[package]]
 name = "conduit-little-seismograph-fixture"
 version = "0.1.0"
 dependencies = [
@@ -2198,6 +2207,23 @@ dependencies = [
  "postcard",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-notebook-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-data",
+ "conduit-kernel",
+ "conduit-linux-snapshot-store",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-semantic-catalog",
+ "conduit-std-host",
+ "conduit-std-offers",
+ "tempfile",
 ]
 
 [[package]]
@@ -2571,6 +2597,7 @@ dependencies = [
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
+ "conduit-linux-snapshot-store",
  "conduit-midi",
  "conduit-net",
  "conduit-observatory",

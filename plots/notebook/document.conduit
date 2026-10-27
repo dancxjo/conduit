@@ -1,0 +1,10 @@
+# The document owner is the existing revisioned editor. Hosts and Masks submit
+# replacements through its Fore; the emitted document is authoritative.
+plot notebook/document (
+    >> edit: text/edit@1...
+    current: text/document@1... >>
+) {
+    document: text/edit-document(maximum-bytes = 256)
+    edit >> document.edit
+    document.current >> current
+}

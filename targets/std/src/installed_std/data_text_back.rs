@@ -20,6 +20,17 @@ pub(super) static LOAD_FACTORY: BackFactory = BackFactory {
     prepare: prepare_load,
 };
 
+pub(super) static FILE_SAVE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION,
+    budget,
+    prepare: prepare_save,
+};
+pub(super) static FILE_LOAD_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION,
+    budget,
+    prepare: prepare_load,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum DataTextOperation {
     Save,
@@ -147,6 +158,14 @@ impl DataTextBack {
 }
 
 fn validate(placement: &PlannedGear) -> Result<(DataTextOperation, u32, u32), String> {
+    if [
+        conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION,
+        conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION,
+    ]
+    .contains(&placement.implementation_id.as_str())
+    {
+        return validate_file(placement);
+    }
     let (operation, offer) = match placement.implementation_id.as_str() {
         conduit_std_offers::DATA_SAVE_TEXT_STD_IMPLEMENTATION => (
             DataTextOperation::Save,
@@ -183,6 +202,41 @@ fn validate(placement: &PlannedGear) -> Result<(DataTextOperation, u32, u32), St
         operation,
         call.maximum_input_bytes,
         call.maximum_output_bytes,
+    ))
+}
+
+fn validate_file(placement: &PlannedGear) -> Result<(DataTextOperation, u32, u32), String> {
+    let content = placement
+        .resources
+        .first()
+        .and_then(|resource| resource.content.as_ref())
+        .ok_or("durable Text lacks selected content")?;
+    let offer = conduit_std_offers::durable_text_offer(content.contract.clone())?;
+    if placement.semantic_contract != offer.semantic_contract
+        || placement.kind_id != offer.kind_id
+        || placement.kind_contract_revision != offer.kind_contract_revision
+        || placement.execution_profile_id != offer.implementation.execution_profile_id
+        || placement.implementation_id != offer.implementation.implementation_id
+        || placement.artifact_id != offer.implementation.artifact_id
+        || placement.capability_id != offer.capability_id
+        || placement.inputs != offer.inputs
+        || placement.outputs != offer.outputs
+        || placement.host_calls != offer.host_calls
+        || placement.limits != offer.limits
+        || placement.resources.len() != 1
+        || placement.authority.len() != 1
+        || !placement.configuration.is_empty()
+    {
+        return Err("durable Text differs from the exact selected file Back".into());
+    }
+    Ok((
+        if placement.kind_id.as_str() == conduit_data::DATA_SAVE_TEXT_KIND {
+            DataTextOperation::Save
+        } else {
+            DataTextOperation::Load
+        },
+        placement.host_calls[0].maximum_input_bytes,
+        placement.host_calls[0].maximum_output_bytes,
     ))
 }
 
