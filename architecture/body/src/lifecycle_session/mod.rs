@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "authenticated-admission")]
 mod browser_admission;
-mod continuity;
 mod checkpoint_history;
+mod continuity;
 mod flow;
 mod membership;
 mod prepared_proposal;
@@ -68,7 +68,7 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
     /// A Crèche handoff or retained body may be opened for inspection. Only a
     /// Lulled Body can subsequently mutate; Fulfilled remains terminal.
     /// An Awake snapshot alone never proves its previous Play has ended.
-    pub fn open(evidence: BodyBiographyEvidence) -> Result<Self, BodyLifecycleSessionError> {
+    pub fn open(mut evidence: BodyBiographyEvidence) -> Result<Self, BodyLifecycleSessionError> {
         evidence
             .validate()
             .map_err(BodyLifecycleSessionError::Biography)?;
@@ -78,6 +78,10 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
         ) {
             return Err(BodyLifecycleSessionError::UnreconciledWake);
         }
+        evidence
+            .membership
+            .share_validated_checkpoint_parts()
+            .map_err(BodyLifecycleSessionError::Membership)?;
         let foreground = evidence.body.workset.plots().first().cloned();
         Ok(Self {
             foreground,
