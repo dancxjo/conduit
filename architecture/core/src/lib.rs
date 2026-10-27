@@ -577,6 +577,8 @@ pub enum ConnectionOutcome {
     Terminal,
 }
 
+mod planned_gear_ref;
+pub use planned_gear_ref::*;
 mod planned_gear_record;
 pub use planned_gear_record::PlannedGear;
 

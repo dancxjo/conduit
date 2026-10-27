@@ -4,8 +4,15 @@ pub(crate) fn push_resource_binding(
     canonical: &mut impl crate::canonical_bytes::CanonicalSink,
     binding: &ResourceBinding,
 ) {
-    push_string(canonical, binding.pool_id.as_str());
-    push_string(canonical, binding.class_id.as_str());
+    push_resource_binding_ref(canonical, binding.into());
+}
+
+pub(crate) fn push_resource_binding_ref(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    binding: crate::ResourceBindingRef<'_>,
+) {
+    push_string(canonical, binding.pool_id);
+    push_string(canonical, binding.class_id);
     push_u32(canonical, binding.units);
     if let Some(content) = &binding.content {
         canonical.extend_from_slice(b"resource-content@1");

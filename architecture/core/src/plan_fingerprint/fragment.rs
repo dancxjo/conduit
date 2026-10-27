@@ -52,6 +52,15 @@ impl FragmentFingerprintBuilder {
         gear: &crate::PlannedGear,
         configuration: &[crate::ConfigurationEntry],
     ) -> Result<(), FragmentFingerprintRefusal> {
+        let mut view = crate::PlannedGearRef::from(gear);
+        view.configuration = configuration;
+        self.push_placement_ref(view)
+    }
+    /// Hash a complete borrowed description. This creates no verification or authority.
+    pub fn push_placement_ref(
+        &mut self,
+        gear: crate::PlannedGearRef<'_>,
+    ) -> Result<(), FragmentFingerprintRefusal> {
         if let Some(refusal) = self.refusal {
             return Err(refusal);
         }
@@ -59,7 +68,7 @@ impl FragmentFingerprintBuilder {
             self.refusal = Some(FragmentFingerprintRefusal::UnexpectedPlacement);
             return Err(FragmentFingerprintRefusal::UnexpectedPlacement);
         }
-        placement::push_placement(&mut self.canonical, gear, configuration);
+        placement::push_placement(&mut self.canonical, gear);
         self.remaining -= 1;
         Ok(())
     }
